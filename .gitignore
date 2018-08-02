@@ -1,0 +1,4 @@
+.pyenv/
+__pycache__
+*.egg-info/
+data

@@ -1,0 +1,9 @@
+[submodule "submodules/python-common"]
+	path = submodules/python-common
+	url = git@gitlab.mpcdf.mpg.de:nomad-lab/python-common.git
+[submodule "submodules/meta-info"]
+	path = submodules/nomad-meta-info
+	url = git@gitlab.mpcdf.mpg.de:nomad-lab/nomad-meta-info.git
+[submodule "submodules/parsers/vasp"]
+	path = submodules/parsers/vasp
+	url = git@gitlab.mpcdf.mpg.de:nomad-lab/parser-vasp.git
