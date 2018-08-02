@@ -16,6 +16,14 @@ docker-compose build
 docker-compose up
 ```
 
+### Run the celery worker (should be moved to docker TODO)
+
+```
+celery -A nomad.processing worker -l info
+```
+You can use different debug level (e.g. switch `info` to `debug`)
+
+
 ### Run tests.
 ```
 python tests/test_files.py
