@@ -14,16 +14,14 @@ services:
       - "MINIO_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE"
       - "MINIO_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
     command: server /data
-    # links:
-    #   - rabbitmq
 
-  # rabbitmq:
-  #   image: rabbitmq
-  #   hostname: "rabbitmq"
-  #   environment:
-  #     - "RABBITMQ_ERLANG_COOKIE=SWQOKODSQALRPCLNMEQG"
-  #     - "RABBITMQ_DEFAULT_USER=rabbitmq"
-  #     - "RABBITMQ_DEFAULT_PASS=rabbitmq"
-  #     - "RABBITMQ_DEFAULT_VHOST=/"
-  #   ports:
-  #     - 5672:5672
+  rabbitmq:
+    image: rabbitmq
+    hostname: "rabbitmq"
+    environment:
+      - "RABBITMQ_ERLANG_COOKIE=SWQOKODSQALRPCLNMEQG"
+      - "RABBITMQ_DEFAULT_USER=rabbitmq"
+      - "RABBITMQ_DEFAULT_PASS=rabbitmq"
+      - "RABBITMQ_DEFAULT_VHOST=/"
+    ports:
+      - 5672:5672

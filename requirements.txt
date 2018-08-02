@@ -2,3 +2,4 @@ minio
 pika
 unittest
 requests
+celery
