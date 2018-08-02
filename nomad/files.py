@@ -47,7 +47,7 @@ def create_curl_upload_cmd(presigned_url):
   return 'curl -X PUT "%s" -H "Content-Type: application/octet-steam" -F file=@<ZIPFILE>' % presigned_url
 
 def upload(upload_id):
-  return Upload(upload_id)
+  return Upload(upload_id)  
 
 def upload_put_handler(func):
   def wrapper(*args, **kwargs):
@@ -78,22 +78,25 @@ class Upload():
     self.upload_id = upload_id
     self.upload_file = '%s/uploads/%s.zip' % (config.fs.tmp, upload_id)
     self.upload_extract_dir = '%s/uploads_extracted/%s' % (config.fs.tmp, upload_id)
-    self._zipFile = None
+    self.filelist = None
 
-  def __enter__(self):
+  def open(self):
     _client.fget_object(config.s3.uploads_bucket, self.upload_id, self.upload_file)
-    self._zipFile = ZipFile(self.upload_file)
-    self._zipFile.extractall(self.upload_extract_dir)
-    return self
+    zipFile = ZipFile(self.upload_file)
+    zipFile.extractall(self.upload_extract_dir)
+    self.filelist = [zipInfo.filename for zipInfo in zipFile.filelist]
+    zipFile.close()
 
-  def __exit__(self, exc_type, exc, exc_tb):
-    self._zipFile.close()
+  def close(self):
     os.remove(self.upload_file)
     shutil.rmtree(self.upload_extract_dir)
 
-  @property
-  def filelist(self):
-    return [zipInfo.filename for zipInfo in self._zipFile.filelist]
+  def __enter__(self):
+    self.open()
+    return self
 
-  def open(self, filename, *args, **kwargs):
+  def __exit__(self, exc_type, exc, exc_tb):
+    self.close()
+    
+  def open_file(self, filename, *args, **kwargs):
     return open('%s/%s' % (self.upload_extract_dir, filename), *args, **kwargs)

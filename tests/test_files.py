@@ -39,7 +39,7 @@ class FilesTests(TestCase):
       # now just try to open the first file (not directory), without error
       for filename in upload.filelist:
         if filename.endswith('.xml'):
-          upload.open(filename).close()
+          upload.open_file(filename).close()
           break
 
   def test_upload_notification(self):

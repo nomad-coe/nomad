@@ -12,15 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from celery import Celery, chain, chord, group
+from celery import Celery, group, subtask
 import re
+import logging
 import nomad.config as config
 import nomad.files as files
 
 broker_url = 'pyamqp://%s:%s@localhost//' % (config.rabbitmq.user, config.rabbitmq.password)
 backend_url = 'rpc://localhost'
 app = Celery('nomad.processing', backend=backend_url, broker=broker_url)
+app.conf.update(
+    accept_content = ['pickle'],
+    task_serializer = 'pickle',
+    result_serializer = 'pickle',
+)
 
+LOGGER = logging.getLogger(__name__)
 
 class Parser():
     """
@@ -32,13 +39,18 @@ class Parser():
         self._main_file_re = re.compile(main_file_re)
         self._main_contents_re = re.compile(main_contents_re)
 
-    def matches(self, upload, filename):
+    def is_mainfile(self, upload, filename):
         if self._main_file_re.match(filename):
+            file = None
             try:
-                file = upload.open(filename)
+                file = upload.open_file(filename)
                 return self._main_contents_re.match(file.read(500))
             finally:
-                file.close()
+                if file:
+                    file.close()
+
+    def run(self, upload, filename):
+        pass
 
 
 parsers = [
@@ -55,22 +67,43 @@ parsers = [
     )
 ]
 
-@app.task()
-def process(upload_id):
-    mainfiles = list()
-    with files.upload(upload_id) as upload:
-        for filename in upload.filelist:
-            for parser in parsers:
-                if parser.matches(upload, filename):
-                    mainfiles.append((filename, parser.name))
-
-    return group([parse.s(mainfile, parser) for mainfile, parser in mainfiles]).delay()
-
+parser_dict = { parser.name: parser for parser in parsers }
 
 @app.task()
-def parse(mainfile, parser):
-    return 'parsed %s with %s' % (mainfile, parser)
+def find_mainfiles(upload):
+    mainfile_specs = list()
+    for filename in upload.filelist:
+        for parser in parsers:
+            if parser.is_mainfile(upload, filename):
+                mainfile_specs.append((upload, filename, parser.name))
 
+    return mainfile_specs
+
+@app.task()
+def open_upload(upload_id):
+    upload = files.upload(upload_id)
+    upload.open()
+    return upload
+
+@app.task()
+def close_upload(upload):
+    upload.close()
+
+@app.task()
+def parse(mainfile_spec):
+    upload, mainfile, parser = mainfile_spec
+    LOGGER.debug('Start parsing mainfile %s/%s with %s.' % (upload, mainfile, parser))
+    parser_dict[parser].run(upload, mainfile)
+
+    return True
+
+@app.task()
+def dmap(it, callback):
+    callback = subtask(callback)
+    return group(callback.clone([arg,]) for arg in it)()
 
 if __name__ == '__main__':
-    print(~process.s('examples_vasp.zip'))
+    upload_id = 'examples_vasp.zip'
+    parsing_workflow = (open_upload.s(upload_id) | find_mainfiles.s() | dmap.s(parse.s()))
+    
+    print(~parsing_workflow)
