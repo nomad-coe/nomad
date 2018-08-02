@@ -19,6 +19,7 @@ Responsibilities: create, access files; create, receive, notify on, and access u
 import pika
 import os
 from zipfile import ZipFile
+import shutil
 from minio import Minio
 from minio.error import BucketAlreadyOwnedByYou
 import logging
@@ -76,17 +77,23 @@ class Upload():
   def __init__(self, upload_id):
     self.upload_id = upload_id
     self.upload_file = '%s/uploads/%s.zip' % (config.fs.tmp, upload_id)
+    self.upload_extract_dir = '%s/uploads_extracted/%s' % (config.fs.tmp, upload_id)
     self._zipFile = None
 
   def __enter__(self):
     _client.fget_object(config.s3.uploads_bucket, self.upload_id, self.upload_file)
     self._zipFile = ZipFile(self.upload_file)
+    self._zipFile.extractall(self.upload_extract_dir)
     return self
 
   def __exit__(self, exc_type, exc, exc_tb):
     self._zipFile.close()
     os.remove(self.upload_file)
+    shutil.rmtree(self.upload_extract_dir)
 
   @property
   def filelist(self):
-    return self._zipFile.filelist
+    return [zipInfo.filename for zipInfo in self._zipFile.filelist]
+
+  def open(self, filename, *args, **kwargs):
+    return open('%s/%s' % (self.upload_extract_dir, filename), *args, **kwargs)

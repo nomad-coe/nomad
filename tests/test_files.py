@@ -36,6 +36,11 @@ class FilesTests(TestCase):
 
     with files.upload(test_upload_id) as upload:
       self.assertEqual(106, len(upload.filelist))
+      # now just try to open the first file (not directory), without error
+      for filename in upload.filelist:
+        if filename.endswith('.xml'):
+          upload.open(filename).close()
+          break
 
   def test_upload_notification(self):
     @files.upload_put_handler

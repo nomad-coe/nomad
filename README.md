@@ -16,6 +16,11 @@ docker-compose build
 docker-compose up
 ```
 
+Optionally register the infrastructue minio host to the minio client (mc).
+```
+mc config host add minio http://localhost:9007 AKIAIOSFODNN7EXAMPLE wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+```
+
 ### Run the celery worker (should be moved to docker TODO)
 
 ```
@@ -23,6 +28,15 @@ celery -A nomad.processing worker -l info
 ```
 You can use different debug level (e.g. switch `info` to `debug`)
 
+Use watchdog during development. Install (i.e. [fixed](https://github.com/gorakhargosh/watchdog/issues/330) version fo MacOS)
+```
+pip install git+https://github.com/gorakhargosh/watchdog.git
+```
+
+Now use this to auto relead worker:
+```
+watchmedo auto-restart -d ./nomad -p '*.py' -- celery worker -l info -A nomad.processing
+```
 
 ### Run tests.
 ```
