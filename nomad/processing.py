@@ -14,12 +14,12 @@
 
 from celery import Celery, group, subtask
 from celery.result import result_from_tuple
-import re
 import logging
 import time
 
 import nomad.config as config
 import nomad.files as files
+from nomad.parsers import parsers, parser_dict
 
 broker_url = 'pyamqp://%s:%s@localhost//' % (config.rabbitmq.user, config.rabbitmq.password)
 backend_url = 'redis://localhost/0'
@@ -31,47 +31,6 @@ app.conf.update(
 )
 
 LOGGER = logging.getLogger(__name__)
-
-
-class Parser():
-    """
-    Instances specify a parser. It allows to find *main files* from  given uploaded
-    and extracted files. Further, allows to run the parser on those 'main files'.
-    """
-    def __init__(self, name, main_file_re, main_contents_re):
-        self.name = name
-        self._main_file_re = re.compile(main_file_re)
-        self._main_contents_re = re.compile(main_contents_re)
-
-    def is_mainfile(self, upload, filename):
-        if self._main_file_re.match(filename):
-            file = None
-            try:
-                file = upload.open_file(filename)
-                return self._main_contents_re.match(file.read(500))
-            finally:
-                if file:
-                    file.close()
-
-    def run(self, upload, filename):
-        pass
-
-
-parsers = [
-    Parser(
-        name='VaspRun',
-        main_file_re=r'^.*\.xml$',
-        main_contents_re=(
-            r'^\s*<\?xml version="1\.0" encoding="ISO-8859-1"\?>\s*'
-            r'?\s*<modeling>'
-            r'?\s*<generator>'
-            r'?\s*<i name="program" type="string">\s*vasp\s*</i>'
-            r'?'
-        )
-    )
-]
-
-parser_dict = {parser.name: parser for parser in parsers}
 
 
 @app.task()
@@ -113,7 +72,7 @@ def close_upload(parse_results, upload_id):
 def parse(mainfile_spec):
     upload, mainfile, parser = mainfile_spec
     LOGGER.debug('Start parsing mainfile %s/%s with %s.' % (upload, mainfile, parser))
-    parser_dict[parser].run(upload, mainfile)
+    parser_dict[parser].run(upload.get_path(mainfile))
 
     return True
 

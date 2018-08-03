@@ -19,6 +19,7 @@ file storage system.
 Responsibilities: create, access files; create, receive, notify on, and access uploads.
 """
 import os
+from os.path import join
 from zipfile import ZipFile, BadZipFile
 import shutil
 from minio import Minio
@@ -170,4 +171,7 @@ class Upload():
 
     @Decorators.log_upload_error
     def open_file(self, filename, *args, **kwargs):
-        return open('%s/%s' % (self.upload_extract_dir, filename), *args, **kwargs)
+        return open(self.get_path(filename), *args, **kwargs)
+
+    def get_path(self, filename):
+        return join(self.upload_extract_dir, filename)
