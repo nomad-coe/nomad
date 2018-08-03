@@ -1,4 +1,3 @@
 minio
-pika
 requests
 celery

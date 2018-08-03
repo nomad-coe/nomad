@@ -16,7 +16,6 @@
 This module (and its main class :class:`Files`) represents an abstraction for NOMAD file storage system.
 Responsibilities: create, access files; create, receive, notify on, and access uploads.
 """
-import pika
 import os
 from zipfile import ZipFile
 import shutil
@@ -47,7 +46,7 @@ def create_curl_upload_cmd(presigned_url):
   return 'curl -X PUT "%s" -H "Content-Type: application/octet-steam" -F file=@<ZIPFILE>' % presigned_url
 
 def upload(upload_id):
-  return Upload(upload_id)  
+  return Upload(upload_id)
 
 def upload_put_handler(func):
   def wrapper(*args, **kwargs):
@@ -97,6 +96,6 @@ class Upload():
 
   def __exit__(self, exc_type, exc, exc_tb):
     self.close()
-    
+
   def open_file(self, filename, *args, **kwargs):
     return open('%s/%s' % (self.upload_extract_dir, filename), *args, **kwargs)
