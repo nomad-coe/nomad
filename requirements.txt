@@ -1,3 +1,4 @@
 minio
 requests
 celery
+celery[redis]

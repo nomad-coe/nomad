@@ -13,13 +13,16 @@
 # limitations under the License.
 
 from celery import Celery, group, subtask
+from celery.result import result_from_tuple
 import re
 import logging
+import time
+
 import nomad.config as config
 import nomad.files as files
 
 broker_url = 'pyamqp://%s:%s@localhost//' % (config.rabbitmq.user, config.rabbitmq.password)
-backend_url = 'rpc://localhost'
+backend_url = 'redis://localhost/0'
 app = Celery('nomad.processing', backend=backend_url, broker=broker_url)
 app.conf.update(
     accept_content=['pickle'],
@@ -120,9 +123,18 @@ def dmap(it, callback):
     callback = subtask(callback)
     return group(callback.clone([arg, ]) for arg in it)()
 
-if __name__ == '__main__':
-    upload_id = 'examples_vasp.zip'
 
+def start_process_upload(upload_id):
+    """
+    Starts the processing of uploaded data and returns the celery
+    :class:`~celery.results.AsyncResults` instance in serialized *tuple* form.
+
+    The serialized form is understood by all respective methods in this
+    module. We use the serialized form to allow storage. Keep in mind
+    that the sheer `task_id` is not enough, because it does not contain
+    the parent tasks. See [third comment](https://github.com/celery/celery/issues/1328)
+    for details.
+    """
     parsing_workflow = (
         open_upload.s(upload_id) |
         find_mainfiles.s() |
@@ -130,8 +142,40 @@ if __name__ == '__main__':
         close_upload.s(upload_id)
     )
 
-    results = ~parsing_workflow
-    if isinstance(results, Exception):
-        raise results
+    async_result = parsing_workflow.delay()
+    return async_result.as_tuple()
 
-    print(results)
+
+def get_process_upload_state(async_result):
+    """
+    Extract the current state from the various tasks involved in upload processing.
+    """
+    async_result = result_from_tuple(async_result)
+
+    close = async_result
+    parse = close.parent
+    find_mainfiles = parse.parent
+    open_task = find_mainfiles.parent
+
+    return {
+        'open': open_task.state,
+        'find_mainfiles': find_mainfiles.state,
+        'parse': parse.state,
+        'close': close.state
+    }
+
+
+if __name__ == '__main__':
+    upload_id = 'examples_vasp.zip'
+
+    task = start_process_upload(upload_id)
+
+    result = None
+    while(True):
+        time.sleep(0.0001)
+        new_result = get_process_upload_state(task)
+        if result != new_result:
+            result = new_result
+            print(result)
+            if result['close'] == 'SUCCESS' or result['close'] == 'FAILURE':
+                break
