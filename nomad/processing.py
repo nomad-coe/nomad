@@ -72,7 +72,20 @@ parser_dict = {parser.name: parser for parser in parsers}
 
 
 @app.task()
+def open_upload(upload_id):
+    try:
+        upload = files.upload(upload_id)
+        upload.open()
+        return upload
+    except Exception as e:
+        return e
+
+
+@app.task()
 def find_mainfiles(upload):
+    if isinstance(upload, Exception):
+        return list()
+
     mainfile_specs = list()
     for filename in upload.filelist:
         for parser in parsers:
@@ -83,15 +96,14 @@ def find_mainfiles(upload):
 
 
 @app.task()
-def open_upload(upload_id):
-    upload = files.upload(upload_id)
-    upload.open()
-    return upload
+def close_upload(parse_results, upload_id):
+    try:
+        upload = files.upload(upload_id)
+    except KeyError as e:
+        return e
 
-
-@app.task()
-def close_upload(upload, parse_results):
     upload.close()
+    return parse_results
 
 
 @app.task()
@@ -115,7 +127,11 @@ if __name__ == '__main__':
         open_upload.s(upload_id) |
         find_mainfiles.s() |
         dmap.s(parse.s()) |
-        close_upload.s()
+        close_upload.s(upload_id)
     )
 
-    print(~parsing_workflow)
+    results = ~parsing_workflow
+    if isinstance(results, Exception):
+        raise results
+
+    print(results)

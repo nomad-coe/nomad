@@ -116,6 +116,11 @@ class Upload():
         self.upload_extract_dir = '%s/uploads_extracted/%s' % (config.fs.tmp, upload_id)
         self.filelist = None
 
+        try:
+            _client.stat_object(config.s3.uploads_bucket, upload_id)
+        except minio.error.NoSuchKey:
+            raise KeyError(self.upload_id)
+
     # There is not good way to capsule decorators in a class:
     # https://medium.com/@vadimpushtaev/decorator-inside-python-class-1e74d23107f6
     class Decorators:
