@@ -29,7 +29,7 @@ services:
             - "MINIO_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
         command: server /data
 
-      rabbitmq:
+    rabbitmq:
         image: rabbitmq
         hostname: "rabbitmq"
         environment:
