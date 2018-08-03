@@ -90,7 +90,7 @@ def open_upload(upload_id):
 
 
 @app.task()
-def close_upload(upload):
+def close_upload(upload, parse_results):
     upload.close()
 
 
@@ -110,6 +110,12 @@ def dmap(it, callback):
 
 if __name__ == '__main__':
     upload_id = 'examples_vasp.zip'
-    parsing_workflow = (open_upload.s(upload_id) | find_mainfiles.s() | dmap.s(parse.s()))
+
+    parsing_workflow = (
+        open_upload.s(upload_id) |
+        find_mainfiles.s() |
+        dmap.s(parse.s()) |
+        close_upload.s()
+    )
 
     print(~parsing_workflow)

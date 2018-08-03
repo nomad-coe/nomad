@@ -1,13 +1,17 @@
 import unittest
+import time
 from minio import ResponseError
 import logging
 from unittest import TestCase
 from threading import Thread
 import subprocess
 import shlex
+import logging
 
 import nomad.files as files
 import nomad.config as config
+
+LOGGER = logging.getLogger(__name__)
 
 test_upload_id = '__test_upload_id'
 
@@ -16,6 +20,7 @@ def upload_test_file():
     example_file = './data/examples_vasp.zip'
     upload_url = files.get_presigned_upload_url(test_upload_id)
     cmd = files.create_curl_upload_cmd(upload_url).replace('<ZIPFILE>', example_file)
+    LOGGER.debug('Initiate upload of example file %s with command %s' % (example_file, cmd))
     subprocess.call(shlex.split(cmd))
 
 
@@ -56,11 +61,12 @@ class FilesTests(TestCase):
         handle_uploads_thread = Thread(target=handle_uploads)
         handle_uploads_thread.start()
 
+        time.sleep(1)
         upload_test_file()
 
         handle_uploads_thread.join()
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.WARNING)
+    logging.basicConfig(level=logging.DEBUG)
     unittest.main()

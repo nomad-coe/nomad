@@ -24,6 +24,7 @@ import shutil
 from minio import Minio
 from minio.error import BucketAlreadyOwnedByYou
 import logging
+import itertools
 
 import nomad.config as config
 
@@ -57,33 +58,44 @@ def upload(upload_id):
 
 def upload_put_handler(func):
     def upload_notifications(events):
-        notifications = [event['Records'] for event in events]
-        for notification in notifications:
-            event_name = notification['eventName']
-            if event_name == 's3:ObjectCreated:Put':
-                upload_id = notification['s3']['object']['key']
-                yield upload_id
-            else:
-                logger.debug('Unhandled bucket event of type %s.' % event_name)
+        # The given events is a generator that will block and yield indefinetely.
+        # Therefore, we have to use generator expressions and must not use list
+        # comprehension. Same for chain vs chain.from_iterable.
+        nested_event_records = (event['Records'] for event in events)
+        event_records = itertools.chain.from_iterable(nested_event_records)
+
+        for event_record in event_records:
+            try:
+                event_name = event_record['eventName']
+                if event_name == 's3:ObjectCreated:Put':
+                    logger.debug('Received bucket upload event of type %s.' % event_name)
+                    upload_id = event_record['s3']['object']['key']
+                    yield upload_id
+                else:
+                    logger.debug('Unhandled bucket event of type %s.' % event_name)
+            except KeyError:
+                logger.warning(
+                    'Unhandled bucket event due to unexprected event format: %s' %
+                    event_record)
 
     def wrapper(*args, **kwargs):
         logger.info('Start listening to uploads notifications.')
 
-        # The given events is a generator that will block and yield indefinetely.
         events = _client.listen_bucket_notification(config.s3.uploads_bucket)
 
-        notifications = upload_notifications(events)
-        for upload_id in notifications:
+        upload_ids = upload_notifications(events)
+        for upload_id in upload_ids:
             try:
                 func(upload_id)
             except StopIteration:
+                # Using StopIteration to allow clients to stop handling of events.
                 logging.debug(
                     'Handling of upload notifications was stopped via StopIteration.')
                 return
             except Exception as e:
                 logger.error(
-                    'Unexpected exception in upload handler for upload:id:' % upload_id,
-                    exc_info=e)
+                    'Unexpected exception in upload handler for upload:id:' %
+                    upload_id, exc_info=e)
 
     return wrapper
 

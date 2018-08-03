@@ -15,7 +15,7 @@
       ]
     },
     {
-      "name": "Python: files.py",
+      "name": "Python: tests/test_files.py",
       "type": "python",
       "request": "launch",
       "cwd": "${workspaceFolder}",
