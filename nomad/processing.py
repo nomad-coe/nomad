@@ -22,17 +22,18 @@ broker_url = 'pyamqp://%s:%s@localhost//' % (config.rabbitmq.user, config.rabbit
 backend_url = 'rpc://localhost'
 app = Celery('nomad.processing', backend=backend_url, broker=broker_url)
 app.conf.update(
-    accept_content = ['pickle'],
-    task_serializer = 'pickle',
-    result_serializer = 'pickle',
+    accept_content=['pickle'],
+    task_serializer='pickle',
+    result_serializer='pickle',
 )
 
 LOGGER = logging.getLogger(__name__)
 
+
 class Parser():
     """
-    Instances specify a parser. It allows to find *main files* from  given uploaded 
-    and extracted files. Further, allows to run the parser on those 'main files'. 
+    Instances specify a parser. It allows to find *main files* from  given uploaded
+    and extracted files. Further, allows to run the parser on those 'main files'.
     """
     def __init__(self, name, main_file_re, main_contents_re):
         self.name = name
@@ -67,7 +68,8 @@ parsers = [
     )
 ]
 
-parser_dict = { parser.name: parser for parser in parsers }
+parser_dict = {parser.name: parser for parser in parsers}
+
 
 @app.task()
 def find_mainfiles(upload):
@@ -79,15 +81,18 @@ def find_mainfiles(upload):
 
     return mainfile_specs
 
+
 @app.task()
 def open_upload(upload_id):
     upload = files.upload(upload_id)
     upload.open()
     return upload
 
+
 @app.task()
 def close_upload(upload):
     upload.close()
+
 
 @app.task()
 def parse(mainfile_spec):
@@ -97,13 +102,14 @@ def parse(mainfile_spec):
 
     return True
 
+
 @app.task()
 def dmap(it, callback):
     callback = subtask(callback)
-    return group(callback.clone([arg,]) for arg in it)()
+    return group(callback.clone([arg, ]) for arg in it)()
 
 if __name__ == '__main__':
     upload_id = 'examples_vasp.zip'
     parsing_workflow = (open_upload.s(upload_id) | find_mainfiles.s() | dmap.s(parse.s()))
-    
+
     print(~parsing_workflow)

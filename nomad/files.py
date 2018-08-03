@@ -13,7 +13,9 @@
 # limitations under the License.
 
 """
-This module (and its main class :class:`Files`) represents an abstraction for NOMAD file storage system.
+This module (and its main class :class:`Files`) represents an abstraction for NOMAD
+file storage system.
+
 Responsibilities: create, access files; create, receive, notify on, and access uploads.
 """
 import os
@@ -27,75 +29,89 @@ import nomad.config as config
 
 logger = logging.getLogger(__name__)
 
-_client =  Minio('%s:%s' % (config.minio.host, config.minio.port),
-  access_key=config.minio.accesskey,
-  secret_key=config.minio.secret,
-  secure=False)
+_client = Minio('%s:%s' % (config.minio.host, config.minio.port),
+                access_key=config.minio.accesskey,
+                secret_key=config.minio.secret,
+                secure=False)
 
-# ensure buckets exist
+# ensure all neccessary buckets exist
 try:
-  _client.make_bucket(bucket_name=config.s3.uploads_bucket)
-  logger.info("Created uploads bucket with name %s." % config.s3.uploads_bucket)
+    _client.make_bucket(bucket_name=config.s3.uploads_bucket)
+    logger.info("Created uploads bucket with name %s." % config.s3.uploads_bucket)
 except BucketAlreadyOwnedByYou:
-  logger.debug("Uploads bucket with name %s already existed." % config.s3.uploads_bucket)
+    logger.debug("Uploads bucket with name %s already existed." % config.s3.uploads_bucket)
+
 
 def get_presigned_upload_url(upload_id):
-  return _client.presigned_put_object(config.s3.uploads_bucket, upload_id)
+    return _client.presigned_put_object(config.s3.uploads_bucket, upload_id)
 
-def create_curl_upload_cmd(presigned_url):
-  return 'curl -X PUT "%s" -H "Content-Type: application/octet-steam" -F file=@<ZIPFILE>' % presigned_url
+
+def create_curl_upload_cmd(presigned_url, file_dummy='<ZIPFILE>'):
+    headers = 'Content-Type: application/octet-steam'
+    return 'curl -X PUT "%s" -H "%s" -F file=@%s' % (presigned_url, headers, file_dummy)
+
 
 def upload(upload_id):
-  return Upload(upload_id)
+    return Upload(upload_id)
+
 
 def upload_put_handler(func):
-  def wrapper(*args, **kwargs):
-    logger.info('Start listening to uploads notifications.')
-    events = _client.listen_bucket_notification(config.s3.uploads_bucket)
+    def upload_notifications(events):
+        notifications = [event['Records'] for event in events]
+        for notification in notifications:
+            event_name = notification['eventName']
+            if event_name == 's3:ObjectCreated:Put':
+                upload_id = notification['s3']['object']['key']
+                yield upload_id
+            else:
+                logger.debug('Unhandled bucket event of type %s.' % event_name)
 
-    # The given events is a generator that will block and yield indefinetely.
-    for event in events:
-      for notification in event['Records']:
-        event_name = notification['eventName']
-        if event_name == 's3:ObjectCreated:Put':
-          upload_id = notification['s3']['object']['key']
-          try:
-            func(upload_id)
-          except StopIteration:
-            logging.debug('Handling of upload notifications was stopped via StopIteration.')
-            return
-          except Exception as e:
-            logger.error('Unexpected exception in uploads notification handler for notification: %s.' % notification, exc_info=e)
-        else:
-          logger.debug('Unhandled bucket event of type %s.' % event_name)
+    def wrapper(*args, **kwargs):
+        logger.info('Start listening to uploads notifications.')
 
-  return wrapper
+        # The given events is a generator that will block and yield indefinetely.
+        events = _client.listen_bucket_notification(config.s3.uploads_bucket)
+
+        notifications = upload_notifications(events)
+        for upload_id in notifications:
+            try:
+                func(upload_id)
+            except StopIteration:
+                logging.debug(
+                    'Handling of upload notifications was stopped via StopIteration.')
+                return
+            except Exception as e:
+                logger.error(
+                    'Unexpected exception in upload handler for upload:id:' % upload_id,
+                    exc_info=e)
+
+    return wrapper
 
 
 class Upload():
-  def __init__(self, upload_id):
-    self.upload_id = upload_id
-    self.upload_file = '%s/uploads/%s.zip' % (config.fs.tmp, upload_id)
-    self.upload_extract_dir = '%s/uploads_extracted/%s' % (config.fs.tmp, upload_id)
-    self.filelist = None
+    def __init__(self, upload_id):
+        self.upload_id = upload_id
+        self.upload_file = '%s/uploads/%s.zip' % (config.fs.tmp, upload_id)
+        self.upload_extract_dir = '%s/uploads_extracted/%s' % (config.fs.tmp, upload_id)
+        self.filelist = None
 
-  def open(self):
-    _client.fget_object(config.s3.uploads_bucket, self.upload_id, self.upload_file)
-    zipFile = ZipFile(self.upload_file)
-    zipFile.extractall(self.upload_extract_dir)
-    self.filelist = [zipInfo.filename for zipInfo in zipFile.filelist]
-    zipFile.close()
+    def open(self):
+        _client.fget_object(config.s3.uploads_bucket, self.upload_id, self.upload_file)
+        zipFile = ZipFile(self.upload_file)
+        zipFile.extractall(self.upload_extract_dir)
+        self.filelist = [zipInfo.filename for zipInfo in zipFile.filelist]
+        zipFile.close()
 
-  def close(self):
-    os.remove(self.upload_file)
-    shutil.rmtree(self.upload_extract_dir)
+    def close(self):
+        os.remove(self.upload_file)
+        shutil.rmtree(self.upload_extract_dir)
 
-  def __enter__(self):
-    self.open()
-    return self
+    def __enter__(self):
+        self.open()
+        return self
 
-  def __exit__(self, exc_type, exc, exc_tb):
-    self.close()
+    def __exit__(self, exc_type, exc, exc_tb):
+        self.close()
 
-  def open_file(self, filename, *args, **kwargs):
-    return open('%s/%s' % (self.upload_extract_dir, filename), *args, **kwargs)
+    def open_file(self, filename, *args, **kwargs):
+        return open('%s/%s' % (self.upload_extract_dir, filename), *args, **kwargs)

@@ -1,6 +1,17 @@
 {
-  "python.venvPath": "${workspaceFolder}/.pyenv",
-  "python.pythonPath": "${workspaceFolder}/.pyenv/bin/python",
-  "git.ignoreLimitWarning": true,
-  "editor.rulers": [90]
+    "python.venvPath": "${workspaceFolder}/.pyenv",
+    "python.pythonPath": "${workspaceFolder}/.pyenv/bin/python",
+    "git.ignoreLimitWarning": true,
+    "editor.rulers": [90],
+    "editor.renderWhitespace": "all",
+    "editor.tabSize": 4,
+    "files.trimTrailingWhitespace": true,
+    "git.enableSmartCommit": true,
+    "eslint.autoFixOnSave": true,
+    "python.linting.pylintArgs": [
+        "--disable=all",
+        "--enable=F,E,unreachable,duplicate-key,unnecessary-semicolon,global-variable-not-assigned,unused-variable,binary-op-exception,bad-format-string,anomalous-backslash-in-string,bad-open-mode,unused-import"
+    ],
+    "python.linting.pep8Enabled": true,
+    "python.linting.pep8Args": ["--ignore=E501"]
 }
