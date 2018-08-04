@@ -18,6 +18,7 @@ S3Config = namedtuple('S3', ['uploads_bucket', 'repository_bucket', 'archive_buc
 RabitMQConfig = namedtuple('RabbitMQ', ['host', 'port', 'user', 'password'])
 MinioConfig = namedtuple('Minio', ['host', 'port', 'accesskey', 'secret'])
 FSConfig = namedtuple('FSConfig', ['tmp'])
+LogstashConfig = namedtuple('LogstashConfig', ['enabled', 'host', 'tcp_port'])
 
 s3 = S3Config(
     uploads_bucket='uploads',
@@ -25,17 +26,22 @@ s3 = S3Config(
     archive_bucket='archive'
 )
 rabbitmq = RabitMQConfig(
-    host = 'localhost',
-    port = None,
-    user = 'rabbitmq',
-    password = 'rabbitmq'
+    host='localhost',
+    port=None,
+    user='rabbitmq',
+    password='rabbitmq'
 )
 minio = MinioConfig(
-    host = 'localhost',
-    port = 9007,
-    accesskey = 'AKIAIOSFODNN7EXAMPLE',
-    secret = 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+    host='localhost',
+    port=9007,
+    accesskey='AKIAIOSFODNN7EXAMPLE',
+    secret='wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
 )
 fs = FSConfig(
-    tmp = './infrastructure/data/tmp'
+    tmp='./infrastructure/data/tmp'
+)
+logstash = LogstashConfig(
+    enabled=True,
+    host='localhost',
+    tcp_port=5000
 )

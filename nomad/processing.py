@@ -14,6 +14,8 @@
 
 from celery import Celery, group, subtask
 from celery.result import result_from_tuple
+from celery.signals import after_setup_task_logger, after_setup_logger
+from celery.utils.log import get_task_logger
 import logging
 import time
 import logstash
@@ -23,17 +25,17 @@ import nomad.files as files
 from nomad.parsers import parsers, parser_dict
 
 
-# def initialize_logstash(logger=None, loglevel=logging.INFO, **kwargs):
-#     handler = logstash.TCPLogstashHandler(
-#         'localhost', 5044, tags=['celery'], message_type='celery', version=1)
-#     handler.setLevel(loglevel)
-#     logger.addHandler(handler)
-#     return logger
+if config.logstash.enabled:
+    def initialize_logstash(logger=None, loglevel=logging.INFO, **kwargs):
+        handler = logstash.TCPLogstashHandler(
+            config.logstash.host, config.logstash.tcp_port,
+            tags=['celery'], message_type='celery', version=1)
+        handler.setLevel(loglevel)
+        logger.addHandler(handler)
+        return logger
 
-# from celery.signals import after_setup_task_logger
-# after_setup_task_logger.connect(initialize_logstash)
-# from celery.signals import after_setup_logger
-# after_setup_logger.connect(initialize_logstash)
+    after_setup_task_logger.connect(initialize_logstash)
+    after_setup_logger.connect(initialize_logstash)
 
 
 broker_url = 'pyamqp://%s:%s@localhost//' % (config.rabbitmq.user, config.rabbitmq.password)
@@ -45,7 +47,7 @@ app.conf.update(
     result_serializer='pickle',
 )
 
-LOGGER = logging.getLogger(__name__)
+logger = get_task_logger(__name__)
 
 
 @app.task()
@@ -86,7 +88,7 @@ def close_upload(parse_results, upload_id):
 @app.task()
 def parse(mainfile_spec):
     upload, mainfile, parser = mainfile_spec
-    LOGGER.debug('Start parsing mainfile %s/%s with %s.' % (upload, mainfile, parser))
+    logger.debug('Start parsing mainfile %s/%s with %s.' % (upload, mainfile, parser))
     parser_dict[parser].run(upload.get_path(mainfile))
 
     return True

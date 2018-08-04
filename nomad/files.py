@@ -29,7 +29,7 @@ import itertools
 
 import nomad.config as config
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 _client = Minio('%s:%s' % (config.minio.host, config.minio.port),
                 access_key=config.minio.accesskey,
@@ -39,9 +39,9 @@ _client = Minio('%s:%s' % (config.minio.host, config.minio.port),
 # ensure all neccessary buckets exist
 try:
     _client.make_bucket(bucket_name=config.s3.uploads_bucket)
-    LOGGER.info("Created uploads bucket with name %s." % config.s3.uploads_bucket)
+    logger.info("Created uploads bucket with name %s." % config.s3.uploads_bucket)
 except minio.error.BucketAlreadyOwnedByYou:
-    LOGGER.debug("Uploads bucket with name %s already existed." % config.s3.uploads_bucket)
+    logger.debug("Uploads bucket with name %s already existed." % config.s3.uploads_bucket)
 
 
 def get_presigned_upload_url(upload_id):
@@ -69,18 +69,18 @@ def upload_put_handler(func):
             try:
                 event_name = event_record['eventName']
                 if event_name == 's3:ObjectCreated:Put':
-                    LOGGER.debug('Received bucket upload event of type %s.' % event_name)
+                    logger.debug('Received bucket upload event of type %s.' % event_name)
                     upload_id = event_record['s3']['object']['key']
                     yield upload_id
                 else:
-                    LOGGER.debug('Unhandled bucket event of type %s.' % event_name)
+                    logger.debug('Unhandled bucket event of type %s.' % event_name)
             except KeyError:
-                LOGGER.warning(
+                logger.warning(
                     'Unhandled bucket event due to unexprected event format: %s' %
                     event_record)
 
     def wrapper(*args, **kwargs):
-        LOGGER.info('Start listening to uploads notifications.')
+        logger.info('Start listening to uploads notifications.')
 
         events = _client.listen_bucket_notification(config.s3.uploads_bucket)
 
@@ -94,7 +94,7 @@ def upload_put_handler(func):
                     'Handling of upload notifications was stopped via StopIteration.')
                 return
             except Exception as e:
-                LOGGER.error(
+                logger.error(
                     'Unexpected exception in upload handler for upload:id:' %
                     upload_id, exc_info=e)
 
@@ -132,7 +132,7 @@ class Upload():
                     return decorated(self, *args, **kwargs)
                 except Exception as e:
                     msg = 'Could not %s upload %s.' % (decorated.__name__, self.upload_id)
-                    LOGGER.error(msg, exc_info=e)
+                    logger.error(msg, exc_info=e)
                     raise UploadError(msg, e)
             return wrapper
 

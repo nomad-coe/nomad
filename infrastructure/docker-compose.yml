@@ -53,13 +53,14 @@ services:
         ports:
             - '6379:6379'
 
-    # used for central logging
+    # used for centralized logging
     elk:
         restart: always
-        image: "sebp/elk"
+        build: ./elk/
         hostname: "elk"
         ports:
             - 5601:5601  # kibana web
-            # - 9200:9200  # elastic search api
+            - 9200:9200  # elastic search api
             # - 9300:9300  # elastic transport api
-            - 5044:5044  # logstash
+            - 5044:5044  # logstash beats
+            - 5000:5000  # logstash tcp
