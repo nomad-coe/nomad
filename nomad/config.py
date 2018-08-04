@@ -41,7 +41,7 @@ fs = FSConfig(
     tmp='./infrastructure/data/tmp'
 )
 logstash = LogstashConfig(
-    enabled=True,
+    enabled=False,
     host='localhost',
     tcp_port=5000
 )
