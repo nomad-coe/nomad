@@ -2,6 +2,22 @@ This project tries and test approaches that might lead to an improved architectu
 
 ## Getting started
 
+### Install the legacy NOMAD submoduels.
+This has to be done differently in the future. For no init the submodules and checkout
+working branches/tags:
+- submodules/parsers/parser-vasp master
+- submodules/python-common master
+- submodules/nomad-meta-info 1.6.0
+
+To checkout a tag use:
+```
+git fetch --all --tags --prune
+git checkout tags/1.6.0 -b 1.6.0
+```
+
+`pip install -r requirements` in `python-common`, and `pip install -e .` in `python-common` and
+`parsers/parser-vasp`. Futhermore, there are some dependency issues in `python-commons` requirments.
+
 ### Install the python in your own virtual environment.
 
 ```

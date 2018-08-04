@@ -16,10 +16,25 @@ from celery import Celery, group, subtask
 from celery.result import result_from_tuple
 import logging
 import time
+import logstash
 
 import nomad.config as config
 import nomad.files as files
 from nomad.parsers import parsers, parser_dict
+
+
+# def initialize_logstash(logger=None, loglevel=logging.INFO, **kwargs):
+#     handler = logstash.TCPLogstashHandler(
+#         'localhost', 5044, tags=['celery'], message_type='celery', version=1)
+#     handler.setLevel(loglevel)
+#     logger.addHandler(handler)
+#     return logger
+
+# from celery.signals import after_setup_task_logger
+# after_setup_task_logger.connect(initialize_logstash)
+# from celery.signals import after_setup_logger
+# after_setup_logger.connect(initialize_logstash)
+
 
 broker_url = 'pyamqp://%s:%s@localhost//' % (config.rabbitmq.user, config.rabbitmq.password)
 backend_url = 'redis://localhost/0'

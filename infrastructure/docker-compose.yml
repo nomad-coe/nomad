@@ -19,6 +19,7 @@ services:
     minio:
         restart: always
         image: minio/minio:RELEASE.2018-06-08T03-49-38Z
+        hostname: "minio"
         # image: minio/minio
         ports:
             - 9007:9000
@@ -32,6 +33,7 @@ services:
 
     # broker for celery
     rabbitmq:
+        restart: always
         image: rabbitmq
         hostname: "rabbitmq"
         environment:
@@ -50,3 +52,14 @@ services:
             - './data/redis:/data'
         ports:
             - '6379:6379'
+
+    # used for central logging
+    elk:
+        restart: always
+        image: "sebp/elk"
+        hostname: "elk"
+        ports:
+            - 5601:5601  # kibana web
+            # - 9200:9200  # elastic search api
+            # - 9300:9300  # elastic transport api
+            - 5044:5044  # logstash
