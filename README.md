@@ -26,11 +26,21 @@ pip install -e .
 ```
 
 ### Run dev infrastructure with docker.
+You can do it with or without the ELK stack.
+
+To run is without (default):
 ```
 cd ./infrastructure
 docker-compose build
+sh up-wo-elk.sh
+```
+
+To run with ELK, enable `logstash` in nomad.config:logstash, and start the docker compose with
+```
 docker-compose up
 ```
+You can reach the Kibana with [localhost:5601](http://localhost:5601).
+The index prefix for logs is `logstash-`.
 
 Optionally register the infrastructue minio host to the minio client (mc).
 ```
