@@ -13,11 +13,30 @@
 # limitations under the License.
 
 """
-This module (and its main class :class:`Files`) represents an abstraction for NOMAD
-file storage system.
+NOMAD's file storage implementation
+===================================
 
-Responsibilities: create, access files; create, receive, notify on, and access uploads.
+This file storage abstraction currently uses the object storage API
+http://minio.io to manage and organize files. Object storage
+organizes files in *buckets/ids*, with small amounts of *buckets* and virtually
+unlimited numbers of *ids*. *Ids* can contain delimiters like `/` to mimic
+filesystem structure. There is a 1024 utf-8 character limit on *id* length.
+
+The file storage is organized in multiple buckets:
+
+* *uploads*: used for uploaded user code input/output archives. Currently only .zip files \
+are suported
+
+Presigned URLs
+--------------
+Users (or GUI clients) can upload files directly to the object storage system. To avoid
+authentication hassly, presigned URLs can be created that can be used directly to safely
+*PUT* files.
+
+.. autofunction:: nomad.files.get_presigned_upload_url
+.. autofunction:: nomad.files.create_curl_upload_cmd
 """
+import sys
 import os
 from os.path import join
 from zipfile import ZipFile, BadZipFile
@@ -31,24 +50,52 @@ import nomad.config as config
 
 logger = logging.getLogger(__name__)
 
-_client = Minio('%s:%s' % (config.minio.host, config.minio.port),
-                access_key=config.minio.accesskey,
-                secret_key=config.minio.secret,
-                secure=False)
+_client = None
 
-# ensure all neccessary buckets exist
-try:
-    _client.make_bucket(bucket_name=config.s3.uploads_bucket)
-    logger.info("Created uploads bucket with name %s." % config.s3.uploads_bucket)
-except minio.error.BucketAlreadyOwnedByYou:
-    logger.debug("Uploads bucket with name %s already existed." % config.s3.uploads_bucket)
+if _client is None and 'sphinx' not in sys.modules:
+    _client = Minio('%s:%s' % (config.minio.host, config.minio.port),
+                    access_key=config.minio.accesskey,
+                    secret_key=config.minio.secret,
+                    secure=False)
+
+    # ensure all neccessary buckets exist
+    try:
+        _client.make_bucket(bucket_name=config.s3.uploads_bucket)
+        logger.info("Created uploads bucket with name %s." % config.s3.uploads_bucket)
+    except minio.error.BucketAlreadyOwnedByYou:
+        logger.debug(
+            "Uploads bucket with name %s already existed." % config.s3.uploads_bucket)
 
 
-def get_presigned_upload_url(upload_id):
+def get_presigned_upload_url(upload_id: str) -> str:
+    """Generates a presigned upload URL.
+
+    Presigned URL allows users (and their client programs) to safely *PUT*
+    a single file without further authorization or API to the *uploads* bucket
+    using the given ``upload_id``. Example usages for presigned URLs include
+    browser based uploads or simple *curl* commands (see also :func:`create_curl_upload_cmd`).
+
+    Args:
+        upload_id: The upload id for the uploaded file.
+
+    Returns:
+        The presigned URL string.
+    """
     return _client.presigned_put_object(config.s3.uploads_bucket, upload_id)
 
 
 def create_curl_upload_cmd(presigned_url, file_dummy='<ZIPFILE>'):
+    """Creates a readymade curl command for uploading.
+
+    Args:
+        presigned_url: The presigned URL to base the command on.
+
+    Kwargs:
+        file_dummy: A placeholder for the file that the user/client has to replace.
+
+    Returns:
+        The curl shell command with correct method, url, headers, etc.
+    """
     headers = 'Content-Type: application/octet-steam'
     return 'curl -X PUT "%s" -H "%s" -F file=@%s' % (presigned_url, headers, file_dummy)
 
