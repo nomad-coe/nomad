@@ -30,7 +30,7 @@ make html
 Conintue with reading the documentation for further setup and contribution guidelines:
 ```
 cd .build/html
-python -m SimpleHTTPServer .build -p 8888
+python -m http.server 8888
 ```
 Open [http://localhost:8888/html/setup.html](http://localhost:8888/html/setup.html) in
 your browser.

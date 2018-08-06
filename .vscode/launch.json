@@ -15,6 +15,13 @@
       ]
     },
     {
+      "name": "Python: nomad/parsers.py",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/nomad/parsers.py"
+    },
+    {
       "name": "Python: tests/test_files.py",
       "type": "python",
       "request": "launch",
