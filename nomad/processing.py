@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+This modules allows to (1) run a celery worker that can perform all processing
+task, (2) allows to start a processing canvas (series of tasks), (3) contains
+utilities to read and render the current state and results of a processing canvas
+run.
+"""
+
 from celery import Celery, group, subtask
 from celery.result import result_from_tuple
 from celery.signals import after_setup_task_logger, after_setup_logger

@@ -13,9 +13,6 @@
 # limitations under the License.
 
 """
-NOMAD's file storage implementation
-===================================
-
 This file storage abstraction currently uses the object storage API
 http://minio.io to manage and organize files. Object storage
 organizes files in *buckets/ids*, with small amounts of *buckets* and virtually

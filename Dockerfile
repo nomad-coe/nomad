@@ -30,12 +30,12 @@ RUN mkdir /install
 WORKDIR /install
 
 COPY requirements.txt requirements.txt
-COPY requirements-worker.txt requirements-worker.txt
+COPY requirements-dep.txt requirements-dep.txt
 COPY nomad/dependencies.py nomad/dependencies.py
 COPY nomad/config.py nomad/config.py
 
 RUN pip install -r requirements.txt
-RUN pip install -r requirements-worker.txt
+RUN pip install -r requirements-dep.txt
 RUN python nomad/dependencies.py
 
 # second stage is used to install the actual code and run the celery worker as nomad user

@@ -13,8 +13,8 @@
 # limitations under the License.
 
 """
-Integration of nomad projects into the processing
-=================================================
+This module allows to configure and install all necessary legecy nomad GIT repositories
+to process (parser, normalizer, etc.) uploaded calculations.
 
 Parsers are developed as independed, individual python programs in their own GIT repositories.
 They are build on a common modules called *python-common*, also in a separate GIT.
@@ -34,11 +34,23 @@ Preparing dependencies and parsers
 
 To make GIT maintained python modules available, we use:
 
-.. autoclass:: nomad.parsers.PythonGit
+.. autoclass:: PythonGit
 
 Parsers, as a special case for a GIT maintained python modules, can be used via:
 
-.. autoclass:: nomad.parsers.Parser
+.. autoclass:: Parser
+
+General dependencies are configured in
+
+.. autodata:: dependencies
+
+Parsers are configured in
+
+.. autodata:: parsers
+
+To install all dependencies use
+
+.. autofunction:: prepare
 """
 import re
 import sys
@@ -73,17 +85,15 @@ class PythonGit():
     This is only useful before you want to use the respective module in a different
     python process, because it will not try to reload any already loaded modules into
     the current python process.
+
+    Args:
+        name: A name that determines the download path, can contain '/' for sub dirs.
+                Names are important, because modules might use relatives paths between
+                them.
+        git_url: A publically available and fetchable url to the GIT repository.
+        git_commit: The full commit SHA of the desired commit.
     """
     def __init__(self, name, git_url, git_commit):
-        """
-        Args:
-            name: A name that determines the download path, can contain '/' for sub dirs.
-                  Names are important, because modules might use relatives paths between
-                  them.
-            git_url: A publically available and fetchable url to the GIT repository.
-            git_commit: The full commit SHA of the desired commit.
-        """
-        super().__init__()
         self.name = name
         self.git_url = git_url
         self.git_commit = git_commit
@@ -158,6 +168,13 @@ class Parser():
     """
     Instances specify a parser. It allows to find *main files* from  given uploaded
     and extracted files. Further, allows to run the parser on those 'main files'.
+
+    Args:
+        python_git: The :class:`PythonGit` that describes the parser code.
+        parser_class_name: Full qualified name of the main parser class. We assume it have one
+        parameter for the backend.
+        main_file_re: A regexp that matches main file paths that this parser can handle.
+        main_contents_re: A regexp that matches main file headers that this parser can parse.
     """
     def __init__(self, python_git, parser_class_name, main_file_re, main_contents_re):
         self.name = python_git.name
@@ -185,6 +202,9 @@ class Parser():
         parser = Parser(backend=JsonParseEventsWriterBackend)
         parser.parse(mainfile)
 
+    def __repr__(self):
+        return self.python_git.__repr__()
+
 
 class VASPRunParser(Parser):
     def __init__(self):
@@ -204,11 +224,24 @@ class VASPRunParser(Parser):
         )
 
 parsers = [
-    VASPRunParser()
+    Parser(
+        python_git=PythonGit(
+            name='parsers/vasp',
+            git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-vasp.git',
+            git_commit='nomad-xt'),
+        parser_class_name='vaspparser.VASPParser',
+        main_file_re=r'^.*\.xml$',
+        main_contents_re=(
+            r'^\s*<\?xml version="1\.0" encoding="ISO-8859-1"\?>\s*'
+            r'?\s*<modeling>'
+            r'?\s*<generator>'
+            r'?\s*<i name="program" type="string">\s*vasp\s*</i>'
+            r'?')
+    )
 ]
 parser_dict = {parser.name: parser for parser in parsers}
 
-others = [
+dependencies = [
     PythonGit(
         name='nomad-meta-info',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info.git',
@@ -221,7 +254,10 @@ others = [
 
 
 def prepare():
-    for python_git in others:
+    """
+    Installs all dependencies from :data:`dependencies` and :data:`parsers`.
+    """
+    for python_git in dependencies:
         python_git.prepare()
 
     for parser in parsers:

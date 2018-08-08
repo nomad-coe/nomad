@@ -15,10 +15,10 @@ virtualenv -p `which phyton3` .pyenv
 source .pyenv/bin/activate
 ```
 
-Third, install the documentation system [sphinx](http://www.sphinx-doc.org/en/master/index.html):
+Third, install the development dependencies, including the documentation system
+[sphinx](http://www.sphinx-doc.org/en/master/index.html):
 ```
-pip install sphinx
-pip install recommonmark
+pip install -r requirements-dev.txt
 ```
 
 Forth, generate the documentation:

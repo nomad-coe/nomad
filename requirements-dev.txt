@@ -1,1 +1,4 @@
 watchdog
+sphinx
+recommonmark
+gitpython
