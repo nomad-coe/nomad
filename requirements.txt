@@ -3,4 +3,3 @@ requests
 celery[redis]
 python-logstash
 gitpython
-

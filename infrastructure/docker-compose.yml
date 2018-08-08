@@ -24,7 +24,7 @@ services:
         ports:
             - 9007:9000
         volumes:
-            - ./data/minio:/data
+            - ../.volumes/minio:/data
             - ./config/minio:/root/.minio
         environment:
             - "MINIO_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE"
@@ -49,7 +49,7 @@ services:
         image: 'redis:3.0-alpine'
         command: redis-server --appendonly yes
         volumes:
-            - './data/redis:/data'
+            - '../.volumes/redis:/data'
         ports:
             - '6379:6379'
 
@@ -73,4 +73,6 @@ services:
             - redis
             - rabbitmq
             - elk
+        volumes:
+            - '../.volumes/fs:/app/.volumes/fs'
         command: celery worker -l debug -A nomad.processing

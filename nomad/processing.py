@@ -22,7 +22,7 @@ import logstash
 
 import nomad.config as config
 import nomad.files as files
-from nomad.parsers import parsers, parser_dict
+from nomad.dependencies import parsers, parser_dict
 
 
 if config.logstash.enabled:

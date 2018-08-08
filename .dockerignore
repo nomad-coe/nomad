@@ -2,6 +2,7 @@
 .dependencies/
 .pyenv/
 .vscode/
+.volumes/
 data/
 docs/
 infrastructure/

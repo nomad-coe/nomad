@@ -38,7 +38,7 @@ minio = MinioConfig(
     secret='wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
 )
 fs = FSConfig(
-    tmp='./infrastructure/data/tmp'
+    tmp='.volumes/fs'
 )
 logstash = LogstashConfig(
     enabled=False,

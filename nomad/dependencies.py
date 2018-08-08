@@ -13,8 +13,8 @@
 # limitations under the License.
 
 """
-Integration of parsers into the processing
-==========================================
+Integration of nomad projects into the processing
+=================================================
 
 Parsers are developed as independed, individual python programs in their own GIT repositories.
 They are build on a common modules called *python-common*, also in a separate GIT.
@@ -92,14 +92,14 @@ class PythonGit():
         pipcode = 0
 
         # some weird interaction of pip and virtualenv causes a bug that does
-        # not allow to install due to a wrong PIP_REQ_TRACKER path. This
+        # not allow to install in docker due to a wrong PIP_REQ_TRACKER path. This
         # is a workarround.
         pip_req_tracker_key = 'PIP_REQ_TRACKER'
         env = dict(os.environ)
         if pip_req_tracker_key in env:
             del(env['PIP_REQ_TRACKER'])
         pipcode = subprocess.call(
-            [sys.executable, '-m', 'pip', 'install', '--no-cache-dir'] + list(args),
+            [sys.executable, '-m', 'pip', 'install'] + list(args),
             env=env)
 
         if pipcode != 0:
@@ -192,7 +192,7 @@ class VASPRunParser(Parser):
             python_git=PythonGit(
                 name='parsers/vasp',
                 git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-vasp.git',
-                git_commit='master'),  # COMMIT ddf8495944fbbcb62801f69b2c2c6c3d6099129d
+                git_commit='nomad-xt'),
             parser_class_name='vaspparser.VASPParser',
             main_file_re=r'^.*\.xml$',
             main_contents_re=(
@@ -212,7 +212,7 @@ others = [
     PythonGit(
         name='nomad-meta-info',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info.git',
-        git_commit='1.6.0'),  # COMMIT c99a30a907e617fb39e900d3516790311c3e5c74
+        git_commit='1.6.0'),
     PythonGit(
         name='python_common',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/python-common.git',
