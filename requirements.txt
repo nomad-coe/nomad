@@ -1,6 +1,6 @@
 minio
 requests
-celery
 celery[redis]
 python-logstash
 gitpython
+

@@ -1,0 +1,7 @@
+.git/
+.dependencies/
+.pyenv/
+.vscode/
+data/
+docs/
+infrastructure/

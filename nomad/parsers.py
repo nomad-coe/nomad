@@ -23,23 +23,25 @@ All parsers depend on the *meta-info*, which is also maintained in its own GIT.
 Assumption about parsers
 ------------------------
 For now, we make a few assumption about parsers
-- they always work on the same *meta-inf*
+- they always work on the same *meta-info* version
 - they have no conflicting python requirments
 - they can be loaded at the same time and can be used within the same python process
 - they are uniquely identified by a GIT URL and publicly accessible
 - their version is uniquly identified by a GIT commit SHA
 
-Preparing dependencies and parsers during python run-time
----------------------------------------------------------
+Preparing dependencies and parsers
+----------------------------------
+
 To make GIT maintained python modules available, we use:
 
-.. autoclass:: nomad.parsers.PythonGitRepository
+.. autoclass:: nomad.parsers.PythonGit
 
 Parsers, as a special case for a GIT maintained python modules, can be used via:
 
 .. autoclass:: nomad.parsers.Parser
 """
 import re
+import sys
 import os
 import os.path
 from git import Repo, Git
@@ -48,49 +50,67 @@ try:
 except:
     from pip._internal import main as pip
 import importlib
-
-from nomadcore.parser_backend import JsonParseEventsWriterBackend
+import logging
+import subprocess
 
 _meta_info_path = './submodules/nomad-meta-info/meta_info/nomad_meta_info/'
-
+_logger = logging.getLogger(__name__)
 base_dir = './.dependencies'
 
 
-class PythonGitRepositoryError(Exception):
+class PythonGitError(Exception):
     def __init__(self, msg, repo):
         msg = '%s [%s]' % (msg, repo)
         super().__init__(msg)
 
 
-class PythonGitRepository():
+class PythonGit():
     """Represents a python module in a git repository.
 
     It allows to fetch a specific commit, install all requirements to
     the current python environment, and check the installation via module import.
+
+    This is only useful before you want to use the respective module in a different
+    python process, because it will not try to reload any already loaded modules into
+    the current python process.
     """
-    def __init__(self, name, git_url, git_commit, modules=[]):
+    def __init__(self, name, git_url, git_commit):
         """
         Args:
             name: A name that determines the download path, can contain '/' for sub dirs.
+                  Names are important, because modules might use relatives paths between
+                  them.
             git_url: A publically available and fetchable url to the GIT repository.
             git_commit: The full commit SHA of the desired commit.
-            modules: A list of python module names that is used to confirm the installation.
         """
         super().__init__()
         self.name = name
         self.git_url = git_url
         self.git_commit = git_commit
-        self.modules = modules
 
-    def prepare(self, force_install=False):
+    def _run_pip_install(self, *args):
+        pipcode = 0
+
+        # some weird interaction of pip and virtualenv causes a bug that does
+        # not allow to install due to a wrong PIP_REQ_TRACKER path. This
+        # is a workarround.
+        pip_req_tracker_key = 'PIP_REQ_TRACKER'
+        env = dict(os.environ)
+        if pip_req_tracker_key in env:
+            del(env['PIP_REQ_TRACKER'])
+        pipcode = subprocess.call(
+            [sys.executable, '-m', 'pip', 'install', '--no-cache-dir'] + list(args),
+            env=env)
+
+        if pipcode != 0:
+            raise PythonGitError(
+                'Could not install (pip return code=%s)' % pipcode, repo=self)
+
+    def prepare(self):
         """Makes sure that the repository is fetched, at the right commit, and installed.
 
-        Args:
-            force_install: default is *False*. Allows to force install, e.g. after git commit or
-                url change.
-
         Raises:
-            PythonGitRepositoryError: if something went wrong.
+            PythonGitError: if something went wrong.
         """
         # check/change working directory
         old_cwd = os.getcwd()
@@ -100,7 +120,7 @@ class PythonGitRepository():
                 os.makedirs(cwd)
             os.chdir(cwd)
 
-            # check git/do init
+            _logger.info('check git/do init with origin %s for %s' % (self.git_url, self.name))
             if os.path.exists('.git'):
                 git = Repo('./')
             else:
@@ -109,73 +129,40 @@ class PythonGitRepository():
                 git = Repo('./')
                 origin = git.create_remote('origin', self.git_url)
 
-            # check commit/checkout
-            if 'master' not in git.heads:
-                origin = git.remote('origin')
-                origin.fetch(self.git_commit)
-                git.create_head('master', self.git_commit)
-            elif self.git_commit != git.heads.master.commit:
-                origin = git.remote('origin')
-                origin.fetch(self.git_commit)
-            assert self.git_commit != git.heads.master.commit, \
-                'Actual and desired commit do not match'
-            git.heads.master.checkout()
+            _logger.info('pull %s for %s' % (self.git_commit, self.name))
+            origin = git.remote('origin')
+            origin.pull(self.git_commit)
 
-            # check install
-            def is_installed():
-                for module in self.modules:
-                    module_spec = importlib.util.find_spec(module)
-                    if module_spec is None:
-                        return False
-                return True
-            if is_installed() and not force_install:
-                return
-
-            # check/install requirements.txt
             if os.path.exists('requirements.txt'):
-                # try twice to support circular dependencies
-                for _ in range(1, 2):
-                    pipcode = pip(['install', '-r', 'requirements.txt'])
-                    if pipcode == 0:
-                        break
-                if pipcode != 0:
-                    raise PythonGitRepositoryError(
-                        'Could not install requirements (pip code=%s)' % pipcode, self)
+                _logger.info('install requirements.txt for %s' % self.name)
+                self._run_pip_install('-r', 'requirements.txt')
 
-            # check/install setup.py
             if os.path.exists('setup.py'):
-                pipcode = pip(['install', '-e', '.'])
-                if pipcode != 0:
-                    raise PythonGitRepositoryError(
-                        'Could not install (pip code=%s)' % pipcode, repo=self)
+                _logger.info('install setup.py for %s' % self.name)
+                self._run_pip_install('-e', '.')
 
-            # check install again
-            if not is_installed():
-                raise PythonGitRepositoryError(
-                    'Some modules are not installed after install', repo=self)
-
-            # reload, loaded modules when installed because of force_install
-            # TODO
-        except PythonGitRepositoryError as e:
+        except PythonGitError as e:
             raise e
         except Exception as e:
-            raise PythonGitRepositoryError(
+            raise PythonGitError(
                 'Unexpected exception during preparation: %s' % e, repo=self)
         finally:
             os.chdir(old_cwd)
         pass
 
+    def __repr__(self):
+        return self.name
 
-class Parser(PythonGitRepository):
+
+class Parser():
     """
     Instances specify a parser. It allows to find *main files* from  given uploaded
     and extracted files. Further, allows to run the parser on those 'main files'.
     """
-    def __init__(self, name, git_url, git_commit, parser, main_file_re, main_contents_re):
-        modules = ['.'.join(parser.split('.')[:-1])]
-        super().__init__(
-            os.path.join('parsers', name), git_url, git_commit, modules=modules)
-        self.parser = parser
+    def __init__(self, python_git, parser_class_name, main_file_re, main_contents_re):
+        self.name = python_git.name
+        self.python_git = python_git
+        self.parser_class_name = parser_class_name
         self._main_file_re = re.compile(main_file_re)
         self._main_contents_re = re.compile(main_contents_re)
 
@@ -190,8 +177,9 @@ class Parser(PythonGitRepository):
                     file.close()
 
     def run(self, mainfile):
-        module_name = self.parser.split('.')[:-1]
-        parser_class = self.parser.split('.')[1]
+        from nomadcore.parser_backend import JsonParseEventsWriterBackend
+        module_name = self.parser_class_name.split('.')[:-1]
+        parser_class = self.parser_class_name.split('.')[1]
         module = importlib.import_module('.'.join(module_name))
         Parser = getattr(module, parser_class)
         parser = Parser(backend=JsonParseEventsWriterBackend)
@@ -201,10 +189,11 @@ class Parser(PythonGitRepository):
 class VASPRunParser(Parser):
     def __init__(self):
         super().__init__(
-            name='VASPRunParser',
-            git_url='git@gitlab.mpcdf.mpg.de:nomad-lab/parser-vasp.git',
-            git_commit='ddf8495944fbbcb62801f69b2c2c6c3d6099129d',
-            parser='vaspparser.VASPParser',
+            python_git=PythonGit(
+                name='parsers/vasp',
+                git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-vasp.git',
+                git_commit='master'),  # COMMIT ddf8495944fbbcb62801f69b2c2c6c3d6099129d
+            parser_class_name='vaspparser.VASPParser',
             main_file_re=r'^.*\.xml$',
             main_contents_re=(
                 r'^\s*<\?xml version="1\.0" encoding="ISO-8859-1"\?>\s*'
@@ -219,11 +208,25 @@ parsers = [
 ]
 parser_dict = {parser.name: parser for parser in parsers}
 
+others = [
+    PythonGit(
+        name='nomad-meta-info',
+        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info.git',
+        git_commit='1.6.0'),  # COMMIT c99a30a907e617fb39e900d3516790311c3e5c74
+    PythonGit(
+        name='python_common',
+        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/python-common.git',
+        git_commit='master'),  # COMMIT b6f64de2149f95da6a79c4f86fd909b1dcfc23e8
+]
 
-def prepare_parsers(force_install=False):
+
+def prepare():
+    for python_git in others:
+        python_git.prepare()
+
     for parser in parsers:
-        parser.prepare(force_install=force_install)
-
+        parser.python_git.prepare()
 
 if __name__ == '__main__':
-    prepare_parsers(force_install=True)
+    _logger.setLevel(logging.DEBUG)
+    prepare()

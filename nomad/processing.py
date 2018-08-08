@@ -22,7 +22,7 @@ import logstash
 
 import nomad.config as config
 import nomad.files as files
-from nomad.parsers import parsers, parser_dict, prepare_parsers
+from nomad.parsers import parsers, parser_dict
 
 
 if config.logstash.enabled:
@@ -48,8 +48,6 @@ app.conf.update(
 )
 
 logger = get_task_logger(__name__)
-
-prepare_parsers(force_install=True)
 
 
 @app.task()

@@ -64,3 +64,13 @@ services:
             # - 9300:9300  # elastic transport api
             - 5044:5044  # logstash beats
             - 5000:5000  # logstash tcp
+
+    # nomad processing worker (parsing/normalizing)
+    nomad-worker:
+        build: ../
+        links:
+            - minio
+            - redis
+            - rabbitmq
+            - elk
+        command: celery worker -l debug -A nomad.processing
