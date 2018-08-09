@@ -194,18 +194,23 @@ class Parser():
                     file.close()
 
     def run(self, mainfile):
-        # from nomadcore.parser_backend import JsonParseEventsWriterBackend as Backend
-        from nomadcore.local_backend import LocalBackend as Backend
+        """
+        Runs the parser on the given mainfile. For now, we use the LocalBackend without
+        doing much with it.
+
+        Args:
+            mainfile: A path to a mainfile that this parser can parse.
+
+        Returns:
+            True
+        """
         module_name = self.parser_class_name.split('.')[:-1]
         parser_class = self.parser_class_name.split('.')[1]
         module = importlib.import_module('.'.join(module_name))
         Parser = getattr(module, parser_class)
-        # parser = Parser(backend=Backend)
-        parser = Parser()
-        parser.parser_context.super_backend.debug = False
-        parser.parser_context.super_backend.fileOut = sys.stdout
+        parser = Parser(debug=False)  # the implicitely used LocalBackend does not support repeats
         parser.parse(mainfile)
-        return parser.parser_context.super_backend
+        return True
 
     def __repr__(self):
         return self.python_git.__repr__()
@@ -250,7 +255,7 @@ dependencies = [
     PythonGit(
         name='nomad-meta-info',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info.git',
-        git_commit='1.6.0'),
+        git_commit='v2_norename'),
     PythonGit(
         name='python_common',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/python-common.git',
