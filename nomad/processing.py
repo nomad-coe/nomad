@@ -51,8 +51,9 @@ if config.logstash.enabled:
     after_setup_logger.connect(initialize_logstash)
 
 
-broker_url = 'pyamqp://%s:%s@localhost//' % (config.rabbitmq.user, config.rabbitmq.password)
-backend_url = 'redis://localhost/0'
+broker_url = 'pyamqp://%s:%s@%s//' % (
+    config.celery.rabbit_user, config.celery.rabbit_password, config.celery.rabbit_host)
+backend_url = 'redis://%s/0' % config.celery.redis_host
 app = Celery('nomad.processing', backend=backend_url, broker=broker_url)
 app.conf.update(
     accept_content=['pickle'],

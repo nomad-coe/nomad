@@ -66,6 +66,12 @@ services:
     nomad-worker:
         restart: always
         build: ../
+        environment:
+            - NOMAD_MINIO_PORT=9000
+            - NOMAD_MINIO_HOST=minio
+            - NOMAD_RABBITMQ_HOST=rabbitmq
+            - NOMAD_REDIS_HOST=redis
+            - NOMAD_LOGSTASH_HOST=elk
         links:
             - minio
             - redis
@@ -73,4 +79,4 @@ services:
             - elk
         volumes:
             - '../.volumes/fs:/app/.volumes/fs'
-        command: python -m celery worker -l debug -A nomad.processing
+        command: python -m celery worker -l info -A nomad.processing

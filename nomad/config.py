@@ -17,13 +17,15 @@ This module is used to store all configuration values. It makes use of
 *namedtuples* to create key sensitive configuration objects.
 """
 
+import os
 from collections import namedtuple
 
 S3Config = namedtuple('S3', ['uploads_bucket', 'repository_bucket', 'archive_bucket'])
 """ API independent configuration for the object storage. """
 
-RabitMQConfig = namedtuple('RabbitMQ', ['host', 'port', 'user', 'password'])
-""" Used to configure the RabbitMQ used by celery as a task backend. """
+CeleryConfig = namedtuple('Celery', [
+    'rabbit_host', 'rabbit_port', 'rabbit_user', 'rabbit_password', 'redis_host'])
+""" Used to configure the RabbitMQ and Redis backends for celery. """
 
 MinioConfig = namedtuple('Minio', ['host', 'port', 'accesskey', 'secret'])
 """ Used to configure the minio object storage API. """
@@ -39,15 +41,16 @@ s3 = S3Config(
     repository_bucket='repository',
     archive_bucket='archive'
 )
-rabbitmq = RabitMQConfig(
-    host='localhost',
-    port=None,
-    user='rabbitmq',
-    password='rabbitmq'
+celery = CeleryConfig(
+    rabbit_host=os.environ.get('NOMAD_RABBITMQ_HOST', 'localhost'),
+    rabbit_port=os.environ.get('NOMAD_RABBITMQ_PORT', None),
+    rabbit_user='rabbitmq',
+    rabbit_password='rabbitmq',
+    redis_host=os.environ.get('NOMAD_REDIS_HOST', 'localhost'),
 )
 minio = MinioConfig(
-    host='localhost',
-    port=9007,
+    host=os.environ.get('NOMAD_MINIO_HOST', 'localhost'),
+    port=int(os.environ.get('NOMAD_MINIO_PORT', '9007')),
     accesskey='AKIAIOSFODNN7EXAMPLE',
     secret='wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
 )
@@ -56,6 +59,6 @@ fs = FSConfig(
 )
 logstash = LogstashConfig(
     enabled=False,
-    host='localhost',
-    tcp_port=5000
+    host=os.environ.get('NOMAD_LOGSTASH_HOST', 'localhost'),
+    tcp_port=int(os.environ.get('NOMAD_LOGSTASH_TCPPORT', '5000'))
 )

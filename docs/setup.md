@@ -63,6 +63,10 @@ You can run the worker as part of the docker infrastructure.
 cd infrastructure
 docker-compose up nomad-worker
 ```
+In this case, the worker inside docker and python outside docker, will try to adress
+the Redis backend with different hosts. This does not work. If you need this, you
+could add `127.0.0.1 redis` to your `/etc/hosts`. Or do some docker-compose networking
+magic.
 
 You can also run the worker yourself, e.g. to develop on the processing. To simply
 run a worker do (from the root)
