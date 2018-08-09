@@ -12,13 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+This module is used to store all configuration values. It makes use of
+*namedtuples* to create key sensitive configuration objects.
+"""
+
 from collections import namedtuple
 
 S3Config = namedtuple('S3', ['uploads_bucket', 'repository_bucket', 'archive_bucket'])
+""" API independent configuration for the object storage. """
+
 RabitMQConfig = namedtuple('RabbitMQ', ['host', 'port', 'user', 'password'])
+""" Used to configure the RabbitMQ used by celery as a task backend. """
+
 MinioConfig = namedtuple('Minio', ['host', 'port', 'accesskey', 'secret'])
+""" Used to configure the minio object storage API. """
+
 FSConfig = namedtuple('FSConfig', ['tmp'])
+""" Used to configure file stystem access. """
+
 LogstashConfig = namedtuple('LogstashConfig', ['enabled', 'host', 'tcp_port'])
+""" Used to configure and enable/disable the ELK based centralized logging. """
 
 s3 = S3Config(
     uploads_bucket='uploads',

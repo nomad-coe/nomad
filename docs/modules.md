@@ -1,16 +1,23 @@
 # Modules
 
-## Dependencies
+## nomad.config
+```eval_rst
+
+.. automodule:: nomad.config
+    :members:
+```
+
+## nomad.dependencies
 ```eval_rst
 .. automodule:: nomad.dependencies
 ```
 
-## Files
+## nomad.files
 ```eval_rst
 .. automodule:: nomad.files
 ```
 
-## Processing
+## nomad.processing
 ```eval_rst
 .. automodule:: nomad.processing
 ```
