@@ -172,7 +172,7 @@ class Parser():
     Args:
         python_git: The :class:`PythonGit` that describes the parser code.
         parser_class_name: Full qualified name of the main parser class. We assume it have one
-        parameter for the backend.
+                           parameter for the backend.
         main_file_re: A regexp that matches main file paths that this parser can handle.
         main_contents_re: A regexp that matches main file headers that this parser can parse.
     """
