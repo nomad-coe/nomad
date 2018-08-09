@@ -194,13 +194,18 @@ class Parser():
                     file.close()
 
     def run(self, mainfile):
-        from nomadcore.parser_backend import JsonParseEventsWriterBackend
+        # from nomadcore.parser_backend import JsonParseEventsWriterBackend as Backend
+        from nomadcore.local_backend import LocalBackend as Backend
         module_name = self.parser_class_name.split('.')[:-1]
         parser_class = self.parser_class_name.split('.')[1]
         module = importlib.import_module('.'.join(module_name))
         Parser = getattr(module, parser_class)
-        parser = Parser(backend=JsonParseEventsWriterBackend)
+        # parser = Parser(backend=Backend)
+        parser = Parser()
+        parser.parser_context.super_backend.debug = False
+        parser.parser_context.super_backend.fileOut = sys.stdout
         parser.parse(mainfile)
+        return parser.parser_context.super_backend
 
     def __repr__(self):
         return self.python_git.__repr__()

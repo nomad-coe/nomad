@@ -75,6 +75,7 @@ Use watchdog during development to reload the worker on code changes.
 Watchdog is part of the requirements-dev.txt. For MacOS (there is currently a bug in watchdog)
 uninstall and install this [fixed](https://github.com/gorakhargosh/watchdog/issues/330) version
 ```
+pip uninstall watchdog
 pip install git+https://github.com/gorakhargosh/watchdog.git
 ```
 

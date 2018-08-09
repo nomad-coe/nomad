@@ -14,9 +14,15 @@
 
 """
 This modules allows to (1) run a celery worker that can perform all processing
-task, (2) allows to start a processing canvas (series of tasks), (3) contains
-utilities to read and render the current state and results of a processing canvas
-run.
+task, (2) allows to start, manage, read status of processing runs
+(i.e. celery canvas, i.e. workflow of tasks), (3) contains the implementation of said
+celery tasks.
+
+We make use of celery. It is a widely popular module for running complex distributed
+task workflows on a variety of task and result backends. We are using the popular
+rabbitmq, redis combination. Rabbitmq allows for a very scalable distribution of tasks in
+clouds and clusters, while redis provides a more centralized, reliable temporary storage
+for task stati and results.
 """
 
 from celery import Celery, group, subtask
@@ -107,58 +113,85 @@ def dmap(it, callback):
     return group(callback.clone([arg, ]) for arg in it)()
 
 
-def start_process_upload(upload_id):
-    """
-    Starts the processing of uploaded data and returns the celery
-    :class:`~celery.results.AsyncResults` instance in serialized *tuple* form.
+class ProcessRun():
+    """ Represents the processing of an uploaded file.
 
-    The serialized form is understood by all respective methods in this
-    module. We use the serialized form to allow storage. Keep in mind
+    It allows to start and manage a processing run, retrieve status information and results.
+
+    It is serializable (JSON, pickle). Iternaly stores
+    :class:`~celery.results.AsyncResults` instance in serialized *tuple* form.
+    We use the serialized form to allow serialization (i.e. storage). Keep in mind
     that the sheer `task_id` is not enough, because it does not contain
     the parent tasks. See [third comment](https://github.com/celery/celery/issues/1328)
     for details.
+
+    Args:
+        upload_id: The id of the uploaded file in the object storage,
+        see also :mod:`nomad.files`.
     """
-    parsing_workflow = (
-        open_upload.s(upload_id) |
-        find_mainfiles.s() |
-        dmap.s(parse.s()) |
-        close_upload.s(upload_id)
-    )
+    def __init__(self, upload_id):
+        self.upload_id = upload_id
+        self.async_result_tuple = None
 
-    async_result = parsing_workflow.delay()
-    return async_result.as_tuple()
+    def start(self):
+        """ Initiates the processing tasks via celery canvas. """
+        assert not self.is_started, 'Cannot start a started or used run.'
 
+        parsing_workflow = (
+            open_upload.s(self.upload_id) |
+            find_mainfiles.s() |
+            dmap.s(parse.s()) |
+            close_upload.s(self.upload_id)
+        )
 
-def get_process_upload_state(async_result):
-    """
-    Extract the current state from the various tasks involved in upload processing.
-    """
-    async_result = result_from_tuple(async_result)
+        async_result = parsing_workflow.delay()
+        self.async_result_tuple = async_result.as_tuple()
 
-    close = async_result
-    parse = close.parent
-    find_mainfiles = parse.parent
-    open_task = find_mainfiles.parent
+    @property
+    def async_result(self):
+        """ The celery async_result in its regular usable, but not serializable form. """
+        return result_from_tuple(self.async_result_tuple)
 
-    return {
-        'open': open_task.state,
-        'find_mainfiles': find_mainfiles.state,
-        'parse': parse.state,
-        'close': close.state
-    }
+    @property
+    def is_started(self):
+        """ True, if the task is started. """
+        return self.async_result_tuple is not None
 
+    def status(self):
+        """
+        Extract the current state from the various tasks involved in upload processing.
 
-if __name__ == '__main__':
-    upload_id = 'examples_vasp.zip'
+        Returns: JSON-style python object with various task information.
+        """
 
-    task = start_process_upload(upload_id)
+        assert self.is_started, 'Run is not yet started.'
 
-    result = None
-    while(True):
-        time.sleep(0.0001)
-        new_result = get_process_upload_state(task)
-        if result != new_result:
-            result = new_result
-            print(result)
-            if result['close'] == 'SUCCESS' or result['close'] == 'FAILURE':
-                break
+        async_result = self.async_result
+
+        close = async_result
+        parse = close.parent
+        find_mainfiles = parse.parent
+        open_task = find_mainfiles.parent
+
+        return {
+            'open': open_task.state,
+            'find_mainfiles': find_mainfiles.state,
+            'parse': parse.state,
+            'close': close.state
+        }
+
+    def ready(self):
+        """ Returns: True if the task has been executed. """
+        assert self.is_started, 'Run is not yet started.'
+        return self.async_result.ready()
+
+    def get(self, *args, **kwargs):
+        """ Blocks until the processing has finished. Forwards args, kwargs to
+        *celery.result.get* for timeouts, etc.
+
+        Returns: The task result as :func:`status`.
+        """
+        assert self.is_started, 'Run is not yet started.'
+
+        self.async_result.get()
+        return self.status()

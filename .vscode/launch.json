@@ -4,6 +4,7 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
+
     {
       "name": "Python: VaspRun",
       "type": "python",
@@ -15,11 +16,18 @@
       ]
     },
     {
-      "name": "Python: nomad/parsers.py",
+      "name": "Python: tests/test_dependencies.py",
       "type": "python",
       "request": "launch",
       "cwd": "${workspaceFolder}",
-      "program": "${workspaceFolder}/nomad/parsers.py"
+      "program": "${workspaceFolder}/tests/test_dependencies.py"
+    },
+    {
+      "name": "Python: tests/test_processing.py",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/tests/test_processing.py"
     },
     {
       "name": "Python: tests/test_files.py",

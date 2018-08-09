@@ -1,12 +1,12 @@
 import unittest
 from unittest import TestCase
-import time
 import logging
 from minio import ResponseError
+import os
 
 import nomad.files as files
 import nomad.config as config
-from nomad.processing import start_process_upload, get_process_upload_state
+from nomad.processing import ProcessRun
 
 test_upload_id = '__test_upload_id'
 
@@ -14,7 +14,11 @@ test_upload_id = '__test_upload_id'
 class ProcessingTests(TestCase):
 
     def setUp(self):
-        files._client.fput_object(config.s3.uploads_bucket, test_upload_id, 'data/examples_vasp.zip')
+        example_file = 'data/examples_vasp.zip'
+        with open(example_file, 'rb') as file_data:
+            file_stat = os.stat(example_file)
+            files._client.put_object(
+                config.s3.uploads_bucket, test_upload_id, file_data, file_stat.st_size)
 
     def tearDown(self):
         try:
@@ -23,20 +27,12 @@ class ProcessingTests(TestCase):
             pass
 
     def test_processing(self):
-        task = start_process_upload(test_upload_id)
-
-        result = None
-        while(True):
-            time.sleep(0.0001)
-            new_result = get_process_upload_state(task)
-            if result != new_result:
-                result = new_result
-                if result['close'] == 'SUCCESS' or result['close'] == 'FAILURE':
-                    break
-
+        run = ProcessRun(test_upload_id)
+        run.start()
+        result = run.get(timeout=30)
         self.assertTrue(result['close'] == 'SUCCESS')
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     unittest.main()
