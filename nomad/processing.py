@@ -25,7 +25,7 @@ clouds and clusters, while redis provides a more centralized, reliable temporary
 for task stati and results.
 """
 
-from celery import Celery, group, subtask
+from celery import Celery, chord
 from celery.result import result_from_tuple
 from celery.signals import after_setup_task_logger, after_setup_logger
 from celery.utils.log import get_task_logger
@@ -41,6 +41,7 @@ from nomad.dependencies import parsers, parser_dict
 # The legacy nomad code uses a logger called 'nomad'. We do not want that this
 # logger becomes a child of this logger due to its module name starting with 'nomad.'
 logger = get_task_logger(__name__.replace('nomad', 'nomad-xt'))
+logger.setLevel(logging.DEBUG)
 
 if config.logstash.enabled:
     def initialize_logstash(logger=None, loglevel=logging.INFO, **kwargs):
@@ -65,13 +66,18 @@ app.conf.update(
     result_serializer='pickle',
 )
 
+
 @app.task()
 def open_upload(upload_id):
     try:
         upload = files.upload(upload_id)
         upload.open()
+        logger.debug('Upload %s opened successfully' % upload_id)
         return upload
+    except files.UploadError as e:
+        logger.debug('Could not open upload %s: %s' % (upload_id, e))
     except Exception as e:
+        logger.error('Could not open upload %s: %s' % (upload_id, e), exc_info=e)
         return e
 
 
@@ -91,6 +97,7 @@ def find_mainfiles(upload):
 
 @app.task()
 def close_upload(parse_results, upload_id):
+    print(parse_results)
     try:
         upload = files.upload(upload_id)
     except KeyError as e:
@@ -98,6 +105,9 @@ def close_upload(parse_results, upload_id):
         return e
 
     upload.close()
+
+    logger.debug('Upload %s closed successfully.' % upload_id)
+
     return parse_results
 
 
@@ -120,26 +130,35 @@ def parse(mainfile_spec):
 
 
 @app.task()
-def dmap(it, callback):
-    callback = subtask(callback)
-    return group(callback.clone([arg, ]) for arg in it)()
+def dmap(it, task, next):
+    """ Map a given list result to clones of a task and call the next task after all
+        clones have completed.
+
+        Args:
+            it: An AsyncResult that provides an iterable.
+            task: A partial signature that is used to run tasks with it elements as arg.
+            next: A partial task signature that is run after all task clones with an
+                  iterable results of the task clone results as arg.
+    """
+    tasks = (task.clone([arg, ]) for arg in it)
+    return chord(tasks, next)()
 
 
 class ProcessRun():
     """ Represents the processing of an uploaded file.
 
-    It allows to start and manage a processing run, retrieve status information and results.
+        It allows to start and manage a processing run, retrieve status information and results.
 
-    It is serializable (JSON, pickle). Iternaly stores
-    :class:`~celery.results.AsyncResults` instance in serialized *tuple* form.
-    We use the serialized form to allow serialization (i.e. storage). Keep in mind
-    that the sheer `task_id` is not enough, because it does not contain
-    the parent tasks. See [third comment](https://github.com/celery/celery/issues/1328)
-    for details.
+        It is serializable (JSON, pickle). Iternaly stores
+        :class:`~celery.results.AsyncResults` instance in serialized *tuple* form.
+        We use the serialized form to allow serialization (i.e. storage). Keep in mind
+        that the sheer `task_id` is not enough, because it does not contain
+        the parent tasks. See [third comment](https://github.com/celery/celery/issues/1328)
+        for details.
 
-    Args:
-        upload_id: The id of the uploaded file in the object storage,
-        see also :mod:`nomad.files`.
+        Args:
+            upload_id: The id of the uploaded file in the object storage,
+            see also :mod:`nomad.files`.
     """
     def __init__(self, upload_id):
         self.upload_id = upload_id
@@ -149,12 +168,9 @@ class ProcessRun():
         """ Initiates the processing tasks via celery canvas. """
         assert not self.is_started, 'Cannot start a started or used run.'
 
-        parsing_workflow = (
-            open_upload.s(self.upload_id) |
-            find_mainfiles.s() |
-            dmap.s(parse.s()) |
-            close_upload.s(self.upload_id)
-        )
+        before_parse = open_upload.s(self.upload_id) | find_mainfiles.s()
+        after_parse = close_upload.s(self.upload_id)
+        parsing_workflow = before_parse | dmap.s(parse.s(), after_parse)
 
         async_result = parsing_workflow.delay()
         self.async_result_tuple = async_result.as_tuple()
@@ -170,10 +186,9 @@ class ProcessRun():
         return self.async_result_tuple is not None
 
     def status(self):
-        """
-        Extract the current state from the various tasks involved in upload processing.
+        """ Extract the current state from the various tasks involved in upload processing.
 
-        Returns: JSON-style python object with various task information.
+            Returns: JSON-style python object with various task information.
         """
 
         assert self.is_started, 'Run is not yet started.'
@@ -181,7 +196,6 @@ class ProcessRun():
         async_result = self.async_result
 
         close = async_result
-        parse = close.parent
         find_mainfiles = parse.parent
         open_task = find_mainfiles.parent
 
@@ -199,9 +213,9 @@ class ProcessRun():
 
     def get(self, *args, **kwargs):
         """ Blocks until the processing has finished. Forwards args, kwargs to
-        *celery.result.get* for timeouts, etc.
+            *celery.result.get* for timeouts, etc.
 
-        Returns: The task result as :func:`status`.
+            Returns: The task result as :func:`status`.
         """
         assert self.is_started, 'Run is not yet started.'
 
