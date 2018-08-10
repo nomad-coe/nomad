@@ -35,6 +35,7 @@ import logging
 import logstash
 import time
 import sys
+import json
 
 import nomad.config as config
 import nomad.files as files
@@ -69,42 +70,55 @@ app.conf.update(
 )
 
 
-@app.task()
-def open_upload(upload_id):
-    try:
-        upload = files.upload(upload_id)
-        upload.open()
-        logger.debug('Upload %s opened successfully' % upload_id)
+@app.task(bind=True)
+def open_upload(task, state):
+    if not state.continue_with(task):
+        return state
 
-        parse_specs = list()
+    try:
+        upload = files.upload(state.upload_id)
+        upload.open()
+    except files.UploadError as e:
+        logger.debug('Could not open upload %s: %s' % (state.upload_id, e))
+        return state.fail(e)
+
+    try:
+        state.parse_specs = list()
         for filename in upload.filelist:
             for parser in parsers:
                 if parser.is_mainfile(upload, filename):
                     parse_spec = (parser.name, upload.get_path(filename))
-                    parse_specs.append(parse_spec)
-
-        return parse_specs
+                    state.parse_specs.append(parse_spec)
     except files.UploadError as e:
-        logger.debug('Could not open upload %s: %s' % (upload_id, e))
-        return e
-    except Exception as e:
-        logger.error('Could not open upload %s: %s' % (upload_id, e), exc_info=e)
-        return e
+        logger.warning('Could find parse specs in open upload %s: %s' % (state.upload_id, e))
+        return state.fail(e)
+
+    return state
 
 
-@app.task()
-def close_upload(parse_results, upload_id):
+@app.task(bind=True)
+def close_upload(task, parse_results, state):
+    if not state.continue_with(task):
+        return state
+
     try:
-        upload = files.upload(upload_id)
+        upload = files.upload(state.upload_id)
     except KeyError as e:
-        logger.warning('No upload %s' % upload_id)
-        return e
+        logger.warning('No upload %s' % state.upload_id)
+        return state.fail(e)
 
     upload.close()
 
-    logger.debug('Upload %s closed successfully.' % upload_id)
+    return state
 
-    return parse_results
+
+@app.task(bind=True)
+def distributed_parse(task, state, close_upload):
+    if not state.continue_with(task):
+        chord([])(close_upload.clone(args=(state,)))
+
+    parses = group(parse.s(parse_spec) for parse_spec in state.parse_specs)
+    chord(parses)(close_upload.clone(args=(state,)))
 
 
 @app.task()
@@ -124,20 +138,47 @@ def parse(parse_spec):
     return True  # TODO some other value?
 
 
-@app.task()
-def dmap(it, task, next):
+class ProcessState():
     """
-    Map a given list result to clones of a task and call the next task after all
-    clones have completed.
+    JSON serializable state of a pending, running, or completed :class:`ProcessRun`.
+    Instances are used to pass data from task to task within a process workflow.
+    Instances are also used to represent state to clients via :func:`ProcessRun.status`.
 
-    Args:
-        it: An AsyncResult that provides an iterable.
-        task: A partial signature that is used to run tasks with it elements as arg.
-        next: A partial task signature that is run after all task clones with an
-                iterable results of the task clone results as arg.
+    Attributes:
+        upload_id: The *upload_id* of the :class:`ProcessRun`.
+        parse_specs: A list of already identified parse_specs, or None.
+        parse_results: A list of completed (failed or successful) parse results.
+        current_task: The name of the current task of the process run.
     """
-    tasks = group(task.clone([arg, ]) for arg in it)
-    return chord(tasks)(subtask(next))
+
+    def __init__(self, upload_id):
+        self.upload_id = upload_id
+        self.parse_specs = None
+        self.parse_results = None
+
+        self.status = 'PENDING'
+        self.task_name = None
+        self.task_id = None
+        self.cause = None
+
+    def fail(self, e):
+        self.cause = e
+        self.status = 'FAILURE'
+        return self
+
+    def continue_with(self, task):
+        assert self.status != 'SUCCESS', 'Cannot continue on completed workflow.'
+
+        if self.status == 'FAILURE':
+            return False
+        else:
+            self.status = 'STARTED'
+            self.task_name = task.name
+            self.task_id = task.request.id
+            return True
+
+    def to_json(self):
+        return json.dumps(self, indent=4)
 
 
 class ProcessRun():
@@ -164,20 +205,20 @@ class ProcessRun():
                    see also :mod:`nomad.files`.
     """
     def __init__(self, upload_id):
-        self.upload_id = upload_id
+        self._start_state = ProcessState(upload_id)
         self.result_tuple = None
 
     def start(self):
         """ Initiates the processing tasks via celery canvas. """
         assert not self.is_started, 'Cannot start a started or used run.'
 
-        finalize = close_upload.s(self.upload_id)
+        finalize = close_upload.s()
         # Keep the results of the last task is the workflow.
         # The last task is started by another task, therefore it
         # is not the end of the main task chain.
         finalize_result = finalize.freeze()
 
-        main_chain = chain(open_upload.s(self.upload_id), dmap.s(parse.s(), finalize))
+        main_chain = open_upload.s(self._start_state) | distributed_parse.s(finalize)
 
         # start the main chain
         main_chain_result = main_chain.delay()
@@ -208,21 +249,22 @@ class ProcessRun():
         assert self.is_started, 'Run is not yet started.'
 
         async_result = self.async_result
-
-        close_result = async_result
-        parses_result = close_result.parent
-        open_result = parses_result.parent
-
-        return {
-            'open': open_result.state,
-            'parses': parses_result.state,
-            'close': close_result.state
-        }
+        while async_result is not None:
+            if async_result.ready():
+                async_result.result.status = async_result.status
+                return async_result.result
+            else:
+                async_result = async_result.parent
+        return self._start_state
 
     def forget(self):
         """ Forget the results of a completed run; free all resources in the results backend. """
         assert self.ready(), 'Run is not completed.'
-        self.async_result.forget()
+
+        async_result = self.async_result
+        while async_result is not None:
+            async_result.forget()
+            async_result = async_result.parent
 
     def ready(self):
         """ Returns: True if the task has been executed. """

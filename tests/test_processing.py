@@ -29,12 +29,12 @@ class ProcessingTests(TestCase):
     def test_processing(self):
         run = ProcessRun(test_upload_id)
         run.start()
-        result = run.get(timeout=30)
+        state = run.get(timeout=30)
         self.assertTrue(run.ready())
         run.forget()
 
-        for value in result.values():
-            self.assertTrue(value)
+        self.assertEqual('nomad.processing.close_upload', state.task_name)
+        self.assertEqual('SUCCESS', state.status)
 
 
 if __name__ == '__main__':
