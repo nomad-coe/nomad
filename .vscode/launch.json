@@ -16,6 +16,16 @@
       ]
     },
     {
+      "name": "Python: worker nomad.processing",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/celery",
+      "args": [
+        "worker", "-l" , "debug",  "-A", "nomad.processing"
+      ]
+    },
+    {
       "name": "Python: tests/test_dependencies.py",
       "type": "python",
       "request": "launch",

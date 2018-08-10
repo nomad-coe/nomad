@@ -30,13 +30,17 @@ from celery.result import result_from_tuple
 from celery.signals import after_setup_task_logger, after_setup_logger
 from celery.utils.log import get_task_logger
 import logging
-import time
 import logstash
+import time
+import sys
 
 import nomad.config as config
 import nomad.files as files
 from nomad.dependencies import parsers, parser_dict
 
+# The legacy nomad code uses a logger called 'nomad'. We do not want that this
+# logger becomes a child of this logger due to its module name starting with 'nomad.'
+logger = get_task_logger(__name__.replace('nomad', 'nomad-xt'))
 
 if config.logstash.enabled:
     def initialize_logstash(logger=None, loglevel=logging.INFO, **kwargs):
@@ -60,9 +64,6 @@ app.conf.update(
     task_serializer='pickle',
     result_serializer='pickle',
 )
-
-logger = get_task_logger(__name__)
-
 
 @app.task()
 def open_upload(upload_id):
@@ -93,6 +94,7 @@ def close_upload(parse_results, upload_id):
     try:
         upload = files.upload(upload_id)
     except KeyError as e:
+        logger.warning('No upload %s' % upload_id)
         return e
 
     upload.close()
@@ -101,9 +103,18 @@ def close_upload(parse_results, upload_id):
 
 @app.task()
 def parse(mainfile_spec):
+    time.sleep(1)
     upload, mainfile, parser = mainfile_spec
-    logger.debug('Start parsing mainfile %s/%s with %s.' % (upload, mainfile, parser))
-    parser_dict[parser].run(upload.get_path(mainfile))
+    debug_spec = (parser, upload.upload_id, mainfile)
+
+    logger.debug('Start %s for %s/%s.' % debug_spec)
+    try:
+        parser_dict[parser].run(upload.get_path(mainfile))
+    except ValueError as e:
+        logger.warning('%s stopped on %s/%s: %s' % (debug_spec + (e,)))
+    except:
+        e = sys.exc_info()[0]
+        logger.warning('%s stopped on %s/%s: %s' % (debug_spec + (e,)), exc_info=e)
 
     return True
 
