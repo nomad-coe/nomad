@@ -31,6 +31,8 @@ class ProcessingTests(TestCase):
         run.start()
         result = run.get(timeout=30)
         self.assertTrue(run.ready())
+        run.forget()
+
         for value in result.values():
             self.assertTrue(value)
 
