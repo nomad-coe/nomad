@@ -30,7 +30,9 @@ class ProcessingTests(TestCase):
         run = ProcessRun(test_upload_id)
         run.start()
         result = run.get(timeout=30)
-        self.assertTrue(result['close'] == 'SUCCESS')
+        self.assertTrue(run.ready())
+        for value in result.values():
+            self.assertTrue(value)
 
 
 if __name__ == '__main__':

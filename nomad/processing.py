@@ -25,7 +25,7 @@ clouds and clusters, while redis provides a more centralized, reliable temporary
 for task stati and results.
 """
 
-from celery import Celery, chord
+from celery import Celery, chord, group, subtask
 from celery.result import result_from_tuple
 from celery.signals import after_setup_task_logger, after_setup_logger
 from celery.utils.log import get_task_logger
@@ -140,8 +140,8 @@ def dmap(it, task, next):
             next: A partial task signature that is run after all task clones with an
                   iterable results of the task clone results as arg.
     """
-    tasks = (task.clone([arg, ]) for arg in it)
-    return chord(tasks, next)()
+    tasks = group(task.clone([arg, ]) for arg in it)
+    return chord(tasks)(subtask(next))
 
 
 class ProcessRun():
@@ -162,17 +162,18 @@ class ProcessRun():
     """
     def __init__(self, upload_id):
         self.upload_id = upload_id
+
         self.async_result_tuple = None
 
     def start(self):
         """ Initiates the processing tasks via celery canvas. """
         assert not self.is_started, 'Cannot start a started or used run.'
 
-        before_parse = open_upload.s(self.upload_id) | find_mainfiles.s()
-        after_parse = close_upload.s(self.upload_id)
-        parsing_workflow = before_parse | dmap.s(parse.s(), after_parse)
+        finalize = close_upload.s(self.upload_id)
+        async_result = finalize.freeze()
 
-        async_result = parsing_workflow.delay()
+        parsing_workflow = open_upload.s(self.upload_id) | find_mainfiles.s() | dmap.s(parse.s(), finalize)
+        async_result.parent = parsing_workflow.delay()
         self.async_result_tuple = async_result.as_tuple()
 
     @property
@@ -196,19 +197,21 @@ class ProcessRun():
         async_result = self.async_result
 
         close = async_result
-        find_mainfiles = parse.parent
+        parsers = close.parent
+        find_mainfiles = parsers.parent
         open_task = find_mainfiles.parent
 
         return {
             'open': open_task.state,
             'find_mainfiles': find_mainfiles.state,
-            'parse': parse.state,
+            'parse': parsers.state,
             'close': close.state
         }
 
     def ready(self):
         """ Returns: True if the task has been executed. """
         assert self.is_started, 'Run is not yet started.'
+
         return self.async_result.ready()
 
     def get(self, *args, **kwargs):
