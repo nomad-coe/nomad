@@ -41,7 +41,7 @@ class FilesTests(TestCase):
     def test_upload(self):
         upload_test_file()
 
-        with files.upload(test_upload_id) as upload:
+        with files.Upload(test_upload_id) as upload:
             self.assertEqual(106, len(upload.filelist))
             # now just try to open the first file (not directory), without error
             for filename in upload.filelist:

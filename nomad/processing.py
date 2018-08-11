@@ -40,7 +40,7 @@ import logstash
 import json
 
 import nomad.config as config
-import nomad.files as files
+from nomad.files import Upload, UploadError
 from nomad.dependencies import parsers, parser_dict
 
 # The legacy nomad code uses a logger called 'nomad'. We do not want that this
@@ -237,9 +237,9 @@ def open_upload(task: Task, processing: UploadProcessing) -> UploadProcessing:
         return processing
 
     try:
-        upload = files.upload(processing.upload_id)
+        upload = Upload(processing.upload_id)
         upload.open()
-    except files.UploadError as e:
+    except UploadError as e:
         logger.debug('Could not open upload %s: %s' % (processing.upload_id, e))
         return processing.fail(e)
 
@@ -250,7 +250,7 @@ def open_upload(task: Task, processing: UploadProcessing) -> UploadProcessing:
                 if parser.is_mainfile(upload, filename):
                     parse_spec = (parser.name, upload.get_path(filename))
                     processing.parse_specs.append(parse_spec)
-    except files.UploadError as e:
+    except UploadError as e:
         logger.warning('Could find parse specs in open upload %s: %s' % (processing.upload_id, e))
         return processing.fail(e)
 
@@ -263,7 +263,7 @@ def close_upload(task, parse_results: List[Any], processing: UploadProcessing) -
         return processing
 
     try:
-        upload = files.upload(processing.upload_id)
+        upload = Upload(processing.upload_id)
     except KeyError as e:
         logger.warning('No upload %s' % processing.upload_id)
         return processing.fail(e)

@@ -21,8 +21,8 @@ filesystem structure. There is a 1024 utf-8 character limit on *id* length.
 
 The file storage is organized in multiple buckets:
 
-* *uploads*: used for uploaded user code input/output archives. Currently only .zip files \
-are suported
+* *uploads*: used for uploaded user code input/output archives. Currently only .zip files
+  are suported
 
 Presigned URLs
 --------------
@@ -33,6 +33,7 @@ authentication hassly, presigned URLs can be created that can be used directly t
 .. autofunction:: nomad.files.get_presigned_upload_url
 .. autofunction:: nomad.files.create_curl_upload_cmd
 """
+from typing import Callable, List, Any, Generator, IO
 import sys
 import os
 from os.path import join
@@ -65,14 +66,13 @@ if _client is None and 'sphinx' not in sys.modules:
 
 
 def get_presigned_upload_url(upload_id: str) -> str:
-    """Generates a presigned upload URL.
-
-    Presigned URL allows users (and their client programs) to safely *PUT*
-    a single file without further authorization or API to the *uploads* bucket
+    """
+    Generates a presigned upload URL. Presigned URL allows users (and their client programs)
+    to safely *PUT* a single file without further authorization or API to the *uploads* bucket
     using the given ``upload_id``. Example usages for presigned URLs include
     browser based uploads or simple *curl* commands (see also :func:`create_curl_upload_cmd`).
 
-    Args:
+    Arguments:
         upload_id: The upload id for the uploaded file.
 
     Returns:
@@ -81,10 +81,10 @@ def get_presigned_upload_url(upload_id: str) -> str:
     return _client.presigned_put_object(config.s3.uploads_bucket, upload_id)
 
 
-def create_curl_upload_cmd(presigned_url, file_dummy='<ZIPFILE>'):
+def create_curl_upload_cmd(presigned_url: str, file_dummy: str='<ZIPFILE>') -> str:
     """Creates a readymade curl command for uploading.
 
-    Args:
+    Arguments:
         presigned_url: The presigned URL to base the command on.
 
     Kwargs:
@@ -97,12 +97,8 @@ def create_curl_upload_cmd(presigned_url, file_dummy='<ZIPFILE>'):
     return 'curl -X PUT "%s" -H "%s" -F file=@%s' % (presigned_url, headers, file_dummy)
 
 
-def upload(upload_id):
-    return Upload(upload_id)
-
-
-def upload_put_handler(func):
-    def upload_notifications(events):
+def upload_put_handler(func: Callable[[str], None]) -> Callable[[], None]:
+    def upload_notifications(events: List[Any]) -> Generator[str, None, None]:
         # The given events is a generator that will block and yield indefinetely.
         # Therefore, we have to use generator expressions and must not use list
         # comprehension. Same for chain vs chain.from_iterable.
@@ -123,7 +119,7 @@ def upload_put_handler(func):
                     'Unhandled bucket event due to unexprected event format: %s' %
                     event_record)
 
-    def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs) -> None:
         logger.info('Start listening to uploads notifications.')
 
         events = _client.listen_bucket_notification(config.s3.uploads_bucket)
@@ -139,27 +135,37 @@ def upload_put_handler(func):
                 return
             except Exception as e:
                 logger.error(
-                    'Unexpected exception in upload handler for upload:id:' %
-                    upload_id, exc_info=e)
+                    'Unexpected exception in upload handler for %s' % upload_id, exc_info=e)
 
     return wrapper
 
 
 class UploadError(Exception):
-    IMPLEMENTATION_ERROR = 'implementation error'
-    NOT_ZIP = 'upload is not a zip file'
-
-    def __init__(self, msg, cause, code=IMPLEMENTATION_ERROR):
+    def __init__(self, msg, cause):
         super().__init__(msg, cause)
-        self.code = code
 
 
 class Upload():
-    def __init__(self, upload_id):
+    """
+    Instances represent an uploaded file in the object storage. Class supports open/close,
+    i.e. extract .zip files, and opening contained files. Some functions are only available
+    for open (i.e. tmp. downloaded and extracted uploads) uploads.
+
+    This class is also a context manager that opens and closes the upload respectively.
+
+    Arguments:
+        upload_id: The upload of this uploaded file.
+
+    Attributes:
+        upload_file: The path of the tmp version of this file for an open upload.
+        upload_extract_dir: The path of the tmp directory with the extracted contents.
+        filelist: A list of filenames relative to the .zipped upload root.
+    """
+    def __init__(self, upload_id: str) -> None:
         self.upload_id = upload_id
-        self.upload_file = '%s/uploads/%s.zip' % (config.fs.tmp, upload_id)
-        self.upload_extract_dir = '%s/uploads_extracted/%s' % (config.fs.tmp, upload_id)
-        self.filelist = None
+        self.upload_file: str = '%s/uploads/%s.zip' % (config.fs.tmp, upload_id)
+        self.upload_extract_dir: str = '%s/uploads_extracted/%s' % (config.fs.tmp, upload_id)
+        self.filelist: List[str] = None
 
         try:
             _client.stat_object(config.s3.uploads_bucket, upload_id)
@@ -170,7 +176,7 @@ class Upload():
     # https://medium.com/@vadimpushtaev/decorator-inside-python-class-1e74d23107f6
     class Decorators:
         @classmethod
-        def log_upload_error(cls, decorated):
+        def handle_errors(cls, decorated):
             def wrapper(self, *args, **kwargs):
                 try:
                     return decorated(self, *args, **kwargs)
@@ -180,8 +186,15 @@ class Upload():
                     raise UploadError(msg, e)
             return wrapper
 
-    @Decorators.log_upload_error
-    def open(self):
+    @Decorators.handle_errors
+    def open(self) -> None:
+        """
+        Opens the upload. This means the uploaed files gets tmp. downloaded and extracted.
+
+        Raises:
+            UploadError: If some IO went wrong.
+            KeyError: If the upload does not exist.
+        """
         try:
             _client.fget_object(config.s3.uploads_bucket, self.upload_id, self.upload_file)
         except minio.error.NoSuchKey:
@@ -193,13 +206,20 @@ class Upload():
             zipFile.extractall(self.upload_extract_dir)
             self.filelist = [zipInfo.filename for zipInfo in zipFile.filelist]
         except BadZipFile as e:
-            raise UploadError('Upload is not a zip file', e, UploadError.NOT_ZIP)
+            raise UploadError('Upload is not a zip file', e)
         finally:
             if zipFile is not None:
                 zipFile.close()
 
-    @Decorators.log_upload_error
-    def close(self):
+    @Decorators.handle_errors
+    def close(self) -> None:
+        """
+        Closes the upload. This means the tmp. files are deleted.
+
+        Raises:
+            UploadError: If some IO went wrong.
+            KeyError: If the upload does not exist.
+        """
         try:
             os.remove(self.upload_file)
             shutil.rmtree(self.upload_extract_dir)
@@ -213,9 +233,11 @@ class Upload():
     def __exit__(self, exc_type, exc, exc_tb):
         self.close()
 
-    @Decorators.log_upload_error
-    def open_file(self, filename, *args, **kwargs):
+    @Decorators.handle_errors
+    def open_file(self, filename: str, *args, **kwargs) -> IO[Any]:
+        """ Opens a file within an open upload and returns a file like. """
         return open(self.get_path(filename), *args, **kwargs)
 
-    def get_path(self, filename):
+    def get_path(self, filename: str) -> str:
+        """ Returns the tmp directory relative version of a filename. """
         return join(self.upload_extract_dir, filename)
