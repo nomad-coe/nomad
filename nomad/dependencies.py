@@ -52,6 +52,7 @@ To install all dependencies use
 
 .. autofunction:: prepare
 """
+from typing import Any
 import re
 import sys
 import os
@@ -77,23 +78,23 @@ class PythonGitError(Exception):
 
 
 class PythonGit():
-    """Represents a python module in a git repository.
-
-    It allows to fetch a specific commit, install all requirements to
-    the current python environment, and check the installation via module import.
+    """
+    Represents a python module in a git repository. It allows to fetch a specific commit,
+    install all requirements to the current python environment, and check the installation
+    via module import.
 
     This is only useful before you want to use the respective module in a different
     python process, because it will not try to reload any already loaded modules into
     the current python process.
 
-    Args:
+    Arguments:
         name: A name that determines the download path, can contain '/' for sub dirs.
                 Names are important, because modules might use relatives paths between
                 them.
         git_url: A publically available and fetchable url to the GIT repository.
         git_commit: The full commit SHA of the desired commit.
     """
-    def __init__(self, name, git_url, git_commit):
+    def __init__(self, name: str, git_url: str, git_commit: str) -> None:
         self.name = name
         self.git_url = git_url
         self.git_commit = git_commit
@@ -116,8 +117,9 @@ class PythonGit():
             raise PythonGitError(
                 'Could not install (pip return code=%s)' % pipcode, repo=self)
 
-    def prepare(self):
-        """Makes sure that the repository is fetched, at the right commit, and installed.
+    def prepare(self) -> None:
+        """
+        Makes sure that the repository is fetched, at the right commit, and installed.
 
         Raises:
             PythonGitError: if something went wrong.
@@ -169,31 +171,37 @@ class Parser():
     Instances specify a parser. It allows to find *main files* from  given uploaded
     and extracted files. Further, allows to run the parser on those 'main files'.
 
-    Args:
+    Arguments:
         python_git: The :class:`PythonGit` that describes the parser code.
         parser_class_name: Full qualified name of the main parser class. We assume it have one
                            parameter for the backend.
         main_file_re: A regexp that matches main file paths that this parser can handle.
         main_contents_re: A regexp that matches main file headers that this parser can parse.
     """
-    def __init__(self, python_git, parser_class_name, main_file_re, main_contents_re):
+    def __init__(
+            self, python_git: PythonGit, parser_class_name: str, main_file_re: str,
+            main_contents_re: str) -> None:
+
         self.name = python_git.name
         self.python_git = python_git
         self.parser_class_name = parser_class_name
         self._main_file_re = re.compile(main_file_re)
         self._main_contents_re = re.compile(main_contents_re)
 
-    def is_mainfile(self, upload, filename):
+    def is_mainfile(self, upload, filename: str) -> bool:
+        """ Checks if a file is a mainfile via the parsers ``main_contents_re``. """
         if self._main_file_re.match(filename):
             file = None
             try:
                 file = upload.open_file(filename)
-                return self._main_contents_re.match(file.read(500))
+                return self._main_contents_re.match(file.read(500)) is not None
             finally:
                 if file:
                     file.close()
 
-    def run(self, mainfile):
+        return False
+
+    def run(self, mainfile: str) -> Any:
         """
         Runs the parser on the given mainfile. For now, we use the LocalBackend without
         doing much with it.
@@ -263,7 +271,7 @@ dependencies = [
 ]
 
 
-def prepare():
+def prepare() -> None:
     """
     Installs all dependencies from :data:`dependencies` and :data:`parsers`.
     """
