@@ -1,5 +1,6 @@
 .pyenv/
 __pycache__
+.mypy_cache
 *.pyc
 *.egg-info/
 data

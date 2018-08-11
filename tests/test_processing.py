@@ -6,7 +6,7 @@ import os
 
 import nomad.files as files
 import nomad.config as config
-from nomad.processing import ProcessRun
+from nomad.processing import UploadProcessing
 
 test_upload_id = '__test_upload_id'
 
@@ -27,14 +27,14 @@ class ProcessingTests(TestCase):
             pass
 
     def test_processing(self):
-        run = ProcessRun(test_upload_id)
+        run = UploadProcessing(test_upload_id)
         run.start()
-        state = run.get(timeout=30)
+        run.get(timeout=30)
         self.assertTrue(run.ready())
         run.forget()
 
-        self.assertEqual('nomad.processing.close_upload', state.task_name)
-        self.assertEqual('SUCCESS', state.status)
+        self.assertEqual('nomad.processing.close_upload', run.task_name)
+        self.assertEqual('SUCCESS', run.status)
 
 
 if __name__ == '__main__':
