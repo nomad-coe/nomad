@@ -5,3 +5,5 @@ gitpython
 mypy
 pylint
 pycodestyle
+pytest
+pytest-timeout

@@ -1,42 +1,34 @@
-import unittest
-from unittest import TestCase
-import logging
+from typing import Generator
+import pytest
 from minio import ResponseError
-import os
 
 import nomad.files as files
 import nomad.config as config
 from nomad.processing import UploadProcessing
 
-test_upload_id = '__test_upload_id'
+example_upload_id = '__test_upload_id'
+example_file = 'data/examples_vasp.zip'
 
 
-class ProcessingTests(TestCase):
+@pytest.fixture
+def uploaded_id() -> Generator[str, None, None]:
+    files._client.fput_object(config.s3.uploads_bucket, example_upload_id, example_file)
 
-    def setUp(self):
-        example_file = 'data/examples_vasp.zip'
-        with open(example_file, 'rb') as file_data:
-            file_stat = os.stat(example_file)
-            files._client.put_object(
-                config.s3.uploads_bucket, test_upload_id, file_data, file_stat.st_size)
+    yield example_upload_id
 
-    def tearDown(self):
-        try:
-            files._client.remove_object(config.s3.uploads_bucket, test_upload_id)
-        except ResponseError:
-            pass
+    try:
+        files._client.remove_object(config.s3.uploads_bucket, example_upload_id)
+    except ResponseError:
+        pass
 
-    def test_processing(self):
-        run = UploadProcessing(test_upload_id)
+
+def test_processing(uploaded_id):
+        run = UploadProcessing(uploaded_id)
         run.start()
         run.get(timeout=30)
-        self.assertTrue(run.ready())
+        assert run.ready()
+
         run.forget()
 
-        self.assertEqual('nomad.processing.close_upload', run.task_name)
-        self.assertEqual('SUCCESS', run.status)
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-    unittest.main()
+        assert run.task_name == 'nomad.processing.close_upload'
+        assert run.status == 'SUCCESS'

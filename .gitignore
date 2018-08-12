@@ -6,3 +6,4 @@ __pycache__
 data
 .dependencies/
 .volumes/
+.pytest_cache/
