@@ -239,6 +239,9 @@ def open_upload(task: Task, processing: UploadProcessing) -> UploadProcessing:
     try:
         upload = Upload(processing.upload_id)
         upload.open()
+    except KeyError as e:
+        logger.debug('Process request for non existing upload %s.' % processing.upload_id)
+        return processing.fail(e)
     except UploadError as e:
         logger.debug('Could not open upload %s: %s' % (processing.upload_id, e))
         return processing.fail(e)
@@ -275,13 +278,15 @@ def close_upload(task, parse_results: List[Any], processing: UploadProcessing) -
 
 @app.task(bind=True)
 def distributed_parse(
-        task: Task, processing: UploadProcessing, close_upload: Signature) -> Signature:
+        task: Task, processing: UploadProcessing, close_upload: Signature) -> UploadProcessing:
 
     if not processing.continue_with(task):
         chord([])(close_upload.clone(args=(processing,)))
+        return processing
 
     parses = group(parse.s(parse_spec) for parse_spec in processing.parse_specs)
     chord(parses)(close_upload.clone(args=(processing,)))
+    return processing
 
 
 @app.task()
