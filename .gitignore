@@ -7,3 +7,4 @@ data
 .dependencies/
 .volumes/
 .pytest_cache/
+.coverage
