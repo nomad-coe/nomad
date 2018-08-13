@@ -1,10 +1,9 @@
-from typing import Generator
 import pytest
-import time
 from minio import ResponseError
 from threading import Thread
 import subprocess
 import shlex
+import time
 
 import nomad.files as files
 import nomad.config as config
@@ -69,3 +68,17 @@ def test_upload_notification():
     test_presigned_url()
 
     handle_uploads_thread.join()
+
+
+def test_metadata(uploaded_id: str):
+    with files.Upload(uploaded_id) as upload:
+        assert upload.metadata is not None
+
+
+def test_hash(uploaded_id: str):
+    with files.Upload(uploaded_id) as upload:
+        hash = upload.hash()
+        assert hash is not None
+        assert isinstance(hash, str)
+
+        print(hash)

@@ -255,7 +255,22 @@ parsers = [
             r'?\s*<generator>'
             r'?\s*<i name="program" type="string">\s*vasp\s*</i>'
             r'?')
-    )
+    ),
+    Parser(
+        python_git=PythonGit(
+            name='parsers/exciting',
+            git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-exciting.git',
+            git_commit='master'),
+        parser_class_name='vaspparser.VASPParser',
+        main_file_re=r'^.*\.xml$',
+        main_contents_re=(
+            r'^\s*<\?xml version="1\.0" encoding="ISO-8859-1"\?>\s*'
+            r'?\s*<modeling>'
+            r'?\s*<generator>'
+            r'?\s*<i name="program" type="string">\s*vasp\s*</i>'
+            r'?')
+    ),
+
 ]
 parser_dict = {parser.name: parser for parser in parsers}
 

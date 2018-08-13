@@ -187,6 +187,13 @@ class Upload():
             return wrapper
 
     @Decorators.handle_errors
+    def metadata(self):
+        try:
+            return _client.stat_object(config.s3.uploads_bucket, self.upload_id).metadata
+        except minio.error.NoSuchKey:
+            raise KeyError(self.upload_id)
+
+    @Decorators.handle_errors
     def open(self) -> None:
         """
         Opens the upload. This means the uploaed files gets tmp. downloaded and extracted.
