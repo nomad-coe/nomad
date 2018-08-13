@@ -43,6 +43,8 @@ from minio import Minio
 import minio.error
 import logging
 import itertools
+import hashlib
+import base64
 
 import nomad.config as config
 
@@ -160,6 +162,7 @@ class Upload():
         upload_file: The path of the tmp version of this file for an open upload.
         upload_extract_dir: The path of the tmp directory with the extracted contents.
         filelist: A list of filenames relative to the .zipped upload root.
+        metadata: The upload object storage metadata.
     """
     def __init__(self, upload_id: str) -> None:
         self.upload_id = upload_id
@@ -168,7 +171,7 @@ class Upload():
         self.filelist: List[str] = None
 
         try:
-            _client.stat_object(config.s3.uploads_bucket, upload_id)
+            self.metadata = _client.stat_object(config.s3.uploads_bucket, upload_id).metadata
         except minio.error.NoSuchKey:
             raise KeyError(self.upload_id)
 
@@ -187,11 +190,14 @@ class Upload():
             return wrapper
 
     @Decorators.handle_errors
-    def metadata(self):
-        try:
-            return _client.stat_object(config.s3.uploads_bucket, self.upload_id).metadata
-        except minio.error.NoSuchKey:
-            raise KeyError(self.upload_id)
+    def hash(self) -> str:
+        """ Calculates the first 28 bytes of a websafe base64 encoded SHA512 of the upload. """
+        hash = hashlib.sha512()
+        with open(self.upload_file, 'rb') as f:
+            for data in iter(lambda: f.read(65536), b''):
+                hash.update(data)
+
+        return base64.b64encode(hash.digest(), altchars=b'-_')[0:28].decode('utf-8')
 
     @Decorators.handle_errors
     def open(self) -> None:
