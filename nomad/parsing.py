@@ -1,4 +1,165 @@
+from abc import ABCMeta, abstractmethod
 import json
+
+from nomadcore.local_backend import LocalBackend as LegacyLocalBackend
+from nomadcore.local_backend import Section
+
+
+class DelegatingMeta(ABCMeta):
+    def __new__(meta, name, bases, dct):
+        abstract_method_names = frozenset.union(*(base.__abstractmethods__ for base in bases))
+        for name in abstract_method_names:
+            if name not in dct:
+                dct[name] = DelegatingMeta._make_delegator_method(name)
+
+        return super(DelegatingMeta, meta).__new__(meta, name, bases, dct)
+
+    @staticmethod
+    def _make_delegator_method(name):
+        def delegator(self, *args, **kwargs):
+            return getattr(self._delegate, name)(*args, **kwargs)
+        return delegator
+
+
+class AbstractParserBackend(metaclass=ABCMeta):
+
+    @abstractmethod
+    def metaInfoEnv(self):
+        """ Returns the meta info used by this backend. """
+        pass
+
+    @abstractmethod
+    def startedParsingSession(
+            self, mainFileUri, parserInfo, parserStatus=None, parserErrors=None):
+        """
+        Should be called when the parsing starts.
+        ParserInfo should be a valid json dictionary.
+        """
+        pass
+
+    @abstractmethod
+    def finishedParsingSession(
+            self, parserStatus, parserErrors, mainFileUri=None, parserInfo=None,
+            parsingStats=None):
+        """ Called when the parsing finishes. """
+        pass
+
+    @abstractmethod
+    def openSection(self, metaName):
+        """ Opens a new section and returns its new unique gIndex. """
+        pass
+
+    @abstractmethod
+    def closeSection(self, metaName, gIndex):
+        """
+        Closes the section with the given meta name and index. After this, no more
+        value can be added to this section.
+        """
+        pass
+
+    @abstractmethod
+    def openNonOverlappingSection(self, metaName):
+        """ Opens a new non overlapping section. """
+        pass
+
+    @abstractmethod
+    def closeNonOverlappingSection(self, metaName):
+        """
+        Closes the current non overlapping section for the given meta name. After
+        this, no more value can be added to this section.
+        """
+        pass
+
+    @abstractmethod
+    def openSections(self):
+        """ Returns the sections that are still open as metaName, gIndex tuples. """
+        pass
+
+    @abstractmethod
+    def addValue(self, metaName, value, gIndex=-1):
+        """
+        Adds a json value for the given metaName. The gIndex is used to identify
+        the right parent section.
+        """
+        pass
+
+    @abstractmethod
+    def addRealValue(self, metaName, value, gIndex=-1):
+        """
+        Adds a float value for the given metaName. The gIndex is used to identify
+        the right parent section.
+        """
+        pass
+
+    @abstractmethod
+    def addArray(self, metaName, shape, gIndex=-1):
+        """
+        Adds an unannitialized array of the given shape for the given metaName.
+        The gIndex is used to identify the right parent section.
+        This is neccessary before array values can be set with :func:`setArrayValues`.
+        """
+
+    @abstractmethod
+    def setArrayValues(self, metaName, values, offset=None, gIndex=-1):
+        """
+        Adds values of the given numpy array to the last array added for the given
+        metaName and parent gIndex.
+        """
+        pass
+
+    @abstractmethod
+    def addArrayValues(self, metaName, values, gIndex=-1):
+        """
+        Adds an array with the given numpy array values for the given metaName and
+        parent section gIndex.
+        """
+        pass
+
+
+class LegacyParserBackend(AbstractParserBackend, metaclass=DelegatingMeta):
+    """
+    Simple implementation of :class:`AbstractParserBackend` that delegates all calls to
+    another parser object that not necessarely need to decend from the abstract base class.
+    """
+    def __init__(self, legacy_backend):
+        self._delegate = legacy_backend
+
+
+class LocalBackend(LegacyParserBackend):
+    def __init__(self, *args, **kwargs):
+        delegate = LegacyLocalBackend(*args, **kwargs)
+        super().__init__(delegate)
+
+    @staticmethod
+    def _write(json_writer, value):
+        if isinstance(value, list):
+            json_writer.open_array()
+            for item in value:
+                LocalBackend._write(json_writer, item)
+            json_writer.close_array()
+        elif isinstance(value, Section):
+            section = value
+            json_writer.open_object()
+            json_writer.key_value('_name', section.name)
+            json_writer.key_value('_gIndex', section.gIndex)
+            for name, value in section.items():
+                json_writer.key(name)
+                LocalBackend._write(json_writer, value)
+            json_writer.close_object()
+        else:
+            json_writer.value(value)
+
+    def write_json(self, json_writer):
+        json_writer.open_object()
+        json_writer.key('section_run')
+        json_writer.open_array()
+        for run in self._delegate.results['section_run']:
+            LocalBackend._write(json_writer, run)
+        json_writer.close_array()
+        json_writer.close_object()
+        json_writer.close()
+
+        self._delegate.results.print_summary()
 
 
 class JSONStreamWriter():

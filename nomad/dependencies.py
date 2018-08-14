@@ -212,12 +212,17 @@ class Parser():
         Returns:
             True
         """
+        from nomad.parsing import LocalBackend, JSONStreamWriter
+
         module_name = self.parser_class_name.split('.')[:-1]
         parser_class = self.parser_class_name.split('.')[1]
         module = importlib.import_module('.'.join(module_name))
         Parser = getattr(module, parser_class)
-        parser = Parser(debug=False)  # the implicitely used LocalBackend does not support repeats
+        parser = Parser(backend=LocalBackend, debug=True)
         parser.parse(mainfile)
+
+        parser.parser_context.super_backend.write_json(JSONStreamWriter(sys.stdout, pretty=True))
+
         return True
 
     def __repr__(self):

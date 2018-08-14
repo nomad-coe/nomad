@@ -40,7 +40,10 @@
       "type": "python",
       "request": "launch",
       "cwd": "${workspaceFolder}",
-      "program": "${workspaceFolder}/tests/test_dependencies.py"
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-v", "tests/test_dependencies.py"
+      ]
     },
     {
       "name": "Python: tests/test_processing.py",
