@@ -7,3 +7,4 @@ pylint
 pycodestyle
 pytest
 pytest-timeout
+rope

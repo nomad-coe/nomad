@@ -26,6 +26,16 @@
       ]
     },
     {
+      "name": "Python: test/test_parsing.py",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-v", "tests/test_parsing.py"
+      ]
+    },
+    {
       "name": "Python: tests/test_dependencies.py",
       "type": "python",
       "request": "launch",

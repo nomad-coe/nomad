@@ -1,4 +1,4 @@
-from nomad.parsing import JSONStreamGenerator
+from nomad.parsing import JSONStreamWriter
 from io import StringIO
 import json
 import pytest
@@ -26,22 +26,23 @@ def test_stream_generator(pretty):
     ]
 
     out = StringIO()
-    generator = JSONStreamGenerator(out, pretty=pretty)
-    generator.open_array()
-    generator.open_object()
-    generator.key('key1')
-    generator.value('value')
-    generator.key('key2')
-    generator.value(1)
-    generator.close_object()
-    generator.open_object()
-    generator.key('key')
-    generator.open_object()
-    generator.key('key')
-    generator.value('value')
-    generator.close_object()
-    generator.close_object()
-    generator.close_array()
+    writer = JSONStreamWriter(out, pretty=pretty)
+    writer.open_array()
+    writer.open_object()
+    writer.key('key1')
+    writer.value('value')
+    writer.key('key2')
+    writer.value(1)
+    writer.close_object()
+    writer.open_object()
+    writer.key('key')
+    writer.open_object()
+    writer.key('key')
+    writer.value('value')
+    writer.close_object()
+    writer.close_object()
+    writer.close_array()
+    writer.close()
 
     assert create_reference(example_data, pretty) == out.getvalue()
 
