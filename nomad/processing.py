@@ -41,7 +41,7 @@ import json
 
 import nomad.config as config
 from nomad.files import Upload, UploadError
-from nomad.dependencies import parsers, parser_dict
+from nomad.parsing import parsers, parser_dict
 
 # The legacy nomad code uses a logger called 'nomad'. We do not want that this
 # logger becomes a child of this logger due to its module name starting with 'nomad.'

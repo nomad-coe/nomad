@@ -52,17 +52,10 @@ To install all dependencies use
 
 .. autofunction:: prepare
 """
-from typing import Any
-import re
 import sys
 import os
 import os.path
 from git import Repo, Git
-try:
-    from pip import main as pip
-except:
-    from pip._internal import main as pip
-import importlib
 import logging
 import subprocess
 
@@ -166,119 +159,6 @@ class PythonGit():
         return self.name
 
 
-class Parser():
-    """
-    Instances specify a parser. It allows to find *main files* from  given uploaded
-    and extracted files. Further, allows to run the parser on those 'main files'.
-
-    Arguments:
-        python_git: The :class:`PythonGit` that describes the parser code.
-        parser_class_name: Full qualified name of the main parser class. We assume it have one
-                           parameter for the backend.
-        main_file_re: A regexp that matches main file paths that this parser can handle.
-        main_contents_re: A regexp that matches main file headers that this parser can parse.
-    """
-    def __init__(
-            self, python_git: PythonGit, parser_class_name: str, main_file_re: str,
-            main_contents_re: str) -> None:
-
-        self.name = python_git.name
-        self.python_git = python_git
-        self.parser_class_name = parser_class_name
-        self._main_file_re = re.compile(main_file_re)
-        self._main_contents_re = re.compile(main_contents_re)
-
-    def is_mainfile(self, upload, filename: str) -> bool:
-        """ Checks if a file is a mainfile via the parsers ``main_contents_re``. """
-        if self._main_file_re.match(filename):
-            file = None
-            try:
-                file = upload.open_file(filename)
-                return self._main_contents_re.match(file.read(500)) is not None
-            finally:
-                if file:
-                    file.close()
-
-        return False
-
-    def run(self, mainfile: str) -> Any:
-        """
-        Runs the parser on the given mainfile. For now, we use the LocalBackend without
-        doing much with it.
-
-        Args:
-            mainfile: A path to a mainfile that this parser can parse.
-
-        Returns:
-            True
-        """
-        from nomad.parsing import LocalBackend, JSONStreamWriter
-
-        module_name = self.parser_class_name.split('.')[:-1]
-        parser_class = self.parser_class_name.split('.')[1]
-        module = importlib.import_module('.'.join(module_name))
-        Parser = getattr(module, parser_class)
-        parser = Parser(backend=LocalBackend, debug=True)
-        parser.parse(mainfile)
-
-        parser.parser_context.super_backend.write_json(JSONStreamWriter(sys.stdout, pretty=True))
-
-        return True
-
-    def __repr__(self):
-        return self.python_git.__repr__()
-
-
-class VASPRunParser(Parser):
-    def __init__(self):
-        super().__init__(
-            python_git=PythonGit(
-                name='parsers/vasp',
-                git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-vasp.git',
-                git_commit='nomad-xt'),
-            parser_class_name='vaspparser.VASPParser',
-            main_file_re=r'^.*\.xml$',
-            main_contents_re=(
-                r'^\s*<\?xml version="1\.0" encoding="ISO-8859-1"\?>\s*'
-                r'?\s*<modeling>'
-                r'?\s*<generator>'
-                r'?\s*<i name="program" type="string">\s*vasp\s*</i>'
-                r'?')
-        )
-
-parsers = [
-    Parser(
-        python_git=PythonGit(
-            name='parsers/vasp',
-            git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-vasp.git',
-            git_commit='nomad-xt'),
-        parser_class_name='vaspparser.VASPParser',
-        main_file_re=r'^.*\.xml$',
-        main_contents_re=(
-            r'^\s*<\?xml version="1\.0" encoding="ISO-8859-1"\?>\s*'
-            r'?\s*<modeling>'
-            r'?\s*<generator>'
-            r'?\s*<i name="program" type="string">\s*vasp\s*</i>'
-            r'?')
-    ),
-    Parser(
-        python_git=PythonGit(
-            name='parsers/exciting',
-            git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-exciting.git',
-            git_commit='master'),
-        parser_class_name='vaspparser.VASPParser',
-        main_file_re=r'^.*\.xml$',
-        main_contents_re=(
-            r'^\s*<\?xml version="1\.0" encoding="ISO-8859-1"\?>\s*'
-            r'?\s*<modeling>'
-            r'?\s*<generator>'
-            r'?\s*<i name="program" type="string">\s*vasp\s*</i>'
-            r'?')
-    ),
-
-]
-parser_dict = {parser.name: parser for parser in parsers}
-
 dependencies = [
     PythonGit(
         name='nomad-meta-info',
@@ -288,7 +168,17 @@ dependencies = [
         name='python_common',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/python-common.git',
         git_commit='master'),  # COMMIT b6f64de2149f95da6a79c4f86fd909b1dcfc23e8
+    PythonGit(
+        name='parsers/vasp',
+        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-vasp.git',
+        git_commit='nomad-xt'),
+    PythonGit(
+        name='parsers/exciting',
+        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-exciting.git',
+        git_commit='master')
 ]
+
+dependencies_dict = {dependency.name: dependency for dependency in dependencies}
 
 
 def prepare() -> None:
@@ -297,9 +187,6 @@ def prepare() -> None:
     """
     for python_git in dependencies:
         python_git.prepare()
-
-    for parser in parsers:
-        parser.python_git.prepare()
 
 if __name__ == '__main__':
     _logger.setLevel(logging.DEBUG)

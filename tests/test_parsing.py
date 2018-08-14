@@ -1,4 +1,4 @@
-from nomad.parsing import JSONStreamWriter
+from nomad.parsing import JSONStreamWriter, parser_dict
 from io import StringIO
 import json
 import pytest
@@ -46,3 +46,7 @@ def test_stream_generator(pretty):
 
     assert create_reference(example_data, pretty) == out.getvalue()
 
+
+def test_vasp_parser():
+    vasp_parser = parser_dict['parsers/vasp']
+    vasp_parser.run('.dependencies/parsers/vasp/test/examples/xml/perovskite.xml')
