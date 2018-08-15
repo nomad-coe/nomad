@@ -20,33 +20,18 @@ Parsers are developed as independed, individual python programs in their own GIT
 They are build on a common modules called *python-common*, also in a separate GIT.
 All parsers depend on the *meta-info*, which is also maintained in its own GIT.
 
-Assumption about parsers
-------------------------
-For now, we make a few assumption about parsers
-- they always work on the same *meta-info* version
-- they have no conflicting python requirments
-- they can be loaded at the same time and can be used within the same python process
-- they are uniquely identified by a GIT URL and publicly accessible
-- their version is uniquly identified by a GIT commit SHA
-
-Preparing dependencies and parsers
-----------------------------------
+Preparing dependencies
+----------------------
 
 To make GIT maintained python modules available, we use:
 
 .. autoclass:: PythonGit
 
-Parsers, as a special case for a GIT maintained python modules, can be used via:
 
-.. autoclass:: Parser
-
-General dependencies are configured in
+Dependencies are configured in
 
 .. autodata:: dependencies
 
-Parsers are configured in
-
-.. autodata:: parsers
 
 To install all dependencies use
 

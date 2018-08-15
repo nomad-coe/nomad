@@ -49,4 +49,8 @@ def test_stream_generator(pretty):
 
 def test_vasp_parser():
     vasp_parser = parser_dict['parsers/vasp']
-    vasp_parser.run('.dependencies/parsers/vasp/test/examples/xml/perovskite.xml')
+    example_mainfile = '.dependencies/parsers/vasp/test/examples/xml/perovskite.xml'
+    status, errors = vasp_parser.run(example_mainfile)
+
+    assert status == 'ParseSuccess'
+    assert errors is None or len(errors) == 0

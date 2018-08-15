@@ -12,11 +12,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any
+"""
+The *parsing* modules is currenlty an abstraction for the existin NOMAD-coe parsers.
+The parser code is used via :mod:`nomad.dependencies`. This module redefines
+some of the old NOMAD-coe python-common functionality to create a more coherent
+interface to the parsers.
+
+Assumption about parsers
+------------------------
+For now, we make a few assumption about parsers
+- they always work on the same *meta-info* version
+- they have no conflicting python requirments
+- they can be loaded at the same time and can be used within the same python process
+- they are uniquely identified by a GIT URL and publicly accessible
+- their version is uniquly identified by a GIT commit SHA
+
+Each parser is defined via an instance of :class:`Parser`.
+
+.. autoclass:: nomad.parsing.Parser
+
+The parser definitions are available via the following two variables.
+
+.. autodata:: nomad.parsing.parsers
+.. autodata:: nomad.parsing.parser_dict
+
+Parsers in NOMAD-coe use a *backend* to create output.
+
+.. autoclass:: nomad.parsing.AbstractParserBackend
+.. autoclass:: nomad.parsing.LocalBackend
+"""
+
+from typing import TextIO, Tuple, List
 from abc import ABCMeta, abstractmethod
 import json
 import re
-import sys
 import importlib
 import logging
 
@@ -45,7 +74,9 @@ class DelegatingMeta(ABCMeta):
 
 
 class AbstractParserBackend(metaclass=ABCMeta):
-
+    """
+    This ABS provides the parser backend interface used by the NOMAD-coe parsers.
+    """
     @abstractmethod
     def metaInfoEnv(self):
         """ Returns the meta info used by this backend. """
@@ -155,7 +186,8 @@ class LegacyParserBackend(AbstractParserBackend, metaclass=DelegatingMeta):
 
 class LocalBackend(LegacyParserBackend):
     """
-    An extension of the existing legacy LocalBackend from ``python-common/nomadcore``.
+    This implementation of :class:`AbstractParserBackend` is a extended version of
+    NOMAD-coe's ``LocalBackend`` that allows to write the results in an *archive*-style .json.
     It can be used like the original thing, but also allows to output archive JSON
     after parsing via :func:`write_json`.
     """
@@ -194,7 +226,21 @@ class LocalBackend(LegacyParserBackend):
         else:
             json_writer.value(value)
 
-    def write_json(self, json_writer):
+    @property
+    def status(self) -> Tuple[str, List[str]]:
+        """ Returns status and potential errors. """
+        return (self._status, self._errors)
+
+    def write_json(self, out: TextIO, pretty=True):
+        """
+        Writes the results stored in the backend after parsing in an 'archive'.json
+        style format.
+
+        Arguments:
+            out: The file-like that is used to write the json to.
+            pretty: Format the json or not.
+        """
+        json_writer = JSONStreamWriter(out, pretty=pretty)
         json_writer.open_object()
 
         json_writer.key_value('parser_status', self._status)
@@ -368,19 +414,19 @@ class Parser():
 
         return False
 
-    def run(self, mainfile: str) -> Any:
+    def run(self, mainfile: str, out: TextIO=None) -> Tuple[str, List[str]]:
         """
-        Runs the parser on the given mainfile. For now, we use the LocalBackend without
-        doing much with it.
+        Runs the parser on the given mainfile. It uses :class:`LocalBackend` as
+        a backend. The meta-info access is handled by the underlying NOMAD-coe parser.
 
         Args:
             mainfile: A path to a mainfile that this parser can parse.
+            out: Optional file like that is used to write the 'archive'.json results
+                 to.
 
         Returns:
-            True
+            The parser status from the backend, see :property:`LocalBackend.status`.
         """
-        from nomad.parsing import LocalBackend, JSONStreamWriter
-
         def create_backend(meta_info):
             return LocalBackend(meta_info, debug=False)
 
@@ -391,9 +437,11 @@ class Parser():
         parser = Parser(backend=create_backend, debug=True)
         parser.parse(mainfile)
 
-        parser.parser_context.super_backend.write_json(JSONStreamWriter(sys.stdout, pretty=True))
+        backend = parser.parser_context.super_backend
+        if out is not None:
+            backend.write_json(out, pretty=True)
 
-        return True
+        return backend.status
 
     def __repr__(self):
         return self.python_git.__repr__()
@@ -423,5 +471,7 @@ parsers = [
             r'?')
     ),
 ]
+""" Instanciation and constructor based config of all parsers. """
 
 parser_dict = {parser.name: parser for parser in parsers}
+""" A dict to access parsers by name. Usually 'parsers/<...>', e.g. 'parsers/vasp'. """

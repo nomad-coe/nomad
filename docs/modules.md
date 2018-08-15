@@ -17,6 +17,11 @@
 .. automodule:: nomad.files
 ```
 
+## nomad.parsing
+```eval_rst
+.. automodule:: nomad.parsing
+```
+
 ## nomad.processing
 ```eval_rst
 .. automodule:: nomad.processing

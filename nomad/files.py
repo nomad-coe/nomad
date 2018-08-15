@@ -32,6 +32,11 @@ authentication hassly, presigned URLs can be created that can be used directly t
 
 .. autofunction:: nomad.files.get_presigned_upload_url
 .. autofunction:: nomad.files.create_curl_upload_cmd
+
+Uploads
+-------
+.. autoclass:: Upload
+
 """
 from typing import Callable, List, Any, Generator, IO
 import sys
