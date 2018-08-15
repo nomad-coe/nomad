@@ -38,7 +38,7 @@ Uploads
 .. autoclass:: Upload
 
 """
-from typing import Callable, List, Any, Generator, IO, TextIO
+from typing import Callable, List, Any, Generator, IO, TextIO, cast
 import sys
 import os
 from os.path import join
@@ -268,10 +268,10 @@ class Upload():
 
 
 @contextmanager
-def write_archive_json(archive_id) -> Generator[IO, None, None]:
+def write_archive_json(archive_id) -> Generator[TextIO, None, None]:
     """ Context manager that yiels a file-like to write the archive json. """
     binary_out = io.BytesIO()
-    gzip_wrapper = gzip.open(binary_out, 'wt')
+    gzip_wrapper = cast(TextIO, gzip.open(binary_out, 'wt'))
 
     try:
         yield gzip_wrapper

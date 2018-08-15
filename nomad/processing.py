@@ -41,6 +41,7 @@ import json
 
 import nomad.config as config
 from nomad.files import Upload, UploadError
+from nomad import files, utils
 from nomad.parsing import parsers, parser_dict
 
 # The legacy nomad code uses a logger called 'nomad'. We do not want that this
@@ -110,6 +111,7 @@ class UploadProcessing():
 
         self.parse_specs: List[Tuple[str, str]] = None
         self.parse_results: List[bool] = None
+        self.upload_hash: str = None
 
         self.status: str = 'PENDING'
         self.task_name: str = None
@@ -247,6 +249,12 @@ def open_upload(task: Task, processing: UploadProcessing) -> UploadProcessing:
         return processing.fail(e)
 
     try:
+        processing.upload_hash = upload.hash()
+    except UploadError as e:
+        logger.error('Could not create an upload hash %s: %s' % (processing.upload_id, e))
+        return processing.fail(e)
+
+    try:
         processing.parse_specs = list()
         for filename in upload.filelist:
             for parser in parsers:
@@ -284,18 +292,20 @@ def distributed_parse(
         chord([])(close_upload.clone(args=(processing,)))
         return processing
 
-    parses = group(parse.s(parse_spec) for parse_spec in processing.parse_specs)
+    parses = group(parse.s(processing, parse_spec) for parse_spec in processing.parse_specs)
     chord(parses)(close_upload.clone(args=(processing,)))
     return processing
 
 
 @app.task()
-def parse(parse_spec: Tuple[str, str]) -> Any:
+def parse(processing: UploadProcessing, parse_spec: Tuple[str, str]) -> Any:
+    assert processing.upload_hash is not None
+
     parser, mainfile = parse_spec
 
     logger.debug('Start %s for %s.' % parse_spec)
     try:
-        parser_dict[parser].run(mainfile)
+        parser_backend = parser_dict[parser].run(mainfile)
     except ValueError as e:
         logger.warning('%s stopped on %s: %s' % (parser, mainfile, e))
         return e
@@ -303,4 +313,10 @@ def parse(parse_spec: Tuple[str, str]) -> Any:
         logger.warning('%s stopped on %s: %s' % (parser, mainfile, e), exc_info=e)
         return e
 
-    return True  # TODO some other value?
+    archive_id = '%s/%s' % (processing.upload_hash, utils.hash(mainfile))
+    logger.debug('Written results of %s for %s to %s.' % (parser, mainfile, archive_id))
+
+    with files.write_archive_json(archive_id) as out:
+        parser_backend.write_json(out, pretty=True)
+
+    return parser_backend.status

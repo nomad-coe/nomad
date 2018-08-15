@@ -414,18 +414,16 @@ class Parser():
 
         return False
 
-    def run(self, mainfile: str, out: TextIO=None) -> Tuple[str, List[str]]:
+    def run(self, mainfile: str) -> LocalBackend:
         """
         Runs the parser on the given mainfile. It uses :class:`LocalBackend` as
         a backend. The meta-info access is handled by the underlying NOMAD-coe parser.
 
         Args:
             mainfile: A path to a mainfile that this parser can parse.
-            out: Optional file like that is used to write the 'archive'.json results
-                 to.
 
         Returns:
-            The parser status from the backend, see :property:`LocalBackend.status`.
+            The used :class:`LocalBackend` with status information and result data.
         """
         def create_backend(meta_info):
             return LocalBackend(meta_info, debug=False)
@@ -438,10 +436,7 @@ class Parser():
         parser.parse(mainfile)
 
         backend = parser.parser_context.super_backend
-        if out is not None:
-            backend.write_json(out, pretty=True)
-
-        return backend.status
+        return backend
 
     def __repr__(self):
         return self.python_git.__repr__()
