@@ -20,7 +20,7 @@ This module is used to store all configuration values. It makes use of
 import os
 from collections import namedtuple
 
-S3Config = namedtuple('S3', ['uploads_bucket', 'repository_bucket', 'archive_bucket'])
+FilesConfig = namedtuple('S3', ['uploads_bucket', 'repository_bucket', 'archive_bucket'])
 """ API independent configuration for the object storage. """
 
 CeleryConfig = namedtuple('Celery', [
@@ -36,7 +36,7 @@ FSConfig = namedtuple('FSConfig', ['tmp'])
 LogstashConfig = namedtuple('LogstashConfig', ['enabled', 'host', 'tcp_port'])
 """ Used to configure and enable/disable the ELK based centralized logging. """
 
-s3 = S3Config(
+files = FilesConfig(
     uploads_bucket='uploads',
     repository_bucket='repository',
     archive_bucket='archive'

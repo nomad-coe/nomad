@@ -15,9 +15,10 @@
 from typing import Generator
 import pytest
 from minio import ResponseError
+from minio.error import NoSuchBucket
 
-import nomad.files as files
 import nomad.config as config
+import nomad.files as files
 from nomad.processing import UploadProcessing
 
 example_files = ['data/examples_vasp.zip', 'data/empty.zip']
@@ -27,13 +28,22 @@ example_files = ['data/examples_vasp.zip', 'data/empty.zip']
 def uploaded_id(request) -> Generator[str, None, None]:
     example_file = request.param
     example_upload_id = example_file.replace('.zip', '')
-    files._client.fput_object(config.s3.uploads_bucket, example_upload_id, example_file)
+    files._client.fput_object(config.files.uploads_bucket, example_upload_id, example_file)
 
     yield example_upload_id
 
     try:
-        files._client.remove_object(config.s3.uploads_bucket, example_upload_id)
+        files._client.remove_object(config.files.uploads_bucket, example_upload_id)
+
+        # remove all the created archive files
+        archive_objs = files._client.list_objects(config.files.archive_bucket, recursive=True)
+        errors = files._client.remove_objects(config.files.archive_bucket, [obj.object_name for obj in archive_objs])
+        # you have to walk the iterator for minio to work (?!)
+        for _ in errors:
+            pass
     except ResponseError:
+        pass
+    except NoSuchBucket:
         pass
 
 

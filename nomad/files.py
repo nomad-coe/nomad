@@ -74,8 +74,8 @@ if _client is None and 'sphinx' not in sys.modules:
         except minio.error.BucketAlreadyOwnedByYou:
             pass
 
-    ensure_bucket(config.s3.uploads_bucket)
-    ensure_bucket(config.s3.archive_bucket)
+    ensure_bucket(config.files.uploads_bucket)
+    ensure_bucket(config.files.archive_bucket)
 
 
 def get_presigned_upload_url(upload_id: str) -> str:
@@ -91,7 +91,7 @@ def get_presigned_upload_url(upload_id: str) -> str:
     Returns:
         The presigned URL string.
     """
-    return _client.presigned_put_object(config.s3.uploads_bucket, upload_id)
+    return _client.presigned_put_object(config.files.uploads_bucket, upload_id)
 
 
 def create_curl_upload_cmd(presigned_url: str, file_dummy: str='<ZIPFILE>') -> str:
@@ -135,7 +135,7 @@ def upload_put_handler(func: Callable[[str], None]) -> Callable[[], None]:
     def wrapper(*args, **kwargs) -> None:
         logger.info('Start listening to uploads notifications.')
 
-        events = _client.listen_bucket_notification(config.s3.uploads_bucket)
+        events = _client.listen_bucket_notification(config.files.uploads_bucket)
 
         upload_ids = upload_notifications(events)
         for upload_id in upload_ids:
@@ -182,7 +182,7 @@ class Upload():
         self.filelist: List[str] = None
 
         try:
-            self.metadata = _client.stat_object(config.s3.uploads_bucket, upload_id).metadata
+            self.metadata = _client.stat_object(config.files.uploads_bucket, upload_id).metadata
         except minio.error.NoSuchKey:
             raise KeyError(self.upload_id)
 
@@ -220,7 +220,7 @@ class Upload():
             KeyError: If the upload does not exist.
         """
         try:
-            _client.fget_object(config.s3.uploads_bucket, self.upload_id, self.upload_file)
+            _client.fget_object(config.files.uploads_bucket, self.upload_id, self.upload_file)
         except minio.error.NoSuchKey:
             raise KeyError(self.upload_id)
 
@@ -281,7 +281,7 @@ def write_archive_json(archive_id) -> Generator[TextIO, None, None]:
         length = len(binary_out.getvalue())
 
         _client.put_object(
-            config.s3.archive_bucket, archive_id, binary_out, length=length,
+            config.files.archive_bucket, archive_id, binary_out, length=length,
             content_type='application/json',
             metadata={'Content-Encoding': 'gzip'})
 
@@ -293,4 +293,4 @@ def open_archive_json(archive_id) -> IO:
     """ Returns a file-like to read the archive json. """
     # The result already is a file-like and due to the Content-Encoding metadata is
     # will automatically be un-gzipped.
-    return _client.get_object(config.s3.archive_bucket, archive_id)
+    return _client.get_object(config.files.archive_bucket, archive_id)

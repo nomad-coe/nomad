@@ -31,10 +31,10 @@ example_file = './data/examples_vasp.zip'
 def uploaded_id() -> Generator[str, None, None]:
     example_upload_id = '__test_upload_id'
 
-    files._client.fput_object(config.s3.uploads_bucket, example_upload_id, example_file)
+    files._client.fput_object(config.files.uploads_bucket, example_upload_id, example_file)
     yield example_upload_id
     try:
-        files._client.remove_object(config.s3.uploads_bucket, example_upload_id)
+        files._client.remove_object(config.files.uploads_bucket, example_upload_id)
     except ResponseError:
         pass
 
@@ -44,7 +44,7 @@ def upload_id() -> Generator[str, None, None]:
     example_upload_id = '__test_upload_id'
     yield example_upload_id
     try:
-        files._client.remove_object(config.s3.uploads_bucket, example_upload_id)
+        files._client.remove_object(config.files.uploads_bucket, example_upload_id)
     except ResponseError:
         pass
 
@@ -53,10 +53,10 @@ def upload_id() -> Generator[str, None, None]:
 def archive_id() -> Generator[str, None, None]:
     example_archive_id = '__test_archive_id'
     yield example_archive_id
-    # try:
-    #     files._client.remove_object(config.s3.archive_bucket, example_archive_id)
-    # except ResponseError:
-    #     pass
+    try:
+        files._client.remove_object(config.files.archive_bucket, example_archive_id)
+    except ResponseError:
+        pass
 
 
 def test_presigned_url(upload_id):
@@ -68,7 +68,7 @@ def test_presigned_url(upload_id):
     cmd = files.create_curl_upload_cmd(upload_url).replace('<ZIPFILE>', example_file)
     subprocess.call(shlex.split(cmd))
 
-    stat = files._client.stat_object(config.s3.uploads_bucket, upload_id)
+    stat = files._client.stat_object(config.files.uploads_bucket, upload_id)
     assert stat.content_type.startswith('application/octet-steam')
 
 
