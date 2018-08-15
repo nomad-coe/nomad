@@ -56,6 +56,8 @@ from nomad.dependencies import dependencies_dict as dependencies, PythonGit
 
 logger = logging.getLogger(__name__)
 
+ParserStatus = Tuple[str, List[str]]
+
 
 class DelegatingMeta(ABCMeta):
     def __new__(meta, name, bases, dct):
@@ -227,7 +229,7 @@ class LocalBackend(LegacyParserBackend):
             json_writer.value(value)
 
     @property
-    def status(self) -> Tuple[str, List[str]]:
+    def status(self) -> ParserStatus:
         """ Returns status and potential errors. """
         return (self._status, self._errors)
 

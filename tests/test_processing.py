@@ -51,13 +51,18 @@ def test_processing(uploaded_id):
     run = UploadProcessing(uploaded_id)
     run.start()
     run.get(timeout=30)
+
     assert run.ready()
-
-    run.forget()
-
     assert run.task_name == 'nomad.processing.close_upload'
+    assert run.upload_hash is not None
     assert run.cause is None
     assert run.status == 'SUCCESS'
+    for status, errors, archive_id in run.parse_results:
+        assert errors is None or len(errors) == 0
+        assert status == 'ParseSuccess'
+        assert archive_id.startswith(run.upload_hash)
+
+    run.forget()
 
 
 def test_process_non_existing():
