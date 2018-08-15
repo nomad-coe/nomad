@@ -38,7 +38,7 @@ Uploads
 .. autoclass:: Upload
 
 """
-from typing import Callable, List, Any, Generator, IO
+from typing import Callable, List, Any, Generator, IO, TextIO
 import sys
 import os
 from os.path import join
@@ -50,6 +50,9 @@ import logging
 import itertools
 import hashlib
 import base64
+from contextlib import contextmanager
+import gzip
+import io
 
 import nomad.config as config
 
@@ -64,12 +67,15 @@ if _client is None and 'sphinx' not in sys.modules:
                     secure=False)
 
     # ensure all neccessary buckets exist
-    try:
-        _client.make_bucket(bucket_name=config.s3.uploads_bucket)
-        logger.info("Created uploads bucket with name %s." % config.s3.uploads_bucket)
-    except minio.error.BucketAlreadyOwnedByYou:
-        logger.debug(
-            "Uploads bucket with name %s already existed." % config.s3.uploads_bucket)
+    def ensure_bucket(name):
+        try:
+            _client.make_bucket(bucket_name=name)
+            logger.info("Created uploads bucket with name %s." % name)
+        except minio.error.BucketAlreadyOwnedByYou:
+            pass
+
+    ensure_bucket(config.s3.uploads_bucket)
+    ensure_bucket(config.s3.archive_bucket)
 
 
 def get_presigned_upload_url(upload_id: str) -> str:
@@ -259,3 +265,32 @@ class Upload():
     def get_path(self, filename: str) -> str:
         """ Returns the tmp directory relative version of a filename. """
         return join(self.upload_extract_dir, filename)
+
+
+@contextmanager
+def write_archive_json(archive_id) -> Generator[IO, None, None]:
+    """ Context manager that yiels a file-like to write the archive json. """
+    binary_out = io.BytesIO()
+    gzip_wrapper = gzip.open(binary_out, 'wt')
+
+    try:
+        yield gzip_wrapper
+    finally:
+        gzip_wrapper.flush()
+        binary_out.seek(0)
+        length = len(binary_out.getvalue())
+
+        _client.put_object(
+            config.s3.archive_bucket, archive_id, binary_out, length=length,
+            content_type='application/json',
+            metadata={'Content-Encoding': 'gzip'})
+
+        gzip_wrapper.close()
+        binary_out.close()
+
+
+def open_archive_json(archive_id) -> IO:
+    """ Returns a file-like to read the archive json. """
+    # The result already is a file-like and due to the Content-Encoding metadata is
+    # will automatically be un-gzipped.
+    return _client.get_object(config.s3.archive_bucket, archive_id)
