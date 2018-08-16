@@ -36,6 +36,16 @@
       ]
     },
     {
+      "name": "Python: tests/test_normalizing.py",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py"
+      ]
+    },
+    {
       "name": "Python: tests/test_processing.py",
       "type": "python",
       "request": "launch",

@@ -160,6 +160,10 @@ dependencies = [
     PythonGit(
         name='parsers/exciting',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-exciting.git',
+        git_commit='master'),
+    PythonGit(
+        name='normalizers/stats',
+        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/normalizer-stats.git',
         git_commit='master')
 ]
 

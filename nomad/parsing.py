@@ -42,7 +42,7 @@ Parsers in NOMAD-coe use a *backend* to create output.
 .. autoclass:: nomad.parsing.LocalBackend
 """
 
-from typing import TextIO, Tuple, List
+from typing import TextIO, Tuple, List, Any
 from abc import ABCMeta, abstractmethod
 import json
 import re
@@ -176,6 +176,18 @@ class AbstractParserBackend(metaclass=ABCMeta):
         """ Used to catch parser warnings. """
         pass
 
+    # The following are extensions to the origin NOMAD-coe parser backend.
+    # They allow to modify data after the fact.
+    @abstractmethod
+    def get_sections(self, meta_name) -> List[int]:
+        """ Return all gIndices for existing sections of the given meta_name. """
+        pass
+
+    @abstractmethod
+    def get_value(self, metaName, g_index=-1) -> Any:
+        """ Return the value set to the given meta_name in its parent section of the given index. """
+        pass
+
 
 class LegacyParserBackend(AbstractParserBackend, metaclass=DelegatingMeta):
     """
@@ -206,6 +218,23 @@ class LocalBackend(LegacyParserBackend):
 
     def pwarn(self, msg):
         logger.debug('Warning in parser: %s' % msg)
+
+    def get_value(self, meta_name, g_index=-1):
+        datamanager = self._delegate.results._datamanagers.get(meta_name)
+        if datamanager is not None:
+            sectionmanager = datamanager.superSectionManager
+            sections = sectionmanager.openSections
+            if g_index != -1:
+                sections = [section for section in sections if section.gIndex == g_index]
+
+            assert len(sections) == 1
+            section = sections[0]
+
+            return section[meta_name]
+
+    def get_sections(self, meta_name):
+        sections = self._delegate.results[meta_name]
+        return [section.gIndex for section in sections]
 
     @staticmethod
     def _write(json_writer, value):
