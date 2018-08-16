@@ -20,7 +20,8 @@ This module is used to store all configuration values. It makes use of
 import os
 from collections import namedtuple
 
-FilesConfig = namedtuple('S3', ['uploads_bucket', 'repository_bucket', 'archive_bucket'])
+FilesConfig = namedtuple(
+    'FilesConfig', ['uploads_bucket', 'repository_bucket', 'archive_bucket', 'compress_archive'])
 """ API independent configuration for the object storage. """
 
 CeleryConfig = namedtuple('Celery', [
@@ -39,7 +40,8 @@ LogstashConfig = namedtuple('LogstashConfig', ['enabled', 'host', 'tcp_port'])
 files = FilesConfig(
     uploads_bucket='uploads',
     repository_bucket='repository',
-    archive_bucket='archive'
+    archive_bucket='archive',
+    compress_archive=False
 )
 celery = CeleryConfig(
     rabbit_host=os.environ.get('NOMAD_RABBITMQ_HOST', 'localhost'),

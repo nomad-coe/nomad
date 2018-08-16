@@ -271,21 +271,28 @@ class Upload():
 def write_archive_json(archive_id) -> Generator[TextIO, None, None]:
     """ Context manager that yiels a file-like to write the archive json. """
     binary_out = io.BytesIO()
-    gzip_wrapper = cast(TextIO, gzip.open(binary_out, 'wt'))
+    if config.files.compress_archive:
+        gzip_wrapper = cast(TextIO, gzip.open(binary_out, 'wt'))
+        out = gzip_wrapper
+        metadata = {'Content-Encoding': 'gzip'}
+    else:
+        text_wrapper = io.TextIOWrapper(binary_out, encoding='utf-8')
+        out = text_wrapper
+        metadata = {}
 
     try:
-        yield gzip_wrapper
+        yield out
     finally:
-        gzip_wrapper.flush()
+        out.flush()
         binary_out.seek(0)
         length = len(binary_out.getvalue())
 
         _client.put_object(
             config.files.archive_bucket, archive_id, binary_out, length=length,
             content_type='application/json',
-            metadata={'Content-Encoding': 'gzip'})
+            metadata=metadata)
 
-        gzip_wrapper.close()
+        out.close()
         binary_out.close()
 
 

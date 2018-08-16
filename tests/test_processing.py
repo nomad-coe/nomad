@@ -33,6 +33,7 @@ def uploaded_id(request) -> Generator[str, None, None]:
     yield example_upload_id
 
     try:
+        # remove the created uploads
         files._client.remove_object(config.files.uploads_bucket, example_upload_id)
 
         # remove all the created archive files
