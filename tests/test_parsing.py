@@ -16,6 +16,74 @@ from nomad.parsing import JSONStreamWriter, parser_dict
 from io import StringIO
 import json
 import pytest
+import sys
+
+from nomadcore.local_meta_info import loadJsonFile
+
+from nomad.parsing import LocalBackend
+
+
+class TestLocalBackend(object):
+
+    @pytest.fixture(scope='session')
+    def meta_info(self):
+        path = '.dependencies/nomad-meta-info/meta_info/nomad_meta_info/all.nomadmetainfo.json'
+        meta_info, _ = loadJsonFile(path)
+        return meta_info
+
+    @pytest.fixture(scope='function')
+    def backend(self, meta_info):
+        return LocalBackend(meta_info, debug=True)
+
+    def test_meta_info(self, meta_info):
+        assert 'section_topology' in meta_info
+        print(meta_info['section_symmetry'])
+
+    def test_section(self, backend):
+        g_index = backend.openSection('section_run')
+        assert g_index == 0
+        backend.addValue('program_name', 't0')
+        backend.closeSection('section_run', 0)
+
+        g_index = backend.openSection('section_run')
+        assert g_index == 1
+
+        g_index = backend.openSection('section_run')
+        assert g_index == 2
+
+        backend.addValue('program_name', 't1', 1)
+        backend.addValue('program_name', 't2', 2)
+
+        backend.closeSection('section_run', 1)
+        backend.closeSection('section_run', 2)
+
+        assert backend.get_sections('section_run') == [0, 1, 2]
+        for i in range(0, 3):
+            assert backend.get_value('program_name', i) == 't%d' % i
+
+    def test_subsection(self, backend: LocalBackend):
+        backend.openSection('section_run')
+        backend.openSection('section_method')
+        backend.closeSection('section_method', -1)
+
+        backend.openSection('section_method')
+        backend.closeSection('section_method', -1)
+
+        backend.openSection('section_run')
+        backend.closeSection('section_run', 0)
+        backend.closeSection('section_run', 1)
+
+        backend.openSection('section_method')
+        backend.closeSection('section_method', -1)
+
+        runs = backend.data['section_run']
+        assert len(runs) == 2
+        assert len(runs[0]['section_method']) == 2
+        assert len(runs[1]['section_method']) == 1
+
+    def test_context(self, backend):
+        backend.openSection('section_run')
+        backend.closeSection('section_run', -1)
 
 
 def create_reference(data, pretty):

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import ABCMeta, abstractmethod
 import ase
 import numpy
 import spglib
@@ -21,28 +20,13 @@ from nomadcore.json_support import addShasOfJson
 from statsnormalizer.stats import crystalSystem
 from statsnormalizer.classify_structure import ClassifyStructure
 
-from nomad.parsing import AbstractParserBackend
+from nomad.normalizing import Normalizer
 
-"""
-After parsing calculations have to be normalized with a set of *normalizers*.
-In NOMAD-coe those were programmed in python (we'll reuse) and scala (we'll rewrite).
-"""
+# TODO: check what is wrong, the commented meta names seem not to exist
+#       in the current meta info
 
 
-class Normalizer(metaclass=ABCMeta):
-    """
-    A base class for normalizers. Normalizers work on a :class:`AbstractParserBackend` instance
-    for read and write.
-    """
-    def __init__(self, backend: AbstractParserBackend) -> None:
-        self._backend = backend
-
-    @abstractmethod
-    def normalize(self) -> None:
-        pass
-
-
-class SystemNomalizer(Normalizer):
+class SystemNormalizer(Normalizer):
     """
     This normalizer performs all system (atoms, cells, etc.) related normalizations
     of the legacy NOMAD-coe *stats* normalizer.
@@ -66,7 +50,7 @@ class SystemNomalizer(Normalizer):
         atom_labels = backend.get_value('atom_labels', g_index)
         atom_species = backend.get_value('atom_atom_numbers', g_index)
         if atom_labels is not None and atom_species is None:
-            atom_label_to_num = SystemNomalizer.atom_label_to_num
+            atom_label_to_num = SystemNormalizer.atom_label_to_num
             atom_species = [atom_label_to_num(atom_label) for atom_label in atom_labels]
 
         periodic_dirs = backend.get_value('configuration_periodic_dimensions', g_index)
@@ -76,10 +60,10 @@ class SystemNomalizer(Normalizer):
             atom_symbols = [ase.data.chemical_symbols[atom_number] for atom_number in atom_species]
             formula = ase.Atoms(atom_symbols).get_chemical_formula(mode='all')
             formula_reduced = ase.Atoms(atom_symbols).get_chemical_formula(mode='reduce')
-            if periodic_dirs is not None and any(periodic_dirs):
-                formula_bulk = formula_reduced
-            else:
-                formula_bulk = formula
+            # if periodic_dirs is not None and any(periodic_dirs):
+            #     formula_bulk = formula_reduced
+            # else:
+            #     formula_bulk = formula
 
         cell = backend.get_value('simulation_cell', g_index)
         if cell is not None:
@@ -133,8 +117,6 @@ class SystemNomalizer(Normalizer):
         backend.closeNonOverlappingSection('section_topology')
 
         if symm:
-            # TODO: check what is wrong, the commented meta names seem not to exist
-            #       in the current meta info
             # for quantity in ["number", "international", "hall", "choice", "pointgroup"]:
             #     v = symm.get(quantity)
             #     if v is not None:
@@ -149,7 +131,7 @@ class SystemNomalizer(Normalizer):
             n = symm.get("number")
             if n:
                 backend.openNonOverlappingSection('section_symmetry')
-                backend.addValue("bravais_lattice", crystalSystem(n), g_index)
+                backend.addValue("bravais_lattice", crystalSystem(n))
                 backend.closeNonOverlappingSection('section_symmetry')
 
             # backend.addValue("chemical_composition", formula, g_index)
@@ -179,5 +161,3 @@ class SystemNomalizer(Normalizer):
     def normalize(self) -> None:
         for g_index in self._backend.get_sections('section_system'):
             self._normalize_section_system(g_index)
-
-normalizers = [SystemNomalizer]

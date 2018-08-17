@@ -25,8 +25,20 @@ def test_normalizer():
 
     assert status == 'ParseSuccess'
 
-    for normalizer_class in normalizers:
+    for normalizer_class in normalizers[:1]:
         normalizer = normalizer_class(parser_backend)
         normalizer.normalize()
 
-    parser_backend.write_json(JSONStreamWriter(sys.stdout))
+    def filter(name, value):
+        if name.startswith('section_'):
+            return value
+
+        if name.startswith('x_'):
+            return None
+
+        if getattr(value, 'tolist', None) or isinstance(value, list):
+            return '<some array>'
+        else:
+            return value
+
+    parser_backend.write_json(JSONStreamWriter(sys.stdout), filter=filter)

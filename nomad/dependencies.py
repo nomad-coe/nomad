@@ -164,6 +164,10 @@ dependencies = [
     PythonGit(
         name='normalizers/stats',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/normalizer-stats.git',
+        git_commit='nomad-xt'),
+    PythonGit(
+        name='normalizers/symmetry',
+        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/normalizer-symmetry',
         git_commit='master')
 ]
 

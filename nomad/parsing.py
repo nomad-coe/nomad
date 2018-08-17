@@ -42,7 +42,7 @@ Parsers in NOMAD-coe use a *backend* to create output.
 .. autoclass:: nomad.parsing.LocalBackend
 """
 
-from typing import TextIO, Tuple, List, Any
+from typing import TextIO, Tuple, List, Any, Callable
 from abc import ABCMeta, abstractmethod
 import json
 import re
@@ -50,7 +50,7 @@ import importlib
 import logging
 
 from nomadcore.local_backend import LocalBackend as LegacyLocalBackend
-from nomadcore.local_backend import Section
+from nomadcore.local_backend import Section, Results
 
 from nomad.dependencies import dependencies_dict as dependencies, PythonGit
 
@@ -77,7 +77,8 @@ class DelegatingMeta(ABCMeta):
 
 class AbstractParserBackend(metaclass=ABCMeta):
     """
-    This ABS provides the parser backend interface used by the NOMAD-coe parsers.
+    This ABS provides the parser backend interface used by the NOMAD-coe parsers
+    and normalizers.
     """
     @abstractmethod
     def metaInfoEnv(self):
@@ -98,6 +99,16 @@ class AbstractParserBackend(metaclass=ABCMeta):
             self, parserStatus, parserErrors, mainFileUri=None, parserInfo=None,
             parsingStats=None):
         """ Called when the parsing finishes. """
+        pass
+
+    @abstractmethod
+    def openContext(self, contextUri: str):
+        """ Open existing archive data to introduce new data into an existing section. """
+        pass
+
+    @abstractmethod
+    def closeContext(self, contextUri: str):
+        """ Close priorly opened existing archive data again. """
         pass
 
     @abstractmethod
@@ -176,120 +187,23 @@ class AbstractParserBackend(metaclass=ABCMeta):
         """ Used to catch parser warnings. """
         pass
 
-    # The following are extensions to the origin NOMAD-coe parser backend.
-    # They allow to modify data after the fact.
+    # The following are extensions to the origin NOMAD-coe parser backend. And allow
+    # access to existing data
+
+    @property
     @abstractmethod
-    def get_sections(self, meta_name) -> List[int]:
+    def data(self) -> Results:
+        pass
+
+    @abstractmethod
+    def get_sections(self, meta_name: str) -> List[int]:
         """ Return all gIndices for existing sections of the given meta_name. """
         pass
 
     @abstractmethod
-    def get_value(self, metaName, g_index=-1) -> Any:
+    def get_value(self, metaName: str, g_index=-1) -> Any:
         """ Return the value set to the given meta_name in its parent section of the given index. """
         pass
-
-
-class LegacyParserBackend(AbstractParserBackend, metaclass=DelegatingMeta):
-    """
-    Simple implementation of :class:`AbstractParserBackend` that delegates all calls to
-    another parser object that not necessarely need to decend from the abstract base class.
-    """
-    def __init__(self, legacy_backend):
-        self._delegate = legacy_backend
-
-
-class LocalBackend(LegacyParserBackend):
-    """
-    This implementation of :class:`AbstractParserBackend` is a extended version of
-    NOMAD-coe's ``LocalBackend`` that allows to write the results in an *archive*-style .json.
-    It can be used like the original thing, but also allows to output archive JSON
-    after parsing via :func:`write_json`.
-    """
-    def __init__(self, *args, **kwargs):
-        delegate = LegacyLocalBackend(*args, **kwargs)
-        super().__init__(delegate)
-        self._status = 'none'
-        self._errors = None
-
-    def finishedParsingSession(self, parserStatus, parserErrors, **kwargs):
-        self._delegate.finishedParsingSession(parserStatus, parserErrors, **kwargs)
-        self._status = parserStatus
-        self._errors = parserErrors
-
-    def pwarn(self, msg):
-        logger.debug('Warning in parser: %s' % msg)
-
-    def get_value(self, meta_name, g_index=-1):
-        datamanager = self._delegate.results._datamanagers.get(meta_name)
-        if datamanager is not None:
-            sectionmanager = datamanager.superSectionManager
-            sections = sectionmanager.openSections
-            if g_index != -1:
-                sections = [section for section in sections if section.gIndex == g_index]
-
-            assert len(sections) == 1
-            section = sections[0]
-
-            return section[meta_name]
-
-    def get_sections(self, meta_name):
-        sections = self._delegate.results[meta_name]
-        return [section.gIndex for section in sections]
-
-    @staticmethod
-    def _write(json_writer, value):
-        if isinstance(value, list):
-            json_writer.open_array()
-            for item in value:
-                LocalBackend._write(json_writer, item)
-            json_writer.close_array()
-
-        elif isinstance(value, Section):
-            section = value
-            json_writer.open_object()
-            json_writer.key_value('_name', section.name)
-            json_writer.key_value('_gIndex', section.gIndex)
-            for name, value in section.items():
-                json_writer.key(name)
-                LocalBackend._write(json_writer, value)
-            json_writer.close_object()
-
-        else:
-            json_writer.value(value)
-
-    @property
-    def status(self) -> ParserStatus:
-        """ Returns status and potential errors. """
-        return (self._status, self._errors)
-
-    def write_json(self, out: TextIO, pretty=True):
-        """
-        Writes the results stored in the backend after parsing in an 'archive'.json
-        style format.
-
-        Arguments:
-            out: The file-like that is used to write the json to.
-            pretty: Format the json or not.
-        """
-        json_writer = JSONStreamWriter(out, pretty=pretty)
-        json_writer.open_object()
-
-        json_writer.key_value('parser_status', self._status)
-        if self._errors is not None and len(self._errors) > 0:
-            json_writer.key('parser_errors')
-            json_writer.open_array
-            for error in self._errors:
-                json_writer.value(error)
-            json_writer.close_array
-
-        json_writer.key('section_run')
-        json_writer.open_array()
-        for run in self._delegate.results['section_run']:
-            LocalBackend._write(json_writer, run)
-        json_writer.close_array()
-
-        json_writer.close_object()
-        json_writer.close()
 
 
 class JSONStreamWriter():
@@ -408,6 +322,132 @@ class JSONStreamWriter():
 
     def close(self):
         assert self._states[-1] == JSONStreamWriter.START, "Something was not closed."
+
+
+class LegacyParserBackend(AbstractParserBackend, metaclass=DelegatingMeta):
+    """
+    Simple implementation of :class:`AbstractParserBackend` that delegates all calls to
+    another parser object that not necessarely need to decend from the abstract base class.
+    """
+    def __init__(self, legacy_backend):
+        self._delegate = legacy_backend
+
+
+class LocalBackend(LegacyParserBackend):
+    """
+    This implementation of :class:`AbstractParserBackend` is a extended version of
+    NOMAD-coe's ``LocalBackend`` that allows to write the results in an *archive*-style .json.
+    It can be used like the original thing, but also allows to output archive JSON
+    after parsing via :func:`write_json`.
+    """
+    def __init__(self, *args, **kwargs):
+        delegate = LegacyLocalBackend(*args, **kwargs)
+        super().__init__(delegate)
+        self._status = 'none'
+        self._errors = None
+
+    def finishedParsingSession(self, parserStatus, parserErrors, **kwargs):
+        self._delegate.finishedParsingSession(parserStatus, parserErrors, **kwargs)
+        self._status = parserStatus
+        self._errors = parserErrors
+
+    def pwarn(self, msg):
+        logger.debug('Warning in parser: %s' % msg)
+
+    def openContext(self, contextUri: str):
+        path_str = contextUri.replace(r'nmd://[^/]+/[^/]+/', '')
+        path = path_str.split('/')
+        pass
+
+    def closeContext(self, contextUri):
+        pass
+
+    @property
+    def data(self) -> Results:
+        return self._delegate.results
+
+    def get_value(self, meta_name, g_index=-1):
+        datamanager = self._delegate.results._datamanagers.get(meta_name)
+        if datamanager is not None:
+            sectionmanager = datamanager.superSectionManager
+            sections = sectionmanager.openSections
+            if g_index != -1:
+                sections = [section for section in sections if section.gIndex == g_index]
+
+            assert len(sections) == 1
+            section = sections[0]
+
+            return section[meta_name]
+
+    def get_sections(self, meta_name):
+        sections = self._delegate.results[meta_name]
+        return [section.gIndex for section in sections]
+
+    @staticmethod
+    def _write(
+            json_writer: JSONStreamWriter,
+            value: Any,
+            filter: Callable[[str, Any], Any]=None):
+
+        if isinstance(value, list):
+            json_writer.open_array()
+            for item in value:
+                LocalBackend._write(json_writer, item, filter=filter)
+            json_writer.close_array()
+
+        elif isinstance(value, Section):
+            section = value
+            json_writer.open_object()
+            json_writer.key_value('_name', section.name)
+            json_writer.key_value('_gIndex', section.gIndex)
+
+            for name, value in section.items():
+                if filter is not None:
+                    value = filter(name, value)
+
+                if value is not None:
+                    json_writer.key(name)
+                    LocalBackend._write(json_writer, value, filter=filter)
+
+            json_writer.close_object()
+
+        else:
+            json_writer.value(value)
+
+    @property
+    def status(self) -> ParserStatus:
+        """ Returns status and potential errors. """
+        return (self._status, self._errors)
+
+    def write_json(self, out: TextIO, pretty=True, filter: Callable[[str, Any], Any]=None):
+        """
+        Writes the results stored in the backend after parsing in an 'archive'.json
+        style format.
+
+        Arguments:
+            out: The file-like that is used to write the json to.
+            pretty: Format the json or not.
+            filter: Optional filter that takes metaname, value pairs and returns a new value.
+        """
+        json_writer = JSONStreamWriter(out, pretty=pretty)
+        json_writer.open_object()
+
+        json_writer.key_value('parser_status', self._status)
+        if self._errors is not None and len(self._errors) > 0:
+            json_writer.key('parser_errors')
+            json_writer.open_array
+            for error in self._errors:
+                json_writer.value(error)
+            json_writer.close_array
+
+        json_writer.key('section_run')
+        json_writer.open_array()
+        for run in self._delegate.results['section_run']:
+            LocalBackend._write(json_writer, run, filter=filter)
+        json_writer.close_array()
+
+        json_writer.close_object()
+        json_writer.close()
 
 
 class Parser():
