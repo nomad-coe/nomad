@@ -12,18 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .normalizer import Normalizer
-from .system import SystemNormalizer
-from .symmetry import SymmetryNormalizer
-from .systemtype import SystemTypeNormalizer
+from nomad.normalizing.normalizer import SystemBasedNormalizer
+from systemtypenormalizer.classify_structure import ClassifyStructure
 
-"""
-After parsing calculations have to be normalized with a set of *normalizers*.
-In NOMAD-coe those were programmed in python (we'll reuse) and scala (we'll rewrite).
-"""
 
-normalizers = [
-    SystemNormalizer,
-    SymmetryNormalizer,
-    SystemTypeNormalizer
-]
+class SystemTypeNormalizer(SystemBasedNormalizer):
+
+    def normalize_system(self, section_system) -> None:
+        structure = ClassifyStructure(section_system)
+        structure.classify()
+        structure_type = structure.classification
+        self._backend.addValue('system_type', structure_type)

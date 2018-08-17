@@ -20,13 +20,13 @@ from nomadcore.json_support import addShasOfJson
 from statsnormalizer.stats import crystalSystem
 from statsnormalizer.classify_structure import ClassifyStructure
 
-from nomad.normalizing import Normalizer
+from nomad.normalizing.normalizer import SystemBasedNormalizer
 
 # TODO: check what is wrong, the commented meta names seem not to exist
 #       in the current meta info
 
 
-class SystemNormalizer(Normalizer):
+class SystemNormalizer(SystemBasedNormalizer):
     """
     This normalizer performs all system (atoms, cells, etc.) related normalizations
     of the legacy NOMAD-coe *stats* normalizer.
@@ -43,17 +43,16 @@ class SystemNormalizer(Normalizer):
 
         return 0
 
-    def _normalize_section_system(self, g_index: int) -> None:
-        backend = self._backend
+    def normalize_system(self, section_system) -> None:
         results = dict()
 
-        atom_labels = backend.get_value('atom_labels', g_index)
-        atom_species = backend.get_value('atom_atom_numbers', g_index)
+        atom_labels = section_system['atom_labels']
+        atom_species = section_system['atom_atom_numbers']
         if atom_labels is not None and atom_species is None:
             atom_label_to_num = SystemNormalizer.atom_label_to_num
             atom_species = [atom_label_to_num(atom_label) for atom_label in atom_labels]
 
-        periodic_dirs = backend.get_value('configuration_periodic_dimensions', g_index)
+        periodic_dirs = section_system['configuration_periodic_dimensions']
         formula = None
         if atom_species:
             results['atom_species'] = atom_species
@@ -65,11 +64,11 @@ class SystemNormalizer(Normalizer):
             # else:
             #     formula_bulk = formula
 
-        cell = backend.get_value('simulation_cell', g_index)
+        cell = section_system['simulation_cell']
         if cell is not None:
             results['lattice_vectors'] = cell
 
-        positions = backend.get_value('atom_positions', g_index)
+        positions = section_system['atom_positions']
         if positions is not None:
             results['atom_positions'] = positions
             if not formula:
@@ -85,7 +84,7 @@ class SystemNormalizer(Normalizer):
             if atom_labels is not None:
                 results['atom_labels'] = atom_labels
 
-            results['gIndex'] = g_index
+            results['gIndex'] = section_system['gIndex']
             results['name'] = 'section_system'
             structure = ClassifyStructure(None, jsonValue={
                 "sections": [{
@@ -110,56 +109,45 @@ class SystemNormalizer(Normalizer):
                 if symm:
                     symm['configuration_raw_gid'] = configuration_id
 
-        backend.addValue("configuration_raw_gid", configuration_id, g_index)
-
-        backend.openNonOverlappingSection('section_topology')
-        backend.addValue("atom_species", atom_species)
-        backend.closeNonOverlappingSection('section_topology')
+        self._backend.addValue("configuration_raw_gid", configuration_id)
+        self._backend.addValue("atom_species", atom_species)
 
         if symm:
             # for quantity in ["number", "international", "hall", "choice", "pointgroup"]:
             #     v = symm.get(quantity)
             #     if v is not None:
-            #         backend.addValue("spacegroup_3D_" + quantity, v, g_index)
+            #         self._backend.addValue("spacegroup_3D_" + quantity, v)
 
             # for quantity in ["transformation_matrix"]:
             #     v = symm.get(quantity)
             #     if v is not None:
-            #         backend.addArrayValues(
-            #             "spacegroup_3D_" + quantity, numpy.asarray(v), g_index)
+            #         self._backend.addArrayValues(
+            #             "spacegroup_3D_" + quantity, numpy.asarray(v))
 
             n = symm.get("number")
             if n:
-                backend.openNonOverlappingSection('section_symmetry')
-                backend.addValue("bravais_lattice", crystalSystem(n))
-                backend.closeNonOverlappingSection('section_symmetry')
+                self._backend.openNonOverlappingSection('section_symmetry')
+                self._backend.addValue("bravais_lattice", crystalSystem(n))
+                self._backend.closeNonOverlappingSection('section_symmetry')
 
-            # backend.addValue("chemical_composition", formula, g_index)
-            # backend.addValue("chemical_composition_reduced", formula_reduced, g_index)
-            # backend.addValue("chemical_composition_bulk_reduced", formula_bulk, g_index)
+            # self._backend.addValue("chemical_composition", formula)
+            # self._backend.addValue("chemical_composition_reduced", formula_reduced)
+            # self._backend.addValue("chemical_composition_bulk_reduced", formula_bulk)
 
             # for quantity in ["origin_shift", "std_lattice"]:
             #     v = symm.get(quantity)
             #     if v is not None:
             #         backend.addArrayValues(
-            #             "spacegroup_3D_" + quantity, 1.0e-10 * numpy.asarray(v, dtype=float),
-            #             g_index)
+            #             "spacegroup_3D_" + quantity, 1.0e-10 * numpy.asarray(v, dtype=float))
 
             # for (r, t) in zip(symm.get("rotations", []), symm.get("translations", [])):
-            #     backend.openNonOverlappingSection("section_spacegroup_3D_operation")
-            #     backend.addArrayValues("spacegroup_3D_rotation", numpy.asarray(r), g_index)
-            #     backend.addArrayValues(
-            #         "spacegroup_3D_translation", 1.0e-10 * numpy.asarray(t, dtype=float),
-            #         g_index)
-            #     backend.closeNonOverlappingSection("section_spacegroup_3D_operation")
+            #     self._backend.openNonOverlappingSection("section_spacegroup_3D_operation")
+            #     self._backend.addArrayValues("spacegroup_3D_rotation", numpy.asarray(r))
+            #     self._backend.addArrayValues(
+            #         "spacegroup_3D_translation", 1.0e-10 * numpy.asarray(t, dtype=float))
+            #     self._backend.closeNonOverlappingSection("section_spacegroup_3D_operation")
 
             # v = symm.get("wyckoffs")
             # if v is not None:
             #     for w in v:
-            #         backend.addValue("spacegroup_3D_wyckoff", w, g_index)
-
-    def normalize(self) -> None:
-        for g_index in self._backend.get_sections('section_system'):
-            # self._backend.openContext('nmdq://././section_run/0/section_system/%d' % g_index)
-            self._normalize_section_system(g_index)
-            # self._backend.closeContext()
+            #         self._backend.addValue("spacegroup_3D_wyckoff", w)

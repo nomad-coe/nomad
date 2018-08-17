@@ -25,20 +25,14 @@ def test_normalizer():
 
     assert status == 'ParseSuccess'
 
-    for normalizer_class in normalizers[:1]:
+    for normalizer_class in normalizers:
         normalizer = normalizer_class(parser_backend)
         normalizer.normalize()
 
-    def filter(name, value):
-        if name.startswith('section_'):
-            return value
+    print(parser_backend)
 
-        if name.startswith('x_'):
-            return None
-
-        if getattr(value, 'tolist', None) or isinstance(value, list):
-            return '<some array>'
-        else:
-            return value
-
-    parser_backend.write_json(JSONStreamWriter(sys.stdout), filter=filter)
+    assert parser_backend.get_value('atom_species', 0) is not None
+    assert parser_backend.get_value('system_type', 0) is not None
+    assert parser_backend.get_value('crystal_system', 0) is not None
+    assert parser_backend.get_value('space_group_number', 0) is not None
+    assert parser_backend.get_value('XC_functional_name', 0) is not None

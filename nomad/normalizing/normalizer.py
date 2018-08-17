@@ -1,6 +1,10 @@
 from abc import ABCMeta, abstractmethod
+from typing import List, Dict, Any
+import logging
 
 from nomad.parsing import AbstractParserBackend
+
+logger = logging.getLogger(__name__)
 
 
 class Normalizer(metaclass=ABCMeta):
@@ -14,3 +18,54 @@ class Normalizer(metaclass=ABCMeta):
     @abstractmethod
     def normalize(self) -> None:
         pass
+
+
+class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
+
+    @property
+    def quantities(self) -> List[str]:
+        return [
+            'atom_labels',
+            'atom_positions',
+            'atom_atom_numbers',
+            'lattice_vectors',
+            'simulation_cell',
+            'configuration_periodic_dimensions'
+        ]
+
+    def _normalize_system(self, g_index):
+        input_data = dict(
+            uri='/section_run/0/section_system/%d' % g_index,
+            gIndex=g_index)
+        for quantity in self.quantities:
+            try:
+                input_data[quantity] = self._backend.get_value(quantity, g_index)
+            except KeyError:
+                # onyl fail when the normalizer actually uses the respecitive value
+                pass
+
+        context = input_data['uri']
+        self._backend.openContext(context)
+        try:
+            self.normalize_system(input_data)
+        finally:
+            self._backend.closeContext(context)
+
+    @abstractmethod
+    def normalize_system(self, section_system: Dict[str, Any]) -> None:
+        pass
+
+    def normalize(self) -> None:
+        for g_index in self._backend.get_sections('section_system'):
+            try:
+                self._normalize_system(g_index)
+            except KeyError as e:
+                logger.error(
+                    'Could not read all data for %s. Skip section %s: %s' %
+                    (self.__class__.__name__, 'section_system/%d' % g_index, e))
+            except Exception as e:
+                logger.error(
+                    'Unexpected error during %s. Skip section %s.' %
+                    (self.__class__.__name__, 'section_system/%d' % g_index),
+                    exc_info=e)
+                raise e

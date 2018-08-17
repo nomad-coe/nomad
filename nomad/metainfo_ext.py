@@ -41,14 +41,14 @@ repository_data = [
 # IndexEntry("system_composition"),     // from normaliser springer
 # IndexEntry("system_reweighted_composition"),  // ???
 # IndexEntry("system_type"),            // from normaliser system-type  +++
-# IndexEntry("crystal_system"),         // from normaliser symmetry     +++
-# IndexEntry("space_group_number"),     // from normaliser symmetry     +++
+# IndexEntry("crystal_system"),         // from normaliser symmetry     +++ DONE
+# IndexEntry("space_group_number"),     // from normaliser symmetry     +++ DONE
 # IndexEntry("springer_id"),            // from normaliser springer
 # IndexEntry("springer_classification"),// from normaliser springer
 # IndexEntry("configuration_raw_gid"),  // from normaliser stats            DONE
 # //computational setup
 # IndexEntry("electronic_structure_method"),                            +++
-# IndexEntry("XC_functional_name"),     // from normaliser stats does XC_functional_type  +++
+# IndexEntry("XC_functional_name"),     // from normaliser stats does XC_functional_type  +++ DONE
 # IndexEntry("program_basis_set_type"),                                 +++
 # //data related to other projects ingested into Nomad(e.g. AFlowLib)
 # IndexEntry("prototype_aflow_id"),     // from normalizer prototypes

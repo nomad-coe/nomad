@@ -20,7 +20,7 @@ import sys
 
 from nomadcore.local_meta_info import loadJsonFile
 
-from nomad.parsing import LocalBackend
+from nomad.parsing import LocalBackend, BadContextURI
 
 
 class TestLocalBackend(object):
@@ -81,9 +81,58 @@ class TestLocalBackend(object):
         assert len(runs[0]['section_method']) == 2
         assert len(runs[1]['section_method']) == 1
 
-    def test_context(self, backend):
+    def test_context(self, backend: LocalBackend):
+        backend.openSection('section_run')
+        backend.openSection('section_method')
+        backend.closeSection('section_method', -1)
+        backend.closeSection('section_run', -1)
+
         backend.openSection('section_run')
         backend.closeSection('section_run', -1)
+
+        backend.openContext('/section_run/0')
+        backend.addValue('program_name', 't1')
+        backend.closeContext('/section_run/0')
+
+        backend.openContext('/section_run/1')
+        backend.addValue('program_name', 't2')
+        backend.closeContext('/section_run/1')
+
+        backend.openContext('/section_run/0/section_method/0')
+        backend.closeContext('/section_run/0/section_method/0')
+
+        runs = backend.data['section_run']
+        assert runs[0]['program_name'] == 't1'
+        assert runs[1]['program_name'] == 't2'
+
+    def test_multi_context(self, backend: LocalBackend):
+        backend.openSection('section_run')
+        backend.closeSection('section_run', -1)
+
+        backend.openContext('/section_run/0')
+        backend.openSection('section_method')
+        backend.closeSection('section_method', -1)
+        backend.closeContext('/section_run/0')
+
+        backend.openContext('/section_run/0')
+        backend.openSection('section_method')
+        backend.closeSection('section_method', -1)
+        backend.closeContext('/section_run/0')
+
+        assert len(backend.data['section_method']) == 1
+
+    def test_bad_context(self, backend: LocalBackend):
+        try:
+            backend.openContext('section_run/0')
+            assert False
+        except BadContextURI:
+            pass
+
+        try:
+            backend.openContext('dsfds')
+            assert False
+        except BadContextURI:
+            pass
 
 
 def create_reference(data, pretty):

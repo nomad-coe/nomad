@@ -44,6 +44,7 @@ Parsers in NOMAD-coe use a *backend* to create output.
 
 from typing import TextIO, Tuple, List, Any, Callable
 from abc import ABCMeta, abstractmethod
+from io import StringIO
 import json
 import re
 import importlib
@@ -73,6 +74,14 @@ class DelegatingMeta(ABCMeta):
         def delegator(self, *args, **kwargs):
             return getattr(self._delegate, name)(*args, **kwargs)
         return delegator
+
+
+class BadContextURI(Exception):
+    pass
+
+
+class WrongContextState(Exception):
+    pass
 
 
 class AbstractParserBackend(metaclass=ABCMeta):
@@ -202,7 +211,10 @@ class AbstractParserBackend(metaclass=ABCMeta):
 
     @abstractmethod
     def get_value(self, metaName: str, g_index=-1) -> Any:
-        """ Return the value set to the given meta_name in its parent section of the given index. """
+        """
+        Return the value set to the given meta_name in its parent section of the given index.
+        An index of -1 (default) is only allowed if there is exactly one parent section.
+        """
         pass
 
 
@@ -346,6 +358,9 @@ class LocalBackend(LegacyParserBackend):
         self._status = 'none'
         self._errors = None
 
+        self._open_context: Tuple[str, int] = None
+        self._context_section = None
+
     def finishedParsingSession(self, parserStatus, parserErrors, **kwargs):
         self._delegate.finishedParsingSession(parserStatus, parserErrors, **kwargs)
         self._status = parserStatus
@@ -354,13 +369,87 @@ class LocalBackend(LegacyParserBackend):
     def pwarn(self, msg):
         logger.debug('Warning in parser: %s' % msg)
 
+    def _parse_context_uri(self, context_uri: str) -> Tuple[str, int]:
+        """
+        Returns the last segment of the given context uri, i.e. the section that
+        constitutes the context.
+        """
+        path_str = re.sub(r'^(nmd://[^/]+/[^/]+)?/', '', context_uri, count=1)
+        path = path_str.split('/')[::-1]  # reversed path via extended slice syntax
+
+        if len(path) == 0:
+            raise BadContextURI('Uri %s has not path.' % context_uri)
+
+        while len(path) > 0:
+            meta_name = path.pop()
+            potential_index = path[-1] if len(path) > 0 else 'none'
+            try:
+                index = int(potential_index)
+                path.pop()
+            except ValueError:
+                index = 0
+
+        return meta_name, index
+
+    def openSection(self, metaName: str) -> int:
+        if self._open_context is None:
+            return super().openSection(metaName)
+        else:
+            assert self._context_section is not None
+
+            child_sections = list()
+
+            def find_child_sections(section):
+                for subsections in section.subsections.values():
+                    for subsection in subsections:
+                        if subsection.name == metaName:
+                            child_sections.append(subsection)
+                        find_child_sections(subsection)
+
+            find_child_sections(self._context_section)
+
+            if len(child_sections) == 0:
+                return super().openSection(metaName)
+            elif len(child_sections) == 1:
+                index = child_sections[0].gIndex  # TODO  this also needs to be reversed, on closing sections
+                self._delegate.sectionManagers[metaName].lastSectionGIndex = index
+                return index
+            else:
+                raise WrongContextState(
+                    'You cannot re-open %s with multiple instances in the context.' % metaName)
+
     def openContext(self, contextUri: str):
-        path_str = contextUri.replace(r'nmd://[^/]+/[^/]+/', '')
-        path = path_str.split('/')
-        pass
+        if self._open_context is not None:
+            raise WrongContextState('There is already an open context on this backend.')
+
+        meta_name, index = self._parse_context_uri(contextUri)
+        try:
+            section_manager = self._delegate.sectionManagers[meta_name]
+        except KeyError:
+            raise BadContextURI('The section %s does not exist.' % meta_name)
+
+        if section_manager.lastSectionGIndex < index:
+            raise BadContextURI(
+                'Last index of section %s is %d, cannot open %d.' %
+                (meta_name, section_manager.lastSectionGIndex, index))
+
+        self._context_section = section_manager.openSections[index]
+        self._open_context = meta_name, section_manager.lastSectionGIndex
+        section_manager.lastSectionGIndex = index
 
     def closeContext(self, contextUri):
-        pass
+        if self._open_context is None:
+            raise WrongContextState('There is no context to close on this backend.')
+
+        meta_name, old_index = self._open_context
+        context_meta_name, _ = self._parse_context_uri(contextUri)
+        if context_meta_name != meta_name:
+            raise BadContextURI(
+                '%d is not the URI that his context was opened with.' % contextUri)
+
+        self._delegate.sectionManagers[context_meta_name].lastSectionGIndex = old_index
+        self._open_context = None
+        self._context_section = None
 
     @property
     def data(self) -> Results:
@@ -448,6 +537,23 @@ class LocalBackend(LegacyParserBackend):
 
         json_writer.close_object()
         json_writer.close()
+
+    def __repr__(self):
+        def filter(name, value):
+            if name.startswith('section_'):
+                return value
+
+            if name.startswith('x_'):
+                return None
+
+            if getattr(value, 'tolist', None) or isinstance(value, list):
+                return '<some array>'
+            else:
+                return value
+
+        out = StringIO()
+        self.write_json(JSONStreamWriter(out), filter=filter)
+        return out.getvalue()
 
 
 class Parser():

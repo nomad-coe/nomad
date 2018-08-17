@@ -148,7 +148,7 @@ dependencies = [
     PythonGit(
         name='nomad-meta-info',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info.git',
-        git_commit='v2_norename'),
+        git_commit='nomad-xt'),
     PythonGit(
         name='python_common',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/python-common.git',
@@ -168,7 +168,11 @@ dependencies = [
     PythonGit(
         name='normalizers/symmetry',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/normalizer-symmetry',
-        git_commit='master')
+        git_commit='nomad-xt'),
+    PythonGit(
+        name='normalizers/system-type',
+        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/normalizer-system-type',
+        git_commit='nomad-xt')
 ]
 
 dependencies_dict = {dependency.name: dependency for dependency in dependencies}
