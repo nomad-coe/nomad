@@ -160,4 +160,6 @@ class SystemNormalizer(Normalizer):
 
     def normalize(self) -> None:
         for g_index in self._backend.get_sections('section_system'):
+            # self._backend.openContext('nmdq://././section_run/0/section_system/%d' % g_index)
             self._normalize_section_system(g_index)
+            # self._backend.closeContext()
