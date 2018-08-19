@@ -29,6 +29,7 @@ a upload processing in a serializable form.
 
 .. autoclass:: nomad.processing.UploadProcessing
 """
+
 from typing import List, Any, Tuple
 from celery import Celery, Task, chord, group
 from celery.result import ResultBase, result_from_tuple
@@ -46,6 +47,7 @@ from nomad import files, utils
 from nomad.parsing import parsers, parser_dict
 from nomad.normalizing import normalizers
 from nomad.search import Calc
+import nomad.patch
 
 # The legacy nomad code uses a logger called 'nomad'. We do not want that this
 # logger becomes a child of this logger due to its module name starting with 'nomad.'
