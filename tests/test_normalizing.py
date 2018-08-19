@@ -34,8 +34,6 @@ def normalized_vasp_example(parsed_vasp_example: LocalBackend) -> LocalBackend:
 
 
 def test_normalizer(normalized_vasp_example: LocalBackend):
-    print(normalized_vasp_example)
-
     assert normalized_vasp_example.get_value('atom_species', 0) is not None
     assert normalized_vasp_example.get_value('system_type', 0) is not None
     assert normalized_vasp_example.get_value('crystal_system', 0) is not None

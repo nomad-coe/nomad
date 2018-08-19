@@ -14,6 +14,7 @@
 
 import pytest
 from elasticsearch_dsl import Index
+from elasticsearch.exceptions import NotFoundError
 from datetime import datetime
 
 from nomad.parsing import LocalBackend
@@ -25,8 +26,13 @@ from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-imp
 
 @pytest.fixture(scope='function', autouse=True)
 def index():
+    """ Fixture that ensures Calc index creation before and deletion after each test. """
+    Calc.init()
     yield
-    Index('calcs').delete()
+    try:
+        Index('calcs').delete()
+    except NotFoundError:
+        pass
 
 
 def test_add(normalized_vasp_example: LocalBackend):

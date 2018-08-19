@@ -21,6 +21,9 @@ import nomad.config as config
 import nomad.files as files
 from nomad.processing import UploadProcessing
 
+# delete search index after each test via imported fixture
+from tests.test_search import index  # pylint: disable=unused-import
+
 example_files = ['data/examples_vasp.zip', 'data/empty.zip']
 
 
@@ -58,10 +61,10 @@ def test_processing(uploaded_id):
     assert run.upload_hash is not None
     assert run.cause is None
     assert run.status == 'SUCCESS'
-    for status, errors, archive_id in run.parse_results:
-        assert errors is None or len(errors) == 0
-        assert status == 'ParseSuccess'
-        assert archive_id.startswith(run.upload_hash)
+    for processing_result in run.processing_results:
+        for status, errors in processing_result:
+            assert errors is None or len(errors) == 0
+            assert status in ['ParseSuccess', 'NormalizeSuccess', 'IndexSuccess', 'PersistenceSuccess']
 
     run.forget()
 
