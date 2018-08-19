@@ -1,6 +1,7 @@
 minio
 requests
 celery[redis]
+elasticsearch-dsl>=6.0.0,<7.0.0
 python-logstash
 gitpython
 ase

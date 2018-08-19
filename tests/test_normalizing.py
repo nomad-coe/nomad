@@ -12,27 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from nomad.parsing import JSONStreamWriter, parser_dict
+import pytest
+
+from nomad.parsing import LocalBackend
 from nomad.normalizing import normalizers
-import sys
+
+from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
 
 
-def test_normalizer():
-    vasp_parser = parser_dict['parsers/vasp']
-    example_mainfile = '.dependencies/parsers/vasp/test/examples/xml/perovskite.xml'
-    parser_backend = vasp_parser.run(example_mainfile)
-    status, _ = parser_backend.status
+@pytest.fixture
+def normalized_vasp_example(parsed_vasp_example: LocalBackend) -> LocalBackend:
+    status, _ = parsed_vasp_example.status
 
     assert status == 'ParseSuccess'
 
     for normalizer_class in normalizers:
-        normalizer = normalizer_class(parser_backend)
+        normalizer = normalizer_class(parsed_vasp_example)
         normalizer.normalize()
 
-    print(parser_backend)
+    return parsed_vasp_example
 
-    assert parser_backend.get_value('atom_species', 0) is not None
-    assert parser_backend.get_value('system_type', 0) is not None
-    assert parser_backend.get_value('crystal_system', 0) is not None
-    assert parser_backend.get_value('space_group_number', 0) is not None
-    assert parser_backend.get_value('XC_functional_name', 0) is not None
+
+def test_normalizer(normalized_vasp_example: LocalBackend):
+    print(normalized_vasp_example)
+
+    assert normalized_vasp_example.get_value('atom_species', 0) is not None
+    assert normalized_vasp_example.get_value('system_type', 0) is not None
+    assert normalized_vasp_example.get_value('crystal_system', 0) is not None
+    assert normalized_vasp_example.get_value('space_group_number', 0) is not None
+    assert normalized_vasp_example.get_value('XC_functional_name', 0) is not None

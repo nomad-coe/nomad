@@ -178,11 +178,15 @@ def test_stream_generator(pretty):
     assert create_reference(example_data, pretty) == out.getvalue()
 
 
-def test_vasp_parser():
+@pytest.fixture
+def parsed_vasp_example() -> LocalBackend:
     vasp_parser = parser_dict['parsers/vasp']
     example_mainfile = '.dependencies/parsers/vasp/test/examples/xml/perovskite.xml'
-    parser_backend = vasp_parser.run(example_mainfile)
-    status, errors = parser_backend.status
+    return vasp_parser.run(example_mainfile)
+
+
+def test_vasp_parser(parsed_vasp_example: LocalBackend):
+    status, errors = parsed_vasp_example.status
 
     assert status == 'ParseSuccess'
     assert errors is None or len(errors) == 0

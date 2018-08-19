@@ -46,18 +46,14 @@
       ]
     },
     {
-      "name": "Python: tests/test_processing.py",
+      "name": "Python: tests/test_search.py",
       "type": "python",
       "request": "launch",
       "cwd": "${workspaceFolder}",
-      "program": "${workspaceFolder}/tests/test_processing.py"
-    },
-    {
-      "name": "Python: tests/test_files.py",
-      "type": "python",
-      "request": "launch",
-      "cwd": "${workspaceFolder}",
-      "program": "${workspaceFolder}/tests/test_files.py"
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_search.py"
+      ]
     },
     {
       "name": "Python: Current File",
