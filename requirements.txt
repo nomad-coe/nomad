@@ -2,6 +2,8 @@ minio
 requests
 celery[redis]
 elasticsearch-dsl>=6.0.0,<7.0.0
+mongoengine
+flask-restful
 python-logstash
 gitpython
 ase

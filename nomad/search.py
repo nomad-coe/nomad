@@ -1,11 +1,34 @@
+# Copyright 2018 Markus Scheidgen
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an"AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""
+The interface towards our search engine. It allows to store calculations as documents
+of search relevant properties.
+
+..autoclass:: nomad.search.Calc:
+"""
+
 from elasticsearch_dsl import Document, Date, Keyword, connections
 import logging
-import inspect
 
+from nomad import config
 from nomad.parsing import LocalBackend
 
 logger = logging.getLogger(__name__)
-connections.create_connection(hosts=['localhost'])
+
+# ensure elastic connection
+connections.create_connection(hosts=[config.elastic.host])
 
 
 class Calc(Document):
@@ -31,7 +54,7 @@ class Calc(Document):
     XC_functional_name = Keyword()
 
     class Index:
-        name = 'calcs'
+        name = config.elastic.calc_index
 
     @staticmethod
     def add_from_backend(backend: LocalBackend, **kwargs) -> 'Calc':

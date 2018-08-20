@@ -63,6 +63,19 @@ services:
         ports:
             - 9200:9200
 
+    # the user data db
+    mongo:
+        image: mongo:latest
+        container_name: nomad-xt-mongo
+        environment:
+          - MONGO_DATA_DIR=/data/db
+          - MONGO_LOG_DIR=/dev/null
+        volumes:
+          - '../.volumes/mongo:/data/db'
+        ports:
+            - 27017:27017
+        command: mongod --smallfiles --logpath=/dev/null # --quiet
+
     # used for centralized logging
     elk:
         restart: always

@@ -10,6 +10,7 @@
     "eslint.autoFixOnSave": true,
     "python.linting.pylintArgs": [
         "--disable=all",
+        "--load-plugins=pylint_mongoengine",
         "--enable=F,E,unreachable,duplicate-key,unnecessary-semicolon,global-variable-not-assigned,unused-variable,binary-op-exception,bad-format-string,anomalous-backslash-in-string,bad-open-mode,unused-import"
     ],
     "python.linting.pep8Enabled": true,

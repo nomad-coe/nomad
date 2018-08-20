@@ -34,6 +34,12 @@ MinioConfig = namedtuple('Minio', ['host', 'port', 'accesskey', 'secret'])
 FSConfig = namedtuple('FSConfig', ['tmp'])
 """ Used to configure file stystem access. """
 
+ElasticConfig = namedtuple('ElasticConfig', ['host', 'calc_index'])
+""" Used to configure elastic search. """
+
+MongoConfig = namedtuple('MongoConfig', ['host', 'users_db'])
+""" Used to configure mongo db. """
+
 LogstashConfig = namedtuple('LogstashConfig', ['enabled', 'host', 'tcp_port'])
 """ Used to configure and enable/disable the ELK based centralized logging. """
 
@@ -58,6 +64,14 @@ minio = MinioConfig(
 )
 fs = FSConfig(
     tmp='.volumes/fs'
+)
+elastic = ElasticConfig(
+    host='localhost',
+    calc_index='calcs'
+)
+mongo = MongoConfig(
+    host='localhost',
+    users_db='users'
 )
 logstash = LogstashConfig(
     enabled=False,

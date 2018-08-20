@@ -46,8 +46,8 @@ from nomad.files import Upload, UploadError
 from nomad import files, utils
 from nomad.parsing import parsers, parser_dict
 from nomad.normalizing import normalizers
-from nomad.search import Calc
-import nomad.patch
+from nomad import search, users
+import nomad.patch  # pylint: disable=ununsed-import
 
 # The legacy nomad code uses a logger called 'nomad'. We do not want that this
 # logger becomes a child of this logger due to its module name starting with 'nomad.'
@@ -355,7 +355,7 @@ def parse(processing: UploadProcessing, parse_spec: ParseSpec) -> ProcessingTask
 
     # update search
     try:
-        Calc.add_from_backend(
+        search.Calc.add_from_backend(
             parser_backend,
             upload_hash=upload_hash,
             calc_hash=calc_hash,
@@ -371,7 +371,7 @@ def parse(processing: UploadProcessing, parse_spec: ParseSpec) -> ProcessingTask
     archive_id = '%s/%s' % (upload_hash, calc_hash)
     logger.debug('Written results of %s for %s to %s.' % (parser, mainfile, archive_id))
 
-    # persistence
+    # calc data persistence
     try:
         with files.write_archive_json(archive_id) as out:
             parser_backend.write_json(out, pretty=True)
