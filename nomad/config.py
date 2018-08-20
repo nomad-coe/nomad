@@ -24,8 +24,7 @@ FilesConfig = namedtuple(
     'FilesConfig', ['uploads_bucket', 'repository_bucket', 'archive_bucket', 'compress_archive'])
 """ API independent configuration for the object storage. """
 
-CeleryConfig = namedtuple('Celery', [
-    'rabbit_host', 'rabbit_port', 'rabbit_user', 'rabbit_password', 'redis_host'])
+CeleryConfig = namedtuple('Celery', ['broker_url', 'backend_url', 'serializer'])
 """ Used to configure the RabbitMQ and Redis backends for celery. """
 
 MinioConfig = namedtuple('Minio', ['host', 'port', 'accesskey', 'secret'])
@@ -49,13 +48,22 @@ files = FilesConfig(
     archive_bucket='archive',
     compress_archive=False
 )
+
+rabbit_host = os.environ.get('NOMAD_RABBITMQ_HOST', 'localhost')
+rabbit_port = os.environ.get('NOMAD_RABBITMQ_PORT', None)
+rabbit_user = 'rabbitmq'
+rabbit_password = 'rabbitmq'
+redis_host = os.environ.get('NOMAD_REDIS_HOST', 'localhost')
+
+rabbit_url = 'pyamqp://%s:%s@%s//' % (rabbit_user, rabbit_password, rabbit_host)
+redis_url = 'redis://%s/0' % redis_host
+
 celery = CeleryConfig(
-    rabbit_host=os.environ.get('NOMAD_RABBITMQ_HOST', 'localhost'),
-    rabbit_port=os.environ.get('NOMAD_RABBITMQ_PORT', None),
-    rabbit_user='rabbitmq',
-    rabbit_password='rabbitmq',
-    redis_host=os.environ.get('NOMAD_REDIS_HOST', 'localhost'),
+    broker_url=redis_url,
+    backend_url=redis_url,
+    serializer='pickle'
 )
+
 minio = MinioConfig(
     host=os.environ.get('NOMAD_MINIO_HOST', 'localhost'),
     port=int(os.environ.get('NOMAD_MINIO_PORT', '9007')),

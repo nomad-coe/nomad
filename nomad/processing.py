@@ -46,8 +46,8 @@ from nomad.files import Upload, UploadError
 from nomad import files, utils
 from nomad.parsing import parsers, parser_dict
 from nomad.normalizing import normalizers
-from nomad import search, users
-import nomad.patch  # pylint: disable=ununsed-import
+from nomad import search
+import nomad.patch  # pylint: disable=unused-import
 
 # The legacy nomad code uses a logger called 'nomad'. We do not want that this
 # logger becomes a child of this logger due to its module name starting with 'nomad.'
@@ -67,15 +67,12 @@ if config.logstash.enabled:
     after_setup_logger.connect(initialize_logstash)
 
 
-broker_url = 'pyamqp://%s:%s@%s//' % (
-    config.celery.rabbit_user, config.celery.rabbit_password, config.celery.rabbit_host)
-backend_url = 'redis://%s/0' % config.celery.redis_host
-app = Celery('nomad.processing', backend=backend_url, broker=broker_url)
-app.conf.update(
-    accept_content=['pickle'],
-    task_serializer='pickle',
-    result_serializer='pickle',
-)
+app = Celery('nomad.processing', backend=config.celery.backend_url, broker=config.celery.broker_url)
+app.add_defaults(dict(
+    accept_content=['json', 'pickle'],
+    task_serializer=config.celery.serializer,
+    result_serializer=config.celery.serializer,
+))
 
 ProcessingTaskResult = List[Tuple[str, List[str]]]
 """ A list of parser/normalizer (status, errors) tuples. """
@@ -261,6 +258,8 @@ def open_upload(task: Task, processing: UploadProcessing) -> UploadProcessing:
         logger.debug('Could not open upload %s: %s' % (processing.upload_id, e))
         return processing.fail(e)
 
+    logger.debug('Opened upload %s' % processing.upload_id)
+
     try:
         processing.upload_hash = upload.hash()
     except UploadError as e:
@@ -268,6 +267,7 @@ def open_upload(task: Task, processing: UploadProcessing) -> UploadProcessing:
         return processing.fail(e)
 
     try:
+        # TODO: deal with multiple possible parser specs
         processing.parse_specs = list()
         for filename in upload.filelist:
             for parser in parsers:
@@ -302,6 +302,8 @@ def close_upload(
     except Exception as e:
         logger.error('Could not close upload %s: %s' % (processing.upload_id, e))
         return processing.fail(e)
+
+    logger.debug('Closed upload %s' % processing.upload_id)
 
     return processing
 
@@ -368,10 +370,8 @@ def parse(processing: UploadProcessing, parse_spec: ParseSpec) -> ProcessingTask
             (upload_hash, mainfile, e), exc_info=e)
         results.append(('IndexFailed', [e.__str__()]))
 
-    archive_id = '%s/%s' % (upload_hash, calc_hash)
-    logger.debug('Written results of %s for %s to %s.' % (parser, mainfile, archive_id))
-
     # calc data persistence
+    archive_id = '%s/%s' % (upload_hash, calc_hash)
     try:
         with files.write_archive_json(archive_id) as out:
             parser_backend.write_json(out, pretty=True)
@@ -382,4 +382,11 @@ def parse(processing: UploadProcessing, parse_spec: ParseSpec) -> ProcessingTask
             (archive_id, mainfile, parser), exc_info=e)
         results.append(('PersistenceFailed', [e.__str__()]))
 
+    logger.debug('Written results of %s for %s to %s.' % (parser, mainfile, archive_id))
+
     return results
+
+
+@app.task()
+def mul(x, y):
+    return x * y

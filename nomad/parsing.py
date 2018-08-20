@@ -634,13 +634,8 @@ parsers = [
     Parser(
         python_git=dependencies['parsers/exciting'],
         parser_class_name='vaspparser.VASPParser',
-        main_file_re=r'^.*\.xml$',
-        main_contents_re=(
-            r'^\s*<\?xml version="1\.0" encoding="ISO-8859-1"\?>\s*'
-            r'?\s*<modeling>'
-            r'?\s*<generator>'
-            r'?\s*<i name="program" type="string">\s*vasp\s*</i>'
-            r'?')
+        main_file_re=r'^.*\.todo$',
+        main_contents_re=(r'^todo')
     ),
 ]
 """ Instanciation and constructor based config of all parsers. """

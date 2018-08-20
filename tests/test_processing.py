@@ -12,6 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+To run this test, a celery worker must be running. The test worker provided by
+the celery pytest plugin is currently not working. It results on a timeout when
+reading from the redis result backend, even though all task apperently ended successfully.
+"""
+
 from typing import Generator
 import pytest
 from minio import ResponseError
@@ -25,6 +31,29 @@ from nomad.processing import UploadProcessing
 from tests.test_search import index  # pylint: disable=unused-import
 
 example_files = ['data/examples_vasp.zip', 'data/empty.zip']
+
+
+# disable test worker for now, see docstring above
+# all further celery_* fixtures become effectivly mute.
+@pytest.fixture(scope='session')
+def celery_session_worker():
+    return None
+
+
+@pytest.fixture(scope='session')
+def celery_includes():
+    return ['nomad.processing']
+
+
+@pytest.fixture(scope='session')
+def celery_config():
+    return {
+        'broker_url': config.celery.broker_url,
+        'result_backend': config.celery.backend_url,
+        'accept_content': ['json', 'pickle'],
+        'task_serializer': config.celery.serializer,
+        'result_serializer': config.celery.serializer
+    }
 
 
 @pytest.fixture(scope='function', params=example_files)
@@ -51,10 +80,11 @@ def uploaded_id(request) -> Generator[str, None, None]:
         pass
 
 
-def test_processing(uploaded_id):
+def test_processing(uploaded_id, celery_session_worker):
     run = UploadProcessing(uploaded_id)
     run.start()
-    run.get(timeout=30)
+
+    run.get(timeout=10)
 
     assert run.ready()
     assert run.task_name == 'nomad.processing.close_upload'
@@ -69,10 +99,12 @@ def test_processing(uploaded_id):
     run.forget()
 
 
-def test_process_non_existing():
+def test_process_non_existing(celery_session_worker):
     run = UploadProcessing('__does_not_exist')
     run.start()
-    run.get(timeout=30)
+
+    run.get(timeout=10)
+
     assert run.ready()
     run.forget()
 
