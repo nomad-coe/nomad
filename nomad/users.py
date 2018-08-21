@@ -55,7 +55,7 @@ class Upload(Document):
     upload_hash = StringField()
     in_staging = BooleanField(default=True)
     is_private = BooleanField(default=False)
-    processing = DictField()
+    processing = ListField(default=None)
     upload_time = DateTimeField()
     create_time = DateTimeField()
     presigned_url = StringField()

@@ -146,9 +146,8 @@ def upload_put_handler(func: Callable[[str], None]) -> Callable[[], None]:
                 logging.debug(
                     'Handling of upload notifications was stopped via StopIteration.')
                 return
-            except Exception as e:
-                logger.error(
-                    'Unexpected exception in upload handler for %s' % upload_id, exc_info=e)
+            except Exception:
+                pass
 
     return wrapper
 

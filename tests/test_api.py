@@ -10,7 +10,8 @@ from minio.error import ResponseError
 
 from nomad import config, api, files
 
-from tests.test_files import example_file
+from tests.test_processing import example_files
+
 
 @pytest.fixture
 def client():
@@ -75,8 +76,9 @@ def test_create_upload(client):
     assert_uploads(rv.data, count=1, id=upload_id)
 
 
+@pytest.mark.parametrize("file", example_files)
 @pytest.mark.timeout(10)
-def test_upload_to_upload(client):
+def test_upload_to_upload(client, file):
     rv = client.post('/uploads')
     assert rv.status_code == 200
     upload = assert_upload(rv.data)
@@ -94,10 +96,46 @@ def test_upload_to_upload(client):
 
     time.sleep(1)
     upload_url = upload['presigned_url']
-    cmd = files.create_curl_upload_cmd(upload_url).replace('<ZIPFILE>', example_file)
+    cmd = files.create_curl_upload_cmd(upload_url).replace('<ZIPFILE>', file)
     subprocess.call(shlex.split(cmd))
 
     handle_uploads_thread.join()
+
+    try:
+        files._client.remove_object(config.files.uploads_bucket, upload['id'])
+    except ResponseError:
+        assert False
+
+
+@pytest.mark.parametrize("file", example_files)
+@pytest.mark.timeout(10)
+def test_processing(client, file):
+    handle_uploads_thread = api.start_upload_handler(quit=True)
+
+    rv = client.post('/uploads')
+    assert rv.status_code == 200
+    upload = assert_upload(rv.data)
+
+    time.sleep(1)
+    upload_url = upload['presigned_url']
+    cmd = files.create_curl_upload_cmd(upload_url).replace('<ZIPFILE>', file)
+    subprocess.call(shlex.split(cmd))
+
+    handle_uploads_thread.join()
+
+    while True:
+        time.sleep(1)
+
+        rv = client.get('/uploads/%s' % upload['id'])
+        assert rv.status_code == 200
+        upload = assert_upload(rv.data)
+        assert 'upload_time' in upload
+        assert 'processing' in upload
+
+        if upload['processing']['status'] in ['SUCCESS', 'FAILURE']:
+            break
+
+    assert upload['processing']['status'] == 'SUCCESS'
 
     try:
         files._client.remove_object(config.files.uploads_bucket, upload['id'])

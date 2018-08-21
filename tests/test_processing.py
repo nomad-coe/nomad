@@ -29,8 +29,9 @@ from nomad.processing import UploadProcessing
 
 # delete search index after each test via imported fixture
 from tests.test_search import index  # pylint: disable=unused-import
+from tests.test_files import example_file, empty_file
 
-example_files = ['data/examples_vasp.zip', 'data/empty.zip']
+example_files = [empty_file, example_file]
 
 
 # disable test worker for now, see docstring above
@@ -83,6 +84,11 @@ def uploaded_id(request) -> Generator[str, None, None]:
 def test_processing(uploaded_id, celery_session_worker):
     run = UploadProcessing(uploaded_id)
     run.start()
+
+    # test that the instance can be reinstantiated from a persistable representation
+    run = UploadProcessing.from_result_backend(uploaded_id, run.result_tuple)
+
+    assert run.status in ['PENDING', 'PROGRESS']
 
     run.get(timeout=10)
 

@@ -24,7 +24,8 @@ import json
 import nomad.files as files
 import nomad.config as config
 
-example_file = './data/examples_vasp.zip'
+example_file = 'data/examples_vasp.zip'
+empty_file = 'data/empty.zip'
 
 
 @pytest.fixture

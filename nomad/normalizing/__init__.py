@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import List, Any
 
 from .normalizer import Normalizer
 from .system import SystemNormalizer
@@ -22,7 +23,10 @@ After parsing calculations have to be normalized with a set of *normalizers*.
 In NOMAD-coe those were programmed in python (we'll reuse) and scala (we'll rewrite).
 """
 
-normalizers = [
+# The loose explicit type is necessary to avoid a ABC class as item type that causes
+# further errors on instantiating the normalizers. A solution would be to use objects
+# instead of classes.
+normalizers: List[Any] = [
     SystemNormalizer,
     SymmetryNormalizer,
     SystemTypeNormalizer

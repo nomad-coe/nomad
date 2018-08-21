@@ -38,7 +38,6 @@ from celery.utils.log import get_task_logger
 from celery.canvas import Signature
 import logging
 import logstash
-import json
 from datetime import datetime
 
 import nomad.config as config
@@ -128,6 +127,13 @@ class UploadProcessing():
         self.cause: Exception = None
         self.result_tuple: Any = None
 
+    @staticmethod
+    def from_result_backend(upload_id, result_tuple):
+        """ Loads the processing data from the results backend and returnes an updated instance. """
+        processing = UploadProcessing(upload_id)
+        processing.result_tuple = result_tuple
+        return processing.updated()
+
     def start(self):
         """ Initiates the processing tasks via celery canvas. """
         assert not self._is_started, 'Cannot start a started or used processing.'
@@ -185,11 +191,16 @@ class UploadProcessing():
         assert self._is_started, 'Run is not yet started.'
 
         async_result = self._async_result
+        is_last_task = True
         while async_result is not None:
             if async_result.ready():
-                async_result.result.status = async_result.status
+                status = async_result.status
+                if status == 'SUCCESS' and not is_last_task:
+                    status == 'PROGRESS'
+                async_result.result.status = status
                 return self._update(async_result.result)
             else:
+                is_last_task = False
                 async_result = async_result.parent
         return self
 
@@ -237,10 +248,6 @@ class UploadProcessing():
             self.task_name = task.name
             self.task_id = task.request.id
             return True
-
-    def to_json(self) -> str:
-        """ Creates a representative JSON record as str. """
-        return json.dumps(self, indent=4)
 
 
 @app.task(bind=True)
