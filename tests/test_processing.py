@@ -81,19 +81,17 @@ def test_processing(uploaded_id, celery_session_worker):
     assert run.upload_hash is not None
     assert run.cause is None
     assert run.status == 'SUCCESS'
-    for processing_result in run.processing_results:
-        for stage, (status, errors) in processing_result:
-            assert errors is None or len(errors) == 0
-            assert status in ['ParseSuccess', 'NormalizeSuccess', 'IndexSuccess', 'PersistenceSuccess']
     for calc_proc in run.calc_processings:
-        assert 'parser' in calc_proc
+        assert 'parser_name' in calc_proc
         assert 'mainfile' in calc_proc
         assert 'pipeline' in calc_proc
+        assert 'upload_hash' in calc_proc
+        assert 'calc_hash' in calc_proc
         for stage in calc_proc['pipeline']:
-            assert 'stage' in stage
+            assert 'task' in stage
             assert 'status' in stage
             assert stage['status'] in ['ParseSuccess', 'NormalizeSuccess', 'IndexSuccess', 'PersistenceSuccess']
-            assert 'errors' not in stage or len(stage['errors']) == 0
+            assert 'errors' in stage and len(stage['errors']) == 0
 
     run.forget()
 

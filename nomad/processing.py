@@ -30,7 +30,7 @@ a upload processing in a serializable form.
 .. autoclass:: nomad.processing.UploadProcessing
 """
 
-from typing import List, Any, Tuple, Dict
+from typing import List, Any
 from celery import Celery, Task, chord, group
 from celery.result import ResultBase, result_from_tuple
 from celery.signals import after_setup_task_logger, after_setup_logger
@@ -73,11 +73,59 @@ app.add_defaults(dict(
     result_serializer=config.celery.serializer,
 ))
 
-ProcessingTaskResult = List[Tuple[str, Tuple[str, List[str]]]]
-""" A list of parser/normalizer (tool, (status, errors)) tuples. """
 
-ParseSpec = Tuple[str, str]
-""" A tuple of (parser name, mainfile). """
+class CalcProcessing(dict):
+    """
+    Represents the processing of a singular calculation. It is used as argument and
+    results for the task that processes an individual calculation from a mainfile.
+
+    Arguments:
+        upload_hash: The hash that identifies the upload in the archive.
+        mainfile: The path to the mainfile in the upload.
+        parser_name: The name of the parser to use/used.
+        tmp_mainfile: The full path to the mainfile in the local fs.
+
+    Attributes:
+        pipeline: A list of sub processings for all parser, normalizers, indexing, storage.
+        calc_hash: The mainfile hash that identifies the calc in the archive.
+        archive_id: The id that identifies the archive via `upload_hash/calc_hash`.
+    """
+    def __init__(self, upload_hash, mainfile, parser_name, tmp_mainfile):
+        self['upload_hash'] = upload_hash
+        self['parser_name'] = parser_name
+        self['mainfile'] = mainfile
+        self['calc_hash'] = utils.hash(mainfile)
+        self.tmp_mainfile = tmp_mainfile
+
+    def append(self, task, status, errors=[]):
+        if errors is None:
+            errors = []
+        stage = dict(task=task, status=status, errors=errors)
+        self.setdefault('pipeline', []).append(stage)
+
+    @property
+    def parser_name(self):
+        return self['parser_name']
+
+    @property
+    def mainfile(self):
+        return self['mainfile']
+
+    @property
+    def pipeline(self):
+        return self.get('pipeline', [])
+
+    @property
+    def upload_hash(self):
+        return self.get('upload_hash', None)
+
+    @property
+    def calc_hash(self):
+        return self.get('calc_hash', None)
+
+    @property
+    def archive_id(self):
+        return '%s/%s' % (self.upload_hash, self.calc_hash)
 
 
 class UploadProcessing():
@@ -105,8 +153,7 @@ class UploadProcessing():
                    see also :mod:`nomad.files`.
 
     Attributes:
-        parse_specs: List of (parser_name, mainfile) tuples.
-        parse_results: Result of the parsers, currently bool indicating success.
+        calc_processings: Information about identified calcs and their processing.
         upload_hash: The hash of the uploaded file. E.g., used for archive/repo ids.
         status: Aggregated celery status for the whole process.
         task_name: Name of the currently running task.
@@ -117,8 +164,7 @@ class UploadProcessing():
     def __init__(self, upload_id: str) -> None:
         self.upload_id = upload_id
 
-        self.parse_specs: List[ParseSpec] = None
-        self.processing_results: List[ProcessingTaskResult] = None
+        self.calc_processings: List[CalcProcessing] = None
         self.upload_hash: str = None
 
         self.status: str = 'PENDING'
@@ -175,8 +221,7 @@ class UploadProcessing():
 
     def _update(self, other: 'UploadProcessing') -> 'UploadProcessing':
         """ Updates all attributes from another instance. Returns itself. """
-        self.parse_specs = other.parse_specs
-        self.processing_results = other.processing_results
+        self.calc_processings = other.calc_processings
         self.upload_hash = other.upload_hash
 
         self.status = other.status
@@ -249,39 +294,6 @@ class UploadProcessing():
             self.task_id = task.request.id
             return True
 
-    def _calc_processing(self, parse_spec: ParseSpec, results: ProcessingTaskResult):
-        proc: Dict[str, Any] = {
-            'parser': parse_spec[0],
-            'mainfile': parse_spec[1]
-        }
-
-        if results is not None:
-            pipeline = list()
-            for result in results:
-                stage: Dict[str, Any] = {
-                    'stage': result[0],
-                    'status': result[1][0]
-                }
-                if result[1][1] is not None:
-                    stage['errors'] = result[1][1]
-                pipeline.append(stage)
-
-            proc['pipeline'] = pipeline
-
-        return proc
-
-    @property
-    def calc_processings(self):
-        if self.parse_specs is None:
-            return None
-
-        results = self.processing_results
-        if results is None:
-            results = [None for _ in self.parse_specs]
-        return list(
-            self._calc_processing(spec, result)
-            for spec, result in zip(self.parse_specs, results))
-
 
 @app.task(bind=True)
 def open_upload(task: Task, processing: UploadProcessing) -> UploadProcessing:
@@ -308,12 +320,15 @@ def open_upload(task: Task, processing: UploadProcessing) -> UploadProcessing:
 
     try:
         # TODO: deal with multiple possible parser specs
-        processing.parse_specs = list()
+        processing.calc_processings = list()
         for filename in upload.filelist:
             for parser in parsers:
                 if parser.is_mainfile(upload, filename):
-                    parse_spec = (parser.name, upload.get_path(filename))
-                    processing.parse_specs.append(parse_spec)
+                    calc_processing = CalcProcessing(
+                        processing.upload_hash, filename, parser.name,
+                        upload.get_path(filename))
+
+                    processing.calc_processings.append(calc_processing)
     except UploadError as e:
         logger.warning('Could find parse specs in open upload %s: %s' % (processing.upload_id, e))
         return processing.fail(e)
@@ -323,13 +338,13 @@ def open_upload(task: Task, processing: UploadProcessing) -> UploadProcessing:
 
 @app.task(bind=True)
 def close_upload(
-        task, processing_results: List[ProcessingTaskResult], processing: UploadProcessing) \
+        task, calc_processings: List[CalcProcessing], processing: UploadProcessing) \
         -> UploadProcessing:
 
     if not processing.continue_with(task):
         return processing
 
-    processing.processing_results = processing_results
+    processing.calc_processings = calc_processings
 
     try:
         upload = Upload(processing.upload_id)
@@ -356,75 +371,75 @@ def distributed_parse(
         chord([])(close_upload.clone(args=(processing,)))
         return processing
 
-    parses = group(parse.s(processing, parse_spec) for parse_spec in processing.parse_specs)
+    parses = group(parse.s(calc_processing) for calc_processing in processing.calc_processings)
     chord(parses)(close_upload.clone(args=(processing,)))
     return processing
 
 
 @app.task()
-def parse(processing: UploadProcessing, parse_spec: ParseSpec) -> ProcessingTaskResult:
+def parse(processing: CalcProcessing) -> CalcProcessing:
     assert processing.upload_hash is not None
 
     upload_hash = processing.upload_hash
-    parser, mainfile = parse_spec
-    calc_hash = utils.hash(mainfile)
-    results: ProcessingTaskResult = list()
+    parser, mainfile = processing.parser_name, processing.mainfile
 
     # parsing
     logger.debug('Start %s for %s/%s.' % (parser, upload_hash, mainfile))
     try:
-        parser_backend = parser_dict[parser].run(mainfile)
-        results.append((parser, parser_backend.status))
+        parser_backend = parser_dict[parser].run(processing.tmp_mainfile)
+        processing.append(parser, *parser_backend.status)
     except Exception as e:
         logger.warning(
             '%s stopped on %s/%s: %s' %
             (parser, upload_hash, mainfile, e), exc_info=e)
-        results.append((parser, ('ParseFailed', [e.__str__()])))
-        return results
+        processing.append(parser, 'ParseFailed', [e.__str__()])
+        return processing
 
     # normalization
     for normalizer in normalizers:
+        normalizer_name = normalizer.__name__
         logger.debug('Start %s for %s/%s.' % (normalizer, upload_hash, mainfile))
         try:
             normalizer(parser_backend).normalize()
-            results.append((normalizer.__name__, parser_backend.status))
+            processing.append(normalizer_name, *parser_backend.status)
         except Exception as e:
             logger.warning(
                 '%s stopped on %s/%s: %s' %
                 (normalizer, upload_hash, mainfile, e), exc_info=e)
-            results.append((normalizer, ('NormalizeFailed', [e.__str__()])))
-            return results
+            processing.append(normalizer_name, 'NormalizeFailed', [e.__str__()])
+            return normalizer_name
 
     # update search
     try:
         search.Calc.add_from_backend(
             parser_backend,
             upload_hash=upload_hash,
-            calc_hash=calc_hash,
+            calc_hash=processing.calc_hash,
             mainfile=mainfile,
             upload_time=datetime.now())
-        results.append(('Indexer', ('IndexSuccess', [])))
+        processing.append('Indexer', 'IndexSuccess')
     except Exception as e:
         logger.error(
             'Could not add %s/%s to search index: %s.' %
             (upload_hash, mainfile, e), exc_info=e)
-        results.append(('Indexer', ('IndexFailed', [e.__str__()])))
+        processing.append('Indexer', 'IndexFailed', [e.__str__()])
 
     # calc data persistence
-    archive_id = '%s/%s' % (upload_hash, calc_hash)
+    archive_id = processing.archive_id
     try:
         with files.write_archive_json(archive_id) as out:
             parser_backend.write_json(out, pretty=True)
-        results.append(('Storage', ('PersistenceSuccess', [])))
+        processing.append('Storage', 'PersistenceSuccess')
     except Exception as e:
         logger.error(
             'Could not write archive %s for paring %s with %s.' %
             (archive_id, mainfile, parser), exc_info=e)
-        results.append(('Storage', ('PersistenceFailed', [e.__str__()])))
+        processing.append('Storage', 'PersistenceFailed', [e.__str__()])
+        return processing
 
     logger.debug('Written results of %s for %s to %s.' % (parser, mainfile, archive_id))
 
-    return results
+    return processing
 
 
 @app.task()
