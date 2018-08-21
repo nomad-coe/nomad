@@ -112,8 +112,6 @@ def test_hash(uploaded_id: str):
         assert hash is not None
         assert isinstance(hash, str)
 
-        print(hash)
-
 
 def test_archive(archive_id: str):
     with files.write_archive_json(archive_id) as out:
