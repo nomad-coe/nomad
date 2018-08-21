@@ -20,6 +20,7 @@ reading from the redis result backend, even though all task apperently ended suc
 
 from typing import Generator
 import pytest
+import time
 
 import nomad.config as config
 import nomad.files as files
@@ -65,6 +66,7 @@ def uploaded_id(request, clear_files) -> Generator[str, None, None]:
     yield example_upload_id
 
 
+@pytest.mark.timeout(10)
 def test_processing(uploaded_id, celery_session_worker):
     run = UploadProcessing(uploaded_id)
     run.start()
@@ -74,7 +76,9 @@ def test_processing(uploaded_id, celery_session_worker):
 
     assert run.status in ['PENDING', 'PROGRESS']
 
-    run.get(timeout=10)
+    while not run.ready():
+        time.sleep(1)
+        run.updated()
 
     assert run.ready()
     assert run.task_name == 'nomad.processing.close_upload'

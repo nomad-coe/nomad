@@ -32,7 +32,7 @@ a upload processing in a serializable form.
 
 from typing import List, Any
 from celery import Celery, Task, chord, group
-from celery.result import ResultBase, result_from_tuple
+from celery.result import AsyncResult, result_from_tuple
 from celery.signals import after_setup_task_logger, after_setup_logger
 from celery.utils.log import get_task_logger
 from celery.canvas import Signature
@@ -164,6 +164,7 @@ class UploadProcessing():
     def __init__(self, upload_id: str) -> None:
         self.upload_id = upload_id
 
+        self.calc_processing_task_ids: List[str] = []
         self.calc_processings: List[CalcProcessing] = None
         self.upload_hash: str = None
 
@@ -172,6 +173,8 @@ class UploadProcessing():
         self.task_id: str = None
         self.cause: Exception = None
         self.result_tuple: Any = None
+
+        self._main = None
 
     @staticmethod
     def from_result_backend(upload_id, result_tuple):
@@ -202,7 +205,7 @@ class UploadProcessing():
         self.result_tuple = finalize_result.as_tuple()
 
     @property
-    def _async_result(self) -> ResultBase:
+    def _async_result(self) -> AsyncResult:
         """
         The celery async_result in its regular usable, but not serializable form.
 
@@ -212,7 +215,7 @@ class UploadProcessing():
         See `third comment <https://github.com/celery/celery/issues/1328>`_
         for details.
         """
-        return result_from_tuple(self.result_tuple)
+        return result_from_tuple(self.result_tuple, app=app)
 
     @property
     def _is_started(self) -> bool:
@@ -221,6 +224,7 @@ class UploadProcessing():
 
     def _update(self, other: 'UploadProcessing') -> 'UploadProcessing':
         """ Updates all attributes from another instance. Returns itself. """
+        self.calc_processing_task_ids = other.calc_processing_task_ids
         self.calc_processings = other.calc_processings
         self.upload_hash = other.upload_hash
 
@@ -237,16 +241,27 @@ class UploadProcessing():
 
         async_result = self._async_result
         is_last_task = True
+
         while async_result is not None:
             if async_result.ready():
                 status = async_result.status
                 if status == 'SUCCESS' and not is_last_task:
                     status = 'PROGRESS'
                 async_result.result.status = status
-                return self._update(async_result.result)
+                self._update(async_result.result)
+                break
             else:
                 is_last_task = False
                 async_result = async_result.parent
+
+        self.calc_processings = []
+        for calc_task_id in self.calc_processing_task_ids:
+            calc_task_result = parse.AsyncResult(calc_task_id)
+            if calc_task_result.ready() and calc_task_result.status == 'SUCCESS':
+                self.calc_processings.append(calc_task_result.result)
+            elif calc_task_result.state == 'PROGRESS':
+                self.calc_processings.append(calc_task_result.info['processing'])
+
         return self
 
     def forget(self) -> None:
@@ -363,21 +378,30 @@ def close_upload(
     return processing
 
 
+def _report_progress(task, **kwargs):
+    if not task.request.called_directly:
+        task.update_state(state='PROGRESS', meta=kwargs)
+
+
 @app.task(bind=True)
 def distributed_parse(
         task: Task, processing: UploadProcessing, close_upload: Signature) -> UploadProcessing:
-
     if not processing.continue_with(task):
         chord([])(close_upload.clone(args=(processing,)))
         return processing
 
+    # prepare the group of parallel calc processings
     parses = group(parse.s(calc_processing) for calc_processing in processing.calc_processings)
+    # save the calc processing task ids to the overall processing
+    processing.calc_processing_task_ids = list(child.task_id for child in parses.freeze().children)
+    # initiate the chord that runs calc processings first, and close_upload afterwards
     chord(parses)(close_upload.clone(args=(processing,)))
+
     return processing
 
 
-@app.task()
-def parse(processing: CalcProcessing) -> CalcProcessing:
+@app.task(bind=True)
+def parse(self, processing: CalcProcessing) -> CalcProcessing:
     assert processing.upload_hash is not None
 
     upload_hash = processing.upload_hash
@@ -388,6 +412,7 @@ def parse(processing: CalcProcessing) -> CalcProcessing:
     try:
         parser_backend = parser_dict[parser].run(processing.tmp_mainfile)
         processing.append(parser, *parser_backend.status)
+        _report_progress(self, processing=processing)
     except Exception as e:
         logger.warning(
             '%s stopped on %s/%s: %s' %
@@ -402,6 +427,7 @@ def parse(processing: CalcProcessing) -> CalcProcessing:
         try:
             normalizer(parser_backend).normalize()
             processing.append(normalizer_name, *parser_backend.status)
+            _report_progress(self, processing=processing)
         except Exception as e:
             logger.warning(
                 '%s stopped on %s/%s: %s' %
@@ -418,6 +444,7 @@ def parse(processing: CalcProcessing) -> CalcProcessing:
             mainfile=mainfile,
             upload_time=datetime.now())
         processing.append('Indexer', 'IndexSuccess')
+        _report_progress(self, processing=processing)
     except Exception as e:
         logger.error(
             'Could not add %s/%s to search index: %s.' %
@@ -430,6 +457,7 @@ def parse(processing: CalcProcessing) -> CalcProcessing:
         with files.write_archive_json(archive_id) as out:
             parser_backend.write_json(out, pretty=True)
         processing.append('Storage', 'PersistenceSuccess')
+        _report_progress(self, processing=processing)
     except Exception as e:
         logger.error(
             'Could not write archive %s for paring %s with %s.' %
