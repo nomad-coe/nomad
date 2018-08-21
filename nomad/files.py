@@ -41,7 +41,7 @@ Uploads
 from typing import Callable, List, Any, Generator, IO, TextIO, cast
 import sys
 import os
-from os.path import join
+import os.path
 from zipfile import ZipFile, BadZipFile
 import shutil
 from minio import Minio
@@ -176,8 +176,8 @@ class Upload():
     """
     def __init__(self, upload_id: str) -> None:
         self.upload_id = upload_id
-        self.upload_file: str = '%s/uploads/%s.zip' % (config.fs.tmp, upload_id)
-        self.upload_extract_dir: str = '%s/uploads_extracted/%s' % (config.fs.tmp, upload_id)
+        self.upload_file: str = os.path.join(config.fs.tmp, 'uploads', upload_id)
+        self.upload_extract_dir: str = os.path.join(config.fs.tmp, 'uploads_extracted', upload_id)
         self.filelist: List[str] = None
 
         try:
@@ -218,6 +218,9 @@ class Upload():
             UploadError: If some IO went wrong.
             KeyError: If the upload does not exist.
         """
+        os.makedirs(os.path.join(config.fs.tmp, 'uploads'), exist_ok=True)
+        os.makedirs(os.path.join(config.fs.tmp, 'uploads_extracted'), exist_ok=True)
+
         try:
             _client.fget_object(config.files.uploads_bucket, self.upload_id, self.upload_file)
         except minio.error.NoSuchKey:
@@ -263,7 +266,7 @@ class Upload():
 
     def get_path(self, filename: str) -> str:
         """ Returns the tmp directory relative version of a filename. """
-        return join(self.upload_extract_dir, filename)
+        return os.path.join(self.upload_extract_dir, filename)
 
 
 @contextmanager

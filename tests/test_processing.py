@@ -20,16 +20,15 @@ reading from the redis result backend, even though all task apperently ended suc
 
 from typing import Generator
 import pytest
-from minio import ResponseError
-from minio.error import NoSuchBucket
 
 import nomad.config as config
 import nomad.files as files
 from nomad.processing import UploadProcessing
 
-# delete search index after each test via imported fixture
-from tests.test_search import index  # pylint: disable=unused-import
 from tests.test_files import example_file, empty_file
+# import fixtures
+from tests.test_search import index  # pylint: disable=unused-import
+from tests.test_files import clear_files  # pylint: disable=unused-import
 
 example_files = [empty_file, example_file]
 
@@ -58,27 +57,12 @@ def celery_config():
 
 
 @pytest.fixture(scope='function', params=example_files)
-def uploaded_id(request) -> Generator[str, None, None]:
+def uploaded_id(request, clear_files) -> Generator[str, None, None]:
     example_file = request.param
     example_upload_id = example_file.replace('.zip', '')
     files._client.fput_object(config.files.uploads_bucket, example_upload_id, example_file)
 
     yield example_upload_id
-
-    try:
-        # remove the created uploads
-        files._client.remove_object(config.files.uploads_bucket, example_upload_id)
-
-        # remove all the created archive files
-        archive_objs = files._client.list_objects(config.files.archive_bucket, recursive=True)
-        errors = files._client.remove_objects(config.files.archive_bucket, [obj.object_name for obj in archive_objs])
-        # you have to walk the iterator for minio to work (?!)
-        for _ in errors:
-            pass
-    except ResponseError:
-        pass
-    except NoSuchBucket:
-        pass
 
 
 def test_processing(uploaded_id, celery_session_worker):

@@ -13,13 +13,16 @@
 # limitations under the License.
 
 import pytest
-from minio import ResponseError
 from threading import Thread
 import subprocess
 import shlex
 import time
 from typing import Generator
 import json
+import shutil
+import os.path
+from minio import ResponseError
+from minio.error import NoSuchBucket
 
 import nomad.files as files
 import nomad.config as config
@@ -28,36 +31,54 @@ example_file = 'data/examples_vasp.zip'
 empty_file = 'data/empty.zip'
 
 
-@pytest.fixture
-def uploaded_id() -> Generator[str, None, None]:
+def assert_exists(bucket_name, object_name):
+    try:
+        stats = files._client.stat_object(bucket_name, object_name)
+        assert stats is not None
+    except NoSuchBucket:
+        assert False
+    except ResponseError:
+        assert False
+
+
+@pytest.fixture(scope='function')
+def clear_files():
+    """ Utility fixture that removes all files from files and tmp after test. """
+    try:
+        yield
+    finally:
+        try:
+            for bucket in [config.files.uploads_bucket, config.files.archive_bucket]:
+                to_remove = [obj.object_name for obj in files._client.list_objects(bucket)]
+                for _ in files._client.remove_objects(bucket, to_remove):
+                    pass
+        except NoSuchBucket:
+            pass
+        except ResponseError:
+            pass
+
+        shutil.rmtree(os.path.join(config.fs.tmp, 'uploads'), ignore_errors=True)
+        shutil.rmtree(os.path.join(config.fs.tmp, 'uploads_extracted'), ignore_errors=True)
+
+
+@pytest.fixture(scope='function')
+def uploaded_id(clear_files) -> Generator[str, None, None]:
     example_upload_id = '__test_upload_id'
 
     files._client.fput_object(config.files.uploads_bucket, example_upload_id, example_file)
     yield example_upload_id
-    try:
-        files._client.remove_object(config.files.uploads_bucket, example_upload_id)
-    except ResponseError:
-        pass
 
 
-@pytest.fixture
-def upload_id() -> Generator[str, None, None]:
+@pytest.fixture(scope='function')
+def upload_id(clear_files) -> Generator[str, None, None]:
     example_upload_id = '__test_upload_id'
     yield example_upload_id
-    try:
-        files._client.remove_object(config.files.uploads_bucket, example_upload_id)
-    except ResponseError:
-        pass
 
 
-@pytest.fixture
-def archive_id() -> Generator[str, None, None]:
+@pytest.fixture(scope='function')
+def archive_id(clear_files) -> Generator[str, None, None]:
     example_archive_id = '__test_archive_id'
     yield example_archive_id
-    try:
-        files._client.remove_object(config.files.archive_bucket, example_archive_id)
-    except ResponseError:
-        pass
 
 
 def test_presigned_url(upload_id):

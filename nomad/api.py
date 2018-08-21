@@ -69,8 +69,25 @@ class Upload(Resource):
         return Uploads._render(upload), 200
 
 
+class Calc(Resource):
+    def get(self, upload_hash, calc_hash):
+        archive_id = '%s/%s' % (upload_hash, calc_hash)
+        logger = get_logger(__name__, archive_id=archive_id)
+        try:
+            file = files.open_archive_json(archive_id)
+            return file, 200
+        except KeyError:
+            abort(404, message='Archive %s does not exist.' % archive_id)
+        except Exception as e:
+            logger.error('Exception on reading archive', exc_info=e)
+            abort(500, message='Could not read the archive.')
+        finally:
+            file.close()
+
+
 api.add_resource(Uploads, '/uploads')
 api.add_resource(Upload, '/uploads/<string:upload_id>')
+api.add_resource(Calc, '/archive/<string:upload_hash>/<string:calc_hash>')
 
 
 def start_upload_handler(quit=False):

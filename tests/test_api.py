@@ -6,11 +6,13 @@ import time
 import json
 from mongoengine import connect
 from mongoengine.connection import disconnect
-from minio.error import ResponseError
 
 from nomad import config, api, files
 
 from tests.test_processing import example_files
+from tests.test_files import assert_exists
+# import fixtures
+from tests.test_files import clear_files  # pylint: disable=unused-import
 
 
 @pytest.fixture
@@ -101,10 +103,7 @@ def test_upload_to_upload(client, file):
 
     handle_uploads_thread.join()
 
-    try:
-        files._client.remove_object(config.files.uploads_bucket, upload['id'])
-    except ResponseError:
-        assert False
+    assert_exists(config.files.uploads_bucket, upload['id'])
 
 
 @pytest.mark.parametrize("file", example_files)
@@ -136,8 +135,4 @@ def test_processing(client, file):
             break
 
     assert upload['processing']['status'] == 'SUCCESS'
-
-    try:
-        files._client.remove_object(config.files.uploads_bucket, upload['id'])
-    except ResponseError:
-        assert False
+    assert_exists(config.files.uploads_bucket, upload['id'])
