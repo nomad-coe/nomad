@@ -12,7 +12,7 @@ from nomad import config, api, files
 from tests.test_processing import example_files
 from tests.test_files import assert_exists
 # import fixtures
-from tests.test_files import clear_files  # pylint: disable=unused-import
+from tests.test_files import clear_files, archive_id  # pylint: disable=unused-import
 
 
 @pytest.fixture
@@ -136,3 +136,13 @@ def test_processing(client, file):
 
     assert upload['processing']['status'] == 'SUCCESS'
     assert_exists(config.files.uploads_bucket, upload['id'])
+
+
+def test_get_archive(client, archive_id):
+    rv = client.get('/archive/%s' % archive_id)
+    assert rv.status_code == 200
+
+
+def test_get_non_existing_archive(client):
+    rv = client.get('/archive/%s' % 'doesnt/exist')
+    assert rv.status_code == 404

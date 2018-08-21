@@ -302,4 +302,7 @@ def open_archive_json(archive_id) -> IO:
     """ Returns a file-like to read the archive json. """
     # The result already is a file-like and due to the Content-Encoding metadata is
     # will automatically be un-gzipped.
-    return _client.get_object(config.files.archive_bucket, archive_id)
+    try:
+        return _client.get_object(config.files.archive_bucket, archive_id)
+    except minio.error.NoSuchKey:
+        raise KeyError()

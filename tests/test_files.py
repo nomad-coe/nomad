@@ -77,7 +77,11 @@ def upload_id(clear_files) -> Generator[str, None, None]:
 
 @pytest.fixture(scope='function')
 def archive_id(clear_files) -> Generator[str, None, None]:
-    example_archive_id = '__test_archive_id'
+    example_archive_id = '__test_upload_hash/__test_calc_hash'
+
+    with files.write_archive_json(example_archive_id) as out:
+        json.dump({'test': 'value'}, out)
+
     yield example_archive_id
 
 
@@ -136,9 +140,6 @@ def test_hash(uploaded_id: str):
 
 
 def test_archive(archive_id: str):
-    with files.write_archive_json(archive_id) as out:
-        json.dump({'test': 'value'}, out)
-
     result = json.load(files.open_archive_json(archive_id))
 
     assert 'test' in result
