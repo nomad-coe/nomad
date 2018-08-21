@@ -37,7 +37,6 @@ class TestLocalBackend(object):
 
     def test_meta_info(self, meta_info):
         assert 'section_topology' in meta_info
-        print(meta_info['section_symmetry'])
 
     def test_section(self, backend):
         g_index = backend.openSection('section_run')
