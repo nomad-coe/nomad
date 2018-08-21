@@ -30,7 +30,7 @@ a upload processing in a serializable form.
 .. autoclass:: nomad.processing.UploadProcessing
 """
 
-from typing import List, Any, Tuple
+from typing import List, Any, Tuple, Dict
 from celery import Celery, Task, chord, group
 from celery.result import ResultBase, result_from_tuple
 from celery.signals import after_setup_task_logger, after_setup_logger
@@ -73,8 +73,8 @@ app.add_defaults(dict(
     result_serializer=config.celery.serializer,
 ))
 
-ProcessingTaskResult = List[Tuple[str, List[str]]]
-""" A list of parser/normalizer (status, errors) tuples. """
+ProcessingTaskResult = List[Tuple[str, Tuple[str, List[str]]]]
+""" A list of parser/normalizer (tool, (status, errors)) tuples. """
 
 ParseSpec = Tuple[str, str]
 """ A tuple of (parser name, mainfile). """
@@ -196,7 +196,7 @@ class UploadProcessing():
             if async_result.ready():
                 status = async_result.status
                 if status == 'SUCCESS' and not is_last_task:
-                    status == 'PROGRESS'
+                    status = 'PROGRESS'
                 async_result.result.status = status
                 return self._update(async_result.result)
             else:
@@ -248,6 +248,39 @@ class UploadProcessing():
             self.task_name = task.name
             self.task_id = task.request.id
             return True
+
+    def _calc_processing(self, parse_spec: ParseSpec, results: ProcessingTaskResult):
+        proc: Dict[str, Any] = {
+            'parser': parse_spec[0],
+            'mainfile': parse_spec[1]
+        }
+
+        if results is not None:
+            pipeline = list()
+            for result in results:
+                stage: Dict[str, Any] = {
+                    'stage': result[0],
+                    'status': result[1][0]
+                }
+                if result[1][1] is not None:
+                    stage['errors'] = result[1][1]
+                pipeline.append(stage)
+
+            proc['pipeline'] = pipeline
+
+        return proc
+
+    @property
+    def calc_processings(self):
+        if self.parse_specs is None:
+            return None
+
+        results = self.processing_results
+        if results is None:
+            results = [None for _ in self.parse_specs]
+        return list(
+            self._calc_processing(spec, result)
+            for spec, result in zip(self.parse_specs, results))
 
 
 @app.task(bind=True)
@@ -341,12 +374,12 @@ def parse(processing: UploadProcessing, parse_spec: ParseSpec) -> ProcessingTask
     logger.debug('Start %s for %s/%s.' % (parser, upload_hash, mainfile))
     try:
         parser_backend = parser_dict[parser].run(mainfile)
-        results.append(parser_backend.status)
+        results.append((parser, parser_backend.status))
     except Exception as e:
         logger.warning(
             '%s stopped on %s/%s: %s' %
             (parser, upload_hash, mainfile, e), exc_info=e)
-        results.append(('ParseFailed', [e.__str__()]))
+        results.append((parser, ('ParseFailed', [e.__str__()])))
         return results
 
     # normalization
@@ -354,12 +387,12 @@ def parse(processing: UploadProcessing, parse_spec: ParseSpec) -> ProcessingTask
         logger.debug('Start %s for %s/%s.' % (normalizer, upload_hash, mainfile))
         try:
             normalizer(parser_backend).normalize()
-            results.append(parser_backend.status)
+            results.append((normalizer.__name__, parser_backend.status))
         except Exception as e:
             logger.warning(
                 '%s stopped on %s/%s: %s' %
                 (normalizer, upload_hash, mainfile, e), exc_info=e)
-            results.append(('NormalizeFailed', [e.__str__()]))
+            results.append((normalizer, ('NormalizeFailed', [e.__str__()])))
             return results
 
     # update search
@@ -370,24 +403,24 @@ def parse(processing: UploadProcessing, parse_spec: ParseSpec) -> ProcessingTask
             calc_hash=calc_hash,
             mainfile=mainfile,
             upload_time=datetime.now())
-        results.append(('IndexSuccess', []))
+        results.append(('Indexer', ('IndexSuccess', [])))
     except Exception as e:
         logger.error(
             'Could not add %s/%s to search index: %s.' %
             (upload_hash, mainfile, e), exc_info=e)
-        results.append(('IndexFailed', [e.__str__()]))
+        results.append(('Indexer', ('IndexFailed', [e.__str__()])))
 
     # calc data persistence
     archive_id = '%s/%s' % (upload_hash, calc_hash)
     try:
         with files.write_archive_json(archive_id) as out:
             parser_backend.write_json(out, pretty=True)
-        results.append(('PersistenceSuccess', []))
+        results.append(('Storage', ('PersistenceSuccess', [])))
     except Exception as e:
         logger.error(
             'Could not write archive %s for paring %s with %s.' %
             (archive_id, mainfile, parser), exc_info=e)
-        results.append(('PersistenceFailed', [e.__str__()]))
+        results.append(('Storage', ('PersistenceFailed', [e.__str__()])))
 
     logger.debug('Written results of %s for %s to %s.' % (parser, mainfile, archive_id))
 

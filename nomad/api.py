@@ -32,12 +32,14 @@ class Uploads(Resource):
 
         if upload.processing is not None:
             proc = processing.UploadProcessing.from_result_backend(upload.upload_id, upload.processing)
-            data['processing'] = {
+            processing_data = {
                 'status': proc.status,
-                'parse_specs': proc.parse_specs,
-                'processing_results': proc.processing_results,
+                'results': proc.calc_processings,
                 'current_task': proc.task_name,
                 'error': proc.cause.__str__()
+            }
+            data['processing'] = {
+                key: value for key, value in processing_data.items() if value is not None
             }
 
         return {key: value for key, value in data.items() if value is not None}

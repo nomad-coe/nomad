@@ -134,7 +134,11 @@ def test_processing(client, file):
         if upload['processing']['status'] in ['SUCCESS', 'FAILURE']:
             break
 
-    assert upload['processing']['status'] == 'SUCCESS'
+    processing = upload['processing']
+    assert processing['status'] == 'SUCCESS'
+    assert 'results' in processing
+    assert processing['results'] is not None
+    assert processing['current_task'] == 'nomad.processing.close_upload'
     assert_exists(config.files.uploads_bucket, upload['id'])
 
 
