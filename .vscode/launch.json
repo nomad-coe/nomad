@@ -4,16 +4,12 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
-
     {
-      "name": "Python: VaspRun",
-      "type": "python",
+      "type": "chrome",
       "request": "launch",
-      "cwd": "${workspaceFolder}/submodules/parsers/vasp/",
-      "program": "${workspaceFolder}/submodules/parsers/vasp/parser/parser-vasp/vaspparser/parser_vasprun.py",
-      "args": [
-        "test/examples/oqmd/relaxation/vasprun.xml", "test/examples/oqmd/relaxation/vasprun.xml"
-      ]
+      "name": "Launch Chrome against localhost",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/gui"
     },
     {
       "name": "Python: worker nomad.processing",
@@ -53,16 +49,6 @@
       "program": "${workspaceFolder}/.pyenv/bin/pytest",
       "args": [
         "-sv", "tests/test_search.py"
-      ]
-    },
-    {
-      "name": "Python: tests/test_celery.py",
-      "type": "python",
-      "request": "launch",
-      "cwd": "${workspaceFolder}",
-      "program": "${workspaceFolder}/.pyenv/bin/pytest",
-      "args": [
-        "-sv", "tests/test_celery.py"
       ]
     },
     {
