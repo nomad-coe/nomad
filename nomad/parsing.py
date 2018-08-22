@@ -631,12 +631,12 @@ parsers = [
             r'?\s*<i name="program" type="string">\s*vasp\s*</i>'
             r'?')
     ),
-    Parser(
-        python_git=dependencies['parsers/exciting'],
-        parser_class_name='vaspparser.VASPParser',
-        main_file_re=r'^.*\.todo$',
-        main_contents_re=(r'^todo')
-    ),
+    # Parser(
+    #     python_git=dependencies['parsers/exciting'],
+    #     parser_class_name='vaspparser.VASPParser',
+    #     main_file_re=r'^.*\.todo$',
+    #     main_contents_re=(r'^todo')
+    # ),
 ]
 """ Instanciation and constructor based config of all parsers. """
 

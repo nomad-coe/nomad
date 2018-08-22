@@ -55,10 +55,14 @@ class Upload(Document):
     upload_hash = StringField()
     in_staging = BooleanField(default=True)
     is_private = BooleanField(default=False)
-    processing = ListField(default=None)
+
+    presigned_url = StringField()
     upload_time = DateTimeField()
     create_time = DateTimeField()
-    presigned_url = StringField()
+
+    proc_time = DateTimeField()
+    proc_task = ListField(default=None)
+    proc_results = DictField(default=None)
 
     user = ReferenceField(User, required=True)
 

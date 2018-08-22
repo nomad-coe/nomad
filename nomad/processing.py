@@ -30,7 +30,7 @@ a upload processing in a serializable form.
 .. autoclass:: nomad.processing.UploadProcessing
 """
 
-from typing import List, Any
+from typing import List, Any, Dict
 from celery import Celery, Task, chord, group
 from celery.result import AsyncResult, result_from_tuple
 from celery.signals import after_setup_task_logger, after_setup_logger
@@ -309,6 +309,16 @@ class UploadProcessing():
             self.task_id = task.request.id
             return True
 
+    def to_dict(self) -> Dict[str, Any]:
+        """ Render processing information into a serializable dict. """
+        result = {
+            'status': self.status,
+            'calcs': self.calc_processings,
+            'current_task': self.task_name,
+            'error': self.cause.__str__()
+        }
+        return {key: value for key, value in result.items() if value is not None}
+
 
 @app.task(bind=True)
 def open_upload(task: Task, processing: UploadProcessing) -> UploadProcessing:
@@ -356,24 +366,22 @@ def close_upload(
         task, calc_processings: List[CalcProcessing], processing: UploadProcessing) \
         -> UploadProcessing:
 
-    if not processing.continue_with(task):
-        return processing
+    if processing.continue_with(task):
+        processing.calc_processings = calc_processings
 
-    processing.calc_processings = calc_processings
+        try:
+            upload = Upload(processing.upload_id)
+        except KeyError as e:
+            logger.warning('No upload %s' % processing.upload_id)
+            return processing.fail(e)
 
-    try:
-        upload = Upload(processing.upload_id)
-    except KeyError as e:
-        logger.warning('No upload %s' % processing.upload_id)
-        return processing.fail(e)
+        try:
+            upload.close()
+        except Exception as e:
+            logger.error('Could not close upload %s: %s' % (processing.upload_id, e))
+            return processing.fail(e)
 
-    try:
-        upload.close()
-    except Exception as e:
-        logger.error('Could not close upload %s: %s' % (processing.upload_id, e))
-        return processing.fail(e)
-
-    logger.debug('Closed upload %s' % processing.upload_id)
+        logger.debug('Closed upload %s' % processing.upload_id)
 
     return processing
 
@@ -472,11 +480,15 @@ def parse(self, processing: CalcProcessing) -> CalcProcessing:
 
 def handle_uploads(quit=False):
     """
-    Listens for new uploads in files and initiates their processing.
+    Starts a daemon that will listen to files for new uploads. For each new
+    upload it will initiate the processing and save the task in the upload user data,
+    it will wait for processing to be completed and store the results in the upload
+    user data.
 
     Arguments:
         quit: If true, will only handling one event and stop. Otherwise run forever.
     """
+
     @files.upload_put_handler
     def handle_upload_put(received_upload_id: str):
         logger = utils.get_logger(__name__, upload_id=received_upload_id)
@@ -498,14 +510,14 @@ def handle_uploads(quit=False):
             with logger.lnr_error('Start processing'):
                 proc = UploadProcessing(received_upload_id)
                 proc.start()
-                upload.processing = proc.result_tuple
+                upload.proc_task = proc.result_tuple
                 upload.save()
+
         except Exception:
             pass
 
         if quit:
             raise StopIteration
-        logger.debug('Initiated upload processing')
 
     logger.debug('Start upload put notification handler.')
     handle_upload_put(received_upload_id='provided by decorator')

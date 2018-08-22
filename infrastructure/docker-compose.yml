@@ -77,20 +77,19 @@ services:
         command: mongod --smallfiles --logpath=/dev/null # --quiet
 
     # used for centralized logging
-    elk:
-        restart: always
-        build: ./elk/
-        container_name: nomad-xt-elk
-        ports:
-            - 5601:5601  # kibana web
-            - 9201:9200  # elastic search api
-            # - 9300:9300  # elastic transport api, not needed by other services or host
-            - 5044:5044  # logstash beats
-            - 5000:5000  # logstash tcp
+    # elk:
+    #     restart: always
+    #     build: ./elk/
+    #     container_name: nomad-xt-elk
+    #     ports:
+    #         - 5601:5601  # kibana web
+    #         - 9201:9200  # elastic search api
+    #         # - 9300:9300  # elastic transport api, not needed by other services or host
+    #         - 5044:5044  # logstash beats
+    #         - 5000:5000  # logstash tcp
 
-    # nomad processing worker (parsing/normalizing)
+    # nomad processing worker
     nomad-worker:
-        restart: always
         build: ../
         container_name: nomad-xt-worker
         environment:
@@ -99,12 +98,38 @@ services:
             - NOMAD_RABBITMQ_HOST=rabbitmq
             - NOMAD_REDIS_HOST=redis
             - NOMAD_LOGSTASH_HOST=elk
+            - NOMAD_ELASTIC_HOST=elastic
+            - NOMAD_MONGO_HOST=mongo
         links:
             - minio
             - redis
             - rabbitmq
             - elastic
+            - mongo
             - elk
         volumes:
             - '../.volumes/fs:/app/.volumes/fs'
         command: python -m celery worker -l info -A nomad.processing
+
+    # nomad upload handler
+    nomad-handler:
+        build: ../
+        container_name: nomad-xt-handler
+        environment:
+            - NOMAD_MINIO_PORT=9000
+            - NOMAD_MINIO_HOST=minio
+            - NOMAD_RABBITMQ_HOST=rabbitmq
+            - NOMAD_REDIS_HOST=redis
+            - NOMAD_LOGSTASH_HOST=elk
+            - NOMAD_ELASTIC_HOST=elastic
+            - NOMAD_MONGO_HOST=mongo
+        links:
+            - minio
+            - redis
+            - rabbitmq
+            - elastic
+            - mongo
+            - elk
+        volumes:
+            - '../.volumes/fs:/app/.volumes/fs'
+        command: python -m nomad.handler

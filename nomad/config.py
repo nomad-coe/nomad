@@ -74,11 +74,11 @@ fs = FSConfig(
     tmp='.volumes/fs'
 )
 elastic = ElasticConfig(
-    host='localhost',
+    host=os.environ.get('NOMAD_ELASTIC_HOST', 'localhost'),
     calc_index='calcs'
 )
 mongo = MongoConfig(
-    host='localhost',
+    host=os.environ.get('NOMAD_MONGO_HOST', 'localhost'),
     users_db='users'
 )
 logstash = LogstashConfig(

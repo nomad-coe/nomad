@@ -138,8 +138,8 @@ def test_processing(client, file, celery_session_worker):
 
     proc = upload['processing']
     assert proc['status'] == 'SUCCESS'
-    assert 'results' in proc
-    assert proc['results'] is not None
+    assert 'calcs' in proc
+    assert proc['calcs'] is not None
     assert proc['current_task'] == 'nomad.processing.close_upload'
     assert_exists(config.files.uploads_bucket, upload['id'])
 

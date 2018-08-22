@@ -6,3 +6,6 @@
 data/
 docs/
 infrastructure/
+gui/
+__pycache__/
+*.pyc

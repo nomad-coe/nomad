@@ -26,24 +26,19 @@ class Uploads(Resource):
     @staticmethod
     def _render(upload: users.Upload):
         data = {
-            'id': upload.upload_id,
+            'id': upload.upload_id,  # deprecated
+            'upload_id': upload.upload_id,
             'presigned_url': upload.presigned_url,
             'create_time': upload.create_time.isoformat() if upload.create_time is not None else None,
             'upload_time': upload.upload_time.isoformat() if upload.upload_time is not None else None,
             'upload_hash': upload.upload_hash,
         }
 
-        if upload.processing is not None:
-            proc = processing.UploadProcessing.from_result_backend(upload.upload_id, upload.processing)
-            processing_data = {
-                'status': proc.status,
-                'results': proc.calc_processings,
-                'current_task': proc.task_name,
-                'error': proc.cause.__str__()
-            }
-            data['processing'] = {
-                key: value for key, value in processing_data.items() if value is not None
-            }
+        if upload.proc_results is not None:
+            data['processing'] = upload.proc_results
+        elif upload.proc_task is not None:
+            proc = processing.UploadProcessing.from_result_backend(upload.upload_id, upload.proc_task)
+            data['processing'] = proc.to_dict()
 
         return {key: value for key, value in data.items() if value is not None}
 

@@ -157,10 +157,10 @@ dependencies = [
         name='parsers/vasp',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-vasp.git',
         git_commit='nomad-xt'),
-    PythonGit(
-        name='parsers/exciting',
-        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-exciting.git',
-        git_commit='master'),
+    # PythonGit(
+    #     name='parsers/exciting',
+    #     git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-exciting.git',
+    #     git_commit='master'),
     PythonGit(
         name='normalizers/stats',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/normalizer-stats.git',
