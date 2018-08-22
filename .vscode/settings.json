@@ -5,6 +5,9 @@
     "editor.rulers": [90],
     "editor.renderWhitespace": "all",
     "editor.tabSize": 4,
+    "[javascript]": {
+        "editor.tabSize": 2
+    },
     "files.trimTrailingWhitespace": true,
     "git.enableSmartCommit": true,
     "eslint.autoFixOnSave": true,
@@ -20,5 +23,5 @@
         "--ignore-missing-imports",
         "--follow-imports=silent",
         "--no-strict-optional"
-      ]
+    ]
 }
