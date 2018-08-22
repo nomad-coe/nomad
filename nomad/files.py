@@ -53,6 +53,7 @@ import base64
 from contextlib import contextmanager
 import gzip
 import io
+import json
 
 import nomad.config as config
 
@@ -112,30 +113,29 @@ def create_curl_upload_cmd(presigned_url: str, file_dummy: str='<ZIPFILE>') -> s
 
 def upload_put_handler(func: Callable[[str], None]) -> Callable[[], None]:
     def upload_notifications(events: List[Any]) -> Generator[str, None, None]:
-        # The given events is a generator that will block and yield indefinetely.
-        # Therefore, we have to use generator expressions and must not use list
-        # comprehension. Same for chain vs chain.from_iterable.
-        nested_event_records = (event['Records'] for event in events)
-        event_records = itertools.chain.from_iterable(nested_event_records)
-
-        for event_record in event_records:
-            try:
-                event_name = event_record['eventName']
-                if event_name == 's3:ObjectCreated:Put':
-                    logger.debug('Received bucket upload event of type %s.' % event_name)
-                    upload_id = event_record['s3']['object']['key']
-                    yield upload_id
-                else:
-                    logger.debug('Unhandled bucket event of type %s.' % event_name)
-            except KeyError:
-                logger.warning(
-                    'Unhandled bucket event due to unexprected event format: %s' %
-                    event_record)
+        for event in events:
+            for event_record in event['Records']:
+                try:
+                    event_name = event_record['eventName']
+                    if event_name == 's3:ObjectCreated:Put':
+                        upload_id = event_record['s3']['object']['key']
+                        logger.debug('Received bucket upload event of for upload %s.' % upload_id)
+                        yield upload_id
+                        break  # only one per record, pls
+                    else:
+                        logger.debug('Unhanled bucket event %s.' % event_name)
+                except KeyError:
+                    logger.warning(
+                        'Unhandled bucket event due to unexprected event format: %s' %
+                        event_record)
 
     def wrapper(*args, **kwargs) -> None:
         logger.info('Start listening to uploads notifications.')
 
-        events = _client.listen_bucket_notification(config.files.uploads_bucket)
+        _client.remove_all_bucket_notification(config.files.uploads_bucket)
+        events = _client.listen_bucket_notification(
+            config.files.uploads_bucket,
+            events=['s3:ObjectCreated:*'])
 
         upload_ids = upload_notifications(events)
         for upload_id in upload_ids:

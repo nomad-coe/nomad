@@ -11,7 +11,7 @@ cd nomad-xt
 Second, create and source your own virtual python environment:
 ```
 pip install virtualenv
-virtualenv -p `which phyton3` .pyenv
+virtualenv -p `which python3` .pyenv
 source .pyenv/bin/activate
 ```
 

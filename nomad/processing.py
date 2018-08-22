@@ -42,7 +42,7 @@ from datetime import datetime
 
 import nomad.config as config
 from nomad.files import Upload, UploadError
-from nomad import files, utils
+from nomad import files, utils, users
 from nomad.parsing import parsers, parser_dict
 from nomad.normalizing import normalizers
 from nomad import search
@@ -470,6 +470,51 @@ def parse(self, processing: CalcProcessing) -> CalcProcessing:
     return processing
 
 
-@app.task()
-def mul(x, y):
-    return x * y
+def start_upload_handler(quit=False):
+    """
+    Starts a notification handler for uploads in a different thread. This handler
+    will initiate processing for all received upload events. The processing status
+    will be saved to the users db.
+
+    Arguments:
+        quit: If true, will only handling one event and stop. Otherwise run forever.
+    """
+    @files.upload_put_handler
+    def handle_upload_put(received_upload_id: str):
+        logger = utils.get_logger(__name__, upload_id=received_upload_id)
+        logger.debug('Initiate upload processing')
+        try:
+            upload = users.Upload.objects(id=received_upload_id).first()
+            if upload is None:
+                logger.error('Upload does not exist')
+                raise Exception()
+
+            logger.error('%s' % upload.upload_time)
+            if upload.upload_time is not None:
+                logger.warn('Ignore upload notification, since file is already uploaded')
+                raise StopIteration
+
+            with logger.lnr_error('Save upload time'):
+                upload.upload_time = datetime.now()
+                upload.save()
+
+            with logger.lnr_error('Start processing'):
+                proc = UploadProcessing(received_upload_id)
+                proc.start()
+                upload.processing = proc.result_tuple
+                upload.save()
+        except Exception:
+            pass
+
+        if quit:
+            raise StopIteration
+        logger.debug('Initiated upload processing')
+
+    logger = logging.getLogger(__name__)
+    logger.debug('Start upload put notification handler.')
+    handle_upload_put(received_upload_id='provided by decorator')
+
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
+    start_upload_handler()

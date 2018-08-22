@@ -3,11 +3,14 @@ from flask_restful import Resource, Api, abort
 from datetime import datetime
 from threading import Thread
 import mongoengine.errors
+from flask_cors import CORS
+import logging
 
 from nomad import users, files, processing
 from nomad.utils import get_logger
 
 app = Flask(__name__)
+CORS(app)
 api = Api(app)
 
 
@@ -89,50 +92,6 @@ api.add_resource(Uploads, '/uploads')
 api.add_resource(Upload, '/uploads/<string:upload_id>')
 
 
-def start_upload_handler(quit=False):
-    """
-    Starts a notification handler for uploads in a different thread. This handler
-    will initiate processing for all received upload events. The processing status
-    will be saved to the users db.
-
-    Arguments:
-        quit: If true, will only handling one event and stop. Otherwise run forever.
-    """
-    @files.upload_put_handler
-    def handle_upload_put(received_upload_id: str):
-        logger = get_logger(__name__, upload_id=received_upload_id)
-
-        try:
-            upload = users.Upload.objects(id=received_upload_id).first()
-            if upload is None:
-                logger.error('Upload does not exist')
-                raise Exception()
-
-            with logger.lnr_error('Save upload time'):
-                upload.upload_time = datetime.now()
-                upload.save()
-
-            with logger.lnr_error('Start processing'):
-                proc = processing.UploadProcessing(received_upload_id)
-                proc.start()
-                upload.processing = proc.result_tuple
-                upload.save()
-        except Exception:
-            pass
-
-        if quit:
-            raise StopIteration
-
-    def handle_uploads():
-        handle_upload_put(received_upload_id='provided by decorator')
-
-    handle_uploads_thread = Thread(target=handle_uploads)
-    handle_uploads_thread.start()
-
-    return handle_uploads_thread
-
-
 if __name__ == '__main__':
-    handle_uploads_thread = start_upload_handler()
+    logging.basicConfig(level=logging.DEBUG)
     app.run(debug=True)
-    handle_uploads_thread.join()

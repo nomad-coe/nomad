@@ -3,6 +3,8 @@ import Markdown from './Markdown';
 import { withStyles, Paper } from '@material-ui/core';
 import UploadIcon from '@material-ui/icons/CloudUpload';
 import Dropzone from 'react-dropzone';
+import api from '../api';
+import Upload from './Upload'
 
 const greetings = `
   ## Upload your own data to **nomad xt**
@@ -34,11 +36,23 @@ var styles = theme => ({
     }
 });
 
-class Upload extends React.Component {
+class Uploads extends React.Component {
 
+  constructor(props) {
+    super(props)
+    this.state = {
+      uploads: []
+    }
+  }
 
-  onDrop(files, rejected) {
-    console.log(files)
+  onDrop(files) {
+    files.forEach(file => {
+      api.createUpload()
+        .then(upload => upload.uploadFile(file))
+        .then(upload => {
+          this.setState({uploads: [...this.state.uploads, upload]})
+        })
+    });
   }
 
   render() {
@@ -59,9 +73,10 @@ class Upload extends React.Component {
             <UploadIcon style={{fontSize: 36}}/>
           </Dropzone>
         </Paper>
+        {this.state.uploads.map((upload, key) => (<Upload key={key} upload={upload}/>))}
       </div>
     )
   }
 }
 
-export default withStyles(styles)(Upload);
+export default withStyles(styles)(Uploads);
