@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { withStyles } from '@material-ui/core';
+import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography, ExpansionPanelDetails, Chip } from '@material-ui/core';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 
 
 class Upload extends React.Component {
@@ -9,9 +10,11 @@ class Upload extends React.Component {
     upload: PropTypes.object.isRequired
   }
   static styles = theme => ({
-      root: {
-        background: 'red'
-      }
+      root: {},
+      heading: {
+        fontSize: theme.typography.pxToRem(15),
+        fontWeight: theme.typography.fontWeightRegular,
+      },
   });
 
   constructor(props) {
@@ -31,7 +34,7 @@ class Upload extends React.Component {
             this.updateUpload()
           }
         })
-    }, 1000)
+    }, 500)
   }
 
   componentDidMount() {
@@ -42,12 +45,31 @@ class Upload extends React.Component {
     const { classes } = this.props;
     const { upload } = this.state;
 
+    const createTime = (
+      <Typography className={classes.heading}>
+        {new Date(Date.parse(upload.create_time)).toLocaleString()}
+      </Typography>
+    );
+
+    const batch = (
+      <Typography className={classes.heading}>
+        {upload.status}
+      </Typography>
+    )
+
     return (
-      <div className={classes.root}>
-        <pre>
-          {JSON.stringify(upload, null, 2)}
-        </pre>
-      </div>
+      <ExpansionPanel>
+        <ExpansionPanelSummary expandIcon={<ExpandMoreIcon/>}>
+          {createTime} {batch}
+        </ExpansionPanelSummary>
+        <ExpansionPanelDetails style={{width: '100%'}}>
+          <Typography>
+            <pre>
+              {JSON.stringify(upload, null, 2)}
+            </pre>
+          </Typography>
+        </ExpansionPanelDetails>
+      </ExpansionPanel>
     )
   }
 }

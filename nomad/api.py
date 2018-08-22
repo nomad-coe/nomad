@@ -34,11 +34,19 @@ class Uploads(Resource):
             'upload_hash': upload.upload_hash,
         }
 
+        # TODO this should partially be done in processing.UploadProcessing.to_dict
         if upload.proc_results is not None:
             data['processing'] = upload.proc_results
         elif upload.proc_task is not None:
             proc = processing.UploadProcessing.from_result_backend(upload.upload_id, upload.proc_task)
             data['processing'] = proc.to_dict()
+
+        if upload.upload_time is None:
+            data['status'] = 'UPLOADING'
+        elif 'processing' in data:
+            data['status'] = data['processing']['status']
+            if data['status'] == 'PENDING':
+                data['status'] == 'EXTRACTING'
 
         return {key: value for key, value in data.items() if value is not None}
 

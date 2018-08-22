@@ -41,8 +41,15 @@ function createUpload() {
     .then(uploadJson => new Upload(uploadJson))
 }
 
+function getUploads() {
+  return fetch(`${apiBase}/uploads`)
+    .then(response => response.json())
+    .then(uploadsJson => uploadsJson.map(uploadJson => new Upload(uploadJson)))
+}
+
 const api = {
-  createUpload: createUpload
+  createUpload: createUpload,
+  getUploads: getUploads
 };
 
 export default api;

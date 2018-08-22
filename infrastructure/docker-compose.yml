@@ -106,7 +106,7 @@ services:
             - rabbitmq
             - elastic
             - mongo
-            - elk
+            # - elk
         volumes:
             - '../.volumes/fs:/app/.volumes/fs'
         command: python -m celery worker -l info -A nomad.processing
@@ -129,7 +129,7 @@ services:
             - rabbitmq
             - elastic
             - mongo
-            - elk
+            # - elk
         volumes:
             - '../.volumes/fs:/app/.volumes/fs'
         command: python -m nomad.handler

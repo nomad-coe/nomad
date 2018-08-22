@@ -16,7 +16,9 @@ const greetings = `
 `
 
 var styles = theme => ({
-    root: {},
+    root: {
+      width: '100%',
+    },
     dropzone: {
       textAlign: 'center',
       padding: theme.spacing.unit * 4,
@@ -33,6 +35,9 @@ var styles = theme => ({
     dropzoneReject: {
       background: 'red !important',
       color: theme.palette.common.white
+    },
+    uploads: {
+      marginTop: theme.spacing.unit * 2
     }
 });
 
@@ -43,6 +48,13 @@ class Uploads extends React.Component {
     this.state = {
       uploads: []
     }
+  }
+
+  componentDidMount() {
+    api.getUploads()
+      .then(uploads => {
+        this.setState({uploads: uploads})
+      })
   }
 
   onDrop(files) {
@@ -73,7 +85,9 @@ class Uploads extends React.Component {
             <UploadIcon style={{fontSize: 36}}/>
           </Dropzone>
         </Paper>
-        {this.state.uploads.map((upload, key) => (<Upload key={key} upload={upload}/>))}
+        <div className={classes.uploads}>
+          {this.state.uploads.map((upload, key) => (<Upload key={key} upload={upload}/>))}
+        </div>
       </div>
     )
   }
