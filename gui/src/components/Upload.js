@@ -1,7 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography, ExpansionPanelDetails, Chip } from '@material-ui/core';
+import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography, ExpansionPanelDetails } from '@material-ui/core';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import ReactJson from 'react-json-view'
 
 
 class Upload extends React.Component {
@@ -63,11 +64,7 @@ class Upload extends React.Component {
           {createTime} {batch}
         </ExpansionPanelSummary>
         <ExpansionPanelDetails style={{width: '100%'}}>
-          <Typography>
-            <pre>
-              {JSON.stringify(upload, null, 2)}
-            </pre>
-          </Typography>
+          <ReactJson src={upload} enableClipboard={false} collapsed={1}/>
         </ExpansionPanelDetails>
       </ExpansionPanel>
     )

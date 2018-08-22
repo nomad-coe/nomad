@@ -85,6 +85,10 @@ class Uploads extends React.Component {
             <UploadIcon style={{fontSize: 36}}/>
           </Dropzone>
         </Paper>
+        {this.state.uploads.length > 0 ?
+          <Markdown text={'These are the *existing* uploads:'} />:
+          ''
+        }
         <div className={classes.uploads}>
           {this.state.uploads.map((upload, key) => (<Upload key={key} upload={upload}/>))}
         </div>
