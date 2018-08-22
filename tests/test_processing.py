@@ -34,13 +34,6 @@ from tests.test_files import clear_files  # pylint: disable=unused-import
 example_files = [empty_file, example_file]
 
 
-# disable test worker for now, see docstring above
-# all further celery_* fixtures become effectivly mute.
-@pytest.fixture(scope='session')
-def celery_session_worker():
-    return None
-
-
 @pytest.fixture(scope='session')
 def celery_includes():
     return ['nomad.processing']

@@ -7,12 +7,13 @@ import json
 from mongoengine import connect
 from mongoengine.connection import disconnect
 
-from nomad import config, api, files
+from nomad import config, api, files, processing
 
 from tests.test_processing import example_files
 from tests.test_files import assert_exists
 # import fixtures
 from tests.test_files import clear_files, archive_id  # pylint: disable=unused-import
+from tests.test_processing import celery_config, celery_includes  # pylint: disable=unused-import
 
 
 @pytest.fixture
@@ -108,8 +109,9 @@ def test_upload_to_upload(client, file):
 
 @pytest.mark.parametrize("file", example_files)
 @pytest.mark.timeout(10)
-def test_processing(client, file):
-    handle_uploads_thread = api.start_upload_handler(quit=True)
+def test_processing(client, file, celery_session_worker):
+    handle_uploads_thread = Thread(target=lambda: processing.handle_uploads(quit=True))
+    handle_uploads_thread.start()
 
     rv = client.post('/uploads')
     assert rv.status_code == 200
@@ -134,11 +136,11 @@ def test_processing(client, file):
         if upload['processing']['status'] in ['SUCCESS', 'FAILURE']:
             break
 
-    processing = upload['processing']
-    assert processing['status'] == 'SUCCESS'
-    assert 'results' in processing
-    assert processing['results'] is not None
-    assert processing['current_task'] == 'nomad.processing.close_upload'
+    proc = upload['processing']
+    assert proc['status'] == 'SUCCESS'
+    assert 'results' in proc
+    assert proc['results'] is not None
+    assert proc['current_task'] == 'nomad.processing.close_upload'
     assert_exists(config.files.uploads_bucket, upload['id'])
 
 

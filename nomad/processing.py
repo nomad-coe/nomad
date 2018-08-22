@@ -470,11 +470,9 @@ def parse(self, processing: CalcProcessing) -> CalcProcessing:
     return processing
 
 
-def start_upload_handler(quit=False):
+def handle_uploads(quit=False):
     """
-    Starts a notification handler for uploads in a different thread. This handler
-    will initiate processing for all received upload events. The processing status
-    will be saved to the users db.
+    Listens for new uploads in files and initiates their processing.
 
     Arguments:
         quit: If true, will only handling one event and stop. Otherwise run forever.
@@ -489,7 +487,6 @@ def start_upload_handler(quit=False):
                 logger.error('Upload does not exist')
                 raise Exception()
 
-            logger.error('%s' % upload.upload_time)
             if upload.upload_time is not None:
                 logger.warn('Ignore upload notification, since file is already uploaded')
                 raise StopIteration
@@ -510,11 +507,5 @@ def start_upload_handler(quit=False):
             raise StopIteration
         logger.debug('Initiated upload processing')
 
-    logger = logging.getLogger(__name__)
     logger.debug('Start upload put notification handler.')
     handle_upload_put(received_upload_id='provided by decorator')
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
-    start_upload_handler()

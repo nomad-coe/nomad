@@ -59,7 +59,7 @@ rabbit_url = 'pyamqp://%s:%s@%s//' % (rabbit_user, rabbit_password, rabbit_host)
 redis_url = 'redis://%s/0' % redis_host
 
 celery = CeleryConfig(
-    broker_url=redis_url,
+    broker_url=rabbit_url,
     backend_url=redis_url,
     serializer='pickle'
 )
