@@ -1,6 +1,6 @@
 import React from 'react';
 import { MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles';
-import blue from '@material-ui/core/colors/blue';
+import deepPurple from '@material-ui/core/colors/deepPurple';
 import orange from '@material-ui/core/colors/orange';
 import Navigation from './Navigation';
 import { BrowserRouter, Switch, Route } from 'react-router-dom';
@@ -8,7 +8,7 @@ import Uploads from './Uploads'
 
 const theme = createMuiTheme({
   palette: {
-    primary: blue,
+    primary: deepPurple,
     secondary: orange,
   },
 });
