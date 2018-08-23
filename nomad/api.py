@@ -1,4 +1,4 @@
-from flask import Flask, Response
+from flask import Flask, Response, request
 from flask_restful import Resource, Api, abort
 from datetime import datetime
 import mongoengine.errors
@@ -32,6 +32,7 @@ class Uploads(Resource):
             proc = None
 
         data = {
+            'name': upload.name,
             'upload_id': upload.upload_id,
             'presigned_url': upload.presigned_url,
             'create_time': upload.create_time.isoformat() if upload.create_time is not None else None,
@@ -46,7 +47,11 @@ class Uploads(Resource):
         return [Uploads._render(user) for user in users.Upload.objects()], 200
 
     def post(self):
-        upload = users.Upload(user=me)
+        json_data = request.get_json()
+        if json_data is None:
+            json_data = {}
+
+        upload = users.Upload(user=me, name=json_data.get('name'))
         upload.save()
 
         upload.presigned_url = files.get_presigned_upload_url(upload.upload_id)

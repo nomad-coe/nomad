@@ -59,7 +59,7 @@ class Uploads extends React.Component {
 
   onDrop(files) {
     files.forEach(file => {
-      api.createUpload()
+      api.createUpload(file.name)
         .then(upload => upload.uploadFile(file))
         .then(upload => {
           this.setState({uploads: [...this.state.uploads, upload]})

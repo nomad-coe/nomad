@@ -16,6 +16,14 @@ class Upload extends React.Component {
         fontSize: theme.typography.pxToRem(15),
         fontWeight: theme.typography.fontWeightRegular,
       },
+      title: {
+        minWidth: 200,
+        marginRight: theme.spacing.unit * 2
+      },
+      stepper: {
+        width: '100%',
+        padding: 0
+      }
   });
 
   constructor(props) {
@@ -46,10 +54,15 @@ class Upload extends React.Component {
     const { classes } = this.props;
     const { upload } = this.state;
 
-    const createTime = (
-      <Typography className={classes.heading}>
-        {new Date(Date.parse(upload.create_time)).toLocaleString()}
-      </Typography>
+    const title = (
+      <div className={classes.title}>
+        <Typography variant="title">
+          {upload.name || upload.upload_id}
+        </Typography>
+        <Typography variant="subheading">
+          {new Date(Date.parse(upload.create_time)).toLocaleString()}
+        </Typography>
+      </div>
     );
 
     const batch = (
@@ -60,8 +73,12 @@ class Upload extends React.Component {
 
     const proc = upload.proc
     console.assert(proc, 'Uploads always must have a proc')
+    let activeStep = proc.task_names.indexOf(proc.current_task_name)
+    if (proc.status == 'SUCCESS') {
+      activeStep += 1
+    }
     const stepper = (
-      <Stepper activeStep={proc.task_names.indexOf(proc.current_task_name)} orientation="vertical">
+      <Stepper activeStep={activeStep} classes={{root: classes.stepper}}>
         {proc.task_names.map((label, index) => (
           <Step key={label}>
             <StepLabel>{label}</StepLabel>
@@ -73,7 +90,7 @@ class Upload extends React.Component {
     return (
       <ExpansionPanel>
         <ExpansionPanelSummary expandIcon={<ExpandMoreIcon/>}>
-          {createTime} {stepper}
+          {title} {stepper}
         </ExpansionPanelSummary>
         <ExpansionPanelDetails style={{width: '100%'}}>
           <ReactJson src={upload} enableClipboard={false} collapsed={1}/>

@@ -34,9 +34,18 @@ class Upload {
   }
 }
 
-function createUpload() {
+function createUpload(name) {
   console.debug('Request new upload.')
-  return fetch(`${apiBase}/uploads`, {method: 'POST'})
+  const fetchData = {
+    method: 'POST',
+    body: JSON.stringify({
+      name: name
+    }),
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  }
+  return fetch(`${apiBase}/uploads`, fetchData)
     .then(response => response.json())
     .then(uploadJson => new Upload(uploadJson))
 }

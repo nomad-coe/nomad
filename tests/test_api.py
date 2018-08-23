@@ -79,6 +79,14 @@ def test_create_upload(client):
     assert_uploads(rv.data, count=1, id=upload_id)
 
 
+def test_create_upload_with_name(client):
+    rv = client.post(
+        '/uploads', data=json.dumps(dict(name='test_name')), content_type='application/json')
+    assert rv.status_code == 200
+    upload = assert_upload(rv.data)
+    assert upload['name'] == 'test_name'
+
+
 @pytest.mark.parametrize("file", example_files)
 @pytest.mark.timeout(30)
 def test_upload_to_upload(client, file):

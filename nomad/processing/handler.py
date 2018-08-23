@@ -66,7 +66,8 @@ def handle_uploads(quit=False):
         logger = utils.get_logger(__name__, upload_id=received_upload_id)
         logger.debug('Initiate upload processing')
         try:
-            upload = users.Upload.objects(id=received_upload_id).first()
+            with logger.lnr_error('Could not load'):
+                upload = users.Upload.objects(id=received_upload_id).first()
             if upload is None:
                 logger.error('Upload does not exist')
                 raise Exception()
