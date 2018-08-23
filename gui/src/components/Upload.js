@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography, ExpansionPanelDetails, Stepper, Step, StepLabel } from '@material-ui/core';
+import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography, ExpansionPanelDetails, Stepper, Step, StepLabel, Table, TableRow, TableCell } from '@material-ui/core';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ReactJson from 'react-json-view'
 
@@ -16,8 +16,16 @@ class Upload extends React.Component {
         fontSize: theme.typography.pxToRem(15),
         fontWeight: theme.typography.fontWeightRegular,
       },
+      details: {
+        padding: 0,
+        display: 'block',
+      },
+      detailsContent: {
+        margin: theme.spacing.unit * 3
+      },
       title: {
-        minWidth: 200,
+        flexBasis: '20%',
+        flexShrink: 0,
         marginRight: theme.spacing.unit * 2
       },
       stepper: {
@@ -79,11 +87,24 @@ class Upload extends React.Component {
     }
     const stepper = (
       <Stepper activeStep={activeStep} classes={{root: classes.stepper}}>
-        {proc.task_names.map((label, index) => (
-          <Step key={label}>
-            <StepLabel>{label}</StepLabel>
-          </Step>
-        ))}
+        {proc.task_names.map((label, index) => {
+          let optional = null;
+          if (proc.task_names[index] === 'parse_all') {
+            label = 'parse'
+            if (proc.calc_procs.length > 0) {
+              optional = (
+                <Typography variant="caption">
+                  {proc.calc_procs.filter(p => p.status === 'SUCCESS').length}/{proc.calc_procs.length}
+                </Typography>
+              );
+            }
+          }
+          return (
+            <Step key={label}>
+              <StepLabel optional={optional}>{label}</StepLabel>
+            </Step>
+          )
+        })}
       </Stepper>
     )
 
@@ -92,8 +113,42 @@ class Upload extends React.Component {
         <ExpansionPanelSummary expandIcon={<ExpandMoreIcon/>}>
           {title} {stepper}
         </ExpansionPanelSummary>
-        <ExpansionPanelDetails style={{width: '100%'}}>
-          <ReactJson src={upload} enableClipboard={false} collapsed={1}/>
+        <ExpansionPanelDetails style={{width: '100%'}} classes={{root: classes.details}}>
+          {(proc.calc_procs.length === 0) ? <Typography className={classes.detailsContent}>No calculcations found.</Typography> : (
+            <Table>
+              {proc.calc_procs.map((calcProc, index) => (
+                <TableRow key={index}>
+                  <TableCell>
+                    <Typography>
+                      {calcProc.mainfile}
+                    </Typography>
+                    <Typography variant="caption">
+                      {calcProc.calc_hash}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography>
+                      {calcProc.parser_name}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography>
+                      {calcProc.current_task_name}
+                    </Typography>
+                    <Typography variant="caption">
+                      task&nbsp;
+                      <b>
+                        [{calcProc.task_names.indexOf(calcProc.current_task_name) + 1}/{calcProc.task_names.length}]
+                      </b>
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </Table>
+          )}
+          <div className={classes.detailsContent}>
+            <ReactJson src={upload} enableClipboard={false} collapsed={1} />
+          </div>
         </ExpansionPanelDetails>
       </ExpansionPanel>
     )
