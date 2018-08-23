@@ -52,6 +52,16 @@
       ]
     },
     {
+      "name": "Python: tests/test_utils.py",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_utils.py"
+      ]
+    },
+    {
       "name": "Python: Current File",
       "type": "python",
       "request": "launch",

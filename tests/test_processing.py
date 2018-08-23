@@ -24,7 +24,7 @@ import time
 
 import nomad.config as config
 import nomad.files as files
-from nomad.processing import UploadProcessing
+from nomad.processing import start_processing
 
 from tests.test_files import example_file, empty_file
 # import fixtures
@@ -36,7 +36,7 @@ example_files = [empty_file, example_file]
 
 @pytest.fixture(scope='session')
 def celery_includes():
-    return ['nomad.processing']
+    return ['nomad.processing.tasks']
 
 
 @pytest.fixture(scope='session')
@@ -59,50 +59,43 @@ def uploaded_id(request, clear_files) -> Generator[str, None, None]:
     yield example_upload_id
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(30)
 def test_processing(uploaded_id, celery_session_worker):
-    run = UploadProcessing(uploaded_id)
-    run.start()
+    upload_proc = start_processing(uploaded_id)
 
-    # test that the instance can be reinstantiated from a persistable representation
-    run = UploadProcessing.from_result_backend(uploaded_id, run.result_tuple)
+    upload_proc.update_from_backend()
 
-    assert run.status in ['PENDING', 'PROGRESS']
+    assert upload_proc.status in ['PENDING', 'STARTED', 'PROGRESS']
 
-    while not run.ready():
+    while not upload_proc.ready():
         time.sleep(1)
-        run.updated()
+        upload_proc.update_from_backend()
 
-    assert run.ready()
-    assert run.task_name == 'nomad.processing.close_upload'
-    assert run.upload_hash is not None
-    assert run.cause is None
-    assert run.status == 'SUCCESS'
-    for calc_proc in run.calc_processings:
-        assert 'parser_name' in calc_proc
-        assert 'mainfile' in calc_proc
-        assert 'pipeline' in calc_proc
-        assert 'upload_hash' in calc_proc
-        assert 'calc_hash' in calc_proc
-        for stage in calc_proc['pipeline']:
-            assert 'task' in stage
-            assert 'status' in stage
-            assert stage['status'] in ['ParseSuccess', 'NormalizeSuccess', 'IndexSuccess', 'PersistenceSuccess']
-            assert 'errors' in stage and len(stage['errors']) == 0
+    assert upload_proc.ready()
+    assert upload_proc.current_task_name == 'cleanup'
+    assert upload_proc.upload_hash is not None
+    assert len(upload_proc.errors) == 0
+    assert upload_proc.status == 'SUCCESS'
+    for calc_proc in upload_proc.calc_procs:
+        assert calc_proc.parser_name is not None
+        assert calc_proc.mainfile is not None
+        assert calc_proc.upload_hash is not None
+        assert calc_proc.calc_hash is not None
+        assert calc_proc.archive_id is not None
+        assert calc_proc.status == 'SUCCESS'
+        assert len(calc_proc.errors) == 0
 
-    run.forget()
+    upload_proc.forget()
 
 
 def test_process_non_existing(celery_session_worker):
-    run = UploadProcessing('__does_not_exist')
-    run.start()
+    upload_proc = start_processing('__does_not_exist')
 
-    run.get(timeout=10)
+    upload_proc.get(timeout=30)
 
-    assert run.ready()
-    run.forget()
+    assert upload_proc.ready()
+    upload_proc.forget()
 
-    assert run.task_name == 'nomad.processing.open_upload'
-    assert run.status == 'SUCCESS'
-    assert run.cause is not None
-    assert isinstance(run.cause, KeyError)
+    assert upload_proc.current_task_name == 'extracting'
+    assert upload_proc.status == 'FAILURE'
+    assert len(upload_proc.errors) > 0

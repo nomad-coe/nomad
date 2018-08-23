@@ -66,3 +66,25 @@ def get_logger(name, *args, **kwargs):
     log output. Allowing more structured logging.
     """
     return DataLogger(logging.getLogger(name), *args, **kwargs)
+
+
+class DataObject(dict):
+    """
+    A simpe data class base that allows to create javascript style objects.
+    Is also json serializable, if you only but json serializable contents into it.
+    """
+    def __getattr__(self, name):
+        try:
+            return self.__getitem__(name)
+        except KeyError:
+            raise AttributeError
+
+    def __setattr__(self, name, val):
+        return self.__setitem__(name, val)
+
+    def __delattr__(self, name):
+        assert name != 'data'
+        return self.__delitem__(name)
+
+    def update(self, dct):
+        return super().update({key: value for key, value in dct.items() if value is not None})

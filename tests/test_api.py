@@ -38,9 +38,9 @@ def assert_uploads(upload_json_str, count=0, **kwargs):
 
 def assert_upload(upload_json_str, id=None):
     data = json.loads(upload_json_str)
-    assert 'id' in data
+    assert 'upload_id' in data
     if id is not None:
-        assert id == data['id']
+        assert id == data['upload_id']
     assert 'create_time' in data
     assert 'presigned_url' in data
 
@@ -68,7 +68,7 @@ def test_create_upload(client):
     rv = client.post('/uploads')
 
     assert rv.status_code == 200
-    upload_id = assert_upload(rv.data)['id']
+    upload_id = assert_upload(rv.data)['upload_id']
 
     rv = client.get('/uploads/%s' % upload_id)
     assert rv.status_code == 200
@@ -80,7 +80,7 @@ def test_create_upload(client):
 
 
 @pytest.mark.parametrize("file", example_files)
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(30)
 def test_upload_to_upload(client, file):
     rv = client.post('/uploads')
     assert rv.status_code == 200
@@ -88,7 +88,7 @@ def test_upload_to_upload(client, file):
 
     @files.upload_put_handler
     def handle_upload_put(received_upload_id: str):
-        assert upload['id'] == received_upload_id
+        assert upload['upload_id'] == received_upload_id
         raise StopIteration
 
     def handle_uploads():
@@ -104,14 +104,13 @@ def test_upload_to_upload(client, file):
 
     handle_uploads_thread.join()
 
-    assert_exists(config.files.uploads_bucket, upload['id'])
+    assert_exists(config.files.uploads_bucket, upload['upload_id'])
 
 
 @pytest.mark.parametrize("file", example_files)
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(30)
 def test_processing(client, file, celery_session_worker):
-    handle_uploads_thread = Thread(target=lambda: processing.handle_uploads(quit=True))
-    handle_uploads_thread.start()
+    handle_uploads_thread = processing.handle_uploads_thread(quit=True)
 
     rv = client.post('/uploads')
     assert rv.status_code == 200
@@ -127,21 +126,22 @@ def test_processing(client, file, celery_session_worker):
     while True:
         time.sleep(1)
 
-        rv = client.get('/uploads/%s' % upload['id'])
+        rv = client.get('/uploads/%s' % upload['upload_id'])
         assert rv.status_code == 200
         upload = assert_upload(rv.data)
         assert 'upload_time' in upload
-        assert 'processing' in upload
 
-        if upload['processing']['status'] in ['SUCCESS', 'FAILURE']:
-            break
+        if 'proc' in upload:
+            assert 'status' in upload['proc']
+            if upload['proc']['status'] in ['SUCCESS', 'FAILURE']:
+                break
 
-    proc = upload['processing']
+    proc = upload['proc']
     assert proc['status'] == 'SUCCESS'
-    assert 'calcs' in proc
-    assert proc['calcs'] is not None
-    assert proc['current_task'] == 'nomad.processing.close_upload'
-    assert_exists(config.files.uploads_bucket, upload['id'])
+    assert 'calc_procs' in proc
+    assert proc['calc_procs'] is not None
+    assert proc['current_task_name'] == 'cleanup'
+    assert_exists(config.files.uploads_bucket, upload['upload_id'])
 
 
 def test_get_archive(client, archive_id):

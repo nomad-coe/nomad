@@ -1,12 +1,13 @@
 from flask import Flask, Response
 from flask_restful import Resource, Api, abort
 from datetime import datetime
-from threading import Thread
 import mongoengine.errors
 from flask_cors import CORS
 import logging
+import json
 
-from nomad import users, files, processing
+from nomad import users, files
+from nomad.processing import UploadProc
 from nomad.utils import get_logger
 
 app = Flask(__name__)
@@ -25,30 +26,20 @@ class Uploads(Resource):
 
     @staticmethod
     def _render(upload: users.Upload):
+        if upload.proc:
+            proc = UploadProc(**upload.proc)
+            proc.update_from_backend()
+        else:
+            proc = None
+
         data = {
-            'id': upload.upload_id,  # deprecated
             'upload_id': upload.upload_id,
             'presigned_url': upload.presigned_url,
             'create_time': upload.create_time.isoformat() if upload.create_time is not None else None,
             'upload_time': upload.upload_time.isoformat() if upload.upload_time is not None else None,
-            'upload_hash': upload.upload_hash,
-            'tasks': processing.upload_task_names
+            'proc_time': upload.proc_time.isoformat() if upload.proc_time is not None else None,
+            'proc': proc
         }
-
-        # TODO this should partially be done in processing.UploadProcessing.to_dict
-        if upload.proc_results is not None:
-            data['processing'] = upload.proc_results
-        elif upload.proc_task is not None:
-            proc = processing.UploadProcessing.from_result_backend(upload.upload_id, upload.proc_task)
-            data['processing'] = proc.to_dict()
-            data['task'] = proc.task_name
-
-        if upload.upload_time is None:
-            data['status'] = 'UPLOADING'
-        elif 'processing' in data:
-            data['status'] = data['processing']['status']
-            if data['status'] == 'PENDING':
-                data['status'] == 'EXTRACTING'
 
         return {key: value for key, value in data.items() if value is not None}
 
