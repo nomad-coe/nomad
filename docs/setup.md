@@ -25,17 +25,20 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-### Run dev infrastructure with docker.
-First, build the docker images
+### Build and run the dev infrastructure with docker.
+First, you need to build an image with all dependencies. We separated this so we
+do not need to redownload and bwheel-build rarely changing dependencies all the time.
+From the root:
+```
+docker build -t nomad-requirements -f requirements.Dockerfile .
+```
+
+Now we can build the docker compose that contains all external services (redis, rabbitmq,
+mongo, elastic, minio, elk) and nomad services (worker, handler, api, gui).
 ```
 cd ./infrastructure
 docker-compose build
 ```
-
-This will download images for services like redis, minio, rabbitmq. It will configure
-an existing image for the ELK stack. It will build the processing image that contains
-all intra nomad dependencies (parsers, normalizers, etc.) and will run the celery workers
-that do the processing.
 
 You can run all containers, including ELK and processing workers:
 ```
@@ -44,7 +47,8 @@ docker-compose up
 
 You can alos run services selectively, e.g.
 ```
-docker-compose up redis, rabbitmq, minio
+docker-compose up -d redis, rabbitmq, minio, mongo, elastic, elk
+docker-compose up nomad-worker nomad-handler
 ```
 
 If you run the ELK stack (and enable logstash in nomad/config.py),
@@ -88,11 +92,26 @@ Now use this to auto relead worker:
 watchmedo auto-restart -d ./nomad -p '*.py' -- celery worker -l info -A nomad.processing
 ```
 
+### Run the handler
+The handler is a small deamon that takes minio events and initiates the processing.
+(This should actually be replaces, by minio talking to rabbitmq directly.)
+
+You cna run the *handler* from docker-compose
+```
+docker-compose up nomad-handler
+```
+
+Or manually form the root
+```
+python -m nomad.handler
+```
+
 ### Run tests.
-You need to have the infrastructure running (including the nomad-worker service)
+You need to have the infrastructure partially running: minio, elastic, rabbitmq, redis.
+The rest should be mocked or provied by the tests.
 ```
 cd instrastructure
-docker-compose up -d
+docker-compose up -d minio elastic rabbitmq, redis
 cd ..
-python tests/test_files.py
+pytest -sv tests
 ```

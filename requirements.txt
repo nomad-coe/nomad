@@ -10,4 +10,5 @@ python-logstash
 gitpython
 ase
 numpy
+cython>=0.19
 spglib

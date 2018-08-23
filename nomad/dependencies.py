@@ -40,7 +40,6 @@ To install all dependencies use
 import sys
 import os
 import os.path
-from git import Repo, Git
 import logging
 import subprocess
 
@@ -102,6 +101,9 @@ class PythonGit():
         Raises:
             PythonGitError: if something went wrong.
         """
+        # import late because git will not be available in production
+        from git import Repo, Git
+
         # check/change working directory
         old_cwd = os.getcwd()
         try:
