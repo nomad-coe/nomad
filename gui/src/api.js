@@ -2,7 +2,7 @@ import { apiBase } from './config'
 
 class Upload {
   constructor(json) {
-    console.debug('Created local upload for ' + json.id)
+    console.debug('Created local upload for ' + json.upload_id)
     Object.assign(this, json)
   }
 
@@ -16,7 +16,7 @@ class Upload {
       },
       body: file
     }).then(() => {
-      console.log(`Uploaded ${file} to ${this.id}.`)
+      console.log(`Uploaded ${file} to ${this.upload_id}.`)
       return this
     }).catch(error => {
       console.error(`Could not upload ${file} to ${this.presigned_url}: ${error}.`)
@@ -25,7 +25,7 @@ class Upload {
   }
 
   update() {
-    return fetch(`${apiBase}/uploads/${this.id}`)
+    return fetch(`${apiBase}/uploads/${this.upload_id}`)
       .then(response => response.json())
       .then(uploadJson => {
         Object.assign(this, uploadJson)

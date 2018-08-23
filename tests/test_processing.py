@@ -24,7 +24,7 @@ import time
 
 import nomad.config as config
 import nomad.files as files
-from nomad.processing import start_processing
+from nomad.processing import start_processing, app
 
 from tests.test_files import example_file, empty_file
 # import fixtures
@@ -32,6 +32,11 @@ from tests.test_search import index  # pylint: disable=unused-import
 from tests.test_files import clear_files  # pylint: disable=unused-import
 
 example_files = [empty_file, example_file]
+
+
+@pytest.fixture(scope='session')
+def celery_session_worker():
+    return app
 
 
 @pytest.fixture(scope='session')

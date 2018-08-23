@@ -4,7 +4,6 @@ from datetime import datetime
 import mongoengine.errors
 from flask_cors import CORS
 import logging
-import json
 
 from nomad import users, files
 from nomad.processing import UploadProc
@@ -52,6 +51,7 @@ class Uploads(Resource):
 
         upload.presigned_url = files.get_presigned_upload_url(upload.upload_id)
         upload.create_time = datetime.now()
+        upload.proc = UploadProc(upload.upload_id)
         upload.save()
 
         return Uploads._render(upload), 200

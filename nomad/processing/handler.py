@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from datetime import datetime
-import logging
 from threading import Thread
 
 from nomad import files, utils, users
@@ -22,16 +21,13 @@ from nomad.processing.tasks import extracting_task, cleanup_task, parse_all_task
 from nomad.processing.state import UploadProc
 
 
-def start_processing(upload_id) -> UploadProc:
+def start_processing(upload_id, proc: UploadProc=None) -> UploadProc:
     """ Starts the processing tasks via celery canvas. """
 
-    task_names = [
-        extracting_task.name,
-        parse_all_task.name,
-        cleanup_task.name
-    ]
-
-    proc = UploadProc(upload_id, task_names)
+    if proc is not None:
+        proc = UploadProc(**proc)
+    else:
+        proc = UploadProc(upload_id)
 
     # Keep the results of the last task is the workflow.
     # The last task is started by another task, therefore it
@@ -84,7 +80,7 @@ def handle_uploads(quit=False):
                 upload.save()
 
             with logger.lnr_error('Start processing'):
-                proc = start_processing(received_upload_id)
+                proc = start_processing(received_upload_id, proc=upload.proc)
                 assert proc.is_started
                 upload.proc = proc
                 upload.save()
@@ -103,8 +99,3 @@ def handle_uploads_thread(quit=True):
     thread = Thread(target=lambda: handle_uploads(quit))
     thread.start()
     return thread
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
-    handle_uploads()

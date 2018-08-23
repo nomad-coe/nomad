@@ -13,7 +13,7 @@ from tests.test_processing import example_files
 from tests.test_files import assert_exists
 # import fixtures
 from tests.test_files import clear_files, archive_id  # pylint: disable=unused-import
-from tests.test_processing import celery_config, celery_includes  # pylint: disable=unused-import
+from tests.test_processing import celery_session_worker, celery_config, celery_includes  # pylint: disable=unused-import
 
 
 @pytest.fixture
@@ -130,17 +130,15 @@ def test_processing(client, file, celery_session_worker):
         assert rv.status_code == 200
         upload = assert_upload(rv.data)
         assert 'upload_time' in upload
-
-        if 'proc' in upload:
-            assert 'status' in upload['proc']
-            if upload['proc']['status'] in ['SUCCESS', 'FAILURE']:
-                break
+        if upload['proc']['status'] in ['SUCCESS', 'FAILURE']:
+            break
 
     proc = upload['proc']
     assert proc['status'] == 'SUCCESS'
     assert 'calc_procs' in proc
     assert proc['calc_procs'] is not None
     assert proc['current_task_name'] == 'cleanup'
+    assert len(proc['task_names']) == 4
     assert_exists(config.files.uploads_bucket, upload['upload_id'])
 
 

@@ -132,4 +132,4 @@ services:
             # - elk
         volumes:
             - '../.volumes/fs:/app/.volumes/fs'
-        command: python -m nomad.handler
+        command: python -m nomad.processing.handlerdaemon

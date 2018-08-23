@@ -157,8 +157,11 @@ class UploadProc(ProcPipeline):
         calc_procs: The state data for all child calc processings.
         celery_task_ids: Serialized form of the celery async_results tree for the processing.
     """
-    def __init__(self, upload_id: str, task_names: List[str], *args, **kwargs) -> None:
+    def __init__(self, upload_id: str, *args, **kwargs) -> None:
         assert upload_id is not None
+        # TODO there should be a way to read the names from the tasks
+        # but currently this is not possible due to import cycles
+        task_names = ['uploading', 'extracting', 'parse_all', 'cleanup']
         super().__init__(task_names, *args)
 
         self.upload_id = upload_id
@@ -169,6 +172,9 @@ class UploadProc(ProcPipeline):
         self.celery_task_ids: Any = None
 
         self.update(kwargs)
+
+        if not self.is_started:
+            self.continue_with(task_names[0])
 
     @property
     def _celery_task_result(self) -> AsyncResult:
@@ -185,9 +191,12 @@ class UploadProc(ProcPipeline):
 
         return result_from_tuple(self.celery_task_ids, app=app)
 
-    def update_from_backend(self) -> 'UploadProc':
+    def update_from_backend(self):
         """ Consults the result backend and updates itself with the available results. """
         assert self.is_started, 'Run is not yet started.'
+
+        if self.celery_task_ids is None:
+            return
 
         celery_task_result = self._celery_task_result
 
@@ -201,8 +210,6 @@ class UploadProc(ProcPipeline):
         if self.calc_procs is not None:
             for calc_proc in self.calc_procs:
                 calc_proc.update_from_backend()
-
-        return self
 
     def forget(self) -> None:
         """ Forget the results of a completed run; free all resources in the results backend. """

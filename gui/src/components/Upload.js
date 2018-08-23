@@ -29,9 +29,9 @@ class Upload extends React.Component {
     window.setTimeout(() => {
       this.state.upload.update()
         .then(upload => {
-          console.debug(`Sucessfully updated upload ${upload.id}.`)
+          console.debug(`Sucessfully updated upload ${upload.upload_id}.`)
           this.setState({upload: upload})
-          if (!(upload.processing && upload.processing.status == 'SUCCESS')) {
+          if (upload.proc.status != 'SUCCESS') {
             this.updateUpload()
           }
         })
@@ -58,9 +58,11 @@ class Upload extends React.Component {
       </Typography>
     )
 
+    const proc = upload.proc
+    console.assert(proc, 'Uploads always must have a proc')
     const stepper = (
-      <Stepper activeStep={upload.tasks.indexOf(upload.task)} orientation="vertical">
-        {upload.tasks.map((label, index) => (
+      <Stepper activeStep={proc.task_names.indexOf(proc.current_task_name)} orientation="vertical">
+        {proc.task_names.map((label, index) => (
           <Step key={label}>
             <StepLabel>{label}</StepLabel>
           </Step>
