@@ -22,6 +22,7 @@ associations between users and the assets stored in nomad-xt.
 ..autoclass:: nomad.users.DataSet
 """
 
+import sys
 from mongoengine import \
     Document, EmailField, StringField, BooleanField, DateTimeField, ListField, \
     DictField, ReferenceField, connect
@@ -29,7 +30,8 @@ from mongoengine import \
 from nomad import config
 
 # ensure mongo connection
-connect(db=config.mongo.users_db, host=config.mongo.host)
+if 'sphinx' not in sys.modules:
+    connect(db=config.mongo.users_db, host=config.mongo.host)
 
 
 class User(Document):

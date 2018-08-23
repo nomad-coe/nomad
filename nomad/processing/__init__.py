@@ -23,11 +23,26 @@ running and completed processings. It also needs to provide static information a
 the existing processing steps and tasks.
 
 This module does not contain the functions to do the actual work. Those are encapsulated
-in :module:`nomad.files`, :module:`nomad.search`, :module:`nomad.users`,
-:module:`nomad.parsing`, and :module:`nomad.normalizing`.
+in :py:mod:`nomad.files`, :py:mod:`nomad.search`, :py:mod:`nomad.users`,
+:py:mod:`nomad.parsing`, and :py:mod:`nomad.normalizing`.
+
+Represent processing state
+--------------------------
+
+.. autoclass:: ProcPipeline
+.. autoclass:: UploadProc
+.. autoclass:: CalcProc
+
+Initiate processing
+-------------------
+
+.. autofunction:: start_processing
+.. autofunction:: handle_uploads
+.. autofunction:: handle_uploads_thread
+
 """
 
 from nomad.processing.app import app
 from nomad.processing import tasks
-from nomad.processing.state import UploadProc, CalcProc
+from nomad.processing.state import ProcPipeline, UploadProc, CalcProc
 from nomad.processing.handler import handle_uploads, handle_uploads_thread, start_processing

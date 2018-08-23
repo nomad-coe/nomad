@@ -21,6 +21,7 @@ of search relevant properties.
 
 from elasticsearch_dsl import Document, Date, Keyword, connections
 import logging
+import sys
 
 from nomad import config
 from nomad.parsing import LocalBackend
@@ -28,7 +29,8 @@ from nomad.parsing import LocalBackend
 logger = logging.getLogger(__name__)
 
 # ensure elastic connection
-connections.create_connection(hosts=[config.elastic.host])
+if 'sphinx' not in sys.modules:
+    connections.create_connection(hosts=[config.elastic.host])
 
 
 class Calc(Document):
@@ -87,8 +89,8 @@ class Calc(Document):
         calc.save()
         return calc
 
-
-Calc.init()
+if 'sphinx' not in sys.modules:
+    Calc.init()
 
 # Taken from the IndexManifest (scala, NOMAD-coe)
 #
