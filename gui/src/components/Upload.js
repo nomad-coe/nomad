@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography, ExpansionPanelDetails } from '@material-ui/core';
+import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography, ExpansionPanelDetails, Stepper, Step, StepLabel } from '@material-ui/core';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ReactJson from 'react-json-view'
 
@@ -58,10 +58,20 @@ class Upload extends React.Component {
       </Typography>
     )
 
+    const stepper = (
+      <Stepper activeStep={upload.tasks.indexOf(upload.task)} orientation="vertical">
+        {upload.tasks.map((label, index) => (
+          <Step key={label}>
+            <StepLabel>{label}</StepLabel>
+          </Step>
+        ))}
+      </Stepper>
+    )
+
     return (
       <ExpansionPanel>
         <ExpansionPanelSummary expandIcon={<ExpandMoreIcon/>}>
-          {createTime} {batch}
+          {createTime} {stepper}
         </ExpansionPanelSummary>
         <ExpansionPanelDetails style={{width: '100%'}}>
           <ReactJson src={upload} enableClipboard={false} collapsed={1}/>

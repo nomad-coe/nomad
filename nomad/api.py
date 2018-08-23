@@ -32,6 +32,7 @@ class Uploads(Resource):
             'create_time': upload.create_time.isoformat() if upload.create_time is not None else None,
             'upload_time': upload.upload_time.isoformat() if upload.upload_time is not None else None,
             'upload_hash': upload.upload_hash,
+            'tasks': processing.upload_task_names
         }
 
         # TODO this should partially be done in processing.UploadProcessing.to_dict
@@ -40,6 +41,7 @@ class Uploads(Resource):
         elif upload.proc_task is not None:
             proc = processing.UploadProcessing.from_result_backend(upload.upload_id, upload.proc_task)
             data['processing'] = proc.to_dict()
+            data['task'] = proc.task_name
 
         if upload.upload_time is None:
             data['status'] = 'UPLOADING'

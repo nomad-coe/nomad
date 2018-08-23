@@ -478,6 +478,13 @@ def parse(self, processing: CalcProcessing) -> CalcProcessing:
     return processing
 
 
+upload_task_names = [
+    open_upload.name,
+    distributed_parse.name,
+    close_upload.name
+]
+
+
 def handle_uploads(quit=False):
     """
     Starts a daemon that will listen to files for new uploads. For each new

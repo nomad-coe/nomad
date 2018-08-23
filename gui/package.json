@@ -20,5 +20,9 @@
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject"
+  },
+  "devDependencies": {
+    "babel-eslint": "^8.2.6",
+    "eslint-plugin-standard": "^3.1.0"
   }
 }
