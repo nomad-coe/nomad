@@ -65,10 +65,10 @@ def extracting_task(task: Task, proc: UploadProc) -> UploadProc:
             for parser in parsers:
                 if parser.is_mainfile(upload, filename):
                     tmp_mainfile = upload.get_path(filename)
-                    calc_processing = CalcProc(
+                    calc_proc = CalcProc(
                         proc.upload_hash, filename, parser.name, tmp_mainfile)
+                    proc.calc_procs.append(calc_proc)
 
-                    proc.calc_procs.append(calc_processing)
     except files.UploadError as e:
         logger.warn('Could find parse specs in open upload', exc_info=e)
         proc.fail(e)
@@ -116,10 +116,8 @@ def parse_all_task(task: Task, upload_proc: UploadProc, cleanup: Signature) -> U
     parses = group(parse_task.s(calc_proc) for calc_proc in upload_proc.calc_procs)
 
     # save the calc processing task ids to the overall processing
-    i = 0
-    for child in parses.freeze().children:
-        upload_proc.calc_procs[i].celery_task_id = child.task_id
-        i = i + 1
+    for idx, child in enumerate(parses.freeze().children):
+        upload_proc.calc_procs[idx].celery_task_id = child.task_id
 
     # initiate the chord that runs calc processings first, and close_upload afterwards
     chord(parses)(cleanup.clone(args=(upload_proc,)))

@@ -34,9 +34,9 @@ from tests.test_files import clear_files  # pylint: disable=unused-import
 example_files = [empty_file, example_file]
 
 
-@pytest.fixture(scope='session')
-def celery_session_worker():
-    return app
+# @pytest.fixture(scope='session')
+# def celery_session_worker():
+#     return app
 
 
 @pytest.fixture(scope='session')

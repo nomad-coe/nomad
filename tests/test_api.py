@@ -13,7 +13,7 @@ from tests.test_processing import example_files
 from tests.test_files import assert_exists
 # import fixtures
 from tests.test_files import clear_files, archive_id  # pylint: disable=unused-import
-from tests.test_processing import celery_session_worker, celery_config, celery_includes  # pylint: disable=unused-import
+from tests.test_processing import celery_config, celery_includes  # pylint: disable=unused-import
 
 
 @pytest.fixture

@@ -176,6 +176,22 @@ class UploadProc(ProcPipeline):
         if not self.is_started:
             self.continue_with(task_names[0])
 
+    def update(self, dct):
+        # Since the data might be updated from deserialized dicts, list and CalcProc
+        # instances might by dicts, or mongoengines BaseList, BaseDicts. This overwrite
+        # replaces it.
+        # TODO there might be a better solution, or the problem solves itself, when
+        # moving away from mongo.
+        if 'calc_procs' in dct:
+            calc_procs = dct['calc_procs']
+            for idx, calc_proc_dct in enumerate(calc_procs):
+                if not isinstance(calc_proc_dct, CalcProc):
+                    calc_procs[idx] = CalcProc(**calc_proc_dct)
+            if type(calc_procs) != list:
+                dct['calc_procs'] = list(calc_procs)
+
+        super().update(dct)
+
     @property
     def _celery_task_result(self) -> AsyncResult:
         """
