@@ -34,7 +34,8 @@ if 'sphinx' not in sys.modules:
 
 
 key_mappings = {
-    'basis_set_type': 'program_basis_set_type'
+    'basis_set_type': 'program_basis_set_type',
+    'chemical_composition': 'chemical_composition_bulk_reduced'
 }
 
 
@@ -53,6 +54,7 @@ class Calc(Document):
     program_name = Keyword()
     program_version = Keyword()
 
+    chemical_composition = Keyword()
     basis_set_type = Keyword()
     atom_species = Keyword()
     system_type = Keyword()

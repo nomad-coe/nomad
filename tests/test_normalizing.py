@@ -39,3 +39,5 @@ def test_normalizer(normalized_vasp_example: LocalBackend):
     assert normalized_vasp_example.get_value('crystal_system', 0) is not None
     assert normalized_vasp_example.get_value('space_group_number', 0) is not None
     assert normalized_vasp_example.get_value('XC_functional_name', 0) is not None
+    assert normalized_vasp_example.get_value('chemical_composition', 0) is not None
+    assert normalized_vasp_example.get_value('chemical_composition_bulk_reduced', 0) is not None

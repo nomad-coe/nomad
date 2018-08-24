@@ -59,10 +59,10 @@ class SystemNormalizer(SystemBasedNormalizer):
             atom_symbols = [ase.data.chemical_symbols[atom_number] for atom_number in atom_species]
             formula = ase.Atoms(atom_symbols).get_chemical_formula(mode='all')
             formula_reduced = ase.Atoms(atom_symbols).get_chemical_formula(mode='reduce')
-            # if periodic_dirs is not None and any(periodic_dirs):
-            #     formula_bulk = formula_reduced
-            # else:
-            #     formula_bulk = formula
+            if periodic_dirs is not None and any(periodic_dirs):
+                formula_bulk = formula_reduced
+            else:
+                formula_bulk = formula
 
         cell = section_system['simulation_cell']
         if cell is not None:
@@ -112,6 +112,10 @@ class SystemNormalizer(SystemBasedNormalizer):
         self._backend.addValue("configuration_raw_gid", configuration_id)
         self._backend.addValue("atom_species", atom_species)
 
+        self._backend.addValue("chemical_composition", formula)
+        self._backend.addValue("chemical_composition_reduced", formula_reduced)
+        self._backend.addValue("chemical_composition_bulk_reduced", formula_bulk)
+
         if symm:
             # for quantity in ["number", "international", "hall", "choice", "pointgroup"]:
             #     v = symm.get(quantity)
@@ -129,10 +133,6 @@ class SystemNormalizer(SystemBasedNormalizer):
                 self._backend.openNonOverlappingSection('section_symmetry')
                 self._backend.addValue("bravais_lattice", crystalSystem(n))
                 self._backend.closeNonOverlappingSection('section_symmetry')
-
-            # self._backend.addValue("chemical_composition", formula)
-            # self._backend.addValue("chemical_composition_reduced", formula_reduced)
-            # self._backend.addValue("chemical_composition_bulk_reduced", formula_bulk)
 
             # for quantity in ["origin_shift", "std_lattice"]:
             #     v = symm.get(quantity)
