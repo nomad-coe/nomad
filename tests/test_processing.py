@@ -28,7 +28,6 @@ from nomad.processing import start_processing
 
 from tests.test_files import example_file, empty_file
 # import fixtures
-from tests.test_search import index  # pylint: disable=unused-import
 from tests.test_files import clear_files  # pylint: disable=unused-import
 
 example_files = [empty_file, example_file]

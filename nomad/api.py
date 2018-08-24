@@ -4,6 +4,7 @@ from datetime import datetime
 import mongoengine.errors
 from flask_cors import CORS
 import logging
+from elasticsearch.exceptions import NotFoundError
 
 from nomad import users, files, search
 from nomad.processing import UploadProc
@@ -76,14 +77,22 @@ class Upload(Resource):
 
 
 class Repo(Resource):
+    @staticmethod
+    def _render(data: dict):
+        if 'upload_time' in data:
+            data['upload_time'] = data['upload_time'].isoformat()
+
+        return {key: value for key, value in data.items() if value is not None}
+
     def get(self, upload_hash, calc_hash):
         try:
             data = search.Calc.get(id='%s/%s' % (upload_hash, calc_hash))
+        except NotFoundError:
+            abort(404, message='There is no calculation for %s/%s' % (upload_hash, calc_hash))
         except Exception as e:
-            # TODO
-            abort(404, message=str(e))
+            abort(500, message=str(e))
 
-        return data, 200
+        return Repo._render(data.to_dict()), 200
 
 
 @app.route('/archive/<string:upload_hash>/<string:calc_hash>', methods=['GET'])

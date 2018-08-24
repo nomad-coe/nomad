@@ -13,6 +13,9 @@ from tests.test_processing import example_files
 from tests.test_files import assert_exists
 # import fixtures
 from tests.test_files import clear_files, archive_id  # pylint: disable=unused-import
+from tests.test_normalizing import normalized_vasp_example  # pylint: disable=unused-import
+from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
+from tests.test_search import example_entry  # pylint: disable=unused-import
 from tests.test_processing import celery_config, celery_includes  # pylint: disable=unused-import
 
 
@@ -148,6 +151,16 @@ def test_processing(client, file, celery_session_worker):
     assert proc['current_task_name'] == 'cleanup'
     assert len(proc['task_names']) == 4
     assert_exists(config.files.uploads_bucket, upload['upload_id'])
+
+
+def test_get_repo(client, example_entry):
+    rv = client.get('/repo/%s/%s' % (example_entry.upload_hash, example_entry.calc_hash))
+    assert rv.status_code == 200
+
+
+def test_non_existing_repo(client):
+    rv = client.get('/repo/doesnt/exist')
+    assert rv.status_code == 404
 
 
 def test_get_archive(client, archive_id):
