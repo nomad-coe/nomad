@@ -46,6 +46,7 @@ class Upload extends React.Component {
       this.state.upload.update()
         .then(upload => {
           console.debug(`Sucessfully updated upload ${upload.upload_id}.`)
+          console.assert(upload.proc, 'Uploads always must have a proc')
           this.setState({upload: upload})
           if (upload.proc.status != 'SUCCESS') {
             this.updateUpload()
@@ -58,43 +59,39 @@ class Upload extends React.Component {
     this.updateUpload()
   }
 
-  render() {
-    const { classes } = this.props;
-    const { upload } = this.state;
+  renderTitle() {
+    const { classes } = this.props
+    const { name, upload_id, create_time } = this.state.upload
 
-    const title = (
+    return (
       <div className={classes.title}>
         <Typography variant="title">
-          {upload.name || upload.upload_id}
+          {name || upload_id}
         </Typography>
         <Typography variant="subheading">
-          {new Date(Date.parse(upload.create_time)).toLocaleString()}
+          {new Date(Date.parse(create_time)).toLocaleString()}
         </Typography>
       </div>
-    );
-
-    const batch = (
-      <Typography className={classes.heading}>
-        {upload.status}
-      </Typography>
     )
+  }
 
-    const proc = upload.proc
-    console.assert(proc, 'Uploads always must have a proc')
-    let activeStep = proc.task_names.indexOf(proc.current_task_name)
-    if (proc.status == 'SUCCESS') {
-      activeStep += 1
-    }
-    const stepper = (
+  renderStepper() {
+    const { classes } = this.props
+    const { calc_procs, task_names, current_task_name, status } = this.state.upload.proc
+
+    let activeStep = task_names.indexOf(current_task_name)
+    activeStep += (status == 'SUCCESS') ? 1 : 0
+
+    return (
       <Stepper activeStep={activeStep} classes={{root: classes.stepper}}>
-        {proc.task_names.map((label, index) => {
+        {task_names.map((label, index) => {
           let optional = null;
-          if (proc.task_names[index] === 'parse_all') {
+          if (task_names[index] === 'parse_all') {
             label = 'parse'
-            if (proc.calc_procs.length > 0) {
+            if (calc_procs.length > 0) {
               optional = (
                 <Typography variant="caption">
-                  {proc.calc_procs.filter(p => p.status === 'SUCCESS').length}/{proc.calc_procs.length}
+                  {calc_procs.filter(p => p.status === 'SUCCESS').length}/{calc_procs.length}
                 </Typography>
               );
             }
@@ -107,45 +104,70 @@ class Upload extends React.Component {
         })}
       </Stepper>
     )
+  }
+
+  renderCalcTable() {
+    const { classes } = this.props
+    const { calc_procs } = this.state.upload.proc
+
+    if (calc_procs.length === 0) {
+      return (
+        <Typography className={classes.detailsContent}>
+          No calculcations found.
+        </Typography>
+      )
+    }
+
+    const renderRow = (calcProc, index) => {
+      const { mainfile, calc_hash, parser_name, task_names, current_task_name } = calcProc
+      return (
+        <TableRow key={index}>
+          <TableCell>
+            <Typography>
+              {mainfile}
+            </Typography>
+            <Typography variant="caption">
+              {calc_hash}
+            </Typography>
+          </TableCell>
+          <TableCell>
+            <Typography>
+              {parser_name}
+            </Typography>
+          </TableCell>
+          <TableCell>
+            <Typography>
+              {current_task_name}
+            </Typography>
+            <Typography variant="caption">
+              task&nbsp;
+              <b>
+                [{task_names.indexOf(current_task_name) + 1}/{task_names.length}]
+              </b>
+            </Typography>
+          </TableCell>
+        </TableRow>
+      )
+    }
+
+    return (
+      <Table>
+        {calc_procs.map(renderRow)}
+      </Table>
+    )
+  }
+
+  render() {
+    const { classes } = this.props;
+    const { upload } = this.state;
 
     return (
       <ExpansionPanel>
         <ExpansionPanelSummary expandIcon={<ExpandMoreIcon/>}>
-          {title} {stepper}
+          {this.renderTitle()} {this.renderStepper()}
         </ExpansionPanelSummary>
         <ExpansionPanelDetails style={{width: '100%'}} classes={{root: classes.details}}>
-          {(proc.calc_procs.length === 0) ? <Typography className={classes.detailsContent}>No calculcations found.</Typography> : (
-            <Table>
-              {proc.calc_procs.map((calcProc, index) => (
-                <TableRow key={index}>
-                  <TableCell>
-                    <Typography>
-                      {calcProc.mainfile}
-                    </Typography>
-                    <Typography variant="caption">
-                      {calcProc.calc_hash}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography>
-                      {calcProc.parser_name}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography>
-                      {calcProc.current_task_name}
-                    </Typography>
-                    <Typography variant="caption">
-                      task&nbsp;
-                      <b>
-                        [{calcProc.task_names.indexOf(calcProc.current_task_name) + 1}/{calcProc.task_names.length}]
-                      </b>
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </Table>
-          )}
+          {this.renderCalcTable()}
           <div className={classes.detailsContent}>
             <ReactJson src={upload} enableClipboard={false} collapsed={1} />
           </div>
