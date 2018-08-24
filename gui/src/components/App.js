@@ -1,6 +1,6 @@
 import React from 'react';
 import { MuiThemeProvider } from '@material-ui/core/styles';
-import { repoTheme } from '../config';
+import { genTheme } from '../config';
 import Navigation from './Navigation';
 import { BrowserRouter, Switch, Route } from 'react-router-dom';
 import Uploads from './Uploads'
@@ -9,7 +9,7 @@ import RepoCalc from './RepoCalc';
 
 function App() {
   return (
-    <MuiThemeProvider theme={repoTheme}>
+    <MuiThemeProvider theme={genTheme}>
       <BrowserRouter>
         <Navigation>
           <Switch>
@@ -19,6 +19,7 @@ function App() {
             <Route path="/upload" component={Uploads} />
             <Route exact path="/archive" render={() => <div>Archive</div>} />
             <Route path="/archive/:uploadHash/:calcHash" component={ArchiveCalc} />
+            <Route path="/enc" render={() => <div>In the future, you'll see chart'n'stuff for your calculations and materials.</div>} />
             <Route path="/profile" render={() => <div>Profile</div>} />
             <Route path="/documentation" render={() => <div>Docs</div>} />
             <Route render={() => <div>Not found</div>}  />
