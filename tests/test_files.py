@@ -139,6 +139,13 @@ def test_hash(uploaded_id: str):
         assert isinstance(hash, str)
 
 
+def test_archive_url(archive_id: str):
+    result = files.archive_url(archive_id)
+
+    assert result is not None
+    assert result.startswith('http')
+
+
 def test_archive(archive_id: str):
     result = json.load(files.open_archive_json(archive_id))
 

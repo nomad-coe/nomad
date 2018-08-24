@@ -6,15 +6,6 @@ import Dropzone from 'react-dropzone';
 import api from '../api';
 import Upload from './Upload'
 
-const greetings = `
-  ## Upload your own data to **nomad xt**
-
-  You can upload your own data. Have your code output ready in a popular archive
-  format (e.g. \`*.zip\` or \`*.tar.gz\`) and drop it below. Your upload can
-  comprise the output of multiple runs, even of different codes. Don't worry, nomad
-  will find it.
-`
-
 var styles = theme => ({
     root: {
       width: '100%',
@@ -72,7 +63,14 @@ class Uploads extends React.Component {
 
     return (
       <div className={classes.root}>
-        <Markdown text={greetings}/>
+        <Markdown>{`
+          ## Upload your own data to **nomad xt**
+
+          You can upload your own data. Have your code output ready in a popular archive
+          format (e.g. \`*.zip\` or \`*.tar.gz\`) and drop it below. Your upload can
+          comprise the output of multiple runs, even of different codes. Don't worry, nomad
+          will find it.
+        `}</Markdown>
         <Paper>
           <Dropzone
               accept="application/zip"

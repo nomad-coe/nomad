@@ -152,7 +152,7 @@ def test_processing(client, file, celery_session_worker):
 
 def test_get_archive(client, archive_id):
     rv = client.get('/archive/%s' % archive_id)
-    assert rv.status_code == 200
+    assert rv.status_code == 302
 
 
 def test_get_non_existing_archive(client):

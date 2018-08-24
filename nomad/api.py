@@ -1,4 +1,4 @@
-from flask import Flask, Response, request
+from flask import Flask, Response, request, redirect
 from flask_restful import Resource, Api, abort
 from datetime import datetime
 import mongoengine.errors
@@ -80,13 +80,13 @@ def get_calc(upload_hash, calc_hash):
     archive_id = '%s/%s' % (upload_hash, calc_hash)
     logger = get_logger(__name__, archive_id=archive_id)
     try:
-        file = files.open_archive_json(archive_id)
-        return Response(file, mimetype='application/json', status=200)
+        url = files.archive_url(archive_id)
+        return redirect(url, 302)
     except KeyError:
         abort(404, message='Archive %s does not exist.' % archive_id)
     except Exception as e:
-        logger.error('Exception on reading archive', exc_info=e)
-        abort(500, message='Could not read the archive.')
+        logger.error('Exception on accessing archive', exc_info=e)
+        abort(500, message='Could not accessing the archive.')
 
 
 api.add_resource(Uploads, '/uploads')

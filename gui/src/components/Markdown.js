@@ -183,13 +183,18 @@ var styles = theme => ({
 });
 
 function Markdown(props) {
-  const { classes, text } = props;
+  const { classes, text, children } = props;
+
+  let content = text
+  if (children) {
+    content = children.replace(/^\s+/gm, '')
+  }
 
   return (
     <div>
       <div
         className={classes.root}
-        dangerouslySetInnerHTML={{__html: marked(text)}}
+        dangerouslySetInnerHTML={{__html: marked(content)}}
       />
     </div>
   )
@@ -197,7 +202,8 @@ function Markdown(props) {
 
 Markdown.propTypes = {
   classes: PropTypes.object.isRequired,
-  text: PropTypes.string.isRequired
+  text: PropTypes.string,
+  children: PropTypes.string
 };
 
 export default withStyles(styles)(Markdown);

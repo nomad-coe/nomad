@@ -56,9 +56,15 @@ function getUploads() {
     .then(uploadsJson => uploadsJson.map(uploadJson => new Upload(uploadJson)))
 }
 
+function archive(uploadHash, calcHash) {
+  return fetch(`${apiBase}/archive/${uploadHash}/${calcHash}`)
+    .then(response => response.json())
+}
+
 const api = {
   createUpload: createUpload,
-  getUploads: getUploads
+  getUploads: getUploads,
+  archive: archive
 };
 
 export default api;

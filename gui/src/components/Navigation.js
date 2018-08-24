@@ -15,18 +15,21 @@ import SearchIcon from '@material-ui/icons/Search';
 import AccountIcon from '@material-ui/icons/AccountCircle';
 import DocumentationIcon from '@material-ui/icons/Help';
 import HomeIcon from '@material-ui/icons/Home';
+import ArchiveIcon from '@material-ui/icons/Storage';
 import { Link, withRouter } from 'react-router-dom';
 import { compose } from 'recompose'
 import { Avatar } from '@material-ui/core';
+import { repoTheme, archiveTheme } from '../config';
 
 const drawerWidth = 200;
 
 const toolbarTitles = {
     '/': 'Welcome',
-    '/browse': 'Search, View, and Download Data',
+    '/repo': 'Search, View, and Download Data',
     '/upload': 'Upload Your Own Data',
     '/profile': 'Your Profile',
-    '/documentation': 'Documentation'
+    '/documentation': 'Documentation',
+    '/archive': 'The Nomad Archive'
 }
 
 const styles = theme => ({
@@ -86,17 +89,23 @@ function ClippedDrawer(props) {
           </ListItemIcon>
           <ListItemText inset primary="Home"/>
         </MenuItem>
-        <MenuItem component={Link} to="/browse" selected={ '/browse' === pathname }>
+        <MenuItem component={Link} to="/repo" selected={ pathname.startsWith('/repo') }>
           <ListItemIcon>
-            <SearchIcon />
+            <SearchIcon style={{fill: repoTheme.palette.primary.main}}/>
           </ListItemIcon>
-          <ListItemText inset primary="Browse"/>
+          <ListItemText inset primary="Repository"/>
         </MenuItem>
         <MenuItem component={Link} to="/upload" selected={ '/upload' === pathname }>
           <ListItemIcon>
-            <BackupIcon />
+            <BackupIcon style={{fill: repoTheme.palette.primary.main}}/>
           </ListItemIcon>
           <ListItemText inset primary="Upload"/>
+        </MenuItem>
+        <MenuItem component={Link} to="/archive" selected={ pathname.startsWith('/archive') }>
+          <ListItemIcon>
+            <ArchiveIcon style={{fill: archiveTheme.palette.primary.main}}/>
+          </ListItemIcon>
+          <ListItemText inset primary="Archive"/>
         </MenuItem>
       </MenuList>
       <Divider/>

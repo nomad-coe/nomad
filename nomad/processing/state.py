@@ -16,12 +16,12 @@ from typing import List, Any, Union, cast
 from celery.result import AsyncResult, result_from_tuple
 import itertools
 
+from nomad import utils
 from nomad.normalizing import normalizers
-from nomad.utils import DataObject
 from nomad.processing.app import app
 
 
-class ProcPipeline(DataObject):
+class ProcPipeline(utils.DataObject):
     """
     Arguments:
         task_names: A list of task names in pipeline order.
@@ -111,7 +111,7 @@ class CalcProc(ProcPipeline):
         self.parser_name = parser_name
         self.tmp_mainfile = tmp_mainfile
 
-        self.calc_hash = hash(mainfile)
+        self.calc_hash = utils.hash(mainfile)
         self.archive_id = '%s/%s' % (self.upload_hash, self.calc_hash)
 
         self.celery_task_id: str = None
@@ -119,7 +119,8 @@ class CalcProc(ProcPipeline):
         self.update(kwargs)
 
     def update_from_backend(self):
-        assert self.celery_task_id is not None
+        if self.celery_task_id is None:
+            return
 
         celery_task_result = AsyncResult(self.celery_task_id, app=app)
         if celery_task_result.ready():

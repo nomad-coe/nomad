@@ -298,6 +298,17 @@ def write_archive_json(archive_id) -> Generator[TextIO, None, None]:
         binary_out.close()
 
 
+def archive_url(archive_id) -> str:
+    """ Returns the file server url for the archive. """
+    try:
+        _client.stat_object(config.files.archive_bucket, archive_id)
+    except minio.error.NoSuchKey:
+        raise KeyError()
+
+    return 'http://%s:%d/%s/%s' % \
+        (config.minio.host, config.minio.port, config.files.archive_bucket, archive_id)
+
+
 def open_archive_json(archive_id) -> IO:
     """ Returns a file-like to read the archive json. """
     # The result already is a file-like and due to the Content-Encoding metadata is

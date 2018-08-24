@@ -1,8 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography, ExpansionPanelDetails, Stepper, Step, StepLabel, Table, TableRow, TableCell } from '@material-ui/core';
+import { Link } from 'react-router-dom';
+import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography, ExpansionPanelDetails, Stepper, Step, StepLabel, Table, TableRow, TableCell, IconButton, MuiThemeProvider, TableBody } from '@material-ui/core';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import RepoIcon from '@material-ui/icons/Cloud';
+import ArchiveIcon from '@material-ui/icons/Storage';
+import EncIcon from '@material-ui/icons/Assessment';
 import ReactJson from 'react-json-view'
+import { repoTheme, encTheme, archiveTheme } from '../config';
 
 
 class Upload extends React.Component {
@@ -31,6 +36,11 @@ class Upload extends React.Component {
       stepper: {
         width: '100%',
         padding: 0
+      },
+      buttonCell: {
+        overflow: 'hidden',
+        whiteSpace: 'nowrap',
+        textAlign: 'right'
       }
   });
 
@@ -48,7 +58,7 @@ class Upload extends React.Component {
           console.debug(`Sucessfully updated upload ${upload.upload_id}.`)
           console.assert(upload.proc, 'Uploads always must have a proc')
           this.setState({upload: upload})
-          if (upload.proc.status != 'SUCCESS') {
+          if (upload.proc.status !== 'SUCCESS') {
             this.updateUpload()
           }
         })
@@ -80,7 +90,7 @@ class Upload extends React.Component {
     const { calc_procs, task_names, current_task_name, status } = this.state.upload.proc
 
     let activeStep = task_names.indexOf(current_task_name)
-    activeStep += (status == 'SUCCESS') ? 1 : 0
+    activeStep += (status === 'SUCCESS') ? 1 : 0
 
     return (
       <Stepper activeStep={activeStep} classes={{root: classes.stepper}}>
@@ -119,7 +129,7 @@ class Upload extends React.Component {
     }
 
     const renderRow = (calcProc, index) => {
-      const { mainfile, calc_hash, parser_name, task_names, current_task_name } = calcProc
+      const { mainfile, calc_hash, parser_name, task_names, current_task_name, archive_id } = calcProc
       return (
         <TableRow key={index}>
           <TableCell>
@@ -132,7 +142,7 @@ class Upload extends React.Component {
           </TableCell>
           <TableCell>
             <Typography>
-              {parser_name}
+              {parser_name.replace('parsers/', '')}
             </Typography>
           </TableCell>
           <TableCell>
@@ -146,13 +156,26 @@ class Upload extends React.Component {
               </b>
             </Typography>
           </TableCell>
+          <TableCell className={classes.buttonCell}>
+            <MuiThemeProvider theme={repoTheme}>
+              <IconButton color="primary" component={Link} to={`/repo/${archive_id}`}><RepoIcon /></IconButton>
+            </MuiThemeProvider>
+            <MuiThemeProvider theme={archiveTheme}>
+              <IconButton color="primary" component={Link} to={`/archive/${archive_id}`}><ArchiveIcon /></IconButton>
+            </MuiThemeProvider>
+            <MuiThemeProvider theme={encTheme}>
+              <IconButton color="primary" component={Link} to={`/enc/${archive_id}`}><EncIcon /></IconButton>
+            </MuiThemeProvider>
+          </TableCell>
         </TableRow>
       )
     }
 
     return (
       <Table>
-        {calc_procs.map(renderRow)}
+        <TableBody>
+          {calc_procs.map(renderRow)}
+        </TableBody>
       </Table>
     )
   }
