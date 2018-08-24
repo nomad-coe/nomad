@@ -31,7 +31,7 @@ const toolbarTitles = {
 
 const styles = theme => ({
   root: {
-    flexGrow: 1
+    flexGrow: 1,
   },
   flex: {
     flexGrow: 1,
@@ -42,6 +42,7 @@ const styles = theme => ({
     position: 'relative',
     display: 'flex',
     width: '100%',
+    height: '100vh'
   },
   appBar: {
     width: `calc(100% - ${drawerWidth}px)`,
@@ -55,6 +56,8 @@ const styles = theme => ({
     flexGrow: 1,
     backgroundColor: theme.palette.background.default,
     padding: theme.spacing.unit * 3,
+    height: '100%',
+    overflow: 'scroll'
   },
   toolbar: theme.mixins.toolbar,
   link: {
