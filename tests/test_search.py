@@ -17,7 +17,7 @@ from typing import Generator
 from datetime import datetime
 
 from nomad.parsing import LocalBackend
-from nomad.search import Calc
+from nomad.search import Calc, key_mappings
 
 from tests.test_normalizing import normalized_vasp_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
@@ -40,4 +40,5 @@ def test_add(example_entry: Calc):
 
     assert result is not None
     for property in Calc._doc_type.mapping:
+        property = key_mappings.get(property, property)
         assert getattr(result, property) is not None

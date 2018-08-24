@@ -33,6 +33,11 @@ if 'sphinx' not in sys.modules:
     connections.create_connection(hosts=[config.elastic.host])
 
 
+key_mappings = {
+    'basis_set_type': 'program_basis_set_type'
+}
+
+
 class Calc(Document):
     """
     The search index representation of a calculation. All information for this should
@@ -48,6 +53,7 @@ class Calc(Document):
     program_name = Keyword()
     program_version = Keyword()
 
+    basis_set_type = Keyword()
     atom_species = Keyword()
     system_type = Keyword()
     crystal_system = Keyword()
@@ -73,6 +79,8 @@ class Calc(Document):
         calc = Calc(meta=dict(id='%s/%s' % (upload_hash, calc_hash)))
 
         for property in Calc._doc_type.mapping:
+            property = key_mappings.get(property, property)
+
             if property in kwargs:
                 value = kwargs[property]
             else:
