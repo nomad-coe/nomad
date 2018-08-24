@@ -13,8 +13,7 @@
 # limitations under the License.
 
 import pytest
-from elasticsearch_dsl import Index
-from elasticsearch.exceptions import NotFoundError
+from typing import Generator
 from datetime import datetime
 
 from nomad.parsing import LocalBackend
@@ -24,26 +23,20 @@ from tests.test_normalizing import normalized_vasp_example  # pylint: disable=un
 from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
 
 
-@pytest.fixture(scope='function', autouse=True)
-def index():
-    """ Fixture that ensures Calc index creation before and deletion after each test. """
-    Calc.init()
-    yield
-    try:
-        Index('calcs').delete()
-    except NotFoundError:
-        pass
-
-
-def test_add(normalized_vasp_example: LocalBackend):
-    Calc.add_from_backend(
+@pytest.fixture(scope='function')
+def example_entry(normalized_vasp_example: LocalBackend) -> Generator[Calc, None, None]:
+    entry = Calc.add_from_backend(
         normalized_vasp_example,
         upload_hash='test_upload_hash',
         calc_hash='test_calc_hash',
         mainfile='/test/mainfile',
         upload_time=datetime.now())
+    yield entry
+    entry.delete()
 
-    result = Calc.get(id='%s/%s' % ('test_upload_hash', 'test_calc_hash'))
+
+def test_add(example_entry: Calc):
+    result = Calc.get(id='%s/%s' % (example_entry.upload_hash, example_entry.calc_hash))
 
     assert result is not None
     for property in Calc._doc_type.mapping:

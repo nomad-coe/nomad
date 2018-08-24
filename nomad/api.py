@@ -5,7 +5,7 @@ import mongoengine.errors
 from flask_cors import CORS
 import logging
 
-from nomad import users, files
+from nomad import users, files, search
 from nomad.processing import UploadProc
 from nomad.utils import get_logger
 
@@ -75,6 +75,17 @@ class Upload(Resource):
         return Uploads._render(upload), 200
 
 
+class Repo(Resource):
+    def get(self, upload_hash, calc_hash):
+        try:
+            data = search.Calc.get(id='%s/%s' % (upload_hash, calc_hash))
+        except Exception as e:
+            # TODO
+            abort(404, message=str(e))
+
+        return data, 200
+
+
 @app.route('/archive/<string:upload_hash>/<string:calc_hash>', methods=['GET'])
 def get_calc(upload_hash, calc_hash):
     archive_id = '%s/%s' % (upload_hash, calc_hash)
@@ -91,6 +102,7 @@ def get_calc(upload_hash, calc_hash):
 
 api.add_resource(Uploads, '/uploads')
 api.add_resource(Upload, '/uploads/<string:upload_id>')
+api.add_resource(Repo, '/repo/<string:upload_hash>/<string:calc_hash>')
 
 
 if __name__ == '__main__':
