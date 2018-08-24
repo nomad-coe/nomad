@@ -25,11 +25,11 @@ const drawerWidth = 200;
 
 const toolbarTitles = {
     '/': 'Welcome',
-    '/repo': 'Search, View, and Download Data',
+    '/repo': 'Raw Code Outputs',
     '/upload': 'Upload Your Own Data',
     '/profile': 'Your Profile',
     '/documentation': 'Documentation',
-    '/archive': 'The Nomad Archive'
+    '/archive': 'Code Independent Data'
 }
 
 const styles = theme => ({
@@ -145,7 +145,7 @@ function ClippedDrawer(props) {
         >
           <Toolbar>
             <Typography variant="title" color="inherit" noWrap className={classes.flex}>
-              {toolbarTitles[pathname]}
+              {toolbarTitles[Object.keys(toolbarTitles).find(key => key === pathname || (key.length > 1 && pathname.startsWith(key)))]}
             </Typography>
             <Avatar src='/me.jpg'/>
           </Toolbar>
