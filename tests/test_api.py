@@ -153,7 +153,7 @@ def test_processing(client, file, celery_session_worker):
     assert_exists(config.files.uploads_bucket, upload['upload_id'])
 
 
-def test_get_repo_calc(client, example_entry):
+def test_repo_calc(client, example_entry):
     rv = client.get('/repo/%s/%s' % (example_entry.upload_hash, example_entry.calc_hash))
     assert rv.status_code == 200
 
@@ -163,7 +163,7 @@ def test_non_existing_repo_cals(client):
     assert rv.status_code == 404
 
 
-def test_get_repo_calcs(client, example_entry):
+def test_repo_calcs(client, example_entry):
     rv = client.get('/repo')
     assert rv.status_code == 200
     data = json.loads(rv.data)
@@ -171,6 +171,16 @@ def test_get_repo_calcs(client, example_entry):
     assert results is not None
     assert isinstance(results, list)
     assert len(results) >= 1
+
+
+def test_repo_calcs_pagination(client, example_entry):
+    rv = client.get('/repo?page=1&per_page=1')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    results = data.get('results', None)
+    assert results is not None
+    assert isinstance(results, list)
+    assert len(results) == 1
 
 
 def test_get_archive(client, archive_id):

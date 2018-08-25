@@ -66,8 +66,8 @@ function repo(uploadHash, calcHash) {
     .then(response => response.json())
 }
 
-function repoAll(uploadHash, calcHash) {
-  return fetch(`${apiBase}/repo`)
+function repoAll(page, perPage) {
+  return fetch(`${apiBase}/repo?page=${page}&per_page=${perPage}`)
     .then(response => response.json())
 }
 

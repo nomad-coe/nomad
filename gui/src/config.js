@@ -17,20 +17,20 @@ export const genTheme = createMuiTheme({
 export const repoTheme = createMuiTheme({
   palette: {
     primary: repo,
-    secondary: secondary,
+    secondary: repo,
   }
 });
 
 export const archiveTheme = createMuiTheme({
   palette: {
     primary: archive,
-    secondary: secondary,
+    secondary: repo,
   }
 });
 
 export const encTheme = createMuiTheme({
   palette: {
     primary: enc,
-    secondary: secondary,
+    secondary: repo,
   }
 });

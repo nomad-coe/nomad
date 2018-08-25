@@ -98,14 +98,15 @@ class RepoCalc(Resource):
 
 class RepoCalcs(Resource):
     def get(self):
-        page = request.args.get('page', 1)
-        per_page = request.args.get('per_page', 10)
+        # TODO use argparse? bad request reponse an bad params, pagination as decorator
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
 
         assert page >= 1
         assert per_page > 0
 
         body = {
-            'from': page - 1,
+            'from': (page - 1) * per_page,
             'size': per_page,
             'query': {
                 'match_all': {}
