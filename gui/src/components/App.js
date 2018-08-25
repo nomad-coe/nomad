@@ -7,6 +7,7 @@ import Uploads from './Uploads'
 import ArchiveCalc from './ArchiveCalc';
 import RepoCalc from './RepoCalc';
 import Repo from './Repo';
+import Documentation from './Documentation';
 
 function App() {
   return (
@@ -22,7 +23,7 @@ function App() {
             <Route path="/archive/:uploadHash/:calcHash" component={ArchiveCalc} />
             <Route path="/enc" render={() => <div>In the future, you'll see chart'n'stuff for your calculations and materials.</div>} />
             <Route path="/profile" render={() => <div>Profile</div>} />
-            <Route path="/documentation" render={() => <div>Docs</div>} />
+            <Route path="/documentation" component={Documentation} />
             <Route render={() => <div>Not found</div>}  />
           </Switch>
         </Navigation>
