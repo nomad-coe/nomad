@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 # ensure elastic connection
 if 'sphinx' not in sys.modules:
-    connections.create_connection(hosts=[config.elastic.host])
+    client = connections.create_connection(hosts=[config.elastic.host])
 
 
 key_mappings = {
@@ -65,6 +65,10 @@ class Calc(Document):
 
     class Index:
         name = config.elastic.calc_index
+
+    @staticmethod
+    def search(body):
+        return client.search(index=config.elastic.calc_index, body=body)
 
     @staticmethod
     def add_from_backend(backend: LocalBackend, **kwargs) -> 'Calc':

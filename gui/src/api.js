@@ -66,11 +66,17 @@ function repo(uploadHash, calcHash) {
     .then(response => response.json())
 }
 
+function repoAll(uploadHash, calcHash) {
+  return fetch(`${apiBase}/repo`)
+    .then(response => response.json())
+}
+
 const api = {
   createUpload: createUpload,
   getUploads: getUploads,
   archive: archive,
-  repo: repo
+  repo: repo,
+  repoAll: repoAll,
 };
 
 export default api;

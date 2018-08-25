@@ -76,10 +76,11 @@ class Upload(Resource):
         return Uploads._render(upload), 200
 
 
-class Repo(Resource):
+class RepoCalc(Resource):
     @staticmethod
     def _render(data: dict):
-        if 'upload_time' in data:
+        upload_time = data.get('upload_time', None)
+        if upload_time is not None and isinstance(upload_time, datetime):
             data['upload_time'] = data['upload_time'].isoformat()
 
         return {key: value for key, value in data.items() if value is not None}
@@ -92,7 +93,39 @@ class Repo(Resource):
         except Exception as e:
             abort(500, message=str(e))
 
-        return Repo._render(data.to_dict()), 200
+        return RepoCalc._render(data.to_dict()), 200
+
+
+class RepoCalcs(Resource):
+    def get(self):
+        page = request.args.get('page', 1)
+        per_page = request.args.get('per_page', 10)
+
+        assert page >= 1
+        assert per_page > 0
+
+        body = {
+            'from': page - 1,
+            'size': per_page,
+            'query': {
+                'match_all': {}
+            }
+        }
+
+        try:
+            results = search.Calc.search(body=body)
+        except Exception as e:
+            get_logger(__name__).error('Could not execute repo calcs get.', exc_info=e)
+            abort(500, message=str(e))
+
+        return {
+            'pagination': {
+                'total': results['hits']['total'],
+                'page': page,
+                'per_page': per_page
+            },
+            'results': [RepoCalc._render(hit['_source']) for hit in results['hits']['hits']]
+        }
 
 
 @app.route('/archive/<string:upload_hash>/<string:calc_hash>', methods=['GET'])
@@ -111,7 +144,8 @@ def get_calc(upload_hash, calc_hash):
 
 api.add_resource(Uploads, '/uploads')
 api.add_resource(Upload, '/uploads/<string:upload_id>')
-api.add_resource(Repo, '/repo/<string:upload_hash>/<string:calc_hash>')
+api.add_resource(RepoCalcs, '/repo')
+api.add_resource(RepoCalc, '/repo/<string:upload_hash>/<string:calc_hash>')
 
 
 if __name__ == '__main__':

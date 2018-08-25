@@ -6,6 +6,7 @@ import { BrowserRouter, Switch, Route } from 'react-router-dom';
 import Uploads from './Uploads'
 import ArchiveCalc from './ArchiveCalc';
 import RepoCalc from './RepoCalc';
+import Repo from './Repo';
 
 function App() {
   return (
@@ -14,7 +15,7 @@ function App() {
         <Navigation>
           <Switch>
             <Route exact path="/" render={() => <div>Home</div>} />
-            <Route exact path="/repo" render={() => <div>Browse</div>} />
+            <Route exact path="/repo" component={Repo} />
             <Route path="/repo/:uploadHash/:calcHash" component={RepoCalc} />
             <Route path="/upload" component={Uploads} />
             <Route exact path="/archive" render={() => <div>Archive</div>} />
