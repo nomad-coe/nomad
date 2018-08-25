@@ -2,13 +2,24 @@ import React, { Component } from 'react'
 import HtmlToReact from 'html-to-react'
 import { withRouter } from 'react-router-dom';
 import { HashLink as Link } from 'react-router-hash-link';
+import './Documentation.css';
 
 const processNodeDefinitions = new HtmlToReact.ProcessNodeDefinitions(React)
 const processingInstructions = [
   {
-    shouldProcessNode: node => node.type === 'tag' && node.name === 'a' && node.attribs['href'],
-    processNode: (node, children) => (<Link smooth to={`/documentation/${node.attribs['href']}`}>{children}</Link>)
+    shouldProcessNode: node => node.name === 'a' && node.children[0].data === '¶',
+    processNode: (node, children) => {
+      console.log("hiiii")
+      return ''
+    }
   },
+  {
+    shouldProcessNode: node => node.type === 'tag' && node.name === 'a' && node.attribs['href'],
+    processNode: (node, children) => {
+      return (<Link smooth to={`/documentation/${node.attribs['href']}`}>{children}</Link>)
+    }
+  },
+
   {
     shouldProcessNode: node => true,
     processNode: processNodeDefinitions.processDefaultNode
@@ -62,7 +73,11 @@ class Documentation extends Component {
   }
 
   render() {
-    return this.state.react
+    return (
+      <div className="root">
+        {this.state.react}
+      </div>
+    )
   }
 }
 
