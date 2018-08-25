@@ -7,35 +7,57 @@ import TableCell from '@material-ui/core/TableCell';
 import TablePagination from '@material-ui/core/TablePagination';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
-import { TableFooter } from '@material-ui/core';
 import api from '../api';
 import CalcLinks from './CalcLinks';
+import { TableHead, LinearProgress } from '@material-ui/core';
+import Markdown from './Markdown';
 
+class Repo extends React.Component {
+  static propTypes = {
+    classes: PropTypes.object.isRequired,
+  }
 
-const styles = theme => ({
-  root: {
-    width: '100%',
-    marginTop: theme.spacing.unit * 3,
-  },
-  table: {
-  },
-  tableWrapper: {
-    // overflowX: 'auto',
-  },
-});
+  static styles = theme => ({
+    root: {},
+    data: {
+      width: '100%',
+      marginTop: theme.spacing.unit * 3,
+    },
+    progressPlaceholder: {
+      height: 5
+    }
+  })
 
-class EnhancedTable extends React.Component {
+  static rowConfig = {
+    chemical_composition_bulk_reduced: 'Formula',
+    program_name: 'Code',
+    program_basis_set_type: 'Basis set',
+    system_type: 'System',
+    crystal_system: 'Crystal',
+    space_group_number: 'Space group',
+    XC_functional_name: 'XT treatment'
+  }
+
   state = {
     data: [],
     page: 1,
     rowsPerPage: 5,
-    total: 0
-  };
+    total: 0,
+    loading: true
+  }
 
   update(page, rowsPerPage) {
+    this.setState({loading: true})
     api.repoAll(page, rowsPerPage).then(data => {
       const { pagination: { total, page, per_page }, results } = data
-      this.setState({data: results, page: page, rowsPerPage: per_page, total: total})
+      this.setState({
+        data: results,
+        page: page,
+        rowsPerPage:
+        per_page,
+        total: total,
+        loading: false
+      })
     })
   }
 
@@ -55,34 +77,38 @@ class EnhancedTable extends React.Component {
 
   render() {
     const { classes } = this.props;
-    const { data, rowsPerPage, page, total } = this.state;
+    const { data, rowsPerPage, page, total, loading } = this.state;
     const emptyRows = rowsPerPage - Math.min(rowsPerPage, total - (page - 1) * rowsPerPage);
 
     return (
-      <Paper className={classes.root}>
-        <div className={classes.tableWrapper}>
-          <Table className={classes.table} aria-labelledby="tableTitle">
+      <div className={classes.root}>
+        <Markdown>{`
+          ## The Repository – Raw Code Data
+        `}</Markdown>
+        <Paper className={classes.data}>
+          {loading ? <LinearProgress variant="query" /> : <div className={classes.progressPlaceholder} />}
+          <Table>
+            <TableHead>
+              <TableRow>
+                {Object.values(Repo.rowConfig).map((name, index) => (
+                  <TableCell key={index}>{name}</TableCell>
+                ))}
+                <TableCell/>
+              </TableRow>
+            </TableHead>
             <TableBody>
-              {data.map((n, index) => (
-                <TableRow
-                  hover
-                  tabIndex={-1}
-                  key={index}
-                >
-                  <TableCell>{n.chemical_composition_bulk_reduced}</TableCell>
-                  <TableCell>{n.program_name}</TableCell>
-                  <TableCell>{n.program_basis_set_type}</TableCell>
-                  <TableCell>{n.system_type}</TableCell>
-                  <TableCell>{n.crystal_system}</TableCell>
-                  <TableCell>{n.space_group_number}</TableCell>
-                  <TableCell>{n.XC_functional_name}</TableCell>
+              {data.map((calc, index) => (
+                <TableRow hover tabIndex={-1} key={index}>
+                  {Object.keys(Repo.rowConfig).map((key, rowIndex) => (
+                    <TableCell key={rowIndex}>{calc[key]}</TableCell>
+                  ))}
                   <TableCell>
-                    <CalcLinks uploadHash={n.upload_hash} calcHash={n.calc_hash} />
+                    <CalcLinks uploadHash={calc.upload_hash} calcHash={calc.calc_hash} />
                   </TableCell>
                 </TableRow>
               ))}
               {emptyRows > 0 && (
-                <TableRow style={{ height: 49 * emptyRows }}>
+                <TableRow style={{ height: 57 * emptyRows }}>
                   <TableCell colSpan={6} />
                 </TableRow>
               )}
@@ -103,14 +129,10 @@ class EnhancedTable extends React.Component {
               </TableRow>
             </TableBody>
           </Table>
-        </div>
-      </Paper>
-    );
+        </Paper>
+      </div>
+    )
   }
 }
 
-EnhancedTable.propTypes = {
-  classes: PropTypes.object.isRequired,
-};
-
-export default withStyles(styles)(EnhancedTable);
+export default withStyles(Repo.styles)(Repo);

@@ -1,4 +1,4 @@
-from flask import Flask, Response, request, redirect
+from flask import Flask, request, redirect
 from flask_restful import Resource, Api, abort
 from datetime import datetime
 import mongoengine.errors
