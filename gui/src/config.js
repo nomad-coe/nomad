@@ -2,7 +2,6 @@ import repo from '@material-ui/core/colors/deepPurple';
 import archive from '@material-ui/core/colors/teal';
 import enc from '@material-ui/core/colors/amber';
 import secondary from '@material-ui/core/colors/blueGrey';
-import grey from '@material-ui/core/colors/grey';
 import { createMuiTheme } from '@material-ui/core';
 
 export const apiBase = 'http://localhost:5000'

@@ -1,13 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Link } from 'react-router-dom';
-import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography, ExpansionPanelDetails, Stepper, Step, StepLabel, Table, TableRow, TableCell, IconButton, MuiThemeProvider, TableBody } from '@material-ui/core';
+import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography, ExpansionPanelDetails,
+  Stepper, Step, StepLabel, Table, TableRow, TableCell, TableBody } from '@material-ui/core';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
-import RepoIcon from '@material-ui/icons/Cloud';
-import ArchiveIcon from '@material-ui/icons/Storage';
-import EncIcon from '@material-ui/icons/Assessment';
 import ReactJson from 'react-json-view'
-import { repoTheme, encTheme, archiveTheme } from '../config';
+import CalcLinks from './CalcLinks';
 
 
 class Upload extends React.Component {
@@ -129,7 +126,7 @@ class Upload extends React.Component {
     }
 
     const renderRow = (calcProc, index) => {
-      const { mainfile, calc_hash, parser_name, task_names, current_task_name, archive_id } = calcProc
+      const { mainfile, calc_hash, parser_name, task_names, current_task_name, upload_hash } = calcProc
       return (
         <TableRow key={index}>
           <TableCell>
@@ -156,16 +153,8 @@ class Upload extends React.Component {
               </b>
             </Typography>
           </TableCell>
-          <TableCell className={classes.buttonCell}>
-            <MuiThemeProvider theme={repoTheme}>
-              <IconButton color="primary" component={Link} to={`/repo/${archive_id}`}><RepoIcon /></IconButton>
-            </MuiThemeProvider>
-            <MuiThemeProvider theme={archiveTheme}>
-              <IconButton color="primary" component={Link} to={`/archive/${archive_id}`}><ArchiveIcon /></IconButton>
-            </MuiThemeProvider>
-            <MuiThemeProvider theme={encTheme}>
-              <IconButton color="primary" component={Link} to={`/enc/${archive_id}`}><EncIcon /></IconButton>
-            </MuiThemeProvider>
+          <TableCell>
+            <CalcLinks uploadHash={upload_hash} calcHash={calc_hash} />
           </TableCell>
         </TableRow>
       )

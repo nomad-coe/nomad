@@ -9,6 +9,7 @@ import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 import { TableFooter } from '@material-ui/core';
 import api from '../api';
+import CalcLinks from './CalcLinks';
 
 
 const styles = theme => ({
@@ -65,7 +66,6 @@ class EnhancedTable extends React.Component {
               {data.map((n, index) => (
                 <TableRow
                   hover
-                  role="checkbox"
                   tabIndex={-1}
                   key={index}
                 >
@@ -76,6 +76,9 @@ class EnhancedTable extends React.Component {
                   <TableCell>{n.crystal_system}</TableCell>
                   <TableCell>{n.space_group_number}</TableCell>
                   <TableCell>{n.XC_functional_name}</TableCell>
+                  <TableCell>
+                    <CalcLinks uploadHash={n.upload_hash} calcHash={n.calc_hash} />
+                  </TableCell>
                 </TableRow>
               ))}
               {emptyRows > 0 && (
@@ -83,22 +86,22 @@ class EnhancedTable extends React.Component {
                   <TableCell colSpan={6} />
                 </TableRow>
               )}
+              <TableRow>
+                <TablePagination
+                  count={total}
+                  rowsPerPage={rowsPerPage}
+                  page={page - 1}
+                  backIconButtonProps={{
+                    'aria-label': 'Previous Page',
+                  }}
+                  nextIconButtonProps={{
+                    'aria-label': 'Next Page',
+                  }}
+                  onChangePage={this.handleChangePage}
+                  onChangeRowsPerPage={this.handleChangeRowsPerPage}
+                />
+              </TableRow>
             </TableBody>
-            <TableFooter>
-              <TablePagination
-                count={total}
-                rowsPerPage={rowsPerPage}
-                page={page - 1}
-                backIconButtonProps={{
-                  'aria-label': 'Previous Page',
-                }}
-                nextIconButtonProps={{
-                  'aria-label': 'Next Page',
-                }}
-                onChangePage={this.handleChangePage}
-                onChangeRowsPerPage={this.handleChangeRowsPerPage}
-              />
-            </TableFooter>
           </Table>
         </div>
       </Paper>
