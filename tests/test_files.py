@@ -70,6 +70,14 @@ def uploaded_id(clear_files) -> Generator[str, None, None]:
 
 
 @pytest.fixture(scope='function')
+def uploaded_id_same_file(clear_files) -> Generator[str, None, None]:
+    example_upload_id = '__test_upload_id2'
+
+    files._client.fput_object(config.files.uploads_bucket, example_upload_id, example_file)
+    yield example_upload_id
+
+
+@pytest.fixture(scope='function')
 def upload_id(clear_files) -> Generator[str, None, None]:
     example_upload_id = '__test_upload_id'
     yield example_upload_id
@@ -132,11 +140,14 @@ def test_metadata(uploaded_id: str):
         assert upload.metadata is not None
 
 
-def test_hash(uploaded_id: str):
+def test_hash(uploaded_id: str, uploaded_id_same_file: str):
     with files.Upload(uploaded_id) as upload:
         hash = upload.hash()
         assert hash is not None
         assert isinstance(hash, str)
+
+    with files.Upload(uploaded_id_same_file) as upload:
+        assert hash == upload.hash()
 
 
 def test_archive_url(archive_id: str):
