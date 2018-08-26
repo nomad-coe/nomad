@@ -1,30 +1,42 @@
 import React, { Component } from 'react'
 import HtmlToReact from 'html-to-react'
 import { withRouter } from 'react-router-dom';
-import { HashLink as Link } from 'react-router-hash-link';
-import './Documentation.css';
+import { HashLink as Link } from 'react-router-hash-link'
+import './Documentation.css'
+import Url from 'url-parse'
 
 const processNodeDefinitions = new HtmlToReact.ProcessNodeDefinitions(React)
-const processingInstructions = [
-  {
-    shouldProcessNode: node => node.name === 'a' && node.children[0].data === '¶',
-    processNode: (node, children) => {
-      console.log("hiiii")
-      return ''
+const processingInstructions = location => {
+  return [
+    {
+      // We have to remove sphynx header links. Not all of them are cought with css.
+      shouldProcessNode: node => node.name === 'a' && node.children[0].data === '¶',
+      processNode: (node, children) => {
+        return ''
+      }
+    },
+    {
+      // We have to replace the sphynx links with router Links;
+      // the hrefs have to be processed to be compatible with router, i.e. they have
+      // to start with /documentation/.
+      shouldProcessNode: node => node.type === 'tag' && node.name === 'a' && node.attribs['href'] && !node.attribs['href'].startsWith('http'),
+      processNode: (node, children) => {
+        const linkUrl = Url(node.attribs['href'])
+        let pathname = linkUrl.pathname.replace(/^\/documentation/, '').replace(/^\//, '')
+        if (pathname === '' ) {
+          pathname = location.pathname
+        } else {
+          pathname = `/documentation/${pathname}`
+        }
+        return (<Link smooth to={pathname + (linkUrl.hash || '#')}>{children}</Link>)
+      }
+    },
+    {
+      shouldProcessNode: node => true,
+      processNode: processNodeDefinitions.processDefaultNode
     }
-  },
-  {
-    shouldProcessNode: node => node.type === 'tag' && node.name === 'a' && node.attribs['href'],
-    processNode: (node, children) => {
-      return (<Link smooth to={`/documentation/${node.attribs['href']}`}>{children}</Link>)
-    }
-  },
-
-  {
-    shouldProcessNode: node => true,
-    processNode: processNodeDefinitions.processDefaultNode
-  }
-]
+  ]
+}
 const isValidNode = () => true
 const htmlToReactParser = new HtmlToReact.Parser();
 const domParser = new DOMParser()
@@ -44,7 +56,7 @@ class Documentation extends Component {
           const bodyHtml = doc.getElementsByTagName('body')[0].innerHTML
 
           // replace a hrefs with Link to
-          const react = htmlToReactParser.parseWithInstructions(bodyHtml, isValidNode, processingInstructions)
+          const react = htmlToReactParser.parseWithInstructions(bodyHtml, isValidNode, processingInstructions(this.props.location))
 
           this.setState({
             react: react
