@@ -6,6 +6,10 @@
     width: 1000px;
 }
 
+.root code {
+    font-family: "Roboto Mono", monospace;
+}
+
 .root .documentwrapper {
     float: left;
     width: 700px;
@@ -38,7 +42,7 @@
 
 .root h1 {
     color: rgba(0, 0, 0, 0.54);
-    margin: 32px 0 16px;
+    margin: 32px 0 24px;
     font-size: 2.8125rem;
     font-weight: 400;
     font-family: "Roboto", "Helvetica", "Arial", sans-serif;
@@ -56,7 +60,7 @@
 
 .root h3 {
     color: rgba(0, 0, 0, 0.87);
-    margin: 0 0 40px;
+    margin: 24px 0 18px;
     font-size: 1.5rem;
     font-weight: 400;
     font-family: "Roboto", "Helvetica", "Arial", sans-serif;
@@ -65,6 +69,7 @@
 
 .root h4 {
     color: rgba(0, 0, 0, 0.87);
+    margin: 18px 0 12px;
     font-size: 1rem;
     font-weight: 400;
     font-family: "Roboto", "Helvetica", "Arial", sans-serif;
@@ -98,4 +103,54 @@
     padding-left: 12px;
     text-decoration: none;
 }
+
+.root img {
+    width: 700px;
+}
+
+.root .caption {
+    text-align: center;
+    color: rgba(0, 0, 0, 0.54);
+    font-size: 14px;
+    font-weight: 400;
+    font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+    line-height: 1.375;
+}
+
+.root div.admonition {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    padding: 7px;
+}
+
+.root div.admonition dt {
+    font-weight: bold;
+}
+
+.root div.admonition dl {
+    margin-bottom: 0;
+}
+
+.root p.admonition-title {
+    margin: 0px 10px 5px 0px;
+    font-weight: bold;
+}
+
+.root div.body p.centered {
+    text-align: center;
+    margin-top: 25px;
+}
+
+.root dd p {
+    margin-top: 0;
+}
+
+.root .field-body strong {
+    font-family: "Roboto Mono", monospace;
+}
+
+.root .descname {
+    font-weight: 500;
+}
+
 

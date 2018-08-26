@@ -29,6 +29,12 @@ in :py:mod:`nomad.files`, :py:mod:`nomad.search`, :py:mod:`nomad.users`,
 Represent processing state
 --------------------------
 
+.. figure:: process.png
+   :alt: nomad xt processing workflow
+
+   This is the basic workflow of a nomad xt upload processing.
+
+
 .. autoclass:: ProcPipeline
 .. autoclass:: UploadProc
 .. autoclass:: CalcProc

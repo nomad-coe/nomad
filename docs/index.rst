@@ -1,19 +1,13 @@
-Welcome to NOMAD's documentation!
-=================================
+nomad xt
+========
 
-This project tries and test approaches that might lead to an improved architecture for NOMAD (XT).
+This project is a prototype for the continuation of the original NOMAD-coe software
+and infrastructure with a simplyfied and improved architecture.
 
 .. toctree::
    :maxdepth: 2
 
    setup
-   contributing
+   introduction
    modules
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   contributing

@@ -32,6 +32,14 @@ const processingInstructions = location => {
       }
     },
     {
+      // We have to redirect img src attributes to the static sphynx build dir.
+      shouldProcessNode: node => node.type === 'tag' && node.name === 'img' && node.attribs['src'] && !node.attribs['src'].startsWith('http'),
+      processNode: (node, children) => {
+        node.attribs['src'] = `/docs/${node.attribs['src']}`
+        return processNodeDefinitions.processDefaultNode(node)
+      }
+    },
+    {
       shouldProcessNode: node => true,
       processNode: processNodeDefinitions.processDefaultNode
     }
