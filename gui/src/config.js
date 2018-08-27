@@ -5,6 +5,7 @@ import secondary from '@material-ui/core/colors/blueGrey';
 import { createMuiTheme } from '@material-ui/core';
 
 export const apiBase = 'http://localhost:8000'
+export const appBase = '/xt'
 
 export const genTheme = createMuiTheme({
   palette: {

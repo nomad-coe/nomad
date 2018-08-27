@@ -8,11 +8,12 @@ import ArchiveCalc from './ArchiveCalc';
 import RepoCalc from './RepoCalc';
 import Repo from './Repo';
 import Documentation from './Documentation';
+import {appBase} from '../config';
 
 function App() {
   return (
     <MuiThemeProvider theme={genTheme}>
-      <BrowserRouter>
+      <BrowserRouter basename={appBase}>
         <Navigation>
           <Switch>
             <Route exact path="/" render={() => <div>Home</div>} />
