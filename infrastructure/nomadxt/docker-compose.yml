@@ -42,7 +42,7 @@ services:
             /usr/bin/mc mb minio/repository -p;
             /usr/bin/mc policy download minio/repository;
             /usr/bin/mc policy download minio/archive;
-            /usr/bin/mc policy upload minio/uploads;"
+            /usr/bin/mc policy upload minio/uploads;"  # bug #22
 
     # broker for celery
     rabbitmq:
@@ -62,8 +62,6 @@ services:
         image: redis:3.0-alpine
         container_name: nomadxt_redis
         command: redis-server --appendonly yes
-        volumes:
-            - nomadxt_redis:/data
         ports:
             - ${REDIS_HOST_PORT}:6379
 
@@ -80,10 +78,10 @@ services:
         image: mongo:latest
         container_name: nomadxt_mongo
         environment:
-          - MONGO_DATA_DIR=/data/db
-          - MONGO_LOG_DIR=/dev/null
+            - MONGO_DATA_DIR=/data/db
+            - MONGO_LOG_DIR=/dev/null
         volumes:
-          - nomadxt_mongo:/data/db
+            - nomadxt_mongo:/data/db
         ports:
             - ${MONGO_HOST_PORT}:27017
         command: mongod --smallfiles --logpath=/dev/null # --quiet
@@ -96,6 +94,8 @@ services:
         expose:
             - 5000 # logstash beats
             - 5044 # logstash tcp
+        volumes:
+            - nomadxt_elk:/var/lib/elasticsearch
         ports:
             - ${KIBANA_HOST_PORT}:5601  # kibana web
 
@@ -116,7 +116,7 @@ services:
             - rabbitmq
             - elastic
             - mongo
-            # - elk
+            - elk
         volumes:
             - ${VOLUME_BINDS}/fs:/app/.volumes/fs
         command: python -m celery worker -l info -A nomad.processing
@@ -138,7 +138,7 @@ services:
             - rabbitmq
             - elastic
             - mongo
-            # - elk
+            - elk
         command: python -m nomad.processing.handlerdaemon
 
     # nomad api
@@ -162,7 +162,7 @@ services:
             - rabbitmq
             - elastic
             - mongo
-            # - elk
+            - elk
         ports:
             - ${API_HOST_PORT}:8000
         command: python -m gunicorn.app.wsgiapp -w 4 -b 0.0.0.0:8000 nomad.api:app
@@ -179,7 +179,8 @@ services:
 
 volumes:
     nomadxt_minio:
-    nomadxt_redis:
     nomadxt_mongo:
     nomadxt_elastic:
+    nomadxt_elk:
+
 
