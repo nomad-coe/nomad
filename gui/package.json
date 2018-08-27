@@ -29,5 +29,6 @@
     "babel-eslint": "^8.2.6",
     "eslint": "^3.19.0",
     "eslint-plugin-standard": "^3.1.0"
-  }
+  },
+  "homepage": "http://mywebsite.com/nomadxt"
 }
