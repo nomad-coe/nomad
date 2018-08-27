@@ -90,5 +90,5 @@ logstash = LogstashConfig(
     tcp_port=int(os.environ.get('NOMAD_LOGSTASH_TCPPORT', '5000'))
 )
 services = NomadServicesConfig(
-    api_base_path='/nomadxt/api'
+    api_base_path=os.environ.get('NOMAD_API_BASE_PATH', '/nomadxt/api')
 )

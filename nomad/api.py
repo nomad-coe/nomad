@@ -12,7 +12,10 @@ from nomad.utils import get_logger
 
 base_path = config.services.api_base_path
 
-app = Flask(__name__, static_url_path='/docs', static_folder='../docs/.build/html')
+app = Flask(
+    __name__,
+    static_url_path='%s/docs' % base_path,
+    static_folder='../docs/.build/html')
 CORS(app)
 api = Api(app)
 
