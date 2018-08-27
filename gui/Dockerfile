@@ -12,6 +12,6 @@ RUN npm run build
 # production environment
 FROM nginx:1.13.9-alpine
 COPY ./nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder /app/build /app/build
+COPY --from=builder /app/build /app/nomadxt
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
