@@ -1,6 +1,4 @@
 watchdog
-sphinx
-recommonmark
 gitpython
 mypy
 pylint

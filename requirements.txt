@@ -13,3 +13,5 @@ numpy
 cython>=0.19
 spglib
 gunicorn
+sphinx
+recommonmark
