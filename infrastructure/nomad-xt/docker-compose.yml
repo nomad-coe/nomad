@@ -42,26 +42,26 @@ services:
             - RABBITMQ_DEFAULT_PASS=rabbitmq
             - RABBITMQ_DEFAULT_VHOST=/
         ports:
-            - '{RABITMQ_HOST_PORT}:5672'
+            - ${RABITMQ_HOST_PORT}:5672
 
     # results backend for celery
     redis:
-        image: 'redis:3.0-alpine'
+        image: redis:3.0-alpine
         container_name: nomad-xt-redis
         command: redis-server --appendonly yes
         volumes:
-            - '../../.volumes/redis:/data'
+            - ../../.volumes/redis:/data
         ports:
-            - '{REDIS_HOST_PORT}:6379'
+            - ${REDIS_HOST_PORT}:6379
 
     # the search engine
     elastic:
         image: docker.elastic.co/elasticsearch/elasticsearch:6.3.2
         container_name: nomad-xt-elastic
         volumes:
-            - '../../.volumes/elastic:/usr/share/elasticsearch/data'
+            - ../../.volumes/elastic:/usr/share/elasticsearch/data
         ports:
-            - '{ELASTIC_HOST_PORT}:9200'
+            - ${ELASTIC_HOST_PORT}:9200
 
     # the user data db
     mongo:
@@ -71,9 +71,9 @@ services:
           - MONGO_DATA_DIR=/data/db
           - MONGO_LOG_DIR=/dev/null
         volumes:
-          - '../../.volumes/mongo:/data/db'
+          - ../../.volumes/mongo:/data/db
         ports:
-            - '{MONGO_HOST_PORT}:27017'
+            - ${MONGO_HOST_PORT}:27017
         command: mongod --smallfiles --logpath=/dev/null # --quiet
 
     # used for centralized logging
@@ -85,7 +85,7 @@ services:
             - 5000 # logstash beats
             - 5044 # logstash tcp
         ports:
-            - '{KIBANA_HOST_PORT}:5601'  # kibana web
+            - ${KIBANA_HOST_PORT}:5601  # kibana web
 
     # nomad processing worker
     worker:
@@ -107,7 +107,7 @@ services:
             - mongo
             # - elk
         volumes:
-            - '../../.volumes/fs:/app/.volumes/fs'
+            - ../../.volumes/fs:/app/.volumes/fs
         command: python -m celery worker -l info -A nomad.processing
 
     # nomad upload handler
@@ -127,7 +127,7 @@ services:
             - rabbitmq
             - elastic
             - mongo
-            # - elk
+            - elk
         command: python -m nomad.processing.handlerdaemon
 
     # nomad api
@@ -147,7 +147,7 @@ services:
             - rabbitmq
             - elastic
             - mongo
-            # - elk
+            - elk
         ports:
             - ${API_HOST_PORT}:8000
         command: python -m gunicorn.app.wsgiapp -w 4 -b 127.0.0.1:8000 nomad.api:app
