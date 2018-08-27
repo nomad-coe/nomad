@@ -89,7 +89,7 @@ services:
 
     # nomad processing worker
     worker:
-        build: ../
+        build: ../../
         container_name: nomad-xt-worker
         environment:
             - NOMAD_MINIO_PORT=9000
@@ -112,7 +112,7 @@ services:
 
     # nomad upload handler
     handler:
-        build: ../
+        build: ../../
         environment:
             - NOMAD_MINIO_PORT=9000
             - NOMAD_MINIO_HOST=minio
@@ -132,7 +132,7 @@ services:
 
     # nomad api
     api:
-        build: ../
+        build: ../../
         environment:
             - NOMAD_MINIO_PORT=9000
             - NOMAD_MINIO_HOST=minio
@@ -154,7 +154,7 @@ services:
 
     # nomad gui
     gui:
-        build: ../gui/
+        build: ../../gui/
         links:
             - nomad-api
         ports:
