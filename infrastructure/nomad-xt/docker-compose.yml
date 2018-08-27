@@ -42,7 +42,7 @@ services:
             - RABBITMQ_DEFAULT_PASS=rabbitmq
             - RABBITMQ_DEFAULT_VHOST=/
         ports:
-            - ${RABITMQ_HOST_PORT}:5672
+            - ${RABBITMQ_HOST_PORT}:5672
 
     # results backend for celery
     redis:
