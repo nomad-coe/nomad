@@ -156,6 +156,6 @@ services:
     gui:
         build: ../../gui/
         links:
-            - nomad-api
+            - api
         ports:
             - ${GUI_HOST_PORT}:80
