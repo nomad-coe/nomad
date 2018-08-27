@@ -139,6 +139,7 @@ services:
             - NOMAD_LOGSTASH_HOST=elk
             - NOMAD_ELASTIC_HOST=elastic
             - NOMAD_MONGO_HOST=mongo
+            - NOMAD_API_BASE_PATH=/nomadxt/api
         links:
             - minio
             - redis

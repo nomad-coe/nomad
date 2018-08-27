@@ -42,7 +42,7 @@ MongoConfig = namedtuple('MongoConfig', ['host', 'users_db'])
 LogstashConfig = namedtuple('LogstashConfig', ['enabled', 'host', 'tcp_port'])
 """ Used to configure and enable/disable the ELK based centralized logging. """
 
-NomadServicesConfig = namedtupe('NomadServicesConfig', ['api_base_path'])
+NomadServicesConfig = namedtuple('NomadServicesConfig', ['api_base_path'])
 """ Used to configure nomad services: worker, handler, api """
 
 files = FilesConfig(
