@@ -27,8 +27,8 @@ services:
             - ../../.volumes/minio:/data
             - ../config/minio:/root/.minio
         environment:
-            - 'MINIO_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE'
-            - 'MINIO_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+            - MINIO_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE
+            - MINIO_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
         command: server /data
 
     # broker for celery
@@ -37,10 +37,10 @@ services:
         image: rabbitmq
         container_name: nomad-xt-rabbitmq
         environment:
-            - 'RABBITMQ_ERLANG_COOKIE=SWQOKODSQALRPCLNMEQG'
-            - 'RABBITMQ_DEFAULT_USER=rabbitmq'
-            - 'RABBITMQ_DEFAULT_PASS=rabbitmq'
-            - 'RABBITMQ_DEFAULT_VHOST=/'
+            - RABBITMQ_ERLANG_COOKIE=SWQOKODSQALRPCLNMEQG
+            - RABBITMQ_DEFAULT_USER=rabbitmq
+            - RABBITMQ_DEFAULT_PASS=rabbitmq
+            - RABBITMQ_DEFAULT_VHOST=/
         ports:
             - '{RABITMQ_HOST_PORT}:5672'
 
@@ -85,7 +85,7 @@ services:
             - 5000 # logstash beats
             - 5044 # logstash tcp
         ports:
-            - '{KIBANA_HOST_PORT}':5601  # kibana web
+            - '{KIBANA_HOST_PORT}:5601'  # kibana web
 
     # nomad processing worker
     worker:
