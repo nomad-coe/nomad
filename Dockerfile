@@ -39,11 +39,13 @@ RUN python nomad/dependencies.py
 FROM final
 # transfer installed packages from dependency stage
 COPY --from=dependencies /usr/local/lib/python3.6/site-packages /usr/local/lib/python3.6/site-packages
+COPY --from=dependencies /usr/local/bin/sphinx-build /usr/local/bin/sphinx-build
 # we also need to copy the install dir, since nomad coe deps are installed with -e
 # TODO that should be changed in production!
 COPY --from=dependencies /install /install
 
 # do stuff
+RUN apt-get update && apt-get install -y make
 COPY . /app
 WORKDIR /app
 RUN pip install -e .

@@ -20,7 +20,7 @@ services:
         restart: always
         image: minio/minio:RELEASE.2018-06-08T03-49-38Z
         # image: minio/minio
-        container_name: nomad-xt-minio
+        container_name: nomadxt_minio
         ports:
             - ${MINIO_HOST_PORT}:9000
         volumes:
@@ -35,7 +35,7 @@ services:
     rabbitmq:
         restart: always
         image: rabbitmq
-        container_name: nomad-xt-rabbitmq
+        container_name: nomadxt_rabbitmq
         environment:
             - RABBITMQ_ERLANG_COOKIE=SWQOKODSQALRPCLNMEQG
             - RABBITMQ_DEFAULT_USER=rabbitmq
@@ -47,7 +47,7 @@ services:
     # results backend for celery
     redis:
         image: redis:3.0-alpine
-        container_name: nomad-xt-redis
+        container_name: nomadxt_redis
         command: redis-server --appendonly yes
         volumes:
             - ../../.volumes/redis:/data
@@ -57,16 +57,15 @@ services:
     # the search engine
     elastic:
         image: docker.elastic.co/elasticsearch/elasticsearch:6.3.2
-        container_name: nomad-xt-elastic
         volumes:
-            - ../../.volumes/elastic:/usr/share/elasticsearch/data
+            - nomadxt_elastic:/usr/share/elasticsearch/data
         ports:
             - ${ELASTIC_HOST_PORT}:9200
 
     # the user data db
     mongo:
         image: mongo:latest
-        container_name: nomad-xt-mongo
+        container_name: nomadxt_mongo
         environment:
           - MONGO_DATA_DIR=/data/db
           - MONGO_LOG_DIR=/dev/null
@@ -80,7 +79,7 @@ services:
     elk:
         restart: always
         build: ../elk/
-        container_name: nomad-xt-elk
+        container_name: nomadxt_elk
         expose:
             - 5000 # logstash beats
             - 5044 # logstash tcp
@@ -90,7 +89,6 @@ services:
     # nomad processing worker
     worker:
         build: ../../
-        container_name: nomad-xt-worker
         environment:
             - NOMAD_MINIO_PORT=9000
             - NOMAD_MINIO_HOST=minio
@@ -159,3 +157,6 @@ services:
             - api
         ports:
             - ${GUI_HOST_PORT}:80
+
+volumes:
+    nomadxt_elastic:
