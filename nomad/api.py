@@ -6,9 +6,11 @@ from flask_cors import CORS
 import logging
 from elasticsearch.exceptions import NotFoundError
 
-from nomad import users, files, search
+from nomad import users, files, search, config
 from nomad.processing import UploadProc
 from nomad.utils import get_logger
+
+base_path = config.services.api_base_path
 
 app = Flask(__name__, static_url_path='/docs', static_folder='../docs/.build/html')
 CORS(app)
@@ -129,7 +131,7 @@ class RepoCalcs(Resource):
         }
 
 
-@app.route('/archive/<string:upload_hash>/<string:calc_hash>', methods=['GET'])
+@app.route('%s/archive/<string:upload_hash>/<string:calc_hash>' % base_path, methods=['GET'])
 def get_calc(upload_hash, calc_hash):
     archive_id = '%s/%s' % (upload_hash, calc_hash)
     logger = get_logger(__name__, archive_id=archive_id)
@@ -143,10 +145,10 @@ def get_calc(upload_hash, calc_hash):
         abort(500, message='Could not accessing the archive.')
 
 
-api.add_resource(Uploads, '/uploads')
-api.add_resource(Upload, '/uploads/<string:upload_id>')
-api.add_resource(RepoCalcs, '/repo')
-api.add_resource(RepoCalc, '/repo/<string:upload_hash>/<string:calc_hash>')
+api.add_resource(Uploads, '%s/uploads' % base_path)
+api.add_resource(Upload, '%s/uploads/<string:upload_id>' % base_path)
+api.add_resource(RepoCalcs, '%s/repo' % base_path)
+api.add_resource(RepoCalc, '%s/repo/<string:upload_hash>/<string:calc_hash>' % base_path)
 
 
 if __name__ == '__main__':
