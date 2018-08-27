@@ -1,9 +1,10 @@
 import React, { Component } from 'react'
 import HtmlToReact from 'html-to-react'
-import { withRouter } from 'react-router-dom';
+import { withRouter } from 'react-router-dom'
 import { HashLink as Link } from 'react-router-hash-link'
 import './Documentation.css'
 import Url from 'url-parse'
+import { apiBase } from '../config'
 
 const processNodeDefinitions = new HtmlToReact.ProcessNodeDefinitions(React)
 const processingInstructions = location => {
@@ -22,11 +23,11 @@ const processingInstructions = location => {
       shouldProcessNode: node => node.type === 'tag' && node.name === 'a' && node.attribs['href'] && !node.attribs['href'].startsWith('http'),
       processNode: (node, children) => {
         const linkUrl = Url(node.attribs['href'])
-        let pathname = linkUrl.pathname.replace(/^\/documentation/, '').replace(/^\//, '')
+        let pathname = linkUrl.pathname.replace(/^\/docs/, '').replace(/^\//, '')
         if (pathname === '' ) {
           pathname = location.pathname
         } else {
-          pathname = `/documentation/${pathname}`
+          pathname = `/docs/${pathname}`
         }
         return (<Link smooth to={pathname + (linkUrl.hash || '#')}>{children}</Link>)
       }
@@ -35,7 +36,7 @@ const processingInstructions = location => {
       // We have to redirect img src attributes to the static sphynx build dir.
       shouldProcessNode: node => node.type === 'tag' && node.name === 'img' && node.attribs['src'] && !node.attribs['src'].startsWith('http'),
       processNode: (node, children) => {
-        node.attribs['src'] = `/docs/${node.attribs['src']}`
+        node.attribs['src'] = `${apiBase}/docs/${node.attribs['src']}`
         return processNodeDefinitions.processDefaultNode(node)
       }
     },
@@ -56,7 +57,10 @@ class Documentation extends Component {
 
   onRouteChanged() {
     const fetchAndUpdate = path => {
-      fetch(`/docs/${path}`)
+      if (path === '' || path.startsWith('#')) {
+        path = 'index.html' + path
+      }
+      fetch(`${apiBase}/docs/${path}`)
         .then(response => response.text())
         .then(content => {
           // extract body of html page
@@ -78,7 +82,7 @@ class Documentation extends Component {
           }
         })
     }
-    const path = this.props.location.pathname.replace('/documentation/', '')
+    const path = this.props.location.pathname.replace('/docs/', '')
     fetchAndUpdate(path)
   }
 

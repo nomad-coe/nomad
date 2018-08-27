@@ -10,7 +10,7 @@ from nomad import users, files, search
 from nomad.processing import UploadProc
 from nomad.utils import get_logger
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/docs', static_folder='../docs/.build/html')
 CORS(app)
 api = Api(app)
 

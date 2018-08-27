@@ -47,6 +47,9 @@ COPY --from=dependencies /install /install
 COPY . /app
 WORKDIR /app
 RUN pip install -e .
+WORKDIR /app/docs
+RUN make html
+WORKDIR /app
 RUN useradd -ms /bin/bash nomad
 RUN mkdir -p /app/.volumes/fs; chown -R nomad /app/.volumes/fs
 USER nomad

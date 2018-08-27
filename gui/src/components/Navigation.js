@@ -29,7 +29,7 @@ const toolbarTitles = {
   '/repo': 'Raw Code Outputs',
   '/upload': 'Upload Your Own Data',
   '/profile': 'Your Profile',
-  '/documentation': 'Documentation',
+  '/docs': 'Documentation',
   '/archive': 'Code Independent Data',
   '/enc': 'The Material Perspective'
 }
@@ -39,7 +39,7 @@ const toolbarThemes = {
   '/repo': repoTheme,
   '/upload': repoTheme,
   '/profile': genTheme,
-  '/documentation': genTheme,
+  '/docs': genTheme,
   '/archive': archiveTheme,
   '/enc': encTheme
 }
@@ -141,7 +141,7 @@ class Navigation extends React.Component {
             </ListItemIcon>
             <ListItemText inset primary="Profil"/>
           </MenuItem>
-          <MenuItem component={Link} to="/documentation" selected={ '/documentation' === pathname }>
+          <MenuItem component={Link} to="/docs" selected={ '/docs' === pathname }>
             <ListItemIcon>
               <DocumentationIcon />
             </ListItemIcon>

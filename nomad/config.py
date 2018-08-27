@@ -82,7 +82,7 @@ mongo = MongoConfig(
     users_db='users'
 )
 logstash = LogstashConfig(
-    enabled=False,
+    enabled=True,
     host=os.environ.get('NOMAD_LOGSTASH_HOST', 'localhost'),
     tcp_port=int(os.environ.get('NOMAD_LOGSTASH_TCPPORT', '5000'))
 )
