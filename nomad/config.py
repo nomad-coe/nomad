@@ -42,6 +42,9 @@ MongoConfig = namedtuple('MongoConfig', ['host', 'users_db'])
 LogstashConfig = namedtuple('LogstashConfig', ['enabled', 'host', 'tcp_port'])
 """ Used to configure and enable/disable the ELK based centralized logging. """
 
+NomadServicesConfig = namedtupe('NomadServicesConfig', ['api_base_path'])
+""" Used to configure nomad services: worker, handler, api """
+
 files = FilesConfig(
     uploads_bucket='uploads',
     repository_bucket='repository',
@@ -85,4 +88,7 @@ logstash = LogstashConfig(
     enabled=True,
     host=os.environ.get('NOMAD_LOGSTASH_HOST', 'localhost'),
     tcp_port=int(os.environ.get('NOMAD_LOGSTASH_TCPPORT', '5000'))
+)
+services = NomadServicesConfig(
+    api_base_path='/nomadxt/api'
 )
