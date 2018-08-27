@@ -116,7 +116,7 @@ services:
             - rabbitmq
             - elastic
             - mongo
-            - elk
+            # - elk
         volumes:
             - ${VOLUME_BINDS}/fs:/app/.volumes/fs
         command: python -m celery worker -l info -A nomad.processing
@@ -138,7 +138,7 @@ services:
             - rabbitmq
             - elastic
             - mongo
-            - elk
+            # - elk
         command: python -m nomad.processing.handlerdaemon
 
     # nomad api
@@ -162,7 +162,7 @@ services:
             - rabbitmq
             - elastic
             - mongo
-            - elk
+            # - elk
         ports:
             - ${API_HOST_PORT}:8000
         command: python -m gunicorn.app.wsgiapp -w 4 -b 0.0.0.0:8000 nomad.api:app

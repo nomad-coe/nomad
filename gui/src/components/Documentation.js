@@ -4,7 +4,7 @@ import { withRouter } from 'react-router-dom'
 import { HashLink as Link } from 'react-router-hash-link'
 import './Documentation.css'
 import Url from 'url-parse'
-import { apiBase } from '../config'
+import { apiBase, appBase } from '../config'
 
 const processNodeDefinitions = new HtmlToReact.ProcessNodeDefinitions(React)
 const processingInstructions = location => {
@@ -58,9 +58,9 @@ class Documentation extends Component {
   onRouteChanged() {
     const fetchAndUpdate = path => {
       if (path === '' || path.startsWith('#')) {
-        path = 'index.html' + path
+        path = '/index.html' + path
       }
-      fetch(`${apiBase}/docs/${path}`)
+      fetch(`${apiBase}/docs${path}`)
         .then(response => response.text())
         .then(content => {
           // extract body of html page
@@ -82,7 +82,7 @@ class Documentation extends Component {
           }
         })
     }
-    const path = this.props.location.pathname.replace('/docs/', '')
+    const path = this.props.location.pathname.replace(`/docs`, '')
     fetchAndUpdate(path)
   }
 
