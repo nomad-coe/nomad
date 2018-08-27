@@ -1,4 +1,4 @@
-import { apiBase } from './config'
+import { apiBase, objectsBase } from './config'
 
 class Upload {
   constructor(json) {
@@ -9,6 +9,7 @@ class Upload {
   uploadFile(file) {
     console.assert(this.presigned_url)
     console.debug(`Upload ${file} to ${this.presigned_url}.`)
+    const url = this.presigned_url.replace('https://localhost:9000', objectsBase)
     return fetch(this.presigned_url, {
       method: 'PUT',
       headers: {

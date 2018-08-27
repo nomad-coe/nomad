@@ -20,7 +20,7 @@
 # The dockerfile is multistages to getaway with building on a larger base image.
 
 # using the base image with most requirements already installed
-FROM nomad-xt_requirements:latest as requirements
+FROM nomadxt_requirements:latest as requirements
 # we use slim for the final image
 FROM python:3.6-slim as final
 

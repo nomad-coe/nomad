@@ -20,7 +20,7 @@ import EncIcon from '@material-ui/icons/Assessment';
 import { Link, withRouter } from 'react-router-dom';
 import { compose } from 'recompose'
 import { Avatar, MuiThemeProvider } from '@material-ui/core';
-import { genTheme, repoTheme, archiveTheme, encTheme } from '../config';
+import { genTheme, repoTheme, archiveTheme, encTheme, appBase } from '../config';
 
 const drawerWidth = 200;
 
@@ -182,7 +182,7 @@ class Navigation extends React.Component {
                 <Typography variant="title" color="inherit" noWrap className={classes.flex}>
                   {selected(toolbarTitles)}
                 </Typography>
-                <Avatar src='/me.jpg'/>
+                <Avatar src={`${appBase}/me.jpg`}/>
               </Toolbar>
             </AppBar>
           </MuiThemeProvider>

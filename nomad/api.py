@@ -27,6 +27,15 @@ if me is None:
     me.save()
 
 
+def _external_objects_url(url):
+    """ Replaces the given internal object storage url (minio) with an URL that allows
+        external access. """
+    port_with_color = '' if config.services.objects_port > 0 else ':%d' % config.services.objects_port
+    return url.replace(
+        '%s:%s' % (config.minio.host, config.minio.port),
+        '%s:%s%s' % (config.services.objects_host, port_with_color, config.services.objects_base_path))
+
+
 class Uploads(Resource):
 
     @staticmethod
@@ -40,7 +49,7 @@ class Uploads(Resource):
         data = {
             'name': upload.name,
             'upload_id': upload.upload_id,
-            'presigned_url': upload.presigned_url,
+            'presigned_url': _external_objects_url(upload.presigned_url),
             'create_time': upload.create_time.isoformat() if upload.create_time is not None else None,
             'upload_time': upload.upload_time.isoformat() if upload.upload_time is not None else None,
             'proc_time': upload.proc_time.isoformat() if upload.proc_time is not None else None,
@@ -139,7 +148,7 @@ def get_calc(upload_hash, calc_hash):
     archive_id = '%s/%s' % (upload_hash, calc_hash)
     logger = get_logger(__name__, archive_id=archive_id)
     try:
-        url = files.archive_url(archive_id)
+        url = _external_objects_url(files.archive_url(archive_id))
         return redirect(url, 302)
     except KeyError:
         abort(404, message='Archive %s does not exist.' % archive_id)

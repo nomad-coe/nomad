@@ -5,6 +5,7 @@ import secondary from '@material-ui/core/colors/blueGrey';
 import { createMuiTheme } from '@material-ui/core';
 
 export const apiBase = '/nomadxt/api'
+export const objectsBase = '/nomadxt/objects'
 export const appBase = '/nomadxt'
 
 export const genTheme = createMuiTheme({
