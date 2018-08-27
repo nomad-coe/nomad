@@ -30,10 +30,13 @@ if me is None:
 def _external_objects_url(url):
     """ Replaces the given internal object storage url (minio) with an URL that allows
         external access. """
-    port_with_color = '' if config.services.objects_port > 0 else ':%d' % config.services.objects_port
+    port_with_colon = ''
+    if config.services.objects_port > 0:
+        port_with_colon = ':%d' % config.services.objects_port
+
     return url.replace(
         '%s:%s' % (config.minio.host, config.minio.port),
-        '%s:%s%s' % (config.services.objects_host, port_with_color, config.services.objects_base_path))
+        '%s%s%s' % (config.services.objects_host, port_with_colon, config.services.objects_base_path))
 
 
 class Uploads(Resource):
@@ -50,6 +53,7 @@ class Uploads(Resource):
             'name': upload.name,
             'upload_id': upload.upload_id,
             'presigned_url': _external_objects_url(upload.presigned_url),
+            'presigned_orig': upload.presigned_url,
             'create_time': upload.create_time.isoformat() if upload.create_time is not None else None,
             'upload_time': upload.upload_time.isoformat() if upload.upload_time is not None else None,
             'proc_time': upload.proc_time.isoformat() if upload.proc_time is not None else None,

@@ -92,6 +92,6 @@ logstash = LogstashConfig(
 services = NomadServicesConfig(
     api_base_path=os.environ.get('NOMAD_API_BASE_PATH', ''),
     objects_host=os.environ.get('NOMAD_OBJECTS_HOST', 'localhost'),
-    objects_port=int(os.environ.get('NOMAD_OBJECTS_PORT', -1)),
+    objects_port=int(os.environ.get('NOMAD_OBJECTS_PORT', minio.port)),
     objects_base_path=os.environ.get('NOMAD_OBJECTS_BASE_PATH', '')
 )

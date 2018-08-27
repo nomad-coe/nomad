@@ -25,11 +25,24 @@ services:
             - ${MINIO_HOST_PORT}:9000
         volumes:
             - ${VOLUME_BINDS}/minio:/data
-            - ../config/minio:/root/.minio
         environment:
             - MINIO_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE
             - MINIO_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
         command: server /data
+
+    minio-config:
+        image: minio/mc
+        links:
+            - minio
+        entrypoint: /bin/sh -c "
+            sleep 5;
+            /usr/bin/mc config host add minio http://minio:9000 AKIAIOSFODNN7EXAMPLE wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY;
+            /usr/bin/mc mb minio/uploads -p;
+            /usr/bin/mc mb minio/archive -p;
+            /usr/bin/mc mb minio/repository -p;
+            /usr/bin/mc policy download minio/repository;
+            /usr/bin/mc policy download minio/archive;
+            /usr/bin/mc policy upload minio/uploads;"
 
     # broker for celery
     rabbitmq:
