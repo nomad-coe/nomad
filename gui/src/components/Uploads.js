@@ -46,7 +46,8 @@ class Uploads extends React.Component {
   componentDidMount() {
     api.getUploads()
       .then(uploads => {
-        this.setState({uploads: uploads})
+        const filteredUploads = uploads.filter(upload => !upload.is_state)
+        this.setState({uploads: filteredUploads})
       })
       .catch(error => {
         this.setState({uploads: []})

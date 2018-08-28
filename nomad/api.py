@@ -39,31 +39,44 @@ def _external_objects_url(url):
         '%s%s%s' % (config.services.objects_host, port_with_colon, config.services.objects_base_path))
 
 
+def _update_and_render(upload: users.Upload):
+    """
+    If the given upload as a processing state attached, it will attempt to update this
+    state and store the results, before the upload is rendered for the client.
+    """
+    is_stale = False
+
+    if upload.proc:
+        proc = UploadProc(**upload.proc)
+        if proc.update_from_backend():
+            upload.proc = proc
+            upload.save()
+
+        if proc.current_task_name == proc.task_names[0] and upload.upload_time is None:
+            is_stale = (datetime.now() - upload.create_time).days > 1
+
+    else:
+        proc = None
+
+    data = {
+        'name': upload.name,
+        'upload_id': upload.upload_id,
+        'presigned_url': _external_objects_url(upload.presigned_url),
+        'presigned_orig': upload.presigned_url,
+        'create_time': upload.create_time.isoformat() if upload.create_time is not None else None,
+        'upload_time': upload.upload_time.isoformat() if upload.upload_time is not None else None,
+        'proc_time': upload.proc_time.isoformat() if upload.proc_time is not None else None,
+        'is_stale': is_stale,
+        'proc': proc
+    }
+
+    return {key: value for key, value in data.items() if value is not None}
+
+
 class Uploads(Resource):
 
-    @staticmethod
-    def _render(upload: users.Upload):
-        if upload.proc:
-            proc = UploadProc(**upload.proc)
-            proc.update_from_backend()
-        else:
-            proc = None
-
-        data = {
-            'name': upload.name,
-            'upload_id': upload.upload_id,
-            'presigned_url': _external_objects_url(upload.presigned_url),
-            'presigned_orig': upload.presigned_url,
-            'create_time': upload.create_time.isoformat() if upload.create_time is not None else None,
-            'upload_time': upload.upload_time.isoformat() if upload.upload_time is not None else None,
-            'proc_time': upload.proc_time.isoformat() if upload.proc_time is not None else None,
-            'proc': proc
-        }
-
-        return {key: value for key, value in data.items() if value is not None}
-
     def get(self):
-        return [Uploads._render(user) for user in users.Upload.objects()], 200
+        return [_update_and_render(user) for user in users.Upload.objects()], 200
 
     def post(self):
         json_data = request.get_json()
@@ -78,7 +91,7 @@ class Uploads(Resource):
         upload.proc = UploadProc(upload.upload_id)
         upload.save()
 
-        return Uploads._render(upload), 200
+        return _update_and_render(upload), 200
 
 
 class Upload(Resource):
@@ -91,7 +104,7 @@ class Upload(Resource):
         if upload is None:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
-        return Uploads._render(upload), 200
+        return _update_and_render(upload), 200
 
 
 class RepoCalc(Resource):

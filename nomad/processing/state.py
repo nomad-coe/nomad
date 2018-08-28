@@ -118,17 +118,24 @@ class CalcProc(ProcPipeline):
 
         self.update(kwargs)
 
-    def update_from_backend(self):
+    def update_from_backend(self) -> bool:
+        """ Consults results backend and updates. Returns if object might have changed. """
+        if self.status in ['FAILED', 'SUCCESS']:
+            return False
         if self.celery_task_id is None:
-            return
+            return False
 
         celery_task_result = AsyncResult(self.celery_task_id, app=app)
         if celery_task_result.ready():
             self.update(celery_task_result.result)
+            return True
         else:
             info = celery_task_result.info
             if info is not None:
                 self.update(info)
+                return True
+
+        return False
 
 
 class UploadProc(ProcPipeline):
@@ -208,25 +215,38 @@ class UploadProc(ProcPipeline):
 
         return result_from_tuple(self.celery_task_ids, app=app)
 
-    def update_from_backend(self):
-        """ Consults the result backend and updates itself with the available results. """
+    def update_from_backend(self) -> bool:
+        """
+        Consults the result backend and updates itself with the available results.
+        Will only update not completed processings.
+
+        Returns:
+             If object might have changed.
+        """
         assert self.is_started, 'Run is not yet started.'
 
+        if self.status in ['SUCCESS', 'FAILED']:
+            return False
+
         if self.celery_task_ids is None:
-            return
+            return False
 
         celery_task_result = self._celery_task_result
-
+        might_have_changed = False
         while celery_task_result is not None:
             if celery_task_result.ready():
                 self.update(celery_task_result.result)
+                might_have_changed = True
                 break
             else:
                 celery_task_result = celery_task_result.parent
 
         if self.calc_procs is not None:
             for calc_proc in self.calc_procs:
-                calc_proc.update_from_backend()
+                if calc_proc.update_from_backend():
+                    might_have_changed = True
+
+        return might_have_changed
 
     def forget(self) -> None:
         """ Forget the results of a completed run; free all resources in the results backend. """
@@ -251,6 +271,8 @@ class UploadProc(ProcPipeline):
 
         Returns: An upadted instance of itself with all the results.
         """
+        # TODO this is not a good idea, we wont catch failed parent processes and block
+        # forever
         assert self.is_started, 'Run is not yet started.'
 
         self._celery_task_result.get(*args, **kwargs)

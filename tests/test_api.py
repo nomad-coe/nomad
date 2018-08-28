@@ -6,20 +6,28 @@ import time
 import json
 from mongoengine import connect
 from mongoengine.connection import disconnect
+from datetime import datetime, timedelta
 
-from nomad import config, api, files, processing
+from nomad import config
+# for convinience we test the api without path prefix
+services_config = config.services._asdict()
+services_config.update(api_base_path='')
+config.services = config.NomadServicesConfig(**services_config)
 
-from tests.test_processing import example_files
-from tests.test_files import assert_exists
+from nomad import api, files, processing, users  # noqa
+
+from tests.test_processing import example_files  # noqa
+from tests.test_files import assert_exists  # noqa
+
 # import fixtures
-from tests.test_files import clear_files, archive_id  # pylint: disable=unused-import
-from tests.test_normalizing import normalized_vasp_example  # pylint: disable=unused-import
-from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
-from tests.test_search import example_entry  # pylint: disable=unused-import
-from tests.test_processing import celery_config, celery_includes  # pylint: disable=unused-import
+from tests.test_files import clear_files, archive_id  # noqa pylint: disable=unused-import
+from tests.test_normalizing import normalized_vasp_example  # noqa pylint: disable=unused-import
+from tests.test_parsing import parsed_vasp_example  # noqa pylint: disable=unused-import
+from tests.test_search import example_entry  # noqa pylint: disable=unused-import
+from tests.test_processing import celery_config, celery_includes  # noqa pylint: disable=unused-import
 
 
-@pytest.fixture
+@pytest.fixture(scope='function')
 def client():
     disconnect()
     connect('users_test', host=config.mongo.host, is_mock=True)
@@ -28,6 +36,7 @@ def client():
     client = api.app.test_client()
 
     yield client
+    users.Upload._get_collection().drop()
 
 
 def assert_uploads(upload_json_str, count=0, **kwargs):
@@ -39,13 +48,16 @@ def assert_uploads(upload_json_str, count=0, **kwargs):
         assert_upload(json.dumps(data[0]), **kwargs)
 
 
-def assert_upload(upload_json_str, id=None):
+def assert_upload(upload_json_str, id=None, **kwargs):
     data = json.loads(upload_json_str)
     assert 'upload_id' in data
     if id is not None:
         assert id == data['upload_id']
     assert 'create_time' in data
     assert 'presigned_url' in data
+
+    for key, value in kwargs.items():
+        assert data.get(key, None) == value
 
     return data
 
@@ -67,6 +79,23 @@ def test_not_existing_upload(client):
     assert rv.status_code == 404
 
 
+def test_stale_upload(client):
+    rv = client.post(
+        '/uploads',
+        data=json.dumps(dict(name='test_name')),
+        content_type='application/json')
+    assert rv.status_code == 200
+    upload_id = assert_upload(rv.data)['upload_id']
+
+    upload = users.Upload.objects(id=upload_id).first()
+    upload.create_time = datetime.now() - timedelta(days=2)
+    upload.save()
+
+    rv = client.get('/uploads/%s' % upload_id)
+    assert rv.status_code == 200
+    assert_upload(rv.data, is_stale=True)
+
+
 def test_create_upload(client):
     rv = client.post('/uploads')
 
@@ -75,7 +104,7 @@ def test_create_upload(client):
 
     rv = client.get('/uploads/%s' % upload_id)
     assert rv.status_code == 200
-    assert_upload(rv.data, id=upload_id)
+    assert_upload(rv.data, id=upload_id, is_stale=False)
 
     rv = client.get('/uploads')
     assert rv.status_code == 200
