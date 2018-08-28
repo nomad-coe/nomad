@@ -10,6 +10,7 @@ import { withErrors } from './errors';
 import { compose } from 'recompose';
 import DeleteIcon from '@material-ui/icons/Delete'
 import CheckIcon from '@material-ui/icons/Check'
+import CommingSoon from './CommingSoon';
 
 var styles = theme => ({
     root: {
@@ -46,7 +47,7 @@ var styles = theme => ({
 class Uploads extends React.Component {
 
   state = {
-    uploads: null, selectedUploads: [], loading: true
+    uploads: null, selectedUploads: [], loading: true, acceptCommingSoon: false
   }
 
   componentDidMount() {
@@ -77,7 +78,7 @@ class Uploads extends React.Component {
   }
 
   onAcceptClicked() {
-
+    this.setState({acceptCommingSoon: true})
   }
 
   onDrop(files) {
@@ -140,6 +141,13 @@ class Uploads extends React.Component {
                 >
                   <CheckIcon />
                 </IconButton>
+                <CommingSoon
+                    open={this.state.acceptCommingSoon}
+                    onClose={() => this.setState({acceptCommingSoon: false})}>
+                  This will allow you to accept uploads and their calculations.
+                  Only accepted uploads will be available in nomad xt,
+                  and they cannot be deleted anymore.
+                </CommingSoon>
             </FormGroup>
           </div>
           <div className={classes.uploads}>
