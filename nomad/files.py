@@ -47,13 +47,11 @@ import shutil
 from minio import Minio
 import minio.error
 import logging
-import itertools
 import hashlib
 import base64
 from contextlib import contextmanager
 import gzip
 import io
-import json
 
 import nomad.config as config
 
