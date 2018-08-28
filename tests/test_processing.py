@@ -24,13 +24,28 @@ import time
 
 import nomad.config as config
 import nomad.files as files
-from nomad.processing import start_processing
+from nomad.processing import start_processing, ProcPipeline
 
 from tests.test_files import example_file, empty_file
 # import fixtures
 from tests.test_files import clear_files  # pylint: disable=unused-import
 
 example_files = [empty_file, example_file]
+
+
+# @pytest.fixture(autouse=True)
+# def patch(monkeypatch):
+#     original = UploadProc.continue_with
+
+#     def continue_with(self: UploadProc, task):
+#         if self.upload_id.startswith('__fail_in_'):
+#             fail_in_task = self.upload_id.replace('__fail_in_', '')
+#             if fail_in_task == task:
+#                 raise Exception('fail for test')
+
+#         return original(self, task)
+
+#     monkeypatch.setattr('nomad.processing.state.UploadProc.continue_with', continue_with)
 
 
 @pytest.fixture(scope='session')
@@ -87,10 +102,11 @@ def test_processing(uploaded_id, celery_session_worker):
     upload_proc.forget()
 
 
+@pytest.mark.timeout(30)
 def test_process_non_existing(celery_session_worker):
     upload_proc = start_processing('__does_not_exist')
 
-    upload_proc.get(timeout=30)
+    upload_proc.get()
 
     assert upload_proc.ready()
     upload_proc.forget()
@@ -98,3 +114,34 @@ def test_process_non_existing(celery_session_worker):
     assert upload_proc.current_task_name == 'extracting'
     assert upload_proc.status == 'FAILURE'
     assert len(upload_proc.errors) > 0
+
+
+@pytest.mark.parametrize('task', ['extracting', 'parse_all', 'cleanup', 'parsers/vasp'])
+def test_task_failure(monkeypatch, uploaded_id, celery_session_worker, task):
+    original_continue_with = ProcPipeline.continue_with
+
+    def continue_with(self: ProcPipeline, current_task):
+        if task == current_task:
+            raise Exception('fail for test')
+
+        return original_continue_with(self, current_task)
+
+    monkeypatch.setattr('nomad.processing.state.ProcPipeline.continue_with', continue_with)
+
+    upload_proc = start_processing(uploaded_id)
+    upload_proc.get()
+
+    assert upload_proc.ready()
+
+    if task != 'parsers/vasp':
+        assert upload_proc.status == 'FAILURE'
+        assert upload_proc.current_task_name == task
+        assert len(upload_proc.errors) > 0
+    elif len(upload_proc.calc_procs) > 0:  # ignore the empty example upload
+        assert upload_proc.status == 'FAILURE'
+        assert upload_proc.current_task_name == 'cleanup'
+        assert len(upload_proc.errors) > 0
+        for calc_proc in upload_proc.calc_procs:
+            assert calc_proc.status == 'FAILURE'
+            assert calc_proc.current_task_name == 'parser/vasp'
+            assert len(calc_proc.errors) > 0

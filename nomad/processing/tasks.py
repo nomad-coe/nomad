@@ -25,8 +25,6 @@ import nomad.patch  # pylint: disable=unused-import
 from nomad.processing.app import app
 from nomad.processing.state import UploadProc, CalcProc
 
-import json
-
 
 @app.task(bind=True, name='extracting')
 def extracting_task(task: Task, proc: UploadProc) -> UploadProc:

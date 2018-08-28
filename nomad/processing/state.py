@@ -15,6 +15,7 @@
 from typing import List, Any, Union, cast
 from celery.result import AsyncResult, result_from_tuple
 import itertools
+import time
 
 from nomad import utils
 from nomad.normalizing import normalizers
@@ -120,7 +121,7 @@ class CalcProc(ProcPipeline):
 
     def update_from_backend(self) -> bool:
         """ Consults results backend and updates. Returns if object might have changed. """
-        if self.status in ['FAILED', 'SUCCESS']:
+        if self.status in ['FAILURE', 'SUCCESS']:
             return False
         if self.celery_task_id is None:
             return False
@@ -225,17 +226,29 @@ class UploadProc(ProcPipeline):
         """
         assert self.is_started, 'Run is not yet started.'
 
-        if self.status in ['SUCCESS', 'FAILED']:
+        if self.status in ['SUCCESS', 'FAILURE']:
             return False
 
         if self.celery_task_ids is None:
             return False
 
         celery_task_result = self._celery_task_result
+        task_index = len(self.task_names)
         might_have_changed = False
         while celery_task_result is not None:
+            task_index -= 1
             if celery_task_result.ready():
-                self.update(celery_task_result.result)
+                result = celery_task_result.result
+                if isinstance(result, Exception):
+                    self.fail(result)
+                    self.current_task_name = self.task_names[task_index]
+                    logger = utils.get_logger(
+                        __name__,
+                        upload_id=self.upload_id,
+                        current_task_name=self.current_task_name)
+                    logger.error('Celery task raised exception.', exc_info=result)
+                else:
+                    self.update(result)
                 might_have_changed = True
                 break
             else:
@@ -260,21 +273,28 @@ class UploadProc(ProcPipeline):
 
     def ready(self) -> bool:
         """ Returns: True if the task has been executed. """
-        assert self.is_started, 'Run is not yet started.'
+        self.update_from_backend()
+        return self.status in ['FAILURE', 'SUCCESS']
 
-        return self._celery_task_result.ready()
-
-    def get(self, *args, **kwargs) -> 'UploadProc':
+    def get(self, interval=1, timeout=None) -> 'UploadProc':
         """
-        Blocks until the processing has finished. Forwards args, kwargs to
-        *celery.result.get* for timeouts, etc.
+        Blocks until the processing has finished. It uses the given interval
+        to contineously consult the results backend.
+
+        Arguments:
+            interval: a period to sleep between updates
+            timeout: a rough timeout to terminated, even unfinished
 
         Returns: An upadted instance of itself with all the results.
         """
-        # TODO this is not a good idea, we wont catch failed parent processes and block
-        # forever
         assert self.is_started, 'Run is not yet started.'
 
-        self._celery_task_result.get(*args, **kwargs)
+        slept = 0
+        while not self.ready() and (timeout is None or slept < timeout):
+            time.sleep(interval)
+            slept += interval
+            self.update_from_backend()
+
         self.update_from_backend()
+
         return self
