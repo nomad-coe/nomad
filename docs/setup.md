@@ -26,8 +26,14 @@ pip install -e .
 ```
 
 ### Build and run the dev infrastructure with docker.
+There are different modes to work and develop with nomad-xt. First, you
+can run everything in docker containers. Second, you can only run the 3rd party
+services, like databases and message queues in docker, and run everything else (partially)
+manually.
+
 First, you need to build an image with all dependencies. We separated this so we
-do not need to redownload and bwheel-build rarely changing dependencies all the time.
+do not need to redownload and bwheel-build rarely changing dependencies all the time (and
+multi stage builds and docker caching seems not to be good enough here).
 From the root:
 ```
 docker build -t nomad-requirements -f requirements.Dockerfile .
@@ -40,15 +46,16 @@ cd ./infrastructure
 docker-compose build
 ```
 
-You can run all containers, including ELK and processing workers:
+You can run all containers with:
 ```
 docker-compose up
 ```
 
 You can alos run services selectively, e.g.
 ```
-docker-compose up -d redis, rabbitmq, minio, mongo, elastic, elk
-docker-compose up nomad-worker nomad-handler
+docker-compose up -d redis, rabbitmq, minio, minio-config, mongo, elastic, elk
+docker-compose up worker handler
+docker-compose up api gui
 ```
 
 If you run the ELK stack (and enable logstash in nomad/config.py),
@@ -61,14 +68,19 @@ infrastructure's minio host to the minio client (mc).
 mc config host add minio http://localhost:9007 AKIAIOSFODNN7EXAMPLE wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 ```
 
-### Run the celery worker
-You can run the worker as part of the docker infrastructure.
-```
-cd infrastructure
-docker-compose up nomad-worker
-```
-In this case, the worker inside docker and python outside docker, will try to adress
-the Redis backend with different hosts. This does not work. If you need this, you
+### Serving minio, api, gui from one nginx
+The docker-compose is setup to server all client accessible services from one webserver
+via nginx *proxy_pass* directives.
+This is currelty part of the gui image/container. The api is served at `/nomadxt/api`,
+minio ad `/nomadxt/objects` and the gui ad `/nomadxt`. This also means that there
+is some URL rewriting and prefixing in the api and gui.
+
+### Run the nomad worker manually
+You can run the worker, handler, api, and gui as part of the docker infrastructure, like
+seen above.
+
+In this case you run the worker inside docker and other python outside docker, it will try
+to adress the Redis backend with different hosts. This does not work. If you need this, you
 could add `127.0.0.1 redis` to your `/etc/hosts`. Or do some docker-compose networking
 magic.
 
@@ -106,9 +118,24 @@ Or manually form the root
 python -m nomad.handler
 ```
 
+### Run the api
+Either with docker, or:
+```
+python nomad/api.py
+```
+
+### Run the gui
+Either with docker, or:
+```
+cd gui
+yarn
+yarn start
+```
+
 ### Run tests.
 You need to have the infrastructure partially running: minio, elastic, rabbitmq, redis.
-The rest should be mocked or provied by the tests.
+The rest should be mocked or provied by the tests. Make sure that you do no run any
+worker and handler in parallel, as they will fight for tasks in the queue.
 ```
 cd instrastructure
 docker-compose up -d minio elastic rabbitmq, redis
