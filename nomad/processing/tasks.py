@@ -67,8 +67,7 @@ def extracting_task(task: Task, proc: UploadProc) -> UploadProc:
             for parser in parsers:
                 if parser.is_mainfile(upload, filename):
                     tmp_mainfile = upload.get_path(filename)
-                    calc_proc = CalcProc(
-                        proc.upload_hash, filename, parser.name, tmp_mainfile)
+                    calc_proc = CalcProc(filename, parser.name, tmp_mainfile)
                     proc.calc_procs.append(calc_proc)
 
     except files.UploadError as e:
@@ -115,7 +114,7 @@ def parse_all_task(task: Task, upload_proc: UploadProc, cleanup: Signature) -> U
         return upload_proc
 
     # prepare the group of parallel calc processings
-    parses = group(parse_task.s(calc_proc) for calc_proc in upload_proc.calc_procs)
+    parses = group(parse_task.s(calc_proc, upload_proc) for calc_proc in upload_proc.calc_procs)
 
     # save the calc processing task ids to the overall processing
     for idx, child in enumerate(parses.freeze().children):
@@ -128,10 +127,10 @@ def parse_all_task(task: Task, upload_proc: UploadProc, cleanup: Signature) -> U
 
 
 @app.task(bind=True, name='parse')
-def parse_task(self, proc: CalcProc) -> CalcProc:
-    assert proc.upload_hash is not None
+def parse_task(self, proc: CalcProc, upload_proc: UploadProc) -> CalcProc:
+    assert upload_proc.upload_hash is not None
 
-    upload_hash, parser, mainfile = proc.upload_hash, proc.parser_name, proc.mainfile
+    upload_hash, parser, mainfile = upload_proc.upload_hash, proc.parser_name, proc.mainfile
     logger = utils.get_logger(__name__, upload_hash=upload_hash, mainfile=mainfile)
 
     # parsing
@@ -171,6 +170,7 @@ def parse_task(self, proc: CalcProc) -> CalcProc:
             parser_backend,
             upload_hash=upload_hash,
             calc_hash=proc.calc_hash,
+            upload_id=upload_proc.upload_id,
             mainfile=mainfile,
             upload_time=datetime.now())
     except Exception as e:
@@ -181,7 +181,7 @@ def parse_task(self, proc: CalcProc) -> CalcProc:
 
     # calc data persistence
     proc.continue_with('archiving')
-    archive_id = proc.archive_id
+    archive_id = '%s/%s' % (upload_proc.upload_hash, proc.calc_hash)
     try:
         with files.write_archive_json(archive_id) as out:
             parser_backend.write_json(out, pretty=True)

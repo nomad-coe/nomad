@@ -1,6 +1,6 @@
 import { apiBase } from './config'
 
-const networkError = () => {
+const networkError = (error) => {
   throw Error('Network related error, cannot reach API or object storage.')
 }
 const handleResponseErrors = (response) => {
@@ -24,19 +24,20 @@ class Upload {
       },
       body: file
     })
+    .catch(networkError)
     .then(handleResponseErrors)
     .then(() => this)
-    .catch(networkError)
   }
 
   update() {
     return fetch(`${apiBase}/uploads/${this.upload_id}`)
+      .catch(networkError)
       .then(handleResponseErrors)
       .then(response => response.json())
       .then(uploadJson => {
         Object.assign(this, uploadJson)
         return this
-      }).catch(networkError)
+      })
   }
 }
 
@@ -51,43 +52,51 @@ function createUpload(name) {
     }
   }
   return fetch(`${apiBase}/uploads`, fetchData)
+    .catch(networkError)
     .then(handleResponseErrors)
     .then(response => response.json())
     .then(uploadJson => new Upload(uploadJson))
-    .catch(networkError)
 }
 
 function getUploads() {
   return fetch(`${apiBase}/uploads`)
+    .catch(networkError)
     .then(handleResponseErrors)
     .then(response => response.json())
     .then(uploadsJson => uploadsJson.map(uploadJson => new Upload(uploadJson)))
-    .catch(networkError)
 }
 
 function archive(uploadHash, calcHash) {
   return fetch(`${apiBase}/archive/${uploadHash}/${calcHash}`)
+    .catch(networkError)
     .then(handleResponseErrors)
     .then(response => response.json())
-    .catch(networkError)
 }
 
 function repo(uploadHash, calcHash) {
   return fetch(`${apiBase}/repo/${uploadHash}/${calcHash}`)
+    .catch(networkError)
     .then(handleResponseErrors)
     .then(response => response.json())
-    .catch(networkError)
 }
 
 function repoAll(page, perPage) {
   return fetch(`${apiBase}/repo?page=${page}&per_page=${perPage}`)
+    .catch(networkError)
     .then(handleResponseErrors)
     .then(response => response.json())
+}
+
+function deleteUpload(uploadId) {
+  return fetch(`${apiBase}/uploads/${uploadId}`, {method: 'DELETE'})
     .catch(networkError)
+    .then(handleResponseErrors)
+    .then(response => response.json())
 }
 
 const api = {
   createUpload: createUpload,
+  deleteUpload: deleteUpload,
   getUploads: getUploads,
   archive: archive,
   repo: repo,

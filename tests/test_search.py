@@ -15,6 +15,7 @@
 import pytest
 from typing import Generator
 from datetime import datetime
+import time
 
 from nomad.parsing import LocalBackend
 from nomad.search import Calc, key_mappings
@@ -29,8 +30,10 @@ def example_entry(normalized_vasp_example: LocalBackend) -> Generator[Calc, None
         normalized_vasp_example,
         upload_hash='test_upload_hash',
         calc_hash='test_calc_hash',
+        upload_id='test_upload_id',
         mainfile='/test/mainfile',
         upload_time=datetime.now())
+    time.sleep(1)  # eventually consistent?
     yield entry
     entry.delete()
 

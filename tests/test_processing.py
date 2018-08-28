@@ -98,9 +98,7 @@ def test_processing(uploaded_id, celery_session_worker):
     for calc_proc in upload_proc.calc_procs:
         assert calc_proc.parser_name is not None
         assert calc_proc.mainfile is not None
-        assert calc_proc.upload_hash is not None
         assert calc_proc.calc_hash is not None
-        assert calc_proc.archive_id is not None
         assert calc_proc.status == 'SUCCESS'
         assert len(calc_proc.errors) == 0
 

@@ -95,10 +95,9 @@ class CalcProc(ProcPipeline):
 
     Attributes:
         calc_hash: The mainfile hash that identifies the calc in the archive.
-        archive_id: The id that identifies the archive via `upload_hash/calc_hash`.
         celery_task_id: The celery task id for the calc parse celery task.
     """
-    def __init__(self, upload_hash, mainfile, parser_name, tmp_mainfile, *args, **kwargs):
+    def __init__(self, mainfile, parser_name, tmp_mainfile, *args, **kwargs):
         task_names = [
             [parser_name],
             [n.__name__ for n in normalizers],
@@ -107,13 +106,11 @@ class CalcProc(ProcPipeline):
 
         super().__init__(task_names=list(itertools.chain(*task_names)), *args)
 
-        self.upload_hash = upload_hash
         self.mainfile = mainfile
         self.parser_name = parser_name
         self.tmp_mainfile = tmp_mainfile
 
         self.calc_hash = utils.hash(mainfile)
-        self.archive_id = '%s/%s' % (self.upload_hash, self.calc_hash)
 
         self.celery_task_id: str = None
 

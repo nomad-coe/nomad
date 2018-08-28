@@ -1,11 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography, ExpansionPanelDetails,
-  Stepper, Step, StepLabel, Table, TableRow, TableCell, TableBody } from '@material-ui/core';
+import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography,
+  ExpansionPanelDetails, Stepper, Step, StepLabel, Table, TableRow, TableCell, TableBody,
+  Checkbox,
+  FormControlLabel} from '@material-ui/core';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ReactJson from 'react-json-view'
 import CalcLinks from './CalcLinks';
-import { compose, componentFromStreamWithConfig } from 'recompose';
+import { compose } from 'recompose';
 import { withErrors } from './errors';
 import { debug } from '../config';
 
@@ -13,7 +15,9 @@ import { debug } from '../config';
 class Upload extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    upload: PropTypes.object.isRequired
+    upload: PropTypes.object.isRequired,
+    checked: PropTypes.bool,
+    onCheckboxChanged: PropTypes.func
   }
   static styles = theme => ({
       root: {},
@@ -32,6 +36,9 @@ class Upload extends React.Component {
       title: {
         flexBasis: '20%',
         flexShrink: 0,
+        marginRight: theme.spacing.unit * 2
+      },
+      checkbox: {
         marginRight: theme.spacing.unit * 2
       },
       stepper: {
@@ -58,7 +65,7 @@ class Upload extends React.Component {
         .then(upload => {
           console.assert(upload.proc, 'Uploads always must have a proc')
           this.setState({upload: upload})
-          if (upload.proc.status !== 'SUCCESS') {
+          if (upload.proc.status !== 'SUCCESS' && upload.proc.status !== 'FAILURE' && !upload.proc.is_stale) {
             this.updateUpload()
           }
         })
@@ -71,6 +78,12 @@ class Upload extends React.Component {
 
   componentDidMount() {
     this.updateUpload()
+  }
+
+  onCheckboxChanged(_, checked) {
+    if (this.props.onCheckboxChanged) {
+      this.props.onCheckboxChanged(checked)
+    }
   }
 
   renderTitle() {
@@ -136,7 +149,7 @@ class Upload extends React.Component {
 
   renderCalcTable() {
     const { classes } = this.props
-    const { calc_procs, status } = this.state.upload.proc
+    const { calc_procs, status, upload_hash } = this.state.upload.proc
 
     if (calc_procs.length === 0) {
       return (
@@ -147,7 +160,7 @@ class Upload extends React.Component {
     }
 
     const renderRow = (calcProc, index) => {
-      const { mainfile, calc_hash, parser_name, task_names, current_task_name, upload_hash } = calcProc
+      const { mainfile, calc_hash, parser_name, task_names, current_task_name } = calcProc
       return (
         <TableRow key={index}>
           <TableCell>
@@ -197,7 +210,16 @@ class Upload extends React.Component {
     if (this.state.upload) {
       return (
         <ExpansionPanel>
-          <ExpansionPanelSummary expandIcon={<ExpandMoreIcon/>}>
+          <ExpansionPanelSummary
+              expandIcon={<ExpandMoreIcon/>}>
+            <FormControlLabel control={(
+              <Checkbox
+                checked={this.props.checked}
+                className={classes.checkbox}
+                onClickCapture={(e) => e.stopPropagation()}
+                onChange={this.onCheckboxChanged.bind(this)}
+              />
+            )}/>
             {this.renderTitle()} {this.renderStepper()}
           </ExpansionPanelSummary>
           <ExpansionPanelDetails style={{width: '100%'}} classes={{root: classes.details}}>

@@ -49,6 +49,7 @@ class Calc(Document):
     calc_hash = Keyword()
 
     upload_time = Date()
+    upload_id = Keyword()
     upload_hash = Keyword()
     mainfile = Keyword()
 
@@ -72,10 +73,10 @@ class Calc(Document):
         return client.search(index=config.elastic.calc_index, body=body)
 
     @staticmethod
-    def search_objs(**kwargs):
+    def delete_all(**kwargs):
         return Search(using=client, index=config.elastic.calc_index) \
             .query('match', **kwargs) \
-            .execute()
+            .delete()
 
     @staticmethod
     def upload_exists(upload_hash):
@@ -90,13 +91,15 @@ class Calc(Document):
     def add_from_backend(backend: LocalBackend, **kwargs) -> 'Calc':
         """
         Add the calc data from the given backend to the elastic search index. Additional
-        meta-data can be given as *kwargs*.
+        meta-data can be given as *kwargs*. ``upload_id``, ``upload_hash``, and ``calc_hash``
+        are mandatory.
         """
 
+        upload_id = kwargs.get('upload_id', None)
         upload_hash = kwargs.get('upload_hash', None)
         calc_hash = kwargs.get('calc_hash', None)
 
-        assert upload_hash is not None and calc_hash is not None
+        assert upload_hash is not None and calc_hash is not None and upload_id is not None
 
         calc = Calc(meta=dict(id='%s/%s' % (upload_hash, calc_hash)))
 

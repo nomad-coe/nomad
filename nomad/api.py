@@ -139,11 +139,10 @@ class Upload(Resource):
 
         if proc.upload_hash is not None:
             with logger.lnr_error('Deleting archives.'):
-                    files.delete_archives(proc.upload_hash)
+                files.delete_archives(proc.upload_hash)
 
             with logger.lnr_error('Deleting indexed calcs.'):
-                for obj in search.Calc.search_objs(upload_hash=proc.upload_hash):
-                    obj.delete()
+                search.Calc.delete_all(upload_id=proc.upload_id)
 
         with logger.lnr_error('Deleting user upload.'):
             upload.delete()
