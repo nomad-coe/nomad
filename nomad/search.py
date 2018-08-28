@@ -117,7 +117,7 @@ if 'sphinx' not in sys.modules:
     try:
         Calc.init()
     except elasticsearch.exceptions.RequestError as e:
-        if e.status_code == 400 and e.error.contains('resource_already_exists_exception'):
+        if e.status_code == 400 and 'resource_already_exists_exception' in e.error:
             pass  # happens if two services try this at the same time
         else:
             raise e
