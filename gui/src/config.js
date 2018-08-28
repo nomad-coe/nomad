@@ -4,9 +4,9 @@ import enc from '@material-ui/core/colors/amber';
 import secondary from '@material-ui/core/colors/blueGrey';
 import { createMuiTheme } from '@material-ui/core';
 
-export const apiBase = '/nomadxt/api'
-export const objectsBase = '/nomadxt/objects'
-export const appBase = '/nomadxt'
+export const apiBase = process.env.REACT_APP_API_BASE
+export const objectsBase = process.env.REACT_APP_OBJECT_BASE
+export const appBase = process.env.REACT_APP_APP_BASE
 
 export const genTheme = createMuiTheme({
   palette: {
