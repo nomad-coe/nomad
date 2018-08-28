@@ -24,6 +24,7 @@ class Repo extends React.Component {
     data: {
       width: '100%',
       marginTop: theme.spacing.unit * 3,
+      overflowX: 'scroll'
     },
     progressPlaceholder: {
       height: 5

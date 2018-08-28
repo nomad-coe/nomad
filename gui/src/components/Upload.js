@@ -91,7 +91,7 @@ class Upload extends React.Component {
 
   renderStepper() {
     const { classes } = this.props
-    const { calc_procs, task_names, current_task_name, status } = this.state.upload.proc
+    const { calc_procs, task_names, current_task_name, status, errors } = this.state.upload.proc
 
     let activeStep = task_names.indexOf(current_task_name)
     activeStep += (status === 'SUCCESS') ? 1 : 0
@@ -100,6 +100,8 @@ class Upload extends React.Component {
       <Stepper activeStep={activeStep} classes={{root: classes.stepper}}>
         {task_names.map((label, index) => {
           let optional = null;
+          let error = activeStep === index && status === 'FAILURE'
+
           if (task_names[index] === 'parse_all') {
             label = 'parse'
             if (calc_procs.length > 0) {
@@ -108,11 +110,23 @@ class Upload extends React.Component {
                   {calc_procs.filter(p => p.status === 'SUCCESS').length}/{calc_procs.length}
                 </Typography>
               );
+            } else if (status === 'SUCCESS') {
+              error = true
+              optional = (
+                <Typography variant="caption" color="error">No calculations found.</Typography>
+              )
             }
+          }
+          if (error && status === 'FAILURE') {
+            optional = (
+              <Typography variant="caption" color="error">
+                {errors.join(' ')}
+              </Typography>
+            )
           }
           return (
             <Step key={label}>
-              <StepLabel optional={optional}>{label}</StepLabel>
+              <StepLabel optional={optional} error={error}>{label}</StepLabel>
             </Step>
           )
         })}
@@ -122,12 +136,12 @@ class Upload extends React.Component {
 
   renderCalcTable() {
     const { classes } = this.props
-    const { calc_procs } = this.state.upload.proc
+    const { calc_procs, status } = this.state.upload.proc
 
     if (calc_procs.length === 0) {
       return (
         <Typography className={classes.detailsContent}>
-          No calculcations found.
+          {status === 'SUCCESS' ? 'No calculcations found.' : 'There are errors and no calculations to show.'}
         </Typography>
       )
     }
