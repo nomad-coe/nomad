@@ -5,6 +5,8 @@ import UploadIcon from '@material-ui/icons/CloudUpload';
 import Dropzone from 'react-dropzone';
 import api from '../api';
 import Upload from './Upload'
+import { withErrors } from './errors';
+import { compose } from 'recompose';
 
 var styles = theme => ({
     root: {
@@ -46,6 +48,10 @@ class Uploads extends React.Component {
       .then(uploads => {
         this.setState({uploads: uploads})
       })
+      .catch(error => {
+        this.setState({uploads: []})
+        this.props.raiseError(error)
+      })
   }
 
   onDrop(files) {
@@ -55,6 +61,7 @@ class Uploads extends React.Component {
         .then(upload => {
           this.setState({uploads: [...this.state.uploads, upload]})
         })
+        .catch(this.props.raiseError)
     });
   }
 
@@ -95,4 +102,4 @@ class Uploads extends React.Component {
   }
 }
 
-export default withStyles(styles)(Uploads);
+export default compose(withErrors, withStyles(styles))(Uploads)

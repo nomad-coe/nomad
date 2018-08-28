@@ -4,6 +4,8 @@ import { withStyles, Paper, LinearProgress } from '@material-ui/core';
 import ReactJson from 'react-json-view'
 import api from '../api';
 import Markdown from './Markdown';
+import { compose } from 'recompose';
+import { withErrors } from './errors';
 
 
 class ArchiveCalc extends React.Component {
@@ -28,6 +30,9 @@ class ArchiveCalc extends React.Component {
     const { uploadHash, calcHash} = this.props.match.params
     api.archive(uploadHash, calcHash).then(data => {
       this.setState({data: data})
+    }).catch(error => {
+      this.setState({data: null})
+      this.props.raiseError(error)
     })
   }
 
@@ -56,4 +61,4 @@ class ArchiveCalc extends React.Component {
   }
 }
 
-export default withStyles(ArchiveCalc.styles)(ArchiveCalc);
+export default compose(withErrors, withStyles(ArchiveCalc.styles))(ArchiveCalc);

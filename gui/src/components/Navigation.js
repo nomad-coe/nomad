@@ -21,6 +21,7 @@ import { Link, withRouter } from 'react-router-dom';
 import { compose } from 'recompose'
 import { Avatar, MuiThemeProvider } from '@material-ui/core';
 import { genTheme, repoTheme, archiveTheme, encTheme, appBase } from '../config';
+import { ErrorSnacks } from './errors';
 
 const drawerWidth = 200;
 
@@ -190,7 +191,9 @@ class Navigation extends React.Component {
           <MuiThemeProvider theme={theme}>
             <main className={classes.content}>
               <div className={classes.toolbar} />
-              {children}
+              <ErrorSnacks>
+                {children}
+              </ErrorSnacks>
             </main>
           </MuiThemeProvider>
         </div>

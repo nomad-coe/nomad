@@ -5,6 +5,8 @@ import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography, Expansio
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ReactJson from 'react-json-view'
 import CalcLinks from './CalcLinks';
+import { compose } from 'recompose';
+import { withErrors } from './errors';
 
 
 class Upload extends React.Component {
@@ -58,6 +60,10 @@ class Upload extends React.Component {
           if (upload.proc.status !== 'SUCCESS') {
             this.updateUpload()
           }
+        })
+        .catch(error => {
+          this.setState({upload: null})
+          this.props.raiseError(error)
         })
     }, 500)
   }
@@ -173,20 +179,24 @@ class Upload extends React.Component {
     const { classes } = this.props;
     const { upload } = this.state;
 
-    return (
-      <ExpansionPanel>
-        <ExpansionPanelSummary expandIcon={<ExpandMoreIcon/>}>
-          {this.renderTitle()} {this.renderStepper()}
-        </ExpansionPanelSummary>
-        <ExpansionPanelDetails style={{width: '100%'}} classes={{root: classes.details}}>
-          {this.renderCalcTable()}
-          <div className={classes.detailsContent}>
-            <ReactJson src={upload} enableClipboard={false} collapsed={1} />
-          </div>
-        </ExpansionPanelDetails>
-      </ExpansionPanel>
-    )
+    if (this.state.upload) {
+      return (
+        <ExpansionPanel>
+          <ExpansionPanelSummary expandIcon={<ExpandMoreIcon/>}>
+            {this.renderTitle()} {this.renderStepper()}
+          </ExpansionPanelSummary>
+          <ExpansionPanelDetails style={{width: '100%'}} classes={{root: classes.details}}>
+            {this.renderCalcTable()}
+            <div className={classes.detailsContent}>
+              <ReactJson src={upload} enableClipboard={false} collapsed={1} />
+            </div>
+          </ExpansionPanelDetails>
+        </ExpansionPanel>
+      )
+    } else {
+      return ''
+    }
   }
 }
 
-export default withStyles(Upload.styles)(Upload);
+export default compose(withErrors, withStyles(Upload.styles))(Upload)

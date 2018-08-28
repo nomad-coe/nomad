@@ -11,6 +11,8 @@ import api from '../api';
 import CalcLinks from './CalcLinks';
 import { TableHead, LinearProgress } from '@material-ui/core';
 import Markdown from './Markdown';
+import { compose } from 'recompose';
+import { withErrors } from './errors';
 
 class Repo extends React.Component {
   static propTypes = {
@@ -58,6 +60,9 @@ class Repo extends React.Component {
         total: total,
         loading: false
       })
+    }).catch(errors => {
+      this.setState({data: [], total: 0, loading: false})
+      this.props.raiseError(errors)
     })
   }
 
@@ -135,4 +140,4 @@ class Repo extends React.Component {
   }
 }
 
-export default withStyles(Repo.styles)(Repo);
+export default compose(withErrors, withStyles(Repo.styles))(Repo)

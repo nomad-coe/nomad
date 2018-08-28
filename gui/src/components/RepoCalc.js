@@ -4,6 +4,8 @@ import { withStyles, Paper, LinearProgress } from '@material-ui/core';
 import ReactJson from 'react-json-view'
 import api from '../api';
 import Markdown from './Markdown';
+import { withErrors } from './errors';
+import { compose } from 'recompose';
 
 
 class RepoCalc extends React.Component {
@@ -28,6 +30,9 @@ class RepoCalc extends React.Component {
     const { uploadHash, calcHash} = this.props.match.params
     api.repo(uploadHash, calcHash).then(data => {
       this.setState({data: data})
+    }).catch(error => {
+      this.setState({data: null})
+      this.props.raiseError(error)
     })
   }
 
@@ -53,4 +58,4 @@ class RepoCalc extends React.Component {
   }
 }
 
-export default withStyles(RepoCalc.styles)(RepoCalc);
+export default compose(withErrors, withStyles(RepoCalc.styles))(RepoCalc);
