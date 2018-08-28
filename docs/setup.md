@@ -125,6 +125,10 @@ python nomad/api.py
 ```
 
 ### Run the gui
+When you run the gui on its own (e.g. with react dev server below), you have to have
+the API running manually also. This *inside docker* API is configured for nging paths
+and proxies, which are run by the gui container. But you can run the *production* gui
+in docker and the dev server gui in parallel with an API in docker.
 Either with docker, or:
 ```
 cd gui
