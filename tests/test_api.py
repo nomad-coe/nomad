@@ -149,7 +149,7 @@ def test_upload_to_upload(client, file):
 
 @pytest.mark.parametrize("file", example_files)
 @pytest.mark.timeout(30)
-def test_processing(client, file, celery_session_worker):
+def test_processing(client, file, celery_session_worker, mocksearch):
     handle_uploads_thread = processing.handle_uploads_thread(quit=True)
 
     rv = client.post('/uploads')

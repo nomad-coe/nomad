@@ -32,7 +32,7 @@ from tests.test_files import clear_files  # pylint: disable=unused-import
 example_files = [empty_file, example_file]
 
 
-@pytest.fixture(scope='function', autouse=True)
+@pytest.fixture(scope='function')
 def mocksearch(monkeypatch):
     uploads = []
 
@@ -47,6 +47,10 @@ def mocksearch(monkeypatch):
     monkeypatch.setattr('nomad.search.Calc.add_from_backend', add_from_backend)
     monkeypatch.setattr('nomad.search.Calc.upload_exists', upload_exists)
 
+
+@pytest.fixture(scope='function', autouse=True)
+def mocksearch_forall(mocksearch):
+    pass
 
 @pytest.fixture(scope='session')
 def celery_includes():
