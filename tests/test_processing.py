@@ -22,8 +22,7 @@ from typing import Generator
 import pytest
 import time
 
-import nomad.config as config
-import nomad.files as files
+from nomad import config, files, search
 from nomad.processing import start_processing, ProcPipeline
 
 from tests.test_files import example_file, empty_file
@@ -33,19 +32,20 @@ from tests.test_files import clear_files  # pylint: disable=unused-import
 example_files = [empty_file, example_file]
 
 
-# @pytest.fixture(autouse=True)
-# def patch(monkeypatch):
-#     original = UploadProc.continue_with
+@pytest.fixture(scope='function', autouse=True)
+def mocksearch(monkeypatch):
+    uploads = []
 
-#     def continue_with(self: UploadProc, task):
-#         if self.upload_id.startswith('__fail_in_'):
-#             fail_in_task = self.upload_id.replace('__fail_in_', '')
-#             if fail_in_task == task:
-#                 raise Exception('fail for test')
+    def add_from_backend(_, **kwargs):
+        upload_hash = kwargs.get('upload_hash', None)
+        uploads.append(upload_hash)
+        return {}
 
-#         return original(self, task)
+    def upload_exists(upload_hash):
+        return upload_hash in uploads
 
-#     monkeypatch.setattr('nomad.processing.state.UploadProc.continue_with', continue_with)
+    monkeypatch.setattr('nomad.search.Calc.add_from_backend', add_from_backend)
+    monkeypatch.setattr('nomad.search.Calc.upload_exists', upload_exists)
 
 
 @pytest.fixture(scope='session')
@@ -100,6 +100,21 @@ def test_processing(uploaded_id, celery_session_worker):
         assert len(calc_proc.errors) == 0
 
     upload_proc.forget()
+
+
+@pytest.mark.parametrize('uploaded_id', [example_files[1]], indirect=True)
+def test_processing_doublets(uploaded_id, celery_session_worker):
+    upload_proc = start_processing(uploaded_id)
+    upload_proc.get()
+    assert upload_proc.status == 'SUCCESS'
+
+    assert search.Calc.upload_exists(upload_proc.upload_hash)
+
+    upload_proc = start_processing(uploaded_id)
+    upload_proc.get()
+    assert upload_proc.status == 'FAILURE'
+    assert len(upload_proc.errors) > 0
+    assert 'already' in upload_proc.errors[0]
 
 
 @pytest.mark.timeout(30)

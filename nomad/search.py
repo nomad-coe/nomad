@@ -20,7 +20,7 @@ of search relevant properties.
 """
 
 import elasticsearch.exceptions
-from elasticsearch_dsl import Document, Date, Keyword, connections
+from elasticsearch_dsl import Document, Date, Keyword, Search, connections
 import logging
 import sys
 
@@ -70,6 +70,15 @@ class Calc(Document):
     @staticmethod
     def search(body):
         return client.search(index=config.elastic.calc_index, body=body)
+
+    @staticmethod
+    def upload_exists(upload_hash):
+        """ Returns true if there are already calcs from the given upload. """
+        search = Search(using=client, index=config.elastic.calc_index) \
+            .query('match', upload_hash=upload_hash) \
+            .execute()
+
+        return len(search) > 0
 
     @staticmethod
     def add_from_backend(backend: LocalBackend, **kwargs) -> 'Calc':

@@ -57,6 +57,10 @@ def extracting_task(task: Task, proc: UploadProc) -> UploadProc:
         proc.fail(e)
         return proc
 
+    if search.Calc.upload_exists(proc.upload_hash):
+        proc.fail('The same file was already uploaded and processed.')
+        return proc
+
     try:
         # TODO: deal with multiple possible parser specs
         for filename in upload.filelist:

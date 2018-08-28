@@ -24,7 +24,7 @@ from tests.test_files import clear_files, archive_id  # noqa pylint: disable=unu
 from tests.test_normalizing import normalized_vasp_example  # noqa pylint: disable=unused-import
 from tests.test_parsing import parsed_vasp_example  # noqa pylint: disable=unused-import
 from tests.test_search import example_entry  # noqa pylint: disable=unused-import
-from tests.test_processing import celery_config, celery_includes  # noqa pylint: disable=unused-import
+from tests.test_processing import celery_config, celery_includes, mocksearch  # noqa pylint: disable=unused-import
 
 
 @pytest.fixture(scope='function')
