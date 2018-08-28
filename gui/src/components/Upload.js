@@ -5,8 +5,9 @@ import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography, Expansio
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ReactJson from 'react-json-view'
 import CalcLinks from './CalcLinks';
-import { compose } from 'recompose';
+import { compose, componentFromStreamWithConfig } from 'recompose';
 import { withErrors } from './errors';
+import { debug } from '../config';
 
 
 class Upload extends React.Component {
@@ -23,6 +24,7 @@ class Upload extends React.Component {
       details: {
         padding: 0,
         display: 'block',
+        overflowX: 'auto'
       },
       detailsContent: {
         margin: theme.spacing.unit * 3
@@ -186,9 +188,10 @@ class Upload extends React.Component {
           </ExpansionPanelSummary>
           <ExpansionPanelDetails style={{width: '100%'}} classes={{root: classes.details}}>
             {this.renderCalcTable()}
-            <div className={classes.detailsContent}>
-              <ReactJson src={upload} enableClipboard={false} collapsed={1} />
-            </div>
+            {debug ?
+              <div className={classes.detailsContent}>
+                <ReactJson src={upload} enableClipboard={false} collapsed={0} />
+              </div> : ''}
           </ExpansionPanelDetails>
         </ExpansionPanel>
       )

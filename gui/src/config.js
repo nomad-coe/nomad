@@ -7,6 +7,7 @@ import { createMuiTheme } from '@material-ui/core';
 export const apiBase = process.env.REACT_APP_API_BASE
 export const objectsBase = process.env.REACT_APP_OBJECT_BASE
 export const appBase = process.env.REACT_APP_APP_BASE
+export const debug = process.env.REACT_APP_DEBUG === 'true'
 
 export const genTheme = createMuiTheme({
   palette: {
