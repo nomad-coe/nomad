@@ -116,6 +116,18 @@ def test_upload(uploaded_id: str):
                 break
 
 
+def test_delete_upload(uploaded_id: str):
+    files.Upload(uploaded_id).delete()
+
+    try:
+        files.Upload(uploaded_id)
+        assert False
+    except KeyError:
+        pass
+    else:
+        assert False
+
+
 @pytest.mark.timeout(10)
 def test_upload_notification(upload_id):
     @files.upload_put_handler
@@ -162,3 +174,14 @@ def test_archive(archive_id: str):
 
     assert 'test' in result
     assert result['test'] == 'value'
+
+
+def test_delete_archives(archive_id: str):
+    files.delete_archives(archive_id.split('/')[0])
+    try:
+        files.archive_url(archive_id)
+        assert False
+    except KeyError:
+        pass
+    else:
+        assert False

@@ -119,6 +119,19 @@ def test_create_upload_with_name(client):
     assert upload['name'] == 'test_name'
 
 
+def test_delete_empty_upload(client):
+    rv = client.post('/uploads')
+
+    assert rv.status_code == 200
+    upload_id = assert_upload(rv.data)['upload_id']
+
+    rv = client.delete('/uploads/%s' % upload_id)
+    assert rv.status_code == 200
+
+    rv = client.get('/uploads/%s' % upload_id)
+    assert rv.status_code == 404
+
+
 @pytest.mark.parametrize("file", example_files)
 @pytest.mark.timeout(30)
 def test_upload_to_upload(client, file):

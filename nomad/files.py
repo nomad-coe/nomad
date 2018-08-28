@@ -268,6 +268,13 @@ class Upload():
         """ Returns the tmp directory relative version of a filename. """
         return os.path.join(self.upload_extract_dir, filename)
 
+    def delete(self):
+        """ Delete the file from the store. Must not be open. """
+        try:
+            _client.remove_object(config.files.uploads_bucket, self.upload_id)
+        except minio.error.NoSuchKey:
+            raise KeyError(self.upload_id)
+
 
 @contextmanager
 def write_archive_json(archive_id) -> Generator[TextIO, None, None]:
@@ -317,3 +324,13 @@ def open_archive_json(archive_id) -> IO:
         return _client.get_object(config.files.archive_bucket, archive_id)
     except minio.error.NoSuchKey:
         raise KeyError()
+
+
+def delete_archives(upload_hash: str):
+    """ Deletes all archive files for this upload_hash. """
+    bucket = config.files.archive_bucket
+    prefix = '%s/' % upload_hash
+    to_remove = [obj.object_name for obj in _client.list_objects(bucket, prefix)]
+    for _ in _client.remove_objects(bucket, to_remove):
+        # TODO handle potential errors
+        pass

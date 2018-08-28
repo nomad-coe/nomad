@@ -72,6 +72,12 @@ class Calc(Document):
         return client.search(index=config.elastic.calc_index, body=body)
 
     @staticmethod
+    def search_objs(**kwargs):
+        return Search(using=client, index=config.elastic.calc_index) \
+            .query('match', **kwargs) \
+            .execute()
+
+    @staticmethod
     def upload_exists(upload_hash):
         """ Returns true if there are already calcs from the given upload. """
         search = Search(using=client, index=config.elastic.calc_index) \

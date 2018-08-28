@@ -1,3 +1,4 @@
+from typing import Tuple
 from flask import Flask, request, redirect
 from flask_restful import Resource, Api, abort
 from datetime import datetime
@@ -39,11 +40,7 @@ def _external_objects_url(url):
         '%s%s%s' % (config.services.objects_host, port_with_colon, config.services.objects_base_path))
 
 
-def _update_and_render(upload: users.Upload):
-    """
-    If the given upload as a processing state attached, it will attempt to update this
-    state and store the results, before the upload is rendered for the client.
-    """
+def _updated_proc(upload: users.Upload) -> Tuple[UploadProc, bool]:
     is_stale = False
 
     if upload.proc:
@@ -58,6 +55,10 @@ def _update_and_render(upload: users.Upload):
     else:
         proc = None
 
+    return proc, is_stale
+
+
+def _render(upload: users.Upload, proc: UploadProc, is_stale: bool) -> dict:
     data = {
         'name': upload.name,
         'upload_id': upload.upload_id,
@@ -71,6 +72,15 @@ def _update_and_render(upload: users.Upload):
     }
 
     return {key: value for key, value in data.items() if value is not None}
+
+
+def _update_and_render(upload: users.Upload) -> dict:
+    """
+    If the given upload as a processing state attached, it will attempt to update this
+    state and store the results, before the upload is rendered for the client.
+    """
+    proc, is_stale = _updated_proc(upload)
+    return _render(upload, proc, is_stale)
 
 
 class Uploads(Resource):
@@ -105,6 +115,40 @@ class Upload(Resource):
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
         return _update_and_render(upload), 200
+
+    def delete(self, upload_id):
+        try:
+            upload = users.Upload.objects(id=upload_id).first()
+        except mongoengine.errors.ValidationError:
+            print('###')
+            abort(400, message='%s is not a valid upload id.' % upload_id)
+
+        if upload is None:
+            abort(404, message='Upload with id %s does not exist.' % upload_id)
+
+        proc, is_stale = _updated_proc(upload)
+        if not (proc.ready() or is_stale or proc.current_task_name == 'uploading'):
+            abort(400, message='%s has not finished processing.' % upload_id)
+
+        logger = get_logger(__name__, upload_id=upload_id)
+        with logger.lnr_error('Delete upload file'):
+            try:
+                files.Upload(upload.upload_id).delete()
+            except KeyError:
+                logger.error('Upload exist, but file does not exist.')
+
+        if proc.upload_hash is not None:
+            with logger.lnr_error('Deleting archives.'):
+                    files.delete_archives(proc.upload_hash)
+
+            with logger.lnr_error('Deleting indexed calcs.'):
+                for obj in search.Calc.search_objs(upload_hash=proc.upload_hash):
+                    obj.delete()
+
+        with logger.lnr_error('Deleting user upload.'):
+            upload.delete()
+
+        return _render(upload, proc, is_stale), 200
 
 
 class RepoCalc(Resource):
