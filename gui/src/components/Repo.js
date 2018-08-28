@@ -97,7 +97,7 @@ class Repo extends React.Component {
             <TableHead>
               <TableRow>
                 {Object.values(Repo.rowConfig).map((name, index) => (
-                  <TableCell key={index}>{name}</TableCell>
+                  <TableCell padding="dense" key={index}>{name}</TableCell>
                 ))}
                 <TableCell/>
               </TableRow>
@@ -106,9 +106,9 @@ class Repo extends React.Component {
               {data.map((calc, index) => (
                 <TableRow hover tabIndex={-1} key={index}>
                   {Object.keys(Repo.rowConfig).map((key, rowIndex) => (
-                    <TableCell key={rowIndex}>{calc[key]}</TableCell>
+                    <TableCell padding="dense" key={rowIndex}>{calc[key]}</TableCell>
                   ))}
-                  <TableCell>
+                  <TableCell padding="dense">
                     <CalcLinks uploadHash={calc.upload_hash} calcHash={calc.calc_hash} />
                   </TableCell>
                 </TableRow>
