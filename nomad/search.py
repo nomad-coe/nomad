@@ -19,6 +19,7 @@ of search relevant properties.
 ..autoclass:: nomad.search.Calc:
 """
 
+import elasticsearch.exceptions
 from elasticsearch_dsl import Document, Date, Keyword, connections
 import logging
 import sys
@@ -104,7 +105,14 @@ class Calc(Document):
         return calc
 
 if 'sphinx' not in sys.modules:
-    Calc.init()
+    try:
+        Calc.init()
+    except elasticsearch.exceptions.RequestError as e:
+        if e.status_code == 400 and e.error.contains('resource_already_exists_exception'):
+            pass  # happens if two services try this at the same time
+        else:
+            raise e
+
 
 # Taken from the IndexManifest (scala, NOMAD-coe)
 #
