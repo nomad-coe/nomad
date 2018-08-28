@@ -54,7 +54,6 @@ class Upload extends React.Component {
     window.setTimeout(() => {
       this.state.upload.update()
         .then(upload => {
-          console.debug(`Sucessfully updated upload ${upload.upload_id}.`)
           console.assert(upload.proc, 'Uploads always must have a proc')
           this.setState({upload: upload})
           if (upload.proc.status !== 'SUCCESS') {

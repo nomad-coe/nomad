@@ -1,25 +1,22 @@
-import { apiBase, objectsBase } from './config'
+import { apiBase } from './config'
 
 const networkError = () => {
-  throw 'Network related error, cannot reach API or object storage.'
+  throw Error('Network related error, cannot reach API or object storage.')
 }
 const handleResponseErrors = (response) => {
   if (!response.ok) {
-    throw `API/object storage error (${response.statusCode}): ${response.statusText}`
+    throw Error(`API/object storage error (${response.statusCode}): ${response.statusText}`)
   }
   return response
 }
 
 class Upload {
   constructor(json) {
-    console.debug('Created local upload for ' + json.upload_id)
     Object.assign(this, json)
   }
 
   uploadFile(file) {
     console.assert(this.presigned_url)
-    console.debug(`Upload ${file} to ${this.presigned_url}.`)
-    const url = this.presigned_url.replace('https://localhost:9000', objectsBase)
     return fetch(this.presigned_url, {
       method: 'PUT',
       headers: {
@@ -44,7 +41,6 @@ class Upload {
 }
 
 function createUpload(name) {
-  console.debug('Request new upload.')
   const fetchData = {
     method: 'POST',
     body: JSON.stringify({

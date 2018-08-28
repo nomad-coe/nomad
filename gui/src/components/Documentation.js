@@ -4,7 +4,7 @@ import { withRouter } from 'react-router-dom'
 import { HashLink as Link } from 'react-router-hash-link'
 import './Documentation.css'
 import Url from 'url-parse'
-import { apiBase, appBase } from '../config'
+import { apiBase } from '../config'
 
 const processNodeDefinitions = new HtmlToReact.ProcessNodeDefinitions(React)
 const processingInstructions = location => {

@@ -1,5 +1,5 @@
 import React from "react"
-import { SnackbarContent, IconButton, Snackbar, withStyles, Typography } from "@material-ui/core";
+import { SnackbarContent, IconButton, Snackbar, withStyles } from "@material-ui/core";
 import ErrorIcon from '@material-ui/icons/Error'
 import CloseIcon from '@material-ui/icons/Close'
 
