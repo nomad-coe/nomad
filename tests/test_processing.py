@@ -52,6 +52,7 @@ def mocksearch(monkeypatch):
 def mocksearch_forall(mocksearch):
     pass
 
+
 @pytest.fixture(scope='session')
 def celery_includes():
     return ['nomad.processing.tasks']
