@@ -169,4 +169,4 @@ api.add_resource(RepoCalc, '%s/repo/<string:upload_hash>/<string:calc_hash>' % b
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    app.run(debug=True)
+    app.run(debug=True, port=8000)
