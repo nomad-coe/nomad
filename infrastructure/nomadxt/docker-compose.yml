@@ -174,12 +174,9 @@ services:
     # nomad gui
     gui:
         build: ../../gui/
-        links:
-            - api
-            - minio8080
         ports:
             - ${GUI_HOST_PORT}:3000
-        command: nginx -g "daemon off;"
+        command: start
 
     # reverse proxy everything together
     proxy:
