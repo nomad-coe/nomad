@@ -14,7 +14,7 @@ case $1 in
     yarn test $@
     ;;
   serve)
-    serve -s build
+    serve -l 8080 -s build
     ;;
   *)
     exec "$@"
