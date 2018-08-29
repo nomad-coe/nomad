@@ -32,8 +32,6 @@ def extracting_task(task: Task, proc: UploadProc) -> UploadProc:
     if not proc.continue_with(task.name):
         return proc
 
-    logger.critical('TEST MESSAGE')
-
     try:
         upload = files.Upload(proc.upload_id)
         upload.open()
