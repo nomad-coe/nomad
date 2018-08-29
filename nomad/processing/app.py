@@ -14,17 +14,10 @@
 
 from celery import Celery
 from celery.signals import after_setup_task_logger, after_setup_logger
-from celery.utils.log import get_task_logger
 import logging
 
 from nomad import config, utils
 import nomad.patch  # pylint: disable=unused-import
-
-
-# The legacy nomad code uses a logger called 'nomad'. We do not want that this
-# logger becomes a child of this logger due to its module name starting with 'nomad.'
-logger = get_task_logger(__name__.replace('nomad', 'nomad-xt'))
-logger.setLevel(logging.DEBUG)
 
 if config.logstash.enabled:
     def initialize_logstash(logger=None, loglevel=logging.DEBUG, **kwargs):

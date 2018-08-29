@@ -9,6 +9,7 @@ import logstash
 from contextlib import contextmanager
 import json
 import os
+from celery.utils.log import get_task_logger
 
 from nomad import config
 
@@ -68,7 +69,18 @@ if not _logging_is_configured:
         TimeStamper(fmt="%Y-%m-%d %H:%M.%S", utc=False),
         JSONRenderer(sort_keys=True)
     ]
-    structlog.configure(processors=log_processors, logger_factory=LoggerFactory())
+
+    default_factory = LoggerFactory()
+
+    def logger_factory(*args):
+        if len(args) > 0:
+            name = args[0]
+            if name.startswith('nomad.processing.tasks'):
+                return get_task_logger(*args)
+
+        return default_factory(*args)
+
+    structlog.configure(processors=log_processors, logger_factory=logger_factory)
 
     logging.basicConfig(level=logging.WARNING)
 
