@@ -1,18 +1,20 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import DialogTitle from '@material-ui/core/DialogTitle';
+import React from 'react'
+import PropTypes from 'prop-types'
+import Button from '@material-ui/core/Button'
+import Dialog from '@material-ui/core/Dialog'
+import DialogActions from '@material-ui/core/DialogActions'
+import DialogContent from '@material-ui/core/DialogContent'
+import DialogContentText from '@material-ui/core/DialogContentText'
+import DialogTitle from '@material-ui/core/DialogTitle'
 
 class CommingSoon extends React.Component {
   static propTypes = {
+    children: PropTypes.any,
     onClose: PropTypes.func.isRequired,
     open: PropTypes.bool,
     title: PropTypes.string
   }
+
   render() {
     return (
       <Dialog
@@ -21,10 +23,10 @@ class CommingSoon extends React.Component {
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
       >
-        <DialogTitle id="alert-dialog-title">{this.props.title || 'Comming soon'}</DialogTitle>
+        <DialogTitle id="alert-dialog-title">{this.props.title || 'Comming soon'}</DialogTitle>
         <DialogContent>
           <DialogContentText id="alert-dialog-description">
-            {this.props.children || 'This feature is not yet implemented, but will be available soon.'}
+            {this.props.children || 'This feature is not yet implemented, but will be available soon.'}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -37,4 +39,4 @@ class CommingSoon extends React.Component {
   }
 }
 
-export default CommingSoon;
+export default CommingSoon

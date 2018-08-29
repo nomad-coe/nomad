@@ -1,55 +1,56 @@
-import React from 'react';
-import PropTypes from 'prop-types';
+import React from 'react'
+import PropTypes from 'prop-types'
 import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography,
   ExpansionPanelDetails, Stepper, Step, StepLabel, Table, TableRow, TableCell, TableBody,
   Checkbox,
-  FormControlLabel} from '@material-ui/core';
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+  FormControlLabel} from '@material-ui/core'
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
-import CalcLinks from './CalcLinks';
-import { compose } from 'recompose';
-import { withErrors } from './errors';
-import { debug } from '../config';
-
+import CalcLinks from './CalcLinks'
+import { compose } from 'recompose'
+import { withErrors } from './errors'
+import { debug } from '../config'
 
 class Upload extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
+    raiseError: PropTypes.func.isRequired,
     upload: PropTypes.object.isRequired,
     checked: PropTypes.bool,
     onCheckboxChanged: PropTypes.func
   }
+
   static styles = theme => ({
-      root: {},
-      heading: {
-        fontSize: theme.typography.pxToRem(15),
-        fontWeight: theme.typography.fontWeightRegular,
-      },
-      details: {
-        padding: 0,
-        display: 'block',
-        overflowX: 'auto'
-      },
-      detailsContent: {
-        margin: theme.spacing.unit * 3
-      },
-      title: {
-        flexBasis: '20%',
-        flexShrink: 0,
-        marginRight: theme.spacing.unit * 2
-      },
-      checkbox: {
-        marginRight: theme.spacing.unit * 2
-      },
-      stepper: {
-        width: '100%',
-        padding: 0
-      },
-      buttonCell: {
-        overflow: 'hidden',
-        whiteSpace: 'nowrap',
-        textAlign: 'right'
-      }
+    root: {},
+    heading: {
+      fontSize: theme.typography.pxToRem(15),
+      fontWeight: theme.typography.fontWeightRegular
+    },
+    details: {
+      padding: 0,
+      display: 'block',
+      overflowX: 'auto'
+    },
+    detailsContent: {
+      margin: theme.spacing.unit * 3
+    },
+    title: {
+      flexBasis: '20%',
+      flexShrink: 0,
+      marginRight: theme.spacing.unit * 2
+    },
+    checkbox: {
+      marginRight: theme.spacing.unit * 2
+    },
+    stepper: {
+      width: '100%',
+      padding: 0
+    },
+    buttonCell: {
+      overflow: 'hidden',
+      whiteSpace: 'nowrap',
+      textAlign: 'right'
+    }
   });
 
   constructor(props) {
@@ -112,7 +113,7 @@ class Upload extends React.Component {
     return (
       <Stepper activeStep={activeStep} classes={{root: classes.stepper}}>
         {task_names.map((label, index) => {
-          let optional = null;
+          let optional = null
           let error = activeStep === index && status === 'FAILURE'
 
           if (task_names[index] === 'parse_all') {
@@ -122,7 +123,7 @@ class Upload extends React.Component {
                 <Typography variant="caption">
                   {calc_procs.filter(p => p.status === 'SUCCESS').length}/{calc_procs.length}
                 </Typography>
-              );
+              )
             } else if (status === 'SUCCESS') {
               error = true
               optional = (
@@ -204,14 +205,14 @@ class Upload extends React.Component {
   }
 
   render() {
-    const { classes } = this.props;
-    const { upload } = this.state;
+    const { classes } = this.props
+    const { upload } = this.state
 
     if (this.state.upload) {
       return (
         <ExpansionPanel>
           <ExpansionPanelSummary
-              expandIcon={<ExpandMoreIcon/>}>
+            expandIcon={<ExpandMoreIcon/>}>
             <FormControlLabel control={(
               <Checkbox
                 checked={this.props.checked}
@@ -224,8 +225,8 @@ class Upload extends React.Component {
           </ExpansionPanelSummary>
           <ExpansionPanelDetails style={{width: '100%'}} classes={{root: classes.details}}>
             {this.renderCalcTable()}
-            {debug ?
-              <div className={classes.detailsContent}>
+            {debug
+              ? <div className={classes.detailsContent}>
                 <ReactJson src={upload} enableClipboard={false} collapsed={0} />
               </div> : ''}
           </ExpansionPanelDetails>

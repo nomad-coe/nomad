@@ -1,4 +1,5 @@
 import React, { Component } from 'react'
+import PropTypes from 'prop-types'
 import HtmlToReact from 'html-to-react'
 import { withRouter } from 'react-router-dom'
 import { HashLink as Link } from 'react-router-hash-link'
@@ -21,15 +22,18 @@ const processingInstructions = location => {
       // the hrefs have to be processed to be compatible with router, i.e. they have
       // to start with /documentation/.
       shouldProcessNode: node => node.type === 'tag' && node.name === 'a' && node.attribs['href'] && !node.attribs['href'].startsWith('http'),
-      processNode: (node, children) => {
+      processNode: function DocLink(node, children) {
         const linkUrl = Url(node.attribs['href'])
         let pathname = linkUrl.pathname.replace(/^\/docs/, '').replace(/^\//, '')
-        if (pathname === '' ) {
+        if (pathname === '') {
           pathname = location.pathname
         } else {
           pathname = `/docs/${pathname}`
         }
-        return (<Link smooth to={pathname + (linkUrl.hash || '#')}>{children}</Link>)
+
+        return (
+          <Link smooth to={pathname + (linkUrl.hash || '#')}>{children}</Link>
+        )
       }
     },
     {
@@ -47,24 +51,29 @@ const processingInstructions = location => {
   ]
 }
 const isValidNode = () => true
-const htmlToReactParser = new HtmlToReact.Parser();
-const domParser = new DOMParser()
+const htmlToReactParser = new HtmlToReact.Parser()
+const domParser = new DOMParser() // eslint-disable-line no-undef
 
 class Documentation extends Component {
+  static propTypes = {
+    location: {
+      pathname: PropTypes.string.isRequired
+    }
+  }
   state = {
     react: ''
   }
 
   onRouteChanged() {
     const fetchAndUpdate = path => {
-      if (path === '' || path.startsWith('#')) {
+      if (path === '' || path.startsWith('#')) {
         path = '/index.html' + path
       }
       fetch(`${apiBase}/docs${path}`)
         .then(response => response.text())
         .then(content => {
           // extract body of html page
-          const doc = domParser.parseFromString(content, "application/xml")
+          const doc = domParser.parseFromString(content, 'application/xml')
           const bodyHtml = doc.getElementsByTagName('body')[0].innerHTML
 
           // replace a hrefs with Link to
@@ -92,7 +101,7 @@ class Documentation extends Component {
     }
   }
 
-  componentWillMount() {
+  componentDidMount() {
     this.onRouteChanged()
   }
 

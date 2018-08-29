@@ -1,17 +1,19 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import { withStyles, Paper, LinearProgress } from '@material-ui/core';
+import React from 'react'
+import PropTypes from 'prop-types'
+import { withStyles, Paper, LinearProgress } from '@material-ui/core'
 import ReactJson from 'react-json-view'
-import api from '../api';
-import Markdown from './Markdown';
-import { withErrors } from './errors';
-import { compose } from 'recompose';
-
+import api from '../api'
+import Markdown from './Markdown'
+import { withErrors } from './errors'
+import { compose } from 'recompose'
 
 class RepoCalc extends React.Component {
   static propTypes = {
-    classes: PropTypes.object.isRequired
+    classes: PropTypes.object.isRequired,
+    raiseError: PropTypes.func.isRequired,
+    match: PropTypes.object.isRequired
   }
+
   static styles = theme => ({
     root: {},
     calcData: {
@@ -27,7 +29,7 @@ class RepoCalc extends React.Component {
   }
 
   componentDidMount() {
-    const { uploadHash, calcHash} = this.props.match.params
+    const {uploadHash, calcHash} = this.props.match.params
     api.repo(uploadHash, calcHash).then(data => {
       this.setState({data: data})
     }).catch(error => {
@@ -47,9 +49,9 @@ class RepoCalc extends React.Component {
         `}</Markdown>
         <Paper className={classes.calcData}>
           {
-            data ?
-              <ReactJson src={this.state.data} enableClipboard={false} collapsed={4} /> :
-              <LinearProgress variant="query" />
+            data
+              ? <ReactJson src={this.state.data} enableClipboard={false} collapsed={4} />
+              : <LinearProgress variant="query" />
           }
         </Paper>
       </div>
@@ -58,4 +60,4 @@ class RepoCalc extends React.Component {
   }
 }
 
-export default compose(withErrors, withStyles(RepoCalc.styles))(RepoCalc);
+export default compose(withErrors, withStyles(RepoCalc.styles))(RepoCalc)

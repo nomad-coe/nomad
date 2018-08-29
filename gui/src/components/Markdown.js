@@ -1,8 +1,8 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import marked from 'marked';
-import { withStyles } from '@material-ui/core';
-import extend from '@babel/runtime/helpers/extends';
+import React from 'react'
+import PropTypes from 'prop-types'
+import marked from 'marked'
+import { withStyles } from '@material-ui/core'
+import extend from '@babel/runtime/helpers/extends'
 
 /**
  * A simple markdown component.
@@ -115,7 +115,7 @@ var styles = theme => ({
       '& .prop-default': {
         fontSize: 13,
         fontFamily: 'Consolas, "Liberation Mono", Menlo, monospace',
-        borderBottom: "1px dotted ".concat(theme.palette.text.hint)
+        borderBottom: '1px dotted '.concat(theme.palette.text.hint)
       }
     },
     '& thead': {
@@ -129,7 +129,7 @@ var styles = theme => ({
       color: theme.palette.text.primary
     },
     '& td': {
-      borderBottom: "1px solid ".concat(theme.palette.divider),
+      borderBottom: '1px solid '.concat(theme.palette.divider),
       padding: '8px 16px 8px 8px',
       textAlign: 'left'
     },
@@ -145,7 +145,7 @@ var styles = theme => ({
     },
     '& th': {
       whiteSpace: 'pre',
-      borderBottom: "1px solid ".concat(theme.palette.divider),
+      borderBottom: '1px solid '.concat(theme.palette.divider),
       fontWeight: theme.typography.fontWeightMedium,
       padding: '0 16px 0 8px',
       textAlign: 'left'
@@ -163,7 +163,7 @@ var styles = theme => ({
       fontWeight: theme.typography.fontWeightMedium
     },
     '& blockquote': {
-      borderLeft: "5px solid ".concat(theme.palette.text.hint),
+      borderLeft: '5px solid '.concat(theme.palette.text.hint),
       backgroundColor: theme.palette.background.paper,
       padding: '4px 24px',
       margin: '24px 0'
@@ -180,10 +180,10 @@ var styles = theme => ({
       maxWidth: '100%'
     }
   }
-});
+})
 
 function Markdown(props) {
-  const { classes, text, children } = props;
+  const { classes, text, children } = props
 
   let content = text
   if (children) {
@@ -204,6 +204,6 @@ Markdown.propTypes = {
   classes: PropTypes.object.isRequired,
   text: PropTypes.string,
   children: PropTypes.string
-};
+}
 
-export default withStyles(styles)(Markdown);
+export default withStyles(styles)(Markdown)

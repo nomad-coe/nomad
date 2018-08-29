@@ -1,8 +1,9 @@
 import { apiBase } from './config'
 
-const networkError = (error) => {
+const networkError = () => {
   throw Error('Network related error, cannot reach API or object storage.')
 }
+
 const handleResponseErrors = (response) => {
   if (!response.ok) {
     throw Error(`API/object storage error (${response.statusCode}): ${response.statusText}`)
@@ -24,9 +25,9 @@ class Upload {
       },
       body: file
     })
-    .catch(networkError)
-    .then(handleResponseErrors)
-    .then(() => this)
+      .catch(networkError)
+      .then(handleResponseErrors)
+      .then(() => this)
   }
 
   update() {
@@ -100,7 +101,7 @@ const api = {
   getUploads: getUploads,
   archive: archive,
   repo: repo,
-  repoAll: repoAll,
-};
+  repoAll: repoAll
+}
 
-export default api;
+export default api
