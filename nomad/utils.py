@@ -9,7 +9,6 @@ import logstash
 from contextlib import contextmanager
 import json
 import os
-from celery.utils.log import get_task_logger
 
 from nomad import config
 
@@ -73,18 +72,15 @@ if not _logging_is_configured:
     default_factory = LoggerFactory()
 
     def logger_factory(*args):
-        if len(args) > 0:
-            name = args[0]
-            if name.startswith('nomad.processing.tasks'):
-                logger = get_task_logger('nomad-xt.processing.tasks')
-
         logger = default_factory(*args)
         logger.setLevel(logging.DEBUG)
         return logger
 
     structlog.configure(processors=log_processors, logger_factory=logger_factory)
 
+    # configure logging in general
     logging.basicConfig(level=logging.WARNING)
+
 
     # configure logstash
     if config.logstash.enabled:
@@ -93,8 +89,8 @@ if not _logging_is_configured:
         root.setLevel(config.logstash.level)
 
         add_logstash_handler(root)
+        root.info('Structlog configured for logstash')
 
-    root.info('Structlog configured for logstash')
     _logging_is_configured = True
 
 
