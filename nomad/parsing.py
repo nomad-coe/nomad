@@ -48,14 +48,14 @@ from io import StringIO
 import json
 import re
 import importlib
-import logging
 
 from nomadcore.local_backend import LocalBackend as LegacyLocalBackend
 from nomadcore.local_backend import Section, Results
 
 from nomad.dependencies import dependencies_dict as dependencies, PythonGit
+from nomad.utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 ParserStatus = Tuple[str, List[str]]
 
@@ -367,7 +367,7 @@ class LocalBackend(LegacyParserBackend):
         self._errors = parserErrors
 
     def pwarn(self, msg):
-        logger.debug('Warning in parser: %s' % msg)
+        logger.debug('Warning in parser', parse_msg=msg)
 
     def _parse_context_uri(self, context_uri: str) -> Tuple[str, int]:
         """

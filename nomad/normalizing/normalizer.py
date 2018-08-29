@@ -1,10 +1,10 @@
 from abc import ABCMeta, abstractmethod
 from typing import List, Dict, Any
-import logging
 
 from nomad.parsing import AbstractParserBackend
+from nomad.utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class Normalizer(metaclass=ABCMeta):
@@ -61,11 +61,10 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
                 self._normalize_system(g_index)
             except KeyError as e:
                 logger.error(
-                    'Could not read all data for %s. Skip section %s: %s' %
-                    (self.__class__.__name__, 'section_system/%d' % g_index, e))
+                    'Could not read all input data', normalizer=self.__class__.__name__,
+                    section='section_system', g_index=g_index, key_error=str(e))
             except Exception as e:
                 logger.error(
-                    'Unexpected error during %s. Skip section %s.' %
-                    (self.__class__.__name__, 'section_system/%d' % g_index),
-                    exc_info=e)
+                    'Unexpected error during normalizing', normalizer=self.__class__.__name__,
+                    section='section_system', g_index=g_index, exc_info=e)
                 raise e

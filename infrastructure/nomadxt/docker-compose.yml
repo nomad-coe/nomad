@@ -72,6 +72,7 @@ services:
     # the search engine
     elastic:
         image: docker.elastic.co/elasticsearch/elasticsearch:6.3.2
+        container_name: nomadxt_elastic
         volumes:
             - nomadxt_elastic:/usr/share/elasticsearch/data
         ports:
@@ -107,6 +108,7 @@ services:
     worker:
         restart: always
         build: ../../
+        container_name: nomadxt_worker
         environment:
             - NOMAD_MINIO_PORT=9000
             - NOMAD_MINIO_HOST=minio
@@ -129,6 +131,7 @@ services:
     handler:
         restart: always
         build: ../../
+        container_name: nomadxt_handler
         environment:
             - NOMAD_MINIO_PORT=9000
             - NOMAD_MINIO_HOST=minio
@@ -149,6 +152,7 @@ services:
     api:
         restart: always
         build: ../../
+        container_name: nomadxt_api
         environment:
             - NOMAD_MINIO_PORT=9000
             - NOMAD_MINIO_HOST=minio
@@ -174,6 +178,7 @@ services:
     # nomad gui
     gui:
         build: ../../gui/
+        container_name: nomadxt_gui
         ports:
             - ${GUI_HOST_PORT}:8080
         volumes:
@@ -184,6 +189,7 @@ services:
     proxy:
         restart: always
         image: nginx:1.13.9-alpine
+        container_name: nomadxt_proxy
         links:
             - elk
             - gui

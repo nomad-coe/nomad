@@ -4,12 +4,11 @@ from flask_restful import Resource, Api, abort
 from datetime import datetime
 import mongoengine.errors
 from flask_cors import CORS
-import logging
 from elasticsearch.exceptions import NotFoundError
 
 from nomad import users, files, search, config
+from nomad.utils import lnr, get_logger
 from nomad.processing import UploadProc
-from nomad.utils import get_logger
 
 base_path = config.services.api_base_path
 
@@ -117,10 +116,11 @@ class Upload(Resource):
         return _update_and_render(upload), 200
 
     def delete(self, upload_id):
+        logger = get_logger(__name__, upload_id=upload_id, endpoint='upload', action='delete')
+
         try:
             upload = users.Upload.objects(id=upload_id).first()
         except mongoengine.errors.ValidationError:
-            print('###')
             abort(400, message='%s is not a valid upload id.' % upload_id)
 
         if upload is None:
@@ -130,21 +130,20 @@ class Upload(Resource):
         if not (proc.ready() or is_stale or proc.current_task_name == 'uploading'):
             abort(400, message='%s has not finished processing.' % upload_id)
 
-        logger = get_logger(__name__, upload_id=upload_id)
-        with logger.lnr_error('Delete upload file'):
+        with lnr(logger, 'Delete upload file'):
             try:
                 files.Upload(upload.upload_id).delete()
             except KeyError:
-                logger.error('Upload exist, but file does not exist.')
+                logger.error('Upload exist, but file does not exist')
 
         if proc.upload_hash is not None:
-            with logger.lnr_error('Deleting archives.'):
+            with lnr(logger, 'Deleting archives'):
                 files.delete_archives(proc.upload_hash)
 
-            with logger.lnr_error('Deleting indexed calcs.'):
+            with lnr(logger, 'Deleting indexed calcs'):
                 search.Calc.delete_all(upload_id=proc.upload_id)
 
-        with logger.lnr_error('Deleting user upload.'):
+        with lnr(logger, 'Deleting user upload'):
             upload.delete()
 
         return _render(upload, proc, is_stale), 200
@@ -172,6 +171,8 @@ class RepoCalc(Resource):
 
 class RepoCalcs(Resource):
     def get(self):
+        logger = get_logger(__name__, endpoint='repo', action='get')
+
         # TODO use argparse? bad request reponse an bad params, pagination as decorator
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
@@ -190,7 +191,7 @@ class RepoCalcs(Resource):
         try:
             results = search.Calc.search(body=body)
         except Exception as e:
-            get_logger(__name__).error('Could not execute repo calcs get.', exc_info=e)
+            logger.error('Could not execute repo calcs get', exc_info=e)
             abort(500, message=str(e))
 
         return {
@@ -205,8 +206,10 @@ class RepoCalcs(Resource):
 
 @app.route('%s/archive/<string:upload_hash>/<string:calc_hash>' % base_path, methods=['GET'])
 def get_calc(upload_hash, calc_hash):
+    logger = get_logger(__name__, endpoint='archive', action='get', upload_hash=upload_hash, calc_hash=calc_hash)
+
     archive_id = '%s/%s' % (upload_hash, calc_hash)
-    logger = get_logger(__name__, archive_id=archive_id)
+
     try:
         url = _external_objects_url(files.archive_url(archive_id))
         return redirect(url, 302)
@@ -224,5 +227,4 @@ api.add_resource(RepoCalc, '%s/repo/<string:upload_hash>/<string:calc_hash>' % b
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
     app.run(debug=True, port=8000)

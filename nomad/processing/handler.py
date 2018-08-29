@@ -19,6 +19,7 @@ from nomad import files, utils, users
 
 from nomad.processing.tasks import extracting_task, cleanup_task, parse_all_task
 from nomad.processing.state import UploadProc
+from nomad.utils import get_logger, lnr
 
 
 def start_processing(upload_id, proc: UploadProc=None) -> UploadProc:
@@ -63,10 +64,10 @@ def handle_uploads(quit=False):
 
     @files.upload_put_handler
     def handle_upload_put(received_upload_id: str):
-        logger = utils.get_logger(__name__, upload_id=received_upload_id)
+        logger = get_logger(__name__, upload_id=received_upload_id)
         logger.debug('Initiate upload processing')
         try:
-            with logger.lnr_error('Could not load'):
+            with lnr(logger, 'Could not load'):
                 upload = users.Upload.objects(id=received_upload_id).first()
             if upload is None:
                 logger.error('Upload does not exist')
@@ -76,11 +77,11 @@ def handle_uploads(quit=False):
                 logger.warn('Ignore upload notification, since file is already uploaded')
                 raise StopIteration
 
-            with logger.lnr_error('Save upload time'):
+            with lnr(logger, 'Save upload time'):
                 upload.upload_time = datetime.now()
                 upload.save()
 
-            with logger.lnr_error('Start processing'):
+            with lnr(logger, 'Start processing'):
                 proc = start_processing(received_upload_id, proc=upload.proc)
                 assert proc.is_started
                 upload.proc = proc

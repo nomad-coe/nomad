@@ -21,13 +21,13 @@ of search relevant properties.
 
 import elasticsearch.exceptions
 from elasticsearch_dsl import Document, Date, Keyword, Search, connections
-import logging
 import sys
 
 from nomad import config
 from nomad.parsing import LocalBackend
+from nomad.utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ensure elastic connection
 if 'sphinx' not in sys.modules:
@@ -113,8 +113,8 @@ class Calc(Document):
                     value = backend.get_value(property, 0)
                 except KeyError:
                     logger.warning(
-                        'No value for property %s could be extracted for calc %s/%s.' %
-                        (property, upload_hash, calc_hash))
+                        'Missing property value', property=property, upload_id=upload_id,
+                        upload_hash=upload_hash, calc_hash=calc_hash)
                     continue
 
             setattr(calc, property, value)

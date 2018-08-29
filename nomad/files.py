@@ -46,7 +46,6 @@ from zipfile import ZipFile, BadZipFile
 import shutil
 from minio import Minio
 import minio.error
-import logging
 import hashlib
 import base64
 from contextlib import contextmanager
@@ -54,8 +53,9 @@ import gzip
 import io
 
 import nomad.config as config
+from nomad.utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 _client = None
 
@@ -69,7 +69,7 @@ if _client is None and 'sphinx' not in sys.modules:
     def ensure_bucket(name):
         try:
             _client.make_bucket(bucket_name=name)
-            logger.info("Created uploads bucket with name %s." % name)
+            logger.info('Created uploads bucket', bucket=name)
         except minio.error.BucketAlreadyOwnedByYou:
             pass
 
@@ -117,15 +117,16 @@ def upload_put_handler(func: Callable[[str], None]) -> Callable[[], None]:
                     event_name = event_record['eventName']
                     if event_name == 's3:ObjectCreated:Put':
                         upload_id = event_record['s3']['object']['key']
-                        logger.debug('Received bucket upload event of for upload %s.' % upload_id)
+                        logger.debug('Received bucket upload event', upload_id=upload_id)
                         yield upload_id
                         break  # only one per record, pls
                     else:
-                        logger.debug('Unhanled bucket event %s.' % event_name)
+                        logger.debug('Unhanled bucket event', bucket_event_name=event_name)
                 except KeyError:
                     logger.warning(
-                        'Unhandled bucket event due to unexprected event format: %s' %
-                        event_record)
+                        'Unhandled bucket event due to unexprected event format',
+                        bucket_event_record=event_record)
+
 
     def wrapper(*args, **kwargs) -> None:
         logger.info('Start listening to uploads notifications.')
@@ -141,8 +142,7 @@ def upload_put_handler(func: Callable[[str], None]) -> Callable[[], None]:
                 func(upload_id)
             except StopIteration:
                 # Using StopIteration to allow clients to stop handling of events.
-                logging.debug(
-                    'Handling of upload notifications was stopped via StopIteration.')
+                logger.debug('Handling of upload notifications was stopped via StopIteration.')
                 return
             except Exception:
                 pass

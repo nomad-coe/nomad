@@ -243,7 +243,7 @@ class UploadProc(ProcPipeline):
                         __name__,
                         upload_id=self.upload_id,
                         current_task_name=self.current_task_name)
-                    logger.error('Celery task raised exception.', exc_info=result)
+                    logger.error('Celery task raised exception', exc_info=result)
                 else:
                     self.update(result)
                 might_have_changed = True

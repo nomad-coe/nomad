@@ -18,6 +18,7 @@ This module is used to store all configuration values. It makes use of
 """
 
 import os
+import logging
 from collections import namedtuple
 
 FilesConfig = namedtuple(
@@ -39,7 +40,7 @@ ElasticConfig = namedtuple('ElasticConfig', ['host', 'calc_index'])
 MongoConfig = namedtuple('MongoConfig', ['host', 'users_db'])
 """ Used to configure mongo db. """
 
-LogstashConfig = namedtuple('LogstashConfig', ['enabled', 'host', 'tcp_port'])
+LogstashConfig = namedtuple('LogstashConfig', ['enabled', 'host', 'tcp_port', 'level'])
 """ Used to configure and enable/disable the ELK based centralized logging. """
 
 NomadServicesConfig = namedtuple('NomadServicesConfig', ['api_base_path', 'objects_host', 'objects_port', 'objects_base_path'])
@@ -87,7 +88,8 @@ mongo = MongoConfig(
 logstash = LogstashConfig(
     enabled=True,
     host=os.environ.get('NOMAD_LOGSTASH_HOST', 'localhost'),
-    tcp_port=int(os.environ.get('NOMAD_LOGSTASH_TCPPORT', '5000'))
+    tcp_port=int(os.environ.get('NOMAD_LOGSTASH_TCPPORT', '5000')),
+    level=int(os.environ.get('NOMAD_LOGSTASH_LEVEL', logging.DEBUG))
 )
 services = NomadServicesConfig(
     api_base_path=os.environ.get('NOMAD_API_BASE_PATH', '/nomadxt/api'),

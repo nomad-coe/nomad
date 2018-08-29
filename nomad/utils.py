@@ -1,9 +1,38 @@
 from typing import Union, IO, cast
 import hashlib
 import base64
-import json
 import logging
+import structlog
+from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper, JSONRenderer
+from structlog.stdlib import LoggerFactory
+import logstash
 from contextlib import contextmanager
+
+from nomad import config
+
+
+_logging_is_configured = False
+if not _logging_is_configured:
+    # basic config
+    logging.basicConfig(level=logging.WARNING)
+
+    # configure logstash
+    if config.logstash.enabled:
+        logstash_handler = logstash.TCPLogstashHandler(
+            config.logstash.host,
+            config.logstash.tcp_port, version=1)
+        logstash_handler.setLevel(config.logstash.level)
+        logging.getLogger().addHandler(logstash_handler)
+
+    # configure structlog
+    log_processors = [
+        StackInfoRenderer(),
+        format_exc_info,
+        TimeStamper(fmt="%Y-%m-%d %H:%M.%S", utc=False),
+        JSONRenderer(sort_keys=True)
+    ]
+    structlog.configure(processors=log_processors, logger_factory=LoggerFactory())
+    _logging_is_configured = True
 
 
 def hash(obj: Union[IO, str]) -> str:
@@ -18,54 +47,22 @@ def hash(obj: Union[IO, str]) -> str:
     return base64.b64encode(hash.digest(), altchars=b'-_')[0:28].decode('utf-8')
 
 
-class DataLogger():
-    def __init__(self, logger, **kwargs):
-        self._logger = logger
-        self.data = kwargs
-
-    def _prepare_msg(self, base_msg):
-        return '%s %s' % (base_msg, self._format_data())
-
-    def _format_data(self, ):
-        return json.dumps(self.data)
-
-    def debug(self, msg, *args, **kwargs):
-        self._logger.debug(self._prepare_msg(msg), *args, **kwargs)
-
-    def info(self, msg, *args, **kwargs):
-        self._logger.info(self._prepare_msg(msg), *args, **kwargs)
-
-    def warn(self, msg, *args, **kwargs):
-        self._logger.warn(self._prepare_msg(msg), *args, **kwargs)
-
-    def error(self, msg, *args, **kwargs):
-        self._logger.error(self._prepare_msg(msg), *args, **kwargs)
-
-    def crit(self, msg, *args, **kwargs):
-        self._logger.crit(self._prepare_msg(msg), *args, **kwargs)
-
-    @contextmanager
-    def lnr_error(self, msg, *args, **kwargs):
-        """
-        Will *log and raise* with an error and the given message and args/kwargs
-        on all exceptions.
-        """
-        try:
-            yield
-        except Exception as e:
-            self._logger.error(
-                self._prepare_msg('Exception while: %s' % msg),
-                exc_info=e, *args, **kwargs)
-            raise e
-
-
-def get_logger(name, *args, **kwargs):
+def get_logger(name, **kwargs):
     """
-    Returns a :class:`DataLogger` with the data given as kwargs.
-    A data logger can be used like any other logger, but will add the data to all
-    log output. Allowing more structured logging.
+    Returns a structlog logger that is already attached with a logstash handler.
+    User additional *kwargs* to pre-bind some values.
     """
-    return DataLogger(logging.getLogger(name), *args, **kwargs)
+    logger = structlog.get_logger(**kwargs)
+    return logger
+
+
+@contextmanager
+def lnr(logger, event, **kwargs):
+    try:
+        yield
+    except Exception as e:
+        logger.error(event, exc_info=e, **kwargs)
+        raise e
 
 
 class DataObject(dict):
@@ -88,3 +85,7 @@ class DataObject(dict):
 
     def update(self, dct):
         return super().update({key: value for key, value in dct.items() if value is not None})
+
+if __name__ == '__main__':
+    logger = get_logger(__name__, test='value')
+    logger.info('Hi', add='cool')

@@ -136,6 +136,8 @@ def test_process_non_existing(celery_session_worker):
 
 @pytest.mark.parametrize('task', ['extracting', 'parse_all', 'cleanup', 'parsers/vasp'])
 def test_task_failure(monkeypatch, uploaded_id, celery_session_worker, task):
+    import logging
+    logging.getLogger().setLevel(level=logging.CRITICAL)
     original_continue_with = ProcPipeline.continue_with
 
     def continue_with(self: ProcPipeline, current_task):

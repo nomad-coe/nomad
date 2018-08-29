@@ -35,16 +35,17 @@ def extracting_task(task: Task, proc: UploadProc) -> UploadProc:
     try:
         upload = files.Upload(proc.upload_id)
         upload.open()
+        logger.debug('Opened upload')
     except KeyError as e:
-        logger.debug('Process request for non existing upload')
+        logger.info('Process request for non existing upload')
         proc.fail(e)
         return proc
     except files.UploadError as e:
-        logger.debug('Could not open upload, %s' % e)
+        logger.info('Could not open upload', error=str(e))
         proc.fail(e)
         return proc
     except Exception as e:
-        logger.error('Unknown exception %s', exc_info=e)
+        logger.error('Unknown exception', exc_info=e)
         proc.fail(e)
         return proc
 
@@ -53,11 +54,12 @@ def extracting_task(task: Task, proc: UploadProc) -> UploadProc:
     try:
         proc.upload_hash = upload.hash()
     except files.UploadError as e:
-        logger.error('Could not create upload hash', exc_info=e)
+        logger.error('Could not create upload hash', error=str(e))
         proc.fail(e)
         return proc
 
     if search.Calc.upload_exists(proc.upload_hash):
+        logger.info('Upload hash doublet')
         proc.fail('The same file was already uploaded and processed.')
         return proc
 
@@ -71,7 +73,7 @@ def extracting_task(task: Task, proc: UploadProc) -> UploadProc:
                     proc.calc_procs.append(calc_proc)
 
     except files.UploadError as e:
-        logger.warn('Could find parse specs in open upload', exc_info=e)
+        logger.warn('Could find parse specs in open upload', error=str(e))
         proc.fail(e)
         return proc
 
@@ -131,18 +133,22 @@ def parse_task(self, proc: CalcProc, upload_proc: UploadProc) -> CalcProc:
     assert upload_proc.upload_hash is not None
 
     upload_hash, parser, mainfile = upload_proc.upload_hash, proc.parser_name, proc.mainfile
-    logger = utils.get_logger(__name__, upload_hash=upload_hash, mainfile=mainfile)
+    logger = utils.get_logger(
+        __name__, task=self.name,
+        upload_id=upload_proc.upload_id, upload_hash=upload_hash, mainfile=mainfile)
 
     # parsing
     proc.continue_with(parser)
-    logger.debug('Start parsing with %s' % parser)
     try:
         parser_backend = parser_dict[parser].run(proc.tmp_mainfile)
         if parser_backend.status[0] != 'ParseSuccess':
-            proc.fail(parser_backend.status[1])
+            error = parser_backend.status[1]
+            logger.debug('Failed parsing', parser=parser, error=error)
+            proc.fail(error)
             return proc
+        logger.debug('Completed successfully', parser=parser)
     except Exception as e:
-        logger.warn('Exception wile parsing', exc_info=e)
+        logger.warn('Exception wile parsing', parser=parser, exc_info=e)
         proc.fail(e)
         return proc
     _report_progress(self, proc)
@@ -151,12 +157,14 @@ def parse_task(self, proc: CalcProc, upload_proc: UploadProc) -> CalcProc:
     for normalizer in normalizers:
         normalizer_name = normalizer.__name__
         proc.continue_with(normalizer_name)
-        logger.debug('Start %s.' % normalizer)
         try:
             normalizer(parser_backend).normalize()
             if parser_backend.status[0] != 'ParseSuccess':
-                proc.fail(parser_backend.status[1])
+                error = parser_backend.status[1]
+                logger.info('Failed run of %s: %s' % (normalizer, error))
+                proc.fail(error)
                 return proc
+            logger.debug('Completed %s successfully' % normalizer)
         except Exception as e:
             logger.warn('Exception wile normalizing with %s' % normalizer, exc_info=e)
             proc.fail(e)
@@ -173,8 +181,9 @@ def parse_task(self, proc: CalcProc, upload_proc: UploadProc) -> CalcProc:
             upload_id=upload_proc.upload_id,
             mainfile=mainfile,
             upload_time=datetime.now())
+        logger.debug('Indexed successfully')
     except Exception as e:
-        logger.error('Could not index', exc_info=e)
+        logger.error('Failed to index', exc_info=e)
         proc.fail(e)
         return proc
     _report_progress(self, proc)
@@ -185,12 +194,13 @@ def parse_task(self, proc: CalcProc, upload_proc: UploadProc) -> CalcProc:
     try:
         with files.write_archive_json(archive_id) as out:
             parser_backend.write_json(out, pretty=True)
+        logger.debug('Indexed successfully')
     except Exception as e:
-        logger.error('Could not write archive', exc_info=e)
+        logger.error('Failed to archive', exc_info=e)
         proc.fail(e)
         return proc
 
-    logger.debug('Completed')
+    logger.debug('Completed processing')
 
     proc.success()
     return proc

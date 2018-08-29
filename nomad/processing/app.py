@@ -27,17 +27,16 @@ import nomad.patch  # pylint: disable=unused-import
 logger = get_task_logger(__name__.replace('nomad', 'nomad-xt'))
 logger.setLevel(logging.DEBUG)
 
-if config.logstash.enabled:
-    def initialize_logstash(logger=None, loglevel=logging.INFO, **kwargs):
-        handler = logstash.TCPLogstashHandler(
-            config.logstash.host, config.logstash.tcp_port,
-            tags=['celery'], message_type='celery', version=1)
-        handler.setLevel(loglevel)
-        logger.addHandler(handler)
-        return logger
+# if config.logstash.enabled:
+#     def initialize_logstash(logger=None, loglevel=logging.DEBUG, **kwargs):
+#         handler = logstash.TCPLogstashHandler(
+#             config.logstash.host, config.logstash.tcp_port, message_type='celery', version=1)
+#         handler.setLevel(loglevel)
+#         logger.addHandler(handler)
+#         return logger
 
-    after_setup_task_logger.connect(initialize_logstash)
-    after_setup_logger.connect(initialize_logstash)
+#     after_setup_task_logger.connect(initialize_logstash)
+#     after_setup_logger.connect(initialize_logstash)
 
 
 app = Celery('nomad.processing', backend=config.celery.backend_url, broker=config.celery.broker_url)
