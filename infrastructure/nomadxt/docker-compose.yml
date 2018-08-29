@@ -176,11 +176,9 @@ services:
         build: ../../gui/
         links:
             - api
-            - minio
-        environment:
-            - NGINX_PORT=8080
+            - minio8080
         ports:
-            - ${GUI_HOST_PORT}:8080
+            - ${GUI_HOST_PORT}:3000
         command: nginx -g "daemon off;"
 
     # reverse proxy everything together
