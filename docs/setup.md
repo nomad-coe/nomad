@@ -79,11 +79,6 @@ is some URL rewriting and prefixing in the api and gui.
 You can run the worker, handler, api, and gui as part of the docker infrastructure, like
 seen above.
 
-In this case you run the worker inside docker and other python outside docker, it will try
-to adress the Redis backend with different hosts. This does not work. If you need this, you
-could add `127.0.0.1 redis` to your `/etc/hosts`. Or do some docker-compose networking
-magic.
-
 You can also run the worker yourself, e.g. to develop on the processing. To simply
 run a worker do (from the root)
 ```
