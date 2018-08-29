@@ -117,6 +117,7 @@ services:
             - NOMAD_LOGSTASH_HOST=elk
             - NOMAD_ELASTIC_HOST=elastic
             - NOMAD_MONGO_HOST=mongo
+            - NOMAD_SERVICE=nomadxt_worker
         links:
             - minio
             - redis
@@ -141,6 +142,7 @@ services:
             - NOMAD_LOGSTASH_HOST=elk
             - NOMAD_MONGO_HOST=mongo
             - NOMAD_ELASTIC_HOST=elastic
+            - NOMAD_SERVICE=nomadxt_handler
         links:
             - minio
             - redis
@@ -167,6 +169,7 @@ services:
             - NOMAD_OBJECTS_HOST=${EXTERNAL_HOST}
             - NOMAD_OBJECTS_PORT=${EXTERNAL_PORT}
             - NOMAD_OBJECTS_BASE_PATH=/nomadxt/objects
+            - NOMAD_SERVICE=nomadxt_api
         links:
             - minio
             - redis

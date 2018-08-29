@@ -8,7 +8,7 @@ from structlog.stdlib import LoggerFactory
 import logstash
 from contextlib import contextmanager
 import json
-import sys
+import os
 
 from nomad import config
 
@@ -47,6 +47,8 @@ class LogstashFormatterVersion1ForStructlog(logstash.formatter.LogstashFormatter
 
         return self.serialize(message)
 
+
+_service = os.environ.get('NOMAD_SERVICE_NAME', 'nomadxt_generic')
 
 _logging_is_configured = False
 if not _logging_is_configured:
@@ -95,7 +97,7 @@ def get_logger(name, **kwargs):
     Returns a structlog logger that is already attached with a logstash handler.
     User additional *kwargs* to pre-bind some values.
     """
-    logger = structlog.get_logger(name, **kwargs)
+    logger = structlog.get_logger(name, service=_service, **kwargs)
     return logger
 
 
