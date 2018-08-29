@@ -176,7 +176,7 @@ services:
         build: ../../gui/
         ports:
             - ${GUI_HOST_PORT}:3000
-        command: start
+        command: serve
 
     # reverse proxy everything together
     proxy:
