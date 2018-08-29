@@ -12,6 +12,8 @@ import os
 
 from nomad import config
 
+_service = os.environ.get('NOMAD_SERVICE', 'nomad service')
+
 
 class LogstashFormatterVersion1ForStructlog(logstash.formatter.LogstashFormatterBase):
 
@@ -48,7 +50,14 @@ class LogstashFormatterVersion1ForStructlog(logstash.formatter.LogstashFormatter
         return self.serialize(message)
 
 
-_service = os.environ.get('NOMAD_SERVICE_NAME', 'nomadxt_generic')
+def add_logstash_handler(logger):
+    logstash_handler = logstash.TCPLogstashHandler(
+        config.logstash.host,
+        config.logstash.tcp_port, version=1)
+    logstash_handler.formatter = LogstashFormatterVersion1ForStructlog(tags=['nomad', _service])
+    logstash_handler.setLevel(config.logstash.level)
+    logger.addHandler(logstash_handler)
+
 
 _logging_is_configured = False
 if not _logging_is_configured:
@@ -69,12 +78,7 @@ if not _logging_is_configured:
         root.handlers[0].setLevel(logging.WARNING)
         root.setLevel(config.logstash.level)
 
-        logstash_handler = logstash.TCPLogstashHandler(
-            config.logstash.host,
-            config.logstash.tcp_port, version=1)
-        logstash_handler.formatter = LogstashFormatterVersion1ForStructlog()
-        logstash_handler.setLevel(config.logstash.level)
-        root.addHandler(logstash_handler)
+        add_logstash_handler(root)
 
     root.info('Structlog configured for logstash')
     _logging_is_configured = True
