@@ -8,6 +8,7 @@ from structlog.stdlib import LoggerFactory
 import logstash
 from contextlib import contextmanager
 import json
+import sys
 
 from nomad import config
 
@@ -15,7 +16,10 @@ from nomad import config
 class LogstashFormatterVersion1ForStructlog(logstash.formatter.LogstashFormatterBase):
 
     def format(self, record):
-        structlog = json.loads(record.getMessage())
+        try:
+            structlog = json.loads(record.getMessage())
+        except json.decoder.JSONDecodeError:
+            structlog = dict(event=record.getMessage())
 
         # Create message dict
         message = {
@@ -46,18 +50,6 @@ class LogstashFormatterVersion1ForStructlog(logstash.formatter.LogstashFormatter
 
 _logging_is_configured = False
 if not _logging_is_configured:
-    # basic config
-    logging.basicConfig(level=logging.WARNING)
-
-    # configure logstash
-    if config.logstash.enabled:
-        logstash_handler = logstash.TCPLogstashHandler(
-            config.logstash.host,
-            config.logstash.tcp_port, version=1)
-        logstash_handler.formatter = LogstashFormatterVersion1ForStructlog()
-        logstash_handler.setLevel(config.logstash.level)
-        logging.getLogger().addHandler(logstash_handler)
-
     # configure structlog
     log_processors = [
         StackInfoRenderer(),
@@ -67,7 +59,22 @@ if not _logging_is_configured:
     ]
     structlog.configure(processors=log_processors, logger_factory=LoggerFactory())
 
-    structlog.get_logger(__name__).info('Structlog configured for logstash')
+    logging.basicConfig(level=logging.WARNING)
+
+    # configure logstash
+    if config.logstash.enabled:
+        root = logging.getLogger()
+        root.handlers[0].setLevel(logging.WARNING)
+        root.setLevel(config.logstash.level)
+
+        logstash_handler = logstash.TCPLogstashHandler(
+            config.logstash.host,
+            config.logstash.tcp_port, version=1)
+        logstash_handler.formatter = LogstashFormatterVersion1ForStructlog()
+        logstash_handler.setLevel(config.logstash.level)
+        root.addHandler(logstash_handler)
+
+    root.info('Structlog configured for logstash')
     _logging_is_configured = True
 
 
@@ -121,7 +128,3 @@ class DataObject(dict):
 
     def update(self, dct):
         return super().update({key: value for key, value in dct.items() if value is not None})
-
-if __name__ == '__main__':
-    logger = get_logger(__name__, test='value')
-    logger.info('Hi', add='cool')
