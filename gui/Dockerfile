@@ -16,4 +16,4 @@ EXPOSE 3000
 EXPOSE 35729
 
 ENTRYPOINT ["/bin/bash", "/app/run.sh"]
-CMD ["start"]
+CMD ["serve"]
