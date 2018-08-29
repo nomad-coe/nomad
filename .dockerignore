@@ -4,6 +4,7 @@
 .vscode/
 .volumes/
 data/
+docs/.build
 infrastructure/
 gui/
 __pycache__/
