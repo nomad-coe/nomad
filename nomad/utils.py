@@ -7,8 +7,41 @@ from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
 from structlog.stdlib import LoggerFactory
 import logstash
 from contextlib import contextmanager
+import json
 
 from nomad import config
+
+
+class LogstashFormatterVersion1ForStructlog(logstash.formatter.LogstashFormatterBase):
+
+    def format(self, record):
+        structlog = json.loads(record.getMessage())
+
+        # Create message dict
+        message = {
+            '@timestamp': self.format_timestamp(record.created),
+            '@version': '1',
+            'message': structlog['event'],
+            'host': self.host,
+            'path': record.pathname,
+            'tags': self.tags,
+            'type': self.message_type,
+
+            # Extra Fields
+            'level': record.levelname,
+            'logger_name': record.name,
+        }
+
+        message.update(structlog)
+
+        # Add extra fields
+        message.update(self.get_extra_fields(record))
+
+        # If exception, add debug info
+        if record.exc_info:
+            message.update(self.get_debug_fields(record))
+
+        return self.serialize(message)
 
 
 _logging_is_configured = False
@@ -21,6 +54,7 @@ if not _logging_is_configured:
         logstash_handler = logstash.TCPLogstashHandler(
             config.logstash.host,
             config.logstash.tcp_port, version=1)
+        logstash_handler.formatter = LogstashFormatterVersion1ForStructlog()
         logstash_handler.setLevel(config.logstash.level)
         logging.getLogger().addHandler(logstash_handler)
 
@@ -32,6 +66,8 @@ if not _logging_is_configured:
         JSONRenderer(sort_keys=True)
     ]
     structlog.configure(processors=log_processors, logger_factory=LoggerFactory())
+
+    structlog.get_logger(__name__).info('Structlog configured for logstash')
     _logging_is_configured = True
 
 
@@ -52,7 +88,7 @@ def get_logger(name, **kwargs):
     Returns a structlog logger that is already attached with a logstash handler.
     User additional *kwargs* to pre-bind some values.
     """
-    logger = structlog.get_logger(**kwargs)
+    logger = structlog.get_logger(name, **kwargs)
     return logger
 
 
