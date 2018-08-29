@@ -14,8 +14,6 @@ case $1 in
     yarn test $@
     ;;
   serve)
-    yarn build;
-    yarn add global serve;
     serve -s build
     ;;
   *)
