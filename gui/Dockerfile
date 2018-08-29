@@ -1,18 +1,16 @@
-FROM node:8
-
-ADD yarn.lock /yarn.lock
-ADD package.json /package.json
-
-ENV NODE_PATH=/node_modules
-ENV PATH=$PATH:/node_modules/.bin
-RUN yarn
-
+# build environment
+FROM node:latest as builder
+RUN mkdir /app
 WORKDIR /app
-ADD . /app
-RUN yarn build
+ENV PATH /app/node_modules/.bin:$PATH
+COPY package.json /app/package.json
+RUN npm install --silent
+RUN npm install react-scripts@1.1.1 -g --silent
+COPY . /app
+RUN npm run build
 
-EXPOSE 3000
-EXPOSE 35729
-
-ENTRYPOINT ["/bin/bash", "/app/run.sh"]
-CMD ["serve"]
+# production environment
+FROM nginx:1.13.9-alpine
+COPY --from=builder /app/build /app/nomadxt
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
