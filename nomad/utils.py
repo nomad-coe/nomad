@@ -76,9 +76,11 @@ if not _logging_is_configured:
         if len(args) > 0:
             name = args[0]
             if name.startswith('nomad.processing.tasks'):
-                return get_task_logger('nomad-xt.processing.tasks')
+                logger = get_task_logger('nomad-xt.processing.tasks')
 
-        return default_factory(*args)
+        logger = default_factory(*args)
+        logger.setLevel(logging.DEBUG)
+        return logger
 
     structlog.configure(processors=log_processors, logger_factory=logger_factory)
 
