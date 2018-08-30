@@ -17,6 +17,7 @@ import DocumentationIcon from '@material-ui/icons/Help'
 import HomeIcon from '@material-ui/icons/Home'
 import ArchiveIcon from '@material-ui/icons/Storage'
 import EncIcon from '@material-ui/icons/Assessment'
+import DevelIcon from '@material-ui/icons/ReportProblem'
 import { Link, withRouter } from 'react-router-dom'
 import { compose } from 'recompose'
 import { Avatar, MuiThemeProvider } from '@material-ui/core'
@@ -32,7 +33,8 @@ const toolbarTitles = {
   '/profile': 'Your Profile',
   '/docs': 'Documentation',
   '/archive': 'Code Independent Data',
-  '/enc': 'The Material Perspective'
+  '/enc': 'The Material Perspective',
+  '/dev': 'Developer and Operator Functions'
 }
 
 const toolbarThemes = {
@@ -42,7 +44,8 @@ const toolbarThemes = {
   '/profile': genTheme,
   '/docs': genTheme,
   '/archive': archiveTheme,
-  '/enc': encTheme
+  '/enc': encTheme,
+  '/dev': genTheme
 }
 
 class Navigation extends React.Component {
@@ -149,6 +152,12 @@ class Navigation extends React.Component {
               <DocumentationIcon />
             </ListItemIcon>
             <ListItemText inset primary="Documentation"/>
+          </MenuItem>
+          <MenuItem component={Link} to="/dev" selected={ pathname === '/dev' }>
+            <ListItemIcon>
+              <DevelIcon />
+            </ListItemIcon>
+            <ListItemText inset primary="Development"/>
           </MenuItem>
         </MenuList>
       </div>

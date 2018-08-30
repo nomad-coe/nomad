@@ -9,6 +9,9 @@
 # production
 /build
 
+# generated
+src/gitinfo.json
+
 # misc
 .DS_Store
 .env.local

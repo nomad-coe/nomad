@@ -8,6 +8,7 @@ import ArchiveCalc from './ArchiveCalc'
 import RepoCalc from './RepoCalc'
 import Repo from './Repo'
 import Documentation from './Documentation'
+import Development from './Development';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
             <Route path="/enc" render={() => <div>{'In the future, you\'ll see charts\'n\'stuff for your calculations and materials.'}</div>} />
             <Route path="/profile" render={() => <div>Profile</div>} />
             <Route path="/docs" component={Documentation} />
+            <Route path="/dev" component={Development} />
             <Route render={() => <div>Not found</div>} />
           </Switch>
         </Navigation>
