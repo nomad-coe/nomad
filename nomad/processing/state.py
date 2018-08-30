@@ -250,6 +250,13 @@ class UploadProc(ProcPipeline):
                 might_have_changed = True
                 break
             else:
+                if celery_task_result.status == 'PROGRESS':
+                    # get potential info
+                    result = celery_task_result.info
+                    if result is not None:
+                        self.update(result)
+                        break
+
                 celery_task_result = celery_task_result.parent
 
         if self.calc_procs is not None:

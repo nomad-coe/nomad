@@ -2,12 +2,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography,
   ExpansionPanelDetails, Stepper, Step, StepLabel, Table, TableRow, TableCell, TableBody,
-  Checkbox,
-  FormControlLabel,
-  TablePagination,
-  TableHead,
-  Tooltip,
-  LinearProgress,
+  Checkbox, FormControlLabel, TablePagination, TableHead, Tooltip,
   CircularProgress} from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
@@ -127,12 +122,34 @@ class Upload extends React.Component {
 
   renderStepper() {
     const { classes } = this.props
-    const { calc_procs, task_names, current_task_name, status, errors } = this.state.upload.proc
+    const { upload } = this.state
+    const { calc_procs, task_names, current_task_name, status, errors } = upload.proc
 
     let activeStep = task_names.indexOf(current_task_name)
     activeStep += (status === 'SUCCESS') ? 1 : 0
 
     const labelPropsFactories = {
+      uploading: (props) => {
+        props.children = 'uploading'
+        const { uploading } = upload
+        if (upload.proc.status !== 'FAILURE') {
+          props.optional = (
+            <Typography variant="caption">
+              {uploading || 0}%
+            </Typography>
+          )
+        }
+      },
+      extracting: (props) => {
+        props.children = 'extracting'
+        if (current_task_name === 'extracting') {
+          props.optional = (
+            <Typography variant="caption">
+              be patient
+            </Typography>
+          )
+        }
+      },
       parse_all: (props) => {
         props.children = 'parse'
         if (calc_procs.length > 0) {
@@ -152,7 +169,6 @@ class Upload extends React.Component {
               </Typography>
             )
           }
-
         } else if (status === 'SUCCESS') {
           props.error = true
           props.optional = (
@@ -305,19 +321,17 @@ class Upload extends React.Component {
           <ExpansionPanelSummary
             expandIcon={<ExpandMoreIcon/>} classes={{root: classes.summary}}>
             {!upload.is_ready
-              ?
-                <div className={classes.progress}>
-                  <CircularProgress size={32}/>
-                </div>
-              :
-                <FormControlLabel control={(
-                  <Checkbox
-                    checked={this.props.checked}
-                    className={classes.checkbox}
-                    onClickCapture={(e) => e.stopPropagation()}
-                    onChange={this.onCheckboxChanged.bind(this)}
-                  />
-                )}/>
+              ? <div className={classes.progress}>
+                <CircularProgress size={32}/>
+              </div>
+              : <FormControlLabel control={(
+                <Checkbox
+                  checked={this.props.checked}
+                  className={classes.checkbox}
+                  onClickCapture={(e) => e.stopPropagation()}
+                  onChange={this.onCheckboxChanged.bind(this)}
+                />
+              )}/>
             }
             {this.renderTitle()} {this.renderStepper()}
           </ExpansionPanelSummary>

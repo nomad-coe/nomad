@@ -18,14 +18,16 @@ const handleResponseErrors = (response) => {
 }
 
 class Upload {
-  constructor(json) {
-    Object.assign(this, json)
+  constructor(json, created) {
+    this.uploading = null
+    this._assignFromJson(json, created)
   }
 
-  uploadFile(file, progress) {
+  uploadFile(file) {
     console.assert(this.presigned_url)
+    this.uploading = 0
 
-    const uploadFileWithProgress = async () => {
+    const uploadFileWithProgress = async() => {
       let { error, aborted } = await UploadRequest(
         {
           request: {
@@ -33,13 +35,12 @@ class Upload {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/gzip'
-            },
+            }
           },
           files: [file],
           progress: value => {
-            if (progress) {
-              progress(value)
-            }
+            console.log(value)
+            this.uploading = value
           }
         }
       )
@@ -55,15 +56,32 @@ class Upload {
       .then(() => this)
   }
 
+  _assignFromJson(uploadJson, created) {
+    Object.assign(this, uploadJson)
+    if (this.proc.current_task_name !== this.proc.task_names[0]) {
+      this.uploading = 100
+    } else if (!created && this.uploading === null) {
+      // if data came from server during a normal get (not create) and its still uploading
+      // and the uploading is also not controlled locally then it ought to be a failure/abort
+      this.proc.status = 'FAILURE'
+      this.is_ready = true
+      this.proc.errors = ['upload failed, probably aborted']
+    }
+  }
+
   update() {
-    return fetch(`${apiBase}/uploads/${this.upload_id}`)
-      .catch(networkError)
-      .then(handleResponseErrors)
-      .then(response => response.json())
-      .then(uploadJson => {
-        Object.assign(this, uploadJson)
-        return this
-      })
+    if (this.uploading !== null && this.uploading !== 100) {
+      return new Promise(resolve => resolve(this))
+    } else {
+      return fetch(`${apiBase}/uploads/${this.upload_id}`)
+        .catch(networkError)
+        .then(handleResponseErrors)
+        .then(response => response.json())
+        .then(uploadJson => {
+          this._assignFromJson(uploadJson)
+          return this
+        })
+    }
   }
 }
 
@@ -81,7 +99,7 @@ function createUpload(name) {
     .catch(networkError)
     .then(handleResponseErrors)
     .then(response => response.json())
-    .then(uploadJson => new Upload(uploadJson))
+    .then(uploadJson => new Upload(uploadJson, true))
 }
 
 function getUploads() {

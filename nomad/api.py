@@ -135,7 +135,10 @@ class Upload(Resource):
             try:
                 files.Upload(upload.upload_id).delete()
             except KeyError:
-                logger.error('Upload exist, but file does not exist')
+                if upload.proc['current_task_name'] == 'uploading':
+                    logger.debug('Upload exist, but file does not exist. It was probably aborted and deleted.')
+                else:
+                    logger.debug('Upload exist, but uploaded file does not exist.')
 
         if proc.upload_hash is not None:
             with lnr(logger, 'Deleting archives'):

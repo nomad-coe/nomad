@@ -26,11 +26,18 @@ from nomad.processing.app import app
 from nomad.processing.state import UploadProc, CalcProc
 
 
+def _report_progress(task, dct):
+    if not task.request.called_directly:
+        task.update_state(state='PROGRESS', meta=dct)
+
+
 @app.task(bind=True, name='extracting')
 def extracting_task(task: Task, proc: UploadProc) -> UploadProc:
     logger = utils.get_logger(__name__, task=task.name, upload_id=proc.upload_id)
     if not proc.continue_with(task.name):
         return proc
+
+    _report_progress(task, proc)
 
     try:
         upload = files.Upload(proc.upload_id)
@@ -88,6 +95,9 @@ def extracting_task(task: Task, proc: UploadProc) -> UploadProc:
 def cleanup_task(task, calc_procs: List[CalcProc], upload_proc: UploadProc) -> UploadProc:
     logger = utils.get_logger(__name__, task=task.name, upload_id=upload_proc.upload_id)
     if upload_proc.continue_with(task.name):
+
+        _report_progress(task, upload_proc)
+
         try:
             upload = files.Upload(upload_proc.upload_id)
         except KeyError as e:
@@ -106,11 +116,6 @@ def cleanup_task(task, calc_procs: List[CalcProc], upload_proc: UploadProc) -> U
         upload_proc.success()
 
     return upload_proc
-
-
-def _report_progress(task, dct):
-    if not task.request.called_directly:
-        task.update_state(state='PROGRESS', meta=dct)
 
 
 @app.task(bind=True, name='parse_all')

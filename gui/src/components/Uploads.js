@@ -89,9 +89,10 @@ class Uploads extends React.Component {
   onDrop(files) {
     files.forEach(file => {
       api.createUpload(file.name)
-        .then(upload => upload.uploadFile(file))
         .then(upload => {
           this.setState({uploads: [...this.state.uploads, upload]})
+          upload.uploadFile(file)
+            .catch(this.props.raiseError)
         })
         .catch(this.props.raiseError)
     })
@@ -109,7 +110,7 @@ class Uploads extends React.Component {
 
   onSelectionAllChanged(checked) {
     if (checked) {
-      this.setState({selectedUploads: [...this.state.uploads]})
+      this.setState({selectedUploads: [...this.state.uploads.filter(upload => upload.is_ready)]})
     } else {
       this.setState({selectedUploads: []})
     }
@@ -156,8 +157,8 @@ class Uploads extends React.Component {
             </FormGroup>
           </div>
           <div className={classes.uploads}>
-            {this.state.uploads.map((upload, key) => (
-              <Upload key={key} upload={upload}
+            {this.state.uploads.map((upload) => (
+              <Upload key={upload.upload_id} upload={upload}
                 checked={selectedUploads.indexOf(upload) !== -1}
                 onCheckboxChanged={checked => this.onSelectionChanged(upload, checked)}/>
             ))}
