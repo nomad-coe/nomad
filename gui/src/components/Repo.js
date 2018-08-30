@@ -93,9 +93,7 @@ class Repo extends React.Component {
         <Markdown>{`
           ## The Repository – Raw Code Data
         `}</Markdown>
-        <PeriodicTable>
-
-        </PeriodicTable>
+        {/* <PeriodicTable/> */}
         <Paper className={classes.data}>
           {loading ? <LinearProgress variant="query" /> : <div className={classes.progressPlaceholder} />}
           <Table>
