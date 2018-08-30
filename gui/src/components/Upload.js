@@ -34,6 +34,9 @@ class Upload extends React.Component {
       display: 'block',
       overflowX: 'auto'
     },
+    summary: {
+      overflowX: 'auto'
+    },
     detailsContent: {
       margin: theme.spacing.unit * 3
     },
@@ -284,7 +287,7 @@ class Upload extends React.Component {
       return (
         <ExpansionPanel>
           <ExpansionPanelSummary
-            expandIcon={<ExpandMoreIcon/>}>
+            expandIcon={<ExpandMoreIcon/>} classes={{root: classes.summary}}>
             <FormControlLabel control={(
               <Checkbox
                 disabled={!upload.is_ready}
