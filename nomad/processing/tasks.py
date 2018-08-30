@@ -115,8 +115,9 @@ def _report_progress(task, dct):
 
 @app.task(bind=True, name='parse_all')
 def parse_all_task(task: Task, upload_proc: UploadProc, cleanup: Signature) -> UploadProc:
+    cleanup = cleanup.clone(args=(upload_proc,))
     if not upload_proc.continue_with(task.name):
-        chord([])(cleanup.clone(args=(upload_proc,)))
+        chord(group())(cleanup)
         return upload_proc
 
     # prepare the group of parallel calc processings
@@ -127,7 +128,7 @@ def parse_all_task(task: Task, upload_proc: UploadProc, cleanup: Signature) -> U
         upload_proc.calc_procs[idx].celery_task_id = child.task_id
 
     # initiate the chord that runs calc processings first, and close_upload afterwards
-    chord(parses)(cleanup.clone(args=(upload_proc,)))
+    chord(parses)(cleanup)
 
     return upload_proc
 
