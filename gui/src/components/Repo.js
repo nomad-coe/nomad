@@ -76,12 +76,12 @@ class Repo extends React.Component {
 
   handleChangePage = (event, page) => {
     this.update(page + 1, this.state.rowsPerPage)
-  };
+  }
 
   handleChangeRowsPerPage = event => {
     const rowsPerPage = event.target.value
     this.update(this.state.page, rowsPerPage)
-  };
+  }
 
   render() {
     const { classes } = this.props

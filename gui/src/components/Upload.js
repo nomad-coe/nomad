@@ -3,7 +3,8 @@ import PropTypes from 'prop-types'
 import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography,
   ExpansionPanelDetails, Stepper, Step, StepLabel, Table, TableRow, TableCell, TableBody,
   Checkbox,
-  FormControlLabel} from '@material-ui/core'
+  FormControlLabel,
+  TablePagination} from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
 import CalcLinks from './CalcLinks'
@@ -53,11 +54,10 @@ class Upload extends React.Component {
     }
   });
 
-  constructor(props) {
-    super(props)
-    this.state = {
-      upload: props.upload
-    }
+  state = {
+    upload: this.props.upload,
+    page: 1,
+    rowsPerPage: 5
   }
 
   updateUpload() {
@@ -79,6 +79,15 @@ class Upload extends React.Component {
 
   componentDidMount() {
     this.updateUpload()
+  }
+
+  handleChangePage = (_, page) => {
+    this.setState({page: page + 1})
+  }
+
+  handleChangeRowsPerPage = event => {
+    const rowsPerPage = event.target.value
+    this.setState({rowsPerPage: rowsPerPage})
   }
 
   onCheckboxChanged(_, checked) {
@@ -150,6 +159,7 @@ class Upload extends React.Component {
 
   renderCalcTable() {
     const { classes } = this.props
+    const { page, rowsPerPage } = this.state
     const { calc_procs, status, upload_hash } = this.state.upload.proc
 
     if (calc_procs.length === 0) {
@@ -195,10 +205,27 @@ class Upload extends React.Component {
       )
     }
 
+    const total = calc_procs.length
+    const emptyRows = rowsPerPage - Math.min(rowsPerPage, total - (page - 1) * rowsPerPage)
+
     return (
       <Table>
         <TableBody>
-          {calc_procs.map(renderRow)}
+          {calc_procs.slice((page - 1) * rowsPerPage, page * rowsPerPage).map(renderRow)}
+          {emptyRows > 0 && (
+            <TableRow style={{ height: 57 * emptyRows }}>
+              <TableCell colSpan={6} />
+            </TableRow>
+          )}
+          <TableRow>
+            <TablePagination
+              count={total}
+              rowsPerPage={rowsPerPage}
+              page={page - 1}
+              onChangePage={this.handleChangePage}
+              onChangeRowsPerPage={this.handleChangeRowsPerPage}
+            />
+          </TableRow>
         </TableBody>
       </Table>
     )
