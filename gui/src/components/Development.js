@@ -10,7 +10,7 @@ class Development extends React.Component {
   }
 
   static styles = theme => ({
-    root: {},
+    root: {}
   })
 
   render() {
@@ -29,7 +29,7 @@ class Development extends React.Component {
           (previously *ELK*-stack). This system pushes logs, events, monitoring data,
           and other application metrics to a central **E**lasticsearch, via **L**ogstack,
           where it can be analysed with **K**ibana (hence **ELK**).
-          \n\n[Link to Kiaba](/nomadxt/kibana)
+          \n\n[Link to Kiaba](/nomadxt/kibana/)
         `}</Markdown>
       </div>
     )
