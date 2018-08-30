@@ -187,7 +187,7 @@ function Markdown(props) {
 
   let content = text
   if (children) {
-    content = children.replace(/^\s+/gm, '')
+    content = children.replace(/^ +/gm, '')
   }
 
   return (
