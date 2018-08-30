@@ -67,10 +67,14 @@ def extracting_task(task: Task, proc: UploadProc) -> UploadProc:
         # TODO: deal with multiple possible parser specs
         for filename in upload.filelist:
             for parser in parsers:
-                if parser.is_mainfile(filename, lambda fn: upload.open_file(fn)):
-                    tmp_mainfile = upload.get_path(filename)
-                    calc_proc = CalcProc(filename, parser.name, tmp_mainfile)
-                    proc.calc_procs.append(calc_proc)
+                try:
+                    if parser.is_mainfile(filename, lambda fn: upload.open_file(fn)):
+                        tmp_mainfile = upload.get_path(filename)
+                        calc_proc = CalcProc(filename, parser.name, tmp_mainfile)
+                        proc.calc_procs.append(calc_proc)
+                except Exception as e:
+                    logger.warn('Exception while matching pot. mainfile.', mainfile=filename)
+                    proc.warnings.append('Exception while matching pot. mainfile %s.' % filename)
 
     except files.UploadError as e:
         logger.warn('Could find parse specs in open upload', error=str(e))

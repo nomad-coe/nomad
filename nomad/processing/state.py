@@ -38,6 +38,7 @@ class ProcPipeline(utils.DataObject):
         self.current_task_name: str = None
         self.status: str = 'PENDING'
         self.errors: List[str] = []
+        self.warnings: List[str] = []
 
         self.update(kwargs)
 
