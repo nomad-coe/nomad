@@ -6,7 +6,9 @@ import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography,
   FormControlLabel,
   TablePagination,
   TableHead,
-  Tooltip} from '@material-ui/core'
+  Tooltip,
+  LinearProgress,
+  CircularProgress} from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
 import CalcLinks from './CalcLinks'
@@ -56,6 +58,12 @@ class Upload extends React.Component {
       overflow: 'hidden',
       whiteSpace: 'nowrap',
       textAlign: 'right'
+    },
+    progress: {
+      marginLeft: -theme.spacing.unit * 0.5,
+      width: theme.spacing.unit * 13 - 2,
+      alignItems: 'center',
+      display: 'flex'
     }
   });
 
@@ -191,11 +199,19 @@ class Upload extends React.Component {
     const { calc_procs, status, upload_hash } = this.state.upload.proc
 
     if (calc_procs.length === 0) {
-      return (
-        <Typography className={classes.detailsContent}>
-          {status === 'SUCCESS' ? 'No calculcations found.' : 'There are errors and no calculations to show.'}
-        </Typography>
-      )
+      if (this.state.upload.is_ready) {
+        return (
+          <Typography className={classes.detailsContent}>
+            {status === 'SUCCESS' ? 'No calculcations found.' : 'There are errors and no calculations to show.'}
+          </Typography>
+        )
+      } else {
+        return (
+          <Typography className={classes.detailsContent}>
+            Processing ...
+          </Typography>
+        )
+      }
     }
 
     const renderRow = (calcProc, index) => {
@@ -288,15 +304,21 @@ class Upload extends React.Component {
         <ExpansionPanel>
           <ExpansionPanelSummary
             expandIcon={<ExpandMoreIcon/>} classes={{root: classes.summary}}>
-            <FormControlLabel control={(
-              <Checkbox
-                disabled={!upload.is_ready}
-                checked={this.props.checked}
-                className={classes.checkbox}
-                onClickCapture={(e) => e.stopPropagation()}
-                onChange={this.onCheckboxChanged.bind(this)}
-              />
-            )}/>
+            {!upload.is_ready
+              ?
+                <div className={classes.progress}>
+                  <CircularProgress size={32}/>
+                </div>
+              :
+                <FormControlLabel control={(
+                  <Checkbox
+                    checked={this.props.checked}
+                    className={classes.checkbox}
+                    onClickCapture={(e) => e.stopPropagation()}
+                    onChange={this.onCheckboxChanged.bind(this)}
+                  />
+                )}/>
+            }
             {this.renderTitle()} {this.renderStepper()}
           </ExpansionPanelSummary>
           <ExpansionPanelDetails style={{width: '100%'}} classes={{root: classes.details}}>
