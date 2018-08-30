@@ -1,3 +1,4 @@
+import { UploadRequest } from '@navjobs/upload'
 import { apiBase } from './config'
 
 const networkError = () => {
@@ -21,17 +22,36 @@ class Upload {
     Object.assign(this, json)
   }
 
-  uploadFile(file) {
+  uploadFile(file, progress) {
     console.assert(this.presigned_url)
-    return fetch(this.presigned_url, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/gzip'
-      },
-      body: file
-    })
-      .catch(networkError)
-      .then(handleResponseErrors)
+
+    const uploadFileWithProgress = async () => {
+      let { error, aborted } = await UploadRequest(
+        {
+          request: {
+            url: this.presigned_url,
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/gzip'
+            },
+          },
+          files: [file],
+          progress: value => {
+            if (progress) {
+              progress(value)
+            }
+          }
+        }
+      )
+      if (error) {
+        networkError(error)
+      }
+      if (aborted) {
+        throw Error('User abort')
+      }
+    }
+
+    return uploadFileWithProgress()
       .then(() => this)
   }
 
