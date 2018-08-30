@@ -5,8 +5,9 @@ import { withRouter } from 'react-router-dom'
 import { HashLink as Link } from 'react-router-hash-link'
 import './Documentation.css'
 import Url from 'url-parse'
-import { apiBase } from '../config'
+import { apiBase, appBase } from '../config'
 
+const docBaseRegExp = new RegExp(`^(${appBase.replace('/', '\\/')})?(\\/docs/)?`)
 const processNodeDefinitions = new HtmlToReact.ProcessNodeDefinitions(React)
 const processingInstructions = location => {
   return [
@@ -24,7 +25,7 @@ const processingInstructions = location => {
       shouldProcessNode: node => node.type === 'tag' && node.name === 'a' && node.attribs['href'] && !node.attribs['href'].startsWith('http'),
       processNode: function DocLink(node, children) {
         const linkUrl = Url(node.attribs['href'])
-        let pathname = linkUrl.pathname.replace(/^\/docs/, '').replace(/^\//, '')
+        let pathname = linkUrl.pathname.replace(docBaseRegExp, '').replace(/^\//, '')
         if (pathname === '') {
           pathname = location.pathname
         } else {

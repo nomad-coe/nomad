@@ -82,7 +82,7 @@ class Navigation extends React.Component {
       flexGrow: 1,
       backgroundColor: theme.palette.background.default,
       padding: theme.spacing.unit * 3,
-      height: '100%',
+      width: '100%',
       overflow: 'scroll'
     },
     toolbar: theme.mixins.toolbar,
