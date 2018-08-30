@@ -108,7 +108,7 @@ def test_presigned_url(upload_id):
 
 def test_upload(uploaded_id: str):
     with files.Upload(uploaded_id) as upload:
-        assert len(upload.filelist) == 106
+        assert len(upload.filelist) == 5
         # now just try to open the first file (not directory), without error
         for filename in upload.filelist:
             if filename.endswith('.xml'):

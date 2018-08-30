@@ -1,3 +1,4 @@
+.DS_Store
 .pyenv/
 __pycache__
 .mypy_cache

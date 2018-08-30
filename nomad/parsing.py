@@ -42,7 +42,7 @@ Parsers in NOMAD-coe use a *backend* to create output.
 .. autoclass:: nomad.parsing.LocalBackend
 """
 
-from typing import TextIO, Tuple, List, Any, Callable
+from typing import TextIO, Tuple, List, Any, Callable, IO
 from abc import ABCMeta, abstractmethod
 from io import StringIO
 import json
@@ -578,12 +578,12 @@ class Parser():
         self._main_file_re = re.compile(main_file_re)
         self._main_contents_re = re.compile(main_contents_re)
 
-    def is_mainfile(self, upload, filename: str) -> bool:
+    def is_mainfile(self, filename: str, open: Callable[[str], IO[Any]]) -> bool:
         """ Checks if a file is a mainfile via the parsers ``main_contents_re``. """
         if self._main_file_re.match(filename):
             file = None
             try:
-                file = upload.open_file(filename)
+                file = open(filename)
                 return self._main_contents_re.match(file.read(500)) is not None
             finally:
                 if file:
@@ -623,7 +623,7 @@ parsers = [
     Parser(
         python_git=dependencies['parsers/vasp'],
         parser_class_name='vaspparser.VASPParser',
-        main_file_re=r'^.*\.xml$',
+        main_file_re=r'^.*\.xml(\.[^\.]*)?$',
         main_contents_re=(
             r'^\s*<\?xml version="1\.0" encoding="ISO-8859-1"\?>\s*'
             r'?\s*<modeling>'

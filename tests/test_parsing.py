@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from nomad.parsing import JSONStreamWriter, parser_dict
+import os
 from io import StringIO
 import json
 import pytest
-import sys
 
 from nomadcore.local_meta_info import loadJsonFile
 
+from nomad.parsing import JSONStreamWriter, parser_dict
 from nomad.parsing import LocalBackend, BadContextURI
 
 
@@ -189,3 +189,17 @@ def test_vasp_parser(parsed_vasp_example: LocalBackend):
 
     assert status == 'ParseSuccess'
     assert errors is None or len(errors) == 0
+
+
+def test_match():
+    vasp_parser = parser_dict['parsers/vasp']
+    directory = './data/examples_vasp_6'
+
+    count = 0
+    for dirpath, _, filenames in os.walk(directory):
+        for filename in filenames:
+            fullname = os.path.join(dirpath, filename)
+            if vasp_parser.is_mainfile(fullname, lambda fn: open(fn)):
+                count += 1
+
+    assert count == 6

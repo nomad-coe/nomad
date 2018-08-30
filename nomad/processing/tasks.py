@@ -67,7 +67,7 @@ def extracting_task(task: Task, proc: UploadProc) -> UploadProc:
         # TODO: deal with multiple possible parser specs
         for filename in upload.filelist:
             for parser in parsers:
-                if parser.is_mainfile(upload, filename):
+                if parser.is_mainfile(filename, lambda fn: upload.open_file(fn)):
                     tmp_mainfile = upload.get_path(filename)
                     calc_proc = CalcProc(filename, parser.name, tmp_mainfile)
                     proc.calc_procs.append(calc_proc)
