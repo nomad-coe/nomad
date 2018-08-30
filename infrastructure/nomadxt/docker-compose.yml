@@ -107,7 +107,9 @@ services:
     # nomad processing worker
     worker:
         restart: always
-        build: ../../
+        build:
+            context: ../../
+            dockerfile: backend.Dockerfile
         container_name: nomadxt_worker
         environment:
             - NOMAD_MINIO_PORT=9000
@@ -132,7 +134,9 @@ services:
     # nomad upload handler
     handler:
         restart: always
-        build: ../../
+        build:
+            context: ../../
+            dockerfile: backend.Dockerfile
         container_name: nomadxt_handler
         environment:
             - NOMAD_MINIO_PORT=9000
@@ -155,7 +159,9 @@ services:
     # nomad api
     api:
         restart: always
-        build: ../../
+        build:
+            context: ../../
+            dockerfile: backend.Dockerfile
         container_name: nomadxt_api
         environment:
             - NOMAD_MINIO_PORT=9000
@@ -183,7 +189,9 @@ services:
 
     # nomad gui
     gui:
-        build: ../../gui/
+        build:
+            context: ../../
+            dockerfile: frontend.Dockerfile
         container_name: nomadxt_gui
         ports:
             - ${GUI_HOST_PORT}:8080

@@ -3,10 +3,10 @@ FROM node:latest as builder
 RUN mkdir /app
 WORKDIR /app
 ENV PATH /app/node_modules/.bin:$PATH
-COPY package.json /app/package.json
-COPY yarn.lock /app/yarn.lock
+COPY gui/package.json /app/package.json
+COPY gui/yarn.lock /app/yarn.lock
 RUN yarn
-COPY . /app
+COPY gui /app
 RUN yarn build
 
 # production environment

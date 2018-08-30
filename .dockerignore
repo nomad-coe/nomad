@@ -2,10 +2,10 @@
 .pyenv/
 .vscode/
 .volumes/
-.git/
 data/
 docs/.build
+gui/node_modules
+gui/build
 infrastructure/
-gui/
 __pycache__/
 *.pyc
