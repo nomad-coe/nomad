@@ -4,8 +4,8 @@
 .volumes/
 data/
 docs/.build
-gui/node_modules
-gui/build
+gui/node_modules/
+gui/build/
 infrastructure/
 __pycache__/
 *.pyc
