@@ -1,12 +1,14 @@
 # build environment
 FROM node:latest as builder
-RUN mkdir /app
-WORKDIR /app
-ENV PATH /app/node_modules/.bin:$PATH
-COPY gui/package.json /app/package.json
-COPY gui/yarn.lock /app/yarn.lock
+RUN mkdir -p /nomad/app
+WORKDIR /nomad/app
+ENV PATH /nomad/app/node_modules/.bin:$PATH
+COPY gui/package.json /nomad/app/package.json
+COPY gui/yarn.lock /nomad/app/yarn.lock
 RUN yarn
-COPY gui /app
+COPY gui /nomad/app
+COPY .git /nomad
+
 RUN yarn build
 
 # production environment
