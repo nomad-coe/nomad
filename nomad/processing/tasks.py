@@ -172,7 +172,7 @@ def parse_task(self, proc: CalcProc, upload_proc: UploadProc) -> CalcProc:
     _report_progress(self, proc)
 
     # update search
-    proc.continue_with('index')
+    proc.continue_with('indexing')
     try:
         search.Calc.add_from_backend(
             parser_backend,
