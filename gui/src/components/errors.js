@@ -1,32 +1,38 @@
-import React from "react"
-import { SnackbarContent, IconButton, Snackbar, withStyles } from "@material-ui/core";
+import React from 'react'
+import PropTypes from 'prop-types'
+import { SnackbarContent, IconButton, Snackbar, withStyles } from '@material-ui/core'
 import ErrorIcon from '@material-ui/icons/Error'
 import CloseIcon from '@material-ui/icons/Close'
 
 export const ErrorContext = React.createContext({
   errors: [],
-  raiseError: (err) => { console.error('Wrong usage of ErrorContext.')},
-});
+  raiseError: () => { throw Error('Error context used incorrectly.') }
+})
 
 class ErrorSnacksUnstyled extends React.Component {
+  static propTypes = {
+    classes: PropTypes.object.isRequired,
+    children: PropTypes.any.isRequired
+  }
   static styles = theme => ({
     root: {},
     errorSnack: {
-      backgroundColor: theme.palette.error.dark,
+      backgroundColor: theme.palette.error.dark
     },
     icon: {
       fontSize: 20,
       opacity: 0.9,
-      marginRight: theme.spacing.unit,
+      marginRight: theme.spacing.unit
     },
     message: {
       display: 'flex',
-      alignItems: 'center',
+      alignItems: 'center'
     },
     errors: {
       marginLeft: theme.spacing.unit
     }
   })
+
   state = {
     errors: [],
     raiseError: (error) => {
@@ -43,7 +49,7 @@ class ErrorSnacksUnstyled extends React.Component {
   }
 
   render() {
-    const { children, classes } = this.props
+    const {children, classes} = this.props
     return (
       <ErrorContext.Provider value={this.state}>
         {children}
@@ -66,9 +72,9 @@ class ErrorSnacksUnstyled extends React.Component {
               </span>
             }
             action={[
-              <IconButton color="inherit" onClick={this.onClose.bind(this)}>
+              <IconButton key={0} color="inherit" onClick={this.onClose.bind(this)}>
                 <CloseIcon />
-              </IconButton>,
+              </IconButton>
             ]}
           />
         </Snackbar>
@@ -80,11 +86,13 @@ class ErrorSnacksUnstyled extends React.Component {
 export const ErrorSnacks = withStyles(ErrorSnacksUnstyled.styles)(ErrorSnacksUnstyled)
 
 export function withErrors(Component) {
-  return function WithErrorComponent(props) {
+  function WithErrorComponent(props) {
     return (
       <ErrorContext.Consumer>
         {errorContext => <Component {...props} raiseError={errorContext.raiseError} />}
       </ErrorContext.Consumer>
     )
   }
+
+  return WithErrorComponent
 }

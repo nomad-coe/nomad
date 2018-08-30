@@ -1,22 +1,24 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import { withStyles } from '@material-ui/core/styles';
-import Table from '@material-ui/core/Table';
-import TableBody from '@material-ui/core/TableBody';
-import TableCell from '@material-ui/core/TableCell';
-import TablePagination from '@material-ui/core/TablePagination';
-import TableRow from '@material-ui/core/TableRow';
-import Paper from '@material-ui/core/Paper';
-import api from '../api';
-import CalcLinks from './CalcLinks';
-import { TableHead, LinearProgress } from '@material-ui/core';
-import Markdown from './Markdown';
-import { compose } from 'recompose';
-import { withErrors } from './errors';
+import React from 'react'
+import PropTypes from 'prop-types'
+import { withStyles } from '@material-ui/core/styles'
+import Table from '@material-ui/core/Table'
+import TableBody from '@material-ui/core/TableBody'
+import TableCell from '@material-ui/core/TableCell'
+import TablePagination from '@material-ui/core/TablePagination'
+import TableRow from '@material-ui/core/TableRow'
+import Paper from '@material-ui/core/Paper'
+import api from '../api'
+import CalcLinks from './CalcLinks'
+import { TableHead, LinearProgress } from '@material-ui/core'
+import Markdown from './Markdown'
+import { compose } from 'recompose'
+import { withErrors } from './errors'
+import PeriodicTable from './PeriodicTable'
 
 class Repo extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
+    raiseError: PropTypes.func.isRequired
   }
 
   static styles = theme => ({
@@ -82,15 +84,18 @@ class Repo extends React.Component {
   };
 
   render() {
-    const { classes } = this.props;
-    const { data, rowsPerPage, page, total, loading } = this.state;
-    const emptyRows = rowsPerPage - Math.min(rowsPerPage, total - (page - 1) * rowsPerPage);
+    const { classes } = this.props
+    const { data, rowsPerPage, page, total, loading } = this.state
+    const emptyRows = rowsPerPage - Math.min(rowsPerPage, total - (page - 1) * rowsPerPage)
 
     return (
       <div className={classes.root}>
         <Markdown>{`
           ## The Repository – Raw Code Data
         `}</Markdown>
+        <PeriodicTable>
+
+        </PeriodicTable>
         <Paper className={classes.data}>
           {loading ? <LinearProgress variant="query" /> : <div className={classes.progressPlaceholder} />}
           <Table>
@@ -124,10 +129,10 @@ class Repo extends React.Component {
                   rowsPerPage={rowsPerPage}
                   page={page - 1}
                   backIconButtonProps={{
-                    'aria-label': 'Previous Page',
+                    'aria-label': 'Previous Page'
                   }}
                   nextIconButtonProps={{
-                    'aria-label': 'Next Page',
+                    'aria-label': 'Next Page'
                   }}
                   onChangePage={this.handleChangePage}
                   onChangeRowsPerPage={this.handleChangeRowsPerPage}

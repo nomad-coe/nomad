@@ -1,20 +1,27 @@
-import React from 'react';
-import Markdown from './Markdown';
+import React from 'react'
+import PropTypes from 'prop-types'
+import Markdown from './Markdown'
 import { withStyles, Paper, IconButton, FormGroup, Checkbox, FormControlLabel, FormLabel,
-  LinearProgress } from '@material-ui/core';
-import UploadIcon from '@material-ui/icons/CloudUpload';
-import Dropzone from 'react-dropzone';
-import api from '../api';
+  LinearProgress } from '@material-ui/core'
+import UploadIcon from '@material-ui/icons/CloudUpload'
+import Dropzone from 'react-dropzone'
+import api from '../api'
 import Upload from './Upload'
-import { withErrors } from './errors';
-import { compose } from 'recompose';
+import { withErrors } from './errors'
+import { compose } from 'recompose'
 import DeleteIcon from '@material-ui/icons/Delete'
 import CheckIcon from '@material-ui/icons/Check'
-import CommingSoon from './CommingSoon';
+import CommingSoon from './CommingSoon'
 
-var styles = theme => ({
+class Uploads extends React.Component {
+  static propTypes = {
+    classes: PropTypes.object.isRequired,
+    raiseError: PropTypes.func.isRequired
+  }
+
+  static styles = theme => ({
     root: {
-      width: '100%',
+      width: '100%'
     },
     dropzone: {
       textAlign: 'center',
@@ -42,9 +49,7 @@ var styles = theme => ({
     uploads: {
       marginTop: theme.spacing.unit * 2
     }
-});
-
-class Uploads extends React.Component {
+  })
 
   state = {
     uploads: null, selectedUploads: [], loading: true, acceptCommingSoon: false
@@ -89,7 +94,7 @@ class Uploads extends React.Component {
           this.setState({uploads: [...this.state.uploads, upload]})
         })
         .catch(this.props.raiseError)
-    });
+    })
   }
 
   onSelectionChanged(upload, checked) {
@@ -111,7 +116,7 @@ class Uploads extends React.Component {
   }
 
   renderUploads() {
-    const { classes } = this.props;
+    const { classes } = this.props
     const { uploads, selectedUploads } = this.state
 
     if (uploads && uploads.length > 0) {
@@ -120,34 +125,34 @@ class Uploads extends React.Component {
           <div style={{width: '100%'}}>
             <Markdown text={'These are the *existing* uploads:'} />
             <FormGroup className={classes.selectFormGroup} row>
-                <FormControlLabel label="all" style={{flexGrow: 1}} control={(
-                  <Checkbox
-                    checked={selectedUploads.length === uploads.length}
-                    onChange={(_, checked) => this.onSelectionAllChanged(checked)}
-                  />
-                )} />
-                <FormLabel classes={{root: classes.selectLabel}}>
-                  {`selected uploads ${selectedUploads.length}/${uploads.length}`}
-                </FormLabel>
-                <IconButton
-                    disabled={selectedUploads.length === 0}
-                    onClick={this.onDeleteClicked.bind(this)}
-                >
-                  <DeleteIcon />
-                </IconButton>
-                <IconButton
-                    disabled={selectedUploads.length === 0}
-                    onClick={this.onAcceptClicked.bind(this)}
-                >
-                  <CheckIcon />
-                </IconButton>
-                <CommingSoon
-                    open={this.state.acceptCommingSoon}
-                    onClose={() => this.setState({acceptCommingSoon: false})}>
+              <FormControlLabel label="all" style={{flexGrow: 1}} control={(
+                <Checkbox
+                  checked={selectedUploads.length === uploads.length}
+                  onChange={(_, checked) => this.onSelectionAllChanged(checked)}
+                />
+              )} />
+              <FormLabel classes={{root: classes.selectLabel}}>
+                {`selected uploads ${selectedUploads.length}/${uploads.length}`}
+              </FormLabel>
+              <IconButton
+                disabled={selectedUploads.length === 0}
+                onClick={this.onDeleteClicked.bind(this)}
+              >
+                <DeleteIcon />
+              </IconButton>
+              <IconButton
+                disabled={selectedUploads.length === 0}
+                onClick={this.onAcceptClicked.bind(this)}
+              >
+                <CheckIcon />
+              </IconButton>
+              <CommingSoon
+                open={this.state.acceptCommingSoon}
+                onClose={() => this.setState({acceptCommingSoon: false})}>
                   This will allow you to accept uploads and their calculations.
                   Only accepted uploads will be available in nomad xt,
                   and they cannot be deleted anymore.
-                </CommingSoon>
+              </CommingSoon>
             </FormGroup>
           </div>
           <div className={classes.uploads}>
@@ -165,7 +170,7 @@ class Uploads extends React.Component {
   }
 
   render() {
-    const { classes } = this.props;
+    const { classes } = this.props
 
     return (
       <div className={classes.root}>
@@ -179,11 +184,11 @@ class Uploads extends React.Component {
         `}</Markdown>
         <Paper>
           <Dropzone
-              accept="application/zip"
-              className={classes.dropzone}
-              activeClassName={classes.dropzoneAccept}
-              rejectClassName={classes.dropzoneReject}
-              onDrop={this.onDrop.bind(this)}
+            accept="application/zip"
+            className={classes.dropzone}
+            activeClassName={classes.dropzoneAccept}
+            rejectClassName={classes.dropzoneReject}
+            onDrop={this.onDrop.bind(this)}
           >
             <p>drop files here</p>
             <UploadIcon style={{fontSize: 36}}/>
@@ -197,4 +202,4 @@ class Uploads extends React.Component {
   }
 }
 
-export default compose(withErrors, withStyles(styles))(Uploads)
+export default compose(withErrors, withStyles(Uploads.styles))(Uploads)

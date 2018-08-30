@@ -1,29 +1,29 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import { withStyles } from '@material-ui/core/styles';
-import Drawer from '@material-ui/core/Drawer';
-import AppBar from '@material-ui/core/AppBar';
-import Toolbar from '@material-ui/core/Toolbar';
-import Typography from '@material-ui/core/Typography';
-import Divider from '@material-ui/core/Divider';
-import MenuList from '@material-ui/core/MenuList';
-import MenuItem from '@material-ui/core/MenuItem';
-import ListItemIcon from '@material-ui/core/ListItemIcon';
-import ListItemText from '@material-ui/core/ListItemText';
-import BackupIcon from '@material-ui/icons/Backup';
-import SearchIcon from '@material-ui/icons/Search';
-import AccountIcon from '@material-ui/icons/AccountCircle';
-import DocumentationIcon from '@material-ui/icons/Help';
-import HomeIcon from '@material-ui/icons/Home';
-import ArchiveIcon from '@material-ui/icons/Storage';
-import EncIcon from '@material-ui/icons/Assessment';
-import { Link, withRouter } from 'react-router-dom';
+import React from 'react'
+import PropTypes from 'prop-types'
+import { withStyles } from '@material-ui/core/styles'
+import Drawer from '@material-ui/core/Drawer'
+import AppBar from '@material-ui/core/AppBar'
+import Toolbar from '@material-ui/core/Toolbar'
+import Typography from '@material-ui/core/Typography'
+import Divider from '@material-ui/core/Divider'
+import MenuList from '@material-ui/core/MenuList'
+import MenuItem from '@material-ui/core/MenuItem'
+import ListItemIcon from '@material-ui/core/ListItemIcon'
+import ListItemText from '@material-ui/core/ListItemText'
+import BackupIcon from '@material-ui/icons/Backup'
+import SearchIcon from '@material-ui/icons/Search'
+import AccountIcon from '@material-ui/icons/AccountCircle'
+import DocumentationIcon from '@material-ui/icons/Help'
+import HomeIcon from '@material-ui/icons/Home'
+import ArchiveIcon from '@material-ui/icons/Storage'
+import EncIcon from '@material-ui/icons/Assessment'
+import { Link, withRouter } from 'react-router-dom'
 import { compose } from 'recompose'
-import { Avatar, MuiThemeProvider } from '@material-ui/core';
-import { genTheme, repoTheme, archiveTheme, encTheme, appBase } from '../config';
-import { ErrorSnacks } from './errors';
+import { Avatar, MuiThemeProvider } from '@material-ui/core'
+import { genTheme, repoTheme, archiveTheme, encTheme, appBase } from '../config'
+import { ErrorSnacks } from './errors'
 
-const drawerWidth = 200;
+const drawerWidth = 200
 
 const toolbarTitles = {
   '/': 'Welcome',
@@ -48,14 +48,16 @@ const toolbarThemes = {
 class Navigation extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
+    children: PropTypes.any,
+    location: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
     root: {
-      flexGrow: 1,
+      flexGrow: 1
     },
     flex: {
-      flexGrow: 1,
+      flexGrow: 1
     },
     appFrame: {
       zIndex: 1,
@@ -67,11 +69,11 @@ class Navigation extends React.Component {
     },
     appBar: {
       width: `calc(100% - ${drawerWidth}px)`,
-      marginLeft: drawerWidth,
+      marginLeft: drawerWidth
     },
     drawerPaper: {
       position: 'relative',
-      width: drawerWidth,
+      width: drawerWidth
     },
     content: {
       flexGrow: 1,
@@ -82,8 +84,8 @@ class Navigation extends React.Component {
     },
     toolbar: theme.mixins.toolbar,
     link: {
-        textDecoration: 'none',
-        color: theme.palette.text.primary
+      textDecoration: 'none',
+      color: theme.palette.text.primary
     }
   });
 
@@ -98,12 +100,12 @@ class Navigation extends React.Component {
   }
 
   renderMenu() {
-    const { pathname } = this.props.location
+    const {pathname} = this.props.location
 
     return (
       <div>
         <MenuList>
-          <MenuItem component={Link} to="/" selected={ '/' === pathname }>
+          <MenuItem component={Link} to="/" selected={ pathname === '/' }>
             <ListItemIcon>
               <HomeIcon />
             </ListItemIcon>
@@ -115,7 +117,7 @@ class Navigation extends React.Component {
             </ListItemIcon>
             <ListItemText inset primary="Repository"/>
           </MenuItem>
-          <MenuItem component={Link} to="/upload" selected={ '/upload' === pathname }>
+          <MenuItem component={Link} to="/upload" selected={ pathname === '/upload' }>
             <ListItemIcon>
               <BackupIcon style={{fill: repoTheme.palette.primary.main}}/>
             </ListItemIcon>
@@ -136,13 +138,13 @@ class Navigation extends React.Component {
         </MenuList>
         <Divider/>
         <MenuList>
-          <MenuItem component={Link} to="/profile" selected={ '/profile' === pathname }>
+          <MenuItem component={Link} to="/profile" selected={ pathname === '/profile' }>
             <ListItemIcon>
               <AccountIcon />
             </ListItemIcon>
             <ListItemText inset primary="Profil"/>
           </MenuItem>
-          <MenuItem component={Link} to="/docs" selected={ '/docs' === pathname }>
+          <MenuItem component={Link} to="/docs" selected={ pathname === '/docs' }>
             <ListItemIcon>
               <DocumentationIcon />
             </ListItemIcon>
@@ -154,10 +156,10 @@ class Navigation extends React.Component {
   }
 
   render() {
-    const { classes, children, location: { pathname } } = this.props;
+    const { classes, children, location: { pathname } } = this.props
 
     const drawer = (
-      <Drawer variant="permanent" classes={{ paper: classes.drawerPaper, }} anchor="left">
+      <Drawer variant="permanent" classes={{ paper: classes.drawerPaper }} anchor="left">
         <div className={classes.toolbar}>
           {this.renderTitle()}
         </div>
@@ -166,9 +168,12 @@ class Navigation extends React.Component {
       </Drawer>
     )
 
-    const selected = dct => dct[Object.keys(dct).find(key => {
-      return key === pathname || (key.length > 1 && pathname.startsWith(key))
-    })]
+    const selected = dct => {
+      const key = Object.keys(dct).find(key => {
+        return key === pathname || (key.length > 1 && pathname.startsWith(key))
+      })
+      return dct[key]
+    }
     const theme = selected(toolbarThemes)
 
     return (
@@ -203,4 +208,3 @@ class Navigation extends React.Component {
 }
 
 export default compose(withRouter, withStyles(Navigation.styles))(Navigation)
-

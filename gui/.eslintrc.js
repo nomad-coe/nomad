@@ -11,6 +11,7 @@ module.exports = {
         "fetch": false
     },
     "rules": {
-        "space-before-function-paren": ["error", "never"]
+        "space-before-function-paren": ["error", "never"],
+        "camelcase": [0]
     }
 }
