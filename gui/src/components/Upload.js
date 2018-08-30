@@ -4,7 +4,9 @@ import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography,
   ExpansionPanelDetails, Stepper, Step, StepLabel, Table, TableRow, TableCell, TableBody,
   Checkbox,
   FormControlLabel,
-  TablePagination} from '@material-ui/core'
+  TablePagination,
+  TableHead,
+  Tooltip} from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
 import CalcLinks from './CalcLinks'
@@ -123,11 +125,23 @@ class Upload extends React.Component {
       parse_all: (props) => {
         props.children = 'parse'
         if (calc_procs.length > 0) {
-          props.optional = (
-            <Typography variant="caption">
-              {calc_procs.filter(p => p.status === 'SUCCESS').length}/{calc_procs.length}
-            </Typography>
-          )
+          const failures = calc_procs.filter(calcProc => calcProc.status === 'FAILURE')
+          if (failures.length) {
+            props.error = true
+            props.optional = (
+              <Typography variant="caption" color="error">
+                {calc_procs.filter(p => p.status === 'SUCCESS').length}/{calc_procs.length}
+                , {failures.length} failed
+              </Typography>
+            )
+          } else {
+            props.optional = (
+              <Typography variant="caption">
+                {calc_procs.filter(p => p.status === 'SUCCESS').length}/{calc_procs.length}
+              </Typography>
+            )
+          }
+
         } else if (status === 'SUCCESS') {
           props.error = true
           props.optional = (
@@ -182,27 +196,28 @@ class Upload extends React.Component {
     }
 
     const renderRow = (calcProc, index) => {
-      const { mainfile, calc_hash, parser_name, task_names, current_task_name } = calcProc
-      return (
+      const { mainfile, calc_hash, parser_name, task_names, current_task_name, status, errors } = calcProc
+      const color = status === 'FAILURE' ? 'error' : 'default'
+      const row = (
         <TableRow key={index}>
           <TableCell>
-            <Typography>
+            <Typography color={color}>
               {mainfile}
             </Typography>
-            <Typography variant="caption">
+            <Typography variant="caption" color={color}>
               {calc_hash}
             </Typography>
           </TableCell>
           <TableCell>
-            <Typography>
+            <Typography color={color}>
               {parser_name.replace('parsers/', '')}
             </Typography>
           </TableCell>
           <TableCell>
-            <Typography>
+            <Typography color={color}>
               {current_task_name}
             </Typography>
-            <Typography variant="caption">
+            <Typography variant="caption" color={color}>
               task&nbsp;
               <b>
                 [{task_names.indexOf(current_task_name) + 1}/{task_names.length}]
@@ -210,10 +225,21 @@ class Upload extends React.Component {
             </Typography>
           </TableCell>
           <TableCell>
-            <CalcLinks uploadHash={upload_hash} calcHash={calc_hash} />
+            {status === 'SUCCESS'
+              ? <CalcLinks uploadHash={upload_hash} calcHash={calc_hash} /> : ''}
           </TableCell>
         </TableRow>
       )
+
+      if (status === 'FAILURE') {
+        return (
+          <Tooltip title={errors.map((error, index) => (<p key={index}>{error}</p>))}>
+            {row}
+          </Tooltip>
+        )
+      } else {
+        return row
+      }
     }
 
     const total = calc_procs.length
@@ -221,6 +247,14 @@ class Upload extends React.Component {
 
     return (
       <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell>mainfile</TableCell>
+            <TableCell>code</TableCell>
+            <TableCell>task</TableCell>
+            <TableCell></TableCell>
+          </TableRow>
+        </TableHead>
         <TableBody>
           {calc_procs.slice((page - 1) * rowsPerPage, page * rowsPerPage).map(renderRow)}
           {emptyRows > 0 && (
