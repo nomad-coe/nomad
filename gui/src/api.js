@@ -6,7 +6,12 @@ const networkError = () => {
 
 const handleResponseErrors = (response) => {
   if (!response.ok) {
-    throw Error(`API/object storage error (${response.statusCode}): ${response.statusText}`)
+    return response.json()
+      .catch(() => {
+        throw Error(`API/object storage error (${response.status}): ${response.statusText}`)
+      }).then(data => {
+        throw Error(`API/object storage error (${response.status}): ${data.message}`)
+      })
   }
   return response
 }

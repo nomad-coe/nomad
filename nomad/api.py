@@ -67,6 +67,7 @@ def _render(upload: users.Upload, proc: UploadProc, is_stale: bool) -> dict:
         'upload_time': upload.upload_time.isoformat() if upload.upload_time is not None else None,
         'proc_time': upload.proc_time.isoformat() if upload.proc_time is not None else None,
         'is_stale': is_stale,
+        'is_ready': proc.status in ['SUCCESS', 'FAILURE'],
         'proc': proc
     }
 

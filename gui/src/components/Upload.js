@@ -119,37 +119,48 @@ class Upload extends React.Component {
     let activeStep = task_names.indexOf(current_task_name)
     activeStep += (status === 'SUCCESS') ? 1 : 0
 
+    const labelPropsFactories = {
+      parse_all: (props) => {
+        props.children = 'parse'
+        if (calc_procs.length > 0) {
+          props.optional = (
+            <Typography variant="caption">
+              {calc_procs.filter(p => p.status === 'SUCCESS').length}/{calc_procs.length}
+            </Typography>
+          )
+        } else if (status === 'SUCCESS') {
+          props.error = true
+          props.optional = (
+            <Typography variant="caption" color="error">No calculations found.</Typography>
+          )
+        }
+      }
+    }
+
     return (
       <Stepper activeStep={activeStep} classes={{root: classes.stepper}}>
         {task_names.map((label, index) => {
-          let optional = null
-          let error = activeStep === index && status === 'FAILURE'
-
-          if (task_names[index] === 'parse_all') {
-            label = 'parse'
-            if (calc_procs.length > 0) {
-              optional = (
-                <Typography variant="caption">
-                  {calc_procs.filter(p => p.status === 'SUCCESS').length}/{calc_procs.length}
-                </Typography>
-              )
-            } else if (status === 'SUCCESS') {
-              error = true
-              optional = (
-                <Typography variant="caption" color="error">No calculations found.</Typography>
-              )
-            }
+          const labelProps = {
+            children: label,
+            error: activeStep === index && status === 'FAILURE'
           }
-          if (error && status === 'FAILURE') {
-            optional = (
+
+          const labelPropsFactory = labelPropsFactories[label]
+          if (labelPropsFactory) {
+            labelPropsFactory(labelProps)
+          }
+
+          if (labelProps.error && status === 'FAILURE') {
+            labelProps.optional = (
               <Typography variant="caption" color="error">
                 {errors.join(' ')}
               </Typography>
             )
           }
+
           return (
             <Step key={label}>
-              <StepLabel optional={optional} error={error}>{label}</StepLabel>
+              <StepLabel {...labelProps} />
             </Step>
           )
         })}
@@ -242,6 +253,7 @@ class Upload extends React.Component {
             expandIcon={<ExpandMoreIcon/>}>
             <FormControlLabel control={(
               <Checkbox
+                disabled={!upload.is_ready}
                 checked={this.props.checked}
                 className={classes.checkbox}
                 onClickCapture={(e) => e.stopPropagation()}
