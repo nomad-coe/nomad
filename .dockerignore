@@ -2,6 +2,7 @@
 .pyenv/
 .vscode/
 .volumes/
+.git/
 data/
 docs/.build
 infrastructure/
