@@ -9,5 +9,6 @@ and infrastructure with a simplyfied and improved architecture.
 
    setup
    introduction
-   modules
+   api
+   reference
    contributing

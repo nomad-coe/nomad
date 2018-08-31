@@ -17,10 +17,14 @@ This module comprises a set of persistent document classes that hold all user re
 data. These are information about users, their uploads and datasets, the associated
 calculations, and files
 
-..autoclass:: nomad.data.Calc
-..autoclass:: nomad.data.Upload
-..autoclass:: nomad.data.DataSet
-..autoclass:: nomad.data.User
+
+.. autoclass:: Calc
+    :members:
+.. autoclass:: Upload
+    :members:
+.. autoclass:: DataSet
+.. autoclass:: User
+
 """
 
 from typing import List
@@ -386,3 +390,11 @@ class DataSet(Document):
             'calcs'
         ]
     }
+
+# provid a fake user for testing
+me = None
+if 'sphinx' not in sys.modules:
+    me = User.objects(email='me@gmail.com').first()
+    if me is None:
+        me = User(email='me@gmail.com', name='Me Meyer')
+        me.save()

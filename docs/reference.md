@@ -1,4 +1,4 @@
-# Modules
+# Reference
 
 ## nomad.config
 ```eval_rst
@@ -25,4 +25,9 @@
 ## nomad.processing
 ```eval_rst
 .. automodule:: nomad.processing
+```
+
+## nomad.data
+```eval_rst
+.. automodule:: nomad.data
 ```

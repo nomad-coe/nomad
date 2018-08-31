@@ -26,6 +26,7 @@ Preparing dependencies
 To make GIT maintained python modules available, we use:
 
 .. autoclass:: PythonGit
+    :members:
 
 
 Dependencies are configured in

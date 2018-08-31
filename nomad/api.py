@@ -5,7 +5,7 @@ from elasticsearch.exceptions import NotFoundError
 
 from nomad import config, files
 from nomad.utils import get_logger
-from nomad.data import Calc, Upload, User, InvalidId, NotAllowedDuringProcessing
+from nomad.data import Calc, Upload, User, InvalidId, NotAllowedDuringProcessing, me
 
 base_path = config.services.api_base_path
 
@@ -17,19 +17,120 @@ CORS(app)
 api = Api(app)
 
 
-# provid a fake user for testing
-me = User.objects(email='me@gmail.com').first()
-if me is None:
-    me = User(email='me@gmail.com', name='Me Meyer')
-    me.save()
-
-
 class UploadsRes(Resource):
-
+    """ Uploads """
     def get(self):
+        """
+        Get a list of current users uploads.
+
+        .. :quickref: Get a list of current users uploads.
+
+        **Example request**:
+
+        .. sourcecode:: http
+
+            GET /nomadxt/api/uploads HTTP/1.1
+            Accept: application/json
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Vary: Accept
+            Content-Type: application/json
+
+            [
+                {
+                    "name": "examples_vasp_6.zip",
+                    "upload_id": "5b89469e0d80d40008077dbc",
+                    "presigned_url": "http://minio:9000/uploads/5b89469e0d80d40008077dbc?X-Amz-Algorithm=AWS4-...",
+                    "create_time": "2018-08-31T13:46:06.781000",
+                    "upload_time": "2018-08-31T13:46:07.531000",
+                    "is_stale": false,
+                    "is_ready": true,
+                    "proc": {
+                        "task_names": [
+                            "uploading",
+                            "extracting",
+                            "parse_all",
+                            "cleanup"
+                        ],
+                        "current_task_name": "cleanup",
+                        "status": "SUCCESS",
+                        "errors": [],
+                        "warnings": [],
+                        "upload_id": "5b89469e0d80d40008077dbc",
+                        "upload_hash": "rMB5F-gyHT0KY22eePoTjXibK95S",
+                        "calc_procs": []
+                    }
+                }
+            ]
+
+        :resheader Content-Type: application/json
+        :status 200: uploads successfully provided
+        :returns: list of :class:`nomad.data.Upload`
+        """
         return [upload.json_dict for upload in Upload.user_uploads(me)], 200
 
     def post(self):
+        """
+        Create a new upload. Creating an upload on its own wont do much, but provide
+        a *presigned* upload URL. PUT a file to this URL to do the actual upload and
+        initiate the processing.
+
+        .. :quickref: Create a new upload.
+
+        **Example request**:
+
+        .. sourcecode:: http
+
+            POST /nomadxt/api/uploads HTTP/1.1
+            Accept: application/json
+            Content-Type: application/json
+
+            {
+                name: 'vasp_data.zip'
+            }
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Vary: Accept
+            Content-Type: application/json
+
+            [
+                {
+                    "name": "vasp_data.zip",
+                    "upload_id": "5b89469e0d80d40008077dbc",
+                    "presigned_url": "http://minio:9000/uploads/5b89469e0d80d40008077dbc?X-Amz-Algorithm=AWS4-...",
+                    "create_time": "2018-08-31T13:46:06.781000",
+                    "is_stale": false,
+                    "is_ready": false,
+                    "proc": {
+                        "task_names": [
+                            "uploading",
+                            "extracting",
+                            "parse_all",
+                            "cleanup"
+                        ],
+                        "current_task_name": "uploading",
+                        "status": "PENDING",
+                        "errors": [],
+                        "warnings": [],
+                        "upload_id": "5b89469e0d80d40008077dbc",
+                        "calc_procs": []
+                    }
+                }
+            ]
+        :jsonparam string name: An optional name for the upload.
+        :reqheader Content-Type: application/json
+        :resheader Content-Type: application/json
+        :status 200: upload successfully created
+        :returns: a new instance of :class:`nomad.data.Upload`
+        """
         json_data = request.get_json()
         if json_data is None:
             json_data = {}
@@ -38,7 +139,62 @@ class UploadsRes(Resource):
 
 
 class UploadRes(Resource):
+    """ Uploads """
     def get(self, upload_id):
+        """
+        Get an update for an existing upload. If the upload will be upaded with new data from the
+        processing infrastucture. You can use this endpoint to periodically pull the
+        new processing state until the upload ``is_ready``.
+
+        .. :quickref: Get an update for an existing upload.
+
+        **Example request**:
+
+        .. sourcecode:: http
+
+            GET /nomadxt/api/uploads/5b89469e0d80d40008077dbc HTTP/1.1
+            Accept: application/json
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Vary: Accept
+            Content-Type: application/json
+
+            [
+                {
+                    "name": "vasp_data.zip",
+                    "upload_id": "5b89469e0d80d40008077dbc",
+                    "presigned_url": "http://minio:9000/uploads/5b89469e0d80d40008077dbc?X-Amz-Algorithm=AWS4-...",
+                    "create_time": "2018-08-31T13:46:06.781000",
+                    "upload_time": "2018-08-31T13:46:16.824000",
+                    "is_stale": false,
+                    "is_ready": false,
+                    "proc": {
+                        "task_names": [
+                            "uploading",
+                            "extracting",
+                            "parse_all",
+                            "cleanup"
+                        ],
+                        "current_task_name": "extracting",
+                        "status": "PROGRESS",
+                        "errors": [],
+                        "warnings": [],
+                        "upload_id": "5b89469e0d80d40008077dbc",
+                        "calc_procs": []
+                    }
+                }
+            ]
+        :param string upload_id: the id for the upload
+        :resheader Content-Type: application/json
+        :status 200: upload successfully updated and retrieved
+        :status 400: bad upload id
+        :status 404: upload with id does not exist
+        :returns: the :class:`nomad.data.Upload` instance
+        """
         try:
             return Upload.get(upload_id=upload_id).json_dict, 200
         except InvalidId:
@@ -47,6 +203,26 @@ class UploadRes(Resource):
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
     def delete(self, upload_id):
+        """
+        Deletes an existing upload. Only ``is_ready`` or ``is_stale`` uploads
+        can be deleted. Deleting an upload in processing is not allowed.
+
+        .. :quickref: Delete an existing upload.
+
+        **Example request**:
+
+        .. sourcecode:: http
+
+            DELETE /nomadxt/api/uploads/5b89469e0d80d40008077dbc HTTP/1.1
+            Accept: application/json
+
+        :param string upload_id: the id for the upload
+        :resheader Content-Type: application/json
+        :status 200: upload successfully deleted
+        :status 400: upload cannot be deleted
+        :status 404: upload with id does not exist
+        :returns: the :class:`nomad.data.Upload` instance with the latest processing state
+        """
         try:
             return Upload.get(upload_id=upload_id).delete().json_dict, 200
         except InvalidId:

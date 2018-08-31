@@ -36,6 +36,7 @@ authentication hassly, presigned URLs can be created that can be used directly t
 Uploads
 -------
 .. autoclass:: Upload
+    :members:
 
 """
 from typing import Callable, List, Any, Generator, IO, TextIO, cast
@@ -126,7 +127,6 @@ def upload_put_handler(func: Callable[[str], None]) -> Callable[[], None]:
                     logger.warning(
                         'Unhandled bucket event due to unexprected event format',
                         bucket_event_record=event_record)
-
 
     def wrapper(*args, **kwargs) -> None:
         logger.info('Start listening to uploads notifications.')

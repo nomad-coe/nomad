@@ -30,6 +30,7 @@ For now, we make a few assumption about parsers
 Each parser is defined via an instance of :class:`Parser`.
 
 .. autoclass:: nomad.parsing.Parser
+    :members:
 
 The parser definitions are available via the following two variables.
 
@@ -39,7 +40,9 @@ The parser definitions are available via the following two variables.
 Parsers in NOMAD-coe use a *backend* to create output.
 
 .. autoclass:: nomad.parsing.AbstractParserBackend
+    :members:
 .. autoclass:: nomad.parsing.LocalBackend
+    :members:
 """
 
 from typing import TextIO, Tuple, List, Any, Callable, IO

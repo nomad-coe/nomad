@@ -36,8 +36,11 @@ Represent processing state
 
 
 .. autoclass:: ProcPipeline
+    :members:
 .. autoclass:: UploadProc
+    :members:
 .. autoclass:: CalcProc
+    :members:
 
 Initiate processing
 -------------------
