@@ -9,6 +9,7 @@ import logstash
 from contextlib import contextmanager
 import json
 import os
+import sys
 
 from nomad import config
 
@@ -73,7 +74,10 @@ if not _logging_is_configured:
 
     def logger_factory(*args):
         logger = default_factory(*args)
-        logger.setLevel(logging.DEBUG)
+        if 'pytest' not in sys.modules:
+            logger.setLevel(logging.WARNING)
+        else:
+            logger.setLevel(logging.DEBUG)
         return logger
 
     structlog.configure(processors=log_processors, logger_factory=logger_factory)
@@ -81,11 +85,11 @@ if not _logging_is_configured:
     # configure logging in general
     logging.basicConfig(level=logging.WARNING)
 
-
     # configure logstash
     if config.logstash.enabled:
         root = logging.getLogger()
-        root.handlers[0].setLevel(logging.WARNING)
+        for handler in root.handlers:
+            handler.setLevel(logging.WARNING)
         root.setLevel(config.logstash.level)
 
         add_logstash_handler(root)

@@ -6,9 +6,10 @@ import mongoengine.errors
 from flask_cors import CORS
 from elasticsearch.exceptions import NotFoundError
 
-from nomad import users, files, search, config
+from nomad import users, files, config
 from nomad.utils import lnr, get_logger
 from nomad.processing import UploadProc
+from nomad.data import Calc
 
 base_path = config.services.api_base_path
 
@@ -141,11 +142,8 @@ class Upload(Resource):
                     logger.debug('Upload exist, but uploaded file does not exist.')
 
         if proc.upload_hash is not None:
-            with lnr(logger, 'Deleting archives'):
-                files.delete_archives(proc.upload_hash)
-
-            with lnr(logger, 'Deleting indexed calcs'):
-                search.Calc.delete_all(upload_id=proc.upload_id)
+            with lnr(logger, 'Deleting calcs'):
+                Calc.delete_all(upload_id=proc.upload_id)
 
         with lnr(logger, 'Deleting user upload'):
             upload.delete()
@@ -154,23 +152,13 @@ class Upload(Resource):
 
 
 class RepoCalc(Resource):
-    @staticmethod
-    def _render(data: dict):
-        upload_time = data.get('upload_time', None)
-        if upload_time is not None and isinstance(upload_time, datetime):
-            data['upload_time'] = data['upload_time'].isoformat()
-
-        return {key: value for key, value in data.items() if value is not None}
-
     def get(self, upload_hash, calc_hash):
         try:
-            data = search.Calc.get(id='%s/%s' % (upload_hash, calc_hash))
+            return Calc.get(id='%s/%s' % (upload_hash, calc_hash)).json_dict, 200
         except NotFoundError:
             abort(404, message='There is no calculation for %s/%s' % (upload_hash, calc_hash))
         except Exception as e:
             abort(500, message=str(e))
-
-        return RepoCalc._render(data.to_dict()), 200
 
 
 class RepoCalcs(Resource):
@@ -184,28 +172,20 @@ class RepoCalcs(Resource):
         assert page >= 1
         assert per_page > 0
 
-        body = {
-            'from': (page - 1) * per_page,
-            'size': per_page,
-            'query': {
-                'match_all': {}
-            }
-        }
-
         try:
-            results = search.Calc.search(body=body)
+            search = Calc.search().query('match_all')
+            search = search[(page - 1) * per_page: page * per_page]
+            return {
+                'pagination': {
+                    'total': search.count(),
+                    'page': page,
+                    'per_page': per_page
+                },
+                'results': [result.json_dict for result in search]
+            }
         except Exception as e:
             logger.error('Could not execute repo calcs get', exc_info=e)
             abort(500, message=str(e))
-
-        return {
-            'pagination': {
-                'total': results['hits']['total'],
-                'page': page,
-                'per_page': per_page
-            },
-            'results': [RepoCalc._render(hit['_source']) for hit in results['hits']['hits']]
-        }
 
 
 @app.route('%s/archive/<string:upload_hash>/<string:calc_hash>' % base_path, methods=['GET'])

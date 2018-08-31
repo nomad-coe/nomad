@@ -17,7 +17,8 @@ from celery import Task, chord, group
 from celery.canvas import Signature
 from datetime import datetime
 
-from nomad import files, utils, search
+from nomad import files, utils
+from nomad.data import Calc
 from nomad.parsing import parsers, parser_dict
 from nomad.normalizing import normalizers
 import nomad.patch  # pylint: disable=unused-import
@@ -65,7 +66,7 @@ def extracting_task(task: Task, proc: UploadProc) -> UploadProc:
         proc.fail(e)
         return proc
 
-    if search.Calc.upload_exists(proc.upload_hash):
+    if Calc.upload_exists(proc.upload_hash):
         logger.info('Upload hash doublet')
         proc.fail('The same file was already uploaded and processed.')
         return proc
@@ -182,33 +183,21 @@ def parse_task(self, proc: CalcProc, upload_proc: UploadProc) -> CalcProc:
     _report_progress(self, proc)
 
     # update search
-    proc.continue_with('indexing')
+    proc.continue_with('archiving')
     try:
-        search.Calc.add_from_backend(
+        Calc.create_from_backend(
             parser_backend,
             upload_hash=upload_hash,
             calc_hash=proc.calc_hash,
             upload_id=upload_proc.upload_id,
             mainfile=mainfile,
             upload_time=datetime.now())
-        logger.debug('Indexed successfully')
-    except Exception as e:
-        logger.error('Failed to index', exc_info=e)
-        proc.fail(e)
-        return proc
-    _report_progress(self, proc)
-
-    # calc data persistence
-    proc.continue_with('archiving')
-    archive_id = '%s/%s' % (upload_proc.upload_hash, proc.calc_hash)
-    try:
-        with files.write_archive_json(archive_id) as out:
-            parser_backend.write_json(out, pretty=True)
-        logger.debug('Indexed successfully')
+        logger.debug('Archived successfully')
     except Exception as e:
         logger.error('Failed to archive', exc_info=e)
         proc.fail(e)
         return proc
+    _report_progress(self, proc)
 
     logger.debug('Completed processing')
 

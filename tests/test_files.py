@@ -22,7 +22,7 @@ import json
 import shutil
 import os.path
 from minio import ResponseError
-from minio.error import NoSuchBucket
+from minio.error import NoSuchKey, NoSuchBucket
 
 import nomad.files as files
 import nomad.config as config
@@ -32,12 +32,17 @@ empty_file = 'data/empty.zip'
 
 
 def assert_exists(bucket_name, object_name):
+    stats = files._client.stat_object(bucket_name, object_name)
+    assert stats is not None
+
+
+def assert_not_exists(bucket_name, object_name):
     try:
-        stats = files._client.stat_object(bucket_name, object_name)
-        assert stats is not None
-    except NoSuchBucket:
+        files._client.stat_object(bucket_name, object_name)
         assert False
-    except ResponseError:
+    except NoSuchKey:
+        assert True
+    else:
         assert False
 
 
@@ -176,8 +181,8 @@ def test_archive(archive_id: str):
     assert result['test'] == 'value'
 
 
-def test_delete_archives(archive_id: str):
-    files.delete_archives(archive_id.split('/')[0])
+def test_delete_archive(archive_id: str):
+    files.delete_archive(archive_id)
     try:
         files.archive_url(archive_id)
         assert False

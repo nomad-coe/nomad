@@ -102,7 +102,7 @@ class CalcProc(ProcPipeline):
         task_names = [
             [parser_name],
             [n.__name__ for n in normalizers],
-            ['indexing', 'archiving']
+            ['archiving']
         ]
 
         super().__init__(task_names=list(itertools.chain(*task_names)), *args)

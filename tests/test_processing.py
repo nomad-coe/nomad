@@ -21,11 +21,14 @@ reading from the redis result backend, even though all task apperently ended suc
 from typing import Generator
 import pytest
 import time
+import logging
 
-from nomad import config, files, search
+from nomad import config, files
+from nomad.data import Calc
 from nomad.processing import start_processing, ProcPipeline
 
 from tests.test_files import example_file, empty_file
+
 # import fixtures
 from tests.test_files import clear_files  # pylint: disable=unused-import
 
@@ -36,7 +39,7 @@ example_files = [empty_file, example_file]
 def mocksearch(monkeypatch):
     uploads = []
 
-    def add_from_backend(_, **kwargs):
+    def create_from_backend(_, **kwargs):
         upload_hash = kwargs.get('upload_hash', None)
         uploads.append(upload_hash)
         return {}
@@ -44,8 +47,8 @@ def mocksearch(monkeypatch):
     def upload_exists(upload_hash):
         return upload_hash in uploads
 
-    monkeypatch.setattr('nomad.search.Calc.add_from_backend', add_from_backend)
-    monkeypatch.setattr('nomad.search.Calc.upload_exists', upload_exists)
+    monkeypatch.setattr('nomad.data.Calc.create_from_backend', create_from_backend)
+    monkeypatch.setattr('nomad.data.Calc.upload_exists', upload_exists)
 
 
 @pytest.fixture(scope='function', autouse=True)
@@ -106,12 +109,13 @@ def test_processing(uploaded_id, celery_session_worker):
 
 
 @pytest.mark.parametrize('uploaded_id', [example_files[1]], indirect=True)
-def test_processing_doublets(uploaded_id, celery_session_worker):
+def test_processing_doublets(uploaded_id, celery_session_worker, caplog):
+    caplog.set_level(logging.CRITICAL)
     upload_proc = start_processing(uploaded_id)
     upload_proc.get()
     assert upload_proc.status == 'SUCCESS'
 
-    assert search.Calc.upload_exists(upload_proc.upload_hash)
+    assert Calc.upload_exists(upload_proc.upload_hash)
 
     upload_proc = start_processing(uploaded_id)
     upload_proc.get()
@@ -121,7 +125,8 @@ def test_processing_doublets(uploaded_id, celery_session_worker):
 
 
 @pytest.mark.timeout(30)
-def test_process_non_existing(celery_session_worker):
+def test_process_non_existing(celery_session_worker, caplog):
+    caplog.set_level(logging.CRITICAL)
     upload_proc = start_processing('__does_not_exist')
 
     upload_proc.get()
@@ -135,9 +140,9 @@ def test_process_non_existing(celery_session_worker):
 
 
 @pytest.mark.parametrize('task', ['extracting', 'parse_all', 'cleanup', 'parsers/vasp'])
-def test_task_failure(monkeypatch, uploaded_id, celery_session_worker, task):
-    import logging
-    logging.getLogger().setLevel(level=logging.CRITICAL)
+def test_task_failure(monkeypatch, uploaded_id, celery_session_worker, task, caplog):
+    caplog.set_level(logging.CRITICAL)
+
     original_continue_with = ProcPipeline.continue_with
 
     def continue_with(self: ProcPipeline, current_task):

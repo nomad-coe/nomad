@@ -19,11 +19,12 @@ of search relevant properties.
 ..autoclass:: nomad.search.Calc:
 """
 
+import sys
+from datetime import datetime
 import elasticsearch.exceptions
 from elasticsearch_dsl import Document, Date, Keyword, Search, connections
-import sys
 
-from nomad import config
+from nomad import config, files
 from nomad.parsing import LocalBackend
 from nomad.utils import get_logger
 
@@ -40,11 +41,24 @@ key_mappings = {
 }
 
 
+class AlreadyExists(Exception): pass
+
+
 class Calc(Document):
     """
-    The search index representation of a calculation. All information for this should
-    be available after parsing and normalization. It should contain all fields and
-    mappings that are necessary to create the desired repository/archive functionality.
+    Instances of this class represent calculations. This class manages the elastic
+    search index entry, files, and archive for the respective calculation.
+    Instances should be created directly, but via the static :func:`create_from_backend`
+    function.
+
+    The attribute list, does not include the various repository properties generated
+    while parsing, including ``program_name``, ``program_version``, etc.
+
+    Attributes:
+        calc_hash: The hash that identified the calculation within an upload
+        upload_hash: The hash of the upload
+        upload_id: The id of the upload used to create this calculation
+        mainfile: The mainfile (including path in upload) that was used to create this calc
     """
     calc_hash = Keyword()
 
@@ -68,38 +82,57 @@ class Calc(Document):
     class Index:
         name = config.elastic.calc_index
 
+    @property
+    def archive_id(self) -> str:
+        """ The unique id for this calculation. """
+        return '%s/%s' % (self.upload_hash, self.calc_hash)
+
+    def delete(self):
+        """
+        Delete this calculation and all associated data. This includes all files,
+        the archive, and this search index entry.
+        """
+        # delete the archive
+        files.delete_archive(self.archive_id)
+
+        # delete the search index entry
+        super().delete()
+
     @staticmethod
-    def search(body):
+    def es_search(body):
+        """ Perform an elasticsearch and not elasticsearch_dsl search on the Calc index. """
         return client.search(index=config.elastic.calc_index, body=body)
 
     @staticmethod
     def delete_all(**kwargs):
-        return Search(using=client, index=config.elastic.calc_index) \
-            .query('match', **kwargs) \
-            .delete()
+        for calc in Calc.search().query('match', **kwargs).execute():
+            calc.delete()
 
     @staticmethod
-    def upload_exists(upload_hash):
-        """ Returns true if there are already calcs from the given upload. """
-        search = Search(using=client, index=config.elastic.calc_index) \
-            .query('match', upload_hash=upload_hash) \
-            .execute()
-
-        return len(search) > 0
-
-    @staticmethod
-    def add_from_backend(backend: LocalBackend, **kwargs) -> 'Calc':
+    def create_from_backend(
+            backend: LocalBackend, upload_id: str, upload_hash: str, calc_hash: str, **kwargs) \
+            -> 'Calc':
         """
-        Add the calc data from the given backend to the elastic search index. Additional
-        meta-data can be given as *kwargs*. ``upload_id``, ``upload_hash``, and ``calc_hash``
-        are mandatory.
+        Create a new calculation instance. The data from the given backend
+        will be used. Additional meta-data can be given as *kwargs*. ``upload_id``,
+        ``upload_hash``, and ``calc_hash`` are mandatory.
+        This will create a elastic search entry and store the backend data to the
+        archive.
+
+        Arguments:
+            backend: The parsing/normalizing backend that contains the calculation data.
+            upload_hash: The upload hash of the originating upload.
+            upload_id: The upload id of the originating upload.
+            calc_hash: The upload unique hash for this calculation.
+            kwargs: Additional arguments not stored in the backend.
+
+        Raises:
+            AlreadyExists: If the calculation already exists in elastic search. We use
+                the elastic document lock here. The elastic document is ided via the
+                ``archive_id``.
         """
-
-        upload_id = kwargs.get('upload_id', None)
-        upload_hash = kwargs.get('upload_hash', None)
-        calc_hash = kwargs.get('calc_hash', None)
-
         assert upload_hash is not None and calc_hash is not None and upload_id is not None
+        kwargs.update(dict(upload_hash=upload_hash, calc_hash=calc_hash, upload_id=upload_id))
 
         calc = Calc(meta=dict(id='%s/%s' % (upload_hash, calc_hash)))
 
@@ -119,8 +152,40 @@ class Calc(Document):
 
             setattr(calc, property, value)
 
-        calc.save()
+        # persist to elastic search
+        try:
+            calc.save(op_type='create')
+        except Exception as e:
+            raise AlreadyExists('Calculation %s does already exist.' % (calc.archive_id))
+
+        # persist the archive
+        with files.write_archive_json(calc.archive_id) as out:
+            backend.write_json(out, pretty=True)
+
         return calc
+
+    @property
+    def json_dict(self):
+        """ A json serializable dictionary representation. """
+        data = self.to_dict()
+
+        upload_time = data.get('upload_time', None)
+        if upload_time is not None and isinstance(upload_time, datetime):
+            data['upload_time'] = data['upload_time'].isoformat()
+
+        data['archive_id'] = self.archive_id
+
+        return {key: value for key, value in data.items() if value is not None}
+
+    @staticmethod
+    def upload_exists(upload_hash):
+        """ Returns true if there are already calcs from the given upload. """
+        search = Search(using=client, index=config.elastic.calc_index) \
+            .query('match', upload_hash=upload_hash) \
+            .execute()
+
+        return len(search) > 0
+
 
 if 'sphinx' not in sys.modules:
     try:

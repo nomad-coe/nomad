@@ -324,11 +324,10 @@ def open_archive_json(archive_id) -> IO:
         raise KeyError()
 
 
-def delete_archives(upload_hash: str):
-    """ Deletes all archive files for this upload_hash. """
+def delete_archive(archive_id: str):
+    """ Deletes the archive file with the given id. """
     bucket = config.files.archive_bucket
-    prefix = '%s/' % upload_hash
-    to_remove = [obj.object_name for obj in _client.list_objects(bucket, prefix)]
-    for _ in _client.remove_objects(bucket, to_remove):
-        # TODO handle potential errors
-        pass
+    try:
+        _client.remove_object(bucket, archive_id)
+    except minio.error.NoSuchKey:
+        raise KeyError()
