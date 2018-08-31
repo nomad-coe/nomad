@@ -14,7 +14,8 @@ services_config = config.services._asdict()
 services_config.update(api_base_path='')
 config.services = config.NomadServicesConfig(**services_config)
 
-from nomad import api, files, processing, users  # noqa
+from nomad import api, files, processing  # noqa
+from nomad.data import Upload  # noqa
 
 from tests.test_processing import example_files  # noqa
 from tests.test_files import assert_exists  # noqa
@@ -36,7 +37,7 @@ def client():
     client = api.app.test_client()
 
     yield client
-    users.Upload._get_collection().drop()
+    Upload._get_collection().drop()
 
 
 def assert_uploads(upload_json_str, count=0, **kwargs):
@@ -87,7 +88,7 @@ def test_stale_upload(client):
     assert rv.status_code == 200
     upload_id = assert_upload(rv.data)['upload_id']
 
-    upload = users.Upload.objects(id=upload_id).first()
+    upload = Upload.get(upload_id=upload_id)
     upload.create_time = datetime.now() - timedelta(days=2)
     upload.save()
 
@@ -157,7 +158,8 @@ def test_upload_to_upload(client, file):
 
     handle_uploads_thread.join()
 
-    assert_exists(config.files.uploads_bucket, upload['upload_id'])
+    upload_id = upload['upload_id']
+    assert_exists(config.files.uploads_bucket, upload_id)
 
 
 @pytest.mark.parametrize("file", example_files)

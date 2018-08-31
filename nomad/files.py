@@ -331,3 +331,15 @@ def delete_archive(archive_id: str):
         _client.remove_object(bucket, archive_id)
     except minio.error.NoSuchKey:
         raise KeyError()
+
+
+def external_objects_url(url):
+    """ Replaces the given internal object storage url (minio) with an URL that allows
+        external access. """
+    port_with_colon = ''
+    if config.services.objects_port > 0:
+        port_with_colon = ':%d' % config.services.objects_port
+
+    return url.replace(
+        '%s:%s' % (config.minio.host, config.minio.port),
+        '%s%s%s' % (config.services.objects_host, port_with_colon, config.services.objects_base_path))

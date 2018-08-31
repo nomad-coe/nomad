@@ -15,7 +15,7 @@
 from datetime import datetime
 from threading import Thread
 
-from nomad import files, utils, users
+from nomad import files, utils
 
 from nomad.processing.tasks import extracting_task, cleanup_task, parse_all_task
 from nomad.processing.state import UploadProc
@@ -64,14 +64,16 @@ def handle_uploads(quit=False):
 
     @files.upload_put_handler
     def handle_upload_put(received_upload_id: str):
+        from nomad.data import Upload
         logger = get_logger(__name__, upload_id=received_upload_id)
         logger.debug('Initiate upload processing')
         try:
             with lnr(logger, 'Could not load'):
-                upload = users.Upload.objects(id=received_upload_id).first()
-            if upload is None:
-                logger.error('Upload does not exist')
-                raise Exception()
+                try:
+                    upload = Upload.get(upload_id=received_upload_id)
+                except KeyError as e:
+                    logger.error('Upload does not exist')
+                    raise e
 
             if upload.upload_time is not None:
                 logger.warn('Ignore upload notification, since file is already uploaded')
@@ -88,7 +90,7 @@ def handle_uploads(quit=False):
                 upload.save()
 
         except Exception:
-            pass
+            logger.error('Exception while handling upload put notification.', exc_info=e)
 
         if quit:
             raise StopIteration

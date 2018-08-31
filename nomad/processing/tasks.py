@@ -18,7 +18,6 @@ from celery.canvas import Signature
 from datetime import datetime
 
 from nomad import files, utils
-from nomad.data import Calc
 from nomad.parsing import parsers, parser_dict
 from nomad.normalizing import normalizers
 import nomad.patch  # pylint: disable=unused-import
@@ -66,6 +65,7 @@ def extracting_task(task: Task, proc: UploadProc) -> UploadProc:
         proc.fail(e)
         return proc
 
+    from nomad.data import Calc
     if Calc.upload_exists(proc.upload_hash):
         logger.info('Upload hash doublet')
         proc.fail('The same file was already uploaded and processed.')
@@ -185,6 +185,7 @@ def parse_task(self, proc: CalcProc, upload_proc: UploadProc) -> CalcProc:
     # update search
     proc.continue_with('archiving')
     try:
+        from nomad.data import Calc
         Calc.create_from_backend(
             parser_backend,
             upload_hash=upload_hash,
