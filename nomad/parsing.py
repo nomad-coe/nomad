@@ -559,7 +559,7 @@ class LocalBackend(LegacyParserBackend):
         return out.getvalue()
 
 
-class Parser():
+class Parser(metaclass=ABCMeta):
     """
     Instances specify a parser. It allows to find *main files* from  given uploaded
     and extracted files. Further, allows to run the parser on those 'main files'.
@@ -570,6 +570,30 @@ class Parser():
                            parameter for the backend.
         main_file_re: A regexp that matches main file paths that this parser can handle.
         main_contents_re: A regexp that matches main file headers that this parser can parse.
+    """
+    @abstractmethod
+    def is_mainfile(self, filename: str, open: Callable[[str], IO[Any]]) -> bool:
+        """ Checks if a file is a mainfile via the parsers ``main_contents_re``. """
+        pass
+
+    @abstractmethod
+    def run(self, mainfile: str) -> LocalBackend:
+        """
+        Runs the parser on the given mainfile. It uses :class:`LocalBackend` as
+        a backend. The meta-info access is handled by the underlying NOMAD-coe parser.
+
+        Args:
+            mainfile: A path to a mainfile that this parser can parse.
+
+        Returns:
+            The used :class:`LocalBackend` with status information and result data.
+        """
+
+
+class LegacyParser(Parser):
+    """
+    A parser implementation for legacy NOMAD-coe parsers. Uses a
+    :class:`nomad.dependencies.PythonGit` to specify the old parser repository.
     """
     def __init__(
             self, python_git: PythonGit, parser_class_name: str, main_file_re: str,
@@ -582,7 +606,6 @@ class Parser():
         self._main_contents_re = re.compile(main_contents_re)
 
     def is_mainfile(self, filename: str, open: Callable[[str], IO[Any]]) -> bool:
-        """ Checks if a file is a mainfile via the parsers ``main_contents_re``. """
         if self._main_file_re.match(filename):
             file = None
             try:
@@ -595,16 +618,6 @@ class Parser():
         return False
 
     def run(self, mainfile: str) -> LocalBackend:
-        """
-        Runs the parser on the given mainfile. It uses :class:`LocalBackend` as
-        a backend. The meta-info access is handled by the underlying NOMAD-coe parser.
-
-        Args:
-            mainfile: A path to a mainfile that this parser can parse.
-
-        Returns:
-            The used :class:`LocalBackend` with status information and result data.
-        """
         def create_backend(meta_info):
             return LocalBackend(meta_info, debug=False)
 
@@ -623,7 +636,7 @@ class Parser():
 
 
 parsers = [
-    Parser(
+    LegacyParser(
         python_git=dependencies['parsers/vasp'],
         parser_class_name='vaspparser.VASPParser',
         main_file_re=r'^.*\.xml(\.[^\.]*)?$',
