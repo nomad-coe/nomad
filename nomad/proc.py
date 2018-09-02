@@ -1,14 +1,40 @@
-from typing import List
-from mongoengine import EmbeddedDocument, Document, StringField, ListField, DateTimeField, \
-    EmbeddedDocumentField, IntField, ReferenceField
-from mongoengine.errors import ValidationError
-from datetime import datetime
-from celery import Celery
-from celery.signals import after_setup_task_logger, after_setup_logger
-import logging
+# Copyright 2018 Markus Scheidgen
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an"AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-from nomad import utils, files, config, parsing, normalizing
+from typing import List, cast
+import types
+from contextlib import contextmanager
+import collections
+import inspect
+import logging
+import time
+import celery
+from celery import Celery, Task
+from celery.signals import after_setup_task_logger, after_setup_logger, worker_process_init
+from mongoengine import Document, StringField, ListField, DateTimeField, IntField, \
+    ReferenceField, connect, ValidationError
+from mongoengine.connection import MongoEngineConnectionError
+from mongoengine.base.metaclasses import TopLevelDocumentMetaclass
+from pymongo import ReturnDocument
+from datetime import datetime
+
+from nomad import config, utils
 import nomad.patch  # pylint: disable=unused-import
+
+
+def mongo_connect():
+    return connect(db=config.mongo.users_db, host=config.mongo.host)
 
 if config.logstash.enabled:
     def initialize_logstash(logger=None, loglevel=logging.DEBUG, **kwargs):
@@ -18,7 +44,18 @@ if config.logstash.enabled:
     after_setup_task_logger.connect(initialize_logstash)
     after_setup_logger.connect(initialize_logstash)
 
-app = Celery('nomad.proc', broker=config.celery.broker_url)
+worker_process_init.connect(lambda **kwargs: mongo_connect())
+
+app = Celery(
+    'nomad.processing',
+    backend=config.celery.backend_url,
+    broker=config.celery.broker_url)
+
+app.add_defaults(dict(
+    accept_content=['json', 'pickle'],
+    task_serializer=config.celery.serializer,
+    result_serializer=config.celery.serializer,
+))
 
 
 PENDING = 'PENDING'
@@ -27,49 +64,105 @@ FAILURE = 'FAILURE'
 SUCCESS = 'SUCCESS'
 
 
-class Proc(EmbeddedDocument):
+class InvalidId(Exception): pass
+
+
+class AsyncDocumentNotRegistered(Exception): pass
+
+
+class ProcMetaclass(TopLevelDocumentMetaclass):
+    def __new__(cls, name, bases, attrs):
+        cls = super().__new__(cls, name, bases, attrs)
+
+        tasks = []
+        setattr(cls, 'tasks', tasks)
+
+        for name, attr in attrs.items():
+            task = getattr(attr, '__task_name', None)
+            if task is not None and task not in tasks:
+                tasks.append(task)
+
+        return cls
+
+
+class Proc(Document, metaclass=ProcMetaclass):
+    """
+    Base class for objects involved in processing and need persistent processing
+    state.
+
+    Attributes:
+        current_task: the currently running or last completed task
+        status: the overall status of the processing
+        errors: a list of errors that happened during processing. Error fail a processing
+            run
+        warnings: a list of warnings that happened during processing. Warnings do not
+            fail a processing run
+        create_time: the time of creation (not the start of processing)
+        proc_time: the time that processing completed (successfully or not)
+    """
+
+    meta = {
+        'abstract': True,
+    }
+
+    tasks: List[str] = None
+    """ the ordered list of tasks that comprise a processing run """
+
     current_task = StringField(default=None)
-    tasks = ListField(StringField, required=True)
-    status = StringField(default=PENDING)
-    errors = ListField(StringField, default=[])
-    warnings = ListField(StringField, default=[])
+    status = StringField(default='CREATED')
+
+    errors = ListField(StringField())
+    warnings = ListField(StringField())
 
     create_time = DateTimeField(required=True)
     complete_time = DateTimeField()
-
-    def __init__(self, **kwargs):
-        kwargs.setdefault('create_time', datetime.now())
-        super().__init__(**kwargs)
-        assert self.current_task is None
-        assert len(self.tasks) > 0
 
     @property
     def completed(self) -> bool:
         return self.status in [SUCCESS, FAILURE]
 
-    def continue_with(self, task: str):
-        assert task in self.tasks
-        assert self.tasks.index(task) == self.tasks.index(self.current_task) + 1
+    @classmethod
+    def create(cls, **kwargs):
+        assert cls.tasks is not None and len(cls.tasks) > 0, \
+            """ the class attribute tasks must be overwritten with an acutal list """
+        assert 'status' not in kwargs, \
+            """ do not set the status manually, its managed """
 
-        if self.status == PENDING:
-            assert self.current_task is None
-            assert task == self.tasks[0]
-            self.status = RUNNING
+        kwargs.setdefault('create_time', datetime.now())
+        self = cls(**kwargs)
+        self.status = PENDING if self.current_task is None else RUNNING
+        self.save()
 
-        self.current_task = task
+        return self
 
-    def complete(self):
-        assert self.current_task == self.tasks[-1]
+    @classmethod
+    def get(cls, obj_id):
+        try:
+            obj = cls.objects(id=obj_id).first()
+        except ValidationError as e:
+            raise InvalidId('%s is not a valid id' % obj_id)
+        except MongoEngineConnectionError as e:
+            raise e
 
-        self.status = SUCCESS
-        self.complete_time = datetime.now()
+        if obj is None:
+            raise KeyError('%s with id %s does not exist' % (cls.__name__, obj_id))
 
-    def fail(self, *errors):
+        return obj
+
+    def get_id(self):
+        return self.id.__str__()
+
+    def fail(self, errors):
         assert not self.completed
+        if isinstance(errors, str) or not isinstance(errors, collections.Iterable):
+            errors = [errors]
 
         self.status = FAILURE
-        self.errors = [str(error) for error in errors]
+        self.errors = list([str(error) for error in errors])
         self.complete_time = datetime.now()
+
+        print(self.errors)
+        self.save()
 
     def warning(self, *warnings):
         assert not self.completed
@@ -77,11 +170,72 @@ class Proc(EmbeddedDocument):
         for warning in warnings:
             self.warnings.append(str(warning))
 
+    def continue_with(self, task):
+        tasks = self.__class__.tasks
+        assert task in tasks, 'task %s must be one of the classes tasks %s' % (task, str(tasks))
+        if self.current_task is None:
+            assert task == tasks[0], "process has to start with first task"
+        else:
+            assert tasks.index(task) == tasks.index(self.current_task) + 1, \
+                "tasks must be processed in the right order"
+
+        if self.status == FAILURE:
+            return False
+
+        if self.status == PENDING:
+            assert self.current_task is None
+            assert task == tasks[0]
+            self.status = RUNNING
+
+        self.current_task = task
+        self.save()
+        return True
+
+    def complete(self):
+        if self.status != FAILURE:
+            assert self.status == RUNNING
+            self.status = SUCCESS
+            self.save()
+
+    def incr_counter(self, field, value=1, other_fields=None):
+        """
+        Atomically increases the given field by value and return the new value.
+        Optionally return also other values from the updated object to avoid
+        reloads.
+
+        Arguments:
+            field: the name of the field to increment, must be a :class:`IntField`
+            value: the value to increment the field by, default is 1
+            other_fields: an optional list of field names that should also be returned
+
+        Returns:
+            either the value of the updated field, or a tuple with this value and a list
+            of value for the given other fields
+        """
+        # use a primitive but atomic pymongo call
+        updated_raw = self._get_collection().find_one_and_update(
+            {'_id': self.id},
+            {'$inc': {field: value}},
+            return_document=ReturnDocument.AFTER)
+
+        if updated_raw is None:
+            raise KeyError('object does not exist, was probaly not yet written to db')
+
+        if other_fields is None:
+            return updated_raw[field]
+        else:
+            return updated_raw[field], [updated_raw[field] for field in other_fields]
+
+    def block_until_complete(self, interval=.1):
+        while not self.completed:
+            time.sleep(interval)
+            self.reload()
+
     @property
     def json_dict(self) -> dict:
         """ A json serializable dictionary representation. """
         data = {
-            'tasks': self.tasks,
+            'tasks': getattr(self.__class__, 'tasks'),
             'current_task': self.current_task,
             'status': self.status,
             'errors': self.errors,
@@ -92,331 +246,133 @@ class Proc(EmbeddedDocument):
         return {key: value for key, value in data.items() if value is not None}
 
 
-class InvalidId(Exception): pass
-
-
-UPLOADING = 'uploading'
-EXTRACTING = 'extracting'
-PARSING = 'parsing'
-CLEANING = 'clearning'
-
-
-class BaseDocument(Document):
-    meta = {
-        'abstract': True,
-    }
-
-    @classmethod
-    def get(cls, id: str):
-        try:
-            obj = cls.objects(id=id).first()
-        except ValidationError:
-            raise InvalidId('Invalid %s id' % cls.__name__)
-
-        if obj is None:
-            raise KeyError('%s does not exist' % cls.__name__)
-
-        return obj
-
-
-@app.task(bind=True, ignore_result=True)
-def process_upload(task, upload_id):
-    self = Upload.get(upload_id)
-    logger = utils.get_logger(__name__, task=task.name, upload_id=upload_id)
-
-    self.proc.continue_with(EXTRACTING)
-    self.save()
-
-    try:
-        upload = files.Upload(upload_id)
-        upload.open()
-        logger.debug('Opened upload')
-    except KeyError as e:
-        logger.info('Process request for non existing upload')
-        self.proc.fail(e)
-        return
-    except files.UploadError as e:
-        logger.info('Could not open upload', error=str(e))
-        self.proc.fail(e)
-        return
-    except Exception as e:
-        logger.error('Unknown exception', exc_info=e)
-        self.proc.fail(e)
-        return
-    finally:
-        self.save()
-
-    try:
-        self.upload_hash = upload.hash()
-    except files.UploadError as e:
-        logger.error('Could not create upload hash', error=str(e))
-        self.proc.fail(e)
-        return
-    finally:
-        self.save()
-
-    try:
-        from nomad.data import Calc
-        if Calc.upload_exists(proc.upload_hash):
-            logger.info('Upload hash doublet')
-            self.proc.fail('The same file was already uploaded and processed.')
+def task(func):
+    def wrapper(self, *args, **kwargs):
+        if self.status == 'FAILURE':
             return
-    except Exception as e:
-        logger.error('Exception while checking upload hash', exc_info=e)
-        self.proc.fail('Could not check upload hash for existing calcs.', e)
-    finally:
-        self.save()
 
-    try:
-        # TODO: deal with multiple possible parser specs
-        for filename in upload.filelist:
-            for parser in parsers:
-                try:
-                    if parser.is_mainfile(filename, lambda fn: upload.open_file(fn)):
-                        tmp_mainfile = upload.get_path(filename)
-                        self.add_calc(filename, parser.name, tmp_mainfile)
-                except Exception as e:
-                    logger.warning('Exception while matching pot. mainfile.', mainfile=filename)
-                    self.proc.warning(
-                        'Exception while matching pot. mainfile %s with parser %s.'
-                        % (filename, parser.name))
-        self.start_parsing()
-    except Exception as e:
-        logger.error('Exception while finding parse specs.', exc_info=e)
-        self.proc.fail('Exception while fining parse specs.', e)
-        self.save()
-
-
-@app.task(bind=True, ignore_result=True)
-def clean_upload(task, upload_id: str):
-    logger = utils.get_logger(__name__, task=task.name, upload_id=upload_id)
-    self = Upload.get(upload_id)
-
-    self.continue_with(CLEANING)
-
-    try:
-        upload = files.Upload(upload_id)
-    except KeyError as e:
-        logger.warn('Upload does not exist')
-        self.fail(e)
-        return
-    finally:
-        self.save()
-
-    try:
-        upload.close()
-        logger.debug('Closed upload')
-    except Exception as e:
-        logger.error('Could not close upload', exc_info=e)
-        self.fail(e)
-        self.save()
-        return
-
-    self.complete()
-    self.save()
-
-
-@app.task(bind=True, ignore_result=True)
-def process_calc(task, calc_id: str):
-    self: Calc = Calc.get(calc_id)
-
-    upload_hash = self.upload.upload_hash
-    parser, mainfile = self.parser, self.mainfile
-
-    logger = utils.get_logger(
-        __name__, task=task.name,
-        upload_id=self.upload.upload_id, upload_hash=upload_hash, mainfile=mainfile)
-
-    # parsing
-    self.proc.continue_with(parser)
-    self.save()
-    try:
-        parser_backend = parsing.parser_dict[parser].run(self.tmp_mainfile)
-        if parser_backend.status[0] != 'ParseSuccess':
-            error = parser_backend.status[1]
-            logger.debug('Failed parsing', parser=parser, error=error)
-            self.proc.fail(error)
-            self.save()
-            return
-        logger.debug('Completed successfully', parser=parser)
-    except Exception as e:
-        logger.warn('Exception wile parsing', parser=parser, exc_info=e)
-        self.proc.fail(e)
-        self.save()
-        return
-
-    # normalization
-    for normalizer in normalizing.normalizers:
-        normalizer_name = normalizer.__name__
-        self.proc.continue_with(normalizer_name)
-        self.save()
+        self.continue_with(func.__name__)
         try:
-            normalizer(parser_backend).normalize()
-            if parser_backend.status[0] != 'ParseSuccess':
-                error = parser_backend.status[1]
-                logger.info('Failed run of %s: %s' % (normalizer, error))
-                self.proc.fail(error)
-                self.save()
-                return
-            logger.debug('Completed %s successfully' % normalizer)
+            func(self, *args, **kwargs)
         except Exception as e:
-            logger.warn('Exception wile normalizing with %s' % normalizer, exc_info=e)
-            self.proc.fail(e)
-            self.save()
-            return
+            self.fail(e)
 
-    # update search
-    self.proc.continue_with('archiving')
-    self.save()
+        if self.__class__.tasks[-1] == self.current_task:
+            self.complete()
+
+    setattr(wrapper, '__task_name', func.__name__)
+    wrapper.__name__ = func.__name__
+    return wrapper
+
+
+@app.task(bind=True, ignore_results=True, max_retries=None)
+def proc_task(task, cls_name, self_id, func_attr):
+    print('## res %s[%s].%s' % (cls_name, self_id, func_attr))
+    all_cls = Proc.__subclasses__()
+    cls = next((cls for cls in all_cls if cls.__name__ == cls_name), None)
+    if cls is None:
+        raise AsyncDocumentNotRegistered('Document type %s not registered for async methods' % cls_name)
+
     try:
-        self.archive(
-            parser_backend,
-            upload_hash=upload_hash,
-            calc_hash=self.calc_hash,
-            upload_id=self.upload.upload_id,
-            mainfile=mainfile,
-            upload_time=datetime.now())
-        logger.debug('Archived successfully')
-    except Exception as e:
-        logger.error('Failed to archive', exc_info=e)
-        self.proc.fail(e)
-        self.save()
+        self = cls.get(self_id)
+    except KeyError as e:
+        print('##################################')
+        raise task.retry(exc=e, countdown=0.5)
+
+    func = getattr(self, func_attr, None)
+    if func is None:
+        self.fail('called function %s is not a function of proc class %s' % (func_attr, cls_name))
         return
 
-    logger.debug('Completed processing')
-    self.proc.success()
-    self.save()
-    self.upload.completed_calc()
+    func = getattr(func, '__process_unwrapped', None)
+    if func is None:
+        self.fail('called function %s was not decorated with @process' % (func_attr, cls_name))
+        return
+
+    try:
+        func(self)
+    except Exception as e:
+        self.fail(e)
 
 
-class Calc(BaseDocument):
-    upload = ReferenceField(Upload, required=True)
-    parser = StringField(required=True)
-    mainfile = StringField(required=True)
-    calc_hash = StringField(required=True)
-    tmp_mainfile = StringField(required=True)
-
-    @property
-    def archive_id(self):
-        return '%s/%s' % (self.upload.upload_hash, self.calc_hash)
-
-    def create(cls, upload: Upload, mainfile: str, parser: str, tmp_mainfile: str):
-        self = Calc(
-            upload=upload, mainfile=mainfile, parser=parser, tmp_mainfile=tmp_mainfile,
-            calc_hash=utils.hash(mainfile))
-
-    def process_calc(self):
+def process(func):
+    def wrapper(self, *args, **kwargs):
+        assert len(args) == 0 and len(kwargs) == 0, 'process functions must not have arguments'
         self.save()
-        process_calc.s(self.upload.upload_id, self.mainfile).delay()
+
+        self_id = self.get_id()
+        cls_name = self.__class__.__name__
+
+        print('## calling %s[%s].%s' % (cls_name, self_id, func.__name__))
+        return proc_task.s(cls_name, self_id, func.__name__).delay()
+
+    task = getattr(func, '__task_name', None)
+    if task is not None:
+        setattr(wrapper, '__task_name', task)
+    wrapper.__name__ = func.__name__
+    setattr(wrapper, '__process_unwrapped', func)
+
+    return wrapper
 
 
-class Upload(BaseDocument):
+class Upload(Proc):
 
-    name = StringField()
-    upload_hash = StringField()
-    upload_time = DateTimeField()
-
-    proc = EmbeddedDocumentField(Proc, required=True)
-
-    presigned_url = StringField()
-
-    calcs = IntField(default=0)
+    data = StringField(default='Hello, World')
     processed_calcs = IntField(default=0)
+    total_calcs = IntField(default=-1)
 
-    user = ReferenceField(User, required=True)
+    @process
+    def after_upload(self):
+        self.extract()
+        self.parse()
 
-    meta = {
-        'indexes': [
-            'user'
-        ]
-    }
+    @process
+    def after_parse(self):
+        self.cleanup()
 
-    @property
-    def upload_id(self) -> str:
-        return self.id.__str__()
+    @task
+    def extract(self):
+        print('now extracting')
 
-    @property
-    def is_stale(self) -> bool:
-        create_time = self.proc.create_time
-
-        return self.upload_time is None and (datetime.now() - create_time).days > 1
-
-    def logger(self, **kwargs):
-        return get_logger(__name__, upload_id=self.upload_id, cls=self.__class__.__name__, **kwargs)
-
-    def create(cls, name: str=None):
-        proc = Proc(tasks=[UPLOADING, EXTRACTING, PARSING, CLEANING])
-        self = Upload(proc=proc, name=name)
+    @task
+    def parse(self):
+        Calc(upload=self).parse()
+        Calc(upload=self).parse()
+        self.total_calcs = 2
         self.save()
+        self.check_calcs_complete(more_calcs=0)
 
-        self.presigned_url = files.get_presigned_upload_url(self.upload_id)
-        self.proc.continue_with(UPLOADING)
+    @task
+    def cleanup(self):
+        print('cleanup')
 
-    def process_uploaded_file(self):
-        upload_id = self.upload_id
-        if upload_id is None:
-            self.save()
+    def check_calcs_complete(self, more_calcs=1):
+        # use a primitive but atomic pymongo call to increase the number of calcs
+        updated_raw = Upload._get_collection().find_one_and_update(
+            {'_id': self.id},
+            {'$inc': {'processed_calcs': more_calcs}},
+            return_document=ReturnDocument.AFTER)
 
-        process_upload.s(upload_id).delay()
+        updated_total_calcs = updated_raw['total_calcs']
+        updated_processed_calcs = updated_raw['processed_calcs']
 
-    def _check_for_cleaning(self):
-        if self.calcs == self.processed_calcs:
-            clean_upload(upload_id).delay()
+        print('%d:%d' % (updated_processed_calcs, updated_total_calcs))
+        if updated_processed_calcs == updated_total_calcs and updated_total_calcs != -1:
+            self.after_parse()
 
-    def add_calc(self, mainfile, parser, tmp_mainfile):
-        calc = Calc.create(self, filenmae, parser, tmp_mainfile)
-        calc.process_calc()
-        self.calcs += 1
 
-    def start_parsing(self):
-        self.proc.continue_with(PARSING)
-        self.save()
-        self._check_for_cleaning()
+class Calc(Proc):
 
-    def completed_calc(self):
-        self.processed_calcs += 1
-        self._check_for_cleaning()
+    upload = ReferenceField(Upload, required=True)
 
-    def delete(self):
-        logger = self.logger(action='delete')
+    @process
+    def parse(self):
+        print('parsee')
+        self.upload.check_calcs_complete()
 
-        if not (self.proc.ready or self.stale or self.proc.current_task == 'UPLOADING'):
-            raise NotAllowedDuringProcessing()
 
-        with lnr(logger, 'Delete upload file'):
-            try:
-                files.Upload(self.upload_id).delete()
-            except KeyError:
-                if self.proc.current_task == UPLOADING:
-                    logger.debug('Upload exist, but file does not exist. It was probably aborted and deleted.')
-                else:
-                    logger.debug('Upload exist, but uploaded file does not exist.')
-
-        if self.upload_hash is not None:
-            with lnr(logger, 'Deleting calcs'):
-                Calc.delete_all(upload_id=self.upload_id)
-
-        with lnr(logger, 'Deleting upload'):
-            super().delete()
-
-        return self
-
-    @staticmethod
-    def user_uploads(user: User) -> List['Upload']:
-        """ Returns all uploads for the given user. Currently returns all uploads. """
-        return [upload.update_proc() for upload in Upload.objects()]
-
-    @property
-    def json_dict(self) -> dict:
-        """ A json serializable dictionary representation. """
-        data = {
-            'name': self.name,
-            'upload_id': self.upload_id,
-            'upload_hash': self.upload_hash,
-            'presigned_url': files.external_objects_url(self.presigned_url),
-            'upload_time': self.upload_time.isoformat() if self.upload_time is not None else None,
-            'proc_time': self.proc_time.isoformat() if self.proc_time is not None else None,
-            'stale': self.is_stale,
-            'proc': self.proc.json_dict
-        }
-        return {key: value for key, value in data.items() if value is not None}
+if __name__ == '__main__':
+    connect(db=config.mongo.users_db, host=config.mongo.host)
+    tds = [Upload.create(), Upload.create(), Upload.create()]
+    for td in tds:
+        td.after_upload()
