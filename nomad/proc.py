@@ -87,8 +87,20 @@ class ProcMetaclass(TopLevelDocumentMetaclass):
 
 class Proc(Document, metaclass=ProcMetaclass):
     """
-    Base class for objects involved in processing and need persistent processing
+    Base class for objects that are involved in processing and need persistent processing
     state.
+
+    It solves two issues. First, distributed operation (via celery) and second keeping
+    state of a chain of potentially failing processing tasks. Both are controlled via
+    decorators @process and @task. Subclasses should use these decorators on their
+    methods. Parameters are not supported for decorated functions. Use fields on the
+    document instead.
+
+    Processing state will be persistet at appropriate
+    times and must not be persistet manually. All attributes are stored to mongodb.
+    The class allows to render into a JSON serializable dict via :attr:`json_dict`.
+
+    Possible processing states are PENDING, RUNNING, FAILURE, and SUCCESS.
 
     Attributes:
         current_task: the currently running or last completed task
@@ -119,10 +131,12 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     @property
     def completed(self) -> bool:
+        """ Returns True of the process has failed or succeeded. """
         return self.status in [SUCCESS, FAILURE]
 
     @classmethod
     def create(cls, **kwargs):
+        """ Factory method that must be used instead of regular constructor. """
         assert cls.tasks is not None and len(cls.tasks) > 0, \
             """ the class attribute tasks must be overwritten with an acutal list """
         assert 'status' not in kwargs, \
@@ -137,8 +151,9 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     @classmethod
     def get(cls, obj_id):
+        """ Loads the object from the database. """
         try:
-            obj = cls.objects(id=obj_id).first()
+            obj = cls.objects(id=str(obj_id)).first()
         except ValidationError as e:
             raise InvalidId('%s is not a valid id' % obj_id)
         except MongoEngineConnectionError as e:
@@ -149,28 +164,25 @@ class Proc(Document, metaclass=ProcMetaclass):
 
         return obj
 
-    def get_id(self):
-        return self.id.__str__()
-
-    def fail(self, errors):
+    def fail(self, *errors):
+        """ Allows to fail the process. Takes strings or exceptions as args. """
         assert not self.completed
-        if isinstance(errors, str) or not isinstance(errors, collections.Iterable):
-            errors = [errors]
 
         self.status = FAILURE
-        self.errors = list([str(error) for error in errors])
+        self.errors = [str(error) for error in errors]
         self.complete_time = datetime.now()
 
         print(self.errors)
         self.save()
 
     def warning(self, *warnings):
+        """ Allows to save warnings. Takes strings or exceptions as args. """
         assert not self.completed
 
         for warning in warnings:
             self.warnings.append(str(warning))
 
-    def continue_with(self, task):
+    def _continue_with(self, task):
         tasks = self.__class__.tasks
         assert task in tasks, 'task %s must be one of the classes tasks %s' % (task, str(tasks))
         if self.current_task is None:
@@ -191,7 +203,7 @@ class Proc(Document, metaclass=ProcMetaclass):
         self.save()
         return True
 
-    def complete(self):
+    def _complete(self):
         if self.status != FAILURE:
             assert self.status == RUNNING
             self.status = SUCCESS
@@ -226,7 +238,11 @@ class Proc(Document, metaclass=ProcMetaclass):
         else:
             return updated_raw[field], [updated_raw[field] for field in other_fields]
 
-    def block_until_complete(self, interval=.1):
+    def block_until_complete(self, interval=0.1):
+        """
+        Reloads the process constrantly until it sees a completed process. Should be
+        used with care as it can block indefinetly. Just intended for testing purposes.
+        """
         while not self.completed:
             time.sleep(interval)
             self.reload()
@@ -247,45 +263,65 @@ class Proc(Document, metaclass=ProcMetaclass):
 
 
 def task(func):
+    """
+    The decorator for tasks that will be wrapped in excaption handling that will fail the process.
+    The task methods of a :class:`Proc` class/document comprise a sequence
+    (order of methods in class namespace) of tasks. Tasks must be executed in that order.
+    Completion of the last task, will put the :class:`Proc` instance into the
+    SUCCESS state. Calling the first task will put it into RUNNING state. Tasks will
+    only be exectued, if the process has not yet reached FAILURE state.
+    """
     def wrapper(self, *args, **kwargs):
         if self.status == 'FAILURE':
             return
 
-        self.continue_with(func.__name__)
+        self._continue_with(func.__name__)
         try:
             func(self, *args, **kwargs)
         except Exception as e:
             self.fail(e)
 
         if self.__class__.tasks[-1] == self.current_task:
-            self.complete()
+            self._complete()
 
     setattr(wrapper, '__task_name', func.__name__)
     wrapper.__name__ = func.__name__
     return wrapper
 
 
-@app.task(bind=True, ignore_results=True, max_retries=None)
+@app.task(bind=True, ignore_results=True, max_retries=3)
 def proc_task(task, cls_name, self_id, func_attr):
-    print('## res %s[%s].%s' % (cls_name, self_id, func_attr))
+    """
+    The celery task that is used to execute async process functions.
+    It ignores results, since all results are handled via the self document.
+    It retries for 3 times with a countdown of 3 on missing 'selfs', since this
+    might happen in sharded, distributed mongo setups where the object might not
+    have yet been propagated and therefore apear missing.
+    """
+    logger = utils.get_logger(__name__, cls=cls_name, id=self_id, func=func_attr)
+
+    logger.debug('received process function call')
     all_cls = Proc.__subclasses__()
     cls = next((cls for cls in all_cls if cls.__name__ == cls_name), None)
     if cls is None:
-        raise AsyncDocumentNotRegistered('Document type %s not registered for async methods' % cls_name)
+        logger.error('document not a subcass of Proc')
+        raise AsyncDocumentNotRegistered('document type %s not a subclass of Proc' % cls_name)
 
     try:
         self = cls.get(self_id)
     except KeyError as e:
-        print('##################################')
-        raise task.retry(exc=e, countdown=0.5)
+        logger.warning('called object is missing')
+        raise task.retry(exc=e, countdown=3)
 
     func = getattr(self, func_attr, None)
     if func is None:
+        logger.error('called function not a function of proc class')
         self.fail('called function %s is not a function of proc class %s' % (func_attr, cls_name))
         return
 
     func = getattr(func, '__process_unwrapped', None)
     if func is None:
+        logger.error('called function was not decorated with @process')
         self.fail('called function %s was not decorated with @process' % (func_attr, cls_name))
         return
 
@@ -296,14 +332,21 @@ def proc_task(task, cls_name, self_id, func_attr):
 
 
 def process(func):
+    """
+    The decorator for process functions that will be called async via celery.
+    All calls to the decorated method will result in celery task requests.
+    To transfer state, the instance will be saved to the database and loading on
+    the celery task worker. Process methods can call other (process) functions/methods.
+    """
     def wrapper(self, *args, **kwargs):
         assert len(args) == 0 and len(kwargs) == 0, 'process functions must not have arguments'
         self.save()
 
-        self_id = self.get_id()
+        self_id = self.id.__str__()
         cls_name = self.__class__.__name__
 
-        print('## calling %s[%s].%s' % (cls_name, self_id, func.__name__))
+        logger = utils.get_logger(__name__, cls=cls_name, id=self_id, func=func.__name__)
+        logger.debug('calling process function')
         return proc_task.s(cls_name, self_id, func.__name__).delay()
 
     task = getattr(func, '__task_name', None)
@@ -313,66 +356,3 @@ def process(func):
     setattr(wrapper, '__process_unwrapped', func)
 
     return wrapper
-
-
-class Upload(Proc):
-
-    data = StringField(default='Hello, World')
-    processed_calcs = IntField(default=0)
-    total_calcs = IntField(default=-1)
-
-    @process
-    def after_upload(self):
-        self.extract()
-        self.parse()
-
-    @process
-    def after_parse(self):
-        self.cleanup()
-
-    @task
-    def extract(self):
-        print('now extracting')
-
-    @task
-    def parse(self):
-        Calc(upload=self).parse()
-        Calc(upload=self).parse()
-        self.total_calcs = 2
-        self.save()
-        self.check_calcs_complete(more_calcs=0)
-
-    @task
-    def cleanup(self):
-        print('cleanup')
-
-    def check_calcs_complete(self, more_calcs=1):
-        # use a primitive but atomic pymongo call to increase the number of calcs
-        updated_raw = Upload._get_collection().find_one_and_update(
-            {'_id': self.id},
-            {'$inc': {'processed_calcs': more_calcs}},
-            return_document=ReturnDocument.AFTER)
-
-        updated_total_calcs = updated_raw['total_calcs']
-        updated_processed_calcs = updated_raw['processed_calcs']
-
-        print('%d:%d' % (updated_processed_calcs, updated_total_calcs))
-        if updated_processed_calcs == updated_total_calcs and updated_total_calcs != -1:
-            self.after_parse()
-
-
-class Calc(Proc):
-
-    upload = ReferenceField(Upload, required=True)
-
-    @process
-    def parse(self):
-        print('parsee')
-        self.upload.check_calcs_complete()
-
-
-if __name__ == '__main__':
-    connect(db=config.mongo.users_db, host=config.mongo.host)
-    tds = [Upload.create(), Upload.create(), Upload.create()]
-    for td in tds:
-        td.after_upload()
