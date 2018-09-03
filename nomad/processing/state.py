@@ -16,6 +16,7 @@ from typing import List, Any, Union, cast
 from celery.result import AsyncResult, result_from_tuple
 import itertools
 import time
+import traceback
 
 from nomad import utils
 from nomad.normalizing import normalizers
@@ -83,7 +84,9 @@ class Proc(utils.DataObject):
             if isinstance(error, str):
                 self.errors.append(error)
             elif isinstance(error, Exception):
+                tb = traceback.format_exc()
                 self.errors.append(error.__str__())
+                self.errors.append(tb)
             else:
                 assert False, 'Unknown error'
 

@@ -14,7 +14,7 @@
 
 import pytest
 
-from nomad.parsing import LocalBackend
+from nomad.parsing import LocalBackend, parser_dict
 from nomad.normalizing import normalizers
 
 from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
@@ -33,11 +33,33 @@ def normalized_vasp_example(parsed_vasp_example: LocalBackend) -> LocalBackend:
     return parsed_vasp_example
 
 
+def assert_normalized(backend):
+    assert backend.get_value('atom_species', 0) is not None
+    assert backend.get_value('system_type', 0) is not None
+    assert backend.get_value('crystal_system', 0) is not None
+    assert backend.get_value('space_group_number', 0) is not None
+    assert backend.get_value('XC_functional_name', 0) is not None
+    assert backend.get_value('chemical_composition', 0) is not None
+    assert backend.get_value('chemical_composition_bulk_reduced', 0) is not None
+
+
 def test_normalizer(normalized_vasp_example: LocalBackend):
-    assert normalized_vasp_example.get_value('atom_species', 0) is not None
-    assert normalized_vasp_example.get_value('system_type', 0) is not None
-    assert normalized_vasp_example.get_value('crystal_system', 0) is not None
-    assert normalized_vasp_example.get_value('space_group_number', 0) is not None
-    assert normalized_vasp_example.get_value('XC_functional_name', 0) is not None
-    assert normalized_vasp_example.get_value('chemical_composition', 0) is not None
-    assert normalized_vasp_example.get_value('chemical_composition_bulk_reduced', 0) is not None
+    assert_normalized(normalized_vasp_example)
+
+
+def test_normalizer_reproduce():
+    parser = 'parsers/exciting'
+    mainfile = '.dependencies/parsers/exciting/test/examples/Ag/INFO.OUT'
+
+    parser = parser_dict[parser]
+    backend = parser.run(mainfile)
+
+    status, errors = backend.status
+    assert status == 'ParseSuccess'
+    assert errors is None or len(errors) == 0
+
+    for normalizer_class in normalizers:
+        normalizer = normalizer_class(backend)
+        normalizer.normalize()
+
+    assert_normalized(backend)
