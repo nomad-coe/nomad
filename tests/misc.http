@@ -1,0 +1,10 @@
+GET http://enc-staging-nomad.esc.rzg.mpg.de/nomadxt/api/uploads  HTTP/1.1
+
+###
+
+POST http://enc-staging-nomad.esc.rzg.mpg.de/nomadxt/api/uploads  HTTP/1.1
+content-type: application/json
+
+{
+    "name": "RxvmhsBvB2xO7gbKi9OMa625OQoY6.zip"
+}
