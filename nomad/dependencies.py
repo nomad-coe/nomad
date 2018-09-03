@@ -124,7 +124,7 @@ class PythonGit():
 
             _logger.info('pull %s for %s' % (self.git_commit, self.name))
             origin = git.remote('origin')
-            origin.pull(self.git_commit)
+            origin.pull(self.git_commit, depth=1)
 
             if os.path.exists('requirements.txt'):
                 _logger.info('install requirements.txt for %s' % self.name)
@@ -160,10 +160,10 @@ dependencies = [
         name='parsers/vasp',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-vasp.git',
         git_commit='nomad-xt'),
-    # PythonGit(
-    #     name='parsers/exciting',
-    #     git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-exciting.git',
-    #     git_commit='master'),
+    PythonGit(
+        name='parsers/exciting',
+        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-exciting.git',
+        git_commit='nomad-xt'),
     PythonGit(
         name='normalizers/stats',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/normalizer-stats.git',

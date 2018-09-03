@@ -364,8 +364,17 @@ class LocalBackend(LegacyParserBackend):
         self._open_context: Tuple[str, int] = None
         self._context_section = None
 
-    def finishedParsingSession(self, parserStatus, parserErrors, **kwargs):
-        self._delegate.finishedParsingSession(parserStatus, parserErrors, **kwargs)
+        self._unknown_attributes = {}
+
+    def __getattr__(self, name):
+        """ Support for unimplemented and unexpected methods. """
+        if self._unknown_attributes.get(name) is None:
+            logger.debug('Access of unexpected backend attribute/method', attribute=name)
+            self._unknown_attributes[name] = name
+        return lambda *args, **kwargs: None
+
+    def finishedParsingSession(self, parserStatus, parserErrors, *args, **kwargs):
+        self._delegate.finishedParsingSession(parserStatus, parserErrors, *args, **kwargs)
         self._status = parserStatus
         self._errors = parserErrors
 
@@ -613,9 +622,13 @@ class Parser():
         module = importlib.import_module('.'.join(module_name))
         Parser = getattr(module, parser_class)
         parser = Parser(backend=create_backend, debug=True)
-        parser.parse(mainfile)
+        backend = parser.parse(mainfile)
 
-        backend = parser.parser_context.super_backend
+        # TODO we need a homogeneous interface to parsers, but we dont have it right now
+        # thats a hack to distringuish between ParserInterface parser and simple_parser
+        if backend is None or not hasattr(backend, 'status'):
+            backend = parser.parser_context.super_backend
+
         return backend
 
     def __repr__(self):
@@ -634,12 +647,15 @@ parsers = [
             r'?\s*<i name="program" type="string">\s*vasp\s*</i>'
             r'?')
     ),
-    # Parser(
-    #     python_git=dependencies['parsers/exciting'],
-    #     parser_class_name='vaspparser.VASPParser',
-    #     main_file_re=r'^.*\.todo$',
-    #     main_contents_re=(r'^todo')
-    # ),
+    Parser(
+        python_git=dependencies['parsers/exciting'],
+        parser_class_name='parser_exciting.ExcitingParser',
+        main_file_re=r'^.*/INFO\.OUT?',
+        main_contents_re=(
+            r'^\s*=================================================+\s*'
+            r'\s*\|\s*EXCITING\s+\S+\s+started\s*='
+            r'\s*\|\s*version hash id:\s*\S*\s*=')
+    ),
 ]
 """ Instanciation and constructor based config of all parsers. """
 

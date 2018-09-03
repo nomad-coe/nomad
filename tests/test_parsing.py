@@ -191,6 +191,24 @@ def test_vasp_parser(parsed_vasp_example: LocalBackend):
     assert errors is None or len(errors) == 0
 
 
+exciting_examples = [
+    '.dependencies/parsers/exciting/test/examples/Ag/INFO.OUT',
+    '.dependencies/parsers/exciting/test/examples/lithium/INFO.OUT',
+    '.dependencies/parsers/exciting/test/examples/GW/INFO.OUT',
+]
+
+
+@pytest.mark.parametrize('example_mainfile', exciting_examples)
+def test_exciting_parser(example_mainfile):
+    exciting_parser = parser_dict['parsers/exciting']
+    parsed_exciting_example = exciting_parser.run(example_mainfile)
+
+    status, errors = parsed_exciting_example.status
+
+    assert status == 'ParseSuccess'
+    assert errors is None or len(errors) == 0
+
+
 def test_match():
     vasp_parser = parser_dict['parsers/vasp']
     directory = './data/examples_vasp_6'
