@@ -15,8 +15,17 @@
 """
 This module comprises a set of persistent document classes that hold all user related
 data. These are information about users, their uploads and datasets, the associated
-calculations, and files
+calculations, and files.
 
+.. figure:: data.png
+   :alt: nomad xt data model
+
+   The main nomad xt data classes and their associations
+
+The blue properties are exposed via our REST API.
+
+For detailed information on :class:`nomad.processing.UploadProc` and
+:class:`nomad.processing.CalcProc` refer to :py:mod:`nomad.processing`.
 
 .. autoclass:: Calc
     :members:

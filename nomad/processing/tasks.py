@@ -33,6 +33,16 @@ def _report_progress(task, dct):
 
 @app.task(bind=True, name='extracting')
 def extracting_task(task: Task, proc: UploadProc) -> UploadProc:
+    """
+    The task that extracts an already uploaded file. It goes through all files in
+    the upload and identifies parser/mainfile matches. The matched parser, mainfile
+    pairs are stored in the upload state.
+
+    Arguments:
+        proc: The :class:`UploadProc` instance that represents the upload processing.
+
+    Returns: an updated version of the upload processing state.
+    """
     logger = utils.get_logger(__name__, task=task.name, upload_id=proc.upload_id)
     if not proc.continue_with(task.name):
         return proc
@@ -94,6 +104,15 @@ def extracting_task(task: Task, proc: UploadProc) -> UploadProc:
 
 @app.task(bind=True, name='cleanup')
 def cleanup_task(task, calc_procs: List[CalcProc], upload_proc: UploadProc) -> UploadProc:
+    """
+    This task is used to removed any extracted files after the upload completed processing.
+
+    Arguments:
+        calc_procs: a list of cacl processing states
+        upload_proc: the upload processing state
+
+    Returns: an updated upload processing state
+    """
     logger = utils.get_logger(__name__, task=task.name, upload_id=upload_proc.upload_id)
     if upload_proc.continue_with(task.name):
 
@@ -121,6 +140,17 @@ def cleanup_task(task, calc_procs: List[CalcProc], upload_proc: UploadProc) -> U
 
 @app.task(bind=True, name='parse_all')
 def parse_all_task(task: Task, upload_proc: UploadProc, cleanup: Signature) -> UploadProc:
+    """
+    Initiates the processing for all mainfail, parser pairs stored in the uploading
+    processing state. Parsing is called async and in parallel via celery *chord*.
+
+    Arguments:
+        upload_proc: the upload processing state
+        cleanup: a signature for the cleanup task that is used to call the clean up task
+            when all parse tasks (i.e. the chord) finished
+
+    Returns: an updated upload processing state
+    """
     cleanup = cleanup.clone(args=(upload_proc,))
     if not upload_proc.continue_with(task.name):
         chord(group())(cleanup)
@@ -141,6 +171,17 @@ def parse_all_task(task: Task, upload_proc: UploadProc, cleanup: Signature) -> U
 
 @app.task(bind=True, name='parse')
 def parse_task(self, proc: CalcProc, upload_proc: UploadProc) -> CalcProc:
+    """
+    This task processes a calculation based on a parser, mainfile pair. It reports
+    intermediate progress via the logical *'tasks'* defined in the
+    calculation processing state.
+
+    Arguments:
+        proc: the calculation processing state
+        upload_proc: the upload processing state
+
+    Returns: an updated calcualtion processing state.
+    """
     assert upload_proc.upload_hash is not None
 
     upload_hash, parser, mainfile = upload_proc.upload_hash, proc.parser_name, proc.mainfile

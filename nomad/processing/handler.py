@@ -100,6 +100,7 @@ def handle_uploads(quit=False):
 
 
 def handle_uploads_thread(quit=True):
+    """ Same as :func:`handle_uploads` but run in a separate thread. """
     thread = Thread(target=lambda: handle_uploads(quit))
     thread.start()
     return thread

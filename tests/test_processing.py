@@ -25,7 +25,7 @@ import logging
 
 from nomad import config, files
 from nomad.data import Calc
-from nomad.processing import start_processing, ProcPipeline
+from nomad.processing import start_processing, Proc
 
 from tests.test_files import example_file, empty_file
 
@@ -143,15 +143,15 @@ def test_process_non_existing(celery_session_worker, caplog):
 def test_task_failure(monkeypatch, uploaded_id, celery_session_worker, task, caplog):
     caplog.set_level(logging.CRITICAL)
 
-    original_continue_with = ProcPipeline.continue_with
+    original_continue_with = Proc.continue_with
 
-    def continue_with(self: ProcPipeline, current_task):
+    def continue_with(self: Proc, current_task):
         if task == current_task:
             raise Exception('fail for test')
 
         return original_continue_with(self, current_task)
 
-    monkeypatch.setattr('nomad.processing.state.ProcPipeline.continue_with', continue_with)
+    monkeypatch.setattr('nomad.processing.state.Proc.continue_with', continue_with)
 
     upload_proc = start_processing(uploaded_id)
     upload_proc.get()

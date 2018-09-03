@@ -22,15 +22,24 @@ from nomad.normalizing import normalizers
 from nomad.processing.app import app
 
 
-class ProcPipeline(utils.DataObject):
+class Proc(utils.DataObject):
     """
+    This is a base class for processing state. Processing state is reprented as a
+    sequence of pseudo tasks (not necessarely celery tasks). This class keeps the
+    tasks names, the currently active tasks, and a general *status*, that can be
+    ``PENDING``, ``PROGRESS``, ``SUCCESS``, or ``FAILURE``. A processing can be
+    failed on each *task*; successiv tasks are only executed if the processing has not
+    yet failed.
+
+    The processing state can be persistet as JSON (e.g. in mongodb).
+
     Arguments:
-        task_names: A list of task names in pipeline order.
+        task_names: a list of task names in sequence
 
     Attributes:
-        current_task_name: Name of the currently running task.
-        status: Aggregated status for the whole process. Celery status names as convention.
-        errors: A list of potential error that caused failure.
+        current_task_name: name of the currently running task
+        status: aggregated status for the whole process, celery status names as convention
+        errors: a list of potential error that caused failure
     """
     def __init__(self, task_names: List[str], *args, **kwargs) -> None:
         super().__init__(*args)
@@ -81,22 +90,25 @@ class ProcPipeline(utils.DataObject):
         self.status = 'FAILURE'
 
 
-class CalcProc(ProcPipeline):
+class CalcProc(Proc):
     """
     Used to represent the state of an calc processing. It is used to provide
     information to the user (via api, users) and act as a state object within the
-    more complex calc processing task. Keep in mind that this task might become several
+    more complex calc processing task.
+    Currently just pseudo tasks. Keep in mind that this task might become several
     celery tasks in the future.
+    The list of tasks is derived from the given parser, and the list of defined
+    normalizers (:mod:`nomad.normalizing`).
 
     Arguments:
-        upload_hash: The hash that identifies the upload in the archive.
-        mainfile: The path to the mainfile in the upload.
-        parser_name: The name of the parser to use/used.
-        tmp_mainfile: The full path to the mainfile in the local fs.
+        upload_hash: the hash that identifies the upload in the archive
+        mainfile: the path to the mainfile in the upload
+        parser_name: the name of the parser to use/used
+        tmp_mainfile: the full path to the mainfile in the local fs
 
     Attributes:
-        calc_hash: The mainfile hash that identifies the calc in the archive.
-        celery_task_id: The celery task id for the calc parse celery task.
+        calc_hash: the mainfile hash that identifies the calc in the archive
+        celery_task_id: the celery task id for the calc parse celery task
     """
     def __init__(self, mainfile, parser_name, tmp_mainfile, *args, **kwargs):
         task_names = [
@@ -137,7 +149,7 @@ class CalcProc(ProcPipeline):
         return False
 
 
-class UploadProc(ProcPipeline):
+class UploadProc(Proc):
     """
     Used to represent the state of an upload processing. It is used to provide
     information to the user (via api, users) and act as a state object that is passed
@@ -147,6 +159,10 @@ class UploadProc(ProcPipeline):
     :class:`~celery.results.AsyncResults` instance in serialized *tuple* form to
     keep connected to the results backend.
 
+    The state of calculation processings (:class:`CalcProc`) is keept as a list of
+    children. This might be inappropriate in the future, when there are uploads with
+    thousands of calculations.
+
     Warning:
         You have to call :func:`forget` eventually to free all resources and the celery
         results backend.
@@ -155,14 +171,13 @@ class UploadProc(ProcPipeline):
         <http://docs.celeryproject.org/en/latest/userguide/configuration.html#result-expires>`_.
 
     Arguments:
-        upload_id: The id of the uploaded file in the object storage,
-                   see also :mod:`nomad.files`.
-        task_name: The names of all task in pipeline order.
+        upload_id: the id of the uploaded file in the object storage,
+                   see also :mod:`nomad.files`
 
     Attributes:
-        upload_hash: The hash of the uploaded file. E.g., used for archive/repo ids.
-        calc_procs: The state data for all child calc processings.
-        celery_task_ids: Serialized form of the celery async_results tree for the processing.
+        upload_hash: the hash of the uploaded file; e.g., used for archive/repo ids
+        calc_procs: the state data for all child calc processings
+        celery_task_ids: serialized form of the celery async_results tree for the processing
     """
     def __init__(self, upload_id: str, *args, **kwargs) -> None:
         assert upload_id is not None
