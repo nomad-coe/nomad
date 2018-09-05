@@ -212,15 +212,14 @@ def test_parser(parsed_example):
 
 
 def test_match():
-    vasp_parser = parser_dict['parsers/vasp']
     directory = 'tests/data/proc/match'
 
     count = 0
     for dirpath, _, filenames in os.walk(directory):
         for filename in filenames:
             fullname = os.path.join(dirpath, filename)
-            if vasp_parser.is_mainfile(fullname, lambda fn: open(fn)):
-                print(fullname)
-                count += 1
+            for parser in parser_dict.values():
+                if parser.is_mainfile(fullname, lambda fn: open(fn)):
+                    count += 1
 
-    assert count == 5
+    assert count == 6

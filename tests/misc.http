@@ -6,5 +6,5 @@ POST http://enc-staging-nomad.esc.rzg.mpg.de/nomadxt/api/uploads  HTTP/1.1
 content-type: application/json
 
 {
-    "name": "RlVlpdRpKNozUtEx9dpD3E4Qc-_X4.zip"
+    "name": "aims-example-full"
 }

@@ -602,7 +602,8 @@ class Parser():
             file = None
             try:
                 file = open(filename)
-                return self._main_contents_re.match(file.read(500)) is not None
+                contents = file.read(500)
+                return self._main_contents_re.match(contents) is not None
             finally:
                 if file:
                     file.close()
@@ -674,10 +675,11 @@ parsers = [
     Parser(
         python_git=dependencies['parsers/fhi-aims'],
         parser_class_name='fhiaimsparser.FHIaimsParser',
-        main_file_re=r'^.*\.out$',  # TODO
+        main_file_re=r'^.*\.out$',
         main_contents_re=(
-            r'\s*Invoking FHI-aims \.\.\.\n'
-            r'\s*Version')
+            r'^(.*\n)*'
+            r'?\s*Invoking FHI-aims \.\.\.'
+            r'?\s*Version')
     )
 ]
 """ Instanciation and constructor based config of all parsers. """
