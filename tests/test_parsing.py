@@ -209,18 +209,18 @@ def parsed_example(request) -> LocalBackend:
 
 def test_parser(parsed_example):
     assert_parser_result(parsed_example)
-    parsed_example.write_json(open('./data/test.json', 'tw'))
 
 
 def test_match():
     vasp_parser = parser_dict['parsers/vasp']
-    directory = './data/examples_vasp_6'
+    directory = 'tests/data/proc/match'
 
     count = 0
     for dirpath, _, filenames in os.walk(directory):
         for filename in filenames:
             fullname = os.path.join(dirpath, filename)
             if vasp_parser.is_mainfile(fullname, lambda fn: open(fn)):
+                print(fullname)
                 count += 1
 
-    assert count == 6
+    assert count == 5
