@@ -47,16 +47,7 @@ if config.logstash.enabled:
 
 worker_process_init.connect(lambda **kwargs: mongo_connect())
 
-app = Celery(
-    'nomad.processing',
-    backend=config.celery.backend_url,
-    broker=config.celery.broker_url)
-
-app.add_defaults(dict(
-    accept_content=['json', 'pickle'],
-    task_serializer=config.celery.serializer,
-    result_serializer=config.celery.serializer,
-))
+app = Celery('nomad.processing', broker=config.celery.broker_url)
 
 # ensure elastic and mongo connections
 if 'sphinx' not in sys.modules:

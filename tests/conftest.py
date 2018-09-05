@@ -13,11 +13,7 @@ def celery_includes():
 @pytest.fixture(scope='session')
 def celery_config():
     return {
-        'broker_url': config.celery.broker_url,
-        'result_backend': config.celery.backend_url,
-        'accept_content': ['json', 'pickle'],
-        'task_serializer': config.celery.serializer,
-        'result_serializer': config.celery.serializer
+        'broker_url': config.celery.broker_url
     }
 
 

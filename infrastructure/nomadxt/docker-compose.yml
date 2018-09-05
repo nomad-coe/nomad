@@ -54,21 +54,10 @@ services:
             - RABBITMQ_DEFAULT_USER=rabbitmq
             - RABBITMQ_DEFAULT_PASS=rabbitmq
             - RABBITMQ_DEFAULT_VHOST=/
-            - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit log_levels [{default,debug}]
         ports:
             - ${RABBITMQ_HOST_PORT}:5672
         volumes:
             - nomadxt_rabbitmq:/var/lib/rabbitmq
-
-    # results backend for celery
-    redis:
-        image: redis:3.0-alpine
-        container_name: nomadxt_redis
-        command: redis-server --appendonly yes
-        ports:
-            - ${REDIS_HOST_PORT}:6379
-        volumes:
-            - nomadxt_redis:/data
 
     # the search engine
     elastic:

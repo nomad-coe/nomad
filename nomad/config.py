@@ -25,7 +25,7 @@ FilesConfig = namedtuple(
     'FilesConfig', ['uploads_bucket', 'repository_bucket', 'archive_bucket', 'compress_archive'])
 """ API independent configuration for the object storage. """
 
-CeleryConfig = namedtuple('Celery', ['broker_url', 'backend_url', 'serializer'])
+CeleryConfig = namedtuple('Celery', ['broker_url'])
 """ Used to configure the RabbitMQ and Redis backends for celery. """
 
 MinioConfig = namedtuple('Minio', ['host', 'port', 'accesskey', 'secret'])
@@ -63,9 +63,7 @@ rabbit_url = 'pyamqp://%s:%s@%s//' % (rabbit_user, rabbit_password, rabbit_host)
 redis_url = 'redis://%s/0' % redis_host
 
 celery = CeleryConfig(
-    broker_url=rabbit_url,
-    backend_url=redis_url,
-    serializer='pickle'
+    broker_url=rabbit_url
 )
 
 minio = MinioConfig(
