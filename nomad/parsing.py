@@ -676,7 +676,7 @@ parsers = [
             r'?\s*<i name="program" type="string">\s*vasp\s*</i>'
             r'?')
     ),
-    Parser(
+    LegacyParser(
         python_git=dependencies['parsers/exciting'],
         parser_class_name='parser_exciting.ExcitingParser',
         main_file_re=r'^.*/INFO\.OUT?',
@@ -685,7 +685,7 @@ parsers = [
             r'\s*\|\s*EXCITING\s+\S+\s+started\s*='
             r'\s*\|\s*version hash id:\s*\S*\s*=')
     ),
-    Parser(
+    LegacyParser(
         python_git=dependencies['parsers/fhi-aims'],
         parser_class_name='fhiaimsparser.FHIaimsParser',
         main_file_re=r'^.*\.out$',
