@@ -20,6 +20,8 @@ class SymmetryNormalizer(SystemBasedNormalizer):
     """
     This is basically a copy of the legace NOMAD-coe symmetry normalizer.
     """
+    def __init__(self, backend):
+        super().__init__(backend, all_sections=True)
 
     def normalize_system(self, section_system) -> None:
         normalize(self._backend, section_system)

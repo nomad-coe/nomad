@@ -48,9 +48,13 @@ Parsers in NOMAD-coe use a *backend* to create output.
 from typing import TextIO, Tuple, List, Any, Callable, IO
 from abc import ABCMeta, abstractmethod
 from io import StringIO
+import sys
 import json
 import re
 import importlib
+import inspect
+from unittest.mock import patch
+import io
 
 from nomadcore.local_backend import LocalBackend as LegacyLocalBackend
 from nomadcore.local_backend import Section, Results
@@ -364,7 +368,9 @@ class LocalBackend(LegacyParserBackend):
         self._open_context: Tuple[str, int] = None
         self._context_section = None
 
+        # things that have no real purpos, but are required by some legacy code
         self._unknown_attributes = {}
+        self.fileOut = io.StringIO()
 
     def __getattr__(self, name):
         """ Support for unimplemented and unexpected methods. """
@@ -621,8 +627,17 @@ class Parser():
         parser_class = self.parser_class_name.split('.')[1]
         module = importlib.import_module('.'.join(module_name))
         Parser = getattr(module, parser_class)
-        parser = Parser(backend=create_backend, debug=True)
-        backend = parser.parse(mainfile)
+
+        init_signature = inspect.getargspec(Parser.__init__)
+        kwargs = dict(
+            backend=create_backend,
+            mainfile=mainfile, main_file=mainfile,
+            debug=True)
+        kwargs = {key: value for key, value in kwargs.items() if key in init_signature.args}
+        parser = Parser(**kwargs)
+
+        with patch.object(sys, 'argv', []):
+            backend = parser.parse(mainfile)
 
         # TODO we need a homogeneous interface to parsers, but we dont have it right now
         # thats a hack to distringuish between ParserInterface parser and simple_parser
@@ -656,6 +671,14 @@ parsers = [
             r'\s*\|\s*EXCITING\s+\S+\s+started\s*='
             r'\s*\|\s*version hash id:\s*\S*\s*=')
     ),
+    Parser(
+        python_git=dependencies['parsers/fhi-aims'],
+        parser_class_name='fhiaimsparser.FHIaimsParser',
+        main_file_re=r'^.*\.out$',  # TODO
+        main_contents_re=(
+            r'\s*Invoking FHI-aims \.\.\.\n'
+            r'\s*Version')
+    )
 ]
 """ Instanciation and constructor based config of all parsers. """
 

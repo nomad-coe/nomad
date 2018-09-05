@@ -58,13 +58,13 @@
       ]
     },
     {
-      "name": "Python: tests/test_parsing.py::test_exciting_parser",
+      "name": "Python: tests/test_parsing.py fhi",
       "type": "python",
       "request": "launch",
       "cwd": "${workspaceFolder}",
       "program": "${workspaceFolder}/.pyenv/bin/pytest",
       "args": [
-        "-sv", "tests/test_parsing.py::test_exciting_parser"
+        "-sv", "tests/test_parsing.py::test_parser[parsers/fhi-aims-.dependencies/parsers/fhi-aims/test/examples/Au2_non-periodic_geometry_optimization.out]"
       ]
     },
     {

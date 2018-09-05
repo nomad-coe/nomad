@@ -22,6 +22,13 @@ from nomadcore.local_meta_info import loadJsonFile
 from nomad.parsing import JSONStreamWriter, parser_dict
 from nomad.parsing import LocalBackend, BadContextURI
 
+parser_examples = [
+    ('parsers/exciting', '.dependencies/parsers/exciting/test/examples/Ag/INFO.OUT'),
+    ('parsers/exciting', '.dependencies/parsers/exciting/test/examples/GW/INFO.OUT'),
+    ('parsers/vasp', '.dependencies/parsers/vasp/test/examples/xml/perovskite.xml'),
+    ('parsers/fhi-aims', 'tests/data/parsers/aims.out')
+]
+
 
 class TestLocalBackend(object):
 
@@ -177,36 +184,32 @@ def test_stream_generator(pretty):
     assert create_reference(example_data, pretty) == out.getvalue()
 
 
+def assert_parser_result(backend):
+    status, errors = backend.status
+    assert status == 'ParseSuccess'
+    assert errors is None or len(errors) == 0
+
+
+def run_parser(parser_name, mainfile):
+    parser = parser_dict[parser_name]
+    return parser.run(mainfile)
+
+
 @pytest.fixture
 def parsed_vasp_example() -> LocalBackend:
-    vasp_parser = parser_dict['parsers/vasp']
-    example_mainfile = '.dependencies/parsers/vasp/test/examples/xml/perovskite.xml'
-    return vasp_parser.run(example_mainfile)
+    return run_parser(
+        'parsers/vasp', '.dependencies/parsers/vasp/test/examples/xml/perovskite.xml')
 
 
-def test_vasp_parser(parsed_vasp_example: LocalBackend):
-    status, errors = parsed_vasp_example.status
-
-    assert status == 'ParseSuccess'
-    assert errors is None or len(errors) == 0
-
-
-exciting_examples = [
-    '.dependencies/parsers/exciting/test/examples/Ag/INFO.OUT',
-    '.dependencies/parsers/exciting/test/examples/lithium/INFO.OUT',
-    '.dependencies/parsers/exciting/test/examples/GW/INFO.OUT',
-]
+@pytest.fixture(params=parser_examples, ids=lambda spec: '%s-%s' % spec)
+def parsed_example(request) -> LocalBackend:
+    parser_name, mainfile = request.param
+    return run_parser(parser_name, mainfile)
 
 
-@pytest.mark.parametrize('example_mainfile', exciting_examples)
-def test_exciting_parser(example_mainfile):
-    exciting_parser = parser_dict['parsers/exciting']
-    parsed_exciting_example = exciting_parser.run(example_mainfile)
-
-    status, errors = parsed_exciting_example.status
-
-    assert status == 'ParseSuccess'
-    assert errors is None or len(errors) == 0
+def test_parser(parsed_example):
+    assert_parser_result(parsed_example)
+    parsed_example.write_json(open('./data/test.json', 'tw'))
 
 
 def test_match():
