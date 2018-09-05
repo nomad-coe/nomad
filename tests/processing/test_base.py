@@ -4,35 +4,7 @@ from mongoengine.connection import disconnect
 import time
 
 from nomad import config
-from nomad.proc import Proc, process, task, SUCCESS, FAILURE, RUNNING, PENDING
-
-
-@pytest.fixture(scope='session')
-def celery_includes():
-    return ['nomad.proc']
-
-
-@pytest.fixture(scope='session')
-def celery_config():
-    return {
-        'broker_url': config.celery.broker_url,
-        'result_backend': config.celery.backend_url,
-        'accept_content': ['json', 'pickle'],
-        'task_serializer': config.celery.serializer,
-        'result_serializer': config.celery.serializer
-    }
-
-
-@pytest.fixture(scope='function')
-def mongomock(monkeypatch):
-    def mock_connect(**kwargs):
-        return connect('test_db', host='mongomock://localhost')
-
-    disconnect()
-    connection = mock_connect()
-    monkeypatch.setattr('nomad.proc.mongo_connect', mock_connect)
-    yield
-    connection.drop_database('test_db')
+from nomad.processing.base import Proc, process, task, SUCCESS, FAILURE, RUNNING, PENDING
 
 
 def assert_proc(proc, current_task, status=SUCCESS, errors=0, warnings=0):
@@ -80,7 +52,7 @@ class FailTasks(Proc):
         self.fail('fail fail fail')
 
 
-def test_fail(mongomock):
+def test_fail():
     p = FailTasks.create()
     p.will_fail()
 
@@ -102,7 +74,7 @@ class SimpleProc(Proc):
         pass
 
 
-def test_simple_process(celery_session_worker, mongomock):
+def test_simple_process(celery_session_worker):
     p = SimpleProc.create()
     p.process()
     p.block_until_complete()
@@ -116,7 +88,7 @@ class TaskInProc(Proc):
         pass
 
 
-def test_task_as_proc(celery_session_worker, mongomock):
+def test_task_as_proc(celery_session_worker):
     p = TaskInProc.create()
     p.process()
     p.block_until_complete()
@@ -129,17 +101,14 @@ class ParentProc(Proc):
     @process
     @task
     def spawn_children(self):
-        print('## spawn')
         ChildProc.create(parent=self).process()
 
     @process
     @task
     def after_children(self):
-        print('## after')
         pass
 
     def on_child_complete(self):
-        print('## on complete')
         if self.incr_counter('children') == 1:
             self.after_children()
 
@@ -153,8 +122,12 @@ class ChildProc(Proc):
         self.parent.on_child_complete()
 
 
-def test_counter(celery_session_worker, mongomock):
+def test_counter(celery_session_worker):
     p = ParentProc.create()
     p.spawn_children()
     p.block_until_complete()
     assert_proc(p, 'after_children')
+
+    # wait for session worker to complete all open tasks
+    # otherwise uncompleted task request will bleed into the next tests
+    time.sleep(1)

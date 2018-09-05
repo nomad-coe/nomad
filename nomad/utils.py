@@ -10,6 +10,7 @@ from contextlib import contextmanager
 import json
 import os
 import sys
+import uuid
 
 from nomad import config
 
@@ -96,6 +97,10 @@ if not _logging_is_configured:
         root.info('Structlog configured for logstash')
 
     _logging_is_configured = True
+
+
+def create_uuid() -> str:
+    return base64.b64encode(uuid.uuid4().bytes, altchars=b'-_').decode('utf-8')[0:-2]
 
 
 def hash(obj: Union[IO, str]) -> str:

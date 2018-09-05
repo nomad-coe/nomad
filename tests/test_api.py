@@ -14,18 +14,17 @@ services_config = config.services._asdict()
 services_config.update(api_base_path='')
 config.services = config.NomadServicesConfig(**services_config)
 
-from nomad import api, files, processing  # noqa
-from nomad.data import Upload  # noqa
+from nomad import api, files  # noqa
+from nomad.processing import Upload, handle_uploads_thread  # noqa
 
-from tests.test_processing import example_files  # noqa
+from tests.processing.test_data import example_files  # noqa
 from tests.test_files import assert_exists  # noqa
 
 # import fixtures
 from tests.test_files import clear_files, archive_id  # noqa pylint: disable=unused-import
 from tests.test_normalizing import normalized_vasp_example  # noqa pylint: disable=unused-import
 from tests.test_parsing import parsed_vasp_example  # noqa pylint: disable=unused-import
-from tests.test_data import example_calc  # noqa pylint: disable=unused-import
-from tests.test_processing import celery_config, celery_includes, mocksearch  # noqa pylint: disable=unused-import
+from tests.test_search import example_elastic_calc  # noqa pylint: disable=unused-import
 
 
 @pytest.fixture(scope='function')
@@ -70,11 +69,6 @@ def test_no_uploads(client):
     assert_uploads(rv.data, count=0)
 
 
-def test_bad_upload_id(client):
-    rv = client.get('/uploads/bad_id')
-    assert rv.status_code == 400
-
-
 def test_not_existing_upload(client):
     rv = client.get('/uploads/123456789012123456789012')
     assert rv.status_code == 404
@@ -88,7 +82,7 @@ def test_stale_upload(client):
     assert rv.status_code == 200
     upload_id = assert_upload(rv.data)['upload_id']
 
-    upload = Upload.get(upload_id=upload_id)
+    upload = Upload.get(upload_id)
     upload.create_time = datetime.now() - timedelta(days=2)
     upload.save()
 
@@ -163,9 +157,9 @@ def test_upload_to_upload(client, file):
 
 
 @pytest.mark.parametrize("file", example_files)
-@pytest.mark.timeout(30)
+@pytest.mark.timeout(10)
 def test_processing(client, file, celery_session_worker, mocksearch):
-    handle_uploads_thread = processing.handle_uploads_thread(quit=True)
+    handler = handle_uploads_thread(quit=True)
 
     rv = client.post('/uploads')
     assert rv.status_code == 200
@@ -176,7 +170,7 @@ def test_processing(client, file, celery_session_worker, mocksearch):
     cmd = files.create_curl_upload_cmd(upload_url).replace('<ZIPFILE>', file)
     subprocess.call(shlex.split(cmd))
 
-    handle_uploads_thread.join()
+    handler.join()
 
     while True:
         time.sleep(1)
@@ -185,20 +179,25 @@ def test_processing(client, file, celery_session_worker, mocksearch):
         assert rv.status_code == 200
         upload = assert_upload(rv.data)
         assert 'upload_time' in upload
-        if upload['proc']['status'] in ['SUCCESS', 'FAILURE']:
+        if upload['completed']:
             break
 
-    proc = upload['proc']
-    assert proc['status'] == 'SUCCESS'
-    assert 'calc_procs' in proc
-    assert proc['calc_procs'] is not None
-    assert proc['current_task_name'] == 'cleanup'
-    assert len(proc['task_names']) == 4
-    assert_exists(config.files.uploads_bucket, upload['upload_id'])
+    assert len(upload['tasks']) == 4
+    assert upload['status'] == 'SUCCESS'
+    assert upload['current_task'] == 'cleanup'
+    calcs = upload['calcs']
+    for calc in calcs:
+        assert calc['status'] == 'SUCCESS'
+        assert calc['current_task'] == 'archiving'
+        assert len(calc['tasks']) == 3
+        assert_exists(config.files.uploads_bucket, upload['upload_id'])
+
+    time.sleep(1)
 
 
-def test_repo_calc(client, example_calc):
-    rv = client.get('/repo/%s/%s' % (example_calc.upload_hash, example_calc.calc_hash))
+def test_repo_calc(client, example_elastic_calc):
+    rv = client.get(
+        '/repo/%s/%s' % (example_elastic_calc.upload_hash, example_elastic_calc.calc_hash))
     assert rv.status_code == 200
 
 
@@ -207,7 +206,7 @@ def test_non_existing_repo_cals(client):
     assert rv.status_code == 404
 
 
-def test_repo_calcs(client, example_calc):
+def test_repo_calcs(client, example_elastic_calc):
     rv = client.get('/repo')
     assert rv.status_code == 200
     data = json.loads(rv.data)
@@ -217,7 +216,7 @@ def test_repo_calcs(client, example_calc):
     assert len(results) >= 1
 
 
-def test_repo_calcs_pagination(client, example_calc):
+def test_repo_calcs_pagination(client, example_elastic_calc):
     rv = client.get('/repo?page=1&per_page=1')
     assert rv.status_code == 200
     data = json.loads(rv.data)

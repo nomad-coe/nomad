@@ -4,8 +4,10 @@ from flask_cors import CORS
 from elasticsearch.exceptions import NotFoundError
 
 from nomad import config, files
-from nomad.utils import get_logger
-from nomad.data import Calc, Upload, User, InvalidId, NotAllowedDuringProcessing, me
+from nomad.utils import get_logger, create_uuid
+from nomad.processing import Upload, Calc, InvalidId, NotAllowedDuringProcessing
+from nomad.search import CalcElasticDocument
+from nomad.user import me
 
 base_path = config.services.api_base_path
 
@@ -135,7 +137,8 @@ class UploadsRes(Resource):
         if json_data is None:
             json_data = {}
 
-        return Upload.create(user=me, name=json_data.get('name', None)).json_dict, 200
+        upload = Upload.create(upload_id=create_uuid(), user=me, name=json_data.get('name'))
+        return upload.json_dict, 200
 
 
 class UploadRes(Resource):
@@ -191,16 +194,17 @@ class UploadRes(Resource):
         :param string upload_id: the id for the upload
         :resheader Content-Type: application/json
         :status 200: upload successfully updated and retrieved
-        :status 400: bad upload id
         :status 404: upload with id does not exist
         :returns: the :class:`nomad.data.Upload` instance
         """
+        # TODO calc paging
         try:
-            return Upload.get(upload_id=upload_id).json_dict, 200
-        except InvalidId:
-            abort(400, message='%s is not a valid upload id.' % upload_id)
+            result = Upload.get(upload_id).json_dict
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
+
+        result['calcs'] = [calc.json_dict for calc in Calc.objects(upload_id=upload_id)]
+        return result, 200
 
     def delete(self, upload_id):
         """
@@ -224,9 +228,9 @@ class UploadRes(Resource):
         :returns: the :class:`nomad.data.Upload` instance with the latest processing state
         """
         try:
-            return Upload.get(upload_id=upload_id).delete().json_dict, 200
-        except InvalidId:
-            abort(400, message='%s is not a valid upload id.' % upload_id)
+            upload = Upload.get(upload_id)
+            upload.delete()
+            return upload.json_dict, 200
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
         except NotAllowedDuringProcessing:
@@ -236,7 +240,7 @@ class UploadRes(Resource):
 class RepoCalcRes(Resource):
     def get(self, upload_hash, calc_hash):
         try:
-            return Calc.get(id='%s/%s' % (upload_hash, calc_hash)).json_dict, 200
+            return CalcElasticDocument.get(id='%s/%s' % (upload_hash, calc_hash)).json_dict, 200
         except NotFoundError:
             abort(404, message='There is no calculation for %s/%s' % (upload_hash, calc_hash))
         except Exception as e:
@@ -255,7 +259,7 @@ class RepoCalcsRes(Resource):
         assert per_page > 0
 
         try:
-            search = Calc.search().query('match_all')
+            search = CalcElasticDocument.search().query('match_all')
             search = search[(page - 1) * per_page: page * per_page]
             return {
                 'pagination': {

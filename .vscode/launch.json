@@ -68,13 +68,13 @@
       ]
     },
     {
-      "name": "Python: tests/test_utils.py",
+      "name": "Python: tests/processing/test_base.py",
       "type": "python",
       "request": "launch",
       "cwd": "${workspaceFolder}",
       "program": "${workspaceFolder}/.pyenv/bin/pytest",
       "args": [
-        "-sv", "tests/test_utils.py"
+        "-sv", "tests/processing/test_base.py::test_fail"
       ]
     },
     {

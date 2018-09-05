@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, cast
+from typing import List, cast, Any
 import types
 from contextlib import contextmanager
 import collections
@@ -28,6 +28,7 @@ from mongoengine.connection import MongoEngineConnectionError
 from mongoengine.base.metaclasses import TopLevelDocumentMetaclass
 from pymongo import ReturnDocument
 from datetime import datetime
+import sys
 
 from nomad import config, utils
 import nomad.patch  # pylint: disable=unused-import
@@ -57,6 +58,10 @@ app.add_defaults(dict(
     result_serializer=config.celery.serializer,
 ))
 
+# ensure elastic and mongo connections
+if 'sphinx' not in sys.modules:
+    connect(db=config.mongo.users_db, host=config.mongo.host)
+
 
 PENDING = 'PENDING'
 RUNNING = 'RUNNING'
@@ -67,7 +72,7 @@ SUCCESS = 'SUCCESS'
 class InvalidId(Exception): pass
 
 
-class AsyncDocumentNotRegistered(Exception): pass
+class ProcNotRegistered(Exception): pass
 
 
 class ProcMetaclass(TopLevelDocumentMetaclass):
@@ -113,7 +118,7 @@ class Proc(Document, metaclass=ProcMetaclass):
         proc_time: the time that processing completed (successfully or not)
     """
 
-    meta = {
+    meta: Any = {
         'abstract': True,
     }
 
@@ -134,6 +139,11 @@ class Proc(Document, metaclass=ProcMetaclass):
         """ Returns True of the process has failed or succeeded. """
         return self.status in [SUCCESS, FAILURE]
 
+    def get_logger(self):
+        return utils.get_logger(
+            __name__, current_task=self.current_task, process=self.__class__.__name__,
+            status=self.status)
+
     @classmethod
     def create(cls, **kwargs):
         """ Factory method that must be used instead of regular constructor. """
@@ -150,37 +160,72 @@ class Proc(Document, metaclass=ProcMetaclass):
         return self
 
     @classmethod
-    def get(cls, obj_id):
-        """ Loads the object from the database. """
+    def get_by_id(cls, id: str, id_field: str):
         try:
-            obj = cls.objects(id=str(obj_id)).first()
+            obj = cls.objects(**{id_field: id}).first()
         except ValidationError as e:
-            raise InvalidId('%s is not a valid id' % obj_id)
+            raise InvalidId('%s is not a valid id' % id)
         except MongoEngineConnectionError as e:
             raise e
 
         if obj is None:
-            raise KeyError('%s with id %s does not exist' % (cls.__name__, obj_id))
+            raise KeyError('%s with id %s does not exist' % (cls.__name__, id))
 
         return obj
 
-    def fail(self, *errors):
+    @classmethod
+    def get(cls, obj_id):
+        return cls.get_by_id(str(obj_id), 'id')
+
+    @staticmethod
+    def log(logger, log_level, msg, **kwargs):
+        # TODO there seems to be a bug in structlog, cannot use logger.log
+        if log_level == logging.ERROR:
+            logger.error(msg, **kwargs)
+        elif log_level == logging.WARNING:
+            logger.warning(msg, **kwargs)
+        elif log_level == logging.INFO:
+            logger.info(msg, **kwargs)
+        elif log_level == logging.DEBUG:
+            logger.debug(msg, **kwargs)
+        else:
+            logger.critical(msg, **kwargs)
+
+    def fail(self, *errors, log_level=logging.ERROR, **kwargs):
         """ Allows to fail the process. Takes strings or exceptions as args. """
-        assert not self.completed
+        assert not self.completed, 'Cannot fail a completed process.'
+
+        failed_with_exception = False
 
         self.status = FAILURE
+
+        logger = self.get_logger(**kwargs)
+        for error in errors:
+            if isinstance(error, Exception):
+                failed_with_exception = True
+                Proc.log(logger, log_level, 'task failed with exception', exc_info=error, **kwargs)
+
         self.errors = [str(error) for error in errors]
         self.complete_time = datetime.now()
 
-        print(self.errors)
+        if not failed_with_exception:
+            errors_str = "; ".join([str(error) for error in errors])
+            Proc.log(logger, log_level, 'task failed', errors=errors_str, **kwargs)
+
+        logger.debug('process failed')
+
         self.save()
 
-    def warning(self, *warnings):
+    def warning(self, *warnings, log_level=logging.warning, **kwargs):
         """ Allows to save warnings. Takes strings or exceptions as args. """
         assert not self.completed
 
+        logger = self.get_logger(**kwargs)
+
         for warning in warnings:
-            self.warnings.append(str(warning))
+            warning = str(warning)
+            self.warnings.append(warning)
+            logger.log('task with warning', warning=warning, level=log_level)
 
     def _continue_with(self, task):
         tasks = self.__class__.tasks
@@ -198,16 +243,21 @@ class Proc(Document, metaclass=ProcMetaclass):
             assert self.current_task is None
             assert task == tasks[0]
             self.status = RUNNING
+            self.current_task = task
+            self.get_logger().debug('started process')
+        else:
+            self.current_task = task
+            self.get_logger().debug('successfully completed task')
 
-        self.current_task = task
         self.save()
         return True
 
     def _complete(self):
         if self.status != FAILURE:
-            assert self.status == RUNNING
+            assert self.status == RUNNING, 'Can only complete a running process.'
             self.status = SUCCESS
             self.save()
+            self.get_logger().debug('completed process')
 
     def incr_counter(self, field, value=1, other_fields=None):
         """
@@ -254,6 +304,7 @@ class Proc(Document, metaclass=ProcMetaclass):
             'tasks': getattr(self.__class__, 'tasks'),
             'current_task': self.current_task,
             'status': self.status,
+            'completed': self.completed,
             'errors': self.errors,
             'warnings': self.warnings,
             'create_time': self.create_time.isoformat() if self.create_time is not None else None,
@@ -281,7 +332,7 @@ def task(func):
         except Exception as e:
             self.fail(e)
 
-        if self.__class__.tasks[-1] == self.current_task:
+        if self.__class__.tasks[-1] == self.current_task and not self.completed:
             self._complete()
 
     setattr(wrapper, '__task_name', func.__name__)
@@ -305,7 +356,7 @@ def proc_task(task, cls_name, self_id, func_attr):
     cls = next((cls for cls in all_cls if cls.__name__ == cls_name), None)
     if cls is None:
         logger.error('document not a subcass of Proc')
-        raise AsyncDocumentNotRegistered('document type %s not a subclass of Proc' % cls_name)
+        raise ProcNotRegistered('document %s not a subclass of Proc' % cls_name)
 
     try:
         self = cls.get(self_id)
