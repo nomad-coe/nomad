@@ -21,7 +21,7 @@ from elasticsearch import NotFoundError
 
 from nomad import config
 from nomad.parsing import LocalBackend
-from nomad.search import AlreadyExists, CalcElasticDocument, key_mappings
+from nomad.repo import AlreadyExists, RepoCalc, key_mappings
 
 from tests.test_normalizing import normalized_vasp_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
@@ -30,16 +30,16 @@ from tests.test_files import assert_not_exists
 
 @pytest.fixture(scope='function')
 def example_elastic_calc(normalized_vasp_example: LocalBackend, caplog) \
-        -> Generator[CalcElasticDocument, None, None]:
+        -> Generator[RepoCalc, None, None]:
     try:
         caplog.set_level(logging.ERROR)
-        CalcElasticDocument.get(id='test_upload_hash/test_calc_hash').delete()
+        RepoCalc.get(id='test_upload_hash/test_calc_hash').delete()
     except Exception:
         pass
     finally:
         caplog.set_level(logging.WARNING)
 
-    entry = CalcElasticDocument.create_from_backend(
+    entry = RepoCalc.create_from_backend(
         normalized_vasp_example,
         upload_hash='test_upload_hash',
         calc_hash='test_calc_hash',
@@ -59,27 +59,27 @@ def example_elastic_calc(normalized_vasp_example: LocalBackend, caplog) \
         caplog.set_level(logging.WARNING)
 
 
-def assert_elastic_calc(calc: CalcElasticDocument):
+def assert_elastic_calc(calc: RepoCalc):
     assert calc is not None
-    for property in CalcElasticDocument._doc_type.mapping:
+    for property in RepoCalc._doc_type.mapping:
         property = key_mappings.get(property, property)
         assert getattr(calc, property) is not None
 
 
-def test_create_elasitc_calc(example_elastic_calc: CalcElasticDocument):
+def test_create_elasitc_calc(example_elastic_calc: RepoCalc):
     assert_elastic_calc(example_elastic_calc)
-    assert CalcElasticDocument.upload_exists(example_elastic_calc.upload_hash)
+    assert RepoCalc.upload_exists(example_elastic_calc.upload_hash)
 
-    get_result: CalcElasticDocument = CalcElasticDocument.get(
+    get_result: RepoCalc = RepoCalc.get(
         id='%s/%s' % (example_elastic_calc.upload_hash, example_elastic_calc.calc_hash))
     assert_elastic_calc(get_result)
 
 
 def test_create_existing_elastic_calc(
-        example_elastic_calc: CalcElasticDocument, normalized_vasp_example, caplog):
+        example_elastic_calc: RepoCalc, normalized_vasp_example, caplog):
     try:
         caplog.set_level(logging.ERROR)
-        CalcElasticDocument.create_from_backend(
+        RepoCalc.create_from_backend(
             normalized_vasp_example,
             upload_hash='test_upload_hash',
             calc_hash='test_calc_hash',
@@ -94,13 +94,13 @@ def test_create_existing_elastic_calc(
         assert False
 
 
-def test_delete_elastic_calc(example_elastic_calc: CalcElasticDocument, caplog):
+def test_delete_elastic_calc(example_elastic_calc: RepoCalc, caplog):
     example_elastic_calc.delete()
 
     assert_not_exists(config.files.archive_bucket, 'test_upload_hash/test_calc_hash')
     try:
         caplog.set_level(logging.ERROR)
-        CalcElasticDocument.get(id='test_upload_hash/test_calc_hash')
+        RepoCalc.get(id='test_upload_hash/test_calc_hash')
         assert False
     except NotFoundError:
         pass

@@ -36,7 +36,7 @@ key_mappings = {
 class AlreadyExists(Exception): pass
 
 
-class CalcElasticDocument(ElasticDocument):
+class RepoCalc(ElasticDocument):
     """
     Elastic search document that represents a calculation. It is supposed to be a
     component of :class:`Calc`. Should only be created by its parent :class:`Calc`
@@ -72,7 +72,7 @@ class CalcElasticDocument(ElasticDocument):
     @classmethod
     def create_from_backend(
             cls, backend: LocalBackend, upload_id: str, upload_hash: str, calc_hash: str,
-            **kwargs) -> 'CalcElasticDocument':
+            **kwargs) -> 'RepoCalc':
         """
         Create a new calculation instance in elastic search. The data from the given backend
         will be used. Additional meta-data can be given as *kwargs*. ``upload_id``,
@@ -151,7 +151,7 @@ class CalcElasticDocument(ElasticDocument):
 
 if 'sphinx' not in sys.modules:
     try:
-        CalcElasticDocument.init()
+        RepoCalc.init()
     except elasticsearch.exceptions.RequestError as e:
         if e.status_code == 400 and 'resource_already_exists_exception' in e.error:
             pass  # happens if two services try this at the same time

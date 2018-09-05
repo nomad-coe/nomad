@@ -6,7 +6,7 @@ from elasticsearch.exceptions import NotFoundError
 from nomad import config, files
 from nomad.utils import get_logger, create_uuid
 from nomad.processing import Upload, Calc, NotAllowedDuringProcessing
-from nomad.search import CalcElasticDocument
+from nomad.repo import RepoCalc
 from nomad.user import me
 
 base_path = config.services.api_base_path
@@ -295,7 +295,7 @@ class RepoCalcRes(Resource):
         :returns: the repository calculation entry
         """
         try:
-            return CalcElasticDocument.get(id='%s/%s' % (upload_hash, calc_hash)).json_dict, 200
+            return RepoCalc.get(id='%s/%s' % (upload_hash, calc_hash)).json_dict, 200
         except NotFoundError:
             abort(404, message='There is no calculation for %s/%s' % (upload_hash, calc_hash))
         except Exception as e:
@@ -372,7 +372,7 @@ class RepoCalcsRes(Resource):
         assert per_page > 0
 
         try:
-            search = CalcElasticDocument.search().query('match_all')
+            search = RepoCalc.search().query('match_all')
             search = search[(page - 1) * per_page: page * per_page]
             return {
                 'pagination': {

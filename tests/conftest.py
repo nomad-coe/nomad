@@ -41,5 +41,5 @@ def mocksearch(monkeypatch):
     def upload_exists(upload_hash):
         return upload_hash in uploads
 
-    monkeypatch.setattr('nomad.search.CalcElasticDocument.create_from_backend', create_from_backend)
-    monkeypatch.setattr('nomad.search.CalcElasticDocument.upload_exists', upload_exists)
+    monkeypatch.setattr('nomad.repo.RepoCalc.create_from_backend', create_from_backend)
+    monkeypatch.setattr('nomad.repo.RepoCalc.upload_exists', upload_exists)

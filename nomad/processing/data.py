@@ -37,7 +37,7 @@ import mongoengine.errors
 import logging
 
 from nomad import config, files, utils
-from nomad.search import CalcElasticDocument
+from nomad.repo import RepoCalc
 from nomad.user import User, me
 from nomad.processing.base import Proc, process, task, PENDING
 from nomad.parsing import LocalBackend, parsers, parser_dict
@@ -96,7 +96,7 @@ class Calc(Proc):
             files.delete_archive(self.archive_id)
 
         # delete the search index entry
-        elastic_entry = CalcElasticDocument.get(self.archive_id)
+        elastic_entry = RepoCalc.get(self.archive_id)
         if elastic_entry is not None:
             elastic_entry.delete()
 
@@ -159,7 +159,7 @@ class Calc(Proc):
     def archiving(self):
         upload_hash, calc_hash = self.archive_id.split('/')
         # persist to elastic search
-        CalcElasticDocument.create_from_backend(
+        RepoCalc.create_from_backend(
             self._parser_backend,
             upload_hash=upload_hash,
             calc_hash=calc_hash,
@@ -314,7 +314,7 @@ class Upload(Proc):
             self.fail('could not create upload hash', e)
             return
 
-        if CalcElasticDocument.upload_exists(self.upload_hash):
+        if RepoCalc.upload_exists(self.upload_hash):
             self.fail('The same file was already uploaded and processed.', level=logging.INFO)
             return
 

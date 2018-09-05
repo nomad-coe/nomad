@@ -30,7 +30,7 @@ This module is structures into our *celery app* (``app.py``), the task definitio
 based on file storage notifications (``handler.py``, ``handlerdaemon.py``).
 
 This module does not contain the functions to do the actual work. Those are encapsulated
-in :py:mod:`nomad.files`, :py:mod:`nomad.search`, :py:mod:`nomad.users`,
+in :py:mod:`nomad.files`, :py:mod:`nomad.repo`, :py:mod:`nomad.users`,
 :py:mod:`nomad.parsing`, and :py:mod:`nomad.normalizing`.
 
 Processing app

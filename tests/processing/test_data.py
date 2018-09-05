@@ -27,7 +27,7 @@ from nomad import config, files
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator
 from nomad.user import me
-from nomad.search import CalcElasticDocument
+from nomad.repo import RepoCalc
 
 from tests.test_files import example_file, empty_file
 
@@ -90,7 +90,7 @@ def test_processing_doublets(uploaded_id, celery_session_worker, caplog):
 
     upload = run_processing(uploaded_id)
     assert upload.status == 'SUCCESS'
-    assert CalcElasticDocument.upload_exists(upload.upload_hash)  # pylint: disable=E1101
+    assert RepoCalc.upload_exists(upload.upload_hash)  # pylint: disable=E1101
 
     upload = run_processing(uploaded_id)
     assert upload.status == 'FAILURE'
