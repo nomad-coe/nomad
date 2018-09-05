@@ -55,18 +55,7 @@ class UploadsRes(Resource):
                     "current_task": "cleanup",
                     "tasks": ["uploading", "extracting", "parse_all", "cleanup"]
                     "errors": [],
-                    "warnings": [],
-                    "calcs": [
-                        {
-                            "current_task": "archiving",
-                            "tasks": ["parsing", "normalizing", "archiving"]
-                            "status": "SUCCESS",
-                            "errors": [],
-                            "warnings": [],
-                            "parser": "parsers/vasp",
-                            "mainfile": "Si.xml"
-                        }
-                    ]
+                    "warnings": []
                 }
             ]
 
@@ -148,9 +137,9 @@ class UploadRes(Resource):
     """ Uploads """
     def get(self, upload_id):
         """
-        Get an update for an existing upload. If the upload will be upaded with new data from the
-        processing infrastucture. You can use this endpoint to periodically pull the
-        new processing state until the upload ``is_ready``.
+        Get an update on an existing upload. Will not only return the upload, but
+        also its calculations paginated. Use the pagination params to determine
+        the page.
 
         .. :quickref: upload; Get an update for an existing upload.
 
@@ -182,32 +171,61 @@ class UploadRes(Resource):
                 "tasks": ["uploading", "extracting", "parse_all", "cleanup"]
                 "errors": [],
                 "warnings": [],
-                "calcs": [
-                    {
-                        "current_task": "archiving",
-                        "tasks": ["parsing", "normalizing", "archiving"]
-                        "status": "SUCCESS",
-                        "errors": [],
-                        "warnings": [],
-                        "parser": "parsers/vasp",
-                        "mainfile": "Si.xml"
-                    }
-                ]
+                "calcs": {
+                    "pagination": {
+                        "total": 1,
+                        "page": 1,
+                        "per_page": 25
+                    },
+                    "results": [
+                        {
+                            "current_task": "archiving",
+                            "tasks": ["parsing", "normalizing", "archiving"]
+                            "status": "SUCCESS",
+                            "errors": [],
+                            "warnings": [],
+                            "parser": "parsers/vasp",
+                            "mainfile": "Si.xml"
+                        }
+                    ]
+                }
             }
 
         :param string upload_id: the id for the upload
+        :qparam int page: the page starting with 1
+        :qparam int per_page: desired calcs per page
+        :qparam str order_by: the field to sort the calcs by, use [status,mainfile]
         :resheader Content-Type: application/json
         :status 200: upload successfully updated and retrieved
         :status 404: upload with id does not exist
         :returns: the :class:`nomad.data.Upload` instance
         """
-        # TODO calc paging
         try:
             result = Upload.get(upload_id).json_dict
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
-        result['calcs'] = [calc.json_dict for calc in Calc.objects(upload_id=upload_id)]
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        order_by = str(request.args.get('order_by', 'mainfile'))
+
+        try:
+            assert page >= 1
+            assert per_page > 0
+        except AssertionError:
+            abort(400, message='invalid pagination')
+
+        if order_by not in ['mainfile', 'status']:
+            abort(400, message='invalid order_by field %s' % order_by)
+
+        all_calcs = Calc.objects(upload_id=upload_id)
+        total = all_calcs.count()
+        calcs = all_calcs[(page - 1) * per_page:page * per_page].order_by(order_by)
+        result['calcs'] = {
+            'pagination': dict(total=total, page=page, per_page=per_page),
+            'results': [calc.json_dict for calc in calcs]
+        }
+
         return result, 200
 
     def delete(self, upload_id):
@@ -370,8 +388,11 @@ class RepoCalcsRes(Resource):
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
 
-        assert page >= 1
-        assert per_page > 0
+        try:
+            assert page >= 1
+            assert per_page > 0
+        except AssertionError:
+            abort(400, message='invalid pagination')
 
         try:
             search = RepoCalc.search().query('match_all')

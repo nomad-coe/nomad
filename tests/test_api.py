@@ -185,12 +185,18 @@ def test_processing(client, file, celery_session_worker, mocksearch):
     assert len(upload['tasks']) == 4
     assert upload['status'] == 'SUCCESS'
     assert upload['current_task'] == 'cleanup'
-    calcs = upload['calcs']
+    calcs = upload['calcs']['results']
     for calc in calcs:
         assert calc['status'] == 'SUCCESS'
         assert calc['current_task'] == 'archiving'
         assert len(calc['tasks']) == 3
         assert_exists(config.files.uploads_bucket, upload['upload_id'])
+
+    if upload['calcs']['pagination']['total'] > 1:
+        rv = client.get('/uploads/%s?page=2&per_page=1&order_by=status' % upload['upload_id'])
+        assert rv.status_code == 200
+        upload = assert_upload(rv.data)
+        assert len(upload['calcs']['results']) == 1
 
     time.sleep(1)
 
