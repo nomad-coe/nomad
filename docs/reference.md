@@ -27,7 +27,12 @@
 .. automodule:: nomad.processing
 ```
 
-## nomad.data
+## nomad.repo
 ```eval_rst
-.. automodule:: nomad.data
+.. automodule:: nomad.repo
+```
+
+## nomad.user
+```eval_rst
+.. automodule:: nomad.user
 ```

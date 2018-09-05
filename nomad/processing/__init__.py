@@ -24,10 +24,10 @@ and a result backend, e.g. a *Redis* database (), to access (intermediate) task 
 This combination allows us to easily distribute processing work while having
 the processing state, i.e. (intermediate) results, always available.
 
-This module is structures into our *celery app* (``app.py``), the task definitions
-(``tasks.py``), classes that represent state for processing *uploads* and their
-*calculations* (``state.py``), and the *handler* service that initiates processing
-based on file storage notifications (``handler.py``, ``handlerdaemon.py``).
+This module is structures into our *celery app* and abstract process base class
+:class:`Proc` (``base.py``), the concrete processing classes
+:class:`Upload` and :class:`Calc` (``data.py``), and the *handler* service that
+initiates processing based on file storage notifications (``handler.py``, ``handlerdaemon.py``).
 
 This module does not contain the functions to do the actual work. Those are encapsulated
 in :py:mod:`nomad.files`, :py:mod:`nomad.repo`, :py:mod:`nomad.users`,
@@ -37,42 +37,39 @@ Processing app
 --------------
 
 Refer to http://www.celeryproject.org/ to learn about celery apps and workers. The
-nomad celery app uses a *RabbitMQ* broker and *Redis* result backend. It uses *pickle*
-for serialization of arguments and results (usually instances of the :class:`Proc` state
-classes).
+nomad celery app uses a *RabbitMQ* broker. We use celery to distribute processing load
+in a cluster.
 
-Processing tasks
-----------------
 
-There are *upload* processing tasks (extracting, parse_all, cleanup) and a calculation
-processing task (parse). The upload processing tasks are ment to be executed in sequence.
+Processing
+----------
+
+We use an abstract processing base class (:class:`Proc`) that provides all necessary
+function to execute a process as a series of potentially distributed steps. In
+addition the processing state is persisted in mongodb using *mongoengine*. Instead of
+exchanging serialized state between celery tasks, we use the mongodb documents to
+exchange data. Therefore, the mongodb always contains the latest processing status.
+We also don't have to deal with celery result backends and synchronizing with them.
+
+.. autoclass:: nomad.processing.base.Proc
+
+There are two concrete processes :class:`Upload` and :class: `Calc`. Instances of both
+classes do represent the processing state, as well as the respective entity.
 
 .. figure:: proc.png
    :alt: nomad xt processing workflow
 
    This is the basic workflow of a nomad xt upload processing.
 
-
-.. autotask:: nomad.processing.tasks.extracting_task
-.. autotask:: nomad.processing.tasks.cleanup_task
-.. autotask:: nomad.processing.tasks.parse_all_task
-.. autotask:: nomad.processing.tasks.parse_task
-
-
-Represent processing state
---------------------------
-
-.. autoclass:: Proc
+.. autoclass:: nomad.processing.data.Upload
     :members:
-.. autoclass:: UploadProc
+.. autoclass:: nomad.processing.data.Calc
     :members:
-.. autoclass:: CalcProc
-    :members:
+
 
 Initiate processing
 -------------------
 
-.. autofunction:: start_processing
 .. autofunction:: handle_uploads
 .. autofunction:: handle_uploads_thread
 

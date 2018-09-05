@@ -29,9 +29,9 @@ selective secure scalable access to data files.
 
 celery
 ^^^^^^
-http://celeryproject.org (incl. rabbitmq, redis) is a popular combination for realizing
+http://celeryproject.org (incl. rabbitmq) is a popular combination for realizing
 long running tasks in internet applications. We use it to drive the processing of uploaded files.
-It allows us to transparently distribute processing load, while keeping processing state available.
+It allows us to transparently distribute processing load.
 
 elastic search
 ^^^^^^^^^^^^^^
@@ -41,6 +41,8 @@ Elastic search allows for flexible scalable search and analytics.
 mongodb
 ^^^^^^^
 Mongo is used to store all other user relavant data, like users, data sets, DOIs, etc.
+We also use mongodb to persist processing state and exchange data between processing
+tasks.
 
 elastic stack
 ^^^^^^^^^^^^^
@@ -56,7 +58,8 @@ Data model
 
    The main data classes in nomad xt
 
-See :py:mod:`nomad.data` for further information.
+See :py:mod:`nomad.processing`, :py:mod:`nomad.users`, and :py:mod:`nomad.repo`
+for further information.
 
 Processing
 ----------

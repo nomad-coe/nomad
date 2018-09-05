@@ -12,6 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+This module is about maintaining the repository search index and providing all
+data to the repository related parts of nomad xt.
+
+We use *elasticsearch_dsl* to interface with elastic search. The class :class:`RepoCalc`
+is an elasticsearch_dsl document that is used to represent elastic search index entries.
+
+.. autoclass:: nomad.repo.RepoCalc
+        :members:
+"""
+
 import sys
 import elasticsearch.exceptions
 from elasticsearch_dsl import Document as ElasticDocument, Search, Date, Keyword, connections
