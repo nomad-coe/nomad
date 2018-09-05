@@ -22,6 +22,13 @@ from nomadcore.local_meta_info import loadJsonFile
 from nomad.parsing import JSONStreamWriter, parser_dict
 from nomad.parsing import LocalBackend, BadContextURI
 
+parser_examples = [
+    ('parsers/exciting', '.dependencies/parsers/exciting/test/examples/Ag/INFO.OUT'),
+    ('parsers/exciting', '.dependencies/parsers/exciting/test/examples/GW/INFO.OUT'),
+    ('parsers/vasp', '.dependencies/parsers/vasp/test/examples/xml/perovskite.xml'),
+    ('parsers/fhi-aims', 'tests/data/parsers/aims.out')
+]
+
 
 class TestLocalBackend(object):
 
@@ -177,29 +184,42 @@ def test_stream_generator(pretty):
     assert create_reference(example_data, pretty) == out.getvalue()
 
 
-@pytest.fixture
-def parsed_vasp_example() -> LocalBackend:
-    vasp_parser = parser_dict['parsers/vasp']
-    example_mainfile = '.dependencies/parsers/vasp/test/examples/xml/perovskite.xml'
-    return vasp_parser.run(example_mainfile)
-
-
-def test_vasp_parser(parsed_vasp_example: LocalBackend):
-    status, errors = parsed_vasp_example.status
-
+def assert_parser_result(backend):
+    status, errors = backend.status
     assert status == 'ParseSuccess'
     assert errors is None or len(errors) == 0
 
 
+def run_parser(parser_name, mainfile):
+    parser = parser_dict[parser_name]
+    return parser.run(mainfile)
+
+
+@pytest.fixture
+def parsed_vasp_example() -> LocalBackend:
+    return run_parser(
+        'parsers/vasp', '.dependencies/parsers/vasp/test/examples/xml/perovskite.xml')
+
+
+@pytest.fixture(params=parser_examples, ids=lambda spec: '%s-%s' % spec)
+def parsed_example(request) -> LocalBackend:
+    parser_name, mainfile = request.param
+    return run_parser(parser_name, mainfile)
+
+
+def test_parser(parsed_example):
+    assert_parser_result(parsed_example)
+
+
 def test_match():
-    vasp_parser = parser_dict['parsers/vasp']
-    directory = './data/examples_vasp_6'
+    directory = 'tests/data/proc/match'
 
     count = 0
     for dirpath, _, filenames in os.walk(directory):
         for filename in filenames:
             fullname = os.path.join(dirpath, filename)
-            if vasp_parser.is_mainfile(fullname, lambda fn: open(fn)):
-                count += 1
+            for parser in parser_dict.values():
+                if parser.is_mainfile(fullname, lambda fn: open(fn)):
+                    count += 1
 
     assert count == 6

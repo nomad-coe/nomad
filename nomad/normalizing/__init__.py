@@ -17,6 +17,7 @@ from .normalizer import Normalizer
 from .system import SystemNormalizer
 from .symmetry import SymmetryNormalizer
 from .systemtype import SystemTypeNormalizer
+from .fhiaims import FhiAimsBaseNormalizer
 
 """
 After parsing calculations have to be normalized with a set of *normalizers*.
@@ -28,6 +29,7 @@ In NOMAD-coe those were programmed in python (we'll reuse) and scala (we'll rewr
 # instead of classes.
 normalizers: List[Any] = [
     SystemNormalizer,
+    FhiAimsBaseNormalizer,
     SymmetryNormalizer,
     SystemTypeNormalizer
 ]

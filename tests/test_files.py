@@ -27,8 +27,8 @@ from minio.error import NoSuchKey, NoSuchBucket
 import nomad.files as files
 import nomad.config as config
 
-example_file = 'data/examples_vasp.zip'
-empty_file = 'data/empty.zip'
+example_file = 'tests/data/proc/examples_vasp.zip'
+empty_file = 'tests/data/proc/empty.zip'
 
 
 def assert_exists(bucket_name, object_name):

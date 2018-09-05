@@ -48,9 +48,13 @@ Parsers in NOMAD-coe use a *backend* to create output.
 from typing import TextIO, Tuple, List, Any, Callable, IO
 from abc import ABCMeta, abstractmethod
 from io import StringIO
+import sys
 import json
 import re
 import importlib
+import inspect
+from unittest.mock import patch
+import io
 
 from nomadcore.local_backend import LocalBackend as LegacyLocalBackend
 from nomadcore.local_backend import Section, Results
@@ -364,8 +368,19 @@ class LocalBackend(LegacyParserBackend):
         self._open_context: Tuple[str, int] = None
         self._context_section = None
 
-    def finishedParsingSession(self, parserStatus, parserErrors, **kwargs):
-        self._delegate.finishedParsingSession(parserStatus, parserErrors, **kwargs)
+        # things that have no real purpos, but are required by some legacy code
+        self._unknown_attributes = {}
+        self.fileOut = io.StringIO()
+
+    def __getattr__(self, name):
+        """ Support for unimplemented and unexpected methods. """
+        if self._unknown_attributes.get(name) is None:
+            logger.debug('Access of unexpected backend attribute/method', attribute=name)
+            self._unknown_attributes[name] = name
+        return lambda *args, **kwargs: None
+
+    def finishedParsingSession(self, parserStatus, parserErrors, *args, **kwargs):
+        self._delegate.finishedParsingSession(parserStatus, parserErrors, *args, **kwargs)
         self._status = parserStatus
         self._errors = parserErrors
 
@@ -610,7 +625,8 @@ class LegacyParser(Parser):
             file = None
             try:
                 file = open(filename)
-                return self._main_contents_re.match(file.read(500)) is not None
+                contents = file.read(500)
+                return self._main_contents_re.match(contents) is not None
             finally:
                 if file:
                     file.close()
@@ -625,10 +641,23 @@ class LegacyParser(Parser):
         parser_class = self.parser_class_name.split('.')[1]
         module = importlib.import_module('.'.join(module_name))
         Parser = getattr(module, parser_class)
-        parser = Parser(backend=create_backend, debug=True)
-        parser.parse(mainfile)
 
-        backend = parser.parser_context.super_backend
+        init_signature = inspect.getargspec(Parser.__init__)
+        kwargs = dict(
+            backend=create_backend,
+            mainfile=mainfile, main_file=mainfile,
+            debug=True)
+        kwargs = {key: value for key, value in kwargs.items() if key in init_signature.args}
+        parser = Parser(**kwargs)
+
+        with patch.object(sys, 'argv', []):
+            backend = parser.parse(mainfile)
+
+        # TODO we need a homogeneous interface to parsers, but we dont have it right now
+        # thats a hack to distringuish between ParserInterface parser and simple_parser
+        if backend is None or not hasattr(backend, 'status'):
+            backend = parser.parser_context.super_backend
+
         return backend
 
     def __repr__(self):
@@ -647,12 +676,24 @@ parsers = [
             r'?\s*<i name="program" type="string">\s*vasp\s*</i>'
             r'?')
     ),
-    # Parser(
-    #     python_git=dependencies['parsers/exciting'],
-    #     parser_class_name='vaspparser.VASPParser',
-    #     main_file_re=r'^.*\.todo$',
-    #     main_contents_re=(r'^todo')
-    # ),
+    Parser(
+        python_git=dependencies['parsers/exciting'],
+        parser_class_name='parser_exciting.ExcitingParser',
+        main_file_re=r'^.*/INFO\.OUT?',
+        main_contents_re=(
+            r'^\s*=================================================+\s*'
+            r'\s*\|\s*EXCITING\s+\S+\s+started\s*='
+            r'\s*\|\s*version hash id:\s*\S*\s*=')
+    ),
+    Parser(
+        python_git=dependencies['parsers/fhi-aims'],
+        parser_class_name='fhiaimsparser.FHIaimsParser',
+        main_file_re=r'^.*\.out$',
+        main_contents_re=(
+            r'^(.*\n)*'
+            r'?\s*Invoking FHI-aims \.\.\.'
+            r'?\s*Version')
+    )
 ]
 """ Instanciation and constructor based config of all parsers. """
 

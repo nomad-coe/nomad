@@ -64,7 +64,7 @@ class SystemNormalizer(SystemBasedNormalizer):
             else:
                 formula_bulk = formula
 
-        cell = section_system['simulation_cell']
+        cell = section_system.get('simulation_cell', None)
         if cell is not None:
             results['lattice_vectors'] = cell
 
@@ -77,6 +77,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         if periodic_dirs is not None:
             results['configuration_periodic_dimensions'] = periodic_dirs.tolist()
 
+        symm = None
         configuration_id = 's' + addShasOfJson(results).b64digests()[0][0:28]
         if cell is not None and atom_labels is not None:
             if cell is not None:
@@ -116,7 +117,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         self._backend.addValue("chemical_composition_reduced", formula_reduced)
         self._backend.addValue("chemical_composition_bulk_reduced", formula_bulk)
 
-        if symm:
+        if symm is not None:
             # for quantity in ["number", "international", "hall", "choice", "pointgroup"]:
             #     v = symm.get(quantity)
             #     if v is not None:

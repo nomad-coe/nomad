@@ -18,26 +18,40 @@ from nomad.parsing import LocalBackend
 from nomad.normalizing import normalizers
 
 from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
+from tests.test_parsing import parsed_example  # pylint: disable=unused-import
 
 
-@pytest.fixture
-def normalized_vasp_example(parsed_vasp_example: LocalBackend) -> LocalBackend:
-    status, _ = parsed_vasp_example.status
+def run_normalize(backend: LocalBackend) -> LocalBackend:
+    status, _ = backend.status
 
     assert status == 'ParseSuccess'
 
     for normalizer_class in normalizers:
-        normalizer = normalizer_class(parsed_vasp_example)
+        normalizer = normalizer_class(backend)
         normalizer.normalize()
 
-    return parsed_vasp_example
+    return backend
 
 
-def test_normalizer(normalized_vasp_example: LocalBackend):
-    assert normalized_vasp_example.get_value('atom_species', 0) is not None
-    assert normalized_vasp_example.get_value('system_type', 0) is not None
-    assert normalized_vasp_example.get_value('crystal_system', 0) is not None
-    assert normalized_vasp_example.get_value('space_group_number', 0) is not None
-    assert normalized_vasp_example.get_value('XC_functional_name', 0) is not None
-    assert normalized_vasp_example.get_value('chemical_composition', 0) is not None
-    assert normalized_vasp_example.get_value('chemical_composition_bulk_reduced', 0) is not None
+@pytest.fixture
+def normalized_vasp_example(parsed_vasp_example: LocalBackend) -> LocalBackend:
+    return run_normalize(parsed_vasp_example)
+
+
+@pytest.fixture
+def normalized_example(parsed_example: LocalBackend) -> LocalBackend:
+    return run_normalize(parsed_example)
+
+
+def assert_normalized(backend):
+    assert backend.get_value('atom_species', 0) is not None
+    assert backend.get_value('system_type', 0) is not None
+    assert backend.get_value('crystal_system', 0) is not None
+    assert backend.get_value('space_group_number', 0) is not None
+    assert backend.get_value('XC_functional_name', 0) is not None
+    assert backend.get_value('chemical_composition', 0) is not None
+    assert backend.get_value('chemical_composition_bulk_reduced', 0) is not None
+
+
+def test_normalizer(normalized_example: LocalBackend):
+    assert_normalized(normalized_example)

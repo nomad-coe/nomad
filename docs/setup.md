@@ -55,7 +55,7 @@ You can alos run services selectively, e.g.
 ```
 docker-compose up -d redis, rabbitmq, minio, minio-config, mongo, elastic, elk
 docker-compose up worker handler
-docker-compose up api gui
+docker-compose up api gui proxy
 ```
 
 If you run the ELK stack (and enable logstash in nomad/config.py),
@@ -70,10 +70,8 @@ mc config host add minio http://localhost:9007 AKIAIOSFODNN7EXAMPLE wJalrXUtnFEM
 
 ### Serving minio, api, gui from one nginx
 The docker-compose is setup to server all client accessible services from one webserver
-via nginx *proxy_pass* directives.
-This is currelty part of the gui image/container. The api is served at `/nomadxt/api`,
-minio ad `/nomadxt/objects` and the gui ad `/nomadxt`. This also means that there
-is some URL rewriting and prefixing in the api and gui.
+via nginx *proxy_pass* directives. This is done in the `proxy` container.
+
 
 ### Run the nomad worker manually
 You can run the worker, handler, api, and gui as part of the docker infrastructure, like

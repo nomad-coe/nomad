@@ -17,6 +17,8 @@ from systemtypenormalizer.classify_structure import ClassifyStructure
 
 
 class SystemTypeNormalizer(SystemBasedNormalizer):
+    def __init__(self, backend):
+        super().__init__(backend, all_sections=True)
 
     def normalize_system(self, section_system) -> None:
         structure = ClassifyStructure(section_system)

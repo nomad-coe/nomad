@@ -7,8 +7,8 @@ and infrastructure with a simplyfied and improved architecture.
 .. toctree::
    :maxdepth: 2
 
-   setup
    introduction
+   setup
    api
    reference
    contributing
