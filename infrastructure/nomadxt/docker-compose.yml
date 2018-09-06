@@ -105,14 +105,12 @@ services:
             - NOMAD_MINIO_PORT=9000
             - NOMAD_MINIO_HOST=minio
             - NOMAD_RABBITMQ_HOST=rabbitmq
-            - NOMAD_REDIS_HOST=redis
             - NOMAD_LOGSTASH_HOST=elk
             - NOMAD_ELASTIC_HOST=elastic
             - NOMAD_MONGO_HOST=mongo
             - NOMAD_SERVICE=nomadxt_worker
         links:
             - minio
-            - redis
             - rabbitmq
             - elastic
             - mongo
@@ -132,14 +130,12 @@ services:
             - NOMAD_MINIO_PORT=9000
             - NOMAD_MINIO_HOST=minio
             - NOMAD_RABBITMQ_HOST=rabbitmq
-            - NOMAD_REDIS_HOST=redis
             - NOMAD_LOGSTASH_HOST=elk
             - NOMAD_MONGO_HOST=mongo
             - NOMAD_ELASTIC_HOST=elastic
             - NOMAD_SERVICE=nomadxt_handler
         links:
             - minio
-            - redis
             - rabbitmq
             - elastic
             - mongo
@@ -157,7 +153,6 @@ services:
             - NOMAD_MINIO_PORT=9000
             - NOMAD_MINIO_HOST=minio
             - NOMAD_RABBITMQ_HOST=rabbitmq
-            - NOMAD_REDIS_HOST=redis
             - NOMAD_LOGSTASH_HOST=elk
             - NOMAD_ELASTIC_HOST=elastic
             - NOMAD_MONGO_HOST=mongo
@@ -168,7 +163,6 @@ services:
             - NOMAD_SERVICE=nomadxt_api
         links:
             - minio
-            - redis
             - rabbitmq
             - elastic
             - mongo
