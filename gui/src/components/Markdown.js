@@ -62,8 +62,23 @@ var styles = theme => ({
       margin: '24px 0 16px'
     }),
     '& p, & ul, & ol': {
-      lineHeight: 1.6
+      lineHeight: 2
     },
+    '& ul': {
+      paddingLeft: 0,
+      '& li': {
+        listStyleType: 'none',
+        fontSize: 'inherit',
+        paddingLeft: theme.spacing.unit * 4,
+        '&:before': {
+          content: '\'■\'',
+          fontSize: 'x-large',
+          marginLeft: -theme.spacing.unit * 4,
+          paddingRight: theme.spacing.unit * 4 - 14
+        }
+      },
+    },
+
     '& h1, & h2, & h3, & h4': {
       '& code': {
         fontSize: 'inherit',
