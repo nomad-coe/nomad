@@ -167,7 +167,7 @@ dependencies = [
     PythonGit(
         name='parsers/fhi-aims',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-fhi-aims.git',
-        git_commit='master'),
+        git_commit='nomad-xt'),
     PythonGit(
         name='normalizers/stats',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/normalizer-stats.git',
