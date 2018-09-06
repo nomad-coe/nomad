@@ -21,9 +21,10 @@
     "url-parse": "^1.4.3"
   },
   "scripts": {
+    "metainfo": "git clone --single-branch -b nomad-xt git@gitlab.mpcdf.mpg.de:nomad-lab/nomad-meta-info.git --depth=1 public/metainfo",
     "gitinfo": "echo \"{ \\\"log\\\": \\\"$(git log -1 --oneline)\\\", \\\"ref\\\": \\\"$(git describe --all)\\\", \\\"version\\\": \\\"$(git describe)\\\" }\"  > src/gitinfo.json",
-    "start": "yarn gitinfo; react-scripts start",
-    "build": "yarn gitinfo; react-scripts build",
+    "start": "yarn metainfo; yarn gitinfo; react-scripts start",
+    "build": "yarn metainfo; yarn gitinfo; react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject"
   },

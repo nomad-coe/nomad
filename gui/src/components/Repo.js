@@ -13,7 +13,7 @@ import { TableHead, LinearProgress } from '@material-ui/core'
 import Markdown from './Markdown'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
-import PeriodicTable from './PeriodicTable'
+// import PeriodicTable from './PeriodicTable'
 
 class Repo extends React.Component {
   static propTypes = {

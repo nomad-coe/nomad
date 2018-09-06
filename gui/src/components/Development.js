@@ -24,11 +24,12 @@ class Development extends React.Component {
           - ref: \`${gitInfo.ref}\`
           - last commit message: *${gitInfo.log}*
 
-          \n\n# ELK
+          \n\n# Elastic stack
           We use a central logging system based on the *elastic*-stack
-          (previously *ELK*-stack). This system pushes logs, events, monitoring data,
-          and other application metrics to a central **E**lasticsearch, via **L**ogstack,
-          where it can be analysed with **K**ibana (hence **ELK**).
+          (previously called *Elastic Logstash Kibana* (ELK)-stack).
+          This system pushes logs, events, monitoring data,
+          and other application metrics to a central database where it
+          can be analysed visually.
           \n\n[Link to Kiaba](/nomadxt/kibana/)
         `}</Markdown>
       </div>

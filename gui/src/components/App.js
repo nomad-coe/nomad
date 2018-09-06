@@ -9,6 +9,7 @@ import RepoCalc from './RepoCalc'
 import Repo from './Repo'
 import Documentation from './Documentation'
 import Development from './Development';
+import Home from './Home';
 
 function App() {
   return (
@@ -16,7 +17,7 @@ function App() {
       <BrowserRouter basename={appBase}>
         <Navigation>
           <Switch>
-            <Route exact path="/" render={() => <div>Home</div>} />
+            <Route exact path="/" component={Home} />
             <Route exact path="/repo" component={Repo} />
             <Route path="/repo/:uploadHash/:calcHash" component={RepoCalc} />
             <Route path="/upload" component={Uploads} />

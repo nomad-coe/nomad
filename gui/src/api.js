@@ -1,8 +1,12 @@
 import { UploadRequest } from '@navjobs/upload'
-import { apiBase } from './config'
+import { apiBase, appStaticBase } from './config'
 
 const networkError = () => {
   throw Error('Network related error, cannot reach API or object storage.')
+}
+
+const handleJsonErrors = () => {
+  throw Error('Server return unexpected data format.')
 }
 
 const handleResponseErrors = (response) => {
@@ -138,13 +142,47 @@ function deleteUpload(uploadId) {
     .then(response => response.json())
 }
 
+let cachedMetaInfo = null
+
+async function getMetaInfo() {
+  if (cachedMetaInfo) {
+    return cachedMetaInfo
+  } else {
+    const loadMetaInfo = async (path) => {
+      return fetch(`${appStaticBase}/metainfo/meta_info/nomad_meta_info/${path}`)
+        .catch(networkError)
+        .then(handleResponseErrors)
+        .then(response => response.json())
+        .catch(handleJsonErrors)
+        .then(data => {
+          if (!cachedMetaInfo) {
+            cachedMetaInfo = {}
+          }
+          if (data.dependencies) {
+            data.dependencies.forEach(dep => {
+              loadMetaInfo(dep.relativePath)
+            })
+          }
+          if (data.metaInfos) {
+            data.metaInfos.forEach(info => {
+              cachedMetaInfo[info.name] = info
+            })
+          }
+        })
+    }
+    await loadMetaInfo('all.nomadmetainfo.json')
+    return cachedMetaInfo
+  }
+}
+
 const api = {
   createUpload: createUpload,
   deleteUpload: deleteUpload,
   getUploads: getUploads,
   archive: archive,
   repo: repo,
-  repoAll: repoAll
+  repoAll: repoAll,
+  getMetaInfo: getMetaInfo
 }
 
 export default api

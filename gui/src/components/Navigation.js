@@ -21,7 +21,7 @@ import DevelIcon from '@material-ui/icons/ReportProblem'
 import { Link, withRouter } from 'react-router-dom'
 import { compose } from 'recompose'
 import { Avatar, MuiThemeProvider } from '@material-ui/core'
-import { genTheme, repoTheme, archiveTheme, encTheme, appBase } from '../config'
+import { genTheme, repoTheme, archiveTheme, encTheme, appBase, appStaticBase } from '../config'
 import { ErrorSnacks } from './errors'
 
 const drawerWidth = 200
@@ -95,8 +95,8 @@ class Navigation extends React.Component {
   renderTitle() {
     return (
       <Toolbar>
-        <Typography variant="title" color="inherit" noWrap>
-          nomad xt
+        <Typography style={{fontSize: 24}} color="inherit" noWrap>
+          nomad <strong>xt</strong>
         </Typography>
       </Toolbar>
     )
@@ -197,7 +197,7 @@ class Navigation extends React.Component {
                 <Typography variant="title" color="inherit" noWrap className={classes.flex}>
                   {selected(toolbarTitles)}
                 </Typography>
-                <Avatar src={`${appBase}/me.jpg`}/>
+                <Avatar src={`${appStaticBase}/me.jpg`}/>
               </Toolbar>
             </AppBar>
           </MuiThemeProvider>
