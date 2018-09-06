@@ -4,7 +4,7 @@ __pycache__
 .mypy_cache
 *.pyc
 *.egg-info/
-data
+/data/
 .dependencies/
 .volumes/
 .pytest_cache/
