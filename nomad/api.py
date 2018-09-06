@@ -5,7 +5,7 @@ from elasticsearch.exceptions import NotFoundError
 
 from nomad import config, files
 from nomad.utils import get_logger, create_uuid
-from nomad.processing import Upload, Calc, NotAllowedDuringProcessing
+from nomad.processing import Upload, Calc, NotAllowedDuringProcessing, SUCCESS, FAILURE
 from nomad.repo import RepoCalc
 from nomad.user import me
 
@@ -205,9 +205,13 @@ class UploadRes(Resource):
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
-        page = int(request.args.get('page', 1))
-        per_page = int(request.args.get('per_page', 10))
-        order_by = str(request.args.get('order_by', 'mainfile'))
+        try:
+            page = int(request.args.get('page', 1))
+            per_page = int(request.args.get('per_page', 10))
+            order_by = str(request.args.get('order_by', 'mainfile'))
+            order = int(str(request.args.get('order', -1)))
+        except Exception:
+            abort(400, message='invalid pagination or ordering')
 
         try:
             assert page >= 1
@@ -215,14 +219,20 @@ class UploadRes(Resource):
         except AssertionError:
             abort(400, message='invalid pagination')
 
-        if order_by not in ['mainfile', 'status']:
+        if order_by not in ['mainfile', 'status', 'parser']:
             abort(400, message='invalid order_by field %s' % order_by)
+
+        order_by = ('-%s' if order == -1 else '+%s') % order_by
 
         all_calcs = Calc.objects(upload_id=upload_id)
         total = all_calcs.count()
+        successes = Calc.objects(upload_id=upload_id, status=SUCCESS).count()
+        failures = Calc.objects(upload_id=upload_id, status=FAILURE).count()
         calcs = all_calcs[(page - 1) * per_page:page * per_page].order_by(order_by)
         result['calcs'] = {
-            'pagination': dict(total=total, page=page, per_page=per_page),
+            'pagination': dict(
+                total=total, page=page, per_page=per_page,
+                successes=successes, failures=failures),
             'results': [calc.json_dict for calc in calcs]
         }
 

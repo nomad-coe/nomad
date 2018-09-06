@@ -62,22 +62,30 @@ class Upload {
 
   _assignFromJson(uploadJson, created) {
     Object.assign(this, uploadJson)
-    if (this.proc.current_task_name !== this.proc.task_names[0]) {
+    if (this.current_task !== this.tasks[0]) {
       this.uploading = 100
     } else if (!created && this.uploading === null) {
       // if data came from server during a normal get (not create) and its still uploading
       // and the uploading is also not controlled locally then it ought to be a failure/abort
-      this.proc.status = 'FAILURE'
-      this.is_ready = true
-      this.proc.errors = ['upload failed, probably aborted']
+      this.status = 'FAILURE'
+      this.completed = true
+      this.errors = ['upload failed, probably aborted']
     }
   }
 
-  update() {
+  get(page, perPage, orderBy, order) {
+    if (!page) page = 1
+    if (!perPage) perPage = 5
+    if (!orderBy) orderBy = 'mainfile'
+    if (!order) order = 'desc'
+
+    order = order === 'desc' ? -1 : 1
+
     if (this.uploading !== null && this.uploading !== 100) {
       return new Promise(resolve => resolve(this))
     } else {
-      return fetch(`${apiBase}/uploads/${this.upload_id}`)
+      const qparams = `page=${page}&per_page=${perPage}&order_by=${orderBy}&order=${order}`
+      return fetch(`${apiBase}/uploads/${this.upload_id}?${qparams}`)
         .catch(networkError)
         .then(handleResponseErrors)
         .then(response => response.json())
@@ -148,7 +156,7 @@ async function getMetaInfo() {
   if (cachedMetaInfo) {
     return cachedMetaInfo
   } else {
-    const loadMetaInfo = async (path) => {
+    const loadMetaInfo = async(path) => {
       return fetch(`${appStaticBase}/metainfo/meta_info/nomad_meta_info/${path}`)
         .catch(networkError)
         .then(handleResponseErrors)

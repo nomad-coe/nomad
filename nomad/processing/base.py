@@ -216,7 +216,7 @@ class Proc(Document, metaclass=ProcMetaclass):
         for warning in warnings:
             warning = str(warning)
             self.warnings.append(warning)
-            logger.log('task with warning', warning=warning, level=log_level)
+            Proc.log(logger, log_level, 'task with warning', warning=warning)
 
     def _continue_with(self, task):
         tasks = self.__class__.tasks

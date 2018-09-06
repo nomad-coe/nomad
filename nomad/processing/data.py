@@ -30,6 +30,7 @@ calculations, and files
 from typing import List, Any
 import sys
 from datetime import datetime
+from elasticsearch.exceptions import NotFoundError
 from mongoengine import \
     Document, EmailField, StringField, BooleanField, DateTimeField, \
     ListField, DictField, ReferenceField, IntField, connect
@@ -73,7 +74,7 @@ class Calc(Proc):
 
     meta: Any = {
         'indices': [
-            'upload_id'
+            'upload_id', 'mainfile', 'code', 'parser'
         ]
     }
 
@@ -96,9 +97,12 @@ class Calc(Proc):
             files.delete_archive(self.archive_id)
 
         # delete the search index entry
-        elastic_entry = RepoCalc.get(self.archive_id)
-        if elastic_entry is not None:
-            elastic_entry.delete()
+        try:
+            elastic_entry = RepoCalc.get(self.archive_id)
+            if elastic_entry is not None:
+                elastic_entry.delete()
+        except NotFoundError:
+            pass
 
         # delete this mongo document
         super().delete()
@@ -336,7 +340,7 @@ class Upload(Proc):
                         calc.process()
                         self.total_calcs += 1
                 except Exception as e:
-                    self.warnings(
+                    self.warning(
                         'exception while matching pot. mainfile',
                         mainfile=filename, exc_info=e)
 

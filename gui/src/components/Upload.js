@@ -3,7 +3,9 @@ import PropTypes from 'prop-types'
 import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography,
   ExpansionPanelDetails, Stepper, Step, StepLabel, Table, TableRow, TableCell, TableBody,
   Checkbox, FormControlLabel, TablePagination, TableHead, Tooltip,
-  CircularProgress} from '@material-ui/core'
+  CircularProgress,
+  LinearProgress,
+  TableSortLabel} from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
 import CalcLinks from './CalcLinks'
@@ -64,38 +66,56 @@ class Upload extends React.Component {
 
   state = {
     upload: this.props.upload,
-    page: 1,
-    rowsPerPage: 5
+    params: {
+      page: 1,
+      perPage: 5,
+      orderBy: 'mainfile',
+      order: 'desc'
+    },
+    loading: true, // its loading data from the server and the user should know about it
+    updating: true // it is still not complete and contineusly looking for updates
   }
 
-  updateUpload() {
-    window.setTimeout(() => {
-      this.state.upload.update()
-        .then(upload => {
-          console.assert(upload.proc, 'Uploads always must have a proc')
-          this.setState({upload: upload})
-          if (upload.proc.status !== 'SUCCESS' && upload.proc.status !== 'FAILURE' && !upload.proc.is_stale) {
-            this.updateUpload()
-          }
-        })
-        .catch(error => {
-          this.setState({upload: null})
-          this.props.raiseError(error)
-        })
-    }, 500)
+  update(params) {
+    const {page, perPage, orderBy, order} = params
+    this.setState({loading: true})
+    this.state.upload.get(page, perPage, orderBy, order)
+      .then(upload => {
+        const continueUpdating = upload.status !== 'SUCCESS' && upload.status !== 'FAILURE' && !upload.is_stale
+        this.setState({upload: upload, loading: false, params: params, updating: continueUpdating})
+        if (continueUpdating) {
+          window.setTimeout(() => {
+            if (!this.state.loading) {
+              this.update(this.state.params)
+            }
+          }, 500)
+        }
+      })
+      .catch(error => {
+        this.setState({loading: false, ...params})
+        this.props.raiseError(error)
+      })
   }
 
   componentDidMount() {
-    this.updateUpload()
+    this.update(this.state.params)
   }
 
   handleChangePage = (_, page) => {
-    this.setState({page: page + 1})
+    this.update({...this.state.params, page: page + 1})
   }
 
   handleChangeRowsPerPage = event => {
-    const rowsPerPage = event.target.value
-    this.setState({rowsPerPage: rowsPerPage})
+    const perPage = event.target.value
+    this.update({...this.state.params, perPage: perPage})
+  }
+
+  handleSort(orderBy) {
+    let order = 'desc'
+    if (this.state.params.orderBy === orderBy && this.state.params.order === 'desc') {
+      order = 'asc'
+    }
+    this.update({...this.state.params, orderBy: orderBy, order: order})
   }
 
   onCheckboxChanged(_, checked) {
@@ -123,16 +143,16 @@ class Upload extends React.Component {
   renderStepper() {
     const { classes } = this.props
     const { upload } = this.state
-    const { calc_procs, task_names, current_task_name, status, errors } = upload.proc
+    const { calcs, tasks, current_task, status, errors } = upload
 
-    let activeStep = task_names.indexOf(current_task_name)
+    let activeStep = tasks.indexOf(current_task)
     activeStep += (status === 'SUCCESS') ? 1 : 0
 
     const labelPropsFactories = {
       uploading: (props) => {
         props.children = 'uploading'
         const { uploading } = upload
-        if (upload.proc.status !== 'FAILURE') {
+        if (upload.status !== 'FAILURE') {
           props.optional = (
             <Typography variant="caption">
               {uploading || 0}%
@@ -142,7 +162,7 @@ class Upload extends React.Component {
       },
       extracting: (props) => {
         props.children = 'extracting'
-        if (current_task_name === 'extracting') {
+        if (current_task === 'extracting') {
           props.optional = (
             <Typography variant="caption">
               be patient
@@ -152,20 +172,20 @@ class Upload extends React.Component {
       },
       parse_all: (props) => {
         props.children = 'parse'
-        if (calc_procs.length > 0) {
-          const failures = calc_procs.filter(calcProc => calcProc.status === 'FAILURE')
-          if (failures.length) {
+        if (calcs && calcs.pagination.total > 0) {
+          const { total, successes, failures } = calcs.pagination
+
+          if (failures) {
             props.error = true
             props.optional = (
               <Typography variant="caption" color="error">
-                {calc_procs.filter(p => p.status === 'SUCCESS').length}/{calc_procs.length}
-                , {failures.length} failed
+                {successes + failures}/{total}, {failures} failed
               </Typography>
             )
           } else {
             props.optional = (
               <Typography variant="caption">
-                {calc_procs.filter(p => p.status === 'SUCCESS').length}/{calc_procs.length}
+                {successes + failures}/{total}
               </Typography>
             )
           }
@@ -180,7 +200,7 @@ class Upload extends React.Component {
 
     return (
       <Stepper activeStep={activeStep} classes={{root: classes.stepper}}>
-        {task_names.map((label, index) => {
+        {tasks.map((label, index) => {
           const labelProps = {
             children: label,
             error: activeStep === index && status === 'FAILURE'
@@ -211,14 +231,15 @@ class Upload extends React.Component {
 
   renderCalcTable() {
     const { classes } = this.props
-    const { page, rowsPerPage } = this.state
-    const { calc_procs, status, upload_hash } = this.state.upload.proc
+    const { page, perPage, orderBy, order } = this.state.params
+    const { calcs, status } = this.state.upload
+    const { pagination, results } = calcs
 
-    if (calc_procs.length === 0) {
-      if (this.state.upload.is_ready) {
+    if (pagination.total === 0) {
+      if (this.state.upload.completed) {
         return (
           <Typography className={classes.detailsContent}>
-            {status === 'SUCCESS' ? 'No calculcations found.' : 'There are errors and no calculations to show.'}
+            {status === 'SUCCESS' ? 'No calculcations found.' : 'No calculations to show.'}
           </Typography>
         )
       } else {
@@ -230,8 +251,8 @@ class Upload extends React.Component {
       }
     }
 
-    const renderRow = (calcProc, index) => {
-      const { mainfile, calc_hash, parser_name, task_names, current_task_name, status, errors } = calcProc
+    const renderRow = (calc, index) => {
+      const { mainfile, archive_id, parser, tasks, current_task, status, errors } = calc
       const color = status === 'FAILURE' ? 'error' : 'default'
       const row = (
         <TableRow key={index}>
@@ -240,28 +261,32 @@ class Upload extends React.Component {
               {mainfile}
             </Typography>
             <Typography variant="caption" color={color}>
-              {calc_hash}
+              {archive_id}
             </Typography>
           </TableCell>
           <TableCell>
             <Typography color={color}>
-              {parser_name.replace('parsers/', '')}
+              {parser.replace('parsers/', '')}
             </Typography>
           </TableCell>
           <TableCell>
             <Typography color={color}>
-              {current_task_name}
+              {current_task}
             </Typography>
             <Typography variant="caption" color={color}>
               task&nbsp;
               <b>
-                [{task_names.indexOf(current_task_name) + 1}/{task_names.length}]
+                [{tasks.indexOf(current_task) + 1}/{tasks.length}]
               </b>
             </Typography>
           </TableCell>
           <TableCell>
-            {status === 'SUCCESS'
-              ? <CalcLinks uploadHash={upload_hash} calcHash={calc_hash} /> : ''}
+            <Typography color={color}>
+              {status.toLowerCase()}
+            </Typography>
+          </TableCell>
+          <TableCell>
+            <CalcLinks calcId={archive_id} disabled={status !== 'SUCCESS'} />
           </TableCell>
         </TableRow>
       )
@@ -277,21 +302,45 @@ class Upload extends React.Component {
       }
     }
 
-    const total = calc_procs.length
-    const emptyRows = rowsPerPage - Math.min(rowsPerPage, total - (page - 1) * rowsPerPage)
+    const total = pagination.total
+    const emptyRows = perPage - Math.min(perPage, total - (page - 1) * perPage)
+
+    const columns = [
+      { id: 'mainfile', sort: true, label: 'mainfile' },
+      { id: 'parser', sort: true, label: 'code' },
+      { id: 'task', sort: false, label: 'task' },
+      { id: 'status', sort: true, label: 'status' },
+      { id: 'links', sort: false, label: 'links' }
+    ]
 
     return (
       <Table>
         <TableHead>
           <TableRow>
-            <TableCell>mainfile</TableCell>
-            <TableCell>code</TableCell>
-            <TableCell>task</TableCell>
-            <TableCell></TableCell>
+            {columns.map(column => (
+              <TableCell key={column.id}>
+                {column.sort
+                  ? <Tooltip
+                    title="Sort"
+                    placement={'bottom-start'}
+                    enterDelay={300}
+                  >
+                    <TableSortLabel
+                      active={orderBy === column.id}
+                      direction={order}
+                      onClick={() => this.handleSort(column.id)}
+                    >
+                      {column.label}
+                    </TableSortLabel>
+                  </Tooltip>
+                  : column.label
+                }
+              </TableCell>
+            ))}
           </TableRow>
         </TableHead>
         <TableBody>
-          {calc_procs.slice((page - 1) * rowsPerPage, page * rowsPerPage).map(renderRow)}
+          {results.map(renderRow)}
           {emptyRows > 0 && (
             <TableRow style={{ height: 57 * emptyRows }}>
               <TableCell colSpan={6} />
@@ -300,7 +349,7 @@ class Upload extends React.Component {
           <TableRow>
             <TablePagination
               count={total}
-              rowsPerPage={rowsPerPage}
+              rowsPerPage={perPage}
               page={page - 1}
               onChangePage={this.handleChangePage}
               onChangeRowsPerPage={this.handleChangeRowsPerPage}
@@ -320,7 +369,7 @@ class Upload extends React.Component {
         <ExpansionPanel>
           <ExpansionPanelSummary
             expandIcon={<ExpandMoreIcon/>} classes={{root: classes.summary}}>
-            {!upload.is_ready
+            {!upload.completed
               ? <div className={classes.progress}>
                 <CircularProgress size={32}/>
               </div>
@@ -336,11 +385,12 @@ class Upload extends React.Component {
             {this.renderTitle()} {this.renderStepper()}
           </ExpansionPanelSummary>
           <ExpansionPanelDetails style={{width: '100%'}} classes={{root: classes.details}}>
-            {this.renderCalcTable()}
+            {upload.calcs ? this.renderCalcTable() : ''}
             {debug
               ? <div className={classes.detailsContent}>
                 <ReactJson src={upload} enableClipboard={false} collapsed={0} />
               </div> : ''}
+            {this.state.loading && !this.state.updating ? <LinearProgress/> : ''}
           </ExpansionPanelDetails>
         </ExpansionPanel>
       )

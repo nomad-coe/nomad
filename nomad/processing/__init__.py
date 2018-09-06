@@ -75,6 +75,6 @@ Initiate processing
 
 """
 
-from nomad.processing.base import app, InvalidId, ProcNotRegistered
+from nomad.processing.base import app, InvalidId, ProcNotRegistered, SUCCESS, FAILURE, RUNNING, PENDING
 from nomad.processing.data import Upload, Calc, NotAllowedDuringProcessing
 from nomad.processing.handler import handle_uploads, handle_uploads_thread
