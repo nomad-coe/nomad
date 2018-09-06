@@ -21,7 +21,7 @@ import DevelIcon from '@material-ui/icons/ReportProblem'
 import { Link, withRouter } from 'react-router-dom'
 import { compose } from 'recompose'
 import { Avatar, MuiThemeProvider } from '@material-ui/core'
-import { genTheme, repoTheme, archiveTheme, encTheme, appBase, appStaticBase } from '../config'
+import { genTheme, repoTheme, archiveTheme, encTheme, appStaticBase } from '../config'
 import { ErrorSnacks } from './errors'
 
 const drawerWidth = 200
