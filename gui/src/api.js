@@ -64,12 +64,11 @@ class Upload {
     Object.assign(this, uploadJson)
     if (this.current_task !== this.tasks[0]) {
       this.uploading = 100
+      this.waiting = false
     } else if (!created && this.uploading === null) {
       // if data came from server during a normal get (not create) and its still uploading
-      // and the uploading is also not controlled locally then it ought to be a failure/abort
-      this.status = 'FAILURE'
-      this.completed = true
-      this.errors = ['upload failed, probably aborted']
+      // and the uploading is also not controlled locally then it ought to be a manual upload
+      this.waiting = true
     }
   }
 

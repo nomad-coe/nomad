@@ -8,8 +8,7 @@ import { withStyles, Paper, IconButton, FormGroup, Checkbox, FormControlLabel, F
   Input,
   FormHelperText,
   Button,
-  Popover,
-  Typography} from '@material-ui/core'
+  Popover} from '@material-ui/core'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import Dropzone from 'react-dropzone'
 import api from '../api'
@@ -20,6 +19,7 @@ import DeleteIcon from '@material-ui/icons/Delete'
 import CheckIcon from '@material-ui/icons/Check'
 import AddIcon from '@material-ui/icons/Add'
 import CommingSoon from './CommingSoon'
+import UploadCommand from './UploadCommand'
 
 class Uploads extends React.Component {
   static propTypes = {
@@ -58,29 +58,28 @@ class Uploads extends React.Component {
       marginTop: theme.spacing.unit * 2
     },
     uploadFormControl: {
-      margin: theme.spacing.unit * 2,
+      margin: theme.spacing.unit * 2
     },
     button: {
-      margin: theme.spacing.unit,
+      margin: theme.spacing.unit
     },
     rightIcon: {
-      marginLeft: theme.spacing.unit,
+      marginLeft: theme.spacing.unit
     },
     uploadNameInput: {
       width: 300
-    },
-    uploadPopper: {
-      margin: theme.spacing.unit * 2
-    },
-    uploadCommand: {
-      fontFamily: 'Roboto mono, monospace',
-      marginTop: theme.spacing.unit * 2
     }
   })
 
   state = {
-    uploads: null, selectedUploads: [], loading: true, acceptCommingSoon: false,
-    uploadName: '', uploadCommand: null, showUploadCommand: false, uploadPopperAnchor: null
+    uploads: null,
+    selectedUploads: [],
+    loading: true,
+    acceptCommingSoon: false,
+    uploadName: '',
+    uploadCommand: null,
+    showUploadCommand: false,
+    uploadPopperAnchor: null
   }
 
   componentDidMount() {
@@ -101,25 +100,27 @@ class Uploads extends React.Component {
   }
 
   onCreateUploadCmdClicked(event) {
-    const existingUpload = this.state.uploads.find(upload => upload.name === this.state.uploadName)
+    event.persist()
+    const existingUpload = this.state.uploads
+      .find(upload => upload.name === this.state.uploadName && upload.waiting)
     if (existingUpload) {
       const upload = existingUpload
       this.setState({
         uploadCommand: upload.upload_command,
         showUploadCommand: true,
-        uploadPopperAnchor: event.currentTarget})
+        uploadPopperAnchor: event.target})
     } else {
       api.createUpload(this.state.uploadName)
-      .then(upload => {
-        this.setState({
-          uploads: [...this.state.uploads, upload],
-          uploadCommand: upload.upload_command,
-          showUploadCommand: true,
-          uploadPopperAnchor: event.currentTarget})
-      })
-      .catch(error => {
-        this.props.raiseError(error)
-      })
+        .then(upload => {
+          this.setState({
+            uploads: [...this.state.uploads, upload],
+            uploadCommand: upload.upload_command,
+            showUploadCommand: true,
+            uploadPopperAnchor: event.target})
+        })
+        .catch(error => {
+          this.props.raiseError(error)
+        })
     }
   }
 
@@ -278,17 +279,14 @@ class Uploads extends React.Component {
               anchorEl={uploadPopperAnchor}
               anchorOrigin={{
                 vertical: 'bottom',
-                horizontal: 'center',
+                horizontal: 'center'
               }}
               transformOrigin={{
                 vertical: 'top',
-                horizontal: 'center',
+                horizontal: 'center'
               }}
             >
-              <div className={classes.uploadPopper}>
-                <Typography>Copy and use the following command. Don't forget to replace the file name.:</Typography>
-                <Typography className={classes.uploadCommand}>{uploadCommand}</Typography>
-              </div>
+              <UploadCommand uploadCommand={uploadCommand} />
             </Popover>
           </FormControl>
         </Paper>

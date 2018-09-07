@@ -12,6 +12,7 @@ import CalcLinks from './CalcLinks'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
 import { debug } from '../config'
+import UploadCommand from './UploadCommand'
 
 class Upload extends React.Component {
   static propTypes = {
@@ -73,32 +74,46 @@ class Upload extends React.Component {
       order: 'desc'
     },
     loading: true, // its loading data from the server and the user should know about it
-    updating: true // it is still not complete and contineusly looking for updates
+    updating: true // it is still not complete and continieusly looking for updates
   }
 
+  _unmounted = false
+
   update(params) {
+    if (this._unmounted) {
+      return
+    }
+
     const {page, perPage, orderBy, order} = params
     this.setState({loading: true})
     this.state.upload.get(page, perPage, orderBy, order)
       .then(upload => {
-        const continueUpdating = upload.status !== 'SUCCESS' && upload.status !== 'FAILURE' && !upload.is_stale
-        this.setState({upload: upload, loading: false, params: params, updating: continueUpdating})
-        if (continueUpdating) {
-          window.setTimeout(() => {
-            if (!this.state.loading) {
-              this.update(this.state.params)
-            }
-          }, 500)
+        if (!this._unmounted) {
+          const continueUpdating = upload.status !== 'SUCCESS' && upload.status !== 'FAILURE' && !upload.is_stale
+          this.setState({upload: upload, loading: false, params: params, updating: continueUpdating})
+          if (continueUpdating) {
+            window.setTimeout(() => {
+              if (!this.state.loading) {
+                this.update(this.state.params)
+              }
+            }, 500)
+          }
         }
       })
       .catch(error => {
-        this.setState({loading: false, ...params})
-        this.props.raiseError(error)
+        if (!this._unmounted) {
+          this.setState({loading: false, ...params})
+          this.props.raiseError(error)
+        }
       })
   }
 
   componentDidMount() {
     this.update(this.state.params)
+  }
+
+  componentWillUnmount() {
+    this._unmounted = true
   }
 
   handleChangePage = (_, page) => {
@@ -126,7 +141,7 @@ class Upload extends React.Component {
 
   renderTitle() {
     const { classes } = this.props
-    const { name, upload_id, create_time } = this.state.upload
+    const { name, create_time } = this.state.upload
 
     return (
       <div className={classes.title}>
@@ -134,12 +149,10 @@ class Upload extends React.Component {
           {name || new Date(Date.parse(create_time)).toLocaleString()}
         </Typography>
         {name
-          ?
-            <Typography variant="subheading">
-              {new Date(Date.parse(create_time)).toLocaleString()}
-            </Typography>
-          :
-            'this upload has no name'
+          ? <Typography variant="subheading">
+            {new Date(Date.parse(create_time)).toLocaleString()}
+          </Typography>
+          : 'this upload has no name'
         }
       </div>
     )
@@ -148,7 +161,7 @@ class Upload extends React.Component {
   renderStepper() {
     const { classes } = this.props
     const { upload } = this.state
-    const { calcs, tasks, current_task, status, errors } = upload
+    const { calcs, tasks, current_task, status, errors, waiting } = upload
 
     let activeStep = tasks.indexOf(current_task)
     activeStep += (status === 'SUCCESS') ? 1 : 0
@@ -160,7 +173,7 @@ class Upload extends React.Component {
         if (upload.status !== 'FAILURE') {
           props.optional = (
             <Typography variant="caption">
-              {uploading || 0}%
+              {waiting ? 'waiting for upload' : `${uploading || 0}%`}
             </Typography>
           )
         }
@@ -237,7 +250,7 @@ class Upload extends React.Component {
   renderCalcTable() {
     const { classes } = this.props
     const { page, perPage, orderBy, order } = this.state.params
-    const { calcs, status } = this.state.upload
+    const { calcs, status, waiting, upload_command } = this.state.upload
     const { pagination, results } = calcs
 
     if (pagination.total === 0) {
@@ -248,11 +261,17 @@ class Upload extends React.Component {
           </Typography>
         )
       } else {
-        return (
-          <Typography className={classes.detailsContent}>
-            Processing ...
-          </Typography>
-        )
+        if (waiting) {
+          return (
+            <UploadCommand uploadCommand={upload_command} />
+          )
+        } else {
+          return (
+            <Typography className={classes.detailsContent}>
+                Processing ...
+            </Typography>
+          )
+        }
       }
     }
 
@@ -374,7 +393,7 @@ class Upload extends React.Component {
         <ExpansionPanel>
           <ExpansionPanelSummary
             expandIcon={<ExpandMoreIcon/>} classes={{root: classes.summary}}>
-            {!upload.completed
+            {!(upload.completed || upload.waiting)
               ? <div className={classes.progress}>
                 <CircularProgress size={32}/>
               </div>
