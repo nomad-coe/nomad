@@ -202,6 +202,7 @@ class Upload(Proc):
     is_private = BooleanField(default=False)
 
     presigned_url = StringField()
+    upload_command = StringField()
     upload_time = DateTimeField()
     upload_hash = StringField(default=None)
 
@@ -268,6 +269,7 @@ class Upload(Proc):
         """
         self = super().create(**kwargs)
         self.presigned_url = files.get_presigned_upload_url(self.upload_id)
+        self.upload_command = files.create_curl_upload_cmd(self.presigned_url, 'your_file')
         self._continue_with('uploading')
         return self
 
@@ -285,7 +287,8 @@ class Upload(Proc):
             'name': self.name,
             'additional_metadata': self.additional_metadata,
             'upload_id': self.upload_id,
-            'presigned_url': files.external_objects_url(self.presigned_url),
+            'presigned_url': self.presigned_url,
+            'upload_command': self.upload_command,
             'upload_time': self.upload_time.isoformat() if self.upload_time is not None else None,
             'is_stale': self.is_stale,
         }

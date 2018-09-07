@@ -106,8 +106,7 @@ def create_curl_upload_cmd(presigned_url: str, file_dummy: str='<ZIPFILE>') -> s
     Returns:
         The curl shell command with correct method, url, headers, etc.
     """
-    headers = 'Content-Type: application/octet-steam'
-    return 'curl -X PUT "%s" -H "%s" -F file=@%s' % (presigned_url, headers, file_dummy)
+    return 'curl "%s" --upload-file %s' % (presigned_url, file_dummy)
 
 
 def upload_put_handler(func: Callable[[str], None]) -> Callable[[], None]:

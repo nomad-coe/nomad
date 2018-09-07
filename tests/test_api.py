@@ -55,6 +55,7 @@ def assert_upload(upload_json_str, id=None, **kwargs):
         assert id == data['upload_id']
     assert 'create_time' in data
     assert 'presigned_url' in data
+    assert 'upload_command' in data
 
     for key, value in kwargs.items():
         assert data.get(key, None) == value

@@ -2,7 +2,14 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import Markdown from './Markdown'
 import { withStyles, Paper, IconButton, FormGroup, Checkbox, FormControlLabel, FormLabel,
-  LinearProgress } from '@material-ui/core'
+  LinearProgress,
+  FormControl,
+  InputLabel,
+  Input,
+  FormHelperText,
+  Button,
+  Popover,
+  Typography} from '@material-ui/core'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import Dropzone from 'react-dropzone'
 import api from '../api'
@@ -11,6 +18,7 @@ import { withErrors } from './errors'
 import { compose } from 'recompose'
 import DeleteIcon from '@material-ui/icons/Delete'
 import CheckIcon from '@material-ui/icons/Check'
+import AddIcon from '@material-ui/icons/Add'
 import CommingSoon from './CommingSoon'
 
 class Uploads extends React.Component {
@@ -48,11 +56,31 @@ class Uploads extends React.Component {
     },
     uploads: {
       marginTop: theme.spacing.unit * 2
+    },
+    uploadFormControl: {
+      margin: theme.spacing.unit * 2,
+    },
+    button: {
+      margin: theme.spacing.unit,
+    },
+    rightIcon: {
+      marginLeft: theme.spacing.unit,
+    },
+    uploadNameInput: {
+      width: 300
+    },
+    uploadPopper: {
+      margin: theme.spacing.unit * 2
+    },
+    uploadCommand: {
+      fontFamily: 'Roboto mono, monospace',
+      marginTop: theme.spacing.unit * 2
     }
   })
 
   state = {
-    uploads: null, selectedUploads: [], loading: true, acceptCommingSoon: false
+    uploads: null, selectedUploads: [], loading: true, acceptCommingSoon: false,
+    uploadName: '', uploadCommand: null, showUploadCommand: false, uploadPopperAnchor: null
   }
 
   componentDidMount() {
@@ -70,6 +98,29 @@ class Uploads extends React.Component {
         this.setState({uploads: [], selectedUploads: [], loading: false})
         this.props.raiseError(error)
       })
+  }
+
+  onCreateUploadCmdClicked(event) {
+    const existingUpload = this.state.uploads.find(upload => upload.name === this.state.uploadName)
+    if (existingUpload) {
+      const upload = existingUpload
+      this.setState({
+        uploadCommand: upload.upload_command,
+        showUploadCommand: true,
+        uploadPopperAnchor: event.currentTarget})
+    } else {
+      api.createUpload(this.state.uploadName)
+      .then(upload => {
+        this.setState({
+          uploads: [...this.state.uploads, upload],
+          uploadCommand: upload.upload_command,
+          showUploadCommand: true,
+          uploadPopperAnchor: event.currentTarget})
+      })
+      .catch(error => {
+        this.props.raiseError(error)
+      })
+    }
   }
 
   onDeleteClicked() {
@@ -172,16 +223,19 @@ class Uploads extends React.Component {
 
   render() {
     const { classes } = this.props
+    const { showUploadCommand, uploadCommand, uploadPopperAnchor } = this.state
 
     return (
       <div className={classes.root}>
         <Markdown>{`
           ## Upload your own data
-
           You can upload your own data. Have your code output ready in a popular archive
-          format (e.g. \`*.zip\` or \`*.tar.gz\`) and drop it below. Your upload can
+          format (e.g. \`*.zip\` or \`*.tar.gz\`).  Your upload can
           comprise the output of multiple runs, even of different codes. Don't worry, nomad
           will find it.
+
+          ### Browser upload
+          Just drop your file below.
         `}</Markdown>
         <Paper>
           <Dropzone
@@ -194,6 +248,49 @@ class Uploads extends React.Component {
             <p>drop files here</p>
             <UploadIcon style={{fontSize: 36}}/>
           </Dropzone>
+        </Paper>
+        <Markdown>{`
+          ### Command line upload
+          Alternatively, you can upload your file via \`curl\`. The name is
+          optional, but it will help you to track your uploads.
+        `}</Markdown>
+        <Paper>
+          <FormControl className={classes.uploadFormControl}>
+            <InputLabel htmlFor="name-helper">Upload name</InputLabel>
+            <Input className={classes.uploadNameInput}
+              id="name-helper" value={this.state.uploadName}
+              onChange={(event) => this.setState({uploadName: event.target.value})}
+            />
+            <FormHelperText id="name-helper-text">With out name, you only see the time</FormHelperText>
+          </FormControl>
+          <FormControl className={classes.uploadFormControl}>
+            <Button
+              color="primary" className={classes.button} variant="contained"
+              onClick={this.onCreateUploadCmdClicked.bind(this)}
+            >
+              add upload
+              <AddIcon className={classes.rightIcon}/>
+            </Button>
+            <Popover
+              id="upload-command-popper"
+              onClose={() => this.setState({showUploadCommand: false})}
+              open={showUploadCommand}
+              anchorEl={uploadPopperAnchor}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'center',
+              }}
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'center',
+              }}
+            >
+              <div className={classes.uploadPopper}>
+                <Typography>Copy and use the following command. Don't forget to replace the file name.:</Typography>
+                <Typography className={classes.uploadCommand}>{uploadCommand}</Typography>
+              </div>
+            </Popover>
+          </FormControl>
         </Paper>
 
         {this.renderUploads()}
