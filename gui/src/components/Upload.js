@@ -70,8 +70,8 @@ class Upload extends React.Component {
     params: {
       page: 1,
       perPage: 5,
-      orderBy: 'mainfile',
-      order: 'desc'
+      orderBy: 'status',
+      order: 'asc'
     },
     loading: true, // its loading data from the server and the user should know about it
     updating: true // it is still not complete and continieusly looking for updates

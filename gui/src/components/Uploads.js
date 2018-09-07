@@ -2,13 +2,8 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import Markdown from './Markdown'
 import { withStyles, Paper, IconButton, FormGroup, Checkbox, FormControlLabel, FormLabel,
-  LinearProgress,
-  FormControl,
-  InputLabel,
-  Input,
-  FormHelperText,
-  Button,
-  Popover} from '@material-ui/core'
+  LinearProgress, InputLabel, Input, FormHelperText, Button, Popover, Grid, Typography,
+  DialogContent, DialogActions} from '@material-ui/core'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import Dropzone from 'react-dropzone'
 import api from '../api'
@@ -31,13 +26,16 @@ class Uploads extends React.Component {
     root: {
       width: '100%'
     },
+    dropzoneContainer: {
+      height: 192
+    },
     dropzone: {
       textAlign: 'center',
-      padding: theme.spacing.unit * 4,
+      padding: theme.spacing.unit * 3,
       color: theme.palette.grey[500],
       fontSize: 24,
       '& p': {
-        margin: theme.spacing.unit
+        margin: theme.spacing.unit * 3
       }
     },
     dropzoneAccept: {
@@ -67,7 +65,17 @@ class Uploads extends React.Component {
       marginLeft: theme.spacing.unit
     },
     uploadNameInput: {
-      width: 300
+      width: '100%'
+    },
+    uploadKindHeading: {
+      paddingBottom: theme.spacing.unit
+    },
+    uploadKindDescription: {
+      paddingTop: theme.spacing.unit,
+      paddingBottom: theme.spacing.unit * 2
+    },
+    commandUpload: {
+      height: 192
     }
   })
 
@@ -233,63 +241,76 @@ class Uploads extends React.Component {
           You can upload your own data. Have your code output ready in a popular archive
           format (e.g. \`*.zip\` or \`*.tar.gz\`).  Your upload can
           comprise the output of multiple runs, even of different codes. Don't worry, nomad
-          will find it.
-
-          ### Browser upload
-          Just drop your file below.
-        `}</Markdown>
-        <Paper>
-          <Dropzone
-            accept="application/zip"
-            className={classes.dropzone}
-            activeClassName={classes.dropzoneAccept}
-            rejectClassName={classes.dropzoneReject}
-            onDrop={this.onDrop.bind(this)}
-          >
-            <p>drop files here</p>
-            <UploadIcon style={{fontSize: 36}}/>
-          </Dropzone>
-        </Paper>
-        <Markdown>{`
-          ### Command line upload
-          Alternatively, you can upload your file via \`curl\`. The name is
-          optional, but it will help you to track your uploads.
-        `}</Markdown>
-        <Paper>
-          <FormControl className={classes.uploadFormControl}>
-            <InputLabel htmlFor="name-helper">Upload name</InputLabel>
-            <Input className={classes.uploadNameInput}
-              id="name-helper" value={this.state.uploadName}
-              onChange={(event) => this.setState({uploadName: event.target.value})}
-            />
-            <FormHelperText id="name-helper-text">With out name, you only see the time</FormHelperText>
-          </FormControl>
-          <FormControl className={classes.uploadFormControl}>
-            <Button
-              color="primary" className={classes.button} variant="contained"
-              onClick={this.onCreateUploadCmdClicked.bind(this)}
-            >
-              add upload
-              <AddIcon className={classes.rightIcon}/>
-            </Button>
-            <Popover
-              id="upload-command-popper"
-              onClose={() => this.setState({showUploadCommand: false})}
-              open={showUploadCommand}
-              anchorEl={uploadPopperAnchor}
-              anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'center'
-              }}
-              transformOrigin={{
-                vertical: 'top',
-                horizontal: 'center'
-              }}
-            >
-              <UploadCommand uploadCommand={uploadCommand} />
-            </Popover>
-          </FormControl>
-        </Paper>
+          will find it.`}
+        </Markdown>
+        <Grid container spacing={24}>
+          <Grid item xs>
+            <Typography variant="headline" className={classes.uploadKindHeading}>
+              Browser upload
+            </Typography>
+            <Paper className={classes.dropzoneContainer}>
+              <Dropzone
+                accept="application/zip"
+                className={classes.dropzone}
+                activeClassName={classes.dropzoneAccept}
+                rejectClassName={classes.dropzoneReject}
+                onDrop={this.onDrop.bind(this)}
+              >
+                <p>drop files here</p>
+                <UploadIcon style={{fontSize: 36}}/>
+              </Dropzone>
+            </Paper>
+            <Typography className={classes.uploadKindDescription}>
+              Just drop your file above. You know this from many other services in the internet.
+            </Typography>
+          </Grid>
+          <Grid item xs>
+            <Typography variant="headline" className={classes.uploadKindHeading}>
+              Command upload
+            </Typography>
+            <Paper className={classes.commandUpload}>
+              <DialogContent>
+                <InputLabel htmlFor="name-helper">Upload name</InputLabel>
+                <Input className={classes.uploadNameInput}
+                  id="name-helper" value={this.state.uploadName}
+                  onChange={(event) => this.setState({uploadName: event.target.value})}
+                />
+                <FormHelperText id="name-helper-text">optiona, helps to track the upload</FormHelperText>
+              </DialogContent>
+              <DialogActions>
+                <Button
+                  color="primary" className={classes.button} variant="contained"
+                  onClick={this.onCreateUploadCmdClicked.bind(this)}
+                >
+                    add upload
+                  <AddIcon className={classes.rightIcon}/>
+                </Button>
+                <Popover
+                  id="upload-command-popper"
+                  onClose={() => this.setState({showUploadCommand: false})}
+                  open={showUploadCommand}
+                  anchorEl={uploadPopperAnchor}
+                  anchorOrigin={{
+                    vertical: 'bottom',
+                    horizontal: 'center'
+                  }}
+                  transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'center'
+                  }}
+                >
+                  <UploadCommand uploadCommand={uploadCommand} />
+                </Popover>
+              </DialogActions>
+            </Paper>
+            <Typography className={classes.uploadKindDescription}>
+              You can upload your file via <strong>curl</strong>. Optionally, you
+              can provide a name that will help to track different uploads.
+              Without a name, you only have the upload time to follow your uploads.
+              You can find the command by unfolding the new upload element.
+            </Typography>
+          </Grid>
+        </Grid>
 
         {this.renderUploads()}
         {this.state.loading ? <LinearProgress/> : ''}
