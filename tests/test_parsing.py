@@ -23,6 +23,7 @@ from nomad.parsing import JSONStreamWriter, parser_dict
 from nomad.parsing import LocalBackend, BadContextURI
 
 parser_examples = [
+    ('parsers/template', 'tests/data/parsers/template.json'),
     ('parsers/exciting', '.dependencies/parsers/exciting/test/examples/Ag/INFO.OUT'),
     ('parsers/exciting', '.dependencies/parsers/exciting/test/examples/GW/INFO.OUT'),
     ('parsers/vasp', '.dependencies/parsers/vasp/test/examples/xml/perovskite.xml'),

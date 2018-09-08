@@ -79,13 +79,13 @@ def assert_processing(upload: Upload):
 
 
 @pytest.mark.timeout(30)
-def test_processing(uploaded_id, celery_session_worker):
+def test_processing(uploaded_id, worker):
     upload = run_processing(uploaded_id)
     assert_processing(upload)
 
 
 @pytest.mark.parametrize('uploaded_id', [example_files[1]], indirect=True)
-def test_processing_doublets(uploaded_id, celery_session_worker, caplog):
+def test_processing_doublets(uploaded_id, worker, caplog):
     caplog.set_level(logging.CRITICAL)
 
     upload = run_processing(uploaded_id)
@@ -99,7 +99,7 @@ def test_processing_doublets(uploaded_id, celery_session_worker, caplog):
 
 
 @pytest.mark.timeout(30)
-def test_process_non_existing(celery_session_worker, caplog):
+def test_process_non_existing(worker, caplog):
     caplog.set_level(logging.CRITICAL)
     upload = run_processing('__does_not_exist')
 
@@ -111,7 +111,7 @@ def test_process_non_existing(celery_session_worker, caplog):
 
 @pytest.mark.parametrize('task', ['extracting', 'parse_all', 'cleanup', 'parsing'])
 @pytest.mark.timeout(30)
-def test_task_failure(monkeypatch, uploaded_id, celery_session_worker, task, caplog):
+def test_task_failure(monkeypatch, uploaded_id, worker, task, caplog):
     caplog.set_level(logging.CRITICAL)
 
     # mock the task method to through exceptions

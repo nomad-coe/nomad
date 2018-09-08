@@ -1,6 +1,7 @@
 import pytest
 from mongoengine import connect
 from mongoengine.connection import disconnect
+import time
 
 from nomad import config
 
@@ -15,6 +16,18 @@ def celery_config():
     return {
         'broker_url': config.celery.broker_url
     }
+
+
+@pytest.fixture(scope='function')
+def worker(celery_session_worker):
+    """
+    Extension of the buildin celery_session_worker fixture that adds sleep to consume
+    bleeding tasks.
+    Processes might be completed (and therefore the test it self) before child
+    processes are finished. Therefore open task request might bleed into the next test.
+    """
+    yield
+    time.sleep(0.2)
 
 
 @pytest.fixture(scope='function', autouse=True)

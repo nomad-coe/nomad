@@ -27,7 +27,9 @@ from minio.error import NoSuchKey, NoSuchBucket
 import nomad.files as files
 import nomad.config as config
 
-example_file = 'tests/data/proc/examples_vasp.zip'
+# example_file uses an artificial parser for faster test execution, can also be
+# changed to examples_vasp.zip for using vasp parser
+example_file = 'tests/data/proc/examples_template.zip'
 empty_file = 'tests/data/proc/empty.zip'
 
 

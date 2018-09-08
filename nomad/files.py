@@ -227,7 +227,9 @@ class Upload():
         try:
             zipFile = ZipFile(self.upload_file)
             zipFile.extractall(self.upload_extract_dir)
-            self.filelist = [zipInfo.filename for zipInfo in zipFile.filelist]
+            self.filelist = [
+                zipInfo.filename for zipInfo in zipFile.filelist
+                if not zipInfo.filename.endswith('/')]
         except BadZipFile as e:
             raise UploadError('Upload is not a zip file', e)
         finally:

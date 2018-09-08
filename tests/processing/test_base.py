@@ -122,12 +122,9 @@ class ChildProc(Proc):
         self.parent.on_child_complete()
 
 
-def test_counter(celery_session_worker):
+def test_counter(worker):
     p = ParentProc.create()
     p.spawn_children()
     p.block_until_complete()
     assert_proc(p, 'after_children')
 
-    # wait for session worker to complete all open tasks
-    # otherwise uncompleted task request will bleed into the next tests
-    time.sleep(1)

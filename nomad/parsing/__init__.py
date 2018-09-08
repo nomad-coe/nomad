@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-The *parsing* modules is currenlty an abstraction for the existin NOMAD-coe parsers.
+The *parsing* module is an interface for the existing NOMAD-coe parsers.
 The parser code is used via :mod:`nomad.dependencies`. This module redefines
 some of the old NOMAD-coe python-common functionality to create a more coherent
 interface to the parsers.
@@ -47,9 +47,11 @@ Parsers in NOMAD-coe use a *backend* to create output.
 
 from nomad.parsing.backend import AbstractParserBackend, LocalBackend, LegacyLocalBackend, JSONStreamWriter, BadContextURI, WrongContextState
 from nomad.parsing.parser import Parser, LegacyParser
+from nomad.parsing.artificial import TemplateParser
 from nomad.dependencies import dependencies_dict as dependencies
 
 parsers = [
+    TemplateParser(),
     LegacyParser(
         python_git=dependencies['parsers/vasp'],
         parser_class_name='vaspparser.VASPParser',
