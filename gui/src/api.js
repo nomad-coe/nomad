@@ -122,10 +122,14 @@ function getUploads() {
 }
 
 function archive(uploadHash, calcHash) {
-  return fetch(`${apiBase}/archive/${uploadHash}/${calcHash}`)
+  return fetch(archiveUrl(uploadHash, calcHash))
     .catch(networkError)
     .then(handleResponseErrors)
     .then(response => response.json())
+}
+
+function archiveUrl(uploadHash, calcHash) {
+  return `${apiBase}/archive/${uploadHash}/${calcHash}`
 }
 
 function repo(uploadHash, calcHash) {
@@ -187,6 +191,7 @@ const api = {
   deleteUpload: deleteUpload,
   getUploads: getUploads,
   archive: archive,
+  archiveUrl: archiveUrl,
   repo: repo,
   repoAll: repoAll,
   getMetaInfo: getMetaInfo

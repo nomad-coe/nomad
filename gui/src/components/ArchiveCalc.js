@@ -7,7 +7,6 @@ import Markdown from './Markdown'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
 
-
 class ArchiveCalc extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
@@ -71,7 +70,7 @@ class ArchiveCalc extends React.Component {
     const { classes } = this.props
     const { data, showMetaInfo, metaInfo } = this.state
     const metaInfoData = metaInfo ? metaInfo[showMetaInfo] : null
-
+    const { uploadHash, calcHash } = this.props.match.params
     return (
       <div className={classes.root}>
         <Markdown>{`
@@ -83,36 +82,33 @@ class ArchiveCalc extends React.Component {
         `}</Markdown>
         <Paper className={classes.metaInfo}>
           {showMetaInfo && metaInfo
-            ?
-              metaInfoData
-                ?
-                  <div>
-                    <Typography variant="title">{metaInfoData.name}</Typography>
-                    <Markdown>{metaInfoData.description}</Markdown>
-                  </div>
-                :
-                  <div className={classes.metaInfoInstructions}>
-                    this value has no meta-info attached to it
-                  </div>
-            :
-              <div className={classes.metaInfoInstructions}>
-                click a value to show its meta-info
+            ? metaInfoData
+              ? <div>
+                <Typography variant="title">{metaInfoData.name}</Typography>
+                <Markdown>{metaInfoData.description}</Markdown>
               </div>
+              : <div className={classes.metaInfoInstructions}>
+                    this value has no meta-info attached to it
+              </div>
+            : <div className={classes.metaInfoInstructions}>
+                click a value to show its meta-info
+            </div>
           }
         </Paper>
         <Markdown>{`
           The tree below shows all calculation data in nomad's *hierachical* and
-          *code independent* archive format.
+          *code independent* archive format. You can download it
+          [here](${api.archiveUrl(uploadHash, calcHash)})
         `}</Markdown>
         <Paper className={classes.calcData}>
           {
             data
               ? <ReactJson
-                  src={this.state.data}
-                  enableClipboard={false}
-                  collapsed={4}
-                  displayObjectSize={false}
-                  onSelect={this.handleShowMetaInfo.bind(this)}/>
+                src={this.state.data}
+                enableClipboard={false}
+                collapsed={4}
+                displayObjectSize={false}
+                onSelect={this.handleShowMetaInfo.bind(this)}/>
               : <LinearProgress variant="query" />
           }
         </Paper>
