@@ -1,0 +1,86 @@
+# Copyright 2018 Markus Scheidgen
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an"AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""
+The *parsing* modules is currenlty an abstraction for the existin NOMAD-coe parsers.
+The parser code is used via :mod:`nomad.dependencies`. This module redefines
+some of the old NOMAD-coe python-common functionality to create a more coherent
+interface to the parsers.
+
+Assumption about parsers
+------------------------
+For now, we make a few assumption about parsers
+- they always work on the same *meta-info* version
+- they have no conflicting python requirments
+- they can be loaded at the same time and can be used within the same python process
+- they are uniquely identified by a GIT URL and publicly accessible
+- their version is uniquly identified by a GIT commit SHA
+
+Each parser is defined via an instance of :class:`Parser`.
+
+.. autoclass:: nomad.parsing.Parser
+    :members:
+
+The parser definitions are available via the following two variables.
+
+.. autodata:: nomad.parsing.parsers
+.. autodata:: nomad.parsing.parser_dict
+
+Parsers in NOMAD-coe use a *backend* to create output.
+
+.. autoclass:: nomad.parsing.AbstractParserBackend
+    :members:
+.. autoclass:: nomad.parsing.LocalBackend
+    :members:
+"""
+
+from nomad.parsing.backend import AbstractParserBackend, LocalBackend, LegacyLocalBackend, JSONStreamWriter, BadContextURI, WrongContextState
+from nomad.parsing.parser import Parser, LegacyParser
+from nomad.dependencies import dependencies_dict as dependencies
+
+parsers = [
+    LegacyParser(
+        python_git=dependencies['parsers/vasp'],
+        parser_class_name='vaspparser.VASPParser',
+        main_file_re=r'^.*\.xml(\.[^\.]*)?$',
+        main_contents_re=(
+            r'^\s*<\?xml version="1\.0" encoding="ISO-8859-1"\?>\s*'
+            r'?\s*<modeling>'
+            r'?\s*<generator>'
+            r'?\s*<i name="program" type="string">\s*vasp\s*</i>'
+            r'?')
+    ),
+    LegacyParser(
+        python_git=dependencies['parsers/exciting'],
+        parser_class_name='parser_exciting.ExcitingParser',
+        main_file_re=r'^.*/INFO\.OUT?',
+        main_contents_re=(
+            r'^\s*=================================================+\s*'
+            r'\s*\|\s*EXCITING\s+\S+\s+started\s*='
+            r'\s*\|\s*version hash id:\s*\S*\s*=')
+    ),
+    LegacyParser(
+        python_git=dependencies['parsers/fhi-aims'],
+        parser_class_name='fhiaimsparser.FHIaimsParser',
+        main_file_re=r'^.*\.out$',
+        main_contents_re=(
+            r'^(.*\n)*'
+            r'?\s*Invoking FHI-aims \.\.\.'
+            r'?\s*Version')
+    )
+]
+""" Instanciation and constructor based config of all parsers. """
+
+parser_dict = {parser.name: parser for parser in parsers}
+""" A dict to access parsers by name. Usually 'parsers/<...>', e.g. 'parsers/vasp'. """

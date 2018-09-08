@@ -12,54 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-The *parsing* modules is currenlty an abstraction for the existin NOMAD-coe parsers.
-The parser code is used via :mod:`nomad.dependencies`. This module redefines
-some of the old NOMAD-coe python-common functionality to create a more coherent
-interface to the parsers.
-
-Assumption about parsers
-------------------------
-For now, we make a few assumption about parsers
-- they always work on the same *meta-info* version
-- they have no conflicting python requirments
-- they can be loaded at the same time and can be used within the same python process
-- they are uniquely identified by a GIT URL and publicly accessible
-- their version is uniquly identified by a GIT commit SHA
-
-Each parser is defined via an instance of :class:`Parser`.
-
-.. autoclass:: nomad.parsing.Parser
-    :members:
-
-The parser definitions are available via the following two variables.
-
-.. autodata:: nomad.parsing.parsers
-.. autodata:: nomad.parsing.parser_dict
-
-Parsers in NOMAD-coe use a *backend* to create output.
-
-.. autoclass:: nomad.parsing.AbstractParserBackend
-    :members:
-.. autoclass:: nomad.parsing.LocalBackend
-    :members:
-"""
-
-from typing import TextIO, Tuple, List, Any, Callable, IO
+from typing import TextIO, Tuple, List, Any, Callable
 from abc import ABCMeta, abstractmethod
 from io import StringIO
-import sys
 import json
 import re
-import importlib
-import inspect
-from unittest.mock import patch
 import io
 
 from nomadcore.local_backend import LocalBackend as LegacyLocalBackend
 from nomadcore.local_backend import Section, Results
 
-from nomad.dependencies import dependencies_dict as dependencies, PythonGit
 from nomad.utils import get_logger
 
 logger = get_logger(__name__)
@@ -572,130 +534,3 @@ class LocalBackend(LegacyParserBackend):
         out = StringIO()
         self.write_json(JSONStreamWriter(out), filter=filter)
         return out.getvalue()
-
-
-class Parser(metaclass=ABCMeta):
-    """
-    Instances specify a parser. It allows to find *main files* from  given uploaded
-    and extracted files. Further, allows to run the parser on those 'main files'.
-
-    Arguments:
-        python_git: The :class:`PythonGit` that describes the parser code.
-        parser_class_name: Full qualified name of the main parser class. We assume it have one
-                           parameter for the backend.
-        main_file_re: A regexp that matches main file paths that this parser can handle.
-        main_contents_re: A regexp that matches main file headers that this parser can parse.
-    """
-    @abstractmethod
-    def is_mainfile(self, filename: str, open: Callable[[str], IO[Any]]) -> bool:
-        """ Checks if a file is a mainfile via the parsers ``main_contents_re``. """
-        pass
-
-    @abstractmethod
-    def run(self, mainfile: str) -> LocalBackend:
-        """
-        Runs the parser on the given mainfile. It uses :class:`LocalBackend` as
-        a backend. The meta-info access is handled by the underlying NOMAD-coe parser.
-
-        Args:
-            mainfile: A path to a mainfile that this parser can parse.
-
-        Returns:
-            The used :class:`LocalBackend` with status information and result data.
-        """
-
-
-class LegacyParser(Parser):
-    """
-    A parser implementation for legacy NOMAD-coe parsers. Uses a
-    :class:`nomad.dependencies.PythonGit` to specify the old parser repository.
-    """
-    def __init__(
-            self, python_git: PythonGit, parser_class_name: str, main_file_re: str,
-            main_contents_re: str) -> None:
-
-        self.name = python_git.name
-        self.python_git = python_git
-        self.parser_class_name = parser_class_name
-        self._main_file_re = re.compile(main_file_re)
-        self._main_contents_re = re.compile(main_contents_re)
-
-    def is_mainfile(self, filename: str, open: Callable[[str], IO[Any]]) -> bool:
-        if self._main_file_re.match(filename):
-            file = None
-            try:
-                file = open(filename)
-                contents = file.read(500)
-                return self._main_contents_re.match(contents) is not None
-            finally:
-                if file:
-                    file.close()
-
-        return False
-
-    def run(self, mainfile: str) -> LocalBackend:
-        def create_backend(meta_info):
-            return LocalBackend(meta_info, debug=False)
-
-        module_name = self.parser_class_name.split('.')[:-1]
-        parser_class = self.parser_class_name.split('.')[1]
-        module = importlib.import_module('.'.join(module_name))
-        Parser = getattr(module, parser_class)
-
-        init_signature = inspect.getargspec(Parser.__init__)
-        kwargs = dict(
-            backend=create_backend,
-            mainfile=mainfile, main_file=mainfile,
-            debug=True)
-        kwargs = {key: value for key, value in kwargs.items() if key in init_signature.args}
-        parser = Parser(**kwargs)
-
-        with patch.object(sys, 'argv', []):
-            backend = parser.parse(mainfile)
-
-        # TODO we need a homogeneous interface to parsers, but we dont have it right now
-        # thats a hack to distringuish between ParserInterface parser and simple_parser
-        if backend is None or not hasattr(backend, 'status'):
-            backend = parser.parser_context.super_backend
-
-        return backend
-
-    def __repr__(self):
-        return self.python_git.__repr__()
-
-
-parsers = [
-    LegacyParser(
-        python_git=dependencies['parsers/vasp'],
-        parser_class_name='vaspparser.VASPParser',
-        main_file_re=r'^.*\.xml(\.[^\.]*)?$',
-        main_contents_re=(
-            r'^\s*<\?xml version="1\.0" encoding="ISO-8859-1"\?>\s*'
-            r'?\s*<modeling>'
-            r'?\s*<generator>'
-            r'?\s*<i name="program" type="string">\s*vasp\s*</i>'
-            r'?')
-    ),
-    LegacyParser(
-        python_git=dependencies['parsers/exciting'],
-        parser_class_name='parser_exciting.ExcitingParser',
-        main_file_re=r'^.*/INFO\.OUT?',
-        main_contents_re=(
-            r'^\s*=================================================+\s*'
-            r'\s*\|\s*EXCITING\s+\S+\s+started\s*='
-            r'\s*\|\s*version hash id:\s*\S*\s*=')
-    ),
-    LegacyParser(
-        python_git=dependencies['parsers/fhi-aims'],
-        parser_class_name='fhiaimsparser.FHIaimsParser',
-        main_file_re=r'^.*\.out$',
-        main_contents_re=(
-            r'^(.*\n)*'
-            r'?\s*Invoking FHI-aims \.\.\.'
-            r'?\s*Version')
-    )
-]
-""" Instanciation and constructor based config of all parsers. """
-
-parser_dict = {parser.name: parser for parser in parsers}
-""" A dict to access parsers by name. Usually 'parsers/<...>', e.g. 'parsers/vasp'. """
