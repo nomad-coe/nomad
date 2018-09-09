@@ -91,6 +91,7 @@ class Calc(Proc):
         """
         Delete this calculation and all associated data. This includes all files,
         the archive, and this search index entry.
+        TODO is this needed? Or do we always delete hole uploads in bulk.
         """
         # delete the archive
         if self.archive_id is not None:
@@ -254,8 +255,14 @@ class Upload(Proc):
                     logger.debug('Upload exist, but uploaded file does not exist.')
 
         with lnr(logger, 'deleting calcs'):
-            for calc in Calc.objects(upload_id=self.upload_id):
-                calc.delete()
+            # delete archive files
+            files.delete_archives(upload_hash=self.upload_hash)
+
+            # delete repo entries
+            RepoCalc.search().query('match', upload_id=self.upload_id).delete()
+
+            # delete calc processings
+            Calc.objects(upload_id=self.upload_id).delete()
 
         with lnr(logger, 'deleting upload'):
             super().delete()

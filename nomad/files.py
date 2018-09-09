@@ -334,6 +334,14 @@ def delete_archive(archive_id: str):
         raise KeyError()
 
 
+def delete_archives(upload_hash: str):
+    """ Delete all archives of one upload with the given hash. """
+    bucket = config.files.archive_bucket
+    objects = _client.list_objects(bucket, '%s/' % upload_hash)
+    for _ in _client.remove_objects(bucket, [obj.object_name for obj in objects]):
+        pass
+
+
 def external_objects_url(url):
     """ Replaces the given internal object storage url (minio) with an URL that allows
         external access. """

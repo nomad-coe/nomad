@@ -192,3 +192,14 @@ def test_delete_archive(archive_id: str):
         pass
     else:
         assert False
+
+
+def test_delete_archives(archive_id: str):
+    files.delete_archives(archive_id.split('/')[0])
+    try:
+        files.archive_url(archive_id)
+        assert False
+    except KeyError:
+        pass
+    else:
+        assert False
