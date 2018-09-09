@@ -166,6 +166,7 @@ class GenerateRandomParser(TemplateParser):
         self.init_backend()
         seed = int(os.path.basename(mainfile).split('_')[1])
         random.seed(seed)
+        numpy.random.seed(seed)
         section = self.template['section_run'][0]
         self.add_section(section)
         self.backend.finishedParsingSession('ParseSuccess', [])

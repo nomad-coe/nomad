@@ -24,9 +24,10 @@ is an elasticsearch_dsl document that is used to represent elastic search index 
 """
 
 import sys
-import elasticsearch.exceptions
+from elasticsearch.exceptions import ConflictError, RequestError, ConnectionTimeout
 from elasticsearch_dsl import Document as ElasticDocument, Search, Date, Keyword, connections
 from datetime import datetime
+import time
 
 from nomad import config
 from nomad.parsing import LocalBackend
@@ -126,8 +127,17 @@ class RepoCalc(ElasticDocument):
 
         # persist to elastic search
         try:
-            calc.save(op_type='create')
-        except Exception:
+            # In practive es operation might fail due to timeout under heavy loads/
+            # bad configuration. Retries with a small delay is a pragmatic solution.
+            for _ in range(0, 2):
+                try:
+                    calc.save(op_type='create')
+                    break
+                except ConnectionTimeout as e:
+                    time.sleep(1)
+                else:
+                    raise e
+        except ConflictError:
             raise AlreadyExists('Calculation %s does already exist.' % (calc.archive_id))
 
         return calc
@@ -163,7 +173,7 @@ class RepoCalc(ElasticDocument):
 if 'sphinx' not in sys.modules:
     try:
         RepoCalc.init()
-    except elasticsearch.exceptions.RequestError as e:
+    except RequestError as e:
         if e.status_code == 400 and 'resource_already_exists_exception' in e.error:
             pass  # happens if two services try this at the same time
         else:

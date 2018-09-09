@@ -52,6 +52,7 @@ import base64
 from contextlib import contextmanager
 import gzip
 import io
+import time
 
 import nomad.config as config
 from nomad.utils import get_logger
@@ -292,13 +293,21 @@ def write_archive_json(archive_id) -> Generator[TextIO, None, None]:
         yield out
     finally:
         out.flush()
-        binary_out.seek(0)
-        length = len(binary_out.getvalue())
+        # in practice minio fails writing seemingly arbitrarely for various reasons
+        # a simple retry with a small delay seems to be a pragmatic solution
+        for _ in range(0, 2):
+            try:
+                binary_out.seek(0)
+                length = len(binary_out.getvalue())
 
-        _client.put_object(
-            config.files.archive_bucket, archive_id, binary_out, length=length,
-            content_type='application/json',
-            metadata=metadata)
+                _client.put_object(
+                    config.files.archive_bucket, archive_id, binary_out, length=length,
+                    content_type='application/json',
+                    metadata=metadata)
+
+                break
+            except Exception:
+                time.sleep(1)
 
         out.close()
         binary_out.close()
