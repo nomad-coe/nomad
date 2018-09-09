@@ -47,10 +47,11 @@ Parsers in NOMAD-coe use a *backend* to create output.
 
 from nomad.parsing.backend import AbstractParserBackend, LocalBackend, LegacyLocalBackend, JSONStreamWriter, BadContextURI, WrongContextState
 from nomad.parsing.parser import Parser, LegacyParser
-from nomad.parsing.artificial import TemplateParser
+from nomad.parsing.artificial import TemplateParser, GenerateRandomParser
 from nomad.dependencies import dependencies_dict as dependencies
 
 parsers = [
+    GenerateRandomParser(),
     TemplateParser(),
     LegacyParser(
         python_git=dependencies['parsers/vasp'],
