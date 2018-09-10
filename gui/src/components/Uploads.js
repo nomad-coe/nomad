@@ -13,8 +13,8 @@ import { compose } from 'recompose'
 import DeleteIcon from '@material-ui/icons/Delete'
 import CheckIcon from '@material-ui/icons/Check'
 import AddIcon from '@material-ui/icons/Add'
-import CommingSoon from './CommingSoon'
 import UploadCommand from './UploadCommand'
+import ConfirmDialog from './ConfirmDialog'
 
 class Uploads extends React.Component {
   static propTypes = {
@@ -83,7 +83,7 @@ class Uploads extends React.Component {
     uploads: null,
     selectedUploads: [],
     loading: true,
-    acceptCommingSoon: false,
+    showAccept: false,
     uploadName: '',
     uploadCommand: null,
     showUploadCommand: false,
@@ -143,7 +143,20 @@ class Uploads extends React.Component {
   }
 
   onAcceptClicked() {
-    this.setState({acceptCommingSoon: true})
+    this.setState({showAccept: true})
+  }
+
+  handleAccept() {
+    this.setState({loading: true})
+    Promise.all(this.state.selectedUploads.map(upload => api.unstageUpload(upload.upload_id)))
+      .then(() => {
+        this.setState({showAccept: false})
+        return this.update()
+      })
+      .catch(error => {
+        this.props.raiseError(error)
+        this.update()
+      })
   }
 
   onDrop(files) {
@@ -201,19 +214,14 @@ class Uploads extends React.Component {
               >
                 <DeleteIcon />
               </IconButton>
-              <IconButton
-                disabled={selectedUploads.length === 0}
-                onClick={this.onAcceptClicked.bind(this)}
-              >
+
+              <IconButton disabled={selectedUploads.length === 0} onClick={this.onAcceptClicked.bind(this)}>
                 <CheckIcon />
               </IconButton>
-              <CommingSoon
-                open={this.state.acceptCommingSoon}
-                onClose={() => this.setState({acceptCommingSoon: false})}>
-                  This will allow you to accept uploads and their calculations.
-                  Only accepted uploads will be available in nomad xt,
-                  and they cannot be deleted anymore.
-              </CommingSoon>
+              <ConfirmDialog open={this.state.showAccept} onClose={() => this.setState({showAccept: false})} onOk={this.handleAccept.bind(this)}>
+                If you agree the selected uploads will move out of your private staging area into the public nomad.
+              </ConfirmDialog>
+
             </FormGroup>
           </div>
           <div className={classes.uploads}>

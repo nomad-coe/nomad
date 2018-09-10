@@ -174,6 +174,24 @@ function deleteUpload(uploadId) {
     .then(response => response.json())
 }
 
+function unstageUpload(uploadId) {
+  return fetch(
+    `${apiBase}/uploads/${uploadId}`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        operation: 'unstage'
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+        ...auth_headers
+      }
+    })
+    .catch(networkError)
+    .then(handleResponseErrors)
+    .then(response => response.json())
+}
+
 let cachedMetaInfo = null
 
 async function getMetaInfo() {
@@ -210,6 +228,7 @@ async function getMetaInfo() {
 const api = {
   createUpload: createUpload,
   deleteUpload: deleteUpload,
+  unstageUpload: unstageUpload,
   getUploads: getUploads,
   archive: archive,
   archiveUrl: archiveUrl,
