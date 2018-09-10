@@ -1,6 +1,7 @@
 import repo from '@material-ui/core/colors/deepPurple'
 import archive from '@material-ui/core/colors/teal'
 import enc from '@material-ui/core/colors/amber'
+import analytics from '@material-ui/core/colors/lightGreen'
 import secondary from '@material-ui/core/colors/blueGrey'
 import { createMuiTheme } from '@material-ui/core'
 
@@ -34,6 +35,13 @@ export const archiveTheme = createMuiTheme({
 export const encTheme = createMuiTheme({
   palette: {
     primary: enc,
+    secondary: repo
+  }
+})
+
+export const analyticsTheme = createMuiTheme({
+  palette: {
+    primary: analytics,
     secondary: repo
   }
 })

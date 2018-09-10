@@ -17,11 +17,12 @@ import DocumentationIcon from '@material-ui/icons/Help'
 import HomeIcon from '@material-ui/icons/Home'
 import ArchiveIcon from '@material-ui/icons/Storage'
 import EncIcon from '@material-ui/icons/Assessment'
+import AnalyticsIcon from '@material-ui/icons/Settings'
 import DevelIcon from '@material-ui/icons/ReportProblem'
 import { Link, withRouter } from 'react-router-dom'
 import { compose } from 'recompose'
 import { Avatar, MuiThemeProvider } from '@material-ui/core'
-import { genTheme, repoTheme, archiveTheme, encTheme, appStaticBase } from '../config'
+import { genTheme, repoTheme, archiveTheme, encTheme, appStaticBase, analyticsTheme } from '../config'
 import { ErrorSnacks } from './errors'
 
 const drawerWidth = 200
@@ -33,6 +34,7 @@ const toolbarTitles = {
   '/profile': 'Your Profile',
   '/docs': 'Documentation',
   '/archive': 'Code Independent Data',
+  '/analytics': 'Big Data Analytics',
   '/enc': 'The Material Perspective',
   '/dev': 'Developer and Operator Functions'
 }
@@ -45,6 +47,7 @@ const toolbarThemes = {
   '/docs': genTheme,
   '/archive': archiveTheme,
   '/enc': encTheme,
+  '/analytics': analyticsTheme,
   '/dev': genTheme
 }
 
@@ -137,6 +140,12 @@ class Navigation extends React.Component {
               <EncIcon style={{fill: encTheme.palette.primary.main}}/>
             </ListItemIcon>
             <ListItemText inset primary="Encyclopedia"/>
+          </MenuItem>
+          <MenuItem component={Link} to="/analytics" selected={ pathname.startsWith('/analytics') }>
+            <ListItemIcon>
+              <AnalyticsIcon style={{fill: analyticsTheme.palette.primary.main}}/>
+            </ListItemIcon>
+            <ListItemText inset primary="Analytics"/>
           </MenuItem>
         </MenuList>
         <Divider/>
