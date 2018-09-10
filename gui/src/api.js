@@ -155,8 +155,13 @@ function repo(uploadHash, calcHash) {
     .then(response => response.json())
 }
 
-function repoAll(page, perPage) {
-  return fetch(`${apiBase}/repo?page=${page}&per_page=${perPage}`)
+function repoAll(page, perPage, owner) {
+  return fetch(
+    `${apiBase}/repo?page=${page}&per_page=${perPage}&owner=${owner || 'all'}`,
+    {
+      method: 'GET',
+      headers: auth_headers
+    })
     .catch(networkError)
     .then(handleResponseErrors)
     .then(response => response.json())

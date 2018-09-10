@@ -534,7 +534,7 @@ class RepoCalcsRes(Resource):
             if g.user is None:
                 abort(401, message='Authentication required for owner value user.')
             search = RepoCalc.search().query('match_all')
-            search = search.filter('term', user_id=g.user.email, staging=True)
+            search = search.filter('term', user_id=g.user.email).filter('term', staging=True)
         else:
             abort(400, message='Invalid owner value. Valid values are all|user|staging, default is all')
 

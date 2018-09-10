@@ -9,7 +9,7 @@ import TableRow from '@material-ui/core/TableRow'
 import Paper from '@material-ui/core/Paper'
 import api from '../api'
 import CalcLinks from './CalcLinks'
-import { TableHead, LinearProgress } from '@material-ui/core'
+import { TableHead, LinearProgress, FormControl, FormControlLabel, Checkbox, FormGroup, FormLabel } from '@material-ui/core'
 import Markdown from './Markdown'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
@@ -48,12 +48,14 @@ class Repo extends React.Component {
     page: 1,
     rowsPerPage: 5,
     total: 0,
-    loading: true
+    loading: true,
+    owner: 'all'
   }
 
-  update(page, rowsPerPage) {
+  update(page, rowsPerPage, owner) {
     this.setState({loading: true})
-    api.repoAll(page, rowsPerPage).then(data => {
+    owner = owner || this.state.owner
+    api.repoAll(page, rowsPerPage, owner).then(data => {
       const { pagination: { total, page, per_page }, results } = data
       this.setState({
         data: results,
@@ -61,10 +63,11 @@ class Repo extends React.Component {
         rowsPerPage:
         per_page,
         total: total,
-        loading: false
+        loading: false,
+        owner: owner
       })
     }).catch(errors => {
-      this.setState({data: [], total: 0, loading: false})
+      this.setState({data: [], total: 0, loading: false, owner: owner})
       this.props.raiseError(errors)
     })
   }
@@ -83,17 +86,39 @@ class Repo extends React.Component {
     this.update(this.state.page, rowsPerPage)
   }
 
+  handleOwnerChange(owner) {
+    this.update(this.state.page, this.state.rowsPerPage, owner)
+  }
+
   render() {
     const { classes } = this.props
     const { data, rowsPerPage, page, total, loading } = this.state
     const emptyRows = rowsPerPage - Math.min(rowsPerPage, total - (page - 1) * rowsPerPage)
 
+    const ownerLabel = {
+      all: 'All calculations',
+      user: 'Your calculations',
+      staging: 'Only calculations from your staging area'
+    }
     return (
       <div className={classes.root}>
         <Markdown>{`
           ## The Repository – Raw Code Data
         `}</Markdown>
         {/* <PeriodicTable/> */}
+        <FormControl>
+          <FormLabel>Filter calculations and only show: </FormLabel>
+          <FormGroup row>
+            {['all', 'user', 'staging'].map(owner => (
+              <FormControlLabel key={owner}
+                control={
+                  <Checkbox checked={this.state.owner === owner} onChange={() => this.handleOwnerChange(owner)} value="owner" />
+                }
+                label={ownerLabel[owner]}
+              />
+            ))}
+          </FormGroup>
+        </FormControl>
         <Paper className={classes.data}>
           {loading ? <LinearProgress variant="query" /> : <div className={classes.progressPlaceholder} />}
           <Table>
