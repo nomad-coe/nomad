@@ -216,7 +216,16 @@ def test_processing(client, file, worker, mocksearch, test_user_auth):
         upload = assert_upload(rv.data)
         assert len(upload['calcs']['results']) == 1
 
-    time.sleep(1)
+    rv = client.post(
+        '/uploads/%s' % upload['upload_id'],
+        headers=test_user_auth,
+        data=json.dumps(dict(operation='unstage')),
+        content_type='application/json')
+    assert rv.status_code == 200
+
+    rv = client.get('/uploads', headers=test_user_auth)
+    assert rv.status_code == 200
+    assert_uploads(rv.data, count=0)
 
 
 def test_repo_calc(client, example_elastic_calc):

@@ -63,6 +63,7 @@ def login_really_required(func):
             abort(401, message='Anonymous access is forbidden, authorization required')
         else:
             return func(*args, **kwargs)
+    wrapper.__name__ = func.__name__
     return wrapper
 
 
@@ -299,6 +300,53 @@ class UploadRes(Resource):
         }
 
         return result, 200
+
+    @login_really_required
+    def post(self, upload_id):
+        """
+        Move an upload out of the staging area. This changes the visibility of the upload.
+        Clients can specify, if the calcs should be restricted.
+
+        .. :quickref: upload; Move an upload out of the staging area.
+
+        **Example request**:
+
+        .. sourcecode:: http
+
+            POST /nomadxt/api/uploads HTTP/1.1
+            Accept: application/json
+            Content-Type: application/json
+
+            {
+                operation: 'unstage'
+            }
+
+
+        :param string upload_id: the upload id
+        :resheader Content-Type: application/json
+        :status 200: upload unstaged successfully
+        :status 404: upload could not be found
+        :status 400: if the operation is not supported
+        :returns: the upload record
+        """
+        try:
+            upload = Upload.get(upload_id)
+        except KeyError:
+            abort(404, message='Upload with id %s does not exist.' % upload_id)
+
+        if upload.user_id != g.user.email:
+            abort(404, message='Upload with id %s does not exist.' % upload_id)
+
+        json_data = request.get_json()
+        if json_data is None:
+            json_data = {}
+
+        operation = json_data.get('operation')
+        if operation == 'unstage':
+            upload.unstage()
+            return upload.json_dict, 200
+
+        abort(400, message='Unsuported operation %s.' % operation)
 
     @login_really_required
     def delete(self, upload_id):

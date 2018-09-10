@@ -149,6 +149,17 @@ class RepoCalc(ElasticDocument):
         return calc
 
     @staticmethod
+    def delete_upload(upload_id):
+        """ Deletes all repo entries of the given upload. """
+        RepoCalc.search().query('match', upload_id=upload_id).delete()
+
+    @classmethod
+    def update_upload(cls, upload_id, **kwargs):
+        """ Update all entries of given upload with keyword args. """
+        for calc in RepoCalc.search().query('match', upload_id=upload_id):
+            calc.update(**kwargs)
+
+    @staticmethod
     def es_search(body):
         """ Perform an elasticsearch and not elasticsearch_dsl search on the Calc index. """
         return client.search(index=config.elastic.calc_index, body=body)

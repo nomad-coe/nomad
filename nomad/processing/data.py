@@ -234,7 +234,7 @@ class Upload(Proc):
     @classmethod
     def user_uploads(cls, user: User) -> List['Upload']:
         """ Returns all uploads for the given user. Currently returns all uploads. """
-        return cls.objects()
+        return cls.objects(user_id=user.email, in_staging=True)
 
     def get_logger(self, **kwargs):
         logger = super().get_logger()
@@ -263,7 +263,7 @@ class Upload(Proc):
             files.delete_archives(upload_hash=self.upload_hash)
 
             # delete repo entries
-            RepoCalc.search().query('match', upload_id=self.upload_id).delete()
+            RepoCalc.delete_upload(upload_id=self.upload_id)
 
             # delete calc processings
             Calc.objects(upload_id=self.upload_id).delete()
@@ -303,6 +303,11 @@ class Upload(Proc):
             return (datetime.now() - self.create_time).days > 1
         else:
             return False
+
+    def unstage(self):
+        self.in_staging = False
+        RepoCalc.update_upload(upload_id=self.upload_id, staging=False)
+        self.save()
 
     @property
     def json_dict(self) -> dict:
