@@ -52,7 +52,7 @@ def uploaded_id(request, clear_files) -> Generator[str, None, None]:
 
 
 def run_processing(uploaded_id: str) -> Upload:
-    upload = Upload.create(upload_id=uploaded_id, user=me)
+    upload = Upload.create(upload_id=uploaded_id, user_id=me.email)
     upload.upload_time = datetime.now()
 
     assert upload.status == 'RUNNING'

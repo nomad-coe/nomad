@@ -45,7 +45,8 @@ def example_elastic_calc(normalized_vasp_example: LocalBackend, caplog) \
         calc_hash='test_calc_hash',
         upload_id='test_upload_id',
         mainfile='/test/mainfile',
-        upload_time=datetime.now())
+        upload_time=datetime.now(),
+        staging=True, restricted=False, user_id='me')
     time.sleep(1)  # eventually consistent?
 
     yield entry
@@ -85,7 +86,8 @@ def test_create_existing_elastic_calc(
             calc_hash='test_calc_hash',
             upload_id='test_upload_id',
             mainfile='/test/mainfile',
-            upload_time=datetime.now())
+            upload_time=datetime.now(),
+            staging=True, restricted=False, user_id='me')
         assert False
     except AlreadyExists:
         caplog.set_level(logging.WARNING)

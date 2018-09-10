@@ -170,7 +170,10 @@ class Calc(Proc):
             calc_hash=calc_hash,
             upload_id=self.upload_id,
             mainfile=self.mainfile,
-            upload_time=self._upload.upload_time)
+            upload_time=self._upload.upload_time,
+            staging=True,
+            restricted=False,
+            user_id=self._upload.user_id)
 
         # persist the archive
         with files.write_archive_json(self.archive_id) as out:
@@ -191,6 +194,7 @@ class Upload(Proc):
         presigned_url: the presigned url for file upload
         upload_time: the timestamp when the system realised the upload
         upload_hash: the hash of the uploaded file
+        user_id: the id of the user that created this upload
     """
     id_field = 'upload_id'
 
@@ -210,12 +214,12 @@ class Upload(Proc):
     processed_calcs = IntField(default=0)
     total_calcs = IntField(default=-1)
 
-    user = ReferenceField(User, required=True)
+    user_id = StringField(required=True)
 
     meta: Any = {
         'indexes': [
             'upload_hash',
-            'user'
+            'user_id'
         ]
     }
 

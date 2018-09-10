@@ -129,7 +129,8 @@ class UploadsRes(Resource):
         if json_data is None:
             json_data = {}
 
-        upload = Upload.create(upload_id=create_uuid(), user=me, name=json_data.get('name'))
+        upload = Upload.create(
+            upload_id=create_uuid(), user_id=me.email, name=json_data.get('name'))
         return upload.json_dict, 200
 
 

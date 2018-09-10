@@ -25,7 +25,8 @@ is an elasticsearch_dsl document that is used to represent elastic search index 
 
 import sys
 from elasticsearch.exceptions import ConflictError, RequestError, ConnectionTimeout
-from elasticsearch_dsl import Document as ElasticDocument, Search, Date, Keyword, connections
+from elasticsearch_dsl import Document as ElasticDocument, Search, Date, Keyword, Boolean, \
+    connections
 from datetime import datetime
 import time
 
@@ -64,6 +65,10 @@ class RepoCalc(ElasticDocument):
 
     upload_time = Date()
 
+    staging = Boolean()
+    restricted = Boolean()
+    user_id = Keyword()
+
     program_name = Keyword()
     program_version = Keyword()
 
@@ -97,7 +102,8 @@ class RepoCalc(ElasticDocument):
             upload_hash: The upload hash of the originating upload.
             upload_id: The upload id of the originating upload.
             calc_hash: The upload unique hash for this calculation.
-            kwargs: Additional arguments not stored in the backend.
+            kwargs: Additional arguments not stored in the backend. E.g. ``user_id``,
+                ``staging``, ``restricted``
 
         Raises:
             AlreadyExists: If the calculation already exists in elastic search. We use

@@ -38,7 +38,12 @@ def mongomock(monkeypatch):
     disconnect()
     connection = mock_connect()
     monkeypatch.setattr('nomad.processing.base.mongo_connect', mock_connect)
+
+    from nomad.user import ensure_test_users
+    ensure_test_users()
+
     yield
+
     connection.drop_database('test_db')
 
 
