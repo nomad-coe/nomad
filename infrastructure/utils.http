@@ -1,0 +1,26 @@
+###
+# Disable threshold based trigger for turning elastic indices read only due to low disc space
+
+PUT http://localhost:9200/_cluster/settings HTTP/1.1
+content-type: application/json
+
+{
+    "transient" : {
+        "cluster.routing.allocation.disk.threshold_enabled" : false
+    }
+}
+
+###
+# Make calcs index writeable after accedental getting read only
+
+PUT http://localhost:9200/calcs/_settings HTTP/1.1
+content-type: application/json
+
+{
+    "index.blocks.read_only_allow_delete": null
+}
+
+###
+# Delete the calc index
+
+DELETE http://localhost:9200/calcs HTTP/1.1

@@ -17,3 +17,4 @@ structlog
 sphinx
 recommonmark
 sphinxcontrib.httpdomain
+drest

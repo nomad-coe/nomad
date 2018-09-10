@@ -272,6 +272,19 @@ class Upload(Proc):
             super().delete()
 
     @classmethod
+    def _external_objects_url(cls, url):
+        """ Replaces the given internal object storage url (minio) with an URL that allows
+            external access.
+        """
+        port_with_colon = ''
+        if config.services.objects_port > 0:
+            port_with_colon = ':%d' % config.services.objects_port
+
+        return url.replace(
+            '%s:%s' % (config.minio.host, config.minio.port),
+            '%s%s%s' % (config.services.objects_host, port_with_colon, config.services.objects_base_path))
+
+    @classmethod
     def create(cls, **kwargs) -> 'Upload':
         """
         Creates a new upload for the given user, a user given name is optional.
@@ -279,7 +292,7 @@ class Upload(Proc):
         The upload will be already saved to the database.
         """
         self = super().create(**kwargs)
-        self.presigned_url = files.get_presigned_upload_url(self.upload_id)
+        self.presigned_url = cls._external_objects_url(files.get_presigned_upload_url(self.upload_id))
         self.upload_command = files.create_curl_upload_cmd(self.presigned_url, 'your_file')
         self._continue_with('uploading')
         return self

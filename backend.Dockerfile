@@ -34,7 +34,6 @@ COPY nomad/dependencies.py nomad/dependencies.py
 COPY nomad/config.py nomad/config.py
 RUN python nomad/dependencies.py
 
-
 # last stage is used to install the actual code, nomad user, volumes
 FROM final
 # transfer installed packages from dependency stage
@@ -48,6 +47,10 @@ COPY --from=dependencies /install /install
 RUN apt-get update && apt-get install -y make
 COPY . /app
 WORKDIR /app
+
+# copy the meta-info, since it files are loaded via relative paths. TODO that should change.
+COPY --from=dependencies /install/.dependencies/nomad-meta-info /app/.dependencies/nomad-meta-info
+
 RUN pip install -e .
 WORKDIR /app/docs
 RUN make html
