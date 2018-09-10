@@ -54,6 +54,7 @@ class DataSet(Document):
 
 # provid a test user for testing
 me = None
+other = None
 
 
 def ensure_test_users():
@@ -65,7 +66,16 @@ def ensure_test_users():
             name='Me Meyer')
         me.hash_password('nomad')
         me.save()
-        time.sleep(1)
+
+    global other
+    me = User.objects(email='other@gmail.com').first()
+    if me is None:
+        me = User(
+            email='other@gmail.com',
+            name='Other User')
+        me.hash_password('nomad')
+        me.save()
+
 
 if 'sphinx' not in sys.modules:
     ensure_test_users()

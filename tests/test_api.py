@@ -47,6 +47,13 @@ def test_user_auth():
     }
 
 
+@pytest.fixture(scope='session')
+def test_other_user_auth():
+    return {
+        'Authorization': 'Basic %s' % base64.b64encode(b'other@gmail.com:nomad').decode('utf-8')
+    }
+
+
 def assert_uploads(upload_json_str, count=0, **kwargs):
     data = json.loads(upload_json_str)
     assert isinstance(data, list)
@@ -241,6 +248,29 @@ def test_repo_calcs_pagination(client, example_elastic_calc):
     assert results is not None
     assert isinstance(results, list)
     assert len(results) == 1
+
+
+def test_repo_calcs_user(client, example_elastic_calc, test_user_auth):
+    rv = client.get('/repo?owner=user', headers=test_user_auth)
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    results = data.get('results', None)
+    assert results is not None
+    assert len(results) >= 1
+
+
+def test_repo_calcs_user_authrequired(client, example_elastic_calc):
+    rv = client.get('/repo?owner=user')
+    assert rv.status_code == 401
+
+
+def test_repo_calcs_user_invisible(client, example_elastic_calc, test_other_user_auth):
+    rv = client.get('/repo?owner=user', headers=test_other_user_auth)
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    results = data.get('results', None)
+    assert results is not None
+    assert len(results) == 0
 
 
 def test_get_archive(client, archive_id):

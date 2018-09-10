@@ -45,14 +45,29 @@ def verify_password(username_or_token, password):
     if not user:
         # try to authenticate with username/password
         user = User.objects(email=username_or_token).first()
+        if not user:
+            g.user = None
+            return True  # anonymous access
+
         if not user or not user.verify_password(password):
             return False
+
     g.user = user
     return True
 
 
+def login_really_required(func):
+    @auth.login_required
+    def wrapper(*args, **kwargs):
+        if g.user is None:
+            abort(401, message='Anonymous access is forbidden, authorization required')
+        else:
+            return func(*args, **kwargs)
+    return wrapper
+
+
 @app.route('/api/token')
-@auth.login_required
+@login_really_required
 def get_auth_token():
     token = g.user.generate_auth_token(600)
     return jsonify({'token': token.decode('ascii'), 'duration': 600})
@@ -60,7 +75,7 @@ def get_auth_token():
 
 class UploadsRes(Resource):
     """ Uploads """
-    @auth.login_required
+    @login_really_required
     def get(self):
         """
         Get a list of current users uploads.
@@ -105,7 +120,7 @@ class UploadsRes(Resource):
         """
         return [upload.json_dict for upload in Upload.user_uploads(g.user)], 200
 
-    @auth.login_required
+    @login_really_required
     def post(self):
         """
         Create a new upload. Creating an upload on its own wont do much, but provide
@@ -177,7 +192,7 @@ class UploadsRes(Resource):
 
 class UploadRes(Resource):
     """ Uploads """
-    @auth.login_required
+    @login_really_required
     def get(self, upload_id):
         """
         Get an update on an existing upload. Will not only return the upload, but
@@ -285,7 +300,7 @@ class UploadRes(Resource):
 
         return result, 200
 
-    @auth.login_required
+    @login_really_required
     def delete(self, upload_id):
         """
         Deletes an existing upload. Only ``is_ready`` or ``is_stale`` uploads
@@ -386,6 +401,7 @@ class RepoCalcRes(Resource):
 
 
 class RepoCalcsRes(Resource):
+    @auth.login_required
     def get(self):
         """
         Get *'all'* calculations in repository from, paginated.
@@ -441,6 +457,7 @@ class RepoCalcsRes(Resource):
 
         :qparam int page: the page starting with 1
         :qparam int per_page: desired calcs per page
+        :qparam string owner: specifies which cals to return: all|user|staging, default is all
         :resheader Content-Type: application/json
         :status 200: calcs successfully retrieved
         :returns: a list of repository entries in ``results`` and pagination info
@@ -450,6 +467,7 @@ class RepoCalcsRes(Resource):
         # TODO use argparse? bad request reponse an bad params, pagination as decorator
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
+        owner = request.args.get('owner', 'all')
 
         try:
             assert page >= 1
@@ -457,20 +475,30 @@ class RepoCalcsRes(Resource):
         except AssertionError:
             abort(400, message='invalid pagination')
 
-        try:
+        if owner == 'all':
             search = RepoCalc.search().query('match_all')
-            search = search[(page - 1) * per_page: page * per_page]
-            return {
-                'pagination': {
-                    'total': search.count(),
-                    'page': page,
-                    'per_page': per_page
-                },
-                'results': [result.json_dict for result in search]
-            }
-        except Exception as e:
-            logger.error('Could not execute repo calcs get', exc_info=e)
-            abort(500, message=str(e))
+        elif owner == 'user':
+            if g.user is None:
+                abort(401, message='Authentication required for owner value user.')
+            search = RepoCalc.search().query('match_all')
+            search = search.filter('term', user_id=g.user.email)
+        elif owner == 'staging':
+            if g.user is None:
+                abort(401, message='Authentication required for owner value user.')
+            search = RepoCalc.search().query('match_all')
+            search = search.filter('term', user_id=g.user.email, staging=True)
+        else:
+            abort(400, message='Invalid owner value. Valid values are all|user|staging, default is all')
+
+        search = search[(page - 1) * per_page: page * per_page]
+        return {
+            'pagination': {
+                'total': search.count(),
+                'page': page,
+                'per_page': per_page
+            },
+            'results': [result.json_dict for result in search]
+        }
 
 
 @app.route('%s/archive/<string:upload_hash>/<string:calc_hash>' % base_path, methods=['GET'])
