@@ -7,6 +7,7 @@ import json
 from mongoengine import connect
 from mongoengine.connection import disconnect
 from datetime import datetime, timedelta
+import base64
 
 from nomad import config
 # for convinience we test the api without path prefix
@@ -39,6 +40,13 @@ def client():
     Upload._get_collection().drop()
 
 
+@pytest.fixture(scope='session')
+def test_user_auth():
+    return {
+        'Authorization': 'Basic %s' % base64.b64encode(b'me@gmail.com:nomad').decode('utf-8')
+    }
+
+
 def assert_uploads(upload_json_str, count=0, **kwargs):
     data = json.loads(upload_json_str)
     assert isinstance(data, list)
@@ -63,21 +71,22 @@ def assert_upload(upload_json_str, id=None, **kwargs):
     return data
 
 
-def test_no_uploads(client):
-    rv = client.get('/uploads')
+def test_no_uploads(client, test_user_auth):
+    rv = client.get('/uploads', headers=test_user_auth)
 
     assert rv.status_code == 200
     assert_uploads(rv.data, count=0)
 
 
-def test_not_existing_upload(client):
-    rv = client.get('/uploads/123456789012123456789012')
+def test_not_existing_upload(client, test_user_auth):
+    rv = client.get('/uploads/123456789012123456789012', headers=test_user_auth)
     assert rv.status_code == 404
 
 
-def test_stale_upload(client):
+def test_stale_upload(client, test_user_auth):
     rv = client.post(
         '/uploads',
+        headers=test_user_auth,
         data=json.dumps(dict(name='test_name')),
         content_type='application/json')
     assert rv.status_code == 200
@@ -87,51 +96,52 @@ def test_stale_upload(client):
     upload.create_time = datetime.now() - timedelta(days=2)
     upload.save()
 
-    rv = client.get('/uploads/%s' % upload_id)
+    rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
     assert rv.status_code == 200
     assert_upload(rv.data, is_stale=True)
 
 
-def test_create_upload(client):
-    rv = client.post('/uploads')
+def test_create_upload(client, test_user_auth):
+    rv = client.post('/uploads', headers=test_user_auth)
 
     assert rv.status_code == 200
     upload_id = assert_upload(rv.data)['upload_id']
 
-    rv = client.get('/uploads/%s' % upload_id)
+    rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
     assert rv.status_code == 200
     assert_upload(rv.data, id=upload_id, is_stale=False)
 
-    rv = client.get('/uploads')
+    rv = client.get('/uploads', headers=test_user_auth)
     assert rv.status_code == 200
     assert_uploads(rv.data, count=1, id=upload_id)
 
 
-def test_create_upload_with_name(client):
+def test_create_upload_with_name(client, test_user_auth):
     rv = client.post(
-        '/uploads', data=json.dumps(dict(name='test_name')), content_type='application/json')
+        '/uploads', headers=test_user_auth,
+        data=json.dumps(dict(name='test_name')), content_type='application/json')
     assert rv.status_code == 200
     upload = assert_upload(rv.data)
     assert upload['name'] == 'test_name'
 
 
-def test_delete_empty_upload(client):
-    rv = client.post('/uploads')
+def test_delete_empty_upload(client, test_user_auth):
+    rv = client.post('/uploads', headers=test_user_auth)
 
     assert rv.status_code == 200
     upload_id = assert_upload(rv.data)['upload_id']
 
-    rv = client.delete('/uploads/%s' % upload_id)
+    rv = client.delete('/uploads/%s' % upload_id, headers=test_user_auth)
     assert rv.status_code == 200
 
-    rv = client.get('/uploads/%s' % upload_id)
+    rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
     assert rv.status_code == 404
 
 
 @pytest.mark.parametrize("file", example_files)
 @pytest.mark.timeout(30)
-def test_upload_to_upload(client, file):
-    rv = client.post('/uploads')
+def test_upload_to_upload(client, file, test_user_auth):
+    rv = client.post('/uploads', headers=test_user_auth)
     assert rv.status_code == 200
     upload = assert_upload(rv.data)
 
@@ -159,10 +169,10 @@ def test_upload_to_upload(client, file):
 
 @pytest.mark.parametrize("file", example_files)
 @pytest.mark.timeout(10)
-def test_processing(client, file, worker, mocksearch):
+def test_processing(client, file, worker, mocksearch, test_user_auth):
     handler = handle_uploads_thread(quit=True)
 
-    rv = client.post('/uploads')
+    rv = client.post('/uploads', headers=test_user_auth)
     assert rv.status_code == 200
     upload = assert_upload(rv.data)
 
@@ -176,7 +186,7 @@ def test_processing(client, file, worker, mocksearch):
     while True:
         time.sleep(1)
 
-        rv = client.get('/uploads/%s' % upload['upload_id'])
+        rv = client.get('/uploads/%s' % upload['upload_id'], headers=test_user_auth)
         assert rv.status_code == 200
         upload = assert_upload(rv.data)
         assert 'upload_time' in upload

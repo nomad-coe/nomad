@@ -43,7 +43,7 @@ MongoConfig = namedtuple('MongoConfig', ['host', 'users_db'])
 LogstashConfig = namedtuple('LogstashConfig', ['enabled', 'host', 'tcp_port', 'level'])
 """ Used to configure and enable/disable the ELK based centralized logging. """
 
-NomadServicesConfig = namedtuple('NomadServicesConfig', ['api_base_path', 'objects_host', 'objects_port', 'objects_base_path'])
+NomadServicesConfig = namedtuple('NomadServicesConfig', ['api_base_path', 'objects_host', 'objects_port', 'objects_base_path', 'api_secret'])
 """ Used to configure nomad services: worker, handler, api """
 
 files = FilesConfig(
@@ -93,5 +93,6 @@ services = NomadServicesConfig(
     api_base_path=os.environ.get('NOMAD_API_BASE_PATH', '/nomadxt/api'),
     objects_host=os.environ.get('NOMAD_OBJECTS_HOST', 'localhost'),
     objects_port=int(os.environ.get('NOMAD_OBJECTS_PORT', minio.port)),
-    objects_base_path=os.environ.get('NOMAD_OBJECTS_BASE_PATH', '')
+    objects_base_path=os.environ.get('NOMAD_OBJECTS_BASE_PATH', ''),
+    api_secret='the quick fox jumps over something'
 )

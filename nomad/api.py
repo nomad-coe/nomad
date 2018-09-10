@@ -12,16 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from flask import Flask, request, redirect
+from flask import Flask, request, redirect, g, jsonify
 from flask_restful import Resource, Api, abort
 from flask_cors import CORS
+from flask_httpauth import HTTPBasicAuth
 from elasticsearch.exceptions import NotFoundError
 
 from nomad import config, files
 from nomad.utils import get_logger, create_uuid
 from nomad.processing import Upload, Calc, NotAllowedDuringProcessing, SUCCESS, FAILURE
 from nomad.repo import RepoCalc
-from nomad.user import me
+from nomad.user import User, me
 
 base_path = config.services.api_base_path
 
@@ -30,11 +31,36 @@ app = Flask(
     static_url_path='%s/docs' % base_path,
     static_folder='../docs/.build/html')
 CORS(app)
+
+app.config['SECRET_KEY'] = config.services.api_secret
+
+auth = HTTPBasicAuth()
 api = Api(app)
+
+
+@auth.verify_password
+def verify_password(username_or_token, password):
+    # first try to authenticate by token
+    user = User.verify_auth_token(username_or_token)
+    if not user:
+        # try to authenticate with username/password
+        user = User.objects(email=username_or_token).first()
+        if not user or not user.verify_password(password):
+            return False
+    g.user = user
+    return True
+
+
+@app.route('/api/token')
+@auth.login_required
+def get_auth_token():
+    token = g.user.generate_auth_token(600)
+    return jsonify({'token': token.decode('ascii'), 'duration': 600})
 
 
 class UploadsRes(Resource):
     """ Uploads """
+    @auth.login_required
     def get(self):
         """
         Get a list of current users uploads.
@@ -77,8 +103,9 @@ class UploadsRes(Resource):
         :status 200: uploads successfully provided
         :returns: list of :class:`nomad.data.Upload`
         """
-        return [upload.json_dict for upload in Upload.user_uploads(me)], 200
+        return [upload.json_dict for upload in Upload.user_uploads(g.user)], 200
 
+    @auth.login_required
     def post(self):
         """
         Create a new upload. Creating an upload on its own wont do much, but provide
@@ -144,12 +171,13 @@ class UploadsRes(Resource):
             json_data = {}
 
         upload = Upload.create(
-            upload_id=create_uuid(), user_id=me.email, name=json_data.get('name'))
+            upload_id=create_uuid(), user_id=g.user.email, name=json_data.get('name'))
         return upload.json_dict, 200
 
 
 class UploadRes(Resource):
     """ Uploads """
+    @auth.login_required
     def get(self, upload_id):
         """
         Get an update on an existing upload. Will not only return the upload, but
@@ -216,8 +244,11 @@ class UploadRes(Resource):
         :returns: the :class:`nomad.data.Upload` instance
         """
         try:
-            result = Upload.get(upload_id).json_dict
+            upload = Upload.get(upload_id)
         except KeyError:
+            abort(404, message='Upload with id %s does not exist.' % upload_id)
+
+        if upload.user_id != g.user.email:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
         try:
@@ -239,6 +270,7 @@ class UploadRes(Resource):
 
         order_by = ('-%s' if order == -1 else '+%s') % order_by
 
+        result = upload.json_dict
         all_calcs = Calc.objects(upload_id=upload_id)
         total = all_calcs.count()
         successes = Calc.objects(upload_id=upload_id, status=SUCCESS).count()
@@ -253,6 +285,7 @@ class UploadRes(Resource):
 
         return result, 200
 
+    @auth.login_required
     def delete(self, upload_id):
         """
         Deletes an existing upload. Only ``is_ready`` or ``is_stale`` uploads
@@ -276,10 +309,15 @@ class UploadRes(Resource):
         """
         try:
             upload = Upload.get(upload_id)
-            upload.delete()
-            return upload.json_dict, 200
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
+
+        if upload.user_id != g.user.email:
+            abort(404, message='Upload with id %s does not exist.' % upload_id)
+
+        try:
+            upload.delete()
+            return upload.json_dict, 200
         except NotAllowedDuringProcessing:
             abort(400, message='You must not delete an upload during processing.')
 

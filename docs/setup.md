@@ -1,5 +1,26 @@
 # Setup
 
+### Preparations
+If not already done, you should clone nomad xt and create a python virtual environment.
+
+First, clone this repo:
+```
+git clone git@gitlab.mpcdf.mpg.de:mscheidg/nomad-xt.git
+cd nomad-xt
+```
+
+Second, create and source your own virtual python environment:
+```
+pip install virtualenv
+virtualenv -p `which python3` .pyenv
+source .pyenv/bin/activate
+```
+
+Install the development dependencies:
+```
+pip install -r requirements-dev.txt
+```
+
 ### Install intra nomad dependencies.
 This includes parsers, normalizers, python-common, meta-info, etc.
 Those dependencies are managed and configures via python scripts.

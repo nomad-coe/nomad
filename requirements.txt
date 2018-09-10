@@ -6,6 +6,9 @@ mongoengine
 flask
 flask-restful
 flask-cors
+flask_httpauth
+itsdangerous
+passlib
 python-logstash
 gitpython
 ase
@@ -17,4 +20,4 @@ structlog
 sphinx
 recommonmark
 sphinxcontrib.httpdomain
-drest
+requests

@@ -1,6 +1,10 @@
 import { UploadRequest } from '@navjobs/upload'
 import { apiBase, appStaticBase } from './config'
 
+const auth_headers = {
+  Authorization: 'Basic ' + btoa('me@gmail.com' + ':' + 'nomad')
+}
+
 const networkError = () => {
   throw Error('Network related error, cannot reach API or object storage.')
 }
@@ -38,7 +42,8 @@ class Upload {
             url: this.presigned_url,
             method: 'PUT',
             headers: {
-              'Content-Type': 'application/gzip'
+              'Content-Type': 'application/gzip',
+              ...auth_headers
             }
           },
           files: [file],
@@ -84,7 +89,12 @@ class Upload {
       return new Promise(resolve => resolve(this))
     } else {
       const qparams = `page=${page}&per_page=${perPage}&order_by=${orderBy}&order=${order}`
-      return fetch(`${apiBase}/uploads/${this.upload_id}?${qparams}`)
+      return fetch(
+        `${apiBase}/uploads/${this.upload_id}?${qparams}`,
+        {
+          method: 'GET',
+          headers: auth_headers
+        })
         .catch(networkError)
         .then(handleResponseErrors)
         .then(response => response.json())
@@ -103,7 +113,8 @@ function createUpload(name) {
       name: name
     }),
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      ...auth_headers
     }
   }
   return fetch(`${apiBase}/uploads`, fetchData)
@@ -114,7 +125,12 @@ function createUpload(name) {
 }
 
 function getUploads() {
-  return fetch(`${apiBase}/uploads`)
+  return fetch(
+    `${apiBase}/uploads`,
+    {
+      method: 'GET',
+      headers: auth_headers
+    })
     .catch(networkError)
     .then(handleResponseErrors)
     .then(response => response.json())
@@ -147,7 +163,12 @@ function repoAll(page, perPage) {
 }
 
 function deleteUpload(uploadId) {
-  return fetch(`${apiBase}/uploads/${uploadId}`, {method: 'DELETE'})
+  return fetch(
+    `${apiBase}/uploads/${uploadId}`,
+    {
+      method: 'DELETE',
+      headers: auth_headers
+    })
     .catch(networkError)
     .then(handleResponseErrors)
     .then(response => response.json())
