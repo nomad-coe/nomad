@@ -305,7 +305,7 @@ class Upload(Proc):
     def unstage(self):
         self.get_logger().info('unstage')
         self.in_staging = False
-        RepoCalc.update_upload(upload_id=self.upload_id, staging=False)
+        RepoCalc.unstage(upload_id=self.upload_id)
         self.save()
 
     @property
