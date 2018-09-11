@@ -32,6 +32,8 @@ FROM requirements as dependencies
 WORKDIR /install
 COPY nomad/dependencies.py nomad/dependencies.py
 COPY nomad/config.py nomad/config.py
+COPY requirements.txt requirements.txt
+RUN pip install -r requirements.txt
 RUN python nomad/dependencies.py
 
 # last stage is used to install the actual code, nomad user, volumes
