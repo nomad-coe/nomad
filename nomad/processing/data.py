@@ -40,7 +40,7 @@ import logging
 from nomad import config, files, utils
 from nomad.repo import RepoCalc
 from nomad.user import User, me
-from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
+from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE, RUNNING
 from nomad.parsing import LocalBackend, parsers, parser_dict
 from nomad.normalizing import normalizers
 from nomad.utils import get_logger, lnr
@@ -217,8 +217,7 @@ class Upload(Proc):
 
     meta: Any = {
         'indexes': [
-            'upload_hash',
-            'user_id'
+            'upload_hash', 'user_id', 'status'
         ]
     }
 
@@ -410,5 +409,26 @@ class Upload(Proc):
     def failed_calcs(self):
         return Calc.objects(upload_id=self.upload_id, status=FAILURE).count()
 
+    @property
+    def pending_calcs(self):
+        return Calc.objects(upload_id=self.upload_id, status=PENDING).count()
+
     def all_calcs(self, start, end, order_by='mainfile'):
         return Calc.objects(upload_id=self.upload_id)[start:end].order_by(order_by)
+
+    @staticmethod
+    def repair_all():
+        """
+        Utitlity function that will look for suspiciously looking conditions in
+        all uncompleted downloads. It ain't a perfect world.
+        """
+        uploads = Upload.objects(status__in=[PENDING, RUNNING])
+        for upload in uploads:
+            completed = upload.processed_calcs
+            total = upload.total
+            pending = upload.pending_calcs
+
+            if completed + pending == total:
+                time.sleep(2)
+                if pending == upload.pending_calcs:
+                    Calc.objects(upload_id=upload.upload_id, status=PENDING).delete()

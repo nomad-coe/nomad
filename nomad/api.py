@@ -582,6 +582,15 @@ def get_calc(upload_hash, calc_hash):
         abort(500, message='Could not accessing the archive.')
 
 
+@app.route('%s/admin/<string:operation>' % base_path, methods=['POST'])
+def call_admin_operation(operation):
+    if operation == 'repair_uploads':
+        Upload.repair_all()
+    else:
+        abort(400, message='Unknown operation %s' % operation)
+
+    return 'done', 200
+
 api.add_resource(UploadsRes, '%s/uploads' % base_path)
 api.add_resource(UploadRes, '%s/uploads/<string:upload_id>' % base_path)
 api.add_resource(RepoCalcsRes, '%s/repo' % base_path)

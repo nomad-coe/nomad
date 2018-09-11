@@ -165,10 +165,34 @@ class RepoCalc(ElasticDocument):
         RepoCalc.search().query('match', upload_id=upload_id).delete()
 
     @classmethod
+    def unstage(cls, upload_id, staging=False):
+        """ Update the staging property for all repo entries of the given upload. """
+        cls.update_by_query(upload_id, {
+            'inline': 'ctx._source.staging=%s' % ('true' if staging else 'false'),
+            'lang': 'painless'
+        })
+
+    @classmethod
     def update_upload(cls, upload_id, **kwargs):
         """ Update all entries of given upload with keyword args. """
         for calc in RepoCalc.search().query('match', upload_id=upload_id):
             calc.update(**kwargs)
+
+    @classmethod
+    def update_by_query(cls, upload_id, script):
+        """ Update all entries of a given upload via elastic script. """
+        index = cls._default_index()
+        doc_type = cls._doc_type.name
+        conn = cls._get_connection()
+        body = {
+            'script': script,
+            'query': {
+                'match': {
+                    'upload_id': upload_id
+                }
+            }
+        }
+        response = conn.update_by_query(index, doc_type=[doc_type], body=body)
 
     @staticmethod
     def es_search(body):

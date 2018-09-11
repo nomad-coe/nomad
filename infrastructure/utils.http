@@ -24,3 +24,23 @@ content-type: application/json
 # Delete the calc index
 
 DELETE http://localhost:9200/calcs HTTP/1.1
+
+###
+
+POST http://localhost:9200/calcs/_update_by_query HTTP/1.1
+content-type: application/json
+
+{
+    "script": {
+        "inline": "ctx._source.staging=false",
+        "lang": "painless"
+    },
+    "query": {
+        "match": {
+            "upload_id": "epGwyPvaQ720_COyRvyLEg"
+        }
+    }
+}
+
+###
+POST http://localhost:8000/nomadxt/api/admin/repair_uploads HTTP/1.1

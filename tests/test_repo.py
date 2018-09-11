@@ -117,6 +117,6 @@ def test_staging_elastic_calc(example_elastic_calc: RepoCalc):
 
 
 def test_unstage_elastic_calc(example_elastic_calc: RepoCalc):
-    RepoCalc.update_upload(upload_id='test_upload_id', staging=False)
+    RepoCalc.unstage(upload_id='test_upload_id', staging=False)
 
     assert not RepoCalc.get(id='test_upload_hash/test_calc_hash').staging
