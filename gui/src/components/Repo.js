@@ -9,7 +9,7 @@ import TableRow from '@material-ui/core/TableRow'
 import Paper from '@material-ui/core/Paper'
 import api from '../api'
 import CalcLinks from './CalcLinks'
-import { TableHead, LinearProgress, FormControl, FormControlLabel, Checkbox, FormGroup, FormLabel } from '@material-ui/core'
+import { TableHead, LinearProgress, FormControl, FormControlLabel, Checkbox, FormGroup, FormLabel, Typography } from '@material-ui/core'
 import Markdown from './Markdown'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
@@ -30,6 +30,10 @@ class Repo extends React.Component {
     },
     progressPlaceholder: {
       height: 5
+    },
+    summary: {
+      textAlign: 'center',
+      marginTop: theme.spacing.unit * 2
     }
   })
 
@@ -119,6 +123,7 @@ class Repo extends React.Component {
             ))}
           </FormGroup>
         </FormControl>
+        <Typography variant="subheading" className={classes.summary}>{total} calculations fit the choosen criteria</Typography>
         <Paper className={classes.data}>
           {loading ? <LinearProgress variant="query" /> : <div className={classes.progressPlaceholder} />}
           <Table>
