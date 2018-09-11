@@ -125,6 +125,8 @@ class Proc(Document, metaclass=ProcMetaclass):
     create_time = DateTimeField(required=True)
     complete_time = DateTimeField()
 
+    _async_status = StringField(default='UNCALLED')
+
     @property
     def completed(self) -> bool:
         """ Returns True of the process has failed or succeeded. """
@@ -300,6 +302,7 @@ class Proc(Document, metaclass=ProcMetaclass):
             'warnings': self.warnings,
             'create_time': self.create_time.isoformat() if self.create_time is not None else None,
             'complete_time': self.complete_time.isoformat() if self.complete_time is not None else None,
+            '_async_status': self._async_status
         }
         return {key: value for key, value in data.items() if value is not None}
 
@@ -368,6 +371,7 @@ def proc_task(task, cls_name, self_id, func_attr):
         return
 
     try:
+        self._async_status = 'RECEIVED-%s' % func.__name__
         func(self)
     except Exception as e:
         self.fail(e)
@@ -382,6 +386,7 @@ def process(func):
     """
     def wrapper(self, *args, **kwargs):
         assert len(args) == 0 and len(kwargs) == 0, 'process functions must not have arguments'
+        self._async_status = 'CALLED-%s' % func.__name__
         self.save()
 
         self_id = self.id.__str__()

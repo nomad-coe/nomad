@@ -40,7 +40,7 @@ import logging
 from nomad import config, files, utils
 from nomad.repo import RepoCalc
 from nomad.user import User, me
-from nomad.processing.base import Proc, process, task, PENDING
+from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import LocalBackend, parsers, parser_dict
 from nomad.normalizing import normalizers
 from nomad.utils import get_logger, lnr
@@ -74,7 +74,7 @@ class Calc(Proc):
 
     meta: Any = {
         'indices': [
-            'upload_id', 'mainfile', 'code', 'parser'
+            'upload_id', 'mainfile', 'code', 'parser', 'status'
         ]
     }
 
@@ -211,10 +211,9 @@ class Upload(Proc):
     upload_time = DateTimeField()
     upload_hash = StringField(default=None)
 
-    processed_calcs = IntField(default=0)
-    total_calcs = IntField(default=-1)
-
     user_id = StringField(required=True)
+
+    _initiated_parsers = IntField(default=-1)
 
     meta: Any = {
         'indexes': [
@@ -305,6 +304,7 @@ class Upload(Proc):
             return False
 
     def unstage(self):
+        self.get_logger().info('unstage')
         self.in_staging = False
         RepoCalc.update_upload(upload_id=self.upload_id, staging=False)
         self.save()
@@ -357,7 +357,7 @@ class Upload(Proc):
     @task
     def parse_all(self):
         # TODO: deal with multiple possible parser specs
-        self.total_calcs = 0
+        total_calcs = 0
         for filename in self._upload.filelist:
             for parser in parsers:
                 try:
@@ -370,16 +370,17 @@ class Upload(Proc):
                             upload_id=self.upload_id)
 
                         calc.process()
-                        self.total_calcs += 1
+                        total_calcs += 1
                 except Exception as e:
                     self.warning(
                         'exception while matching pot. mainfile',
                         mainfile=filename, exc_info=e)
 
-        if self.total_calcs == 0:
+        if total_calcs == 0:
             self.cleanup()
 
         # have to save the total_calcs information
+        self._initiated_parsers = total_calcs
         self.save()
 
     @task
@@ -394,12 +395,20 @@ class Upload(Proc):
         self.get_logger().debug('closed upload')
 
     def calc_proc_completed(self):
-        processed_calcs, (total_calcs,) = self.incr_counter(
-            'processed_calcs', other_fields=['total_calcs'])
-
-        if processed_calcs == total_calcs:
+        if self._initiated_parsers >= 0 and self.processed_calcs >= self.total_calcs:
             self.cleanup()
 
     @property
-    def calcs(self):
-        return Calc.objects(upload_id=self.upload_hash)
+    def processed_calcs(self):
+        return Calc.objects(upload_id=self.upload_id, status__in=[SUCCESS, FAILURE]).count()
+
+    @property
+    def total_calcs(self):
+        return Calc.objects(upload_id=self.upload_id).count()
+
+    @property
+    def failed_calcs(self):
+        return Calc.objects(upload_id=self.upload_id, status=FAILURE).count()
+
+    def all_calcs(self, start, end, order_by='mainfile'):
+        return Calc.objects(upload_id=self.upload_id)[start:end].order_by(order_by)

@@ -27,7 +27,7 @@ def worker(celery_session_worker):
     processes are finished. Therefore open task request might bleed into the next test.
     """
     yield
-    time.sleep(0.2)
+    time.sleep(0.5)
 
 
 @pytest.fixture(scope='function', autouse=True)

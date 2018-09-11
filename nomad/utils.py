@@ -75,7 +75,7 @@ if not _logging_is_configured:
 
     def logger_factory(*args):
         logger = default_factory(*args)
-        if 'pytest' not in sys.modules:
+        if 'pytest' in sys.modules:
             logger.setLevel(logging.WARNING)
         else:
             logger.setLevel(logging.DEBUG)

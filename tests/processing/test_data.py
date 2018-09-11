@@ -138,11 +138,13 @@ def test_task_failure(monkeypatch, uploaded_id, worker, task, caplog):
         assert upload.status == 'FAILURE'
         assert upload.current_task == task
         assert len(upload.errors) > 0
-    elif len(upload.calcs) > 0:  # pylint: disable=E1101
-        assert upload.status == 'SUCCESS'
-        assert upload.current_task == 'cleanup'
-        assert len(upload.errors) > 0
-        for calc in upload.calcs:  # pylint: disable=E1101
-            assert calc.status == 'FAILURE'
-            assert calc.current_task == 'parsing'
-            assert len(calc.errors) > 0
+    else:
+        # there is an empty example with no calcs, even if past parsing_all task
+        if upload.total_calcs > 0:  # pylint: disable=E1101
+            assert upload.status == 'SUCCESS'
+            assert upload.current_task == 'cleanup'
+            assert len(upload.errors) == 0
+            for calc in upload.all_calcs(0, 100):  # pylint: disable=E1101
+                assert calc.status == 'FAILURE'
+                assert calc.current_task == 'parsing'
+                assert len(calc.errors) > 0

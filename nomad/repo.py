@@ -94,8 +94,6 @@ class RepoCalc(ElasticDocument):
         Create a new calculation instance in elastic search. The data from the given backend
         will be used. Additional meta-data can be given as *kwargs*. ``upload_id``,
         ``upload_hash``, and ``calc_hash`` are mandatory.
-        This will create a elastic search entry and store the backend data to the
-        archive.
 
         Arguments:
             backend: The parsing/normalizing backend that contains the calculation data.
@@ -124,9 +122,13 @@ class RepoCalc(ElasticDocument):
                 try:
                     value = backend.get_value(property, 0)
                 except KeyError:
+                    try:
+                        program_name = backend.get_value('program_name', 0)
+                    except KeyError:
+                        program_name = 'unknown'
                     logger.warning(
                         'Missing property value', property=property, upload_id=upload_id,
-                        upload_hash=upload_hash, calc_hash=calc_hash)
+                        upload_hash=upload_hash, calc_hash=calc_hash, code=program_name)
                     continue
 
             setattr(calc, property, value)
@@ -135,14 +137,23 @@ class RepoCalc(ElasticDocument):
         try:
             # In practive es operation might fail due to timeout under heavy loads/
             # bad configuration. Retries with a small delay is a pragmatic solution.
+            e_after_retries = None
             for _ in range(0, 2):
                 try:
                     calc.save(op_type='create')
+                    e_after_retries = None
                     break
                 except ConnectionTimeout as e:
+                    e_after_retries = e
+                    time.sleep(1)
+                except ConflictError as e:  # this should never happen, but happens
+                    e_after_retries = e
                     time.sleep(1)
                 else:
                     raise e
+            if e_after_retries is not None:
+                # if we had and exception and could not fix with retries, throw it
+                raise e_after_retries  # pylint: disable=E0702
         except ConflictError:
             raise AlreadyExists('Calculation %s does already exist.' % (calc.archive_id))
 

@@ -286,16 +286,13 @@ class UploadRes(Resource):
 
         order_by = ('-%s' if order == -1 else '+%s') % order_by
 
+        calcs = upload.all_calcs((page - 1) * per_page, page * per_page, order_by)
+        failed_calcs = upload.failed_calcs
         result = upload.json_dict
-        all_calcs = Calc.objects(upload_id=upload_id)
-        total = all_calcs.count()
-        successes = Calc.objects(upload_id=upload_id, status=SUCCESS).count()
-        failures = Calc.objects(upload_id=upload_id, status=FAILURE).count()
-        calcs = all_calcs[(page - 1) * per_page:page * per_page].order_by(order_by)
         result['calcs'] = {
             'pagination': dict(
-                total=total, page=page, per_page=per_page,
-                successes=successes, failures=failures),
+                total=upload.total_calcs, page=page, per_page=per_page,
+                successes=upload.processed_calcs - failed_calcs, failures=failed_calcs),
             'results': [calc.json_dict for calc in calcs]
         }
 
