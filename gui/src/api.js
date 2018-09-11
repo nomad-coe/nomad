@@ -42,8 +42,7 @@ class Upload {
             url: this.presigned_url,
             method: 'PUT',
             headers: {
-              'Content-Type': 'application/gzip',
-              ...auth_headers
+              'Content-Type': 'application/gzip'
             }
           },
           files: [file],

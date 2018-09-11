@@ -44,3 +44,8 @@ content-type: application/json
 
 ###
 POST http://localhost:8000/nomadxt/api/admin/repair_uploads HTTP/1.1
+
+###
+
+GET http://enc-staging-nomad.esc.rzg.mpg.de//nomadxt/api/uploads HTTP/1.1
+Authorization: Basic bWVAZ21haWwuY29tOm5vbWFk
