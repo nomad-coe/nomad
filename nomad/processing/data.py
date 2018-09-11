@@ -375,9 +375,6 @@ class Upload(Proc):
                         'exception while matching pot. mainfile',
                         mainfile=filename, exc_info=e)
 
-        if total_calcs == 0:
-            self.cleanup()
-
         # have to save the total_calcs information
         self._initiated_parsers = total_calcs
         self.save()
@@ -395,7 +392,7 @@ class Upload(Proc):
         self.get_logger().debug('closed upload')
 
     def calc_proc_completed(self):
-        if self._initiated_parsers >= 0 and self.processed_calcs >= self.total_calcs:
+        if self._initiated_parsers >= 0 and self.processed_calcs >= self.total_calcs and self.current_task == 'parse_all':
             self.cleanup()
 
     @property
