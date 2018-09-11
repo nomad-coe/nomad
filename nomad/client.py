@@ -22,11 +22,12 @@ import shlex
 import time
 import sys
 import requests
+from requests.auth import HTTPBasicAuth
 
 api_base = 'http://localhost/nomadxt/api'
 
 
-def upload_file(file_path, name=None):
+def upload_file(file_path, name=None, user='other@gmail.com', pw='nomad'):
     """
     Upload a file to nomad.
 
@@ -34,10 +35,12 @@ def upload_file(file_path, name=None):
         file_path: Path to the file, absolute or relative to call directory.
         name: Optional name, default is the file_path's basename
     """
+    auth = HTTPBasicAuth(user, pw)
+
     if name is None:
         name = os.path.basename(file_path)
 
-    upload = requests.post('%s/uploads' % api_base, data={name: name}).json()
+    upload = requests.post('%s/uploads' % api_base, data={name: name}, auth=auth).json()
 
     upload_cmd = upload['upload_command']
     upload_cmd = upload_cmd.replace('your_file', file_path)
@@ -47,7 +50,7 @@ def upload_file(file_path, name=None):
     print('File uploaded')
 
     while True:
-        upload = requests.get('%s/uploads/%s' % (api_base, upload['upload_id'])).json()
+        upload = requests.get('%s/uploads/%s' % (api_base, upload['upload_id']), auth=auth).json()
         status = upload['status']
         calcs_pagination = upload['calcs'].get('pagination')
         if calcs_pagination is None:
