@@ -381,6 +381,7 @@ class Upload(Proc):
         # have to save the total_calcs information
         self._initiated_parsers = total_calcs
         self.save()
+        self.calc_proc_completed()
 
     @task
     def cleanup(self):
