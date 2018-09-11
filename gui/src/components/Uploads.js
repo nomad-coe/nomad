@@ -31,11 +31,19 @@ class Uploads extends React.Component {
     },
     dropzone: {
       textAlign: 'center',
-      padding: theme.spacing.unit * 3,
       color: theme.palette.grey[500],
       fontSize: 24,
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
       '& p': {
-        margin: theme.spacing.unit * 3
+        marginTop: 0,
+        marginBottom: theme.spacing.unit * 1
+      },
+      '& svg': {
+        marginLeft: 'auto',
+        marginRight: 'auto'
       }
     },
     dropzoneAccept: {
@@ -183,7 +191,7 @@ class Uploads extends React.Component {
 
   onSelectionAllChanged(checked) {
     if (checked) {
-      this.setState({selectedUploads: [...this.state.uploads.filter(upload => upload.is_ready)]})
+      this.setState({selectedUploads: [...this.state.uploads.filter(upload => upload.completed)]})
     } else {
       this.setState({selectedUploads: []})
     }

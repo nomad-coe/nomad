@@ -190,7 +190,13 @@ class Upload extends React.Component {
       },
       parse_all: (props) => {
         props.children = 'parse'
-        if (calcs && calcs.pagination.total > 0) {
+        if (!calcs) {
+          props.optional = (
+            <Typography variant="caption" >
+              loading...
+            </Typography>
+          )
+        } else if (calcs.pagination.total > 0) {
           const { total, successes, failures } = calcs.pagination
 
           if (failures) {

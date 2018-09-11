@@ -2,7 +2,7 @@ import { UploadRequest } from '@navjobs/upload'
 import { apiBase, appStaticBase } from './config'
 
 const auth_headers = {
-  Authorization: 'Basic ' + btoa('me@gmail.com' + ':' + 'nomad')
+  Authorization: 'Basic ' + btoa('me@gmail.com:nomad')
 }
 
 const networkError = () => {
