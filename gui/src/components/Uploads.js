@@ -291,7 +291,7 @@ class Uploads extends React.Component {
                   id="name-helper" value={this.state.uploadName}
                   onChange={(event) => this.setState({uploadName: event.target.value})}
                 />
-                <FormHelperText id="name-helper-text">optiona, helps to track the upload</FormHelperText>
+                <FormHelperText id="name-helper-text">optional, helps to track the upload</FormHelperText>
               </DialogContent>
               <DialogActions>
                 <Button

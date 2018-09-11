@@ -12,10 +12,13 @@ class ConfirmDialog extends React.Component {
     onOk: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,
     open: PropTypes.bool,
+    title: PropTypes.string,
     children: PropTypes.any
   }
 
   render() {
+    const { children, title } = this.props
+
     return (
       <div>
         <Dialog
@@ -24,10 +27,10 @@ class ConfirmDialog extends React.Component {
           aria-labelledby="alert-dialog-title"
           aria-describedby="alert-dialog-description"
         >
-          <DialogTitle id="alert-dialog-title">{"Use Google's location service?"}</DialogTitle>
+          <DialogTitle id="alert-dialog-title">{title || 'Confirm'}</DialogTitle>
           <DialogContent>
             <DialogContentText id="alert-dialog-description">
-              {this.props.children}
+              {children}
             </DialogContentText>
           </DialogContent>
           <DialogActions>
