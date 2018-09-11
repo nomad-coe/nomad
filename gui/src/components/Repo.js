@@ -9,10 +9,13 @@ import TableRow from '@material-ui/core/TableRow'
 import Paper from '@material-ui/core/Paper'
 import api from '../api'
 import CalcLinks from './CalcLinks'
-import { TableHead, LinearProgress, FormControl, FormControlLabel, Checkbox, FormGroup, FormLabel, Typography } from '@material-ui/core'
+import { TableHead, LinearProgress, FormControl, FormControlLabel, Checkbox, FormGroup, FormLabel, Typography, IconButton, MuiThemeProvider } from '@material-ui/core'
 import Markdown from './Markdown'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
+import AnalyticsIcon from '@material-ui/icons/Settings'
+import { analyticsTheme } from '../config'
+import Link from 'react-router-dom/Link'
 // import PeriodicTable from './PeriodicTable'
 
 class Repo extends React.Component {
@@ -34,6 +37,12 @@ class Repo extends React.Component {
     summary: {
       textAlign: 'center',
       marginTop: theme.spacing.unit * 2
+    },
+    selectFormGroup: {
+      paddingLeft: theme.spacing.unit * 3
+    },
+    selectLabel: {
+      padding: theme.spacing.unit * 2
     }
   })
 
@@ -123,7 +132,21 @@ class Repo extends React.Component {
             ))}
           </FormGroup>
         </FormControl>
-        <Typography variant="subheading" className={classes.summary}>{total} calculations fit the choosen criteria</Typography>
+
+        <FormGroup className={classes.selectFormGroup} row>
+          <FormLabel classes={{root: classes.selectLabel}} style={{flexGrow: 1}}>
+
+          </FormLabel>
+          <FormLabel classes={{root: classes.selectLabel}}>
+            Analyse {total} calculations in an analytics notebook
+          </FormLabel>
+          <MuiThemeProvider theme={analyticsTheme}>
+            <IconButton color="primary" component={Link} to={`/analytics`}>
+              <AnalyticsIcon />
+            </IconButton>
+          </MuiThemeProvider>
+        </FormGroup>
+
         <Paper className={classes.data}>
           {loading ? <LinearProgress variant="query" /> : <div className={classes.progressPlaceholder} />}
           <Table>
