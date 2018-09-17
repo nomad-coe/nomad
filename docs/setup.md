@@ -1,87 +1,183 @@
-# Setup
+# Development Setup
 
-### Preparations
-If not already done, you should clone nomad xt and create a python virtual environment.
+## Introduction
+The nomad infrastructure consists of a series of nomad and 3rd party services:
+- nomad handler (python): a small daemon that triggers processing after upload
+- nomad worker (python): task worker that will do the processing
+- nomad api (python): the nomad REST API
+- nomad gui: a small server serving the web-based react gui
+- proxy: an nginx server that reverse proxyies all services under one port
+- minio: a object storage interface to all files
+- elastic search: nomad's search and analytics engine
+- mongodb: used to store processing state
+- rabbitmq: a task queue used to distribute work in a cluster
 
-First, clone this repo:
+All 3rd party services should be run via *docker-compose* (see blow). The
+nomad python  services can also be run via *docker-compose* or manully started with python.
+The gui can be run manually with a development server via yarn, or with
+*docker-compose*
+
+Below you will find information on how to install all python dependencies and code
+manually. How to use *docker*/*docker-compose*. How run services with *docker-compose*
+or manually.
+
+Keep in mind the *docker-compose* configures all services in a way that mirror
+the configuration of the python code in `nomad/config.py` and the gui config in
+`gui/.env.development`.
+
+## Install python code and dependencies
+
+### Cloning and development tools
+If not already done, you should clone nomad and create a python virtual environment.
+
+To clone the repository:
 ```
 git clone git@gitlab.mpcdf.mpg.de:mscheidg/nomad-xt.git
 cd nomad-xt
 ```
 
-Second, create and source your own virtual python environment:
+You can use *virtualenv* to create a virtual environement. It will allow you
+to keep nomad and its dependencies separate from your system's python installation.
+Make sure to base the virtual environement on Python 3.
+To install *virtualenv*, create an environement and activate the environment use:
 ```
 pip install virtualenv
 virtualenv -p `which python3` .pyenv
 source .pyenv/bin/activate
 ```
 
-Install the development dependencies:
+We use *pip* to manage dependencies. There are multiple *requirements* files.
+One of them, called *requirements-dev* contains all tools necessary to develop and build
+nomad.
 ```
 pip install -r requirements-dev.txt
 ```
 
-### Install intra nomad dependencies.
-This includes parsers, normalizers, python-common, meta-info, etc.
-Those dependencies are managed and configures via python scripts.
+### Install NOMAD-coe dependencies.
+Nomad is based on python modules from the NOMAD-coe project.
+This includes parsers, normalizers, python-common and the meta-info.
+Those dependencies are managed and configured via python in
+`nomad/dependencies.py`. This gives us more flexibility in interactiving with
+different parser, normalizer versions from within the running nomad infrastructure.
 
-This step is some what optional. Those dependencies are only needed for processing.
-If you do not develop on the processing and do not need to run the workers from
-your environment, and only use the docker image for processing, you can skip.
-
-Install some pre-requisite requriements
+We compiled a the *requirements-dep* file with python modules that are commonly
+used in NOMAD-coe. It is optional, but you should install them first, as they sort
+out some issues with installing dependencies in the right order later.
 ```
 pip install -r requirements-dep.txt
 ```
 
-Run the dependency installation
+To actually run the dependencies script:
 ```
 python nomad/dependencies.py
 ```
+This will checkout the proper version of the respective NOMAD-coe modules, install
+further requirements, and install the modules themselves.
 
-### Install the the actual code
-
+### Install nomad
+Finally, you can add nomad to the environement itself.
 ```
 pip install -r requirements.txt
 pip install -e .
 ```
 
-### Build and run the dev infrastructure with docker.
-There are different modes to work and develop with nomad-xt. First, you
-can run everything in docker containers. Second, you can only run the 3rd party
-services, like databases and message queues in docker, and run everything else (partially)
-manually.
+## Build and run the infrastructure with docker
 
-First, you need to build an image with all dependencies. We separated this so we
-do not need to redownload and bwheel-build rarely changing dependencies all the time (and
-multi stage builds and docker caching seems not to be good enough here).
-From the root:
+### Docker and nomad
+Nomad depends on a set of databases, searchengine, and other services. Those
+must run to make use of nomad. We use *docker* and *docker-compose* to create a
+unified environment that is easy to build and to run.
+
+You can use *docker* to run all necessary 3rd-party components and run all nomad
+services manually from your python environement. Or you can run everything within
+docker containers. The former is often prefered during development, since it allows
+you change things, debug, and re-run things quickly. The later one brings you
+closer to the environement that will be used to run nomad in production.
+
+### Docker images for nomad
+There are currently three different images and respectively three different docker files:
+`requirements.Dockerfile`, `backend.Dockerfile`, and `frontend.Dockerfile`.
+
+Nomad comprises currently three services, the *handler* (deals with user uploads),
+the *worker* (does the actual processing), and the *api*. Those services can be
+run from one image that have the nomad python code and all dependencies installed. This
+is covered by the `backend.Dockerfile`.
+
+The `requirements.Dockerfile` builds an image that has all dependencies pre installed.
+We keep it separate, because the dependencies change rather seldomly and we do not want to
+reinstall them all the time, we need to build new images.
+
+The fontend image is only for building and serving the gui.
+
+Build the requirements image tagged `nomadxt_requirements`:
 ```
-docker build -t nomad-requirements -f requirements.Dockerfile .
+docker build -t nomadxt_requirements -f requirements.Dockerfile .
 ```
 
-Now we can build the docker compose that contains all external services (redis, rabbitmq,
+The other images are build via *docker-compose* and don't have to be created manually.
+
+### Build with docker-compose
+
+Now we can build the *docker-compose* that contains all external services (rabbitmq,
 mongo, elastic, minio, elk) and nomad services (worker, handler, api, gui).
 ```
-cd ./infrastructure
+cd ./infrastructure/nomadxt
 docker-compose build
 ```
+
+Docker-compose tries to cache individual building steps. Sometimes this causes
+troubles and not everything necessary is build when you changed something. In
+this cases use:
+```
+docker-compose build --no-cache
+```
+
+### Run everything with docker-compose
 
 You can run all containers with:
 ```
 docker-compose up
 ```
 
-You can alos run services selectively, e.g.
+To shut down everything, just `ctrl-c` the running output. If you started everything
+in *deamon* mode (`-d`) use:
+```
+docker-compose down
+```
+
+### Run containers selectively
+The following services/containers are managed via our docker-compose:
+- rabbitmq, minio, minio-config, mongo, elastic, elk
+- worker, handler, api
+- gui
+- proxy
+
+The *proxy* container runs *nginx* based reverse proxies that put all services under
+a single port and different paths.
+
+You can also run services selectively, e.g.
 ```
 docker-compose up -d redis, rabbitmq, minio, minio-config, mongo, elastic, elk
 docker-compose up worker handler
 docker-compose up api gui proxy
 ```
 
+## Accessing 3'rd party services
+
+Usually these services only used by the nomad containers, but sometimes you also
+need to checkseomthing or do some manual steps.
+
+The file `infrastructure/nomadxt/.env` contains variables that control the ports
+used to bind internal docker ports to your host machine. These are the ports you
+have to use to connect to the respective services.
+
+### ELK (elastic stack)
+
 If you run the ELK stack (and enable logstash in nomad/config.py),
 you can reach the Kibana with [localhost:5601](http://localhost:5601).
 The index prefix for logs is `logstash-`.
+
+### Minio
 
 If you want to access the minio object storage via the mc client, register the
 infrastructure's minio host to the minio client (mc).
@@ -89,17 +185,21 @@ infrastructure's minio host to the minio client (mc).
 mc config host add minio http://localhost:9007 AKIAIOSFODNN7EXAMPLE wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 ```
 
-### Serving minio, api, gui from one nginx
-The docker-compose is setup to server all client accessible services from one webserver
-via nginx *proxy_pass* directives. This is done in the `proxy` container.
+### mongodb and elastic search
 
+You can access mongodb and elastic search via your prefered tools. Just make sure
+to use the right ports (see above).
+
+
+## Run nomad services manually
+
+You can run the worker, handler, api, and gui as part of the docker infrastructure, like
+seen above. But, of course there are always reasons to run them manually during
+development, like running them in a debugger, profiler, etc.
 
 ### Run the nomad worker manually
-You can run the worker, handler, api, and gui as part of the docker infrastructure, like
-seen above.
 
-You can also run the worker yourself, e.g. to develop on the processing. To simply
-run a worker do (from the root)
+To simply run a worker do (from the root)
 ```
 celery -A nomad.processing worker -l info
 ```
@@ -140,7 +240,7 @@ python nomad/api.py
 
 ### Run the gui
 When you run the gui on its own (e.g. with react dev server below), you have to have
-the API running manually also. This *inside docker* API is configured for nging paths
+the API running manually also. This *inside docker* API is configured for ngingx paths
 and proxies, which are run by the gui container. But you can run the *production* gui
 in docker and the dev server gui in parallel with an API in docker.
 Either with docker, or:
@@ -150,7 +250,7 @@ yarn
 yarn start
 ```
 
-### Run tests.
+## Run the tests
 You need to have the infrastructure partially running: minio, elastic, rabbitmq, redis.
 The rest should be mocked or provied by the tests. Make sure that you do no run any
 worker and handler in parallel, as they will fight for tasks in the queue.

@@ -30,7 +30,7 @@ r_frame_sequence_local_frames = 'frame_sequence_local_frames_ref'
 class Normalizer(metaclass=ABCMeta):
     """
     A base class for normalizers. Normalizers work on a :class:`AbstractParserBackend` instance
-    for read and write.
+    for read and write. Normalizer instances are reused.
 
     Arguments:
         backend: the backend used to read and write data from and to

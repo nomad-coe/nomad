@@ -14,10 +14,10 @@
 
 """
 This module is about maintaining the repository search index and providing all
-data to the repository related parts of nomad xt.
+data to the repository related parts of nomad.
 
 We use *elasticsearch_dsl* to interface with elastic search. The class :class:`RepoCalc`
-is an elasticsearch_dsl document that is used to represent elastic search index entries.
+is an elasticsearch_dsl document that is used to represent repository index entries.
 
 .. autoclass:: nomad.repo.RepoCalc
         :members:

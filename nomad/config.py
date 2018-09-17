@@ -37,7 +37,7 @@ FSConfig = namedtuple('FSConfig', ['tmp'])
 ElasticConfig = namedtuple('ElasticConfig', ['host', 'calc_index'])
 """ Used to configure elastic search. """
 
-MongoConfig = namedtuple('MongoConfig', ['host', 'users_db'])
+MongoConfig = namedtuple('MongoConfig', ['host', 'port', 'users_db'])
 """ Used to configure mongo db. """
 
 LogstashConfig = namedtuple('LogstashConfig', ['enabled', 'host', 'tcp_port', 'level'])
@@ -81,6 +81,7 @@ elastic = ElasticConfig(
 )
 mongo = MongoConfig(
     host=os.environ.get('NOMAD_MONGO_HOST', 'localhost'),
+    port=int(os.environ.get('NOMAD_MONGO_PORT', 27017)),
     users_db='users'
 )
 logstash = LogstashConfig(

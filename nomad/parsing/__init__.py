@@ -32,17 +32,28 @@ Each parser is defined via an instance of :class:`Parser`.
 .. autoclass:: nomad.parsing.Parser
     :members:
 
+The implementation :class:`LegacyParser` is used for most NOMAD-coe parsers.
+
+.. autoclass:: nomad.parsing.LegacyParser
+
 The parser definitions are available via the following two variables.
 
 .. autodata:: nomad.parsing.parsers
 .. autodata:: nomad.parsing.parser_dict
 
-Parsers in NOMAD-coe use a *backend* to create output.
+Parsers are reused for multiple caclulations.
+
+Parsers in NOMAD-coe use a *backend* to create output. There are different NOMAD-coe
+basends. In nomad@FAIR, we only currently only use a single backed. A version of
+NOMAD-coe's *LocalBackend*. It stores all parser results in memory. The following
+classes provide a interface definition for *backends* as an ABC and a concrete implementation
+based on NOMAD-coe's *python-common* module.
 
 .. autoclass:: nomad.parsing.AbstractParserBackend
     :members:
 .. autoclass:: nomad.parsing.LocalBackend
     :members:
+
 """
 
 from nomad.parsing.backend import AbstractParserBackend, LocalBackend, LegacyLocalBackend, JSONStreamWriter, BadContextURI, WrongContextState

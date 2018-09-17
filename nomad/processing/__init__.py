@@ -17,17 +17,20 @@ Processing comprises everything that is necessary to take an uploaded user file,
 processes it, and store all necessary data for *repository*, *archive*, and potential
 future services (e.g. *encyclopedia*).
 
-Processing is build on top of *celery* (http://www.celeryproject.org/).
+Processing is build on top of *celery* (http://www.celeryproject.org/) and
+*mongodb* (http://www.mongodb.org).
 Celery provides a task-based programming model for distributed computing. It uses
-a broker, e.g. a distributed task queue like *RabbitMQ* (), to distribute task requests,
-and a result backend, e.g. a *Redis* database (), to access (intermediate) task results.
-This combination allows us to easily distribute processing work while having
-the processing state, i.e. (intermediate) results, always available.
+a broker, e.g. a distributed task queue like *RabbitMQ* to distribute tasks. We
+use mongodb to store the current state of processing in :class:`Upload` and
+:class:`Calculation` documents. This combination allows us to easily distribute
+processing work while having the processing state, i.e. (intermediate) results,
+always available.
 
-This module is structures into our *celery app* and abstract process base class
+This module is structured into our *celery app* and abstract process base class
 :class:`Proc` (``base.py``), the concrete processing classes
 :class:`Upload` and :class:`Calc` (``data.py``), and the *handler* service that
-initiates processing based on file storage notifications (``handler.py``, ``handlerdaemon.py``).
+initiates processing based on file storage notifications from *minio*
+(``handler.py``, ``handlerdaemon.py``).
 
 This module does not contain the functions to do the actual work. Those are encapsulated
 in :py:mod:`nomad.files`, :py:mod:`nomad.repo`, :py:mod:`nomad.users`,
@@ -40,15 +43,14 @@ Refer to http://www.celeryproject.org/ to learn about celery apps and workers. T
 nomad celery app uses a *RabbitMQ* broker. We use celery to distribute processing load
 in a cluster.
 
-
 Processing
 ----------
 
-We use an abstract processing base class (:class:`Proc`) that provides all necessary
-function to execute a process as a series of potentially distributed steps. In
+We use an abstract processing base class and document (:class:`Proc`) that provides all
+necessary functions to execute a process as a series of potentially distributed steps. In
 addition the processing state is persisted in mongodb using *mongoengine*. Instead of
 exchanging serialized state between celery tasks, we use the mongodb documents to
-exchange data. Therefore, the mongodb always contains the latest processing status.
+exchange data. Therefore, the mongodb always contains the latest processing state.
 We also don't have to deal with celery result backends and synchronizing with them.
 
 .. autoclass:: nomad.processing.base.Proc
@@ -57,9 +59,9 @@ There are two concrete processes :class:`Upload` and :class: `Calc`. Instances o
 classes do represent the processing state, as well as the respective entity.
 
 .. figure:: proc.png
-   :alt: nomad xt processing workflow
+   :alt: nomad processing workflow
 
-   This is the basic workflow of a nomad xt upload processing.
+   This is the basic workflow of a nomad upload processing.
 
 .. autoclass:: nomad.processing.data.Upload
     :members:

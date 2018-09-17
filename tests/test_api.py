@@ -31,7 +31,7 @@ from tests.test_repo import example_elastic_calc  # noqa pylint: disable=unused-
 @pytest.fixture(scope='function')
 def client():
     disconnect()
-    connect('users_test', host=config.mongo.host, is_mock=True)
+    connect('users_test', host=config.mongo.host, port=config.mongo.port, is_mock=True)
 
     api.app.config['TESTING'] = True
     client = api.app.test_client()

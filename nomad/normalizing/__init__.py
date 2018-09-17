@@ -22,6 +22,21 @@ from .fhiaims import FhiAimsBaseNormalizer
 """
 After parsing calculations have to be normalized with a set of *normalizers*.
 In NOMAD-coe those were programmed in python (we'll reuse) and scala (we'll rewrite).
+
+Currently the normalizers are:
+- system.py
+- symmetry.py
+- fhiaims.py
+- systemtype.py
+
+The normalizers are available via
+
+.. autodata:: nomad.normalizing.normalizers
+
+There is one ABC for all normalizer:
+
+.. autoclass::nomad.normalizing.normalizer.Normalizer
+    :members:
 """
 
 # The loose explicit type is necessary to avoid a ABC class as item type that causes

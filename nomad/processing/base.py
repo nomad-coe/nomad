@@ -35,7 +35,7 @@ import nomad.patch  # pylint: disable=unused-import
 
 
 def mongo_connect():
-    return connect(db=config.mongo.users_db, host=config.mongo.host)
+    return connect(db=config.mongo.users_db, host=config.mongo.host, port=config.mongo.port)
 
 if config.logstash.enabled:
     def initialize_logstash(logger=None, loglevel=logging.DEBUG, **kwargs):
@@ -51,7 +51,7 @@ app = Celery('nomad.processing', broker=config.celery.broker_url)
 
 # ensure elastic and mongo connections
 if 'sphinx' not in sys.modules:
-    connect(db=config.mongo.users_db, host=config.mongo.host)
+    connect(db=config.mongo.users_db, host=config.mongo.host, port=config.mongo.port)
 
 
 PENDING = 'PENDING'

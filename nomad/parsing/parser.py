@@ -36,6 +36,7 @@ class Parser(metaclass=ABCMeta):
         main_file_re: A regexp that matches main file paths that this parser can handle.
         main_contents_re: A regexp that matches main file headers that this parser can parse.
     """
+
     @abstractmethod
     def is_mainfile(self, filename: str, open: Callable[[str], IO[Any]]) -> bool:
         """ Checks if a file is a mainfile via the parsers ``main_contents_re``. """
@@ -58,7 +59,16 @@ class Parser(metaclass=ABCMeta):
 class LegacyParser(Parser):
     """
     A parser implementation for legacy NOMAD-coe parsers. Uses a
-    :class:`nomad.dependencies.PythonGit` to specify the old parser repository.
+    :class:`nomad.dependencies.PythonGit` to specify the old parser repository. It
+    uses regular expessions to match parsers to mainfiles.
+
+    Arguments:
+        python_get: the git repository and commit that contains the legacy parser
+        parser_class_name: the main parser class that implements NOMAD-coe's
+            python-common *ParserInterface*. Instances of this class are currently not reused.
+        main_file_re: A regexp that is used to match the paths of potential mainfiles
+        main_contents_re: A regexp that is used to match the first 500 bytes of a
+            potential mainfile.
     """
     def __init__(
             self, python_git: PythonGit, parser_class_name: str, main_file_re: str,

@@ -1,3 +1,35 @@
+# Copyright 2018 Markus Scheidgen
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an"AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""
+Some utility functions.
+
+.. autofunc::nomad.utils.create_uuid
+.. autofunc::nomad.utils.hash
+
+Logging in nomad is structured. Structured logging means that log entries contain
+dictionaries with quantities related to respective events. E.g. having the code,
+parser, parser version, calc_hash, mainfile, etc. for all events that happen during
+calculation processing. This means the :func:`get_logger` and all logger functions
+take keyword arguments for structured data. Otherwise :func:`get_logger` can
+be used similar to the standard *logging.getLogger*.
+
+Depending on the configuration all logs will also be send to a central logstash.
+
+.. autofunc::nomad.utils.get_logger
+"""
+
 from typing import Union, IO, cast
 import hashlib
 import base64
@@ -100,11 +132,15 @@ if not _logging_is_configured:
 
 
 def create_uuid() -> str:
+    """ Returns a web-save base64 encoded random uuid (type 4). """
     return base64.b64encode(uuid.uuid4().bytes, altchars=b'-_').decode('utf-8')[0:-2]
 
 
 def hash(obj: Union[IO, str]) -> str:
-    """ First 28 character of an URL safe base 64 encoded sha512 digest. """
+    """
+    Returns a web-save base64 encoded 28 long hash for the given contents.
+    First 28 character of an URL safe base 64 encoded sha512 digest.
+    """
     hash = hashlib.sha512()
     if getattr(obj, 'read', None) is not None:
         for data in iter(lambda: cast(IO, obj).read(65536), b''):
@@ -118,7 +154,7 @@ def hash(obj: Union[IO, str]) -> str:
 def get_logger(name, **kwargs):
     """
     Returns a structlog logger that is already attached with a logstash handler.
-    User additional *kwargs* to pre-bind some values.
+    Use additional *kwargs* to pre-bind some values to all events.
     """
     logger = structlog.get_logger(name, service=_service, **kwargs)
     return logger
@@ -126,30 +162,16 @@ def get_logger(name, **kwargs):
 
 @contextmanager
 def lnr(logger, event, **kwargs):
+    """
+    A context manager that Logs aNd Raises all exceptions with the given loggeer.
+
+    Arguments:
+        logger: The logger that should be used for logging exceptions.
+        event: the log message
+        **kwargs: additional properties for the structured log
+    """
     try:
         yield
     except Exception as e:
         logger.error(event, exc_info=e, **kwargs)
         raise e
-
-
-class DataObject(dict):
-    """
-    A simpe data class base that allows to create javascript style objects.
-    Is also json serializable, if you only but json serializable contents into it.
-    """
-    def __getattr__(self, name):
-        try:
-            return self.__getitem__(name)
-        except KeyError:
-            raise AttributeError
-
-    def __setattr__(self, name, val):
-        return self.__setitem__(name, val)
-
-    def __delattr__(self, name):
-        assert name != 'data'
-        return self.__delitem__(name)
-
-    def update(self, dct):
-        return super().update({key: value for key, value in dct.items() if value is not None})
