@@ -163,17 +163,19 @@ class Calc(Proc):
     @task
     def archiving(self):
         upload_hash, calc_hash = self.archive_id.split('/')
-        # persist to elastic search
-        RepoCalc.create_from_backend(
-            self._parser_backend,
-            upload_hash=upload_hash,
-            calc_hash=calc_hash,
-            upload_id=self.upload_id,
+        additional = dict(
             mainfile=self.mainfile,
             upload_time=self._upload.upload_time,
             staging=True,
             restricted=False,
             user_id=self._upload.user_id)
+        # persist to elastic search
+        RepoCalc.create_from_backend(
+            self._parser_backend,
+            additional=additional,
+            upload_hash=upload_hash,
+            calc_hash=calc_hash,
+            upload_id=self.upload_id)
 
         # persist the archive
         with files.write_archive_json(self.archive_id) as out:

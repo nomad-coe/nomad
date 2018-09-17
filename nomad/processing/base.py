@@ -281,7 +281,7 @@ class Proc(Document, metaclass=ProcMetaclass):
         else:
             return updated_raw[field], [updated_raw[field] for field in other_fields]
 
-    def block_until_complete(self, interval=0.1):
+    def block_until_complete(self, interval=0.01):
         """
         Reloads the process constrantly until it sees a completed process. Should be
         used with care as it can block indefinetly. Just intended for testing purposes.

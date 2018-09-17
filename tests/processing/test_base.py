@@ -2,6 +2,8 @@ import pytest
 from mongoengine import connect, IntField, ReferenceField
 from mongoengine.connection import disconnect
 import time
+import logging
+import json
 
 from nomad import config
 from nomad.processing.base import Proc, process, task, SUCCESS, FAILURE, RUNNING, PENDING
@@ -52,11 +54,18 @@ class FailTasks(Proc):
         self.fail('fail fail fail')
 
 
-def test_fail():
+def test_fail(caplog):
+    caplog.set_level(logging.CRITICAL, logger='nomad.processing.base')
     p = FailTasks.create()
     p.will_fail()
 
     assert_proc(p, 'will_fail', FAILURE, errors=1)
+    has_log = False
+    for record in caplog.records:
+        if record.levelname == 'ERROR':
+            has_log = True
+            assert json.loads(record.msg)['event'] == 'task failed'
+    assert has_log
 
 
 class SimpleProc(Proc):
@@ -74,7 +83,7 @@ class SimpleProc(Proc):
         pass
 
 
-def test_simple_process(celery_session_worker):
+def test_simple_process(worker):
     p = SimpleProc.create()
     p.process()
     p.block_until_complete()
@@ -88,7 +97,8 @@ class TaskInProc(Proc):
         pass
 
 
-def test_task_as_proc(celery_session_worker):
+# @pytest.mark.timeout(5)
+def test_task_as_proc(worker):
     p = TaskInProc.create()
     p.process()
     p.block_until_complete()
@@ -122,9 +132,12 @@ class ChildProc(Proc):
         self.parent.on_child_complete()
 
 
-def test_counter(worker):
+# @pytest.mark.timeout(5)
+def test_counter(worker, caplog):
     p = ParentProc.create()
     p.spawn_children()
     p.block_until_complete()
     assert_proc(p, 'after_children')
 
+    for record in caplog.records:
+        assert record.levelname not in ['WARNING', 'ERROR', 'CRITICAL']

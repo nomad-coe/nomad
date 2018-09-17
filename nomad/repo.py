@@ -23,6 +23,7 @@ is an elasticsearch_dsl document that is used to represent repository index entr
         :members:
 """
 
+from typing import Dict, Any
 import sys
 from elasticsearch.exceptions import ConflictError, RequestError, ConnectionTimeout
 from elasticsearch_dsl import Document as ElasticDocument, Search, Date, Keyword, Boolean, \
@@ -88,7 +89,8 @@ class RepoCalc(ElasticDocument):
 
     @classmethod
     def create_from_backend(
-            cls, backend: LocalBackend, upload_id: str, upload_hash: str, calc_hash: str,
+            cls, backend: LocalBackend, additional: Dict[str, Any],
+            upload_id: str, upload_hash: str, calc_hash: str,
             **kwargs) -> 'RepoCalc':
         """
         Create a new calculation instance in elastic search. The data from the given backend
@@ -97,11 +99,12 @@ class RepoCalc(ElasticDocument):
 
         Arguments:
             backend: The parsing/normalizing backend that contains the calculation data.
+            additional: Additional arguments not stored in the backend. E.g. ``user_id``,
+                ``staging``, ``restricted``
             upload_hash: The upload hash of the originating upload.
             upload_id: The upload id of the originating upload.
             calc_hash: The upload unique hash for this calculation.
-            kwargs: Additional arguments not stored in the backend. E.g. ``user_id``,
-                ``staging``, ``restricted``
+            kwargs: Arguments are passed to elasticsearch index operation.
 
         Raises:
             AlreadyExists: If the calculation already exists in elastic search. We use
@@ -109,15 +112,15 @@ class RepoCalc(ElasticDocument):
                 ``archive_id``.
         """
         assert upload_hash is not None and calc_hash is not None and upload_id is not None
-        kwargs.update(dict(upload_hash=upload_hash, calc_hash=calc_hash, upload_id=upload_id))
+        additional.update(dict(upload_hash=upload_hash, calc_hash=calc_hash, upload_id=upload_id))
 
         # prepare the entry with all necessary properties from the backend
         calc = cls(meta=dict(id='%s/%s' % (upload_hash, calc_hash)))
         for property in cls._doc_type.mapping:
             property = key_mappings.get(property, property)
 
-            if property in kwargs:
-                value = kwargs[property]
+            if property in additional:
+                value = additional[property]
             else:
                 try:
                     value = backend.get_value(property, 0)
@@ -140,7 +143,7 @@ class RepoCalc(ElasticDocument):
             e_after_retries = None
             for _ in range(0, 2):
                 try:
-                    calc.save(op_type='create')
+                    calc.save(op_type='create', **kwargs)
                     e_after_retries = None
                     break
                 except ConnectionTimeout as e:

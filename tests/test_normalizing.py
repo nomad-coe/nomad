@@ -18,6 +18,7 @@ from nomad.parsing import LocalBackend
 from nomad.normalizing import normalizers
 
 from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
+from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_example  # pylint: disable=unused-import
 
 
@@ -41,6 +42,11 @@ def normalized_vasp_example(parsed_vasp_example: LocalBackend) -> LocalBackend:
 @pytest.fixture
 def normalized_example(parsed_example: LocalBackend) -> LocalBackend:
     return run_normalize(parsed_example)
+
+
+@pytest.fixture
+def normalized_template_example(parsed_template_example) -> LocalBackend:
+    return run_normalize(parsed_template_example)
 
 
 def assert_normalized(backend):

@@ -23,13 +23,13 @@ from nomad import config
 from nomad.parsing import LocalBackend
 from nomad.repo import AlreadyExists, RepoCalc, key_mappings
 
-from tests.test_normalizing import normalized_vasp_example  # pylint: disable=unused-import
-from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
+from tests.test_normalizing import normalized_template_example  # pylint: disable=unused-import
+from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
 from tests.test_files import assert_not_exists
 
 
 @pytest.fixture(scope='function')
-def example_elastic_calc(normalized_vasp_example: LocalBackend, caplog) \
+def example_elastic_calc(normalized_template_example: LocalBackend, caplog) \
         -> Generator[RepoCalc, None, None]:
     try:
         caplog.set_level(logging.ERROR)
@@ -40,14 +40,15 @@ def example_elastic_calc(normalized_vasp_example: LocalBackend, caplog) \
         caplog.set_level(logging.WARNING)
 
     entry = RepoCalc.create_from_backend(
-        normalized_vasp_example,
+        normalized_template_example,
         upload_hash='test_upload_hash',
         calc_hash='test_calc_hash',
         upload_id='test_upload_id',
-        mainfile='/test/mainfile',
-        upload_time=datetime.now(),
-        staging=True, restricted=False, user_id='me')
-    time.sleep(1)  # eventually consistent?
+        additional=dict(
+            mainfile='/test/mainfile',
+            upload_time=datetime.now(),
+            staging=True, restricted=False, user_id='me'),
+        refresh='true')
 
     yield entry
 
@@ -77,17 +78,19 @@ def test_create_elasitc_calc(example_elastic_calc: RepoCalc):
 
 
 def test_create_existing_elastic_calc(
-        example_elastic_calc: RepoCalc, normalized_vasp_example, caplog):
+        example_elastic_calc: RepoCalc, normalized_template_example, caplog):
     try:
         caplog.set_level(logging.ERROR)
         RepoCalc.create_from_backend(
-            normalized_vasp_example,
+            normalized_template_example,
             upload_hash='test_upload_hash',
             calc_hash='test_calc_hash',
             upload_id='test_upload_id',
-            mainfile='/test/mainfile',
-            upload_time=datetime.now(),
-            staging=True, restricted=False, user_id='me')
+            additional=dict(
+                mainfile='/test/mainfile',
+                upload_time=datetime.now(),
+                staging=True, restricted=False, user_id='me'),
+            refresh='true')
         assert False
     except AlreadyExists:
         caplog.set_level(logging.WARNING)

@@ -148,7 +148,7 @@ def test_upload_notification(upload_id):
     handle_uploads_thread = Thread(target=handle_uploads)
     handle_uploads_thread.start()
 
-    time.sleep(1)
+    time.sleep(0.1)
     test_presigned_url(upload_id)
 
     handle_uploads_thread.join()

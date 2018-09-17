@@ -1,7 +1,6 @@
 import pytest
 from mongoengine import connect
 from mongoengine.connection import disconnect
-import time
 
 from nomad import config
 
@@ -19,15 +18,42 @@ def celery_config():
 
 
 @pytest.fixture(scope='function')
-def worker(celery_session_worker):
+def purged_queue(celery_app):
     """
-    Extension of the buildin celery_session_worker fixture that adds sleep to consume
-    bleeding tasks.
-    Processes might be completed (and therefore the test it self) before child
-    processes are finished. Therefore open task request might bleed into the next test.
+    Purges all pending tasks of the celery app before test. This is necessary to
+    remove tasks from the queue that might be 'left over' from prior tests.
     """
+    celery_app.control.purge()
     yield
-    time.sleep(0.5)
+
+
+@pytest.fixture(scope='function')
+def patched_celery(monkeypatch):
+    # There is a bug in celery, which prevents to use the celery_worker for multiple
+    # tests: https://github.com/celery/celery/issues/4088
+    # The bug has a fix from Aug 2018, but it is not yet released (TODO).
+    # We monkeypatch a similar solution here.
+    def add_reader(self, fds, callback, *args):
+        from kombu.utils.eventio import ERR, READ, WRITE, poll
+
+        if self.poller is None:
+            self.poller = poll()
+
+        return self.add(fds, callback, READ | ERR, args)
+
+    monkeypatch.setattr('kombu.asynchronous.hub.Hub.add_reader', add_reader)
+    yield
+
+
+@pytest.fixture(scope='function')
+def worker(patched_celery, purged_queue, celery_worker):
+    """
+    Extension of the celery_worker fixture that ensures a clean task queue before yielding.
+    """
+    # This wont work with the session_worker, it will already have old/unexecuted tasks
+    # taken from the queue and might resubmit them. Therefore, purging the queue won't
+    # help much.
+    yield
 
 
 @pytest.fixture(scope='function', autouse=True)

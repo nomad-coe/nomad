@@ -163,7 +163,7 @@ def test_upload_to_upload(client, file, test_user_auth):
     handle_uploads_thread = Thread(target=handle_uploads)
     handle_uploads_thread.start()
 
-    time.sleep(1)
+    time.sleep(0.1)
     upload_url = upload['presigned_url']
     cmd = files.create_curl_upload_cmd(upload_url).replace('<ZIPFILE>', file)
     subprocess.call(shlex.split(cmd))
@@ -183,7 +183,7 @@ def test_processing(client, file, worker, mocksearch, test_user_auth):
     assert rv.status_code == 200
     upload = assert_upload(rv.data)
 
-    time.sleep(1)
+    time.sleep(0.1)
     upload_url = upload['presigned_url']
     cmd = files.create_curl_upload_cmd(upload_url).replace('<ZIPFILE>', file)
     subprocess.call(shlex.split(cmd))

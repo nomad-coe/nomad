@@ -203,6 +203,12 @@ def parsed_vasp_example() -> LocalBackend:
         'parsers/vasp', '.dependencies/parsers/vasp/test/examples/xml/perovskite.xml')
 
 
+@pytest.fixture
+def parsed_template_example() -> LocalBackend:
+    return run_parser(
+        'parsers/template', 'tests/data/parsers/template.json')
+
+
 @pytest.fixture(params=parser_examples, ids=lambda spec: '%s-%s' % spec)
 def parsed_example(request) -> LocalBackend:
     parser_name, mainfile = request.param
