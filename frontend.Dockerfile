@@ -13,5 +13,5 @@ RUN yarn build
 
 # production environment
 FROM nginx:1.13.9-alpine
-COPY --from=builder /nomad/app/build /app/nomadxt
+COPY --from=builder /nomad/app/build /app/nomad
 CMD ["nginx", "-g", "daemon off;"]

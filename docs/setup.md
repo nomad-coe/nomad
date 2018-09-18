@@ -109,9 +109,9 @@ reinstall them all the time, we need to build new images.
 
 The fontend image is only for building and serving the gui.
 
-Build the requirements image tagged `nomadxt_requirements`:
+Build the requirements image tagged `nomad_requirements`:
 ```
-docker build -t nomadxt_requirements -f requirements.Dockerfile .
+docker build -t nomad_requirements -f requirements.Dockerfile .
 ```
 
 The other images are build via *docker-compose* and don't have to be created manually.
@@ -121,7 +121,7 @@ The other images are build via *docker-compose* and don't have to be created man
 Now we can build the *docker-compose* that contains all external services (rabbitmq,
 mongo, elastic, minio, elk) and nomad services (worker, handler, api, gui).
 ```
-cd ./infrastructure/nomadxt
+cd ./infrastructure/nomad
 docker-compose build
 ```
 
@@ -167,7 +167,7 @@ docker-compose up api gui proxy
 Usually these services only used by the nomad containers, but sometimes you also
 need to checkseomthing or do some manual steps.
 
-The file `infrastructure/nomadxt/.env` contains variables that control the ports
+The file `infrastructure/nomad/.env` contains variables that control the ports
 used to bind internal docker ports to your host machine. These are the ports you
 have to use to connect to the respective services.
 

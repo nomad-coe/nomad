@@ -24,7 +24,7 @@ import sys
 import requests
 from requests.auth import HTTPBasicAuth
 
-api_base = 'http://localhost/nomadxt/api'
+api_base = 'http://localhost/nomad/api'
 
 
 def upload_file(file_path, name=None, user='other@gmail.com', pw='nomad'):

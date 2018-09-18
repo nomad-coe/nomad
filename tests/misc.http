@@ -1,8 +1,8 @@
-GET http://localhost/nomadxt/api/uploads  HTTP/1.1
+GET http://localhost/nomad/api/uploads  HTTP/1.1
 
 ###
 
-POST http://localhost/nomadxt/api/uploads  HTTP/1.1
+POST http://localhost/nomad/api/uploads  HTTP/1.1
 content-type: application/json
 
 {

@@ -87,7 +87,7 @@ class UploadsRes(Resource):
 
         .. sourcecode:: http
 
-            GET /nomadxt/api/uploads HTTP/1.1
+            GET /nomad/api/uploads HTTP/1.1
             Accept: application/json
 
         **Example response**:
@@ -134,7 +134,7 @@ class UploadsRes(Resource):
 
         .. sourcecode:: http
 
-            POST /nomadxt/api/uploads HTTP/1.1
+            POST /nomad/api/uploads HTTP/1.1
             Accept: application/json
             Content-Type: application/json
 
@@ -206,7 +206,7 @@ class UploadRes(Resource):
 
         .. sourcecode:: http
 
-            GET /nomadxt/api/uploads/5b89469e0d80d40008077dbc HTTP/1.1
+            GET /nomad/api/uploads/5b89469e0d80d40008077dbc HTTP/1.1
             Accept: application/json
 
         **Example response**:
@@ -310,7 +310,7 @@ class UploadRes(Resource):
 
         .. sourcecode:: http
 
-            POST /nomadxt/api/uploads HTTP/1.1
+            POST /nomad/api/uploads HTTP/1.1
             Accept: application/json
             Content-Type: application/json
 
@@ -357,7 +357,7 @@ class UploadRes(Resource):
 
         .. sourcecode:: http
 
-            DELETE /nomadxt/api/uploads/5b89469e0d80d40008077dbc HTTP/1.1
+            DELETE /nomad/api/uploads/5b89469e0d80d40008077dbc HTTP/1.1
             Accept: application/json
 
         :param string upload_id: the id for the upload
@@ -396,7 +396,7 @@ class RepoCalcRes(Resource):
 
         .. sourcecode:: http
 
-            GET /nomadxt/api/repo/W36aqCzAKxOCfIiMFsBJh3nHPb4a/7ddvtfRfZAvc3Crr7jOJ8UH0T34I HTTP/1.1
+            GET /nomad/api/repo/W36aqCzAKxOCfIiMFsBJh3nHPb4a/7ddvtfRfZAvc3Crr7jOJ8UH0T34I HTTP/1.1
             Accept: application/json
 
         **Example response**:
@@ -457,7 +457,7 @@ class RepoCalcsRes(Resource):
 
         .. sourcecode:: http
 
-            GET /nomadxt/api/repo?page=1&per_page=25 HTTP/1.1
+            GET /nomad/api/repo?page=1&per_page=25 HTTP/1.1
             Accept: application/json
 
         **Example response**:
@@ -558,7 +558,7 @@ def get_calc(upload_hash, calc_hash):
 
     .. sourcecode:: http
 
-        GET /nomadxt/api/archive/W36aqCzAKxOCfIiMFsBJh3nHPb4a/7ddvtfRfZAvc3Crr7jOJ8UH0T34I HTTP/1.1
+        GET /nomad/api/archive/W36aqCzAKxOCfIiMFsBJh3nHPb4a/7ddvtfRfZAvc3Crr7jOJ8UH0T34I HTTP/1.1
         Accept: application/json
 
     :param string upload_hash: the hash of the upload (from uploaded file contents)

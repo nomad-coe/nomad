@@ -30,7 +30,7 @@ class Development extends React.Component {
           This system pushes logs, events, monitoring data,
           and other application metrics to a central database where it
           can be analysed visually.
-          \n\n[Link to Kiaba](/nomadxt/kibana/)
+          \n\n[Link to Kiaba](/nomad/kibana/)
         `}</Markdown>
       </div>
     )
