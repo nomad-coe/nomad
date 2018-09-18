@@ -23,8 +23,8 @@ from tests.test_files import assert_exists  # noqa
 
 # import fixtures
 from tests.test_files import clear_files, archive_id  # noqa pylint: disable=unused-import
-from tests.test_normalizing import normalized_vasp_example  # noqa pylint: disable=unused-import
-from tests.test_parsing import parsed_vasp_example  # noqa pylint: disable=unused-import
+from tests.test_normalizing import normalized_template_example  # noqa pylint: disable=unused-import
+from tests.test_parsing import parsed_template_example  # noqa pylint: disable=unused-import
 from tests.test_repo import example_elastic_calc  # noqa pylint: disable=unused-import
 
 
@@ -78,14 +78,14 @@ def assert_upload(upload_json_str, id=None, **kwargs):
     return data
 
 
-def test_no_uploads(client, test_user_auth):
+def test_no_uploads(client, test_user_auth, no_warn):
     rv = client.get('/uploads', headers=test_user_auth)
 
     assert rv.status_code == 200
     assert_uploads(rv.data, count=0)
 
 
-def test_not_existing_upload(client, test_user_auth):
+def test_not_existing_upload(client, test_user_auth, no_warn):
     rv = client.get('/uploads/123456789012123456789012', headers=test_user_auth)
     assert rv.status_code == 404
 
@@ -108,7 +108,7 @@ def test_stale_upload(client, test_user_auth):
     assert_upload(rv.data, is_stale=True)
 
 
-def test_create_upload(client, test_user_auth):
+def test_create_upload(client, test_user_auth, no_warn):
     rv = client.post('/uploads', headers=test_user_auth)
 
     assert rv.status_code == 200
@@ -123,7 +123,7 @@ def test_create_upload(client, test_user_auth):
     assert_uploads(rv.data, count=1, id=upload_id)
 
 
-def test_create_upload_with_name(client, test_user_auth):
+def test_create_upload_with_name(client, test_user_auth, no_warn):
     rv = client.post(
         '/uploads', headers=test_user_auth,
         data=json.dumps(dict(name='test_name')), content_type='application/json')
@@ -132,7 +132,7 @@ def test_create_upload_with_name(client, test_user_auth):
     assert upload['name'] == 'test_name'
 
 
-def test_delete_empty_upload(client, test_user_auth):
+def test_delete_empty_upload(client, test_user_auth, no_warn):
     rv = client.post('/uploads', headers=test_user_auth)
 
     assert rv.status_code == 200
@@ -146,44 +146,14 @@ def test_delete_empty_upload(client, test_user_auth):
 
 
 @pytest.mark.parametrize("file", example_files)
-@pytest.mark.timeout(30)
-def test_upload_to_upload(client, file, test_user_auth):
-    rv = client.post('/uploads', headers=test_user_auth)
-    assert rv.status_code == 200
-    upload = assert_upload(rv.data)
-
-    @files.upload_put_handler
-    def handle_upload_put(received_upload_id: str):
-        assert upload['upload_id'] == received_upload_id
-        raise StopIteration
-
-    def handle_uploads():
-        handle_upload_put(received_upload_id='provided by decorator')
-
-    handle_uploads_thread = Thread(target=handle_uploads)
-    handle_uploads_thread.start()
-
-    time.sleep(0.1)
-    upload_url = upload['presigned_url']
-    cmd = files.create_curl_upload_cmd(upload_url).replace('<ZIPFILE>', file)
-    subprocess.call(shlex.split(cmd))
-
-    handle_uploads_thread.join()
-
-    upload_id = upload['upload_id']
-    assert_exists(config.files.uploads_bucket, upload_id)
-
-
-@pytest.mark.parametrize("file", example_files)
 @pytest.mark.timeout(10)
-def test_processing(client, file, worker, mocksearch, test_user_auth):
+def test_processing(client, file, worker, mocksearch, test_user_auth, no_warn):
     handler = handle_uploads_thread(quit=True)
 
     rv = client.post('/uploads', headers=test_user_auth)
     assert rv.status_code == 200
     upload = assert_upload(rv.data)
 
-    time.sleep(0.1)
     upload_url = upload['presigned_url']
     cmd = files.create_curl_upload_cmd(upload_url).replace('<ZIPFILE>', file)
     subprocess.call(shlex.split(cmd))
@@ -191,7 +161,7 @@ def test_processing(client, file, worker, mocksearch, test_user_auth):
     handler.join()
 
     while True:
-        time.sleep(1)
+        time.sleep(0.1)
 
         rv = client.get('/uploads/%s' % upload['upload_id'], headers=test_user_auth)
         assert rv.status_code == 200
@@ -228,18 +198,18 @@ def test_processing(client, file, worker, mocksearch, test_user_auth):
     assert_uploads(rv.data, count=0)
 
 
-def test_repo_calc(client, example_elastic_calc):
+def test_repo_calc(client, example_elastic_calc, no_warn):
     rv = client.get(
         '/repo/%s/%s' % (example_elastic_calc.upload_hash, example_elastic_calc.calc_hash))
     assert rv.status_code == 200
 
 
-def test_non_existing_repo_cals(client):
+def test_non_existing_repo_cals(client, no_warn):
     rv = client.get('/repo/doesnt/exist')
     assert rv.status_code == 404
 
 
-def test_repo_calcs(client, example_elastic_calc):
+def test_repo_calcs(client, example_elastic_calc, no_warn):
     rv = client.get('/repo')
     assert rv.status_code == 200
     data = json.loads(rv.data)
@@ -249,7 +219,7 @@ def test_repo_calcs(client, example_elastic_calc):
     assert len(results) >= 1
 
 
-def test_repo_calcs_pagination(client, example_elastic_calc):
+def test_repo_calcs_pagination(client, example_elastic_calc, no_warn):
     rv = client.get('/repo?page=1&per_page=1')
     assert rv.status_code == 200
     data = json.loads(rv.data)
@@ -259,7 +229,7 @@ def test_repo_calcs_pagination(client, example_elastic_calc):
     assert len(results) == 1
 
 
-def test_repo_calcs_user(client, example_elastic_calc, test_user_auth):
+def test_repo_calcs_user(client, example_elastic_calc, test_user_auth, no_warn):
     rv = client.get('/repo?owner=user', headers=test_user_auth)
     assert rv.status_code == 200
     data = json.loads(rv.data)
@@ -268,12 +238,12 @@ def test_repo_calcs_user(client, example_elastic_calc, test_user_auth):
     assert len(results) >= 1
 
 
-def test_repo_calcs_user_authrequired(client, example_elastic_calc):
+def test_repo_calcs_user_authrequired(client, example_elastic_calc, no_warn):
     rv = client.get('/repo?owner=user')
     assert rv.status_code == 401
 
 
-def test_repo_calcs_user_invisible(client, example_elastic_calc, test_other_user_auth):
+def test_repo_calcs_user_invisible(client, example_elastic_calc, test_other_user_auth, no_warn):
     rv = client.get('/repo?owner=user', headers=test_other_user_auth)
     assert rv.status_code == 200
     data = json.loads(rv.data)
@@ -282,11 +252,11 @@ def test_repo_calcs_user_invisible(client, example_elastic_calc, test_other_user
     assert len(results) == 0
 
 
-def test_get_archive(client, archive_id):
+def test_get_archive(client, archive_id, no_warn):
     rv = client.get('/archive/%s' % archive_id)
     assert rv.status_code == 302
 
 
-def test_get_non_existing_archive(client):
+def test_get_non_existing_archive(client, no_warn):
     rv = client.get('/archive/%s' % 'doesnt/exist')
     assert rv.status_code == 404

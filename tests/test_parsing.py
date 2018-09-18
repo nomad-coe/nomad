@@ -44,10 +44,10 @@ class TestLocalBackend(object):
     def backend(self, meta_info):
         return LocalBackend(meta_info, debug=True)
 
-    def test_meta_info(self, meta_info):
+    def test_meta_info(self, meta_info, no_warn):
         assert 'section_topology' in meta_info
 
-    def test_section(self, backend):
+    def test_section(self, backend, no_warn):
         g_index = backend.openSection('section_run')
         assert g_index == 0
         backend.addValue('program_name', 't0')
@@ -69,7 +69,7 @@ class TestLocalBackend(object):
         for i in range(0, 3):
             assert backend.get_value('program_name', i) == 't%d' % i
 
-    def test_subsection(self, backend: LocalBackend):
+    def test_subsection(self, backend: LocalBackend, no_warn):
         backend.openSection('section_run')
         backend.openSection('section_method')
         backend.closeSection('section_method', -1)
@@ -89,7 +89,7 @@ class TestLocalBackend(object):
         assert len(runs[0]['section_method']) == 2
         assert len(runs[1]['section_method']) == 1
 
-    def test_context(self, backend: LocalBackend):
+    def test_context(self, backend: LocalBackend, no_warn):
         backend.openSection('section_run')
         backend.openSection('section_method')
         backend.closeSection('section_method', -1)
@@ -113,7 +113,7 @@ class TestLocalBackend(object):
         assert runs[0]['program_name'] == 't1'
         assert runs[1]['program_name'] == 't2'
 
-    def test_multi_context(self, backend: LocalBackend):
+    def test_multi_context(self, backend: LocalBackend, no_warn):
         backend.openSection('section_run')
         backend.closeSection('section_run', -1)
 
@@ -129,7 +129,7 @@ class TestLocalBackend(object):
 
         assert len(backend.data['section_method']) == 1
 
-    def test_bad_context(self, backend: LocalBackend):
+    def test_bad_context(self, backend: LocalBackend, no_warn):
         try:
             backend.openContext('section_run/0')
             assert False
@@ -151,7 +151,7 @@ def create_reference(data, pretty):
 
 
 @pytest.mark.parametrize("pretty", [False, True])
-def test_stream_generator(pretty):
+def test_stream_generator(pretty, no_warn):
     example_data = [
         {
             'key1': 'value',
@@ -215,11 +215,11 @@ def parsed_example(request) -> LocalBackend:
     return run_parser(parser_name, mainfile)
 
 
-def test_parser(parsed_example):
+def test_parser(parsed_example, no_warn):
     assert_parser_result(parsed_example)
 
 
-def test_match():
+def test_match(no_warn):
     directory = 'tests/data/proc/match'
 
     count = 0

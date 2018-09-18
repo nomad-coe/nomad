@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import pytest
-from threading import Thread
+from threading import Thread, Event
 import subprocess
 import shlex
 import time
@@ -136,30 +136,33 @@ def test_delete_upload(uploaded_id: str):
 
 
 @pytest.mark.timeout(10)
-def test_upload_notification(upload_id):
+def test_upload_notification(upload_id, no_warn):
+    ready = Event()
+
     @files.upload_put_handler
     def handle_upload_put(received_upload_id: str):
         assert upload_id == received_upload_id
         raise StopIteration
 
     def handle_uploads():
+        ready.set()
         handle_upload_put(received_upload_id='provided by decorator')
 
     handle_uploads_thread = Thread(target=handle_uploads)
     handle_uploads_thread.start()
 
-    time.sleep(0.1)
+    ready.wait()
     test_presigned_url(upload_id)
 
     handle_uploads_thread.join()
 
 
-def test_metadata(uploaded_id: str):
+def test_metadata(uploaded_id: str, no_warn):
     with files.Upload(uploaded_id) as upload:
         assert upload.metadata is not None
 
 
-def test_hash(uploaded_id: str, uploaded_id_same_file: str):
+def test_hash(uploaded_id: str, uploaded_id_same_file: str, no_warn):
     with files.Upload(uploaded_id) as upload:
         hash = upload.hash()
         assert hash is not None
@@ -169,21 +172,21 @@ def test_hash(uploaded_id: str, uploaded_id_same_file: str):
         assert hash == upload.hash()
 
 
-def test_archive_url(archive_id: str):
+def test_archive_url(archive_id: str, no_warn):
     result = files.archive_url(archive_id)
 
     assert result is not None
     assert result.startswith('http')
 
 
-def test_archive(archive_id: str):
+def test_archive(archive_id: str, no_warn):
     result = json.load(files.open_archive_json(archive_id))
 
     assert 'test' in result
     assert result['test'] == 'value'
 
 
-def test_delete_archive(archive_id: str):
+def test_delete_archive(archive_id: str, no_warn):
     files.delete_archive(archive_id)
     try:
         files.archive_url(archive_id)
@@ -194,7 +197,7 @@ def test_delete_archive(archive_id: str):
         assert False
 
 
-def test_delete_archives(archive_id: str):
+def test_delete_archives(archive_id: str, no_warn):
     files.delete_archives(archive_id.split('/')[0])
     try:
         files.archive_url(archive_id)

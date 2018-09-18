@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from datetime import datetime
-from threading import Thread
+from threading import Thread, Event
 
 from nomad import files, utils
 
@@ -21,7 +21,7 @@ from nomad.processing.data import Upload
 from nomad.utils import get_logger, lnr
 
 
-def handle_uploads(quit=False):
+def handle_uploads(ready=None, quit=False):
     """
     Starts a daemon that will listen to files for new uploads. For each new
     upload it will initiate the processing and save the task in the upload user data,
@@ -29,6 +29,7 @@ def handle_uploads(quit=False):
     user data.
 
     Arguments:
+        ready (Event): optional, will be set when thread is ready
         quit: If true, will only handling one event and stop. Otherwise run forever.
     """
 
@@ -61,11 +62,15 @@ def handle_uploads(quit=False):
             raise StopIteration
 
     utils.get_logger(__name__).debug('Start upload put notification handler.')
+    if ready is not None:
+        ready.set()
     handle_upload_put(received_upload_id='provided by decorator')
 
 
 def handle_uploads_thread(quit=True):
     """ Same as :func:`handle_uploads` but run in a separate thread. """
-    thread = Thread(target=lambda: handle_uploads(quit))
+    ready = Event()
+    thread = Thread(target=lambda: handle_uploads(ready=ready, quit=quit))
     thread.start()
+    ready.wait()
     return thread

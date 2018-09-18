@@ -1,12 +1,16 @@
 import pytest
-from mongoengine import connect, IntField, ReferenceField
+from mongoengine import connect, IntField, ReferenceField, BooleanField, EmbeddedDocumentField
 from mongoengine.connection import disconnect
 import time
 import logging
 import json
+import random
+import time
 
 from nomad import config
-from nomad.processing.base import Proc, process, task, SUCCESS, FAILURE, RUNNING, PENDING
+from nomad.processing.base import Proc, Chord, process, task, SUCCESS, FAILURE, RUNNING, PENDING
+
+random.seed(0)
 
 
 def assert_proc(proc, current_task, status=SUCCESS, errors=0, warnings=0):
@@ -54,14 +58,13 @@ class FailTasks(Proc):
         self.fail('fail fail fail')
 
 
-def test_fail(caplog):
-    caplog.set_level(logging.CRITICAL, logger='nomad.processing.base')
+def test_fail(one_error):
     p = FailTasks.create()
     p.will_fail()
 
     assert_proc(p, 'will_fail', FAILURE, errors=1)
     has_log = False
-    for record in caplog.records:
+    for record in one_error.records:
         if record.levelname == 'ERROR':
             has_log = True
             assert json.loads(record.msg)['event'] == 'task failed'
@@ -83,7 +86,7 @@ class SimpleProc(Proc):
         pass
 
 
-def test_simple_process(worker):
+def test_simple_process(worker, no_warn):
     p = SimpleProc.create()
     p.process()
     p.block_until_complete()
@@ -97,30 +100,28 @@ class TaskInProc(Proc):
         pass
 
 
-# @pytest.mark.timeout(5)
-def test_task_as_proc(worker):
+@pytest.mark.timeout(5)
+def test_task_as_proc(worker, no_warn):
     p = TaskInProc.create()
     p.process()
     p.block_until_complete()
     assert_proc(p, 'process')
 
 
-class ParentProc(Proc):
-    children = IntField(default=0)
+class ParentProc(Chord):
 
     @process
     @task
     def spawn_children(self):
-        ChildProc.create(parent=self).process()
+        count = 23
+        for _ in range(0, count):
+            ChildProc.create(parent=self).process()
 
-    @process
+        self.spwaned_childred(count)
+
     @task
-    def after_children(self):
+    def join(self):
         pass
-
-    def on_child_complete(self):
-        if self.incr_counter('children') == 1:
-            self.after_children()
 
 
 class ChildProc(Proc):
@@ -129,15 +130,15 @@ class ChildProc(Proc):
     @process
     @task
     def process(self):
-        self.parent.on_child_complete()
+        time.sleep(random.uniform(0, 0.1))
+        self.parent.completed_child()
 
 
-# @pytest.mark.timeout(5)
-def test_counter(worker, caplog):
+@pytest.mark.timeout(10)
+def test_counter(worker, no_warn):
     p = ParentProc.create()
     p.spawn_children()
     p.block_until_complete()
-    assert_proc(p, 'after_children')
 
-    for record in caplog.records:
-        assert record.levelname not in ['WARNING', 'ERROR', 'CRITICAL']
+    assert_proc(p, 'join')
+    assert p.joined

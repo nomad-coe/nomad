@@ -40,7 +40,7 @@ import logging
 from nomad import config, files, utils
 from nomad.repo import RepoCalc
 from nomad.user import User, me
-from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE, RUNNING
+from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE, RUNNING
 from nomad.parsing import LocalBackend, parsers, parser_dict
 from nomad.normalizing import normalizers
 from nomad.utils import get_logger, lnr
@@ -139,7 +139,7 @@ class Calc(Proc):
             self.normalizing()
             self.archiving()
         finally:
-            self._upload.calc_proc_completed()
+            self._upload.completed_child()
 
     @task
     def parsing(self):
@@ -182,7 +182,7 @@ class Calc(Proc):
             self._parser_backend.write_json(out, pretty=True)
 
 
-class Upload(Proc):
+class Upload(Chord):
     """
     Represents uploads in the databases. Provides persistence access to the files storage,
     and processing state.
@@ -377,10 +377,11 @@ class Upload(Proc):
                         'exception while matching pot. mainfile',
                         mainfile=filename, exc_info=e)
 
-        # have to save the total_calcs information
-        self._initiated_parsers = total_calcs
-        self.save()
-        self.calc_proc_completed()
+        # have to save the total_calcs information for chord management
+        self.spwaned_childred(total_calcs)
+
+    def join(self):
+        self.cleanup()
 
     @task
     def cleanup(self):
@@ -392,10 +393,6 @@ class Upload(Proc):
 
         upload.close()
         self.get_logger().debug('closed upload')
-
-    def calc_proc_completed(self):
-        if self._initiated_parsers >= 0 and self.processed_calcs >= self.total_calcs and self.current_task == 'parse_all':
-            self.cleanup()
 
     @property
     def processed_calcs(self):

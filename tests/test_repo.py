@@ -15,8 +15,6 @@
 import pytest
 from typing import Generator
 from datetime import datetime
-import time
-import logging
 from elasticsearch import NotFoundError
 
 from nomad import config
@@ -29,15 +27,14 @@ from tests.test_files import assert_not_exists
 
 
 @pytest.fixture(scope='function')
-def example_elastic_calc(normalized_template_example: LocalBackend, caplog) \
+def example_elastic_calc(normalized_template_example: LocalBackend) \
         -> Generator[RepoCalc, None, None]:
     try:
-        caplog.set_level(logging.ERROR)
-        RepoCalc.get(id='test_upload_hash/test_calc_hash').delete()
-    except Exception:
+        calc = RepoCalc.get(id='test_upload_hash/test_calc_hash')
+    except NotFoundError:
         pass
-    finally:
-        caplog.set_level(logging.WARNING)
+    else:
+        calc.delete()
 
     entry = RepoCalc.create_from_backend(
         normalized_template_example,
@@ -53,12 +50,11 @@ def example_elastic_calc(normalized_template_example: LocalBackend, caplog) \
     yield entry
 
     try:
-        caplog.set_level(logging.ERROR)
-        entry.delete()
-    except Exception:
+        calc = RepoCalc.get(id='test_upload_hash/test_calc_hash')
+    except NotFoundError:
         pass
-    finally:
-        caplog.set_level(logging.WARNING)
+    else:
+        calc.delete()
 
 
 def assert_elastic_calc(calc: RepoCalc):
@@ -68,7 +64,7 @@ def assert_elastic_calc(calc: RepoCalc):
         assert getattr(calc, property) is not None
 
 
-def test_create_elasitc_calc(example_elastic_calc: RepoCalc):
+def test_create_elasitc_calc(example_elastic_calc: RepoCalc, no_warn):
     assert_elastic_calc(example_elastic_calc)
     assert RepoCalc.upload_exists(example_elastic_calc.upload_hash)
 
@@ -78,9 +74,8 @@ def test_create_elasitc_calc(example_elastic_calc: RepoCalc):
 
 
 def test_create_existing_elastic_calc(
-        example_elastic_calc: RepoCalc, normalized_template_example, caplog):
+        example_elastic_calc: RepoCalc, normalized_template_example, one_error):
     try:
-        caplog.set_level(logging.ERROR)
         RepoCalc.create_from_backend(
             normalized_template_example,
             upload_hash='test_upload_hash',
@@ -93,33 +88,29 @@ def test_create_existing_elastic_calc(
             refresh='true')
         assert False
     except AlreadyExists:
-        caplog.set_level(logging.WARNING)
         pass
     else:
         assert False
 
 
-def test_delete_elastic_calc(example_elastic_calc: RepoCalc, caplog):
+def test_delete_elastic_calc(example_elastic_calc: RepoCalc, no_warn):
     example_elastic_calc.delete()
 
     assert_not_exists(config.files.archive_bucket, 'test_upload_hash/test_calc_hash')
     try:
-        caplog.set_level(logging.ERROR)
         RepoCalc.get(id='test_upload_hash/test_calc_hash')
         assert False
     except NotFoundError:
         pass
     else:
         assert False
-    finally:
-        caplog.set_level(logging.WARNING)
 
 
-def test_staging_elastic_calc(example_elastic_calc: RepoCalc):
+def test_staging_elastic_calc(example_elastic_calc: RepoCalc, no_warn):
     assert RepoCalc.get(id='test_upload_hash/test_calc_hash').staging
 
 
-def test_unstage_elastic_calc(example_elastic_calc: RepoCalc):
+def test_unstage_elastic_calc(example_elastic_calc: RepoCalc, no_warn):
     RepoCalc.unstage(upload_id='test_upload_id', staging=False)
 
     assert not RepoCalc.get(id='test_upload_hash/test_calc_hash').staging

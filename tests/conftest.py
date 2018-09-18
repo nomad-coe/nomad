@@ -1,4 +1,5 @@
 import pytest
+import logging
 from mongoengine import connect
 from mongoengine.connection import disconnect
 
@@ -17,17 +18,17 @@ def celery_config():
     }
 
 
-@pytest.fixture(scope='function')
-def purged_queue(celery_app):
+@pytest.fixture(scope='session')
+def purged_app(celery_session_app):
     """
     Purges all pending tasks of the celery app before test. This is necessary to
     remove tasks from the queue that might be 'left over' from prior tests.
     """
-    celery_app.control.purge()
-    yield
+    celery_session_app.control.purge()
+    yield celery_session_app
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture()
 def patched_celery(monkeypatch):
     # There is a bug in celery, which prevents to use the celery_worker for multiple
     # tests: https://github.com/celery/celery/issues/4088
@@ -45,15 +46,26 @@ def patched_celery(monkeypatch):
     yield
 
 
-@pytest.fixture(scope='function')
-def worker(patched_celery, purged_queue, celery_worker):
+@pytest.fixture(scope='session')
+def celery_inspect(purged_app):
+    yield purged_app.control.inspect()
+
+
+@pytest.fixture()
+def worker(patched_celery, celery_inspect, celery_session_worker):
     """
-    Extension of the celery_worker fixture that ensures a clean task queue before yielding.
+    Extension of the celery_session_worker fixture that ensures a clean task queue.
     """
-    # This wont work with the session_worker, it will already have old/unexecuted tasks
-    # taken from the queue and might resubmit them. Therefore, purging the queue won't
-    # help much.
     yield
+
+    # wait until there no more active tasks, to leave clean worker and queues for the next
+    # test.
+    while True:
+        empty = True
+        for value in celery_inspect.active().values():
+            empty = empty and len(value) == 0
+        if empty:
+            break
 
 
 @pytest.fixture(scope='function', autouse=True)
@@ -84,3 +96,22 @@ def mocksearch(monkeypatch):
 
     monkeypatch.setattr('nomad.repo.RepoCalc.create_from_backend', create_from_backend)
     monkeypatch.setattr('nomad.repo.RepoCalc.upload_exists', upload_exists)
+
+
+@pytest.fixture(scope='function')
+def no_warn(caplog):
+    yield caplog
+    for record in caplog.records:
+        if record.levelname in ['WARNING', 'ERROR', 'CRITICAL']:
+            assert False, record.msg
+
+
+@pytest.fixture(scope='function')
+def one_error(caplog):
+    yield caplog
+    count = 0
+    for record in caplog.records:
+        if record.levelname in ['ERROR', 'CRITICAL']:
+            count += 1
+            if count > 1:
+                assert False, "oo many errors"

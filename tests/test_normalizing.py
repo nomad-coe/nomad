@@ -59,5 +59,5 @@ def assert_normalized(backend):
     assert backend.get_value('chemical_composition_bulk_reduced', 0) is not None
 
 
-def test_normalizer(normalized_example: LocalBackend):
+def test_normalizer(normalized_example: LocalBackend, no_warn):
     assert_normalized(normalized_example)

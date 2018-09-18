@@ -23,7 +23,7 @@ import celery
 from celery import Celery, Task
 from celery.signals import after_setup_task_logger, after_setup_logger, worker_process_init
 from mongoengine import Document, StringField, ListField, DateTimeField, IntField, \
-    ReferenceField, connect, ValidationError
+    ReferenceField, connect, ValidationError, BooleanField, EmbeddedDocument
 from mongoengine.connection import MongoEngineConnectionError
 from mongoengine.base.metaclasses import TopLevelDocumentMetaclass
 from pymongo import ReturnDocument
@@ -252,6 +252,105 @@ class Proc(Document, metaclass=ProcMetaclass):
             self.save()
             self.get_logger().debug('completed process')
 
+    def block_until_complete(self, interval=0.01):
+        """
+        Reloads the process constrantly until it sees a completed process. Should be
+        used with care as it can block indefinetly. Just intended for testing purposes.
+        """
+        while not self.completed:
+            time.sleep(interval)
+            self.reload()
+
+    @property
+    def json_dict(self) -> dict:
+        """ A json serializable dictionary representation. """
+        data = {
+            'tasks': getattr(self.__class__, 'tasks'),
+            'current_task': self.current_task,
+            'status': self.status,
+            'completed': self.completed,
+            'errors': self.errors,
+            'warnings': self.warnings,
+            'create_time': self.create_time.isoformat() if self.create_time is not None else None,
+            'complete_time': self.complete_time.isoformat() if self.complete_time is not None else None,
+            '_async_status': self._async_status
+        }
+        return {key: value for key, value in data.items() if value is not None}
+
+
+class InvalidChordUsage(Exception): pass
+
+
+class Chord(Proc):
+    """
+    A special Proc base class that manages a chord of child processes. It saves some
+    attional state to track child processes and provides methods to control that
+    state.
+
+    It uses a counter approach with atomic updates to trac the number of processed
+    children.
+
+    TODO the joined attribute is not stricly necessary and only serves debugging purposes.
+    Maybe it should be removed, since it also requires another save.
+
+    TODO it is vital that sub classes and children don't miss any calls. This might
+    not be practical, because in reality processes might even fail to fail.
+
+    Attributes:
+        total_children (int): the number of spawed children, -1 denotes that number was not
+            saved yet
+        completed_children (int): the number of completed child procs
+        joined (bool): true if all children are completed and the join method was already called
+    """
+    total_children = IntField(default=-1)
+    completed_children = IntField(default=0)
+    joined = BooleanField(default=False)
+
+    meta = {
+        'abstract': True
+    }
+
+    def spwaned_childred(self, total_children=1):
+        """
+        Subclasses must call this method after all childred have been spawned.
+
+        Arguments:
+            total_children (int): the number of spawned children
+        """
+        self.total_children = total_children
+        self.save()
+        self._check_join(children=0)
+
+    def completed_child(self):
+        """ Children must call this, when they completed processig. """
+        self._check_join(children=1)
+
+    def _check_join(self, children):
+        # incr the counter and get reference values atomically
+        completed_children, others = self.incr_counter(
+            'completed_children', children, ['total_children', 'joined'])
+        total_children, joined = others
+
+        self.get_logger().debug(
+            'Check for join', total_children=total_children,
+            completed_children=completed_children, joined=joined)
+
+        # check the join condition and raise errors if chord is in bad state
+        if completed_children == total_children:
+            if not joined:
+                self.join()
+                self.joined = True
+                self.save()
+                self.get_logger().debug('Chord is joined')
+            else:
+                raise InvalidChordUsage('Chord cannot be joined twice.')
+        elif completed_children > total_children and total_children != -1:
+            raise InvalidChordUsage('Chord counter is out of limits.')
+
+    def join(self):
+        """ Subclasses might overwrite to do something after all children have completed. """
+        pass
+
     def incr_counter(self, field, value=1, other_fields=None):
         """
         Atomically increases the given field by value and return the new value.
@@ -281,31 +380,6 @@ class Proc(Document, metaclass=ProcMetaclass):
         else:
             return updated_raw[field], [updated_raw[field] for field in other_fields]
 
-    def block_until_complete(self, interval=0.01):
-        """
-        Reloads the process constrantly until it sees a completed process. Should be
-        used with care as it can block indefinetly. Just intended for testing purposes.
-        """
-        while not self.completed:
-            time.sleep(interval)
-            self.reload()
-
-    @property
-    def json_dict(self) -> dict:
-        """ A json serializable dictionary representation. """
-        data = {
-            'tasks': getattr(self.__class__, 'tasks'),
-            'current_task': self.current_task,
-            'status': self.status,
-            'completed': self.completed,
-            'errors': self.errors,
-            'warnings': self.warnings,
-            'create_time': self.create_time.isoformat() if self.create_time is not None else None,
-            'complete_time': self.complete_time.isoformat() if self.complete_time is not None else None,
-            '_async_status': self._async_status
-        }
-        return {key: value for key, value in data.items() if value is not None}
-
 
 def task(func):
     """
@@ -334,6 +408,15 @@ def task(func):
     return wrapper
 
 
+def all_subclasses(cls):
+    """ Helper method to calculate set of all subclasses of a given class. """
+    return set(cls.__subclasses__()).union(
+        [s for c in cls.__subclasses__() for s in all_subclasses(c)])
+
+all_proc_cls = {cls.__name__: cls for cls in all_subclasses(Proc)}
+""" Name dictionary for all Proc classes. """
+
+
 @app.task(bind=True, ignore_results=True, max_retries=3)
 def proc_task(task, cls_name, self_id, func_attr):
     """
@@ -345,31 +428,41 @@ def proc_task(task, cls_name, self_id, func_attr):
     """
     logger = utils.get_logger(__name__, cls=cls_name, id=self_id, func=func_attr)
 
+    # get the process class
     logger.debug('received process function call')
-    all_cls = Proc.__subclasses__()
-    cls = next((cls for cls in all_cls if cls.__name__ == cls_name), None)
+    global all_proc_cls
+    cls = all_proc_cls.get(cls_name, None)
+    if cls is None:
+        # refind all Proc classes, since more modules might have been imported by now
+        all_proc_cls = {cls.__name__: cls for cls in all_subclasses(Proc)}
+        cls = all_proc_cls.get(cls_name, None)
+
     if cls is None:
         logger.error('document not a subcass of Proc')
         raise ProcNotRegistered('document %s not a subclass of Proc' % cls_name)
 
+    # get the process instance
     try:
         self = cls.get(self_id)
     except KeyError as e:
         logger.warning('called object is missing')
         raise task.retry(exc=e, countdown=3)
 
+    # get the process function
     func = getattr(self, func_attr, None)
     if func is None:
         logger.error('called function not a function of proc class')
         self.fail('called function %s is not a function of proc class %s' % (func_attr, cls_name))
         return
 
+    # unwrap the process decorator
     func = getattr(func, '__process_unwrapped', None)
     if func is None:
         logger.error('called function was not decorated with @process')
         self.fail('called function %s was not decorated with @process' % (func_attr, cls_name))
         return
 
+    # call the process function
     try:
         self._async_status = 'RECEIVED-%s' % func.__name__
         func(self)
