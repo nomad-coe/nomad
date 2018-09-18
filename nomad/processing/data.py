@@ -413,7 +413,7 @@ class Upload(Chord):
     def all_calcs(self, start, end, order_by='mainfile'):
         return Calc.objects(upload_id=self.upload_id)[start:end].order_by(order_by)
 
-@staticmethod
+    @staticmethod
     def repair_all():
         """
         Utitlity function that will look for suspiciously looking conditions in
