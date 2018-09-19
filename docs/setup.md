@@ -32,8 +32,8 @@ If not already done, you should clone nomad and create a python virtual environm
 
 To clone the repository:
 ```
-git clone git@gitlab.mpcdf.mpg.de:mscheidg/nomad-xt.git
-cd nomad-xt
+git clone git@gitlab.mpcdf.mpg.de:nomad-lab/nomad-FAIR.git
+cd nomad-FAIR
 ```
 
 You can use *virtualenv* to create a virtual environement. It will allow you
