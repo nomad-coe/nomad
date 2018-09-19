@@ -39,26 +39,17 @@ Uploads
     :members:
 
 """
-from typing import Callable, List, Any, Generator, IO, TextIO, cast
-import sys
+from typing import Callable, List, Any, Generator, IO, TextIO, cast, AnyStr
 import os
 import os.path
 from zipfile import ZipFile, BadZipFile
 import shutil
-from minio import Minio
-import minio.error
-import hashlib
-import base64
 from contextlib import contextmanager
 import gzip
 import io
-import time
 import shutil
 
-import nomad.config as config
-from nomad.utils import get_logger
-
-logger = get_logger(__name__)
+from nomad import config, utils
 
 # _client = None
 
@@ -155,7 +146,7 @@ class Objects:
     Object store like abstraction based on a regular file system.
     """
     @classmethod
-    def _os_path(cls, bucket, name, ext):
+    def _os_path(cls, bucket: str, name: str, ext: str) -> str:
         if ext is not None and ext != '':
             file_name = ".".join([name, ext])
         elif name is None or name == '':
@@ -163,8 +154,8 @@ class Objects:
         else:
             file_name = name
 
-        path = file_name.split('/')
-        path = os.path.join(*([config.fs.objects, bucket] + path))
+        path_segments = file_name.split('/')
+        path = os.path.join(*([config.fs.objects, bucket] + path_segments))
         directory = os.path.dirname(path)
         if not os.path.isdir(directory):
             os.makedirs(directory)
@@ -172,7 +163,7 @@ class Objects:
         return path
 
     @classmethod
-    def open(cls, bucket, name, ext=None, *args, **kwargs):
+    def open(cls, bucket: str, name: str, ext: str=None, *args, **kwargs) -> IO:
         """ Open an object like you would a file, e.g. with 'rb', etc. """
         try:
             return open(cls._os_path(bucket, name, ext), *args, **kwargs)
@@ -180,7 +171,7 @@ class Objects:
             raise KeyError()
 
     @classmethod
-    def delete(cls, bucket, name, ext=None):
+    def delete(cls, bucket: str, name: str, ext: str=None) -> None:
         """ Delete a single object. """
         try:
             os.remove(cls._os_path(bucket, name, ext))
@@ -188,7 +179,7 @@ class Objects:
             raise KeyError()
 
     @classmethod
-    def delete_all(cls, bucket, prefix=''):
+    def delete_all(cls, bucket: str, prefix: str=''):
         """ Delete all files with given prefix, prefix must denote a directory. """
         try:
             shutil.rmtree(cls._os_path(bucket, prefix, ext=None))
@@ -196,35 +187,50 @@ class Objects:
             pass
 
     @classmethod
-    def exists(cls, bucket, name, ext=None):
+    def exists(cls, bucket: str, name: str, ext: str=None) -> bool:
         """ Returns True if object exists. """
         return os.path.exists(cls._os_path(bucket, name, ext))
 
 
 class File:
-    """ Base class for file objects. """
-    def __init__(self, bucket, object_id, ext=None):
+    """
+    Base class for file objects. Allows to open (read, write) and delete objects.
+
+    Arguments:
+        bucket (str): The 'bucket' for this object.
+        object_id (str): The object_id for this object. Might contain `/` to structure
+            the bucket further. Will be mapped to directories in the filesystem.
+        ext (str): Optional extension for the object file in the filesystem.
+
+    Attributes:
+        logger: A structured logger with bucket and object information.
+    """
+    def __init__(self, bucket: str, object_id: str, ext: str=None) -> None:
         self.bucket = bucket
         self.object_id = object_id
         self.ext = ext
 
-    def open(self, *args, **kwargs):
+        self.logger = utils.get_logger(__name__, bucket=bucket, object=object_id)
+
+    def open(self, *args, **kwargs) -> IO:
         """ Opens the object with he given mode, etc. """
+        self.logger.debug('open file')
         return Objects.open(self.bucket, self.object_id, self.ext, *args, **kwargs)
 
-    def delete(self):
+    def delete(self) -> None:
         """ Deletes the file with the given object id. """
         try:
             Objects.delete(self.bucket, self.object_id, self.ext)
+            self.logger.debug('file deleted')
         except FileNotFoundError:
             raise KeyError()
 
-    def exists(self):
+    def exists(self) -> bool:
         """ Returns true if object exists. """
         return Objects.exists(self.bucket, self.object_id, self.ext)
 
     @property
-    def os_path(self):
+    def os_path(self) -> str:
         """ The path of the object in the os filesystem. """
         return Objects._os_path(self.bucket, self.object_id, self.ext)
 
@@ -236,11 +242,12 @@ class FileError(Exception):
 
 class UploadFile(File):
     """
-    Instances represent an uploaded file in the 'object storage'. Class supports open/close,
-    i.e. extract .zip files, and opening contained files. Some functions are only available
-    for open (i.e. tmp. downloaded and extracted uploads) uploads.
+    Instances represent an uploaded file in the *object storage*. Class is a conext
+    manager and supports the `with` statements.
+    In conext the upload will be extracted and contained files can be opened.
+    Some functions are only available for extracted uploads.
 
-    This class is also a context manager that opens and closes the upload respectively.
+    Uploads are stored in their own *bucket*.
 
     Arguments:
         upload_id: The upload of this uploaded file.
@@ -268,19 +275,15 @@ class UploadFile(File):
                     return decorated(self, *args, **kwargs)
                 except Exception as e:
                     msg = 'Could not %s upload %s.' % (decorated.__name__, self.upload_id)
-                    logger.error(msg, exc_info=e)
+                    self.logger.error(msg, exc_info=e)
                     raise FileError(msg, e)
             return wrapper
 
     @Decorators.handle_errors
     def hash(self) -> str:
         """ Calculates the first 28 bytes of a websafe base64 encoded SHA512 of the upload. """
-        hash = hashlib.sha512()
         with self.open('rb') as f:
-            for data in iter(lambda: f.read(65536), b''):
-                hash.update(data)
-
-        return base64.b64encode(hash.digest(), altchars=b'-_')[0:28].decode('utf-8')
+            return utils.hash(f)
 
     @Decorators.handle_errors
     def extract(self) -> None:
@@ -340,7 +343,8 @@ class UploadFile(File):
 class ArchiveFile(File):
     """
     Represents the archive file for an individual calculation. Allows to write the
-    archive, read the archive, delete the archive.
+    archive, read the archive, delete the archive. Archive files are stored in
+    their own *bucket*.
     """
     def __init__(self, archive_id: str) -> None:
         super().__init__(

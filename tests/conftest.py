@@ -1,5 +1,4 @@
 import pytest
-import logging
 from mongoengine import connect
 from mongoengine.connection import disconnect
 
@@ -68,8 +67,8 @@ def worker(patched_celery, celery_inspect, celery_session_worker):
             break
 
 
-@pytest.fixture(scope='function', autouse=True)
-def mongomock(monkeypatch):
+@pytest.fixture(scope='function')
+def mockmongo(monkeypatch):
     def mock_connect(**kwargs):
         return connect('test_db', host='mongomock://localhost')
 
