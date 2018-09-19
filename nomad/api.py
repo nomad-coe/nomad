@@ -12,17 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from flask import Flask, request, redirect, g, jsonify
+from flask import Flask, request, g, jsonify, send_file
 from flask_restful import Resource, Api, abort
 from flask_cors import CORS
 from flask_httpauth import HTTPBasicAuth
 from elasticsearch.exceptions import NotFoundError
+from datetime import datetime
+import os.path
 
-from nomad import config, files
+from nomad import config
+from nomad.files import UploadFile, ArchiveFile
 from nomad.utils import get_logger, create_uuid
-from nomad.processing import Upload, Calc, NotAllowedDuringProcessing, SUCCESS, FAILURE
+from nomad.processing import Upload, NotAllowedDuringProcessing
 from nomad.repo import RepoCalc
-from nomad.user import User, me
+from nomad.user import User
 
 base_path = config.services.api_base_path
 
@@ -382,6 +385,44 @@ class UploadRes(Resource):
             abort(400, message='You must not delete an upload during processing.')
 
 
+class UploadFileRes(Resource):
+    """
+    Upload a file to an existing upload. Can be used to upload files via bowser
+    or other http clients like curl. This will start the processing of the upload.
+
+    .. :quickref: upload; Upload a file to an existing upload.
+
+    :param string upload_id: the upload_id of the upload
+    :resheader Content-Type: application/json
+    :status 200: upload successfully received.
+    :status 404: upload with given id does not exist
+    :returns: the upload (see GET /uploads/<upload_id>)
+    """
+    def put(self, upload_id):
+        try:
+            upload = Upload.get(upload_id)
+        except KeyError:
+            abort(404, message='Upload with id %s does not exist.' % upload_id)
+
+        if 'file' not in request.files:
+            abort(400, message='No file part.')
+
+        file = request.files['file']
+        if file.filename != 'file':
+            abort(400, message='Wrong file name %s, expected "file" as name.' % (file.filename))
+
+        uploadFile = UploadFile(upload_id)
+        file.save(uploadFile.os_path)
+
+        logger = get_logger(__name__, endpoint='upload', action='put', upload_id=upload_id)
+        logger.debug('received uploaded file')
+        upload.upload_time = datetime.now()
+        upload.process()
+        logger.debug('initiated processing')
+
+        return upload.json_dict, 200
+
+
 class RepoCalcRes(Resource):
     def get(self, upload_hash, calc_hash):
         """
@@ -507,8 +548,6 @@ class RepoCalcsRes(Resource):
         :status 200: calcs successfully retrieved
         :returns: a list of repository entries in ``results`` and pagination info
         """
-        logger = get_logger(__name__, endpoint='repo', action='get')
-
         # TODO use argparse? bad request reponse an bad params, pagination as decorator
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
@@ -568,16 +607,20 @@ def get_calc(upload_hash, calc_hash):
     :status 404: calc with given hashes does not exist
     :returns: the metainfo formated JSON data of the requested calculation
     """
-    logger = get_logger(__name__, endpoint='archive', action='get', upload_hash=upload_hash, calc_hash=calc_hash)
-
     archive_id = '%s/%s' % (upload_hash, calc_hash)
 
     try:
-        url = files.external_objects_url(files.archive_url(archive_id))
-        return redirect(url, 302)
+        archive = ArchiveFile(archive_id)
+        arhchive_path = archive.os_path
+        return send_file(arhchive_path, attachment_filename=os.path.basename(arhchive_path))
     except KeyError:
         abort(404, message='Archive %s does not exist.' % archive_id)
+    except FileNotFoundError:
+        abort(404, message='Archive %s does not exist.' % archive_id)
     except Exception as e:
+        logger = get_logger(
+            __name__, endpoint='archive', action='get',
+            upload_hash=upload_hash, calc_hash=calc_hash)
         logger.error('Exception on accessing archive', exc_info=e)
         abort(500, message='Could not accessing the archive.')
 
@@ -593,6 +636,7 @@ def call_admin_operation(operation):
 
 api.add_resource(UploadsRes, '%s/uploads' % base_path)
 api.add_resource(UploadRes, '%s/uploads/<string:upload_id>' % base_path)
+api.add_resource(UploadFileRes, '%s/uploads/<string:upload_id>/file' % base_path)
 api.add_resource(RepoCalcsRes, '%s/repo' % base_path)
 api.add_resource(RepoCalcRes, '%s/repo/<string:upload_hash>/<string:calc_hash>' % base_path)
 

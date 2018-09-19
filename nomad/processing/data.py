@@ -37,7 +37,8 @@ from mongoengine import \
 import mongoengine.errors
 import logging
 
-from nomad import config, files, utils
+from nomad import config, utils
+from nomad.files import UploadFile, ArchiveFile, FileError
 from nomad.repo import RepoCalc
 from nomad.user import User, me
 from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE, RUNNING
@@ -95,7 +96,7 @@ class Calc(Proc):
         """
         # delete the archive
         if self.archive_id is not None:
-            files.delete_archive(self.archive_id)
+            ArchiveFile(self.archive_id).delete()
 
         # delete the search index entry
         try:
@@ -178,7 +179,7 @@ class Calc(Proc):
             upload_id=self.upload_id)
 
         # persist the archive
-        with files.write_archive_json(self.archive_id) as out:
+        with ArchiveFile(self.archive_id).write_archive_json() as out:
             self._parser_backend.write_json(out, pretty=True)
 
 
@@ -249,7 +250,7 @@ class Upload(Chord):
 
         with lnr(logger, 'delete upload file'):
             try:
-                files.Upload(self.upload_id).delete()
+                UploadFile(self.upload_id).delete()
             except KeyError:
                 if self.current_task == 'uploading':
                     logger.debug(
@@ -260,7 +261,7 @@ class Upload(Chord):
 
         with lnr(logger, 'deleting calcs'):
             # delete archive files
-            files.delete_archives(upload_hash=self.upload_hash)
+            ArchiveFile.delete_archives(upload_hash=self.upload_hash)
 
             # delete repo entries
             RepoCalc.delete_upload(upload_id=self.upload_id)
@@ -273,16 +274,10 @@ class Upload(Chord):
 
     @classmethod
     def _external_objects_url(cls, url):
-        """ Replaces the given internal object storage url (minio) with an URL that allows
+        """ Replaces the given internal object storage url with an URL that allows
             external access.
         """
-        port_with_colon = ''
-        if config.services.objects_port > 0:
-            port_with_colon = ':%d' % config.services.objects_port
-
-        return url.replace(
-            '%s:%s' % (config.minio.host, config.minio.port),
-            '%s%s%s' % (config.services.objects_host, port_with_colon, config.services.objects_base_path))
+        return 'http://%s:%s%s%s' % (config.services.api_host, config.services.api_port, config.services.api_base_path, url)
 
     @classmethod
     def create(cls, **kwargs) -> 'Upload':
@@ -292,8 +287,8 @@ class Upload(Chord):
         The upload will be already saved to the database.
         """
         self = super().create(**kwargs)
-        self.presigned_url = cls._external_objects_url(files.get_presigned_upload_url(self.upload_id))
-        self.upload_command = files.create_curl_upload_cmd(self.presigned_url, 'your_file')
+        self.presigned_url = cls._external_objects_url('/uploads/%s/file' % self.upload_id)
+        self.upload_command = 'curl "%s" --upload-file your_file' % self.presigned_url
         self._continue_with('uploading')
         return self
 
@@ -338,8 +333,8 @@ class Upload(Chord):
     def extracting(self):
         logger = self.get_logger()
         try:
-            self._upload = files.Upload(self.upload_id)
-            self._upload.open()
+            self._upload = UploadFile(self.upload_id)
+            self._upload.extract()
             logger.debug('opened upload')
         except KeyError as e:
             self.fail('process request for non existing upload', level=logging.INFO)
@@ -347,7 +342,7 @@ class Upload(Chord):
 
         try:
             self.upload_hash = self._upload.hash()
-        except files.UploadError as e:
+        except Exception as e:
             self.fail('could not create upload hash', e)
             return
 
@@ -386,12 +381,12 @@ class Upload(Chord):
     @task
     def cleanup(self):
         try:
-            upload = files.Upload(self.upload_id)
+            upload = UploadFile(self.upload_id)
         except KeyError as e:
             upload_proc.fail('Upload does not exist', exc_info=e)
             return
 
-        upload.close()
+        upload.remove_extract()
         self.get_logger().debug('closed upload')
 
     @property

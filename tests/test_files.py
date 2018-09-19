@@ -69,22 +69,26 @@ class TestObjects:
         assert not Objects.exists(example_bucket, name, ext)
 
 
-class TestArchiveFile:
-    @pytest.fixture(scope='function', params=[False, True])
-    def config(self, monkeypatch, request):
-        new_config = config.FilesConfig(
-            config.files.uploads_bucket,
-            config.files.repository_bucket,
-            config.files.archive_bucket,
-            request)
-        monkeypatch.setattr(config, 'files', new_config)
+@pytest.fixture(scope='function', params=[False, True])
+def archive_config(monkeypatch, request):
+    new_config = config.FilesConfig(
+        config.files.uploads_bucket,
+        config.files.repository_bucket,
+        config.files.archive_bucket,
+        request)
+    monkeypatch.setattr(config, 'files', new_config)
+    yield
 
-    @pytest.fixture(scope='function')
-    def archive(self, clear_files, config):
-        archive = ArchiveFile('__test_upload_hash/__test_calc_hash')
-        with archive.write_archive_json() as out:
-            json.dump(example_data, out)
-        yield archive
+
+@pytest.fixture(scope='function')
+def archive(clear_files, archive_config):
+    archive = ArchiveFile('__test_upload_hash/__test_calc_hash')
+    with archive.write_archive_json() as out:
+        json.dump(example_data, out)
+    yield archive
+
+
+class TestArchiveFile:
 
     def test_archive(self, archive: ArchiveFile, no_warn):
         assert archive.exists()

@@ -15,43 +15,12 @@
 version: '3.4'
 
 x-common-variables: &nomad_backend_env
-    NOMAD_MINIO_PORT: 9000
-    NOMAD_MINIO_HOST: minio
     NOMAD_RABBITMQ_HOST: rabbitmq
     NOMAD_LOGSTASH_HOST: elk
     NOMAD_ELASTIC_HOST: elastic
     NOMAD_MONGO_HOST: mongo
 
 services:
-    # an object store for uploads
-    minio:
-        restart: always
-        image: minio/minio:RELEASE.2018-06-08T03-49-38Z
-        # image: minio/minio
-        container_name: nomad_minio
-        ports:
-            - ${MINIO_HOST_PORT}:9000
-        volumes:
-            - ${VOLUME_BINDS}/minio:/data
-        environment:
-            - MINIO_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE
-            - MINIO_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-        command: server /data
-
-    minio-config:
-        image: minio/mc
-        links:
-            - minio
-        entrypoint: /bin/sh -c "
-            sleep 5;
-            /usr/bin/mc config host add minio http://minio:9000 AKIAIOSFODNN7EXAMPLE wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY;
-            /usr/bin/mc mb minio/uploads -p;
-            /usr/bin/mc mb minio/archive -p;
-            /usr/bin/mc mb minio/repository -p;
-            /usr/bin/mc policy download minio/repository;
-            /usr/bin/mc policy download minio/archive;
-            /usr/bin/mc policy upload minio/uploads;"  # bug #22
-
     # broker for celery
     rabbitmq:
         restart: always
@@ -115,7 +84,6 @@ services:
             <<: *nomad_backend_env
             NOMAD_SERVICE: nomad_worker
         links:
-            - minio
             - rabbitmq
             - elastic
             - mongo
@@ -135,7 +103,6 @@ services:
             <<: *nomad_backend_env
             NOMAD_SERVICE: nomad_handler
         links:
-            - minio
             - rabbitmq
             - elastic
             - mongo
@@ -152,12 +119,10 @@ services:
         environment:
             <<: *nomad_backend_env
             NOMAD_API_BASE_PATH: /nomad/api
-            NOMAD_OBJECTS_HOST: ${EXTERNAL_HOST}
-            NOMAD_OBJECTS_PORT: ${EXTERNAL_PORT}
-            NOMAD_OBJECTS_BASE_PATH: /nomad/objects
+            NOMAD_API_HOST: ${EXTERNAL_HOST}
+            NOMAD_API_PORT: ${EXTERNAL_PORT}
             NOMAD_SERVICE: nomad_api
         links:
-            - minio
             - rabbitmq
             - elastic
             - mongo
@@ -187,7 +152,6 @@ services:
         links:
             - elk
             - gui
-            - minio
             - api
         ports:
             - ${APP_HOST_PORT}:80
@@ -196,7 +160,6 @@ services:
         command: nginx -g 'daemon off;'
 
 volumes:
-    nomad_minio:
     nomad_mongo:
     nomad_elastic:
     nomad_redis:

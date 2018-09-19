@@ -21,6 +21,31 @@ from nomad.processing.data import Upload
 from nomad.utils import get_logger, lnr
 
 
+def initiate_processing(upload_id: str):
+    logger = get_logger(__name__, upload_id=upload_id)
+    logger.debug('Initiate upload processing')
+    try:
+        with lnr(logger, 'Could not load'):
+            try:
+                upload = Upload.get(upload_id)
+            except KeyError as e:
+                logger.error('Upload does not exist')
+                raise e
+
+        if upload.upload_time is not None:
+            logger.warn('Ignore upload notification, since file is already uploaded')
+            raise StopIteration
+
+        with lnr(logger, 'Save upload time'):
+            upload.upload_time = datetime.now()
+
+        with lnr(logger, 'Start processing'):
+            upload.process()
+
+    except Exception as e:
+        logger.error('Exception while handling upload put notification.', exc_info=e)
+
+
 def handle_uploads(ready=None, quit=False):
     """
     Starts a daemon that will listen to files for new uploads. For each new
@@ -35,28 +60,7 @@ def handle_uploads(ready=None, quit=False):
 
     @files.upload_put_handler
     def handle_upload_put(received_upload_id: str):
-        logger = get_logger(__name__, upload_id=received_upload_id)
-        logger.debug('Initiate upload processing')
-        try:
-            with lnr(logger, 'Could not load'):
-                try:
-                    upload = Upload.get(received_upload_id)
-                except KeyError as e:
-                    logger.error('Upload does not exist')
-                    raise e
-
-            if upload.upload_time is not None:
-                logger.warn('Ignore upload notification, since file is already uploaded')
-                raise StopIteration
-
-            with lnr(logger, 'Save upload time'):
-                upload.upload_time = datetime.now()
-
-            with lnr(logger, 'Start processing'):
-                upload.process()
-
-        except Exception as e:
-            logger.error('Exception while handling upload put notification.', exc_info=e)
+        initiate_processing(received_upload_id)
 
         if quit:
             raise StopIteration

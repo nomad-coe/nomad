@@ -17,13 +17,12 @@ from typing import Generator
 from datetime import datetime
 from elasticsearch import NotFoundError
 
-from nomad import config
+from nomad.files import ArchiveFile
 from nomad.parsing import LocalBackend
 from nomad.repo import AlreadyExists, RepoCalc, key_mappings
 
 from tests.test_normalizing import normalized_template_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
-from tests.test_files import assert_not_exists
 
 
 @pytest.fixture(scope='function')
@@ -44,7 +43,7 @@ def example_elastic_calc(normalized_template_example: LocalBackend) \
         additional=dict(
             mainfile='/test/mainfile',
             upload_time=datetime.now(),
-            staging=True, restricted=False, user_id='me'),
+            staging=True, restricted=False, user_id='me@gmail.com'),
         refresh='true')
 
     yield entry
@@ -96,7 +95,7 @@ def test_create_existing_elastic_calc(
 def test_delete_elastic_calc(example_elastic_calc: RepoCalc, no_warn):
     example_elastic_calc.delete()
 
-    assert_not_exists(config.files.archive_bucket, 'test_upload_hash/test_calc_hash')
+    assert not ArchiveFile('test_upload_hash/test_calc_hash').exists()
     try:
         RepoCalc.get(id='test_upload_hash/test_calc_hash')
         assert False

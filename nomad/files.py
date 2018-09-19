@@ -39,7 +39,7 @@ Uploads
     :members:
 
 """
-from typing import Callable, List, Any, Generator, IO, TextIO, cast, AnyStr
+from typing import List, Any, Generator, IO, TextIO, cast
 import os
 import os.path
 from zipfile import ZipFile, BadZipFile
@@ -51,95 +51,6 @@ import shutil
 
 from nomad import config, utils
 
-# _client = None
-
-# if _client is None and 'sphinx' not in sys.modules:
-#     _client = Minio('%s:%s' % (config.minio.host, config.minio.port),
-#                     access_key=config.minio.accesskey,
-#                     secret_key=config.minio.secret,
-#                     secure=False)
-
-#     # ensure all neccessary buckets exist
-#     def ensure_bucket(name):
-#         try:
-#             _client.make_bucket(bucket_name=name)
-#             logger.info('Created uploads bucket', bucket=name)
-#         except minio.error.BucketAlreadyOwnedByYou:
-#             pass
-
-#     ensure_bucket(config.files.uploads_bucket)
-#     ensure_bucket(config.files.archive_bucket)
-
-
-# def get_presigned_upload_url(upload_id: str) -> str:
-#     """
-#     Generates a presigned upload URL. Presigned URL allows users (and their client programs)
-#     to safely *PUT* a single file without further authorization or API to the *uploads* bucket
-#     using the given ``upload_id``. Example usages for presigned URLs include
-#     browser based uploads or simple *curl* commands (see also :func:`create_curl_upload_cmd`).
-
-#     Arguments:
-#         upload_id: The upload id for the uploaded file.
-
-#     Returns:
-#         The presigned URL string.
-#     """
-#     return _client.presigned_put_object(config.files.uploads_bucket, upload_id)
-
-
-# def create_curl_upload_cmd(presigned_url: str, file_dummy: str='<ZIPFILE>') -> str:
-#     """Creates a readymade curl command for uploading.
-
-#     Arguments:
-#         presigned_url: The presigned URL to base the command on.
-
-#     Kwargs:
-#         file_dummy: A placeholder for the file that the user/client has to replace.
-
-#     Returns:
-#         The curl shell command with correct method, url, headers, etc.
-#     """
-#     return 'curl "%s" --upload-file %s' % (presigned_url, file_dummy)
-
-
-# def upload_put_handler(func: Callable[[str], None]) -> Callable[[], None]:
-#     def upload_notifications(events: List[Any]) -> Generator[str, None, None]:
-#         for event in events:
-#             for event_record in event['Records']:
-#                 try:
-#                     event_name = event_record['eventName']
-#                     if event_name == 's3:ObjectCreated:Put':
-#                         upload_id = event_record['s3']['object']['key']
-#                         logger.debug('Received bucket upload event', upload_id=upload_id)
-#                         yield upload_id
-#                         break  # only one per record, pls
-#                     else:
-#                         logger.debug('Unhanled bucket event', bucket_event_name=event_name)
-#                 except KeyError:
-#                     logger.warning(
-#                         'Unhandled bucket event due to unexprected event format',
-#                         bucket_event_record=event_record)
-
-#     def wrapper(*args, **kwargs) -> None:
-#         logger.info('Start listening to uploads notifications.')
-
-#         _client.remove_all_bucket_notification(config.files.uploads_bucket)
-#         events = _client.listen_bucket_notification(
-#             config.files.uploads_bucket,
-#             events=['s3:ObjectCreated:*'])
-
-#         upload_ids = upload_notifications(events)
-#         for upload_id in upload_ids:
-#             try:
-#                 func(upload_id)
-#             except StopIteration:
-#                 # Using StopIteration to allow clients to stop handling of events.
-#                 logger.debug('Handling of upload notifications was stopped via StopIteration.')
-#                 return
-#             except Exception:
-#                 pass
-
-#     return wrapper
 
 class Objects:
     """
@@ -160,7 +71,7 @@ class Objects:
         if not os.path.isdir(directory):
             os.makedirs(directory)
 
-        return path
+        return os.path.abspath(path)
 
     @classmethod
     def open(cls, bucket: str, name: str, ext: str=None, *args, **kwargs) -> IO:

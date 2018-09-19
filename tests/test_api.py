@@ -1,7 +1,4 @@
 import pytest
-from threading import Thread
-import subprocess
-import shlex
 import time
 import json
 from mongoengine import connect
@@ -15,21 +12,21 @@ services_config = config.services._asdict()
 services_config.update(api_base_path='')
 config.services = config.NomadServicesConfig(**services_config)
 
-from nomad import api, files  # noqa
-from nomad.processing import Upload, handle_uploads_thread  # noqa
+from nomad import api  # noqa
+from nomad.files import UploadFile  # noqa
+from nomad.processing import Upload  # noqa
 
 from tests.processing.test_data import example_files  # noqa
-from tests.test_files import assert_exists  # noqa
 
 # import fixtures
-from tests.test_files import clear_files, archive_id  # noqa pylint: disable=unused-import
+from tests.test_files import clear_files, archive, archive_config  # noqa pylint: disable=unused-import
 from tests.test_normalizing import normalized_template_example  # noqa pylint: disable=unused-import
 from tests.test_parsing import parsed_template_example  # noqa pylint: disable=unused-import
 from tests.test_repo import example_elastic_calc  # noqa pylint: disable=unused-import
 
 
 @pytest.fixture(scope='function')
-def client():
+def client(mockmongo):
     disconnect()
     connect('users_test', host=config.mongo.host, port=config.mongo.port, is_mock=True)
 
@@ -148,22 +145,24 @@ def test_delete_empty_upload(client, test_user_auth, no_warn):
 @pytest.mark.parametrize("file", example_files)
 @pytest.mark.timeout(10)
 def test_processing(client, file, worker, mocksearch, test_user_auth, no_warn):
-    handler = handle_uploads_thread(quit=True)
-
     rv = client.post('/uploads', headers=test_user_auth)
     assert rv.status_code == 200
     upload = assert_upload(rv.data)
+    upload_id = upload['upload_id']
 
     upload_url = upload['presigned_url']
-    cmd = files.create_curl_upload_cmd(upload_url).replace('<ZIPFILE>', file)
-    subprocess.call(shlex.split(cmd))
+    upload_endpoint = '/uploads/%s' % upload_id
+    upload_file_endpoint = '%s/file' % upload_endpoint
 
-    handler.join()
+    assert upload_url.endswith(upload_file_endpoint)
+    rv = client.put(upload_file_endpoint, data=dict(file=(open(file, 'rb'), 'file')))
+    assert rv.status_code == 200
+    upload = assert_upload(rv.data)
 
     while True:
         time.sleep(0.1)
 
-        rv = client.get('/uploads/%s' % upload['upload_id'], headers=test_user_auth)
+        rv = client.get(upload_endpoint, headers=test_user_auth)
         assert rv.status_code == 200
         upload = assert_upload(rv.data)
         assert 'upload_time' in upload
@@ -178,16 +177,16 @@ def test_processing(client, file, worker, mocksearch, test_user_auth, no_warn):
         assert calc['status'] == 'SUCCESS'
         assert calc['current_task'] == 'archiving'
         assert len(calc['tasks']) == 3
-        assert_exists(config.files.uploads_bucket, upload['upload_id'])
+        assert UploadFile(upload['upload_id']).exists()
 
     if upload['calcs']['pagination']['total'] > 1:
-        rv = client.get('/uploads/%s?page=2&per_page=1&order_by=status' % upload['upload_id'])
+        rv = client.get('%s?page=2&per_page=1&order_by=status' % upload_endpoint)
         assert rv.status_code == 200
         upload = assert_upload(rv.data)
         assert len(upload['calcs']['results']) == 1
 
     rv = client.post(
-        '/uploads/%s' % upload['upload_id'],
+        upload_endpoint,
         headers=test_user_auth,
         data=json.dumps(dict(operation='unstage')),
         content_type='application/json')
@@ -252,9 +251,9 @@ def test_repo_calcs_user_invisible(client, example_elastic_calc, test_other_user
     assert len(results) == 0
 
 
-def test_get_archive(client, archive_id, no_warn):
-    rv = client.get('/archive/%s' % archive_id)
-    assert rv.status_code == 302
+def test_get_archive(client, archive, no_warn):
+    rv = client.get('/archive/%s' % archive.object_id)
+    assert rv.status_code == 200
 
 
 def test_get_non_existing_archive(client, no_warn):
