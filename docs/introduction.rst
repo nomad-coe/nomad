@@ -35,14 +35,6 @@ search enginines, etc.). It comprises a revised version of the repository and ar
 Nomad uses a series of 3rd party technologies that already solve most of nomads
 processing, storage, availability, and scaling goals:
 
-minio.io
-^^^^^^^^
-http://minio.io is a s3 compatible object storage API that can be used in scaled in
-various cloud and HPC contexts, running on a simple fily system, NAS, or actual object
-storage. We use it to store uploaded files, raw repository files for download, and
-archive files. Minio enables clients to downlaod and upload files via presigned URLs.
-This us to provide selective secure scalable access to data files.
-
 celery
 ^^^^^^
 http://celeryproject.org (incl. rabbitmq) is a popular combination for realizing
@@ -51,7 +43,7 @@ It allows us to transparently distribute processing load.
 
 elastic search
 ^^^^^^^^^^^^^^
-Elastic search is used to store repository data (not the raw files, they are keps in minio).
+Elastic search is used to store repository data (not the raw files).
 Elastic search allows for flexible scalable search and analytics.
 
 mongodb

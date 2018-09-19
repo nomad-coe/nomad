@@ -92,23 +92,6 @@ services:
             - ${VOLUME_BINDS}/fs:/app/.volumes/fs
         command: python -m celery worker -l info -A nomad.processing
 
-    # nomad upload handler
-    handler:
-        restart: always
-        image: nomad/backend
-        depends_on:
-            - worker
-        container_name: nomad_handler
-        environment:
-            <<: *nomad_backend_env
-            NOMAD_SERVICE: nomad_handler
-        links:
-            - rabbitmq
-            - elastic
-            - mongo
-            - elk
-        command: python -m nomad.processing.handlerdaemon
-
     # nomad api
     api:
         restart: always

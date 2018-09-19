@@ -2,12 +2,10 @@
 
 ## Introduction
 The nomad infrastructure consists of a series of nomad and 3rd party services:
-- nomad handler (python): a small daemon that triggers processing after upload
 - nomad worker (python): task worker that will do the processing
 - nomad api (python): the nomad REST API
 - nomad gui: a small server serving the web-based react gui
 - proxy: an nginx server that reverse proxyies all services under one port
-- minio: a object storage interface to all files
 - elastic search: nomad's search and analytics engine
 - mongodb: used to store processing state
 - rabbitmq: a task queue used to distribute work in a cluster
@@ -98,7 +96,7 @@ closer to the environement that will be used to run nomad in production.
 There are currently two different images and respectively two different docker files:
 `backend.Dockerfile`, and `frontend.Dockerfile`.
 
-Nomad comprises currently three services, the *handler* (deals with user uploads),
+Nomad comprises currently two services,
 the *worker* (does the actual processing), and the *api*. Those services can be
 run from one image that have the nomad python code and all dependencies installed. This
 is covered by the `backend.Dockerfile`.
@@ -110,7 +108,7 @@ The images are build via *docker-compose* and don't have to be created manually.
 ### Build with docker-compose
 
 Now we can build the *docker-compose* that contains all external services (rabbitmq,
-mongo, elastic, minio, elk) and nomad services (worker, handler, api, gui).
+mongo, elastic, elk) and nomad services (worker, api, gui).
 ```
 cd ./infrastructure/nomad
 docker-compose build
@@ -138,8 +136,8 @@ docker-compose down
 
 ### Run containers selectively
 The following services/containers are managed via our docker-compose:
-- rabbitmq, minio, minio-config, mongo, elastic, elk
-- worker, handler, api
+- rabbitmq, mongo, elastic, elk
+- worker, api
 - gui
 - proxy
 
@@ -148,8 +146,8 @@ a single port and different paths.
 
 You can also run services selectively, e.g.
 ```
-docker-compose up -d redis, rabbitmq, minio, minio-config, mongo, elastic, elk
-docker-compose up worker handler
+docker-compose up -d rabbitmq, mongo, elastic, elk
+docker-compose up worker
 docker-compose up api gui proxy
 ```
 
@@ -176,14 +174,6 @@ If you run the ELK stack (and enable logstash in nomad/config.py),
 you can reach the Kibana with [localhost:5601](http://localhost:5601).
 The index prefix for logs is `logstash-`.
 
-### Minio
-
-If you want to access the minio object storage via the mc client, register the
-infrastructure's minio host to the minio client (mc).
-```
-mc config host add minio http://localhost:9007 AKIAIOSFODNN7EXAMPLE wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-```
-
 ### mongodb and elastic search
 
 You can access mongodb and elastic search via your prefered tools. Just make sure
@@ -192,7 +182,7 @@ to use the right ports (see above).
 
 ## Run nomad services manually
 
-You can run the worker, handler, api, and gui as part of the docker infrastructure, like
+You can run the worker, api, and gui as part of the docker infrastructure, like
 seen above. But, of course there are always reasons to run them manually during
 development, like running them in a debugger, profiler, etc.
 
@@ -217,20 +207,6 @@ Now use this to auto relead worker:
 watchmedo auto-restart -d ./nomad -p '*.py' -- celery worker -l info -A nomad.processing
 ```
 
-### Run the handler
-The handler is a small deamon that takes minio events and initiates the processing.
-(This should actually be replaces, by minio talking to rabbitmq directly.)
-
-You cna run the *handler* from docker-compose
-```
-docker-compose up nomad-handler
-```
-
-Or manually form the root
-```
-python -m nomad.handler
-```
-
 ### Run the api
 Either with docker, or:
 ```
@@ -250,12 +226,12 @@ yarn start
 ```
 
 ## Run the tests
-You need to have the infrastructure partially running: minio, elastic, rabbitmq, redis.
+You need to have the infrastructure partially running: elastic, rabbitmq.
 The rest should be mocked or provied by the tests. Make sure that you do no run any
-worker and handler in parallel, as they will fight for tasks in the queue.
+worker, as they will fight for tasks in the queue.
 ```
 cd instrastructure
-docker-compose up -d minio elastic rabbitmq, redis
+docker-compose up -d elastic rabbitmq
 cd ..
 pytest -sv tests
 ```

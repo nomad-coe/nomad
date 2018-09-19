@@ -27,10 +27,8 @@ processing work while having the processing state, i.e. (intermediate) results,
 always available.
 
 This module is structured into our *celery app* and abstract process base class
-:class:`Proc` (``base.py``), the concrete processing classes
-:class:`Upload` and :class:`Calc` (``data.py``), and the *handler* service that
-initiates processing based on file storage notifications from *minio*
-(``handler.py``, ``handlerdaemon.py``).
+:class:`Proc` (``base.py``), and the concrete processing classes
+:class:`Upload` and :class:`Calc` (``data.py``).
 
 This module does not contain the functions to do the actual work. Those are encapsulated
 in :py:mod:`nomad.files`, :py:mod:`nomad.repo`, :py:mod:`nomad.users`,
@@ -67,16 +65,7 @@ classes do represent the processing state, as well as the respective entity.
     :members:
 .. autoclass:: nomad.processing.data.Calc
     :members:
-
-
-Initiate processing
--------------------
-
-.. autofunction:: handle_uploads
-.. autofunction:: handle_uploads_thread
-
 """
 
 from nomad.processing.base import app, InvalidId, ProcNotRegistered, SUCCESS, FAILURE, RUNNING, PENDING
 from nomad.processing.data import Upload, Calc, NotAllowedDuringProcessing
-from nomad.processing.handler import handle_uploads, handle_uploads_thread
