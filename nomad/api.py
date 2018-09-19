@@ -404,12 +404,15 @@ class UploadFileRes(Resource):
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
+        if upload.upload_time is not None:
+            abort(400, message='A file was already uploaded to this uploade before.')
+
         if 'file' not in request.files:
             abort(400, message='No file part.')
 
         file = request.files['file']
-        if file.filename != 'file':
-            abort(400, message='Wrong file name %s, expected "file" as name.' % (file.filename))
+        if upload.name is '':
+            upload.name = file.filename
 
         uploadFile = UploadFile(upload_id)
         file.save(uploadFile.os_path)

@@ -288,7 +288,7 @@ class Upload(Chord):
         """
         self = super().create(**kwargs)
         self.presigned_url = cls._external_objects_url('/uploads/%s/file' % self.upload_id)
-        self.upload_command = 'curl "%s" --upload-file your_file' % self.presigned_url
+        self.upload_command = 'curl -X put "%s" -F file=@your_local_file' % self.presigned_url
         self._continue_with('uploading')
         return self
 
