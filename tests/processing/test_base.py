@@ -36,7 +36,7 @@ class SingleTask(Proc):
         pass
 
 
-def test_tasks(mongomock):
+def test_tasks(mockmongo):
     p = Tasks.create()
     assert p.tasks == ['a', 'b']
     assert_proc(p, None, PENDING)

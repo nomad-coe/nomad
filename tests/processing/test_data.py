@@ -21,8 +21,11 @@ reading from the redis result backend, even though all task apperently ended suc
 from typing import Generator
 import pytest
 from datetime import datetime
+import shutil
+import os.path
 
-from nomad import config, files
+from nomad import config
+from nomad.files import UploadFile
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator
 from nomad.user import me
@@ -44,8 +47,9 @@ def mocksearch_forall(mocksearch):
 @pytest.fixture(scope='function', params=example_files)
 def uploaded_id(request, clear_files) -> Generator[str, None, None]:
     example_file = request.param
-    example_upload_id = example_file.replace('.zip', '')
-    files._client.fput_object(config.files.uploads_bucket, example_upload_id, example_file)
+    example_upload_id = os.path.basename(example_file).replace('.zip', '')
+    upload_file = UploadFile(example_upload_id).os_path
+    shutil.copyfile(example_file, upload_file)
 
     yield example_upload_id
 
