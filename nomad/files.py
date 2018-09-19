@@ -53,111 +53,190 @@ from contextlib import contextmanager
 import gzip
 import io
 import time
+import shutil
 
 import nomad.config as config
 from nomad.utils import get_logger
 
 logger = get_logger(__name__)
 
-_client = None
+# _client = None
 
-if _client is None and 'sphinx' not in sys.modules:
-    _client = Minio('%s:%s' % (config.minio.host, config.minio.port),
-                    access_key=config.minio.accesskey,
-                    secret_key=config.minio.secret,
-                    secure=False)
+# if _client is None and 'sphinx' not in sys.modules:
+#     _client = Minio('%s:%s' % (config.minio.host, config.minio.port),
+#                     access_key=config.minio.accesskey,
+#                     secret_key=config.minio.secret,
+#                     secure=False)
 
-    # ensure all neccessary buckets exist
-    def ensure_bucket(name):
+#     # ensure all neccessary buckets exist
+#     def ensure_bucket(name):
+#         try:
+#             _client.make_bucket(bucket_name=name)
+#             logger.info('Created uploads bucket', bucket=name)
+#         except minio.error.BucketAlreadyOwnedByYou:
+#             pass
+
+#     ensure_bucket(config.files.uploads_bucket)
+#     ensure_bucket(config.files.archive_bucket)
+
+
+# def get_presigned_upload_url(upload_id: str) -> str:
+#     """
+#     Generates a presigned upload URL. Presigned URL allows users (and their client programs)
+#     to safely *PUT* a single file without further authorization or API to the *uploads* bucket
+#     using the given ``upload_id``. Example usages for presigned URLs include
+#     browser based uploads or simple *curl* commands (see also :func:`create_curl_upload_cmd`).
+
+#     Arguments:
+#         upload_id: The upload id for the uploaded file.
+
+#     Returns:
+#         The presigned URL string.
+#     """
+#     return _client.presigned_put_object(config.files.uploads_bucket, upload_id)
+
+
+# def create_curl_upload_cmd(presigned_url: str, file_dummy: str='<ZIPFILE>') -> str:
+#     """Creates a readymade curl command for uploading.
+
+#     Arguments:
+#         presigned_url: The presigned URL to base the command on.
+
+#     Kwargs:
+#         file_dummy: A placeholder for the file that the user/client has to replace.
+
+#     Returns:
+#         The curl shell command with correct method, url, headers, etc.
+#     """
+#     return 'curl "%s" --upload-file %s' % (presigned_url, file_dummy)
+
+
+# def upload_put_handler(func: Callable[[str], None]) -> Callable[[], None]:
+#     def upload_notifications(events: List[Any]) -> Generator[str, None, None]:
+#         for event in events:
+#             for event_record in event['Records']:
+#                 try:
+#                     event_name = event_record['eventName']
+#                     if event_name == 's3:ObjectCreated:Put':
+#                         upload_id = event_record['s3']['object']['key']
+#                         logger.debug('Received bucket upload event', upload_id=upload_id)
+#                         yield upload_id
+#                         break  # only one per record, pls
+#                     else:
+#                         logger.debug('Unhanled bucket event', bucket_event_name=event_name)
+#                 except KeyError:
+#                     logger.warning(
+#                         'Unhandled bucket event due to unexprected event format',
+#                         bucket_event_record=event_record)
+
+#     def wrapper(*args, **kwargs) -> None:
+#         logger.info('Start listening to uploads notifications.')
+
+#         _client.remove_all_bucket_notification(config.files.uploads_bucket)
+#         events = _client.listen_bucket_notification(
+#             config.files.uploads_bucket,
+#             events=['s3:ObjectCreated:*'])
+
+#         upload_ids = upload_notifications(events)
+#         for upload_id in upload_ids:
+#             try:
+#                 func(upload_id)
+#             except StopIteration:
+#                 # Using StopIteration to allow clients to stop handling of events.
+#                 logger.debug('Handling of upload notifications was stopped via StopIteration.')
+#                 return
+#             except Exception:
+#                 pass
+
+#     return wrapper
+
+class Objects:
+    """
+    Object store like abstraction based on a regular file system.
+    """
+    @classmethod
+    def _os_path(cls, bucket, name, ext):
+        if ext is not None and ext != '':
+            file_name = ".".join([name, ext])
+        elif name is None or name == '':
+            file_name = ''
+        else:
+            file_name = name
+
+        path = file_name.split('/')
+        path = os.path.join(*([config.fs.objects, bucket] + path))
+        directory = os.path.dirname(path)
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
+
+        return path
+
+    @classmethod
+    def open(cls, bucket, name, ext=None, *args, **kwargs):
+        """ Open an object like you would a file, e.g. with 'rb', etc. """
         try:
-            _client.make_bucket(bucket_name=name)
-            logger.info('Created uploads bucket', bucket=name)
-        except minio.error.BucketAlreadyOwnedByYou:
+            return open(cls._os_path(bucket, name, ext), *args, **kwargs)
+        except FileNotFoundError:
+            raise KeyError()
+
+    @classmethod
+    def delete(cls, bucket, name, ext=None):
+        """ Delete a single object. """
+        try:
+            os.remove(cls._os_path(bucket, name, ext))
+        except FileNotFoundError:
+            raise KeyError()
+
+    @classmethod
+    def delete_all(cls, bucket, prefix=''):
+        """ Delete all files with given prefix, prefix must denote a directory. """
+        try:
+            shutil.rmtree(cls._os_path(bucket, prefix, ext=None))
+        except FileNotFoundError:
             pass
 
-    ensure_bucket(config.files.uploads_bucket)
-    ensure_bucket(config.files.archive_bucket)
+    @classmethod
+    def exists(cls, bucket, name, ext=None):
+        """ Returns True if object exists. """
+        return os.path.exists(cls._os_path(bucket, name, ext))
 
 
-def get_presigned_upload_url(upload_id: str) -> str:
-    """
-    Generates a presigned upload URL. Presigned URL allows users (and their client programs)
-    to safely *PUT* a single file without further authorization or API to the *uploads* bucket
-    using the given ``upload_id``. Example usages for presigned URLs include
-    browser based uploads or simple *curl* commands (see also :func:`create_curl_upload_cmd`).
+class File:
+    """ Base class for file objects. """
+    def __init__(self, bucket, object_id, ext=None):
+        self.bucket = bucket
+        self.object_id = object_id
+        self.ext = ext
 
-    Arguments:
-        upload_id: The upload id for the uploaded file.
+    def open(self, *args, **kwargs):
+        """ Opens the object with he given mode, etc. """
+        return Objects.open(self.bucket, self.object_id, self.ext, *args, **kwargs)
 
-    Returns:
-        The presigned URL string.
-    """
-    return _client.presigned_put_object(config.files.uploads_bucket, upload_id)
+    def delete(self):
+        """ Deletes the file with the given object id. """
+        try:
+            Objects.delete(self.bucket, self.object_id, self.ext)
+        except FileNotFoundError:
+            raise KeyError()
 
+    def exists(self):
+        """ Returns true if object exists. """
+        return Objects.exists(self.bucket, self.object_id, self.ext)
 
-def create_curl_upload_cmd(presigned_url: str, file_dummy: str='<ZIPFILE>') -> str:
-    """Creates a readymade curl command for uploading.
-
-    Arguments:
-        presigned_url: The presigned URL to base the command on.
-
-    Kwargs:
-        file_dummy: A placeholder for the file that the user/client has to replace.
-
-    Returns:
-        The curl shell command with correct method, url, headers, etc.
-    """
-    return 'curl "%s" --upload-file %s' % (presigned_url, file_dummy)
+    @property
+    def os_path(self):
+        """ The path of the object in the os filesystem. """
+        return Objects._os_path(self.bucket, self.object_id, self.ext)
 
 
-def upload_put_handler(func: Callable[[str], None]) -> Callable[[], None]:
-    def upload_notifications(events: List[Any]) -> Generator[str, None, None]:
-        for event in events:
-            for event_record in event['Records']:
-                try:
-                    event_name = event_record['eventName']
-                    if event_name == 's3:ObjectCreated:Put':
-                        upload_id = event_record['s3']['object']['key']
-                        logger.debug('Received bucket upload event', upload_id=upload_id)
-                        yield upload_id
-                        break  # only one per record, pls
-                    else:
-                        logger.debug('Unhanled bucket event', bucket_event_name=event_name)
-                except KeyError:
-                    logger.warning(
-                        'Unhandled bucket event due to unexprected event format',
-                        bucket_event_record=event_record)
-
-    def wrapper(*args, **kwargs) -> None:
-        logger.info('Start listening to uploads notifications.')
-
-        _client.remove_all_bucket_notification(config.files.uploads_bucket)
-        events = _client.listen_bucket_notification(
-            config.files.uploads_bucket,
-            events=['s3:ObjectCreated:*'])
-
-        upload_ids = upload_notifications(events)
-        for upload_id in upload_ids:
-            try:
-                func(upload_id)
-            except StopIteration:
-                # Using StopIteration to allow clients to stop handling of events.
-                logger.debug('Handling of upload notifications was stopped via StopIteration.')
-                return
-            except Exception:
-                pass
-
-    return wrapper
-
-
-class UploadError(Exception):
+class FileError(Exception):
     def __init__(self, msg, cause):
         super().__init__(msg, cause)
 
 
-class Upload():
+class UploadFile(File):
     """
-    Instances represent an uploaded file in the object storage. Class supports open/close,
+    Instances represent an uploaded file in the 'object storage'. Class supports open/close,
     i.e. extract .zip files, and opening contained files. Some functions are only available
     for open (i.e. tmp. downloaded and extracted uploads) uploads.
 
@@ -167,21 +246,17 @@ class Upload():
         upload_id: The upload of this uploaded file.
 
     Attributes:
-        upload_file: The path of the tmp version of this file for an open upload.
         upload_extract_dir: The path of the tmp directory with the extracted contents.
         filelist: A list of filenames relative to the .zipped upload root.
-        metadata: The upload object storage metadata.
     """
     def __init__(self, upload_id: str) -> None:
-        self.upload_id = upload_id
-        self.upload_file: str = os.path.join(config.fs.tmp, 'uploads', upload_id)
+        super().__init__(
+            bucket=config.files.uploads_bucket,
+            object_id=upload_id,
+            ext='zip')
+
         self.upload_extract_dir: str = os.path.join(config.fs.tmp, 'uploads_extracted', upload_id)
         self.filelist: List[str] = None
-
-        try:
-            self.metadata = _client.stat_object(config.files.uploads_bucket, upload_id).metadata
-        except minio.error.NoSuchKey:
-            raise KeyError(self.upload_id)
 
     # There is not good way to capsule decorators in a class:
     # https://medium.com/@vadimpushtaev/decorator-inside-python-class-1e74d23107f6
@@ -194,70 +269,63 @@ class Upload():
                 except Exception as e:
                     msg = 'Could not %s upload %s.' % (decorated.__name__, self.upload_id)
                     logger.error(msg, exc_info=e)
-                    raise UploadError(msg, e)
+                    raise FileError(msg, e)
             return wrapper
 
     @Decorators.handle_errors
     def hash(self) -> str:
         """ Calculates the first 28 bytes of a websafe base64 encoded SHA512 of the upload. """
         hash = hashlib.sha512()
-        with open(self.upload_file, 'rb') as f:
+        with self.open('rb') as f:
             for data in iter(lambda: f.read(65536), b''):
                 hash.update(data)
 
         return base64.b64encode(hash.digest(), altchars=b'-_')[0:28].decode('utf-8')
 
     @Decorators.handle_errors
-    def open(self) -> None:
+    def extract(self) -> None:
         """
-        Opens the upload. This means the uploaed files gets tmp. downloaded and extracted.
+        'Opens' the upload. This means the uploaed files get extracted to tmp.
 
         Raises:
-            UploadError: If some IO went wrong.
+            UploadFileError: If some IO went wrong.
             KeyError: If the upload does not exist.
         """
-        os.makedirs(os.path.join(config.fs.tmp, 'uploads'), exist_ok=True)
         os.makedirs(os.path.join(config.fs.tmp, 'uploads_extracted'), exist_ok=True)
-
-        try:
-            _client.fget_object(config.files.uploads_bucket, self.upload_id, self.upload_file)
-        except minio.error.NoSuchKey:
-            raise KeyError(self.upload_id)
 
         zipFile = None
         try:
-            zipFile = ZipFile(self.upload_file)
+            zipFile = ZipFile(self.os_path)
             zipFile.extractall(self.upload_extract_dir)
             self.filelist = [
                 zipInfo.filename for zipInfo in zipFile.filelist
                 if not zipInfo.filename.endswith('/')]
         except BadZipFile as e:
-            raise UploadError('Upload is not a zip file', e)
+            raise FileError('Upload is not a zip file', e)
         finally:
             if zipFile is not None:
                 zipFile.close()
 
     @Decorators.handle_errors
-    def close(self) -> None:
+    def remove_extract(self) -> None:
         """
         Closes the upload. This means the tmp. files are deleted.
 
         Raises:
-            UploadError: If some IO went wrong.
+            UploadFileError: If some IO went wrong.
             KeyError: If the upload does not exist.
         """
         try:
-            os.remove(self.upload_file)
             shutil.rmtree(self.upload_extract_dir)
         except FileNotFoundError:
-            raise KeyError(self.upload_id)
+            raise KeyError()
 
     def __enter__(self):
-        self.open()
+        self.extract()
         return self
 
     def __exit__(self, exc_type, exc, exc_tb):
-        self.close()
+        self.remove_extract()
 
     @Decorators.handle_errors
     def open_file(self, filename: str, *args, **kwargs) -> IO[Any]:
@@ -268,96 +336,60 @@ class Upload():
         """ Returns the tmp directory relative version of a filename. """
         return os.path.join(self.upload_extract_dir, filename)
 
-    def delete(self):
-        """ Delete the file from the store. Must not be open. """
+
+class ArchiveFile(File):
+    """
+    Represents the archive file for an individual calculation. Allows to write the
+    archive, read the archive, delete the archive.
+    """
+    def __init__(self, archive_id: str) -> None:
+        super().__init__(
+            bucket=config.files.archive_bucket,
+            object_id=archive_id,
+            ext='json.gz' if config.files.compress_archive else 'json')
+
+    @contextmanager
+    def write_archive_json(self) -> Generator[TextIO, None, None]:
+        """ Context manager that yiels a file-like to write the archive json. """
+        if config.files.compress_archive:
+            binary_out = self.open('wb')
+            gzip_wrapper = cast(TextIO, gzip.open(binary_out, 'wt'))
+            out = gzip_wrapper
+        else:
+            binary_out = self.open('wb')
+            text_wrapper = io.TextIOWrapper(binary_out, encoding='utf-8')
+            out = text_wrapper
+
         try:
-            _client.remove_object(config.files.uploads_bucket, self.upload_id)
-        except minio.error.NoSuchKey:
-            raise KeyError(self.upload_id)
+            yield out
+        finally:
+            out.flush()
+            out.close()
+            binary_out.close()
 
+    @contextmanager
+    def read_archive_json(self) -> Generator[TextIO, None, None]:
+        """ Context manager that yiels a file-like to read the archive json. """
+        try:
+            if config.files.compress_archive:
+                binary_in = self.open(mode='rb')
+                gzip_wrapper = cast(TextIO, gzip.open(binary_in, 'rt'))
+                in_file = gzip_wrapper
+            else:
+                binary_in = self.open(mode='rb')
+                text_wrapper = io.TextIOWrapper(binary_in, encoding='utf-8')
+                in_file = text_wrapper
+        except FileNotFoundError:
+            raise KeyError()
 
-@contextmanager
-def write_archive_json(archive_id) -> Generator[TextIO, None, None]:
-    """ Context manager that yiels a file-like to write the archive json. """
-    binary_out = io.BytesIO()
-    if config.files.compress_archive:
-        gzip_wrapper = cast(TextIO, gzip.open(binary_out, 'wt'))
-        out = gzip_wrapper
-        metadata = {'Content-Encoding': 'gzip'}
-    else:
-        text_wrapper = io.TextIOWrapper(binary_out, encoding='utf-8')
-        out = text_wrapper
-        metadata = {}
+        try:
+            yield in_file
+        finally:
+            in_file.close()
+            binary_in.close()
 
-    try:
-        yield out
-    finally:
-        out.flush()
-        # in practice minio fails writing seemingly arbitrarely for various reasons
-        # a simple retry with a small delay seems to be a pragmatic solution
-        for _ in range(0, 2):
-            try:
-                binary_out.seek(0)
-                length = len(binary_out.getvalue())
-
-                _client.put_object(
-                    config.files.archive_bucket, archive_id, binary_out, length=length,
-                    content_type='application/json',
-                    metadata=metadata)
-
-                break
-            except Exception:
-                time.sleep(1)
-
-        out.close()
-        binary_out.close()
-
-
-def archive_url(archive_id) -> str:
-    """ Returns the file server url for the archive. """
-    try:
-        _client.stat_object(config.files.archive_bucket, archive_id)
-    except minio.error.NoSuchKey:
-        raise KeyError()
-
-    return 'http://%s:%d/%s/%s' % \
-        (config.minio.host, config.minio.port, config.files.archive_bucket, archive_id)
-
-
-def open_archive_json(archive_id) -> IO:
-    """ Returns a file-like to read the archive json. """
-    # The result already is a file-like and due to the Content-Encoding metadata is
-    # will automatically be un-gzipped.
-    try:
-        return _client.get_object(config.files.archive_bucket, archive_id)
-    except minio.error.NoSuchKey:
-        raise KeyError()
-
-
-def delete_archive(archive_id: str):
-    """ Deletes the archive file with the given id. """
-    bucket = config.files.archive_bucket
-    try:
-        _client.remove_object(bucket, archive_id)
-    except minio.error.NoSuchKey:
-        raise KeyError()
-
-
-def delete_archives(upload_hash: str):
-    """ Delete all archives of one upload with the given hash. """
-    bucket = config.files.archive_bucket
-    objects = _client.list_objects(bucket, '%s/' % upload_hash)
-    for _ in _client.remove_objects(bucket, [obj.object_name for obj in objects]):
-        pass
-
-
-def external_objects_url(url):
-    """ Replaces the given internal object storage url (minio) with an URL that allows
-        external access. """
-    port_with_colon = ''
-    if config.services.objects_port > 0:
-        port_with_colon = ':%d' % config.services.objects_port
-
-    return url.replace(
-        '%s:%s' % (config.minio.host, config.minio.port),
-        '%s%s%s' % (config.services.objects_host, port_with_colon, config.services.objects_base_path))
+    @staticmethod
+    def delete_archives(upload_hash: str):
+        """ Delete all archives of one upload with the given hash. """
+        bucket = config.files.archive_bucket
+        Objects.delete_all(bucket, upload_hash)

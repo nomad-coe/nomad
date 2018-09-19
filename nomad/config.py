@@ -28,10 +28,7 @@ FilesConfig = namedtuple(
 CeleryConfig = namedtuple('Celery', ['broker_url'])
 """ Used to configure the RabbitMQ and Redis backends for celery. """
 
-MinioConfig = namedtuple('Minio', ['host', 'port', 'accesskey', 'secret'])
-""" Used to configure the minio object storage API. """
-
-FSConfig = namedtuple('FSConfig', ['tmp'])
+FSConfig = namedtuple('FSConfig', ['tmp', 'objects'])
 """ Used to configure file stystem access. """
 
 ElasticConfig = namedtuple('ElasticConfig', ['host', 'calc_index'])
@@ -43,7 +40,7 @@ MongoConfig = namedtuple('MongoConfig', ['host', 'port', 'users_db'])
 LogstashConfig = namedtuple('LogstashConfig', ['enabled', 'host', 'tcp_port', 'level'])
 """ Used to configure and enable/disable the ELK based centralized logging. """
 
-NomadServicesConfig = namedtuple('NomadServicesConfig', ['api_base_path', 'objects_host', 'objects_port', 'objects_base_path', 'api_secret'])
+NomadServicesConfig = namedtuple('NomadServicesConfig', ['api_base_path', 'api_secret'])
 """ Used to configure nomad services: worker, handler, api """
 
 files = FilesConfig(
@@ -66,14 +63,9 @@ celery = CeleryConfig(
     broker_url=rabbit_url
 )
 
-minio = MinioConfig(
-    host=os.environ.get('NOMAD_MINIO_HOST', 'localhost'),
-    port=int(os.environ.get('NOMAD_MINIO_PORT', '9007')),
-    accesskey='AKIAIOSFODNN7EXAMPLE',
-    secret='wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
-)
 fs = FSConfig(
-    tmp='.volumes/fs'
+    tmp='.volumes/fs/tmp',
+    objects='.volumes/fs/objects'
 )
 elastic = ElasticConfig(
     host=os.environ.get('NOMAD_ELASTIC_HOST', 'localhost'),
@@ -92,8 +84,5 @@ logstash = LogstashConfig(
 )
 services = NomadServicesConfig(
     api_base_path=os.environ.get('NOMAD_API_BASE_PATH', '/nomad/api'),
-    objects_host=os.environ.get('NOMAD_OBJECTS_HOST', 'localhost'),
-    objects_port=int(os.environ.get('NOMAD_OBJECTS_PORT', minio.port)),
-    objects_base_path=os.environ.get('NOMAD_OBJECTS_BASE_PATH', ''),
     api_secret='the quick fox jumps over something'
 )

@@ -13,18 +13,10 @@
 # limitations under the License.
 
 import pytest
-from threading import Thread, Event
-import subprocess
-import shlex
-import time
-from typing import Generator
 import json
 import shutil
-import os.path
-from minio import ResponseError
-from minio.error import NoSuchKey, NoSuchBucket
 
-import nomad.files as files
+from nomad.files import Objects, ArchiveFile, UploadFile
 import nomad.config as config
 
 # example_file uses an artificial parser for faster test execution, can also be
@@ -32,20 +24,8 @@ import nomad.config as config
 example_file = 'tests/data/proc/examples_template.zip'
 empty_file = 'tests/data/proc/empty.zip'
 
-
-def assert_exists(bucket_name, object_name):
-    stats = files._client.stat_object(bucket_name, object_name)
-    assert stats is not None
-
-
-def assert_not_exists(bucket_name, object_name):
-    try:
-        files._client.stat_object(bucket_name, object_name)
-        assert False
-    except NoSuchKey:
-        assert True
-    else:
-        assert False
+example_bucket = 'test_bucket'
+example_data = dict(test_key='test_value')
 
 
 @pytest.fixture(scope='function')
@@ -55,154 +35,109 @@ def clear_files():
         yield
     finally:
         try:
-            for bucket in [config.files.uploads_bucket, config.files.archive_bucket]:
-                to_remove = [obj.object_name for obj in files._client.list_objects(bucket)]
-                for _ in files._client.remove_objects(bucket, to_remove):
-                    pass
-        except NoSuchBucket:
-            pass
-        except ResponseError:
+            shutil.rmtree(config.fs.objects)
+            shutil.rmtree(config.fs.tmp)
+        except FileNotFoundError:
             pass
 
-        shutil.rmtree(os.path.join(config.fs.tmp, 'uploads'), ignore_errors=True)
-        shutil.rmtree(os.path.join(config.fs.tmp, 'uploads_extracted'), ignore_errors=True)
+
+class TestObjects:
+    @pytest.fixture()
+    def existing_example_file(self, clear_files):
+        out = Objects.open(example_bucket, 'example_file', ext='json', mode='wt')
+        json.dump(example_data, out)
+        out.close()
+
+        yield 'example_file', 'json'
+
+    def test_open(self, existing_example_file):
+        name, ext = existing_example_file
+
+        assert Objects.exists(example_bucket, name, ext)
+        file = Objects.open(example_bucket, name, ext=ext)
+        json.load(file)
+        file.close()
+
+    def test_delete(self, existing_example_file):
+        name, ext = existing_example_file
+        Objects.delete(example_bucket, name, ext)
+        assert not Objects.exists(example_bucket, name, ext)
+
+    def test_delete_all(self, existing_example_file):
+        name, ext = existing_example_file
+        Objects.delete_all(example_bucket)
+        assert not Objects.exists(example_bucket, name, ext)
 
 
-@pytest.fixture(scope='function')
-def uploaded_id(clear_files) -> Generator[str, None, None]:
-    example_upload_id = '__test_upload_id'
+class TestArchiveFile:
+    @pytest.fixture(scope='function', params=[False, True])
+    def config(self, monkeypatch, request):
+        new_config = config.FilesConfig(
+            config.files.uploads_bucket,
+            config.files.repository_bucket,
+            config.files.archive_bucket,
+            request)
+        monkeypatch.setattr(config, 'files', new_config)
 
-    files._client.fput_object(config.files.uploads_bucket, example_upload_id, example_file)
-    yield example_upload_id
+    @pytest.fixture(scope='function')
+    def archive(self, clear_files, config):
+        archive = ArchiveFile('__test_upload_hash/__test_calc_hash')
+        with archive.write_archive_json() as out:
+            json.dump(example_data, out)
+        yield archive
 
+    def test_archive(self, archive: ArchiveFile, no_warn):
+        assert archive.exists()
 
-@pytest.fixture(scope='function')
-def uploaded_id_same_file(clear_files) -> Generator[str, None, None]:
-    example_upload_id = '__test_upload_id2'
+        with archive.read_archive_json() as file:
+            result = json.load(file)
 
-    files._client.fput_object(config.files.uploads_bucket, example_upload_id, example_file)
-    yield example_upload_id
+        assert 'test_key' in result
+        assert result['test_key'] == 'test_value'
 
+    def test_delete_archive(self, archive: ArchiveFile, no_warn):
+        archive.delete()
+        assert not archive.exists()
 
-@pytest.fixture(scope='function')
-def upload_id(clear_files) -> Generator[str, None, None]:
-    example_upload_id = '__test_upload_id'
-    yield example_upload_id
-
-
-@pytest.fixture(scope='function')
-def archive_id(clear_files) -> Generator[str, None, None]:
-    example_archive_id = '__test_upload_hash/__test_calc_hash'
-
-    with files.write_archive_json(example_archive_id) as out:
-        json.dump({'test': 'value'}, out)
-
-    yield example_archive_id
-
-
-def test_presigned_url(upload_id):
-    url = files.get_presigned_upload_url(upload_id)
-    assert url is not None
-    assert isinstance(url, str)
-
-    upload_url = files.get_presigned_upload_url(upload_id)
-    cmd = files.create_curl_upload_cmd(upload_url).replace('<ZIPFILE>', example_file)
-    subprocess.call(shlex.split(cmd))
-
-    stat = files._client.stat_object(config.files.uploads_bucket, upload_id)
-    assert stat is not None
+    def test_delete_archives(self, archive: ArchiveFile, no_warn):
+        ArchiveFile.delete_archives(archive.object_id.split('/')[0])
+        assert not archive.exists()
 
 
-def test_upload(uploaded_id: str):
-    with files.Upload(uploaded_id) as upload:
-        assert len(upload.filelist) == 5
-        # now just try to open the first file (not directory), without error
-        for filename in upload.filelist:
-            if filename.endswith('.xml'):
-                upload.open_file(filename).close()
-                break
+class TestUploadFile:
 
+    @pytest.fixture()
+    def upload_same_file(self, clear_files):
+        upload = UploadFile('__test_upload_id2')
+        shutil.copyfile(example_file, upload.os_path)
+        yield upload
 
-def test_delete_upload(uploaded_id: str):
-    files.Upload(uploaded_id).delete()
+    @pytest.fixture()
+    def upload(self, clear_files):
+        upload = UploadFile('__test_upload_id')
+        shutil.copyfile(example_file, upload.os_path)
+        yield upload
 
-    try:
-        files.Upload(uploaded_id)
-        assert False
-    except KeyError:
-        pass
-    else:
-        assert False
+    def test_upload(self, upload: UploadFile):
+        assert upload.exists()
 
+        with upload:
+            assert len(upload.filelist) == 5
+            # now just try to open the first file (not directory), without error
+            for filename in upload.filelist:
+                if filename.endswith('.xml'):
+                    upload.open_file(filename).close()
+                    break
 
-@pytest.mark.timeout(10)
-def test_upload_notification(upload_id, no_warn):
-    ready = Event()
+    def test_delete_upload(self, upload: UploadFile):
+        upload.delete()
+        assert not upload.exists()
 
-    @files.upload_put_handler
-    def handle_upload_put(received_upload_id: str):
-        assert upload_id == received_upload_id
-        raise StopIteration
+    def test_hash(self, upload: UploadFile, upload_same_file: UploadFile, no_warn):
+        with upload:
+            hash = upload.hash()
+            assert hash is not None
+            assert isinstance(hash, str)
 
-    def handle_uploads():
-        ready.set()
-        handle_upload_put(received_upload_id='provided by decorator')
-
-    handle_uploads_thread = Thread(target=handle_uploads)
-    handle_uploads_thread.start()
-
-    ready.wait()
-    test_presigned_url(upload_id)
-
-    handle_uploads_thread.join()
-
-
-def test_metadata(uploaded_id: str, no_warn):
-    with files.Upload(uploaded_id) as upload:
-        assert upload.metadata is not None
-
-
-def test_hash(uploaded_id: str, uploaded_id_same_file: str, no_warn):
-    with files.Upload(uploaded_id) as upload:
-        hash = upload.hash()
-        assert hash is not None
-        assert isinstance(hash, str)
-
-    with files.Upload(uploaded_id_same_file) as upload:
-        assert hash == upload.hash()
-
-
-def test_archive_url(archive_id: str, no_warn):
-    result = files.archive_url(archive_id)
-
-    assert result is not None
-    assert result.startswith('http')
-
-
-def test_archive(archive_id: str, no_warn):
-    result = json.load(files.open_archive_json(archive_id))
-
-    assert 'test' in result
-    assert result['test'] == 'value'
-
-
-def test_delete_archive(archive_id: str, no_warn):
-    files.delete_archive(archive_id)
-    try:
-        files.archive_url(archive_id)
-        assert False
-    except KeyError:
-        pass
-    else:
-        assert False
-
-
-def test_delete_archives(archive_id: str, no_warn):
-    files.delete_archives(archive_id.split('/')[0])
-    try:
-        files.archive_url(archive_id)
-        assert False
-    except KeyError:
-        pass
-    else:
-        assert False
+        with upload_same_file:
+            assert hash == upload_same_file.hash()
