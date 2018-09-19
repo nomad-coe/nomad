@@ -95,26 +95,17 @@ you change things, debug, and re-run things quickly. The later one brings you
 closer to the environement that will be used to run nomad in production.
 
 ### Docker images for nomad
-There are currently three different images and respectively three different docker files:
-`requirements.Dockerfile`, `backend.Dockerfile`, and `frontend.Dockerfile`.
+There are currently two different images and respectively two different docker files:
+`backend.Dockerfile`, and `frontend.Dockerfile`.
 
 Nomad comprises currently three services, the *handler* (deals with user uploads),
 the *worker* (does the actual processing), and the *api*. Those services can be
 run from one image that have the nomad python code and all dependencies installed. This
 is covered by the `backend.Dockerfile`.
 
-The `requirements.Dockerfile` builds an image that has all dependencies pre installed.
-We keep it separate, because the dependencies change rather seldomly and we do not want to
-reinstall them all the time, we need to build new images.
-
 The fontend image is only for building and serving the gui.
 
-Build the requirements image tagged `nomad_requirements`:
-```
-docker build -t nomad_requirements -f requirements.Dockerfile .
-```
-
-The other images are build via *docker-compose* and don't have to be created manually.
+The images are build via *docker-compose* and don't have to be created manually.
 
 ### Build with docker-compose
 
@@ -161,6 +152,14 @@ docker-compose up -d redis, rabbitmq, minio, minio-config, mongo, elastic, elk
 docker-compose up worker handler
 docker-compose up api gui proxy
 ```
+
+### Configure the containers
+The *docker-compose* takes some configuration from the environment. Environment
+variables are set in `.env`, which is a link to either `.env_local` (intended to run
+nomad for development on a local computer) and `.env_processing` (indented to run
+nomad on nomad in *'prodcution'*, currently on the enc pre-processing machine).
+
+You can configure host ports, volume locations for host bindings, and these sort of things.
 
 ## Accessing 3'rd party services
 

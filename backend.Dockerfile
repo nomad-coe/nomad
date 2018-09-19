@@ -16,25 +16,28 @@
 # - nomad processing worker
 # - nomad upload handler that initiates processing after upload
 # - nomad api
-#
-# The dockerfile is multistages to getaway with building on a larger base image.
 
-# using the base image with most requirements already installed
-FROM nomad_requirements:latest as requirements
-# we use slim for the final image
-FROM python:3.6-slim as final
-
+# The dockerfile is multistaged to help docker with caching unnecessary steps
+# creating a base image with most requirements already installed
+FROM python:3.6-stretch as requirements
+RUN mkdir /install
+WORKDIR /install
+COPY requirements.txt requirements.txt
+COPY requirements-dep.txt requirements-dep.txt
+RUN pip install -r requirements.txt
+RUN pip install -r requirements-dep.txt
 
 # dependency stage is used to install nomad coe projects
 FROM requirements as dependencies
-
-# do stuff
 WORKDIR /install
 COPY nomad/dependencies.py nomad/dependencies.py
 COPY nomad/config.py nomad/config.py
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 RUN python nomad/dependencies.py
+
+# we use slim for the final image
+FROM python:3.6-slim as final
 
 # last stage is used to install the actual code, nomad user, volumes
 FROM final
