@@ -12,7 +12,7 @@ services:
   - mongo:latest
 
 variables:
-  NOMAD_RABBIT_HOST: rabbitmq
+  NOMAD_RABBITMQ_HOST: rabbitmq
   NOMAD_ELASTIC_HOST: elastic
   NOMAD_MONGO_HOST: mongo
 
