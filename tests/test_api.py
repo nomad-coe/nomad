@@ -1,6 +1,7 @@
 import pytest
 import time
 import json
+import re
 from mongoengine import connect
 from mongoengine.connection import disconnect
 from datetime import datetime, timedelta
@@ -66,7 +67,7 @@ def assert_upload(upload_json_str, id=None, **kwargs):
     if id is not None:
         assert id == data['upload_id']
     assert 'create_time' in data
-    assert 'presigned_url' in data
+    assert 'upload_url' in data
     assert 'upload_command' in data
 
     for key, value in kwargs.items():
@@ -151,16 +152,21 @@ def test_processing(client, file, mode, worker, mocksearch, test_user_auth, no_w
     upload = assert_upload(rv.data)
     upload_id = upload['upload_id']
 
-    upload_url = upload['presigned_url']
+    upload_cmd = upload['upload_command']
+    headers = dict(Authorization='Basic %s' % re.search(r'.*-HAuthorization: Basic ([^\s]+).*', upload_cmd).group(1))
     upload_endpoint = '/uploads/%s' % upload_id
     upload_file_endpoint = '%s/file' % upload_endpoint
 
+    upload_url = upload['upload_url']
     assert upload_url.endswith(upload_file_endpoint)
     if mode == 'multipart':
-        rv = client.put(upload_file_endpoint, data=dict(file=(open(file, 'rb'), 'file')))
+        rv = client.put(
+            upload_file_endpoint,
+            data=dict(file=(open(file, 'rb'), 'file')),
+            headers=headers)
     elif mode == 'stream':
         with open(file, 'rb') as f:
-            rv = client.put(upload_file_endpoint, data=f.read())
+            rv = client.put(upload_file_endpoint, data=f.read(), headers=headers)
     else:
         assert False
     assert rv.status_code == 200

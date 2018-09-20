@@ -22,7 +22,7 @@ import os.path
 
 from nomad import config
 from nomad.files import UploadFile, ArchiveFile
-from nomad.utils import get_logger, create_uuid
+from nomad.utils import get_logger
 from nomad.processing import Upload, NotAllowedDuringProcessing
 from nomad.repo import RepoCalc
 from nomad.user import User
@@ -189,8 +189,7 @@ class UploadsRes(Resource):
         if json_data is None:
             json_data = {}
 
-        upload = Upload.create(
-            upload_id=create_uuid(), user_id=g.user.email, name=json_data.get('name'))
+        upload = Upload.create(user=g.user, name=json_data.get('name'))
         return upload.json_dict, 200
 
 
@@ -410,6 +409,7 @@ class UploadFileRes(Resource):
     :status 400: if the fileformat is not supported or the form data is different than expected.
     :returns: the upload (see GET /uploads/<upload_id>)
     """
+    @login_really_required
     def put(self, upload_id):
         logger = get_logger(__name__, endpoint='upload', action='put', upload_id=upload_id)
 
