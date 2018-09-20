@@ -1,11 +1,25 @@
-This project tries and test approaches that might lead to an improved architecture for NOMAD (XT).
+This project tries and test approaches that might lead to an improved architecture for
+nomad@FAIR.
 
-## Generate the docs (and continue there)
+## Getting started
+
+Reat the docs. The documentation is part of the source code. It covers aspects like
+introduction, architecture, development setup/deployment, contributing, and API reference.
+
+### Read the docs on the latest deployed version
+
+Currently, there is only a *staging* version running at garching. There is
+no real production system yet. You have to expect frequent down times and restarts.
+You can access the running system and its documentation here:
+
+[http://enc-staging-nomad.esc.rzg.mpg.de/nomad/docs](http://enc-staging-nomad.esc.rzg.mpg.de/nomad/docs)
+
+### Generate the docs from the source
 
 First, clone this repo:
 ```
-git clone git@gitlab.mpcdf.mpg.de:mscheidg/nomad-xt.git
-cd nomad-xt
+git clone git@gitlab.mpcdf.mpg.de:nomad-lab/nomad-FAIR.git
+cd nomad-FAIR
 ```
 
 Second, create and source your own virtual python environment:
