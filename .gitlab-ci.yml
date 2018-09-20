@@ -2,7 +2,6 @@
 image: python:3.6
 
 stages:
-  - qa
   - test
 
 before_script:
@@ -12,9 +11,11 @@ before_script:
   - pip install -r requirements-dev.txt
   - pip install -r requirements.txt
   - pip install -e .
+  - pip install -r requirements-dep.txt
+  - python nomad/dependencies.py
 
 linting:
-  stage: qa
+  stage: test
   script:
     - pycodestyle --ignore=E501,E701 nomad tests
     - pylint --load-plugins=pylint_mongoengine nomad tests
@@ -42,9 +43,6 @@ tests:
     NOMAD_ELASTIC_HOST: elastic
     NOMAD_MONGO_HOST: mongo
   script:
-    - pip install -r requirements-dep.txt
-    - rm -rf .dependencies
-    - python nomad/dependencies.py
     - pytest -sv tests/
   tags:
     - docker
