@@ -9,11 +9,10 @@ services:
   - docker.elastic.co/elasticsearch/elasticsearch:6.3.2
   - mongo:latest
 
-# create the same user and database as for production
-# variables:
-#   POSTGRES_DB: nomaddb
-#   POSTGRES_USER: nomadapp
-#   POSTGRES_PASSWORD: Nomad_Flask
+variables:
+  NOMAD_RABBIT_HOST: rabbitmq
+  NOMAD_ELASTIC_HOST: docker.elastic.co-elasticsearch-elasticsearch
+  NOMAD_MONGO_HOST: mongo
 
 stages:
   - test
@@ -22,13 +21,16 @@ unittests:
   stage: test
   script:
     - pwd
-    #  - rm -rf /builds/nomad-lab/venv
-    #  - python3 -m venv /builds/nomad-lab/venv
-    #  - source /builds/nomad-lab/venv/bin/activate
-    #  - cd /builds/nomad-lab/encyclopedia-pre-processing
-    #  - pip install .
-    #  - cd Nomad/Regtests
-    #  - python alltests.py
+    - rm -rf .pyenv
+    - virtualenv `which python3` .pyenv
+    - source .pyenv/bin/activate
+    - pip install -r requirements-dev.txt
+    - pip install -r requirments-dep.txt
+    - rm -rf .dependencies
+    - python nomad/dependencies.py
+    - pip install -r requirments.txt
+    - pip install -e .
+    - pytest -sv tests/
   only:
     - test_ci
   tags:
