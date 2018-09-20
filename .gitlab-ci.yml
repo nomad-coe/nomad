@@ -29,7 +29,7 @@ unittests:
     - pip install -r requirements-dep.txt
     - rm -rf .dependencies
     - python nomad/dependencies.py
-    - pip install -r requirments.txt
+    - pip install -r requirements.txt
     - pip install -e .
     - pytest -sv tests/
   only:
