@@ -23,8 +23,8 @@ unittests:
   script:
     - pwd
     - pip install virtualenv
-    # - rm -rf .pyenv
-    # - virtualenv -p `which python3` .pyenv
+    - rm -rf .pyenv
+    - virtualenv -p `which python3` .pyenv
     - source .pyenv/bin/activate
     - pip install -r requirements-dev.txt
     - pip install -r requirements-dep.txt
