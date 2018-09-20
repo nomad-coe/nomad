@@ -21,6 +21,7 @@ unittests:
   stage: test
   script:
     - pwd
+    - pip install virtualenv
     - rm -rf .pyenv
     - virtualenv `which python3` .pyenv
     - source .pyenv/bin/activate
