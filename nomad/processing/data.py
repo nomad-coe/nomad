@@ -299,7 +299,7 @@ class Upload(Chord):
         basic_auth_token = base64.b64encode(b'%s:' % user.generate_auth_token()).decode('utf-8')
 
         self.upload_url = cls._external_objects_url('/uploads/%s/file' % self.upload_id)
-        self.upload_command = 'curl -HAuthorization: Basic %s "%s" --upload-file local_file' % (
+        self.upload_command = 'curl -H "Authorization: Basic %s" "%s" --upload-file local_file' % (
             basic_auth_token, self.upload_url)
 
         self._continue_with('uploading')
