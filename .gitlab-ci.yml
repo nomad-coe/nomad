@@ -4,10 +4,10 @@ image: python:3.6
 
 # additional services needed, the versions are matching the production machine
 # the services will be accessible under the hostnames: "postgres" and "mongo"
-services:
-  - rabbitmq
-  - docker.elastic.co/elasticsearch/elasticsearch:6.3.2
-  - mongo:latest
+# services:
+#   - rabbitmq
+#   - docker.elastic.co/elasticsearch/elasticsearch:6.3.2
+#   - mongo:latest
 
 variables:
   NOMAD_RABBIT_HOST: rabbitmq
@@ -23,7 +23,7 @@ unittests:
     - pwd
     - pip install virtualenv
     - rm -rf .pyenv
-    - virtualenv `which python3` .pyenv
+    - virtualenv -p `which python3` .pyenv
     - source .pyenv/bin/activate
     - pip install -r requirements-dev.txt
     - pip install -r requirments-dep.txt
