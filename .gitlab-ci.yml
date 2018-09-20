@@ -46,7 +46,5 @@ tests:
     - rm -rf .dependencies
     - python nomad/dependencies.py
     - pytest -sv tests/
-  only:
-    - test_ci
   tags:
     - docker
