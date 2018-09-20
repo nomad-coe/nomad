@@ -1,0 +1,35 @@
+# default installed image for docker executor is: python:3.5
+# uncomment next line and change as you wish if a different image is needed
+image: python:3.6
+
+# additional services needed, the versions are matching the production machine
+# the services will be accessible under the hostnames: "postgres" and "mongo"
+# services:
+#   - postgres:9.4
+#   - mongo:3.4
+
+# create the same user and database as for production
+# variables:
+#   POSTGRES_DB: nomaddb
+#   POSTGRES_USER: nomadapp
+#   POSTGRES_PASSWORD: Nomad_Flask
+
+stages:
+  - test
+
+unittests:
+  stage: test
+  script:
+    - echo "Hello World"
+    #  - pwd
+    #  - rm -rf /builds/nomad-lab/venv
+    #  - python3 -m venv /builds/nomad-lab/venv
+    #  - source /builds/nomad-lab/venv/bin/activate
+    #  - cd /builds/nomad-lab/encyclopedia-pre-processing
+    #  - pip install .
+    #  - cd Nomad/Regtests
+    #  - python alltests.py
+  only:
+    - test_ci
+  tags:
+    - docker
