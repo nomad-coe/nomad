@@ -17,7 +17,7 @@ class Home extends React.Component {
     return (
       <div className={classes.root}>
         <Markdown>{`
-          # The **nomad xt** prototype
+          # The nomad**@FAIR** prototype
           This is a prototype, a concept, for a continuation of the
           [NOMAD-coe](http://nomad-coe.eu) project. It is an attempt to redesign
           the nomad software and infrastructure with the following goals in mind:
