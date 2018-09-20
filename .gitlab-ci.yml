@@ -1,47 +1,48 @@
 # default installed image for docker executor is: python:3.5
-# uncomment next line and change as you wish if a different image is needed
 image: python:3.6
 
-# additional services needed, the versions are matching the production machine
-# the services will be accessible under the hostnames: "postgres" and "mongo"
-services:
-    # this will cause a warning, as the gitlab ci runner health check will test the wrong
-    # port on rabbitmq container:
-    # https://gitlab.com/gitlab-org/gitlab-runner/issues/3163
-  - rabbitmq
-  - name: docker.elastic.co/elasticsearch/elasticsearch:6.3.2
-    alias: elastic
-    # fix issue with running elastic in gitlab ci runner:
-    # https://gitlab.com/gitlab-org/gitlab-ce/issues/42214
-    command: [ "bin/elasticsearch", "-Ediscovery.type=single-node" ]
-  - mongo:latest
-
-variables:
-  RABBITMQ_ERLANG_COOKIE: SWQOKODSQALRPCLNMEQG
-  RABBITMQ_DEFAULT_USER: rabbitmq
-  RABBITMQ_DEFAULT_PASS: rabbitmq
-  RABBITMQ_DEFAULT_VHOST: /
-  NOMAD_RABBITMQ_HOST: rabbitmq
-  NOMAD_ELASTIC_HOST: elastic
-  NOMAD_MONGO_HOST: mongo
-
 stages:
+  - qa
   - test
 
-unittests:
-  stage: test
+before_script:
+  - pip install virtualenv
+  - virtualenv -p `which python3` .pyenv
+  - source .pyenv/bin/activate
+  - pip install -r requirements-dev.txt
+  - pip install -r requirements.txt
+  - pip install -e .
+
+linting:
+  stage: qa
   script:
-    - pwd
-    - pip install virtualenv
-    - rm -rf .pyenv
-    - virtualenv -p `which python3` .pyenv
-    - source .pyenv/bin/activate
-    - pip install -r requirements-dev.txt
+    - echo "Hello World"
+
+tests:
+  stage: test
+  services:
+      # this will cause a warning, as the gitlab ci runner health check will test the wrong
+      # port on rabbitmq container:
+      # https://gitlab.com/gitlab-org/gitlab-runner/issues/3163
+    - rabbitmq
+    - name: docker.elastic.co/elasticsearch/elasticsearch:6.3.2
+      alias: elastic
+      # fix issue with running elastic in gitlab ci runner:
+      # https://gitlab.com/gitlab-org/gitlab-ce/issues/42214
+      command: [ "bin/elasticsearch", "-Ediscovery.type=single-node" ]
+    - mongo:latest
+  variables:
+    RABBITMQ_ERLANG_COOKIE: SWQOKODSQALRPCLNMEQG
+    RABBITMQ_DEFAULT_USER: rabbitmq
+    RABBITMQ_DEFAULT_PASS: rabbitmq
+    RABBITMQ_DEFAULT_VHOST: /
+    NOMAD_RABBITMQ_HOST: rabbitmq
+    NOMAD_ELASTIC_HOST: elastic
+    NOMAD_MONGO_HOST: mongo
+  script:
     - pip install -r requirements-dep.txt
     - rm -rf .dependencies
     - python nomad/dependencies.py
-    - pip install -r requirements.txt
-    - pip install -e .
     - pytest -sv tests/
   only:
     - test_ci
