@@ -32,17 +32,18 @@ class Upload {
   }
 
   uploadFile(file) {
-    console.assert(this.presigned_url)
+    console.assert(this.upload_url)
     this.uploading = 0
 
     const uploadFileWithProgress = async() => {
       let { error, aborted } = await UploadRequest(
         {
           request: {
-            url: this.presigned_url,
+            url: this.upload_url,
             method: 'PUT',
             headers: {
-              'Content-Type': 'application/gzip'
+              'Content-Type': 'application/gzip',
+              ...auth_headers
             }
           },
           files: [file],
