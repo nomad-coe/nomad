@@ -676,6 +676,7 @@ def call_admin_operation(operation):
 
     return 'done', 200
 
+
 api.add_resource(UploadsRes, '%s/uploads' % base_path)
 api.add_resource(UploadRes, '%s/uploads/<string:upload_id>' % base_path)
 api.add_resource(UploadFileRes, '%s/uploads/<string:upload_id>/file' % base_path)

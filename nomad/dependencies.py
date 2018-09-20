@@ -192,6 +192,7 @@ def prepare() -> None:
     for python_git in dependencies:
         python_git.prepare()
 
+
 if __name__ == '__main__':
     _logger.setLevel(logging.DEBUG)
     prepare()

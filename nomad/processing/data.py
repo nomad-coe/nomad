@@ -22,30 +22,24 @@ calculations, and files
     :members:
 .. autoclass:: Upload
     :members:
-.. autoclass:: DataSet
-.. autoclass:: User
-
 """
 
 from typing import List, Any
-import sys
 from datetime import datetime
 from elasticsearch.exceptions import NotFoundError
-from mongoengine import \
-    Document, EmailField, StringField, BooleanField, DateTimeField, \
-    ListField, DictField, ReferenceField, IntField, connect
-import mongoengine.errors
+from mongoengine import StringField, BooleanField, DateTimeField, DictField, IntField
 import logging
 import base64
+import time
 
 from nomad import config, utils
-from nomad.files import UploadFile, ArchiveFile, FileError
+from nomad.files import UploadFile, ArchiveFile
 from nomad.repo import RepoCalc
-from nomad.user import User, me
+from nomad.user import User
 from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE, RUNNING
-from nomad.parsing import LocalBackend, parsers, parser_dict
+from nomad.parsing import parsers, parser_dict
 from nomad.normalizing import normalizers
-from nomad.utils import get_logger, lnr
+from nomad.utils import lnr
 
 
 class NotAllowedDuringProcessing(Exception): pass
@@ -134,7 +128,7 @@ class Calc(Proc):
     def process(self):
         self._upload = Upload.get(self.upload_id)
         if self._upload is None:
-            get_logger().error('calculation upload does not exist')
+            self.get_logger().error('calculation upload does not exist')
 
         try:
             self.parsing()
@@ -397,7 +391,7 @@ class Upload(Chord):
         try:
             upload = UploadFile(self.upload_id)
         except KeyError as e:
-            upload_proc.fail('Upload does not exist', exc_info=e)
+            self.fail('Upload does not exist', exc_info=e)
             return
 
         upload.remove_extract()

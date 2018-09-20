@@ -12,18 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, cast, Any
-import types
-from contextlib import contextmanager
-import collections
-import inspect
+from typing import List, Any
 import logging
 import time
-import celery
-from celery import Celery, Task
+from celery import Celery
 from celery.signals import after_setup_task_logger, after_setup_logger, worker_process_init
 from mongoengine import Document, StringField, ListField, DateTimeField, IntField, \
-    ReferenceField, connect, ValidationError, BooleanField, EmbeddedDocument
+    connect, ValidationError, BooleanField
 from mongoengine.connection import MongoEngineConnectionError
 from mongoengine.base.metaclasses import TopLevelDocumentMetaclass
 from pymongo import ReturnDocument
@@ -36,6 +31,7 @@ import nomad.patch  # pylint: disable=unused-import
 
 def mongo_connect():
     return connect(db=config.mongo.users_db, host=config.mongo.host, port=config.mongo.port)
+
 
 if config.logstash.enabled:
     def initialize_logstash(logger=None, loglevel=logging.DEBUG, **kwargs):
@@ -222,9 +218,9 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     def _continue_with(self, task):
         tasks = self.__class__.tasks
-        assert task in tasks, 'task %s must be one of the classes tasks %s' % (task, str(tasks))
+        assert task in tasks, 'task %s must be one of the classes tasks %s' % (task, str(tasks))  # pylint: disable=E1135
         if self.current_task is None:
-            assert task == tasks[0], "process has to start with first task"
+            assert task == tasks[0], "process has to start with first task"  # pylint: disable=E1136
         else:
             assert tasks.index(task) == tasks.index(self.current_task) + 1, \
                 "tasks must be processed in the right order"
@@ -234,7 +230,7 @@ class Proc(Document, metaclass=ProcMetaclass):
 
         if self.status == PENDING:
             assert self.current_task is None
-            assert task == tasks[0]
+            assert task == tasks[0]  # pylint: disable=E1136
             self.status = RUNNING
             self.current_task = task
             self.get_logger().debug('started process')
@@ -413,6 +409,7 @@ def all_subclasses(cls):
     return set(cls.__subclasses__()).union(
         [s for c in cls.__subclasses__() for s in all_subclasses(c)])
 
+
 all_proc_cls = {cls.__name__: cls for cls in all_subclasses(Proc)}
 """ Name dictionary for all Proc classes. """
 
@@ -459,7 +456,7 @@ def proc_task(task, cls_name, self_id, func_attr):
     func = getattr(func, '__process_unwrapped', None)
     if func is None:
         logger.error('called function was not decorated with @process')
-        self.fail('called function %s was not decorated with @process' % (func_attr, cls_name))
+        self.fail('called function %s was not decorated with @process' % func_attr)
         return
 
     # call the process function

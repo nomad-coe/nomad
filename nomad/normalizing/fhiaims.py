@@ -222,8 +222,6 @@ class FhiAimsBaseNormalizer(Normalizer):
 #   matrix_hits_basis={}
 
 
-
-
 #   A=ParseStreamedDicts(sys.stdin)
 
 #   while True:
@@ -274,4 +272,3 @@ class FhiAimsBaseNormalizer(Normalizer):
 
 # if __name__ == "__main__":
 #     main()
-

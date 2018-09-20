@@ -2,6 +2,8 @@ watchdog
 gitpython
 mypy
 pylint
+pylint_plugin_utils
+pylint-mongoengine
 pycodestyle
 pytest
 pytest-timeout

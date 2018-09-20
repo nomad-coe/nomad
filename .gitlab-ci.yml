@@ -16,7 +16,9 @@ before_script:
 linting:
   stage: qa
   script:
-    - echo "Hello World"
+    - pycodestyle --ignore=E501,E701 nomad tests
+    - pylint --load-plugins=pylint_mongoengine nomad tests
+    - mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests
 
 tests:
   stage: test

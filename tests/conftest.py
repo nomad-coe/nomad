@@ -34,7 +34,7 @@ def patched_celery(monkeypatch):
     # The bug has a fix from Aug 2018, but it is not yet released (TODO).
     # We monkeypatch a similar solution here.
     def add_reader(self, fds, callback, *args):
-        from kombu.utils.eventio import ERR, READ, WRITE, poll
+        from kombu.utils.eventio import ERR, READ, poll
 
         if self.poller is None:
             self.poller = poll()

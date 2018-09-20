@@ -74,7 +74,7 @@ class Objects:
         return os.path.abspath(path)
 
     @classmethod
-    def open(cls, bucket: str, name: str, ext: str=None, *args, **kwargs) -> IO:
+    def open(cls, bucket: str, name: str, ext: str = None, *args, **kwargs) -> IO:
         """ Open an object like you would a file, e.g. with 'rb', etc. """
         try:
             return open(cls._os_path(bucket, name, ext), *args, **kwargs)
@@ -82,7 +82,7 @@ class Objects:
             raise KeyError()
 
     @classmethod
-    def delete(cls, bucket: str, name: str, ext: str=None) -> None:
+    def delete(cls, bucket: str, name: str, ext: str = None) -> None:
         """ Delete a single object. """
         try:
             os.remove(cls._os_path(bucket, name, ext))
@@ -90,7 +90,7 @@ class Objects:
             raise KeyError()
 
     @classmethod
-    def delete_all(cls, bucket: str, prefix: str=''):
+    def delete_all(cls, bucket: str, prefix: str = ''):
         """ Delete all files with given prefix, prefix must denote a directory. """
         try:
             shutil.rmtree(cls._os_path(bucket, prefix, ext=None))
@@ -98,7 +98,7 @@ class Objects:
             pass
 
     @classmethod
-    def exists(cls, bucket: str, name: str, ext: str=None) -> bool:
+    def exists(cls, bucket: str, name: str, ext: str = None) -> bool:
         """ Returns True if object exists. """
         return os.path.exists(cls._os_path(bucket, name, ext))
 
@@ -116,7 +116,7 @@ class File:
     Attributes:
         logger: A structured logger with bucket and object information.
     """
-    def __init__(self, bucket: str, object_id: str, ext: str=None) -> None:
+    def __init__(self, bucket: str, object_id: str, ext: str = None) -> None:
         self.bucket = bucket
         self.object_id = object_id
         self.ext = ext

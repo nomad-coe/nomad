@@ -17,7 +17,6 @@ Module with some prototypes/placeholder for future user management in nomad@FAIR
 """
 
 import sys
-import time
 from mongoengine import Document, EmailField, StringField, ReferenceField, ListField
 from passlib.apps import custom_app_context as pwd_context
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired
@@ -69,6 +68,7 @@ class DataSet(Document):
             'calcs'
         ]
     }
+
 
 # provid a test user for testing
 me = None

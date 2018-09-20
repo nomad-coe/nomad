@@ -195,7 +195,7 @@ class RepoCalc(ElasticDocument):
                 }
             }
         }
-        response = conn.update_by_query(index, doc_type=[doc_type], body=body)
+        conn.update_by_query(index, doc_type=[doc_type], body=body)
 
     @staticmethod
     def es_search(body):

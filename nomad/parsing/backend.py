@@ -456,7 +456,7 @@ class LocalBackend(LegacyParserBackend):
     def _write(
             json_writer: JSONStreamWriter,
             value: Any,
-            filter: Callable[[str, Any], Any]=None):
+            filter: Callable[[str, Any], Any] = None):
 
         if isinstance(value, list):
             json_writer.open_array()
@@ -488,7 +488,7 @@ class LocalBackend(LegacyParserBackend):
         """ Returns status and potential errors. """
         return (self._status, self._errors)
 
-    def write_json(self, out: TextIO, pretty=True, filter: Callable[[str, Any], Any]=None):
+    def write_json(self, out: TextIO, pretty=True, filter: Callable[[str, Any], Any] = None):
         """
         Writes the results stored in the backend after parsing in an 'archive'.json
         style format.
