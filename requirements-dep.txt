@@ -5,8 +5,6 @@ h5py
 hjson
 future
 enum34
-numpy
-cython>=0.19
 scipy
 spglib
 ase==3.15.0
