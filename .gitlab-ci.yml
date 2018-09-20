@@ -4,9 +4,10 @@ image: python:3.6
 
 # additional services needed, the versions are matching the production machine
 # the services will be accessible under the hostnames: "postgres" and "mongo"
-# services:
-#   - postgres:9.4
-#   - mongo:3.4
+services:
+  - rabbitmq
+  - docker.elastic.co/elasticsearch/elasticsearch:6.3.2
+  - mongo:latest
 
 # create the same user and database as for production
 # variables:
@@ -20,8 +21,7 @@ stages:
 unittests:
   stage: test
   script:
-    - echo "Hello World"
-    #  - pwd
+    - pwd
     #  - rm -rf /builds/nomad-lab/venv
     #  - python3 -m venv /builds/nomad-lab/venv
     #  - source /builds/nomad-lab/venv/bin/activate
