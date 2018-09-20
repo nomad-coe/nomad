@@ -6,12 +6,13 @@ image: python:3.6
 # the services will be accessible under the hostnames: "postgres" and "mongo"
 services:
   - rabbitmq
-  - docker.elastic.co/elasticsearch/elasticsearch:6.3.2
+  - name: docker.elastic.co/elasticsearch/elasticsearch:6.3.2
+    alias: elastic
   - mongo:latest
 
 variables:
   NOMAD_RABBIT_HOST: rabbitmq
-  NOMAD_ELASTIC_HOST: docker.elastic.co__elasticsearch__elasticsearch
+  NOMAD_ELASTIC_HOST: elastic
   NOMAD_MONGO_HOST: mongo
 
 stages:
@@ -22,8 +23,8 @@ unittests:
   script:
     - pwd
     - pip install virtualenv
-    - rm -rf .pyenv
-    - virtualenv -p `which python3` .pyenv
+    # - rm -rf .pyenv
+    # - virtualenv -p `which python3` .pyenv
     - source .pyenv/bin/activate
     - pip install -r requirements-dev.txt
     - pip install -r requirements-dep.txt
