@@ -42,7 +42,7 @@ Uploads
 from typing import List, Any, Generator, IO, TextIO, cast
 import os
 import os.path
-from zipfile import ZipFile, BadZipFile
+from zipfile import ZipFile, BadZipFile, is_zipfile
 import shutil
 from contextlib import contextmanager
 import gzip
@@ -167,6 +167,10 @@ class UploadFile(File):
         upload_extract_dir: The path of the tmp directory with the extracted contents.
         filelist: A list of filenames relative to the .zipped upload root.
     """
+
+    formats = ['zip']
+    """ A human readable list of supported file formats. """
+
     def __init__(self, upload_id: str) -> None:
         super().__init__(
             bucket=config.files.uploads_bucket,
@@ -185,8 +189,8 @@ class UploadFile(File):
                 try:
                     return decorated(self, *args, **kwargs)
                 except Exception as e:
-                    msg = 'Could not %s upload %s.' % (decorated.__name__, self.upload_id)
-                    self.logger.error(msg, exc_info=e)
+                    msg = 'Could not %s upload.' % decorated.__name__
+                    self.logger.error(msg, upload_id=self.object_id, exc_info=e)
                     raise FileError(msg, e)
             return wrapper
 
@@ -249,6 +253,10 @@ class UploadFile(File):
     def get_path(self, filename: str) -> str:
         """ Returns the tmp directory relative version of a filename. """
         return os.path.join(self.upload_extract_dir, filename)
+
+    @property
+    def is_valid(self):
+        return is_zipfile(self.os_path)
 
 
 class ArchiveFile(File):

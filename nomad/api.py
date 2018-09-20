@@ -390,15 +390,29 @@ class UploadFileRes(Resource):
     Upload a file to an existing upload. Can be used to upload files via bowser
     or other http clients like curl. This will start the processing of the upload.
 
+    There are two basic ways to upload a file: multipart-formdata or simply streaming
+    the file data. Both are supported. The later one does not allow to transfer a
+    filename or other meta-data. If a filename is available, it will become the
+    name of the upload.
+
     .. :quickref: upload; Upload a file to an existing upload.
+
+    **Curl examples for both approaches**:
+
+    .. sourcecode::
+        curl -X put "/nomad/api/uploads/5b89469e0d80d40008077dbc/file" -F file=@local_file
+        curl "/nomad/api/uploads/5b89469e0d80d40008077dbc/file" --upload-file local_file
 
     :param string upload_id: the upload_id of the upload
     :resheader Content-Type: application/json
     :status 200: upload successfully received.
     :status 404: upload with given id does not exist
+    :status 400: if the fileformat is not supported or the form data is different than expected.
     :returns: the upload (see GET /uploads/<upload_id>)
     """
     def put(self, upload_id):
+        logger = get_logger(__name__, endpoint='upload', action='put', upload_id=upload_id)
+
         try:
             upload = Upload.get(upload_id)
         except KeyError:
@@ -407,17 +421,32 @@ class UploadFileRes(Resource):
         if upload.upload_time is not None:
             abort(400, message='A file was already uploaded to this uploade before.')
 
-        if 'file' not in request.files:
-            abort(400, message='No file part.')
-
-        file = request.files['file']
-        if upload.name is '':
-            upload.name = file.filename
-
         uploadFile = UploadFile(upload_id)
-        file.save(uploadFile.os_path)
 
-        logger = get_logger(__name__, endpoint='upload', action='put', upload_id=upload_id)
+        if request.mimetype == 'application/multipart-formdata':
+            # multipart formdata, e.g. with curl -X put "url" -F file=@local_file
+            # might have performance issues for large files: https://github.com/pallets/flask/issues/2086
+            if 'file' in request.files:
+                abort(400, message='Bad multipart-formdata, there is no file part.')
+            file = request.files['file']
+            if upload.name is '':
+                upload.name = file.filename
+
+            file.save(uploadFile.os_path)
+        else:
+            # simple streaming data in HTTP body, e.g. with curl "url" -T local_file
+            try:
+                with uploadFile.open('wb') as f:
+                    while not request.stream.is_exhausted:
+                        f.write(request.stream.read(1024))
+            except Exception as e:
+                logger.error('Error on streaming upload', exc_info=e)
+                abort(400, message='Some IO went wrong, download probably aborted/disrupted.')
+
+        if not uploadFile.is_valid:
+            uploadFile.delete()
+            abort(400, message='Bad file format, excpected %s.' % ", ".join(UploadFile.formats))
+
         logger.debug('received uploaded file')
         upload.upload_time = datetime.now()
         upload.process()

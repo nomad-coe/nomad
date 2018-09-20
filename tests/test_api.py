@@ -142,9 +142,10 @@ def test_delete_empty_upload(client, test_user_auth, no_warn):
     assert rv.status_code == 404
 
 
-@pytest.mark.parametrize("file", example_files)
+@pytest.mark.parametrize('file', example_files)
+@pytest.mark.parametrize('mode', ['multipart', 'stream'])
 @pytest.mark.timeout(10)
-def test_processing(client, file, worker, mocksearch, test_user_auth, no_warn):
+def test_processing(client, file, mode, worker, mocksearch, test_user_auth, no_warn):
     rv = client.post('/uploads', headers=test_user_auth)
     assert rv.status_code == 200
     upload = assert_upload(rv.data)
@@ -155,7 +156,13 @@ def test_processing(client, file, worker, mocksearch, test_user_auth, no_warn):
     upload_file_endpoint = '%s/file' % upload_endpoint
 
     assert upload_url.endswith(upload_file_endpoint)
-    rv = client.put(upload_file_endpoint, data=dict(file=(open(file, 'rb'), 'file')))
+    if mode == 'multipart':
+        rv = client.put(upload_file_endpoint, data=dict(file=(open(file, 'rb'), 'file')))
+    elif mode == 'stream':
+        with open(file, 'rb') as f:
+            rv = client.put(upload_file_endpoint, data=f.read())
+    else:
+        assert False
     assert rv.status_code == 200
     upload = assert_upload(rv.data)
 
