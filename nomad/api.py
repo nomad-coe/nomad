@@ -644,7 +644,17 @@ def get_calc(upload_hash, calc_hash):
     try:
         archive = ArchiveFile(archive_id)
         arhchive_path = archive.os_path
-        return send_file(arhchive_path, attachment_filename=os.path.basename(arhchive_path))
+
+        rv = send_file(
+            arhchive_path,
+            mimetype='application/json',
+            as_attachment=True,
+            attachment_filename=os.path.basename(arhchive_path))
+
+        if config.files.compress_archive:
+            rv.headers['Content-Encoding'] = 'gzip'
+
+        return rv
     except KeyError:
         abort(404, message='Archive %s does not exist.' % archive_id)
     except FileNotFoundError:

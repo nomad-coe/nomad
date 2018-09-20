@@ -1,6 +1,7 @@
 import pytest
 import time
 import json
+import zlib
 import re
 from mongoengine import connect
 from mongoengine.connection import disconnect
@@ -153,7 +154,7 @@ def test_processing(client, file, mode, worker, mocksearch, test_user_auth, no_w
     upload_id = upload['upload_id']
 
     upload_cmd = upload['upload_command']
-    headers = dict(Authorization='Basic %s' % re.search(r'.*-HAuthorization: Basic ([^\s]+).*', upload_cmd).group(1))
+    headers = dict(Authorization='Basic %s' % re.search(r'.*Authorization: Basic ([^\s]+).*', upload_cmd).group(1))
     upload_endpoint = '/uploads/%s' % upload_id
     upload_file_endpoint = '%s/file' % upload_endpoint
 
@@ -266,6 +267,12 @@ def test_repo_calcs_user_invisible(client, example_elastic_calc, test_other_user
 
 def test_get_archive(client, archive, no_warn):
     rv = client.get('/archive/%s' % archive.object_id)
+
+    if rv.headers.get('Content-Encoding') == 'gzip':
+        json.loads(zlib.decompress(rv.data, 16 + zlib.MAX_WBITS))
+    else:
+        json.loads(rv.data)
+
     assert rv.status_code == 200
 
 

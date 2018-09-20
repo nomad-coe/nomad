@@ -75,7 +75,7 @@ def archive_config(monkeypatch, request):
         config.files.uploads_bucket,
         config.files.repository_bucket,
         config.files.archive_bucket,
-        request)
+        request.param)
     monkeypatch.setattr(config, 'files', new_config)
     yield
 
