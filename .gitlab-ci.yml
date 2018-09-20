@@ -11,7 +11,7 @@ services:
 
 variables:
   NOMAD_RABBIT_HOST: rabbitmq
-  NOMAD_ELASTIC_HOST: docker.elastic.co-elasticsearch-elasticsearch
+  NOMAD_ELASTIC_HOST: docker.elastic.co__elasticsearch__elasticsearch
   NOMAD_MONGO_HOST: mongo
 
 stages:
