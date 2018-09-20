@@ -5,13 +5,22 @@ image: python:3.6
 # additional services needed, the versions are matching the production machine
 # the services will be accessible under the hostnames: "postgres" and "mongo"
 services:
+    # this will cause a warning, as the gitlab ci runner health check will test the wrong
+    # port on rabbitmq container:
+    # https://gitlab.com/gitlab-org/gitlab-runner/issues/3163
   - rabbitmq
   - name: docker.elastic.co/elasticsearch/elasticsearch:6.3.2
     alias: elastic
+    # fix issue with running elastic in gitlab ci runner:
+    # https://gitlab.com/gitlab-org/gitlab-ce/issues/42214
     command: [ "bin/elasticsearch", "-Ediscovery.type=single-node" ]
   - mongo:latest
 
 variables:
+  RABBITMQ_ERLANG_COOKIE: SWQOKODSQALRPCLNMEQG
+  RABBITMQ_DEFAULT_USER: rabbitmq
+  RABBITMQ_DEFAULT_PASS: rabbitmq
+  RABBITMQ_DEFAULT_VHOST: /
   NOMAD_RABBITMQ_HOST: rabbitmq
   NOMAD_ELASTIC_HOST: elastic
   NOMAD_MONGO_HOST: mongo
