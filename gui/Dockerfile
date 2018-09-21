@@ -19,19 +19,18 @@
 # intended for the actual GUI container that serves the GUI.
 
 # build environment
-FROM node:latest as builder
+FROM node:latest as build
 RUN mkdir -p /nomad/app
 WORKDIR /nomad/app
 ENV PATH /nomad/app/node_modules/.bin:$PATH
-COPY gui/package.json /nomad/app/package.json
-COPY gui/yarn.lock /nomad/app/yarn.lock
+COPY package.json /nomad/app/package.json
+COPY yarn.lock /nomad/app/yarn.lock
 RUN yarn
-COPY gui /nomad/app
-COPY .git /nomad
+COPY . /nomad/app
 
 RUN yarn build
 
 # production environment
 FROM nginx:1.13.9-alpine
-COPY --from=builder /nomad/app/build /app/nomad
+COPY --from=build /nomad/app/build /app/nomad
 CMD ["nginx", "-g", "daemon off;"]

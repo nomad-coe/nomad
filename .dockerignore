@@ -2,10 +2,15 @@
 .pyenv/
 .vscode/
 .volumes/
+.git/
+.mypy_cache/
 data/
 docs/.build
-gui/node_modules/
-gui/build/
+docs/.static
+docs/*.graffle
+gui/
 infrastructure/
 __pycache__/
 *.pyc
+NOMAD.egg-info/
+.coverage

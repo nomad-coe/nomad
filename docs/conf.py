@@ -15,12 +15,17 @@ import os
 import sys
 from recommonmark.transform import AutoStructify
 
-sys.path.insert(0, os.path.abspath('../nomad'))
+sys.path.insert(0, os.path.abspath('..'))
+# TODO, once the normalizers are self contained in their own gits, this should not be
+# necessary anymore
+sys.path.insert(0, os.path.abspath('../.dependencies/normalizers/stats/normalizer/normalizer-stats'))
+sys.path.insert(0, os.path.abspath('../.dependencies/normalizers/symmetry/normalizer/normalizer-symmetry'))
+sys.path.insert(0, os.path.abspath('../.dependencies/normalizers/system-type/normalizer/normalizer-system-type'))
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'NOMAD-XT'
+project = 'nomad-FAIR'
 copyright = '2018, the NOMAD developers'
 author = 'the NOMAD developers'
 
@@ -141,7 +146,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'NOMAD-XT.tex', 'NOMAD-XT Documentation',
+    (master_doc, 'nomad-FAIR.tex', 'nomad-FAIR Documentation',
      'the NOMAD developers', 'manual'),
 ]
 
@@ -151,7 +156,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'nomad', 'NOMAD-XT Documentation',
+    (master_doc, 'nomad', 'nomad-FAIR Documentation',
      [author], 1)
 ]
 
@@ -162,8 +167,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'NOMAD-XT', 'NOMAD-XT Documentation',
-     author, 'NOMAD-XT', 'One line description of project.',
+    (master_doc, 'nomad-FAIR', 'nomad-FAIR Documentation',
+     author, 'nomad-FAIR', 'One line description of project.',
      'Miscellaneous'),
 ]
 

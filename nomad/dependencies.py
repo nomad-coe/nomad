@@ -95,9 +95,12 @@ class PythonGit():
             raise PythonGitError(
                 'Could not install (pip return code=%s)' % pipcode, repo=self)
 
-    def prepare(self) -> None:
+    def prepare(self, dev: bool = False) -> None:
         """
         Makes sure that the repository is fetched, at the right commit, and installed.
+
+        Arguments:
+            dev (bool): Indicate dev install (uses pip with -e). Default is False.
 
         Raises:
             PythonGitError: if something went wrong.
@@ -132,7 +135,10 @@ class PythonGit():
 
             if os.path.exists('setup.py'):
                 _logger.info('install setup.py for %s' % self.name)
-                self._run_pip_install('-e', '.')
+                if dev:
+                    self._run_pip_install('-e', '.')
+                else:
+                    self._run_pip_install('.')
 
         except PythonGitError as e:
             raise e
@@ -185,14 +191,21 @@ dependencies = [
 dependencies_dict = {dependency.name: dependency for dependency in dependencies}
 
 
-def prepare() -> None:
+def prepare(*args, **kwargs) -> None:
     """
     Installs all dependencies from :data:`dependencies` and :data:`parsers`.
     """
     for python_git in dependencies:
-        python_git.prepare()
+        python_git.prepare(*args, **kwargs)
 
 
 if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Install dependencies from NOMAD-coe.')
+    parser.add_argument('--dev', help='pip install with -e', action='store_true')
+
+    args = parser.parse_args()
+
     _logger.setLevel(logging.DEBUG)
-    prepare()
+    prepare(dev=args.dev)
