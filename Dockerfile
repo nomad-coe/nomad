@@ -60,6 +60,7 @@ COPY --from=build /install/.dependencies/nomad-meta-info /app/.dependencies/noma
 COPY --from=build /install/docs/.build /app/docs/.build
 
 RUN useradd -ms /bin/bash nomad
-RUN mkdir -p /app/.volumes/fs; chown -R nomad /app/.volumes/fs
+RUN mkdir -p /app/.volumes/fs
+RUN chown -R nomad /app
 USER nomad
 VOLUME /app/.volumes/fs
