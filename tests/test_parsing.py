@@ -18,6 +18,7 @@ import json
 import pytest
 
 from nomadcore.local_meta_info import loadJsonFile
+import nomad_meta_info
 
 from nomad.parsing import JSONStreamWriter, parser_dict
 from nomad.parsing import LocalBackend, BadContextURI
@@ -25,9 +26,9 @@ from nomad.parsing import LocalBackend, BadContextURI
 parser_examples = [
     ('parsers/random', 'test/data/parsers/random_0'),
     ('parsers/template', 'tests/data/parsers/template.json'),
-    ('parsers/exciting', '.dependencies/parsers/exciting/test/examples/Ag/INFO.OUT'),
-    ('parsers/exciting', '.dependencies/parsers/exciting/test/examples/GW/INFO.OUT'),
-    ('parsers/vasp', '.dependencies/parsers/vasp/test/examples/xml/perovskite.xml'),
+    ('parsers/exciting', 'tests/data/parsers/exciting/Ag/INFO.OUT'),
+    ('parsers/exciting', 'tests/data/parsers/exciting/GW/INFO.OUT'),
+    ('parsers/vasp', 'tests/data/parsers/vasp.xml'),
     ('parsers/fhi-aims', 'tests/data/parsers/aims.out')
 ]
 
@@ -36,7 +37,8 @@ class TestLocalBackend(object):
 
     @pytest.fixture(scope='session')
     def meta_info(self):
-        path = '.dependencies/nomad-meta-info/meta_info/nomad_meta_info/all.nomadmetainfo.json'
+        file_dir = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
+        path = os.path.join(file_dir, 'all.nomadmetainfo.json')
         meta_info, _ = loadJsonFile(path)
         return meta_info
 

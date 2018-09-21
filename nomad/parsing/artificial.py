@@ -25,6 +25,7 @@ from ase.data import chemical_symbols
 import numpy
 
 from nomadcore.local_meta_info import loadJsonFile, InfoKindEl
+import nomad_meta_info
 
 from nomad.parsing.backend import LocalBackend
 from nomad.parsing.parser import Parser
@@ -35,9 +36,8 @@ class ArtificalParser(Parser):
     def __init__(self):
         super().__init__()
         # use vasp metainfo, not to really use it, but because it works
-        file_dir = os.path.dirname(os.path.abspath(__file__))
-        relative_metainfo_path = "../../.dependencies/nomad-meta-info/meta_info/nomad_meta_info/vasp.nomadmetainfo.json"
-        meta_info_path = os.path.normpath(os.path.join(file_dir, relative_metainfo_path))
+        file_dir = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
+        meta_info_path = os.path.normpath(os.path.join(file_dir, 'vasp.nomadmetainfo.json'))
         self.meta_info_env, _ = loadJsonFile(filePath=meta_info_path, dependencyLoader=None, extraArgsHandling=InfoKindEl.ADD_EXTRA_ARGS, uri=None)
         self.backend = None
 

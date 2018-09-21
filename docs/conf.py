@@ -16,11 +16,6 @@ import sys
 from recommonmark.transform import AutoStructify
 
 sys.path.insert(0, os.path.abspath('..'))
-# TODO, once the normalizers are self contained in their own gits, this should not be
-# necessary anymore
-sys.path.insert(0, os.path.abspath('../.dependencies/normalizers/stats/normalizer/normalizer-stats'))
-sys.path.insert(0, os.path.abspath('../.dependencies/normalizers/symmetry/normalizer/normalizer-symmetry'))
-sys.path.insert(0, os.path.abspath('../.dependencies/normalizers/system-type/normalizer/normalizer-system-type'))
 
 
 # -- Project information -----------------------------------------------------

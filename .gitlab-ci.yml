@@ -15,7 +15,7 @@ stages:
   - release
 
 variables:
-  CONTAINER_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:$CI_BUILD_REF_NAME
+  CONTAINER_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:test
   CONTAINER_RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
 
 build:
@@ -67,5 +67,4 @@ release:
     - docker pull $CONTAINER_TEST_IMAGE
     - docker tag $CONTAINER_TEST_IMAGE $CONTAINER_RELEASE_IMAGE
     - docker push $CONTAINER_RELEASE_IMAGE
-  only:
-    - master
+  when: manual
