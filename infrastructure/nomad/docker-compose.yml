@@ -75,9 +75,7 @@ services:
     # nomad processing worker
     worker:
         restart: always
-        build:
-            context: ../../
-            dockerfile: backend.Dockerfile
+        build: ../../
         image: nomad/backend
         container_name: nomad_worker
         environment:
@@ -116,9 +114,7 @@ services:
 
     # nomad gui
     gui:
-        build:
-            context: ../../
-            dockerfile: frontend.Dockerfile
+        build: ../../gui
         image: nomad/frontend
         container_name: nomad_gui
         ports:

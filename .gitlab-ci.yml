@@ -15,19 +15,31 @@ stages:
   - release
 
 variables:
-  CONTAINER_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:test
-  CONTAINER_RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
+  TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:test
+  RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
+  FRONTEND_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:test
+  FRONTEND_RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:latest
 
 build:
   stage: build
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
-    - docker build -t $CONTAINER_TEST_IMAGE .
-    - docker push $CONTAINER_TEST_IMAGE
+    - docker build -t $TEST_IMAGE .
+    - docker push $TEST_IMAGE
+
+buildgui:
+  stage: build
+  script:
+    - cd gui
+    - ./gitinfo.sh
+    - git clone --single-branch -b nomad-FAIR http://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info.git --depth=1 public/metainfo
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+    - docker build -t $FRONTEND_TEST_IMAGE .
+    - docker push $FRONTEND_TEST_IMAGE
 
 linting:
   stage: qa
-  image: $CONTAINER_TEST_IMAGE
+  image: $TEST_IMAGE
   script:
     - cd /app
     - python -m pycodestyle --ignore=E501,E701 nomad tests
@@ -36,7 +48,7 @@ linting:
 
 tests:
   stage: test
-  image: $CONTAINER_TEST_IMAGE
+  image: $TEST_IMAGE
   services:
       # this will cause a warning, as the gitlab ci runner health check will test the wrong
       # port on rabbitmq container:
@@ -64,7 +76,10 @@ release:
   stage: release
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
-    - docker pull $CONTAINER_TEST_IMAGE
-    - docker tag $CONTAINER_TEST_IMAGE $CONTAINER_RELEASE_IMAGE
-    - docker push $CONTAINER_RELEASE_IMAGE
+    - docker pull $TEST_IMAGE
+    - docker tag $TEST_IMAGE $RELEASE_IMAGE
+    - docker push $RELEASE_IMAGE
+    - docker pull $FRONTEND_TEST_IMAGE
+    - docker tag $FRONTEND_TEST_IMAGE $FRONTEND_RELEASE_IMAGE
+    - docker push $FRONTEND_RELEASE_IMAGE
   when: manual
