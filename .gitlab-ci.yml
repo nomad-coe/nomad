@@ -14,27 +14,29 @@ stages:
   - test
   - release
 
+variables:
+  CONTAINER_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:$CI_BUILD_REF_NAME
+  CONTAINER_RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
 
 build:
   stage: build
   script:
-    - docker build -t gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest .
-    # - docker push $CONTAINER_TEST_IMAGE
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+    - docker build -t $CONTAINER_TEST_IMAGE .
+    - docker push $CONTAINER_TEST_IMAGE
 
 linting:
   stage: qa
-  image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
+  image: $CONTAINER_TEST_IMAGE
   script:
     - cd /app
-    - pwd
-    - ls -la
     - python -m pycodestyle --ignore=E501,E701 nomad tests
     - python -m pylint --load-plugins=pylint_mongoengine nomad tests
     - python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests
 
 tests:
   stage: test
-  image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
+  image: $CONTAINER_TEST_IMAGE
   services:
       # this will cause a warning, as the gitlab ci runner health check will test the wrong
       # port on rabbitmq container:
@@ -56,14 +58,14 @@ tests:
     NOMAD_MONGO_HOST: mongo
   script:
     - cd /app
-    - pwd
-    - ls -la
     - python -m pytest --cov=nomad -sv tests
 
 release:
   stage: release
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
-    - docker push gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
+    - docker pull $CONTAINER_TEST_IMAGE
+    - docker tag $CONTAINER_TEST_IMAGE $CONTAINER_RELEASE_IMAGE
+    - docker push $CONTAINER_RELEASE_IMAGE
   only:
     - master
