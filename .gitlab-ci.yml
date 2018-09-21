@@ -32,7 +32,7 @@ buildgui:
   script:
     - cd gui
     - ./gitinfo.sh
-    - git clone --single-branch -b nomad-FAIR http://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info.git --depth=1 public/metainfo
+    - git clone --single-branch -b nomad-fair http://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info.git --depth=1 public/metainfo
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
     - docker build -t $FRONTEND_TEST_IMAGE .
     - docker push $FRONTEND_TEST_IMAGE
