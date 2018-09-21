@@ -110,6 +110,8 @@ services:
             - elk
         ports:
             - ${API_HOST_PORT}:8000
+        volumes:
+            - ${VOLUME_BINDS}/fs:/app/.volumes/fs
         command: python -m gunicorn.app.wsgiapp -w 4 -b 0.0.0.0:8000 nomad.api:app
 
     # nomad gui

@@ -1,6 +1,6 @@
 {
-  "short_name": "nomad xt",
-  "name": "A prototype GUI for nomad xt",
+  "short_name": "nomad",
+  "name": "A prototype GUI for nomad@FAIR",
   "icons": [
     {
       "src": "favicon.ico",

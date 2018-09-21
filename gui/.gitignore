@@ -11,6 +11,7 @@
 
 # generated
 src/gitinfo.json
+public/metainfo/
 
 # misc
 .DS_Store
