@@ -54,7 +54,7 @@ class LogstashFormatterVersion1ForStructlog(logstash.formatter.LogstashFormatter
     def format(self, record):
         try:
             structlog = json.loads(record.getMessage())
-        except json.decoder.JSONDecodeError:
+        except json.JSONDecodeError:
             structlog = dict(event=record.getMessage())
 
         # Create message dict
