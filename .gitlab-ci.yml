@@ -12,13 +12,14 @@ stages:
   - build
   - qa
   - test
+  - release
+
 
 build:
   stage: build
   script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
     - docker build -t gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest .
-    - docker push gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
+    # - docker push $CONTAINER_TEST_IMAGE
 
 linting:
   stage: qa
@@ -26,6 +27,7 @@ linting:
   script:
     - cd /app
     - pwd
+    - ls -la
     - python -m pycodestyle --ignore=E501,E701 nomad tests
     - python -m pylint --load-plugins=pylint_mongoengine nomad tests
     - python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests
@@ -57,3 +59,11 @@ tests:
     - pwd
     - ls -la
     - python -m pytest --cov=nomad -sv tests
+
+release:
+  stage: release
+  script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+    - docker push gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
+  only:
+    - master

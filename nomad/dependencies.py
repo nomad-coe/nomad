@@ -157,35 +157,35 @@ dependencies = [
     PythonGit(
         name='nomad-meta-info',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info.git',
-        git_commit='nomad-xt'),
+        git_commit='nomad-fair'),
     PythonGit(
         name='python_common',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/python-common.git',
-        git_commit='master'),  # COMMIT b6f64de2149f95da6a79c4f86fd909b1dcfc23e8
+        git_commit='nomad-fair'),
     PythonGit(
         name='parsers/vasp',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-vasp.git',
-        git_commit='nomad-xt'),
+        git_commit='nomad-fair'),
     PythonGit(
         name='parsers/exciting',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-exciting.git',
-        git_commit='nomad-xt'),
+        git_commit='nomad-fair'),
     PythonGit(
         name='parsers/fhi-aims',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-fhi-aims.git',
-        git_commit='nomad-xt'),
+        git_commit='nomad-fair'),
     PythonGit(
         name='normalizers/stats',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/normalizer-stats.git',
-        git_commit='nomad-xt'),
+        git_commit='nomad-fair'),
     PythonGit(
         name='normalizers/symmetry',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/normalizer-symmetry',
-        git_commit='nomad-xt'),
+        git_commit='nomad-fair'),
     PythonGit(
         name='normalizers/system-type',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/normalizer-system-type',
-        git_commit='nomad-xt')
+        git_commit='nomad-fair')
 ]
 
 dependencies_dict = {dependency.name: dependency for dependency in dependencies}

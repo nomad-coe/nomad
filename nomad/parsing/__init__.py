@@ -77,7 +77,7 @@ parsers = [
     ),
     LegacyParser(
         python_git=dependencies['parsers/exciting'],
-        parser_class_name='parser_exciting.ExcitingParser',
+        parser_class_name='excitingparser.ExcitingParser',
         main_file_re=r'^.*/INFO\.OUT?',
         main_contents_re=(
             r'^\s*=================================================+\s*'
