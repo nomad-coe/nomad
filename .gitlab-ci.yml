@@ -1,28 +1,31 @@
 # default installed image for docker executor is: python:3.5
-image: python:3.6
+image: docker:git
 
 stages:
+  - build
   - test
+  - qa
 
 before_script:
-  - pip install virtualenv
-  - virtualenv -p `which python3` .pyenv
-  - source .pyenv/bin/activate
-  - pip install -r requirements-dev.txt
-  - pip install -r requirements.txt
-  - pip install -e .
-  - pip install -r requirements-dep.txt
-  - python nomad/dependencies.py
+  - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.example.com
+
+build:
+  stage: build
+  script:
+    - docker build -t gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest .
+    - docker push gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
 
 linting:
-  stage: test
+  stage: qa
+  image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
   script:
-    - pycodestyle --ignore=E501,E701 nomad tests
-    - pylint --load-plugins=pylint_mongoengine nomad tests
-    - mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests
+    - python -m pycodestyle --ignore=E501,E701 nomad tests
+    - python -m pylint --load-plugins=pylint_mongoengine nomad tests
+    - python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests
 
 tests:
   stage: test
+  image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
   services:
       # this will cause a warning, as the gitlab ci runner health check will test the wrong
       # port on rabbitmq container:
@@ -43,6 +46,4 @@ tests:
     NOMAD_ELASTIC_HOST: elastic
     NOMAD_MONGO_HOST: mongo
   script:
-    - pytest --cov=nomad -sv tests/
-  tags:
-    - docker
+    - python -m pytest --cov=nomad -sv tests
