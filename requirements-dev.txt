@@ -7,6 +7,7 @@ pylint-mongoengine
 pycodestyle
 pytest
 pytest-timeout
+pytest-cov
 rope
 mongomock
 

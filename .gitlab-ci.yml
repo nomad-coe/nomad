@@ -43,6 +43,6 @@ tests:
     NOMAD_ELASTIC_HOST: elastic
     NOMAD_MONGO_HOST: mongo
   script:
-    - pytest -sv tests/
+    - pytest --cov=nomad -sv tests/
   tags:
     - docker
