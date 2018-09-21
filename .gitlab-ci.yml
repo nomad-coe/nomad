@@ -8,12 +8,10 @@ stages:
   - test
   - qa
 
-before_script:
-  - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
-
 build:
   stage: build
   script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
     - docker build -t gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest .
     - docker push gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
 
