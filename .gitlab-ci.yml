@@ -1,7 +1,7 @@
 # default installed image for docker executor is: python:3.6
 image: docker:git
-services:
-  - docker:dind
+# services:
+#   - docker:dind
 
 stages:
   - build
@@ -19,6 +19,8 @@ linting:
   stage: qa
   image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
   script:
+    - cd /app
+    - pwd
     - python -m pycodestyle --ignore=E501,E701 nomad tests
     - python -m pylint --load-plugins=pylint_mongoengine nomad tests
     - python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests
@@ -46,4 +48,7 @@ tests:
     NOMAD_ELASTIC_HOST: elastic
     NOMAD_MONGO_HOST: mongo
   script:
+    - cd /app
+    - pwd
+    - ls -la
     - python -m pytest --cov=nomad -sv tests
