@@ -6,7 +6,7 @@ nomad@FAIR.
 
 ## Getting started
 
-Reat the docs. The documentation is part of the source code. It covers aspects like
+Read the docs. The documentation is part of the source code. It covers aspects like
 introduction, architecture, development setup/deployment, contributing, and API reference.
 
 ### Read the docs on the latest deployed version
