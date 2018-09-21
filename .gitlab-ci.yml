@@ -9,7 +9,7 @@ stages:
   - qa
 
 before_script:
-  - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.example.com
+  - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
 
 build:
   stage: build
