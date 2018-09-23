@@ -1,22 +1,28 @@
 Introduction
 ============
 
-This documentation is for the nomad software. This software can be used to
-store, processing, and manage (computational)
-material science data. It comprises a set of services and libraries that is
-refered to as the *nomad infrastructure*.
-The original nomad software was was developed as part of the
-NOMAD-coe project (refered to as NOMAD-coe). This software nomad@FAIR
-or just nomad is part of the FAIRDE.eu innitiative.
+**NOvel Materials Discorvery (NOMAD)** comprises storage, processing, management, discovery, and
+analytics of computational material science data from over 40 comminity *codes*.
+The original NOMAD software, developed by the
+[NOMAD-coe](http://nomad-coe.eu) project, is used to host over 50 million total energy
+calculations in a single central infrastructure instances that offers a variaty
+of services (repository, archive, encyclopedia, analytics, visualization).
+
+This is the documentation of **nomad@FAIR**, the Open-Source continuation of the
+original NOMAD-coe software that reconsiles the original code base,
+integrate it's services,
+allows 3rd parties to run individual and federated instance of the nomad infrastructure,
+provides nomad to other material science domains, and applies the FAIR principles
+as prolifirated by the (FAIR Data Infrastructure e.V.)[http://fairdi.eu].
 
 There are different use-modes for the nomad software, but the most common use is
 to run the nomad infrastructure on a cloud and provide clients access to
 web-based GUIs and REST APIs. This nomad infrastructure logically comprises the
-*nomad repository* for uploading, searching, and downloading raw calculation output
-from most relevant computionational material science codes. A second part of nomad
-is the archive. It allows to access all uploaded data in a common data format
-via a data schema called *meta-info* that includes common and code specific
-specifications of structured data. Further services are available from
+*nomad repository* for uploading, searching, and downloading raw calculation input and output
+from all relevant computionational material science codes. A second part of nomad
+is the *archive*. It provides all uploaded data in a common data format
+called *meta-info* and includes common and code specific
+schemas for structured data. Further services are available from
 (nomad-coe.eu)[http://nomad-coe.eu], e.g. the  *nomad encyclopedia*, *analytics toolkit*,
 and *advanced graphics*.
 
