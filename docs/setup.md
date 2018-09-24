@@ -82,7 +82,7 @@ pip install -e .
 ## Build and run the infrastructure with docker
 
 ### Docker and nomad
-Nomad depends on a set of databases, searchengine, and other services. Those
+Nomad depends on a set of databases, searchengines, and other services. Those
 must run to make use of nomad. We use *docker* and *docker-compose* to create a
 unified environment that is easy to build and to run.
 
@@ -107,10 +107,28 @@ The images are build via *docker-compose* and don't have to be created manually.
 
 ### Build with docker-compose
 
+We have multiple *docker-compose* files that must be used together.
+- `docker-compose.yml` containes the base definitions for all services
+- `docker-compose.dev.yml` configures services for development (notably builds images for nomad services)
+- `docker-compose.prod.yml` configures services for production (notable uses a pre-build image for nomad services that was build during CI/CD)
+
+It is sufficient to use the implicit `docker-compose.yml` only (like in the command below).
+To also use `docker-compose.dev.yml` replace `docker-compose` with
+`docker-compose -f docker-compose.yml -f docker-compose.dev.yml`.
+The biggest difference is that `*.dev.*` exposes more ports to you host, which can
+be beneficial for debugging.
+
+There is also an `.env` file. For development you can use `.env_dev`:
+```
+cd ./infrastructure/nomad
+ln -s .env_dev .env
+```
+
+The production `.env` file is stored on our serves and not part of the source code.
+
 Now we can build the *docker-compose* that contains all external services (rabbitmq,
 mongo, elastic, elk) and nomad services (worker, api, gui).
 ```
-cd ./infrastructure/nomad
 docker-compose build
 ```
 
@@ -136,7 +154,7 @@ docker-compose down
 
 ### Run containers selectively
 The following services/containers are managed via our docker-compose:
-- rabbitmq, mongo, elastic, elk
+- rabbitmq, mongo, elastic, (elk, only for production)
 - worker, api
 - gui
 - proxy

@@ -33,4 +33,5 @@ RUN yarn build
 # production environment
 FROM nginx:1.13.9-alpine
 COPY --from=build /nomad/app/build /app/nomad
+COPY ./gui.conf /etc/nginx/conf.d/default.conf
 CMD ["nginx", "-g", "daemon off;"]

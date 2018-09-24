@@ -93,8 +93,6 @@ services:
         restart: always
         image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:latest
         container_name: nomad_gui
-        volumes:
-            - ./gui.conf:/etc/nginx/conf.d/default.conf:ro
         command: nginx -g 'daemon off;'
 
     # reverse proxy everything together
