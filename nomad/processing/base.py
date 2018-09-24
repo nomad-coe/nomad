@@ -314,7 +314,7 @@ class Chord(Proc):
             total_children (int): the number of spawned children
         """
         self.total_children = total_children
-        self.save()
+        self.modify(total_children=self.total_children)
         self._check_join(children=0)
 
     def completed_child(self):
@@ -336,7 +336,7 @@ class Chord(Proc):
             if not joined:
                 self.join()
                 self.joined = True
-                self.save()
+                self.modify(joined=self.joined)
                 self.get_logger().debug('Chord is joined')
             else:
                 raise InvalidChordUsage('Chord cannot be joined twice.')
