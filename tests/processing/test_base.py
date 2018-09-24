@@ -140,5 +140,6 @@ def test_counter(worker, no_warn):
     p.spawn_children()
     p.block_until_complete()
 
+    p = ParentProc.get(p.id)
     assert_proc(p, 'join')
     assert p.joined

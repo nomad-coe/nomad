@@ -13,6 +13,7 @@ stages:
   - qa
   - test
   - release
+  - deploy
 
 variables:
   TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:test
@@ -81,4 +82,17 @@ release:
     - docker pull $FRONTEND_TEST_IMAGE
     - docker tag $FRONTEND_TEST_IMAGE $FRONTEND_RELEASE_IMAGE
     - docker push $FRONTEND_RELEASE_IMAGE
+  only: master
+
+deploy:
+  stage: deploy
+  script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+    - cd infrastructure/nomad
+    # secret .env file is stored on the "production" machine and is bind mounted into the
+    # runner container at /nomad/config/.env
+    - cp /nomad/config/.env .
+    - docker-compose -f docker-compose.yml -f docker-compose.prod.yml build
+    - docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --no-deps -d api worker gui
+  only: master
   when: manual
