@@ -82,7 +82,8 @@ release:
     - docker pull $FRONTEND_TEST_IMAGE
     - docker tag $FRONTEND_TEST_IMAGE $FRONTEND_RELEASE_IMAGE
     - docker push $FRONTEND_RELEASE_IMAGE
-  only: master
+  only:
+    - master
 
 deploy:
   stage: deploy
@@ -94,5 +95,6 @@ deploy:
     - cp /nomad/config/.env .
     - docker-compose -f docker-compose.yml -f docker-compose.prod.yml build
     - docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --no-deps -d api worker gui
-  only: master
+  only:
+    - master
   when: manual
