@@ -1,5 +1,6 @@
 # default installed image for docker executor is: python:3.6
-image: docker:git
+# using an image that can do git, docker, docker-compose
+image: youpy/docker-compose-git
 
 # Uncomment the next lines, to run each pipline/job in its own docker environment.
 # Otherwise, it will use the docker of the gitlab runner host (e.g. enc-preprocessing...).
