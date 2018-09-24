@@ -142,5 +142,4 @@ def test_counter(worker, no_warn):
 
     p = ParentProc.get(p.id)
     assert_proc(p, 'join')
-    # TODO there is a bug with this
-    # assert p.joined
+    assert p.joined
