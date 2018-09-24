@@ -46,3 +46,7 @@ services:
     worker:
         links:
             - elk
+
+    proxy:
+        ports:
+            - 10080:80

@@ -33,6 +33,7 @@ buildgui:
   script:
     - cd gui
     - ./gitinfo.sh
+    - ls -la src/gitinfo.json
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
     - docker build -t $FRONTEND_TEST_IMAGE .
     - docker push $FRONTEND_TEST_IMAGE
