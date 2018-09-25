@@ -41,6 +41,8 @@ ARG CACHEBUST=1
 COPY nomad/dependencies.py /install/nomad/dependencies.py
 COPY nomad/config.py /install/nomad/config.py
 RUN python nomad/dependencies.py
+RUN ls -la .dependencies/parsers/vasp/
+RUN ls -la .dependencies/parsers/vasp/vaspparser/
 # do that after the dependencies to use docker's layer caching
 COPY . /install
 RUN pip install .
