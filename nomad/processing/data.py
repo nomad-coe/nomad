@@ -139,7 +139,8 @@ class Calc(Proc):
 
     @task
     def parsing(self):
-        self._parser_backend = parser_dict[self.parser].run(self.mainfile_tmp_path)
+        parser = parser_dict[self.parser]
+        self._parser_backend = parser.run(self.mainfile_tmp_path, logger=self.get_logger())
         if self._parser_backend.status[0] != 'ParseSuccess':
             error = self._parser_backend.status[1]
             self.fail(error, level=logging.DEBUG)

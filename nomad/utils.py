@@ -113,9 +113,8 @@ if not _logging_is_configured:
     structlog.configure(processors=log_processors, logger_factory=logger_factory)
 
     # configure logging in general
-    logging.basicConfig(level=logging.WARNING, stream=sys.stdout)
+    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
     root = logging.getLogger()
-    root.setLevel(config.logstash.level)
     for handler in root.handlers:
         handler.setLevel(logging.WARNING if 'pytest' not in sys.modules else logging.CRITICAL)
 

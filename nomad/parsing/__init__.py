@@ -66,7 +66,7 @@ parsers = [
     TemplateParser(),
     LegacyParser(
         python_git=dependencies['parsers/vasp'],
-        parser_class_name='vaspparser.VASPParser',
+        parser_class_name='vaspparser.VASPRunParserInterface',
         main_file_re=r'^.*\.xml(\.[^\.]*)?$',
         main_contents_re=(
             r'^\s*<\?xml version="1\.0" encoding="ISO-8859-1"\?>\s*'
