@@ -69,6 +69,7 @@ class Objects:
         path_segments = file_name.split('/')
         path = os.path.join(*([config.fs.objects, bucket] + path_segments))
         directory = os.path.dirname(path)
+
         if not os.path.isdir(directory):
             os.makedirs(directory)
 

@@ -144,6 +144,22 @@ function archive(uploadHash, calcHash) {
     .then(response => response.json())
 }
 
+function calcProcLog(uploadHash, calcHash) {
+  return fetch(`${apiBase}/logs/${uploadHash}/${calcHash}`)
+    .catch(networkError)
+    .then(response => {
+      if (!response.ok) {
+        if (response.status === 404) {
+          return ''
+        } else {
+          return handleResponseErrors(response)
+        }
+      } else {
+        return response.text()
+      }
+    })
+}
+
 function archiveUrl(uploadHash, calcHash) {
   return `${apiBase}/archive/${uploadHash}/${calcHash}`
 }
@@ -236,6 +252,7 @@ const api = {
   unstageUpload: unstageUpload,
   getUploads: getUploads,
   archive: archive,
+  calcProcLog: calcProcLog,
   archiveUrl: archiveUrl,
   repo: repo,
   repoAll: repoAll,

@@ -142,7 +142,7 @@ class Calc(Proc):
             self.normalizing()
             self.archiving()
         finally:
-            # close open loghandler
+            # close loghandler that was not closed due to failures
             try:
                 if self._loghandler is not None:
                     self._loghandler.close()
@@ -195,6 +195,11 @@ class Calc(Proc):
         # persist the archive
         with ArchiveFile(self.archive_id).write_archive_json() as out:
             self._parser_backend.write_json(out, pretty=True)
+
+        # close loghandler
+        if self._loghandler is not None:
+            self._loghandler.close()
+            self._loghandler = None
 
 
 class Upload(Chord):
