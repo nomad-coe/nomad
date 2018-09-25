@@ -99,6 +99,7 @@ class TemplateParser(ArtificalParser):
         section = template_json['section_run'][0]
         self.add_section(section)
         self.backend.finishedParsingSession('ParseSuccess', [])
+        logger.debug('a test log entry')
         return self.backend
 
 

@@ -31,6 +31,8 @@ from mongoengine import StringField, BooleanField, DateTimeField, DictField, Int
 import logging
 import base64
 import time
+from structlog import wrap_logger
+from structlog.processors import StackInfoRenderer, format_exc_info, JSONRenderer
 
 from nomad import config, utils
 from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile
@@ -78,7 +80,7 @@ class Calc(Proc):
         super().__init__(*args, **kwargs)
         self._parser_backend = None
         self._upload = None
-        self._loghandler = None
+        self._calc_proc_logwriter = None
 
     @classmethod
     def get(cls, id):
@@ -112,11 +114,31 @@ class Calc(Proc):
             upload_id=self.upload_id, mainfile=self.mainfile,
             upload_hash=upload_hash, calc_hash=calc_hash, **kwargs)
 
-        if self._loghandler is None:
-            self._loghandler = ArchiveLogFile(self.archive_id).create_loghandler()
-
-        logger.addHandler(self._loghandler)
         return logger
+
+    def get_calc_logger(self, **kwargs):
+        """
+        Returns a wrapped logger that additionally saves all entries to the calculation
+        processing log in the archive.
+        """
+        logger = self.get_logger(**kwargs)
+
+        if self._calc_proc_logwriter is None:
+            self._calc_proc_logwriter = ArchiveLogFile(self.archive_id).open('wt')
+
+        def save_to_cacl_log(logger, method_name, event_dict):
+            program = event_dict.get('normalizer', 'parser')
+            event = event_dict.get('event', '')
+            entry = '[%s] %s: %s' % (method_name, program, event)
+            if len(entry) > 120:
+                self._calc_proc_logwriter.write(entry[:120])
+                self._calc_proc_logwriter.write('...')
+            else:
+                self._calc_proc_logwriter.write(entry)
+            self._calc_proc_logwriter.write('\n')
+            return event_dict
+
+        return wrap_logger(logger, processors=[save_to_cacl_log])
 
     @property
     def json_dict(self):
@@ -144,9 +166,9 @@ class Calc(Proc):
         finally:
             # close loghandler that was not closed due to failures
             try:
-                if self._loghandler is not None:
-                    self._loghandler.close()
-                    self._loghandler = None
+                if self._calc_proc_logwriter is not None:
+                    self._calc_proc_logwriter.close()
+                    self._calc_proc_logwriter = None
             except Exception as e:
                 logger.error('could not close calculation proc log', exc_info=e)
 
@@ -155,7 +177,7 @@ class Calc(Proc):
 
     @task
     def parsing(self):
-        logger = self.get_logger()
+        logger = self.get_calc_logger()
         parser = parser_dict[self.parser]
         self._parser_backend = parser.run(self.mainfile_tmp_path, logger=logger)
         if self._parser_backend.status[0] != 'ParseSuccess':
@@ -164,7 +186,7 @@ class Calc(Proc):
 
     @task
     def normalizing(self):
-        logger = self.get_logger()
+        logger = self.get_calc_logger()
         for normalizer in normalizers:
             normalizer_name = normalizer.__name__
             normalizer(self._parser_backend).normalize(logger=logger)
@@ -197,9 +219,9 @@ class Calc(Proc):
             self._parser_backend.write_json(out, pretty=True)
 
         # close loghandler
-        if self._loghandler is not None:
-            self._loghandler.close()
-            self._loghandler = None
+        if self._calc_proc_logwriter is not None:
+            self._calc_proc_logwriter.close()
+            self._calc_proc_logwriter = None
 
 
 class Upload(Chord):

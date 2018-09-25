@@ -80,6 +80,7 @@ def assert_processing(upload: Upload):
         assert calc.status == 'SUCCESS', calc.archive_id
         assert ArchiveFile(calc.archive_id).exists()
         assert ArchiveLogFile(calc.archive_id).exists()
+        assert 'a test' in ArchiveLogFile(calc.archive_id).open('rt').read()
         assert len(calc.errors) == 0
 
 

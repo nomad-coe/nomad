@@ -130,7 +130,7 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     def get_logger(self):
         return utils.get_logger(
-            __name__, current_task=self.current_task, process=self.__class__.__name__,
+            'nomad.processing', current_task=self.current_task, process=self.__class__.__name__,
             status=self.status)
 
     @classmethod
