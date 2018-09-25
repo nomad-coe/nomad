@@ -48,7 +48,6 @@ from contextlib import contextmanager
 import gzip
 import io
 import shutil
-import logging
 
 from nomad import config, utils
 

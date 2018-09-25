@@ -15,10 +15,9 @@
 import pytest
 import json
 import shutil
-import logging
 
 from nomad.files import Objects, ArchiveFile, UploadFile, ArchiveLogFile
-from nomad import config, utils
+from nomad import config
 
 # example_file uses an artificial parser for faster test execution, can also be
 # changed to examples_vasp.zip for using vasp parser

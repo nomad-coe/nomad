@@ -32,7 +32,6 @@ import logging
 import base64
 import time
 from structlog import wrap_logger
-from structlog.processors import StackInfoRenderer, format_exc_info, JSONRenderer
 
 from nomad import config, utils
 from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile
