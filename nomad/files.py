@@ -331,4 +331,3 @@ class ArchiveLogFile(File):
             bucket=config.files.archive_bucket,
             object_id=archive_id,
             ext='log')
-
