@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from nomad.normalizing.normalizer import SystemBasedNormalizer
-from symmetrynormalizer.symmetry_analysis import normalize
+from symmetrynormalizer import symmetry_analysis
 
 
 class SymmetryNormalizer(SystemBasedNormalizer):
@@ -24,4 +24,5 @@ class SymmetryNormalizer(SystemBasedNormalizer):
         super().__init__(backend, all_sections=True)
 
     def normalize_system(self, section_system) -> None:
-        normalize(self._backend, section_system)
+        symmetry_analysis.logging = self.logger
+        symmetry_analysis.normalize(self._backend, section_system)

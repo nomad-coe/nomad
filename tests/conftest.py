@@ -1,7 +1,6 @@
 import pytest
 from mongoengine import connect
 from mongoengine.connection import disconnect
-import logging
 
 from nomad import config
 

@@ -139,22 +139,24 @@ class Calc(Proc):
 
     @task
     def parsing(self):
+        logger = self.get_logger()
         parser = parser_dict[self.parser]
-        self._parser_backend = parser.run(self.mainfile_tmp_path, logger=self.get_logger())
+        self._parser_backend = parser.run(self.mainfile_tmp_path, logger=logger)
         if self._parser_backend.status[0] != 'ParseSuccess':
             error = self._parser_backend.status[1]
             self.fail(error, level=logging.DEBUG)
 
     @task
     def normalizing(self):
+        logger = self.get_logger()
         for normalizer in normalizers:
             normalizer_name = normalizer.__name__
-            normalizer(self._parser_backend).normalize()
+            normalizer(self._parser_backend).normalize(logger=logger)
             if self._parser_backend.status[0] != 'ParseSuccess':
                 error = self._parser_backend.status[1]
                 self.fail(error, normalizer=normalizer_name, level=logging.WARNING)
                 return
-            self.get_logger().debug(
+            logger.debug(
                 'completed normalizer successfully', normalizer=normalizer_name)
 
     @task

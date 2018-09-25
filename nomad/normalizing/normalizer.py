@@ -18,8 +18,6 @@ from typing import List, Dict, Any
 from nomad.parsing import AbstractParserBackend
 from nomad.utils import get_logger
 
-logger = get_logger(__name__)
-
 s_system = 'section_system'
 s_scc = 'section_single_configuration_calculation'
 s_frame_sequence = 'section_frame_sequence'
@@ -38,10 +36,12 @@ class Normalizer(metaclass=ABCMeta):
     def __init__(self, backend: AbstractParserBackend) -> None:
 
         self._backend = backend
+        self.logger = get_logger(__name__)
 
     @abstractmethod
-    def normalize(self) -> None:
-        pass
+    def normalize(self, logger=None) -> None:
+        if logger is not None:
+            self.logger = logger.bind(normalizer=self.__class__.__name__)
 
 
 class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
@@ -93,7 +93,9 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
     def normalize_system(self, section_system: Dict[str, Any]) -> None:
         pass
 
-    def normalize(self) -> None:
+    def normalize(self, logger=None) -> None:
+        super().normalize(logger)
+
         if self._all_sections:
             systems = self._backend.get_sections(s_system)
         else:
@@ -121,11 +123,11 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
             try:
                 self._normalize_system(g_index)
             except KeyError as e:
-                logger.error(
+                self.logger.error(
                     'Could not read all input data', normalizer=self.__class__.__name__,
                     section='section_system', g_index=g_index, key_error=str(e))
             except Exception as e:
-                logger.error(
+                self.logger.error(
                     'Unexpected error during normalizing', normalizer=self.__class__.__name__,
                     section='section_system', g_index=g_index, exc_info=e)
                 raise e

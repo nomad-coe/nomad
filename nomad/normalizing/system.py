@@ -17,8 +17,8 @@ import numpy
 import spglib
 
 from nomadcore.json_support import addShasOfJson
-from statsnormalizer.stats import crystalSystem
-from statsnormalizer.classify_structure import ClassifyStructure
+from statsnormalizer import stats
+from statsnormalizer import classify_structure
 
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 
@@ -44,6 +44,9 @@ class SystemNormalizer(SystemBasedNormalizer):
         return 0
 
     def normalize_system(self, section_system) -> None:
+        stats.logging = self.logger
+        classify_structure.logger = self.logger
+
         results = dict()
 
         atom_labels = section_system['atom_labels']
@@ -87,7 +90,7 @@ class SystemNormalizer(SystemBasedNormalizer):
 
             results['gIndex'] = section_system['gIndex']
             results['name'] = 'section_system'
-            structure = ClassifyStructure(None, jsonValue={
+            structure = classify_structure.ClassifyStructure(None, jsonValue={
                 "sections": [{
                     "name": "section_run",
                     "gIndex": 1,
@@ -132,7 +135,7 @@ class SystemNormalizer(SystemBasedNormalizer):
             n = symm.get("number")
             if n:
                 self._backend.openNonOverlappingSection('section_symmetry')
-                self._backend.addValue("bravais_lattice", crystalSystem(n))
+                self._backend.addValue("bravais_lattice", stats.crystalSystem(n))
                 self._backend.closeNonOverlappingSection('section_symmetry')
 
             # for quantity in ["origin_shift", "std_lattice"]:
