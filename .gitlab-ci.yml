@@ -25,7 +25,7 @@ build:
   stage: build
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
-    - docker build -t $TEST_IMAGE --build-args CACHEBUST=3 .
+    - docker build -t $TEST_IMAGE .
     - docker push $TEST_IMAGE
 
 buildgui:
