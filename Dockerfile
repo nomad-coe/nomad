@@ -37,7 +37,7 @@ RUN pip install -r requirements-dep.txt
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 # Use docker build --build-args CACHEBUST=2 to not cache this (e.g. when you know deps have changed)
-ARG CACHEBUST=2
+ARG CACHEBUST=1
 COPY nomad/dependencies.py /install/nomad/dependencies.py
 COPY nomad/config.py /install/nomad/config.py
 RUN python nomad/dependencies.py

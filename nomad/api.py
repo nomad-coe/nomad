@@ -21,7 +21,7 @@ from datetime import datetime
 import os.path
 
 from nomad import config
-from nomad.files import UploadFile, ArchiveFile
+from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile
 from nomad.utils import get_logger
 from nomad.processing import Upload, NotAllowedDuringProcessing
 from nomad.repo import RepoCalc
@@ -615,6 +615,53 @@ class RepoCalcsRes(Resource):
             },
             'results': [result.json_dict for result in search]
         }
+
+
+@app.route('%s/logs/<string:upload_hash>/<string:calc_hash>' % base_path, methods=['GET'])
+def get_calc_proc_log(upload_hash, calc_hash):
+    """
+    Get calculation processing log. Calcs are references via *upload_hash*, *calc_hash*
+    pairs.
+
+    .. :quickref: archive; Get calculation data in archive form.
+
+    **Example request**:
+
+    .. sourcecode:: http
+
+        GET /nomad/api/logs/W36aqCzAKxOCfIiMFsBJh3nHPb4a/7ddvtfRfZAvc3Crr7jOJ8UH0T34I HTTP/1.1
+        Accept: application/json
+
+    :param string upload_hash: the hash of the upload (from uploaded file contents)
+    :param string calc_hash: the hash of the calculation (from mainfile)
+    :resheader Content-Type: application/json
+    :status 200: calc successfully retrieved
+    :status 404: calc with given hashes does not exist
+    :returns: the log data, a line by line sequence of structured logs
+    """
+    archive_id = '%s/%s' % (upload_hash, calc_hash)
+
+    try:
+        archive = ArchiveLogFile(archive_id)
+        arhchive_path = archive.os_path
+
+        rv = send_file(
+            arhchive_path,
+            mimetype='application/text',
+            as_attachment=True,
+            attachment_filename=os.path.basename(arhchive_path))
+
+        return rv
+    except KeyError:
+        abort(404, message='Archive/calculation %s does not exist.' % archive_id)
+    except FileNotFoundError:
+        abort(404, message='Archive/calculation %s does not exist.' % archive_id)
+    except Exception as e:
+        logger = get_logger(
+            __name__, endpoint='logs', action='get',
+            upload_hash=upload_hash, calc_hash=calc_hash)
+        logger.error('Exception on accessing calc proc log', exc_info=e)
+        abort(500, message='Could not accessing the logs.')
 
 
 @app.route('%s/archive/<string:upload_hash>/<string:calc_hash>' % base_path, methods=['GET'])

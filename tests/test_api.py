@@ -21,7 +21,7 @@ from nomad.processing import Upload  # noqa
 from tests.processing.test_data import example_files  # noqa
 
 # import fixtures
-from tests.test_files import clear_files, archive, archive_config  # noqa pylint: disable=unused-import
+from tests.test_files import clear_files, archive, archive_log, archive_config  # noqa pylint: disable=unused-import
 from tests.test_normalizing import normalized_template_example  # noqa pylint: disable=unused-import
 from tests.test_parsing import parsed_template_example  # noqa pylint: disable=unused-import
 from tests.test_repo import example_elastic_calc  # noqa pylint: disable=unused-import
@@ -186,12 +186,13 @@ def test_processing(client, file, mode, worker, mocksearch, test_user_auth, no_w
     assert len(upload['tasks']) == 4
     assert upload['status'] == 'SUCCESS'
     assert upload['current_task'] == 'cleanup'
+    assert UploadFile(upload['upload_id']).exists()
     calcs = upload['calcs']['results']
     for calc in calcs:
         assert calc['status'] == 'SUCCESS'
         assert calc['current_task'] == 'archiving'
         assert len(calc['tasks']) == 3
-        assert UploadFile(upload['upload_id']).exists()
+        assert client.get('/logs/%s' % calc['archive_id']).status_code == 200
 
     if upload['calcs']['pagination']['total'] > 1:
         rv = client.get('%s?page=2&per_page=1&order_by=status' % upload_endpoint)
@@ -273,6 +274,13 @@ def test_get_archive(client, archive, no_warn):
     else:
         json.loads(rv.data)
 
+    assert rv.status_code == 200
+
+
+def test_get_calc_proc_log(client, archive_log, no_warn):
+    rv = client.get('/logs/%s' % archive_log.object_id)
+
+    assert len(rv.data) > 0
     assert rv.status_code == 200
 
 

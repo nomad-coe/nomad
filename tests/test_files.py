@@ -15,9 +15,10 @@
 import pytest
 import json
 import shutil
+import logging
 
-from nomad.files import Objects, ArchiveFile, UploadFile
-import nomad.config as config
+from nomad.files import Objects, ArchiveFile, UploadFile, ArchiveLogFile
+from nomad import config, utils
 
 # example_file uses an artificial parser for faster test execution, can also be
 # changed to examples_vasp.zip for using vasp parser
@@ -145,3 +146,24 @@ class TestUploadFile:
 
         with upload_same_file:
             assert hash == upload_same_file.hash()
+
+
+@pytest.fixture(scope='function')
+def archive_log(clear_files, archive_config):
+    archive_log = ArchiveLogFile('__test_upload_hash/__test_calc_hash')
+    archive_loghandler = archive_log.create_loghandler()
+    logger = utils.get_logger('test')
+    logger.addHandler(archive_loghandler)
+    logger.setLevel(logging.DEBUG)
+    logger.debug('This is a test')
+    archive_loghandler.close()
+
+    yield archive_log
+
+
+class TestArchiveLogFile:
+
+    def test_archive_log_file(self, archive_log):
+        assert archive_log.exists()
+        log_entry = json.loads(archive_log.open('rt').read())
+        assert log_entry['event'] == 'This is a test'

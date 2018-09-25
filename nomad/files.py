@@ -48,6 +48,7 @@ from contextlib import contextmanager
 import gzip
 import io
 import shutil
+import logging
 
 from nomad import config, utils
 
@@ -316,3 +317,21 @@ class ArchiveFile(File):
         """ Delete all archives of one upload with the given hash. """
         bucket = config.files.archive_bucket
         Objects.delete_all(bucket, upload_hash)
+
+
+class ArchiveLogFile(File):
+    """
+    Represents a log file that was created for processing a single calculation to create
+    an archive. Provides a loghandler that can be used to write to this logfile.
+    Logfiles are stored within the *archive_bucket* alongside the archive files.
+    """
+    def __init__(self, archive_id: str) -> None:
+        super().__init__(
+            bucket=config.files.archive_bucket,
+            object_id=archive_id,
+            ext='log')
+
+    def create_loghandler(self):
+        fh = logging.FileHandler(self.os_path, 'w')
+        fh.setLevel(logging.DEBUG)
+        return fh

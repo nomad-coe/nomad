@@ -33,7 +33,7 @@ import base64
 import time
 
 from nomad import config, utils
-from nomad.files import UploadFile, ArchiveFile
+from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile
 from nomad.repo import RepoCalc
 from nomad.user import User
 from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE, RUNNING
@@ -78,6 +78,7 @@ class Calc(Proc):
         super().__init__(*args, **kwargs)
         self._parser_backend = None
         self._upload = None
+        self._loghandler = None
 
     @classmethod
     def get(cls, id):
@@ -110,6 +111,11 @@ class Calc(Proc):
         logger = logger.bind(
             upload_id=self.upload_id, mainfile=self.mainfile,
             upload_hash=upload_hash, calc_hash=calc_hash, **kwargs)
+
+        if self._loghandler is None:
+            self._loghandler = ArchiveLogFile(self.archive_id).create_loghandler()
+
+        logger.addHandler(self._loghandler)
         return logger
 
     @property
@@ -127,14 +133,24 @@ class Calc(Proc):
     @process
     def process(self):
         self._upload = Upload.get(self.upload_id)
+        logger = self.get_logger()
         if self._upload is None:
-            self.get_logger().error('calculation upload does not exist')
+            logger.error('calculation upload does not exist')
 
         try:
             self.parsing()
             self.normalizing()
             self.archiving()
         finally:
+            # close open loghandler
+            try:
+                if self._loghandler is not None:
+                    self._loghandler.close()
+                    self._loghandler = None
+            except Exception as e:
+                logger.error('could not close calculation proc log', exc_info=e)
+
+            # inform parent proc about completion
             self._upload.completed_child()
 
     @task
