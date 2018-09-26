@@ -53,9 +53,6 @@ from nomad import config, utils
 
 
 class Objects:
-    """
-    Object store like abstraction based on a regular file system.
-    """
     @classmethod
     def _os_path(cls, bucket: str, name: str, ext: str) -> str:
         if ext is not None and ext != '':
@@ -75,33 +72,12 @@ class Objects:
         return os.path.abspath(path)
 
     @classmethod
-    def open(cls, bucket: str, name: str, ext: str = None, *args, **kwargs) -> IO:
-        """ Open an object like you would a file, e.g. with 'rb', etc. """
-        try:
-            return open(cls._os_path(bucket, name, ext), *args, **kwargs)
-        except FileNotFoundError:
-            raise KeyError()
-
-    @classmethod
-    def delete(cls, bucket: str, name: str, ext: str = None) -> None:
-        """ Delete a single object. """
-        try:
-            os.remove(cls._os_path(bucket, name, ext))
-        except FileNotFoundError:
-            raise KeyError()
-
-    @classmethod
     def delete_all(cls, bucket: str, prefix: str = ''):
         """ Delete all files with given prefix, prefix must denote a directory. """
         try:
             shutil.rmtree(cls._os_path(bucket, prefix, ext=None))
         except FileNotFoundError:
             pass
-
-    @classmethod
-    def exists(cls, bucket: str, name: str, ext: str = None) -> bool:
-        """ Returns True if object exists. """
-        return os.path.exists(cls._os_path(bucket, name, ext))
 
 
 class File:
@@ -127,19 +103,22 @@ class File:
     def open(self, *args, **kwargs) -> IO:
         """ Opens the object with he given mode, etc. """
         self.logger.debug('open file')
-        return Objects.open(self.bucket, self.object_id, self.ext, *args, **kwargs)
+        try:
+            return open(self.os_path, *args, **kwargs)
+        except FileNotFoundError:
+            raise KeyError()
 
     def delete(self) -> None:
         """ Deletes the file with the given object id. """
         try:
-            Objects.delete(self.bucket, self.object_id, self.ext)
+            os.remove(self.os_path)
             self.logger.debug('file deleted')
         except FileNotFoundError:
             raise KeyError()
 
     def exists(self) -> bool:
         """ Returns true if object exists. """
-        return Objects.exists(self.bucket, self.object_id, self.ext)
+        return os.path.exists(self.os_path)
 
     @property
     def os_path(self) -> str:
@@ -163,6 +142,10 @@ class UploadFile(File):
 
     Arguments:
         upload_id: The upload of this uploaded file.
+        local_path: Optional override for the path used to store/access the upload
+            on the server. This can be usefull to create uploads for files that
+            were not uploaded but put to the server in another way, e.g. offline
+            processing, syncing with other data, etc.
 
     Attributes:
         upload_extract_dir: The path of the tmp directory with the extracted contents.
@@ -172,7 +155,7 @@ class UploadFile(File):
     formats = ['zip']
     """ A human readable list of supported file formats. """
 
-    def __init__(self, upload_id: str) -> None:
+    def __init__(self, upload_id: str, local_path: str = None) -> None:
         super().__init__(
             bucket=config.files.uploads_bucket,
             object_id=upload_id,
@@ -180,6 +163,7 @@ class UploadFile(File):
 
         self.upload_extract_dir: str = os.path.join(config.fs.tmp, 'uploads_extracted', upload_id)
         self.filelist: List[str] = None
+        self._local_path = local_path
 
     # There is not good way to capsule decorators in a class:
     # https://medium.com/@vadimpushtaev/decorator-inside-python-class-1e74d23107f6
@@ -194,6 +178,10 @@ class UploadFile(File):
                     self.logger.error(msg, upload_id=self.object_id, exc_info=e)
                     raise FileError(msg, e)
             return wrapper
+
+    @property
+    def os_path(self):
+        return self._local_path if self._local_path is not None else super().os_path
 
     @Decorators.handle_errors
     def hash(self) -> str:
@@ -254,6 +242,16 @@ class UploadFile(File):
     def get_path(self, filename: str) -> str:
         """ Returns the tmp directory relative version of a filename. """
         return os.path.join(self.upload_extract_dir, filename)
+
+    def delete(self) -> None:
+        """ Deletes the file with the given object id. """
+        # Do not delete local files, no matter what
+        if self._local_path is None:
+            try:
+                os.remove(self.os_path)
+                self.logger.debug('file deleted')
+            except FileNotFoundError:
+                raise KeyError()
 
     @property
     def is_valid(self):
