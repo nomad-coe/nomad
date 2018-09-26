@@ -39,11 +39,12 @@ if config.logstash.enabled:
 
 @worker_process_init.connect
 def setup(**kwargs):
+    utils.get_logger(__name__).debug('test debug log entry')
     infrastructure.setup()
 
 
 app = Celery('nomad.processing', broker=config.celery.broker_url)
-
+app.conf.update(worker_hijack_root_logger=False)
 
 PENDING = 'PENDING'
 RUNNING = 'RUNNING'

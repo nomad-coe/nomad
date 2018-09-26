@@ -116,10 +116,10 @@ if not _logging_is_configured:
         wrapper_class=structlog.stdlib.BoundLogger)
 
     # configure logging in general
-    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+    logging.basicConfig(stream=sys.stdout)
     root = logging.getLogger()
     for handler in root.handlers:
-        handler.setLevel(logging.WARNING if 'pytest' not in sys.modules else logging.CRITICAL)
+        handler.setLevel(config.console_log_level if 'pytest' not in sys.modules else logging.CRITICAL)
 
     # configure logstash
     if config.logstash.enabled and 'pytest' not in sys.modules:
