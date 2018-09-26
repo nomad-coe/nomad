@@ -192,8 +192,6 @@ class UploadsRes(Resource):
         if json_data is None:
             json_data = {}
 
-        print(json_data)
-
         upload = Upload.create(
             user=g.user,
             name=json_data.get('name'),
