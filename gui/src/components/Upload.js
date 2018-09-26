@@ -13,6 +13,7 @@ import { compose } from 'recompose'
 import { withErrors } from './errors'
 import { debug } from '../config'
 import UploadCommand from './UploadCommand'
+import CalcProcLogPopper from './CalcProcLogPopper'
 
 class Upload extends React.Component {
   static propTypes = {
@@ -62,6 +63,13 @@ class Upload extends React.Component {
       width: theme.spacing.unit * 13 - 2,
       alignItems: 'center',
       display: 'flex'
+    },
+    logLink: {
+      color: theme.palette.secondary.main,
+      textDecoration: 'none',
+      '&:hover': {
+        textDecoration: 'underline'
+      }
     }
   });
 
@@ -73,6 +81,7 @@ class Upload extends React.Component {
       orderBy: 'status',
       order: 'asc'
     },
+    archiveLogs: null, // archive id of archive to show logs for
     loading: true, // its loading data from the server and the user should know about it
     updating: true // it is still not complete and continieusly looking for updates
   }
@@ -312,7 +321,13 @@ class Upload extends React.Component {
           </TableCell>
           <TableCell>
             <Typography color={color}>
-              {status.toLowerCase()}
+              {(status === 'SUCCESS' || status === 'FAILURE')
+                ?
+                  <a className={classes.logLink} href="#" onClick={() => this.setState({archiveLogs:  archive_id})}>
+                  {status.toLowerCase()}
+                  </a>
+                : status.toLowerCase()
+              }
             </Typography>
           </TableCell>
           <TableCell>
@@ -323,7 +338,7 @@ class Upload extends React.Component {
 
       if (status === 'FAILURE') {
         return (
-          <Tooltip title={errors.map((error, index) => (<p key={index}>{error}</p>))}>
+          <Tooltip key={archive_id} title={errors.map((error, index) => (<p key={`${archive_id}-${index}`}>{error}</p>))}>
             {row}
           </Tooltip>
         )
@@ -390,39 +405,58 @@ class Upload extends React.Component {
     )
   }
 
+  renderLogs() {
+    if (this.state.archiveLogs) {
+      return (
+        <CalcProcLogPopper
+          open={true}
+          onClose={() => this.setState({archiveLogs: null})}
+          anchorEl={window.parent.document.documentElement.firstElementChild}
+          raiseError={this.props.raiseError}
+          archiveId={this.state.archiveLogs}
+        />
+      )
+    } else {
+      return ''
+    }
+  }
+
   render() {
     const { classes } = this.props
     const { upload } = this.state
 
     if (this.state.upload) {
       return (
-        <ExpansionPanel>
-          <ExpansionPanelSummary
-            expandIcon={<ExpandMoreIcon/>} classes={{root: classes.summary}}>
-            {!(upload.completed || upload.waiting)
-              ? <div className={classes.progress}>
-                <CircularProgress size={32}/>
-              </div>
-              : <FormControlLabel control={(
-                <Checkbox
-                  checked={this.props.checked}
-                  className={classes.checkbox}
-                  onClickCapture={(e) => e.stopPropagation()}
-                  onChange={this.onCheckboxChanged.bind(this)}
-                />
-              )}/>
-            }
-            {this.renderTitle()} {this.renderStepper()}
-          </ExpansionPanelSummary>
-          <ExpansionPanelDetails style={{width: '100%'}} classes={{root: classes.details}}>
-            {upload.calcs ? this.renderCalcTable() : ''}
-            {debug
-              ? <div className={classes.detailsContent}>
-                <ReactJson src={upload} enableClipboard={false} collapsed={0} />
-              </div> : ''}
-            {this.state.loading && !this.state.updating ? <LinearProgress/> : ''}
-          </ExpansionPanelDetails>
-        </ExpansionPanel>
+        <div ref={this.logPopperAnchor}>
+          <ExpansionPanel>
+            <ExpansionPanelSummary
+              expandIcon={<ExpandMoreIcon/>} classes={{root: classes.summary}}>
+              {!(upload.completed || upload.waiting)
+                ? <div className={classes.progress}>
+                  <CircularProgress size={32}/>
+                </div>
+                : <FormControlLabel control={(
+                  <Checkbox
+                    checked={this.props.checked}
+                    className={classes.checkbox}
+                    onClickCapture={(e) => e.stopPropagation()}
+                    onChange={this.onCheckboxChanged.bind(this)}
+                  />
+                )}/>
+              }
+              {this.renderTitle()} {this.renderStepper()}
+            </ExpansionPanelSummary>
+            <ExpansionPanelDetails style={{width: '100%'}} classes={{root: classes.details}}>
+              {upload.calcs ? this.renderCalcTable() : ''}
+              {debug
+                ? <div className={classes.detailsContent}>
+                  <ReactJson src={upload} enableClipboard={false} collapsed={0} />
+                </div> : ''}
+              {this.state.loading && !this.state.updating ? <LinearProgress/> : ''}
+            </ExpansionPanelDetails>
+          </ExpansionPanel>
+          {this.renderLogs()}
+        </div>
       )
     } else {
       return ''

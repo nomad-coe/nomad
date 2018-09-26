@@ -144,8 +144,8 @@ function archive(uploadHash, calcHash) {
     .then(response => response.json())
 }
 
-function calcProcLog(uploadHash, calcHash) {
-  return fetch(`${apiBase}/logs/${uploadHash}/${calcHash}`)
+function calcProcLog(archiveId) {
+  return fetch(`${apiBase}/logs/${archiveId}`)
     .catch(networkError)
     .then(response => {
       if (!response.ok) {

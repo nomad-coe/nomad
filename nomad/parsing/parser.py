@@ -100,7 +100,7 @@ class LegacyParser(Parser):
         # using hasattr, kwargs, etc.
 
         def create_backend(meta_info):
-            return LocalBackend(meta_info, debug=False)
+            return LocalBackend(meta_info, debug=False, logger=logger)
 
         module_name = self.parser_class_name.split('.')[:-1]
         parser_class = self.parser_class_name.split('.')[1]

@@ -180,6 +180,7 @@ class Calc(Proc):
         parser = parser_dict[self.parser]
         self._parser_backend = parser.run(self.mainfile_tmp_path, logger=logger)
         if self._parser_backend.status[0] != 'ParseSuccess':
+            logger.error(self._parser_backend.status[1])
             error = self._parser_backend.status[1]
             self.fail(error, level=logging.DEBUG)
 
@@ -190,6 +191,7 @@ class Calc(Proc):
             normalizer_name = normalizer.__name__
             normalizer(self._parser_backend).normalize(logger=logger)
             if self._parser_backend.status[0] != 'ParseSuccess':
+                logger.error(self._parser_backend.status[1])
                 error = self._parser_backend.status[1]
                 self.fail(error, normalizer=normalizer_name, level=logging.WARNING)
                 return
