@@ -36,7 +36,11 @@ if config.logstash.enabled:
     after_setup_task_logger.connect(initialize_logstash)
     after_setup_logger.connect(initialize_logstash)
 
-worker_process_init.connect(lambda **kwargs: infrastructure.setup())
+
+@worker_process_init.connect
+def setup(**kwargs):
+    infrastructure.setup()
+
 
 app = Celery('nomad.processing', broker=config.celery.broker_url)
 

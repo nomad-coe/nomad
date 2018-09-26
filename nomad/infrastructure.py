@@ -21,7 +21,9 @@ from mongoengine import connect
 from elasticsearch_dsl import connections
 from elasticsearch.exceptions import RequestError
 
-from nomad import config
+from nomad import config, utils
+
+logger = utils.get_logger(__name__)
 
 elastic_client = None
 """ The elastic search client. """
@@ -30,8 +32,8 @@ elastic_client = None
 def setup():
     """ Creates connections to mongodb and elastic search. """
     global elastic_client
-    connect(db=config.mongo.users_db, host=config.mongo.host, port=config.mongo.port)
-    elastic_client = connections.create_connection(hosts=[config.elastic.host])
+    setup_mongo()
+    setup_elastic()
 
     from nomad import user
     user.ensure_test_users()
@@ -40,12 +42,14 @@ def setup():
 def setup_mongo():
     """ Creates connection to mongodb. """
     connect(db=config.mongo.users_db, host=config.mongo.host, port=config.mongo.port)
+    logger.info('setup mongo connection')
 
 
 def setup_elastic():
     """ Creates connection to elastic search. """
     global elastic_client
     elastic_client = connections.create_connection(hosts=[config.elastic.host])
+    logger.info('setup elastic connection')
 
     try:
         from nomad.repo import RepoCalc
@@ -55,3 +59,5 @@ def setup_elastic():
             pass  # happens if two services try this at the same time
         else:
             raise e
+    else:
+        logger.info('init elastic index')
