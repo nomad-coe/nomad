@@ -180,6 +180,9 @@ class UploadsRes(Resource):
             }
 
         :jsonparam string name: An optional name for the upload.
+        :jsonparem string local_path: An optional path the a file that is already on the server.
+            In this case, uploading a file won't be possible, the local file is processed
+            immediatly as if it was uploaded.
         :reqheader Content-Type: application/json
         :resheader Content-Type: application/json
         :status 200: upload successfully created
@@ -189,7 +192,11 @@ class UploadsRes(Resource):
         if json_data is None:
             json_data = {}
 
-        upload = Upload.create(user=g.user, name=json_data.get('name'))
+        upload = Upload.create(
+            user=g.user,
+            name=json_data.get('name'),
+            local_path=json_data.get('local_path'))
+
         return upload.json_dict, 200
 
 

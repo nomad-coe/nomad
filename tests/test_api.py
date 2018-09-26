@@ -125,10 +125,23 @@ def test_create_upload(client, test_user_auth, no_warn):
 def test_create_upload_with_name(client, test_user_auth, no_warn):
     rv = client.post(
         '/uploads', headers=test_user_auth,
-        data=json.dumps(dict(name='test_name')), content_type='application/json')
+        data=json.dumps(dict(name='test_name')),
+        content_type='application/json')
+
     assert rv.status_code == 200
     upload = assert_upload(rv.data)
     assert upload['name'] == 'test_name'
+
+
+def test_create_upload_with_local_path(client, test_user_auth, no_warn):
+    rv = client.post(
+        '/uploads', headers=test_user_auth,
+        data=json.dumps(dict(local_path='test_local_path')),
+        content_type='application/json')
+
+    assert rv.status_code == 200
+    upload = assert_upload(rv.data)
+    assert upload['local_path'] == 'test_local_path'
 
 
 def test_delete_empty_upload(client, test_user_auth, no_warn):
