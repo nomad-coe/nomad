@@ -26,7 +26,7 @@ from tests.test_parsing import parsed_template_example  # pylint: disable=unused
 
 
 @pytest.fixture(scope='function')
-def example_elastic_calc(normalized_template_example: LocalBackend) \
+def example_elastic_calc(normalized_template_example: LocalBackend, elastic) \
         -> Generator[RepoCalc, None, None]:
     try:
         calc = RepoCalc.get(id='test_upload_hash/test_calc_hash')

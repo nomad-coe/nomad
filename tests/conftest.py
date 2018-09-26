@@ -2,7 +2,7 @@ import pytest
 from mongoengine import connect
 from mongoengine.connection import disconnect
 
-from nomad import config
+from nomad import config, user, infrastructure
 
 
 @pytest.fixture(scope='session')
@@ -69,32 +69,48 @@ def worker(patched_celery, celery_inspect, celery_session_worker):
 
 @pytest.fixture(scope='function')
 def mockmongo(monkeypatch):
-    def mock_connect(**kwargs):
-        return connect('test_db', host='mongomock://localhost')
 
     disconnect()
-    connection = mock_connect()
-    monkeypatch.setattr('nomad.processing.base.mongo_connect', mock_connect)
+    connection = connect('test_db', host='mongomock://localhost')
+    monkeypatch.setattr('nomad.infrastructure.setup_mongo', lambda **kwargs: None)
+    user.ensure_test_users()
 
     yield
 
     connection.drop_database('test_db')
 
 
+@pytest.fixture(scope='session')
+def elastic():
+    infrastructure.setup_elastic()
+    assert infrastructure.elastic_client is not None
+
+
 @pytest.fixture(scope='function')
 def mocksearch(monkeypatch):
-    uploads = []
+    uploads_by_hash = {}
+    uploads_by_id = {}
 
     def create_from_backend(_, **kwargs):
-        upload_hash = kwargs.get('upload_hash', None)
-        uploads.append(upload_hash)
+        upload_hash = kwargs['upload_hash']
+        upload_id = kwargs['upload_id']
+        uploads_by_hash[upload_hash] = (upload_id, upload_hash)
+        uploads_by_id[upload_id] = (upload_id, upload_hash)
         return {}
 
     def upload_exists(upload_hash):
-        return upload_hash in uploads
+        return upload_hash in uploads_by_hash
+
+    def delete_upload(upload_id):
+        if upload_id in uploads_by_id:
+            hash, id = uploads_by_id[upload_id]
+            del(uploads_by_id[id])
+            del(uploads_by_hash[hash])
 
     monkeypatch.setattr('nomad.repo.RepoCalc.create_from_backend', create_from_backend)
     monkeypatch.setattr('nomad.repo.RepoCalc.upload_exists', upload_exists)
+    monkeypatch.setattr('nomad.repo.RepoCalc.delete_upload', delete_upload)
+    monkeypatch.setattr('nomad.repo.RepoCalc.unstage', lambda *args, **kwargs: None)
 
 
 @pytest.fixture(scope='function')

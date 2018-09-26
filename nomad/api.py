@@ -20,7 +20,7 @@ from elasticsearch.exceptions import NotFoundError
 from datetime import datetime
 import os.path
 
-from nomad import config
+from nomad import config, infrastructure
 from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile
 from nomad.utils import get_logger
 from nomad.processing import Upload, NotAllowedDuringProcessing
@@ -747,4 +747,5 @@ api.add_resource(RepoCalcRes, '%s/repo/<string:upload_hash>/<string:calc_hash>' 
 
 
 if __name__ == '__main__':
+    infrastructure.setup()
     app.run(debug=True, port=8000)

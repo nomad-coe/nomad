@@ -24,22 +24,16 @@ is an elasticsearch_dsl document that is used to represent repository index entr
 """
 
 from typing import Dict, Any
-import sys
-from elasticsearch.exceptions import ConflictError, RequestError, ConnectionTimeout
-from elasticsearch_dsl import Document as ElasticDocument, Search, Date, Keyword, Boolean, \
-    connections
+from elasticsearch.exceptions import ConflictError, ConnectionTimeout
+from elasticsearch_dsl import Document as ElasticDocument, Search, Date, Keyword, Boolean
 from datetime import datetime
 import time
 
-from nomad import config
+from nomad import config, infrastructure
 from nomad.parsing import LocalBackend
 from nomad.utils import get_logger
 
 logger = get_logger(__name__)
-
-# ensure elastic and mongo connections
-if 'sphinx' not in sys.modules:
-    client = connections.create_connection(hosts=[config.elastic.host])
 
 key_mappings = {
     'basis_set_type': 'program_basis_set_type',
@@ -200,12 +194,12 @@ class RepoCalc(ElasticDocument):
     @staticmethod
     def es_search(body):
         """ Perform an elasticsearch and not elasticsearch_dsl search on the Calc index. """
-        return client.search(index=config.elastic.calc_index, body=body)
+        return infrastructure.elastic_client.search(index=config.elastic.calc_index, body=body)
 
     @staticmethod
     def upload_exists(upload_hash):
         """ Returns true if there are already calcs from the given upload. """
-        search = Search(using=client, index=config.elastic.calc_index) \
+        search = Search(using=infrastructure.elastic_client, index=config.elastic.calc_index) \
             .query('match', upload_hash=upload_hash) \
             .execute()
 
@@ -223,13 +217,3 @@ class RepoCalc(ElasticDocument):
         data['archive_id'] = self.archive_id
 
         return {key: value for key, value in data.items() if value is not None}
-
-
-if 'sphinx' not in sys.modules:
-    try:
-        RepoCalc.init()
-    except RequestError as e:
-        if e.status_code == 400 and 'resource_already_exists_exception' in e.error:
-            pass  # happens if two services try this at the same time
-        else:
-            raise e

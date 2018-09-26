@@ -16,7 +16,6 @@
 Module with some prototypes/placeholder for future user management in nomad@FAIR.
 """
 
-import sys
 from mongoengine import Document, EmailField, StringField, ReferenceField, ListField
 from passlib.apps import custom_app_context as pwd_context
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired
@@ -93,7 +92,3 @@ def ensure_test_users():
             name='Other User')
         me.hash_password('nomad')
         me.save()
-
-
-if 'sphinx' not in sys.modules:
-    ensure_test_users()

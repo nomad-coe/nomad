@@ -144,7 +144,7 @@ def test_create_upload_with_local_path(client, test_user_auth, no_warn):
     assert upload['local_path'] == 'test_local_path'
 
 
-def test_delete_empty_upload(client, test_user_auth, no_warn):
+def test_delete_empty_upload(client, mocksearch, test_user_auth, no_warn):
     rv = client.post('/uploads', headers=test_user_auth)
 
     assert rv.status_code == 200
