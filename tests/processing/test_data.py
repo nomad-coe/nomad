@@ -25,7 +25,7 @@ import shutil
 import os.path
 
 from nomad import config
-from nomad.files import UploadFile
+from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator
 from nomad.user import me
@@ -78,6 +78,9 @@ def assert_processing(upload: Upload):
         assert calc.parser is not None
         assert calc.mainfile is not None
         assert calc.status == 'SUCCESS', calc.archive_id
+        assert ArchiveFile(calc.archive_id).exists()
+        assert ArchiveLogFile(calc.archive_id).exists()
+        assert 'a test' in ArchiveLogFile(calc.archive_id).open('rt').read()
         assert len(calc.errors) == 0
 
 

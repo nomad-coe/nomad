@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from nomad.normalizing.normalizer import SystemBasedNormalizer
-from systemtypenormalizer.classify_structure import ClassifyStructure
+from systemtypenormalizer import classify_structure
 
 
 class SystemTypeNormalizer(SystemBasedNormalizer):
@@ -21,7 +21,9 @@ class SystemTypeNormalizer(SystemBasedNormalizer):
         super().__init__(backend, all_sections=True)
 
     def normalize_system(self, section_system) -> None:
-        structure = ClassifyStructure(section_system)
+        classify_structure.logger = self.logger
+
+        structure = classify_structure.ClassifyStructure(section_system)
         structure.classify()
         structure_type = structure.classification
         self._backend.addValue('system_type', structure_type)

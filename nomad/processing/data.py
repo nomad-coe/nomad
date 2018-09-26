@@ -31,9 +31,10 @@ from mongoengine import StringField, BooleanField, DateTimeField, DictField, Int
 import logging
 import base64
 import time
+from structlog import wrap_logger
 
 from nomad import config, utils
-from nomad.files import UploadFile, ArchiveFile
+from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile
 from nomad.repo import RepoCalc
 from nomad.user import User
 from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE, RUNNING
@@ -78,6 +79,7 @@ class Calc(Proc):
         super().__init__(*args, **kwargs)
         self._parser_backend = None
         self._upload = None
+        self._calc_proc_logwriter = None
 
     @classmethod
     def get(cls, id):
@@ -110,7 +112,32 @@ class Calc(Proc):
         logger = logger.bind(
             upload_id=self.upload_id, mainfile=self.mainfile,
             upload_hash=upload_hash, calc_hash=calc_hash, **kwargs)
+
         return logger
+
+    def get_calc_logger(self, **kwargs):
+        """
+        Returns a wrapped logger that additionally saves all entries to the calculation
+        processing log in the archive.
+        """
+        logger = self.get_logger(**kwargs)
+
+        if self._calc_proc_logwriter is None:
+            self._calc_proc_logwriter = ArchiveLogFile(self.archive_id).open('wt')
+
+        def save_to_cacl_log(logger, method_name, event_dict):
+            program = event_dict.get('normalizer', 'parser')
+            event = event_dict.get('event', '')
+            entry = '[%s] %s: %s' % (method_name, program, event)
+            if len(entry) > 120:
+                self._calc_proc_logwriter.write(entry[:120])
+                self._calc_proc_logwriter.write('...')
+            else:
+                self._calc_proc_logwriter.write(entry)
+            self._calc_proc_logwriter.write('\n')
+            return event_dict
+
+        return wrap_logger(logger, processors=[save_to_cacl_log])
 
     @property
     def json_dict(self):
@@ -127,33 +154,46 @@ class Calc(Proc):
     @process
     def process(self):
         self._upload = Upload.get(self.upload_id)
+        logger = self.get_logger()
         if self._upload is None:
-            self.get_logger().error('calculation upload does not exist')
+            logger.error('calculation upload does not exist')
 
         try:
             self.parsing()
             self.normalizing()
             self.archiving()
         finally:
+            # close loghandler that was not closed due to failures
+            try:
+                if self._calc_proc_logwriter is not None:
+                    self._calc_proc_logwriter.close()
+                    self._calc_proc_logwriter = None
+            except Exception as e:
+                logger.error('could not close calculation proc log', exc_info=e)
+
+            # inform parent proc about completion
             self._upload.completed_child()
 
     @task
     def parsing(self):
-        self._parser_backend = parser_dict[self.parser].run(self.mainfile_tmp_path)
+        logger = self.get_calc_logger()
+        parser = parser_dict[self.parser]
+        self._parser_backend = parser.run(self.mainfile_tmp_path, logger=logger)
         if self._parser_backend.status[0] != 'ParseSuccess':
             error = self._parser_backend.status[1]
             self.fail(error, level=logging.DEBUG)
 
     @task
     def normalizing(self):
+        logger = self.get_calc_logger()
         for normalizer in normalizers:
             normalizer_name = normalizer.__name__
-            normalizer(self._parser_backend).normalize()
+            normalizer(self._parser_backend).normalize(logger=logger)
             if self._parser_backend.status[0] != 'ParseSuccess':
                 error = self._parser_backend.status[1]
                 self.fail(error, normalizer=normalizer_name, level=logging.WARNING)
                 return
-            self.get_logger().debug(
+            logger.debug(
                 'completed normalizer successfully', normalizer=normalizer_name)
 
     @task
@@ -176,6 +216,11 @@ class Calc(Proc):
         # persist the archive
         with ArchiveFile(self.archive_id).write_archive_json() as out:
             self._parser_backend.write_json(out, pretty=True)
+
+        # close loghandler
+        if self._calc_proc_logwriter is not None:
+            self._calc_proc_logwriter.close()
+            self._calc_proc_logwriter = None
 
 
 class Upload(Chord):

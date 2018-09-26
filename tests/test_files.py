@@ -16,8 +16,8 @@ import pytest
 import json
 import shutil
 
-from nomad.files import Objects, ArchiveFile, UploadFile
-import nomad.config as config
+from nomad.files import Objects, ArchiveFile, UploadFile, ArchiveLogFile
+from nomad import config
 
 # example_file uses an artificial parser for faster test execution, can also be
 # changed to examples_vasp.zip for using vasp parser
@@ -145,3 +145,20 @@ class TestUploadFile:
 
         with upload_same_file:
             assert hash == upload_same_file.hash()
+
+
+@pytest.fixture(scope='function')
+def archive_log(clear_files, archive_config):
+    archive_log = ArchiveLogFile('__test_upload_hash/__test_calc_hash')
+    f = archive_log.open('wt')
+    f.write('This is a test')
+    f.close()
+
+    yield archive_log
+
+
+class TestArchiveLogFile:
+
+    def test_archive_log_file(self, archive_log):
+        assert archive_log.exists()
+        assert 'test' in archive_log.open('rt').read()

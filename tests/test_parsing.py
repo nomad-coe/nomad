@@ -20,6 +20,7 @@ import pytest
 from nomadcore.local_meta_info import loadJsonFile
 import nomad_meta_info
 
+from nomad import utils
 from nomad.parsing import JSONStreamWriter, parser_dict
 from nomad.parsing import LocalBackend, BadContextURI
 
@@ -196,7 +197,7 @@ def assert_parser_result(backend):
 
 def run_parser(parser_name, mainfile):
     parser = parser_dict[parser_name]
-    return parser.run(mainfile)
+    return parser.run(mainfile, logger=utils.get_logger(__name__))
 
 
 @pytest.fixture

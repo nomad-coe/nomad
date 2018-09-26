@@ -88,7 +88,9 @@ class FhiAimsBaseNormalizer(Normalizer):
 
         return [false_hits_integration_grid, false_hits_basis]
 
-    def normalize(self) -> None:
+    def normalize(self, logger=None) -> None:
+        super().normalize(logger)
+
         for index in self._backend.get_sections('section_method'):
             to_compare = self._backend.get_value(controlIn_basis_set, index)
             if to_compare is None:

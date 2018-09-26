@@ -18,6 +18,10 @@ class ArchiveCalc extends React.Component {
     calcData: {
       padding: theme.spacing.unit
     },
+    logs: {
+      marginTop: theme.spacing.unit * 2,
+      padding: theme.spacing.unit
+    },
     metaInfo: {
       height: 120,
       padding: theme.spacing.unit * 2,
@@ -37,6 +41,7 @@ class ArchiveCalc extends React.Component {
     super(props)
     this.state = {
       data: null,
+      logs: null,
       metaInfo: null,
       showMetaInfo: false
     }
@@ -49,6 +54,12 @@ class ArchiveCalc extends React.Component {
     }).catch(error => {
       this.setState({data: null})
       this.props.raiseError(error)
+    })
+
+    api.calcProcLog(uploadHash, calcHash).then(logs => {
+      if (logs && logs !== '') {
+        this.setState({logs: logs})
+      }
     })
 
     api.getMetaInfo().then(metaInfo => {
@@ -112,6 +123,14 @@ class ArchiveCalc extends React.Component {
               : <LinearProgress variant="query" />
           }
         </Paper>
+        { this.state.logs
+          ?
+          <Paper className={classes.logs}>
+            <pre>
+              {this.state.logs}
+            </pre>
+          </Paper>
+          : ''}
       </div>
 
     )

@@ -68,6 +68,7 @@ class Objects:
         path_segments = file_name.split('/')
         path = os.path.join(*([config.fs.objects, bucket] + path_segments))
         directory = os.path.dirname(path)
+
         if not os.path.isdir(directory):
             os.makedirs(directory)
 
@@ -316,3 +317,16 @@ class ArchiveFile(File):
         """ Delete all archives of one upload with the given hash. """
         bucket = config.files.archive_bucket
         Objects.delete_all(bucket, upload_hash)
+
+
+class ArchiveLogFile(File):
+    """
+    Represents a log file that was created for processing a single calculation to create
+    an archive.
+    Logfiles are stored within the *archive_bucket* alongside the archive files.
+    """
+    def __init__(self, archive_id: str) -> None:
+        super().__init__(
+            bucket=config.files.archive_bucket,
+            object_id=archive_id,
+            ext='log')

@@ -93,12 +93,13 @@ class TemplateParser(ArtificalParser):
 
         self.backend.closeSection(name, index)
 
-    def run(self, mainfile: str) -> LocalBackend:
+    def run(self, mainfile: str, logger=None) -> LocalBackend:
         self.init_backend()
         template_json = json.load(open(mainfile, 'r'))
         section = template_json['section_run'][0]
         self.add_section(section)
         self.backend.finishedParsingSession('ParseSuccess', [])
+        logger.debug('a test log entry')
         return self.backend
 
 
@@ -162,7 +163,7 @@ class GenerateRandomParser(TemplateParser):
         else:
             return value
 
-    def run(self, mainfile: str) -> LocalBackend:
+    def run(self, mainfile: str, logger=None) -> LocalBackend:
         self.init_backend()
         seed = int(os.path.basename(mainfile).split('_')[1])
         random.seed(seed)

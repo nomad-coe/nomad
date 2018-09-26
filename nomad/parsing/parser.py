@@ -43,13 +43,14 @@ class Parser(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def run(self, mainfile: str) -> LocalBackend:
+    def run(self, mainfile: str, logger=None) -> LocalBackend:
         """
         Runs the parser on the given mainfile. It uses :class:`LocalBackend` as
         a backend. The meta-info access is handled by the underlying NOMAD-coe parser.
 
         Args:
             mainfile: A path to a mainfile that this parser can parse.
+            logger: A optional logger
 
         Returns:
             The used :class:`LocalBackend` with status information and result data.
@@ -93,7 +94,11 @@ class LegacyParser(Parser):
 
         return False
 
-    def run(self, mainfile: str) -> LocalBackend:
+    def run(self, mainfile: str, logger=None) -> LocalBackend:
+        # TODO we need a homogeneous interface to parsers, but we dont have it right now.
+        # There are some hacks to distringuish between ParserInterface parser and simple_parser
+        # using hasattr, kwargs, etc.
+
         def create_backend(meta_info):
             return LocalBackend(meta_info, debug=False)
 
@@ -110,11 +115,15 @@ class LegacyParser(Parser):
         kwargs = {key: value for key, value in kwargs.items() if key in init_signature.args}
         parser = Parser(**kwargs)
 
+        if logger is not None:
+            if hasattr(parser, 'setup_logger'):
+                parser.setup_logger(logger.bind(parser=self.name))
+            else:
+                logger.warning('could not setup parser logger')
+
         with patch.object(sys, 'argv', []):
             backend = parser.parse(mainfile)
 
-        # TODO we need a homogeneous interface to parsers, but we dont have it right now
-        # thats a hack to distringuish between ParserInterface parser and simple_parser
         if backend is None or not hasattr(backend, 'status'):
             backend = parser.parser_context.super_backend
 
