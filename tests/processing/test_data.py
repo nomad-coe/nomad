@@ -24,7 +24,6 @@ from datetime import datetime
 import shutil
 import os.path
 
-from nomad import config
 from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator

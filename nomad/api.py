@@ -197,6 +197,14 @@ class UploadsRes(Resource):
             name=json_data.get('name'),
             local_path=json_data.get('local_path'))
 
+        if upload.local_path is not None:
+            logger = get_logger(
+                __name__, endpoint='uploads', action='post', upload_id=upload.upload_id)
+            logger.debug('file already uploaded')
+            upload.upload_time = datetime.now()
+            upload.process()
+            logger.debug('initiated processing')
+
         return upload.json_dict, 200
 
 
