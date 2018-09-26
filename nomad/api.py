@@ -192,6 +192,8 @@ class UploadsRes(Resource):
         if json_data is None:
             json_data = {}
 
+        print(json_data)
+
         upload = Upload.create(
             user=g.user,
             name=json_data.get('name'),
@@ -200,7 +202,7 @@ class UploadsRes(Resource):
         if upload.local_path is not None:
             logger = get_logger(
                 __name__, endpoint='uploads', action='post', upload_id=upload.upload_id)
-            logger.debug('file already uploaded')
+            logger.debug('file uploaded offline')
             upload.upload_time = datetime.now()
             upload.process()
             logger.debug('initiated processing')

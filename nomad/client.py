@@ -20,14 +20,13 @@ import os.path
 import subprocess
 import shlex
 import time
-import sys
 import requests
 from requests.auth import HTTPBasicAuth
 
 api_base = 'http://localhost/nomad/api'
 
 
-def upload_file(file_path, name=None, user='other@gmail.com', pw='nomad'):
+def upload_file(file_path, name=None, offline=False, user='other@gmail.com', pw='nomad'):
     """
     Upload a file to nomad.
 
@@ -40,14 +39,20 @@ def upload_file(file_path, name=None, user='other@gmail.com', pw='nomad'):
     if name is None:
         name = os.path.basename(file_path)
 
-    upload = requests.post('%s/uploads' % api_base, data={name: name}, auth=auth).json()
+    post_data = dict(name=name)
+    if offline:
+        post_data.update(dict(local_path=os.path.abspath(file_path)))
+        print('Process offline ' + str(post_data))
 
-    upload_cmd = upload['upload_command']
-    upload_cmd = upload_cmd.replace('your_file', file_path)
+    upload = requests.post('%s/uploads' % api_base, json=post_data, auth=auth).json()
 
-    subprocess.call(shlex.split(upload_cmd))
+    if not offline:
+        upload_cmd = upload['upload_command']
+        upload_cmd = upload_cmd.replace('your_file', file_path)
 
-    print('File uploaded')
+        subprocess.call(shlex.split(upload_cmd))
+
+        print('File uploaded')
 
     while True:
         upload = requests.get('%s/uploads/%s' % (api_base, upload['upload_id']), auth=auth).json()
@@ -70,7 +75,16 @@ def upload_file(file_path, name=None, user='other@gmail.com', pw='nomad'):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 3 or len(sys.argv) == 1:
-        print('usage is: <client> filte_to_upload [upload_name]')
-    else:
-        upload_file(sys.argv[1], sys.argv[2] if len(sys.argv) == 3 else None)
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Install dependencies from NOMAD-coe.')
+    parser.add_argument('--offline', help='"upload" and process offline', action='store_true')
+    parser.add_argument('--name', help='"upload" and process offline', type=str, dest='name', default=None)
+    parser.add_argument('--host', help='the api host to use', type=str, dest='host', default='localhost')
+    parser.add_argument('--port', help='the api port to use', type=int, dest='port', default=80)
+    parser.add_argument('file', metavar='FILE', type=str, help='the file to upload and process')
+
+    args = parser.parse_args()
+    name = args.name if args.name is not None else os.path.basename(args.file)
+    api_base = 'http://%s:%d/nomad/api' % (args.host, args.port)
+    upload_file(args.file, name, args.offline)
