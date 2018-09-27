@@ -25,6 +25,7 @@ content-type: application/json
 
 DELETE http://localhost:9200/calcs HTTP/1.1
 
+
 ###
 
 POST http://localhost:9200/calcs/_update_by_query HTTP/1.1

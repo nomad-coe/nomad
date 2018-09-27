@@ -85,3 +85,5 @@ services = NomadServicesConfig(
     api_base_path=os.environ.get('NOMAD_API_BASE_PATH', '/nomad/api'),
     api_secret=os.environ.get('NOMAD_API_SECRET', 'defaultApiSecret')
 )
+
+console_log_level = getattr(logging, os.environ.get('NOMAD_CONSOLE_LOGLEVEL', 'INFO'), 'INFO')

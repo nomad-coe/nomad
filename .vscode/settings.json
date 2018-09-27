@@ -22,5 +22,11 @@
         "--ignore-missing-imports",
         "--follow-imports=silent",
         "--no-strict-optional"
-    ]
+    ],
+    "workbench.colorCustomizations": {
+        "editorError.foreground": "#FF2222",
+        "editorOverviewRuler.errorForeground": "#FF2222",
+        "editorWarning.foreground": "#FF5500",
+        "editorOverviewRuler.warningForeground": "#FF5500"
+    }
 }

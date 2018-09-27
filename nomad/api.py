@@ -20,7 +20,7 @@ from elasticsearch.exceptions import NotFoundError
 from datetime import datetime
 import os.path
 
-from nomad import config
+from nomad import config, infrastructure
 from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile
 from nomad.utils import get_logger
 from nomad.processing import Upload, NotAllowedDuringProcessing
@@ -39,6 +39,11 @@ app.config['SECRET_KEY'] = config.services.api_secret
 
 auth = HTTPBasicAuth()
 api = Api(app)
+
+
+@app.before_first_request
+def setup():
+    infrastructure.setup()
 
 
 @auth.verify_password
@@ -180,6 +185,9 @@ class UploadsRes(Resource):
             }
 
         :jsonparam string name: An optional name for the upload.
+        :jsonparem string local_path: An optional path the a file that is already on the server.
+            In this case, uploading a file won't be possible, the local file is processed
+            immediatly as if it was uploaded.
         :reqheader Content-Type: application/json
         :resheader Content-Type: application/json
         :status 200: upload successfully created
@@ -189,7 +197,19 @@ class UploadsRes(Resource):
         if json_data is None:
             json_data = {}
 
-        upload = Upload.create(user=g.user, name=json_data.get('name'))
+        upload = Upload.create(
+            user=g.user,
+            name=json_data.get('name'),
+            local_path=json_data.get('local_path'))
+
+        if upload.local_path is not None:
+            logger = get_logger(
+                __name__, endpoint='uploads', action='post', upload_id=upload.upload_id)
+            logger.debug('file uploaded offline')
+            upload.upload_time = datetime.now()
+            upload.process()
+            logger.debug('initiated processing')
+
         return upload.json_dict, 200
 
 
@@ -718,6 +738,8 @@ def get_calc(upload_hash, calc_hash):
 def call_admin_operation(operation):
     if operation == 'repair_uploads':
         Upload.repair_all()
+    if operation == 'reset':
+        infrastructure.reset()
     else:
         abort(400, message='Unknown operation %s' % operation)
 

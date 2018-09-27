@@ -42,10 +42,14 @@ services:
     api:
         links:
             - elk
+        volumes:
+            - /nomad:/nomad
 
     worker:
         links:
             - elk
+        volumes:
+            - /nomad:/nomad
 
     proxy:
         ports:

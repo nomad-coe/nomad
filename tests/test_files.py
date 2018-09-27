@@ -16,7 +16,7 @@ import pytest
 import json
 import shutil
 
-from nomad.files import Objects, ArchiveFile, UploadFile, ArchiveLogFile
+from nomad.files import Objects, File, ArchiveFile, UploadFile, ArchiveLogFile
 from nomad import config
 
 # example_file uses an artificial parser for faster test execution, can also be
@@ -44,7 +44,7 @@ def clear_files():
 class TestObjects:
     @pytest.fixture()
     def existing_example_file(self, clear_files):
-        out = Objects.open(example_bucket, 'example_file', ext='json', mode='wt')
+        out = File(example_bucket, 'example_file', ext='json').open(mode='wt')
         json.dump(example_data, out)
         out.close()
 
@@ -53,20 +53,20 @@ class TestObjects:
     def test_open(self, existing_example_file):
         name, ext = existing_example_file
 
-        assert Objects.exists(example_bucket, name, ext)
-        file = Objects.open(example_bucket, name, ext=ext)
+        assert File(example_bucket, name, ext).exists()
+        file = File(example_bucket, name, ext=ext).open()
         json.load(file)
         file.close()
 
     def test_delete(self, existing_example_file):
         name, ext = existing_example_file
-        Objects.delete(example_bucket, name, ext)
-        assert not Objects.exists(example_bucket, name, ext)
+        File(example_bucket, name, ext).delete()
+        assert not File(example_bucket, name, ext).exists()
 
     def test_delete_all(self, existing_example_file):
         name, ext = existing_example_file
         Objects.delete_all(example_bucket)
-        assert not Objects.exists(example_bucket, name, ext)
+        assert not File(example_bucket, name, ext).exists()
 
 
 @pytest.fixture(scope='function', params=[False, True])
@@ -145,6 +145,22 @@ class TestUploadFile:
 
         with upload_same_file:
             assert hash == upload_same_file.hash()
+
+
+class TestLocalUploadFile(TestUploadFile):
+    @pytest.fixture()
+    def upload_same_file(self, clear_files):
+        upload = UploadFile('__test_upload_id2', local_path=example_file)
+        yield upload
+
+    @pytest.fixture()
+    def upload(self, clear_files):
+        upload = UploadFile('__test_upload_id', local_path=example_file)
+        yield upload
+
+    def test_delete_upload(self, upload: UploadFile):
+        upload.delete()
+        assert upload.exists()
 
 
 @pytest.fixture(scope='function')

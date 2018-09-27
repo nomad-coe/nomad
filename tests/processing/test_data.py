@@ -24,11 +24,10 @@ from datetime import datetime
 import shutil
 import os.path
 
-from nomad import config
+from nomad import user
 from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator
-from nomad.user import me
 from nomad.repo import RepoCalc
 
 from tests.test_files import example_file, empty_file
@@ -40,7 +39,7 @@ example_files = [empty_file, example_file]
 
 
 @pytest.fixture(scope='function', autouse=True)
-def mocksearch_forall(mocksearch):
+def mocks_forall(mocksearch, mockmongo):
     pass
 
 
@@ -55,7 +54,7 @@ def uploaded_id(request, clear_files) -> Generator[str, None, None]:
 
 
 def run_processing(uploaded_id: str) -> Upload:
-    upload = Upload.create(upload_id=uploaded_id, user=me)
+    upload = Upload.create(upload_id=uploaded_id, user=user.me)
     upload.upload_time = datetime.now()
 
     assert upload.status == 'RUNNING'

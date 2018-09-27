@@ -125,13 +125,26 @@ def test_create_upload(client, test_user_auth, no_warn):
 def test_create_upload_with_name(client, test_user_auth, no_warn):
     rv = client.post(
         '/uploads', headers=test_user_auth,
-        data=json.dumps(dict(name='test_name')), content_type='application/json')
+        data=json.dumps(dict(name='test_name')),
+        content_type='application/json')
+
     assert rv.status_code == 200
     upload = assert_upload(rv.data)
     assert upload['name'] == 'test_name'
 
 
-def test_delete_empty_upload(client, test_user_auth, no_warn):
+def test_create_upload_with_local_path(client, test_user_auth, no_warn):
+    rv = client.post(
+        '/uploads', headers=test_user_auth,
+        data=json.dumps(dict(local_path='test_local_path')),
+        content_type='application/json')
+
+    assert rv.status_code == 200
+    upload = assert_upload(rv.data)
+    assert upload['local_path'] == 'test_local_path'
+
+
+def test_delete_empty_upload(client, mocksearch, test_user_auth, no_warn):
     rv = client.post('/uploads', headers=test_user_auth)
 
     assert rv.status_code == 200
@@ -142,6 +155,48 @@ def test_delete_empty_upload(client, test_user_auth, no_warn):
 
     rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
     assert rv.status_code == 404
+
+
+def assert_processing(client, test_user_auth, upload_id):
+    upload_endpoint = '/uploads/%s' % upload_id
+
+    while True:
+        time.sleep(0.1)
+
+        rv = client.get(upload_endpoint, headers=test_user_auth)
+        assert rv.status_code == 200
+        upload = assert_upload(rv.data)
+        assert 'upload_time' in upload
+        if upload['completed']:
+            break
+
+    assert len(upload['tasks']) == 4
+    assert upload['status'] == 'SUCCESS'
+    assert upload['current_task'] == 'cleanup'
+    assert UploadFile(upload['upload_id'], upload.get('local_path')).exists()
+    calcs = upload['calcs']['results']
+    for calc in calcs:
+        assert calc['status'] == 'SUCCESS'
+        assert calc['current_task'] == 'archiving'
+        assert len(calc['tasks']) == 3
+        assert client.get('/logs/%s' % calc['archive_id']).status_code == 200
+
+    if upload['calcs']['pagination']['total'] > 1:
+        rv = client.get('%s?page=2&per_page=1&order_by=status' % upload_endpoint)
+        assert rv.status_code == 200
+        upload = assert_upload(rv.data)
+        assert len(upload['calcs']['results']) == 1
+
+    rv = client.post(
+        upload_endpoint,
+        headers=test_user_auth,
+        data=json.dumps(dict(operation='unstage')),
+        content_type='application/json')
+    assert rv.status_code == 200
+
+    rv = client.get('/uploads', headers=test_user_auth)
+    assert rv.status_code == 200
+    assert_uploads(rv.data, count=0)
 
 
 @pytest.mark.parametrize('file', example_files)
@@ -173,43 +228,22 @@ def test_processing(client, file, mode, worker, mocksearch, test_user_auth, no_w
     assert rv.status_code == 200
     upload = assert_upload(rv.data)
 
-    while True:
-        time.sleep(0.1)
+    assert_processing(client, test_user_auth, upload_id)
 
-        rv = client.get(upload_endpoint, headers=test_user_auth)
-        assert rv.status_code == 200
-        upload = assert_upload(rv.data)
-        assert 'upload_time' in upload
-        if upload['completed']:
-            break
 
-    assert len(upload['tasks']) == 4
-    assert upload['status'] == 'SUCCESS'
-    assert upload['current_task'] == 'cleanup'
-    assert UploadFile(upload['upload_id']).exists()
-    calcs = upload['calcs']['results']
-    for calc in calcs:
-        assert calc['status'] == 'SUCCESS'
-        assert calc['current_task'] == 'archiving'
-        assert len(calc['tasks']) == 3
-        assert client.get('/logs/%s' % calc['archive_id']).status_code == 200
-
-    if upload['calcs']['pagination']['total'] > 1:
-        rv = client.get('%s?page=2&per_page=1&order_by=status' % upload_endpoint)
-        assert rv.status_code == 200
-        upload = assert_upload(rv.data)
-        assert len(upload['calcs']['results']) == 1
-
+@pytest.mark.parametrize('file', example_files)
+@pytest.mark.timeout(10)
+def test_processing_local_path(client, file, worker, mocksearch, test_user_auth, no_warn):
     rv = client.post(
-        upload_endpoint,
-        headers=test_user_auth,
-        data=json.dumps(dict(operation='unstage')),
+        '/uploads', headers=test_user_auth,
+        data=json.dumps(dict(local_path=file)),
         content_type='application/json')
-    assert rv.status_code == 200
 
-    rv = client.get('/uploads', headers=test_user_auth)
     assert rv.status_code == 200
-    assert_uploads(rv.data, count=0)
+    upload = assert_upload(rv.data)
+    upload_id = upload['upload_id']
+
+    assert_processing(client, test_user_auth, upload_id)
 
 
 def test_repo_calc(client, example_elastic_calc, no_warn):

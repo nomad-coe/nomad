@@ -18,19 +18,14 @@ import time
 from celery import Celery
 from celery.signals import after_setup_task_logger, after_setup_logger, worker_process_init
 from mongoengine import Document, StringField, ListField, DateTimeField, IntField, \
-    connect, ValidationError, BooleanField
+    ValidationError, BooleanField
 from mongoengine.connection import MongoEngineConnectionError
 from mongoengine.base.metaclasses import TopLevelDocumentMetaclass
 from pymongo import ReturnDocument
 from datetime import datetime
-import sys
 
-from nomad import config, utils
+from nomad import config, utils, infrastructure
 import nomad.patch  # pylint: disable=unused-import
-
-
-def mongo_connect():
-    return connect(db=config.mongo.users_db, host=config.mongo.host, port=config.mongo.port)
 
 
 if config.logstash.enabled:
@@ -41,14 +36,15 @@ if config.logstash.enabled:
     after_setup_task_logger.connect(initialize_logstash)
     after_setup_logger.connect(initialize_logstash)
 
-worker_process_init.connect(lambda **kwargs: mongo_connect())
+
+@worker_process_init.connect
+def setup(**kwargs):
+    utils.get_logger(__name__).debug('test debug log entry')
+    infrastructure.setup()
+
 
 app = Celery('nomad.processing', broker=config.celery.broker_url)
-
-# ensure elastic and mongo connections
-if 'sphinx' not in sys.modules:
-    connect(db=config.mongo.users_db, host=config.mongo.host, port=config.mongo.port)
-
+app.conf.update(worker_hijack_root_logger=False)
 
 PENDING = 'PENDING'
 RUNNING = 'RUNNING'

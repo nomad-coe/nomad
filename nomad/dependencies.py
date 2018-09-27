@@ -43,6 +43,7 @@ import os
 import os.path
 import logging
 import subprocess
+import shutil
 
 _meta_info_path = './submodules/nomad-meta-info/meta_info/nomad_meta_info/'
 _logger = logging.getLogger(__name__)
@@ -204,8 +205,12 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Install dependencies from NOMAD-coe.')
     parser.add_argument('--dev', help='pip install with -e', action='store_true')
+    parser.add_argument('--clean', help='remove old deps first', action='store_true')
 
     args = parser.parse_args()
 
     _logger.setLevel(logging.DEBUG)
+    if args.clean and os.path.exists(base_dir):
+        shutil.rmtree(base_dir)
+
     prepare(dev=args.dev)
