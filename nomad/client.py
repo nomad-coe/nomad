@@ -91,7 +91,7 @@ def upload_file(file_path, name=None, offline=False):
         if status in ('SUCCESS', 'FAILURE'):
             break
 
-        time.sleep(5)
+        time.sleep(3)
 
     if status == 'FAILURE':
         click.echo('There have been errors:')
@@ -126,7 +126,7 @@ def cli(host: str, port: int):
 @cli.command(
     help='Upload files to nomad. The given path can be a single file or a directory. '
     'All .zip files in a directory will be uploaded.')
-@click.argument('PATH', type=click.Path(exists=True))
+@click.argument('PATH', nargs=-1, required=True, type=click.Path(exists=True))
 @click.option(
     '--name',
     help='Optional name for the upload of a single file. Will be ignored on directories.')
@@ -135,17 +135,21 @@ def cli(host: str, port: int):
     help='Upload files "offline": files will not be uploaded, but processed were they are. '
     'Only works when run on the nomad host.')
 def upload(path, name: str, offline: bool):
-    if os.path.isfile(path):
-        name = name if name is not None else os.path.basename(path)
-        upload_file(path, name, offline)
-
-    elif os.path.isdir(path):
-        for file in walk_through_files(path):
-            name = os.path.basename(file)
+    paths = path
+    click.echo('uploading files from %s paths' % len(paths))
+    for path in paths:
+        click.echo('uploading %s' % path)
+        if os.path.isfile(path):
+            name = name if name is not None else os.path.basename(path)
             upload_file(path, name, offline)
 
-    else:
-        sys.exit(1)
+        elif os.path.isdir(path):
+            for file_path in walk_through_files(path):
+                name = os.path.basename(file_path)
+                upload_file(file_path, name, offline)
+
+        else:
+            click.echo('Unknown path type %s.' % path)
 
 
 @cli.command(help='Attempts to reset the nomad.')
