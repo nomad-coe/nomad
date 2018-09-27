@@ -206,7 +206,12 @@ development, like running them in a debugger, profiler, etc.
 
 ### Run the nomad worker manually
 
-To simply run a worker do (from the root)
+To simply run a worker with the installed nomad cli, do (from the root)
+```
+nomad run worker
+```
+
+To run it manually with celery, do (from the root)
 ```
 celery -A nomad.processing worker -l info
 ```
@@ -227,6 +232,11 @@ watchmedo auto-restart -d ./nomad -p '*.py' -- celery worker -l info -A nomad.pr
 
 ### Run the api
 Either with docker, or:
+```
+nomad run api
+```
+
+Or manually:
 ```
 python nomad/api.py
 ```

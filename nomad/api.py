@@ -733,6 +733,8 @@ def get_calc(upload_hash, calc_hash):
 def call_admin_operation(operation):
     if operation == 'repair_uploads':
         Upload.repair_all()
+    if operation == 'reset':
+        infrastructure.reset()
     else:
         abort(400, message='Unknown operation %s' % operation)
 

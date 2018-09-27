@@ -3,7 +3,7 @@ gitpython
 mypy
 pylint
 pylint_plugin_utils
-pylint-mongoengine
+pylint_mongoengine
 pycodestyle
 pytest
 pytest-timeout

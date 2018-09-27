@@ -27,6 +27,8 @@ from requests.auth import HTTPBasicAuth
 import click
 
 api_base = 'http://localhost/nomad/api'
+user = 'other@gmail.com'
+pw = 'nomad'
 
 
 def handle_common_errors(func):
@@ -42,7 +44,7 @@ def handle_common_errors(func):
 
 
 @handle_common_errors
-def upload_file(file_path, name=None, offline=False, user='other@gmail.com', pw='nomad'):
+def upload_file(file_path, name=None, offline=False):
     """
     Upload a file to nomad.
 
@@ -143,7 +145,50 @@ def upload(path, name: str, offline: bool):
             upload_file(path, name, offline)
 
     else:
-        sys.exit(0)
+        sys.exit(1)
+
+
+@cli.command(help='Attempts to reset the nomad.')
+def reset():
+    response = requests.post('%s/admin/reset' % api_base, auth=HTTPBasicAuth(user, pw))
+    if response.status_code != 200:
+        click.echo('API return %s' % str(response.status_code))
+        click.echo(response.text)
+        sys.exit(1)
+
+
+@cli.group(help='Run a nomad service locally (outside docker).')
+def run():
+    pass
+
+
+@run.command(help='Run the nomad development worker.')
+def worker():
+    from nomad import processing
+    processing.app.worker_main(['worker', '--loglevel=INFO'])
+
+
+@run.command(help='Run the nomad development api.')
+def api():
+    from nomad import infrastructure, api
+    infrastructure.setup()
+    api.app.run(debug=True, port=8000)
+
+
+@cli.command(help='Runs tests and linting. Useful before commit code.')
+def qa():
+    os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    ret_code = 0
+    click.echo('Run tests ...')
+    ret_code += os.system('python -m pytest tests')
+    click.echo('Run code style checks ...')
+    ret_code += os.system('python -m pycodestyle --ignore=E501,E701 nomad tests')
+    click.echo('Run linter ...')
+    ret_code += os.system('python -m pylint --load-plugins=pylint_mongoengine nomad tests')
+    click.echo('Run static type checks ...')
+    ret_code += os.system('python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests')
+
+    sys.exit(ret_code)
 
 
 if __name__ == '__main__':

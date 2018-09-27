@@ -17,6 +17,7 @@ This module provides function to establish connections to the database, searchen
 infrastructure services.
 """
 
+import shutil
 from mongoengine import connect
 from elasticsearch_dsl import connections
 from elasticsearch.exceptions import RequestError
@@ -27,6 +28,9 @@ logger = utils.get_logger(__name__)
 
 elastic_client = None
 """ The elastic search client. """
+
+mongo_client = None
+""" The pymongo mongodb client. """
 
 
 def setup():
@@ -41,7 +45,8 @@ def setup():
 
 def setup_mongo():
     """ Creates connection to mongodb. """
-    connect(db=config.mongo.users_db, host=config.mongo.host, port=config.mongo.port)
+    global mongo_client
+    mongo_client = connect(db=config.mongo.users_db, host=config.mongo.host, port=config.mongo.port)
     logger.info('setup mongo connection')
 
 
@@ -61,3 +66,17 @@ def setup_elastic():
             raise e
     else:
         logger.info('init elastic index')
+
+
+def reset():
+    """ Resets the databases mongo/user and elastic/calcs. Be careful. """
+    mongo_client.drop_database(config.mongo.users_db)
+    from nomad import user
+    user.ensure_test_users()
+
+    elastic_client.indices.delete(index=config.elastic.calc_index)
+    from nomad.repo import RepoCalc
+    RepoCalc.init()
+
+    shutil.rmtree(config.fs.objects, ignore_errors=True)
+    shutil.rmtree(config.fs.tmp, ignore_errors=True)
