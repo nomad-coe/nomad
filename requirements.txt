@@ -16,7 +16,8 @@ cython>=0.19
 spglib
 gunicorn
 structlog
-sphinx
 recommonmark
-sphinxcontrib.httpdomain
 requests
+click
+sphinx
+sphinxcontrib.httpdomain
