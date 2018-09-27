@@ -20,13 +20,13 @@
 # The dockerfile is multistaged to use a fat, more convinient build image and
 # copy only necessities to a slim final image
 
-# We use slim for the final image
-FROM python:3.6-slim as final
+FROM alpine:3.6
+RUN apk --no-cache --update-cache --virtual=.build-dependencies add g++ gfortran file binutils musl-dev python3-dev openblas-dev libstdc++ openblas make
+RUN ln -s /usr/include/locale.h /usr/include/xlocale.h
+RUN ln -s /usr/bin/python3 /usr/bin/python
+RUN python -m ensurepip
+RUN ln -s /usr/bin/pip3 /usr/bin/pip
 
-# First, build everything in a build image
-FROM python:3.6-stretch as build
-# Make will be necessary to build the docs with sphynx
-RUN apt-get update && apt-get install -y make
 RUN mkdir /install
 WORKDIR /install
 # We also install the -dev dependencies, to use this image for test and qa
@@ -44,26 +44,17 @@ RUN python nomad/dependencies.py
 RUN ls -la .dependencies/parsers/vasp/
 RUN ls -la .dependencies/parsers/vasp/vaspparser/
 # do that after the dependencies to use docker's layer caching
-COPY . /install
-RUN pip install .
-WORKDIR /install/docs
+COPY . /app
+RUN pip app .
+WORKDIR /app/docs
 RUN make html
 RUN \
-    find /usr/local/lib/python3.6/ -name 'tests' -exec rm -r '{}' + && \
-    find /usr/local/lib/python3.6/ -name 'test' -exec rm -r '{}' + && \
-    find /usr/local/lib/python3.6/site-packages/ -name '*.so' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \;
+    find /usr/lib/python3.6/ -name 'tests' -exec rm -r '{}' + && \
+    find /usr/lib/python3.6/ -name 'test' -exec rm -r '{}' + && \
+    find /usr/lib/python3.6/site-packages/ -name '*.so' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \;
 
-# Second, create a slim final image
-FROM final
-# copy the sources for tests, coverage, qa, etc.
-COPY . /app
-WORKDIR /app
-# transfer installed packages from dependency stage
-COPY --from=build /usr/local/lib/python3.6/site-packages /usr/local/lib/python3.6/site-packages
-# copy the meta-info, since it files are loaded via relative paths. TODO that should change.
-COPY --from=build /install/.dependencies/nomad-meta-info /app/.dependencies/nomad-meta-info
-# copy the documentation, its files will be served by the API
-COPY --from=build /install/docs/.build /app/docs/.build
+RUN rm /usr/include/xlocale.h && \
+    apk del .build-dependencies
 
 RUN mkdir -p /app/.volumes/fs
 RUN mkdir -p /nomad
