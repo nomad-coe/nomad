@@ -66,7 +66,7 @@ def upload_file(file_path, name=None, offline=False):
 
     if not offline:
         upload_cmd = upload['upload_command']
-        upload_cmd = upload_cmd.replace('your_file', file_path)
+        upload_cmd = upload_cmd.replace('local_file', file_path)
 
         subprocess.call(shlex.split(upload_cmd))
 

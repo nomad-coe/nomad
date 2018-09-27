@@ -41,6 +41,11 @@ auth = HTTPBasicAuth()
 api = Api(app)
 
 
+@app.before_first_request
+def setup():
+    infrastructure.setup()
+
+
 @auth.verify_password
 def verify_password(username_or_token, password):
     # first try to authenticate by token
@@ -749,5 +754,4 @@ api.add_resource(RepoCalcRes, '%s/repo/<string:upload_hash>/<string:calc_hash>' 
 
 
 if __name__ == '__main__':
-    infrastructure.setup()
     app.run(debug=True, port=8000)
