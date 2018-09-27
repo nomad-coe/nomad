@@ -29,6 +29,7 @@ FROM python:3.6-stretch as build
 RUN apt-get update && apt-get install -y make
 RUN mkdir /install
 WORKDIR /install
+
 # We also install the -dev dependencies, to use this image for test and qa
 COPY requirements-dev.txt requirements-dev.txt
 RUN pip install -r requirements-dev.txt
@@ -36,18 +37,22 @@ COPY requirements-dep.txt requirements-dep.txt
 RUN pip install -r requirements-dep.txt
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
+
 # Use docker build --build-args CACHEBUST=2 to not cache this (e.g. when you know deps have changed)
 ARG CACHEBUST=1
 COPY nomad/dependencies.py /install/nomad/dependencies.py
 COPY nomad/config.py /install/nomad/config.py
 RUN python nomad/dependencies.py
-RUN ls -la .dependencies/parsers/vasp/
-RUN ls -la .dependencies/parsers/vasp/vaspparser/
+
 # do that after the dependencies to use docker's layer caching
 COPY . /install
 RUN pip install .
 WORKDIR /install/docs
 RUN make html
+RUN \
+    find /usr/local/lib/python3.6/ -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + && \
+    find /usr/local/lib/python3.6/ -name 'test' -exec rm -r '{}' + && \
+    find /usr/local/lib/python3.6/site-packages/ -name '*.so' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \;
 
 # Second, create a slim final image
 FROM final
