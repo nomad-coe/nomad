@@ -109,14 +109,11 @@ The images are build via *docker-compose* and don't have to be created manually.
 
 We have multiple *docker-compose* files that must be used together.
 - `docker-compose.yml` containes the base definitions for all services
-- `docker-compose.dev.yml` configures services for development (notably builds images for nomad services)
+- `docker-compose.override.yml` configures services for development (notably builds images for nomad services)
 - `docker-compose.prod.yml` configures services for production (notable uses a pre-build image for nomad services that was build during CI/CD)
 
 It is sufficient to use the implicit `docker-compose.yml` only (like in the command below).
-To also use `docker-compose.dev.yml` replace `docker-compose` with
-`docker-compose -f docker-compose.yml -f docker-compose.dev.yml`.
-The biggest difference is that `*.dev.*` exposes more ports to you host, which can
-be beneficial for debugging.
+The `override` will be used automatically.
 
 There is also an `.env` file. For development you can use `.env_dev`:
 ```
