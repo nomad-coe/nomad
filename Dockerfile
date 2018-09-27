@@ -61,10 +61,12 @@ COPY --from=build /install/.dependencies/nomad-meta-info /app/.dependencies/noma
 # copy the documentation, its files will be served by the API
 COPY --from=build /install/docs/.build /app/docs/.build
 
-RUN useradd -ms /bin/bash nomad
-RUN chown -R nomad /app
-USER nomad
 RUN mkdir -p /app/.volumes/fs
 RUN mkdir -p /nomad
+RUN useradd -ms /bin/bash nomad
+RUN chown -R nomad /app
+RUN chown -R nomad /nomad
+USER nomad
+
 VOLUME /app/.volumes/fs
 VOLUME /nomad
