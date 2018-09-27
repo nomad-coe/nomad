@@ -50,7 +50,7 @@ RUN pip install .
 WORKDIR /install/docs
 RUN make html
 RUN \
-    find /usr/local/lib/python3.6/ -name 'tests' ! -name 'networkx' -exec rm -r '{}' + && \
+    find /usr/local/lib/python3.6/ -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + && \
     find /usr/local/lib/python3.6/ -name 'test' -exec rm -r '{}' + && \
     find /usr/local/lib/python3.6/site-packages/ -name '*.so' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \;
 
