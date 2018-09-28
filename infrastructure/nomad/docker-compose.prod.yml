@@ -38,7 +38,8 @@ services:
             - nomad_elk:/var/lib/elasticsearch
         ports:
             - 15601:5601  # kibana web
-            - 5044:5044  # expose to host, allows metricbeat on host to send data
+            - 5044:5044   # expose to host, allows metricbeat on host to send data
+            - 29200:9200  # allows metricbeat config to access es
 
     api:
         links:
@@ -47,6 +48,8 @@ services:
             - /nomad:/nomad
 
     worker:
+        environment:
+            NOMAD_LOGSTASH_LEVEL: INFO
         links:
             - elk
         volumes:
