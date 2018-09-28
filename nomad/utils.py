@@ -119,7 +119,7 @@ if not _logging_is_configured:
     logging.basicConfig(stream=sys.stdout)
     root = logging.getLogger()
     for handler in root.handlers:
-        handler.setLevel(config.console_log_level if 'pytest' not in sys.modules else logging.CRITICAL)
+        handler.setLevel(config.console_log_level if 'pytest' not in sys.modules else logging.DEBUG)
 
     # configure logstash
     if config.logstash.enabled and 'pytest' not in sys.modules:

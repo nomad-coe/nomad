@@ -215,6 +215,7 @@ def parsed_template_example() -> LocalBackend:
 @pytest.fixture(params=parser_examples, ids=lambda spec: '%s-%s' % spec)
 def parsed_example(request) -> LocalBackend:
     parser_name, mainfile = request.param
+    run_parser(parser_name, mainfile)
     return run_parser(parser_name, mainfile)
 
 

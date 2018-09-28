@@ -19,6 +19,7 @@ import re
 import importlib
 import inspect
 from unittest.mock import patch
+import logging
 
 from nomad.parsing.backend import LocalBackend
 from nomad.dependencies import PythonGit
@@ -94,14 +95,13 @@ class LegacyParser(Parser):
 
         return False
 
+    def create_backend(self, meta_info):
+        return LocalBackend(meta_info, debug=False)
+
     def run(self, mainfile: str, logger=None) -> LocalBackend:
         # TODO we need a homogeneous interface to parsers, but we dont have it right now.
         # There are some hacks to distringuish between ParserInterface parser and simple_parser
         # using hasattr, kwargs, etc.
-
-        def create_backend(meta_info):
-            return LocalBackend(meta_info, debug=False, logger=logger)
-
         module_name = self.parser_class_name.split('.')[:-1]
         parser_class = self.parser_class_name.split('.')[1]
         module = importlib.import_module('.'.join(module_name))
@@ -109,23 +109,22 @@ class LegacyParser(Parser):
 
         init_signature = inspect.getargspec(Parser.__init__)
         kwargs = dict(
-            backend=create_backend,
-            mainfile=mainfile, main_file=mainfile,
-            debug=True)
+            backend=lambda meta_info: self.create_backend(meta_info),
+            log_level=logging.DEBUG, debug=True)
         kwargs = {key: value for key, value in kwargs.items() if key in init_signature.args}
-        parser = Parser(**kwargs)
+        self.parser = Parser(**kwargs)
 
         if logger is not None:
-            if hasattr(parser, 'setup_logger'):
-                parser.setup_logger(logger.bind(parser=self.name))
+            if hasattr(self.parser, 'setup_logger'):
+                self.parser.setup_logger(logger.bind(parser=self.name))
             else:
                 logger.warning('could not setup parser logger')
 
         with patch.object(sys, 'argv', []):
-            backend = parser.parse(mainfile)
+            backend = self.parser.parse(mainfile)
 
         if backend is None or not hasattr(backend, 'status'):
-            backend = parser.parser_context.super_backend
+            backend = self.parser.parser_context.super_backend
 
         return backend
 

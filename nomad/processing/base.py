@@ -39,7 +39,6 @@ if config.logstash.enabled:
 
 @worker_process_init.connect
 def setup(**kwargs):
-    utils.get_logger(__name__).debug('test debug log entry')
     infrastructure.setup()
 
 
@@ -197,7 +196,7 @@ class Proc(Document, metaclass=ProcMetaclass):
             errors_str = "; ".join([str(error) for error in errors])
             Proc.log(logger, log_level, 'task failed', errors=errors_str, **kwargs)
 
-        logger.debug('process failed')
+        logger.info('process failed')
 
         self.save()
 
@@ -229,10 +228,10 @@ class Proc(Document, metaclass=ProcMetaclass):
             assert task == tasks[0]  # pylint: disable=E1136
             self.status = RUNNING
             self.current_task = task
-            self.get_logger().debug('started process')
+            self.get_logger().info('started process')
         else:
             self.current_task = task
-            self.get_logger().debug('successfully completed task')
+            self.get_logger().info('successfully completed task')
 
         self.save()
         return True
@@ -242,7 +241,7 @@ class Proc(Document, metaclass=ProcMetaclass):
             assert self.status == RUNNING, 'Can only complete a running process.'
             self.status = SUCCESS
             self.save()
-            self.get_logger().debug('completed process')
+            self.get_logger().info('completed process')
 
     def block_until_complete(self, interval=0.01):
         """
@@ -419,7 +418,7 @@ def proc_task(task, cls_name, self_id, func_attr):
     might happen in sharded, distributed mongo setups where the object might not
     have yet been propagated and therefore apear missing.
     """
-    logger = utils.get_logger(__name__, cls=cls_name, id=self_id, func=func_attr)
+    logger = utils.get_logger('__name__', cls=cls_name, id=self_id, func=func_attr)
 
     # get the process class
     logger.debug('received process function call')
