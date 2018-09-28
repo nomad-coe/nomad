@@ -38,6 +38,7 @@ services:
             - nomad_elk:/var/lib/elasticsearch
         ports:
             - 15601:5601  # kibana web
+            - 5044:5044  # expose to host, allows metricbeat on host to send data
 
     api:
         links:
