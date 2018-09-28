@@ -205,10 +205,10 @@ class UploadsRes(Resource):
         if upload.local_path is not None:
             logger = get_logger(
                 __name__, endpoint='uploads', action='post', upload_id=upload.upload_id)
-            logger.debug('file uploaded offline')
+            logger.info('file uploaded offline')
             upload.upload_time = datetime.now()
             upload.process()
-            logger.debug('initiated processing')
+            logger.info('initiated processing')
 
         return upload.json_dict, 200
 
@@ -467,10 +467,10 @@ class UploadFileRes(Resource):
             uploadFile.delete()
             abort(400, message='Bad file format, excpected %s.' % ", ".join(UploadFile.formats))
 
-        logger.debug('received uploaded file')
+        logger.info('received uploaded file')
         upload.upload_time = datetime.now()
         upload.process()
-        logger.debug('initiated processing')
+        logger.info('initiated processing')
 
         return upload.json_dict, 200
 

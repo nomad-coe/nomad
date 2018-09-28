@@ -322,7 +322,7 @@ class LocalBackend(LegacyParserBackend):
     after parsing via :func:`write_json`.
     """
     def __init__(self, *args, **kwargs):
-        self._logger = kwargs.pop('logger', logger)
+        self.logger = logger
 
         delegate = LegacyLocalBackend(*args, **kwargs)
         super().__init__(delegate)
@@ -340,7 +340,7 @@ class LocalBackend(LegacyParserBackend):
     def __getattr__(self, name):
         """ Support for unimplemented and unexpected methods. """
         if self._unknown_attributes.get(name) is None:
-            self._logger.debug('Access of unexpected backend attribute/method', attribute=name)
+            self.logger.debug('Access of unexpected backend attribute/method', attribute=name)
             self._unknown_attributes[name] = name
         return lambda *args, **kwargs: None
 
@@ -350,7 +350,7 @@ class LocalBackend(LegacyParserBackend):
         self._errors = parserErrors
 
     def pwarn(self, msg):
-        self._logger.warn(msg)
+        self.logger.warn(msg)
 
     def _parse_context_uri(self, context_uri: str) -> Tuple[str, int]:
         """
