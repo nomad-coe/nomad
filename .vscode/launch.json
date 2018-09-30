@@ -44,7 +44,7 @@
       "cwd": "${workspaceFolder}",
       "program": "${workspaceFolder}/.pyenv/bin/pytest",
       "args": [
-        "-sv", "tests/test_parsing.py::test_parser[parsers/vasp-tests/data/parsers/vasp.xml]"
+        "-sv", "tests/test_utils::test_timer"
       ]
     },
     {

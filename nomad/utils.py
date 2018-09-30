@@ -43,6 +43,7 @@ import json
 import os
 import sys
 import uuid
+import time
 
 from nomad import config
 
@@ -119,7 +120,7 @@ if not _logging_is_configured:
     logging.basicConfig(stream=sys.stdout)
     root = logging.getLogger()
     for handler in root.handlers:
-        handler.setLevel(config.console_log_level if 'pytest' not in sys.modules else logging.DEBUG)
+        handler.setLevel(config.console_log_level if 'pytest' not in sys.modules else logging.CRITICAL)
 
     # configure logstash
     if config.logstash.enabled and 'pytest' not in sys.modules:
@@ -173,3 +174,19 @@ def lnr(logger, event, **kwargs):
     except Exception as e:
         logger.error(event, exc_info=e, **kwargs)
         raise e
+
+
+@contextmanager
+def timer(logger, event, method='info'):
+    start = time.time()
+
+    try:
+        yield
+    finally:
+        stop = time.time()
+
+    logger_method = getattr(logger, 'info', None)
+    if logger_method is not None:
+        logger_method(event, exec_time=stop - start)
+    else:
+        logger.error('Uknown logger method %s.' % method)
