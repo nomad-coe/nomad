@@ -176,9 +176,10 @@ class Calc(Proc):
 
     @task
     def parsing(self):
-        logger = self.get_calc_logger()
+        logger = self.get_calc_logger(parser=self.parser)
         parser = parser_dict[self.parser]
-        self._parser_backend = parser.run(self.mainfile_tmp_path, logger=logger)
+        with utils.timer(logger, 'parser executed'):
+            self._parser_backend = parser.run(self.mainfile_tmp_path, logger=logger)
         if self._parser_backend.status[0] != 'ParseSuccess':
             logger.error(self._parser_backend.status[1])
             error = self._parser_backend.status[1]
@@ -186,10 +187,11 @@ class Calc(Proc):
 
     @task
     def normalizing(self):
-        logger = self.get_calc_logger()
         for normalizer in normalizers:
             normalizer_name = normalizer.__name__
-            normalizer(self._parser_backend).normalize(logger=logger)
+            logger = self.get_calc_logger(normalizer=normalizer_name)
+            with utils.timer(logger, 'normalizer executed'):
+                normalizer(self._parser_backend).normalize(logger=logger)
             if self._parser_backend.status[0] != 'ParseSuccess':
                 logger.error(self._parser_backend.status[1])
                 error = self._parser_backend.status[1]
@@ -200,29 +202,30 @@ class Calc(Proc):
 
     @task
     def archiving(self):
-        upload_hash, calc_hash = self.archive_id.split('/')
-        additional = dict(
-            mainfile=self.mainfile,
-            upload_time=self._upload.upload_time,
-            staging=True,
-            restricted=False,
-            user_id=self._upload.user_id)
-        # persist to elastic search
-        RepoCalc.create_from_backend(
-            self._parser_backend,
-            additional=additional,
-            upload_hash=upload_hash,
-            calc_hash=calc_hash,
-            upload_id=self.upload_id)
+        with utils.timer(self.get_logger(), 'archived'):
+            upload_hash, calc_hash = self.archive_id.split('/')
+            additional = dict(
+                mainfile=self.mainfile,
+                upload_time=self._upload.upload_time,
+                staging=True,
+                restricted=False,
+                user_id=self._upload.user_id)
+            # persist to elastic search
+            RepoCalc.create_from_backend(
+                self._parser_backend,
+                additional=additional,
+                upload_hash=upload_hash,
+                calc_hash=calc_hash,
+                upload_id=self.upload_id)
 
-        # persist the archive
-        with ArchiveFile(self.archive_id).write_archive_json() as out:
-            self._parser_backend.write_json(out, pretty=True)
+            # persist the archive
+            with ArchiveFile(self.archive_id).write_archive_json() as out:
+                self._parser_backend.write_json(out, pretty=True)
 
-        # close loghandler
-        if self._calc_proc_logwriter is not None:
-            self._calc_proc_logwriter.close()
-            self._calc_proc_logwriter = None
+            # close loghandler
+            if self._calc_proc_logwriter is not None:
+                self._calc_proc_logwriter.close()
+                self._calc_proc_logwriter = None
 
 
 class Upload(Chord):
@@ -391,9 +394,9 @@ class Upload(Chord):
     def extracting(self):
         logger = self.get_logger()
         try:
-            self._upload = UploadFile(self.upload_id, local_path=self.local_path)
-            self._upload.extract()
-            logger.debug('opened upload')
+            with utils.timer(logger, 'upload extracted'):
+                self._upload = UploadFile(self.upload_id, local_path=self.local_path)
+                self._upload.extract()
         except KeyError as e:
             self.fail('process request for non existing upload', level=logging.INFO)
             return
@@ -439,7 +442,8 @@ class Upload(Chord):
     @task
     def cleanup(self):
         try:
-            upload = UploadFile(self.upload_id, local_path=self.local_path)
+            with utils.timer(self.get_logger(), 'processing cleaned up'):
+                upload = UploadFile(self.upload_id, local_path=self.local_path)
         except KeyError as e:
             self.fail('Upload does not exist', exc_info=e)
             return
