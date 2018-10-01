@@ -178,7 +178,7 @@ class Calc(Proc):
     def parsing(self):
         logger = self.get_calc_logger(parser=self.parser)
         parser = parser_dict[self.parser]
-        with utils.timer(logger, 'parser executed'):
+        with utils.timer(logger, 'parser executed', step=self.parser):
             self._parser_backend = parser.run(self.mainfile_tmp_path, logger=logger)
         if self._parser_backend.status[0] != 'ParseSuccess':
             logger.error(self._parser_backend.status[1])
@@ -190,7 +190,7 @@ class Calc(Proc):
         for normalizer in normalizers:
             normalizer_name = normalizer.__name__
             logger = self.get_calc_logger(normalizer=normalizer_name)
-            with utils.timer(logger, 'normalizer executed'):
+            with utils.timer(logger, 'normalizer executed', step=normalizer_name):
                 normalizer(self._parser_backend).normalize(logger=logger)
             if self._parser_backend.status[0] != 'ParseSuccess':
                 logger.error(self._parser_backend.status[1])
@@ -202,14 +202,17 @@ class Calc(Proc):
 
     @task
     def archiving(self):
-        with utils.timer(self.get_logger(), 'archived'):
-            upload_hash, calc_hash = self.archive_id.split('/')
-            additional = dict(
-                mainfile=self.mainfile,
-                upload_time=self._upload.upload_time,
-                staging=True,
-                restricted=False,
-                user_id=self._upload.user_id)
+        logger = self.get_logger()
+
+        upload_hash, calc_hash = self.archive_id.split('/')
+        additional = dict(
+            mainfile=self.mainfile,
+            upload_time=self._upload.upload_time,
+            staging=True,
+            restricted=False,
+            user_id=self._upload.user_id)
+
+        with utils.timer(logger, 'indexed', step='index'):
             # persist to elastic search
             RepoCalc.create_from_backend(
                 self._parser_backend,
@@ -218,10 +221,12 @@ class Calc(Proc):
                 calc_hash=calc_hash,
                 upload_id=self.upload_id)
 
+        with utils.timer(logger, 'archived', step='archive'):
             # persist the archive
             with ArchiveFile(self.archive_id).write_archive_json() as out:
                 self._parser_backend.write_json(out, pretty=True)
 
+        with utils.timer(logger, 'archived log', step='archive_log'):
             # close loghandler
             if self._calc_proc_logwriter is not None:
                 self._calc_proc_logwriter.close()
@@ -394,7 +399,7 @@ class Upload(Chord):
     def extracting(self):
         logger = self.get_logger()
         try:
-            with utils.timer(logger, 'upload extracted'):
+            with utils.timer(logger, 'upload extracted', step='extracting'):
                 self._upload = UploadFile(self.upload_id, local_path=self.local_path)
                 self._upload.extract()
         except KeyError as e:
@@ -413,25 +418,28 @@ class Upload(Chord):
 
     @task
     def parse_all(self):
-        # TODO: deal with multiple possible parser specs
-        total_calcs = 0
-        for filename in self._upload.filelist:
-            for parser in parsers:
-                try:
-                    if parser.is_mainfile(filename, lambda fn: self._upload.open_file(fn)):
-                        tmp_mainfile = self._upload.get_path(filename)
-                        calc = Calc.create(
-                            archive_id='%s/%s' % (self.upload_hash, utils.hash(filename)),
-                            mainfile=filename, parser=parser.name,
-                            mainfile_tmp_path=tmp_mainfile,
-                            upload_id=self.upload_id)
+        logger = self.get_logger()
 
-                        calc.process()
-                        total_calcs += 1
-                except Exception as e:
-                    self.warning(
-                        'exception while matching pot. mainfile',
-                        mainfile=filename, exc_info=e)
+        # TODO: deal with multiple possible parser specs
+        with utils.timer(logger, 'upload extracted', step='matching'):
+            total_calcs = 0
+            for filename in self._upload.filelist:
+                for parser in parsers:
+                    try:
+                        if parser.is_mainfile(filename, lambda fn: self._upload.open_file(fn)):
+                            tmp_mainfile = self._upload.get_path(filename)
+                            calc = Calc.create(
+                                archive_id='%s/%s' % (self.upload_hash, utils.hash(filename)),
+                                mainfile=filename, parser=parser.name,
+                                mainfile_tmp_path=tmp_mainfile,
+                                upload_id=self.upload_id)
+
+                            calc.process()
+                            total_calcs += 1
+                    except Exception as e:
+                        self.warning(
+                            'exception while matching pot. mainfile',
+                            mainfile=filename, exc_info=e)
 
         # have to save the total_calcs information for chord management
         self.spwaned_childred(total_calcs)
@@ -442,7 +450,7 @@ class Upload(Chord):
     @task
     def cleanup(self):
         try:
-            with utils.timer(self.get_logger(), 'processing cleaned up'):
+            with utils.timer(self.get_logger(), 'processing cleaned up', step='cleaning'):
                 upload = UploadFile(self.upload_id, local_path=self.local_path)
         except KeyError as e:
             self.fail('Upload does not exist', exc_info=e)

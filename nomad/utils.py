@@ -177,7 +177,7 @@ def lnr(logger, event, **kwargs):
 
 
 @contextmanager
-def timer(logger, event, method='info'):
+def timer(logger, event, method='info', **kwargs):
     start = time.time()
 
     try:
@@ -187,6 +187,6 @@ def timer(logger, event, method='info'):
 
     logger_method = getattr(logger, 'info', None)
     if logger_method is not None:
-        logger_method(event, exec_time=stop - start)
+        logger_method(event, exec_time=stop - start, **kwargs)
     else:
         logger.error('Uknown logger method %s.' % method)
