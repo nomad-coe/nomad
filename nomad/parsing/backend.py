@@ -322,7 +322,7 @@ class LocalBackend(LegacyParserBackend):
     after parsing via :func:`write_json`.
     """
     def __init__(self, *args, **kwargs):
-        self.logger = logger
+        self.logger = kwargs.pop('logger', logger)
 
         delegate = LegacyLocalBackend(*args, **kwargs)
         super().__init__(delegate)

@@ -95,13 +95,13 @@ class LegacyParser(Parser):
 
         return False
 
-    def create_backend(self, meta_info):
-        return LocalBackend(meta_info, debug=False)
-
     def run(self, mainfile: str, logger=None) -> LocalBackend:
         # TODO we need a homogeneous interface to parsers, but we dont have it right now.
         # There are some hacks to distringuish between ParserInterface parser and simple_parser
         # using hasattr, kwargs, etc.
+        def create_backend(meta_info, logger=None):
+            return LocalBackend(meta_info, debug=False, logger=logger)
+
         module_name = self.parser_class_name.split('.')[:-1]
         parser_class = self.parser_class_name.split('.')[1]
         module = importlib.import_module('.'.join(module_name))
@@ -109,7 +109,7 @@ class LegacyParser(Parser):
 
         init_signature = inspect.getargspec(Parser.__init__)
         kwargs = dict(
-            backend=lambda meta_info: self.create_backend(meta_info),
+            backend=lambda meta_info: create_backend(meta_info, logger=logger),
             log_level=logging.DEBUG, debug=True)
         kwargs = {key: value for key, value in kwargs.items() if key in init_signature.args}
         self.parser = Parser(**kwargs)
