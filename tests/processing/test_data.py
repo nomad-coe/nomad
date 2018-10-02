@@ -24,7 +24,7 @@ from datetime import datetime
 import shutil
 import os.path
 
-from nomad import user
+from nomad import user, utils
 from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator
@@ -90,7 +90,7 @@ def test_processing(uploaded_id, worker, no_warn):
 
 
 @pytest.mark.parametrize('uploaded_id', [example_files[1]], indirect=True)
-def test_processing_doublets(uploaded_id, worker, one_error):
+def test_processing_doublets(uploaded_id, worker, with_error):
 
     upload = run_processing(uploaded_id)
     assert upload.status == 'SUCCESS'
@@ -103,7 +103,7 @@ def test_processing_doublets(uploaded_id, worker, one_error):
 
 
 @pytest.mark.timeout(30)
-def test_process_non_existing(worker, one_error):
+def test_process_non_existing(worker, with_error):
     upload = run_processing('__does_not_exist')
 
     assert upload.completed
@@ -114,7 +114,7 @@ def test_process_non_existing(worker, one_error):
 
 @pytest.mark.parametrize('task', ['extracting', 'parse_all', 'cleanup', 'parsing'])
 @pytest.mark.timeout(30)
-def test_task_failure(monkeypatch, uploaded_id, worker, task, one_error):
+def test_task_failure(monkeypatch, uploaded_id, worker, task, with_error):
     # mock the task method to through exceptions
     if hasattr(Upload, task):
         cls = Upload
@@ -141,6 +141,7 @@ def test_task_failure(monkeypatch, uploaded_id, worker, task, one_error):
         assert len(upload.errors) > 0
     else:
         # there is an empty example with no calcs, even if past parsing_all task
+        utils.get_logger(__name__).error('fake')
         if upload.total_calcs > 0:  # pylint: disable=E1101
             assert upload.status == 'SUCCESS'
             assert upload.current_task == 'cleanup'

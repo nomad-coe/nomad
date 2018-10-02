@@ -20,8 +20,9 @@ import logging
 def my_caplog(caplog):
     yield caplog
 
-    # TODO there is a bug in pytest
-    # assert len(caplog.records) > 0
+    # TODO there still seems that legace parsers/normalizers fiddle with the
+    # log configuration. The following fails after running tests with parsers/normalizers
+    # assert len(caplog.get_records(when='call')) > 0
 
 
 def test_nowarn(my_caplog):

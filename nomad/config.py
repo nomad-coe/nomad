@@ -56,6 +56,18 @@ rabbit_user = 'rabbitmq'
 rabbit_password = 'rabbitmq'
 rabbit_url = 'pyamqp://%s:%s@%s//' % (rabbit_user, rabbit_password, rabbit_host)
 
+
+def get_loglevel_from_env(key, default_level=logging.INFO):
+    plain_value = os.environ.get(key, None)
+    if plain_value is None:
+        return default_level
+    else:
+        try:
+            return int(plain_value)
+        except ValueError:
+            return getattr(logging, plain_value, default_level)
+
+
 celery = CeleryConfig(
     broker_url=rabbit_url
 )
@@ -77,7 +89,7 @@ logstash = LogstashConfig(
     enabled=True,
     host=os.environ.get('NOMAD_LOGSTASH_HOST', 'localhost'),
     tcp_port=int(os.environ.get('NOMAD_LOGSTASH_TCPPORT', '5000')),
-    level=int(os.environ.get('NOMAD_LOGSTASH_LEVEL', logging.DEBUG))
+    level=get_loglevel_from_env('NOMAD_LOGSTASH_LEVEL', default_level=logging.DEBUG)
 )
 services = NomadServicesConfig(
     api_host=os.environ.get('NOMAD_API_HOST', 'localhost'),
@@ -86,4 +98,4 @@ services = NomadServicesConfig(
     api_secret=os.environ.get('NOMAD_API_SECRET', 'defaultApiSecret')
 )
 
-console_log_level = getattr(logging, os.environ.get('NOMAD_CONSOLE_LOGLEVEL', 'INFO'), 'INFO')
+console_log_level = get_loglevel_from_env('NOMAD_CONSOLE_LOGLEVEL', default_level=logging.CRITICAL)

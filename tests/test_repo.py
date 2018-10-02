@@ -63,7 +63,7 @@ def assert_elastic_calc(calc: RepoCalc):
         assert getattr(calc, property) is not None
 
 
-def test_create_elasitc_calc(example_elastic_calc: RepoCalc, no_warn):
+def test_create_elastic_calc(example_elastic_calc: RepoCalc, no_warn):
     assert_elastic_calc(example_elastic_calc)
     assert RepoCalc.upload_exists(example_elastic_calc.upload_hash)
 
@@ -73,7 +73,7 @@ def test_create_elasitc_calc(example_elastic_calc: RepoCalc, no_warn):
 
 
 def test_create_existing_elastic_calc(
-        example_elastic_calc: RepoCalc, normalized_template_example, one_error):
+        example_elastic_calc: RepoCalc, normalized_template_example):
     try:
         RepoCalc.create_from_backend(
             normalized_template_example,
@@ -92,7 +92,7 @@ def test_create_existing_elastic_calc(
         assert False
 
 
-def test_delete_elastic_calc(example_elastic_calc: RepoCalc, no_warn):
+def test_delete_elastic_calc(example_elastic_calc: RepoCalc):
     example_elastic_calc.delete()
 
     assert not ArchiveFile('test_upload_hash/test_calc_hash').exists()

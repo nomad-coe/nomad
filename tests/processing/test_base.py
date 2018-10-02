@@ -58,13 +58,13 @@ class FailTasks(Proc):
         self.fail('fail fail fail')
 
 
-def test_fail(one_error):
+def test_fail(with_error):
     p = FailTasks.create()
     p.will_fail()
 
     assert_proc(p, 'will_fail', FAILURE, errors=1)
     has_log = False
-    for record in one_error.records:
+    for record in with_error.get_records(when='call'):
         if record.levelname == 'ERROR':
             has_log = True
             assert json.loads(record.msg)['event'] == 'task failed'

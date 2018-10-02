@@ -115,22 +115,18 @@ def mocksearch(monkeypatch):
 
 @pytest.fixture(scope='function')
 def no_warn(caplog):
-    # TODO there is a bug in pytest, and the caplog is always empty
     yield caplog
-    for record in caplog.records:
+    for record in caplog.get_records(when='call'):
         if record.levelname in ['WARNING', 'ERROR', 'CRITICAL']:
             assert False, record.msg
 
 
 @pytest.fixture(scope='function')
-def one_error(caplog):
-    # TODO there is a bug in pytest, and the caplog is always empty
+def with_error(caplog):
     yield caplog
     count = 0
-    for record in caplog.records:
+    for record in caplog.get_records(when='call'):
         if record.levelname in ['ERROR', 'CRITICAL']:
             count += 1
-            if count > 1:
-                assert False, "too many errors"
 
-    # assert count == 1
+    assert count > 0
