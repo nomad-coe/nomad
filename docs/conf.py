@@ -21,8 +21,8 @@ sys.path.insert(0, os.path.abspath('..'))
 # -- Project information -----------------------------------------------------
 
 project = 'nomad-FAIR'
-copyright = '2018, the NOMAD developers'
-author = 'the NOMAD developers'
+copyright = '2018, FAIRDI e.V.'
+author = 'FAIRDI e.V.'
 
 # The short X.Y version
 version = ''

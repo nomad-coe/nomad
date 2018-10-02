@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core';
+import { apiBase } from '../config';
 
 
 class Documentation extends Component {
@@ -26,7 +27,7 @@ class Documentation extends Component {
         <div className={classes.content}>
           <iframe
             frameBorder={0} width="768" height={window.innerHeight - 64}
-            src="http://localhost:8000/nomad/api/docs/index.html"
+            src={`${apiBase}/docs/index.html`}
           />
         </div>
       </div>
