@@ -1,0 +1,15 @@
+body {
+    font-family: "Roboto", "Lato", "proxima-nova", "Helvetica Neue", Arial, sans-serif;
+}
+
+.wy-nav-top {
+    display: none
+}
+
+a {
+    color: #607D8B !important
+}
+
+a:visited {
+    color: #607D8B !important
+}

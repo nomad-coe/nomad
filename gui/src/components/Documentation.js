@@ -1,118 +1,37 @@
 import React, { Component } from 'react'
 import PropTypes from 'prop-types'
-import HtmlToReact from 'html-to-react'
-import { withRouter } from 'react-router-dom'
-import { HashLink as Link } from 'react-router-hash-link'
-import './Documentation.css'
-import Url from 'url-parse'
-import { apiBase, appBase } from '../config'
+import { withStyles } from '@material-ui/core';
 
-const docBaseRegExp = new RegExp(`^(${appBase.replace('/', '\\/')})?(\\/docs/)?`)
-const processNodeDefinitions = new HtmlToReact.ProcessNodeDefinitions(React)
-const processingInstructions = location => {
-  return [
-    {
-      // We have to remove sphynx header links. Not all of them are cought with css.
-      shouldProcessNode: node => node.name === 'a' && node.children[0].data === '¶',
-      processNode: (node, children) => {
-        return ''
-      }
-    },
-    {
-      // We have to replace the sphynx links with router Links;
-      // the hrefs have to be processed to be compatible with router, i.e. they have
-      // to start with /documentation/.
-      shouldProcessNode: node => node.type === 'tag' && node.name === 'a' && node.attribs['href'] && !node.attribs['href'].startsWith('http'),
-      processNode: function DocLink(node, children) {
-        const linkUrl = Url(node.attribs['href'])
-        let pathname = linkUrl.pathname.replace(docBaseRegExp, '').replace(/^\//, '')
-        if (pathname === '') {
-          pathname = location.pathname
-        } else {
-          pathname = `/docs/${pathname}`
-        }
-
-        return (
-          <Link smooth to={pathname + (linkUrl.hash || '#')}>{children}</Link>
-        )
-      }
-    },
-    {
-      // We have to redirect img src attributes to the static sphynx build dir.
-      shouldProcessNode: node => node.type === 'tag' && node.name === 'img' && node.attribs['src'] && !node.attribs['src'].startsWith('http'),
-      processNode: (node, children) => {
-        node.attribs['src'] = `${apiBase}/docs/${node.attribs['src']}`
-        return processNodeDefinitions.processDefaultNode(node)
-      }
-    },
-    {
-      shouldProcessNode: node => true,
-      processNode: processNodeDefinitions.processDefaultNode
-    }
-  ]
-}
-const isValidNode = () => true
-const htmlToReactParser = new HtmlToReact.Parser()
-const domParser = new DOMParser() // eslint-disable-line no-undef
 
 class Documentation extends Component {
   static propTypes = {
-    location: {
-      pathname: PropTypes.string.isRequired
+    classes: PropTypes.object.isRequired,
+  }
+
+  static styles = theme => ({
+    root: {
+      position: 'relative',
+    },
+    content: {
+      position: 'absolute',
+      left: -theme.spacing.unit * 3,
+      top: -theme.spacing.unit * 3
     }
-  }
-  state = {
-    react: ''
-  }
-
-  onRouteChanged() {
-    const fetchAndUpdate = path => {
-      if (path === '' || path.startsWith('#')) {
-        path = '/index.html' + path
-      }
-      fetch(`${apiBase}/docs${path}`)
-        .then(response => response.text())
-        .then(content => {
-          // extract body of html page
-          const doc = domParser.parseFromString(content, 'application/xml')
-          const bodyHtml = doc.getElementsByTagName('body')[0].innerHTML
-
-          // replace a hrefs with Link to
-          const react = htmlToReactParser.parseWithInstructions(bodyHtml, isValidNode, processingInstructions(this.props.location))
-
-          this.setState({
-            react: react
-          })
-        })
-        .catch(err => {
-          if (path !== 'index.html') {
-            fetchAndUpdate('index.html')
-          } else {
-            console.error(err)
-          }
-        })
-    }
-    const path = this.props.location.pathname.replace(`/docs`, '')
-    fetchAndUpdate(path)
-  }
-
-  componentDidUpdate(prevProps) {
-    if (this.props.location !== prevProps.location) {
-      this.onRouteChanged()
-    }
-  }
-
-  componentDidMount() {
-    this.onRouteChanged()
-  }
+  })
 
   render() {
+    const {classes} = this.props
     return (
-      <div className="root">
-        {this.state.react}
+      <div className={classes.root}>
+        <div className={classes.content}>
+          <iframe
+            frameBorder={0} width="768" height={window.innerHeight - 64}
+            src="http://localhost:8000/nomad/api/docs/index.html"
+          />
+        </div>
       </div>
     )
   }
 }
 
-export default withRouter(Documentation)
+export default withStyles(Documentation.styles)(Documentation)
