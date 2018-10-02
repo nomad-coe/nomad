@@ -61,7 +61,7 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
         message = {
             '@timestamp': self.format_timestamp(record.created),
             '@version': '1',
-            'message': structlog['event'],
+            'event': structlog['event'],
             'host': self.host,
             'path': record.pathname,
             'tags': self.tags,
@@ -74,8 +74,8 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
 
         if record.name.startswith('nomad'):
             for key, value in structlog.items():
-                if key in ('event', 'stack_info'):
-                    pass
+                if key in ('event', 'stack_info', 'id', 'timestamp'):
+                    continue
                 elif key in (
                         'upload_hash', 'archive_id', 'upload_id', 'calc_hash', 'mainfile',
                         'service'):
@@ -87,6 +87,7 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
         else:
             message.update(structlog)
 
+        # Add extra fields
         message.update(self.get_extra_fields(record))
 
         # If exception, add debug info
@@ -170,6 +171,9 @@ def get_logger(name, **kwargs):
     Returns a structlog logger that is already attached with a logstash handler.
     Use additional *kwargs* to pre-bind some values to all events.
     """
+    if name.startswith('nomad.'):
+        name = '.'.join(name.split('.')[:2])
+
     logger = structlog.get_logger(name, service=_service, **kwargs)
     return logger
 

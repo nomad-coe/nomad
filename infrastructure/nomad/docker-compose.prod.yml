@@ -39,6 +39,7 @@ services:
         ports:
             - 15601:5601  # kibana web
             - 5044:5044   # expose to host, allows metricbeat on host to send data
+            - 15000:5000
             - 29200:9200  # allows metricbeat config to access es
 
     api:
