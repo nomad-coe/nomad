@@ -51,11 +51,6 @@ _service = os.environ.get('NOMAD_SERVICE', 'nomad service')
 
 class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
 
-    root_keys = {
-        key: key for key in
-        ['upload_hash', 'archive_id', 'upload_id', 'calc_hash', 'mainfile', 'service']
-    }
-
     def format(self, record):
         try:
             structlog = json.loads(record.getMessage())
@@ -77,12 +72,13 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
             'logger_name': record.name,
         }
 
-        message.update(structlog)
         if record.name.startswith('nomad'):
             for key, value in structlog.items():
-                if key in ['event', 'stack_info']:
+                if key in ('event', 'stack_info'):
                     pass
-                elif key in LogstashFormatter.root_keys:
+                elif key in (
+                        'upload_hash', 'archive_id', 'upload_id', 'calc_hash', 'mainfile',
+                        'service'):
                     key = 'nomad.%s' % key
                 else:
                     key = '%s.%s' % (record.name, key)
@@ -91,7 +87,6 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
         else:
             message.update(structlog)
 
-        # Add extra fields
         message.update(self.get_extra_fields(record))
 
         # If exception, add debug info
