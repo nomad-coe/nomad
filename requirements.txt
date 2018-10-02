@@ -21,3 +21,4 @@ requests
 click
 sphinx
 sphinxcontrib.httpdomain
+sphinx_rtd_theme

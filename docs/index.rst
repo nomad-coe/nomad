@@ -9,6 +9,6 @@ and infrastructure with a simplyfied architecture and consolidated code base.
 
    introduction
    setup
+   dev_guidelines
    api
    reference
-   contributing
