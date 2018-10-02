@@ -26,7 +26,7 @@ class Documentation extends Component {
       <div className={classes.root}>
         <div className={classes.content}>
           <iframe
-            frameBorder={0} width="768" height={window.innerHeight - 64}
+            frameBorder={0} width="700" height={window.innerHeight - 64}
             src={`${apiBase}/docs/index.html`}
           />
         </div>
