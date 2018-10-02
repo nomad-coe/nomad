@@ -418,7 +418,7 @@ def proc_task(task, cls_name, self_id, func_attr):
     might happen in sharded, distributed mongo setups where the object might not
     have yet been propagated and therefore apear missing.
     """
-    logger = utils.get_logger('__name__', cls=cls_name, id=self_id, func=func_attr)
+    logger = utils.get_logger(__name__, cls=cls_name, id=self_id, func=func_attr)
 
     # get the process class
     logger.debug('received process function call')
