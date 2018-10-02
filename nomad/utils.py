@@ -77,25 +77,20 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
             'logger_name': record.name,
         }
 
-        message.update(structlog)
+        data_sets = [structlog, self.get_extra_fields(record), self.get_debug_fields(record)]
+        for data in data_sets:
+            if record.name.startswith('nomad'):
+                for key, value in data.items():
+                    if key in ['event', 'stack_info']:
+                        pass
+                    elif key in LogstashFormatter.root_keys:
+                        key = 'nomad.%s' % key
+                    else:
+                        key = '%s.%s' % (record.name, key)
 
-        # Add extra fields
-        if record.name.startswith('nomad'):
-            for key, value in self.get_extra_fields(record).items():
-                if key in ['event']:
-                    pass
-                elif key in LogstashFormatter.root_keys:
-                    key = 'nomad.%s' % key
-                else:
-                    key = '%s.%s' % (record.name, key)
-
-                message[key] = value
-        else:
-            message.update(self.get_extra_fields(record))
-
-        # If exception, add debug info
-        if record.exc_info:
-            message.update(self.get_debug_fields(record))
+                    message[key] = value
+            else:
+                message.update(data)
 
         return self.serialize(message)
 
