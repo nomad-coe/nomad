@@ -6,7 +6,6 @@
 .mypy_cache/
 data/
 docs/.build
-docs/.static
 docs/*.graffle
 gui/
 infrastructure/
