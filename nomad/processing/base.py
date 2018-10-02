@@ -132,7 +132,7 @@ class Proc(Document, metaclass=ProcMetaclass):
     def create(cls, **kwargs):
         """ Factory method that must be used instead of regular constructor. """
         assert cls.tasks is not None and len(cls.tasks) > 0, \
-            """ the class attribute tasks must be overwritten with an acutal list """
+            """ the class attribute tasks must be overwritten with an actual list """
         assert 'status' not in kwargs, \
             """ do not set the status manually, its managed """
 
@@ -245,8 +245,8 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     def block_until_complete(self, interval=0.01):
         """
-        Reloads the process constrantly until it sees a completed process. Should be
-        used with care as it can block indefinetly. Just intended for testing purposes.
+        Reloads the process constantly until it sees a completed process. Should be
+        used with care as it can block indefinitely. Just intended for testing purposes.
         """
         while not self.completed:
             time.sleep(interval)
@@ -275,13 +275,13 @@ class InvalidChordUsage(Exception): pass
 class Chord(Proc):
     """
     A special Proc base class that manages a chord of child processes. It saves some
-    attional state to track child processes and provides methods to control that
+    additional state to track child processes and provides methods to control that
     state.
 
-    It uses a counter approach with atomic updates to trac the number of processed
+    It uses a counter approach with atomic updates to track the number of processed
     children.
 
-    TODO the joined attribute is not stricly necessary and only serves debugging purposes.
+    TODO the joined attribute is not strictly necessary and only serves debugging purposes.
     Maybe it should be removed, since it also requires another save.
 
     TODO it is vital that sub classes and children don't miss any calls. This might
@@ -313,7 +313,7 @@ class Chord(Proc):
         self._check_join(children=0)
 
     def completed_child(self):
-        """ Children must call this, when they completed processig. """
+        """ Children must call this, when they completed processing. """
         self._check_join(children=1)
 
     def _check_join(self, children):
@@ -374,12 +374,12 @@ class Chord(Proc):
 
 def task(func):
     """
-    The decorator for tasks that will be wrapped in excaption handling that will fail the process.
+    The decorator for tasks that will be wrapped in exception handling that will fail the process.
     The task methods of a :class:`Proc` class/document comprise a sequence
     (order of methods in class namespace) of tasks. Tasks must be executed in that order.
     Completion of the last task, will put the :class:`Proc` instance into the
     SUCCESS state. Calling the first task will put it into RUNNING state. Tasks will
-    only be exectued, if the process has not yet reached FAILURE state.
+    only be executed, if the process has not yet reached FAILURE state.
     """
     def wrapper(self, *args, **kwargs):
         if self.status == 'FAILURE':
@@ -416,9 +416,9 @@ def proc_task(task, cls_name, self_id, func_attr):
     It ignores results, since all results are handled via the self document.
     It retries for 3 times with a countdown of 3 on missing 'selfs', since this
     might happen in sharded, distributed mongo setups where the object might not
-    have yet been propagated and therefore apear missing.
+    have yet been propagated and therefore appear missing.
     """
-    logger = utils.get_logger('__name__', cls=cls_name, id=self_id, func=func_attr)
+    logger = utils.get_logger(__name__, cls=cls_name, id=self_id, func=func_attr)
 
     # get the process class
     logger.debug('received process function call')

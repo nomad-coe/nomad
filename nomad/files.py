@@ -88,7 +88,11 @@ class File:
         self.object_id = object_id
         self.ext = ext
 
-        self.logger = utils.get_logger(__name__, bucket=bucket, object=object_id)
+        self.logger = self.bind_logger(utils.get_logger(__name__))
+
+    def bind_logger(self, logger):
+        """ Adds context information to the given logger and returns it. """
+        return logger.bind(bucket=self.bucket, object=self.object_id)
 
     def open(self, *args, **kwargs) -> IO:
         """ Opens the object with he given mode, etc. """
@@ -155,6 +159,9 @@ class UploadFile(File):
         self.filelist: List[str] = None
         self._local_path = local_path
 
+    def bind_logger(self, logger):
+        return super().bind_logger(logger).bind(upload_id=self.object_id)
+
     # There is not good way to capsule decorators in a class:
     # https://medium.com/@vadimpushtaev/decorator-inside-python-class-1e74d23107f6
     class Decorators:
@@ -182,7 +189,7 @@ class UploadFile(File):
     @Decorators.handle_errors
     def extract(self) -> None:
         """
-        'Opens' the upload. This means the uploaed files get extracted to tmp.
+        'Opens' the upload. This means the upload files get extracted to tmp.
 
         Raises:
             UploadFileError: If some IO went wrong.
@@ -203,6 +210,8 @@ class UploadFile(File):
             if zipFile is not None:
                 zipFile.close()
 
+        self.logger.debug('extracted uploaded file')
+
     @Decorators.handle_errors
     def remove_extract(self) -> None:
         """
@@ -216,6 +225,8 @@ class UploadFile(File):
             shutil.rmtree(self.upload_extract_dir)
         except FileNotFoundError:
             raise KeyError()
+
+        self.logger.debug('removed uploaded file extract')
 
     def __enter__(self):
         self.extract()
@@ -261,9 +272,14 @@ class ArchiveFile(File):
             object_id=archive_id,
             ext='json.gz' if config.files.compress_archive else 'json')
 
+    def bind_logger(self, logger):
+        upload_hash, calc_hash = self.object_id.split('/')
+        return super().bind_logger(logger).bind(
+            archive_id=self.object_id, upload_hash=upload_hash, calc_hash=calc_hash)
+
     @contextmanager
     def write_archive_json(self) -> Generator[TextIO, None, None]:
-        """ Context manager that yiels a file-like to write the archive json. """
+        """ Context manager that yields a file-like to write the archive json. """
         if config.files.compress_archive:
             binary_out = self.open('wb')
             gzip_wrapper = cast(TextIO, gzip.open(binary_out, 'wt'))
@@ -280,9 +296,11 @@ class ArchiveFile(File):
             out.close()
             binary_out.close()
 
+        self.logger.debug('archive file written')
+
     @contextmanager
     def read_archive_json(self) -> Generator[TextIO, None, None]:
-        """ Context manager that yiels a file-like to read the archive json. """
+        """ Context manager that yields a file-like to read the archive json. """
         try:
             if config.files.compress_archive:
                 binary_in = self.open(mode='rb')
@@ -301,11 +319,16 @@ class ArchiveFile(File):
             in_file.close()
             binary_in.close()
 
+        self.logger.debug('archive file read')
+
     @staticmethod
     def delete_archives(upload_hash: str):
         """ Delete all archives of one upload with the given hash. """
         bucket = config.files.archive_bucket
         Objects.delete_all(bucket, upload_hash)
+
+        utils.get_logger(__name__, bucket=bucket, upload_hash=upload_hash) \
+            .debug('archive files deleted')
 
 
 class ArchiveLogFile(File):
