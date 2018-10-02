@@ -49,7 +49,12 @@ from nomad import config
 _service = os.environ.get('NOMAD_SERVICE', 'nomad service')
 
 
-class LogstashFormatterVersion1ForStructlog(logstash.formatter.LogstashFormatterBase):
+class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
+
+    root_keys = {
+        key: key for key in
+        ['upload_hash', 'archive_id', 'upload_id', 'calc_hash', 'mainfile', 'service']
+    }
 
     def format(self, record):
         try:
@@ -75,7 +80,18 @@ class LogstashFormatterVersion1ForStructlog(logstash.formatter.LogstashFormatter
         message.update(structlog)
 
         # Add extra fields
-        message.update(self.get_extra_fields(record))
+        if record.name.startswith('nomad'):
+            for key, value in self.get_extra_fields(record).items():
+                if key in ['event']:
+                    pass
+                elif key in LogstashFormatter.root_keys:
+                    key = 'nomad.%s' % key
+                else:
+                    key = '%s.%s' % (record.name, key)
+
+                message[key] = value
+        else:
+            message.update(self.get_extra_fields(record))
 
         # If exception, add debug info
         if record.exc_info:
@@ -85,12 +101,16 @@ class LogstashFormatterVersion1ForStructlog(logstash.formatter.LogstashFormatter
 
 
 def add_logstash_handler(logger):
-    logstash_handler = logstash.TCPLogstashHandler(
-        config.logstash.host,
-        config.logstash.tcp_port, version=1)
-    logstash_handler.formatter = LogstashFormatterVersion1ForStructlog(tags=['nomad', _service])
-    logstash_handler.setLevel(config.logstash.level)
-    logger.addHandler(logstash_handler)
+    has_logstash_handler = any(
+        isinstance(handler, logstash.TCPLogstashHandler) for handler in logger.handlers)
+
+    if not has_logstash_handler:
+        logstash_handler = logstash.TCPLogstashHandler(
+            config.logstash.host,
+            config.logstash.tcp_port, version=1)
+        logstash_handler.formatter = LogstashFormatter(tags=['nomad', _service])
+        logstash_handler.setLevel(config.logstash.level)
+        logger.addHandler(logstash_handler)
 
 
 _logging_is_configured = False
