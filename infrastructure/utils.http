@@ -48,5 +48,6 @@ POST http://localhost:8000/nomad/api/admin/repair_uploads HTTP/1.1
 
 ###
 
-GET http://enc-staging-nomad.esc.rzg.mpg.de//nomad/api/uploads HTTP/1.1
-Authorization: Basic bWVAZ21haWwuY29tOm5vbWFk
+curl -u other@gmail.com:nomad http://enc-staging-nomad.esc.rzg.mpg.de//nomad/api/uploads/CecjIXB1QeqJYzlim_qG8w HTTP/1.1
+
+curl -u other@gmail.com:nomad http://enc-staging-nomad.esc.rzg.mpg.de//nomad/api/archive/0iyFlPv0JgHNXs1mZTzewly0tjzD/o6zkQdoHs1Cyy61Z-TmBo7PKmA0n HTTP/1.1

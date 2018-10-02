@@ -72,6 +72,7 @@ def login_really_required(func):
         else:
             return func(*args, **kwargs)
     wrapper.__name__ = func.__name__
+    wrapper.__doc__ = func.__doc__
     return wrapper
 
 
@@ -147,7 +148,7 @@ class UploadsRes(Resource):
             Content-Type: application/json
 
             {
-                name: 'vasp_data.zip'
+                "name": "vasp_data.zip"
             }
 
         **Example response**:
@@ -337,7 +338,7 @@ class UploadRes(Resource):
             Content-Type: application/json
 
             {
-                operation: 'unstage'
+                "operation": "unstage"
             }
 
 
@@ -418,7 +419,8 @@ class UploadFileRes(Resource):
 
     **Curl examples for both approaches**:
 
-    .. sourcecode::
+    .. sourcecode:: sh
+
         curl -X put "/nomad/api/uploads/5b89469e0d80d40008077dbc/file" -F file=@local_file
         curl "/nomad/api/uploads/5b89469e0d80d40008077dbc/file" --upload-file local_file
 
@@ -643,7 +645,7 @@ def get_calc_proc_log(upload_hash, calc_hash):
     Get calculation processing log. Calcs are references via *upload_hash*, *calc_hash*
     pairs.
 
-    .. :quickref: archive; Get calculation data in archive form.
+    .. :quickref: archive; Get calculation processing logs.
 
     **Example request**:
 

@@ -13,10 +13,9 @@
 # limitations under the License.
 
 """
-Some utility functions.
-
 .. autofunc::nomad.utils.create_uuid
 .. autofunc::nomad.utils.hash
+.. autofunc::nomad.utils.timer
 
 Logging in nomad is structured. Structured logging means that log entries contain
 dictionaries with quantities related to respective events. E.g. having the code,
@@ -162,7 +161,7 @@ def get_logger(name, **kwargs):
 @contextmanager
 def lnr(logger, event, **kwargs):
     """
-    A context manager that Logs aNd Raises all exceptions with the given loggeer.
+    A context manager that Logs aNd Raises all exceptions with the given logger.
 
     Arguments:
         logger: The logger that should be used for logging exceptions.

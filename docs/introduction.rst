@@ -2,24 +2,24 @@ Introduction
 ============
 
 **NOvel Materials Discorvery (NOMAD)** comprises storage, processing, management, discovery, and
-analytics of computational material science data from over 40 comminity *codes*.
+analytics of computational material science data from over 40 community *codes*.
 The original NOMAD software, developed by the
 [NOMAD-coe](http://nomad-coe.eu) project, is used to host over 50 million total energy
-calculations in a single central infrastructure instances that offers a variaty
+calculations in a single central infrastructure instances that offers a variety
 of services (repository, archive, encyclopedia, analytics, visualization).
 
 This is the documentation of **nomad@FAIR**, the Open-Source continuation of the
-original NOMAD-coe software that reconsiles the original code base,
+original NOMAD-coe software that reconciles the original code base,
 integrate it's services,
 allows 3rd parties to run individual and federated instance of the nomad infrastructure,
 provides nomad to other material science domains, and applies the FAIR principles
-as prolifirated by the (FAIR Data Infrastructure e.V.)[http://fairdi.eu].
+as proliferated by the (FAIR Data Infrastructure e.V.)[http://fairdi.eu].
 
 There are different use-modes for the nomad software, but the most common use is
 to run the nomad infrastructure on a cloud and provide clients access to
 web-based GUIs and REST APIs. This nomad infrastructure logically comprises the
 *nomad repository* for uploading, searching, and downloading raw calculation input and output
-from all relevant computionational material science codes. A second part of nomad
+from all relevant computational material science codes. A second part of nomad
 is the *archive*. It provides all uploaded data in a common data format
 called *meta-info* and includes common and code specific
 schemas for structured data. Further services are available from
@@ -29,9 +29,9 @@ and *advanced graphics*.
 Architecture
 ------------
 
-The following depicts the *nomad@FAIR* architecture with respect to software compenents
+The following depicts the *nomad@FAIR* architecture with respect to software components
 in terms of python modules, gui components, and 3rd party services (e.g. databases,
-search enginines, etc.). It comprises a revised version of the repository and archive.
+search engines, etc.). It comprises a revised version of the repository and archive.
 
 .. figure:: components.png
    :alt: nomad components
@@ -45,7 +45,8 @@ celery
 ^^^^^^
 http://celeryproject.org (incl. rabbitmq) is a popular combination for realizing
 long running tasks in internet applications. We use it to drive the processing of uploaded files.
-It allows us to transparently distribute processing load.
+It allows us to transparently distribute processing load while keeping processing state
+available to inform the user.
 
 elastic search
 ^^^^^^^^^^^^^^
@@ -54,8 +55,8 @@ Elastic search allows for flexible scalable search and analytics.
 
 mongodb
 ^^^^^^^
-Mongo is used to store and track the state of the processing of uploaded files and therein c
-ontained calculations.
+Mongo is used to store and track the state of the processing of uploaded files and therein
+contained calculations.
 
 elastic stack
 ^^^^^^^^^^^^^
@@ -83,44 +84,3 @@ Processing
    The workflow of nomad's processing tasks
 
 See :py:mod:`nomad.processing` for further information.
-
-Design principles
------------------
-
-- simple first, complicated only when necessary
-- adopting generic established 3rd party solutions before implementing specific solutions
-- only uni directional dependencies between components/modules, no circles
-- only one language: Python (except, GUI of course)
-
-General concepts
-----------------
-
-terms
-^^^^^
-
-There are is some terminology consistently used in this documentastion and the source
-code:
-- upload: A logical unit that comprises one (.zip) file uploaded by a user.
-- calculation: A computation in the sense that is was created by an individual run of a CMS code.
-- raw file: User uploaded files (e.g. part of the uploaded .zip), usually code input or output.
-- upload file/uploaded file: The actual (.zip) file a user uploaded
-- mainfile: The mainfile output file of a CMS code run.
-- aux file: Additional files the user uploaded within an upload.
-- repo entry: Some quantities of a calculation that are used to represent that calculation in the repository.
-- archive data: The normalized data of one calculation in nomad's meta-info-based format.
-
-ids and hashes
-^^^^^^^^^^^^^^
-
-Throughout nomad, we use different ids and hashes to refer to entities. If something
-is called *id*, it is usually a random uuid and has no semantic conection to the entity
-it identifies. If something is calles a *hash* than it is a hash build based on the
-entitiy it identifies. This means either the whole thing or just some properties of
-said entities.
-
-The most common hashes are the *upload_hash* and *calc_hash*. The upload hash is
-a hash over an uploaded file, as each upload usually refers to an indiviudal user upload
-(usually a .zip file). The calc_hash is a hash over the mainfile path within an upload.
-The combination of upload_hash and calc_hash is used to identify calculations. They
-allow us to id calculations independently of any random ids that are created during
-processing. To create hashes we use :func:`nomad.utils.hash`.

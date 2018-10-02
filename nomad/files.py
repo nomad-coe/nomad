@@ -13,29 +13,19 @@
 # limitations under the License.
 
 """
-This file storage abstraction currently uses the object storage API
-http://minio.io to manage and organize files. Object storage
-organizes files in *buckets/ids*, with small amounts of *buckets* and virtually
-unlimited numbers of *ids*. *Ids* can contain delimiters like `/` to mimic
-filesystem structure. There is a 1024 utf-8 character limit on *id* length.
-
-The file storage is organized in multiple buckets:
-
-* *uploads*: used for uploaded user code input/output archives. Currently only .zip files
-  are suported
-
-Presigned URLs
---------------
-Users (or GUI clients) can upload files directly to the object storage system. To avoid
-authentication hassly, presigned URLs can be created that can be used directly to safely
-*PUT* files.
-
-.. autofunction:: nomad.files.get_presigned_upload_url
-.. autofunction:: nomad.files.create_curl_upload_cmd
+This file storage abstraction uses an *object storage*-like metaphor to store
+objects on the file system. Objects are organized in *buckets* and object ids
+are basically paths. All major file system operations for dealing with
+uploaded files, archive, files, raw files, etc. should be part of this module to
+allow later introduction of real object storage systems.
 
 Uploads
 -------
-.. autoclass:: Upload
+.. autoclass:: File
+    :members:
+.. autoclass:: UploadFile
+    :members:
+.. autoclass:: ArchiveFile
     :members:
 
 """
@@ -261,8 +251,9 @@ class UploadFile(File):
 class ArchiveFile(File):
     """
     Represents the archive file for an individual calculation. Allows to write the
-    archive, read the archive, delete the archive. Archive files are stored in
-    their own *bucket*.
+    archive, read the archive, delete the archive.
+
+    Archive files are stored in their own *bucket*.
     """
     def __init__(self, archive_id: str) -> None:
         super().__init__(
