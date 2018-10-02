@@ -42,6 +42,8 @@ services:
             - 29200:9200  # allows metricbeat config to access es
 
     api:
+        environment:
+            NOMAD_LOGSTASH_LEVEL: INFO
         links:
             - elk
         volumes:
