@@ -29,7 +29,7 @@ Uploads
     :members:
 
 """
-from typing import List, Any, Generator, IO, TextIO, cast
+from typing import List, Generator, IO, TextIO, cast
 import os
 import os.path
 from zipfile import ZipFile, BadZipFile, is_zipfile
@@ -40,6 +40,51 @@ import io
 import shutil
 
 from nomad import config, utils
+
+
+class File:
+    """
+    Base class for handling a file. Allows to open (read, write) and delete files.
+
+    Arguments:
+        os_path: The path to the file in the os filesystem.
+
+    Attributes:
+        logger: A structured logger with bucket and object information.
+    """
+    def __init__(self, os_path: str = None) -> None:
+        self.os_path = os_path
+
+        self.logger = self.bind_logger(utils.get_logger(__name__))
+
+    def bind_logger(self, logger):
+        """ Adds context information to the given logger and returns it. """
+        return logger.bind(path=self.os_path)
+
+    def open(self, *args, **kwargs) -> IO:
+        """ Opens the object with he given mode, etc. """
+        self.logger.debug('open file')
+        try:
+            return open(self.os_path, *args, **kwargs)
+        except FileNotFoundError:
+            raise KeyError()
+
+    def delete(self) -> None:
+        """ Deletes the file. """
+        try:
+            os.remove(self.os_path)
+            self.logger.debug('file deleted')
+        except FileNotFoundError:
+            raise KeyError()
+
+    def exists(self) -> bool:
+        """ Returns true if object exists. """
+        return os.path.exists(self.os_path)
+
+    @property
+    def size(self) -> int:
+        """ Returns the os determined file size. """
+        return os.stat(self.os_path).st_size
 
 
 class Objects:
@@ -70,9 +115,11 @@ class Objects:
             pass
 
 
-class File:
+class ObjectFile(File):
     """
     Base class for file objects. Allows to open (read, write) and delete objects.
+    File objects filesystem location is govern by its bucket, object_id, and ext.
+    This object store location can be overriden with a local_path.
 
     Arguments:
         bucket (str): The 'bucket' for this object.
@@ -82,42 +129,28 @@ class File:
 
     Attributes:
         logger: A structured logger with bucket and object information.
+        has_local_path: True, if this object is stored somewhere else in the fs.
     """
-    def __init__(self, bucket: str, object_id: str, ext: str = None) -> None:
+    def __init__(self, bucket: str, object_id: str, ext: str = None, local_path: str = None) -> None:
         self.bucket = bucket
         self.object_id = object_id
         self.ext = ext
 
-        self.logger = self.bind_logger(utils.get_logger(__name__))
+        self.has_local_path = local_path is not None
+        path = Objects._os_path(self.bucket, self.object_id, self.ext)
+        path = local_path if self.has_local_path else path
+
+        super().__init__(path)
 
     def bind_logger(self, logger):
         """ Adds context information to the given logger and returns it. """
-        return logger.bind(bucket=self.bucket, object=self.object_id)
-
-    def open(self, *args, **kwargs) -> IO:
-        """ Opens the object with he given mode, etc. """
-        self.logger.debug('open file')
-        try:
-            return open(self.os_path, *args, **kwargs)
-        except FileNotFoundError:
-            raise KeyError()
+        return super().bind_logger(logger).bind(bucket=self.bucket, object=self.object_id)
 
     def delete(self) -> None:
-        """ Deletes the file with the given object id. """
-        try:
-            os.remove(self.os_path)
-            self.logger.debug('file deleted')
-        except FileNotFoundError:
-            raise KeyError()
-
-    def exists(self) -> bool:
-        """ Returns true if object exists. """
-        return os.path.exists(self.os_path)
-
-    @property
-    def os_path(self) -> str:
-        """ The path of the object in the os filesystem. """
-        return Objects._os_path(self.bucket, self.object_id, self.ext)
+        """ Deletes the file, if it has not a localpath. Localpath files are never deleted.  """
+        # Do not delete local files, no matter what
+        if not self.has_local_path:
+            super().delete()
 
 
 class FileError(Exception):
@@ -125,7 +158,7 @@ class FileError(Exception):
         super().__init__(msg, cause)
 
 
-class UploadFile(File):
+class UploadFile(ObjectFile):
     """
     Instances represent an uploaded file in the *object storage*. Class is a conext
     manager and supports the `with` statements.
@@ -153,11 +186,11 @@ class UploadFile(File):
         super().__init__(
             bucket=config.files.uploads_bucket,
             object_id=upload_id,
-            ext='zip')
+            ext='zip',
+            local_path=local_path)
 
         self.upload_extract_dir: str = os.path.join(config.fs.tmp, 'uploads_extracted', upload_id)
         self.filelist: List[str] = None
-        self._local_path = local_path
 
     def bind_logger(self, logger):
         return super().bind_logger(logger).bind(upload_id=self.object_id)
@@ -175,10 +208,6 @@ class UploadFile(File):
                     self.logger.error(msg, upload_id=self.object_id, exc_info=e)
                     raise FileError(msg, e)
             return wrapper
-
-    @property
-    def os_path(self):
-        return self._local_path if self._local_path is not None else super().os_path
 
     @Decorators.handle_errors
     def hash(self) -> str:
@@ -235,31 +264,20 @@ class UploadFile(File):
     def __exit__(self, exc_type, exc, exc_tb):
         self.remove_extract()
 
-    @Decorators.handle_errors
-    def open_file(self, filename: str, *args, **kwargs) -> IO[Any]:
-        """ Opens a file within an open upload and returns a file like. """
-        return open(self.get_path(filename), *args, **kwargs)
-
-    def get_path(self, filename: str) -> str:
-        """ Returns the tmp directory relative version of a filename. """
-        return os.path.join(self.upload_extract_dir, filename)
-
-    def delete(self) -> None:
-        """ Deletes the file with the given object id. """
-        # Do not delete local files, no matter what
-        if self._local_path is None:
-            try:
-                os.remove(self.os_path)
-                self.logger.debug('file deleted')
-            except FileNotFoundError:
-                raise KeyError()
+    def get_file(self, filename: str) -> File:
+        """
+        Returns a :class:`File` instance as a handle to the file with the given name.
+        Only works on extracted uploads. The given filename must be one of the
+        name in ``self.filelist``.
+        """
+        return File(os.path.join(self.upload_extract_dir, filename))
 
     @property
     def is_valid(self):
         return is_zipfile(self.os_path)
 
 
-class ArchiveFile(File):
+class ArchiveFile(ObjectFile):
     """
     Represents the archive file for an individual calculation. Allows to write the
     archive, read the archive, delete the archive.
@@ -331,7 +349,7 @@ class ArchiveFile(File):
             .debug('archive files deleted')
 
 
-class ArchiveLogFile(File):
+class ArchiveLogFile(ObjectFile):
     """
     Represents a log file that was created for processing a single calculation to create
     an archive.

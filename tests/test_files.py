@@ -16,7 +16,7 @@ import pytest
 import json
 import shutil
 
-from nomad.files import Objects, File, ArchiveFile, UploadFile, ArchiveLogFile
+from nomad.files import Objects, ObjectFile, ArchiveFile, UploadFile, ArchiveLogFile
 from nomad import config
 
 # example_file uses an artificial parser for faster test execution, can also be
@@ -44,29 +44,40 @@ def clear_files():
 class TestObjects:
     @pytest.fixture()
     def existing_example_file(self, clear_files):
-        out = File(example_bucket, 'example_file', ext='json').open(mode='wt')
+        out = ObjectFile(example_bucket, 'example_file', ext='json').open(mode='wt')
         json.dump(example_data, out)
         out.close()
 
         yield 'example_file', 'json'
 
+    def test_size(self, existing_example_file):
+        name, ext = existing_example_file
+        assert ObjectFile(example_bucket, name, ext).size > 0
+
+    def test_exists(self, existing_example_file):
+        name, ext = existing_example_file
+        assert ObjectFile(example_bucket, name, ext).exists()
+
+    def test_not_exists(self):
+        assert not ObjectFile(example_bucket, 'does_not_exist').exists()
+
     def test_open(self, existing_example_file):
         name, ext = existing_example_file
 
-        assert File(example_bucket, name, ext).exists()
-        file = File(example_bucket, name, ext=ext).open()
+        assert ObjectFile(example_bucket, name, ext).exists()
+        file = ObjectFile(example_bucket, name, ext=ext).open()
         json.load(file)
         file.close()
 
     def test_delete(self, existing_example_file):
         name, ext = existing_example_file
-        File(example_bucket, name, ext).delete()
-        assert not File(example_bucket, name, ext).exists()
+        ObjectFile(example_bucket, name, ext).delete()
+        assert not ObjectFile(example_bucket, name, ext).exists()
 
     def test_delete_all(self, existing_example_file):
         name, ext = existing_example_file
         Objects.delete_all(example_bucket)
-        assert not File(example_bucket, name, ext).exists()
+        assert not ObjectFile(example_bucket, name, ext).exists()
 
 
 @pytest.fixture(scope='function', params=[False, True])
@@ -129,8 +140,9 @@ class TestUploadFile:
             assert len(upload.filelist) == 5
             # now just try to open the first file (not directory), without error
             for filename in upload.filelist:
-                if filename.endswith('.xml'):
-                    upload.open_file(filename).close()
+                the_file = upload.get_file(filename)
+                if the_file.os_path.endswith('.xml'):
+                    the_file.open().close()
                     break
 
     def test_delete_upload(self, upload: UploadFile):
