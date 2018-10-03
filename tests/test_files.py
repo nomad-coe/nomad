@@ -142,8 +142,7 @@ class TestUploadFile:
             for filename in upload.filelist:
                 the_file = upload.get_file(filename)
                 if the_file.os_path.endswith('.xml'):
-                    the_file.open()
-                    the_file.close()
+                    the_file.open().close()
                     break
 
     def test_delete_upload(self, upload: UploadFile):
