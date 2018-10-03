@@ -197,10 +197,23 @@ def lnr(logger, event, **kwargs):
 
 @contextmanager
 def timer(logger, event, method='info', **kwargs):
+    """
+    A context manager that takes execution time and produces a log entry with said time.
+
+    Arguments:
+        logger: The logger that should be used to produce the log entry.
+        event: The log message/event.
+        method: The log methad that should be used. Must be a valid logger method name.
+            Default is 'info'.
+        **kwargs: Aditional logger data that is passed to the log entry.
+
+    Returns:
+        The method yields a dictionary that can be used to add further log data.
+    """
     start = time.time()
 
     try:
-        yield
+        yield kwargs
     finally:
         stop = time.time()
 

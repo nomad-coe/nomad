@@ -34,7 +34,7 @@ import time
 from structlog import wrap_logger
 
 from nomad import config, utils
-from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile
+from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile, File
 from nomad.repo import RepoCalc
 from nomad.user import User
 from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE, RUNNING
@@ -80,10 +80,15 @@ class Calc(Proc):
         self._parser_backend = None
         self._upload = None
         self._calc_proc_logwriter = None
+        self._calc_proc_logfile = None
 
     @classmethod
     def get(cls, id):
         return cls.get_by_id(id, 'archive_id')
+
+    @property
+    def mainfile_file(self) -> File:
+        return File(self.mainfile_tmp_path)
 
     def delete(self):
         """
@@ -123,7 +128,8 @@ class Calc(Proc):
         logger = self.get_logger(**kwargs)
 
         if self._calc_proc_logwriter is None:
-            self._calc_proc_logwriter = ArchiveLogFile(self.archive_id).open('wt')
+            self._calc_proc_logfile = ArchiveLogFile(self.archive_id)
+            self._calc_proc_logwriter = self._calc_proc_logfile.open('wt')
 
         def save_to_cacl_log(logger, method_name, event_dict):
             program = event_dict.get('normalizer', 'parser')
@@ -178,8 +184,12 @@ class Calc(Proc):
     def parsing(self):
         logger = self.get_calc_logger(parser=self.parser)
         parser = parser_dict[self.parser]
-        with utils.timer(logger, 'parser executed', step=self.parser):
+
+        with utils.timer(
+                logger, 'parser executed', step=self.parser,
+                input_size=self.mainfile_file.size):
             self._parser_backend = parser.run(self.mainfile_tmp_path, logger=logger)
+
         if self._parser_backend.status[0] != 'ParseSuccess':
             logger.error(self._parser_backend.status[1])
             error = self._parser_backend.status[1]
@@ -190,8 +200,12 @@ class Calc(Proc):
         for normalizer in normalizers:
             normalizer_name = normalizer.__name__
             logger = self.get_calc_logger(normalizer=normalizer_name)
-            with utils.timer(logger, 'normalizer executed', step=normalizer_name):
+
+            with utils.timer(
+                    logger, 'normalizer executed', step=normalizer_name,
+                    input_size=self.mainfile_file.size):
                 normalizer(self._parser_backend).normalize(logger=logger)
+
             if self._parser_backend.status[0] != 'ParseSuccess':
                 logger.error(self._parser_backend.status[1])
                 error = self._parser_backend.status[1]
@@ -221,16 +235,26 @@ class Calc(Proc):
                 calc_hash=calc_hash,
                 upload_id=self.upload_id)
 
-        with utils.timer(logger, 'archived', step='archive'):
+        with utils.timer(
+                logger, 'archived', step='archive',
+                input_size=self.mainfile_file.size) as log_data:
+
             # persist the archive
-            with ArchiveFile(self.archive_id).write_archive_json() as out:
+            archive_file = ArchiveFile(self.archive_id)
+            with archive_file.write_archive_json() as out:
                 self._parser_backend.write_json(out, pretty=True)
 
-        with utils.timer(logger, 'archived log', step='archive_log'):
-            # close loghandler
-            if self._calc_proc_logwriter is not None:
+            log_data.update(archive_size=archive_file.size)
+
+        # close loghandler
+        if self._calc_proc_logwriter is not None:
+            with utils.timer(
+                    logger, 'archived log', step='archive_log',
+                    input_size=self.mainfile_file.size) as log_data:
                 self._calc_proc_logwriter.close()
                 self._calc_proc_logwriter = None
+
+                log_data.update(log_size=self._calc_proc_logfile.size)
 
 
 class Upload(Chord):
@@ -399,8 +423,10 @@ class Upload(Chord):
     def extracting(self):
         logger = self.get_logger()
         try:
-            with utils.timer(logger, 'upload extracted', step='extracting'):
-                self._upload = UploadFile(self.upload_id, local_path=self.local_path)
+            self._upload = UploadFile(self.upload_id, local_path=self.local_path)
+            with utils.timer(
+                    logger, 'upload extracted', step='extracting',
+                    upload_size=self._upload.size):
                 self._upload.extract()
         except KeyError as e:
             self.fail('process request for non existing upload', level=logging.INFO)
@@ -421,17 +447,21 @@ class Upload(Chord):
         logger = self.get_logger()
 
         # TODO: deal with multiple possible parser specs
-        with utils.timer(logger, 'upload extracted', step='matching'):
+        with utils.timer(
+                logger, 'upload extracted', step='matching',
+                upload_size=self._upload.size,
+                upload_filecount=len(self._upload.filelist)):
             total_calcs = 0
             for filename in self._upload.filelist:
                 for parser in parsers:
                     try:
-                        if parser.is_mainfile(filename, lambda fn: self._upload.open_file(fn)):
-                            tmp_mainfile = self._upload.get_path(filename)
+                        potential_mainfile = self._upload.get_file(filename)
+                        if parser.is_mainfile(filename, lambda fn: potential_mainfile.open()):
+                            mainfile_path = potential_mainfile.os_path
                             calc = Calc.create(
                                 archive_id='%s/%s' % (self.upload_hash, utils.hash(filename)),
                                 mainfile=filename, parser=parser.name,
-                                mainfile_tmp_path=tmp_mainfile,
+                                mainfile_tmp_path=mainfile_path,
                                 upload_id=self.upload_id)
 
                             calc.process()
@@ -450,13 +480,15 @@ class Upload(Chord):
     @task
     def cleanup(self):
         try:
-            with utils.timer(self.get_logger(), 'processing cleaned up', step='cleaning'):
-                upload = UploadFile(self.upload_id, local_path=self.local_path)
+            upload = UploadFile(self.upload_id, local_path=self.local_path)
+            with utils.timer(
+                    self.get_logger(), 'processing cleaned up', step='cleaning',
+                    upload_size=upload.size):
+                upload.remove_extract()
         except KeyError as e:
             self.fail('Upload does not exist', exc_info=e)
             return
 
-        upload.remove_extract()
         self.get_logger().debug('closed upload')
 
     @property
