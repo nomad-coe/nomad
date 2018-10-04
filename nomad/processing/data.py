@@ -183,7 +183,8 @@ class Calc(Proc):
 
     @task
     def parsing(self):
-        logger = self.get_calc_logger(parser=self.parser, step=self.parser)
+        context = dict(parser=self.parser, step=self.parser)
+        logger = self.get_calc_logger(**context)
         parser = parser_dict[self.parser]
 
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
@@ -192,13 +193,14 @@ class Calc(Proc):
         if self._parser_backend.status[0] != 'ParseSuccess':
             logger.error(self._parser_backend.status[1])
             error = self._parser_backend.status[1]
-            self.fail(error, level=logging.DEBUG)
+            self.fail(error, level=logging.DEBUG, **context)
 
     @task
     def normalizing(self):
         for normalizer in normalizers:
             normalizer_name = normalizer.__name__
-            logger = self.get_calc_logger(normalizer=normalizer_name, step=normalizer_name)
+            context = dict(normalizer=normalizer_name, step=normalizer_name)
+            logger = self.get_calc_logger(**context)
 
             with utils.timer(
                     logger, 'normalizer executed', input_size=self.mainfile_file.size):
@@ -207,7 +209,7 @@ class Calc(Proc):
             if self._parser_backend.status[0] != 'ParseSuccess':
                 logger.error(self._parser_backend.status[1])
                 error = self._parser_backend.status[1]
-                self.fail(error, normalizer=normalizer_name, level=logging.WARNING)
+                self.fail(error, level=logging.WARNING, **context)
                 return
             logger.debug(
                 'completed normalizer successfully', normalizer=normalizer_name)
