@@ -116,7 +116,8 @@ class Calc(Proc):
         logger = super().get_logger()
         logger = logger.bind(
             upload_id=self.upload_id, mainfile=self.mainfile,
-            upload_hash=upload_hash, calc_hash=calc_hash, **kwargs)
+            upload_hash=upload_hash, calc_hash=calc_hash,
+            archive_id='%s/%s' % (upload_hash, calc_hash), **kwargs)
 
         return logger
 
@@ -182,12 +183,10 @@ class Calc(Proc):
 
     @task
     def parsing(self):
-        logger = self.get_calc_logger(parser=self.parser)
+        logger = self.get_calc_logger(parser=self.parser, step=self.parser)
         parser = parser_dict[self.parser]
 
-        with utils.timer(
-                logger, 'parser executed', step=self.parser,
-                input_size=self.mainfile_file.size):
+        with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
             self._parser_backend = parser.run(self.mainfile_tmp_path, logger=logger)
 
         if self._parser_backend.status[0] != 'ParseSuccess':
@@ -199,11 +198,10 @@ class Calc(Proc):
     def normalizing(self):
         for normalizer in normalizers:
             normalizer_name = normalizer.__name__
-            logger = self.get_calc_logger(normalizer=normalizer_name)
+            logger = self.get_calc_logger(normalizer=normalizer_name, step=normalizer_name)
 
             with utils.timer(
-                    logger, 'normalizer executed', step=normalizer_name,
-                    input_size=self.mainfile_file.size):
+                    logger, 'normalizer executed', input_size=self.mainfile_file.size):
                 normalizer(self._parser_backend).normalize(logger=logger)
 
             if self._parser_backend.status[0] != 'ParseSuccess':
