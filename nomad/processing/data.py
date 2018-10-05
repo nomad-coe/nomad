@@ -24,7 +24,7 @@ calculations, and files
     :members:
 """
 
-from typing import List, Any
+from typing import List, Any, ContextManager
 from datetime import datetime
 from elasticsearch.exceptions import NotFoundError
 from mongoengine import StringField, BooleanField, DateTimeField, DictField, IntField
@@ -81,6 +81,7 @@ class Calc(Proc):
         self._upload = None
         self._calc_proc_logwriter = None
         self._calc_proc_logfile = None
+        self._calc_proc_logwriter_ctx: ContextManager = None
 
     @classmethod
     def get(cls, id):
@@ -130,9 +131,10 @@ class Calc(Proc):
 
         if self._calc_proc_logwriter is None:
             self._calc_proc_logfile = ArchiveLogFile(self.archive_id)
-            self._calc_proc_logwriter = self._calc_proc_logfile.open('wt')
+            self._calc_proc_logwriter_ctx = self._calc_proc_logfile.open('wt')
+            self._calc_proc_logwriter = self._calc_proc_logwriter_ctx.__enter__()  # pylint: disable=E1101
 
-        def save_to_cacl_log(logger, method_name, event_dict):
+        def save_to_calc_log(logger, method_name, event_dict):
             program = event_dict.get('normalizer', 'parser')
             event = event_dict.get('event', '')
             entry = '[%s] %s: %s' % (method_name, program, event)
@@ -144,7 +146,7 @@ class Calc(Proc):
             self._calc_proc_logwriter.write('\n')
             return event_dict
 
-        return wrap_logger(logger, processors=[save_to_cacl_log])
+        return wrap_logger(logger, processors=[save_to_calc_log])
 
     @property
     def json_dict(self):
@@ -251,7 +253,7 @@ class Calc(Proc):
             with utils.timer(
                     logger, 'archived log', step='archive_log',
                     input_size=self.mainfile_file.size) as log_data:
-                self._calc_proc_logwriter.close()
+                self._calc_proc_logwriter_ctx.__exit__(None, None, None)  # pylint: disable=E1101
                 self._calc_proc_logwriter = None
 
                 log_data.update(log_size=self._calc_proc_logfile.size)
@@ -456,16 +458,17 @@ class Upload(Chord):
                 for parser in parsers:
                     try:
                         potential_mainfile = self._upload.get_file(filename)
-                        if parser.is_mainfile(filename, lambda fn: potential_mainfile.open()):
-                            mainfile_path = potential_mainfile.os_path
-                            calc = Calc.create(
-                                archive_id='%s/%s' % (self.upload_hash, utils.hash(filename)),
-                                mainfile=filename, parser=parser.name,
-                                mainfile_tmp_path=mainfile_path,
-                                upload_id=self.upload_id)
+                        with potential_mainfile.open() as mainfile_f:
+                            if parser.is_mainfile(filename, lambda fn: mainfile_f):
+                                mainfile_path = potential_mainfile.os_path
+                                calc = Calc.create(
+                                    archive_id='%s/%s' % (self.upload_hash, utils.hash(filename)),
+                                    mainfile=filename, parser=parser.name,
+                                    mainfile_tmp_path=mainfile_path,
+                                    upload_id=self.upload_id)
 
-                            calc.process()
-                            total_calcs += 1
+                                calc.process()
+                                total_calcs += 1
                     except Exception as e:
                         self.error(
                             'exception while matching pot. mainfile',
