@@ -43,7 +43,8 @@ def example_elastic_calc(normalized_template_example: LocalBackend, elastic) \
         additional=dict(
             mainfile='/test/mainfile',
             upload_time=datetime.now(),
-            staging=True, restricted=False, user_id='me@gmail.com'),
+            staging=True, restricted=False, user_id='me@gmail.com',
+            aux_files=['/test/aux1', '/test/aux2']),
         refresh='true')
 
     yield entry
@@ -61,6 +62,8 @@ def assert_elastic_calc(calc: RepoCalc):
     for property in RepoCalc._doc_type.mapping:
         property = key_mappings.get(property, property)
         assert getattr(calc, property) is not None
+
+    assert len(getattr(calc, 'aux_files')) > 0
 
 
 def test_create_elastic_calc(example_elastic_calc: RepoCalc, no_warn):

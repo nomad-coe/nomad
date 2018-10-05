@@ -91,6 +91,12 @@ class Calc(Proc):
     def mainfile_file(self) -> File:
         return File(self.mainfile_tmp_path)
 
+    @property
+    def upload(self) -> 'Upload':
+        if not self._upload:
+            self._upload = Upload.get(self.upload_id)
+        return self._upload
+
     def delete(self):
         """
         Delete this calculation and all associated data. This includes all files,
@@ -162,9 +168,8 @@ class Calc(Proc):
 
     @process
     def process(self):
-        self._upload = Upload.get(self.upload_id)
         logger = self.get_logger()
-        if self._upload is None:
+        if self.upload is None:
             logger.error('calculation upload does not exist')
 
         try:
@@ -181,7 +186,7 @@ class Calc(Proc):
                 logger.error('could not close calculation proc log', exc_info=e)
 
             # inform parent proc about completion
-            self._upload.completed_child()
+            self.upload.completed_child()
 
     @task
     def parsing(self):
@@ -223,10 +228,11 @@ class Calc(Proc):
         upload_hash, calc_hash = self.archive_id.split('/')
         additional = dict(
             mainfile=self.mainfile,
-            upload_time=self._upload.upload_time,
+            upload_time=self.upload.upload_time,
             staging=True,
             restricted=False,
-            user_id=self._upload.user_id)
+            user_id=self.upload.user_id,
+            aux_files=list(self.upload.upload_file.get_siblings(self.mainfile)))
 
         with utils.timer(logger, 'indexed', step='index'):
             # persist to elastic search
@@ -303,7 +309,7 @@ class Upload(Chord):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._upload = None
+        self._upload_file = None
 
     @classmethod
     def get(cls, id):
@@ -421,21 +427,27 @@ class Upload(Chord):
     def uploading(self):
         pass
 
+    @property
+    def upload_file(self):
+        """ The :class:`UploadFile` instance that represents the uploaded file of this upload. """
+        if not self._upload_file:
+            self._upload_file = UploadFile(self.upload_id, local_path=self.local_path)
+        return self._upload_file
+
     @task
     def extracting(self):
         logger = self.get_logger()
         try:
-            self._upload = UploadFile(self.upload_id, local_path=self.local_path)
             with utils.timer(
                     logger, 'upload extracted', step='extracting',
-                    upload_size=self._upload.size):
-                self._upload.extract()
+                    upload_size=self.upload_file.size):
+                self.upload_file.extract()
         except KeyError as e:
             self.fail('process request for non existing upload', level=logging.INFO)
             return
 
         try:
-            self.upload_hash = self._upload.hash()
+            self.upload_hash = self.upload_file.hash()
         except Exception as e:
             self.fail('could not create upload hash', e)
             return
@@ -451,13 +463,13 @@ class Upload(Chord):
         # TODO: deal with multiple possible parser specs
         with utils.timer(
                 logger, 'upload extracted', step='matching',
-                upload_size=self._upload.size,
-                upload_filecount=len(self._upload.filelist)):
+                upload_size=self.upload_file.size,
+                upload_filecount=len(self.upload_file.filelist)):
             total_calcs = 0
-            for filename in self._upload.filelist:
+            for filename in self.upload_file.filelist:
                 for parser in parsers:
                     try:
-                        potential_mainfile = self._upload.get_file(filename)
+                        potential_mainfile = self.upload_file.get_file(filename)
                         with potential_mainfile.open() as mainfile_f:
                             if parser.is_mainfile(filename, lambda fn: mainfile_f):
                                 mainfile_path = potential_mainfile.os_path
