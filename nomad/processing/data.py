@@ -117,7 +117,7 @@ class Calc(Proc):
         logger = logger.bind(
             upload_id=self.upload_id, mainfile=self.mainfile,
             upload_hash=upload_hash, calc_hash=calc_hash,
-            archive_id='%s/%s' % (upload_hash, calc_hash), **kwargs)
+            archive_id=self.archive_id, **kwargs)
 
         return logger
 
@@ -467,7 +467,7 @@ class Upload(Chord):
                             calc.process()
                             total_calcs += 1
                     except Exception as e:
-                        self.warning(
+                        self.error(
                             'exception while matching pot. mainfile',
                             mainfile=filename, exc_info=e)
 
