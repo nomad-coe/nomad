@@ -111,10 +111,11 @@ class ZippedFile(File):
         self.logger.debug('open file')
         try:
             with ZipFile(self.os_path) as zip_file:
-                with zip_file.open(self.filename, *args, **kwargs) as f:
-                    yield f
+                yield zip_file.open(self.filename, *args, **kwargs)
         except FileNotFoundError:
             raise KeyError()
+        except KeyError as e:
+            raise e
         except Exception as e:
             msg = 'Could not read upload.'
             self.logger.error(msg, exc_info=e)

@@ -461,6 +461,7 @@ class UploadFileRes(Resource):
                 with uploadFile.open('wb') as f:
                     while not request.stream.is_exhausted:
                         f.write(request.stream.read(1024))
+
             except Exception as e:
                 logger.error('Error on streaming upload', exc_info=e)
                 abort(400, message='Some IO went wrong, download probably aborted/disrupted.')
@@ -665,13 +666,13 @@ def get_calc_proc_log(upload_hash, calc_hash):
 
     try:
         archive = ArchiveLogFile(archive_id)
-        arhchive_path = archive.os_path
+        archive_path = archive.os_path
 
         rv = send_file(
-            arhchive_path,
+            archive_path,
             mimetype='application/text',
             as_attachment=True,
-            attachment_filename=os.path.basename(arhchive_path))
+            attachment_filename=os.path.basename(archive_path))
 
         return rv
     except KeyError:
@@ -712,13 +713,13 @@ def get_calc(upload_hash, calc_hash):
 
     try:
         archive = ArchiveFile(archive_id)
-        arhchive_path = archive.os_path
+        archive_path = archive.os_path
 
         rv = send_file(
-            arhchive_path,
+            archive_path,
             mimetype='application/json',
             as_attachment=True,
-            attachment_filename=os.path.basename(arhchive_path))
+            attachment_filename=os.path.basename(archive_path))
 
         if config.files.compress_archive:
             rv.headers['Content-Encoding'] = 'gzip'
@@ -728,6 +729,67 @@ def get_calc(upload_hash, calc_hash):
         abort(404, message='Archive %s does not exist.' % archive_id)
     except FileNotFoundError:
         abort(404, message='Archive %s does not exist.' % archive_id)
+    except Exception as e:
+        logger = get_logger(
+            __name__, endpoint='archive', action='get',
+            upload_hash=upload_hash, calc_hash=calc_hash)
+        logger.error('Exception on accessing archive', exc_info=e)
+        abort(500, message='Could not accessing the archive.')
+
+
+@app.route('%s/raw/<string:upload_hash>/<string:calc_hash>' % base_path, methods=['GET'])
+def get_raw(upload_hash, calc_hash):
+    """
+    Get calculation mainfile raw data. Calcs are references via *upload_hash*, *calc_hash*
+    pairs. Returns the mainfile, unless an aux_file is specified. Aux files are stored
+    in repository entries.
+
+    .. :quickref: repo; Get calculation raw data.
+
+    **Example request**:
+
+    .. sourcecode:: http
+
+        GET /nomad/api/raw/W36aqCzAKxOCfIiMFsBJh3nHPb4a/7ddvtfRfZAvc3Crr7jOJ8UH0T34I HTTP/1.1
+        Accept: application/gz
+
+    :param string upload_hash: the hash of the upload (from uploaded file contents)
+    :param string calc_hash: the hash of the calculation (from mainfile)
+    :qparam str auxfile: an optional aux_file to download the respective aux file, default is mainfile
+    :resheader Content-Type: application/json
+    :status 200: calc raw data successfully retrieved
+    :status 404: calc with given hashes does not exist or the given aux file does not exist
+    :returns: the raw data in body
+    """
+    archive_id = '%s/%s' % (upload_hash, calc_hash)
+    try:
+        repo = RepoCalc.get(id=archive_id)
+    except NotFoundError:
+        abort(404, message='There is no calculation for %s/%s' % (upload_hash, calc_hash))
+    except Exception as e:
+        abort(500, message=str(e))
+
+    auxfile = request.args.get('auxfile', None)
+    if auxfile:
+        filename = os.path.join(os.path.dirname(repo.mainfile), auxfile)
+    else:
+        filename = repo.mainfile
+
+    try:
+        upload = Upload.get(repo.upload_id)
+        upload_file = UploadFile(upload.upload_id, local_path=upload.local_path)
+        the_file = upload_file.get_file(filename)
+        with the_file.open() as f:
+            rv = send_file(
+                f,
+                mimetype='application/octet-stream',
+                as_attachment=True,
+                attachment_filename=os.path.basename(filename))
+            return rv
+    except KeyError:
+        abort(404, message='The file %s does not exist.' % filename)
+    except FileNotFoundError:
+        abort(404, message='The file %s does not exist.' % filename)
     except Exception as e:
         logger = get_logger(
             __name__, endpoint='archive', action='get',

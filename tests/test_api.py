@@ -3,6 +3,7 @@ import time
 import json
 import zlib
 import re
+import os.path
 from mongoengine import connect
 from mongoengine.connection import disconnect
 from datetime import datetime, timedelta
@@ -19,6 +20,7 @@ from nomad.files import UploadFile  # noqa
 from nomad.processing import Upload  # noqa
 
 from tests.processing.test_data import example_files  # noqa
+from tests.test_files import example_file  # noqa
 
 # import fixtures
 from tests.test_files import clear_files, archive, archive_log, archive_config  # noqa pylint: disable=unused-import
@@ -320,4 +322,36 @@ def test_get_calc_proc_log(client, archive_log, no_warn):
 
 def test_get_non_existing_archive(client, no_warn):
     rv = client.get('/archive/%s' % 'doesnt/exist')
+    assert rv.status_code == 404
+
+
+@pytest.fixture
+def example_repo_with_files(mockmongo, example_elastic_calc):
+    upload = Upload(id=example_elastic_calc.upload_id, local_path=os.path.abspath(example_file))
+    upload.create_time = datetime.now()
+    upload.user_id = 'does@not.exist'
+    upload.save()
+
+    return example_elastic_calc
+
+
+def test_raw_mainfile(client, example_repo_with_files, no_warn):
+    rv = client.get('/raw/%s' % example_repo_with_files.archive_id)
+    assert rv.status_code == 200
+    assert len(rv.data) > 0
+
+
+def test_raw_auxfile(client, example_repo_with_files, no_warn):
+    rv = client.get('/raw/%s?auxfile=1.aux' % example_repo_with_files.archive_id)
+    assert rv.status_code == 200
+    assert len(rv.data) == 0
+
+
+def test_raw_missing_auxfile(client, example_repo_with_files, no_warn):
+    rv = client.get('/raw/%s?auxfile=doesnotexist' % example_repo_with_files.archive_id)
+    assert rv.status_code == 404
+
+
+def test_raw_missing_mainfile(client, no_warn):
+    rv = client.get('/raw/doesnot/exist')
     assert rv.status_code == 404
