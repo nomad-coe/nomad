@@ -8,6 +8,8 @@ from mongoengine import connect
 from mongoengine.connection import disconnect
 from datetime import datetime, timedelta
 import base64
+import zipfile
+import io
 
 from nomad import config
 # for convinience we test the api without path prefix
@@ -356,8 +358,9 @@ def test_raw_all_files(client, example_repo_with_files, no_warn):
     rv = client.get('/raw/%s?all=1' % example_repo_with_files.archive_id)
     assert rv.status_code == 200
     assert len(rv.data) > 0
-    with open('test.zip', 'wb') as f:
-        f.write(rv.data)
+    with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
+        assert zip_file.testzip() is None
+        assert len(zip_file.namelist()) == 5
 
 
 def test_raw_missing_mainfile(client, no_warn):

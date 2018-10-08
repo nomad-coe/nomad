@@ -135,7 +135,7 @@ class CalcProcReproduction(UploadFile):
     an fake 'upload' that only contains the respective calculation data. This allows us
     to locally run processing code that is very similar to the one used on the server.
     """
-    def __init__(self, archive_id: str) -> CalcProcReproduction:
+    def __init__(self, archive_id: str) -> None:
         local_path = os.path.join(config.fs.tmp, '%s.zip' % archive_id)
         if not os.path.exists(local_path):
             # download raw if not already downloaded
@@ -146,20 +146,20 @@ class CalcProcReproduction(UploadFile):
 
         super().__init__(upload_id='tmp_%s' % archive_id, local_path=local_path)
 
-    def parse(parser_name: str = None):
+    def parse(self, parser_name: str = None):
         """
         Run the given parser on the downloaded calculation. If no parser is given,
         do parser matching and use the respective parser.
         """
         pass
 
-    def normalize(normalizer_name: str):
+    def normalize(self, normalizer_name: str):
         """
         Parse the downloaded calculation and run the given normalizer.
         """
         pass
 
-    def normalize_all():
+    def normalize_all(self):
         """
         Parse the downloaded calculation and run the whole normalizer chain.
         """

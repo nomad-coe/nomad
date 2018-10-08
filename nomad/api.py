@@ -23,7 +23,6 @@ import os.path
 import zipstream
 from zipfile import ZIP_DEFLATED
 from contextlib import contextmanager
-import types
 
 from nomad import config, infrastructure
 from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile
