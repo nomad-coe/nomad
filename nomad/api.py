@@ -12,13 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from flask import Flask, request, g, jsonify, send_file
+from werkzeug.exceptions import HTTPException
+from flask import Flask, request, g, jsonify, send_file, Response
 from flask_restful import Resource, Api, abort
 from flask_cors import CORS
 from flask_httpauth import HTTPBasicAuth
 from elasticsearch.exceptions import NotFoundError
 from datetime import datetime
 import os.path
+import zipstream
+from zipfile import ZIP_DEFLATED
+from contextlib import contextmanager
+import types
 
 from nomad import config, infrastructure
 from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile
@@ -742,7 +747,7 @@ def get_raw(upload_hash, calc_hash):
     """
     Get calculation mainfile raw data. Calcs are references via *upload_hash*, *calc_hash*
     pairs. Returns the mainfile, unless an aux_file is specified. Aux files are stored
-    in repository entries.
+    in repository entries. See ``/repo`` endpoint.
 
     .. :quickref: repo; Get calculation raw data.
 
@@ -756,6 +761,7 @@ def get_raw(upload_hash, calc_hash):
     :param string upload_hash: the hash of the upload (from uploaded file contents)
     :param string calc_hash: the hash of the calculation (from mainfile)
     :qparam str auxfile: an optional aux_file to download the respective aux file, default is mainfile
+    :qparam all: set any value to get a .zip with main and aux files instead of an individual file
     :resheader Content-Type: application/json
     :status 200: calc raw data successfully retrieved
     :status 404: calc with given hashes does not exist or the given aux file does not exist
@@ -769,33 +775,76 @@ def get_raw(upload_hash, calc_hash):
     except Exception as e:
         abort(500, message=str(e))
 
-    auxfile = request.args.get('auxfile', None)
-    if auxfile:
-        filename = os.path.join(os.path.dirname(repo.mainfile), auxfile)
-    else:
-        filename = repo.mainfile
+    @contextmanager
+    def raw_file(filename):
+        try:
+            upload = Upload.get(repo.upload_id)
+            upload_file = UploadFile(upload.upload_id, local_path=upload.local_path)
+            the_file = upload_file.get_file(filename)
+            with the_file.open() as f:
+                yield f
+        except KeyError:
+            abort(404, message='The file %s does not exist.' % filename)
+        except FileNotFoundError:
+            abort(404, message='The file %s does not exist.' % filename)
 
-    try:
-        upload = Upload.get(repo.upload_id)
-        upload_file = UploadFile(upload.upload_id, local_path=upload.local_path)
-        the_file = upload_file.get_file(filename)
-        with the_file.open() as f:
-            rv = send_file(
-                f,
-                mimetype='application/octet-stream',
-                as_attachment=True,
-                attachment_filename=os.path.basename(filename))
-            return rv
-    except KeyError:
-        abort(404, message='The file %s does not exist.' % filename)
-    except FileNotFoundError:
-        abort(404, message='The file %s does not exist.' % filename)
-    except Exception as e:
-        logger = get_logger(
-            __name__, endpoint='archive', action='get',
-            upload_hash=upload_hash, calc_hash=calc_hash)
-        logger.error('Exception on accessing archive', exc_info=e)
-        abort(500, message='Could not accessing the archive.')
+    get_all = request.args.get('all', None) is not None
+    if get_all:
+        # retrieve the 'whole' calculation, meaning the mainfile and all aux files as
+        # a .zip archive
+        def generator():
+            """ Stream a zip file with all files using zipstream. """
+            def iterator():
+                """ Replace the directory based iter of zipstream with an iter over all raw files. """
+                def write(filename):
+                    """ Write a raw file to the zipstream. """
+                    def iter_content():
+                        """ Iterate the raw file contents. """
+                        with raw_file(filename) as file_object:
+                            while True:
+                                data = file_object.read(1024)
+                                if not data:
+                                    break
+                                yield data
+                    return dict(arcname=filename, iterable=iter_content())
+
+                yield write(repo.mainfile)
+                for auxfile in repo.aux_files:
+                    yield write(os.path.join(os.path.dirname(repo.mainfile), auxfile))
+
+            zip_stream = zipstream.ZipFile(mode='w', compression=ZIP_DEFLATED)
+            zip_stream.paths_to_write = iterator()
+
+            for chunk in zip_stream:
+                yield chunk
+
+        response = Response(generator(), mimetype='application/zip')
+        response.headers['Content-Disposition'] = 'attachment; filename={}'.format('%s.zip' % archive_id)
+        return response
+    else:
+        # retrieve an individual raw file
+        auxfile = request.args.get('auxfile', None)
+        if auxfile:
+            filename = os.path.join(os.path.dirname(repo.mainfile), auxfile)
+        else:
+            filename = repo.mainfile
+
+        try:
+            with raw_file(filename) as f:
+                rv = send_file(
+                    f,
+                    mimetype='application/octet-stream',
+                    as_attachment=True,
+                    attachment_filename=os.path.basename(filename))
+                return rv
+        except HTTPException as e:
+            raise e
+        except Exception as e:
+            logger = get_logger(
+                __name__, endpoint='archive', action='get',
+                upload_hash=upload_hash, calc_hash=calc_hash)
+            logger.error('Exception on accessing archive', exc_info=e)
+            abort(500, message='Could not accessing the archive.')
 
 
 @app.route('%s/admin/<string:operation>' % base_path, methods=['POST'])

@@ -352,6 +352,14 @@ def test_raw_missing_auxfile(client, example_repo_with_files, no_warn):
     assert rv.status_code == 404
 
 
+def test_raw_all_files(client, example_repo_with_files, no_warn):
+    rv = client.get('/raw/%s?all=1' % example_repo_with_files.archive_id)
+    assert rv.status_code == 200
+    assert len(rv.data) > 0
+    with open('test.zip', 'wb') as f:
+        f.write(rv.data)
+
+
 def test_raw_missing_mainfile(client, no_warn):
     rv = client.get('/raw/doesnot/exist')
     assert rv.status_code == 404
