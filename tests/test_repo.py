@@ -17,10 +17,11 @@ from typing import Generator
 from datetime import datetime
 from elasticsearch import NotFoundError
 
-from nomad.files import ArchiveFile
+from nomad.files import ArchiveFile, UploadFile
 from nomad.parsing import LocalBackend
 from nomad.repo import AlreadyExists, RepoCalc, key_mappings
 
+from tests.test_files import example_file  # noqa
 from tests.test_normalizing import normalized_template_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
 
@@ -28,6 +29,11 @@ from tests.test_parsing import parsed_template_example  # pylint: disable=unused
 @pytest.fixture(scope='function')
 def example_elastic_calc(normalized_template_example: LocalBackend, elastic) \
         -> Generator[RepoCalc, None, None]:
+
+    upload_file = UploadFile('test_upload_id', local_path=example_file)
+    mainfile = next(filename for filename in upload_file.filelist if 'template.json' in filename)
+    auxfiles = list(upload_file.get_siblings(mainfile))
+
     try:
         calc = RepoCalc.get(id='test_upload_hash/test_calc_hash')
     except NotFoundError:
@@ -41,9 +47,10 @@ def example_elastic_calc(normalized_template_example: LocalBackend, elastic) \
         calc_hash='test_calc_hash',
         upload_id='test_upload_id',
         additional=dict(
-            mainfile='/test/mainfile',
+            mainfile=mainfile,
             upload_time=datetime.now(),
-            staging=True, restricted=False, user_id='me@gmail.com'),
+            staging=True, restricted=False, user_id='me@gmail.com',
+            aux_files=auxfiles),
         refresh='true')
 
     yield entry
@@ -61,6 +68,8 @@ def assert_elastic_calc(calc: RepoCalc):
     for property in RepoCalc._doc_type.mapping:
         property = key_mappings.get(property, property)
         assert getattr(calc, property) is not None
+
+    assert len(getattr(calc, 'aux_files')) > 0
 
 
 def test_create_elastic_calc(example_elastic_calc: RepoCalc, no_warn):

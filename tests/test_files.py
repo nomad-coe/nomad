@@ -44,9 +44,8 @@ def clear_files():
 class TestObjects:
     @pytest.fixture()
     def existing_example_file(self, clear_files):
-        out = ObjectFile(example_bucket, 'example_file', ext='json').open(mode='wt')
-        json.dump(example_data, out)
-        out.close()
+        with ObjectFile(example_bucket, 'example_file', ext='json').open(mode='wt') as out:
+            json.dump(example_data, out)
 
         yield 'example_file', 'json'
 
@@ -65,9 +64,8 @@ class TestObjects:
         name, ext = existing_example_file
 
         assert ObjectFile(example_bucket, name, ext).exists()
-        file = ObjectFile(example_bucket, name, ext=ext).open()
-        json.load(file)
-        file.close()
+        with ObjectFile(example_bucket, name, ext=ext).open() as f:
+            json.load(f)
 
     def test_delete(self, existing_example_file):
         name, ext = existing_example_file
@@ -133,17 +131,29 @@ class TestUploadFile:
         shutil.copyfile(example_file, upload.os_path)
         yield upload
 
-    def test_upload(self, upload: UploadFile):
+    def assert_upload(self, upload: UploadFile):
         assert upload.exists()
 
+        assert len(upload.filelist) == 5
+        has_json = False
+        for filename in upload.filelist:
+            the_file = upload.get_file(filename)
+            assert the_file.exists()
+            assert the_file.size >= 0
+            if the_file.path.endswith('.json'):
+                has_json = True
+                assert the_file.size > 0
+                with the_file.open() as f:
+                    f.read()
+                break
+        assert has_json
+
+    def test_upload_extracted(self, upload: UploadFile):
         with upload:
-            assert len(upload.filelist) == 5
-            # now just try to open the first file (not directory), without error
-            for filename in upload.filelist:
-                the_file = upload.get_file(filename)
-                if the_file.os_path.endswith('.xml'):
-                    the_file.open().close()
-                    break
+            self.assert_upload(upload)
+
+    def test_upload_not_extracted(self, upload: UploadFile):
+        self.assert_upload(upload)
 
     def test_delete_upload(self, upload: UploadFile):
         upload.delete()
@@ -157,6 +167,12 @@ class TestUploadFile:
 
         with upload_same_file:
             assert hash == upload_same_file.hash()
+
+    def test_siblings(self, upload: UploadFile, no_warn):
+        with upload:
+            siblings = list(upload.get_siblings('examples_template/template.json'))
+            assert len(siblings) == 4
+            assert all(sibling.endswith('.aux') for sibling in siblings)
 
 
 class TestLocalUploadFile(TestUploadFile):
@@ -178,9 +194,8 @@ class TestLocalUploadFile(TestUploadFile):
 @pytest.fixture(scope='function')
 def archive_log(clear_files, archive_config):
     archive_log = ArchiveLogFile('__test_upload_hash/__test_calc_hash')
-    f = archive_log.open('wt')
-    f.write('This is a test')
-    f.close()
+    with archive_log.open('wt') as f:
+        f.write('This is a test')
 
     yield archive_log
 
@@ -189,4 +204,5 @@ class TestArchiveLogFile:
 
     def test_archive_log_file(self, archive_log):
         assert archive_log.exists()
-        assert 'test' in archive_log.open('rt').read()
+        with archive_log.open('rt') as f:
+            assert 'test' in f.read()

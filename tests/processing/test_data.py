@@ -66,7 +66,7 @@ def run_processing(uploaded_id: str) -> Upload:
     return upload
 
 
-def assert_processing(upload: Upload):
+def assert_processing(upload: Upload, mocksearch=None):
     assert upload.completed
     assert upload.current_task == 'cleanup'
     assert upload.upload_hash is not None
@@ -79,14 +79,20 @@ def assert_processing(upload: Upload):
         assert calc.status == 'SUCCESS', calc.archive_id
         assert ArchiveFile(calc.archive_id).exists()
         assert ArchiveLogFile(calc.archive_id).exists()
-        assert 'a test' in ArchiveLogFile(calc.archive_id).open('rt').read()
+        with ArchiveLogFile(calc.archive_id).open('rt') as f:
+            assert 'a test' in f.read()
         assert len(calc.errors) == 0
+
+        if mocksearch:
+            repo = mocksearch[calc.archive_id]
+            assert repo is not None
+            assert len(repo.get('aux_files')) == 4
 
 
 @pytest.mark.timeout(30)
-def test_processing(uploaded_id, worker, no_warn):
+def test_processing(uploaded_id, worker, mocksearch, no_warn):
     upload = run_processing(uploaded_id)
-    assert_processing(upload)
+    assert_processing(upload, mocksearch)
 
 
 @pytest.mark.parametrize('uploaded_id', [example_files[1]], indirect=True)

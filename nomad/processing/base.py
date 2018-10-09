@@ -200,7 +200,7 @@ class Proc(Document, metaclass=ProcMetaclass):
 
         self.save()
 
-    def warning(self, *warnings, log_level=logging.warning, **kwargs):
+    def warning(self, *warnings, log_level=logging.WARNING, **kwargs):
         """ Allows to save warnings. Takes strings or exceptions as args. """
         assert not self.completed
 

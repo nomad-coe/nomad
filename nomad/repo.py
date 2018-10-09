@@ -76,6 +76,8 @@ class RepoCalc(ElasticDocument):
     configuration_raw_gid = Keyword()
     XC_functional_name = Keyword()
 
+    aux_files = Keyword()
+
     @property
     def archive_id(self) -> str:
         """ The unique id for this calculation. """

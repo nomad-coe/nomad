@@ -26,6 +26,10 @@ import requests
 from requests.auth import HTTPBasicAuth
 import click
 
+from nomad import config
+from nomad.files import UploadFile
+
+
 api_base = 'http://localhost/nomad/api'
 user = 'other@gmail.com'
 pw = 'nomad'
@@ -44,13 +48,15 @@ def handle_common_errors(func):
 
 
 @handle_common_errors
-def upload_file(file_path, name=None, offline=False):
+def upload_file(file_path: str, name: str = None, offline: bool = False):
     """
     Upload a file to nomad.
 
     Arguments:
-        file_path: Path to the file, absolute or relative to call directory.
-        name: Optional name, default is the file_path's basename
+        file_path: path to the file, absolute or relative to call directory
+        name: optional name, default is the file_path's basename
+        offline: allows to process data without upload, requires client to be run on the server
+
     """
     auth = HTTPBasicAuth(user, pw)
 
@@ -113,6 +119,51 @@ def walk_through_files(path, extension='.zip'):
         for filename in filenames:
             if filename.endswith(extension):
                 yield os.path.abspath(os.path.join(dirpath, filename))
+
+
+class CalcProcReproduction(UploadFile):
+    """
+    Instances represent a local reproduction of the processing for a single calculation.
+    It allows to download raw data from a nomad server and reproduce its processing
+    (parsing, normalizing) with the locally installed parsers and normalizers.
+
+    The use-case is error/warning reproduction. Use ELK to identify errors, use
+    the upload, archive ids/hashes to given by ELK, and reproduce and fix the error
+    in your development environment.
+
+    This is a class of :class:`UploadFile` the downloaded raw data will be treated as
+    an fake 'upload' that only contains the respective calculation data. This allows us
+    to locally run processing code that is very similar to the one used on the server.
+    """
+    def __init__(self, archive_id: str) -> None:
+        local_path = os.path.join(config.fs.tmp, '%s.zip' % archive_id)
+        if not os.path.exists(local_path):
+            # download raw if not already downloaded
+            req = requests.get('%s/raw/%s?all=1' % (api_base, archive_id), stream=True)
+            with open(local_path, 'wb') as f:
+                for chunk in req.iter_content():
+                    f.write(chunk)
+
+        super().__init__(upload_id='tmp_%s' % archive_id, local_path=local_path)
+
+    def parse(self, parser_name: str = None):
+        """
+        Run the given parser on the downloaded calculation. If no parser is given,
+        do parser matching and use the respective parser.
+        """
+        pass
+
+    def normalize(self, normalizer_name: str):
+        """
+        Parse the downloaded calculation and run the given normalizer.
+        """
+        pass
+
+    def normalize_all(self):
+        """
+        Parse the downloaded calculation and run the whole normalizer chain.
+        """
+        pass
 
 
 @click.group()
