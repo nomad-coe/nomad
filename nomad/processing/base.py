@@ -29,6 +29,8 @@ import nomad.patch  # pylint: disable=unused-import
 
 
 if config.logstash.enabled:
+    utils.configure_logging()
+
     def initialize_logstash(logger=None, loglevel=logging.DEBUG, **kwargs):
         utils.add_logstash_handler(logger)
         return logger
