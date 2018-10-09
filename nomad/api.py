@@ -767,6 +767,8 @@ def get_raw(upload_hash, calc_hash):
     :returns: the raw data in body
     """
     archive_id = '%s/%s' % (upload_hash, calc_hash)
+    logger = get_logger(__name__, endpoint='raw', action='get', archive_id=archive_id)
+
     try:
         repo = RepoCalc.get(id=archive_id)
     except NotFoundError:
@@ -808,8 +810,11 @@ def get_raw(upload_hash, calc_hash):
                     return dict(arcname=filename, iterable=iter_content())
 
                 yield write(repo.mainfile)
-                for auxfile in repo.aux_files:
-                    yield write(os.path.join(os.path.dirname(repo.mainfile), auxfile))
+                try:
+                    for auxfile in repo.aux_files:
+                        yield write(os.path.join(os.path.dirname(repo.mainfile), auxfile))
+                except Exception as e:
+                    logger.error('Exception while accessing auxfiles.', exc_info=e)
 
             zip_stream = zipstream.ZipFile(mode='w', compression=ZIP_DEFLATED)
             zip_stream.paths_to_write = iterator()

@@ -36,11 +36,16 @@ mongo_client = None
 def setup():
     """ Creates connections to mongodb and elastic search. """
     global elastic_client
+    setup_logging()
     setup_mongo()
     setup_elastic()
 
     from nomad import user
     user.ensure_test_users()
+
+
+def setup_logging():
+    utils.configure_logging()
 
 
 def setup_mongo():

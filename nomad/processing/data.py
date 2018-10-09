@@ -24,7 +24,7 @@ calculations, and files
     :members:
 """
 
-from typing import List, Any, ContextManager
+from typing import List, Any, ContextManager, Tuple, Generator
 from datetime import datetime
 from elasticsearch.exceptions import NotFoundError
 from mongoengine import StringField, BooleanField, DateTimeField, DictField, IntField
@@ -456,8 +456,32 @@ class Upload(Chord):
             self.fail('The same file was already uploaded and processed.', level=logging.INFO)
             return
 
+    def match_mainfiles(self) -> Generator[Tuple[File, str, object], None, None]:
+        """
+        Generator function that matches all files in the upload to all parsers to
+        determine the upload's mainfiles.
+
+        Returns:
+            Tuples of mainfile, filename, and parsers
+        """
+        for filename in self.upload_file.filelist:
+            potential_mainfile = self.upload_file.get_file(filename)
+            for parser in parsers:
+                try:
+                    with potential_mainfile.open() as mainfile_f:
+                        if parser.is_mainfile(filename, lambda fn: mainfile_f):
+                            yield potential_mainfile, filename, parser
+                except Exception as e:
+                    self.error(
+                        'exception while matching pot. mainfile',
+                        mainfile=filename, exc_info=e)
+
     @task
     def parse_all(self):
+        """
+        Identified mainfail/parser combinations among the upload's files, creates
+        respective :class:`Calc` instances, and triggers their processing.
+        """
         logger = self.get_logger()
 
         # TODO: deal with multiple possible parser specs
@@ -466,25 +490,15 @@ class Upload(Chord):
                 upload_size=self.upload_file.size,
                 upload_filecount=len(self.upload_file.filelist)):
             total_calcs = 0
-            for filename in self.upload_file.filelist:
-                for parser in parsers:
-                    try:
-                        potential_mainfile = self.upload_file.get_file(filename)
-                        with potential_mainfile.open() as mainfile_f:
-                            if parser.is_mainfile(filename, lambda fn: mainfile_f):
-                                mainfile_path = potential_mainfile.os_path
-                                calc = Calc.create(
-                                    archive_id='%s/%s' % (self.upload_hash, utils.hash(filename)),
-                                    mainfile=filename, parser=parser.name,
-                                    mainfile_tmp_path=mainfile_path,
-                                    upload_id=self.upload_id)
+            for mainfile, filename, parser in self.match_mainfiles():
+                calc = Calc.create(
+                    archive_id='%s/%s' % (self.upload_hash, utils.hash(filename)),
+                    mainfile=filename, parser=parser.name,
+                    mainfile_tmp_path=mainfile.os_path,
+                    upload_id=self.upload_id)
 
-                                calc.process()
-                                total_calcs += 1
-                    except Exception as e:
-                        self.error(
-                            'exception while matching pot. mainfile',
-                            mainfile=filename, exc_info=e)
+                calc.process()
+                total_calcs += 1
 
         # have to save the total_calcs information for chord management
         self.spwaned_childred(total_calcs)
