@@ -25,9 +25,13 @@ import time
 import requests
 from requests.auth import HTTPBasicAuth
 import click
+from typing import Union, Callable, cast
+import logging
 
-from nomad import config
+from nomad import config, utils
 from nomad.files import UploadFile
+from nomad.parsing import parsers, parser_dict, LocalBackend
+from nomad.normalizing import normalizers
 
 
 api_base = 'http://localhost/nomad/api'
@@ -121,7 +125,7 @@ def walk_through_files(path, extension='.zip'):
                 yield os.path.abspath(os.path.join(dirpath, filename))
 
 
-class CalcProcReproduction(UploadFile):
+class CalcProcReproduction:
     """
     Instances represent a local reproduction of the processing for a single calculation.
     It allows to download raw data from a nomad server and reproduce its processing
@@ -136,40 +140,110 @@ class CalcProcReproduction(UploadFile):
     to locally run processing code that is very similar to the one used on the server.
     """
     def __init__(self, archive_id: str) -> None:
-        local_path = os.path.join(config.fs.tmp, '%s.zip' % archive_id)
+        self.calc_hash = utils.archive.calc_hash(archive_id)
+        self.mainfile = None
+        self.parser = None
+        self.logger = utils.get_logger(__name__, archive_id=archive_id)
+
+        local_path = os.path.join(config.fs.tmp, 'repro_%s.zip' % archive_id)
+        if not os.path.exists(os.path.dirname(local_path)):
+            os.makedirs(os.path.dirname(local_path))
         if not os.path.exists(local_path):
             # download raw if not already downloaded
+            self.logger.info('Downloading calc.')
             req = requests.get('%s/raw/%s?all=1' % (api_base, archive_id), stream=True)
             with open(local_path, 'wb') as f:
                 for chunk in req.iter_content():
                     f.write(chunk)
+        else:
+            self.logger.info('Calc already downloaded.')
 
-        super().__init__(upload_id='tmp_%s' % archive_id, local_path=local_path)
+        self.upload_file = UploadFile(upload_id='tmp_%s' % archive_id, local_path=local_path)
 
-    def parse(self, parser_name: str = None):
+    def __enter__(self):
+        # open/extract upload file
+        self.logger.info('Extracting calc data.')
+        self.upload_file.__enter__()
+
+        # find mainfile matching calc_hash
+        self.mainfile = next(
+            filename for filename in self.upload_file.filelist
+            if utils.hash(filename) == self.calc_hash)
+
+        assert self.mainfile is not None, 'The mainfile could not be found.'
+        self.logger = self.logger.bind(mainfile=self.mainfile)
+        self.logger.info('Identified mainfile.')
+
+        return self
+
+    def __exit__(self, *args):
+        self.upload_file.__exit__(*args)
+
+    def parse(self, parser_name: str = None) -> LocalBackend:
         """
         Run the given parser on the downloaded calculation. If no parser is given,
         do parser matching and use the respective parser.
         """
-        pass
+        mainfile = self.upload_file.get_file(self.mainfile)
+        if parser_name is not None:
+            parser = parser_dict.get(parser_name)
+        else:
+            for potential_parser in parsers:
+                with mainfile.open() as mainfile_f:
+                    if potential_parser.is_mainfile(self.mainfile, lambda fn: mainfile_f):
+                        parser = potential_parser
+                        break
 
-    def normalize(self, normalizer_name: str):
+        assert parser is not None, 'there is not parser matching %s' % self.mainfile
+        self.logger = self.logger.bind(parser=parser.name)  # type: ignore
+        self.logger.info('identified parser')
+
+        parser_backend = parser.run(mainfile.os_path, logger=self.logger)
+        self.logger.info('ran parser')
+        return parser_backend
+
+    def normalize(self, normalizer: Union[str, Callable], parser_backend: LocalBackend = None):
         """
         Parse the downloaded calculation and run the given normalizer.
         """
-        pass
+        if parser_backend is None:
+            parser_backend = self.parse()
 
-    def normalize_all(self):
+        if isinstance(normalizer, str):
+            normalizer = next(
+                normalizer_instance for normalizer_instance in normalizers
+                if normalizer_instance.__class__.__name__ == normalizer)
+
+        assert normalizer is not None, 'there is no normalizer %s' % str(normalizer)
+        normalizer_instance = cast(Callable, normalizer)(parser_backend)
+        logger = self.logger.bind(normalizer=normalizer_instance.__class__.__name__)
+        self.logger.info('identified normalizer')
+
+        normalizer_instance.normalize(logger=logger)
+        self.logger.info('ran normalizer')
+        return parser_backend
+
+    def normalize_all(self, parser_backend: LocalBackend = None):
         """
         Parse the downloaded calculation and run the whole normalizer chain.
         """
-        pass
+        for normalizer in normalizers:
+            parser_backend = self.normalize(normalizer, parser_backend=parser_backend)
+
+        return parser_backend
 
 
 @click.group()
 @click.option('--host', default='localhost', help='The host nomad runs on, default is "localhost".')
 @click.option('--port', default=80, help='the port nomad runs with, default is 80.')
-def cli(host: str, port: int):
+@click.option('--verbose', help='sets log level to debug', is_flag=True)
+def cli(host: str, port: int, verbose: bool):
+    if verbose:
+        config.console_log_level = logging.DEBUG
+    else:
+        config.console_log_level = logging.WARNING
+    utils.configure_logging()
+
     global api_base
     api_base = 'http://%s:%d/nomad/api' % (host, port)
 
@@ -210,6 +284,15 @@ def reset():
         click.echo('API return %s' % str(response.status_code))
         click.echo(response.text)
         sys.exit(1)
+
+
+@cli.command(help='Run processing locally.')
+@click.argument('ARCHIVE_ID', nargs=1, required=True, type=str)
+def local(archive_id):
+    with CalcProcReproduction(archive_id) as local:
+        backend = local.parse()
+        local.normalize_all(parser_backend=backend)
+        # backend.write_json(sys.stdout, pretty=True)
 
 
 @cli.group(help='Run a nomad service locally (outside docker).')
