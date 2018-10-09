@@ -98,10 +98,11 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
 
 
 def add_logstash_handler(logger):
-    has_logstash_handler = any(
-        isinstance(handler, logstash.TCPLogstashHandler) for handler in logger.handlers)
+    logstash_handler = next((
+        handler for handler in logger.handlers
+        if isinstance(handler, logstash.TCPLogstashHandler)), None)
 
-    if not has_logstash_handler:
+    if logstash_handler is None:
         logstash_handler = logstash.TCPLogstashHandler(
             config.logstash.host,
             config.logstash.tcp_port, version=1)
