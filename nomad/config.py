@@ -98,4 +98,4 @@ services = NomadServicesConfig(
     api_secret=os.environ.get('NOMAD_API_SECRET', 'defaultApiSecret')
 )
 
-console_log_level = get_loglevel_from_env('NOMAD_CONSOLE_LOGLEVEL', default_level=logging.CRITICAL)
+console_log_level = get_loglevel_from_env('NOMAD_CONSOLE_LOGLEVEL', default_level=logging.ERROR)

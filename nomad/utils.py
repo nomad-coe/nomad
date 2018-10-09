@@ -29,7 +29,7 @@ Depending on the configuration all logs will also be send to a central logstash.
 .. autofunc::nomad.utils.get_logger
 """
 
-from typing import Union, IO, cast
+from typing import Union, IO, cast, List
 import hashlib
 import base64
 import logging
@@ -110,8 +110,7 @@ def add_logstash_handler(logger):
         logger.addHandler(logstash_handler)
 
 
-_logging_is_configured = False
-if not _logging_is_configured:
+def configure_logging():
     # configure structlog
     log_processors = [
         StackInfoRenderer(),
@@ -136,14 +135,12 @@ if not _logging_is_configured:
     logging.basicConfig(stream=sys.stdout)
     root = logging.getLogger()
     for handler in root.handlers:
-        handler.setLevel(config.console_log_level if 'pytest' not in sys.modules else logging.CRITICAL)
+        handler.setLevel(config.console_log_level)
 
     # configure logstash
-    if config.logstash.enabled and 'pytest' not in sys.modules:
+    if config.logstash.enabled:
         add_logstash_handler(root)
         root.info('Structlog configured for logstash')
-
-    _logging_is_configured = True
 
 
 def create_uuid() -> str:
@@ -222,3 +219,25 @@ def timer(logger, event, method='info', **kwargs):
         logger_method(event, exec_time=stop - start, **kwargs)
     else:
         logger.error('Uknown logger method %s.' % method)
+
+
+class archive:
+    @staticmethod
+    def create(upload_hash: str, calc_hash: str) -> str:
+        return '%s/%s' % (upload_hash, calc_hash)
+
+    @staticmethod
+    def items(archive_id: str) -> List[str]:
+        return archive_id.split('/')
+
+    @staticmethod
+    def item(archive_id: str, index: int) -> str:
+        return archive.items(archive_id)[index]
+
+    @staticmethod
+    def calc_hash(archive_id: str) -> str:
+        return archive.item(archive_id, 1)
+
+    @staticmethod
+    def upload_hash(archive_id: str) -> str:
+        return archive.item(archive_id, 0)

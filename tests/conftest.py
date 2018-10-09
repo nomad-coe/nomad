@@ -1,8 +1,15 @@
 import pytest
+import logging
 from mongoengine import connect
 from mongoengine.connection import disconnect
 
 from nomad import config, user, infrastructure
+
+
+@pytest.fixture(scope='session', autouse=True)
+def nomad_logging():
+    config.logstash = config.logstash._replace(enabled=False)
+    config.console_log_level = logging.CRITICAL
 
 
 @pytest.fixture(scope='session')
