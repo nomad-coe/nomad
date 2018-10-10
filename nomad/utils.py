@@ -91,6 +91,7 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
         if record.exc_info:
             message.update(self.get_debug_fields(record))
 
+        print('## ' + str(message))
         return self.serialize(message)
 
 
@@ -133,7 +134,8 @@ def configure_logging():
     logging.basicConfig(stream=sys.stdout)
     root = logging.getLogger()
     for handler in root.handlers:
-        handler.setLevel(config.console_log_level)
+        if not isinstance(handler, logstash.TCPLogstashHandler):
+            handler.setLevel(config.console_log_level)
 
     # configure logstash
     if config.logstash.enabled:
