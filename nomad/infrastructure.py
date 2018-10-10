@@ -46,6 +46,12 @@ def setup():
 
 def setup_logging():
     utils.configure_logging()
+    logger.info(
+        'setup logging',
+        logstash=config.logstash.enabled,
+        logstash_host=config.logstash.host,
+        logstash_port=config.logstash.tcp_port,
+        logstash_level=config.logstash.level)
 
 
 def setup_mongo():

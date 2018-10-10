@@ -242,7 +242,6 @@ def cli(host: str, port: int, verbose: bool):
         config.console_log_level = logging.DEBUG
     else:
         config.console_log_level = logging.WARNING
-    utils.configure_logging()
 
     global api_base
     api_base = 'http://%s:%d/nomad/api' % (host, port)
@@ -260,6 +259,7 @@ def cli(host: str, port: int, verbose: bool):
     help='Upload files "offline": files will not be uploaded, but processed were they are. '
     'Only works when run on the nomad host.')
 def upload(path, name: str, offline: bool):
+    utils.configure_logging()
     paths = path
     click.echo('uploading files from %s paths' % len(paths))
     for path in paths:
@@ -289,6 +289,7 @@ def reset():
 @cli.command(help='Run processing locally.')
 @click.argument('ARCHIVE_ID', nargs=1, required=True, type=str)
 def local(archive_id):
+    utils.configure_logging()
     with CalcProcReproduction(archive_id) as local:
         backend = local.parse()
         local.normalize_all(parser_backend=backend)
@@ -302,12 +303,14 @@ def run():
 
 @run.command(help='Run the nomad development worker.')
 def worker():
+    config.service = 'nomad_worker'
     from nomad import processing
     processing.app.worker_main(['worker', '--loglevel=INFO'])
 
 
 @run.command(help='Run the nomad development api.')
 def api():
+    config.service = 'nomad_api'
     from nomad import infrastructure, api
     infrastructure.setup()
     api.app.run(debug=True, port=8000)

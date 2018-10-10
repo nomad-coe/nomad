@@ -39,14 +39,11 @@ from structlog.stdlib import LoggerFactory
 import logstash
 from contextlib import contextmanager
 import json
-import os
 import sys
 import uuid
 import time
 
 from nomad import config
-
-_service = os.environ.get('NOMAD_SERVICE', 'nomad service')
 
 
 class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
@@ -106,7 +103,7 @@ def add_logstash_handler(logger):
         logstash_handler = logstash.TCPLogstashHandler(
             config.logstash.host,
             config.logstash.tcp_port, version=1)
-        logstash_handler.formatter = LogstashFormatter(tags=['nomad', _service])
+        logstash_handler.formatter = LogstashFormatter(tags=['nomad', config.service])
         logstash_handler.setLevel(config.logstash.level)
         logger.addHandler(logstash_handler)
 
@@ -172,7 +169,7 @@ def get_logger(name, **kwargs):
     if name.startswith('nomad.'):
         name = '.'.join(name.split('.')[:2])
 
-    logger = structlog.get_logger(name, service=_service, **kwargs)
+    logger = structlog.get_logger(name, service=config.service, **kwargs)
     return logger
 
 
