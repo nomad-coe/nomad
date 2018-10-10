@@ -472,7 +472,7 @@ class Upload(Chord):
                         if parser.is_mainfile(filename, lambda fn: mainfile_f):
                             yield potential_mainfile, filename, parser
                 except Exception as e:
-                    self.error(
+                    self.get_logger().error(
                         'exception while matching pot. mainfile',
                         mainfile=filename, exc_info=e)
 
