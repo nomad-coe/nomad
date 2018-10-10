@@ -31,6 +31,7 @@ RUN mkdir /install
 WORKDIR /install
 
 # We also install the -dev dependencies, to use this image for test and qa
+RUN pip install --upgrade pip
 COPY requirements-dev.txt requirements-dev.txt
 RUN pip install -r requirements-dev.txt
 COPY requirements-dep.txt requirements-dep.txt
