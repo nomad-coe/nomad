@@ -91,7 +91,6 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
         if record.exc_info:
             message.update(self.get_debug_fields(record))
 
-        print('## ' + str(message))
         return self.serialize(message)
 
 
