@@ -86,7 +86,7 @@ services:
             - mongo
         volumes:
             - ${VOLUME_BINDS}/fs:/app/.volumes/fs
-        command: python -m gunicorn.app.wsgiapp -w 4 -b 0.0.0.0:8000 nomad.api:app
+        command: python -m gunicorn.app.wsgiapp -w 4 -b 0.0.0.0:8000 --timeout 300 nomad.api:app
 
     # nomad gui
     gui:
