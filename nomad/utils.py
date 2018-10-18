@@ -42,8 +42,24 @@ import json
 import sys
 import uuid
 import time
+import re
 
 from nomad import config
+
+
+def sanitize_logevent(event: str) -> str:
+    """
+    Prepares a log event or message for analysis in elastic stack. It removes numbers,
+    list, and matrices of numbers from the event string and limits its size. The
+    goal is to make it easier to define aggregations over events by using event
+    strings as representatives for event classes rather than event instances (with
+    concrete numbers, etc).
+    """
+    sanitized_event = event[:120]
+    sanitized_event = re.sub(r'(\d*\.\d+|\d+(\.\d*)?)', 'X', sanitized_event)
+    sanitized_event = re.sub(r'((\[|\()\s*)?X\s*(,\s*X)+(\s*(\]|\)))?', 'L', sanitized_event)
+    sanitized_event = re.sub(r'((\[|\()\s*)?[XL](,\s*[XL])+(\s*(\]|\)))?', 'M', sanitized_event)
+    return sanitized_event
 
 
 class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
@@ -58,7 +74,8 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
         message = {
             '@timestamp': self.format_timestamp(record.created),
             '@version': '1',
-            'event': structlog['event'],
+            'event': sanitize_logevent(structlog['event']),
+            'message': structlog['event'],
             'host': self.host,
             'path': record.pathname,
             'tags': self.tags,
@@ -201,7 +218,7 @@ def timer(logger, event, method='info', **kwargs):
         event: The log message/event.
         method: The log methad that should be used. Must be a valid logger method name.
             Default is 'info'.
-        **kwargs: Aditional logger data that is passed to the log entry.
+        **kwargs: Additional logger data that is passed to the log entry.
 
     Returns:
         The method yields a dictionary that can be used to add further log data.
@@ -217,7 +234,7 @@ def timer(logger, event, method='info', **kwargs):
     if logger_method is not None:
         logger_method(event, exec_time=stop - start, **kwargs)
     else:
-        logger.error('Uknown logger method %s.' % method)
+        logger.error('Unknown logger method %s.' % method)
 
 
 class archive:
