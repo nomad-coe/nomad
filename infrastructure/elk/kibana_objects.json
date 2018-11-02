@@ -1,24 +1,5 @@
 [
   {
-    "_id": "ce75d080-c2ef-11e8-b9e8-d74f7e7408ed",
-    "_type": "dashboard",
-    "_source": {
-      "title": "Processing and debugging",
-      "hits": 0,
-      "description": "",
-      "panelsJSON": "[{\"panelIndex\":\"1\",\"gridData\":{\"x\":0,\"y\":0,\"w\":24,\"h\":15,\"i\":\"1\"},\"embeddableConfig\":{},\"id\":\"b16c30b0-c2ef-11e8-b9e8-d74f7e7408ed\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"2\",\"gridData\":{\"x\":24,\"y\":0,\"w\":24,\"h\":15,\"i\":\"2\"},\"embeddableConfig\":{},\"id\":\"be1b7450-c2f0-11e8-b9e8-d74f7e7408ed\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"3\",\"gridData\":{\"x\":0,\"y\":15,\"w\":37,\"h\":8,\"i\":\"3\"},\"embeddableConfig\":{\"spy\":null},\"id\":\"1103dc60-c2f2-11e8-b9e8-d74f7e7408ed\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"4\",\"gridData\":{\"x\":37,\"y\":15,\"w\":11,\"h\":8,\"i\":\"4\"},\"embeddableConfig\":{},\"id\":\"b06a49b0-c2f2-11e8-b9e8-d74f7e7408ed\",\"type\":\"visualization\",\"version\":\"6.3.2\"}]",
-      "optionsJSON": "{\"darkTheme\":false,\"hidePanelTitles\":false,\"useMargins\":true}",
-      "version": 1,
-      "timeRestore": false,
-      "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"query\":{\"language\":\"lucene\",\"query\":\"\"},\"filter\":[],\"highlightAll\":true,\"version\":true}"
-      }
-    },
-    "_meta": {
-      "savedObjectVersion": 2
-    }
-  },
-  {
     "_id": "79ffd6e0-faa0-11e6-947f-177f697178b8",
     "_type": "dashboard",
     "_source": {
@@ -258,6 +239,44 @@
     }
   },
   {
+    "_id": "572efb40-c7cd-11e8-af80-b5004896a534",
+    "_type": "dashboard",
+    "_source": {
+      "title": "Processing statistics [nomad]",
+      "hits": 0,
+      "description": "",
+      "panelsJSON": "[{\"panelIndex\":\"1\",\"gridData\":{\"x\":0,\"y\":7,\"w\":24,\"h\":15,\"i\":\"1\"},\"version\":\"6.3.2\",\"type\":\"visualization\",\"id\":\"8568ba90-c61b-11e8-af80-b5004896a534\",\"embeddableConfig\":{}},{\"panelIndex\":\"3\",\"gridData\":{\"x\":24,\"y\":7,\"w\":24,\"h\":15,\"i\":\"3\"},\"version\":\"6.3.2\",\"type\":\"visualization\",\"id\":\"7a71d990-c7c0-11e8-af80-b5004896a534\",\"embeddableConfig\":{}},{\"panelIndex\":\"4\",\"gridData\":{\"x\":19,\"y\":22,\"w\":14,\"h\":15,\"i\":\"4\"},\"version\":\"6.3.2\",\"type\":\"visualization\",\"id\":\"a2e3f4e0-c7b0-11e8-af80-b5004896a534\",\"embeddableConfig\":{}},{\"panelIndex\":\"5\",\"gridData\":{\"x\":0,\"y\":22,\"w\":19,\"h\":15,\"i\":\"5\"},\"version\":\"6.3.2\",\"type\":\"visualization\",\"id\":\"50c32d20-c7b0-11e8-af80-b5004896a534\",\"embeddableConfig\":{}},{\"panelIndex\":\"6\",\"gridData\":{\"x\":0,\"y\":0,\"w\":10,\"h\":7,\"i\":\"6\"},\"version\":\"6.3.2\",\"type\":\"visualization\",\"id\":\"b06a49b0-c2f2-11e8-b9e8-d74f7e7408ed\",\"embeddableConfig\":{}},{\"panelIndex\":\"7\",\"gridData\":{\"x\":10,\"y\":0,\"w\":10,\"h\":7,\"i\":\"7\"},\"version\":\"6.3.2\",\"type\":\"visualization\",\"id\":\"1103dc60-c2f2-11e8-b9e8-d74f7e7408ed\",\"embeddableConfig\":{}},{\"panelIndex\":\"8\",\"gridData\":{\"x\":20,\"y\":0,\"w\":9,\"h\":7,\"i\":\"8\"},\"version\":\"6.3.2\",\"type\":\"visualization\",\"id\":\"fd77bd00-c67b-11e8-af80-b5004896a534\",\"embeddableConfig\":{}},{\"panelIndex\":\"9\",\"gridData\":{\"x\":33,\"y\":22,\"w\":15,\"h\":15,\"i\":\"9\"},\"version\":\"6.3.2\",\"type\":\"visualization\",\"id\":\"d99f6c10-c7b2-11e8-af80-b5004896a534\",\"embeddableConfig\":{}}]",
+      "optionsJSON": "{\"darkTheme\":false,\"useMargins\":true,\"hidePanelTitles\":false}",
+      "version": 1,
+      "timeRestore": false,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"query\":{\"query\":\"\",\"language\":\"lucene\"},\"filter\":[],\"highlightAll\":true,\"version\":true}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "ce75d080-c2ef-11e8-b9e8-d74f7e7408ed",
+    "_type": "dashboard",
+    "_source": {
+      "title": "Processing errors [nomad]",
+      "hits": 0,
+      "description": "",
+      "panelsJSON": "[{\"panelIndex\":\"1\",\"gridData\":{\"x\":0,\"y\":0,\"w\":24,\"h\":14,\"i\":\"1\"},\"embeddableConfig\":{\"vis\":{\"legendOpen\":false}},\"id\":\"b16c30b0-c2ef-11e8-b9e8-d74f7e7408ed\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"3\",\"gridData\":{\"x\":37,\"y\":14,\"w\":11,\"h\":7,\"i\":\"3\"},\"embeddableConfig\":{\"spy\":null},\"id\":\"1103dc60-c2f2-11e8-b9e8-d74f7e7408ed\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"7\",\"gridData\":{\"x\":37,\"y\":21,\"w\":11,\"h\":7,\"i\":\"7\"},\"embeddableConfig\":{},\"id\":\"fd77bd00-c67b-11e8-af80-b5004896a534\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"12\",\"gridData\":{\"x\":0,\"y\":14,\"w\":37,\"h\":21,\"i\":\"12\"},\"embeddableConfig\":{},\"id\":\"18785d30-c7cb-11e8-af80-b5004896a534\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"13\",\"gridData\":{\"x\":37,\"y\":28,\"w\":11,\"h\":7,\"i\":\"13\"},\"embeddableConfig\":{},\"id\":\"b06a49b0-c2f2-11e8-b9e8-d74f7e7408ed\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"14\",\"gridData\":{\"x\":24,\"y\":0,\"w\":24,\"h\":14,\"i\":\"14\"},\"embeddableConfig\":{\"vis\":{\"legendOpen\":false}},\"id\":\"8bcaf100-c7d3-11e8-af80-b5004896a534\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"15\",\"gridData\":{\"x\":0,\"y\":35,\"w\":24,\"h\":15,\"i\":\"15\"},\"version\":\"6.3.2\",\"type\":\"visualization\",\"id\":\"b73d0810-c7d2-11e8-af80-b5004896a534\",\"embeddableConfig\":{}}]",
+      "optionsJSON": "{\"darkTheme\":false,\"hidePanelTitles\":false,\"useMargins\":true}",
+      "version": 1,
+      "timeRestore": false,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"query\":{\"language\":\"lucene\",\"query\":\"\"},\"filter\":[],\"highlightAll\":true,\"version\":true}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
     "_id": "Metricbeat-Docker",
     "_type": "search",
     "_source": {
@@ -422,67 +441,26 @@
     }
   },
   {
-    "_id": "b16c30b0-c2ef-11e8-b9e8-d74f7e7408ed",
-    "_type": "visualization",
+    "_id": "f12712d0-db70-11e8-86df-271c4963dd2a",
+    "_type": "search",
     "_source": {
-      "title": "Error events per hour",
-      "visState": "{\"title\":\"Error events per hour\",\"type\":\"histogram\",\"params\":{\"type\":\"histogram\",\"grid\":{\"categoryLines\":false,\"style\":{\"color\":\"#eee\"}},\"categoryAxes\":[{\"id\":\"CategoryAxis-1\",\"type\":\"category\",\"position\":\"bottom\",\"show\":true,\"style\":{},\"scale\":{\"type\":\"linear\"},\"labels\":{\"show\":true,\"truncate\":100},\"title\":{}}],\"valueAxes\":[{\"id\":\"ValueAxis-1\",\"name\":\"LeftAxis-1\",\"type\":\"value\",\"position\":\"left\",\"show\":true,\"style\":{},\"scale\":{\"type\":\"linear\",\"mode\":\"normal\"},\"labels\":{\"show\":true,\"rotate\":0,\"filter\":false,\"truncate\":100},\"title\":{\"text\":\"Count\"}}],\"seriesParams\":[{\"show\":\"true\",\"type\":\"histogram\",\"mode\":\"stacked\",\"data\":{\"label\":\"Count\",\"id\":\"1\"},\"valueAxis\":\"ValueAxis-1\",\"drawLinesBetweenPoints\":true,\"showCircles\":true}],\"addTooltip\":true,\"addLegend\":true,\"legendPosition\":\"right\",\"times\":[],\"addTimeMarker\":false},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"group\",\"params\":{\"field\":\"event.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"<unknown>\",\"size\":5,\"order\":\"desc\",\"orderBy\":\"1\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"date_histogram\",\"schema\":\"segment\",\"params\":{\"field\":\"@timestamp\",\"interval\":\"h\",\"customInterval\":\"2h\",\"min_doc_count\":1,\"extended_bounds\":{}}}]}",
-      "uiStateJSON": "{}",
+      "title": "nomad example search",
       "description": "",
+      "hits": 0,
+      "columns": [
+        "nomad.service",
+        "event",
+        "level",
+        "logger_name",
+        "nomad.archive_id"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"filter\":[{\"meta\":{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"type\":\"phrases\",\"key\":\"level.keyword\",\"value\":\"ERROR, CRITICAL\",\"params\":[\"ERROR\",\"CRITICAL\"],\"negate\":false,\"disabled\":false,\"alias\":null},\"query\":{\"bool\":{\"should\":[{\"match_phrase\":{\"level.keyword\":\"ERROR\"}},{\"match_phrase\":{\"level.keyword\":\"CRITICAL\"}}],\"minimum_should_match\":1}},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
-      }
-    },
-    "_meta": {
-      "savedObjectVersion": 2
-    }
-  },
-  {
-    "_id": "be1b7450-c2f0-11e8-b9e8-d74f7e7408ed",
-    "_type": "visualization",
-    "_source": {
-      "title": "Error events per logger",
-      "visState": "{\"title\":\"Error events per logger\",\"type\":\"pie\",\"params\":{\"type\":\"pie\",\"addTooltip\":true,\"addLegend\":true,\"legendPosition\":\"right\",\"isDonut\":false,\"labels\":{\"show\":false,\"values\":true,\"last_level\":true,\"truncate\":200}},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"split\",\"params\":{\"field\":\"logger_name.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"no name\",\"size\":5,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"logger\",\"row\":false}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"segment\",\"params\":{\"field\":\"event.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"no event\",\"size\":5,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
-      "uiStateJSON": "{}",
-      "description": "",
-      "version": 1,
-      "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"filter\":[{\"meta\":{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"type\":\"phrases\",\"key\":\"level.keyword\",\"value\":\"ERROR, CRITICAL\",\"params\":[\"ERROR\",\"CRITICAL\"],\"negate\":false,\"disabled\":false,\"alias\":null},\"query\":{\"bool\":{\"should\":[{\"match_phrase\":{\"level.keyword\":\"ERROR\"}},{\"match_phrase\":{\"level.keyword\":\"CRITICAL\"}}],\"minimum_should_match\":1}},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
-      }
-    },
-    "_meta": {
-      "savedObjectVersion": 2
-    }
-  },
-  {
-    "_id": "1103dc60-c2f2-11e8-b9e8-d74f7e7408ed",
-    "_type": "visualization",
-    "_source": {
-      "title": "Calculations",
-      "visState": "{\"title\":\"Calculations\",\"type\":\"metric\",\"params\":{\"addTooltip\":true,\"addLegend\":false,\"type\":\"metric\",\"metric\":{\"percentageMode\":false,\"useRanges\":false,\"colorSchema\":\"Green to Red\",\"metricColorMode\":\"None\",\"colorsRange\":[{\"from\":0,\"to\":10000}],\"labels\":{\"show\":true},\"invertColors\":false,\"style\":{\"bgFill\":\"#000\",\"bgColor\":false,\"labelColor\":false,\"subText\":\"\",\"fontSize\":60}}},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"cardinality\",\"schema\":\"metric\",\"params\":{\"field\":\"calc_hash.keyword\",\"customLabel\":\"Calculations\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"group\",\"params\":{\"field\":\"level.keyword\",\"otherBucket\":true,\"otherBucketLabel\":\"SUCCESS\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":2,\"order\":\"desc\",\"orderBy\":\"_term\",\"customLabel\":\"\"}}]}",
-      "uiStateJSON": "{}",
-      "description": "",
-      "version": 1,
-      "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"filter\":[{\"meta\":{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"negate\":false,\"disabled\":false,\"alias\":null,\"type\":\"exists\",\"key\":\"calc_hash\",\"value\":\"exists\"},\"exists\":{\"field\":\"calc_hash\"},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
-      }
-    },
-    "_meta": {
-      "savedObjectVersion": 2
-    }
-  },
-  {
-    "_id": "b06a49b0-c2f2-11e8-b9e8-d74f7e7408ed",
-    "_type": "visualization",
-    "_source": {
-      "title": "Uploads",
-      "visState": "{\"title\":\"Uploads\",\"type\":\"metric\",\"params\":{\"addTooltip\":true,\"addLegend\":false,\"type\":\"metric\",\"metric\":{\"percentageMode\":false,\"useRanges\":false,\"colorSchema\":\"Green to Red\",\"metricColorMode\":\"None\",\"colorsRange\":[{\"from\":0,\"to\":10000}],\"labels\":{\"show\":true},\"invertColors\":false,\"style\":{\"bgFill\":\"#000\",\"bgColor\":false,\"labelColor\":false,\"subText\":\"\",\"fontSize\":60}}},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"cardinality\",\"schema\":\"metric\",\"params\":{\"field\":\"upload_hash.keyword\",\"customLabel\":\"Uploads\"}}]}",
-      "uiStateJSON": "{}",
-      "description": "",
-      "version": 1,
-      "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"filter\":[],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+        "searchSourceJSON": "{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"highlightAll\":true,\"version\":true,\"query\":{\"query\":\"\",\"language\":\"lucene\"},\"filter\":[{\"meta\":{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"type\":\"phrases\",\"key\":\"nomad.service.keyword\",\"value\":\"nomad_worker, nomad_api\",\"params\":[\"nomad_worker\",\"nomad_api\"],\"negate\":false,\"disabled\":false,\"alias\":null},\"query\":{\"bool\":{\"should\":[{\"match_phrase\":{\"nomad.service.keyword\":\"nomad_worker\"}},{\"match_phrase\":{\"nomad.service.keyword\":\"nomad_api\"}}],\"minimum_should_match\":1}},\"$state\":{\"store\":\"appState\"}}]}"
       }
     },
     "_meta": {
@@ -2074,16 +2052,16 @@
     }
   },
   {
-    "_id": "Container-Block-IO",
+    "_id": "Container-Memory-stats",
     "_type": "visualization",
     "_source": {
-      "title": "Container Block IO [Metricbeat System]",
-      "visState": "{\"title\":\"Container Block IO [Metricbeat System]\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showMeticsAtAllLevels\":false,\"showPartialRows\":false,\"showTotal\":false,\"sort\":{\"columnIndex\":null,\"direction\":null},\"totalFunc\":\"sum\"},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.blkio.total.bytes\",\"customLabel\":\"Total\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.blkio.total.ios\",\"customLabel\":\"I/O\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"system.process.pid\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":5,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Container ID\"}},{\"id\":\"4\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"system.process.name.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":5,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Process name\"}}]}",
+      "title": "Container Memory stats [Metricbeat System]",
+      "visState": "{\"title\":\"Container Memory stats [Metricbeat System]\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showMeticsAtAllLevels\":false,\"showPartialRows\":false,\"showTotal\":false,\"sort\":{\"columnIndex\":null,\"direction\":null},\"totalFunc\":\"sum\"},\"aggs\":[{\"id\":\"13\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.mem.usage.bytes\",\"customLabel\":\"Usage\"}},{\"id\":\"14\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.mem.usage.max.bytes\",\"customLabel\":\"Max usage\"}},{\"id\":\"1\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.stats.page_faults\",\"customLabel\":\"Page faults\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.stats.pages_in\",\"customLabel\":\"Pages in memory\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.stats.pages_out\",\"customLabel\":\"Pages out of memory\"}},{\"id\":\"4\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"system.process.pid\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":50,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Container ID\"}},{\"id\":\"5\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.stats.inactive_file.bytes\",\"customLabel\":\"Inactive files\"}},{\"id\":\"6\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.stats.major_page_faults\",\"customLabel\":\"# Major page faults\"}},{\"id\":\"8\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"system.process.name.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":5,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Process name\"}},{\"id\":\"12\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.mem.failures\",\"customLabel\":\"Failures\"}},{\"id\":\"10\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.kmem_tcp.usage.bytes\",\"customLabel\":\"TCP buffers\"}},{\"id\":\"11\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.stats.rss_huge.bytes\",\"customLabel\":\"Huge pages\"}},{\"id\":\"7\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.stats.rss.bytes\",\"customLabel\":\"Swap caches\"}},{\"id\":\"15\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.stats.swap.bytes\",\"customLabel\":\"Swap usage\"}},{\"id\":\"16\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.blkio.total.ios\",\"customLabel\":\"Block I/O\"}}]}",
       "uiStateJSON": "{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":null,\"direction\":null}}}}",
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"metricbeat-*\",\"query\":{\"query\":{\"query_string\":{\"analyze_wildcard\":true,\"query\":\"*\",\"default_field\":\"*\"}},\"language\":\"lucene\"},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"metricbeat-*\",\"query\":{\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true,\"default_field\":\"*\"}},\"language\":\"lucene\"},\"filter\":[]}"
       }
     },
     "_meta": {
@@ -2108,16 +2086,254 @@
     }
   },
   {
-    "_id": "Container-Memory-stats",
+    "_id": "Container-Block-IO",
     "_type": "visualization",
     "_source": {
-      "title": "Container Memory stats [Metricbeat System]",
-      "visState": "{\"title\":\"Container Memory stats [Metricbeat System]\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showMeticsAtAllLevels\":false,\"showPartialRows\":false,\"showTotal\":false,\"sort\":{\"columnIndex\":null,\"direction\":null},\"totalFunc\":\"sum\"},\"aggs\":[{\"id\":\"13\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.mem.usage.bytes\",\"customLabel\":\"Usage\"}},{\"id\":\"14\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.mem.usage.max.bytes\",\"customLabel\":\"Max usage\"}},{\"id\":\"1\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.stats.page_faults\",\"customLabel\":\"Page faults\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.stats.pages_in\",\"customLabel\":\"Pages in memory\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.stats.pages_out\",\"customLabel\":\"Pages out of memory\"}},{\"id\":\"4\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"system.process.pid\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":50,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Container ID\"}},{\"id\":\"5\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.stats.inactive_file.bytes\",\"customLabel\":\"Inactive files\"}},{\"id\":\"6\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.stats.major_page_faults\",\"customLabel\":\"# Major page faults\"}},{\"id\":\"8\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"system.process.name.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":5,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Process name\"}},{\"id\":\"12\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.mem.failures\",\"customLabel\":\"Failures\"}},{\"id\":\"10\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.kmem_tcp.usage.bytes\",\"customLabel\":\"TCP buffers\"}},{\"id\":\"11\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.stats.rss_huge.bytes\",\"customLabel\":\"Huge pages\"}},{\"id\":\"7\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.stats.rss.bytes\",\"customLabel\":\"Swap caches\"}},{\"id\":\"15\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.memory.stats.swap.bytes\",\"customLabel\":\"Swap usage\"}},{\"id\":\"16\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.blkio.total.ios\",\"customLabel\":\"Block I/O\"}}]}",
+      "title": "Container Block IO [Metricbeat System]",
+      "visState": "{\"title\":\"Container Block IO [Metricbeat System]\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showMeticsAtAllLevels\":false,\"showPartialRows\":false,\"showTotal\":false,\"sort\":{\"columnIndex\":null,\"direction\":null},\"totalFunc\":\"sum\"},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.blkio.total.bytes\",\"customLabel\":\"Total\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"system.process.cgroup.blkio.total.ios\",\"customLabel\":\"I/O\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"system.process.pid\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":5,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Container ID\"}},{\"id\":\"4\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"system.process.name.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":5,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Process name\"}}]}",
       "uiStateJSON": "{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":null,\"direction\":null}}}}",
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"metricbeat-*\",\"query\":{\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true,\"default_field\":\"*\"}},\"language\":\"lucene\"},\"filter\":[]}"
+        "searchSourceJSON": "{\"index\":\"metricbeat-*\",\"query\":{\"query\":{\"query_string\":{\"analyze_wildcard\":true,\"query\":\"*\",\"default_field\":\"*\"}},\"language\":\"lucene\"},\"filter\":[]}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "b16c30b0-c2ef-11e8-b9e8-d74f7e7408ed",
+    "_type": "visualization",
+    "_source": {
+      "title": "Errors per h [nomad]",
+      "visState": "{\"title\":\"Errors per h [nomad]\",\"type\":\"histogram\",\"params\":{\"type\":\"histogram\",\"grid\":{\"categoryLines\":false,\"style\":{\"color\":\"#eee\"}},\"categoryAxes\":[{\"id\":\"CategoryAxis-1\",\"type\":\"category\",\"position\":\"bottom\",\"show\":true,\"style\":{},\"scale\":{\"type\":\"linear\"},\"labels\":{\"show\":true,\"truncate\":100},\"title\":{}}],\"valueAxes\":[{\"id\":\"ValueAxis-1\",\"name\":\"LeftAxis-1\",\"type\":\"value\",\"position\":\"left\",\"show\":true,\"style\":{},\"scale\":{\"type\":\"linear\",\"mode\":\"normal\"},\"labels\":{\"show\":true,\"rotate\":0,\"filter\":false,\"truncate\":100},\"title\":{\"text\":\"Count\"}}],\"seriesParams\":[{\"show\":\"true\",\"type\":\"histogram\",\"mode\":\"stacked\",\"data\":{\"label\":\"Count\",\"id\":\"1\"},\"valueAxis\":\"ValueAxis-1\",\"drawLinesBetweenPoints\":true,\"showCircles\":true}],\"addTooltip\":true,\"addLegend\":true,\"legendPosition\":\"right\",\"times\":[],\"addTimeMarker\":false},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"group\",\"params\":{\"field\":\"event.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"<unknown>\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"#errors\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"date_histogram\",\"schema\":\"segment\",\"params\":{\"field\":\"@timestamp\",\"interval\":\"h\",\"customInterval\":\"2h\",\"min_doc_count\":1,\"extended_bounds\":{}}}]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"filter\":[{\"meta\":{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"type\":\"phrases\",\"key\":\"level.keyword\",\"value\":\"ERROR, CRITICAL\",\"params\":[\"ERROR\",\"CRITICAL\"],\"negate\":false,\"disabled\":false,\"alias\":null},\"query\":{\"bool\":{\"should\":[{\"match_phrase\":{\"level.keyword\":\"ERROR\"}},{\"match_phrase\":{\"level.keyword\":\"CRITICAL\"}}],\"minimum_should_match\":1}},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "42dc3550-c619-11e8-af80-b5004896a534",
+    "_type": "visualization",
+    "_source": {
+      "title": "Exec times [nomad]",
+      "visState": "{\"title\":\"Exec times [nomad]\",\"type\":\"histogram\",\"params\":{\"addLegend\":true,\"addTimeMarker\":false,\"addTooltip\":true,\"categoryAxes\":[{\"id\":\"CategoryAxis-1\",\"labels\":{\"show\":true,\"truncate\":100},\"position\":\"bottom\",\"scale\":{\"type\":\"linear\"},\"show\":true,\"style\":{},\"title\":{},\"type\":\"category\"}],\"grid\":{\"categoryLines\":false,\"style\":{\"color\":\"#eee\"}},\"legendPosition\":\"right\",\"seriesParams\":[{\"data\":{\"id\":\"1\",\"label\":\"avg exec time in s\"},\"drawLinesBetweenPoints\":true,\"mode\":\"stacked\",\"show\":\"true\",\"showCircles\":true,\"type\":\"histogram\",\"valueAxis\":\"ValueAxis-1\"}],\"times\":[],\"type\":\"histogram\",\"valueAxes\":[{\"id\":\"ValueAxis-1\",\"labels\":{\"filter\":false,\"rotate\":0,\"show\":true,\"truncate\":100},\"name\":\"LeftAxis-1\",\"position\":\"left\",\"scale\":{\"mode\":\"normal\",\"type\":\"linear\"},\"show\":true,\"style\":{},\"title\":{\"text\":\"avg exec time in s\"},\"type\":\"value\"}]},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.processing.exec_time\",\"customLabel\":\"avg exec time in s\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"segment\",\"params\":{\"field\":\"nomad.processing.step.keyword\",\"otherBucket\":true,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":15,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"step/program\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"group\",\"params\":{\"field\":\"nomad.processing.current_task.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":5,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"proc task\"}}]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"filter\":[],\"query\":{\"language\":\"lucene\",\"query\":\"\"}}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "fd77bd00-c67b-11e8-af80-b5004896a534",
+    "_type": "visualization",
+    "_source": {
+      "title": "Calcs with errors [nomad]",
+      "visState": "{\"title\":\"Calcs with errors [nomad]\",\"type\":\"metric\",\"params\":{\"addTooltip\":true,\"addLegend\":false,\"type\":\"metric\",\"metric\":{\"percentageMode\":false,\"useRanges\":false,\"colorSchema\":\"Green to Red\",\"metricColorMode\":\"None\",\"colorsRange\":[{\"from\":0,\"to\":10000}],\"labels\":{\"show\":true},\"invertColors\":false,\"style\":{\"bgFill\":\"#000\",\"bgColor\":false,\"labelColor\":false,\"subText\":\"\",\"fontSize\":60}}},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"cardinality\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.calc_hash.keyword\",\"customLabel\":\"Errors\"}}]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"filter\":[{\"meta\":{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"type\":\"phrases\",\"key\":\"level.keyword\",\"value\":\"CRITICAL, ERROR\",\"params\":[\"CRITICAL\",\"ERROR\"],\"negate\":false,\"disabled\":false,\"alias\":null},\"query\":{\"bool\":{\"should\":[{\"match_phrase\":{\"level.keyword\":\"CRITICAL\"}},{\"match_phrase\":{\"level.keyword\":\"ERROR\"}}],\"minimum_should_match\":1}},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "1103dc60-c2f2-11e8-b9e8-d74f7e7408ed",
+    "_type": "visualization",
+    "_source": {
+      "title": "Calculations [nomad]",
+      "visState": "{\"title\":\"Calculations [nomad]\",\"type\":\"metric\",\"params\":{\"addTooltip\":true,\"addLegend\":false,\"type\":\"metric\",\"metric\":{\"percentageMode\":false,\"useRanges\":false,\"colorSchema\":\"Green to Red\",\"metricColorMode\":\"None\",\"colorsRange\":[{\"from\":0,\"to\":10000}],\"labels\":{\"show\":true},\"invertColors\":false,\"style\":{\"bgFill\":\"#000\",\"bgColor\":false,\"labelColor\":false,\"subText\":\"\",\"fontSize\":60}}},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"cardinality\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.calc_hash.keyword\",\"customLabel\":\"Calculations\"}}]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"filter\":[],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "b06a49b0-c2f2-11e8-b9e8-d74f7e7408ed",
+    "_type": "visualization",
+    "_source": {
+      "title": "Uploads [nomad]",
+      "visState": "{\"title\":\"Uploads [nomad]\",\"type\":\"metric\",\"params\":{\"addTooltip\":true,\"addLegend\":false,\"type\":\"metric\",\"metric\":{\"percentageMode\":false,\"useRanges\":false,\"colorSchema\":\"Green to Red\",\"metricColorMode\":\"None\",\"colorsRange\":[{\"from\":0,\"to\":10000}],\"labels\":{\"show\":true},\"invertColors\":false,\"style\":{\"bgFill\":\"#000\",\"bgColor\":false,\"labelColor\":false,\"subText\":\"\",\"fontSize\":60}}},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"cardinality\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.upload_hash.keyword\",\"customLabel\":\"Uploads\"}}]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"filter\":[],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "7a71d990-c7c0-11e8-af80-b5004896a534",
+    "_type": "visualization",
+    "_source": {
+      "title": "Max exec times [nomad]",
+      "visState": "{\"title\":\"Max exec times [nomad]\",\"type\":\"vega\",\"params\":{\"spec\":\"{\\n  \\\"$schema\\\": \\\"https://vega.github.io/schema/vega/v3.json\\\",\\n  \\\"data\\\": [{\\n    \\\"name\\\": \\\"results\\\",\\n      \\\"url\\\": {\\n        \\\"index\\\": \\\"logstash-*\\\",\\n        \\\"body\\\": {\\n          \\\"size\\\": 0,\\n          \\\"query\\\": {\\n            terms : {\\n              \\\"nomad.processing.current_task\\\": [\\\"parsing\\\", \\\"normalizing\\\"]\\n            }\\n          }\\n        \\t\\\"aggs\\\": {\\n        \\t\\t\\\"exec_time_per_step\\\": {\\n        \\t\\t\\t\\\"terms\\\": {\\n        \\t\\t\\t\\t\\\"field\\\": \\\"nomad.processing.step.keyword\\\"\\n        \\t\\t\\t},\\n        \\t\\t\\t\\\"aggs\\\": {\\n        \\t\\t\\t\\t\\\"quantile\\\": {\\n        \\t\\t\\t\\t\\t\\\"percentiles\\\": {\\n        \\t\\t\\t\\t\\t\\t\\\"field\\\": \\\"nomad.processing.exec_time\\\",\\n        \\t\\t\\t\\t\\t\\t\\\"percents\\\": [\\n        \\t\\t\\t\\t\\t\\t\\t25,\\n        \\t\\t\\t\\t\\t\\t\\t50,\\n        \\t\\t\\t\\t\\t\\t\\t75\\n        \\t\\t\\t\\t\\t\\t]\\n        \\t\\t\\t\\t\\t}\\n        \\t\\t\\t\\t},\\n        \\t\\t\\t\\t\\\"min_value\\\":{\\n        \\t\\t\\t\\t\\t\\\"min\\\": {\\n        \\t\\t\\t\\t\\t\\t\\\"field\\\": \\\"nomad.processing.exec_time\\\"\\n        \\t\\t\\t\\t\\t}\\n        \\t\\t\\t\\t},\\n        \\t\\t\\t\\t\\\"max_value\\\":{\\n        \\t\\t\\t\\t\\t\\\"max\\\": {\\n        \\t\\t\\t\\t\\t\\t\\\"field\\\": \\\"nomad.processing.exec_time\\\"\\n        \\t\\t\\t\\t\\t}\\n        \\t\\t\\t\\t},\\n        \\t\\t\\t\\t\\\"max_value_sort\\\": {\\n          \\t\\t\\t\\t\\\"bucket_sort\\\": {\\n              \\t\\t\\t\\\"sort\\\": [\\n                      {\\\"max_value\\\": {\\\"order\\\": \\\"desc\\\"}}\\n                    ],\\n                    \\\"size\\\": 10\\n                  }\\n                }\\n        \\t\\t\\t}\\n        \\t\\t}\\n        \\t}\\n        }\\n      },\\n      \\\"format\\\": {\\n        \\\"property\\\": \\\"aggregations.exec_time_per_step.buckets\\\"\\n      },\\n      \\\"transform\\\":[\\n        {\\n          \\\"type\\\": \\\"formula\\\",\\n          \\\"expr\\\": \\\"datum.quantile.values['25.0']\\\"\\n          \\\"as\\\": \\\"q1\\\"\\n        },\\n        {\\n          \\\"type\\\": \\\"formula\\\",\\n          \\\"expr\\\": \\\"datum.quantile.values['50.0']\\\"\\n          \\\"as\\\": \\\"median\\\"\\n        },\\n        {\\n          \\\"type\\\": \\\"formula\\\",\\n          \\\"expr\\\": \\\"datum.quantile.values['75.0']\\\"\\n          \\\"as\\\": \\\"q3\\\"\\n        },\\n        {\\n          \\\"type\\\": \\\"formula\\\",\\n          \\\"expr\\\": \\\"datum.min_value.value\\\"\\n          \\\"as\\\": \\\"min_value\\\"\\n        },\\n        {\\n          \\\"type\\\": \\\"formula\\\",\\n          \\\"expr\\\": \\\"datum.max_value.value\\\"\\n          \\\"as\\\": \\\"max_value\\\"\\n        },\\n        {\\n          \\\"type\\\": \\\"formula\\\",\\n          \\\"expr\\\": \\\"datum.key\\\",\\n          \\\"as\\\": \\\"step\\\"\\n        },\\n        {\\n        \\\"type\\\": \\\"fold\\\",\\n        \\\"fields\\\": [\\\"min_value\\\", \\\"q1\\\", \\\"median\\\", \\\"q3\\\", \\\"max_value\\\"],\\n         \\\"as\\\": [\\\"metric\\\", \\\"metricValue\\\"]\\n         }\\n      ]\\n    }],\\n  \\\"scales\\\": [\\n    {\\n      \\\"name\\\": \\\"layout\\\",\\n      \\\"type\\\": \\\"band\\\",\\n      \\\"range\\\": \\\"height\\\",\\n      \\\"domain\\\": {\\\"data\\\": \\\"results\\\", \\\"field\\\": \\\"key\\\"}\\n    },\\n    {\\n      \\\"name\\\": \\\"xscale\\\",\\n      \\\"type\\\": \\\"log\\\",\\n      \\\"range\\\": \\\"width\\\", \\\"round\\\": true,\\n      \\\"domain\\\": {\\\"data\\\": \\\"results\\\", \\\"field\\\": \\\"metricValue\\\"},\\n      \\\"zero\\\": false, \\\"nice\\\": true\\n    },\\n    {\\n      \\\"name\\\": \\\"color\\\",\\n      \\\"type\\\": \\\"ordinal\\\",\\n      \\\"range\\\": \\\"category\\\"\\n    }\\n  ],\\n  \\\"axes\\\": [\\n    {\\\"orient\\\": \\\"bottom\\\", \\\"scale\\\": \\\"xscale\\\", \\\"zindex\\\": 1, \\\"format\\\": \\\"s\\\", \\\"title\\\": \\\"Exec time in s\\\"},\\n    {\\\"orient\\\": \\\"left\\\", \\\"scale\\\": \\\"layout\\\", \\\"tickCount\\\": 20, \\\"zindex\\\": 1}\\n  ],\\n  \\\"marks\\\": [\\n    {\\n      \\\"type\\\": \\\"group\\\",\\n      \\\"from\\\": {\\n        \\\"facet\\\": {\\n          \\\"data\\\": \\\"results\\\",\\n          \\\"name\\\": \\\"meters\\\",\\n          \\\"groupby\\\": \\\"key\\\"\\n        }\\n      },\\n\\n      \\\"encode\\\": {\\n        \\\"enter\\\": {\\n          \\\"yc\\\": {\\\"scale\\\": \\\"layout\\\", \\\"field\\\": \\\"key\\\", \\\"band\\\": 0.5},\\n          // \\\"height\\\": {\\\"signal\\\": \\\"plotWidth\\\"},\\n          // \\\"width\\\": {\\\"signal\\\": \\\"width\\\"}\\n        }\\n      },\\n\\n      \\\"data\\\": [\\n        {\\n          \\\"name\\\": \\\"summary\\\",\\n          \\\"source\\\": \\\"meters\\\",\\n          \\\"transform\\\": [\\n            {\\n              \\\"type\\\": \\\"aggregate\\\",\\n              \\\"fields\\\": [\\\"metricValue\\\", \\\"metricValue\\\", \\\"metricValue\\\", \\\"metricValue\\\", \\\"metricValue\\\"],\\n              \\\"ops\\\": [\\\"min\\\", \\\"q1\\\", \\\"median\\\", \\\"q3\\\", \\\"max\\\"],\\n              \\\"as\\\": [\\\"min\\\", \\\"q1\\\", \\\"median\\\", \\\"q3\\\", \\\"max\\\"]\\n            }\\n          ]\\n        }\\n      ],\\n\\n      \\\"marks\\\": [\\n        {\\n          \\\"type\\\": \\\"rect\\\",\\n          \\\"from\\\": {\\\"data\\\": \\\"summary\\\"},\\n          \\\"encode\\\": {\\n            \\\"enter\\\": {\\n              \\\"fill\\\": {\\\"value\\\": \\\"black\\\"},\\n              \\\"height\\\": {\\\"value\\\": 1}\\n            },\\n            \\\"update\\\": {\\n              \\\"x\\\": {\\\"scale\\\": \\\"xscale\\\", \\\"field\\\": \\\"min\\\"},\\n              \\\"x2\\\": {\\\"scale\\\": \\\"xscale\\\", \\\"field\\\": \\\"max\\\"},\\n              \\\"zindex\\\": 1\\n            }\\n          }\\n        },\\n        {\\n          \\\"type\\\": \\\"rect\\\",\\n          \\\"from\\\": {\\\"data\\\": \\\"summary\\\"},\\n          \\\"encode\\\": {\\n            \\\"enter\\\": {\\n              \\\"stroke\\\": {\\\"value\\\": \\\"black\\\"}\\n              \\\"fill\\\": {\\\"value\\\": \\\"white\\\"}\\n            },\\n            \\\"update\\\": {\\n              \\\"height\\\": {\\\"value\\\": 20},\\n              \\\"yc\\\": {\\\"offset\\\": -0.5}\\n              \\\"x\\\": {\\\"scale\\\": \\\"xscale\\\", \\\"field\\\": \\\"q1\\\"},\\n              \\\"x2\\\": {\\\"scale\\\": \\\"xscale\\\", \\\"field\\\": \\\"q3\\\"}\\n              \\n            }\\n          }\\n        },\\n        {\\n          \\\"type\\\": \\\"rect\\\",\\n          \\\"from\\\": {\\\"data\\\": \\\"summary\\\"},\\n          \\\"encode\\\": {\\n            \\\"enter\\\": {\\n              \\\"fill\\\": {\\\"value\\\": \\\"black\\\"},\\n              \\\"width\\\": {\\\"value\\\": 1}\\n            },\\n            \\\"update\\\": {\\n              \\\"height\\\": {\\\"value\\\": 20},\\n              \\\"yc\\\": {\\\"offset\\\": -0.5},\\n              \\\"x\\\": {\\\"scale\\\": \\\"xscale\\\", \\\"field\\\": \\\"median\\\"}\\n            }\\n          }\\n        }\\n      ]\\n    }\\n  ]\\n}\"},\"aggs\":[]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "8568ba90-c61b-11e8-af80-b5004896a534",
+    "_type": "visualization",
+    "_source": {
+      "title": "Acc exec times [nomad]",
+      "visState": "{\"title\":\"Acc exec times [nomad]\",\"type\":\"histogram\",\"params\":{\"addLegend\":true,\"addTimeMarker\":false,\"addTooltip\":true,\"categoryAxes\":[{\"id\":\"CategoryAxis-1\",\"labels\":{\"show\":true,\"truncate\":0,\"filter\":false,\"rotate\":0},\"position\":\"left\",\"scale\":{\"type\":\"linear\"},\"show\":true,\"style\":{},\"title\":{},\"type\":\"category\"}],\"grid\":{\"categoryLines\":false,\"style\":{\"color\":\"#eee\"},\"valueAxis\":\"ValueAxis-1\"},\"legendPosition\":\"right\",\"seriesParams\":[{\"data\":{\"id\":\"1\",\"label\":\"sum of exec times in s\"},\"drawLinesBetweenPoints\":true,\"mode\":\"stacked\",\"show\":\"true\",\"showCircles\":true,\"type\":\"histogram\",\"valueAxis\":\"ValueAxis-1\"}],\"times\":[],\"type\":\"histogram\",\"valueAxes\":[{\"id\":\"ValueAxis-1\",\"labels\":{\"filter\":false,\"rotate\":0,\"show\":true,\"truncate\":100},\"name\":\"BottomAxis-1\",\"position\":\"bottom\",\"scale\":{\"mode\":\"normal\",\"type\":\"linear\"},\"show\":true,\"style\":{},\"title\":{\"text\":\"Sum of exec times in s\"},\"type\":\"value\"}]},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.processing.exec_time\",\"customLabel\":\"sum of exec times in s\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"segment\",\"params\":{\"field\":\"nomad.processing.current_task.keyword\",\"otherBucket\":true,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"step/program\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"group\",\"params\":{\"field\":\"nomad.processing.step.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"proc task\"}}]}",
+      "uiStateJSON": "{\"vis\":{\"legendOpen\":false}}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"filter\":[],\"query\":{\"language\":\"lucene\",\"query\":\"\"}}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "a2e3f4e0-c7b0-11e8-af80-b5004896a534",
+    "_type": "visualization",
+    "_source": {
+      "title": "Normalizer exec times over input size [nomad]",
+      "visState": "{\"title\":\"Normalizer exec times over input size [nomad]\",\"type\":\"vega\",\"params\":{\"spec\":\"{\\n  $schema: https://vega.github.io/schema/vega-lite/v2.json\\n  data: {\\n    url: {\\n      index: logstash-*\\n      body: {\\n        size: 10000\\n        query: {\\n          bool: {\\n            must: [\\n              \\\"%dashboard_context-must_clause%\\\"\\n              {\\n                range: {\\n                  @timestamp: {\\n                    \\\"%timefilter%\\\": true\\n                  }\\n                }\\n              }\\n              {\\n                match: {\\n                  event.keyword: normalizer executed\\n                }\\n              }\\n            ]\\n            must_not: [\\n              \\\"%dashboard_context-must_not_clause%\\\"\\n            ]\\n          }\\n        }\\n        _source: [\\n          \\\"nomad.processing.input_size\\\", \\n          \\\"nomad.processing.exec_time\\\",\\n          \\\"nomad.processing.normalizer\\\"]\\n      }\\n    }\\n    format: {property: \\\"hits.hits\\\"}\\n  }\\n  transform: [\\n    {\\n      calculate: \\\"datum._source['nomad.processing.input_size']\\\"\\n      as: \\\"input_size\\\"\\n    },\\n    {\\n      calculate: \\\"datum._source['nomad.processing.exec_time']\\\"\\n      as: \\\"exec_time\\\"\\n    },\\n    {\\n      calculate: \\\"substring(datum._source['nomad.processing.normalizer'], 0)\\\"\\n      as: \\\"normalizer\\\"\\n    }\\n  ]\\n  mark: point\\n  encoding: {\\n    x: {\\n      field: input_size\\n      type: quantitative\\n      scale: {\\n        type: log\\n      }\\n      axis: { \\n        title: Input size in bytes \\n        format: s\\n      }\\n    }\\n    y: {\\n      field: exec_time\\n      type: quantitative\\n      scale: {\\n        type: log\\n      }\\n      axis: { \\n        title: \\\"Exec time in s\\\" \\n        format: s\\n      }\\n    }\\n    color: {\\n      field: normalizer\\n      type: nominal\\n      legend: { title: 'Normalizer' }\\n    }\\n    shape: {\\n      field: normalizer\\n      type: nominal\\n    }\\n  }\\n}\\n\"},\"aggs\":[]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "50c32d20-c7b0-11e8-af80-b5004896a534",
+    "_type": "visualization",
+    "_source": {
+      "title": "Parser exec times over input size [nomad]",
+      "visState": "{\"title\":\"Parser exec times over input size [nomad]\",\"type\":\"vega\",\"params\":{\"spec\":\"{\\n  $schema: https://vega.github.io/schema/vega-lite/v2.json\\n  data: {\\n    url: {\\n      index: logstash-*\\n      body: {\\n        size: 10000\\n        query: {\\n          bool: {\\n            must: [\\n              \\\"%dashboard_context-must_clause%\\\"\\n              {\\n                range: {\\n                  @timestamp: {\\n                    \\\"%timefilter%\\\": true\\n                  }\\n                }\\n              }\\n              {\\n                match: {\\n                  event.keyword: parser executed\\n                }\\n              }\\n            ]\\n            must_not: [\\n              \\\"%dashboard_context-must_not_clause%\\\"\\n            ]\\n          }\\n        }\\n        _source: [\\n          \\\"nomad.processing.input_size\\\", \\n          \\\"nomad.processing.exec_time\\\",\\n          \\\"nomad.processing.parser\\\"]\\n      }\\n    }\\n    format: {property: \\\"hits.hits\\\"}\\n  }\\n  transform: [\\n    {\\n      calculate: \\\"datum._source['nomad.processing.input_size']\\\"\\n      as: \\\"input_size\\\"\\n    },\\n    {\\n      calculate: \\\"datum._source['nomad.processing.exec_time']\\\"\\n      as: \\\"exec_time\\\"\\n    },\\n    {\\n      calculate: \\\"substring(datum._source['nomad.processing.parser'], 8)\\\"\\n      as: \\\"parser\\\"\\n    }\\n  ]\\n  mark: point\\n  encoding: {\\n    x: {\\n      field: input_size\\n      type: quantitative\\n      scale: {\\n        type: log\\n      }\\n      axis: { \\n        title: Input size in bytes \\n        format: s\\n      }\\n    }\\n    y: {\\n      field: exec_time\\n      type: quantitative\\n      scale: {\\n        type: log\\n      }\\n      axis: { \\n        title: \\\"Exec time in s\\\" \\n        format: s\\n      }\\n    }\\n    color: {\\n      field: parser\\n      type: nominal\\n      legend: { title: 'Parser' }\\n    }\\n    shape: {\\n      field: parser\\n      type: nominal\\n    }\\n  }\\n}\\n\"},\"aggs\":[]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "b73d0810-c7d2-11e8-af80-b5004896a534",
+    "_type": "visualization",
+    "_source": {
+      "title": "Failed tasks [nomad]",
+      "visState": "{\"title\":\"Failed tasks [nomad]\",\"type\":\"horizontal_bar\",\"params\":{\"type\":\"histogram\",\"grid\":{\"categoryLines\":false,\"style\":{\"color\":\"#eee\"}},\"categoryAxes\":[{\"id\":\"CategoryAxis-1\",\"type\":\"category\",\"position\":\"left\",\"show\":true,\"style\":{},\"scale\":{\"type\":\"linear\"},\"labels\":{\"show\":true,\"rotate\":0,\"filter\":false,\"truncate\":200},\"title\":{}}],\"valueAxes\":[{\"id\":\"ValueAxis-1\",\"name\":\"LeftAxis-1\",\"type\":\"value\",\"position\":\"bottom\",\"show\":true,\"style\":{},\"scale\":{\"type\":\"linear\",\"mode\":\"normal\"},\"labels\":{\"show\":true,\"rotate\":75,\"filter\":true,\"truncate\":100},\"title\":{\"text\":\"#failures\"}}],\"seriesParams\":[{\"show\":true,\"type\":\"histogram\",\"mode\":\"normal\",\"data\":{\"label\":\"#failures\",\"id\":\"1\"},\"valueAxis\":\"ValueAxis-1\",\"drawLinesBetweenPoints\":true,\"showCircles\":true}],\"addTooltip\":true,\"addLegend\":true,\"legendPosition\":\"right\",\"times\":[],\"addTimeMarker\":false},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"count\",\"schema\":\"metric\",\"params\":{\"customLabel\":\"#failures\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"segment\",\"params\":{\"field\":\"nomad.processing.current_task.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":5,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"failed task\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"group\",\"params\":{\"field\":\"nomad.processing.step.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"<unknown>\",\"size\":5,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Cause\"}}]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"filter\":[{\"meta\":{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"type\":\"phrases\",\"key\":\"event.keyword\",\"value\":\"task failed, task failed with exception\",\"params\":[\"task failed\",\"task failed with exception\"],\"negate\":false,\"disabled\":false,\"alias\":null},\"query\":{\"bool\":{\"should\":[{\"match_phrase\":{\"event.keyword\":\"task failed\"}},{\"match_phrase\":{\"event.keyword\":\"task failed with exception\"}}],\"minimum_should_match\":1}},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "8bcaf100-c7d3-11e8-af80-b5004896a534",
+    "_type": "visualization",
+    "_source": {
+      "title": "Error events per logger [nomad]",
+      "visState": "{\"title\":\"Error events per logger [nomad]\",\"type\":\"horizontal_bar\",\"params\":{\"type\":\"histogram\",\"grid\":{\"categoryLines\":false,\"style\":{\"color\":\"#eee\"}},\"categoryAxes\":[{\"id\":\"CategoryAxis-1\",\"type\":\"category\",\"position\":\"left\",\"show\":true,\"style\":{},\"scale\":{\"type\":\"linear\"},\"labels\":{\"show\":true,\"rotate\":0,\"filter\":false,\"truncate\":20},\"title\":{}}],\"valueAxes\":[{\"id\":\"ValueAxis-1\",\"name\":\"LeftAxis-1\",\"type\":\"value\",\"position\":\"bottom\",\"show\":true,\"style\":{},\"scale\":{\"type\":\"linear\",\"mode\":\"normal\"},\"labels\":{\"show\":true,\"rotate\":75,\"filter\":true,\"truncate\":100},\"title\":{\"text\":\"Count\"}}],\"seriesParams\":[{\"show\":true,\"type\":\"histogram\",\"mode\":\"normal\",\"data\":{\"label\":\"Count\",\"id\":\"1\"},\"valueAxis\":\"ValueAxis-1\",\"drawLinesBetweenPoints\":true,\"showCircles\":true}],\"addTooltip\":true,\"addLegend\":true,\"legendPosition\":\"right\",\"times\":[],\"addTimeMarker\":false},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"segment\",\"params\":{\"field\":\"event.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"<unknown>\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Event\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"group\",\"params\":{\"field\":\"logger_name.keyword\",\"otherBucket\":true,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"<unknown>\",\"size\":5,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Logger\"}}]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"filter\":[{\"meta\":{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"type\":\"phrases\",\"key\":\"level.keyword\",\"value\":\"ERROR, CRITICAL\",\"params\":[\"ERROR\",\"CRITICAL\"],\"negate\":false,\"disabled\":false,\"alias\":null},\"query\":{\"bool\":{\"should\":[{\"match_phrase\":{\"level.keyword\":\"ERROR\"}},{\"match_phrase\":{\"level.keyword\":\"CRITICAL\"}}],\"minimum_should_match\":1}},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "18785d30-c7cb-11e8-af80-b5004896a534",
+    "_type": "visualization",
+    "_source": {
+      "title": "Top errors [nomad]",
+      "visState": "{\"title\":\"Top errors [nomad]\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showPartialRows\":false,\"showMeticsAtAllLevels\":false,\"sort\":{\"columnIndex\":4,\"direction\":\"desc\"},\"showTotal\":false,\"totalFunc\":\"sum\"},\"aggs\":[{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"event.keyword\",\"otherBucket\":true,\"otherBucketLabel\":\"Others\",\"missingBucket\":true,\"missingBucketLabel\":\"<unknown>\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Message\"}},{\"id\":\"4\",\"enabled\":true,\"type\":\"top_hits\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.archive_id.keyword\",\"aggregate\":\"concat\",\"size\":1,\"sortField\":\"@timestamp\",\"sortOrder\":\"desc\",\"customLabel\":\"archive_id\"}},{\"id\":\"5\",\"enabled\":true,\"type\":\"top_hits\",\"schema\":\"metric\",\"params\":{\"field\":\"event\",\"aggregate\":\"concat\",\"size\":1,\"sortField\":\"@timestamp\",\"sortOrder\":\"desc\",\"customLabel\":\"Full message\"}},{\"id\":\"1\",\"enabled\":true,\"type\":\"count\",\"schema\":\"metric\",\"params\":{}}]}",
+      "uiStateJSON": "{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":4,\"direction\":\"desc\"}}}}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"filter\":[{\"meta\":{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"type\":\"phrases\",\"key\":\"level.keyword\",\"value\":\"ERROR, CRITICAL\",\"params\":[\"ERROR\",\"CRITICAL\"],\"negate\":false,\"disabled\":false,\"alias\":null},\"query\":{\"bool\":{\"should\":[{\"match_phrase\":{\"level.keyword\":\"ERROR\"}},{\"match_phrase\":{\"level.keyword\":\"CRITICAL\"}}],\"minimum_should_match\":1}},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "1e4b5cd0-c7df-11e8-af80-b5004896a534",
+    "_type": "visualization",
+    "_source": {
+      "title": "Failed calc procs [nomad]",
+      "visState": "{\"title\":\"Failed calc procs [nomad]\",\"type\":\"metric\",\"params\":{\"addTooltip\":true,\"addLegend\":false,\"type\":\"metric\",\"metric\":{\"percentageMode\":false,\"useRanges\":false,\"colorSchema\":\"Green to Red\",\"metricColorMode\":\"None\",\"colorsRange\":[{\"from\":0,\"to\":10000}],\"labels\":{\"show\":true},\"invertColors\":false,\"style\":{\"bgFill\":\"#000\",\"bgColor\":false,\"labelColor\":false,\"subText\":\"\",\"fontSize\":60}}},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"cardinality\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.archive_id.keyword\",\"customLabel\":\"Failed calc procs\"}}]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"filter\":[{\"$state\":{\"store\":\"appState\"},\"meta\":{\"alias\":null,\"disabled\":false,\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"key\":\"nomad.processing.process.keyword\",\"negate\":false,\"params\":{\"query\":\"Calc\",\"type\":\"phrase\"},\"type\":\"phrase\",\"value\":\"Calc\"},\"query\":{\"match\":{\"nomad.processing.process.keyword\":{\"query\":\"Calc\",\"type\":\"phrase\"}}}},{\"$state\":{\"store\":\"appState\"},\"meta\":{\"alias\":null,\"disabled\":false,\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"key\":\"nomad.processing.status.keyword\",\"negate\":false,\"params\":{\"query\":\"FAILURE\",\"type\":\"phrase\"},\"type\":\"phrase\",\"value\":\"FAILURE\"},\"query\":{\"match\":{\"nomad.processing.status.keyword\":{\"query\":\"FAILURE\",\"type\":\"phrase\"}}}}],\"query\":{\"language\":\"lucene\",\"query\":\"\"}}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "d99f6c10-c7b2-11e8-af80-b5004896a534",
+    "_type": "visualization",
+    "_source": {
+      "title": "Archive exec times over archive size [nomad]",
+      "visState": "{\"title\":\"Archive exec times over archive size [nomad]\",\"type\":\"vega\",\"params\":{\"spec\":\"{\\n  $schema: https://vega.github.io/schema/vega-lite/v2.json\\n  data: {\\n    url: {\\n      index: logstash-*\\n      body: {\\n        size: 10000\\n        query: {\\n          bool: {\\n            must: [\\n              \\\"%dashboard_context-must_clause%\\\"\\n              {\\n                range: {\\n                  @timestamp: {\\n                    \\\"%timefilter%\\\": true\\n                  }\\n                }\\n              }\\n              {\\n                match: {\\n                  event.keyword: archived\\n                }\\n              }\\n            ]\\n            must_not: [\\n              \\\"%dashboard_context-must_not_clause%\\\"\\n            ]\\n          }\\n        }\\n        _source: [\\n          \\\"nomad.processing.input_size\\\", \\n          \\\"nomad.processing.exec_time\\\",\\n          \\\"nomad.processing.archive_size\\\"]\\n      }\\n    }\\n    format: {property: \\\"hits.hits\\\"}\\n  }\\n  transform: [\\n    {\\n      calculate: \\\"datum._source['nomad.processing.input_size']\\\"\\n      as: \\\"input_size\\\"\\n    },\\n    {\\n      calculate: \\\"datum._source['nomad.processing.exec_time']\\\"\\n      as: \\\"exec_time\\\"\\n    },\\n    {\\n      calculate: \\\"datum._source['nomad.processing.archive_size']\\\"\\n      as: \\\"archive_size\\\"\\n    }\\n  ]\\n  mark: circle\\n  encoding: {\\n    x: {\\n      field: archive_size\\n      type: quantitative\\n      scale: {\\n        type: log\\n      }\\n      axis: { \\n        title: Archive size in bytes \\n        format: s\\n      }\\n    }\\n    y: {\\n      field: exec_time\\n      type: quantitative\\n      scale: {\\n        type: log\\n      }\\n      axis: { \\n        title: Exec time in s\\n        format: s\\n      }\\n    }\\n    size: {\\n      field: \\\"input_size\\\", \\n      type: \\\"quantitative\\\", \\n      legend: {\\n        title: Input size in bytes\\n        format: s\\n      },\\n      scale: {\\n        // type: log\\n      }\\n    }\\n  }\\n}\\n\"},\"aggs\":[]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{}"
       }
     },
     "_meta": {

@@ -112,6 +112,5 @@ services:
 volumes:
     nomad_mongo:
     nomad_elastic:
-    nomad_redis:
     nomad_rabbitmq:
     nomad_elk:
