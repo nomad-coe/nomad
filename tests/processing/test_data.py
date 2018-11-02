@@ -23,6 +23,7 @@ import pytest
 from datetime import datetime
 import shutil
 import os.path
+import json
 
 from nomad import user, utils
 from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile
@@ -46,6 +47,16 @@ def mocks_forall(mocksearch, mockmongo):
 @pytest.fixture(scope='function', params=example_files)
 def uploaded_id(request, clear_files) -> Generator[str, None, None]:
     example_file = request.param
+    example_upload_id = os.path.basename(example_file).replace('.zip', '')
+    upload_file = UploadFile(example_upload_id).os_path
+    shutil.copyfile(example_file, upload_file)
+
+    yield example_upload_id
+
+
+@pytest.fixture
+def uploaded_id_with_warning(request, clear_files) -> Generator[str, None, None]:
+    example_file = 'tests/data/proc/examples_with_warning_template.zip'
     example_upload_id = os.path.basename(example_file).replace('.zip', '')
     upload_file = UploadFile(example_upload_id).os_path
     shutil.copyfile(example_file, upload_file)
@@ -77,7 +88,14 @@ def assert_processing(upload: Upload, mocksearch=None):
         assert calc.parser is not None
         assert calc.mainfile is not None
         assert calc.status == 'SUCCESS', calc.archive_id
-        assert ArchiveFile(calc.archive_id).exists()
+
+        archive_file = ArchiveFile(calc.archive_id)
+        assert archive_file.exists()
+        with archive_file.read_archive_json() as archive_json:
+            archive = json.load(archive_json)
+        assert 'section_run' in archive
+        assert 'section_calculation_info' in archive
+
         assert ArchiveLogFile(calc.archive_id).exists()
         with ArchiveLogFile(calc.archive_id).open('rt') as f:
             assert 'a test' in f.read()
@@ -92,6 +110,12 @@ def assert_processing(upload: Upload, mocksearch=None):
 @pytest.mark.timeout(30)
 def test_processing(uploaded_id, worker, mocksearch, no_warn):
     upload = run_processing(uploaded_id)
+    assert_processing(upload, mocksearch)
+
+
+@pytest.mark.timeout(30)
+def test_processing_with_warning(uploaded_id_with_warning, worker, mocksearch):
+    upload = run_processing(uploaded_id_with_warning)
     assert_processing(upload, mocksearch)
 
 
