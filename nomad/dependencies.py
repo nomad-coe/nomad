@@ -71,12 +71,12 @@ class PythonGit():
                 Names are important, because modules might use relatives paths between
                 them.
         git_url: A publically available and fetchable url to the GIT repository.
-        git_commit: The full commit SHA of the desired commit.
+        git_branch: The branch that should be used.
     """
-    def __init__(self, name: str, git_url: str, git_commit: str) -> None:
+    def __init__(self, name: str, git_url: str, git_branch: str) -> None:
         self.name = name
         self.git_url = git_url
-        self.git_commit = git_commit
+        self.git_branch = git_branch
 
     def _run_pip_install(self, *args):
         pipcode = 0
@@ -126,9 +126,12 @@ class PythonGit():
                 git = Repo('./')
                 origin = git.create_remote('origin', self.git_url)
 
-            _logger.info('pull %s for %s' % (self.git_commit, self.name))
+            _logger.info('pull %s for %s' % (self.git_branch, self.name))
             origin = git.remote('origin')
-            origin.pull(self.git_commit, depth=1)
+            origin.pull(self.git_branch, depth=1)
+            if git.head.name != self.git_branch:
+                new_branch = git.create_head(self.git_branch)
+                git.head.reference = new_branch
 
             if os.path.exists('requirements.txt'):
                 _logger.info('install requirements.txt for %s' % self.name)
@@ -156,37 +159,42 @@ class PythonGit():
 
 dependencies = [
     PythonGit(
+        name='repository-api',
+        git_url='https://gitlab.mpcdf.mpg.de/NoMaD/NomadRepositoryParser.git',
+        git_branch='v2.1'
+    ),
+    PythonGit(
         name='nomad-meta-info',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info.git',
-        git_commit='nomad-fair'),
+        git_branch='nomad-fair'),
     PythonGit(
         name='python_common',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/python-common.git',
-        git_commit='nomad-fair'),
+        git_branch='nomad-fair'),
     PythonGit(
         name='parsers/vasp',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-vasp.git',
-        git_commit='nomad-fair'),
+        git_branch='nomad-fair'),
     PythonGit(
         name='parsers/exciting',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-exciting.git',
-        git_commit='nomad-fair'),
+        git_branch='nomad-fair'),
     PythonGit(
         name='parsers/fhi-aims',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-fhi-aims.git',
-        git_commit='nomad-fair'),
+        git_branch='nomad-fair'),
     PythonGit(
         name='normalizers/stats',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/normalizer-stats.git',
-        git_commit='nomad-fair'),
+        git_branch='nomad-fair'),
     PythonGit(
         name='normalizers/symmetry',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/normalizer-symmetry',
-        git_commit='nomad-fair'),
+        git_branch='nomad-fair'),
     PythonGit(
         name='normalizers/system-type',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/normalizer-system-type',
-        git_commit='nomad-fair')
+        git_branch='nomad-fair')
 ]
 
 dependencies_dict = {dependency.name: dependency for dependency in dependencies}
