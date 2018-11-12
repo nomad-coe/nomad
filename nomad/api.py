@@ -25,7 +25,7 @@ from zipfile import ZIP_DEFLATED
 from contextlib import contextmanager
 
 from nomad import config, infrastructure
-from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile
+from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile, RepositoryFile
 from nomad.utils import get_logger
 from nomad.processing import Upload, NotAllowedDuringProcessing
 from nomad.repo import RepoCalc
@@ -776,12 +776,12 @@ def get_raw(upload_hash, calc_hash):
     except Exception as e:
         abort(500, message=str(e))
 
+    repository_file = RepositoryFile(upload_hash)
+
     @contextmanager
     def raw_file(filename):
         try:
-            upload = Upload.get(repo.upload_id)
-            upload_file = UploadFile(upload.upload_id, local_path=upload.local_path)
-            the_file = upload_file.get_file(filename)
+            the_file = repository_file.get_file(filename)
             with the_file.open() as f:
                 yield f
         except KeyError:

@@ -211,8 +211,12 @@ class TestUploadFile:
         with upload:
             self.assert_upload(upload)
 
-    def test_upload_not_extracted(self, upload: UploadFile):
-        self.assert_upload(upload)
+    def test_persist(self, upload: UploadFile):
+        with upload:
+            zipped_container = upload.persist()
+
+        assert zipped_container.exists()
+        assert zipped_container.os_path.endswith('%s.zip' % upload.upload_hash())
 
     def test_delete_upload(self, upload: UploadFile):
         upload.delete()
@@ -220,12 +224,12 @@ class TestUploadFile:
 
     def test_hash(self, upload: UploadFile, upload_same_file: UploadFile, no_warn):
         with upload:
-            hash = upload.hash()
+            hash = upload.upload_hash()
             assert hash is not None
             assert isinstance(hash, str)
 
         with upload_same_file:
-            assert hash == upload_same_file.hash()
+            assert hash == upload_same_file.upload_hash()
 
     def test_siblings(self, upload: UploadFile, no_warn):
         with upload:

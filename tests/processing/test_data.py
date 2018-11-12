@@ -26,7 +26,7 @@ import os.path
 import json
 
 from nomad import user, utils
-from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile
+from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile, RepositoryFile
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator
 from nomad.repo import RepoCalc
@@ -105,6 +105,8 @@ def assert_processing(upload: Upload, mocksearch=None):
             repo = mocksearch[calc.archive_id]
             assert repo is not None
             assert len(repo.get('aux_files')) == 4
+
+    assert RepositoryFile(upload.upload_hash).exists()
 
 
 @pytest.mark.timeout(30)

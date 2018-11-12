@@ -334,6 +334,9 @@ def example_repo_with_files(mockmongo, example_elastic_calc):
     upload.user_id = 'does@not.exist'
     upload.save()
 
+    with UploadFile(upload.upload_id, local_path=upload.local_path) as upload_file:
+        upload_file.persist(example_elastic_calc.upload_hash)
+
     return example_elastic_calc
 
 

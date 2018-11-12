@@ -201,6 +201,7 @@ class RepoCalc(ElasticDocument):
     @staticmethod
     def upload_exists(upload_hash):
         """ Returns true if there are already calcs from the given upload. """
+        # TODO this is deprecated and should be varified via repository files
         search = Search(using=infrastructure.elastic_client, index=config.elastic.calc_index) \
             .query('match', upload_hash=upload_hash) \
             .execute()

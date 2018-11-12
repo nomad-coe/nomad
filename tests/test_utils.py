@@ -29,3 +29,7 @@ def test_sanitize_logevent():
     assert utils.sanitize_logevent('numbers 2 and 45.2') == 'numbers X and X'
     assert utils.sanitize_logevent('list [2, 3.3, 10] and (273.9, .92)') == 'list L and L'
     assert utils.sanitize_logevent('mat [2, [3.3, 2], 10]') == 'mat M'
+
+
+def test_logging():
+    utils.get_logger(__name__).debug('test')

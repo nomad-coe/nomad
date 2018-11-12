@@ -10,6 +10,7 @@ from nomad import config, user, infrastructure
 def nomad_logging():
     config.logstash = config.logstash._replace(enabled=False)
     config.console_log_level = logging.CRITICAL
+    infrastructure.setup_logging()
 
 
 @pytest.fixture(scope='session')

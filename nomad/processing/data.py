@@ -490,7 +490,7 @@ class Upload(Chord):
             return
 
         try:
-            self.upload_hash = self.upload_file.hash()
+            self.upload_hash = self.upload_file.upload_hash()
         except Exception as e:
             self.fail('could not create upload hash', e)
             return
@@ -553,6 +553,11 @@ class Upload(Chord):
     def cleanup(self):
         try:
             upload = UploadFile(self.upload_id, local_path=self.local_path)
+            with utils.timer(
+                    self.get_logger(), 'upload persisted', step='cleaning',
+                    upload_size=upload.size):
+                upload.persist()
+
             with utils.timer(
                     self.get_logger(), 'processing cleaned up', step='cleaning',
                     upload_size=upload.size):

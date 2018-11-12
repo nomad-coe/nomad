@@ -141,7 +141,7 @@ class ZippedFile(File):
 
 class Objects:
     @classmethod
-    def _os_path(cls, bucket: str, name: str, ext: str) -> str:
+    def _os_path(cls, bucket: str, name: str, ext: str = None) -> str:
         if ext is not None and ext != '':
             file_name = ".".join([name, ext])
         elif name is None or name == '':
@@ -214,11 +214,12 @@ class UploadFile(ObjectFile):
     """
     Instances of ``UploadFile`` represent an uploaded file in the *'object storage'*.
 
-    Currently only ``.zip`` files are supported.
+    Currently only user ``.zip`` files are supported.
 
     Uploads can be extracted to tmp storage (open/close), the list of files in
     the upload is provided, and files can be opened for read. Extracting uploads
     is optional, all functions in this module are also available without extracting.
+    Extracts are automatically bagged with *bagit*.
 
     This class is a context manager, that extracts the file when using a ``with``
     statement with instances of this class.
@@ -227,6 +228,9 @@ class UploadFile(ObjectFile):
     by providing a ``local_path``. This is useful when the file is already stored
     in nomad's distributed file system, e.g. for bulk processing of already uploaded
     files.
+
+    Uploads can be persistet as :class:`ZippedDataContainers` for permanent repository
+    raw data storage.
 
     Arguments:
         upload_id: The upload of this uploaded file.
@@ -248,8 +252,10 @@ class UploadFile(ObjectFile):
             ext='zip',
             local_path=local_path)
 
-        self.upload_extract_dir: str = os.path.join(config.fs.tmp, 'uploads_extracted', upload_id)
-        self._filelist: List[str] = None
+        self._extract_dir: str = os.path.join(config.fs.tmp, 'uploads_extracted', upload_id)
+        self._bagged_container: DataContainer = None
+        if os.path.isdir(self._extract_dir):
+            self._bagged_container = BaggedDataContainer(self._extract_dir)
 
     def bind_logger(self, logger):
         return super().bind_logger(logger).bind(upload_id=self.object_id)
@@ -268,24 +274,6 @@ class UploadFile(ObjectFile):
                     raise FileError(msg, e)
             return wrapper
 
-    @property
-    def filelist(self) -> List[str]:
-        @UploadFile.Decorators.handle_errors
-        def get_filelist(self):
-            with self._zip() as zip_file:
-                return [
-                    zip_info.filename for zip_info in zip_file.filelist
-                    if not zip_info.filename.endswith('/')]
-
-        if not self._filelist:
-            self._filelist = get_filelist(self)
-
-        return self._filelist
-
-    @property
-    def is_extracted(self) -> bool:
-        return os.path.exists(self.upload_extract_dir)
-
     @contextmanager
     def _zip(self):
         assert self.exists(), "Can only access uploaded file if it exists."
@@ -299,16 +287,29 @@ class UploadFile(ObjectFile):
             if zip_file is not None:
                 zip_file.close()
 
+    @property
+    def filelist(self) -> List[str]:
+        if self.is_extracted:
+            return self._bagged_container.manifest
+        else:
+            with self._zip() as zip_file:
+                return [
+                    zip_info.filename for zip_info in zip_file.filelist
+                    if not zip_info.filename.endswith('/')]
+
+    @property
+    def is_extracted(self) -> bool:
+        return self._bagged_container is not None
+
     @Decorators.handle_errors
-    def hash(self) -> str:
-        """ Calculates the first 28 bytes of a websafe base64 encoded SHA512 of the upload. """
-        with self.open('rb') as f:
-            return utils.hash(f)
+    def upload_hash(self) -> str:
+        assert self.is_extracted
+        return self._bagged_container.hash
 
     @Decorators.handle_errors
     def extract(self) -> None:
         """
-        'Opens' the upload. This means the upload files get extracted to tmp.
+        'Opens' the upload. This means the upload files get extracted and bagged to tmp.
 
         Raises:
             UploadFileError: If some IO went wrong.
@@ -317,9 +318,23 @@ class UploadFile(ObjectFile):
         os.makedirs(os.path.join(config.fs.tmp, 'uploads_extracted'), exist_ok=True)
 
         with self._zip() as zip_file:
-            zip_file.extractall(self.upload_extract_dir)
+            zip_file.extractall(self._extract_dir)
 
         self.logger.debug('extracted uploaded file')
+
+        self._bagged_container = BaggedDataContainer.create(self._extract_dir)
+        self.logger.debug('bagged uploaded file')
+
+    def persist(self, object_id: str = None):
+        """
+        Persists the extracted and bagged upload to the repository raw data bucket.
+        """
+        assert self.is_extracted
+        if object_id is None:
+            object_id = self.upload_hash()
+
+        return ZippedDataContainer.create(
+            self._extract_dir, Objects._os_path(config.files.repository_bucket, object_id))
 
     @Decorators.handle_errors
     def remove_extract(self) -> None:
@@ -331,7 +346,7 @@ class UploadFile(ObjectFile):
             KeyError: If the upload does not exist.
         """
         try:
-            shutil.rmtree(self.upload_extract_dir)
+            shutil.rmtree(self._extract_dir)
         except FileNotFoundError:
             raise KeyError()
 
@@ -350,10 +365,8 @@ class UploadFile(ObjectFile):
         Only works on extracted uploads. The given filename must be one of the
         name in ``self.filelist``.
         """
-        if self.is_extracted:
-            return File(os.path.join(self.upload_extract_dir, filename))
-        else:
-            return ZippedFile(self.os_path, filename)
+        assert self.is_extracted
+        return self._bagged_container.get_file(filename)
 
     @property
     def is_valid(self):
@@ -375,6 +388,23 @@ class UploadFile(ObjectFile):
     def get_sibling_file(self, filename: str, sibling: str) -> File:
         sibling_name = os.path.join(os.path.dirname(filename), sibling)
         return self.get_file(sibling_name)
+
+
+class RepositoryFile(ObjectFile):
+    """
+    Represents a repository file. A repository file is a persistet bagged upload, incl.
+    the upload metadata. It is used to serve raw data.
+    """
+    def __init__(self, upload_hash: str) -> None:
+        super().__init__(
+            bucket=config.files.repository_bucket,
+            object_id=upload_hash,
+            ext='zip')
+
+        self._zipped_container = ZippedDataContainer(self.os_path)
+
+    def get_file(self, path: str) -> ZippedFile:
+        return self._zipped_container.get_file(path)
 
 
 class ArchiveFile(ObjectFile):
@@ -564,9 +594,12 @@ class ZippedDataContainer(File, DataContainer):
         self._metadata = None
 
     @staticmethod
-    def create(path: str) -> 'ZippedDataContainer':
+    def create(path: str, target: str = None) -> 'ZippedDataContainer':
+        if not target:
+            target = path
+
         assert os.path.isdir(path)
-        archive_file = shutil.make_archive(path, 'zip', path)
+        archive_file = shutil.make_archive(target, 'zip', path)
         return ZippedDataContainer(archive_file)
 
     @contextmanager
