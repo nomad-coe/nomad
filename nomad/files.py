@@ -32,7 +32,8 @@ ala ``PathLib``.
     :members:
 
 """
-from typing import List, Generator, IO, TextIO, cast
+from abc import ABC
+from typing import List, Generator, IO, TextIO, cast, Dict, Any
 import os
 import os.path
 from zipfile import ZipFile, BadZipFile, is_zipfile
@@ -40,7 +41,8 @@ import shutil
 from contextlib import contextmanager
 import gzip
 import io
-import shutil
+import bagit
+import json
 
 from nomad import config, utils
 
@@ -169,7 +171,7 @@ class ObjectFile(File):
     """
     Base class for file objects. Allows to open (read, write) and delete objects.
     File objects filesystem location is govern by its bucket, object_id, and ext.
-    This object store location can be overriden with a local_path.
+    This object store location can be overridden with a local_path.
 
     Arguments:
         bucket (str): The 'bucket' for this object.
@@ -454,3 +456,163 @@ class ArchiveLogFile(ObjectFile):
             bucket=config.files.archive_bucket,
             object_id=archive_id,
             ext='log')
+
+
+class DataContainer(ABC):
+    """
+    An abstract baseclass for a *data container*. A data container is a persistent
+    bundle of related files, like the calculation raw data of a user upload.
+
+    A container has a *manifest* and arbitrary *metadata*.
+    """
+    @property
+    def manifest(self) -> List[str]:
+        """
+        A readonly list of paths to files within the container relative to the containers
+        payload directory.
+        """
+        pass
+
+    @property
+    def metadata(self) -> Dict[str, Any]:
+        """
+        The modifiable metadata of this manifest. On the top-level its a string keyed
+        dictionary. The values can be arbitrary, but have to be JSON-serializable.
+        Modifications have to be saved (:func:`save_metadata`).
+        """
+        pass
+
+    def save_metadata(self) -> None:
+        """ Persists metadata changes. """
+        pass
+
+    def get_file(self, manifest_path: str) -> File:
+        """
+        Returns a file-like for the given manifest path.
+        """
+        pass
+
+    @property
+    def hash(self) -> str:
+        return self.metadata['Nomad-Hash']
+
+
+class BaggedDataContainer(DataContainer):
+    """
+    A *data container* based on *bagit*. Once created no more files can be added.
+    """
+    def __init__(self, path: str) -> None:
+        self.path = path
+        self.bag = bagit.Bag(path)
+        self._metadata = None
+        self.payload_directory = os.path.join(path, 'data')
+
+    @staticmethod
+    def create(path: str) -> 'BaggedDataContainer':
+        """
+        Makes a bag from the given directory and returns the respective BaggedDataContainer
+        instance.
+        """
+        bag = bagit.make_bag(path, checksums=['sha512'])
+        hashes = [
+            value['sha512'] for key, value in bag.entries.items()
+            if key.startswith('data/')
+        ]
+        bag.info['Nomad-Hash'] = utils.hash(''.join(hashes))
+        bag.save()
+        return BaggedDataContainer(path)
+
+    @property
+    def metadata(self):
+        if self._metadata is None:
+            self._metadata = BaggedDataContainer._load_bagit_metadata(self.bag.info)
+        return self._metadata
+
+    @staticmethod
+    def _load_bagit_metadata(info):
+        metadata = info
+        for key, value in metadata.items():
+            if key not in bagit.STANDARD_BAG_INFO_HEADERS:
+                try:
+                    metadata[key] = json.loads(value)
+                except Exception:
+                    pass
+        return metadata
+
+    def save_metadata(self):
+        metadata = self.bag.info
+        for key, value in metadata.items():
+            if key not in bagit.STANDARD_BAG_INFO_HEADERS and not isinstance(value, str):
+                metadata[key] = json.dumps(value)
+        self.bag.save()
+
+    @property
+    def manifest(self):
+        return [path[5:] for path in self.bag.entries.keys() if path.startswith('data/')]
+
+    def get_file(self, path):
+        return File(os.path.join(self.payload_directory, path))
+
+
+class ZippedDataContainer(File, DataContainer):
+    """
+    A *bagit*-based data container that has been zipped. Its metadata cannot be changed
+    anymore.
+    """
+    def __init__(self, os_path: str) -> None:
+        super(ZippedDataContainer, self).__init__(os_path)
+        self._metadata = None
+
+    @staticmethod
+    def create(path: str) -> 'ZippedDataContainer':
+        assert os.path.isdir(path)
+        archive_file = shutil.make_archive(path, 'zip', path)
+        return ZippedDataContainer(archive_file)
+
+    @contextmanager
+    def _zip(self):
+        assert self.exists(), "Can only access uploaded file if it exists."
+        zip_file = None
+        try:
+            zip_file = ZipFile(self.os_path)
+            yield zip_file
+        except BadZipFile as e:
+            raise FileError('Upload is not a zip file', e)
+        finally:
+            if zip_file is not None:
+                zip_file.close()
+
+    @property
+    def manifest(self):
+        with self._zip() as zip_file:
+            return [
+                zip_info.filename[5:] for zip_info in zip_file.filelist
+                if not zip_info.filename.endswith('/') and zip_info.filename.startswith('data/')]
+
+    @property
+    def metadata(self):
+        if self._metadata is None:
+            self._metadata = self._load_metadata()
+        return self._metadata
+
+    def _load_metadata(self):
+        with ZippedFile(self.os_path, 'bag-info.txt').open('r') as metadata_file:
+            metadata_contents = metadata_file.read()
+
+        metadata_file = io.StringIO(metadata_contents.decode("utf-8"))
+        tags = {}
+        for name, value in bagit._parse_tags(metadata_file):
+            if name not in tags:
+                tags[name] = value
+                continue
+
+            if not isinstance(tags[name], list):
+                tags[name] = [tags[name], value]
+            else:
+                tags[name].append(value)
+
+        print(tags)
+        return BaggedDataContainer._load_bagit_metadata(tags)
+
+    def get_file(self, path):
+        return ZippedFile(self.path, 'data/' + path)

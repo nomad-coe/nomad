@@ -15,8 +15,12 @@
 import pytest
 import json
 import shutil
+import os
+import os.path
+from zipfile import ZipFile
 
-from nomad.files import Objects, ObjectFile, ArchiveFile, UploadFile, ArchiveLogFile
+from nomad.files import Objects, ObjectFile, ArchiveFile, UploadFile, ArchiveLogFile, \
+    BaggedDataContainer, ZippedDataContainer
 from nomad import config
 
 # example_file uses an artificial parser for faster test execution, can also be
@@ -36,6 +40,9 @@ def clear_files():
     finally:
         try:
             shutil.rmtree(config.fs.objects)
+        except FileNotFoundError:
+            pass
+        try:
             shutil.rmtree(config.fs.tmp)
         except FileNotFoundError:
             pass
@@ -76,6 +83,58 @@ class TestObjects:
         name, ext = existing_example_file
         Objects.delete_all(example_bucket)
         assert not ObjectFile(example_bucket, name, ext).exists()
+
+
+class TestBaggedDataContainer:
+
+    @pytest.fixture(scope='function')
+    def example_directory(self, clear_files):
+        directory = os.path.join(config.fs.tmp, 'test_container')
+        os.makedirs(directory, exist_ok=True)
+
+        with ZipFile(example_file) as zip_file:
+            zip_file.extractall(directory)
+
+        yield directory
+
+    @pytest.fixture(scope='function')
+    def example_container(self, example_directory):
+        yield BaggedDataContainer.create(example_directory)
+
+    def assert_container(self, container):
+        assert container.manifest is not None
+        assert len(container.manifest) == 5
+        assert container.hash is not None
+        assert container.metadata is not None
+
+    def test_make(self, example_container):
+        self.assert_container(example_container)
+
+    def test_metadata(self, example_directory, example_container):
+        example_container.metadata['test'] = dict(k1='v1', k2=True, k3=0)
+        example_container.save_metadata()
+
+        example_container = BaggedDataContainer(example_directory)
+        self.assert_container(example_container)
+        assert example_container.metadata['test']['k1'] == 'v1'
+        assert example_container.metadata['test']['k2']
+        assert example_container.metadata['test']['k3'] == 0
+
+    def test_file(self, example_container):
+        file = example_container.get_file('examples_template/template.json')
+        assert file is not None
+        with file.open('r') as f:
+            assert json.load(f)
+
+
+class TestZippedDataContainer(TestBaggedDataContainer):
+    @pytest.fixture(scope='function')
+    def example_container(self, example_directory):
+        BaggedDataContainer.create(example_directory)
+        return ZippedDataContainer.create(example_directory)
+
+    def test_metadata(self, example_directory, example_container):
+        pass
 
 
 @pytest.fixture(scope='function', params=[False, True])

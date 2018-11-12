@@ -23,3 +23,4 @@ sphinx
 sphinxcontrib.httpdomain
 sphinx_rtd_theme
 zipstream
+bagit
