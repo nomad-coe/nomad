@@ -33,15 +33,17 @@ mongo_client = None
 """ The pymongo mongodb client. """
 
 
+repository_db = None
+""" The repository postgres db sqlalchemy client. """
+
+
 def setup():
     """ Creates connections to mongodb and elastic search. """
     global elastic_client
     setup_logging()
     setup_mongo()
     setup_elastic()
-
-    from nomad import user
-    user.ensure_test_users()
+    setup_repository_db()
 
 
 def setup_logging():
@@ -79,11 +81,20 @@ def setup_elastic():
         logger.info('init elastic index')
 
 
+def setup_repository_db():
+    """ Creates a sqlalchemy session for the NOMAD-coe repository postgres db. """
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    global repository_db
+
+    engine = create_engine('postgresql://postgres:nomad@localhost:5432/nomad', echo=False)
+    repository_db = sessionmaker(bind=engine)()
+
+
 def reset():
-    """ Resets the databases mongo/user and elastic/calcs. Be careful. """
+    """ Resets the databases mongo and elastic/calcs. Be careful. """
     mongo_client.drop_database(config.mongo.users_db)
-    from nomad import user
-    user.ensure_test_users()
 
     elastic_client.indices.delete(index=config.elastic.calc_index)
     from nomad.repo import RepoCalc

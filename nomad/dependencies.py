@@ -158,11 +158,12 @@ class PythonGit():
 
 
 dependencies = [
-    PythonGit(
-        name='repository-api',
-        git_url='https://gitlab.mpcdf.mpg.de/NoMaD/NomadRepositoryParser.git',
-        git_branch='v2.1'
-    ),
+    # repository api is not really usuable, because it is written in python 2.x
+    # PythonGit(
+    #     name='repository-api',
+    #     git_url='https://gitlab.mpcdf.mpg.de/NoMaD/NomadRepositoryParser.git',
+    #     git_branch='v2.1'
+    # ),
     PythonGit(
         name='nomad-meta-info',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info.git',

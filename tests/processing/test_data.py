@@ -64,8 +64,8 @@ def uploaded_id_with_warning(request, clear_files) -> Generator[str, None, None]
     yield example_upload_id
 
 
-def run_processing(uploaded_id: str) -> Upload:
-    upload = Upload.create(upload_id=uploaded_id, user=user.me)
+def run_processing(uploaded_id: str, test_user) -> Upload:
+    upload = Upload.create(upload_id=uploaded_id, user=test_user)
     upload.upload_time = datetime.now()
 
     assert upload.status == 'RUNNING'
@@ -110,33 +110,33 @@ def assert_processing(upload: Upload, mocksearch=None):
 
 
 @pytest.mark.timeout(30)
-def test_processing(uploaded_id, worker, mocksearch, no_warn):
-    upload = run_processing(uploaded_id)
+def test_processing(uploaded_id, worker, mocksearch, test_user, no_warn):
+    upload = run_processing(uploaded_id, test_user)
     assert_processing(upload, mocksearch)
 
 
 @pytest.mark.timeout(30)
-def test_processing_with_warning(uploaded_id_with_warning, worker, mocksearch):
-    upload = run_processing(uploaded_id_with_warning)
+def test_processing_with_warning(uploaded_id_with_warning, worker, test_user, mocksearch):
+    upload = run_processing(uploaded_id_with_warning, test_user)
     assert_processing(upload, mocksearch)
 
 
 @pytest.mark.parametrize('uploaded_id', [example_files[1]], indirect=True)
-def test_processing_doublets(uploaded_id, worker, with_error):
+def test_processing_doublets(uploaded_id, worker, test_user, with_error):
 
-    upload = run_processing(uploaded_id)
+    upload = run_processing(uploaded_id, test_user)
     assert upload.status == 'SUCCESS'
     assert RepoCalc.upload_exists(upload.upload_hash)  # pylint: disable=E1101
 
-    upload = run_processing(uploaded_id)
+    upload = run_processing(uploaded_id, test_user)
     assert upload.status == 'FAILURE'
     assert len(upload.errors) > 0
     assert 'already' in upload.errors[0]
 
 
 @pytest.mark.timeout(30)
-def test_process_non_existing(worker, with_error):
-    upload = run_processing('__does_not_exist')
+def test_process_non_existing(worker, test_user, with_error):
+    upload = run_processing('__does_not_exist', test_user)
 
     assert upload.completed
     assert upload.current_task == 'extracting'
@@ -146,7 +146,7 @@ def test_process_non_existing(worker, with_error):
 
 @pytest.mark.parametrize('task', ['extracting', 'parse_all', 'cleanup', 'parsing'])
 @pytest.mark.timeout(30)
-def test_task_failure(monkeypatch, uploaded_id, worker, task, with_error):
+def test_task_failure(monkeypatch, uploaded_id, worker, task, test_user, with_error):
     # mock the task method to through exceptions
     if hasattr(Upload, task):
         cls = Upload
@@ -163,7 +163,7 @@ def test_task_failure(monkeypatch, uploaded_id, worker, task, with_error):
     monkeypatch.setattr('nomad.processing.data.%s.%s' % (cls.__name__, task), mock)
 
     # run the test
-    upload = run_processing(uploaded_id)
+    upload = run_processing(uploaded_id, test_user)
 
     assert upload.completed
 

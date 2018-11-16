@@ -422,7 +422,7 @@ class Upload(Chord):
         kwargs.update(user_id=user.email)
         self = super().create(**kwargs)
 
-        basic_auth_token = base64.b64encode(b'%s:' % user.generate_auth_token()).decode('utf-8')
+        basic_auth_token = base64.b64encode(b'%s:' % user.get_auth_token()).decode('utf-8')
 
         self.upload_url = cls._external_objects_url('/uploads/%s/file' % self.upload_id)
         self.upload_command = 'curl -H "Authorization: Basic %s" "%s" --upload-file local_file' % (

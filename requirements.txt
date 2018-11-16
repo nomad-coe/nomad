@@ -24,3 +24,6 @@ sphinxcontrib.httpdomain
 sphinx_rtd_theme
 zipstream
 bagit
+psycopg2
+sqlalchemy
+bcrypt

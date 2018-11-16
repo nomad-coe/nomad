@@ -16,79 +16,102 @@
 Module with some prototypes/placeholder for future user management in nomad@FAIR.
 """
 
-from mongoengine import Document, EmailField, StringField, ReferenceField, ListField
-from passlib.apps import custom_app_context as pwd_context
-from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired
+from passlib.hash import bcrypt
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
 
-from nomad import config
+from nomad import infrastructure
 
 
-class User(Document):
-    """ Represents users in the database. """
-    email = EmailField(primary_key=True)
-    name = StringField()
-    password_hash = StringField()
+Base = declarative_base()
 
-    def hash_password(self, password):
-        self.password_hash = pwd_context.encrypt(password)
 
-    def verify_password(self, password):
-        return pwd_context.verify(password, self.password_hash)
+class Session(Base):  # type: ignore
+    __tablename__ = 'sessions'
 
-    def generate_auth_token(self, expiration=600):
-        s = Serializer(config.services.api_secret, expires_in=expiration)
-        return s.dumps({'id': self.id})
+    token = Column(String, primary_key=True)
+    user_id = Column(String)
+
+
+class LoginException(Exception):
+    pass
+
+
+class User(Base):  # type: ignore
+    """
+    SQLAlchemy model class that represents NOMAD-coe repository postgresdb *users*.
+    Provides functions for authenticating via password or session token.
+
+    It is not intended to create or update users. This should be done via the
+    NOMAD-coe repository GUI.
+    """
+    __tablename__ = 'users'
+
+    user_id = Column(Integer, primary_key=True)
+    email = Column(String)
+    firstname = Column(String)
+    lastname = Column(String)
+    password = Column(String)
+
+    def __repr__(self):
+        return '<User(email="%s")>' % self.email
+
+    def _hash_password(self, password):
+        assert False, 'Login functions are done by the NOMAD-coe repository GUI'
+        # password_hash = bcrypt.encrypt(password, ident='2y')
+        # self.password = password_hash
+
+    def _verify_password(self, password):
+        return bcrypt.verify(password, self.password)
+
+    def _generate_auth_token(self, expiration=600):
+        assert False, 'Login functions are done by the NOMAD-coe repository GUI'
+
+    def get_auth_token(self):
+        repository_db = infrastructure.repository_db
+        session = repository_db.query(Session).filter_by(user_id=self.user_id).first()
+        if not session:
+            raise LoginException('No session, user probably not logged in at NOMAD-coe repository GUI')
+
+        return session.token.encode('utf-8')
+
+    @staticmethod
+    def verify_user_password(email, password):
+        repository_db = infrastructure.repository_db
+        user = repository_db.query(User).filter_by(email=email).first()
+        if not user:
+            return None
+
+        if user._verify_password(password):
+            return user
+        else:
+            raise LoginException('Wrong password')
 
     @staticmethod
     def verify_auth_token(token):
-        s = Serializer(config.services.api_secret)
-        try:
-            data = s.loads(token)
-        except SignatureExpired:
-            return None    # valid token, but expired
-        except BadSignature:
-            return None    # invalid token
+        repository_db = infrastructure.repository_db
+        session = repository_db.query(Session).filter_by(token=token).first()
+        if session is None:
+            return None
 
-        return User.objects(email=data['id']).first()
-
-
-class DataSet(Document):
-    name = StringField()
-    description = StringField()
-    doi = StringField()
-
-    user = ReferenceField(User)
-    calcs = ListField(StringField)
-
-    meta = {
-        'indexes': [
-            'user',
-            'doi',
-            'calcs'
-        ]
-    }
+        user = repository_db.query(User).filter_by(user_id=session.user_id).first()
+        assert user, 'User in sessions must exist.'
+        return user
 
 
-# provid a test user for testing
-me = None
-other = None
+def ensure_test_user(email):
+    """
+    Allows tests to make sure that the default test users exist in the database.
+    Returns:
+        The user as :class:`User` instance.
+    """
+    existing = infrastructure.repository_db.query(User).filter_by(
+        email=email).first()
+    assert existing, 'Test user %s does not exist.' % email
 
+    session = infrastructure.repository_db.query(Session).filter_by(
+        user_id=existing.user_id).first()
+    assert session, 'Test user %s has no session.' % email
+    assert session.token == email, 'Test user %s session has unexpected token.' % email
 
-def ensure_test_users():
-    global me
-    me = User.objects(email='me@gmail.com').first()
-    if me is None:
-        me = User(
-            email='me@gmail.com',
-            name='Me Meyer')
-        me.hash_password('nomad')
-        me.save()
-
-    global other
-    me = User.objects(email='other@gmail.com').first()
-    if me is None:
-        me = User(
-            email='other@gmail.com',
-            name='Other User')
-        me.hash_password('nomad')
-        me.save()
+    return existing

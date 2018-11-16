@@ -1,0 +1,19 @@
+DELETE http://localhost:9200/index2018-11-15 HTTP/1.1;
+
+###
+DELETE http://localhost:9200/topics2018-11-15 HTTP/1.1;
+
+###
+GET http://localhost:9200/_cat/indices HTTP/1.1;
+
+###
+GET http://localhost:9200/index2018-11-15/_search HTTP/1.1;
+
+
+###
+POST http://localhost:8111/repo/repo-update/index/calculation HTTP/1.1;
+content-type: application/json
+
+{
+    "calc_ids": [10]
+}

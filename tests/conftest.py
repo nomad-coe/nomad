@@ -81,7 +81,6 @@ def mockmongo(monkeypatch):
     disconnect()
     connection = connect('test_db', host='mongomock://localhost')
     monkeypatch.setattr('nomad.infrastructure.setup_mongo', lambda **kwargs: None)
-    user.ensure_test_users()
 
     yield
 
@@ -92,6 +91,22 @@ def mockmongo(monkeypatch):
 def elastic():
     infrastructure.setup_elastic()
     assert infrastructure.elastic_client is not None
+
+
+@pytest.fixture(scope='session')
+def repository_db():
+    infrastructure.setup_repository_db()
+    assert infrastructure.repository_db is not None
+
+
+@pytest.fixture(scope='session')
+def test_user(repository_db):
+    return user.ensure_test_user(email='sheldon.cooper@nomad-fairdi.tests.de')
+
+
+@pytest.fixture(scope='session')
+def other_test_user(repository_db):
+    return user.ensure_test_user(email='leonard.hofstadter@nomad-fairdi.tests.de')
 
 
 @pytest.fixture(scope='function')

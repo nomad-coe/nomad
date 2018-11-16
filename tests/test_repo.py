@@ -27,7 +27,7 @@ from tests.test_parsing import parsed_template_example  # pylint: disable=unused
 
 
 @pytest.fixture(scope='function')
-def example_elastic_calc(normalized_template_example: LocalBackend, elastic) \
+def example_elastic_calc(normalized_template_example: LocalBackend, elastic, test_user) \
         -> Generator[RepoCalc, None, None]:
 
     upload_file = UploadFile('test_upload_id', local_path=example_file)
@@ -49,7 +49,7 @@ def example_elastic_calc(normalized_template_example: LocalBackend, elastic) \
         additional=dict(
             mainfile=mainfile,
             upload_time=datetime.now(),
-            staging=True, restricted=False, user_id='me@gmail.com',
+            staging=True, restricted=False, user_id=test_user.email,
             aux_files=auxfiles),
         refresh='true')
 
@@ -82,7 +82,7 @@ def test_create_elastic_calc(example_elastic_calc: RepoCalc, no_warn):
 
 
 def test_create_existing_elastic_calc(
-        example_elastic_calc: RepoCalc, normalized_template_example):
+        example_elastic_calc: RepoCalc, normalized_template_example, test_user):
     try:
         RepoCalc.create_from_backend(
             normalized_template_example,
@@ -92,7 +92,7 @@ def test_create_existing_elastic_calc(
             additional=dict(
                 mainfile='/test/mainfile',
                 upload_time=datetime.now(),
-                staging=True, restricted=False, user_id='me'),
+                staging=True, restricted=False, user_id=test_user.email),
             refresh='true')
         assert False
     except AlreadyExists:

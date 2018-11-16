@@ -35,8 +35,8 @@ from nomad.normalizing import normalizers
 
 
 api_base = 'http://localhost/nomad/api'
-user = 'other@gmail.com'
-pw = 'nomad'
+user = 'leonard.hofstadter@nomad-fairdi.tests.de'
+pw = 'password'
 
 
 def handle_common_errors(func):
@@ -325,11 +325,13 @@ def api():
 
 
 @cli.command(help='Runs tests and linting. Useful before commit code.')
-def qa():
+@click.option('--skip-tests', help='Do not test, just do code checks.', is_flag=True)
+def qa(skip_tests: bool):
     os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
     ret_code = 0
-    click.echo('Run tests ...')
-    ret_code += os.system('python -m pytest tests')
+    if not skip_tests:
+        click.echo('Run tests ...')
+        ret_code += os.system('python -m pytest tests')
     click.echo('Run code style checks ...')
     ret_code += os.system('python -m pycodestyle --ignore=E501,E701 nomad tests')
     click.echo('Run linter ...')

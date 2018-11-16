@@ -32,7 +32,7 @@ from tests.test_repo import example_elastic_calc  # noqa pylint: disable=unused-
 
 
 @pytest.fixture(scope='function')
-def client(mockmongo):
+def client(mockmongo, repository_db):
     disconnect()
     connect('users_test', host=config.mongo.host, port=config.mongo.port, is_mock=True)
 
@@ -43,18 +43,23 @@ def client(mockmongo):
     Upload._get_collection().drop()
 
 
-@pytest.fixture(scope='session')
-def test_user_auth():
+def create_auth_headers(user):
+    basic_auth_str = '%s:password' % user.email
+    basic_auth_bytes = basic_auth_str.encode('utf-8')
+    basic_auth_base64 = base64.b64encode(basic_auth_bytes).decode('utf-8')
     return {
-        'Authorization': 'Basic %s' % base64.b64encode(b'me@gmail.com:nomad').decode('utf-8')
+        'Authorization': 'Basic %s' % basic_auth_base64
     }
 
 
 @pytest.fixture(scope='session')
-def test_other_user_auth():
-    return {
-        'Authorization': 'Basic %s' % base64.b64encode(b'other@gmail.com:nomad').decode('utf-8')
-    }
+def test_user_auth(test_user):
+    return create_auth_headers(test_user)
+
+
+@pytest.fixture(scope='session')
+def test_other_user_auth(other_test_user):
+    return create_auth_headers(other_test_user)
 
 
 def assert_uploads(upload_json_str, count=0, **kwargs):
