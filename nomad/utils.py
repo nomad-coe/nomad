@@ -147,7 +147,7 @@ def configure_logging():
         wrapper_class=structlog.stdlib.BoundLogger)
 
     # configure logging in general
-    logging.basicConfig(stream=sys.stdout)
+    logging.basicConfig(level=logging.DEBUG)
     root = logging.getLogger()
     for handler in root.handlers:
         if not isinstance(handler, logstash.TCPLogstashHandler):
@@ -157,6 +157,8 @@ def configure_logging():
     if config.logstash.enabled:
         add_logstash_handler(root)
         root.info('Structlog configured for logstash')
+
+    root.info('Structlog configured')
 
 
 def create_uuid() -> str:

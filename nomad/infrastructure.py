@@ -87,18 +87,62 @@ def setup_repository_db():
     from sqlalchemy.orm import sessionmaker
 
     global repository_db
-
-    engine = create_engine('postgresql://postgres:nomad@localhost:5432/nomad', echo=False)
+    url = 'postgresql://%s:%s@%s:%d/%s' % (
+        config.repository_db.user,
+        config.repository_db.password,
+        config.repository_db.host,
+        config.repository_db.port,
+        config.repository_db.dbname)
+    engine = create_engine(url, echo=False, isolation_level='AUTOCOMMIT')
     repository_db = sessionmaker(bind=engine)()
+    logger.info('setup repository db')
 
 
 def reset():
     """ Resets the databases mongo and elastic/calcs. Be careful. """
+    logger.info('reset mongodb')
     mongo_client.drop_database(config.mongo.users_db)
 
+    logger.info('reset elastic search')
     elastic_client.indices.delete(index=config.elastic.calc_index)
     from nomad.repo import RepoCalc
     RepoCalc.init()
 
+    logger.info('reset repository db')
+    reset_repository_db()
+
+    logger.info('reset files')
     shutil.rmtree(config.fs.objects, ignore_errors=True)
     shutil.rmtree(config.fs.tmp, ignore_errors=True)
+
+
+def reset_repository_db():
+    import psycopg2
+    logger.info('reset repository db 1')
+    conn_str = "host='%s' port=%d dbname='%s' user='%s' password='%s'" % (
+        config.repository_db.host,
+        config.repository_db.port,
+        config.repository_db.dbname,
+        config.repository_db.user,
+        config.repository_db.password)
+
+    logger.info('reset repository db 2')
+    conn = psycopg2.connect(conn_str)
+    logger.info('reset repository db 3')
+    with conn.cursor() as cur:
+        logger.info('reset repository db 4')
+        cur.execute(
+            "DROP SCHEMA public CASCADE;"
+            "CREATE SCHEMA public;"
+            "GRANT ALL ON SCHEMA public TO postgres;"
+            "GRANT ALL ON SCHEMA public TO public;")
+        logger.info('reset repository db 5')
+        cur.execute(open('nomad/empty_repository_db.sql', 'r').read())
+        logger.info('reset repository db 6')
+    conn.close()
+    logger.info('reset repository db 7')
+
+
+if __name__ == '__main__':
+    setup()
+    reset()

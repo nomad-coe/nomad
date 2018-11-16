@@ -31,6 +31,9 @@ CeleryConfig = namedtuple('Celery', ['broker_url'])
 FSConfig = namedtuple('FSConfig', ['tmp', 'objects'])
 """ Used to configure file stystem access. """
 
+RepositoryDBConfig = namedtuple('RepositoryDBConfig', ['host', 'port', 'dbname', 'user', 'password'])
+""" Used to configure access to NOMAD-coe repository db. """
+
 ElasticConfig = namedtuple('ElasticConfig', ['host', 'calc_index'])
 """ Used to configure elastic search. """
 
@@ -80,6 +83,13 @@ elastic = ElasticConfig(
     host=os.environ.get('NOMAD_ELASTIC_HOST', 'localhost'),
     calc_index='calcs'
 )
+repository_db = RepositoryDBConfig(
+    host=os.environ.get('NOMAD_REPOSITORY_DB_HOST', 'localhost'),
+    port=int(os.environ.get('NOMAD_REPOSITORY_DB_PORT', 5432)),
+    dbname=os.environ.get('NOMAD_REPOSITORY_DB_NAME', 'nomad'),
+    user=os.environ.get('NOMAD_REPOSITORY_DB_USER', 'postgres'),
+    password=os.environ.get('NOMAD_REPOSITORY_DB_PASSWORD', 'nomad')
+)
 mongo = MongoConfig(
     host=os.environ.get('NOMAD_MONGO_HOST', 'localhost'),
     port=int(os.environ.get('NOMAD_MONGO_PORT', 27017)),
@@ -98,5 +108,5 @@ services = NomadServicesConfig(
     api_secret=os.environ.get('NOMAD_API_SECRET', 'defaultApiSecret')
 )
 
-console_log_level = get_loglevel_from_env('NOMAD_CONSOLE_LOGLEVEL', default_level=logging.ERROR)
+console_log_level = get_loglevel_from_env('NOMAD_CONSOLE_LOGLEVEL', default_level=logging.INFO)
 service = os.environ.get('NOMAD_SERVICE', 'unknown nomad service')
