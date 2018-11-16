@@ -27,6 +27,9 @@ build:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
     - docker build --no-cache -t $TEST_IMAGE .
     - docker push $TEST_IMAGE
+  except:
+    - /^dev-.*$/
+
 
 buildgui:
   stage: build
@@ -37,6 +40,9 @@ buildgui:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
     - docker build -t $FRONTEND_TEST_IMAGE .
     - docker push $FRONTEND_TEST_IMAGE
+  except:
+    - /^dev-.*$/
+
 
 linting:
   stage: test
@@ -46,6 +52,8 @@ linting:
     - python -m pycodestyle --ignore=E501,E701 nomad tests
     - python -m pylint --load-plugins=pylint_mongoengine nomad tests
     - python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests
+  except:
+    - /^dev-.*$/
 
 tests:
   stage: test
@@ -71,6 +79,9 @@ tests:
   script:
     - cd /app
     - python -m pytest --cov=nomad -sv tests
+  except:
+    - /^dev-.*$/
+
 
 release:
   stage: release
