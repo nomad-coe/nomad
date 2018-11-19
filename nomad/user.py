@@ -14,6 +14,22 @@
 
 """
 Module with some prototypes/placeholder for future user management in nomad@FAIR.
+It is currently based on the NOMAD-coe repository postgres API. This module allows
+to authenticate users based on user password or session tokens. It allows to access
+the user data like names and user_id.
+
+This implementation is based on SQLAlchemy. There are model classes that represent
+entries in the *users* and *session* tables.
+
+.. autoclass:: User
+    :members:
+    :undoc-members:
+
+.. autoclass:: Session
+    :members:
+    :undoc-members:
+
+.. autofunction:: ensure_test_user
 """
 
 from passlib.hash import bcrypt

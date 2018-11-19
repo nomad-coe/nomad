@@ -27,6 +27,10 @@ be used similar to the standard *logging.getLogger*.
 Depending on the configuration all logs will also be send to a central logstash.
 
 .. autofunc::nomad.utils.get_logger
+.. autofunc::nomad.utils.hash
+.. autofunc::nomad.utils.create_uuid
+.. autofunc::nomad.utils.timer
+.. autofunc::nomad.utils.lnr
 """
 
 from typing import Union, IO, cast, List
@@ -39,7 +43,6 @@ from structlog.stdlib import LoggerFactory
 import logstash
 from contextlib import contextmanager
 import json
-import sys
 import uuid
 import time
 import re

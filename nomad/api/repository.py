@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+The repository API of the nomad@FAIRDI APIs. Currently allows to resolve repository
+meta-data as well as raw-calculation files.
+"""
+
 import os.path
 from contextlib import contextmanager
 from zipfile import ZIP_DEFLATED

@@ -12,9 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+This module comprises the nomad@FAIRDI APIs.
+
+The different APIs are upload, repository (raw data and search), and archive.
+
+There is a separate documentation for the API endpoints from a client perspective.
+
+.. autodata:: app
+
+.. automodule:: nomad.api.app
+.. automodule:: nomad.api.upload
+.. automodule:: nomad.api.repository
+.. automodule:: nomad.api.archive
+"""
+
 from .app import app
 from . import upload, repository, archive
-
-
-if __name__ == '__main__':
-    app.run(debug=True, port=8000)

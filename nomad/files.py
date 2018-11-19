@@ -20,17 +20,26 @@ uploaded files, archive, files, raw files, etc. should be part of this module to
 allow later introduction of real object storage systems.
 
 .. note:: This module still uses ``os.path``. As long as the whole nomad runs on a
-POSIX (or Windows) os everything should be fine. This means respective paths in the
-dbs, and indices. In the future, this should be replaced with abstract path representations
-ala ``PathLib``.
+    POSIX (or Windows) os everything should be fine. This means respective paths in the
+    dbs, and indices. In the future, this should be replaced with abstract path representations
+    ala ``PathLib``.
 
 .. autoclass:: File
+    :members:
+.. autoclass:: ZippedFile
+    :members:
+.. autoclass:: ObjectFile
     :members:
 .. autoclass:: UploadFile
     :members:
 .. autoclass:: ArchiveFile
     :members:
-
+.. autoclass:: DataContainer
+    :members:
+.. autoclass:: BaggedDataContainer
+    :members:
+.. autoclass:: ZippedDataContainer
+    :members:
 """
 from abc import ABC
 from typing import List, Generator, IO, TextIO, cast, Dict, Any

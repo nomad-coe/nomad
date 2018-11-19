@@ -37,6 +37,11 @@
 .. automodule:: nomad.user
 ```
 
+## nomad.api
+```eval_rst
+.. automodule:: nomad.api
+```
+
 ## nomad.utils
 ```eval_rst
 .. automodule:: nomad.utils

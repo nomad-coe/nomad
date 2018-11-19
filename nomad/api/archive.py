@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+The archive API of the nomad@FAIRDI APIs. This API is about serving processed
+(parsed and normalized) calculation data in nomad's *meta-info* format.
+"""
+
 import os.path
 
 from flask import send_file
