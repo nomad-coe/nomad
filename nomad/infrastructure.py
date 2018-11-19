@@ -17,10 +17,14 @@ This module provides function to establish connections to the database, searchen
 infrastructure services.
 """
 
+import os.path
 import shutil
-from mongoengine import connect
-from elasticsearch_dsl import connections
+from contextlib import contextmanager
+
+import psycopg2
 from elasticsearch.exceptions import RequestError
+from elasticsearch_dsl import connections
+from mongoengine import connect
 
 from nomad import config, utils
 
@@ -32,13 +36,17 @@ elastic_client = None
 mongo_client = None
 """ The pymongo mongodb client. """
 
-
 repository_db = None
 """ The repository postgres db sqlalchemy client. """
 
 
 def setup():
-    """ Creates connections to mongodb and elastic search. """
+    """
+    Uses the current configuration (nomad/config.py and environemnt) to setup all the
+    infrastructure services (repository db, mongo, elastic search) and logging.
+    Will create client instances for the databases and has to be called before they
+    can be used.
+    """
     global elastic_client
     setup_logging()
     setup_mongo()
@@ -82,7 +90,22 @@ def setup_elastic():
 
 
 def setup_repository_db():
-    """ Creates a sqlalchemy session for the NOMAD-coe repository postgres db. """
+    """
+    Makes sure that a minimal NOMAD-coe repository postgres db exists.
+    Returns:
+        An sqlalchemy session for the NOMAD-coe repository postgres db.
+    """
+    # ensure that the schema exists
+    with repository_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "select exists(select * from information_schema.tables "
+                "where table_name='users')")
+            exists = cur.fetchone()[0]
+
+    if not exists:
+        reset_repository_db()
+
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
@@ -99,7 +122,7 @@ def setup_repository_db():
 
 
 def reset():
-    """ Resets the databases mongo and elastic/calcs. Be careful. """
+    """ Resets the databases mongo, elastic/calcs, and repository db. Be careful. """
     logger.info('reset mongodb')
     mongo_client.drop_database(config.mongo.users_db)
 
@@ -116,9 +139,9 @@ def reset():
     shutil.rmtree(config.fs.tmp, ignore_errors=True)
 
 
-def reset_repository_db():
-    import psycopg2
-    logger.info('reset repository db 1')
+@contextmanager
+def repository_db_connection():
+    """ Contextmanager for a psycopg2 session for the NOMAD-coe repository postgresdb """
     conn_str = "host='%s' port=%d dbname='%s' user='%s' password='%s'" % (
         config.repository_db.host,
         config.repository_db.port,
@@ -126,23 +149,24 @@ def reset_repository_db():
         config.repository_db.user,
         config.repository_db.password)
 
-    logger.info('reset repository db 2')
     conn = psycopg2.connect(conn_str)
-    logger.info('reset repository db 3')
-    with conn.cursor() as cur:
-        logger.info('reset repository db 4')
-        cur.execute(
-            "DROP SCHEMA public CASCADE;"
-            "CREATE SCHEMA public;"
-            "GRANT ALL ON SCHEMA public TO postgres;"
-            "GRANT ALL ON SCHEMA public TO public;")
-        logger.info('reset repository db 5')
-        cur.execute(open('nomad/empty_repository_db.sql', 'r').read())
-        logger.info('reset repository db 6')
+    yield conn
+    conn.commit()
     conn.close()
-    logger.info('reset repository db 7')
+
+
+def reset_repository_db():
+    """ Drops the existing NOMAD-coe repository postgres db and creates a new minimal one. """
+    with repository_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "DROP SCHEMA public CASCADE;"
+                "CREATE SCHEMA public;"
+                "GRANT ALL ON SCHEMA public TO postgres;"
+                "GRANT ALL ON SCHEMA public TO public;")
+            sql_file = os.path.join(os.path.dirname(__file__), 'empty_repository_db.sql')
+            cur.execute(open(sql_file, 'r').read())
 
 
 if __name__ == '__main__':
-    setup()
-    reset()
+    reset_repository_db()
