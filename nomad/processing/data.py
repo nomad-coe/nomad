@@ -444,7 +444,7 @@ class Upload(Chord):
         self.get_logger().info('unstage')
         self.in_staging = False
         RepoCalc.unstage(upload_id=self.upload_id)
-        # coe_repo.add_upload(self, restricted=False)  # TODO allow users to choose restricted
+        coe_repo.add_upload(self, restricted=False)  # TODO allow users to choose restricted
         self.save()
 
     @property
@@ -455,6 +455,7 @@ class Upload(Chord):
             'local_path': self.local_path,
             'additional_metadata': self.additional_metadata,
             'upload_id': self.upload_id,
+            'upload_hash': self.upload_hash,
             'upload_url': self.upload_url,
             'upload_command': self.upload_command,
             'upload_time': self.upload_time.isoformat() if self.upload_time is not None else None,

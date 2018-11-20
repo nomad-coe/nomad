@@ -653,7 +653,6 @@ class ZippedDataContainer(File, DataContainer):
             else:
                 tags[name].append(value)
 
-        print(tags)
         return BaggedDataContainer._load_bagit_metadata(tags)
 
     def get_file(self, path):

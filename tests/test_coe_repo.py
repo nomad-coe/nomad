@@ -1,3 +1,5 @@
+import pytest
+
 from nomad.coe_repo import User, Calc, CalcMetaData, Upload, add_upload
 
 from tests.processing.test_data import processed_upload  # pylint: disable=unused-import
@@ -33,21 +35,26 @@ def test_rollback(repository_db):
     assert repository_db.query(Calc).filter_by(calc_id=calc_id).first() is None
 
 
-def assert_upload(coe_upload_id, repository_db):
-    upload = repository_db.query(Upload).filter_by(upload_id=coe_upload_id).first()
-    assert upload is not None
-    for calc in repository_db.query(Calc).filter_by(origin_id=coe_upload_id):
-        assert calc.origin_id == coe_upload_id
-        metadata = repository_db.query(CalcMetaData).filter_by(calc_id=calc.calc_id).first()
-        assert metadata is not None
-        assert metadata.chemical_formula is not None
+def assert_coe_upload(upload_hash, repository_db, empty=False):
+    coe_upload = repository_db.query(Upload).filter_by(upload_name=upload_hash).first()
+    if empty:
+        assert coe_upload is None
+    else:
+        assert coe_upload is not None
+        coe_upload_id = coe_upload.upload_id
+        for calc in repository_db.query(Calc).filter_by(origin_id=coe_upload_id):
+            assert calc.origin_id == coe_upload_id
+            metadata = repository_db.query(CalcMetaData).filter_by(calc_id=calc.calc_id).first()
+            assert metadata is not None
+            assert metadata.chemical_formula is not None
 
 
+@pytest.mark.timeout(10)
 def test_add_upload(repository_db, processed_upload):
     coe_upload_id = add_upload(processed_upload, restricted=False)
     if coe_upload_id:
-        assert_upload(coe_upload_id, repository_db)
+        assert_coe_upload(processed_upload.upload_hash, repository_db)
 
     coe_upload_id = add_upload(processed_upload, restricted=False)
     if coe_upload_id:
-        assert_upload(coe_upload_id, repository_db)
+        assert_coe_upload(processed_upload.upload_hash, repository_db)

@@ -51,7 +51,8 @@ api = Api(app)
 
 @app.before_first_request
 def setup():
-    infrastructure.setup()
+    if not api.app.config['TESTING']:
+        infrastructure.setup()
 
 
 @auth.verify_password

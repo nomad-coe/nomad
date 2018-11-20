@@ -29,6 +29,7 @@ from tests.test_files import clear_files, archive, archive_log, archive_config  
 from tests.test_normalizing import normalized_template_example  # noqa pylint: disable=unused-import
 from tests.test_parsing import parsed_template_example  # noqa pylint: disable=unused-import
 from tests.test_repo import example_elastic_calc  # noqa pylint: disable=unused-import
+from tests.test_coe_repo import assert_coe_upload  # noqa
 
 
 @pytest.fixture(scope='function')
@@ -166,7 +167,7 @@ def test_delete_empty_upload(client, mocksearch, test_user_auth, no_warn):
     assert rv.status_code == 404
 
 
-def assert_processing(client, test_user_auth, upload_id):
+def assert_processing(client, test_user_auth, upload_id, repository_db):
     upload_endpoint = '/uploads/%s' % upload_id
 
     while True:
@@ -190,6 +191,8 @@ def assert_processing(client, test_user_auth, upload_id):
         assert len(calc['tasks']) == 3
         assert client.get('/logs/%s' % calc['archive_id']).status_code == 200
 
+    empty_upload = upload['calcs']['pagination']['total'] == 0
+
     if upload['calcs']['pagination']['total'] > 1:
         rv = client.get('%s?page=2&per_page=1&order_by=status' % upload_endpoint)
         assert rv.status_code == 200
@@ -206,12 +209,13 @@ def assert_processing(client, test_user_auth, upload_id):
     rv = client.get('/uploads', headers=test_user_auth)
     assert rv.status_code == 200
     assert_uploads(rv.data, count=0)
+    assert_coe_upload(upload['upload_hash'], repository_db, empty=empty_upload)
 
 
 @pytest.mark.parametrize('file', example_files)
 @pytest.mark.parametrize('mode', ['multipart', 'stream'])
 @pytest.mark.timeout(10)
-def test_processing(client, file, mode, worker, mocksearch, test_user_auth, no_warn):
+def test_processing(client, file, mode, worker, mocksearch, test_user_auth, no_warn, repository_db):
     rv = client.post('/uploads', headers=test_user_auth)
     assert rv.status_code == 200
     upload = assert_upload(rv.data)
@@ -237,12 +241,12 @@ def test_processing(client, file, mode, worker, mocksearch, test_user_auth, no_w
     assert rv.status_code == 200
     upload = assert_upload(rv.data)
 
-    assert_processing(client, test_user_auth, upload_id)
+    assert_processing(client, test_user_auth, upload_id, repository_db)
 
 
 @pytest.mark.parametrize('file', example_files)
 @pytest.mark.timeout(10)
-def test_processing_local_path(client, file, worker, mocksearch, test_user_auth, no_warn):
+def test_processing_local_path(client, file, worker, mocksearch, test_user_auth, no_warn, repository_db):
     rv = client.post(
         '/uploads', headers=test_user_auth,
         data=json.dumps(dict(local_path=file)),
@@ -252,7 +256,7 @@ def test_processing_local_path(client, file, worker, mocksearch, test_user_auth,
     upload = assert_upload(rv.data)
     upload_id = upload['upload_id']
 
-    assert_processing(client, test_user_auth, upload_id)
+    assert_processing(client, test_user_auth, upload_id, repository_db)
 
 
 def test_repo_calc(client, example_elastic_calc, no_warn):
