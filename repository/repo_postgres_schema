@@ -1,1 +1,10 @@
 - "login_token" or "sessions", whats the difference, what should be used for authenticating uploader.
+- uploads
+    - upload name
+        ? is this supposed to be unique, check for doublets
+        ! there is no index
+        ? is this a hash/checksum, what kind?
+    - target_path ?
+    - is_all_uploaded, skip_extraction ? necessary
+- calculation
+    ? what is the "checksum"

@@ -67,8 +67,8 @@ class RepoCalcRes(Resource):
                 "mainfile":"RopD3Mo8oMV_-E5bh8uW5PiiCRkH1/data/BrK_svSi/TFCC010.CAB/vasprun.xml.relax1",
                 "program_name":"VASP",
                 "program_version":"4.6.35  3Apr08 complex  parallel LinuxIFC",
-                "chemical_composition_bulk_reduced":"BrKSi2",
-                "program_basis_set_type":"plane waves",
+                "chemical_composition":"BrKSi2",
+                "basis_set_type":"plane waves",
                 "atom_species":[
                     35,
                     19,
@@ -135,8 +135,8 @@ class RepoCalcsRes(Resource):
                         "mainfile":"RopD3Mo8oMV_-E5bh8uW5PiiCRkH1/data/BrK_svSi/TFCC010.CAB/vasprun.xml.relax1",
                         "program_name":"VASP",
                         "program_version":"4.6.35  3Apr08 complex  parallel LinuxIFC",
-                        "chemical_composition_bulk_reduced":"BrKSi2",
-                        "program_basis_set_type":"plane waves",
+                        "chemical_composition":"BrKSi2",
+                        "basis_set_type":"plane waves",
                         "atom_species":[
                             35,
                             19,
@@ -176,12 +176,12 @@ class RepoCalcsRes(Resource):
             if g.user is None:
                 abort(401, message='Authentication required for owner value user.')
             search = RepoCalc.search().query('match_all')
-            search = search.filter('term', user_id=g.user.email)
+            search = search.filter('term', user_id=str(g.user.user_id))
         elif owner == 'staging':
             if g.user is None:
                 abort(401, message='Authentication required for owner value user.')
             search = RepoCalc.search().query('match_all')
-            search = search.filter('term', user_id=g.user.email).filter('term', staging=True)
+            search = search.filter('term', user_id=str(g.user.user_id)).filter('term', staging=True)
         else:
             abort(400, message='Invalid owner value. Valid values are all|user|staging, default is all')
 

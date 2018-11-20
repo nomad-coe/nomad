@@ -29,7 +29,7 @@ from flask_httpauth import HTTPBasicAuth
 import os.path
 
 from nomad import config, infrastructure
-from nomad.user import User
+from nomad.coe_repo import User
 from nomad.processing import Upload
 
 base_path = config.services.api_base_path

@@ -34,10 +34,9 @@ import time
 from structlog import wrap_logger
 from contextlib import contextmanager
 
-from nomad import config, utils
+from nomad import config, utils, coe_repo
 from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile, File
 from nomad.repo import RepoCalc
-from nomad.user import User
 from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE, RUNNING
 from nomad.parsing import parsers, parser_dict
 from nomad.normalizing import normalizers
@@ -284,7 +283,7 @@ class Calc(Proc):
                 additional=additional,
                 upload_hash=upload_hash,
                 calc_hash=calc_hash,
-                upload_id=self.upload_id)
+                upload_id=self.upload_id).persist()
 
         with utils.timer(
                 logger, 'archived', step='archive',
@@ -342,6 +341,8 @@ class Upload(Chord):
     upload_url = StringField(default=None)
     upload_command = StringField(default=None)
 
+    coe_repo_upload_id = IntField(default=None)
+
     _initiated_parsers = IntField(default=-1)
 
     meta: Any = {
@@ -359,9 +360,9 @@ class Upload(Chord):
         return cls.get_by_id(id, 'upload_id')
 
     @classmethod
-    def user_uploads(cls, user: User) -> List['Upload']:
+    def user_uploads(cls, user: coe_repo.User) -> List['Upload']:
         """ Returns all uploads for the given user. Currently returns all uploads. """
-        return cls.objects(user_id=user.email, in_staging=True)
+        return cls.objects(user_id=str(user.user_id), in_staging=True)
 
     def get_logger(self, **kwargs):
         logger = super().get_logger()
@@ -413,13 +414,13 @@ class Upload(Chord):
         The upload will be already saved to the database.
 
         Arguments:
-            user (User): The user that created the upload.
+            user (coe_repo.User): The user that created the upload.
         """
-        user: User = kwargs['user']
+        user: coe_repo.User = kwargs['user']
         del(kwargs['user'])
         if 'upload_id' not in kwargs:
             kwargs.update(upload_id=utils.create_uuid())
-        kwargs.update(user_id=user.email)
+        kwargs.update(user_id=str(user.user_id))
         self = super().create(**kwargs)
 
         basic_auth_token = base64.b64encode(b'%s:' % user.get_auth_token()).decode('utf-8')
@@ -443,6 +444,7 @@ class Upload(Chord):
         self.get_logger().info('unstage')
         self.in_staging = False
         RepoCalc.unstage(upload_id=self.upload_id)
+        # coe_repo.add_upload(self, restricted=False)  # TODO allow users to choose restricted
         self.save()
 
     @property
@@ -479,6 +481,12 @@ class Upload(Chord):
 
     @task
     def extracting(self):
+        """
+        Task performed before the actual parsing/normalizing. Extracting and bagging
+        the uploaded files, computing all keys, create an *upload* entry in the NOMAD-coe
+        repository db, etc.
+        """
+        # extract the uploaded file, this will also create a bagit bag.
         logger = self.get_logger()
         try:
             with utils.timer(
@@ -489,12 +497,14 @@ class Upload(Chord):
             self.fail('process request for non existing upload', level=logging.INFO)
             return
 
+        # create and save a hash for the upload
         try:
             self.upload_hash = self.upload_file.upload_hash()
         except Exception as e:
             self.fail('could not create upload hash', e)
             return
 
+        # check if the file was already uploaded and processed before
         if RepoCalc.upload_exists(self.upload_hash):
             self.fail('The same file was already uploaded and processed.', level=logging.INFO)
             return

@@ -1,9 +1,18 @@
 import pytest
 import logging
+from sqlalchemy.orm import Session
 from mongoengine import connect
 from mongoengine.connection import disconnect
 
-from nomad import config, user, infrastructure
+from nomad import config, coe_repo, infrastructure
+
+
+@pytest.fixture(scope="session")
+def monkeysession(request):
+    from _pytest.monkeypatch import MonkeyPatch
+    mpatch = MonkeyPatch()
+    yield mpatch
+    mpatch.undo()
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -94,19 +103,28 @@ def elastic():
 
 
 @pytest.fixture(scope='session')
-def repository_db():
+def repository_db(monkeysession):
     infrastructure.setup_repository_db()
-    assert infrastructure.repository_db is not None
+    assert infrastructure.repository_db_conn is not None
+
+    # we use a transaction around the session to rollback anything that happens within
+    # test execution
+    trans = infrastructure.repository_db_conn.begin()
+    session = Session(bind=infrastructure.repository_db_conn)
+    monkeysession.setattr('nomad.infrastructure.repository_db', session)
+    yield infrastructure.repository_db
+    trans.rollback()
+    session.close()
 
 
 @pytest.fixture(scope='session')
 def test_user(repository_db):
-    return user.ensure_test_user(email='sheldon.cooper@nomad-fairdi.tests.de')
+    return coe_repo.ensure_test_user(email='sheldon.cooper@nomad-fairdi.tests.de')
 
 
 @pytest.fixture(scope='session')
 def other_test_user(repository_db):
-    return user.ensure_test_user(email='leonard.hofstadter@nomad-fairdi.tests.de')
+    return coe_repo.ensure_test_user(email='leonard.hofstadter@nomad-fairdi.tests.de')
 
 
 @pytest.fixture(scope='function')
@@ -115,30 +133,29 @@ def mocksearch(monkeypatch):
     uploads_by_id = {}
     by_archive_id = {}
 
-    def create_from_backend(_, **kwargs):
-        upload_hash = kwargs['upload_hash']
-        upload_id = kwargs['upload_id']
-        uploads_by_hash[upload_hash] = (upload_id, upload_hash)
-        uploads_by_id[upload_id] = (upload_id, upload_hash)
-        archive_id = '%s/%s' % (upload_hash, kwargs['calc_hash'])
-
-        additional = kwargs.pop('additional')
-        kwargs.update(additional)
-        by_archive_id[archive_id] = kwargs
-        return {}
+    def persist(calc):
+        uploads_by_hash.setdefault(calc.upload_hash, []).append(calc)
+        uploads_by_id.setdefault(calc.upload_id, []).append(calc)
+        by_archive_id[calc.archive_id] = calc
 
     def upload_exists(upload_hash):
         return upload_hash in uploads_by_hash
 
     def delete_upload(upload_id):
         if upload_id in uploads_by_id:
-            hash, id = uploads_by_id[upload_id]
-            del(uploads_by_id[id])
-            del(uploads_by_hash[hash])
+            for calc in uploads_by_id[upload_id]:
+                del(by_archive_id[calc.archive_id])
+            upload_hash = next(uploads_by_id[upload_id]).upload_hash
+            del(uploads_by_id[upload_id])
+            del(uploads_by_hash[upload_hash])
 
-    monkeypatch.setattr('nomad.repo.RepoCalc.create_from_backend', create_from_backend)
+    def upload_calcs(upload_id):
+        return uploads_by_id.get(upload_id, [])
+
+    monkeypatch.setattr('nomad.repo.RepoCalc.persist', persist)
     monkeypatch.setattr('nomad.repo.RepoCalc.upload_exists', upload_exists)
     monkeypatch.setattr('nomad.repo.RepoCalc.delete_upload', delete_upload)
+    monkeypatch.setattr('nomad.repo.RepoCalc.upload_calcs', upload_calcs)
     monkeypatch.setattr('nomad.repo.RepoCalc.unstage', lambda *args, **kwargs: None)
 
     return by_archive_id

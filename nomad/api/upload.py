@@ -233,7 +233,7 @@ class UploadRes(Resource):
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
-        if upload.user_id != g.user.email:
+        if upload.user_id != str(g.user.user_id):
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
         try:
@@ -300,7 +300,7 @@ class UploadRes(Resource):
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
-        if upload.user_id != g.user.email:
+        if upload.user_id != str(g.user.user_id):
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
         json_data = request.get_json()
@@ -341,7 +341,7 @@ class UploadRes(Resource):
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
-        if upload.user_id != g.user.email:
+        if upload.user_id != str(g.user.user_id):
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
         try:

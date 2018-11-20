@@ -25,7 +25,7 @@ import shutil
 import os.path
 import json
 
-from nomad import user, utils
+from nomad import utils
 from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile, RepositoryFile
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator
@@ -77,6 +77,11 @@ def run_processing(uploaded_id: str, test_user) -> Upload:
     return upload
 
 
+@pytest.fixture
+def processed_upload(uploaded_id, test_user, worker, no_warn) -> Upload:
+    return run_processing(uploaded_id, test_user)
+
+
 def assert_processing(upload: Upload, mocksearch=None):
     assert upload.completed
     assert upload.current_task == 'cleanup'
@@ -104,7 +109,9 @@ def assert_processing(upload: Upload, mocksearch=None):
         if mocksearch:
             repo = mocksearch[calc.archive_id]
             assert repo is not None
-            assert len(repo.get('aux_files')) == 4
+            assert repo.chemical_composition is not None
+            assert repo.basis_set_type is not None
+            assert len(repo.aux_files) == 4
 
     assert RepositoryFile(upload.upload_hash).exists()
 

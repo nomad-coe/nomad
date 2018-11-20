@@ -86,8 +86,7 @@ class RepoCalc(ElasticDocument):
     @classmethod
     def create_from_backend(
             cls, backend: LocalBackend, additional: Dict[str, Any],
-            upload_id: str, upload_hash: str, calc_hash: str,
-            **kwargs) -> 'RepoCalc':
+            upload_id: str, upload_hash: str, calc_hash: str) -> 'RepoCalc':
         """
         Create a new calculation instance in elastic search. The data from the given backend
         will be used. Additional meta-data can be given as *kwargs*. ``upload_id``,
@@ -100,12 +99,9 @@ class RepoCalc(ElasticDocument):
             upload_hash: The upload hash of the originating upload.
             upload_id: The upload id of the originating upload.
             calc_hash: The upload unique hash for this calculation.
-            kwargs: Arguments are passed to elasticsearch index operation.
 
-        Raises:
-            AlreadyExists: If the calculation already exists in elastic search. We use
-                the elastic document lock here. The elastic document is IDed via the
-                ``archive_id``.
+        Returns:
+            The created instance.
         """
         assert upload_hash is not None and calc_hash is not None and upload_id is not None
         additional.update(dict(upload_hash=upload_hash, calc_hash=calc_hash, upload_id=upload_id))
@@ -113,33 +109,45 @@ class RepoCalc(ElasticDocument):
         # prepare the entry with all necessary properties from the backend
         calc = cls(meta=dict(id='%s/%s' % (upload_hash, calc_hash)))
         for property in cls._doc_type.mapping:
-            property = key_mappings.get(property, property)
+            mapped_property = key_mappings.get(property, property)
 
-            if property in additional:
-                value = additional[property]
+            if mapped_property in additional:
+                value = additional[mapped_property]
             else:
                 try:
-                    value = backend.get_value(property, 0)
+                    value = backend.get_value(mapped_property, 0)
+                    if value is None:
+                        raise KeyError
                 except KeyError:
                     try:
                         program_name = backend.get_value('program_name', 0)
                     except KeyError:
                         program_name = 'unknown'
                     logger.warning(
-                        'Missing property value', property=property, upload_id=upload_id,
+                        'Missing property value', property=mapped_property, upload_id=upload_id,
                         upload_hash=upload_hash, calc_hash=calc_hash, code=program_name)
                     continue
 
             setattr(calc, property, value)
 
-        # persist to elastic search
+        return calc
+
+    def persist(self, **kwargs):
+        """
+            Persist this entry to elastic search. Kwargs are passed to elastic search.
+
+            Raises:
+                AlreadyExists: If the calculation already exists in elastic search. We use
+                    the elastic document lock here. The elastic document is IDed via the
+                    ``archive_id``.
+        """
         try:
             # In practive es operation might fail due to timeout under heavy loads/
             # bad configuration. Retries with a small delay is a pragmatic solution.
             e_after_retries = None
             for _ in range(0, 2):
                 try:
-                    calc.save(op_type='create', **kwargs)
+                    self.save(op_type='create', **kwargs)
                     e_after_retries = None
                     break
                 except ConnectionTimeout as e:
@@ -154,9 +162,7 @@ class RepoCalc(ElasticDocument):
                 # if we had and exception and could not fix with retries, throw it
                 raise e_after_retries  # pylint: disable=E0702
         except ConflictError:
-            raise AlreadyExists('Calculation %s does already exist.' % (calc.archive_id))
-
-        return calc
+            raise AlreadyExists('Calculation %s does already exist.' % (self.archive_id))
 
     @staticmethod
     def delete_upload(upload_id):
@@ -207,6 +213,13 @@ class RepoCalc(ElasticDocument):
             .execute()
 
         return len(search) > 0
+
+    @staticmethod
+    def upload_calcs(upload_id):
+        """ Returns an iterable over all entries for the given upload_id. """
+        return Search(using=infrastructure.elastic_client, index=config.elastic.calc_index) \
+            .query('match', upload_id=upload_id) \
+            .scan()
 
     @property
     def json_dict(self):

@@ -22,6 +22,8 @@ import shutil
 from contextlib import contextmanager
 
 import psycopg2
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 from elasticsearch.exceptions import RequestError
 from elasticsearch_dsl import connections
 from mongoengine import connect
@@ -37,7 +39,9 @@ mongo_client = None
 """ The pymongo mongodb client. """
 
 repository_db = None
-""" The repository postgres db sqlalchemy client. """
+""" The repository postgres db sqlalchemy session. """
+repository_db_conn = None
+""" The repository postgres db sqlalchemy connection. """
 
 
 def setup():
@@ -106,18 +110,19 @@ def setup_repository_db():
     if not exists:
         reset_repository_db()
 
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-
     global repository_db
+    global repository_db_conn
+
     url = 'postgresql://%s:%s@%s:%d/%s' % (
         config.repository_db.user,
         config.repository_db.password,
         config.repository_db.host,
         config.repository_db.port,
         config.repository_db.dbname)
-    engine = create_engine(url, echo=False, isolation_level='AUTOCOMMIT')
-    repository_db = sessionmaker(bind=engine)()
+    engine = create_engine(url, echo=False)
+
+    repository_db_conn = engine.connect()
+    repository_db = Session(bind=repository_db_conn)
     logger.info('setup repository db')
 
 
@@ -150,7 +155,14 @@ def repository_db_connection():
         config.repository_db.password)
 
     conn = psycopg2.connect(conn_str)
-    yield conn
+    try:
+        yield conn
+    except Exception as e:
+        logger.error('Unhandled exception within repository db connection.', exc_info=e)
+        conn.rollback()
+        conn.close()
+        return
+
     conn.commit()
     conn.close()
 
