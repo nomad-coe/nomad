@@ -389,7 +389,6 @@ class UploadFile(ObjectFile):
         to the upload root directory.
         """
         dirname = os.path.dirname(filename)
-        dirname_len = len(dirname) + 1
         for other in self.filelist:
             if other.startswith(dirname) and other != filename:
                 yield other
