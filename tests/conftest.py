@@ -110,7 +110,7 @@ def repository_db(monkeysession):
     # we use a transaction around the session to rollback anything that happens within
     # test execution
     trans = infrastructure.repository_db_conn.begin()
-    session = Session(bind=infrastructure.repository_db_conn)
+    session = Session(bind=infrastructure.repository_db_conn, autocommit=True)
     monkeysession.setattr('nomad.infrastructure.repository_db', session)
     yield infrastructure.repository_db
     trans.rollback()

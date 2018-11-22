@@ -58,6 +58,8 @@ def add_upload(upload, restricted: bool) -> int:
     TODO deal with the restricted parameter
     """
     repo_db = infrastructure.repository_db
+    repo_db.begin()
+
     logger = utils.get_logger(
         __name__,
         upload_id=upload.upload_id,
@@ -72,12 +74,13 @@ def add_upload(upload, restricted: bool) -> int:
             created=upload.upload_time,
             user_id=int(upload.user_id),
             is_processed=True)
+        repo_db.add(coe_upload)
 
         # add calculations and metadata
         has_calcs = False
         for repo_calc in RepoCalc.upload_calcs(upload.upload_id):
             has_calcs = True
-            add_calculation(upload, coe_upload, repo_calc)
+            add_calculation(upload, coe_upload, repo_calc, restricted)
 
         # commit
         if has_calcs:
@@ -97,7 +100,7 @@ def add_upload(upload, restricted: bool) -> int:
     return result
 
 
-def add_calculation(upload, coe_upload, calc: RepoCalc) -> None:
+def add_calculation(upload, coe_upload, calc: RepoCalc, restricted: bool) -> None:
     repo_db = infrastructure.repository_db
 
     # table based properties
@@ -118,6 +121,11 @@ def add_calculation(upload, coe_upload, calc: RepoCalc) -> None:
         location=calc.mainfile,  # TODO fix paths, has to be aligned with API
         version=code_version)
     repo_db.add(metadata)
+
+    user_metadata = UserMetaData(
+        calc=coe_calc,
+        permission=0 if not restricted else 1)
+    repo_db.add(user_metadata)
 
     spacegroup = Spacegroup(
         calc=coe_calc,
@@ -168,6 +176,14 @@ class CalcMetaData(Base):  # type: ignore
     location = Column(String)
     version_id = Column(Integer, ForeignKey('codeversions.version_id'))
     version = relationship('CodeVersion')
+
+
+class UserMetaData(Base):  # type: ignore
+    __tablename__ = 'user_metadata'
+
+    calc_id = Column(Integer, ForeignKey('calculations.calc_id'), primary_key=True)
+    calc = relationship('Calc')
+    permission = Column(Integer)
 
 
 class CodeVersion(Base):  # type: ignore

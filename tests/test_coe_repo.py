@@ -25,6 +25,8 @@ def test_password_authorize(test_user):
 
 
 def test_rollback(repository_db):
+    repository_db.begin()
+
     calc = Calc(checksum='test')
     repository_db.add(calc)
     repository_db.flush()

@@ -122,7 +122,7 @@ def setup_repository_db():
     engine = create_engine(url, echo=False)
 
     repository_db_conn = engine.connect()
-    repository_db = Session(bind=repository_db_conn)
+    repository_db = Session(bind=repository_db_conn, autocommit=True)
     logger.info('setup repository db')
 
 
