@@ -1,4 +1,5 @@
 import pytest
+import json
 
 from nomad.coe_repo import User, Calc, CalcMetaData, StructRatio, Upload, add_upload
 
@@ -24,19 +25,6 @@ def test_password_authorize(test_user):
     assert_user(user, test_user)
 
 
-def test_rollback(repository_db):
-    repository_db.begin()
-
-    calc = Calc(checksum='test')
-    repository_db.add(calc)
-    repository_db.flush()
-    calc_id = calc.calc_id
-
-    repository_db.rollback()
-
-    assert repository_db.query(Calc).filter_by(calc_id=calc_id).first() is None
-
-
 def assert_coe_upload(upload_hash, repository_db, empty=False):
     coe_upload = repository_db.query(Upload).filter_by(upload_name=upload_hash).first()
     if empty:
@@ -49,6 +37,8 @@ def assert_coe_upload(upload_hash, repository_db, empty=False):
             metadata = repository_db.query(CalcMetaData).filter_by(calc_id=calc.calc_id).first()
             assert metadata is not None
             assert metadata.chemical_formula is not None
+            filenames = metadata.filenames.decode('utf-8')
+            assert len(json.loads(filenames)) == 5
 
             struct_ratio = repository_db.query(StructRatio).filter_by(calc_id=calc.calc_id).first()
             assert struct_ratio is not None

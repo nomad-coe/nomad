@@ -35,6 +35,7 @@ This module also provides functionality to add parsed calculation data to the db
 .. autofunction:: add_upload
 """
 
+import itertools
 from passlib.hash import bcrypt
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
@@ -113,12 +114,14 @@ def add_calculation(upload, coe_upload, calc: RepoCalc, restricted: bool) -> Non
         code_version = CodeVersion(content=program_version)
         repo_db.add(code_version)
 
+    filenames = itertools.chain([calc.mainfile], calc.aux_files)
+
     metadata = CalcMetaData(
         calc=coe_calc,
         added=upload.upload_time,
         chemical_formula=calc.chemical_composition,
-        filenames=','.join(calc.aux_files).encode('utf-8'),  # TODO fix paths, has to be aligned with API
-        location=calc.mainfile,  # TODO fix paths, has to be aligned with API
+        filenames=('[%s]' % ','.join(['"%s"' % filename for filename in filenames])).encode('utf-8'),
+        location=calc.mainfile,
         version=code_version)
     repo_db.add(metadata)
 
