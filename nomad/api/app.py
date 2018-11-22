@@ -88,7 +88,7 @@ def login_really_required(func):
     return wrapper
 
 
-@app.route('/api/token')
+@app.route('%s/token' % base_path)
 @login_really_required
 def get_auth_token():
     """

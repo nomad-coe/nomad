@@ -34,7 +34,7 @@
 
 ## nomad.user
 ```eval_rst
-.. automodule:: nomad.user
+.. automodule:: nomad.coe_repo
 ```
 
 ## nomad.api
