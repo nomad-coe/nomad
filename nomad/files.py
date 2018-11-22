@@ -386,17 +386,13 @@ class UploadFile(ObjectFile):
         Returns the names of all files that share the same prefix (object id),
         respectively are part of the same directory (incl. files in sub directories).
         In nomad terms, the aux files the this file. Returned siblings are relative
-        to this files directory.
+        to the upload root directory.
         """
         dirname = os.path.dirname(filename)
         dirname_len = len(dirname) + 1
         for other in self.filelist:
             if other.startswith(dirname) and other != filename:
-                yield other[dirname_len:]
-
-    def get_sibling_file(self, filename: str, sibling: str) -> File:
-        sibling_name = os.path.join(os.path.dirname(filename), sibling)
-        return self.get_file(sibling_name)
+                yield other
 
 
 class RepositoryFile(ObjectFile):

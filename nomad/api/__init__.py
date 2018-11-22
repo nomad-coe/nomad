@@ -28,4 +28,4 @@ There is a separate documentation for the API endpoints from a client perspectiv
 """
 
 from .app import app
-from . import upload, repository, archive
+from . import upload, repository, archive, raw
