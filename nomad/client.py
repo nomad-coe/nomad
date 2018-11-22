@@ -145,6 +145,7 @@ class CalcProcReproduction:
     """
     def __init__(self, archive_id: str, override: bool = False) -> None:
         self.calc_hash = utils.archive.calc_hash(archive_id)
+        self.upload_hash = utils.archive.upload_hash(archive_id)
         self.mainfile = None
         self.parser = None
         self.logger = utils.get_logger(__name__, archive_id=archive_id)
@@ -154,8 +155,9 @@ class CalcProcReproduction:
             os.makedirs(os.path.dirname(local_path))
         if not os.path.exists(local_path) or override:
             # download raw if not already downloaded or if override is set
+            # TODO currently only downloads mainfile
             self.logger.info('Downloading calc.')
-            req = requests.get('%s/raw/%s?all=1' % (api_base, archive_id), stream=True)
+            req = requests.get('%s/raw/%s?files=%s' % (api_base, self.upload_hash, self.mainfile), stream=True)
             with open(local_path, 'wb') as f:
                 for chunk in req.iter_content(chunk_size=1024):
                     f.write(chunk)
