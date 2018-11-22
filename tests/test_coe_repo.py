@@ -1,6 +1,6 @@
 import pytest
 
-from nomad.coe_repo import User, Calc, CalcMetaData, Upload, add_upload
+from nomad.coe_repo import User, Calc, CalcMetaData, StructRatio, Upload, add_upload
 
 from tests.processing.test_data import processed_upload  # pylint: disable=unused-import
 from tests.processing.test_data import uploaded_id  # pylint: disable=unused-import
@@ -49,6 +49,11 @@ def assert_coe_upload(upload_hash, repository_db, empty=False):
             metadata = repository_db.query(CalcMetaData).filter_by(calc_id=calc.calc_id).first()
             assert metadata is not None
             assert metadata.chemical_formula is not None
+
+            struct_ratio = repository_db.query(StructRatio).filter_by(calc_id=calc.calc_id).first()
+            assert struct_ratio is not None
+            assert struct_ratio.chemical_formula == metadata.chemical_formula
+            assert struct_ratio.formula_units == 1
 
 
 @pytest.mark.timeout(10)

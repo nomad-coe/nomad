@@ -122,6 +122,12 @@ def add_calculation(upload, coe_upload, calc: RepoCalc, restricted: bool) -> Non
         version=code_version)
     repo_db.add(metadata)
 
+    struct_ratio = StructRatio(
+        calc=coe_calc,
+        chemical_formula=calc.chemical_composition,
+        formula_units=1, nelem=1)
+    repo_db.add(struct_ratio)
+
     user_metadata = UserMetaData(
         calc=coe_calc,
         permission=0 if not restricted else 1)
@@ -184,6 +190,16 @@ class UserMetaData(Base):  # type: ignore
     calc_id = Column(Integer, ForeignKey('calculations.calc_id'), primary_key=True)
     calc = relationship('Calc')
     permission = Column(Integer)
+
+
+class StructRatio(Base):  # type: ignore
+    __tablename__ = 'struct_ratios'
+
+    calc_id = Column(Integer, ForeignKey('calculations.calc_id'), primary_key=True)
+    calc = relationship('Calc')
+    formula_units = Column(Integer)
+    nelem = Column(Integer)
+    chemical_formula = Column(String)
 
 
 class CodeVersion(Base):  # type: ignore
