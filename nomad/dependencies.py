@@ -45,7 +45,6 @@ import logging
 import subprocess
 import shutil
 
-_meta_info_path = './submodules/nomad-meta-info/meta_info/nomad_meta_info/'
 _logger = logging.getLogger(__name__)
 base_dir = './.dependencies'
 
@@ -133,6 +132,8 @@ class PythonGit():
                 new_branch = git.create_head(self.git_branch)
                 git.head.reference = new_branch
 
+            git.submodule_update(init=True)
+
             if os.path.exists('requirements.txt'):
                 _logger.info('install requirements.txt for %s' % self.name)
                 self._run_pip_install('-r', 'requirements.txt')
@@ -164,6 +165,10 @@ dependencies = [
     #     git_url='https://gitlab.mpcdf.mpg.de/NoMaD/NomadRepositoryParser.git',
     #     git_branch='v2.1'
     # ),
+    PythonGit(
+        name='nomad-lab-base',
+        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-lab-base.git',
+        git_branch='nomad-FAIR'),
     PythonGit(
         name='nomad-meta-info',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info.git',

@@ -59,6 +59,7 @@ tests:
   stage: test
   image: $TEST_IMAGE
   services:
+    - postgres:latest
       # this will cause a warning, as the gitlab ci runner health check will test the wrong
       # port on rabbitmq container:
       # https://gitlab.com/gitlab-org/gitlab-runner/issues/3163
@@ -69,6 +70,9 @@ tests:
       # https://gitlab.com/gitlab-org/gitlab-ce/issues/42214
       command: [ "bin/elasticsearch", "-Ediscovery.type=single-node" ]
   variables:
+    POSTGRES_DB: nomad
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: nomad
     RABBITMQ_ERLANG_COOKIE: SWQOKODSQALRPCLNMEQG
     RABBITMQ_DEFAULT_USER: rabbitmq
     RABBITMQ_DEFAULT_PASS: rabbitmq
