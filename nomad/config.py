@@ -84,11 +84,11 @@ elastic = ElasticConfig(
     calc_index='calcs'
 )
 repository_db = RepositoryDBConfig(
-    host=os.environ.get('NOMAD_REPOSITORY_DB_HOST', 'localhost'),
-    port=int(os.environ.get('NOMAD_REPOSITORY_DB_PORT', 5432)),
-    dbname=os.environ.get('NOMAD_REPOSITORY_DB_NAME', 'nomad'),
-    user=os.environ.get('NOMAD_REPOSITORY_DB_USER', 'postgres'),
-    password=os.environ.get('NOMAD_REPOSITORY_DB_PASSWORD', 'nomad')
+    host=os.environ.get('NOMAD_COE_REPO_DB_HOST', 'localhost'),
+    port=int(os.environ.get('NOMAD_COE_REPO_DB_PORT', 5432)),
+    dbname=os.environ.get('NOMAD_COE_REPO_DB_NAME', 'nomad'),
+    user=os.environ.get('NOMAD_COE_REPO_DB_USER', 'postgres'),
+    password=os.environ.get('NOMAD_COE_REPO_PASSWORD', 'nomad')
 )
 mongo = MongoConfig(
     host=os.environ.get('NOMAD_MONGO_HOST', 'localhost'),
