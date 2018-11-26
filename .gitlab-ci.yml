@@ -104,10 +104,10 @@ integration-tests:
       command: [ "bin/elasticsearch", "-Ediscovery.type=single-node" ]
     - name: $TEST_IMAGE
       alias: api
-      command: ["python -m nomad.client run api"]
+      command: ["python", "-m", "nomad.client", "run", "api"]
     - name: $TEST_IMAGE
       alias: worker
-      command: ["python -m nomad.client run worker"]
+      command: ["python", "-m", "nomad.client", "run", "worker"]
   variables:
     POSTGRES_DB: nomad
     POSTGRES_USER: postgres
