@@ -76,3 +76,5 @@ USER nomad
 
 VOLUME /app/.volumes/fs
 VOLUME /nomad
+
+EXPOSE 8000
