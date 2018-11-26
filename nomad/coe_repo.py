@@ -228,7 +228,7 @@ class Tag(Base):  # type: ignore
     topic = relationship('Topics')
 
     def __repr__(self):
-        return '<Tag(calc_id="%d", tid="%d)>' % (self.calc_id, self.tid)
+        return '<Tag(calc_id="%d", tid="%d)>' % (int(self.calc_id), int(self.tid))
 
 
 topic_code = 220
