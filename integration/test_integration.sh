@@ -8,7 +8,7 @@ repo_tool="docker $coe_config_args run gitlab-registry.mpcdf.mpg.de/nomad-lab/no
 repo_webservice="docker $coe_config_args run gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/coe-repowebservice:latest"
 
 # import example calculations
-$nomad upload --unstage tests/data/proc/examles_vasp.zip
+$nomad upload --unstage /app/tests/data/proc/examles_vasp.zip
 
 # create a new index with coe repoTool
 $repo_tool newIndex --indexName=repo_index --indexNameTopics=repo_topics
