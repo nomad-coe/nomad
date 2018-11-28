@@ -32,6 +32,7 @@ import logging
 import base64
 import time
 from structlog import wrap_logger
+from contextlib import contextmanager
 
 from nomad import config, utils
 from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile, File
@@ -197,10 +198,49 @@ class Calc(Proc):
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
             self._parser_backend = parser.run(self.mainfile_tmp_path, logger=logger)
 
+        self._parser_backend.openNonOverlappingSection('section_calculation_info')
+        self._parser_backend.addValue('upload_id', self.upload_id)
+        self._parser_backend.addValue('archive_id', self.archive_id)
+        self._parser_backend.addValue('main_file', self.mainfile)
+        self._parser_backend.addValue('parser_name', self.parser)
+
         if self._parser_backend.status[0] != 'ParseSuccess':
             logger.error(self._parser_backend.status[1])
             error = self._parser_backend.status[1]
+            self._parser_backend.addValue('parse_status', 'ParseFailure')
             self.fail(error, level=logging.DEBUG, **context)
+        else:
+            self._parser_backend.addValue('parse_status', 'ParseSuccess')
+
+        self._parser_backend.closeNonOverlappingSection('section_calculation_info')
+
+        self.add_processor_info(self.parser)
+
+    @contextmanager
+    def use_parser_backend(self, processor_name):
+        self._parser_backend.reset_status()
+        yield self._parser_backend
+        self.add_processor_info(processor_name)
+
+    def add_processor_info(self, processor_name: str) -> None:
+        self._parser_backend.openContext('/section_calculation_info/0')
+        self._parser_backend.openNonOverlappingSection('section_archive_processing_info')
+        self._parser_backend.addValue('archive_processor_name', processor_name)
+
+        if self._parser_backend.status[0] == 'ParseSuccess':
+            warnings = getattr(self._parser_backend, '_warnings', [])
+            if len(warnings) > 0:
+                self._parser_backend.addValue('archive_processor_status', 'WithWarnings')
+                self._parser_backend.addValue('archive_processor_warning_number', len(warnings))
+                self._parser_backend.addArrayValues('archive_processor_warnings', [str(warning) for warning in warnings])
+            else:
+                self._parser_backend.addValue('archive_processor_status', 'Success')
+        else:
+            errors = self._parser_backend.status[1]
+            self._parser_backend.addValue('archive_processor_error', str(errors))
+
+        self._parser_backend.closeNonOverlappingSection('section_archive_processing_info')
+        self._parser_backend.closeContext('/section_calculation_info/0')
 
     @task
     def normalizing(self):
@@ -211,15 +251,18 @@ class Calc(Proc):
 
             with utils.timer(
                     logger, 'normalizer executed', input_size=self.mainfile_file.size):
-                normalizer(self._parser_backend).normalize(logger=logger)
+                with self.use_parser_backend(normalizer_name) as backend:
+                    normalizer(backend).normalize(logger=logger)
 
-            if self._parser_backend.status[0] != 'ParseSuccess':
+            failed = self._parser_backend.status[0] != 'ParseSuccess'
+            if failed:
                 logger.error(self._parser_backend.status[1])
                 error = self._parser_backend.status[1]
                 self.fail(error, level=logging.WARNING, **context)
-                return
-            logger.debug(
-                'completed normalizer successfully', normalizer=normalizer_name)
+                break
+            else:
+                logger.debug(
+                    'completed normalizer successfully', normalizer=normalizer_name)
 
     @task
     def archiving(self):
@@ -479,7 +522,7 @@ class Upload(Chord):
     @task
     def parse_all(self):
         """
-        Identified mainfail/parser combinations among the upload's files, creates
+        Identified mainfile/parser combinations among the upload's files, creates
         respective :class:`Calc` instances, and triggers their processing.
         """
         logger = self.get_logger()

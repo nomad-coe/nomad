@@ -327,8 +327,7 @@ class LocalBackend(LegacyParserBackend):
         delegate = LegacyLocalBackend(*args, **kwargs)
         super().__init__(delegate)
 
-        self._status = 'none'
-        self._errors = None
+        self.reset_status()
 
         self._open_context: Tuple[str, int] = None
         self._context_section = None
@@ -351,6 +350,10 @@ class LocalBackend(LegacyParserBackend):
 
     def pwarn(self, msg):
         self.logger.warn(msg)
+        if len(self._warnings) < 10:
+            self._warnings.append(msg)
+        elif len(self._warnings) == 10:
+            self._warnings.append('There are more warnings, check the processing logs.')
 
     def _parse_context_uri(self, context_uri: str) -> Tuple[str, int]:
         """
@@ -491,6 +494,11 @@ class LocalBackend(LegacyParserBackend):
         """ Returns status and potential errors. """
         return (self._status, self._errors)
 
+    def reset_status(self) -> None:
+        self._status = 'ParseSuccess'
+        self._errors = None
+        self._warnings: List[str] = []
+
     def write_json(self, out: TextIO, pretty=True, filter: Callable[[str, Any], Any] = None):
         """
         Writes the results stored in the backend after parsing in an 'archive'.json
@@ -504,19 +512,13 @@ class LocalBackend(LegacyParserBackend):
         json_writer = JSONStreamWriter(out, pretty=pretty)
         json_writer.open_object()
 
-        json_writer.key_value('parser_status', self._status)
-        if self._errors is not None and len(self._errors) > 0:
-            json_writer.key('parser_errors')
-            json_writer.open_array
-            for error in self._errors:
-                json_writer.value(error)
-            json_writer.close_array
-
-        json_writer.key('section_run')
-        json_writer.open_array()
-        for run in self._delegate.results['section_run']:
-            LocalBackend._write(json_writer, run, filter=filter)
-        json_writer.close_array()
+        # TODO the root sections should be determined programatically
+        for root_section in ['section_run', 'section_calculation_info']:
+            json_writer.key(root_section)
+            json_writer.open_array()
+            for run in self._delegate.results[root_section]:
+                LocalBackend._write(json_writer, run, filter=filter)
+            json_writer.close_array()
 
         json_writer.close_object()
         json_writer.close()
