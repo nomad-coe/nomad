@@ -288,6 +288,27 @@ def test_processing_local_path(client, file, worker, mocksearch, test_user_auth,
     assert_processing(client, test_user_auth, upload_id, repository_db)
 
 
+@pytest.mark.parametrize('file', example_files)
+@pytest.mark.parametrize('mode', ['multipart', 'stream'])
+@pytest.mark.timeout(10)
+def test_processing_upload(client, file, mode, worker, mocksearch, test_user_auth, no_warn, repository_db):
+    if mode == 'multipart':
+        rv = client.put(
+            '/uploads',
+            data=dict(file=(open(file, 'rb'), 'file')),
+            headers=test_user_auth)
+    elif mode == 'stream':
+        with open(file, 'rb') as f:
+            rv = client.put('/uploads', data=f.read(), headers=test_user_auth)
+    else:
+        assert False
+    assert rv.status_code == 200
+    upload = assert_upload(rv.data)
+    upload_id = upload['upload_id']
+
+    assert_processing(client, test_user_auth, upload_id, repository_db)
+
+
 def test_repo_calc(client, example_elastic_calc, no_warn):
     rv = client.get(
         '/repo/%s/%s' % (example_elastic_calc.upload_hash, example_elastic_calc.calc_hash))

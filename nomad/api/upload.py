@@ -159,6 +159,74 @@ class UploadsRes(Resource):
 
         return upload.json_dict, 200
 
+    @login_really_required
+    def put(self):
+        """
+        Upload a file and automatically create a new upload in the process.
+        Can be used to upload files via browser or other http clients like curl.
+        This will also start the processing of the upload.
+
+        There are two basic ways to upload a file: multipart-formdata or simply streaming
+        the file data. Both are supported. The later one does not allow to transfer a
+        filename or other meta-data. If a filename is available, it will become the
+        name of the upload.
+
+        .. :quickref: upload; Upload a file directly and create an upload.
+
+        **Curl examples for both approaches**:
+
+        .. sourcecode:: sh
+
+            curl -X put "/nomad/api/uploads/" -F file=@local_file
+            curl "/nomad/api/uploads/" --upload-file local_file
+
+        :qparam name: an optional name for the upload
+        :status 200: upload successfully received.
+        :returns: the upload (see GET /uploads/<upload_id>)
+        """
+        # create upload
+        upload = Upload.create(
+            user=g.user,
+            name=request.args.get('name'))
+
+        logger = get_logger(__name__, endpoint='upload', action='put', upload_id=upload.upload_id)
+        logger.info('upload created')
+
+        uploadFile = UploadFile(upload.upload_id)
+
+        if request.mimetype == 'application/multipart-formdata':
+            # multipart formdata, e.g. with curl -X put "url" -F file=@local_file
+            # might have performance issues for large files: https://github.com/pallets/flask/issues/2086
+            if 'file' in request.files:
+                abort(400, message='Bad multipart-formdata, there is no file part.')
+            file = request.files['file']
+            if upload.name is '':
+                upload.name = file.filename
+
+            file.save(uploadFile.os_path)
+        else:
+            # simple streaming data in HTTP body, e.g. with curl "url" -T local_file
+            try:
+                with uploadFile.open('wb') as f:
+                    while not request.stream.is_exhausted:
+                        f.write(request.stream.read(1024))
+
+            except Exception as e:
+                logger.error('Error on streaming upload', exc_info=e)
+                abort(400, message='Some IO went wrong, download probably aborted/disrupted.')
+
+        if not uploadFile.is_valid:
+            uploadFile.delete()
+            upload.delete()
+            abort(400, message='Bad file format, excpected %s.' % ", ".join(UploadFile.formats))
+
+        logger.info('received uploaded file')
+        upload.upload_time = datetime.now()
+        upload.process()
+        logger.info('initiated processing')
+
+        return upload.json_dict, 200
+
 
 class UploadRes(Resource):
     """ Uploads """
