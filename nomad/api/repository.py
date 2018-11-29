@@ -23,7 +23,7 @@ from flask_restful import Resource, abort
 
 from nomad.repo import RepoCalc
 
-from .app import api, auth, base_path
+from .app import api, auth, base_path, login_if_available
 
 
 class RepoCalcRes(Resource):
@@ -90,7 +90,7 @@ class RepoCalcRes(Resource):
 
 
 class RepoCalcsRes(Resource):
-    @auth.login_required
+    @login_if_available
     def get(self):
         """
         Get *'all'* calculations in repository from, paginated.

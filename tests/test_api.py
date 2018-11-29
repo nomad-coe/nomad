@@ -87,6 +87,35 @@ def assert_upload(upload_json_str, id=None, **kwargs):
     return data
 
 
+def test_xtoken_auth(client, test_user, no_warn):
+    rv = client.get('/uploads', headers={
+        'X-Token': test_user.email
+    })
+
+    assert rv.status_code == 200
+
+
+def test_xtoken_auth_denied(client, no_warn):
+    rv = client.get('/uploads', headers={
+        'X-Token': 'invalid'
+    })
+
+    assert rv.status_code == 401
+
+
+def test_basic_auth(client, test_user_auth, no_warn):
+    rv = client.get('/uploads', headers=test_user_auth)
+    assert rv.status_code == 200
+
+
+def test_basic_auth_denied(client, no_warn):
+    basic_auth_base64 = base64.b64encode('invalid'.encode('utf-8')).decode('utf-8')
+    rv = client.get('/uploads', headers={
+        'Authorization': 'Basic %s' % basic_auth_base64
+    })
+    assert rv.status_code == 401
+
+
 def test_no_uploads(client, test_user_auth, no_warn):
     rv = client.get('/uploads', headers=test_user_auth)
 

@@ -19,10 +19,24 @@ authentication or access tokens. Currently the authentication is validated again
 users and sessions in the NOMAD-coe repository postgres db.
 
 .. autodata:: base_path
+
+There are two authentication "schemes" to authenticate users. First we use
+HTTP Basic Authentication (username, password), which also works with username=token,
+password=''. Second, there is a curstom HTTP header 'X-Token' that can be used to
+give a token. The first precedes the second. The used tokens are given and stored
+by the NOMAD-coe repository GUI.
+
+Authenticated user information is available via FLASK's build in flask.g.user object.
+It is set to None, if no user information is available.
+
+There are two decorators for FLASK API endpoints that can be used if endpoints require
+authenticated user information for authorization or otherwise.
+
+.. autofunction:: login_if_available
 .. autofunction:: login_really_required
 """
 
-from flask import Flask, g
+from flask import Flask, g, request
 from flask_restful import Api, abort
 from flask_cors import CORS
 from flask_httpauth import HTTPBasicAuth
@@ -72,12 +86,34 @@ def verify_password(username_or_token, password):
     return True
 
 
+def login_if_available(func):
+    """
+    A decorator for API endpoint implementations that might authenticate users, but
+    provide limited functionality even without users.
+    """
+    @auth.login_required
+    def wrapper(*args, **kwargs):
+        # TODO the cutom X-Token based authentication should be replaced by a real
+        # Authentication header based token authentication
+        if not g.user and 'X-Token' in request.headers:
+            token = request.headers['X-Token']
+            g.user = User.verify_auth_token(token)
+            if not g.user:
+                abort(401, message='Provided access token is not valid or does not exist.')
+
+        return func(*args, **kwargs)
+
+    wrapper.__name__ = func.__name__
+    wrapper.__doc__ = func.__doc__
+    return wrapper
+
+
 def login_really_required(func):
     """
     A decorator for API endpoint implementations that forces user authentication on
     endpoints.
     """
-    @auth.login_required
+    @login_if_available
     def wrapper(*args, **kwargs):
         if g.user is None:
             abort(401, message='Anonymous access is forbidden, authorization required')
