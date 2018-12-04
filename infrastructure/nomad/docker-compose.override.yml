@@ -50,6 +50,12 @@ services:
         ports:
             - 8000:8000
 
+    # NOMAD-coe search api
+    coeapi:
+        restart: 'no'
+        ports:
+            - 8111:8111
+
     # nomad gui
     gui:
         restart: 'no'
