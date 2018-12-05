@@ -431,6 +431,20 @@ class TestRaw:
             assert zip_file.testzip() is None
             assert len(zip_file.namelist()) == 5
 
+    def test_raw_files_post(self, client, example_repo_with_files):
+        repo_entry = example_repo_with_files
+        url = '/raw/%s' % repo_entry.upload_hash
+        rv = client.post(
+            url,
+            data=json.dumps(dict(files=list(repo_entry.aux_files))),
+            content_type='application/json')
+
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
+        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
+            assert zip_file.testzip() is None
+            assert len(zip_file.namelist()) == 4
+
     def test_raw_files_missing_file(self, client, example_repo_with_files):
         repo_entry = example_repo_with_files
         url = '/raw/%s?files=%s,missing/file.txt' % (

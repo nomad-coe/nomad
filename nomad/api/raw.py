@@ -102,12 +102,53 @@ def get_raw_files(upload_hash):
     :status 404: calc with given hash does not exist or one of the given files does not exist
     :returns: a streamed .zip archive with the raw data
     """
-    logger = get_logger(__name__, endpoint='raw', action='get', upload_hash=upload_hash)
-
     files_str = request.args.get('files', None)
     if files_str is None:
         abort(400, message="No files argument given.")
     files = [file.strip() for file in files_str.split(',')]
+
+    return respond_to_get_raw_files(upload_hash, files)
+
+
+@app.route('%s/raw/<string:upload_hash>' % base_path, methods=['POST'])
+def get_raw_files_post(upload_hash):
+    """
+    Get multiple raw calculation files.
+
+    .. :quickref: raw; Get multiple raw calculation files.
+
+    **Example request**:
+
+    .. sourcecode:: http
+
+        POST /nomad/api/raw/W36aqCzAKxOCfIiMFsBJh3nHPb4a HTTP/1.1
+        Accept: application/gz
+        Content-Type: application/json
+
+        {
+            "files": ["Si/si.out", "Si/aux.txt"]
+        }
+
+    :param string upload_hash: the hash based identifier of the upload
+    :jsonparam files: a comma separated list of file paths
+    :resheader Content-Type: application/json
+    :status 200: calc raw data successfully retrieved
+    :status 404: calc with given hash does not exist or one of the given files does not exist
+    :returns: a streamed .zip archive with the raw data
+    """
+    json_data = request.get_json()
+    if json_data is None:
+        json_data = {}
+
+    if 'files' not in json_data:
+        abort(400, message='No files given, use key "files" in json body to provide file paths.')
+    files = json_data['files']
+
+    return respond_to_get_raw_files(upload_hash, files)
+
+
+def respond_to_get_raw_files(upload_hash, files):
+    logger = get_logger(__name__, endpoint='raw', action='get files', upload_hash=upload_hash)
 
     repository_file = RepositoryFile(upload_hash)
     if not repository_file.exists():
