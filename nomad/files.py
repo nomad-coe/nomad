@@ -346,7 +346,7 @@ class UploadFile(ObjectFile):
             object_id = self.upload_hash()
 
         return ZippedDataContainer.create(
-            self._extract_dir, Objects._os_path(config.files.repository_bucket, object_id))
+            self._extract_dir, Objects._os_path(config.files.raw_bucket, object_id))
 
     @Decorators.handle_errors
     def remove_extract(self) -> None:
@@ -404,7 +404,7 @@ class RepositoryFile(ObjectFile):
     """
     def __init__(self, upload_hash: str) -> None:
         super().__init__(
-            bucket=config.files.repository_bucket,
+            bucket=config.files.raw_bucket,
             object_id=upload_hash,
             ext='zip')
 

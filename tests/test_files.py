@@ -141,7 +141,7 @@ class TestZippedDataContainer(TestBaggedDataContainer):
 def archive_config(monkeypatch, request):
     new_config = config.FilesConfig(
         config.files.uploads_bucket,
-        config.files.repository_bucket,
+        config.files.raw_bucket,
         config.files.archive_bucket,
         request.param)
     monkeypatch.setattr(config, 'files', new_config)

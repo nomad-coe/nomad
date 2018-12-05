@@ -22,7 +22,7 @@ import logging
 from collections import namedtuple
 
 FilesConfig = namedtuple(
-    'FilesConfig', ['uploads_bucket', 'repository_bucket', 'archive_bucket', 'compress_archive'])
+    'FilesConfig', ['uploads_bucket', 'raw_bucket', 'archive_bucket', 'compress_archive'])
 """ API independent configuration for the object storage. """
 
 CeleryConfig = namedtuple('Celery', ['broker_url'])
@@ -48,7 +48,7 @@ NomadServicesConfig = namedtuple('NomadServicesConfig', ['api_host', 'api_port',
 
 files = FilesConfig(
     uploads_bucket='uploads',
-    repository_bucket='repository',
+    raw_bucket=os.environ.get('NOMAD_FILES_RAW_BUCKET', 'raw'),
     archive_bucket='archive',
     compress_archive=True
 )
@@ -76,8 +76,8 @@ celery = CeleryConfig(
 )
 
 fs = FSConfig(
-    tmp='.volumes/fs/tmp',
-    objects='.volumes/fs/objects'
+    tmp=os.environ.get('NOMAD_FILES_TMP_DIR', '.volumes/fs/tmp'),
+    objects=os.environ.get('NOMAD_FILES_OBJECTS_DIR', '.volumes/fs/objects')
 )
 elastic = ElasticConfig(
     host=os.environ.get('NOMAD_ELASTIC_HOST', 'localhost'),
