@@ -45,7 +45,7 @@ from abc import ABC
 from typing import List, Generator, IO, TextIO, cast, Dict, Any
 import os
 import os.path
-from zipfile import ZipFile, BadZipFile, is_zipfile
+from zipfile import ZipFile, BadZipFile, is_zipfile, ZIP_DEFLATED
 import shutil
 from contextlib import contextmanager
 import gzip
@@ -152,7 +152,7 @@ class Objects:
     @classmethod
     def _os_path(cls, bucket: str, name: str, ext: str = None) -> str:
         if ext is not None and ext != '':
-            file_name = ".".join([name, ext])
+            file_name = '%s.%s' % (name, ext)
         elif name is None or name == '':
             file_name = ''
         else:
@@ -345,8 +345,9 @@ class UploadFile(ObjectFile):
         if object_id is None:
             object_id = self.upload_hash()
 
-        return ZippedDataContainer.create(
-            self._extract_dir, Objects._os_path(config.files.raw_bucket, object_id))
+        target = Objects._os_path(config.files.raw_bucket, object_id, 'zip')
+
+        return ZippedDataContainer.create(self._extract_dir, target=target)
 
     @Decorators.handle_errors
     def remove_extract(self) -> None:
@@ -551,11 +552,14 @@ class BaggedDataContainer(DataContainer):
         instance.
         """
         bag = bagit.make_bag(path, checksums=['sha512'])
+
+        # TODO implement NOMAD-coe's way of doing the hashing
         hashes = [
             value['sha512'] for key, value in bag.entries.items()
             if key.startswith('data/')
         ]
         bag.info['Nomad-Hash'] = utils.hash(''.join(hashes))
+
         bag.save()
         return BaggedDataContainer(path)
 
@@ -599,15 +603,41 @@ class ZippedDataContainer(File, DataContainer):
     def __init__(self, os_path: str) -> None:
         super(ZippedDataContainer, self).__init__(os_path)
         self._metadata = None
+        self._base_directory = os.path.splitext(os.path.basename(os_path))[0]
+        self._payload_directory = '%s/data/' % self._base_directory
+        self._payload_deirectory_len = len(self._payload_directory)
 
     @staticmethod
     def create(path: str, target: str = None) -> 'ZippedDataContainer':
+        """
+        Creates a zipped bag from a bag.
+
+        Arguments:
+            path: The path to the bag
+            target:
+                The path to the zip (excl. .zip extension). Base dir in zip will be
+                based on the target path.
+        """
         if not target:
-            target = path
+            target = path + '.zip'
+
+        target = os.path.abspath(target)
 
         assert os.path.isdir(path)
-        archive_file = shutil.make_archive(target, 'zip', path)
-        return ZippedDataContainer(archive_file)
+        assert os.path.exists(os.path.dirname(target))
+
+        # manually created zipfile instead of shutils.make_zip to use base_dir from
+        # target while zipping path
+        base_dir = os.path.splitext(os.path.basename(target))[0]
+        path_prefix_len = len(path) + 1
+        with ZipFile(target, "w", compression=ZIP_DEFLATED, allowZip64=True) as zip_file:
+            for root, _, filenames in os.walk(path):
+                for name in filenames:
+                    file_path = os.path.join(root, name)
+                    zipped_path = os.path.join(base_dir, file_path[path_prefix_len:])
+                    zip_file.write(file_path, zipped_path)
+
+        return ZippedDataContainer(target)
 
     @contextmanager
     def _zip(self):
@@ -626,8 +656,8 @@ class ZippedDataContainer(File, DataContainer):
     def manifest(self):
         with self._zip() as zip_file:
             return [
-                zip_info.filename[5:] for zip_info in zip_file.filelist
-                if not zip_info.filename.endswith('/') and zip_info.filename.startswith('data/')]
+                zip_info.filename[self._payload_deirectory_len:] for zip_info in zip_file.filelist
+                if not zip_info.filename.endswith('/') and zip_info.filename.startswith(self._payload_directory)]
 
     @property
     def metadata(self):
@@ -636,7 +666,7 @@ class ZippedDataContainer(File, DataContainer):
         return self._metadata
 
     def _load_metadata(self):
-        with ZippedFile(self.os_path, 'bag-info.txt').open('r') as metadata_file:
+        with ZippedFile(self.os_path, '%s/bag-info.txt' % self._base_directory).open('r') as metadata_file:
             metadata_contents = metadata_file.read()
 
         metadata_file = io.StringIO(metadata_contents.decode("utf-8"))
@@ -654,4 +684,4 @@ class ZippedDataContainer(File, DataContainer):
         return BaggedDataContainer._load_bagit_metadata(tags)
 
     def get_file(self, path):
-        return ZippedFile(self.path, 'data/' + path)
+        return ZippedFile(self.path, self._payload_directory + path)

@@ -106,6 +106,8 @@ class TestBaggedDataContainer:
         assert len(container.manifest) == 5
         assert container.hash is not None
         assert container.metadata is not None
+        for file_path in container.manifest:
+            assert file_path.startswith('examples_template')
 
     def test_make(self, example_container):
         self.assert_container(example_container)
@@ -135,6 +137,15 @@ class TestZippedDataContainer(TestBaggedDataContainer):
 
     def test_metadata(self, example_directory, example_container):
         pass
+
+    def test_target(self, example_directory):
+        BaggedDataContainer.create(example_directory)
+        target = os.path.join(os.path.dirname(example_directory), 'different.zip')
+        container = ZippedDataContainer.create(example_directory, target=target)
+        self.assert_container(container)
+        with ZipFile(target, 'r') as zip_file:
+            for info in zip_file.filelist:
+                assert info.filename.startswith('different')
 
 
 @pytest.fixture(scope='function', params=[False, True])
