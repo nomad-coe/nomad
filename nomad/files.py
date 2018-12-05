@@ -158,6 +158,9 @@ class Objects:
         else:
             file_name = name
 
+        # add an extra directory to limit the files per directory (gpfs)
+        file_name = '%s/%s' % (file_name[0:3], file_name)
+
         path_segments = file_name.split('/')
         path = os.path.join(*([config.fs.objects, bucket] + path_segments))
         directory = os.path.dirname(path)
