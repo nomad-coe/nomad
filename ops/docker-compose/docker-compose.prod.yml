@@ -15,25 +15,20 @@
 version: '3.4'
 
 services:
-    # broker for celery
-    rabbitmq:
-        ports:
-            - 5672:5672
-
     # the search engine
     elastic:
         ports:
-            - 9200:9200
+            - 19200:9200
 
     # the user data db
     mongo:
         ports:
-            - 27017:27017
+            - 37017:27017
 
     # used for centralized logging
     elk:
         restart: always
-        build: ../elk/
+        build: ../containers/elk/
         image: nomad/elk
         container_name: nomad_elk
         expose:
@@ -42,40 +37,27 @@ services:
         volumes:
             - nomad_elk:/var/lib/elasticsearch
         ports:
-            - 5601:5601  # kibana web
+            - 15601:5601  # kibana web
             - 5044:5044   # expose to host, allows metricbeat on host to send data
-            - 15000:5000   # allow nomad services to logstash outside of docker
+            - 15000:5000
             - 29200:9200  # allows metricbeat config to access es
 
-    # nomad processing worker
-    worker:
-        restart: 'no'
-        build: ../../
-        image: nomad/backend
-        environment:
-            NOMAD_LOGSTASH_LEVEL: DEBUG
-            NOMAD_CONSOLE_LOGLEVEL: INFO
-        links:
-            - elk
-
-    # nomad api
     api:
-        restart: 'no'
-        image: nomad/backend
         environment:
-            NOMAD_LOGSTASH_LEVEL: DEBUG
-            NOMAD_CONSOLE_LOGLEVEL: INFO
-        depends_on:
-            - worker
-        ports:
-            - 8000:8000
+            NOMAD_LOGSTASH_LEVEL: INFO
         links:
             - elk
+        volumes:
+            - /nomad:/nomad
 
-    # nomad gui
-    gui:
-        restart: 'no'
-        build: ../../gui
-        image: nomad/frontend
+    worker:
+        environment:
+            NOMAD_LOGSTASH_LEVEL: INFO
+        links:
+            - elk
+        volumes:
+            - /nomad:/nomad
+
+    proxy:
         ports:
-            - 8080:8000
+            - 10080:80
