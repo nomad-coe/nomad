@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from mongoengine import connect
 from mongoengine.connection import disconnect
 
-from nomad import config, coe_repo, infrastructure
+from nomad import config, infrastructure
 
 
 @pytest.fixture(scope="session")
@@ -119,11 +119,13 @@ def repository_db(monkeysession):
 
 @pytest.fixture(scope='session')
 def test_user(repository_db):
+    from nomad import coe_repo
     return coe_repo.ensure_test_user(email='sheldon.cooper@nomad-fairdi.tests.de')
 
 
 @pytest.fixture(scope='session')
 def other_test_user(repository_db):
+    from nomad import coe_repo
     return coe_repo.ensure_test_user(email='leonard.hofstadter@nomad-fairdi.tests.de')
 
 
