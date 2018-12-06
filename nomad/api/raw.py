@@ -68,9 +68,11 @@ def get_raw_file(upload_hash, upload_filepath):
                 attachment_filename=os.path.basename(upload_filepath))
             return rv
     except KeyError:
-        abort(404, message='The file %s does not exist.' % upload_filepath)
-    except FileNotFoundError:
-        abort(404, message='The file %s does not exist.' % upload_filepath)
+        files = list(file for file in repository_file.manifest if file.startswith(upload_filepath))
+        if len(files) == 0:
+            abort(404, message='The file %s does not exist.' % upload_filepath)
+        else:
+            abort(404, message='The file %s does not exist, but there are files with matching paths' % upload_filepath, files=files)
     except HTTPException as e:
         raise e
     except Exception as e:

@@ -100,15 +100,6 @@ tests:
   except:
     - /^dev-.*$/
 
-rawapi_tests:
-  stage: test
-  image: $RAWAPI_TEST_IMAGE
-  script:
-    - cd /app
-    - python -m pytest -sv tests/test_api.py::TestRaw
-  except:
-    - /^dev-.*$/
-
 # does currently not work, current GitLab CI runner does not network services with each other
 # integration-tests:
 #   stage: integration

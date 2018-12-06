@@ -414,6 +414,10 @@ class RepositoryFile(ObjectFile):
     def get_file(self, path: str) -> ZippedFile:
         return self._zipped_container.get_file(path)
 
+    @property
+    def manifest(self) -> List[str]:
+        return self._zipped_container.manifest
+
 
 class ArchiveFile(ObjectFile):
     """
