@@ -187,7 +187,8 @@ deploy:
     - /^dev-.*$/
   when: manual
 
-releaserawapi:
+deployapi:
+  stage: deploy
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
     - cd ops/docker-compose/rawapi
