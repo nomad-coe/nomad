@@ -13,3 +13,4 @@ try.http
 target/
 project/
 local/
+test_*

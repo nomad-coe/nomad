@@ -23,7 +23,8 @@ from flask_restful import Resource, abort
 
 from nomad.repo import RepoCalc
 
-from .app import api, base_path, login_if_available
+from .app import api, base_path
+from .auth import login_if_available
 
 
 class RepoCalcRes(Resource):

@@ -21,7 +21,8 @@ from nomad.files import UploadFile
 from nomad.processing import NotAllowedDuringProcessing, Upload
 from nomad.utils import get_logger
 
-from .app import api, base_path, login_really_required
+from .app import api, base_path
+from .auth import login_really_required
 
 """
 The upload API of the nomad@FAIRDI APIs. Provides endpoints to create uploads, upload

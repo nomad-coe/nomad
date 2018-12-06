@@ -10,10 +10,6 @@ itsdangerous
 passlib
 python-logstash
 gitpython
-ase
-numpy
-cython>=0.19
-spglib
 gunicorn
 structlog
 recommonmark
