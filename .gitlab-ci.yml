@@ -162,6 +162,17 @@ release:
     - /^dev-.*$/
   when: manual
 
+releaserawapi:
+  stage: release
+  script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+    - docker pull $RAWAPI_TEST_IMAGE
+    - docker tag $RAWAPI_TEST_IMAGE $RAWAPI_RELEASE_IMAGE
+    - docker push $RAWAPI_RELEASE_IMAGE
+  except:
+    - /^dev-.*$/
+  when: manual
+
 deploy:
   stage: deploy
   script:
