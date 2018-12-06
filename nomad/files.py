@@ -415,14 +415,14 @@ class RepositoryFile(ObjectFile):
             object_id=upload_hash,
             ext='zip')
 
-        self._zipped_container = ZippedDataContainer(self.os_path)
+        self.zipped_container = ZippedDataContainer(self.os_path)
 
     def get_file(self, path: str) -> ZippedFile:
-        return self._zipped_container.get_file(path)
+        return self.zipped_container.get_file(path)
 
     @property
     def manifest(self) -> List[str]:
-        return self._zipped_container.manifest
+        return self.zipped_container.manifest
 
 
 class ArchiveFile(ObjectFile):
@@ -650,7 +650,7 @@ class ZippedDataContainer(File, DataContainer):
         return ZippedDataContainer(target)
 
     @contextmanager
-    def _zip(self):
+    def zip_file(self):
         assert self.exists(), "Can only access uploaded file if it exists."
         zip_file = None
         try:
@@ -664,7 +664,7 @@ class ZippedDataContainer(File, DataContainer):
 
     @property
     def manifest(self):
-        with self._zip() as zip_file:
+        with self.zip_file() as zip_file:
             return [
                 zip_info.filename[self._payload_deirectory_len:] for zip_info in zip_file.filelist
                 if not zip_info.filename.endswith('/') and zip_info.filename.startswith(self._payload_directory)]
@@ -695,3 +695,6 @@ class ZippedDataContainer(File, DataContainer):
 
     def get_file(self, path):
         return ZippedFile(self.path, self._payload_directory + path)
+
+    def get_zip_path(self, path):
+        return self._payload_directory + path

@@ -522,7 +522,7 @@ class Upload(Chord):
             potential_mainfile = self.upload_file.get_file(filename)
             for parser in parsers:
                 try:
-                    with potential_mainfile.open() as mainfile_f:
+                    with potential_mainfile.open('r') as mainfile_f:
                         if parser.is_mainfile(filename, lambda fn: mainfile_f):
                             yield potential_mainfile, filename, parser
                 except Exception as e:

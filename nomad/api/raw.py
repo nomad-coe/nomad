@@ -172,25 +172,25 @@ def respond_to_get_raw_files(upload_hash, files):
         def iterator():
             """ Replace the directory based iter of zipstream with an iter over all given files. """
             try:
-                for filename in files:
-                    # Write a file to the zipstream.
-                    try:
-                        the_file = repository_file.get_file(filename)
-                        with the_file.open() as f:
-                            def iter_content():
-                                while True:
-                                    data = f.read(100000)
-                                    if not data:
-                                        break
-                                    yield data
+                with repository_file.zipped_container.zip_file() as zf:
+                    for filename in files:
+                        # Write a file to the zipstream.
+                        try:
+                            with zf.open(repository_file.zipped_container.get_zip_path(filename)) as f:
+                                def iter_content():
+                                    while True:
+                                        data = f.read(100000)
+                                        if not data:
+                                            break
+                                        yield data
 
-                            yield dict(arcname=filename, iterable=iter_content())
-                    except KeyError as e:
-                        # files that are not found, will not be returned
-                        pass
+                                yield dict(arcname=filename, iterable=iter_content())
+                        except KeyError as e:
+                            # files that are not found, will not be returned
+                            pass
 
             except Exception as e:
-                logger.error('Exception while accessing auxfiles.', exc_info=e)
+                logger.error('Exception while accessing files.', exc_info=e)
 
         zip_stream = zipstream.ZipFile(mode='w', compression=ZIP_DEFLATED)
         zip_stream.paths_to_write = iterator()
