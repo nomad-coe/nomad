@@ -26,6 +26,13 @@ from nomad import config
 # example_file uses an artificial parser for faster test execution, can also be
 # changed to examples_vasp.zip for using vasp parser
 example_file = 'tests/data/proc/examples_template.zip'
+example_file_contents = [
+    'examples_template/template.json',
+    'examples_template/1.aux',
+    'examples_template/2.aux',
+    'examples_template/3.aux',
+    'examples_template/4.aux']
+example_file_mainfile = 'examples_template/template.json'
 empty_file = 'tests/data/proc/empty.zip'
 
 example_bucket = 'test_bucket'

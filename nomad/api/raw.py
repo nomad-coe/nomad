@@ -142,7 +142,7 @@ def get_raw_files_post(upload_hash):
 
     if 'files' not in json_data:
         abort(400, message='No files given, use key "files" in json body to provide file paths.')
-    files = json_data['files']
+    files = [file.strip() for file in json_data['files']]
 
     return respond_to_get_raw_files(upload_hash, files)
 

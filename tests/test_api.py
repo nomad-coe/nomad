@@ -22,7 +22,7 @@ from nomad.files import UploadFile  # noqa
 from nomad.processing import Upload  # noqa
 
 from tests.processing.test_data import example_files  # noqa
-from tests.test_files import example_file  # noqa
+from tests.test_files import example_file, example_file_mainfile, example_file_contents  # noqa
 
 # import fixtures
 from tests.test_files import clear_files, archive, archive_log, archive_config  # noqa pylint: disable=unused-import
@@ -33,7 +33,7 @@ from tests.test_coe_repo import assert_coe_upload  # noqa
 
 
 @pytest.fixture(scope='function')
-def client(mockmongo, repository_db):
+def client(mockmongo):
     disconnect()
     connect('users_test', host=config.mongo.host, port=config.mongo.port, is_mock=True)
 
@@ -389,66 +389,60 @@ def test_get_non_existing_archive(client, no_warn):
 class TestRaw:
 
     @pytest.fixture
-    def example_repo_with_files(self, mockmongo, example_elastic_calc, no_warn):
-        upload = Upload(id=example_elastic_calc.upload_id, local_path=os.path.abspath(example_file))
+    def example_upload_hash(self, mockmongo, no_warn):
+        upload = Upload(id='test_upload_id', local_path=os.path.abspath(example_file))
         upload.create_time = datetime.now()
         upload.user_id = 'does@not.exist'
         upload.save()
 
         with UploadFile(upload.upload_id, local_path=upload.local_path) as upload_file:
-            upload_file.persist(example_elastic_calc.upload_hash)
+            upload_file.persist()
+            upload_hash = upload_file.upload_hash()
 
-        return example_elastic_calc
+        return upload_hash
 
-    def test_raw_file(self, client, example_repo_with_files):
-        repo_entry = example_repo_with_files
-        url = '/raw/%s/%s' % (repo_entry.upload_hash, repo_entry.mainfile)
+    def test_raw_file(self, client, example_upload_hash):
+        url = '/raw/%s/%s' % (example_upload_hash, example_file_mainfile)
         rv = client.get(url)
         assert rv.status_code == 200
         assert len(rv.data) > 0
 
-    def test_raw_file_missing_file(self, client, example_repo_with_files):
-        repo_entry = example_repo_with_files
-        url = '/raw/%s/does/not/exist' % repo_entry.upload_hash
+    def test_raw_file_missing_file(self, client, example_upload_hash):
+        url = '/raw/%s/does/not/exist' % example_upload_hash
         rv = client.get(url)
         assert rv.status_code == 404
 
-    def test_raw_file_missing_upload(self, client, example_repo_with_files):
-        repo_entry = example_repo_with_files
-        url = '/raw/doesnotexist/%s' % repo_entry.mainfile
+    def test_raw_file_missing_upload(self, client, example_upload_hash):
+        url = '/raw/doesnotexist/%s' % example_file_mainfile
         rv = client.get(url)
         assert rv.status_code == 404
 
-    def test_raw_files(self, client, example_repo_with_files):
-        repo_entry = example_repo_with_files
-        url = '/raw/%s?files=%s,%s' % (
-            repo_entry.upload_hash, repo_entry.mainfile, ','.join(repo_entry.aux_files))
+    def test_raw_files(self, client, example_upload_hash):
+        url = '/raw/%s?files=%s' % (
+            example_upload_hash, ','.join(example_file_contents))
         rv = client.get(url)
 
         assert rv.status_code == 200
         assert len(rv.data) > 0
         with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
             assert zip_file.testzip() is None
-            assert len(zip_file.namelist()) == 5
+            assert len(zip_file.namelist()) == len(example_file_contents)
 
-    def test_raw_files_post(self, client, example_repo_with_files):
-        repo_entry = example_repo_with_files
-        url = '/raw/%s' % repo_entry.upload_hash
+    def test_raw_files_post(self, client, example_upload_hash):
+        url = '/raw/%s' % example_upload_hash
         rv = client.post(
             url,
-            data=json.dumps(dict(files=list(repo_entry.aux_files))),
+            data=json.dumps(dict(files=example_file_contents)),
             content_type='application/json')
 
         assert rv.status_code == 200
         assert len(rv.data) > 0
         with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
             assert zip_file.testzip() is None
-            assert len(zip_file.namelist()) == 4
+            assert len(zip_file.namelist()) == len(example_file_contents)
 
-    def test_raw_files_missing_file(self, client, example_repo_with_files):
-        repo_entry = example_repo_with_files
-        url = '/raw/%s?files=%s,missing/file.txt' % (
-            repo_entry.upload_hash, repo_entry.mainfile)
+    def test_raw_files_missing_file(self, client, example_upload_hash):
+        url = '/raw/%s?files=%s,missing/file.txt' % (example_upload_hash, example_file_mainfile)
         rv = client.get(url)
 
         assert rv.status_code == 200
@@ -457,7 +451,7 @@ class TestRaw:
             assert zip_file.testzip() is None
             assert len(zip_file.namelist()) == 1
 
-    def test_raw_files_missing_upload(self, client, example_repo_with_files):
+    def test_raw_files_missing_upload(self, client, example_upload_hash):
         url = '/raw/doesnotexist?files=shoud/not/matter.txt'
         rv = client.get(url)
 
