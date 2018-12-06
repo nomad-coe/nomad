@@ -179,7 +179,7 @@ def respond_to_get_raw_files(upload_hash, files):
                         with the_file.open() as f:
                             def iter_content():
                                 while True:
-                                    data = f.read(1024)
+                                    data = f.read(100000)
                                     if not data:
                                         break
                                     yield data
