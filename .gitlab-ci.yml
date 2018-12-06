@@ -51,7 +51,7 @@ buildrawapi:
   stage: build
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
-    - docker build -t $RAWAPI_TEST_IMAGE .
+    - docker build -t $RAWAPI_TEST_IMAGE -f rawapi.Dockerfile .
     - docker push $RAWAPI_TEST_IMAGE
   except:
     - /^dev-.*$/
