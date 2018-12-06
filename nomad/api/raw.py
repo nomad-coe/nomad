@@ -35,7 +35,7 @@ from .app import app, base_path
 @app.route('%s/raw/<string:upload_hash>/<path:upload_filepath>' % base_path, methods=['GET'])
 def get_raw_file(upload_hash, upload_filepath):
     """
-    Get a single raw calculation file from a given upload.
+    Get a single raw calculation file from a given upload (or many files via wildcard).
 
     .. :quickref: raw; Get single raw calculation file.
 
@@ -47,16 +47,27 @@ def get_raw_file(upload_hash, upload_filepath):
         Accept: application/gz
 
     :param string upload_hash: the hash based identifier of the upload
-    :param path upload_filepath: the path to the desired file within the upload
+    :param path upload_filepath: the path to the desired file within the upload;
+        can also contain a wildcard * at the end to denote all files with path as prefix
     :resheader Content-Type: application/gz
     :status 200: calc raw data successfully retrieved
     :status 404: upload with given hash does not exist or the given file does not exist
-    :returns: the gzipped raw data in the body
+    :returns: the gzipped raw data in the body or a zip file when wildcard was used
     """
 
     repository_file = RepositoryFile(upload_hash)
     if not repository_file.exists():
         abort(404, message='The upload with hash %s does not exist.' % upload_hash)
+
+    if upload_filepath[-1:] == '*':
+        upload_filepath = upload_filepath[0:-1]
+        files = list(
+            file for file in repository_file.manifest
+            if file.startswith(upload_filepath))
+        if len(files) == 0:
+            abort(404, message='There are no files for %s.' % upload_filepath)
+        else:
+            return respond_to_get_raw_files(upload_hash, files)
 
     try:
         the_file = repository_file.get_file(upload_filepath)

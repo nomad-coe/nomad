@@ -411,6 +411,30 @@ class TestRaw:
         url = '/raw/%s/does/not/exist' % example_upload_hash
         rv = client.get(url)
         assert rv.status_code == 404
+        data = json.loads(rv.data)
+        assert 'files' not in data
+
+    def test_raw_file_listing(self, client, example_upload_hash):
+        url = '/raw/%s/examples' % example_upload_hash
+        rv = client.get(url)
+        assert rv.status_code == 404
+        data = json.loads(rv.data)
+        assert len(data['files']) == 5
+
+    def test_raw_file_wildcard(self, client, example_upload_hash):
+        url = '/raw/%s/examples*' % example_upload_hash
+        rv = client.get(url)
+
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
+        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
+            assert zip_file.testzip() is None
+            assert len(zip_file.namelist()) == len(example_file_contents)
+
+    def test_raw_file_wildcard_missing(self, client, example_upload_hash):
+        url = '/raw/%s/does/not/exist*' % example_upload_hash
+        rv = client.get(url)
+        assert rv.status_code == 404
 
     def test_raw_file_missing_upload(self, client, example_upload_hash):
         url = '/raw/doesnotexist/%s' % example_file_mainfile

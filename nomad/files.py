@@ -77,11 +77,13 @@ class File:
         return logger.bind(path=self.os_path)
 
     @contextmanager
-    def open(self, *args, **kwargs) -> Generator[IO, None, None]:
+    def open(self, mode: str = 'r', *args, **kwargs) -> Generator[IO, None, None]:
         """ Opens the object with he given mode, etc. """
         self.logger.debug('open file')
         try:
-            with open(self.os_path, *args, **kwargs) as f:
+            if mode.startswith('w'):
+                self.create_dirs()
+            with open(self.os_path, mode, *args, **kwargs) as f:
                 yield f
         except FileNotFoundError:
             raise KeyError()
@@ -106,6 +108,11 @@ class File:
     @property
     def path(self) -> str:
         return self.os_path
+
+    def create_dirs(self) -> None:
+        directory = os.path.dirname(self.os_path)
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
 
 
 class ZippedFile(File):
@@ -163,10 +170,6 @@ class Objects:
 
         path_segments = file_name.split('/')
         path = os.path.join(*([config.fs.objects, bucket] + path_segments))
-        directory = os.path.dirname(path)
-
-        if not os.path.isdir(directory):
-            os.makedirs(directory)
 
         return os.path.abspath(path)
 
@@ -346,6 +349,9 @@ class UploadFile(ObjectFile):
             object_id = self.upload_hash()
 
         target = Objects._os_path(config.files.raw_bucket, object_id, 'zip')
+        directory = os.path.dirname(target)
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
 
         return ZippedDataContainer.create(self._extract_dir, target=target)
 

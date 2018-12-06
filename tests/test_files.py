@@ -205,6 +205,7 @@ class TestUploadFile:
     @pytest.fixture()
     def upload(self, clear_files):
         upload = UploadFile('__test_upload_id')
+        upload.create_dirs()
         shutil.copyfile(example_file, upload.os_path)
         yield upload
 

@@ -48,8 +48,9 @@ def mocks_forall(mocksearch, mockmongo):
 def uploaded_id(request, clear_files) -> Generator[str, None, None]:
     example_file = request.param
     example_upload_id = os.path.basename(example_file).replace('.zip', '')
-    upload_file = UploadFile(example_upload_id).os_path
-    shutil.copyfile(example_file, upload_file)
+    upload_file = UploadFile(example_upload_id)
+    upload_file.create_dirs()
+    shutil.copyfile(example_file, upload_file.os_path)
 
     yield example_upload_id
 
@@ -58,8 +59,9 @@ def uploaded_id(request, clear_files) -> Generator[str, None, None]:
 def uploaded_id_with_warning(request, clear_files) -> Generator[str, None, None]:
     example_file = 'tests/data/proc/examples_with_warning_template.zip'
     example_upload_id = os.path.basename(example_file).replace('.zip', '')
-    upload_file = UploadFile(example_upload_id).os_path
-    shutil.copyfile(example_file, upload_file)
+    upload_file = UploadFile(example_upload_id)
+    upload_file.create_dirs()
+    shutil.copyfile(example_file, upload_file.os_path)
 
     yield example_upload_id
 

@@ -473,6 +473,7 @@ class UploadFileRes(Resource):
         else:
             # simple streaming data in HTTP body, e.g. with curl "url" -T local_file
             try:
+                uploadFile.create_dirs()
                 with uploadFile.open('wb') as f:
                     while not request.stream.is_exhausted:
                         f.write(request.stream.read(1024))
