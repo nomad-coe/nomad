@@ -25,4 +25,5 @@ services:
         volumes:
             - ${RAW_FILE_DIR}:/raw:ro
         ports:
-            - 8113:8000
+            - 108001:8000
+        command: python -m gunicorn.app.wsgiapp -b 0.0.0.0:8000 nomad.api:app
