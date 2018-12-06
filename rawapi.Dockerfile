@@ -26,6 +26,8 @@ WORKDIR /install
 RUN pip install --upgrade pip
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
+RUN pip install pytest
+RUN pip install pytest-timeout
 
 # do that after the dependencies to use docker's layer caching
 COPY . /install
