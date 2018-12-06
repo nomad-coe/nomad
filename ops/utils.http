@@ -48,7 +48,7 @@ GET http://localhost:8000/nomad/api/admin/repair_uploads HTTP/1.1
 
 
 ###
-GET http://localhost:8000/nomad/api/raw/test/some HTTP/1.1
+GET http://localhost:8001/nomad/rawapi/raw/WUTlEULVrv6jEgFvSaOX1j0pF7on/examples_vasp/xml/Si.xml HTTP/1.1
 Accept: application/json
 
 ###

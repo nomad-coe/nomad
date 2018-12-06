@@ -186,3 +186,15 @@ deploy:
   except:
     - /^dev-.*$/
   when: manual
+
+releaserawapi:
+  script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+    - cd ops/docker-compose/rawapi
+    # secret .env file is stored on the "production" machine and is bind mounted into the
+    # runner container at /nomad/config/.env
+    - cp /nomad/config/.rawapi_env .env
+    - docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+  except:
+    - /^dev-.*$/
+  when: manual
