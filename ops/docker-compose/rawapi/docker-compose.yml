@@ -23,6 +23,6 @@ services:
             NOMAD_API_BASE_PATH: /nomad/rawapi
             NOMAD_SERVICE: rawapi
         volumes:
-            - ${RAW_FILE_DIR}:/raw
+            - ${RAW_FILE_DIR}:/raw:ro
         ports:
             - 8001:8000
