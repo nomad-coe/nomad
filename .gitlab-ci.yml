@@ -21,6 +21,8 @@ variables:
   RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
   FRONTEND_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:test
   FRONTEND_RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:latest
+  RAWAPI_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/rawapi:test
+  RAWAPI_RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/rawapi:latest
 
 build:
   stage: build
@@ -41,6 +43,16 @@ buildgui:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
     - docker build -t $FRONTEND_TEST_IMAGE .
     - docker push $FRONTEND_TEST_IMAGE
+  except:
+    - /^dev-.*$/
+
+
+buildrawapi:
+  stage: build
+  script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+    - docker build -t $RAWAPI_TEST_IMAGE .
+    - docker push $RAWAPI_TEST_IMAGE
   except:
     - /^dev-.*$/
 
@@ -85,6 +97,15 @@ tests:
   script:
     - cd /app
     - python -m pytest --cov=nomad -sv tests
+  except:
+    - /^dev-.*$/
+
+rawapitests:
+  stage: test
+  image: $RAWAPI_TEST_IMAGE
+  script:
+    - cd /app
+    - python -m pytest -sv tests/test_api.py::TestRaw
   except:
     - /^dev-.*$/
 
@@ -137,8 +158,9 @@ release:
     - docker pull $FRONTEND_TEST_IMAGE
     - docker tag $FRONTEND_TEST_IMAGE $FRONTEND_RELEASE_IMAGE
     - docker push $FRONTEND_RELEASE_IMAGE
-  only:
-    - master
+  except:
+    - /^dev-.*$/
+  when: manual
 
 deploy:
   stage: deploy
@@ -150,6 +172,6 @@ deploy:
     - cp /nomad/config/.env .
     - docker-compose -f docker-compose.yml -f docker-compose.prod.yml build
     - docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --no-deps -d api worker gui
-  only:
-    - master
+  except:
+    - /^dev-.*$/
   when: manual
