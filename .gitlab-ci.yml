@@ -100,7 +100,7 @@ tests:
   except:
     - /^dev-.*$/
 
-rawapitests:
+rawapi_tests:
   stage: test
   image: $RAWAPI_TEST_IMAGE
   script:
@@ -162,7 +162,7 @@ release:
     - /^dev-.*$/
   when: manual
 
-releaserawapi:
+release_rawapi:
   stage: release
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
@@ -187,7 +187,7 @@ deploy:
     - /^dev-.*$/
   when: manual
 
-deployapi:
+deploy_rawapi:
   stage: deploy
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
