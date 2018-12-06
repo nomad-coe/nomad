@@ -134,7 +134,7 @@ The `override` will be used automatically.
 
 There is also an `.env` file. For development you can use `.env_development`:
 ```
-cd ./infrastructure/nomad
+cd ./ops/docker-compose/nomad
 ln -s .env_development .env
 ```
 
@@ -196,7 +196,7 @@ You can configure host ports, volume locations for host bindings, and these sort
 Usually these services only used by the nomad containers, but sometimes you also
 need to check something or do some manual steps.
 
-The file `infrastructure/nomad/.env` contains variables that control the ports
+The file `ops/docker-compose/nomad/.env` contains variables that control the ports
 used to bind internal docker ports to your host machine. These are the ports you
 have to use to connect to the respective services.
 

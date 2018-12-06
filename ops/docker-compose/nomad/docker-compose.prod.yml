@@ -28,7 +28,7 @@ services:
     # used for centralized logging
     elk:
         restart: always
-        build: ../elk/
+        build: ../containers/elk/
         image: nomad/elk
         container_name: nomad_elk
         expose:

@@ -10,7 +10,8 @@ __pycache__
 .pytest_cache/
 .coverage
 try.http
-target/
 project/
-local/
 test_*
+local/
+target/
+

@@ -38,7 +38,7 @@ services:
     # nomad processing worker
     worker:
         restart: 'no'
-        build: ../../
+        build: ../../../
         image: nomad/backend
 
     # nomad api
@@ -59,7 +59,7 @@ services:
     # nomad gui
     gui:
         restart: 'no'
-        build: ../../gui
+        build: ../../../gui
         image: nomad/frontend
         ports:
             - 8080:8000

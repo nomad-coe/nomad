@@ -177,7 +177,7 @@ deploy:
   stage: deploy
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
-    - cd infrastructure/nomad
+    - cd ops/docker-compose/nomad
     # secret .env file is stored on the "production" machine and is bind mounted into the
     # runner container at /nomad/config/.env
     - cp /nomad/config/.env .
