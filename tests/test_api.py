@@ -421,8 +421,11 @@ class TestRaw:
         data = json.loads(rv.data)
         assert len(data['files']) == 5
 
-    def test_raw_file_wildcard(self, client, example_upload_hash):
+    @pytest.mark.parametrize('compress', [True, False])
+    def test_raw_file_wildcard(self, client, example_upload_hash, compress):
         url = '/raw/%s/examples*' % example_upload_hash
+        if compress:
+            url = '%s?compress=1' % url
         rv = client.get(url)
 
         assert rv.status_code == 200
@@ -441,9 +444,12 @@ class TestRaw:
         rv = client.get(url)
         assert rv.status_code == 404
 
-    def test_raw_files(self, client, example_upload_hash):
+    @pytest.mark.parametrize('compress', [True, False])
+    def test_raw_files(self, client, example_upload_hash, compress):
         url = '/raw/%s?files=%s' % (
             example_upload_hash, ','.join(example_file_contents))
+        if compress:
+            url = '%s&compress=1' % url
         rv = client.get(url)
 
         assert rv.status_code == 200
@@ -452,12 +458,13 @@ class TestRaw:
             assert zip_file.testzip() is None
             assert len(zip_file.namelist()) == len(example_file_contents)
 
-    def test_raw_files_post(self, client, example_upload_hash):
+    @pytest.mark.parametrize('compress', [True, False, None])
+    def test_raw_files_post(self, client, example_upload_hash, compress):
         url = '/raw/%s' % example_upload_hash
-        rv = client.post(
-            url,
-            data=json.dumps(dict(files=example_file_contents)),
-            content_type='application/json')
+        data = dict(files=example_file_contents)
+        if compress is not None:
+            data.update(compress=compress)
+        rv = client.post(url, data=json.dumps(data), content_type='application/json')
 
         assert rv.status_code == 200
         assert len(rv.data) > 0
@@ -465,8 +472,11 @@ class TestRaw:
             assert zip_file.testzip() is None
             assert len(zip_file.namelist()) == len(example_file_contents)
 
-    def test_raw_files_missing_file(self, client, example_upload_hash):
+    @pytest.mark.parametrize('compress', [True, False])
+    def test_raw_files_missing_file(self, client, example_upload_hash, compress):
         url = '/raw/%s?files=%s,missing/file.txt' % (example_upload_hash, example_file_mainfile)
+        if compress:
+            url = '%s&compress=1' % url
         rv = client.get(url)
 
         assert rv.status_code == 200

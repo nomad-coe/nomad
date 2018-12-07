@@ -19,7 +19,7 @@ The raw API of the nomad@FAIRDI APIs. Can be used to retrieve raw calculation fi
 # TODO implement restrictions based on user, permissions, and upload/calc metadata
 
 import os.path
-from zipfile import ZIP_DEFLATED
+from zipfile import ZIP_DEFLATED, ZIP_STORED
 
 import zipstream
 from flask import Response, request, send_file
@@ -49,6 +49,7 @@ def get_raw_file(upload_hash, upload_filepath):
     :param string upload_hash: the hash based identifier of the upload
     :param path upload_filepath: the path to the desired file within the upload;
         can also contain a wildcard * at the end to denote all files with path as prefix
+    :qparam compress: any value to use compression for wildcard downloads, default is no compression
     :resheader Content-Type: application/gz
     :status 200: calc raw data successfully retrieved
     :status 404: upload with given hash does not exist or the given file does not exist
@@ -67,7 +68,8 @@ def get_raw_file(upload_hash, upload_filepath):
         if len(files) == 0:
             abort(404, message='There are no files for %s.' % upload_filepath)
         else:
-            return respond_to_get_raw_files(upload_hash, files)
+            compress = request.args.get('compress', None) is not None
+            return respond_to_get_raw_files(upload_hash, files, compress)
 
     try:
         the_file = repository_file.get_file(upload_filepath)
@@ -109,18 +111,21 @@ def get_raw_files(upload_hash):
         Accept: application/gz
 
     :param string upload_hash: the hash based identifier of the upload
-    :qparam str files: a comma separated list of file path
+    :qparam string files: a comma separated list of file path
+    :qparam compress: any value to use compression, default is no compression
     :resheader Content-Type: application/json
     :status 200: calc raw data successfully retrieved
     :status 404: calc with given hash does not exist or one of the given files does not exist
     :returns: a streamed .zip archive with the raw data
     """
     files_str = request.args.get('files', None)
+    compress = request.args.get('compress', None) is not None
+
     if files_str is None:
         abort(400, message="No files argument given.")
     files = [file.strip() for file in files_str.split(',')]
 
-    return respond_to_get_raw_files(upload_hash, files)
+    return respond_to_get_raw_files(upload_hash, files, compress)
 
 
 @app.route('%s/raw/<string:upload_hash>' % base_path, methods=['POST'])
@@ -144,6 +149,7 @@ def get_raw_files_post(upload_hash):
 
     :param string upload_hash: the hash based identifier of the upload
     :jsonparam files: a comma separated list of file paths
+    :jsonparam compress: boolean to enable compression (true), default is not compression (false)
     :resheader Content-Type: application/json
     :status 200: calc raw data successfully retrieved
     :status 404: calc with given hash does not exist or one of the given files does not exist
@@ -155,12 +161,15 @@ def get_raw_files_post(upload_hash):
 
     if 'files' not in json_data:
         abort(400, message='No files given, use key "files" in json body to provide file paths.')
+    compress = json_data.get('compress', False)
+    if not isinstance(compress, bool):
+        abort(400, message='Compress value %s is not a bool.' % str(compress))
     files = [file.strip() for file in json_data['files']]
 
-    return respond_to_get_raw_files(upload_hash, files)
+    return respond_to_get_raw_files(upload_hash, files, compress)
 
 
-def respond_to_get_raw_files(upload_hash, files):
+def respond_to_get_raw_files(upload_hash, files, compress=False):
     logger = get_logger(__name__, endpoint='raw', action='get files', upload_hash=upload_hash)
 
     repository_file = RepositoryFile(upload_hash)
@@ -192,7 +201,8 @@ def respond_to_get_raw_files(upload_hash, files):
             except Exception as e:
                 logger.error('Exception while accessing files.', exc_info=e)
 
-        zip_stream = zipstream.ZipFile(mode='w', compression=ZIP_DEFLATED)
+        compression = ZIP_DEFLATED if compress else ZIP_STORED
+        zip_stream = zipstream.ZipFile(mode='w', compression=compression, allowZip64=True)
         zip_stream.paths_to_write = iterator()
 
         for chunk in zip_stream:
