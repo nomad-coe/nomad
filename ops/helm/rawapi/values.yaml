@@ -23,4 +23,4 @@ volumes:
   ## The hostPath that contains the raw file archives. This directory must have a
   #  subdirectory called 'data' with the actual files in it. The files must be situated
   #  in 3-digit prefix sub directories; example: data/H3j/H3ju22kjHkls18l.zip
-  raw: /nomad/nomadlab/raw-files
+  raw: /nomad/nomadlab/raw-data
