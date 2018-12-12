@@ -1,0 +1,26 @@
+## Default values for the nomad@FAIRDI rawapi
+
+## Everything concerning the container image to be used
+image:
+  ## The kubernetes docker-registry secret that can be used to access the registry
+  #  with the container image in it.
+  #  It can be created via:
+  #    kubectl create secret docker-registry gitlab-mpcdf --docker-server=gitlab-registry.mpcdf.mpg.de --docker-username=<your-user-name > --docker-password=<yourpass> --docker-email=<email>
+  secret: gitlab-mpcdf
+  ## The docker container image name without tag
+  name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/rawapi
+  ## The docker container image tag
+  tag: latest
+  pullPolicy: IfNotPresent
+
+## Everthing concerning the service operation
+service:
+  ## Currenty rawapi is configured to expose the service via a kubernetes NodePort
+  nodePort: 30001
+
+## Everthing concerning the data that is used by the service
+volumes:
+  ## The hostPath that contains the raw file archives. This directory must have a
+  #  subdirectory called 'data' with the actual files in it. The files must be situated
+  #  in 3-digit prefix sub directories; example: data/H3j/H3ju22kjHkls18l.zip
+  raw: /nomad/nomadlab/raw-files
