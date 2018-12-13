@@ -51,7 +51,7 @@ class RepoCalc(ElasticDocument):
     instance and only via the :func:`create_from_backend` factory method.
     """
     class Index:
-        name = config.elastic.calc_index
+        name = config.elastic.index_name
 
     calc_hash = Keyword()
     mainfile = Keyword()

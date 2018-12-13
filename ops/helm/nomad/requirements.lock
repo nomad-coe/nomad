@@ -2,14 +2,5 @@ dependencies:
 - name: rabbitmq
   repository: https://kubernetes-charts.storage.googleapis.com/
   version: 4.0.1
-- name: mongodb
-  repository: https://kubernetes-charts.storage.googleapis.com/
-  version: 4.9.1
-- name: elasticsearch
-  repository: https://kubernetes-charts.storage.googleapis.com/
-  version: 1.15.0
-- name: postgresql
-  repository: https://kubernetes-charts.storage.googleapis.com/
-  version: 3.1.1
-digest: sha256:c6c65e79414429b8b2ecdba6fa2f13628614a0be3c5fff8947c79270a00386fb
-generated: 2018-12-12T14:02:40.726497+01:00
+digest: sha256:91440e2bb5d4645a88c222836626306ef3d4e0c1e18a46c1442a2b3081655631
+generated: 2018-12-13T14:16:27.606343+01:00

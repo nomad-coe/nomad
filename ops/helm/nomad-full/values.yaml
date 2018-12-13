@@ -32,7 +32,6 @@ worker:
   console_loglevel: INFO
   logstash_loglevel: INFO
 
-## configuration of the chart dependency for rabbitmq
 rabbitmq:
   image.pullSecrets: nil
   rbacEnabled: false
@@ -40,28 +39,31 @@ rabbitmq:
     username: rabbitmq
     password: rabbitmq
     erlangCookie: SWQOKODSQALRPCLNMEQG
-    plugins: |-
-      [].
-    configuration: |-
-  persistence:
-    enabled: false
+  persistence.enabled: false
+  securityContext.enabled: false
 
-mongo:
-  host: enc-preprocessing-nomad.esc
-  port: 27017
+mongodb:
+  image.pullSecrets: nil
+  usePassword: false
+  persistence.enabled: true
+  securityContext.enabled: false
 
-elastic:
-  host: enc-preprocessing-nomad.esc
-  port: 9200
+elasticsearch:
+  client.replicas: 2
+  master.replicas: 1
+  data.replicas: 1
+  cluster.env: {MINIMUM_MASTER_NODES=""1"}
 
-postgres:
-  host: enc-preprocessing-nomad.esc
-  port: 5432
+postgresql:
+  postgresqlUsername: "postgres"
+  postgresqlPassword: "nomad"
+  postgresqlDatabase: "nomad"
+  securityContext.enabled: false
 
 logstash:
   port: 5000
-  host: enc-preprocessing-nomad.esc
+  host: "enc-preprocessing-nomad.esc"
 
-## Everything concerning the data that is used by the service
+## Everthing concerning the data that is used by the service
 volumes:
   files: /nomad/nomadlab/nomad-FAIRDI/files

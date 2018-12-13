@@ -71,14 +71,15 @@ def setup_logging():
 def setup_mongo():
     """ Creates connection to mongodb. """
     global mongo_client
-    mongo_client = connect(db=config.mongo.users_db, host=config.mongo.host, port=config.mongo.port)
+    mongo_client = connect(db=config.mongo.db_name, host=config.mongo.host, port=config.mongo.port)
     logger.info('setup mongo connection')
 
 
 def setup_elastic():
     """ Creates connection to elastic search. """
     global elastic_client
-    elastic_client = connections.create_connection(hosts=[config.elastic.host])
+    elastic_client = connections.create_connection(
+        hosts=[config.elastic.host], port=[config.elastic.port])
     logger.info('setup elastic connection')
 
     try:

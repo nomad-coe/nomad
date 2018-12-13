@@ -29,38 +29,17 @@ spec:
         - name: NOMAD_SERVICE
           value: "api"
         - name: NOMAD_LOGSTASH_HOST
-          value: "{{ .Values.logstash.host }}"
+          value: {{ .Values.logstash.host }}
         - name: NOMAD_LOGSTASH_TCPPORT
-          value: "{{ .Values.logstash.port }}"
+          value: {{ .Values.logstash.port }}
         - name: NOMAD_CONSOLE_LOGLEVEL
-          value: "{{ .Values.api.console_loglevel }}"
+          value: {{ .Values.api.console_loglevel }}
         - name: NOMAD_LOGSTASH_LEVEL
-          value: "{{ .Values.api.logstash_loglevel }}"
+          value: {{ .Values.api.logstash_loglevel }}
         - name: NOMAD_API_PORT
-          value: "{{ .Values.api.port }}"
+          value: {{ .Values.api.port }}
         - name: NOMAD_API_SECRET
-          value: "{{ .Values.api.secret }}"
-        - name: NOMAD_RABBITMQ_HOST
-          value: "{{ .Release.Name }}-rabbitmq"
-        - name: NOMAD_ELASTIC_HOST
-          value: "{{ .Values.elastic.host }}"
-        - name: NOMAD_ELASTIC_PORT
-          value: "{{ .Values.elastic.port }}"
-        - name: NOMAD_ELASTIC_INDEX_NAME
-          value: "{{ .Release.Name }}-nomad"
-        - name: NOMAD_MONGO_HOST
-          value: "{{ .Values.mongo.host }}"
-        - name: NOMAD_MONGO_PORT
-          value: "{{ .Values.mongo.port }}"
-        - name: NOMAD_MONGO_DB_NAME
-          value: "{{ .Release.Name }}-nomad"
-        - name: NOMAD_COE_REPO_DB_HOST
-          value: "{{ .Values.postgres.host }}"
-        - name: NOMAD_COE_REPO_DB_PORT
-          value: "{{ .Values.postgres.port }}"
-        - name: NOMAD_COE_REPO_DB_NAME
-          value: "{{ .Release.Name }}-nomad"
-        command: ["python", "-m", "gunicorn.app.wsgiapp", "-b 0.0.0.0:8000", "nomad.api:app"]
+          value: {{ .Values.api.secret }}
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
       volumes:

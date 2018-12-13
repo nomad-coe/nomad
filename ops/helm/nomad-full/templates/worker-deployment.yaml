@@ -29,34 +29,13 @@ spec:
         - name: NOMAD_SERVICE
           value: "worker"
         - name: NOMAD_LOGSTASH_HOST
-          value: "{{ .Values.logstash.host }}"
+          value: {{ .Values.logstash.host }}
         - name: NOMAD_LOGSTASH_TCPPORT
-          value: "{{ .Values.logstash.port }}"
+          value: {{ .Values.logstash.port }}
         - name: NOMAD_CONSOLE_LOGLEVEL
-          value: "{{ .Values.worker.console_loglevel }}"
+          value: {{ .Values.worker.console_loglevel }}
         - name: NOMAD_LOGSTASH_LEVEL
-          value: "{{ .Values.worker.logstash_loglevel }}"
-        - name: NOMAD_RABBITMQ_HOST
-          value: "{{ .Release.Name }}-rabbitmq"
-        - name: NOMAD_ELASTIC_HOST
-          value: "{{ .Values.elastic.host }}"
-        - name: NOMAD_ELASTIC_PORT
-          value: "{{ .Values.elastic.port }}"
-        - name: NOMAD_ELASTIC_INDEX_NAME
-          value: "{{ .Release.Name }}-nomad"
-        - name: NOMAD_MONGO_HOST
-          value: "{{ .Values.mongo.host }}"
-        - name: NOMAD_MONGO_PORT
-          value: "{{ .Values.mongo.port }}"
-        - name: NOMAD_MONGO_DB_NAME
-          value: "{{ .Release.Name }}-nomad"
-        - name: NOMAD_COE_REPO_DB_HOST
-          value: "{{ .Values.postgres.host }}"
-        - name: NOMAD_COE_REPO_DB_PORT
-          value: "{{ .Values.postgres.port }}"
-        - name: NOMAD_COE_REPO_DB_NAME
-          value: "{{ .Release.Name }}-nomad"
-        command: ["python", "-m", "celery", "worker", "-l", "info", "-A", "nomad.processing"]
+          value: {{ .Values.worker.logstash_loglevel }}
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
       volumes:
