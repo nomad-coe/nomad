@@ -55,7 +55,7 @@ spec:
         - name: NOMAD_COE_REPO_DB_PORT
           value: "{{ .Values.postgres.port }}"
         - name: NOMAD_COE_REPO_DB_NAME
-          value: "{{ .Release.Name }}-nomad"
+          value: "{{ .Release.Name }}_nomad"
         command: ["python", "-m", "celery", "worker", "-l", "info", "-A", "nomad.processing"]
       imagePullSecrets:
       - name: {{ .Values.images.secret }}

@@ -35,16 +35,10 @@ worker:
 ## configuration of the chart dependency for rabbitmq
 rabbitmq:
   image.pullSecrets: nil
-  rbacEnabled: false
   rabbitmq:
     username: rabbitmq
     password: rabbitmq
     erlangCookie: SWQOKODSQALRPCLNMEQG
-    plugins: |-
-      [].
-    configuration: |-
-  persistence:
-    enabled: false
 
 mongo:
   host: enc-preprocessing-nomad.esc

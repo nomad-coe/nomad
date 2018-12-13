@@ -59,7 +59,7 @@ spec:
         - name: NOMAD_COE_REPO_DB_PORT
           value: "{{ .Values.postgres.port }}"
         - name: NOMAD_COE_REPO_DB_NAME
-          value: "{{ .Release.Name }}-nomad"
+          value: "{{ .Release.Name }}_nomad"
         command: ["python", "-m", "gunicorn.app.wsgiapp", "-b 0.0.0.0:8000", "nomad.api:app"]
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
