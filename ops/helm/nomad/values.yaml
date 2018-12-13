@@ -48,18 +48,18 @@ rabbitmq:
 
 mongo:
   host: enc-preprocessing-nomad.esc
-  port: 27017
+  port: 37017
 
 elastic:
   host: enc-preprocessing-nomad.esc
-  port: 9200
+  port: 19200
 
 postgres:
   host: enc-preprocessing-nomad.esc
   port: 5432
 
 logstash:
-  port: 5000
+  port: 15000
   host: enc-preprocessing-nomad.esc
 
 ## Everything concerning the data that is used by the service

@@ -79,7 +79,7 @@ def setup_elastic():
     """ Creates connection to elastic search. """
     global elastic_client
     elastic_client = connections.create_connection(
-        hosts=[config.elastic.host], port=[config.elastic.port])
+        hosts=['%s:%d' % (config.elastic.host, config.elastic.port)])
     logger.info('setup elastic connection')
 
     try:
@@ -130,10 +130,10 @@ def setup_repository_db():
 def reset():
     """ Resets the databases mongo, elastic/calcs, and repository db. Be careful. """
     logger.info('reset mongodb')
-    mongo_client.drop_database(config.mongo.users_db)
+    mongo_client.drop_database(config.mongo.db_name)
 
     logger.info('reset elastic search')
-    elastic_client.indices.delete(index=config.elastic.calc_index)
+    elastic_client.indices.delete(index=config.elastic.index_name)
     from nomad.repo import RepoCalc
     RepoCalc.init()
 

@@ -202,13 +202,13 @@ class RepoCalc(ElasticDocument):
     @staticmethod
     def es_search(body):
         """ Perform an elasticsearch and not elasticsearch_dsl search on the Calc index. """
-        return infrastructure.elastic_client.search(index=config.elastic.calc_index, body=body)
+        return infrastructure.elastic_client.search(index=config.elastic.index_name, body=body)
 
     @staticmethod
     def upload_exists(upload_hash):
         """ Returns true if there are already calcs from the given upload. """
         # TODO this is deprecated and should be varified via repository files
-        search = Search(using=infrastructure.elastic_client, index=config.elastic.calc_index) \
+        search = Search(using=infrastructure.elastic_client, index=config.elastic.index_name) \
             .query('match', upload_hash=upload_hash) \
             .execute()
 
@@ -217,7 +217,7 @@ class RepoCalc(ElasticDocument):
     @staticmethod
     def upload_calcs(upload_id):
         """ Returns an iterable over all entries for the given upload_id. """
-        return Search(using=infrastructure.elastic_client, index=config.elastic.calc_index) \
+        return Search(using=infrastructure.elastic_client, index=config.elastic.index_name) \
             .query('match', upload_id=upload_id) \
             .scan()
 

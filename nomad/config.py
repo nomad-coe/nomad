@@ -82,7 +82,7 @@ fs = FSConfig(
 elastic = ElasticConfig(
     host=os.environ.get('NOMAD_ELASTIC_HOST', 'localhost'),
     port=int(os.environ.get('NOMAD_ELASTIC_PORT', 9200)),
-    index_name=os.environ.get('NOMAD_ELASTIC_INDEX_NAME', 'nomad-fair')
+    index_name=os.environ.get('NOMAD_ELASTIC_INDEX_NAME', 'calcs')
 )
 repository_db = RepositoryDBConfig(
     host=os.environ.get('NOMAD_COE_REPO_DB_HOST', 'localhost'),
@@ -94,7 +94,7 @@ repository_db = RepositoryDBConfig(
 mongo = MongoConfig(
     host=os.environ.get('NOMAD_MONGO_HOST', 'localhost'),
     port=int(os.environ.get('NOMAD_MONGO_PORT', 27017)),
-    db_name=os.environ.get('NOMAD_MONGO_DN_NAME', 'nomad-fair')
+    db_name=os.environ.get('NOMAD_MONGO_DN_NAME', 'users')
 )
 logstash = LogstashConfig(
     enabled=True,
