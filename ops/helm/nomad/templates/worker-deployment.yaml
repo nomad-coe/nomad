@@ -29,13 +29,14 @@ spec:
         - name: NOMAD_SERVICE
           value: "worker"
         - name: NOMAD_LOGSTASH_HOST
-          value: {{ .Values.logstash.host }}
+          value: "{{ .Values.logstash.host }}"
         - name: NOMAD_LOGSTASH_TCPPORT
-          value: {{ .Values.logstash.port }}
+          value: "{{ .Values.logstash.port }}"
         - name: NOMAD_CONSOLE_LOGLEVEL
-          value: {{ .Values.worker.console_loglevel }}
+          value: "{{ .Values.worker.console_loglevel }}"
         - name: NOMAD_LOGSTASH_LEVEL
-          value: {{ .Values.worker.logstash_loglevel }}
+          value: "{{ .Values.worker.logstash_loglevel }}"
+        command: ["python", "-m", "celery", "worker", "-l", "info", "-A", "nomad.processing"]
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
       volumes:

@@ -39,29 +39,38 @@ rabbitmq:
     username: rabbitmq
     password: rabbitmq
     erlangCookie: SWQOKODSQALRPCLNMEQG
-  persistence.enabled: false
-  securityContext.enabled: false
+    plugins: |-
+      [].
+    configuration: |-
+
+  persistence:
+    enabled: false
 
 mongodb:
-  image.pullSecrets: nil
   usePassword: false
-  persistence.enabled: true
-  securityContext.enabled: false
+  securityContext:
+    enabled: false
 
 elasticsearch:
-  client.replicas: 2
-  master.replicas: 1
-  data.replicas: 1
-  cluster.env: {MINIMUM_MASTER_NODES=""1"}
+  client:
+    replicas: 2
+  master:
+    replicas: 1
+  data:
+    replicas: 1
+  cluster:
+    env:
+      MINIMUM_MASTER_NODES: 1
 
 postgresql:
-  postgresqlUsername: "postgres"
+  postgresqlUsername: "postgresd"
   postgresqlPassword: "nomad"
   postgresqlDatabase: "nomad"
-  securityContext.enabled: false
+  securityContext:
+    enabled: false
 
 logstash:
-  port: 5000
+  port: "5000"
   host: "enc-preprocessing-nomad.esc"
 
 ## Everthing concerning the data that is used by the service

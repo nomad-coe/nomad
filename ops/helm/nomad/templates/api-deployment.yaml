@@ -29,17 +29,18 @@ spec:
         - name: NOMAD_SERVICE
           value: "api"
         - name: NOMAD_LOGSTASH_HOST
-          value: {{ .Values.logstash.host }}
+          value: "{{ .Values.logstash.host }}"
         - name: NOMAD_LOGSTASH_TCPPORT
-          value: {{ .Values.logstash.port }}
+          value: "{{ .Values.logstash.port }}"
         - name: NOMAD_CONSOLE_LOGLEVEL
-          value: {{ .Values.api.console_loglevel }}
+          value: "{{ .Values.api.console_loglevel }}"
         - name: NOMAD_LOGSTASH_LEVEL
-          value: {{ .Values.api.logstash_loglevel }}
+          value: "{{ .Values.api.logstash_loglevel }}"
         - name: NOMAD_API_PORT
-          value: {{ .Values.api.port }}
+          value: "{{ .Values.api.port }}"
         - name: NOMAD_API_SECRET
-          value: {{ .Values.api.secret }}
+          value: "{{ .Values.api.secret }}"
+        command: ["python", "-m", "gunicorn.app.wsgiapp", "-b 0.0.0.0:8000", "nomad.api:app"]
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
       volumes:
