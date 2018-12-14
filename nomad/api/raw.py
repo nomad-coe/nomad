@@ -32,6 +32,12 @@ from nomad.utils import get_logger
 from .app import app, base_path
 
 
+def fix_file_paths(path):
+    """ Removed the leading data from file paths that where given in mainfile uris. """
+    # TODO, mainfile URI's should change or this implementation should change
+    return path[5:]
+
+
 @app.route('%s/raw/<string:upload_hash>/<path:upload_filepath>' % base_path, methods=['GET'])
 def get_raw_file(upload_hash, upload_filepath):
     """
@@ -55,6 +61,7 @@ def get_raw_file(upload_hash, upload_filepath):
     :status 404: upload with given hash does not exist or the given file does not exist
     :returns: the gzipped raw data in the body or a zip file when wildcard was used
     """
+    upload_filepath = fix_file_paths(upload_filepath)
 
     repository_file = RepositoryFile(upload_hash)
     if not repository_file.exists():
@@ -123,7 +130,7 @@ def get_raw_files(upload_hash):
 
     if files_str is None:
         abort(400, message="No files argument given.")
-    files = [file.strip() for file in files_str.split(',')]
+    files = [fix_file_paths(file.strip()) for file in files_str.split(',')]
 
     return respond_to_get_raw_files(upload_hash, files, compress)
 
@@ -164,7 +171,7 @@ def get_raw_files_post(upload_hash):
     compress = json_data.get('compress', False)
     if not isinstance(compress, bool):
         abort(400, message='Compress value %s is not a bool.' % str(compress))
-    files = [file.strip() for file in json_data['files']]
+    files = [fix_file_paths(file.strip()) for file in json_data['files']]
 
     return respond_to_get_raw_files(upload_hash, files, compress)
 
