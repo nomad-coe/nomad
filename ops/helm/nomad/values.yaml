@@ -22,7 +22,6 @@ api:
   port: 8000
   console_loglevel: INFO
   logstash_loglevel: INFO
-  service_type: ClusterIP
   ## Secret used as cryptographic seed
   secret: "defaultApiSecret"
 
@@ -31,6 +30,11 @@ worker:
   replicas: 2
   console_loglevel: INFO
   logstash_loglevel: INFO
+
+## Everthing concerning the nomad gui
+gui:
+  replicas: 1
+  port: 80
 
 ## configuration of the chart dependency for rabbitmq
 rabbitmq:
