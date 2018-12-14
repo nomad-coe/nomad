@@ -186,7 +186,11 @@ dependencies = [
     PythonGit(
         name='normalizers/system-type',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/normalizer-system-type',
-        git_commit='nomad-fair')
+        git_commit='nomad-fair'),
+    PythonGit(
+        name='parsers/cp2k',
+        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-cp2k',
+        git_commit='master')
 ]
 
 dependencies_dict = {dependency.name: dependency for dependency in dependencies}
