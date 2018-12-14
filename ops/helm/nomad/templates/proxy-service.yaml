@@ -9,12 +9,14 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
   type: NodePort
-  nodePort: {{ .Values.proxy.nodePort }}
+  externalIPs:
+  - 130.183.207.116 
   ports:
-    - port: {{ .Values.proxy.port }}
-      targetPort: http
-      protocol: TCP
-      name: http
+  - nodePort: {{ .Values.proxy.nodePort }}
+    port: {{ .Values.proxy.port }}
+    targetPort: 80
+    protocol: TCP
+    name: http
   selector:
     app.kubernetes.io/name: {{ include "nomad.name" . }}-proxy
     app.kubernetes.io/instance: {{ .Release.Name }}

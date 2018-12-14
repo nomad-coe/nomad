@@ -36,8 +36,12 @@ spec:
           value: "{{ .Values.api.console_loglevel }}"
         - name: NOMAD_LOGSTASH_LEVEL
           value: "{{ .Values.api.logstash_loglevel }}"
+        - name: NOMAD_API_HOST
+          value: "{{ .Values.proxy.external.host }}"
         - name: NOMAD_API_PORT
-          value: "{{ .Values.api.port }}"
+          value: "{{ .Values.proxy.external.port }}"
+        - name: NOMAD_API_BASE_PATH
+          value: "{{ .Values.proxy.external.path }}/api"
         - name: NOMAD_API_SECRET
           value: "{{ .Values.api.secret }}"
         - name: NOMAD_RABBITMQ_HOST

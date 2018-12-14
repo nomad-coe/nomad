@@ -11,7 +11,7 @@ spec:
   type: ClusterIP
   ports:
     - port: {{ .Values.gui.port }}
-      targetPort: http
+      targetPort: {{ .Values.gui.port }}
       protocol: TCP
       name: http
   selector:

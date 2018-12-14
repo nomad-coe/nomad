@@ -22,6 +22,6 @@ spec:
       containers:
       - name: {{ include "nomad.name" . }}-gui
         image: "{{ .Values.images.frontend.name }}:{{ .Values.images.frontend.tag }}"
-        command: ["nginx", "-g", "'daemon off;'"]
+        command: ["nginx", "-g", "daemon off;"]
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
