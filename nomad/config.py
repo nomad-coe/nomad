@@ -94,7 +94,7 @@ repository_db = RepositoryDBConfig(
 mongo = MongoConfig(
     host=os.environ.get('NOMAD_MONGO_HOST', 'localhost'),
     port=int(os.environ.get('NOMAD_MONGO_PORT', 27017)),
-    db_name=os.environ.get('NOMAD_MONGO_DN_NAME', 'users')
+    db_name=os.environ.get('NOMAD_MONGO_DB_NAME', 'users')
 )
 logstash = LogstashConfig(
     enabled=True,
