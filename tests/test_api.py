@@ -386,6 +386,11 @@ def test_get_non_existing_archive(client, no_warn):
     assert rv.status_code == 404
 
 
+def test_docs(client):
+    rv = client.get('/docs/introduction.html')
+    assert rv.status_code == 200
+
+
 class TestRaw:
 
     @pytest.fixture

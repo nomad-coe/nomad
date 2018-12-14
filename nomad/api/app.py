@@ -30,7 +30,7 @@ base_path = config.services.api_base_path
 app = Flask(
     __name__,
     static_url_path='%s/docs' % base_path,
-    static_folder=os.path.abspath(os.path.join(os.path.dirname(__file__), '../docs/.build/html')))
+    static_folder=os.path.abspath(os.path.join(os.path.dirname(__file__), '../../docs/.build/html')))
 """ The Flask app that serves all APIs. """
 
 CORS(app)
