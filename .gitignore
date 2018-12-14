@@ -14,4 +14,4 @@ project/
 test_*
 local/
 target/
-
+*.swp
