@@ -12,7 +12,7 @@ python-logstash
 gitpython
 gunicorn
 structlog
-recommonmark
+m2r
 requests
 click
 sphinx
