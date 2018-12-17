@@ -10,7 +10,7 @@ metadata:
 spec:
   type: NodePort
   externalIPs:
-  - 130.183.207.116 
+  - {{ .Values.proxy.nodeIP }}
   ports:
   - nodePort: {{ .Values.proxy.nodePort }}
     port: {{ .Values.proxy.port }}

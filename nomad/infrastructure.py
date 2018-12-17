@@ -20,8 +20,8 @@ infrastructure services.
 import os.path
 import shutil
 from contextlib import contextmanager
-
 import psycopg2
+import psycopg2.extensions
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from elasticsearch.exceptions import RequestError
@@ -100,6 +100,26 @@ def setup_repository_db():
     Returns:
         An sqlalchemy session for the NOMAD-coe repository postgres db.
     """
+    # ensure that the database exists
+    exists = False
+    try:
+        with repository_db_connection():
+            logger.info('repository db postgres database already exists')
+            exists = True
+    except psycopg2.OperationalError as e:
+        if not ('database "%s" does not exist' % config.repository_db.dbname) in str(e):
+            raise e
+    if not exists:
+        logger.info('repository db postgres database does not exist')
+        try:
+            with repository_db_connection(dbname='postgres', with_trans=False) as con:
+                with con.cursor() as cursor:
+                    cursor.execute("CREATE DATABASE %s  ;" % config.repository_db.dbname)
+                logger.info('repository db postgres database created')
+        except Exception as e:
+            logger.info('could not create repository db postgres database', exc_info=e)
+            raise e
+
     # ensure that the schema exists
     with repository_db_connection() as conn:
         with conn.cursor() as cur:
@@ -109,7 +129,10 @@ def setup_repository_db():
             exists = cur.fetchone()[0]
 
     if not exists:
+        logger.info('repository db postgres schema does not exists')
         reset_repository_db()
+    else:
+        logger.info('repository db postgres schema already exists')
 
     global repository_db
     global repository_db_conn
@@ -128,34 +151,103 @@ def setup_repository_db():
 
 
 def reset():
-    """ Resets the databases mongo, elastic/calcs, and repository db. Be careful. """
+    """
+    Resets the databases mongo, elastic/calcs, repository db and all files. Be careful.
+    In contrast to :func:`remove`, it will only remove the contents of dbs and indicies.
+    This function just attempts to remove everything, there is no exception handling
+    or any warranty it will succeed.
+    """
     logger.info('reset mongodb')
-    mongo_client.drop_database(config.mongo.db_name)
+    try:
+        if not mongo_client:
+            setup_mongo()
+        mongo_client.drop_database(config.mongo.db_name)
+    except Exception as e:
+        logger.error('exception reset mongodb', exc_info=e)
 
     logger.info('reset elastic search')
-    elastic_client.indices.delete(index=config.elastic.index_name)
-    from nomad.repo import RepoCalc
-    RepoCalc.init()
+    try:
+        if not elastic_client:
+            setup_elastic()
+        elastic_client.indices.delete(index=config.elastic.index_name)
+        from nomad.repo import RepoCalc
+        RepoCalc.init()
+    except Exception as e:
+        logger.error('exception resetting elastic', exc_info=e)
 
     logger.info('reset repository db')
-    reset_repository_db()
+    try:
+        reset_repository_db()
+    except Exception as e:
+        logger.error('exception resetting repository db', exc_info=e)
 
     logger.info('reset files')
-    shutil.rmtree(config.fs.objects, ignore_errors=True)
-    shutil.rmtree(config.fs.tmp, ignore_errors=True)
+    try:
+        shutil.rmtree(config.fs.objects, ignore_errors=True)
+        shutil.rmtree(config.fs.tmp, ignore_errors=True)
+    except Exception as e:
+        logger.error('exception deleting files', exc_info=e)
+
+
+def remove():
+    """
+    Removes the databases mongo, elastic, repository db, and all files. Be careful.
+    This function just attempts to remove everything, there is no exception handling
+    or any warranty it will succeed.
+    """
+    logger.info('delete mongodb')
+    try:
+        if not mongo_client:
+            setup_mongo()
+        mongo_client.drop_database(config.mongo.db_name)
+    except Exception as e:
+        logger.error('exception deleting mongodb', exc_info=e)
+
+    logger.info('delete elastic search')
+    try:
+        if not elastic_client:
+            setup_elastic()
+        elastic_client.indices.delete(index=config.elastic.index_name)
+    except Exception as e:
+        logger.error('exception deleting elastic', exc_info=e)
+
+    logger.info('delete repository db')
+    try:
+        if repository_db is not None:
+            repository_db.expunge_all()
+            repository_db.invalidate()
+        if repository_db_conn is not None:
+            repository_db_conn.close()
+        with repository_db_connection(dbname='postgres', with_trans=False) as con:
+            with con.cursor() as cur:
+                cur.execute('DROP DATABASE IF EXISTS %s' % config.repository_db.dbname)
+    except Exception as e:
+        logger.error('exception deleting repository db', exc_info=e)
+
+    logger.info('reset files')
+    try:
+        shutil.rmtree(config.fs.objects, ignore_errors=True)
+        shutil.rmtree(config.fs.tmp, ignore_errors=True)
+    except Exception as e:
+        logger.error('exception deleting files', exc_info=e)
 
 
 @contextmanager
-def repository_db_connection():
+def repository_db_connection(dbname=None, with_trans=True):
     """ Contextmanager for a psycopg2 session for the NOMAD-coe repository postgresdb """
+    repository_db_dict = config.repository_db._asdict()
+    if dbname is not None:
+        repository_db_dict.update(dbname=dbname)
     conn_str = "host='%s' port=%d dbname='%s' user='%s' password='%s'" % (
-        config.repository_db.host,
-        config.repository_db.port,
-        config.repository_db.dbname,
-        config.repository_db.user,
-        config.repository_db.password)
+        repository_db_dict['host'],
+        repository_db_dict['port'],
+        repository_db_dict['dbname'],
+        repository_db_dict['user'],
+        repository_db_dict['password'])
 
     conn = psycopg2.connect(conn_str)
+    if not with_trans:
+        conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
     try:
         yield conn
     except Exception as e:
@@ -169,7 +261,7 @@ def repository_db_connection():
 
 
 def reset_repository_db():
-    """ Drops the existing NOMAD-coe repository postgres db and creates a new minimal one. """
+    """ Drops the existing NOMAD-coe repository postgres schema and creates a new minimal one. """
     with repository_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -179,7 +271,10 @@ def reset_repository_db():
                 "GRANT ALL ON SCHEMA public TO public;")
             sql_file = os.path.join(os.path.dirname(__file__), 'empty_repository_db.sql')
             cur.execute(open(sql_file, 'r').read())
+            logger.info('(re-)created repository db postgres schema')
 
 
 if __name__ == '__main__':
-    reset_repository_db()
+    # setup()
+    remove()
+    # reset_repository_db()

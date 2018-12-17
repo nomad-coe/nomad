@@ -12,23 +12,34 @@ data:
     server {
       listen        80;
       server_name   www.example.com;
-
+      {{- if .Values.proxy.external.useReleasePath }}
+      location {{ .Values.proxy.external.path }}/{{ .Release.Name }} {
+      {{- else }}
       location {{ .Values.proxy.external.path }} {
+      {{- end }}
         proxy_pass http://{{ include "nomad.fullname" . }}-gui:{{ .Values.gui.port }};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
       }
 
+      {{- if .Values.proxy.external.useReleasePath }}
+      location {{ .Values.proxy.external.path }}/{{ .Release.Name }}/api {
+      {{- else }}
       location {{ .Values.proxy.external.path }}/api {
+      {{- end }}
         client_max_body_size 20g;
         proxy_set_header Host $host;
         proxy_pass_request_headers on;
         proxy_pass http://{{ include "nomad.fullname" . }}-api:{{ .Values.api.port }};
       }
 
+      {{- if .Values.proxy.external.useReleasePath }}
+      location {{ .Values.proxy.external.path }}/{{ .Release.Name }}/kibana {
+      {{- else }}
       location {{ .Values.proxy.external.path }}/kibana {
+      {{- end }}
         rewrite ^{{ .Values.proxy.external.path}}/kibana/(.*)$ /$1 break;
-        proxy_pass http://{{ .Values.kibana.host }}:{{ .Values.kibana.port }};  
+        proxy_pass http://{{ .Values.kibana.host }}:{{ .Values.kibana.port }};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
       }

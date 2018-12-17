@@ -42,15 +42,20 @@ worker:
 ## Everthing concerning the nomad gui
 gui:
   replicas: 1
-  ## This port is hard coded into the frontend image
+  ## This port is hard coded into the frontend image, it cannot be really changed
   port: 8080
 
+## Everything concerning the proxy that combined gui, api, kibana
+#  It is run via NodePort service
 proxy:
   port: 80
   nodePort: 30001
+  nodeIP: 130.183.207.116
   external:
     host: "localhost"
     port: 30001
+    ## Add a path segment with the release name to path, e.g. /nomad/liquid-thunder/...
+    useReleasePath: true
     path: "/nomad"
 
 ## configuration of the chart dependency for rabbitmq
@@ -61,6 +66,8 @@ rabbitmq:
     password: rabbitmq
     erlangCookie: SWQOKODSQALRPCLNMEQG
 
+## Databases that are not run within the cluster.
+#  To run databases in the cluster, use the nomad-full helm chart.
 mongo:
   host: enc-preprocessing-nomad.esc
   port: 37017
@@ -83,4 +90,4 @@ kibana:
 
 ## Everything concerning the data that is used by the service
 volumes:
-  files: /nomad/nomadlab/nomad-FAIRDI/files
+  files: /scratch/nomad-fair/fs

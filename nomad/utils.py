@@ -95,7 +95,7 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
                     continue
                 elif key in (
                         'upload_hash', 'archive_id', 'upload_id', 'calc_hash', 'mainfile',
-                        'service'):
+                        'service', 'release'):
                     key = 'nomad.%s' % key
                 else:
                     key = '%s.%s' % (record.name, key)
@@ -123,7 +123,7 @@ def add_logstash_handler(logger):
         logstash_handler = logstash.TCPLogstashHandler(
             config.logstash.host,
             config.logstash.tcp_port, version=1)
-        logstash_handler.formatter = LogstashFormatter(tags=['nomad', config.service])
+        logstash_handler.formatter = LogstashFormatter(tags=['nomad', config.service, config.release])
         logstash_handler.setLevel(config.logstash.level)
         logger.addHandler(logstash_handler)
 
@@ -199,7 +199,7 @@ def get_logger(name, **kwargs):
     if name.startswith('nomad.'):
         name = '.'.join(name.split('.')[:2])
 
-    logger = structlog.get_logger(name, service=config.service, **kwargs)
+    logger = structlog.get_logger(name, service=config.service, release=config.release, **kwargs)
     return logger
 
 

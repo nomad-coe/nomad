@@ -28,6 +28,8 @@ spec:
         env:
         - name: NOMAD_SERVICE
           value: "api"
+        - name: NOMAD_RELEASE
+          value: "{{ .Release.Name }}"
         - name: NOMAD_LOGSTASH_HOST
           value: "{{ .Values.logstash.host }}"
         - name: NOMAD_LOGSTASH_TCPPORT
@@ -41,6 +43,11 @@ spec:
         - name: NOMAD_API_PORT
           value: "{{ .Values.proxy.external.port }}"
         - name: NOMAD_API_BASE_PATH
+          {{- if .Values.proxy.external.useReleasePath }}
+          value: "{{ .Values.proxy.external.path }}/{{ .Release.Name }}/api"
+          {{- else }}
+          value: "{{ .Values.proxy.external.path }}/api"
+          {{- end }}
           value: "{{ .Values.proxy.external.path }}/api"
         - name: NOMAD_API_SECRET
           value: "{{ .Values.api.secret }}"

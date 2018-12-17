@@ -111,3 +111,4 @@ services = NomadServicesConfig(
 
 console_log_level = get_loglevel_from_env('NOMAD_CONSOLE_LOGLEVEL', default_level=logging.INFO)
 service = os.environ.get('NOMAD_SERVICE', 'unknown nomad service')
+release = os.environ.get('NOMAD_RELEASE', 'devel')

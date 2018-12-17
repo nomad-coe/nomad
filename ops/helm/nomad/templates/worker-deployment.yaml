@@ -28,6 +28,8 @@ spec:
         env:
         - name: NOMAD_SERVICE
           value: "worker"
+        - name: NOMAD_RELEASE
+          value: "{{ .Release.Name }}"
         - name: NOMAD_LOGSTASH_HOST
           value: "{{ .Values.logstash.host }}"
         - name: NOMAD_LOGSTASH_TCPPORT
