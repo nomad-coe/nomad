@@ -55,7 +55,7 @@ proxy:
     host: "localhost"
     port: 30001
     ## Add a path segment with the release name to path, e.g. /nomad/liquid-thunder/...
-    path: "/nomad"
+    path: "/nomad/kubetest"
 
 ## configuration of the chart dependency for rabbitmq
 rabbitmq:
@@ -92,4 +92,4 @@ kibana:
 
 ## Everything concerning the data that is used by the service
 volumes:
-  files: /scratch/nomad-fair/fs
+  files: /scratch/nomad-fair/fs/kubetest
