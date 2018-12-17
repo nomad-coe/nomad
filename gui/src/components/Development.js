@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
 import Markdown from './Markdown'
 import gitInfo from '../gitinfo'
+import { appBase } from '../config'
 
 class Development extends React.Component {
   static propTypes = {
@@ -30,7 +31,7 @@ class Development extends React.Component {
           This system pushes logs, events, monitoring data,
           and other application metrics to a central database where it
           can be analysed visually.
-          \n\n[Link to Kiaba](/nomad/kibana/)
+          \n\n[Link to Kiaba](${appBase}/kibana/)
         `}</Markdown>
       </div>
     )

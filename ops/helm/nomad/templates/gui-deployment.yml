@@ -12,32 +12,17 @@ data:
     server {
       listen        8080;
       server_name   www.example.com;
-      {{- if .Values.proxy.external.useReleasePath }}
-      location {{ .Values.proxy.external.path }}/{{ .Release.Name }} {
-      {{- else }}
       location {{ .Values.proxy.external.path }} {
-      {{- end }}
         root      /app/;
-        {{- if .Values.proxy.external.useReleasePath }}
-        rewrite ^{{ .Values.proxy.external.path }}/{{ .Release.Name }}/(.*)$ /nomad/$1 break;
-        try_files $uri {{ .Values.proxy.external.path }}/{{ .Release.Name }}/index.html; 
-        {{- else }}
         rewrite ^{{ .Values.proxy.external.path }}/(.*)$ /nomad/$1 break;
         try_files $uri {{ .Values.proxy.external.path }}/index.html;
-        {{- end }}
       }
     }
   env.js: |
     window.nomadEnv = {
-      {{- if .Values.proxy.external.useReleasePath }}
-      "apiBase": "{{ .Values.proxy.external.path }}/{{ .Release.Name }}/api",
-      "appBase": "{{ .Values.proxy.external.path }}/{{ .Release.Name }}",
-      "appStaticBase": "{{ .Values.proxy.external.path }}/{{ .Release.Name }}",
-      {{- else }}
       "apiBase": "{{ .Values.proxy.external.path }}/api",
       "appBase": "{{ .Values.proxy.external.path }}",
       "appStaticBase": "{{ .Values.proxy.external.path }}",
-      {{- end }}
       "appDebug": false
     };
 ---
