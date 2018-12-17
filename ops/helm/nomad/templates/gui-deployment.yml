@@ -18,7 +18,13 @@ data:
       location {{ .Values.proxy.external.path }} {
       {{- end }}
         root      /app/;
-        try_files $uri /nomad/index.html;  # fall back to index.html to support routing
+        {{- if .Values.proxy.external.useReleasePath }}
+        rewrite ^{{ .Values.proxy.external.path }}/{{ .Release.Name }}/(.*)$ /nomad/$1 break;
+        try_files $uri {{ .Values.proxy.external.path }}/{{ .Release.Name }}/index.html; 
+        {{- else }}
+        rewrite ^{{ .Values.proxy.external.path }}/(.*)$ /nomad/$1 break;
+        try_files $uri {{ .Values.proxy.external.path }}/index.html;
+        {{- end }}
       }
     }
   env.js: |
@@ -60,31 +66,31 @@ spec:
       - name: {{ include "nomad.name" . }}-gui
         image: "{{ .Values.images.frontend.name }}:{{ .Values.images.frontend.tag }}"
         command: ["nginx", "-g", "daemon off;"]
-      imagePullSecrets:
-      - name: {{ .Values.images.secret }}
-      ports:
-        - containerPort: 80
-      volumeMounts:
+        ports:
+        - containerPort: 8080
+        volumeMounts:
         - mountPath: /etc/nginx/conf.d
           readOnly: true
           name: nginx-conf
-        - mountPath: /var/log/nginx
-          name: log
-        - mountPath: /app/nomad
+        - mountPath: /app/nomad/config
           readOnly: true
           name: nomad-app
+        - mountPath: /var/log/nginx
+          name: log
+      imagePullSecrets:
+      - name: {{ .Values.images.secret }}
       volumes:
       - name: nginx-conf
         configMap:
           name: {{ include "nomad.fullname" . }}-gui-config
           items:
-            - key: nginx.conf
-              path: default.conf
+          - key: nginx.conf
+            path: default.conf
       - name: nomad-app
         configMap:
           name: {{ include "nomad.fullname" . }}-gui-config
           items:
-            - key: env.js
-              path: env.js
+          - key: env.js
+            path: env.js
       - name: log
         emptyDir: {}

@@ -38,7 +38,11 @@ data:
       {{- else }}
       location {{ .Values.proxy.external.path }}/kibana {
       {{- end }}
+        {{- if .Values.proxy.external.useReleasePath }}
+        rewrite ^{{ .Values.proxy.external.path}}/{{ .Release.Name }}/kibana/(.*)$ /$1 break;
+        {{- else }}
         rewrite ^{{ .Values.proxy.external.path}}/kibana/(.*)$ /$1 break;
+        {{- end }}
         proxy_pass http://{{ .Values.kibana.host }}:{{ .Values.kibana.port }};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -82,8 +86,8 @@ spec:
         configMap:
           name: {{ include "nomad.fullname" . }}-proxy-config
           items:
-            - key: nginx.conf
-              path: default.conf
+          - key: nginx.conf
+            path: default.conf
       - name: log
         emptyDir: {}
 
