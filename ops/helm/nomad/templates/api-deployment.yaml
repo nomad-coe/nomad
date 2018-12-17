@@ -43,11 +43,7 @@ spec:
         - name: NOMAD_API_PORT
           value: "{{ .Values.proxy.external.port }}"
         - name: NOMAD_API_BASE_PATH
-          {{- if .Values.proxy.external.useReleasePath }}
-          value: "{{ .Values.proxy.external.path }}/{{ .Release.Name }}/api"
-          {{- else }}
           value: "{{ .Values.proxy.external.path }}/api"
-          {{- end }}
         - name: NOMAD_API_SECRET
           value: "{{ .Values.api.secret }}"
         - name: NOMAD_RABBITMQ_HOST
@@ -76,9 +72,5 @@ spec:
       volumes:
       - name: files-volume
         hostPath:
-          {{- if .Values.volumes.useReleasePath }}
-          path: {{ .Values.volumes.files }}/{{ .Release.Name }}
-          {{- else }}
           path: {{ .Values.volumes.files }}
-          {{- end }}
           type: Directory

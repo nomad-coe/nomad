@@ -64,9 +64,5 @@ spec:
       volumes:
       - name: files-volume
         hostPath:
-          {{- if .Values.volumes.useReleasePath }}
-          path: {{ .Values.volumes.files }}/{{ .Release.Name }}
-          {{- else }}
           path: {{ .Values.volumes.files }}
-          {{- end }}
           type: Directory

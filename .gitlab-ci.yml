@@ -41,7 +41,7 @@ buildgui:
     - ./gitinfo.sh
     - ls -la src/gitinfo.json
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
-    - docker build -t $FRONTEND_TEST_IMAGE .
+    - docker build -t $FRONTEND_TEST_IMAGE --build-arg public_url=http://example.com/nomad/$CI_COMMIT_REF_NAME .
     - docker push $FRONTEND_TEST_IMAGE
   except:
     - /^dev-.*$/
