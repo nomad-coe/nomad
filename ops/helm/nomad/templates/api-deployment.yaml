@@ -48,7 +48,6 @@ spec:
           {{- else }}
           value: "{{ .Values.proxy.external.path }}/api"
           {{- end }}
-          value: "{{ .Values.proxy.external.path }}/api"
         - name: NOMAD_API_SECRET
           value: "{{ .Values.api.secret }}"
         - name: NOMAD_RABBITMQ_HOST
