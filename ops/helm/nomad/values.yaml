@@ -65,6 +65,9 @@ rabbitmq:
     password: rabbitmq
     erlangCookie: SWQOKODSQALRPCLNMEQG
 
+## A common name/prefix for all dbs and indices.
+dbname: nomad_kubetest
+
 ## Databases that are not run within the cluster.
 #  To run databases in the cluster, use the nomad-full helm chart.
 mongo:

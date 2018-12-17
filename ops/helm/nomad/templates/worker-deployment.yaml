@@ -45,19 +45,19 @@ spec:
         - name: NOMAD_ELASTIC_PORT
           value: "{{ .Values.elastic.port }}"
         - name: NOMAD_ELASTIC_INDEX_NAME
-          value: "{{ .Release.Name }}-nomad"
+          value: "{{ .Values.dbname }}"
         - name: NOMAD_MONGO_HOST
           value: "{{ .Values.mongo.host }}"
         - name: NOMAD_MONGO_PORT
           value: "{{ .Values.mongo.port }}"
         - name: NOMAD_MONGO_DB_NAME
-          value: "{{ .Release.Name }}-nomad"
+          value: "{{ .Values.dbname }}"
         - name: NOMAD_COE_REPO_DB_HOST
           value: "{{ .Values.postgres.host }}"
         - name: NOMAD_COE_REPO_DB_PORT
           value: "{{ .Values.postgres.port }}"
         - name: NOMAD_COE_REPO_DB_NAME
-          value: "{{ .Release.Name }}_nomad"
+          value: "{{ .Values.dbname }}"
         command: ["python", "-m", "celery", "worker", "-l", "info", "-A", "nomad.processing"]
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
