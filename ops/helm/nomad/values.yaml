@@ -90,4 +90,6 @@ kibana:
 
 ## Everything concerning the data that is used by the service
 volumes:
+  ## Add a path segment with the release name to path, e.g. .../fs/liquid-thunder/...
+  useReleasePath: true
   files: /scratch/nomad-fair/fs
