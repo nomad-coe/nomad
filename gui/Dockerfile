@@ -35,3 +35,6 @@ FROM nginx:1.13.9-alpine
 COPY --from=build /nomad/app/build /app/nomad
 COPY ./gui.conf /etc/nginx/conf.d/default.conf
 CMD ["nginx", "-g", "daemon off;"]
+
+VOLUME /etc/nginx/conf.d
+VOLUME /nomad/app/config
