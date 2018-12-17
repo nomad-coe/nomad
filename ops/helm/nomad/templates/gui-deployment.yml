@@ -21,6 +21,19 @@ data:
         try_files $uri /nomad/index.html;  # fall back to index.html to support routing
       }
     }
+  env.js: |
+    window.nomadEnv = {
+      {{- if .Values.proxy.external.useReleasePath }}
+      "apiBase": "{{ .Values.proxy.external.path }}/{{ .Release.Name }}/api",
+      "appBase": "{{ .Values.proxy.external.path }}/{{ .Release.Name }}",
+      "appStaticBase": "{{ .Values.proxy.external.path }}/{{ .Release.Name }}",
+      {{- else }}
+      "apiBase": "{{ .Values.proxy.external.path }}/api",
+      "appBase": "{{ .Values.proxy.external.path }}",
+      "appStaticBase": "{{ .Values.proxy.external.path }}",
+      {{- end }}
+      "appDebug": false
+    };
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -57,6 +70,9 @@ spec:
           name: nginx-conf
         - mountPath: /var/log/nginx
           name: log
+        - mountPath: /app/nomad
+          readOnly: true
+          name: nomad-app
       volumes:
       - name: nginx-conf
         configMap:
@@ -64,5 +80,11 @@ spec:
           items:
             - key: nginx.conf
               path: default.conf
+      - name: nomad-app
+        configMap:
+          name: {{ include "nomad.fullname" . }}-gui-config
+          items:
+            - key: env.js
+              path: env.js
       - name: log
         emptyDir: {}
