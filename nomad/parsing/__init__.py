@@ -104,6 +104,12 @@ parsers = [
             r' \*\*\*\*\* \*\*    \*\* \*\* \*\*   PROGRAM PROCESS ID .*\n'
             r'  \*\*\*\* \*\*  \*\*\*\*\*\*\*  \*\*  PROGRAM STARTED IN .*\n')
     ),
+    LegacyParser(
+        python_git=dependencies['parsers/crystal'],
+        parser_class_name='crystalparser.CrystalParser',
+        main_file_re=r'^.*\.out$',  # This looks for files with .out
+        main_contents_re=(r' \*\s+CRYSTAL(\d+)\s+\*')
+    ),
 ]
 """ Instanciation and constructor based config of all parsers. """
 
