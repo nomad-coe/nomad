@@ -31,5 +31,14 @@ def test_sanitize_logevent():
     assert utils.sanitize_logevent('mat [2, [3.3, 2], 10]') == 'mat M'
 
 
-def test_logging():
-    utils.get_logger(__name__).debug('test')
+def test_logging(no_warn):
+    utils.get_logger(__name__).info('test msg')
+
+    received_test_event = False
+    for record in no_warn.get_records(when='call'):
+        assert record.levelname == 'INFO'
+        data = json.loads(record.msg)
+        assert 'event' in data
+        assert data['event'] == 'test msg'
+        received_test_event = True
+    assert received_test_event
