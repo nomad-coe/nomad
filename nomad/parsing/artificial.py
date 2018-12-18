@@ -95,6 +95,10 @@ class TemplateParser(ArtificalParser):
 
     def run(self, mainfile: str, logger=None) -> LocalBackend:
         self.init_backend()
+
+        if 'warning' in mainfile:
+            self.backend.pwarn('A test warning.')
+
         template_json = json.load(open(mainfile, 'r'))
         section = template_json['section_run'][0]
         self.add_section(section)

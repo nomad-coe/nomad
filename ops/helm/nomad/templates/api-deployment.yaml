@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nomad.fullname" . }}-api
+  labels:
+    app.kubernetes.io/name: {{ include "nomad.name" . }}-api
+    helm.sh/chart: {{ include "nomad.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.api.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "nomad.name" . }}-api
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "nomad.name" . }}-api
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: {{ include "nomad.name" . }}-api
+        image: "{{ .Values.images.nomad.name }}:{{ .Values.images.nomad.tag }}"
+        volumeMounts:
+        - mountPath: /app/.volumes/fs
+          name: files-volume
+        env:
+        - name: NOMAD_SERVICE
+          value: "api"
+        - name: NOMAD_LOGSTASH_HOST
+          value: "{{ .Values.logstash.host }}"
+        - name: NOMAD_LOGSTASH_TCPPORT
+          value: "{{ .Values.logstash.port }}"
+        - name: NOMAD_CONSOLE_LOGLEVEL
+          value: "{{ .Values.api.console_loglevel }}"
+        - name: NOMAD_LOGSTASH_LEVEL
+          value: "{{ .Values.api.logstash_loglevel }}"
+        - name: NOMAD_API_HOST
+          value: "{{ .Values.proxy.external.host }}"
+        - name: NOMAD_API_PORT
+          value: "{{ .Values.proxy.external.port }}"
+        - name: NOMAD_API_BASE_PATH
+          value: "{{ .Values.proxy.external.path }}/api"
+        - name: NOMAD_API_SECRET
+          value: "{{ .Values.api.secret }}"
+        - name: NOMAD_RABBITMQ_HOST
+          value: "{{ .Release.Name }}-rabbitmq"
+        - name: NOMAD_ELASTIC_HOST
+          value: "{{ .Values.elastic.host }}"
+        - name: NOMAD_ELASTIC_PORT
+          value: "{{ .Values.elastic.port }}"
+        - name: NOMAD_ELASTIC_INDEX_NAME
+          value: "{{ .Release.Name }}-nomad"
+        - name: NOMAD_MONGO_HOST
+          value: "{{ .Values.mongo.host }}"
+        - name: NOMAD_MONGO_PORT
+          value: "{{ .Values.mongo.port }}"
+        - name: NOMAD_MONGO_DB_NAME
+          value: "{{ .Release.Name }}-nomad"
+        - name: NOMAD_COE_REPO_DB_HOST
+          value: "{{ .Values.postgres.host }}"
+        - name: NOMAD_COE_REPO_DB_PORT
+          value: "{{ .Values.postgres.port }}"
+        - name: NOMAD_COE_REPO_DB_NAME
+          value: "{{ .Release.Name }}_nomad"
+        command: ["python", "-m", "gunicorn.app.wsgiapp", "-b 0.0.0.0:8000", "nomad.api:app"]
+      imagePullSecrets:
+      - name: {{ .Values.images.secret }}
+      volumes:
+      - name: files-volume
+        hostPath:
+          path: {{ .Values.volumes.files }}
+          type: Directory

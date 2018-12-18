@@ -19,7 +19,7 @@ from elasticsearch import NotFoundError
 
 from nomad.files import ArchiveFile, UploadFile
 from nomad.parsing import LocalBackend
-from nomad.repo import AlreadyExists, RepoCalc, key_mappings
+from nomad.repo import AlreadyExists, RepoCalc
 
 from tests.test_files import example_file  # noqa
 from tests.test_normalizing import normalized_template_example  # pylint: disable=unused-import
@@ -27,7 +27,7 @@ from tests.test_parsing import parsed_template_example  # pylint: disable=unused
 
 
 @pytest.fixture(scope='function')
-def example_elastic_calc(normalized_template_example: LocalBackend, elastic) \
+def example_elastic_calc(normalized_template_example: LocalBackend, elastic, test_user) \
         -> Generator[RepoCalc, None, None]:
 
     upload_file = UploadFile('test_upload_id', local_path=example_file)
@@ -49,9 +49,10 @@ def example_elastic_calc(normalized_template_example: LocalBackend, elastic) \
         additional=dict(
             mainfile=mainfile,
             upload_time=datetime.now(),
-            staging=True, restricted=False, user_id='me@gmail.com',
-            aux_files=auxfiles),
-        refresh='true')
+            staging=True, restricted=False, user_id=str(test_user.user_id),
+            aux_files=auxfiles))
+
+    entry.persist(refresh='true')
 
     yield entry
 
@@ -66,7 +67,6 @@ def example_elastic_calc(normalized_template_example: LocalBackend, elastic) \
 def assert_elastic_calc(calc: RepoCalc):
     assert calc is not None
     for property in RepoCalc._doc_type.mapping:
-        property = key_mappings.get(property, property)
         assert getattr(calc, property) is not None
 
     assert len(getattr(calc, 'aux_files')) > 0
@@ -82,18 +82,20 @@ def test_create_elastic_calc(example_elastic_calc: RepoCalc, no_warn):
 
 
 def test_create_existing_elastic_calc(
-        example_elastic_calc: RepoCalc, normalized_template_example):
+        example_elastic_calc: RepoCalc, normalized_template_example, test_user):
+
+    calc = RepoCalc.create_from_backend(
+        normalized_template_example,
+        upload_hash='test_upload_hash',
+        calc_hash='test_calc_hash',
+        upload_id='test_upload_id',
+        additional=dict(
+            mainfile='/test/mainfile',
+            upload_time=datetime.now(),
+            staging=True, restricted=False, user_id=str(test_user.user_id)))
+
     try:
-        RepoCalc.create_from_backend(
-            normalized_template_example,
-            upload_hash='test_upload_hash',
-            calc_hash='test_calc_hash',
-            upload_id='test_upload_id',
-            additional=dict(
-                mainfile='/test/mainfile',
-                upload_time=datetime.now(),
-                staging=True, restricted=False, user_id='me'),
-            refresh='true')
+        calc.persist(refresh='true')
         assert False
     except AlreadyExists:
         pass

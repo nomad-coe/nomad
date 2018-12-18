@@ -1,0 +1,13 @@
+dependencies:
+- name: rabbitmq
+  version: "4.0.1"
+  repository: "https://kubernetes-charts.storage.googleapis.com/"
+- name: mongodb
+  version: "4.9.1"
+  repository: "https://kubernetes-charts.storage.googleapis.com/"
+- name: elasticsearch
+  version: "1.15.0"
+  repository: "https://kubernetes-charts.storage.googleapis.com/"
+- name: postgresql
+  version: "3.1.1"
+  repository: "https://kubernetes-charts.storage.googleapis.com/"

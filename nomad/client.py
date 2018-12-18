@@ -35,8 +35,8 @@ from nomad.normalizing import normalizers
 
 
 api_base = 'http://localhost/nomad/api'
-user = 'other@gmail.com'
-pw = 'nomad'
+user = 'leonard.hofstadter@nomad-fairdi.tests.de'
+pw = 'password'
 
 
 def handle_common_errors(func):
@@ -52,7 +52,7 @@ def handle_common_errors(func):
 
 
 @handle_common_errors
-def upload_file(file_path: str, name: str = None, offline: bool = False):
+def upload_file(file_path: str, name: str = None, offline: bool = False, unstage: bool = False):
     """
     Upload a file to nomad.
 
@@ -60,7 +60,7 @@ def upload_file(file_path: str, name: str = None, offline: bool = False):
         file_path: path to the file, absolute or relative to call directory
         name: optional name, default is the file_path's basename
         offline: allows to process data without upload, requires client to be run on the server
-
+        unstage: automatically unstage after successful processing
     """
     auth = HTTPBasicAuth(user, pw)
 
@@ -107,6 +107,9 @@ def upload_file(file_path: str, name: str = None, offline: bool = False):
         click.echo('There have been errors:')
         for error in upload['errors']:
             click.echo('    %s' % error)
+    elif unstage:
+        post_data = dict(operation='unstage')
+        requests.post('%s/uploads/%s' % (api_base, upload['upload_id']), json=post_data, auth=auth).json()
 
 
 def walk_through_files(path, extension='.zip'):
@@ -145,6 +148,7 @@ class CalcProcReproduction:
     """
     def __init__(self, archive_id: str, override: bool = False) -> None:
         self.calc_hash = utils.archive.calc_hash(archive_id)
+        self.upload_hash = utils.archive.upload_hash(archive_id)
         self.mainfile = None
         self.parser = None
         self.logger = utils.get_logger(__name__, archive_id=archive_id)
@@ -154,8 +158,9 @@ class CalcProcReproduction:
             os.makedirs(os.path.dirname(local_path))
         if not os.path.exists(local_path) or override:
             # download raw if not already downloaded or if override is set
+            # TODO currently only downloads mainfile
             self.logger.info('Downloading calc.')
-            req = requests.get('%s/raw/%s?all=1' % (api_base, archive_id), stream=True)
+            req = requests.get('%s/raw/%s?files=%s' % (api_base, self.upload_hash, self.mainfile), stream=True)
             with open(local_path, 'wb') as f:
                 for chunk in req.iter_content(chunk_size=1024):
                     f.write(chunk)
@@ -262,7 +267,10 @@ def cli(host: str, port: int, verbose: bool):
     '--offline', is_flag=True, default=False,
     help='Upload files "offline": files will not be uploaded, but processed were they are. '
     'Only works when run on the nomad host.')
-def upload(path, name: str, offline: bool):
+@click.option(
+    '--unstage', is_flag=True, default=False,
+    help='Automatically move upload out of the staging area after successful processing')
+def upload(path, name: str, offline: bool, unstage: bool):
     utils.configure_logging()
     paths = path
     click.echo('uploading files from %s paths' % len(paths))
@@ -270,12 +278,12 @@ def upload(path, name: str, offline: bool):
         click.echo('uploading %s' % path)
         if os.path.isfile(path):
             name = name if name is not None else os.path.basename(path)
-            upload_file(path, name, offline)
+            upload_file(path, name, offline, unstage)
 
         elif os.path.isdir(path):
             for file_path in walk_through_files(path):
                 name = os.path.basename(file_path)
-                upload_file(file_path, name, offline)
+                upload_file(file_path, name, offline, unstage)
 
         else:
             click.echo('Unknown path type %s.' % path)
@@ -325,11 +333,13 @@ def api():
 
 
 @cli.command(help='Runs tests and linting. Useful before commit code.')
-def qa():
+@click.option('--skip-tests', help='Do not test, just do code checks.', is_flag=True)
+def qa(skip_tests: bool):
     os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
     ret_code = 0
-    click.echo('Run tests ...')
-    ret_code += os.system('python -m pytest tests')
+    if not skip_tests:
+        click.echo('Run tests ...')
+        ret_code += os.system('python -m pytest tests')
     click.echo('Run code style checks ...')
     ret_code += os.system('python -m pycodestyle --ignore=E501,E701 nomad tests')
     click.echo('Run linter ...')

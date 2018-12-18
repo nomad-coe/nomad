@@ -1,0 +1,145 @@
+# Copyright 2018 Markus Scheidgen
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an"AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+version: '3.4'
+
+x-common-variables: &nomad_backend_env
+    NOMAD_RABBITMQ_HOST: rabbitmq
+    NOMAD_LOGSTASH_HOST: elk
+    NOMAD_ELASTIC_HOST: elastic
+    NOMAD_MONGO_HOST: mongo
+
+services:
+    # postgres for NOMAD-coe repository API and GUI
+    postgres:
+        restart: always
+        image: postgres:9.4
+        container_name: nomad_postgres
+        environment:
+            POSTGRES_PASSWORD: 'nomad'
+            POSTGRES_USER: 'postgres'
+            POSTGRES_DB: 'nomad'
+        volumes:
+            - nomad_postgres:/var/lib/postgresql/data
+
+    # broker for celery
+    rabbitmq:
+        restart: always
+        image: rabbitmq
+        container_name: nomad_rabbitmq
+        environment:
+            - RABBITMQ_ERLANG_COOKIE=${RABBITMQ_ERLANG_COOKIE}
+            - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+            - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+            - RABBITMQ_DEFAULT_VHOST=/
+        volumes:
+            - nomad_rabbitmq:/var/lib/rabbitmq
+
+    # the search engine
+    elastic:
+        restart: always
+        image: docker.elastic.co/elasticsearch/elasticsearch:6.3.2
+        container_name: nomad_elastic
+        volumes:
+            - nomad_elastic:/usr/share/elasticsearch/data
+
+    # the user data db
+    mongo:
+        restart: always
+        image: mongo:latest
+        container_name: nomad_mongo
+        environment:
+            - MONGO_DATA_DIR=/data/db
+            - MONGO_LOG_DIR=/dev/null
+        volumes:
+            - nomad_mongo:/data/db
+        command: mongod --smallfiles --logpath=/dev/null # --quiet
+
+    # nomad processing worker
+    worker:
+        restart: always
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
+        container_name: nomad_worker
+        environment:
+            <<: *nomad_backend_env
+            NOMAD_SERVICE: nomad_worker
+        links:
+            - postgres
+            - rabbitmq
+            - elastic
+            - mongo
+        volumes:
+            - ${VOLUME_BINDS}/fs:/app/.volumes/fs
+        command: python -m celery worker -l info -A nomad.processing
+
+    # nomad api
+    api:
+        restart: always
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
+        container_name: nomad_api
+        environment:
+            <<: *nomad_backend_env
+            NOMAD_API_BASE_PATH: /nomad/api
+            NOMAD_API_HOST: ${EXTERNAL_HOST}
+            NOMAD_API_PORT: ${EXTERNAL_PORT}
+            NOMAD_SERVICE: nomad_api
+            NOMAD_API_SECRET: ${API_SECRET}
+        links:
+            - postgres
+            - rabbitmq
+            - elastic
+            - mongo
+        volumes:
+            - ${VOLUME_BINDS}/fs:/app/.volumes/fs
+        command: python -m gunicorn.app.wsgiapp -w 4 -b 0.0.0.0:8000 --timeout 300 nomad.api:app
+
+    # NOMAD-coe search api
+    coeapi:
+        restart: always
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/coe-repowebservice:latest
+        container_name: nomad_coeapi
+        environment:
+            REPO_DB_JDBC_URL: jdbc:postgresql://postgres:5432/nomad
+            REPO_ELASTIC_URL: elasticsearch://elastic:9200
+        links:
+            - postgres
+            - elastic
+
+    # nomad gui
+    gui:
+        restart: always
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:latest
+        container_name: nomad_gui
+        command: nginx -g 'daemon off;'
+
+    # reverse proxy everything together
+    proxy:
+        restart: always
+        image: nginx:1.13.9-alpine
+        container_name: nomad_proxy
+        links:
+            - gui
+            - api
+        ports:
+            - 80:80
+        volumes:
+            - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+        command: nginx -g 'daemon off;'
+
+volumes:
+    nomad_postgres:
+    nomad_mongo:
+    nomad_elastic:
+    nomad_rabbitmq:
+    nomad_elk:

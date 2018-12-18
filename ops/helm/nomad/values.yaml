@@ -1,0 +1,86 @@
+## Default values for nomad@FAIRDI
+
+## Everything concerning the container images to be used
+images:
+  ## The kubernetes docker-registry secret that can be used to access the registry
+  #  with the container image in it.
+  #  It can be created via:
+  #    kubectl create secret docker-registry gitlab-mpcdf --docker-server=gitlab-registry.mpcdf.mpg.de --docker-username=<your-user-name > --docker-password=<yourpass> --docker-email=<email>
+  secret: gitlab-mpcdf
+
+  ## The nomad image with all nomad relavant python code. Used by api and worker service.
+  nomad:
+    ## The docker container image name without tag
+    name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair
+    ## The docker container image tag
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  ## The nomad frontend image
+  frontend:
+    ## The docker container image name without tag
+    name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend
+    ## The docker container image tag
+    tag: latest
+    pullPolicy: IfNotPresent
+
+## Everthing concerning the nomad api
+api:
+  replicas: 1
+  port: 8000
+  console_loglevel: INFO
+  logstash_loglevel: INFO
+  ## Secret used as cryptographic seed
+  secret: "defaultApiSecret"
+
+## Everthing concerning the nomad worker
+worker:
+  replicas: 2
+  console_loglevel: INFO
+  logstash_loglevel: INFO
+
+## Everthing concerning the nomad gui
+gui:
+  replicas: 1
+  ## This port is hard coded into the frontend image
+  port: 8080
+
+proxy:
+  port: 80
+  nodePort: 30001
+  external:
+    host: "localhost"
+    port: 30001
+    path: "/nomad"
+
+## configuration of the chart dependency for rabbitmq
+rabbitmq:
+  image.pullSecrets: nil
+  rabbitmq:
+    username: rabbitmq
+    password: rabbitmq
+    erlangCookie: SWQOKODSQALRPCLNMEQG
+
+mongo:
+  host: enc-preprocessing-nomad.esc
+  port: 37017
+
+elastic:
+  host: enc-preprocessing-nomad.esc
+  port: 19200
+
+postgres:
+  host: enc-preprocessing-nomad.esc
+  port: 5432
+
+logstash:
+  port: 15000
+  host: enc-preprocessing-nomad.esc
+
+kibana:
+  port: 15601
+  host: enc-preprocessing-nomad.esc
+
+## Everything concerning the data that is used by the service
+volumes:
+  files: /nomad/nomadlab/nomad-FAIRDI/files

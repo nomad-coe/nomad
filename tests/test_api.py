@@ -22,13 +22,14 @@ from nomad.files import UploadFile  # noqa
 from nomad.processing import Upload  # noqa
 
 from tests.processing.test_data import example_files  # noqa
-from tests.test_files import example_file  # noqa
+from tests.test_files import example_file, example_file_mainfile, example_file_contents  # noqa
 
 # import fixtures
 from tests.test_files import clear_files, archive, archive_log, archive_config  # noqa pylint: disable=unused-import
 from tests.test_normalizing import normalized_template_example  # noqa pylint: disable=unused-import
 from tests.test_parsing import parsed_template_example  # noqa pylint: disable=unused-import
 from tests.test_repo import example_elastic_calc  # noqa pylint: disable=unused-import
+from tests.test_coe_repo import assert_coe_upload  # noqa
 
 
 @pytest.fixture(scope='function')
@@ -43,18 +44,23 @@ def client(mockmongo):
     Upload._get_collection().drop()
 
 
-@pytest.fixture(scope='session')
-def test_user_auth():
+def create_auth_headers(user):
+    basic_auth_str = '%s:password' % user.email
+    basic_auth_bytes = basic_auth_str.encode('utf-8')
+    basic_auth_base64 = base64.b64encode(basic_auth_bytes).decode('utf-8')
     return {
-        'Authorization': 'Basic %s' % base64.b64encode(b'me@gmail.com:nomad').decode('utf-8')
+        'Authorization': 'Basic %s' % basic_auth_base64
     }
 
 
 @pytest.fixture(scope='session')
-def test_other_user_auth():
-    return {
-        'Authorization': 'Basic %s' % base64.b64encode(b'other@gmail.com:nomad').decode('utf-8')
-    }
+def test_user_auth(test_user):
+    return create_auth_headers(test_user)
+
+
+@pytest.fixture(scope='session')
+def test_other_user_auth(other_test_user):
+    return create_auth_headers(other_test_user)
 
 
 def assert_uploads(upload_json_str, count=0, **kwargs):
@@ -79,6 +85,35 @@ def assert_upload(upload_json_str, id=None, **kwargs):
         assert data.get(key, None) == value
 
     return data
+
+
+def test_xtoken_auth(client, test_user, no_warn):
+    rv = client.get('/uploads', headers={
+        'X-Token': test_user.email
+    })
+
+    assert rv.status_code == 200
+
+
+def test_xtoken_auth_denied(client, no_warn):
+    rv = client.get('/uploads', headers={
+        'X-Token': 'invalid'
+    })
+
+    assert rv.status_code == 401
+
+
+def test_basic_auth(client, test_user_auth, no_warn):
+    rv = client.get('/uploads', headers=test_user_auth)
+    assert rv.status_code == 200
+
+
+def test_basic_auth_denied(client, no_warn):
+    basic_auth_base64 = base64.b64encode('invalid'.encode('utf-8')).decode('utf-8')
+    rv = client.get('/uploads', headers={
+        'Authorization': 'Basic %s' % basic_auth_base64
+    })
+    assert rv.status_code == 401
 
 
 def test_no_uploads(client, test_user_auth, no_warn):
@@ -161,7 +196,7 @@ def test_delete_empty_upload(client, mocksearch, test_user_auth, no_warn):
     assert rv.status_code == 404
 
 
-def assert_processing(client, test_user_auth, upload_id):
+def assert_processing(client, test_user_auth, upload_id, repository_db):
     upload_endpoint = '/uploads/%s' % upload_id
 
     while True:
@@ -185,6 +220,8 @@ def assert_processing(client, test_user_auth, upload_id):
         assert len(calc['tasks']) == 3
         assert client.get('/logs/%s' % calc['archive_id']).status_code == 200
 
+    empty_upload = upload['calcs']['pagination']['total'] == 0
+
     if upload['calcs']['pagination']['total'] > 1:
         rv = client.get('%s?page=2&per_page=1&order_by=status' % upload_endpoint)
         assert rv.status_code == 200
@@ -201,12 +238,13 @@ def assert_processing(client, test_user_auth, upload_id):
     rv = client.get('/uploads', headers=test_user_auth)
     assert rv.status_code == 200
     assert_uploads(rv.data, count=0)
+    assert_coe_upload(upload['upload_hash'], repository_db, empty=empty_upload)
 
 
 @pytest.mark.parametrize('file', example_files)
 @pytest.mark.parametrize('mode', ['multipart', 'stream'])
 @pytest.mark.timeout(10)
-def test_processing(client, file, mode, worker, mocksearch, test_user_auth, no_warn):
+def test_processing(client, file, mode, worker, mocksearch, test_user_auth, no_warn, repository_db):
     rv = client.post('/uploads', headers=test_user_auth)
     assert rv.status_code == 200
     upload = assert_upload(rv.data)
@@ -232,12 +270,12 @@ def test_processing(client, file, mode, worker, mocksearch, test_user_auth, no_w
     assert rv.status_code == 200
     upload = assert_upload(rv.data)
 
-    assert_processing(client, test_user_auth, upload_id)
+    assert_processing(client, test_user_auth, upload_id, repository_db)
 
 
 @pytest.mark.parametrize('file', example_files)
 @pytest.mark.timeout(10)
-def test_processing_local_path(client, file, worker, mocksearch, test_user_auth, no_warn):
+def test_processing_local_path(client, file, worker, mocksearch, test_user_auth, no_warn, repository_db):
     rv = client.post(
         '/uploads', headers=test_user_auth,
         data=json.dumps(dict(local_path=file)),
@@ -247,7 +285,28 @@ def test_processing_local_path(client, file, worker, mocksearch, test_user_auth,
     upload = assert_upload(rv.data)
     upload_id = upload['upload_id']
 
-    assert_processing(client, test_user_auth, upload_id)
+    assert_processing(client, test_user_auth, upload_id, repository_db)
+
+
+@pytest.mark.parametrize('file', example_files)
+@pytest.mark.parametrize('mode', ['multipart', 'stream'])
+@pytest.mark.timeout(10)
+def test_processing_upload(client, file, mode, worker, mocksearch, test_user_auth, no_warn, repository_db):
+    if mode == 'multipart':
+        rv = client.put(
+            '/uploads',
+            data=dict(file=(open(file, 'rb'), 'file')),
+            headers=test_user_auth)
+    elif mode == 'stream':
+        with open(file, 'rb') as f:
+            rv = client.put('/uploads', data=f.read(), headers=test_user_auth)
+    else:
+        assert False
+    assert rv.status_code == 200
+    upload = assert_upload(rv.data)
+    upload_id = upload['upload_id']
+
+    assert_processing(client, test_user_auth, upload_id, repository_db)
 
 
 def test_repo_calc(client, example_elastic_calc, no_warn):
@@ -327,42 +386,112 @@ def test_get_non_existing_archive(client, no_warn):
     assert rv.status_code == 404
 
 
-@pytest.fixture
-def example_repo_with_files(mockmongo, example_elastic_calc):
-    upload = Upload(id=example_elastic_calc.upload_id, local_path=os.path.abspath(example_file))
-    upload.create_time = datetime.now()
-    upload.user_id = 'does@not.exist'
-    upload.save()
-
-    return example_elastic_calc
-
-
-def test_raw_mainfile(client, example_repo_with_files, no_warn):
-    rv = client.get('/raw/%s' % example_repo_with_files.archive_id)
+def test_docs(client):
+    rv = client.get('/docs/introduction.html')
     assert rv.status_code == 200
-    assert len(rv.data) > 0
 
 
-def test_raw_auxfile(client, example_repo_with_files, no_warn):
-    rv = client.get('/raw/%s?auxfile=1.aux' % example_repo_with_files.archive_id)
-    assert rv.status_code == 200
-    assert len(rv.data) == 0
+class TestRaw:
 
+    @pytest.fixture
+    def example_upload_hash(self, mockmongo, no_warn):
+        upload = Upload(id='test_upload_id', local_path=os.path.abspath(example_file))
+        upload.create_time = datetime.now()
+        upload.user_id = 'does@not.exist'
+        upload.save()
 
-def test_raw_missing_auxfile(client, example_repo_with_files, no_warn):
-    rv = client.get('/raw/%s?auxfile=doesnotexist' % example_repo_with_files.archive_id)
-    assert rv.status_code == 404
+        with UploadFile(upload.upload_id, local_path=upload.local_path) as upload_file:
+            upload_file.persist()
+            upload_hash = upload_file.upload_hash()
 
+        return upload_hash
 
-def test_raw_all_files(client, example_repo_with_files, no_warn):
-    rv = client.get('/raw/%s?all=1' % example_repo_with_files.archive_id)
-    assert rv.status_code == 200
-    assert len(rv.data) > 0
-    with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
-        assert zip_file.testzip() is None
-        assert len(zip_file.namelist()) == 5
+    def test_raw_file(self, client, example_upload_hash):
+        url = '/raw/%s/data/%s' % (example_upload_hash, example_file_mainfile)
+        rv = client.get(url)
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
 
+    def test_raw_file_missing_file(self, client, example_upload_hash):
+        url = '/raw/%s/does/not/exist' % example_upload_hash
+        rv = client.get(url)
+        assert rv.status_code == 404
+        data = json.loads(rv.data)
+        assert 'files' not in data
 
-def test_raw_missing_mainfile(client, no_warn):
-    rv = client.get('/raw/doesnot/exist')
-    assert rv.status_code == 404
+    def test_raw_file_listing(self, client, example_upload_hash):
+        url = '/raw/%s/data/examples' % example_upload_hash
+        rv = client.get(url)
+        assert rv.status_code == 404
+        data = json.loads(rv.data)
+        assert len(data['files']) == 5
+
+    @pytest.mark.parametrize('compress', [True, False])
+    def test_raw_file_wildcard(self, client, example_upload_hash, compress):
+        url = '/raw/%s/data/examples*' % example_upload_hash
+        if compress:
+            url = '%s?compress=1' % url
+        rv = client.get(url)
+
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
+        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
+            assert zip_file.testzip() is None
+            assert len(zip_file.namelist()) == len(example_file_contents)
+
+    def test_raw_file_wildcard_missing(self, client, example_upload_hash):
+        url = '/raw/%s/does/not/exist*' % example_upload_hash
+        rv = client.get(url)
+        assert rv.status_code == 404
+
+    def test_raw_file_missing_upload(self, client, example_upload_hash):
+        url = '/raw/doesnotexist/%s' % example_file_mainfile
+        rv = client.get(url)
+        assert rv.status_code == 404
+
+    @pytest.mark.parametrize('compress', [True, False])
+    def test_raw_files(self, client, example_upload_hash, compress):
+        url = '/raw/%s?files=%s' % (
+            example_upload_hash, ','.join(['data/%s' % file for file in example_file_contents]))
+        if compress:
+            url = '%s&compress=1' % url
+        rv = client.get(url)
+
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
+        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
+            assert zip_file.testzip() is None
+            assert len(zip_file.namelist()) == len(example_file_contents)
+
+    @pytest.mark.parametrize('compress', [True, False, None])
+    def test_raw_files_post(self, client, example_upload_hash, compress):
+        url = '/raw/%s' % example_upload_hash
+        data = dict(files=['data/%s' % file for file in example_file_contents])
+        if compress is not None:
+            data.update(compress=compress)
+        rv = client.post(url, data=json.dumps(data), content_type='application/json')
+
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
+        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
+            assert zip_file.testzip() is None
+            assert len(zip_file.namelist()) == len(example_file_contents)
+
+    @pytest.mark.parametrize('compress', [True, False])
+    def test_raw_files_missing_file(self, client, example_upload_hash, compress):
+        url = '/raw/%s?files=data/%s,missing/file.txt' % (example_upload_hash, example_file_mainfile)
+        if compress:
+            url = '%s&compress=1' % url
+        rv = client.get(url)
+
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
+        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
+            assert zip_file.testzip() is None
+            assert len(zip_file.namelist()) == 1
+
+    def test_raw_files_missing_upload(self, client, example_upload_hash):
+        url = '/raw/doesnotexist?files=shoud/not/matter.txt'
+        rv = client.get(url)
+
+        assert rv.status_code == 404

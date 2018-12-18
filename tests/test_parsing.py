@@ -73,6 +73,26 @@ class TestLocalBackend(object):
         for i in range(0, 3):
             assert backend.get_value('program_name', i) == 't%d' % i
 
+    def test_two_sections(self, backend, no_warn):
+        g_index = backend.openSection('section_run')
+        assert g_index == 0
+        backend.addValue('program_name', 't0')
+        backend.closeSection('section_run', 0)
+
+        g_index = backend.openSection('section_calculation_info')
+        assert g_index == 0
+        backend.addValue('parser_name', 'p0')
+        backend.closeSection('section_calculation_info', 0)
+
+        assert backend.get_sections('section_run') == [0]
+        assert backend.get_sections('section_calculation_info') == [0]
+
+        output = StringIO()
+        backend.write_json(output)
+        archive = json.loads(output.getvalue())
+        assert 'section_run' in archive
+        assert 'section_calculation_info' in archive
+
     def test_subsection(self, backend: LocalBackend, no_warn):
         backend.openSection('section_run')
         backend.openSection('section_method')

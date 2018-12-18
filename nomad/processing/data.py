@@ -32,11 +32,11 @@ import logging
 import base64
 import time
 from structlog import wrap_logger
+from contextlib import contextmanager
 
-from nomad import config, utils
+from nomad import config, utils, coe_repo
 from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile, File
 from nomad.repo import RepoCalc
-from nomad.user import User
 from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE, RUNNING
 from nomad.parsing import parsers, parser_dict
 from nomad.normalizing import normalizers
@@ -197,10 +197,49 @@ class Calc(Proc):
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
             self._parser_backend = parser.run(self.mainfile_tmp_path, logger=logger)
 
+        self._parser_backend.openNonOverlappingSection('section_calculation_info')
+        self._parser_backend.addValue('upload_id', self.upload_id)
+        self._parser_backend.addValue('archive_id', self.archive_id)
+        self._parser_backend.addValue('main_file', self.mainfile)
+        self._parser_backend.addValue('parser_name', self.parser)
+
         if self._parser_backend.status[0] != 'ParseSuccess':
             logger.error(self._parser_backend.status[1])
             error = self._parser_backend.status[1]
+            self._parser_backend.addValue('parse_status', 'ParseFailure')
             self.fail(error, level=logging.DEBUG, **context)
+        else:
+            self._parser_backend.addValue('parse_status', 'ParseSuccess')
+
+        self._parser_backend.closeNonOverlappingSection('section_calculation_info')
+
+        self.add_processor_info(self.parser)
+
+    @contextmanager
+    def use_parser_backend(self, processor_name):
+        self._parser_backend.reset_status()
+        yield self._parser_backend
+        self.add_processor_info(processor_name)
+
+    def add_processor_info(self, processor_name: str) -> None:
+        self._parser_backend.openContext('/section_calculation_info/0')
+        self._parser_backend.openNonOverlappingSection('section_archive_processing_info')
+        self._parser_backend.addValue('archive_processor_name', processor_name)
+
+        if self._parser_backend.status[0] == 'ParseSuccess':
+            warnings = getattr(self._parser_backend, '_warnings', [])
+            if len(warnings) > 0:
+                self._parser_backend.addValue('archive_processor_status', 'WithWarnings')
+                self._parser_backend.addValue('archive_processor_warning_number', len(warnings))
+                self._parser_backend.addArrayValues('archive_processor_warnings', [str(warning) for warning in warnings])
+            else:
+                self._parser_backend.addValue('archive_processor_status', 'Success')
+        else:
+            errors = self._parser_backend.status[1]
+            self._parser_backend.addValue('archive_processor_error', str(errors))
+
+        self._parser_backend.closeNonOverlappingSection('section_archive_processing_info')
+        self._parser_backend.closeContext('/section_calculation_info/0')
 
     @task
     def normalizing(self):
@@ -211,15 +250,18 @@ class Calc(Proc):
 
             with utils.timer(
                     logger, 'normalizer executed', input_size=self.mainfile_file.size):
-                normalizer(self._parser_backend).normalize(logger=logger)
+                with self.use_parser_backend(normalizer_name) as backend:
+                    normalizer(backend).normalize(logger=logger)
 
-            if self._parser_backend.status[0] != 'ParseSuccess':
+            failed = self._parser_backend.status[0] != 'ParseSuccess'
+            if failed:
                 logger.error(self._parser_backend.status[1])
                 error = self._parser_backend.status[1]
                 self.fail(error, level=logging.WARNING, **context)
-                return
-            logger.debug(
-                'completed normalizer successfully', normalizer=normalizer_name)
+                break
+            else:
+                logger.debug(
+                    'completed normalizer successfully', normalizer=normalizer_name)
 
     @task
     def archiving(self):
@@ -241,7 +283,7 @@ class Calc(Proc):
                 additional=additional,
                 upload_hash=upload_hash,
                 calc_hash=calc_hash,
-                upload_id=self.upload_id)
+                upload_id=self.upload_id).persist()
 
         with utils.timer(
                 logger, 'archived', step='archive',
@@ -299,6 +341,8 @@ class Upload(Chord):
     upload_url = StringField(default=None)
     upload_command = StringField(default=None)
 
+    coe_repo_upload_id = IntField(default=None)
+
     _initiated_parsers = IntField(default=-1)
 
     meta: Any = {
@@ -316,9 +360,9 @@ class Upload(Chord):
         return cls.get_by_id(id, 'upload_id')
 
     @classmethod
-    def user_uploads(cls, user: User) -> List['Upload']:
+    def user_uploads(cls, user: coe_repo.User) -> List['Upload']:
         """ Returns all uploads for the given user. Currently returns all uploads. """
-        return cls.objects(user_id=user.email, in_staging=True)
+        return cls.objects(user_id=str(user.user_id), in_staging=True)
 
     def get_logger(self, **kwargs):
         logger = super().get_logger()
@@ -370,16 +414,16 @@ class Upload(Chord):
         The upload will be already saved to the database.
 
         Arguments:
-            user (User): The user that created the upload.
+            user (coe_repo.User): The user that created the upload.
         """
-        user: User = kwargs['user']
+        user: coe_repo.User = kwargs['user']
         del(kwargs['user'])
         if 'upload_id' not in kwargs:
             kwargs.update(upload_id=utils.create_uuid())
-        kwargs.update(user_id=user.email)
+        kwargs.update(user_id=str(user.user_id))
         self = super().create(**kwargs)
 
-        basic_auth_token = base64.b64encode(b'%s:' % user.generate_auth_token()).decode('utf-8')
+        basic_auth_token = base64.b64encode(b'%s:' % user.get_auth_token()).decode('utf-8')
 
         self.upload_url = cls._external_objects_url('/uploads/%s/file' % self.upload_id)
         self.upload_command = 'curl -H "Authorization: Basic %s" "%s" --upload-file local_file' % (
@@ -400,6 +444,7 @@ class Upload(Chord):
         self.get_logger().info('unstage')
         self.in_staging = False
         RepoCalc.unstage(upload_id=self.upload_id)
+        coe_repo.add_upload(self, restricted=False)  # TODO allow users to choose restricted
         self.save()
 
     @property
@@ -410,6 +455,7 @@ class Upload(Chord):
             'local_path': self.local_path,
             'additional_metadata': self.additional_metadata,
             'upload_id': self.upload_id,
+            'upload_hash': self.upload_hash,
             'upload_url': self.upload_url,
             'upload_command': self.upload_command,
             'upload_time': self.upload_time.isoformat() if self.upload_time is not None else None,
@@ -436,6 +482,12 @@ class Upload(Chord):
 
     @task
     def extracting(self):
+        """
+        Task performed before the actual parsing/normalizing. Extracting and bagging
+        the uploaded files, computing all keys, create an *upload* entry in the NOMAD-coe
+        repository db, etc.
+        """
+        # extract the uploaded file, this will also create a bagit bag.
         logger = self.get_logger()
         try:
             with utils.timer(
@@ -446,12 +498,14 @@ class Upload(Chord):
             self.fail('process request for non existing upload', level=logging.INFO)
             return
 
+        # create and save a hash for the upload
         try:
-            self.upload_hash = self.upload_file.hash()
+            self.upload_hash = self.upload_file.upload_hash()
         except Exception as e:
             self.fail('could not create upload hash', e)
             return
 
+        # check if the file was already uploaded and processed before
         if RepoCalc.upload_exists(self.upload_hash):
             self.fail('The same file was already uploaded and processed.', level=logging.INFO)
             return
@@ -468,7 +522,7 @@ class Upload(Chord):
             potential_mainfile = self.upload_file.get_file(filename)
             for parser in parsers:
                 try:
-                    with potential_mainfile.open() as mainfile_f:
+                    with potential_mainfile.open('r') as mainfile_f:
                         if parser.is_mainfile(filename, lambda fn: mainfile_f):
                             yield potential_mainfile, filename, parser
                 except Exception as e:
@@ -479,7 +533,7 @@ class Upload(Chord):
     @task
     def parse_all(self):
         """
-        Identified mainfail/parser combinations among the upload's files, creates
+        Identified mainfile/parser combinations among the upload's files, creates
         respective :class:`Calc` instances, and triggers their processing.
         """
         logger = self.get_logger()
@@ -510,6 +564,11 @@ class Upload(Chord):
     def cleanup(self):
         try:
             upload = UploadFile(self.upload_id, local_path=self.local_path)
+            with utils.timer(
+                    self.get_logger(), 'upload persisted', step='cleaning',
+                    upload_size=upload.size):
+                upload.persist()
+
             with utils.timer(
                     self.get_logger(), 'processing cleaned up', step='cleaning',
                     upload_size=upload.size):

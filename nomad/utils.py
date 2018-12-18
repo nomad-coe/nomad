@@ -27,6 +27,10 @@ be used similar to the standard *logging.getLogger*.
 Depending on the configuration all logs will also be send to a central logstash.
 
 .. autofunc::nomad.utils.get_logger
+.. autofunc::nomad.utils.hash
+.. autofunc::nomad.utils.create_uuid
+.. autofunc::nomad.utils.timer
+.. autofunc::nomad.utils.lnr
 """
 
 from typing import Union, IO, cast, List
@@ -39,7 +43,6 @@ from structlog.stdlib import LoggerFactory
 import logstash
 from contextlib import contextmanager
 import json
-import sys
 import uuid
 import time
 import re
@@ -147,7 +150,7 @@ def configure_logging():
         wrapper_class=structlog.stdlib.BoundLogger)
 
     # configure logging in general
-    logging.basicConfig(stream=sys.stdout)
+    logging.basicConfig(level=logging.DEBUG)
     root = logging.getLogger()
     for handler in root.handlers:
         if not isinstance(handler, logstash.TCPLogstashHandler):
@@ -158,13 +161,15 @@ def configure_logging():
         add_logstash_handler(root)
         root.info('Structlog configured for logstash')
 
+    root.info('Structlog configured')
+
 
 def create_uuid() -> str:
     """ Returns a web-save base64 encoded random uuid (type 4). """
     return base64.b64encode(uuid.uuid4().bytes, altchars=b'-_').decode('utf-8')[0:-2]
 
 
-def hash(obj: Union[IO, str]) -> str:
+def hash(obj: Union[IO, str], length=28) -> str:
     """
     Returns a web-save base64 encoded 28 long hash for the given contents.
     First 28 character of an URL safe base 64 encoded sha512 digest.
@@ -176,7 +181,14 @@ def hash(obj: Union[IO, str]) -> str:
     elif isinstance(obj, str):
         hash.update(obj.encode('utf-8'))
 
-    return base64.b64encode(hash.digest(), altchars=b'-_')[0:28].decode('utf-8')
+    return websave_hash(hash.digest(), length)
+
+
+def websave_hash(hash, length=0):
+    if length > 0:
+        return base64.b64encode(hash, altchars=b'-_')[0:28].decode('utf-8')
+    else:
+        return base64.b64encode(hash, altchars=b'-_')[0:-2].decode('utf-8')
 
 
 def get_logger(name, **kwargs):

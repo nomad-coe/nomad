@@ -1,0 +1,13 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: nomad-rawapi
+spec:
+  selector:
+    app: nomad-rawapi
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000
+    nodePort: 30001
+  type: NodePort

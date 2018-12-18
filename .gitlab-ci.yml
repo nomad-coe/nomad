@@ -12,6 +12,7 @@ image: youpy/docker-compose-git
 stages:
   - build
   - test
+  - integration
   - release
   - deploy
 
@@ -20,13 +21,18 @@ variables:
   RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
   FRONTEND_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:test
   FRONTEND_RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:latest
+  RAWAPI_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/rawapi:test
+  RAWAPI_RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/rawapi:latest
 
 build:
   stage: build
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
-    - docker build -t $TEST_IMAGE .
+    - docker build --no-cache -t $TEST_IMAGE .
     - docker push $TEST_IMAGE
+  except:
+    - /^dev-.*$/
+
 
 buildgui:
   stage: build
@@ -37,6 +43,19 @@ buildgui:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
     - docker build -t $FRONTEND_TEST_IMAGE .
     - docker push $FRONTEND_TEST_IMAGE
+  except:
+    - /^dev-.*$/
+
+
+buildrawapi:
+  stage: build
+  script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+    - docker build -t $RAWAPI_TEST_IMAGE -f rawapi.Dockerfile .
+    - docker push $RAWAPI_TEST_IMAGE
+  except:
+    - /^dev-.*$/
+
 
 linting:
   stage: test
@@ -46,11 +65,14 @@ linting:
     - python -m pycodestyle --ignore=E501,E701 nomad tests
     - python -m pylint --load-plugins=pylint_mongoengine nomad tests
     - python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests
+  except:
+    - /^dev-.*$/
 
 tests:
   stage: test
   image: $TEST_IMAGE
   services:
+    - postgres:latest
       # this will cause a warning, as the gitlab ci runner health check will test the wrong
       # port on rabbitmq container:
       # https://gitlab.com/gitlab-org/gitlab-runner/issues/3163
@@ -61,16 +83,61 @@ tests:
       # https://gitlab.com/gitlab-org/gitlab-ce/issues/42214
       command: [ "bin/elasticsearch", "-Ediscovery.type=single-node" ]
   variables:
+    POSTGRES_DB: nomad
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: nomad
     RABBITMQ_ERLANG_COOKIE: SWQOKODSQALRPCLNMEQG
     RABBITMQ_DEFAULT_USER: rabbitmq
     RABBITMQ_DEFAULT_PASS: rabbitmq
     RABBITMQ_DEFAULT_VHOST: /
+    NOMAD_COE_REPO_DB_HOST: postgres
     NOMAD_RABBITMQ_HOST: rabbitmq
     NOMAD_ELASTIC_HOST: elastic
     NOMAD_MONGO_HOST: mongo
   script:
     - cd /app
     - python -m pytest --cov=nomad -sv tests
+  except:
+    - /^dev-.*$/
+
+# does currently not work, current GitLab CI runner does not network services with each other
+# integration-tests:
+#   stage: integration
+#   services:
+#     - postgres:latest
+#     - mongo:latest
+#       # this will cause a warning, as the gitlab ci runner health check will test the wrong
+#       # port on rabbitmq container:
+#       # https://gitlab.com/gitlab-org/gitlab-runner/issues/3163
+#     - rabbitmq
+#     - name: docker.elastic.co/elasticsearch/elasticsearch:6.3.2
+#       alias: elastic
+#       # fix issue with running elastic in gitlab ci runner:
+#       # https://gitlab.com/gitlab-org/gitlab-ce/issues/42214
+#       command: [ "bin/elasticsearch", "-Ediscovery.type=single-node" ]
+#     - name: $TEST_IMAGE
+#       alias: api
+#       command: ["python", "-m", "nomad.client", "run", "api"]
+#     - name: $TEST_IMAGE
+#       alias: worker
+#       command: ["python", "-m", "nomad.client", "run", "worker"]
+#   variables:
+#     POSTGRES_DB: nomad
+#     POSTGRES_USER: postgres
+#     POSTGRES_PASSWORD: nomad
+#     RABBITMQ_ERLANG_COOKIE: SWQOKODSQALRPCLNMEQG
+#     RABBITMQ_DEFAULT_USER: rabbitmq
+#     RABBITMQ_DEFAULT_PASS: rabbitmq
+#     RABBITMQ_DEFAULT_VHOST: /
+#     NOMAD_COE_REPO_DB_HOST: postgres
+#     NOMAD_RABBITMQ_HOST: rabbitmq
+#     NOMAD_ELASTIC_HOST: elastic
+#     NOMAD_MONGO_HOST: mongo
+#   script:
+#     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+#     - integration/test_integration.sh
+#   except:
+#     - /^dev-.*$/
 
 release:
   stage: release
@@ -82,19 +149,44 @@ release:
     - docker pull $FRONTEND_TEST_IMAGE
     - docker tag $FRONTEND_TEST_IMAGE $FRONTEND_RELEASE_IMAGE
     - docker push $FRONTEND_RELEASE_IMAGE
-  only:
-    - master
+  except:
+    - /^dev-.*$/
+  when: manual
+
+release_rawapi:
+  stage: release
+  script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+    - docker pull $RAWAPI_TEST_IMAGE
+    - docker tag $RAWAPI_TEST_IMAGE $RAWAPI_RELEASE_IMAGE
+    - docker push $RAWAPI_RELEASE_IMAGE
+  except:
+    - /^dev-.*$/
+  when: manual
 
 deploy:
   stage: deploy
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
-    - cd infrastructure/nomad
+    - cd ops/docker-compose/nomad
     # secret .env file is stored on the "production" machine and is bind mounted into the
     # runner container at /nomad/config/.env
     - cp /nomad/config/.env .
     - docker-compose -f docker-compose.yml -f docker-compose.prod.yml build
     - docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --no-deps -d api worker gui
-  only:
-    - master
+  except:
+    - /^dev-.*$/
+  when: manual
+
+deploy_rawapi:
+  stage: deploy
+  script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+    - cd ops/docker-compose/rawapi
+    # secret .env file is stored on the "production" machine and is bind mounted into the
+    # runner container at /nomad/config/.env
+    - cp /nomad/config/.rawapi_env .env
+    - docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+  except:
+    - /^dev-.*$/
   when: manual

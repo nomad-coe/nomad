@@ -15,13 +15,24 @@
 import pytest
 import json
 import shutil
+import os
+import os.path
+from zipfile import ZipFile
 
-from nomad.files import Objects, ObjectFile, ArchiveFile, UploadFile, ArchiveLogFile
+from nomad.files import Objects, ObjectFile, ArchiveFile, UploadFile, ArchiveLogFile, \
+    BaggedDataContainer, ZippedDataContainer
 from nomad import config
 
 # example_file uses an artificial parser for faster test execution, can also be
 # changed to examples_vasp.zip for using vasp parser
 example_file = 'tests/data/proc/examples_template.zip'
+example_file_contents = [
+    'examples_template/template.json',
+    'examples_template/1.aux',
+    'examples_template/2.aux',
+    'examples_template/3.aux',
+    'examples_template/4.aux']
+example_file_mainfile = 'examples_template/template.json'
 empty_file = 'tests/data/proc/empty.zip'
 
 example_bucket = 'test_bucket'
@@ -36,6 +47,9 @@ def clear_files():
     finally:
         try:
             shutil.rmtree(config.fs.objects)
+        except FileNotFoundError:
+            pass
+        try:
             shutil.rmtree(config.fs.tmp)
         except FileNotFoundError:
             pass
@@ -78,11 +92,74 @@ class TestObjects:
         assert not ObjectFile(example_bucket, name, ext).exists()
 
 
+class TestBaggedDataContainer:
+
+    @pytest.fixture(scope='function')
+    def example_directory(self, clear_files):
+        directory = os.path.join(config.fs.tmp, 'test_container')
+        os.makedirs(directory, exist_ok=True)
+
+        with ZipFile(example_file) as zip_file:
+            zip_file.extractall(directory)
+
+        yield directory
+
+    @pytest.fixture(scope='function')
+    def example_container(self, example_directory):
+        yield BaggedDataContainer.create(example_directory)
+
+    def assert_container(self, container):
+        assert container.manifest is not None
+        assert len(container.manifest) == 5
+        assert container.hash is not None
+        assert container.metadata is not None
+        for file_path in container.manifest:
+            assert file_path.startswith('examples_template')
+
+    def test_make(self, example_container):
+        self.assert_container(example_container)
+
+    def test_metadata(self, example_directory, example_container):
+        example_container.metadata['test'] = dict(k1='v1', k2=True, k3=0)
+        example_container.save_metadata()
+
+        example_container = BaggedDataContainer(example_directory)
+        self.assert_container(example_container)
+        assert example_container.metadata['test']['k1'] == 'v1'
+        assert example_container.metadata['test']['k2']
+        assert example_container.metadata['test']['k3'] == 0
+
+    def test_file(self, example_container):
+        file = example_container.get_file('examples_template/template.json')
+        assert file is not None
+        with file.open('r') as f:
+            assert json.load(f)
+
+
+class TestZippedDataContainer(TestBaggedDataContainer):
+    @pytest.fixture(scope='function')
+    def example_container(self, example_directory):
+        BaggedDataContainer.create(example_directory)
+        return ZippedDataContainer.create(example_directory)
+
+    def test_metadata(self, example_directory, example_container):
+        pass
+
+    def test_target(self, example_directory):
+        BaggedDataContainer.create(example_directory)
+        target = os.path.join(os.path.dirname(example_directory), 'different.zip')
+        container = ZippedDataContainer.create(example_directory, target=target)
+        self.assert_container(container)
+        with ZipFile(target, 'r') as zip_file:
+            for info in zip_file.filelist:
+                assert info.filename.startswith('different')
+
+
 @pytest.fixture(scope='function', params=[False, True])
 def archive_config(monkeypatch, request):
     new_config = config.FilesConfig(
         config.files.uploads_bucket,
-        config.files.repository_bucket,
+        config.files.raw_bucket,
         config.files.archive_bucket,
         request.param)
     monkeypatch.setattr(config, 'files', new_config)
@@ -128,6 +205,7 @@ class TestUploadFile:
     @pytest.fixture()
     def upload(self, clear_files):
         upload = UploadFile('__test_upload_id')
+        upload.create_dirs()
         shutil.copyfile(example_file, upload.os_path)
         yield upload
 
@@ -152,8 +230,12 @@ class TestUploadFile:
         with upload:
             self.assert_upload(upload)
 
-    def test_upload_not_extracted(self, upload: UploadFile):
-        self.assert_upload(upload)
+    def test_persist(self, upload: UploadFile):
+        with upload:
+            zipped_container = upload.persist()
+
+        assert zipped_container.exists()
+        assert zipped_container.os_path.endswith('%s.zip' % upload.upload_hash())
 
     def test_delete_upload(self, upload: UploadFile):
         upload.delete()
@@ -161,12 +243,12 @@ class TestUploadFile:
 
     def test_hash(self, upload: UploadFile, upload_same_file: UploadFile, no_warn):
         with upload:
-            hash = upload.hash()
+            hash = upload.upload_hash()
             assert hash is not None
             assert isinstance(hash, str)
 
         with upload_same_file:
-            assert hash == upload_same_file.hash()
+            assert hash == upload_same_file.upload_hash()
 
     def test_siblings(self, upload: UploadFile, no_warn):
         with upload:

@@ -22,7 +22,7 @@ import logging
 from collections import namedtuple
 
 FilesConfig = namedtuple(
-    'FilesConfig', ['uploads_bucket', 'repository_bucket', 'archive_bucket', 'compress_archive'])
+    'FilesConfig', ['uploads_bucket', 'raw_bucket', 'archive_bucket', 'compress_archive'])
 """ API independent configuration for the object storage. """
 
 CeleryConfig = namedtuple('Celery', ['broker_url'])
@@ -31,10 +31,13 @@ CeleryConfig = namedtuple('Celery', ['broker_url'])
 FSConfig = namedtuple('FSConfig', ['tmp', 'objects'])
 """ Used to configure file stystem access. """
 
-ElasticConfig = namedtuple('ElasticConfig', ['host', 'calc_index'])
+RepositoryDBConfig = namedtuple('RepositoryDBConfig', ['host', 'port', 'dbname', 'user', 'password'])
+""" Used to configure access to NOMAD-coe repository db. """
+
+ElasticConfig = namedtuple('ElasticConfig', ['host', 'port', 'index_name'])
 """ Used to configure elastic search. """
 
-MongoConfig = namedtuple('MongoConfig', ['host', 'port', 'users_db'])
+MongoConfig = namedtuple('MongoConfig', ['host', 'port', 'db_name'])
 """ Used to configure mongo db. """
 
 LogstashConfig = namedtuple('LogstashConfig', ['enabled', 'host', 'tcp_port', 'level'])
@@ -45,7 +48,7 @@ NomadServicesConfig = namedtuple('NomadServicesConfig', ['api_host', 'api_port',
 
 files = FilesConfig(
     uploads_bucket='uploads',
-    repository_bucket='repository',
+    raw_bucket=os.environ.get('NOMAD_FILES_RAW_BUCKET', 'raw'),
     archive_bucket='archive',
     compress_archive=True
 )
@@ -73,17 +76,25 @@ celery = CeleryConfig(
 )
 
 fs = FSConfig(
-    tmp='.volumes/fs/tmp',
-    objects='.volumes/fs/objects'
+    tmp=os.environ.get('NOMAD_FILES_TMP_DIR', '.volumes/fs/tmp'),
+    objects=os.environ.get('NOMAD_FILES_OBJECTS_DIR', '.volumes/fs/objects')
 )
 elastic = ElasticConfig(
     host=os.environ.get('NOMAD_ELASTIC_HOST', 'localhost'),
-    calc_index='calcs'
+    port=int(os.environ.get('NOMAD_ELASTIC_PORT', 9200)),
+    index_name=os.environ.get('NOMAD_ELASTIC_INDEX_NAME', 'calcs')
+)
+repository_db = RepositoryDBConfig(
+    host=os.environ.get('NOMAD_COE_REPO_DB_HOST', 'localhost'),
+    port=int(os.environ.get('NOMAD_COE_REPO_DB_PORT', 5432)),
+    dbname=os.environ.get('NOMAD_COE_REPO_DB_NAME', 'nomad'),
+    user=os.environ.get('NOMAD_COE_REPO_DB_USER', 'postgres'),
+    password=os.environ.get('NOMAD_COE_REPO_PASSWORD', 'nomad')
 )
 mongo = MongoConfig(
     host=os.environ.get('NOMAD_MONGO_HOST', 'localhost'),
     port=int(os.environ.get('NOMAD_MONGO_PORT', 27017)),
-    users_db='users'
+    db_name=os.environ.get('NOMAD_MONGO_DB_NAME', 'users')
 )
 logstash = LogstashConfig(
     enabled=True,
@@ -98,5 +109,5 @@ services = NomadServicesConfig(
     api_secret=os.environ.get('NOMAD_API_SECRET', 'defaultApiSecret')
 )
 
-console_log_level = get_loglevel_from_env('NOMAD_CONSOLE_LOGLEVEL', default_level=logging.ERROR)
+console_log_level = get_loglevel_from_env('NOMAD_CONSOLE_LOGLEVEL', default_level=logging.INFO)
 service = os.environ.get('NOMAD_SERVICE', 'unknown nomad service')

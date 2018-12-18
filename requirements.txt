@@ -10,10 +10,6 @@ itsdangerous
 passlib
 python-logstash
 gitpython
-ase
-numpy
-cython>=0.19
-spglib
 gunicorn
 structlog
 recommonmark
@@ -23,3 +19,7 @@ sphinx
 sphinxcontrib.httpdomain
 sphinx_rtd_theme
 zipstream
+bagit
+psycopg2
+sqlalchemy
+bcrypt
