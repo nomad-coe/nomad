@@ -208,7 +208,7 @@ dependencies = [
     PythonGit(
         name='parsers/crystal',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-crystal',
-        git_branch='master'),
+        git_branch='nomad-fair'),
 ]
 
 
