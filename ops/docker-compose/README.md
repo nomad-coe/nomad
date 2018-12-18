@@ -3,7 +3,7 @@
 ### nomad
 
 In `nomad` you find *docker-compose* files that can be used to run nomad in docker-compose,
-either for developement or production purposes. See (setup)[../setup.html] for details
+either for developement or production purposes. See [setup](./setup.html) for details
 on running things for development.
 
 We use docker-compose overrides to modify config for development and production. Example:
