@@ -110,11 +110,13 @@ class LegacyParser(Parser):
         init_signature = inspect.getargspec(Parser.__init__)
         kwargs = dict(
             backend=lambda meta_info: create_backend(meta_info, logger=logger),
-            log_level=logging.DEBUG, debug=True)
+            log_level=logging.DEBUG, logger=logger, debug=True)
         kwargs = {key: value for key, value in kwargs.items() if key in init_signature.args}
         self.parser = Parser(**kwargs)
 
-        if logger is not None:
+        # TODO the following should be deprecated and loggers should be handed via the parser
+        # constructor only
+        if logger is not None and 'logger' not in init_signature.args:
             if hasattr(self.parser, 'setup_logger'):
                 self.parser.setup_logger(logger.bind(parser=self.name))
             else:

@@ -235,14 +235,21 @@ def parsed_template_example() -> LocalBackend:
 
 
 @pytest.fixture(params=parser_examples, ids=lambda spec: '%s-%s' % spec)
-def parsed_example(request) -> LocalBackend:
+def parsed_example(caplog, request) -> LocalBackend:
     parser_name, mainfile = request.param
-    run_parser(parser_name, mainfile)
     return run_parser(parser_name, mainfile)
 
 
-def test_parser(parsed_example, no_warn):
+@pytest.mark.parametrize('parser_name, mainfile', parser_examples)
+def test_parser(parser_name, mainfile, caplog):
+    parsed_example = run_parser(parser_name, mainfile)
     assert_parser_result(parsed_example)
+
+    logger_received = False
+    for record in caplog.get_records(when='call'):
+        if record.levelname == 'DEBUG':
+            logger_received |= json.loads(record.msg)['event'] == 'received logger'
+    assert logger_received
 
 
 def test_match(no_warn):
