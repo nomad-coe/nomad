@@ -11,7 +11,7 @@ __pycache__
 .coverage
 try.http
 project/
-test_*
+test_*/
 local/
 target/
 *.swp
