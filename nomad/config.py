@@ -22,7 +22,7 @@ import logging
 from collections import namedtuple
 
 FilesConfig = namedtuple(
-    'FilesConfig', ['uploads_bucket', 'raw_bucket', 'archive_bucket', 'compress_archive'])
+    'FilesConfig', ['uploads_bucket', 'raw_bucket', 'archive_bucket', 'compress_archive', 'staging_bucket', 'public_bucket'])
 """ API independent configuration for the object storage. """
 
 CeleryConfig = namedtuple('Celery', ['broker_url'])
@@ -50,7 +50,9 @@ files = FilesConfig(
     uploads_bucket='uploads',
     raw_bucket=os.environ.get('NOMAD_FILES_RAW_BUCKET', 'raw'),
     archive_bucket='archive',
-    compress_archive=True
+    compress_archive=True,
+    staging_bucket='staging',
+    public_bucket='public'
 )
 
 rabbit_host = os.environ.get('NOMAD_RABBITMQ_HOST', 'localhost')
