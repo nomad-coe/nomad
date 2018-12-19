@@ -22,19 +22,18 @@ processing, heavily editing, creating hashes, etc. Public is supposed to be a
 almost readonly (beside metadata) storage.
 
 ::
-    fs/staging/<upload>/metadata.json
-                       /metadata.json.lock
+    fs/staging/<upload>/metadata/<calc>.json
+                       /raw/**
+                       /archive/<calc>.hdf5
                        /.frozen
-                       /raw
                        /.public
                        /.restricted
-                       /archive/`calc`.hdf5
-    fs/public/<upload>-metadata.json
-                      -metadata.json.lock
-                      -raw-public.bagit.zip
-                      -raw-restricted.bagit.zip
-                      -archive-public.hdf5.zip
-                      -archive-restricted.hdf5.zip
+    fs/public/<upload>/metadata.json
+                      /metadata.json.lock
+                      /raw-public.bagit.zip
+                      /raw-restricted.bagit.zip
+                      /archive-public.hdf5.zip
+                      /archive-restricted.hdf5.zip
 """
 
 from typing import IO, Generator, Dict, Any, Iterable
@@ -47,122 +46,6 @@ from zipfile import ZipFile, BadZipFile
 from bagit import make_bag
 
 from nomad import config, utils
-
-
-class MetadataTimeout(Exception):
-    pass
-
-
-class Metadata():
-    """
-    A contextmanager that wraps around a metadata dictionary. It loads and write
-    the metadata to the given path and uses a lock to deal with concurrent access.
-
-    Arguments:
-        path: The parent directory for the metadata and lock file.
-        lock_timeout: Max timeout before __enter__ raises MetadataTimeout while waiting
-            for an available lock on the metadata file. Default is 1s.
-        calc_id_key: The key used for ensuring uniqueness on calc metadata. Default is 'hash'.
-    """
-    def __init__(self, path: str, lock_timeout=1, calc_id_key='hash') -> None:
-        self._db_file = os.path.join(path, 'metadata.json')
-        self._lock_file = os.path.join(path, 'metadata.json.lock')
-        self._lock = FileLock(self._lock_file, timeout=lock_timeout)
-        self._modified = False
-        self._calc_id_key = calc_id_key
-        self.data: Dict[Any, dict] = None
-
-    def __enter__(self) -> 'Metadata':
-        try:
-            self._lock.acquire()
-        except Timeout:
-            raise MetadataTimeout()
-
-        if os.path.exists(self._db_file):
-            with open(self._db_file, 'rt') as f:
-                self.data = ujson.load(f)
-        else:
-            self.data = {}
-            self._modified = True
-
-        return self
-
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        if self._modified:
-            with open(self._db_file, 'wt') as f:
-                ujson.dump(self.data, f, ensure_ascii=False)
-        self.data = None
-        self._lock.release()
-        return False
-
-    def insert(self, calc: dict) -> None:
-        """ Insert a calc, using hash as key. """
-        assert self.data is not None
-        id = calc[self._calc_id_key]
-        assert id not in self.data
-        self.data[id] = calc
-        self._modified = True
-
-    def update(self, calc: dict) -> None:
-        """ Updating a calc, using hash as key and running dict update with the given data. """
-        assert self.data is not None
-        id = calc[self._calc_id_key]
-        if id not in self.data:
-            raise KeyError()
-        self.data[id].update(calc)
-        self._modified = True
-
-    def get(self, calc_id: Any) -> dict:
-        """ Retrive the calc metadata for a given calc. """
-        return self.data[calc_id]
-
-
-class AbstractUpload():
-    def __init__(self, upload_id: str) -> None:
-        self.logger = utils.get_logger(__name__, upload_id=upload_id)
-
-    def metadata(self, calc_hash: str) -> dict:
-        """
-        Returns: the metadata for the given calc.
-        Arguments:
-            calc_hash: The hash identifying the calculation.
-        Raises:
-            KeyError: If the calc does not exist.
-        """
-
-    def raw_file(self, file_path: str, *args, **kwargs) -> Generator[IO, None, None]:
-        """
-        Opens a raw file and returns a file-like objects. Additional arguments are
-        based to the respective low-level open function.
-        Arguments:
-            file_path: The path to the file relative to the upload.
-        Raises:
-            KeyError: If the file does not exist.
-        """
-        pass
-
-    def archive_file(self, calc_hash: str, extension: str, *args, **kwargs) -> Generator[IO, None, None]:
-        """
-        Opens a archive file and returns a file-like objects. Additional arguments are
-        based to the respective low-level open function.
-        Arguments:
-            calc_hash: The hash identifying the calculation.
-        Raises:
-            KeyError: If the calc does not exist.
-        """
-        pass
-
-    def all_metadata(self) -> Iterable[Dict[Any, dict]]:
-        """ Returns: An iterable with the metadata of all calcs """
-        pass
-
-    def update_calc(self, calc_hash: str, updates: dict) -> None:
-        """
-        Allows to update calculation metadata.
-        Raises:
-            KeyError: If the calc does not exist.
-        """
-        pass
 
 
 class PathObject:
@@ -206,7 +89,136 @@ class DirectoryObject(PathObject):
         return FileObject(None, None, os_path=os.path.join(self.os_path, path))
 
 
-class StagingUpload(AbstractUpload):
+class MetadataTimeout(Exception):
+    pass
+
+
+class Metadata():
+    """
+    A contextmanager that wraps around a metadata dictionary. It loads and write
+    the metadata to the given path and uses a lock to deal with concurrent access.
+
+    Arguments:
+        path: The parent directory for the metadata and lock file.
+        lock_timeout: Max timeout before __enter__ raises MetadataTimeout while waiting
+            for an available lock on the metadata file. Default is 1s.
+        calc_id_key: The key used for ensuring uniqueness on calc metadata. Default is 'hash'.
+    """
+    def __init__(self, path: str, lock_timeout=1, calc_id_key='hash') -> None:
+        self._db_file = os.path.join(path, 'metadata.json')
+        self._lock_file = os.path.join(path, 'metadata.json.lock')
+        self._lock: FileLock = FileLock(self._lock_file, timeout=lock_timeout)
+        self._modified = False
+        self._calc_id_key = calc_id_key
+        self.data: Dict[Any, dict] = None
+
+    def __enter__(self) -> 'Metadata':
+        self.open()
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.close()
+        return None
+
+    def open(self):
+        assert self.data is None, "Metadata is already open."
+
+        try:
+            self._lock.acquire()
+        except Timeout:
+            raise MetadataTimeout()
+
+        if os.path.exists(self._db_file):
+            with open(self._db_file, 'rt') as f:
+                self.data = ujson.load(f)
+        else:
+            self.data = {}
+            self._modified = True
+
+    def close(self):
+        assert self.data is not None, "Metadata is not open."
+        if self._modified:
+            with open(self._db_file, 'wt') as f:
+                ujson.dump(self.data, f, ensure_ascii=False)
+        self.data = None
+        self._lock.release()
+
+    def insert(self, calc: dict) -> None:
+        """ Insert a calc, using hash as key. """
+        assert self.data is not None, "Metadata is not open."
+
+        id = calc[self._calc_id_key]
+        assert id not in self.data
+        self.data[id] = calc
+        self._modified = True
+
+    def update(self, calc: dict) -> None:
+        """ Updating a calc, using hash as key and running dict update with the given data. """
+        assert self.data is not None, "Metadata is not open."
+
+        id = calc[self._calc_id_key]
+        if id not in self.data:
+            raise KeyError()
+        self.data[id].update(calc)
+        self._modified = True
+
+    def get(self, calc_id: Any) -> dict:
+        """ Retrive the calc metadata for a given calc. """
+        assert self.data is not None, "Metadata is not open."
+
+        return self.data[calc_id]
+
+
+class UploadFiles():
+    def __init__(self, upload_id: str) -> None:
+        self.logger = utils.get_logger(__name__, upload_id=upload_id)
+
+    def get_metadata(self, calc_hash: str) -> dict:
+        """
+        Returns: the metadata for the given calc.
+        Arguments:
+            calc_hash: The hash identifying the calculation.
+        Raises:
+            KeyError: If the calc does not exist.
+        """
+        raise NotImplementedError()
+
+    def raw_file(self, file_path: str, *args, **kwargs) -> Generator[IO, None, None]:
+        """
+        Opens a raw file and returns a file-like objects. Additional arguments are
+        based to the respective low-level open function.
+        Arguments:
+            file_path: The path to the file relative to the upload.
+        Raises:
+            KeyError: If the file does not exist.
+        """
+        raise NotImplementedError()
+
+    def archive_file(self, calc_hash: str, extension: str, *args, **kwargs) -> Generator[IO, None, None]:
+        """
+        Opens a archive file and returns a file-like objects. Additional arguments are
+        based to the respective low-level open function.
+        Arguments:
+            calc_hash: The hash identifying the calculation.
+        Raises:
+            KeyError: If the calc does not exist.
+        """
+        raise NotImplementedError()
+
+    def all_metadata(self) -> Iterable[Dict[Any, dict]]:
+        """ Returns: An iterable with the metadata of all calcs """
+        raise NotImplementedError()
+
+    def update_metadata(self, calc_hash: str, updates: dict) -> None:
+        """
+        Allows to update calculation metadata.
+        Raises:
+            KeyError: If the calc does not exist.
+        """
+        raise NotImplementedError()
+
+
+class StagingUploadFiles(UploadFiles):
     def __init__(self, upload_id: str, create: bool = False) -> None:
         super().__init__(upload_id=upload_id)
         self._upload_dir = DirectoryObject(config.files.staging_bucket, upload_id, create=create)
@@ -214,20 +226,10 @@ class StagingUpload(AbstractUpload):
             raise KeyError()
         self._raw_dir = self._upload_dir.join_dir('raw')
         self._archive_dir = self._upload_dir.join_dir('archive')
-        self._metadata = Metadata(self._upload_dir.os_path)
+        self._metadata_dir = self._upload_dir.join_dir('metadata')
         self._frozen_file = self._upload_dir.join_file('.frozen')
         self._restricted_dir = self._upload_dir.join_dir('.restricted', create=False)
         self._public_dir = self._upload_dir.join_dir('.public', create=False)
-
-    def __enter__(self) -> 'StagingUpload':
-        self._metadata.__enter__()
-        return self
-
-    def __exit__(self, *args, **kwargs) -> bool:
-        return self._metadata.__exit__(*args, **kwargs)
-
-    def metadata(self, calc_hash: str) -> dict:
-        return self._metadata.get(calc_hash)
 
     def raw_file(self, file_path: str, *args, **kwargs) -> Generator[IO, None, None]:
         path = os.path.join(self._raw_dir.os_path, file_path)
@@ -248,12 +250,13 @@ class StagingUpload(AbstractUpload):
             raise KeyError()
 
     def all_metadata(self) -> Iterable[dict]:
-        return [self._metadata.get(key) for key in self._metadata.data]
+        pass
 
-    def update_calc(self, calc_hash: str, updates: dict) -> None:
-        data = dict(hash=calc_hash)
-        data.update(updates)
-        self._metadata.update(data)
+    def get_metadata(self, calc_hash: str) -> dict:
+        pass
+
+    def update_metadata(self, calc_hash: str, updates: dict) -> None:
+        pass
 
     def add_rawfiles(self, path: str) -> None:
         """
@@ -274,9 +277,11 @@ class StagingUpload(AbstractUpload):
 
         shutil.move(path, self._raw_dir.os_path)
 
-    def insert_calc(self, calc: dict) -> None:
+    def insert_metadata(self, calc_hash: str, calc: dict) -> None:
         """ Allows to add calculation metadata. """
-        self._metadata.insert(calc)
+        metadata_path = self._metadata_dir.join_file(calc_hash)
+        with open(metadata_path.os_path, 'wt') as f:
+            ujson.dump(calc, f, ensure_ascii=False)
 
     @property
     def is_frozen(self) -> bool:
@@ -331,21 +336,20 @@ class StagingUpload(AbstractUpload):
         zip_dir(packed_dir.join_file('raw-public.bagit.zip').os_path, self._restricted_dir)
 
         # zip archives
-        archive_public_zip = ZipFile(packed_dir.join_file('archive-public.json.zip'))
-        archive_restricted_zip = ZipFile(packed_dir.join_file('archive-restricted.json.zip'))
+        # archive_public_zip = ZipFile(packed_dir.join_file('archive-public.json.zip'))
+        # archive_restricted_zip = ZipFile(packed_dir.join_file('archive-restricted.json.zip'))
 
-        try:
-            for calc in self.all_metadata():
-                if not calc.get('restricted', False):
-                    # public
-                    pass
-                else:
-                    # restricted
-                    pass
-        finally:
-            archive_public_zip.close()
-            archive_restricted_zip.close()
-
+        # try:
+        #     for calc in self.all_metadata():
+        #         if not calc.get('restricted', False):
+        #             # public
+        #             pass
+        #         else:
+        #             # restricted
+        #             pass
+        # finally:
+        #     archive_public_zip.close()
+        #     archive_restricted_zip.close()
 
         # move metadata
 
@@ -369,7 +373,7 @@ class StagingUpload(AbstractUpload):
         pass
 
 
-class PublicUpload(AbstractUpload):
+class PublicUploadFiles(UploadFiles):
     def __init__(self, upload_hash: str) -> None:
         pass
 

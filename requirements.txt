@@ -21,7 +21,8 @@ sphinxcontrib.httpdomain
 sphinx_rtd_theme
 zipstream
 bagit
-psycopg2
+psycopg2-binary
 sqlalchemy
 bcrypt
-py-filelock
+filelock
+ujson

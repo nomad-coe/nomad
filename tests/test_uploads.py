@@ -18,7 +18,78 @@ import shutil
 import pytest
 
 from nomad import config
+from nomad.uploads import DirectoryObject, FileObject
 from nomad.uploads import Metadata, MetadataTimeout
+from nomad.uploads import StagingUploadFiles, PublicUploadFiles
+
+
+class TestObjects:
+
+    @pytest.fixture(scope='function')
+    def test_bucket(self):
+        yield 'test_bucket'
+
+        bucket = os.path.join(config.fs.objects, 'test_bucket')
+        if os.path.exists(bucket):
+            shutil.rmtree(os.path.join(config.fs.objects, 'test_bucket'))
+
+    def test_file_create(self, test_bucket):
+        file = FileObject(test_bucket, 'sub/test_id', create=True)
+        assert os.path.isdir(os.path.dirname(file.os_path))
+        assert not file.exists()
+
+    def test_file_dir_existing(self, test_bucket):
+        file = FileObject(test_bucket, 'sub/test_id', create=False)
+        assert not os.path.exists(os.path.dirname(file.os_path))
+
+    def test_directory_create(self, test_bucket):
+        directory = DirectoryObject(test_bucket, 'sub/test_id', create=True)
+        assert directory.exists()
+        assert os.path.isdir(directory.os_path)
+
+    def test_directory_existing(self, test_bucket):
+        directory = DirectoryObject(test_bucket, 'sub/test_id', create=False)
+        assert not directory.exists()
+        assert not os.path.exists(directory.os_path)
+        assert not os.path.exists(os.path.dirname(directory.os_path))
+
+    def test_directory_join_dir_create(self, test_bucket):
+        directory = DirectoryObject(test_bucket, 'sub/parent', create=True)
+        directory = directory.join_dir('test_id')
+        assert directory.exists()
+        assert os.path.isdir(directory.os_path)
+
+    def test_directory_join_dir_existing(self, test_bucket):
+        directory = DirectoryObject(test_bucket, 'sub/parent', create=False)
+        directory = directory.join_dir('test_id')
+        assert not directory.exists()
+        assert not os.path.exists(directory.os_path)
+        assert not os.path.exists(os.path.dirname(directory.os_path))
+
+    def test_directory_join_dir_join_create(self, test_bucket):
+        directory = DirectoryObject(test_bucket, 'sub/parent', create=False)
+        directory = directory.join_dir('test_id', create=True)
+        assert directory.exists()
+        assert os.path.isdir(directory.os_path)
+
+    def test_directory_join_dir_join_exist(self, test_bucket):
+        directory = DirectoryObject(test_bucket, 'sub/parent', create=True)
+        directory = directory.join_dir('test_id', create=False)
+        assert not directory.exists()
+        assert not os.path.exists(directory.os_path)
+        assert os.path.exists(os.path.dirname(directory.os_path))
+
+    def test_directory_join_file_dir_create(self, test_bucket):
+        directory = DirectoryObject(test_bucket, 'sub/parent', create=True)
+        file = directory.join_file('test_id')
+        assert os.path.exists(directory.os_path)
+        assert os.path.exists(os.path.dirname(file.os_path))
+
+    def test_directory_join_file_dir_existing(self, test_bucket):
+        directory = DirectoryObject(test_bucket, 'sub/parent', create=False)
+        file = directory.join_file('test_id')
+        assert not os.path.exists(directory.os_path)
+        assert not os.path.exists(os.path.dirname(file.os_path))
 
 
 class TestMetadata:
@@ -88,3 +159,40 @@ class TestMetadata:
             failed = True
         assert failed
         assert len(md.data) == 0
+
+    def test_get(self, md: Metadata):
+        md.insert(dict(hash='0', data='test'))
+        assert md.get('0') is not None
+        assert 'data' in md.get('0')
+
+    def test_get_fail(self, md: Metadata):
+        failed = False
+        try:
+            md.get('0')
+        except KeyError:
+            failed = True
+        assert failed
+
+
+class TestStagingUploadFiles:
+
+    @pytest.fixture(scope='function')
+    def test_upload(self):
+        yield 'test_upload'
+        for bucket in [config.files.staging_bucket, config.files.public_bucket]:
+            directory = DirectoryObject(bucket, 'test_upload')
+            if directory.exists():
+                directory.delete()
+
+    def test_create(self, test_upload):
+        StagingUploadFiles(test_upload, create=True)
+
+    def test_metadata_lock(self, test_upload):
+        failed = False
+        with StagingUploadFiles(test_upload, create=True):
+            try:
+                with StagingUploadFiles(test_upload):
+                    pass
+            except MetadataTimeout:
+                failed = True
+        assert failed
