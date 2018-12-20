@@ -291,9 +291,10 @@ class Restricted(Exception):
 
 
 class UploadFiles(metaclass=ABCMeta):
-    def __init__(self, upload_id: str, archive_ext: str = 'json') -> None:
+    def __init__(self, upload_id: str, public_only: bool = True, archive_ext: str = 'json') -> None:
         self.logger = utils.get_logger(__name__, upload_id=upload_id)
         self.upload_id = upload_id
+        self.public_only = public_only
         self._archive_ext = archive_ext
 
     @property
@@ -302,17 +303,15 @@ class UploadFiles(metaclass=ABCMeta):
         raise NotImplementedError
 
     @contextlib.contextmanager
-    def raw_file(self, file_path: str, read: bool = True, access: Callable[[dict], bool] = None) -> Generator[IO, None, None]:
+    def raw_file(self, file_path: str, read: bool = True) -> Generator[IO, None, None]:
         """
         Opens a raw file and returns a file-like objects.
         Arguments:
             file_path: The path to the file relative to the upload.
             read: Open for read or write. Default is True=read.
-            access: Function that evaluates calc metadata to bool and determines
-                restricted data might be accessed.
         Raises:
             KeyError: If the file does not exist.
-            Restricted: If the file is restricted and access function is not given or evaluated to False.
+            Restricted: If the file is restricted and upload access evaluated to False.
         """
         raise NotImplementedError()
 
@@ -325,13 +324,14 @@ class UploadFiles(metaclass=ABCMeta):
             read: Open for read or write. Default is True=read.
         Raises:
             KeyError: If the calc does not exist.
+            Restricted: If the file is restricted and upload access evaluated to False.
         """
         raise NotImplementedError()
 
 
 class StagingUploadFiles(UploadFiles):
-    def __init__(self, upload_id: str, create: bool = False, archive_ext: str = 'json') -> None:
-        super().__init__(upload_id=upload_id, archive_ext=archive_ext)
+    def __init__(self, upload_id: str, create: bool = False, **kwargs) -> None:
+        super().__init__(upload_id=upload_id, **kwargs)
 
         self._upload_dir = DirectoryObject(
             config.files.staging_bucket, upload_id, create=create, prefix=True)
@@ -340,8 +340,6 @@ class StagingUploadFiles(UploadFiles):
         self._raw_dir = self._upload_dir.join_dir('raw')
         self._archive_dir = self._upload_dir.join_dir('archive')
         self._frozen_file = self._upload_dir.join_file('.frozen')
-        self._restricted_dir = self._upload_dir.join_dir('.restricted', create=False)
-        self._public_dir = self._upload_dir.join_dir('.public', create=False)
 
         metadata_dir = self._upload_dir.join_dir('metadata')
         self._metadata = StagingMetadata(metadata_dir)
@@ -360,12 +358,18 @@ class StagingUploadFiles(UploadFiles):
 
     @contextlib.contextmanager
     def raw_file(self, file_path: str, read: bool = True) -> Generator[IO, None, None]:
+        if self.public_only:
+            raise Restricted
+
         path = os.path.join(self._raw_dir.os_path, file_path)
         with self._file(path, read) as f:
             yield f
 
     @contextlib.contextmanager
     def archive_file(self, calc_hash: str, read: bool = True) -> Generator[IO, None, None]:
+        if self.public_only:
+            raise Restricted
+
         path = os.path.join(self._archive_dir.os_path, '%s.%s' % (calc_hash, self._archive_ext))
         with self._file(path, read) as f:
             yield f
@@ -416,24 +420,27 @@ class StagingUploadFiles(UploadFiles):
         assert not self.is_frozen, "Cannot pack an upload that is packed, or packing."
         with open(self._frozen_file.os_path, 'wt') as f:
             f.write('frozen')
-        os.makedirs(self._public_dir.os_path)
+
+        # create tmp dirs for restricted and public raw data
+        restricted_dir = self._upload_dir.join_dir('.restricted', create=False)
+        public_dir = self._upload_dir.join_dir('.public', create=True)
 
         # copy raw -> .restricted
-        shutil.copytree(self._raw_dir.os_path, self._restricted_dir.os_path)
+        shutil.copytree(self._raw_dir.os_path, restricted_dir.os_path)
 
         # move public data .restricted -> .public
         for calc in self.metadata:
-            if not calc.get('restricted', False):
+            if not calc.get('restricted', True):
                 mainfile: str = calc['mainfile']
                 assert mainfile is not None
                 for filepath in self.calc_files(mainfile):
                     os.rename(
-                        self._restricted_dir.join_file(filepath).os_path,
-                        self._public_dir.join_file(filepath).os_path)
+                        restricted_dir.join_file(filepath).os_path,
+                        public_dir.join_file(filepath).os_path)
 
         # create bags
-        make_bag(self._restricted_dir.os_path, bag_info=bagit_metadata, checksums=['sha512'])
-        make_bag(self._public_dir.os_path, bag_info=bagit_metadata, checksums=['sha512'])
+        make_bag(restricted_dir.os_path, bag_info=bagit_metadata, checksums=['sha512'])
+        make_bag(public_dir.os_path, bag_info=bagit_metadata, checksums=['sha512'])
 
         # zip bags
         def zip_dir(zip_filepath, path):
@@ -446,8 +453,8 @@ class StagingUploadFiles(UploadFiles):
 
         packed_dir = self._upload_dir.join_dir('.packed', create=True)
 
-        zip_dir(packed_dir.join_file('raw-restricted.bagit.zip').os_path, self._restricted_dir.os_path)
-        zip_dir(packed_dir.join_file('raw-public.bagit.zip').os_path, self._public_dir.os_path)
+        zip_dir(packed_dir.join_file('raw-restricted.bagit.zip').os_path, restricted_dir.os_path)
+        zip_dir(packed_dir.join_file('raw-public.bagit.zip').os_path, public_dir.os_path)
 
         # zip archives
         def create_zipfile(prefix: str) -> ZipFile:
@@ -483,8 +490,15 @@ class StagingUploadFiles(UploadFiles):
         Returns all the auxfiles and mainfile for a given mainfile. This implements
         nomad's logic about what is part of a calculation and what not.
         """
-        dir = os.path.dirname(self._raw_dir.join_file(mainfile).os_path)
-        return sorted(path for path in os.listdir(dir) if os.path.isfile(path))
+        mainfile_object = self._raw_dir.join_file(mainfile)
+        if not mainfile_object.exists():
+            raise KeyError()
+
+        calc_dir = os.path.dirname(mainfile_object.os_path)
+        calc_relative_dir = calc_dir[len(self._raw_dir.os_path) + 1:]
+        return sorted(
+            os.path.join(calc_relative_dir, path) for path in os.listdir(calc_dir)
+            if os.path.isfile(os.path.join(calc_dir, path)))
 
     def calc_hash(self, mainfile: str) -> str:
         """
@@ -498,7 +512,7 @@ class StagingUploadFiles(UploadFiles):
         """
         hash = hashlib.sha512()
         for filepath in self.calc_files(mainfile):
-            with open(filepath, 'rb') as f:
+            with open(self._raw_dir.join_file(filepath).os_path, 'rb') as f:
                 for data in iter(lambda: f.read(65536), b''):
                     hash.update(data)
 
@@ -533,6 +547,9 @@ class PublicUploadFiles(UploadFiles):
             except KeyError:
                 pass
 
+            if self.public_only:
+                raise Restricted
+
         raise KeyError()
 
     @contextlib.contextmanager
@@ -546,7 +563,6 @@ class PublicUploadFiles(UploadFiles):
         assert read
         with self._file('archive', self._archive_ext, '%s.%s' % (calc_hash, self._archive_ext)) as f:
             yield f
-
 
     def repack(self) -> None:
         """

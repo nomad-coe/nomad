@@ -21,7 +21,7 @@ import pytest
 from nomad import config
 from nomad.uploads import DirectoryObject, PathObject
 from nomad.uploads import Metadata, MetadataTimeout, PublicMetadata, StagingMetadata
-from nomad.uploads import StagingUploadFiles, PublicUploadFiles, UploadFiles
+from nomad.uploads import StagingUploadFiles, PublicUploadFiles, UploadFiles, Restricted
 
 from tests.test_files import example_file, example_file_contents, example_file_mainfile
 
@@ -169,9 +169,6 @@ class TestPublicMetadata(MetadataContract):
 
 class UploadFilesContract:
 
-    def create_test_upload(self, test_upload_id, calc_specs: str) -> UploadFiles:
-        raise NotImplementedError
-
     @pytest.fixture(scope='function')
     def test_upload_id(self) -> Generator[str, None, None]:
         yield 'test_upload'
@@ -180,13 +177,9 @@ class UploadFilesContract:
             if directory.exists():
                 directory.delete()
 
-    @pytest.fixture(scope='function', params=['r', 'rr', 'pr', 'rp', 'p', 'pp'])
-    def test_upload(self, request, test_upload_id) -> Generator[UploadFiles, None, None]:
-        calc_specs = request.param
-        upload = self.create_test_upload(test_upload_id, calc_specs=calc_specs)
-        with upload.metadata as md:
-            assert len(md) == len(calc_specs)
-        yield upload
+    @pytest.fixture(scope='function', params=['r'])
+    def test_upload(self, request, test_upload_id) -> UploadFiles:
+        raise NotImplementedError()
 
     @pytest.fixture(scope='function')
     def empty_test_upload(self, test_upload_id) -> Generator[UploadFiles, None, None]:
@@ -196,12 +189,28 @@ class UploadFilesContract:
         pass
 
     def test_rawfile(self, test_upload):
-        with test_upload.raw_file(example_file_mainfile) as f:
-            assert len(f.read()) > 0
+        try:
+            with test_upload.raw_file(example_file_mainfile) as f:
+                assert len(f.read()) > 0
+            if test_upload.public_only:
+                with test_upload.metadata as md:
+                    assert not md.get(example_calc_hash).get('restricted', False)
+        except Restricted:
+            assert test_upload.public_only
+            with test_upload.metadata as md:
+                assert md.get(example_calc_hash).get('restricted', False)
 
     def test_archive(self, test_upload):
-        with test_upload.archive_file(example_calc_hash) as f:
-            assert f.read() == b'archive'
+        try:
+            with test_upload.archive_file(example_calc_hash) as f:
+                assert f.read() == b'archive'
+            if test_upload.public_only:
+                with test_upload.metadata as md:
+                    assert not md.get(example_calc_hash).get('restricted', False)
+        except Restricted:
+            assert test_upload.public_only
+            with test_upload.metadata as md:
+                assert md.get(example_calc_hash).get('restricted', False)
 
     def test_metadata(self, test_upload):
         with test_upload.metadata as md:
@@ -219,7 +228,13 @@ class TestStagingUploadFiles(UploadFilesContract):
 
     @staticmethod
     def create_upload(upload_id: str, calc_specs: str) -> StagingUploadFiles:
-        upload = StagingUploadFiles(upload_id, create=True, archive_ext='txt')
+        """
+        Create an upload according to given calc_specs. Where calc specs is a string
+        with letters determining example calcs being public or restricted.
+        The calcs will be copies of example_calc. First calc is at top level, following
+        calcs will be put under 1/, 2/, etc.
+        """
+        upload = StagingUploadFiles(upload_id, create=True, archive_ext='txt', public_only=False)
 
         prefix = 0
         for calc_spec in calc_specs:
@@ -229,24 +244,37 @@ class TestStagingUploadFiles(UploadFilesContract):
                 f.write(b'archive')
             calc = dict(**example_calc)
             calc['hash'] = hash
+            if prefix > 0:
+                calc['mainfile'] = os.path.join(str(prefix), calc['mainfile'])
             if calc_spec == 'r':
                 calc['restricted'] = True
             elif calc_spec == 'p':
                 calc['restricted'] = False
             upload.metadata.insert(calc)
             prefix += 1
+
+        if calc_specs.startswith('P'):
+            public_only = True
+            calc_specs = calc_specs[1:]
+        else:
+            public_only = False
+        upload.public_only = public_only
+
+        with upload.metadata as md:
+            assert len(md) == len(calc_specs)
         return upload
 
-    def create_test_upload(self, test_upload_id: str, calc_specs: str) -> StagingUploadFiles:
-        return TestStagingUploadFiles.create_upload(test_upload_id, calc_specs=calc_specs)
+    @pytest.fixture(scope='function', params=['r', 'rr', 'pr', 'rp', 'p', 'pp'])
+    def test_upload(self, request, test_upload_id: str) -> StagingUploadFiles:
+        return TestStagingUploadFiles.create_upload(test_upload_id, calc_specs=request.param)
 
     @pytest.fixture(scope='function')
     def empty_test_upload(self, test_upload_id) -> Generator[UploadFiles, None, None]:
-        yield StagingUploadFiles(test_upload_id, create=True)
+        yield StagingUploadFiles(test_upload_id, create=True, public_only=False)
 
     @pytest.mark.parametrize('prefix', [None, 'prefix'])
     def test_add_rawfiles_zip(self, test_upload_id, prefix):
-        test_upload = StagingUploadFiles(test_upload_id, create=True, archive_ext='txt')
+        test_upload = StagingUploadFiles(test_upload_id, create=True, archive_ext='txt', public_only=False)
         test_upload.add_rawfiles(example_file, prefix=prefix)
         for filepath in example_file_contents:
             filepath = os.path.join(prefix, filepath) if prefix else filepath
@@ -270,17 +298,30 @@ class TestStagingUploadFiles(UploadFilesContract):
             assert os.path.isfile(filepath)
 
     def test_calc_files(self, test_upload: StagingUploadFiles):
-        for one, two in zip(test_upload.calc_files(example_calc_hash), sorted(example_file_contents)):
-            assert one == two
+        for calc in test_upload.metadata:
+            mainfile = calc['mainfile']
+            calc_files = test_upload.calc_files(mainfile)
+            assert len(list(calc_files)) == len(example_file_contents)
+            for one, two in zip(calc_files, sorted(example_file_contents)):
+                assert one.endswith(two)
+                assert one.startswith(mainfile[:3])
 
 
 class TestPublicUploadFiles(UploadFilesContract):
 
     @pytest.fixture(scope='function')
     def empty_test_upload(self, test_upload_id: str) -> Generator[UploadFiles, None, None]:
-        yield PublicUploadFiles(test_upload_id, 'txt')
+        yield PublicUploadFiles(test_upload_id, archive_ext='txt', public_only=False)
 
-    def create_test_upload(self, test_upload_id: str, calc_specs: str) -> PublicUploadFiles:
+    @pytest.fixture(scope='function', params=['r', 'rr', 'pr', 'rp', 'p', 'pp', 'Ppr', 'Prp'])
+    def test_upload(self, request, test_upload_id: str) -> PublicUploadFiles:
+        calc_specs = request.param
+        if calc_specs.startswith('P'):
+            public_only = True
+            calc_specs = calc_specs[1:]
+        else:
+            public_only = False
+
         staging_upload = TestStagingUploadFiles.create_upload(test_upload_id, calc_specs=calc_specs)
         staging_upload.pack()
-        return PublicUploadFiles(test_upload_id, 'txt')
+        return PublicUploadFiles(test_upload_id, archive_ext='txt', public_only=public_only)
