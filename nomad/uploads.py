@@ -37,7 +37,7 @@ almost readonly (beside metadata) storage.
 """
 
 from abc import ABCMeta
-from typing import IO, Generator, Dict, Iterator
+from typing import IO, Generator, Dict, Iterator, Iterable, Callable
 from filelock import Timeout, FileLock
 import ujson
 import os.path
@@ -103,7 +103,11 @@ class DirectoryObject(PathObject):
         return DirectoryObject(None, None, create=create, os_path=os.path.join(self.os_path, path))
 
     def join_file(self, path) -> PathObject:
-        return PathObject(None, None, os_path=os.path.join(self.os_path, path))
+        dirname = os.path.dirname(path)
+        if dirname != '':
+            return self.join_dir(dirname).join_file(os.path.basename(path))
+        else:
+            return PathObject(None, None, os_path=os.path.join(self.os_path, path))
 
     def exists(self) -> bool:
         return os.path.isdir(self.os_path)
@@ -282,6 +286,10 @@ class PublicMetadata(Metadata):
         return len(self.data)
 
 
+class Restricted(Exception):
+    pass
+
+
 class UploadFiles(metaclass=ABCMeta):
     def __init__(self, upload_id: str, archive_ext: str = 'json') -> None:
         self.logger = utils.get_logger(__name__, upload_id=upload_id)
@@ -294,14 +302,17 @@ class UploadFiles(metaclass=ABCMeta):
         raise NotImplementedError
 
     @contextlib.contextmanager
-    def raw_file(self, file_path: str, read: bool = True) -> Generator[IO, None, None]:
+    def raw_file(self, file_path: str, read: bool = True, access: Callable[[dict], bool] = None) -> Generator[IO, None, None]:
         """
         Opens a raw file and returns a file-like objects.
         Arguments:
             file_path: The path to the file relative to the upload.
             read: Open for read or write. Default is True=read.
+            access: Function that evaluates calc metadata to bool and determines
+                restricted data might be accessed.
         Raises:
             KeyError: If the file does not exist.
+            Restricted: If the file is restricted and access function is not given or evaluated to False.
         """
         raise NotImplementedError()
 
@@ -359,27 +370,34 @@ class StagingUploadFiles(UploadFiles):
         with self._file(path, read) as f:
             yield f
 
-    def add_rawfiles(self, path: str, move: bool = False) -> None:
+    def add_rawfiles(self, path: str, move: bool = False, prefix: str = None) -> None:
         """
-        Add rawfiles to the upload. The given file will be moved, or extracted.
+        Add rawfiles to the upload. The given file will be copied, moved, or extracted.
         Arguments:
             path: Path to a directory, file, or zip file. Zip files will be extracted.
+            move: Whether the file should be moved instead of copied. Zips will be extracted and then deleted.
+            prefix: Optional path prefix for the added files.
         """
         assert not self.is_frozen
         assert os.path.exists(path)
+        target_dir = self._raw_dir
+        if prefix is not None:
+            target_dir = target_dir.join_dir(prefix, create=True)
         ext = os.path.splitext(path)[1]
         if ext == '.zip':
             try:
                 with ZipFile(path) as zf:
-                    zf.extractall(self._raw_dir.os_path)
+                    zf.extractall(target_dir.os_path)
+                if move:
+                    os.remove(path)
                 return
             except BadZipFile:
                 pass
 
         if move:
-            shutil.move(path, self._raw_dir.os_path)
+            shutil.move(path, target_dir.os_path)
         else:
-            shutil.copy(path, self._raw_dir.os_path)
+            shutil.copy(path, target_dir.os_path)
 
     @property
     def is_frozen(self) -> bool:
@@ -408,22 +426,10 @@ class StagingUploadFiles(UploadFiles):
             if not calc.get('restricted', False):
                 mainfile: str = calc['mainfile']
                 assert mainfile is not None
-                mainfile_dirpath = os.path.dirname(mainfile)
-                source_dir = self._restricted_dir.join_dir(mainfile_dirpath)
-                assert source_dir.exists()
-
-                target_dir = self._public_dir.join_dir(mainfile_dirpath, create=False)
-                if target_dir.exists():
-                    # TODO this is an indicator that one calculation was uploaded in a
-                    # subdirectory to another calculation. The packing gets more complex
-                    # if we want to support this.
-                    self.logger.error('nested calculation raw data', calc_hash=calc['hash'])
-                    continue
-                target_parent_dir = os.path.dirname(target_dir.os_path)
-                if not os.path.exists(target_parent_dir):
-                    os.makedirs(target_parent_dir)
-
-                shutil.move(os.path.join(self._restricted_dir.os_path, os.path.dirname(mainfile)), target_parent_dir)
+                for filepath in self.calc_files(mainfile):
+                    os.rename(
+                        self._restricted_dir.join_file(filepath).os_path,
+                        self._public_dir.join_file(filepath).os_path)
 
         # create bags
         make_bag(self._restricted_dir.os_path, bag_info=bagit_metadata, checksums=['sha512'])
@@ -472,6 +478,14 @@ class StagingUploadFiles(UploadFiles):
             for file in files:
                 yield os.path.join(root, file)
 
+    def calc_files(self, mainfile: str) -> Iterable[str]:
+        """
+        Returns all the auxfiles and mainfile for a given mainfile. This implements
+        nomad's logic about what is part of a calculation and what not.
+        """
+        dir = os.path.dirname(self._raw_dir.join_file(mainfile).os_path)
+        return sorted(path for path in os.listdir(dir) if os.path.isfile(path))
+
     def calc_hash(self, mainfile: str) -> str:
         """
         Calculates a hash for the given calc.
@@ -482,10 +496,8 @@ class StagingUploadFiles(UploadFiles):
         Raises:
             KeyError: If the mainfile does not exist.
         """
-        dir = os.path.dirname(self._raw_dir.join_file(mainfile).os_path)
-        files = sorted(path for path in os.listdir(dir) if os.path.isfile(path))
         hash = hashlib.sha512()
-        for filepath in files:
+        for filepath in self.calc_files(mainfile):
             with open(filepath, 'rb') as f:
                 for data in iter(lambda: f.read(65536), b''):
                     hash.update(data)
@@ -534,6 +546,7 @@ class PublicUploadFiles(UploadFiles):
         assert read
         with self._file('archive', self._archive_ext, '%s.%s' % (calc_hash, self._archive_ext)) as f:
             yield f
+
 
     def repack(self) -> None:
         """

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Generator
+from typing import Generator, Any, Dict
 import os
 import os.path
 import shutil
@@ -40,62 +40,37 @@ class TestObjects:
         file = PathObject(test_bucket, 'sub/test_id')
         assert not os.path.exists(os.path.dirname(file.os_path))
 
-    def test_directory_create(self, test_bucket):
-        directory = DirectoryObject(test_bucket, 'sub/test_id', create=True)
-        assert directory.exists()
-        assert os.path.isdir(directory.os_path)
+    @pytest.mark.parametrize('dirpath', ['test', os.path.join('sub', 'test')])
+    @pytest.mark.parametrize('create', [True, False])
+    @pytest.mark.parametrize('prefix', [True, False])
+    def test_directory(self, test_bucket: str, dirpath: str, create: bool, prefix: bool) -> None:
+        directory = DirectoryObject(test_bucket, dirpath, create=create, prefix=prefix)
+        assert directory.exists() == create
+        assert os.path.isdir(directory.os_path) == create
+        assert directory.os_path.endswith(os.path.join('tes' if prefix else '', 'test'))
 
-    def test_directory_existing(self, test_bucket):
-        directory = DirectoryObject(test_bucket, 'sub/test_id', create=False)
-        assert not directory.exists()
-        assert not os.path.exists(directory.os_path)
-        assert not os.path.exists(os.path.dirname(directory.os_path))
+    @pytest.mark.parametrize('dirpath', ['test', os.path.join('sub', 'test')])
+    @pytest.mark.parametrize('create', [True, False])
+    @pytest.mark.parametrize('join_create', [True, False])
+    @pytest.mark.parametrize('prefix', [True, False])
+    def test_directory_join(self, test_bucket: str, dirpath: str, create: bool, prefix: bool, join_create: bool) -> None:
+        directory = DirectoryObject(test_bucket, 'parent', create=create, prefix=prefix)
+        directory = directory.join_dir(dirpath, create=join_create)
 
-    def test_directory_join_dir_create(self, test_bucket):
-        directory = DirectoryObject(test_bucket, 'sub/parent', create=True)
-        directory = directory.join_dir('test_id')
-        assert directory.exists()
-        assert os.path.isdir(directory.os_path)
+        assert directory.exists() == join_create
+        assert os.path.isdir(directory.os_path) == join_create
+        assert dirpath.endswith(os.path.join('', 'test'))
 
-    def test_directory_join_dir_existing(self, test_bucket):
-        directory = DirectoryObject(test_bucket, 'sub/parent', create=False)
-        directory = directory.join_dir('test_id')
-        assert not directory.exists()
-        assert not os.path.exists(directory.os_path)
-        assert not os.path.exists(os.path.dirname(directory.os_path))
-
-    def test_directory_join_dir_join_create(self, test_bucket):
-        directory = DirectoryObject(test_bucket, 'sub/parent', create=False)
-        directory = directory.join_dir('test_id', create=True)
-        assert directory.exists()
-        assert os.path.isdir(directory.os_path)
-
-    def test_directory_join_dir_join_exist(self, test_bucket):
-        directory = DirectoryObject(test_bucket, 'sub/parent', create=True)
-        directory = directory.join_dir('test_id', create=False)
-        assert not directory.exists()
-        assert not os.path.exists(directory.os_path)
-        assert os.path.exists(os.path.dirname(directory.os_path))
-
-    def test_directory_join_file_dir_create(self, test_bucket):
-        directory = DirectoryObject(test_bucket, 'sub/parent', create=True)
-        file = directory.join_file('test_id')
-        assert os.path.exists(directory.os_path)
-        assert os.path.exists(os.path.dirname(file.os_path))
-
-    def test_directory_join_file_dir_existing(self, test_bucket):
-        directory = DirectoryObject(test_bucket, 'sub/parent', create=False)
-        file = directory.join_file('test_id')
-        assert not os.path.exists(directory.os_path)
-        assert not os.path.exists(os.path.dirname(file.os_path))
-
-    def test_directory_prefix(self, test_bucket):
-        directory = DirectoryObject(test_bucket, 'sub/parent', create=True, prefix=True)
-        assert os.path.join('sub/par/parent') in directory.os_path
-        assert os.path.isdir(directory.os_path)
+    @pytest.mark.parametrize('filepath', ['test', 'sub/test'])
+    @pytest.mark.parametrize('create', [True, False])
+    def test_directory_join_file_dir_create(self, test_bucket: str, filepath: str, create: bool):
+        directory = DirectoryObject(test_bucket, 'parent', create=create)
+        file = directory.join_file(filepath)
+        assert os.path.exists(directory.os_path) == create
+        assert os.path.exists(os.path.dirname(file.os_path)) == create
 
 
-example_calc = {
+example_calc: Dict[str, Any] = {
     'hash': '0',
     'mainfile': 'examples_template/template.json',
     'data': 'value'
@@ -193,6 +168,10 @@ class TestPublicMetadata(MetadataContract):
 
 
 class UploadFilesContract:
+
+    def create_test_upload(self, test_upload_id, calc_specs: str) -> UploadFiles:
+        raise NotImplementedError
+
     @pytest.fixture(scope='function')
     def test_upload_id(self) -> Generator[str, None, None]:
         yield 'test_upload'
@@ -201,9 +180,13 @@ class UploadFilesContract:
             if directory.exists():
                 directory.delete()
 
-    @pytest.fixture(scope='function')
-    def test_upload(self, test_upload_id) -> Generator[UploadFiles, None, None]:
-        raise NotImplementedError()
+    @pytest.fixture(scope='function', params=['r', 'rr', 'pr', 'rp', 'p', 'pp'])
+    def test_upload(self, request, test_upload_id) -> Generator[UploadFiles, None, None]:
+        calc_specs = request.param
+        upload = self.create_test_upload(test_upload_id, calc_specs=calc_specs)
+        with upload.metadata as md:
+            assert len(md) == len(calc_specs)
+        yield upload
 
     @pytest.fixture(scope='function')
     def empty_test_upload(self, test_upload_id) -> Generator[UploadFiles, None, None]:
@@ -233,25 +216,40 @@ class UploadFilesContract:
 
 
 class TestStagingUploadFiles(UploadFilesContract):
+
     @staticmethod
-    def create_test_upload(test_upload_id):
-        upload = StagingUploadFiles(test_upload_id, create=True, archive_ext='txt')
-        upload.add_rawfiles(example_file)
-        with upload.archive_file(example_calc_hash, read=False) as f:
-            f.write(b'archive')
-        upload.metadata.insert(example_calc)
+    def create_upload(upload_id: str, calc_specs: str) -> StagingUploadFiles:
+        upload = StagingUploadFiles(upload_id, create=True, archive_ext='txt')
+
+        prefix = 0
+        for calc_spec in calc_specs:
+            upload.add_rawfiles(example_file, prefix=None if prefix == 0 else str(prefix))
+            hash = str(int(example_calc_hash) + prefix)
+            with upload.archive_file(hash, read=False) as f:
+                f.write(b'archive')
+            calc = dict(**example_calc)
+            calc['hash'] = hash
+            if calc_spec == 'r':
+                calc['restricted'] = True
+            elif calc_spec == 'p':
+                calc['restricted'] = False
+            upload.metadata.insert(calc)
+            prefix += 1
         return upload
 
-    @pytest.fixture(scope='function')
-    def test_upload(self, test_upload_id):
-        yield TestStagingUploadFiles.create_test_upload(test_upload_id)
+    def create_test_upload(self, test_upload_id: str, calc_specs: str) -> StagingUploadFiles:
+        return TestStagingUploadFiles.create_upload(test_upload_id, calc_specs=calc_specs)
 
     @pytest.fixture(scope='function')
     def empty_test_upload(self, test_upload_id) -> Generator[UploadFiles, None, None]:
         yield StagingUploadFiles(test_upload_id, create=True)
 
-    def test_add_rawfiles_zip(self, test_upload):
+    @pytest.mark.parametrize('prefix', [None, 'prefix'])
+    def test_add_rawfiles_zip(self, test_upload_id, prefix):
+        test_upload = StagingUploadFiles(test_upload_id, create=True, archive_ext='txt')
+        test_upload.add_rawfiles(example_file, prefix=prefix)
         for filepath in example_file_contents:
+            filepath = os.path.join(prefix, filepath) if prefix else filepath
             with test_upload.raw_file(filepath) as f:
                 content = f.read()
                 if filepath == example_file_mainfile:
@@ -271,15 +269,18 @@ class TestStagingUploadFiles(UploadFilesContract):
         for filepath in test_upload.all_rawfiles:
             assert os.path.isfile(filepath)
 
+    def test_calc_files(self, test_upload: StagingUploadFiles):
+        for one, two in zip(test_upload.calc_files(example_calc_hash), sorted(example_file_contents)):
+            assert one == two
+
 
 class TestPublicUploadFiles(UploadFilesContract):
 
     @pytest.fixture(scope='function')
-    def empty_test_upload(self, test_upload_id) -> Generator[UploadFiles, None, None]:
+    def empty_test_upload(self, test_upload_id: str) -> Generator[UploadFiles, None, None]:
         yield PublicUploadFiles(test_upload_id, 'txt')
 
-    @pytest.fixture(scope='function')
-    def test_upload(self, test_upload_id):
-        staging_upload = TestStagingUploadFiles.create_test_upload(test_upload_id)
+    def create_test_upload(self, test_upload_id: str, calc_specs: str) -> PublicUploadFiles:
+        staging_upload = TestStagingUploadFiles.create_upload(test_upload_id, calc_specs=calc_specs)
         staging_upload.pack()
-        yield PublicUploadFiles(test_upload_id, 'txt')
+        return PublicUploadFiles(test_upload_id, 'txt')

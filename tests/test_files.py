@@ -161,6 +161,8 @@ def archive_config(monkeypatch, request):
         config.files.uploads_bucket,
         config.files.raw_bucket,
         config.files.archive_bucket,
+        config.files.staging_bucket,
+        config.files.public_bucket,
         request.param)
     monkeypatch.setattr(config, 'files', new_config)
     yield
