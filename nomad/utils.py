@@ -49,6 +49,8 @@ import re
 
 from nomad import config
 
+default_hash_len = 28
+""" Length of hashes and hash-based ids (e.g. calc, upload) in nomad. """
 
 def sanitize_logevent(event: str) -> str:
     """
@@ -169,7 +171,7 @@ def create_uuid() -> str:
     return base64.b64encode(uuid.uuid4().bytes, altchars=b'-_').decode('utf-8')[0:-2]
 
 
-def hash(obj: Union[IO, str], length=28) -> str:
+def hash(obj: Union[IO, str], length=default_hash_len) -> str:
     """
     Returns a web-save base64 encoded 28 long hash for the given contents.
     First 28 character of an URL safe base 64 encoded sha512 digest.

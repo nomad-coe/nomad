@@ -36,7 +36,8 @@ almost readonly (beside metadata) storage.
                       /archive-restricted.hdf5.zip
 """
 
-from typing import IO, Generator, Dict, Any, Iterable
+from abc import ABCMeta
+from typing import IO, Generator, Dict, Iterator
 from filelock import Timeout, FileLock
 import ujson
 import os.path
@@ -44,6 +45,9 @@ import os
 import shutil
 from zipfile import ZipFile, BadZipFile
 from bagit import make_bag
+import contextlib
+import hashlib
+import itertools
 
 from nomad import config, utils
 
@@ -88,29 +92,120 @@ class DirectoryObject(PathObject):
     def join_file(self, path) -> 'FileObject':
         return FileObject(None, None, os_path=os.path.join(self.os_path, path))
 
+    def exists(self) -> bool:
+        return os.path.isdir(self.os_path)
+
 
 class MetadataTimeout(Exception):
     pass
 
 
-class Metadata():
+class Metadata(metaclass=ABCMeta):
     """
-    A contextmanager that wraps around a metadata dictionary. It loads and write
+    An ABC for a contextmanager that encapsulates access to a set of calc metadata.
+    Allows to add, update, read metadata. Subclasses might deal with concurrent access.
+    """
+    def __enter__(self) -> 'Metadata':
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        return None
+
+    def open(self):
+        pass
+
+    def close(self):
+        pass
+
+    def insert(self, calc: dict) -> None:
+        """ Insert a calc, using hash as key. """
+        raise NotImplementedError()
+
+    def update(self, calc_hash: str, updates: dict) -> dict:
+        """ Updating a calc, using hash as key and running dict update with the given data. """
+        raise NotImplementedError()
+
+    def get(self, calc_id: str) -> dict:
+        """ Retrive the calc metadata for a given calc. """
+        raise NotImplementedError()
+
+    def __iter__(self) -> Iterator[dict]:
+        raise NotImplementedError()
+
+    def __len__(self) -> int:
+        raise NotImplementedError()
+
+
+class StagingMetadata(Metadata):
+    """
+    A Metadata implementation based on individual .json files per calc stored in a given
+    directory.
+    Arguments:
+        directory: The DirectoryObject for the directory to store the metadata in.
+    """
+    def __init__(self, directory: DirectoryObject) -> None:
+        self._dir = directory
+
+    def __enter__(self) -> 'Metadata':
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        return None
+
+    def open(self):
+        pass
+
+    def close(self):
+        pass
+
+    def insert(self, calc: dict) -> None:
+        id = calc['hash']
+        path = self._dir.join_file('%s.json' % id)
+        assert not path.exists()
+        with open(path.os_path, 'wt') as f:
+            ujson.dump(calc, f)
+
+    def update(self, calc_hash: str, updates: dict) -> dict:
+        metadata = self.get(calc_hash)
+        metadata.update(updates)
+        path = self._dir.join_file('%s.json' % calc_hash)
+        with open(path.os_path, 'wt') as f:
+            ujson.dump(metadata, f)
+        return metadata
+
+    def get(self, calc_id: str) -> dict:
+        try:
+            with open(self._dir.join_file('%s.json' % calc_id).os_path, 'rt') as f:
+                return ujson.load(f)
+        except FileNotFoundError:
+            raise KeyError()
+
+    def __iter__(self) -> Iterator[dict]:
+        for root, _, files in os.walk(self._dir.os_path):
+            for file in files:
+                with open(os.path.join(root, file), 'rt') as f:
+                    yield ujson.load(f)
+
+    def __len__(self) -> int:
+        return len(os.listdir(self._dir.os_path))
+
+
+class PublicMetadata(Metadata):
+    """
+    A Metadata implementation based on a single .json file. It loads and write
     the metadata to the given path and uses a lock to deal with concurrent access.
 
     Arguments:
         path: The parent directory for the metadata and lock file.
         lock_timeout: Max timeout before __enter__ raises MetadataTimeout while waiting
             for an available lock on the metadata file. Default is 1s.
-        calc_id_key: The key used for ensuring uniqueness on calc metadata. Default is 'hash'.
     """
-    def __init__(self, path: str, lock_timeout=1, calc_id_key='hash') -> None:
+    def __init__(self, path: str, lock_timeout=1) -> None:
         self._db_file = os.path.join(path, 'metadata.json')
         self._lock_file = os.path.join(path, 'metadata.json.lock')
         self._lock: FileLock = FileLock(self._lock_file, timeout=lock_timeout)
         self._modified = False
-        self._calc_id_key = calc_id_key
-        self.data: Dict[Any, dict] = None
+        self.data: Dict[str, dict] = None
 
     def __enter__(self) -> 'Metadata':
         self.open()
@@ -144,74 +239,66 @@ class Metadata():
         self._lock.release()
 
     def insert(self, calc: dict) -> None:
-        """ Insert a calc, using hash as key. """
         assert self.data is not None, "Metadata is not open."
 
-        id = calc[self._calc_id_key]
+        id = calc['hash']
         assert id not in self.data
         self.data[id] = calc
         self._modified = True
 
-    def update(self, calc: dict) -> None:
-        """ Updating a calc, using hash as key and running dict update with the given data. """
+    def update(self, calc_hash: str, updates: dict) -> dict:
         assert self.data is not None, "Metadata is not open."
-
-        id = calc[self._calc_id_key]
-        if id not in self.data:
+        if calc_hash not in self.data:
             raise KeyError()
-        self.data[id].update(calc)
-        self._modified = True
 
-    def get(self, calc_id: Any) -> dict:
-        """ Retrive the calc metadata for a given calc. """
+        self.data[calc_hash].update(updates)
+        self._modified = True
+        return self.data[calc_hash]
+
+    def get(self, calc_hash: str) -> dict:
         assert self.data is not None, "Metadata is not open."
 
-        return self.data[calc_id]
+        return self.data[calc_hash]
+
+    def __iter__(self) -> Iterator[dict]:
+        assert self.data is not None, "Metadata is not open."
+        return self.data.values().__iter__()
+
+    def __len__(self) -> int:
+        assert self.data is not None, "Metadata is not open."
+        return len(self.data)
 
 
-class UploadFiles():
-    def __init__(self, upload_id: str) -> None:
+class UploadFiles(metaclass=ABCMeta):
+    def __init__(self, upload_id: str, archive_ext: str = 'json') -> None:
         self.logger = utils.get_logger(__name__, upload_id=upload_id)
+        self.upload_id = upload_id
+        self._archive_ext = archive_ext
 
-    def get_metadata(self, calc_hash: str) -> dict:
-        """
-        Returns: the metadata for the given calc.
-        Arguments:
-            calc_hash: The hash identifying the calculation.
-        Raises:
-            KeyError: If the calc does not exist.
-        """
-        raise NotImplementedError()
+    @property
+    def metadata(self) -> Metadata:
+        """ The calc metadata for this upload. """
+        raise NotImplementedError
 
-    def raw_file(self, file_path: str, *args, **kwargs) -> Generator[IO, None, None]:
+    @contextlib.contextmanager
+    def raw_file(self, file_path: str, read: bool = True) -> Generator[IO, None, None]:
         """
-        Opens a raw file and returns a file-like objects. Additional arguments are
-        based to the respective low-level open function.
+        Opens a raw file and returns a file-like objects.
         Arguments:
             file_path: The path to the file relative to the upload.
+            read: Open for read or write. Default is True=read.
         Raises:
             KeyError: If the file does not exist.
         """
         raise NotImplementedError()
 
-    def archive_file(self, calc_hash: str, extension: str, *args, **kwargs) -> Generator[IO, None, None]:
+    @contextlib.contextmanager
+    def archive_file(self, calc_hash: str, read: bool = True) -> Generator[IO, None, None]:
         """
-        Opens a archive file and returns a file-like objects. Additional arguments are
-        based to the respective low-level open function.
+        Opens a archive file and returns a file-like objects.
         Arguments:
             calc_hash: The hash identifying the calculation.
-        Raises:
-            KeyError: If the calc does not exist.
-        """
-        raise NotImplementedError()
-
-    def all_metadata(self) -> Iterable[Dict[Any, dict]]:
-        """ Returns: An iterable with the metadata of all calcs """
-        raise NotImplementedError()
-
-    def update_metadata(self, calc_hash: str, updates: dict) -> None:
-        """
-        Allows to update calculation metadata.
+            read: Open for read or write. Default is True=read.
         Raises:
             KeyError: If the calc does not exist.
         """
@@ -219,46 +306,46 @@ class UploadFiles():
 
 
 class StagingUploadFiles(UploadFiles):
-    def __init__(self, upload_id: str, create: bool = False) -> None:
-        super().__init__(upload_id=upload_id)
+    def __init__(self, upload_id: str, create: bool = False, archive_ext: str = 'json') -> None:
+        super().__init__(upload_id=upload_id, archive_ext=archive_ext)
+
         self._upload_dir = DirectoryObject(config.files.staging_bucket, upload_id, create=create)
         if not create and not self._upload_dir.exists():
             raise KeyError()
         self._raw_dir = self._upload_dir.join_dir('raw')
         self._archive_dir = self._upload_dir.join_dir('archive')
-        self._metadata_dir = self._upload_dir.join_dir('metadata')
         self._frozen_file = self._upload_dir.join_file('.frozen')
         self._restricted_dir = self._upload_dir.join_dir('.restricted', create=False)
         self._public_dir = self._upload_dir.join_dir('.public', create=False)
 
-    def raw_file(self, file_path: str, *args, **kwargs) -> Generator[IO, None, None]:
+        metadata_dir = self._upload_dir.join_dir('metadata')
+        self._metadata = StagingMetadata(metadata_dir)
+
+    @property
+    def metadata(self) -> Metadata:
+        return self._metadata
+
+    @contextlib.contextmanager
+    def _file(self, path, read: bool) -> Generator[IO, None, None]:
+        try:
+            with open(path, 'rb' if read else 'wb') as f:
+                yield f
+        except FileNotFoundError:
+            raise KeyError()
+
+    @contextlib.contextmanager
+    def raw_file(self, file_path: str, read: bool = True) -> Generator[IO, None, None]:
         path = os.path.join(self._raw_dir.os_path, file_path)
-        try:
-            with open(path, *args, **kwargs) as f:
-                yield f
-        except FileNotFoundError:
-            raise KeyError()
+        with self._file(path, read) as f:
+            yield f
 
-    def archive_file(self, calc_hash: str, extension: str, *args, **kwargs) -> Generator[IO, None, None]:
-        path = os.path.join(self._archive_dir.os_path, '%s.%s' % (calc_hash, extension))
-        if not os.path.exists(path):
-            raise KeyError()
-        try:
-            with open(path, *args, **kwargs) as f:
-                yield f
-        except FileNotFoundError:
-            raise KeyError()
+    @contextlib.contextmanager
+    def archive_file(self, calc_hash: str, read: bool = True) -> Generator[IO, None, None]:
+        path = os.path.join(self._archive_dir.os_path, '%s.%s' % (calc_hash, self._archive_ext))
+        with self._file(path, read) as f:
+            yield f
 
-    def all_metadata(self) -> Iterable[dict]:
-        pass
-
-    def get_metadata(self, calc_hash: str) -> dict:
-        pass
-
-    def update_metadata(self, calc_hash: str, updates: dict) -> None:
-        pass
-
-    def add_rawfiles(self, path: str) -> None:
+    def add_rawfiles(self, path: str, move: bool = False) -> None:
         """
         Add rawfiles to the upload. The given file will be moved, or extracted.
         Arguments:
@@ -267,7 +354,7 @@ class StagingUploadFiles(UploadFiles):
         assert not self.is_frozen
         assert os.path.exists(path)
         ext = os.path.splitext(path)[1]
-        if ext == 'zip':
+        if ext == '.zip':
             try:
                 with ZipFile(path) as zf:
                     zf.extractall(self._raw_dir.os_path)
@@ -275,13 +362,10 @@ class StagingUploadFiles(UploadFiles):
             except BadZipFile:
                 pass
 
-        shutil.move(path, self._raw_dir.os_path)
-
-    def insert_metadata(self, calc_hash: str, calc: dict) -> None:
-        """ Allows to add calculation metadata. """
-        metadata_path = self._metadata_dir.join_file(calc_hash)
-        with open(metadata_path.os_path, 'wt') as f:
-            ujson.dump(calc, f, ensure_ascii=False)
+        if move:
+            shutil.move(path, self._raw_dir.os_path)
+        else:
+            shutil.copy(path, self._raw_dir.os_path)
 
     @property
     def is_frozen(self) -> bool:
@@ -306,60 +390,77 @@ class StagingUploadFiles(UploadFiles):
         shutil.copytree(self._raw_dir.os_path, self._restricted_dir.os_path)
 
         # move public data .restricted -> .public
-        for calc in self.all_metadata():
+        for calc in self.metadata:
             if not calc.get('restricted', False):
                 mainfile: str = calc['mainfile']
-                dirname = os.path.dirname(mainfile)
-                target_dir = self._public_dir.join_dir(dirname, create=False)
+                assert mainfile is not None
+                mainfile_dirpath = os.path.dirname(mainfile)
+                source_dir = self._restricted_dir.join_dir(mainfile_dirpath)
+                assert source_dir.exists()
+
+                target_dir = self._public_dir.join_dir(mainfile_dirpath, create=False)
                 if target_dir.exists():
                     # TODO this is an indicator that one calculation was uploaded in a
                     # subdirectory to another calculation. The packing gets more complex
                     # if we want to support this.
                     self.logger.error('nested calculation raw data', calc_hash=calc['hash'])
                     continue
-                shutil.move(os.path.join(self._restricted_dir.os_path, os.path.dirname(mainfile)), target_dir.os_path)
+                target_parent_dir = os.path.dirname(target_dir.os_path)
+                if not os.path.exists(target_parent_dir):
+                    os.makedirs(target_parent_dir)
+
+                shutil.move(os.path.join(self._restricted_dir.os_path, os.path.dirname(mainfile)), target_parent_dir)
 
         # create bags
-        make_bag(self._restricted_dir, bag_info=bagit_metadata, checksums=['sha512'])
-        make_bag(self._public_dir, bag_info=bagit_metadata, checksums=['sha512'])
+        make_bag(self._restricted_dir.os_path, bag_info=bagit_metadata, checksums=['sha512'])
+        make_bag(self._public_dir.os_path, bag_info=bagit_metadata, checksums=['sha512'])
 
         # zip bags
         def zip_dir(zip_filepath, path):
+            root_len = len(path)
             with ZipFile(zip_filepath, 'w') as zf:
                 for root, _, files in os.walk(path):
                     for file in files:
-                        zf.write(os.path.join(root, file))
+                        filepath = os.path.join(root, file)
+                        zf.write(filepath, filepath[root_len:])
 
         packed_dir = self._upload_dir.join_dir('.packed', create=True)
 
-        zip_dir(packed_dir.join_file('raw-restricted.bagit.zip').os_path, self._restricted_dir)
-        zip_dir(packed_dir.join_file('raw-public.bagit.zip').os_path, self._restricted_dir)
+        zip_dir(packed_dir.join_file('raw-restricted.bagit.zip').os_path, self._restricted_dir.os_path)
+        zip_dir(packed_dir.join_file('raw-public.bagit.zip').os_path, self._public_dir.os_path)
 
         # zip archives
-        # archive_public_zip = ZipFile(packed_dir.join_file('archive-public.json.zip'))
-        # archive_restricted_zip = ZipFile(packed_dir.join_file('archive-restricted.json.zip'))
+        def create_zipfile(prefix: str) -> ZipFile:
+            file = packed_dir.join_file('archive-%s.%s.zip' % (prefix, self._archive_ext))
+            return ZipFile(file.os_path, mode='w')
 
-        # try:
-        #     for calc in self.all_metadata():
-        #         if not calc.get('restricted', False):
-        #             # public
-        #             pass
-        #         else:
-        #             # restricted
-        #             pass
-        # finally:
-        #     archive_public_zip.close()
-        #     archive_restricted_zip.close()
+        archive_public_zip = create_zipfile('public')
+        archive_restricted_zip = create_zipfile('restricted')
+        for calc in self.metadata:
+            archive_filename = '%s.%s' % (calc['hash'], self._archive_ext)
+            archive_zip = archive_restricted_zip if calc.get('restricted', False) else archive_public_zip
+            archive_zip.write(self._archive_dir.join_file(archive_filename).os_path, archive_filename)
 
-        # move metadata
+        # pack metadata
+        with PublicMetadata(packed_dir.os_path) as packed_metadata:
+            for calc in self.metadata:
+                packed_metadata.insert(calc)
 
-    def all_files(self) -> Generator[str, None, None]:
+        # move to public bucket
+        target_dir = DirectoryObject(config.files.public_bucket, self.upload_id, create=False)
+        assert not target_dir.exists()
+        shutil.move(packed_dir.os_path, target_dir.os_path)
+
+    @property
+    def all_rawfiles(self) -> Generator[str, None, None]:
         """ Returns: A generator of all file paths of all raw files. """
-        pass
+        for root, _, files in os.walk(self._raw_dir.os_path):
+            for file in files:
+                yield os.path.join(root, file)
 
     def calc_hash(self, mainfile: str) -> str:
         """
-        Calculates a hash for the given calc. It is only available if upload *is_bag*.
+        Calculates a hash for the given calc.
         Arguments:
             mainfile: The mainfile path relative to the upload that identifies the calc in the folder structure.
         Returns:
@@ -367,6 +468,15 @@ class StagingUploadFiles(UploadFiles):
         Raises:
             KeyError: If the mainfile does not exist.
         """
+        dir = os.path.dirname(self._raw_dir.join_file(mainfile).os_path)
+        files = sorted(path for path in os.listdir(dir) if os.path.isfile(path))
+        hash = hashlib.sha512()
+        for filepath in files:
+            with open(filepath, 'rb') as f:
+                for data in iter(lambda: f.read(65536), b''):
+                    hash.update(data)
+
+        return utils.websave_hash(hash.digest(), utils.default_hash_len)
 
     def upload_hash(self) -> str:
         """ Returns: A hash for the whole upload. It is only available if upload *is_bag*. """
@@ -374,8 +484,41 @@ class StagingUploadFiles(UploadFiles):
 
 
 class PublicUploadFiles(UploadFiles):
-    def __init__(self, upload_hash: str) -> None:
-        pass
+    def __init__(self, upload_id: str, *args, **kwargs) -> None:
+        super().__init__(upload_id, *args, **kwargs)
+
+        self._upload_dir = DirectoryObject(config.files.public_bucket, upload_id, create=False)
+        self._metadata = PublicMetadata(self._upload_dir.os_path)
+
+    @property
+    def metadata(self) -> Metadata:
+        return self._metadata
+
+    @contextlib.contextmanager
+    def _file(self, prefix: str, ext: str, path: str) -> Generator[IO, None, None]:
+        for access in ['public', 'restricted']:
+            try:
+                zip_file = self._upload_dir.join_file('%s-%s.%s.zip' % (prefix, access, ext))
+                with ZipFile(zip_file.os_path) as zf:
+                    with zf.open(path, 'r') as f:
+                        yield f
+                        return
+            except KeyError:
+                pass
+
+        raise KeyError()
+
+    @contextlib.contextmanager
+    def raw_file(self, file_path: str, read: bool = True) -> Generator[IO, None, None]:
+        assert read
+        with self._file('raw', 'bagit', 'data/' + file_path) as f:
+            yield f
+
+    @contextlib.contextmanager
+    def archive_file(self, calc_hash: str, read: bool = True) -> Generator[IO, None, None]:
+        assert read
+        with self._file('archive', self._archive_ext, '%s.%s' % (calc_hash, self._archive_ext)) as f:
+            yield f
 
     def repack(self) -> None:
         """
