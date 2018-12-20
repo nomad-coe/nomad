@@ -47,17 +47,31 @@ from zipfile import ZipFile, BadZipFile
 from bagit import make_bag
 import contextlib
 import hashlib
-import itertools
 
 from nomad import config, utils
 
 
 class PathObject:
-    def __init__(self, bucket: str, object_id: str, os_path: str = None) -> None:
+    """
+    Object storage-like abstraction for paths in general.
+    Arguments:
+        bucket: The bucket to store this object in
+        object_id: The object id (i.e. directory path)
+        os_path: Override the "object storage" path with the given path.
+        prefix: Add a 3-digit prefix directory, e.g. foo/test/ -> foo/tes/test
+    """
+    def __init__(self, bucket: str, object_id: str, os_path: str = None, prefix: bool = False) -> None:
         if os_path:
             self.os_path = os_path
         else:
             self.os_path = os.path.join(config.fs.objects, bucket, object_id)
+
+        if prefix:
+            segments = list(os.path.split(self.os_path))
+            last = segments[-1]
+            segments[-1] = last[:3]
+            segments.append(last)
+            self.os_path = os.path.join(*segments)
 
     def delete(self) -> None:
         shutil.rmtree(self.os_path)
@@ -69,15 +83,14 @@ class PathObject:
         return self.os_path
 
 
-class FileObject(PathObject):
-    def __init__(self, bucket: str, object_id: str, create: bool = False, **kwargs) -> None:
-        super().__init__(bucket, object_id, **kwargs)
-        dirname = os.path.dirname(self.os_path)
-        if create and not os.path.isdir(dirname):
-            os.makedirs(dirname)
-
-
 class DirectoryObject(PathObject):
+    """
+    Object storage-like abstraction for directories.
+    Arguments:
+        bucket: The bucket to store this object in
+        object_id: The object id (i.e. directory path)
+        create: True if the directory structure should be created. Default is False.
+    """
     def __init__(self, bucket: str, object_id: str, create: bool = False, **kwargs) -> None:
         super().__init__(bucket, object_id, **kwargs)
         self._create = create
@@ -89,8 +102,8 @@ class DirectoryObject(PathObject):
             create = self._create
         return DirectoryObject(None, None, create=create, os_path=os.path.join(self.os_path, path))
 
-    def join_file(self, path) -> 'FileObject':
-        return FileObject(None, None, os_path=os.path.join(self.os_path, path))
+    def join_file(self, path) -> PathObject:
+        return PathObject(None, None, os_path=os.path.join(self.os_path, path))
 
     def exists(self) -> bool:
         return os.path.isdir(self.os_path)
@@ -309,7 +322,8 @@ class StagingUploadFiles(UploadFiles):
     def __init__(self, upload_id: str, create: bool = False, archive_ext: str = 'json') -> None:
         super().__init__(upload_id=upload_id, archive_ext=archive_ext)
 
-        self._upload_dir = DirectoryObject(config.files.staging_bucket, upload_id, create=create)
+        self._upload_dir = DirectoryObject(
+            config.files.staging_bucket, upload_id, create=create, prefix=True)
         if not create and not self._upload_dir.exists():
             raise KeyError()
         self._raw_dir = self._upload_dir.join_dir('raw')
@@ -447,7 +461,7 @@ class StagingUploadFiles(UploadFiles):
                 packed_metadata.insert(calc)
 
         # move to public bucket
-        target_dir = DirectoryObject(config.files.public_bucket, self.upload_id, create=False)
+        target_dir = DirectoryObject(config.files.public_bucket, self.upload_id, create=False, prefix=True)
         assert not target_dir.exists()
         shutil.move(packed_dir.os_path, target_dir.os_path)
 
@@ -487,7 +501,8 @@ class PublicUploadFiles(UploadFiles):
     def __init__(self, upload_id: str, *args, **kwargs) -> None:
         super().__init__(upload_id, *args, **kwargs)
 
-        self._upload_dir = DirectoryObject(config.files.public_bucket, upload_id, create=False)
+        self._upload_dir = DirectoryObject(
+            config.files.public_bucket, upload_id, create=False, prefix=True)
         self._metadata = PublicMetadata(self._upload_dir.os_path)
 
     @property

@@ -19,7 +19,7 @@ import shutil
 import pytest
 
 from nomad import config
-from nomad.uploads import DirectoryObject, FileObject
+from nomad.uploads import DirectoryObject, PathObject
 from nomad.uploads import Metadata, MetadataTimeout, PublicMetadata, StagingMetadata
 from nomad.uploads import StagingUploadFiles, PublicUploadFiles, UploadFiles
 
@@ -36,13 +36,8 @@ class TestObjects:
         if os.path.exists(bucket):
             shutil.rmtree(os.path.join(config.fs.objects, 'test_bucket'))
 
-    def test_file_create(self, test_bucket):
-        file = FileObject(test_bucket, 'sub/test_id', create=True)
-        assert os.path.isdir(os.path.dirname(file.os_path))
-        assert not file.exists()
-
     def test_file_dir_existing(self, test_bucket):
-        file = FileObject(test_bucket, 'sub/test_id', create=False)
+        file = PathObject(test_bucket, 'sub/test_id')
         assert not os.path.exists(os.path.dirname(file.os_path))
 
     def test_directory_create(self, test_bucket):
@@ -93,6 +88,11 @@ class TestObjects:
         file = directory.join_file('test_id')
         assert not os.path.exists(directory.os_path)
         assert not os.path.exists(os.path.dirname(file.os_path))
+
+    def test_directory_prefix(self, test_bucket):
+        directory = DirectoryObject(test_bucket, 'sub/parent', create=True, prefix=True)
+        assert os.path.join('sub/par/parent') in directory.os_path
+        assert os.path.isdir(directory.os_path)
 
 
 example_calc = {
@@ -197,7 +197,7 @@ class UploadFilesContract:
     def test_upload_id(self) -> Generator[str, None, None]:
         yield 'test_upload'
         for bucket in [config.files.staging_bucket, config.files.public_bucket]:
-            directory = DirectoryObject(bucket, 'test_upload')
+            directory = DirectoryObject(bucket, 'test_upload', prefix=True)
             if directory.exists():
                 directory.delete()
 
