@@ -65,7 +65,7 @@ def test_other_user_auth(other_test_user):
 class TestAuth:
     def test_xtoken_auth(self, client, test_user, no_warn):
         rv = client.get('/uploads/', headers={
-            'X-Token': test_user.email
+            'X-Token': test_user.email  # the test users have their email as tokens for convinience
         })
 
         assert rv.status_code == 200

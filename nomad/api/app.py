@@ -41,13 +41,18 @@ CORS(app)
 authorizations = {
     'HTTP Basic': {
         'type': 'basic'
+    },
+    'X-Token': {
+        'type': 'apiKey',
+        'in': 'header',
+        'name': 'X-Token'
     }
 }
 
 api = Api(
     app, version='1.0', title='nomad@FAIRDI API', authorizations=authorizations,
     description='Official API for nomad@FAIRDI services.')
-""" Provides the flask restful api instance """
+""" Provides the flask restplust api instance """
 
 
 @app.errorhandler(HTTPException)
