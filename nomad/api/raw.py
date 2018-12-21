@@ -23,7 +23,7 @@ from zipfile import ZIP_DEFLATED, ZIP_STORED
 
 import zipstream
 from flask import Response, request, send_file
-from flask_restful import abort
+from flask_restplus import abort
 from werkzeug.exceptions import HTTPException
 
 from nomad.files import RepositoryFile

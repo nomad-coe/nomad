@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from flask_restful import abort
+from flask_restplus import abort
 
 from nomad import infrastructure
 from nomad.processing import Upload

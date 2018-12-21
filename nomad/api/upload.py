@@ -15,7 +15,7 @@
 from datetime import datetime
 
 from flask import g, request
-from flask_restful import Resource, abort
+from flask_restplus import Resource, abort
 
 from nomad.files import UploadFile
 from nomad.processing import NotAllowedDuringProcessing, Upload

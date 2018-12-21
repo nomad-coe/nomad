@@ -36,7 +36,7 @@ authenticated user information for authorization or otherwise.
 """
 
 from flask import g, request
-from flask_restful import abort
+from flask_restplus import abort
 from flask_httpauth import HTTPBasicAuth
 
 from nomad import config

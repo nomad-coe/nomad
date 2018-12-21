@@ -17,7 +17,7 @@ All APIs are served by one Flask app (:py:mod:`nomad.api.app`) under different p
 """
 
 from flask import Flask, jsonify
-from flask_restful import Api
+from flask_restplus import Api
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 import os.path

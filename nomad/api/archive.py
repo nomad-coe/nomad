@@ -20,7 +20,7 @@ The archive API of the nomad@FAIRDI APIs. This API is about serving processed
 import os.path
 
 from flask import send_file
-from flask_restful import abort
+from flask_restplus import abort
 
 from nomad import config
 from nomad.files import ArchiveFile, ArchiveLogFile

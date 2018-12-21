@@ -3,7 +3,7 @@ celery[redis]
 elasticsearch-dsl>=6.0.0,<7.0.0
 mongoengine
 flask
-flask-restful
+flask-restplus
 flask-cors
 flask_httpauth
 itsdangerous
