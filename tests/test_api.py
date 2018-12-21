@@ -317,7 +317,7 @@ def test_docs(client):
 class TestRaw:
 
     @pytest.fixture
-    def example_upload_hash(self, mockmongo, no_warn):
+    def example_upload_hash(self, mockmongo, repository_db, no_warn):
         upload = Upload(id='test_upload_id', local_path=os.path.abspath(example_file))
         upload.create_time = datetime.datetime.now()
         upload.user_id = 'does@not.exist'

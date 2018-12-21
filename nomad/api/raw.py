@@ -23,13 +23,19 @@ from zipfile import ZIP_DEFLATED, ZIP_STORED
 
 import zipstream
 from flask import Response, request, send_file
-from flask_restplus import abort
+from flask_restplus import abort, Resource, fields
 from werkzeug.exceptions import HTTPException
 
 from nomad.files import RepositoryFile
 from nomad.utils import get_logger
 
-from .app import app, base_path
+from .app import api, base_path
+from .auth import login_if_available
+
+ns = api.namespace(
+    '%s/raw' % base_path[1:] if base_path is not '' else 'raw',
+    description='Downloading raw data files.'
+)
 
 
 def fix_file_paths(path):
@@ -38,142 +44,118 @@ def fix_file_paths(path):
     return path[5:]
 
 
-@app.route('%s/raw/<string:upload_hash>/<path:upload_filepath>' % base_path, methods=['GET'])
-def get_raw_file(upload_hash, upload_filepath):
-    """
-    Get a single raw calculation file from a given upload (or many files via wildcard).
-
-    .. :quickref: raw; Get single raw calculation file.
-
-    **Example request**:
-
-    .. sourcecode:: http
-
-        GET /nomad/api/raw/W36aqCzAKxOCfIiMFsBJh3nHPb4a/Si/si.out HTTP/1.1
-        Accept: application/gz
-
-    :param string upload_hash: the hash based identifier of the upload
-    :param path upload_filepath: the path to the desired file within the upload;
-        can also contain a wildcard * at the end to denote all files with path as prefix
-    :qparam compress: any value to use compression for wildcard downloads, default is no compression
-    :resheader Content-Type: application/gz
-    :status 200: calc raw data successfully retrieved
-    :status 404: upload with given hash does not exist or the given file does not exist
-    :returns: the gzipped raw data in the body or a zip file when wildcard was used
-    """
-    upload_filepath = fix_file_paths(upload_filepath)
-
-    repository_file = RepositoryFile(upload_hash)
-    if not repository_file.exists():
-        abort(404, message='The upload with hash %s does not exist.' % upload_hash)
-
-    if upload_filepath[-1:] == '*':
-        upload_filepath = upload_filepath[0:-1]
-        files = list(
-            file for file in repository_file.manifest
-            if file.startswith(upload_filepath))
-        if len(files) == 0:
-            abort(404, message='There are no files for %s.' % upload_filepath)
-        else:
-            compress = request.args.get('compress', None) is not None
-            return respond_to_get_raw_files(upload_hash, files, compress)
-
-    try:
-        the_file = repository_file.get_file(upload_filepath)
-        with the_file.open() as f:
-            rv = send_file(
-                f,
-                mimetype='application/octet-stream',
-                as_attachment=True,
-                attachment_filename=os.path.basename(upload_filepath))
-            return rv
-    except KeyError:
-        files = list(file for file in repository_file.manifest if file.startswith(upload_filepath))
-        if len(files) == 0:
-            abort(404, message='The file %s does not exist.' % upload_filepath)
-        else:
-            abort(404, message='The file %s does not exist, but there are files with matching paths' % upload_filepath, files=files)
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        logger = get_logger(
-            __name__, endpoint='raw', action='get',
-            upload_hash=upload_hash, upload_filepath=upload_filepath)
-        logger.error('Exception on accessing raw data', exc_info=e)
-        abort(500, message='Could not accessing the raw data.')
+raw_file_compress_argument = dict(
+    name='compress', type=bool, help='Use compression on .zip files, default is not.',
+    location='args')
+raw_file_from_path_parser = api.parser()
+raw_file_from_path_parser.add_argument(**raw_file_compress_argument)
 
 
-@app.route('%s/raw/<string:upload_hash>' % base_path, methods=['GET'])
-def get_raw_files(upload_hash):
-    """
-    Get multiple raw calculation files.
+@ns.route('/<string:upload_hash>/<path:path>')
+@api.doc(params={
+    'upload_hash': 'The unique hash for the requested upload.',
+    'path': 'The path to a file or directory.'
+})
+@api.header('Content-Type', 'application/gz')
+class RawFileFromPath(Resource):
+    @api.response(404, 'The upload or path does not exist')
+    @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
+    @api.expect(raw_file_from_path_parser, validate=True)
+    @login_if_available
+    def get(self, upload_hash: str, path: str):
+        """
+        Get a single raw calculation file or whole directory from a given upload.
 
-    .. :quickref: raw; Get multiple raw calculation files.
+        If the given path points to a file, the file is provided. If the given path
+        points to an directory, the directory and all contents is provided as .zip file.
+        """
+        upload_filepath = fix_file_paths(path)
 
-    **Example request**:
+        repository_file = RepositoryFile(upload_hash)
+        if not repository_file.exists():
+            abort(404, message='The upload with hash %s does not exist.' % upload_hash)
 
-    .. sourcecode:: http
+        if upload_filepath[-1:] == '*':
+            upload_filepath = upload_filepath[0:-1]
+            files = list(
+                file for file in repository_file.manifest
+                if file.startswith(upload_filepath))
+            if len(files) == 0:
+                abort(404, message='There are no files for %s.' % upload_filepath)
+            else:
+                compress = request.args.get('compress', None) is not None
+                return respond_to_get_raw_files(upload_hash, files, compress)
 
-        GET /nomad/api/raw/W36aqCzAKxOCfIiMFsBJh3nHPb4a?files=Si/si.out,Si/aux.txt HTTP/1.1
-        Accept: application/gz
+        try:
+            the_file = repository_file.get_file(upload_filepath)
+            with the_file.open() as f:
+                rv = send_file(
+                    f,
+                    mimetype='application/octet-stream',
+                    as_attachment=True,
+                    attachment_filename=os.path.basename(upload_filepath))
+                return rv
+        except KeyError:
+            files = list(file for file in repository_file.manifest if file.startswith(upload_filepath))
+            if len(files) == 0:
+                abort(404, message='The file %s does not exist.' % upload_filepath)
+            else:
+                abort(404, message='The file %s does not exist, but there are files with matching paths' % upload_filepath, files=files)
+        except HTTPException as e:
+            raise e
+        except Exception as e:
+            logger = get_logger(
+                __name__, endpoint='raw', action='get',
+                upload_hash=upload_hash, upload_filepath=upload_filepath)
+            logger.error('Exception on accessing raw data', exc_info=e)
+            abort(500, message='Could not accessing the raw data.')
 
-    :param string upload_hash: the hash based identifier of the upload
-    :qparam string files: a comma separated list of file path
-    :qparam compress: any value to use compression, default is no compression
-    :resheader Content-Type: application/json
-    :status 200: calc raw data successfully retrieved
-    :status 404: calc with given hash does not exist or one of the given files does not exist
-    :returns: a streamed .zip archive with the raw data
-    """
-    files_str = request.args.get('files', None)
-    compress = request.args.get('compress', None) is not None
 
-    if files_str is None:
-        abort(400, message="No files argument given.")
-    files = [fix_file_paths(file.strip()) for file in files_str.split(',')]
+raw_files_request_model = api.model('RawFilesRequest', {
+    'files': fields.List(
+        fields.String, default=[], description='List of files to download.'),
+    'compress': fields.Boolean(
+        default=False,
+        description='Enable compression, default is not compression.')
+})
 
-    return respond_to_get_raw_files(upload_hash, files, compress)
+raw_files_request_parser = api.parser()
+raw_files_request_parser.add_argument(**raw_file_compress_argument)
+raw_files_request_parser.add_argument(
+    'files', required=True, type=str, help='Comma separated list of files to download.', location='args')
 
 
-@app.route('%s/raw/<string:upload_hash>' % base_path, methods=['POST'])
-def get_raw_files_post(upload_hash):
-    """
-    Get multiple raw calculation files.
+@ns.route('/<string:upload_hash>')
+@api.doc(params={
+    'upload_hash': 'The unique hash for the requested upload.'
+})
+class RawFiles(Resource):
+    @api.response(404, 'The upload or path does not exist')
+    @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
+    @api.expect(raw_files_request_model, validate=True)
+    @login_if_available
+    def post(self, upload_hash):
+        """ Download multiple raw calculation files. """
+        json_data = request.get_json()
+        compress = json_data.get('compress', False)
+        files = [fix_file_paths(file.strip()) for file in json_data['files']]
 
-    .. :quickref: raw; Get multiple raw calculation files.
+        return respond_to_get_raw_files(upload_hash, files, compress)
 
-    **Example request**:
+    @api.response(404, 'The upload or path does not exist')
+    @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
+    @api.expect(raw_files_request_parser, validate=True)
+    @login_if_available
+    def get(self, upload_hash):
+        """ Download multiple raw calculation files. """
+        files_str = request.args.get('files', None)
+        compress = request.args.get('compress', 'false') == 'true'
 
-    .. sourcecode:: http
+        if files_str is None:
+            abort(400, message="No files argument given.")
+        files = [fix_file_paths(file.strip()) for file in files_str.split(',')]
 
-        POST /nomad/api/raw/W36aqCzAKxOCfIiMFsBJh3nHPb4a HTTP/1.1
-        Accept: application/gz
-        Content-Type: application/json
-
-        {
-            "files": ["Si/si.out", "Si/aux.txt"]
-        }
-
-    :param string upload_hash: the hash based identifier of the upload
-    :jsonparam files: a comma separated list of file paths
-    :jsonparam compress: boolean to enable compression (true), default is not compression (false)
-    :resheader Content-Type: application/json
-    :status 200: calc raw data successfully retrieved
-    :status 404: calc with given hash does not exist or one of the given files does not exist
-    :returns: a streamed .zip archive with the raw data
-    """
-    json_data = request.get_json()
-    if json_data is None:
-        json_data = {}
-
-    if 'files' not in json_data:
-        abort(400, message='No files given, use key "files" in json body to provide file paths.')
-    compress = json_data.get('compress', False)
-    if not isinstance(compress, bool):
-        abort(400, message='Compress value %s is not a bool.' % str(compress))
-    files = [fix_file_paths(file.strip()) for file in json_data['files']]
-
-    return respond_to_get_raw_files(upload_hash, files, compress)
+        return respond_to_get_raw_files(upload_hash, files, compress)
 
 
 def respond_to_get_raw_files(upload_hash, files, compress=False):
