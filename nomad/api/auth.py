@@ -42,7 +42,7 @@ from flask_httpauth import HTTPBasicAuth
 from nomad import config
 from nomad.coe_repo import User
 
-from .app import app, base_path
+from .app import app, api, base_path
 
 app.config['SECRET_KEY'] = config.services.api_secret
 auth = HTTPBasicAuth()
@@ -92,6 +92,8 @@ def login_really_required(func):
     A decorator for API endpoint implementations that forces user authentication on
     endpoints.
     """
+    @api.response(401, 'Not Authorized')
+    @api.doc(security=['HTTP Basic'])
     @login_if_available
     def wrapper(*args, **kwargs):
         if g.user is None:

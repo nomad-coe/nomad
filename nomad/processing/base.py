@@ -87,7 +87,6 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     Processing state will be persistet at appropriate
     times and must not be persistet manually. All attributes are stored to mongodb.
-    The class allows to render into a JSON serializable dict via :attr:`json_dict`.
 
     Possible processing states are PENDING, RUNNING, FAILURE, and SUCCESS.
 
@@ -253,22 +252,6 @@ class Proc(Document, metaclass=ProcMetaclass):
         while not self.completed:
             time.sleep(interval)
             self.reload()
-
-    @property
-    def json_dict(self) -> dict:
-        """ A json serializable dictionary representation. """
-        data = {
-            'tasks': getattr(self.__class__, 'tasks'),
-            'current_task': self.current_task,
-            'status': self.status,
-            'completed': self.completed,
-            'errors': self.errors,
-            'warnings': self.warnings,
-            'create_time': self.create_time.isoformat() if self.create_time is not None else None,
-            'complete_time': self.complete_time.isoformat() if self.complete_time is not None else None,
-            '_async_status': self._async_status
-        }
-        return {key: value for key, value in data.items() if value is not None}
 
 
 class InvalidChordUsage(Exception): pass

@@ -25,7 +25,6 @@ calculations, and files
 """
 
 from typing import List, Any, ContextManager, Tuple, Generator
-from datetime import datetime
 from elasticsearch.exceptions import NotFoundError
 from mongoengine import StringField, BooleanField, DateTimeField, DictField, IntField
 import logging
@@ -153,18 +152,6 @@ class Calc(Proc):
             return event_dict
 
         return wrap_logger(logger, processors=[save_to_calc_log])
-
-    @property
-    def json_dict(self):
-        """ A json serializable dictionary representation. """
-        data = {
-            'archive_id': self.archive_id,
-            'mainfile': self.mainfile,
-            'upload_id': self.upload_id,
-            'parser': self.parser
-        }
-        data.update(super().json_dict)
-        return {key: value for key, value in data.items() if value is not None}
 
     @process
     def process(self):
@@ -372,7 +359,7 @@ class Upload(Chord):
     def delete(self):
         logger = self.get_logger(task='delete')
 
-        if not (self.completed or self.is_stale or self.current_task == 'uploading'):
+        if not (self.completed or self.current_task == 'uploading'):
             raise NotAllowedDuringProcessing()
 
         with lnr(logger, 'delete upload file'):
@@ -433,36 +420,16 @@ class Upload(Chord):
 
         return self
 
-    @property
-    def is_stale(self) -> bool:
-        if self.current_task == 'uploading' and self.upload_time is None:
-            return (datetime.now() - self.create_time).days > 1
-        else:
-            return False
-
     def unstage(self):
         self.get_logger().info('unstage')
+
+        if not (self.completed or self.current_task == 'uploading'):
+            raise NotAllowedDuringProcessing()
+
         self.in_staging = False
         RepoCalc.unstage(upload_id=self.upload_id)
         coe_repo.add_upload(self, restricted=False)  # TODO allow users to choose restricted
         self.save()
-
-    @property
-    def json_dict(self) -> dict:
-        """ A json serializable dictionary representation. """
-        data = {
-            'name': self.name,
-            'local_path': self.local_path,
-            'additional_metadata': self.additional_metadata,
-            'upload_id': self.upload_id,
-            'upload_hash': self.upload_hash,
-            'upload_url': self.upload_url,
-            'upload_command': self.upload_command,
-            'upload_time': self.upload_time.isoformat() if self.upload_time is not None else None,
-            'is_stale': self.is_stale,
-        }
-        data.update(super().json_dict)
-        return {key: value for key, value in data.items() if value is not None}
 
     @process
     def process(self):

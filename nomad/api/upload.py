@@ -12,154 +12,103 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from datetime import datetime
-
-from flask import g, request
-from flask_restplus import Resource, abort
-
-from nomad.files import UploadFile
-from nomad.processing import NotAllowedDuringProcessing, Upload
-from nomad.utils import get_logger
-
-from .app import api, base_path
-from .auth import login_really_required
-
 """
 The upload API of the nomad@FAIRDI APIs. Provides endpoints to create uploads, upload
 files, and retrieve the processing status of uploads.
 """
 
+from flask import g, request
+from flask_restplus import Resource, fields, abort
+from datetime import datetime
 
-class UploadsRes(Resource):
-    """ Uploads """
+from nomad.processing import Upload as UploadProc
+from nomad.processing import NotAllowedDuringProcessing
+from nomad.utils import get_logger
+from nomad.files import UploadFile
+
+from .app import api, base_path
+from .auth import login_really_required
+
+
+ns = api.namespace(
+    '%s/uploads' % base_path[1:] if base_path is not '' else 'uploads',
+    description='Uploading data and tracing uploaded data and its processing.')
+
+
+proc_model = api.model('Processing', {
+    'tasks': fields.List(fields.String),
+    'current_task': fields.String,
+    'status': fields.String,
+    'completed': fields.Boolean,
+    'errors': fields.List(fields.String),
+    'warnings': fields.List(fields.String),
+    'create_time': fields.DateTime(dt_format='iso8601'),
+    'complete_time': fields.DateTime(dt_format='iso8601'),
+    '_async_status': fields.String(description='Only for debugging nomad')
+})
+
+upload_model = api.inherit('Upload', proc_model, {
+    'name': fields.String(
+        description='The name of the upload. This can be provided during upload '
+                    'using the name query parameter.'),
+    'upload_id': fields.String(
+        description='The unique id for the upload. Its a random uuid and '
+                    'and used within nomad as long as no upload_hash is available.'),
+    'upload_hash': fields.String(
+        description='The unique upload hash. It is based on the uploaded content and '
+                    'used within nomad to identify uploads.'
+    ),
+    'additional_metadata': fields.Arbitrary,
+    'upload_url': fields.String,
+    'upload_command': fields.String,
+    'local_path': fields.String,
+    'upload_time': fields.DateTime(dt_format='iso8601'),
+})
+
+calc_model = api.inherit('Calculation', proc_model, {
+    'archive_id': fields.String,
+    'mainfile': fields.String,
+    'upload_id': fields.String,
+    'parser': fields.String
+})
+
+upload_with_calcs_model = api.inherit('UploadWithPaginatedCalculations', upload_model, {
+    'processed_calcs': fields.Integer,
+    'total_calcs': fields.Integer,
+    'failed_calcs': fields.Integer,
+    'pending_calcs': fields.Integer,
+    'calcs': fields.Nested(model=api.model('PaginatedCalculations', {
+        'pagination': fields.Nested(model=api.model('Pagination', {
+            'total': fields.Integer,
+            'successes': fields.Integer,
+            'failures': fields.Integer,
+            'page': fields.Integer,
+            'per_page': fields.Integer,
+        })),
+        'results': fields.List(fields.Nested(model=calc_model))
+    }))
+})
+
+upload_operation_model = api.model('UploadOperation', {
+    'operation': fields.String(description='Currently unstage is the only operation.')
+})
+
+
+upload_metadata_parser = api.parser()
+upload_metadata_parser.add_argument('name', type=str, help='An optional name for the upload.', location='args')
+upload_metadata_parser.add_argument('local_path', type=str, help='Use a local file on the server.', location='args')
+
+
+@ns.route('/')
+class UploadList(Resource):
+    @api.marshal_list_with(upload_model, skip_none=True, code=200, description='Uploads send')
     @login_really_required
     def get(self):
-        """
-        Get a list of current users uploads.
+        """ Get the list of all uploads from the authenticated user. """
+        return [upload for upload in UploadProc.user_uploads(g.user)], 200
 
-        .. :quickref: upload; Get a list of current users uploads.
-
-        **Example request**:
-
-        .. sourcecode:: http
-
-            GET /nomad/api/uploads HTTP/1.1
-            Accept: application/json
-
-        **Example response**:
-
-        .. sourcecode:: http
-
-            HTTP/1.1 200 OK
-            Vary: Accept
-            Content-Type: application/json
-
-            [
-                {
-                    "name": "examples_vasp_6.zip",
-                    "upload_id": "5b89469e0d80d40008077dbc",
-                    "presigned_url": "http://minio:9000/uploads/5b89469e0d80d40008077dbc?X-Amz-Algorithm=AWS4-...",
-                    "create_time": "2018-08-31T13:46:06.781000",
-                    "upload_time": "2018-08-31T13:46:07.531000",
-                    "is_stale": false,
-                    "completed": true,
-                    "status": "SUCCESS",
-                    "current_task": "cleanup",
-                    "tasks": ["uploading", "extracting", "parse_all", "cleanup"]
-                    "errors": [],
-                    "warnings": []
-                }
-            ]
-
-        :resheader Content-Type: application/json
-        :status 200: uploads successfully provided
-        :returns: list of :class:`nomad.data.Upload`
-        """
-        return [upload.json_dict for upload in Upload.user_uploads(g.user)], 200
-
-    @login_really_required
-    def post(self):
-        """
-        Create a new upload. Creating an upload on its own wont do much, but provide
-        a *presigned* upload URL. PUT a file to this URL to do the actual upload and
-        initiate the processing.
-
-        .. :quickref: upload; Create a new upload.
-
-        **Example request**:
-
-        .. sourcecode:: http
-
-            POST /nomad/api/uploads HTTP/1.1
-            Accept: application/json
-            Content-Type: application/json
-
-            {
-                "name": "vasp_data.zip"
-            }
-
-        **Example response**:
-
-        .. sourcecode:: http
-
-            HTTP/1.1 200 OK
-            Vary: Accept
-            Content-Type: application/json
-
-            {
-                "name": "vasp_data.zip",
-                "upload_id": "5b89469e0d80d40008077dbc",
-                "presigned_url": "http://minio:9000/uploads/5b89469e0d80d40008077dbc?X-Amz-Algorithm=AWS4-...",
-                "create_time": "2018-08-31T13:46:06.781000",
-                "upload_time": "2018-08-31T13:46:07.531000",
-                "is_stale": false,
-                "completed": true,
-                "status": "SUCCESS",
-                "current_task": "cleanup",
-                "tasks": ["uploading", "extracting", "parse_all", "cleanup"]
-                "errors": [],
-                "warnings": [],
-                "calcs": [
-                    {
-                        "current_task": "archiving",
-                        "tasks": ["parsing", "normalizing", "archiving"]
-                        "status": "SUCCESS",
-                        "errors": [],
-                        "warnings": [],
-                        "parser": "parsers/vasp",
-                        "mainfile": "Si.xml"
-                    }
-                ]
-            }
-
-        :jsonparam string name: An optional name for the upload.
-        :jsonparem string local_path: An optional path the a file that is already on the server.
-            In this case, uploading a file won't be possible, the local file is processed
-            immediatly as if it was uploaded.
-        :reqheader Content-Type: application/json
-        :resheader Content-Type: application/json
-        :status 200: upload successfully created
-        :returns: a new instance of :class:`nomad.data.Upload`
-        """
-        json_data = request.get_json()
-        if json_data is None:
-            json_data = {}
-
-        upload = Upload.create(
-            user=g.user,
-            name=json_data.get('name'),
-            local_path=json_data.get('local_path'))
-
-        if upload.local_path is not None:
-            logger = get_logger(
-                __name__, endpoint='uploads', action='post', upload_id=upload.upload_id)
-            logger.info('file uploaded offline')
-            upload.upload_time = datetime.now()
-            upload.process()
-            logger.info('initiated processing')
-
-        return upload.json_dict, 200
-
+    @api.marshal_list_with(upload_model, skip_none=True, code=200, description='Upload received')
+    @api.expect(upload_metadata_parser)
     @login_really_required
     def put(self):
         """
@@ -172,30 +121,26 @@ class UploadsRes(Resource):
         filename or other meta-data. If a filename is available, it will become the
         name of the upload.
 
-        .. :quickref: upload; Upload a file directly and create an upload.
+        Example commands:
 
-        **Curl examples for both approaches**:
-
-        .. sourcecode:: sh
-
-            curl -X put "/nomad/api/uploads/" -F file=@local_file
-            curl "/nomad/api/uploads/" --upload-file local_file
-
-        :qparam name: an optional name for the upload
-        :status 200: upload successfully received.
-        :returns: the upload (see GET /uploads/<upload_id>)
+            curl -X put ".../nomad/api/uploads/" -F file=@local_file
+            curl ".../nomad/api/uploads/" --upload-file local_file
         """
+        local_path = request.args.get('local_path')
         # create upload
-        upload = Upload.create(
+        upload = UploadProc.create(
             user=g.user,
-            name=request.args.get('name'))
+            name=request.args.get('name'),
+            local_path=local_path)
 
         logger = get_logger(__name__, endpoint='upload', action='put', upload_id=upload.upload_id)
         logger.info('upload created')
 
-        uploadFile = UploadFile(upload.upload_id)
+        uploadFile = UploadFile(upload.upload_id, local_path=local_path)
 
-        if request.mimetype == 'application/multipart-formdata':
+        if local_path:
+            pass
+        elif request.mimetype == 'application/multipart-formdata':
             # multipart formdata, e.g. with curl -X put "url" -F file=@local_file
             # might have performance issues for large files: https://github.com/pallets/flask/issues/2086
             if 'file' in request.files:
@@ -226,79 +171,40 @@ class UploadsRes(Resource):
         upload.process()
         logger.info('initiated processing')
 
-        return upload.json_dict, 200
+        return upload, 200
 
 
-class UploadRes(Resource):
-    """ Uploads """
+class ProxyUpload:
+    def __init__(self, upload, calcs):
+        self.upload = upload
+        self.calcs = calcs
+
+    def __getattr__(self, name):
+        return self.upload.__getattribute__(name)
+
+
+pagination_parser = api.parser()
+pagination_parser.add_argument('page', type=int, help='The page, starting with 1.', location='args')
+pagination_parser.add_argument('per_page', type=int, help='Desired calcs per page.', location='args')
+pagination_parser.add_argument('order_by', type=str, help='The field to sort the calcs by, use [status,mainfile].', location='args')
+
+
+@ns.route('/<string:upload_id>')
+@api.doc(params={'upload_id': 'The unique id for the requested upload.'})
+class Upload(Resource):
+    @api.response(404, 'Upload does not exist')
+    @api.marshal_with(upload_with_calcs_model, skip_none=True, code=200, description='Upload send')
+    @api.expect(pagination_parser)
     @login_really_required
-    def get(self, upload_id):
+    def get(self, upload_id: str):
         """
-        Get an update on an existing upload. Will not only return the upload, but
-        also its calculations paginated. Use the pagination params to determine
-        the page.
+        Get an update for an existing upload.
 
-        .. :quickref: upload; Get an update for an existing upload.
-
-        **Example request**:
-
-        .. sourcecode:: http
-
-            GET /nomad/api/uploads/5b89469e0d80d40008077dbc HTTP/1.1
-            Accept: application/json
-
-        **Example response**:
-
-        .. sourcecode:: http
-
-            HTTP/1.1 200 OK
-            Vary: Accept
-            Content-Type: application/json
-
-            {
-                "name": "vasp_data.zip",
-                "upload_id": "5b89469e0d80d40008077dbc",
-                "presigned_url": "http://minio:9000/uploads/5b89469e0d80d40008077dbc?X-Amz-Algorithm=AWS4-...",
-                "create_time": "2018-08-31T13:46:06.781000",
-                "upload_time": "2018-08-31T13:46:07.531000",
-                "is_stale": false,
-                "completed": true,
-                "status": "SUCCESS",
-                "current_task": "cleanup",
-                "tasks": ["uploading", "extracting", "parse_all", "cleanup"]
-                "errors": [],
-                "warnings": [],
-                "calcs": {
-                    "pagination": {
-                        "total": 1,
-                        "page": 1,
-                        "per_page": 25
-                    },
-                    "results": [
-                        {
-                            "current_task": "archiving",
-                            "tasks": ["parsing", "normalizing", "archiving"]
-                            "status": "SUCCESS",
-                            "errors": [],
-                            "warnings": [],
-                            "parser": "parsers/vasp",
-                            "mainfile": "Si.xml"
-                        }
-                    ]
-                }
-            }
-
-        :param string upload_id: the id for the upload
-        :qparam int page: the page starting with 1
-        :qparam int per_page: desired calcs per page
-        :qparam str order_by: the field to sort the calcs by, use [status,mainfile]
-        :resheader Content-Type: application/json
-        :status 200: upload successfully updated and retrieved
-        :status 404: upload with id does not exist
-        :returns: the :class:`nomad.data.Upload` instance
+        Will not only return the upload, but also its calculations paginated.
+        Use the pagination params to determine the page.
         """
         try:
-            upload = Upload.get(upload_id)
+            upload = UploadProc.get(upload_id)
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
@@ -326,46 +232,57 @@ class UploadRes(Resource):
 
         calcs = upload.all_calcs((page - 1) * per_page, page * per_page, order_by)
         failed_calcs = upload.failed_calcs
-        result = upload.json_dict
-        result['calcs'] = {
+        result = ProxyUpload(upload, {
             'pagination': dict(
                 total=upload.total_calcs, page=page, per_page=per_page,
                 successes=upload.processed_calcs - failed_calcs, failures=failed_calcs),
-            'results': [calc.json_dict for calc in calcs]
-        }
+            'results': [calc for calc in calcs]
+        })
 
         return result, 200
 
+    @api.response(404, 'Upload does not exist')
+    @api.response(400, 'Not allowed during processing or when not in staging')
+    @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload deleted')
+    @login_really_required
+    def delete(self, upload_id: str):
+        """
+        Delete an existing upload.
+
+        Only ``is_ready`` uploads
+        can be deleted. Deleting an upload in processing is not allowed.
+        """
+        try:
+            upload = UploadProc.get(upload_id)
+        except KeyError:
+            abort(404, message='Upload with id %s does not exist.' % upload_id)
+
+        if upload.user_id != str(g.user.user_id):
+            abort(404, message='Upload with id %s does not exist.' % upload_id)
+
+        if not upload.in_staging:
+            abort(400, message='Operation not allowed, upload is not in staging.')
+
+        try:
+            upload.delete()
+            return upload, 200
+        except NotAllowedDuringProcessing:
+            abort(400, message='You must not delete an upload during processing.')
+
+    @api.response(404, 'Upload does not exist or is not allowed')
+    @api.response(400, 'Operation is not supported')
+    @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload unstaged successfully')
+    @api.expect(upload_operation_model)
     @login_really_required
     def post(self, upload_id):
         """
-        Move an upload out of the staging area. This changes the visibility of the upload.
-        Clients can specify, if the calcs should be restricted.
+        Execute an upload operation. Available operations: ``unstage``
 
-        .. :quickref: upload; Move an upload out of the staging area.
-
-        **Example request**:
-
-        .. sourcecode:: http
-
-            POST /nomad/api/uploads HTTP/1.1
-            Accept: application/json
-            Content-Type: application/json
-
-            {
-                "operation": "unstage"
-            }
-
-
-        :param string upload_id: the upload id
-        :resheader Content-Type: application/json
-        :status 200: upload unstaged successfully
-        :status 404: upload could not be found
-        :status 400: if the operation is not supported
-        :returns: the upload record
+        Untage changes the visibility of the upload. Clients can specify, if the calcs
+        should be restricted.
         """
         try:
-            upload = Upload.get(upload_id)
+            upload = UploadProc.get(upload_id)
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
@@ -378,122 +295,14 @@ class UploadRes(Resource):
 
         operation = json_data.get('operation')
         if operation == 'unstage':
-            upload.unstage()
-            return upload.json_dict, 200
+            if not upload.in_staging:
+                abort(400, message='Operation not allowed, upload is not in staging.')
+
+            try:
+                upload.unstage()
+            except NotAllowedDuringProcessing:
+                abort(400, message='You must not unstage an upload during processing.')
+
+            return upload, 200
 
         abort(400, message='Unsuported operation %s.' % operation)
-
-    @login_really_required
-    def delete(self, upload_id):
-        """
-        Deletes an existing upload. Only ``is_ready`` or ``is_stale`` uploads
-        can be deleted. Deleting an upload in processing is not allowed.
-
-        .. :quickref: upload; Delete an existing upload.
-
-        **Example request**:
-
-        .. sourcecode:: http
-
-            DELETE /nomad/api/uploads/5b89469e0d80d40008077dbc HTTP/1.1
-            Accept: application/json
-
-        :param string upload_id: the id for the upload
-        :resheader Content-Type: application/json
-        :status 200: upload successfully deleted
-        :status 400: upload cannot be deleted
-        :status 404: upload with id does not exist
-        :returns: the :class:`nomad.data.Upload` instance with the latest processing state
-        """
-        try:
-            upload = Upload.get(upload_id)
-        except KeyError:
-            abort(404, message='Upload with id %s does not exist.' % upload_id)
-
-        if upload.user_id != str(g.user.user_id):
-            abort(404, message='Upload with id %s does not exist.' % upload_id)
-
-        try:
-            upload.delete()
-            return upload.json_dict, 200
-        except NotAllowedDuringProcessing:
-            abort(400, message='You must not delete an upload during processing.')
-
-
-class UploadFileRes(Resource):
-    """
-    Upload a file to an existing upload. Can be used to upload files via bowser
-    or other http clients like curl. This will start the processing of the upload.
-
-    There are two basic ways to upload a file: multipart-formdata or simply streaming
-    the file data. Both are supported. The later one does not allow to transfer a
-    filename or other meta-data. If a filename is available, it will become the
-    name of the upload.
-
-    .. :quickref: upload; Upload a file to an existing upload.
-
-    **Curl examples for both approaches**:
-
-    .. sourcecode:: sh
-
-        curl -X put "/nomad/api/uploads/5b89469e0d80d40008077dbc/file" -F file=@local_file
-        curl "/nomad/api/uploads/5b89469e0d80d40008077dbc/file" --upload-file local_file
-
-    :param string upload_id: the upload_id of the upload
-    :resheader Content-Type: application/json
-    :status 200: upload successfully received.
-    :status 404: upload with given id does not exist
-    :status 400: if the fileformat is not supported or the form data is different than expected.
-    :returns: the upload (see GET /uploads/<upload_id>)
-    """
-    @login_really_required
-    def put(self, upload_id):
-        logger = get_logger(__name__, endpoint='upload', action='put', upload_id=upload_id)
-
-        try:
-            upload = Upload.get(upload_id)
-        except KeyError:
-            abort(404, message='Upload with id %s does not exist.' % upload_id)
-
-        if upload.upload_time is not None:
-            abort(400, message='A file was already uploaded to this uploade before.')
-
-        uploadFile = UploadFile(upload_id)
-
-        if request.mimetype == 'application/multipart-formdata':
-            # multipart formdata, e.g. with curl -X put "url" -F file=@local_file
-            # might have performance issues for large files: https://github.com/pallets/flask/issues/2086
-            if 'file' in request.files:
-                abort(400, message='Bad multipart-formdata, there is no file part.')
-            file = request.files['file']
-            if upload.name is '':
-                upload.name = file.filename
-
-            file.save(uploadFile.os_path)
-        else:
-            # simple streaming data in HTTP body, e.g. with curl "url" -T local_file
-            try:
-                uploadFile.create_dirs()
-                with uploadFile.open('wb') as f:
-                    while not request.stream.is_exhausted:
-                        f.write(request.stream.read(1024))
-
-            except Exception as e:
-                logger.error('Error on streaming upload', exc_info=e)
-                abort(400, message='Some IO went wrong, download probably aborted/disrupted.')
-
-        if not uploadFile.is_valid:
-            uploadFile.delete()
-            abort(400, message='Bad file format, excpected %s.' % ", ".join(UploadFile.formats))
-
-        logger.info('received uploaded file')
-        upload.upload_time = datetime.now()
-        upload.process()
-        logger.info('initiated processing')
-
-        return upload.json_dict, 200
-
-
-api.add_resource(UploadsRes, '%s/uploads' % base_path)
-api.add_resource(UploadRes, '%s/uploads/<string:upload_id>' % base_path)
-api.add_resource(UploadFileRes, '%s/uploads/<string:upload_id>/file' % base_path)

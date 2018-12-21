@@ -37,7 +37,7 @@ almost readonly (beside metadata) storage.
 """
 
 from abc import ABCMeta
-from typing import IO, Generator, Dict, Iterator, Iterable, Callable
+from typing import IO, Generator, Dict, Iterator, Iterable
 from filelock import Timeout, FileLock
 import ujson
 import os.path

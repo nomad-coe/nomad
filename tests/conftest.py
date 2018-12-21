@@ -145,7 +145,7 @@ def mocksearch(monkeypatch):
         if upload_id in uploads_by_id:
             for calc in uploads_by_id[upload_id]:
                 del(by_archive_id[calc.archive_id])
-            upload_hash = next(uploads_by_id[upload_id]).upload_hash
+            upload_hash = uploads_by_id[upload_id][0].upload_hash
             del(uploads_by_id[upload_id])
             del(uploads_by_hash[upload_hash])
 

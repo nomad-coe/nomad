@@ -52,6 +52,7 @@ from nomad import config
 default_hash_len = 28
 """ Length of hashes and hash-based ids (e.g. calc, upload) in nomad. """
 
+
 def sanitize_logevent(event: str) -> str:
     """
     Prepares a log event or message for analysis in elastic stack. It removes numbers,
