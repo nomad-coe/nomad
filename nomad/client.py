@@ -46,7 +46,7 @@ def create_client(
         host: str = config.services.api_host,
         port: int = config.services.api_port,
         base_path: str = config.services.api_base_path,
-        user: str = user, password: str = None):
+        user: str = user, password: str = pw):
     """ A factory method to create the client. """
 
     if user is not None:
@@ -74,7 +74,7 @@ def handle_common_errors(func):
     return wrapper
 
 
-def upload_file(file_path: str, name: str = None, offline: bool = False, unstage: bool = False):
+def upload_file(file_path: str, name: str = None, offline: bool = False, unstage: bool = False, client = None):
     """
     Upload a file to nomad.
 
@@ -83,8 +83,11 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, unstage
         name: optional name, default is the file_path's basename
         offline: allows to process data without upload, requires client to be run on the server
         unstage: automatically unstage after successful processing
+
+    Returns: The upload_id
     """
-    client = _cli_client()
+    if client is None:
+        client = _cli_client()
     if offline:
         upload = client.uploads.upload(
             local_path=os.path.abspath(file_path), name=name).reponse().result
@@ -116,6 +119,8 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, unstage
             click.echo('    %s' % error)
     elif unstage:
         client.uploads.exec(upload_id=upload.upload_id, operation='unstage').reponse()
+
+    return upload.upload_id
 
 
 class CalcProcReproduction:
