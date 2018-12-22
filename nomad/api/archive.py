@@ -26,14 +26,13 @@ from nomad import config
 from nomad.files import ArchiveFile, ArchiveLogFile
 from nomad.utils import get_logger
 
-from .app import api, base_path
+from .app import api
 from .auth import login_if_available
 from .common import calc_route
 
 ns = api.namespace(
-    '%s/archive' % base_path[1:] if base_path is not '' else 'archive',
-    description='Access archive data and archive processing logs.'
-)
+    'archive',
+    description='Access archive data and archive processing logs.')
 
 
 @calc_route(ns, '/logs')

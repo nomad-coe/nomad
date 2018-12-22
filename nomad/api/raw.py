@@ -29,13 +29,10 @@ from werkzeug.exceptions import HTTPException
 from nomad.files import RepositoryFile
 from nomad.utils import get_logger
 
-from .app import api, base_path
+from .app import api
 from .auth import login_if_available
 
-ns = api.namespace(
-    '%s/raw' % base_path[1:] if base_path is not '' else 'raw',
-    description='Downloading raw data files.'
-)
+ns = api.namespace('raw', description='Downloading raw data files.')
 
 
 def fix_file_paths(path):

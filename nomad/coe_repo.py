@@ -346,3 +346,10 @@ def ensure_test_user(email):
     assert session.token == email, 'Test user %s session has unexpected token.' % email
 
     return existing
+
+
+def admin_user():
+    repo_db = infrastructure.repository_db
+    admin = repo_db.query(User).filter_by(user_id=1).first()
+    assert admin, 'Admin user does not exist.'
+    return admin

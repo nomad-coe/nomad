@@ -27,13 +27,13 @@ from nomad.processing import NotAllowedDuringProcessing
 from nomad.utils import get_logger
 from nomad.files import UploadFile
 
-from .app import api, base_path
+from .app import api
 from .auth import login_really_required
 from .common import pagination_request_parser, pagination_model
 
 
 ns = api.namespace(
-    '%s/uploads' % base_path[1:] if base_path is not '' else 'uploads',
+    'uploads',
     description='Uploading data and tracing uploaded data and its processing.')
 
 

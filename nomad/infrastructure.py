@@ -27,6 +27,7 @@ from sqlalchemy.orm import Session
 from elasticsearch.exceptions import RequestError
 from elasticsearch_dsl import connections
 from mongoengine import connect
+from passlib.hash import bcrypt
 
 from nomad import config, utils
 
@@ -127,6 +128,13 @@ def setup_repository_db():
                 "select exists(select * from information_schema.tables "
                 "where table_name='users')")
             exists = cur.fetchone()[0]
+
+    # set the admin user password
+    with repository_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE public.users SET password='%s' WHERE user_id=1;" %
+                bcrypt.encrypt(config.services.admin_password, ident='2y'))
 
     if not exists:
         logger.info('repository db postgres schema does not exists')
@@ -262,7 +270,14 @@ def repository_db_connection(dbname=None, with_trans=True):
 
 def reset_repository_db():
     """ Drops the existing NOMAD-coe repository postgres schema and creates a new minimal one. """
-    with repository_db_connection() as conn:
+    if repository_db is not None:
+        repository_db.expunge_all()
+        repository_db.invalidate()
+
+    if repository_db_conn is not None:
+        repository_db_conn.close()
+
+    with repository_db_connection(with_trans=False) as conn:
         with conn.cursor() as cur:
             cur.execute(
                 "DROP SCHEMA public CASCADE;"
@@ -272,9 +287,3 @@ def reset_repository_db():
             sql_file = os.path.join(os.path.dirname(__file__), 'empty_repository_db.sql')
             cur.execute(open(sql_file, 'r').read())
             logger.info('(re-)created repository db postgres schema')
-
-
-if __name__ == '__main__':
-    # setup()
-    remove()
-    # reset_repository_db()

@@ -63,6 +63,50 @@ def test_other_user_auth(other_test_user: User):
     return create_auth_headers(other_test_user)
 
 
+class TestAdmin:
+
+    @pytest.fixture(scope='session')
+    def admin_user_auth(self, admin_user: User):
+        return create_auth_headers(admin_user)
+
+    @pytest.mark.timeout(10)
+    def test_reset(self, client, admin_user_auth, repair_repository_db):
+        rv = client.post('/admin/reset', headers=admin_user_auth)
+        assert rv.status_code == 200
+
+    # TODO disabled as this will destroy the session repository_db beyond repair.
+    # @pytest.mark.timeout(10)
+    # def test_remove(self, client, admin_user_auth, repair_repository_db):
+    #     rv = client.post('/admin/remove', headers=admin_user_auth)
+    #     assert rv.status_code == 200
+
+    def test_doesnotexist(self, client, admin_user_auth):
+        rv = client.post('/admin/doesnotexist', headers=admin_user_auth)
+        assert rv.status_code == 404
+
+    def test_only_admin(self, client, test_user_auth):
+        rv = client.post('/admin/doesnotexist', headers=test_user_auth)
+        assert rv.status_code == 401
+
+    @pytest.fixture(scope='function')
+    def disable_reset(self, monkeypatch):
+        old_config = config.services
+        new_config = config.NomadServicesConfig(
+            config.services.api_host,
+            config.services.api_port,
+            config.services.api_base_path,
+            config.services.api_secret,
+            config.services.admin_password,
+            True)
+        monkeypatch.setattr(config, 'services', new_config)
+        yield None
+        monkeypatch.setattr(config, 'services', old_config)
+
+    def test_disabled(self, client, admin_user_auth, disable_reset):
+        rv = client.post('/admin/reset', headers=admin_user_auth)
+        assert rv.status_code == 400
+
+
 class TestAuth:
     def test_xtoken_auth(self, client, test_user: User, no_warn):
         rv = client.get('/uploads/', headers={
@@ -185,6 +229,7 @@ class TestUploads:
         rv = client.get('/uploads/123456789012123456789012', headers=test_user_auth)
         assert rv.status_code == 404
 
+    @pytest.mark.timeout(30)
     @pytest.mark.parametrize('file', example_files)
     @pytest.mark.parametrize('mode', ['multipart', 'stream', 'local_path'])
     @pytest.mark.parametrize('name', [None, 'test_name'])

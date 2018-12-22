@@ -42,7 +42,7 @@ from flask_httpauth import HTTPBasicAuth
 from nomad import config
 from nomad.coe_repo import User, LoginException
 
-from .app import app, api, base_path
+from .app import app, api
 
 app.config['SECRET_KEY'] = config.services.api_secret
 auth = HTTPBasicAuth()
@@ -121,9 +121,8 @@ def login_really_required(func):
 
 
 ns = api.namespace(
-    '%s/auth' % base_path[1:] if base_path is not '' else 'auth',
-    description='Authentication related endpoints.'
-)
+    'auth',
+    description='Authentication related endpoints.')
 
 
 @ns.route('/token')

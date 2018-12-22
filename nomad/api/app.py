@@ -33,8 +33,10 @@ app = Flask(
     static_folder=os.path.abspath(os.path.join(os.path.dirname(__file__), '../../docs/.build/html')))
 """ The Flask app that serves all APIs. """
 
+app.config.setdefault('APPLICATION_ROOT', base_path)
 app.config.setdefault('RESTPLUS_MASK_HEADER', False)
 app.config.setdefault('RESTPLUS_MASK_SWAGGER', False)
+
 
 CORS(app)
 

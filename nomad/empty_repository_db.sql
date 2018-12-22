@@ -11,14 +11,14 @@ SET check_function_bodies = false;
 SET client_min_messages = warning;
 
 --
--- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
+-- Name: plpgsql; Type: EXTENSION; Schema: -; Owner:
 --
 
 CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
 
 --
--- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
+-- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner:
 --
 
 COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
@@ -41,7 +41,7 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
--- Name: affiliations; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: affiliations; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.affiliations (
@@ -76,7 +76,7 @@ ALTER SEQUENCE public.affiliations_a_id_seq OWNED BY public.affiliations.a_id;
 
 
 --
--- Name: alembic_version; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: alembic_version; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.alembic_version (
@@ -87,7 +87,7 @@ CREATE TABLE public.alembic_version (
 ALTER TABLE public.alembic_version OWNER TO postgres;
 
 --
--- Name: atoms; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: atoms; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.atoms (
@@ -127,7 +127,7 @@ ALTER SEQUENCE public.atoms_atom_id_seq OWNED BY public.atoms.atom_id;
 
 
 --
--- Name: basis_sets; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: basis_sets; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.basis_sets (
@@ -145,7 +145,7 @@ CREATE TABLE public.basis_sets (
 ALTER TABLE public.basis_sets OWNER TO postgres;
 
 --
--- Name: calcsets; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: calcsets; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.calcsets (
@@ -157,7 +157,7 @@ CREATE TABLE public.calcsets (
 ALTER TABLE public.calcsets OWNER TO postgres;
 
 --
--- Name: calculations; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: calculations; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.calculations (
@@ -195,7 +195,7 @@ ALTER SEQUENCE public.calculations_calc_id_seq OWNED BY public.calculations.calc
 
 
 --
--- Name: charges; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: charges; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.charges (
@@ -212,7 +212,7 @@ CREATE TABLE public.charges (
 ALTER TABLE public.charges OWNER TO postgres;
 
 --
--- Name: citations; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: citations; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.citations (
@@ -246,7 +246,7 @@ ALTER SEQUENCE public.citations_citation_id_seq OWNED BY public.citations.citati
 
 
 --
--- Name: coauthorships; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: coauthorships; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.coauthorships (
@@ -258,7 +258,7 @@ CREATE TABLE public.coauthorships (
 ALTER TABLE public.coauthorships OWNER TO postgres;
 
 --
--- Name: codefamilies; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: codefamilies; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.codefamilies (
@@ -291,7 +291,7 @@ ALTER SEQUENCE public.codefamilies_family_id_seq OWNED BY public.codefamilies.fa
 
 
 --
--- Name: codeversions; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: codeversions; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.codeversions (
@@ -325,7 +325,7 @@ ALTER SEQUENCE public.codeversions_version_id_seq OWNED BY public.codeversions.v
 
 
 --
--- Name: doi_mapping; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: doi_mapping; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.doi_mapping (
@@ -358,7 +358,7 @@ ALTER SEQUENCE public.doi_mapping_calc_id_seq OWNED BY public.doi_mapping.calc_i
 
 
 --
--- Name: eigenvalues; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: eigenvalues; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.eigenvalues (
@@ -396,7 +396,7 @@ ALTER SEQUENCE public.eigenvalues_eid_seq OWNED BY public.eigenvalues.eid;
 
 
 --
--- Name: electrons; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: electrons; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.electrons (
@@ -409,7 +409,7 @@ CREATE TABLE public.electrons (
 ALTER TABLE public.electrons OWNER TO postgres;
 
 --
--- Name: energies; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: energies; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.energies (
@@ -422,7 +422,7 @@ CREATE TABLE public.energies (
 ALTER TABLE public.energies OWNER TO postgres;
 
 --
--- Name: forces; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: forces; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.forces (
@@ -434,7 +434,7 @@ CREATE TABLE public.forces (
 ALTER TABLE public.forces OWNER TO postgres;
 
 --
--- Name: grid; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: grid; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.grid (
@@ -446,7 +446,7 @@ CREATE TABLE public.grid (
 ALTER TABLE public.grid OWNER TO postgres;
 
 --
--- Name: lattices; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: lattices; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.lattices (
@@ -472,7 +472,7 @@ CREATE TABLE public.lattices (
 ALTER TABLE public.lattices OWNER TO postgres;
 
 --
--- Name: login_tokens; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: login_tokens; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.login_tokens (
@@ -485,7 +485,7 @@ CREATE TABLE public.login_tokens (
 ALTER TABLE public.login_tokens OWNER TO postgres;
 
 --
--- Name: metadata; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: metadata; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.metadata (
@@ -506,7 +506,7 @@ CREATE TABLE public.metadata (
 ALTER TABLE public.metadata OWNER TO postgres;
 
 --
--- Name: metadata_citations; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: metadata_citations; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.metadata_citations (
@@ -518,7 +518,7 @@ CREATE TABLE public.metadata_citations (
 ALTER TABLE public.metadata_citations OWNER TO postgres;
 
 --
--- Name: ownerships; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: ownerships; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.ownerships (
@@ -530,7 +530,7 @@ CREATE TABLE public.ownerships (
 ALTER TABLE public.ownerships OWNER TO postgres;
 
 --
--- Name: phonons; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: phonons; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.phonons (
@@ -541,7 +541,7 @@ CREATE TABLE public.phonons (
 ALTER TABLE public.phonons OWNER TO postgres;
 
 --
--- Name: pottypes; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: pottypes; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.pottypes (
@@ -574,7 +574,7 @@ ALTER SEQUENCE public.pottypes_pottype_id_seq OWNED BY public.pottypes.pottype_i
 
 
 --
--- Name: pragma; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: pragma; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.pragma (
@@ -585,7 +585,7 @@ CREATE TABLE public.pragma (
 ALTER TABLE public.pragma OWNER TO postgres;
 
 --
--- Name: recipintegs; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: recipintegs; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.recipintegs (
@@ -600,7 +600,7 @@ CREATE TABLE public.recipintegs (
 ALTER TABLE public.recipintegs OWNER TO postgres;
 
 --
--- Name: sessions; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: sessions; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.sessions (
@@ -615,7 +615,7 @@ CREATE TABLE public.sessions (
 ALTER TABLE public.sessions OWNER TO postgres;
 
 --
--- Name: shareships; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: shareships; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.shareships (
@@ -627,7 +627,7 @@ CREATE TABLE public.shareships (
 ALTER TABLE public.shareships OWNER TO postgres;
 
 --
--- Name: spacegroups; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: spacegroups; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.spacegroups (
@@ -639,7 +639,7 @@ CREATE TABLE public.spacegroups (
 ALTER TABLE public.spacegroups OWNER TO postgres;
 
 --
--- Name: struct_optimisation; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: struct_optimisation; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.struct_optimisation (
@@ -652,7 +652,7 @@ CREATE TABLE public.struct_optimisation (
 ALTER TABLE public.struct_optimisation OWNER TO postgres;
 
 --
--- Name: struct_ratios; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: struct_ratios; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.struct_ratios (
@@ -668,7 +668,7 @@ CREATE TABLE public.struct_ratios (
 ALTER TABLE public.struct_ratios OWNER TO postgres;
 
 --
--- Name: structures; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: structures; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.structures (
@@ -703,7 +703,7 @@ ALTER SEQUENCE public.structures_struct_id_seq OWNED BY public.structures.struct
 
 
 --
--- Name: tags; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: tags; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.tags (
@@ -715,7 +715,7 @@ CREATE TABLE public.tags (
 ALTER TABLE public.tags OWNER TO postgres;
 
 --
--- Name: topics; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: topics; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.topics (
@@ -749,7 +749,7 @@ ALTER SEQUENCE public.topics_tid_seq OWNED BY public.topics.tid;
 
 
 --
--- Name: uploads; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: uploads; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.uploads (
@@ -788,7 +788,7 @@ ALTER SEQUENCE public.uploads_upload_id_seq OWNED BY public.uploads.upload_id;
 
 
 --
--- Name: user_metadata; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: user_metadata; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.user_metadata (
@@ -801,7 +801,7 @@ CREATE TABLE public.user_metadata (
 ALTER TABLE public.user_metadata OWNER TO postgres;
 
 --
--- Name: users; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: users; Type: TABLE; Schema: public; Owner: postgres; Tablespace:
 --
 
 CREATE TABLE public.users (
@@ -1155,8 +1155,8 @@ INSERT INTO public.pragma VALUES ('4.59');
 -- Data for Name: sessions; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.sessions VALUES ('leonard.hofstadter@nomad-fairdi.tests.de', 2, '2100-12-17 09:00:00+00', NULL, NULL);
-INSERT INTO public.sessions VALUES ('sheldon.cooper@nomad-fairdi.tests.de', 1, '2100-12-17 09:00:00+00', NULL, NULL);
+INSERT INTO public.sessions VALUES ('leonard.hofstadter@nomad-fairdi.tests.de', 3, '2100-12-17 09:00:00+00', NULL, NULL);
+INSERT INTO public.sessions VALUES ('sheldon.cooper@nomad-fairdi.tests.de', 2, '2100-12-17 09:00:00+00', NULL, NULL);
 
 
 --
@@ -1238,8 +1238,9 @@ SELECT pg_catalog.setval('public.uploads_upload_id_seq', 1, false);
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.users VALUES (1, 'Sheldon', 'Cooper', 'sheldon.cooper', 'sheldon.cooper@nomad-fairdi.tests.de', NULL, '$2y$12$jths1LQPsLofuBQ3evVIluhQeQ/BZfbdTSZHFcPGdcNmHz2WvDj.y', NULL);
-INSERT INTO public.users VALUES (2, 'Leonard', 'Hofstadter', 'leonard.hofstadter', 'leonard.hofstadter@nomad-fairdi.tests.de', NULL, '$2y$12$jths1LQPsLofuBQ3evVIluhQeQ/BZfbdTSZHFcPGdcNmHz2WvDj.y', NULL);
+INSERT INTO public.users VALUES (1, 'admin', 'admin', 'admin', 'admin', NULL, NULL, NULL);
+INSERT INTO public.users VALUES (2, 'Sheldon', 'Cooper', 'sheldon.cooper', 'sheldon.cooper@nomad-fairdi.tests.de', NULL, '$2y$12$jths1LQPsLofuBQ3evVIluhQeQ/BZfbdTSZHFcPGdcNmHz2WvDj.y', NULL);
+INSERT INTO public.users VALUES (3, 'Leonard', 'Hofstadter', 'leonard.hofstadter', 'leonard.hofstadter@nomad-fairdi.tests.de', NULL, '$2y$12$jths1LQPsLofuBQ3evVIluhQeQ/BZfbdTSZHFcPGdcNmHz2WvDj.y', NULL);
 
 
 --
@@ -1250,7 +1251,7 @@ SELECT pg_catalog.setval('public.users_user_id_seq', 1, true);
 
 
 --
--- Name: affiliations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: affiliations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.affiliations
@@ -1258,7 +1259,7 @@ ALTER TABLE ONLY public.affiliations
 
 
 --
--- Name: atoms_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: atoms_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.atoms
@@ -1266,7 +1267,7 @@ ALTER TABLE ONLY public.atoms
 
 
 --
--- Name: basis_sets_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: basis_sets_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.basis_sets
@@ -1274,7 +1275,7 @@ ALTER TABLE ONLY public.basis_sets
 
 
 --
--- Name: calculations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: calculations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.calculations
@@ -1282,7 +1283,7 @@ ALTER TABLE ONLY public.calculations
 
 
 --
--- Name: charges_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: charges_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.charges
@@ -1290,7 +1291,7 @@ ALTER TABLE ONLY public.charges
 
 
 --
--- Name: citations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: citations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.citations
@@ -1298,7 +1299,7 @@ ALTER TABLE ONLY public.citations
 
 
 --
--- Name: citations_value_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: citations_value_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.citations
@@ -1306,7 +1307,7 @@ ALTER TABLE ONLY public.citations
 
 
 --
--- Name: codefamilies_content_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: codefamilies_content_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.codefamilies
@@ -1314,7 +1315,7 @@ ALTER TABLE ONLY public.codefamilies
 
 
 --
--- Name: codefamilies_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: codefamilies_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.codefamilies
@@ -1322,7 +1323,7 @@ ALTER TABLE ONLY public.codefamilies
 
 
 --
--- Name: codeversions_content_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: codeversions_content_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.codeversions
@@ -1330,7 +1331,7 @@ ALTER TABLE ONLY public.codeversions
 
 
 --
--- Name: codeversions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: codeversions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.codeversions
@@ -1338,7 +1339,7 @@ ALTER TABLE ONLY public.codeversions
 
 
 --
--- Name: doi_mapping_id_str_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: doi_mapping_id_str_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.doi_mapping
@@ -1346,7 +1347,7 @@ ALTER TABLE ONLY public.doi_mapping
 
 
 --
--- Name: doi_mapping_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: doi_mapping_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.doi_mapping
@@ -1354,7 +1355,7 @@ ALTER TABLE ONLY public.doi_mapping
 
 
 --
--- Name: eigenvalues_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: eigenvalues_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.eigenvalues
@@ -1362,7 +1363,7 @@ ALTER TABLE ONLY public.eigenvalues
 
 
 --
--- Name: electrons_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: electrons_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.electrons
@@ -1370,7 +1371,7 @@ ALTER TABLE ONLY public.electrons
 
 
 --
--- Name: energies_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: energies_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.energies
@@ -1378,7 +1379,7 @@ ALTER TABLE ONLY public.energies
 
 
 --
--- Name: forces_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: forces_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.forces
@@ -1386,7 +1387,7 @@ ALTER TABLE ONLY public.forces
 
 
 --
--- Name: grid_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: grid_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.grid
@@ -1394,7 +1395,7 @@ ALTER TABLE ONLY public.grid
 
 
 --
--- Name: lattices_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: lattices_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.lattices
@@ -1402,7 +1403,7 @@ ALTER TABLE ONLY public.lattices
 
 
 --
--- Name: login_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: login_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.login_tokens
@@ -1410,7 +1411,7 @@ ALTER TABLE ONLY public.login_tokens
 
 
 --
--- Name: metadata_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: metadata_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.metadata
@@ -1418,7 +1419,7 @@ ALTER TABLE ONLY public.metadata
 
 
 --
--- Name: phonons_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: phonons_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.phonons
@@ -1426,7 +1427,7 @@ ALTER TABLE ONLY public.phonons
 
 
 --
--- Name: pottypes_name_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: pottypes_name_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.pottypes
@@ -1434,7 +1435,7 @@ ALTER TABLE ONLY public.pottypes
 
 
 --
--- Name: pottypes_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: pottypes_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.pottypes
@@ -1442,7 +1443,7 @@ ALTER TABLE ONLY public.pottypes
 
 
 --
--- Name: pragma_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: pragma_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.pragma
@@ -1450,7 +1451,7 @@ ALTER TABLE ONLY public.pragma
 
 
 --
--- Name: recipintegs_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: recipintegs_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.recipintegs
@@ -1458,7 +1459,7 @@ ALTER TABLE ONLY public.recipintegs
 
 
 --
--- Name: sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.sessions
@@ -1466,7 +1467,7 @@ ALTER TABLE ONLY public.sessions
 
 
 --
--- Name: spacegroups_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: spacegroups_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.spacegroups
@@ -1474,7 +1475,7 @@ ALTER TABLE ONLY public.spacegroups
 
 
 --
--- Name: struct_optimisation_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: struct_optimisation_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.struct_optimisation
@@ -1482,7 +1483,7 @@ ALTER TABLE ONLY public.struct_optimisation
 
 
 --
--- Name: struct_ratios_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: struct_ratios_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.struct_ratios
@@ -1490,7 +1491,7 @@ ALTER TABLE ONLY public.struct_ratios
 
 
 --
--- Name: structures_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: structures_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.structures
@@ -1498,7 +1499,7 @@ ALTER TABLE ONLY public.structures
 
 
 --
--- Name: topics_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: topics_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.topics
@@ -1506,7 +1507,7 @@ ALTER TABLE ONLY public.topics
 
 
 --
--- Name: u_children_parent_calc_id; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: u_children_parent_calc_id; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.calcsets
@@ -1514,7 +1515,7 @@ ALTER TABLE ONLY public.calcsets
 
 
 --
--- Name: u_coauthorships_calc_id_user; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: u_coauthorships_calc_id_user; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.coauthorships
@@ -1522,7 +1523,7 @@ ALTER TABLE ONLY public.coauthorships
 
 
 --
--- Name: u_coauthorships_user_calc_id; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: u_coauthorships_user_calc_id; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.coauthorships
@@ -1530,7 +1531,7 @@ ALTER TABLE ONLY public.coauthorships
 
 
 --
--- Name: u_metadata_citations_calc_citation; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: u_metadata_citations_calc_citation; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.metadata_citations
@@ -1538,7 +1539,7 @@ ALTER TABLE ONLY public.metadata_citations
 
 
 --
--- Name: u_metadata_citations_citation_calc; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: u_metadata_citations_citation_calc; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.metadata_citations
@@ -1546,7 +1547,7 @@ ALTER TABLE ONLY public.metadata_citations
 
 
 --
--- Name: u_ownerships_calc_id_user; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: u_ownerships_calc_id_user; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.ownerships
@@ -1554,7 +1555,7 @@ ALTER TABLE ONLY public.ownerships
 
 
 --
--- Name: u_ownerships_user_calc_id; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: u_ownerships_user_calc_id; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.ownerships
@@ -1562,7 +1563,7 @@ ALTER TABLE ONLY public.ownerships
 
 
 --
--- Name: u_parent_children_calc_id; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: u_parent_children_calc_id; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.calcsets
@@ -1570,7 +1571,7 @@ ALTER TABLE ONLY public.calcsets
 
 
 --
--- Name: u_shareships_calc_id_user; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: u_shareships_calc_id_user; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.shareships
@@ -1578,7 +1579,7 @@ ALTER TABLE ONLY public.shareships
 
 
 --
--- Name: u_shareships_user_calc_id; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: u_shareships_user_calc_id; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.shareships
@@ -1586,7 +1587,7 @@ ALTER TABLE ONLY public.shareships
 
 
 --
--- Name: u_tags_calc_id_tid; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: u_tags_calc_id_tid; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.tags
@@ -1594,7 +1595,7 @@ ALTER TABLE ONLY public.tags
 
 
 --
--- Name: u_tags_tid_calc_id; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: u_tags_tid_calc_id; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.tags
@@ -1602,7 +1603,7 @@ ALTER TABLE ONLY public.tags
 
 
 --
--- Name: uploads_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: uploads_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.uploads
@@ -1610,7 +1611,7 @@ ALTER TABLE ONLY public.uploads
 
 
 --
--- Name: user_metadata_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: user_metadata_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.user_metadata
@@ -1618,7 +1619,7 @@ ALTER TABLE ONLY public.user_metadata
 
 
 --
--- Name: users_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: users_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.users
@@ -1626,7 +1627,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.users
@@ -1634,7 +1635,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: users_username_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: users_username_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace:
 --
 
 ALTER TABLE ONLY public.users

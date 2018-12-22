@@ -32,6 +32,10 @@ api:
   logstash_loglevel: INFO
   ## Secret used as cryptographic seed
   secret: "defaultApiSecret"
+  ## The adminstrator password (only way to ever set/change it)
+  adminPassword: "password"
+  ## Disable the dangerous reset (delete all data) function
+  disableReset: "true"
 
 ## Everthing concerning the nomad worker
 worker:

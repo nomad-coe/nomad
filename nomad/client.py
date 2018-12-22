@@ -327,9 +327,10 @@ def worker():
 @run.command(help='Run the nomad development api.')
 def api():
     config.service = 'nomad_api'
-    from nomad import infrastructure, api
+    from nomad import infrastructure
+    from nomad.api.__main__ import run_dev_server
     infrastructure.setup()
-    api.app.run(debug=True, port=8000)
+    run_dev_server(debug=True, port=8000)
 
 
 @cli.command(help='Runs tests and linting. Useful before commit code.')

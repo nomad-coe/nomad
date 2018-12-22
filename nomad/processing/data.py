@@ -28,14 +28,13 @@ from typing import List, Any, ContextManager, Tuple, Generator
 from elasticsearch.exceptions import NotFoundError
 from mongoengine import StringField, BooleanField, DateTimeField, DictField, IntField
 import logging
-import time
 from structlog import wrap_logger
 from contextlib import contextmanager
 
 from nomad import utils, coe_repo
 from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile, File
 from nomad.repo import RepoCalc
-from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE, RUNNING
+from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parsers, parser_dict
 from nomad.normalizing import normalizers
 from nomad.utils import lnr
@@ -548,23 +547,3 @@ class Upload(Chord):
 
     def all_calcs(self, start, end, order_by='mainfile'):
         return Calc.objects(upload_id=self.upload_id)[start:end].order_by(order_by)
-
-    @staticmethod
-    def repair_all():
-        """
-        Utitlity function that will look for suspiciously looking conditions in
-        all uncompleted downloads. It ain't a perfect world.
-        """
-        # TODO this was added as a quick fix to #37.
-        # Even though it might be strictly necessary, there should be a tested backup
-        # solution for it Chords to not work properly due to failed to fail processings
-        uploads = Upload.objects(status__in=[PENDING, RUNNING])
-        for upload in uploads:
-            completed = upload.processed_calcs
-            total = upload.total
-            pending = upload.pending_calcs
-
-            if completed + pending == total:
-                time.sleep(2)
-                if pending == upload.pending_calcs:
-                    Calc.objects(upload_id=upload.upload_id, status=PENDING).delete()
