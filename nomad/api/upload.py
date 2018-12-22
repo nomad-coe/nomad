@@ -28,6 +28,7 @@ from nomad.files import UploadFile
 
 from .app import api, base_path
 from .auth import login_really_required
+from .common import pagination_request_parser, pagination_model
 
 
 ns = api.namespace(
@@ -47,7 +48,7 @@ proc_model = api.model('Processing', {
     '_async_status': fields.String(description='Only for debugging nomad')
 })
 
-upload_model = api.inherit('Upload', proc_model, {
+upload_model = api.inherit('UploadProcessing', proc_model, {
     'name': fields.String(
         description='The name of the upload. This can be provided during upload '
                     'using the name query parameter.'),
@@ -65,7 +66,7 @@ upload_model = api.inherit('Upload', proc_model, {
     'upload_time': fields.DateTime(dt_format='iso8601'),
 })
 
-calc_model = api.inherit('Calculation', proc_model, {
+calc_model = api.inherit('UploadCalculationProcessing', proc_model, {
     'archive_id': fields.String,
     'mainfile': fields.String,
     'upload_id': fields.String,
@@ -77,13 +78,10 @@ upload_with_calcs_model = api.inherit('UploadWithPaginatedCalculations', upload_
     'total_calcs': fields.Integer,
     'failed_calcs': fields.Integer,
     'pending_calcs': fields.Integer,
-    'calcs': fields.Nested(model=api.model('PaginatedCalculations', {
-        'pagination': fields.Nested(model=api.model('Pagination', {
-            'total': fields.Integer,
+    'calcs': fields.Nested(model=api.model('UploadPaginatedCalculations', {
+        'pagination': fields.Nested(model=api.inherit('UploadCalculationPagination', pagination_model, {
             'successes': fields.Integer,
             'failures': fields.Integer,
-            'page': fields.Integer,
-            'per_page': fields.Integer,
         })),
         'results': fields.List(fields.Nested(model=calc_model))
     }))
@@ -183,18 +181,12 @@ class ProxyUpload:
         return self.upload.__getattribute__(name)
 
 
-pagination_parser = api.parser()
-pagination_parser.add_argument('page', type=int, help='The page, starting with 1.', location='args')
-pagination_parser.add_argument('per_page', type=int, help='Desired calcs per page.', location='args')
-pagination_parser.add_argument('order_by', type=str, help='The field to sort the calcs by, use [status,mainfile].', location='args')
-
-
 @ns.route('/<string:upload_id>')
 @api.doc(params={'upload_id': 'The unique id for the requested upload.'})
 class Upload(Resource):
     @api.response(404, 'Upload does not exist')
     @api.marshal_with(upload_with_calcs_model, skip_none=True, code=200, description='Upload send')
-    @api.expect(pagination_parser)
+    @api.expect(pagination_request_parser)
     @login_really_required
     def get(self, upload_id: str):
         """

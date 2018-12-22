@@ -255,7 +255,7 @@ class TestRepo:
         assert rv.status_code == 404
 
     def test_calcs(self, client, example_elastic_calc, no_warn):
-        rv = client.get('/repo')
+        rv = client.get('/repo/')
         assert rv.status_code == 200
         data = json.loads(rv.data)
         results = data.get('results', None)
@@ -264,7 +264,7 @@ class TestRepo:
         assert len(results) >= 1
 
     def test_calcs_pagination(self, client, example_elastic_calc, no_warn):
-        rv = client.get('/repo?page=1&per_page=1')
+        rv = client.get('/repo/?page=1&per_page=1')
         assert rv.status_code == 200
         data = json.loads(rv.data)
         results = data.get('results', None)
@@ -273,7 +273,7 @@ class TestRepo:
         assert len(results) == 1
 
     def test_calcs_user(self, client, example_elastic_calc, test_user_auth, no_warn):
-        rv = client.get('/repo?owner=user', headers=test_user_auth)
+        rv = client.get('/repo/?owner=user', headers=test_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)
         results = data.get('results', None)
@@ -281,11 +281,11 @@ class TestRepo:
         assert len(results) >= 1
 
     def test_calcs_user_authrequired(self, client, example_elastic_calc, no_warn):
-        rv = client.get('/repo?owner=user')
+        rv = client.get('/repo/?owner=user')
         assert rv.status_code == 401
 
     def test_calcs_user_invisible(self, client, example_elastic_calc, test_other_user_auth, no_warn):
-        rv = client.get('/repo?owner=user', headers=test_other_user_auth)
+        rv = client.get('/repo/?owner=user', headers=test_other_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)
         results = data.get('results', None)
