@@ -35,17 +35,30 @@ authenticated user information for authorization or otherwise.
 .. autofunction:: login_really_required
 """
 
-from flask import g, request
-from flask_restplus import abort
+from flask import g, request, make_response
+from flask_restplus import abort, Resource
 from flask_httpauth import HTTPBasicAuth
 
 from nomad import config
-from nomad.coe_repo import User
+from nomad.coe_repo import User, LoginException
 
 from .app import app, api, base_path
 
 app.config['SECRET_KEY'] = config.services.api_secret
 auth = HTTPBasicAuth()
+
+
+# Authentication scheme definitions, for swagger only.
+api.authorizations = {
+    'HTTP Basic': {
+        'type': 'basic'
+    },
+    'X-Token': {
+        'type': 'apiKey',
+        'in': 'header',
+        'name': 'X-Token'
+    }
+}
 
 
 @auth.verify_password
@@ -70,6 +83,8 @@ def login_if_available(func):
     A decorator for API endpoint implementations that might authenticate users, but
     provide limited functionality even without users.
     """
+    @api.response(401, 'Not authorized, some data require authentication and authorization')
+    @api.doc(security=list(api.authorizations.keys()))
     @auth.login_required
     def wrapper(*args, **kwargs):
         # TODO the cutom X-Token based authentication should be replaced by a real
@@ -78,7 +93,7 @@ def login_if_available(func):
             token = request.headers['X-Token']
             g.user = User.verify_auth_token(token)
             if not g.user:
-                abort(401, message='Provided access token is not valid or does not exist.')
+                abort(401, message='Not authorized, some data require authentication and authorization')
 
         return func(*args, **kwargs)
 
@@ -92,12 +107,12 @@ def login_really_required(func):
     A decorator for API endpoint implementations that forces user authentication on
     endpoints.
     """
-    @api.response(401, 'Not Authorized')
-    @api.doc(security=['HTTP Basic'])
+    @api.response(401, 'Authentication required or not authorized to access requested data')
+    @api.doc(security=list(api.authorizations.keys()))
     @login_if_available
     def wrapper(*args, **kwargs):
         if g.user is None:
-            abort(401, message='Anonymous access is forbidden, authorization required')
+            abort(401, message='Authentication required or not authorized to access requested data')
         else:
             return func(*args, **kwargs)
     wrapper.__name__ = func.__name__
@@ -105,20 +120,30 @@ def login_really_required(func):
     return wrapper
 
 
-@app.route('%s/token' % base_path)
-@login_really_required
-def get_auth_token():
-    """
-    Get a token for authenticated users. This is currently disabled and all authentication
-    matters are solved by the NOMAD-coe repository GUI.
+ns = api.namespace(
+    '%s/auth' % base_path[1:] if base_path is not '' else 'auth',
+    description='Authentication related endpoints.'
+)
 
-    .. :quickref: Get a token to authenticate the user in follow up requests.
 
-    :resheader Content-Type: application/json
-    :status 200: calc successfully retrieved
-    :returns: an authentication token that is valid for 10 minutes.
-    """
-    assert False, 'All authorization is none via NOMAD-coe repository GUI'
-    # TODO all authorization is done via NOMAD-coe repository GUI
-    # token = g.user.generate_auth_token(600)
-    # return jsonify({'token': token.decode('ascii'), 'duration': 600})
+@ns.route('/token')
+class Token(Resource):
+    @api.response(200, 'Token send', headers={'Content-Type': 'text/plain; charset=utf-8'})
+    @login_really_required
+    def get(self):
+        """
+        Get the access token for the authenticated user.
+
+        You can use basic authentication to access this endpoint and receive a
+        token for further api access. This token will expire at some point and presents
+        a more secure method of authentication.
+        """
+        try:
+            response = make_response(g.user.get_auth_token().decode('utf-8'))
+            response.headers['Content-Type'] = 'text/plain; charset=utf-8'
+            return response
+        except LoginException:
+            abort(
+                401,
+                message='You are not propertly logged in at the NOMAD coe repository, '
+                        'there is no token for you.')

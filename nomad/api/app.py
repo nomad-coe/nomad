@@ -38,19 +38,8 @@ app.config.setdefault('RESTPLUS_MASK_SWAGGER', False)
 
 CORS(app)
 
-authorizations = {
-    'HTTP Basic': {
-        'type': 'basic'
-    },
-    'X-Token': {
-        'type': 'apiKey',
-        'in': 'header',
-        'name': 'X-Token'
-    }
-}
-
 api = Api(
-    app, version='1.0', title='nomad@FAIRDI API', authorizations=authorizations,
+    app, version='1.0', title='nomad@FAIRDI API',
     description='Official API for nomad@FAIRDI services.')
 """ Provides the flask restplust api instance """
 

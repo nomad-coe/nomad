@@ -19,6 +19,7 @@ config.services = config.NomadServicesConfig(**services_config)
 from nomad import api  # noqa
 from nomad.files import UploadFile  # noqa
 from nomad.processing import Upload  # noqa
+from nomad.coe_repo import User
 
 from tests.processing.test_data import example_files  # noqa
 from tests.test_files import example_file, example_file_mainfile, example_file_contents  # noqa
@@ -53,17 +54,17 @@ def create_auth_headers(user):
 
 
 @pytest.fixture(scope='session')
-def test_user_auth(test_user):
+def test_user_auth(test_user: User):
     return create_auth_headers(test_user)
 
 
 @pytest.fixture(scope='session')
-def test_other_user_auth(other_test_user):
+def test_other_user_auth(other_test_user: User):
     return create_auth_headers(other_test_user)
 
 
 class TestAuth:
-    def test_xtoken_auth(self, client, test_user, no_warn):
+    def test_xtoken_auth(self, client, test_user: User, no_warn):
         rv = client.get('/uploads/', headers={
             'X-Token': test_user.email  # the test users have their email as tokens for convinience
         })
@@ -87,6 +88,11 @@ class TestAuth:
             'Authorization': 'Basic %s' % basic_auth_base64
         })
         assert rv.status_code == 401
+
+    def test_get_token(self, client, test_user_auth, test_user: User, no_warn):
+        rv = client.get('/auth/token', headers=test_user_auth)
+        assert rv.status_code == 200
+        assert rv.data.decode('utf-8') == test_user.get_auth_token().decode('utf-8')
 
 
 class TestUploads:
