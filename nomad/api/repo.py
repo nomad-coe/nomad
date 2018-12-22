@@ -34,6 +34,7 @@ ns = api.namespace('repo', description='Access repository metadata, edit user me
 class RepoCalcResource(Resource):
     @api.response(404, 'The upload or calculation does not exist')
     @api.response(200, 'Metadata send')
+    @api.doc('get_calc')
     def get(self, upload_hash, calc_hash):
         """
         Get calculation metadata in repository form.
@@ -64,6 +65,7 @@ repo_request_parser.add_argument(
 
 @ns.route('/')
 class RepoCalcsResource(Resource):
+    @api.doc('get_calcs')
     @api.response(400, 'Invalid requests, e.g. wrong owner type')
     @api.expect(repo_request_parser, validate=True)
     @api.marshal_with(repo_calcs_model, skip_none=True, code=200, description='Metadata send')

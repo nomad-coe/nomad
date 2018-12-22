@@ -37,6 +37,7 @@ ns = api.namespace(
 
 @calc_route(ns, '/logs')
 class ArchiveCalcLogResource(Resource):
+    @api.doc('get_logs')
     @api.response(404, 'The upload or calculation does not exist')
     @api.response(200, 'Archive data send')
     @login_if_available
@@ -74,6 +75,7 @@ class ArchiveCalcLogResource(Resource):
 
 @calc_route(ns)
 class ArchiveCalcResource(Resource):
+    @api.doc('get_calc')
     @api.response(404, 'The upload or calculation does not exist')
     @api.response(200, 'Archive data send')
     @login_if_available

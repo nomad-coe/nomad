@@ -46,7 +46,7 @@ def calc_route(ns, prefix: str = ''):
         ns.route('%s/<string:upload_hash>/<string:calc_hash>' % prefix)(
             api.doc(params={
                 'upload_hash': 'The unique hash for the requested upload.',
-                'path': 'The path to a file or directory.'
+                'calc_hash': 'The unique hash for the requested calculation.'
             })(func)
         )
     return decorator

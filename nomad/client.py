@@ -13,20 +13,19 @@
 # limitations under the License.
 
 """
-Simple client library for the nomad api that allows to bulk upload files via shell command.
+Swagger/bravado based python client library for the API and various usefull shell commands.
 """
 
 import os.path
 import os
 import sys
-import subprocess
-import shlex
 import time
 import requests
-from requests.auth import HTTPBasicAuth
 import click
 from typing import Union, Callable, cast
 import logging
+from bravado.requests_client import RequestsClient
+from bravado.client import SwaggerClient
 
 from nomad import config, utils
 from nomad.files import UploadFile
@@ -34,9 +33,33 @@ from nomad.parsing import parsers, parser_dict, LocalBackend
 from nomad.normalizing import normalizers
 
 
-api_base = 'http://localhost/nomad/api'
+api_base = 'http://%s:%d/%s' % (config.services.api_host, config.services.api_port, config.services.api_base_path)
 user = 'leonard.hofstadter@nomad-fairdi.tests.de'
 pw = 'password'
+
+
+def _cli_client():
+    return create_client()
+
+
+def create_client(
+        host: str = config.services.api_host,
+        port: int = config.services.api_port,
+        base_path: str = config.services.api_base_path,
+        user: str = user, password: str = None):
+    """ A factory method to create the client. """
+
+    if user is not None:
+        http_client = RequestsClient()
+        http_client.set_basic_auth(host, user, pw)
+    else:
+        http_client = None
+
+    client = SwaggerClient.from_url(
+        'http://%s:%d%s/swagger.json' % (host, port, base_path),
+        http_client=http_client)
+
+    return client
 
 
 def handle_common_errors(func):
@@ -51,7 +74,6 @@ def handle_common_errors(func):
     return wrapper
 
 
-@handle_common_errors
 def upload_file(file_path: str, name: str = None, offline: bool = False, unstage: bool = False):
     """
     Upload a file to nomad.
@@ -62,70 +84,38 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, unstage
         offline: allows to process data without upload, requires client to be run on the server
         unstage: automatically unstage after successful processing
     """
-    auth = HTTPBasicAuth(user, pw)
-
-    if name is None:
-        name = os.path.basename(file_path)
-
-    post_data = dict(name=name)
+    client = _cli_client()
     if offline:
-        post_data.update(dict(local_path=os.path.abspath(file_path)))
+        upload = client.uploads.upload(
+            local_path=os.path.abspath(file_path), name=name).reponse().result
         click.echo('process offline: %s' % file_path)
+    else:
+        with open(file_path, 'rb') as f:
+            upload = client.uploads.upload(file=f, name=name).response().result
+        click.echo('process online: %s' % file_path)
 
-    upload = requests.post('%s/uploads' % api_base, json=post_data, auth=auth).json()
-
-    if not offline:
-        upload_cmd = upload['upload_command']
-        upload_cmd = upload_cmd.replace('local_file', file_path)
-
-        subprocess.call(shlex.split(upload_cmd))
-
-        click.echo('uploaded: %s' % file_path)
-
-    while True:
-        upload = requests.get('%s/uploads/%s' % (api_base, upload['upload_id']), auth=auth).json()
-        status = upload['status']
-        calcs_pagination = upload['calcs'].get('pagination')
-        if calcs_pagination is None:
+    while upload.status not in ['SUCCESS', 'FAILURE']:
+        upload = client.uploads.get_upload(upload_id=upload.upload_id).response().result
+        calcs = upload.calcs.pagination
+        if calcs is None:
             total, successes, failures = 0, 0, 0
         else:
-            total, successes, failures = (
-                calcs_pagination[key] for key in ('total', 'successes', 'failures'))
+            total, successes, failures = (calcs.total, calcs.successes, calcs.failures)
 
-        ret = '\n' if status in ('SUCCESS', 'FAILURE') else '\r'
+        ret = '\n' if upload.status in ('SUCCESS', 'FAILURE') else '\r'
 
         print(
             'status: %s; task: %s; parsing: %d/%d/%d                %s' %
-            (status, upload['current_task'], successes, failures, total, ret), end='')
-
-        if status in ('SUCCESS', 'FAILURE'):
-            break
+            (upload.status, upload.current_task, successes, failures, total, ret), end='')
 
         time.sleep(3)
 
-    if status == 'FAILURE':
+    if upload.status == 'FAILURE':
         click.echo('There have been errors:')
-        for error in upload['errors']:
+        for error in upload.errors:
             click.echo('    %s' % error)
     elif unstage:
-        post_data = dict(operation='unstage')
-        requests.post('%s/uploads/%s' % (api_base, upload['upload_id']), json=post_data, auth=auth).json()
-
-
-def walk_through_files(path, extension='.zip'):
-    """
-    Returns all abs path of all files in a sub tree of the given path that match
-    the given extension.
-
-    Arguments:
-        path (str): the directory
-        extension (str): the extension, incl. '.', e.g. '.zip' (default)
-    """
-
-    for (dirpath, _, filenames) in os.walk(path):
-        for filename in filenames:
-            if filename.endswith(extension):
-                yield os.path.abspath(os.path.join(dirpath, filename))
+        client.uploads.exec(upload_id=upload.upload_id, operation='unstage').reponse()
 
 
 class CalcProcReproduction:
@@ -158,9 +148,10 @@ class CalcProcReproduction:
             os.makedirs(os.path.dirname(local_path))
         if not os.path.exists(local_path) or override:
             # download raw if not already downloaded or if override is set
+            # download with request, since bravado does not support streaming
             # TODO currently only downloads mainfile
             self.logger.info('Downloading calc.')
-            req = requests.get('%s/raw/%s?files=%s' % (api_base, self.upload_hash, self.mainfile), stream=True)
+            req = requests.get('%s/raw/%s/%s' % (api_base, self.upload_hash, os.path.dirname(self.mainfile)), stream=True)
             with open(local_path, 'wb') as f:
                 for chunk in req.iter_content(chunk_size=1024):
                     f.write(chunk)
@@ -243,10 +234,12 @@ class CalcProcReproduction:
 
 
 @click.group()
-@click.option('-h', '--host', default='localhost', help='The host nomad runs on, default is "localhost".')
-@click.option('-p', '--port', default=80, help='the port nomad runs with, default is 80.')
+@click.option('-h', '--host', default=config.services.api_host, help='The host nomad runs on, default is "%s".' % config.services.api_host)
+@click.option('-p', '--port', default=config.services.api_port, help='the port nomad runs with, default is %d.' % config.services.api_port)
+@click.option('-u', '--user', default=None, help='the user name to login, default no login.')
+@click.option('-w', '--password', default=None, help='the password use to login.')
 @click.option('-v', '--verbose', help='sets log level to debug', is_flag=True)
-def cli(host: str, port: int, verbose: bool):
+def cli(host: str, port: int, verbose: bool, user: str, password: str):
     if verbose:
         config.console_log_level = logging.DEBUG
     else:
@@ -254,6 +247,14 @@ def cli(host: str, port: int, verbose: bool):
 
     global api_base
     api_base = 'http://%s:%d/nomad/api' % (host, port)
+
+    global _cli_client
+
+    def _cli_client():  # pylint: disable=W0612
+        if user is not None:
+            return create_client(host=host, port=port, user=user, password=password)
+        else:
+            return create_client(host=host, port=port)
 
 
 @cli.command(
@@ -281,9 +282,12 @@ def upload(path, name: str, offline: bool, unstage: bool):
             upload_file(path, name, offline, unstage)
 
         elif os.path.isdir(path):
-            for file_path in walk_through_files(path):
-                name = os.path.basename(file_path)
-                upload_file(file_path, name, offline, unstage)
+            for (dirpath, _, filenames) in os.walk(path):
+                for filename in filenames:
+                    if filename.endswith('.zip'):
+                        file_path = os.path.abspath(os.path.join(dirpath, filename))
+                        name = os.path.basename(file_path)
+                        upload_file(file_path, name, offline, unstage)
 
         else:
             click.echo('Unknown path type %s.' % path)
@@ -291,11 +295,7 @@ def upload(path, name: str, offline: bool, unstage: bool):
 
 @cli.command(help='Attempts to reset the nomad.')
 def reset():
-    response = requests.post('%s/admin/reset' % api_base, auth=HTTPBasicAuth(user, pw))
-    if response.status_code != 200:
-        click.echo('API return %s' % str(response.status_code))
-        click.echo(response.text)
-        sys.exit(1)
+    _cli_client().admin.exec(operation='reset').reponse()
 
 
 @cli.command(help='Run processing locally.')

@@ -28,6 +28,7 @@ ns = api.namespace('admin', description='Administrative operations')
 @api.doc(params={'operation': 'The operation to perform.'})
 class AdminOperationsResource(Resource):
     # TODO in production this requires authorization
+    @api.doc('exec')
     @api.response(200, 'Operation performed')
     @api.response(404, 'Operation does not exist')
     @api.response(400, 'Operation not available/disabled')

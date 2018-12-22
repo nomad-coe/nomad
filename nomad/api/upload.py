@@ -20,6 +20,8 @@ files, and retrieve the processing status of uploads.
 from flask import g, request
 from flask_restplus import Resource, fields, abort
 from datetime import datetime
+from werkzeug.datastructures import FileStorage
+import os.path
 
 from nomad import config
 from nomad.processing import Upload
@@ -94,17 +96,20 @@ upload_operation_model = api.model('UploadOperation', {
 upload_metadata_parser = api.parser()
 upload_metadata_parser.add_argument('name', type=str, help='An optional name for the upload.', location='args')
 upload_metadata_parser.add_argument('local_path', type=str, help='Use a local file on the server.', location='args')
+upload_metadata_parser.add_argument('file', type=FileStorage, help='The file to upload.', location='files')
 
 
 @ns.route('/')
 class UploadListResource(Resource):
+    @api.doc('get_uploads')
     @api.marshal_list_with(upload_model, skip_none=True, code=200, description='Uploads send')
     @login_really_required
     def get(self):
         """ Get the list of all uploads from the authenticated user. """
         return [upload for upload in Upload.user_uploads(g.user)], 200
 
-    @api.marshal_list_with(upload_model, skip_none=True, code=200, description='Upload received')
+    @api.doc('upload')
+    @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload received')
     @api.expect(upload_metadata_parser)
     @login_really_required
     def put(self):
@@ -124,6 +129,10 @@ class UploadListResource(Resource):
             curl ".../nomad/api/uploads/" --upload-file local_file
         """
         local_path = request.args.get('local_path')
+        if local_path:
+            if not os.path.exists(local_path):
+                abort(404, message='The given local_path was not found.')
+
         # create upload
         upload = Upload.create(
             user=g.user,
@@ -183,6 +192,7 @@ class ProxyUpload:
 @ns.route('/<string:upload_id>')
 @api.doc(params={'upload_id': 'The unique id for the requested upload.'})
 class UploadResource(Resource):
+    @api.doc('get_upload')
     @api.response(404, 'Upload does not exist')
     @api.marshal_with(upload_with_calcs_model, skip_none=True, code=200, description='Upload send')
     @api.expect(pagination_request_parser)
@@ -232,6 +242,7 @@ class UploadResource(Resource):
 
         return result, 200
 
+    @api.doc('delete_upload')
     @api.response(404, 'Upload does not exist')
     @api.response(400, 'Not allowed during processing or when not in staging')
     @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload deleted')
@@ -260,6 +271,7 @@ class UploadResource(Resource):
         except NotAllowedDuringProcessing:
             abort(400, message='You must not delete an upload during processing.')
 
+    @api.doc('exec')
     @api.response(404, 'Upload does not exist or is not allowed')
     @api.response(400, 'Operation is not supported')
     @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload unstaged successfully')
@@ -307,6 +319,7 @@ upload_command_model = api.model('UploadCommand', {
 
 @ns.route('/command')
 class UploadCommandResource(Resource):
+    @api.doc('get_upload_command')
     @api.marshal_with(upload_command_model, code=200, description='Upload command send')
     @login_really_required
     def get(self):
@@ -316,7 +329,7 @@ class UploadCommandResource(Resource):
             config.services.api_port,
             config.services.api_base_path)
 
-        upload_command = 'curl -H "X-Token: "%s" "%s" --upload-file <local_file>' % (
+        upload_command = 'curl -H "X-Token: %s" "%s" --upload-file <local_file>' % (
             g.user.get_auth_token().decode('utf-8'), upload_url)
 
         return dict(upload_url=upload_url, upload_command=upload_command), 200
