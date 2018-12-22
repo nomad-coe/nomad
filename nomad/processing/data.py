@@ -28,12 +28,11 @@ from typing import List, Any, ContextManager, Tuple, Generator
 from elasticsearch.exceptions import NotFoundError
 from mongoengine import StringField, BooleanField, DateTimeField, DictField, IntField
 import logging
-import base64
 import time
 from structlog import wrap_logger
 from contextlib import contextmanager
 
-from nomad import config, utils, coe_repo
+from nomad import utils, coe_repo
 from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile, File
 from nomad.repo import RepoCalc
 from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE, RUNNING
@@ -325,8 +324,6 @@ class Upload(Chord):
     upload_hash = StringField(default=None)
 
     user_id = StringField(required=True)
-    upload_url = StringField(default=None)
-    upload_command = StringField(default=None)
 
     coe_repo_upload_id = IntField(default=None)
 
@@ -387,13 +384,6 @@ class Upload(Chord):
             super().delete()
 
     @classmethod
-    def _external_objects_url(cls, url):
-        """ Replaces the given internal object storage url with an URL that allows
-            external access.
-        """
-        return 'http://%s:%s%s%s' % (config.services.api_host, config.services.api_port, config.services.api_base_path, url)
-
-    @classmethod
     def create(cls, **kwargs) -> 'Upload':
         """
         Creates a new upload for the given user, a user given name is optional.
@@ -409,12 +399,6 @@ class Upload(Chord):
             kwargs.update(upload_id=utils.create_uuid())
         kwargs.update(user_id=str(user.user_id))
         self = super().create(**kwargs)
-
-        basic_auth_token = base64.b64encode(b'%s:' % user.get_auth_token()).decode('utf-8')
-
-        self.upload_url = cls._external_objects_url('/uploads/%s/file' % self.upload_id)
-        self.upload_command = 'curl -H "Authorization: Basic %s" "%s" --upload-file local_file' % (
-            basic_auth_token, self.upload_url)
 
         self._continue_with('uploading')
 

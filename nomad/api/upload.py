@@ -21,6 +21,7 @@ from flask import g, request
 from flask_restplus import Resource, fields, abort
 from datetime import datetime
 
+from nomad import config
 from nomad.processing import Upload
 from nomad.processing import NotAllowedDuringProcessing
 from nomad.utils import get_logger
@@ -60,8 +61,6 @@ upload_model = api.inherit('UploadProcessing', proc_model, {
                     'used within nomad to identify uploads.'
     ),
     'additional_metadata': fields.Arbitrary,
-    'upload_url': fields.String,
-    'upload_command': fields.String,
     'local_path': fields.String,
     'upload_time': fields.DateTime(dt_format='iso8601'),
 })
@@ -298,3 +297,26 @@ class UploadResource(Resource):
             return upload, 200
 
         abort(400, message='Unsuported operation %s.' % operation)
+
+
+upload_command_model = api.model('UploadCommand', {
+    'upload_url': fields.Url,
+    'upload_command': fields.String
+})
+
+
+@ns.route('/command')
+class UploadCommandResource(Resource):
+    @api.marshal_with(upload_command_model, code=200, description='Upload command send')
+    @login_really_required
+    def get(self):
+        """ Get url and example command for shell based uploads. """
+        upload_url = 'http://%s:%s%s/uploads/' % (
+            config.services.api_host,
+            config.services.api_port,
+            config.services.api_base_path)
+
+        upload_command = 'curl -H "X-Token: "%s" "%s" --upload-file <local_file>' % (
+            g.user.get_auth_token().decode('utf-8'), upload_url)
+
+        return dict(upload_url=upload_url, upload_command=upload_command), 200

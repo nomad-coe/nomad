@@ -115,8 +115,6 @@ class TestUploads:
         if id is not None:
             assert id == data['upload_id']
         assert 'create_time' in data
-        assert 'upload_url' in data
-        assert 'upload_command' in data
 
         for key, value in kwargs.items():
             assert data.get(key, None) == value
@@ -169,6 +167,13 @@ class TestUploads:
         assert rv.status_code == 200
         self.assert_uploads(rv.data, count=0)
         assert_coe_upload(upload['upload_hash'], proc_infra['repository_db'], empty=empty_upload)
+
+    def test_get_command(self, client, test_user_auth, no_warn):
+        rv = client.get('/uploads/command', headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert 'upload_command' in data
+        assert 'upload_url' in data
 
     def test_get_empty(self, client, test_user_auth, no_warn):
         rv = client.get('/uploads/', headers=test_user_auth)
