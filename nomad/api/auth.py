@@ -127,7 +127,7 @@ ns = api.namespace(
 
 
 @ns.route('/token')
-class Token(Resource):
+class TokenResource(Resource):
     @api.response(200, 'Token send', headers={'Content-Type': 'text/plain; charset=utf-8'})
     @login_really_required
     def get(self):

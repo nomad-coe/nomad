@@ -57,7 +57,7 @@ raw_file_from_path_parser.add_argument(**raw_file_compress_argument)
     'path': 'The path to a file or directory.'
 })
 @api.header('Content-Type', 'application/gz')
-class RawFileFromPath(Resource):
+class RawFileFromPathResource(Resource):
     @api.response(404, 'The upload or path does not exist')
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
     @api.expect(raw_file_from_path_parser, validate=True)
@@ -129,7 +129,7 @@ raw_files_request_parser.add_argument(
 @api.doc(params={
     'upload_hash': 'The unique hash for the requested upload.'
 })
-class RawFiles(Resource):
+class RawFilesResource(Resource):
     @api.response(404, 'The upload or path does not exist')
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
     @api.expect(raw_files_request_model, validate=True)

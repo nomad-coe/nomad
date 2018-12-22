@@ -21,7 +21,7 @@ from flask import g, request
 from flask_restplus import Resource, fields, abort
 from datetime import datetime
 
-from nomad.processing import Upload as UploadProc
+from nomad.processing import Upload
 from nomad.processing import NotAllowedDuringProcessing
 from nomad.utils import get_logger
 from nomad.files import UploadFile
@@ -98,12 +98,12 @@ upload_metadata_parser.add_argument('local_path', type=str, help='Use a local fi
 
 
 @ns.route('/')
-class UploadList(Resource):
+class UploadListResource(Resource):
     @api.marshal_list_with(upload_model, skip_none=True, code=200, description='Uploads send')
     @login_really_required
     def get(self):
         """ Get the list of all uploads from the authenticated user. """
-        return [upload for upload in UploadProc.user_uploads(g.user)], 200
+        return [upload for upload in Upload.user_uploads(g.user)], 200
 
     @api.marshal_list_with(upload_model, skip_none=True, code=200, description='Upload received')
     @api.expect(upload_metadata_parser)
@@ -126,7 +126,7 @@ class UploadList(Resource):
         """
         local_path = request.args.get('local_path')
         # create upload
-        upload = UploadProc.create(
+        upload = Upload.create(
             user=g.user,
             name=request.args.get('name'),
             local_path=local_path)
@@ -183,7 +183,7 @@ class ProxyUpload:
 
 @ns.route('/<string:upload_id>')
 @api.doc(params={'upload_id': 'The unique id for the requested upload.'})
-class Upload(Resource):
+class UploadResource(Resource):
     @api.response(404, 'Upload does not exist')
     @api.marshal_with(upload_with_calcs_model, skip_none=True, code=200, description='Upload send')
     @api.expect(pagination_request_parser)
@@ -196,7 +196,7 @@ class Upload(Resource):
         Use the pagination params to determine the page.
         """
         try:
-            upload = UploadProc.get(upload_id)
+            upload = Upload.get(upload_id)
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
@@ -245,7 +245,7 @@ class Upload(Resource):
         can be deleted. Deleting an upload in processing is not allowed.
         """
         try:
-            upload = UploadProc.get(upload_id)
+            upload = Upload.get(upload_id)
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
@@ -274,7 +274,7 @@ class Upload(Resource):
         should be restricted.
         """
         try:
-            upload = UploadProc.get(upload_id)
+            upload = Upload.get(upload_id)
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 

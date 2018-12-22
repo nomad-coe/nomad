@@ -19,7 +19,7 @@ config.services = config.NomadServicesConfig(**services_config)
 from nomad import api  # noqa
 from nomad.files import UploadFile  # noqa
 from nomad.processing import Upload  # noqa
-from nomad.coe_repo import User
+from nomad.coe_repo import User  # noqa
 
 from tests.processing.test_data import example_files  # noqa
 from tests.test_files import example_file, example_file_mainfile, example_file_contents  # noqa
@@ -145,7 +145,7 @@ class TestUploads:
             assert calc['status'] == 'SUCCESS'
             assert calc['current_task'] == 'archiving'
             assert len(calc['tasks']) == 3
-            assert client.get('/logs/%s' % calc['archive_id']).status_code == 200
+            assert client.get('/archive/logs/%s' % calc['archive_id']).status_code == 200
 
         if upload['calcs']['pagination']['total'] > 1:
             rv = client.get('%s?page=2&per_page=1&order_by=status' % upload_endpoint)
@@ -294,7 +294,7 @@ class TestRepo:
 
 
 class TestArchive:
-    def test_get(self, client, archive, no_warn):
+    def test_get(self, client, archive, repository_db, no_warn):
         rv = client.get('/archive/%s' % archive.object_id)
 
         if rv.headers.get('Content-Encoding') == 'gzip':
@@ -304,13 +304,13 @@ class TestArchive:
 
         assert rv.status_code == 200
 
-    def test_get_calc_proc_log(self, client, archive_log, no_warn):
-        rv = client.get('/logs/%s' % archive_log.object_id)
+    def test_get_calc_proc_log(self, client, archive_log, repository_db, no_warn):
+        rv = client.get('/archive/logs/%s' % archive_log.object_id)
 
         assert len(rv.data) > 0
         assert rv.status_code == 200
 
-    def test_get_non_existing_archive(self, client, no_warn):
+    def test_get_non_existing_archive(self, client, repository_db, no_warn):
         rv = client.get('/archive/%s' % 'doesnt/exist')
         assert rv.status_code == 404
 
