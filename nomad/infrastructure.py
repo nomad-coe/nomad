@@ -128,6 +128,11 @@ def setup_repository_db():
                 "select exists(select * from information_schema.tables "
                 "where table_name='users')")
             exists = cur.fetchone()[0]
+    if not exists:
+        logger.info('repository db postgres schema does not exists')
+        reset_repository_db()
+    else:
+        logger.info('repository db postgres schema already exists')
 
     # set the admin user password
     with repository_db_connection() as conn:
@@ -135,12 +140,6 @@ def setup_repository_db():
             cur.execute(
                 "UPDATE public.users SET password='%s' WHERE user_id=1;" %
                 bcrypt.encrypt(config.services.admin_password, ident='2y'))
-
-    if not exists:
-        logger.info('repository db postgres schema does not exists')
-        reset_repository_db()
-    else:
-        logger.info('repository db postgres schema already exists')
 
     global repository_db
     global repository_db_conn

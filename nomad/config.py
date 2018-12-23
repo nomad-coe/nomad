@@ -110,7 +110,7 @@ services = NomadServicesConfig(
     api_base_path=os.environ.get('NOMAD_API_BASE_PATH', '/nomad/api'),
     api_secret=os.environ.get('NOMAD_API_SECRET', 'defaultApiSecret'),
     admin_password=os.environ.get('NOMAD_API_ADMIN_PASSWORD', 'password'),
-    disable_reset=os.environ.get('NOMAD_API_DISABLE_RESET', 'true') == 'false'
+    disable_reset=os.environ.get('NOMAD_API_DISABLE_RESET', 'false') == 'true'
 )
 
 console_log_level = get_loglevel_from_env('NOMAD_CONSOLE_LOGLEVEL', default_level=logging.INFO)
