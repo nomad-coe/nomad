@@ -12,7 +12,6 @@ import CalcLinks from './CalcLinks'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
 import { debug } from '../config'
-import UploadCommand from './UploadCommand'
 import CalcProcLogPopper from './CalcProcLogPopper'
 
 class Upload extends React.Component {
@@ -265,7 +264,7 @@ class Upload extends React.Component {
   renderCalcTable() {
     const { classes } = this.props
     const { page, perPage, orderBy, order } = this.state.params
-    const { calcs, status, waiting, upload_command } = this.state.upload
+    const { calcs, status, waiting } = this.state.upload
     const { pagination, results } = calcs
 
     if (pagination.total === 0) {
@@ -278,7 +277,9 @@ class Upload extends React.Component {
       } else {
         if (waiting) {
           return (
-            <UploadCommand uploadCommand={upload_command} />
+            <Typography className={classes.detailsContent}>
+                Uploading ...
+            </Typography>
           )
         } else {
           return (
@@ -323,7 +324,7 @@ class Upload extends React.Component {
             <Typography color={color}>
               {(status === 'SUCCESS' || status === 'FAILURE')
                 ?
-                  <a className={classes.logLink} href="#" onClick={() => this.setState({archiveLogs:  archive_id})}>
+                  <a className={classes.logLink} href="#logs" onClick={() => this.setState({archiveLogs:  archive_id})}>
                   {status.toLowerCase()}
                   </a>
                 : status.toLowerCase()

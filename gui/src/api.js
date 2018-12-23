@@ -1,12 +1,25 @@
 import { UploadRequest } from '@navjobs/upload'
+import Swagger from 'swagger-client'
 import { apiBase, appStaticBase } from './config'
 
 const auth_headers = {
   Authorization: 'Basic ' + btoa('sheldon.cooper@nomad-fairdi.tests.de:password')
 }
 
-const networkError = () => {
-  throw Error('Network related error, cannot reach API or object storage.')
+const swaggerPromise = Swagger(`${apiBase}/swagger.json`, {
+  authorizations: {
+    // my_query_auth: new ApiKeyAuthorization('my-query', 'bar', 'query'),
+    // my_header_auth: new ApiKeyAuthorization('My-Header', 'bar', 'header'),
+    'HTTP Basic': {
+      username: 'sheldon.cooper@nomad-fairdi.tests.de',
+      password: 'password'
+    }
+    // cookie_: new CookieAuthorization('one=two')
+  }
+})
+
+const networkError = (e) => {
+  throw Error('Network related error, cannot reach API: ' + e)
 }
 
 const handleJsonErrors = () => {
@@ -27,19 +40,16 @@ const handleResponseErrors = (response) => {
 
 class Upload {
   constructor(json, created) {
-    this.uploading = null
+    this.uploading = 0
     this._assignFromJson(json, created)
   }
 
   uploadFile(file) {
-    console.assert(this.upload_url)
-    this.uploading = 0
-
     const uploadFileWithProgress = async() => {
-      let { error, aborted } = await UploadRequest(
+      let uploadRequest = await UploadRequest(
         {
           request: {
-            url: this.upload_url,
+            url: `${apiBase}/uploads/?name=${this.name}`,
             method: 'PUT',
             headers: {
               'Content-Type': 'application/gzip',
@@ -53,12 +63,14 @@ class Upload {
           }
         }
       )
-      if (error) {
-        networkError(error)
+      if (uploadRequest.error) {
+        networkError(uploadRequest.error)
       }
-      if (aborted) {
+      if (uploadRequest.aborted) {
         throw Error('User abort')
       }
+      this.uploading = 100
+      this.upload_id = uploadRequest.response.upload_id
     }
 
     return uploadFileWithProgress()
@@ -70,9 +82,7 @@ class Upload {
     if (this.current_task !== this.tasks[0]) {
       this.uploading = 100
       this.waiting = false
-    } else if (!created && this.uploading === null) {
-      // if data came from server during a normal get (not create) and its still uploading
-      // and the uploading is also not controlled locally then it ought to be a manual upload
+    } else {
       this.waiting = true
     }
   }
@@ -107,26 +117,16 @@ class Upload {
 }
 
 function createUpload(name) {
-  const fetchData = {
-    method: 'POST',
-    body: JSON.stringify({
-      name: name
-    }),
-    headers: {
-      'Content-Type': 'application/json',
-      ...auth_headers
-    }
-  }
-  return fetch(`${apiBase}/uploads`, fetchData)
-    .catch(networkError)
-    .then(handleResponseErrors)
-    .then(response => response.json())
-    .then(uploadJson => new Upload(uploadJson, true))
+  return new Upload({
+    name: name,
+    tasks: ['UPLOADING'],
+    current_task: 'UPLOADING'
+  }, true)
 }
 
 function getUploads() {
   return fetch(
-    `${apiBase}/uploads`,
+    `${apiBase}/uploads/`,
     {
       method: 'GET',
       headers: auth_headers
@@ -145,7 +145,7 @@ function archive(uploadHash, calcHash) {
 }
 
 function calcProcLog(archiveId) {
-  return fetch(`${apiBase}/logs/${archiveId}`)
+  return fetch(`${apiBase}/archive/logs/${archiveId}`)
     .catch(networkError)
     .then(response => {
       if (!response.ok) {
@@ -173,7 +173,7 @@ function repo(uploadHash, calcHash) {
 
 function repoAll(page, perPage, owner) {
   return fetch(
-    `${apiBase}/repo?page=${page}&per_page=${perPage}&owner=${owner || 'all'}`,
+    `${apiBase}/repo/?page=${page}&per_page=${perPage}&owner=${owner || 'all'}`,
     {
       method: 'GET',
       headers: auth_headers
@@ -246,7 +246,16 @@ async function getMetaInfo() {
   }
 }
 
+async function getUploadCommand() {
+  const client = await swaggerPromise
+  return client.apis.uploads.get_upload_command()
+    .catch(networkError)
+    .then(handleResponseErrors)
+    .then(response => response.body.upload_command)
+}
+
 const api = {
+  getUploadCommand: getUploadCommand,
   createUpload: createUpload,
   deleteUpload: deleteUpload,
   unstageUpload: unstageUpload,

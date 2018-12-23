@@ -108,7 +108,7 @@ class ArchiveCalc extends React.Component {
           see a *meta-info* description.
         `}</Markdown>
         <Typography className={classes.logLink}>
-          The processing logs are available <a href="#" onClick={() => this.setState({showLogs: true})}>here</a>.
+          The processing logs are available <a href="#logs" onClick={() => this.setState({showLogs: true})}>here</a>.
         </Typography>
         <Paper className={classes.calcData}>
           {
