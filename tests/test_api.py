@@ -84,13 +84,13 @@ class TestAdmin:
         return create_auth_headers(admin_user)
 
     @pytest.mark.timeout(10)
-    def test_reset(self, client, admin_user_auth, repair_repository_db):
+    def test_reset(self, client, admin_user_auth, repository_db):
         rv = client.post('/admin/reset', headers=admin_user_auth)
         assert rv.status_code == 200
 
     # TODO disabled as this will destroy the session repository_db beyond repair.
     # @pytest.mark.timeout(10)
-    # def test_remove(self, client, admin_user_auth, repair_repository_db):
+    # def test_remove(self, client, admin_user_auth, repository_db):
     #     rv = client.post('/admin/remove', headers=admin_user_auth)
     #     assert rv.status_code == 200
 

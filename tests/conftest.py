@@ -117,18 +117,6 @@ def repository_db(monkeysession):
     session.close()
 
 
-@pytest.fixture(scope='function')
-def repair_repository_db():
-    """
-    Binds a new connectino to the existing session repository db.
-    Necessary if tests delete the connection.
-    """
-    yield None
-    olddb = infrastructure.repository_db
-    infrastructure.setup_repository_db()
-    olddb.bind = infrastructure.repository_db_conn
-
-
 @pytest.fixture(scope='session')
 def test_user(repository_db):
     return coe_repo.ensure_test_user(email='sheldon.cooper@nomad-fairdi.tests.de')

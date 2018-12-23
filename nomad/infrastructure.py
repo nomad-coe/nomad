@@ -270,6 +270,7 @@ def repository_db_connection(dbname=None, with_trans=True):
 
 def reset_repository_db():
     """ Drops the existing NOMAD-coe repository postgres schema and creates a new minimal one. """
+    old_repository_db = repository_db
     if repository_db is not None:
         repository_db.expunge_all()
         repository_db.invalidate()
@@ -289,6 +290,6 @@ def reset_repository_db():
             logger.info('(re-)created repository db postgres schema')
 
     # try tp repair existing db connections
-    old_db = repository_db
-    setup_repository_db()
-    old_db.bind = repository_db_conn
+    if old_repository_db is not None:
+        setup_repository_db()
+        old_repository_db.bind = repository_db_conn
