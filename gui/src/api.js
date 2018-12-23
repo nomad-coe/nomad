@@ -1,6 +1,6 @@
 import { UploadRequest } from '@navjobs/upload'
 import Swagger from 'swagger-client'
-import { apiBase, appStaticBase } from './config'
+import { apiBase } from './config'
 
 const auth_headers = {
   Authorization: 'Basic ' + btoa('sheldon.cooper@nomad-fairdi.tests.de:password')
@@ -19,29 +19,31 @@ const swaggerPromise = Swagger(`${apiBase}/swagger.json`, {
 })
 
 const networkError = (e) => {
+  console.log(e)
   throw Error('Network related error, cannot reach API: ' + e)
 }
 
-const handleJsonErrors = () => {
-  throw Error('Server return unexpected data format.')
+const handleJsonErrors = (e) => {
+  console.log(e)
+  throw Error('API return unexpected data format.')
 }
 
 const handleResponseErrors = (response) => {
   if (!response.ok) {
     return response.json()
       .catch(() => {
-        throw Error(`API/object storage error (${response.status}): ${response.statusText}`)
+        throw Error(`API error (${response.status}): ${response.statusText}`)
       }).then(data => {
-        throw Error(`API/object storage error (${response.status}): ${data.message}`)
+        throw Error(`API error (${response.status}): ${data.message}`)
       })
   }
   return response
 }
 
 class Upload {
-  constructor(json, created) {
+  constructor(json) {
     this.uploading = 0
-    this._assignFromJson(json, created)
+    this._assignFromJson(json)
   }
 
   uploadFile(file) {
@@ -58,7 +60,6 @@ class Upload {
           },
           files: [file],
           progress: value => {
-            console.log(value)
             this.uploading = value
           }
         }
@@ -77,41 +78,39 @@ class Upload {
       .then(() => this)
   }
 
-  _assignFromJson(uploadJson, created) {
+  _assignFromJson(uploadJson) {
     Object.assign(this, uploadJson)
-    if (this.current_task !== this.tasks[0]) {
-      this.uploading = 100
-      this.waiting = false
-    } else {
-      this.waiting = true
+    if (this.calcs) {
+      this.calcs.results.forEach(calc => {
+        const archiveId = calc.archive_id.split('/')
+        calc.upload_hash = archiveId[0]
+        calc.calc_hash = archiveId[1]
+      })
     }
   }
 
   get(page, perPage, orderBy, order) {
-    if (!page) page = 1
-    if (!perPage) perPage = 5
-    if (!orderBy) orderBy = 'mainfile'
-    if (!order) order = 'desc'
-
-    order = order === 'desc' ? -1 : 1
-
     if (this.uploading !== null && this.uploading !== 100) {
       return new Promise(resolve => resolve(this))
     } else {
-      const qparams = `page=${page}&per_page=${perPage}&order_by=${orderBy}&order=${order}`
-      return fetch(
-        `${apiBase}/uploads/${this.upload_id}?${qparams}`,
-        {
-          method: 'GET',
-          headers: auth_headers
-        })
-        .catch(networkError)
-        .then(handleResponseErrors)
-        .then(response => response.json())
-        .then(uploadJson => {
-          this._assignFromJson(uploadJson)
-          return this
-        })
+      if (this.upload_id) {
+        return swaggerPromise.then(client => client.apis.uploads.get_upload({
+            upload_id: this.upload_id,
+            page: page || 1,
+            per_page: perPage || 5,
+            order_by: orderBy || 'mainfile',
+            order: order || -1
+          }))
+          .catch(networkError)
+          .then(handleResponseErrors)
+          .then(response => response.body)
+          .then(uploadJson => {
+            this._assignFromJson(uploadJson)
+            return this
+          })
+      } else {
+        return new Promise(resolve => resolve(this))
+      }
     }
   }
 }
@@ -119,33 +118,43 @@ class Upload {
 function createUpload(name) {
   return new Upload({
     name: name,
-    tasks: ['UPLOADING'],
-    current_task: 'UPLOADING'
+    tasks: ['uploading'],
+    current_task: 'uploading',
+    uploading: 0,
+    create_time: new Date()
   }, true)
 }
 
-function getUploads() {
-  return fetch(
-    `${apiBase}/uploads/`,
-    {
-      method: 'GET',
-      headers: auth_headers
+async function getUploads() {
+  const client = await swaggerPromise
+  return client.apis.uploads.get_uploads()
+    .catch(networkError)
+    .then(handleResponseErrors)
+    .then(response => response.body.map(uploadJson => {
+      const upload = new Upload(uploadJson)
+      upload.uploading = 100
+      return upload
+    }))
+}
+
+async function archive(uploadHash, calcHash) {
+  const client = await swaggerPromise
+  return client.apis.archive.get_archive_calc({
+      upload_hash: uploadHash,
+      calc_hash: calcHash
     })
     .catch(networkError)
     .then(handleResponseErrors)
-    .then(response => response.json())
-    .then(uploadsJson => uploadsJson.map(uploadJson => new Upload(uploadJson)))
+    .then(response => response.body)
 }
 
-function archive(uploadHash, calcHash) {
-  return fetch(archiveUrl(uploadHash, calcHash))
-    .catch(networkError)
-    .then(handleResponseErrors)
-    .then(response => response.json())
-}
-
-function calcProcLog(archiveId) {
-  return fetch(`${apiBase}/archive/logs/${archiveId}`)
+async function calcProcLog(uploadHash, calcHash) {
+  const client = await swaggerPromise
+  console.log(uploadHash + calcHash)
+  return client.apis.archive.get_archive_logs({
+    upload_hash: uploadHash,
+    calc_hash: calcHash
+  })
     .catch(networkError)
     .then(response => {
       if (!response.ok) {
@@ -155,62 +164,53 @@ function calcProcLog(archiveId) {
           return handleResponseErrors(response)
         }
       } else {
-        return response.text()
+        return response.text
       }
     })
 }
 
-function archiveUrl(uploadHash, calcHash) {
-  return `${apiBase}/archive/${uploadHash}/${calcHash}`
-}
-
-function repo(uploadHash, calcHash) {
-  return fetch(`${apiBase}/repo/${uploadHash}/${calcHash}`)
-    .catch(networkError)
-    .then(handleResponseErrors)
-    .then(response => response.json())
-}
-
-function repoAll(page, perPage, owner) {
-  return fetch(
-    `${apiBase}/repo/?page=${page}&per_page=${perPage}&owner=${owner || 'all'}`,
-    {
-      method: 'GET',
-      headers: auth_headers
+async function repo(uploadHash, calcHash) {
+  const client = await swaggerPromise
+  return client.apis.repo.get_repo_calc({
+      upload_hash: uploadHash,
+      calc_hash: calcHash
     })
     .catch(networkError)
     .then(handleResponseErrors)
-    .then(response => response.json())
+    .then(response => response.body)
 }
 
-function deleteUpload(uploadId) {
-  return fetch(
-    `${apiBase}/uploads/${uploadId}`,
-    {
-      method: 'DELETE',
-      headers: auth_headers
+async function repoAll(page, perPage, owner) {
+  const client = await swaggerPromise
+  return client.apis.repo.get_calcs({
+      page: page,
+      per_page: perPage,
+      ower: owner || 'all'
     })
     .catch(networkError)
     .then(handleResponseErrors)
-    .then(response => response.json())
+    .then(response => response.body)
 }
 
-function unstageUpload(uploadId) {
-  return fetch(
-    `${apiBase}/uploads/${uploadId}`,
-    {
-      method: 'POST',
-      body: JSON.stringify({
+async function deleteUpload(uploadId) {
+  const client = await swaggerPromise
+  return client.apis.uploads.delete_upload({upload_id: uploadId})
+    .catch(networkError)
+    .then(handleResponseErrors)
+    .then(response => response.body)
+}
+
+async function unstageUpload(uploadId) {
+  const client = await swaggerPromise
+  return client.apis.uploads.exec_upload_command({
+      upload_id: uploadId,
+      payload: {
         operation: 'unstage'
-      }),
-      headers: {
-        'Content-Type': 'application/json',
-        ...auth_headers
       }
     })
     .catch(networkError)
     .then(handleResponseErrors)
-    .then(response => response.json())
+    .then(response => response.body)
 }
 
 let cachedMetaInfo = null
@@ -220,7 +220,7 @@ async function getMetaInfo() {
     return cachedMetaInfo
   } else {
     const loadMetaInfo = async(path) => {
-      return fetch(`${appStaticBase}/metainfo/meta_info/nomad_meta_info/${path}`)
+      return fetch(`${apiBase}/archive/metainfo/${path}`)
         .catch(networkError)
         .then(handleResponseErrors)
         .then(response => response.json())
@@ -262,7 +262,6 @@ const api = {
   getUploads: getUploads,
   archive: archive,
   calcProcLog: calcProcLog,
-  archiveUrl: archiveUrl,
   repo: repo,
   repoAll: repoAll,
   getMetaInfo: getMetaInfo

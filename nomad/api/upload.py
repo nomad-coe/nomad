@@ -271,7 +271,7 @@ class UploadResource(Resource):
         except NotAllowedDuringProcessing:
             abort(400, message='You must not delete an upload during processing.')
 
-    @api.doc('exec')
+    @api.doc('exec_upload_command')
     @api.response(404, 'Upload does not exist or is not allowed')
     @api.response(400, 'Operation is not supported')
     @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload unstaged successfully')

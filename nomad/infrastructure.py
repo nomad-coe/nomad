@@ -287,3 +287,8 @@ def reset_repository_db():
             sql_file = os.path.join(os.path.dirname(__file__), 'empty_repository_db.sql')
             cur.execute(open(sql_file, 'r').read())
             logger.info('(re-)created repository db postgres schema')
+
+    # try tp repair existing db connections
+    old_db = repository_db
+    setup_repository_db()
+    old_db.bind = repository_db_conn

@@ -103,8 +103,7 @@ class ArchiveCalc extends React.Component {
           *quantities* by visiting the [meta-info](/metainfo) browser.
 
           The tree below shows all calculation data in nomad's *hierachical* and
-          *code independent* archive format. You can download it
-          [here](${api.archiveUrl(uploadHash, calcHash)}). Click on values to
+          *code independent* archive format. Click on values to
           see a *meta-info* description.
         `}</Markdown>
         <Typography className={classes.logLink}>
@@ -124,7 +123,8 @@ class ArchiveCalc extends React.Component {
         </Paper>
         <CalcProcLogPopper
           open={this.state.showLogs}
-          archiveId={`${uploadHash}/${calcHash}`}
+          uploadHash={uploadHash}
+          calcHash={calcHash}
           onClose={() => this.setState({showLogs: false})}
           anchorEl={this.logPopperAnchor.current}
           raiseError={this.props.raiseError}

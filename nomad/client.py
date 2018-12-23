@@ -74,7 +74,7 @@ def handle_common_errors(func):
     return wrapper
 
 
-def upload_file(file_path: str, name: str = None, offline: bool = False, unstage: bool = False, client = None):
+def upload_file(file_path: str, name: str = None, offline: bool = False, unstage: bool = False, client=None):
     """
     Upload a file to nomad.
 
@@ -118,7 +118,7 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, unstage
         for error in upload.errors:
             click.echo('    %s' % error)
     elif unstage:
-        client.uploads.exec(upload_id=upload.upload_id, operation='unstage').reponse()
+        client.uploads.exec_upload_command(upload_id=upload.upload_id, operation='unstage').reponse()
 
     return upload.upload_id
 
@@ -300,7 +300,7 @@ def upload(path, name: str, offline: bool, unstage: bool):
 
 @cli.command(help='Attempts to reset the nomad.')
 def reset():
-    _cli_client().admin.exec(operation='reset').reponse()
+    _cli_client().admin.exec_admin_command(operation='reset').reponse()
 
 
 @cli.command(help='Run processing locally.')

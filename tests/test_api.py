@@ -378,6 +378,10 @@ class TestArchive:
         rv = client.get('/archive/%s' % 'doesnt/exist')
         assert rv.status_code == 404
 
+    def test_get_metainfo(self, client):
+        rv = client.get('/archive/metainfo/all.nomadmetainfo.json')
+        assert rv.status_code == 200
+
 
 def test_docs(client):
     rv = client.get('/docs/index.html')

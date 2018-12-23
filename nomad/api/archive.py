@@ -22,6 +22,8 @@ import os.path
 from flask import send_file
 from flask_restplus import abort, Resource
 
+import nomad_meta_info
+
 from nomad import config
 from nomad.files import ArchiveFile, ArchiveLogFile
 from nomad.utils import get_logger
@@ -37,9 +39,9 @@ ns = api.namespace(
 
 @calc_route(ns, '/logs')
 class ArchiveCalcLogResource(Resource):
-    @api.doc('get_logs')
+    @api.doc('get_archive_logs')
     @api.response(404, 'The upload or calculation does not exist')
-    @api.response(200, 'Archive data send')
+    @api.response(200, 'Archive data send', headers={'Content-Type': 'application/plain'})
     @login_if_available
     def get(self, upload_hash, calc_hash):
         """
@@ -58,7 +60,7 @@ class ArchiveCalcLogResource(Resource):
 
             rv = send_file(
                 archive_path,
-                mimetype='application/text',
+                mimetype='text/plain',
                 as_attachment=True,
                 attachment_filename=os.path.basename(archive_path))
 
@@ -75,7 +77,7 @@ class ArchiveCalcLogResource(Resource):
 
 @calc_route(ns)
 class ArchiveCalcResource(Resource):
-    @api.doc('get_calc')
+    @api.doc('get_archive_calc')
     @api.response(404, 'The upload or calculation does not exist')
     @api.response(200, 'Archive data send')
     @login_if_available
@@ -112,3 +114,33 @@ class ArchiveCalcResource(Resource):
                 upload_hash=upload_hash, calc_hash=calc_hash)
             logger.error('Exception on accessing archive', exc_info=e)
             abort(500, message='Could not accessing the archive.')
+
+
+@ns.route('/metainfo/<string:metainfo_path>')
+@api.doc(params=dict(metainfo_path='A path or metainfo definition file name.'))
+class MetainfoResource(Resource):
+    @api.doc('get_metainfo')
+    @api.response(404, 'The metainfo does not exist')
+    @api.response(200, 'Metainfo data send')
+    def get(self, metainfo_path):
+        """
+        Get a metainfo definition file.
+        """
+        try:
+            file_dir = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
+            meta_info_path = os.path.normpath(os.path.join(file_dir, metainfo_path.strip()))
+
+            rv = send_file(
+                meta_info_path,
+                mimetype='application/json',
+                as_attachment=True,
+                attachment_filename=os.path.basename(metainfo_path))
+
+            return rv
+        except FileNotFoundError:
+            abort(404, message='The metainfo %s does not exist.' % metainfo_path)
+        except Exception as e:
+            logger = get_logger(
+                __name__, endpoint='metainfo', action='get', metainfo_path=metainfo_path)
+            logger.error('Exception on accessing metainfo', exc_info=e)
+            abort(500, message='Could not accessing the metainfo.')

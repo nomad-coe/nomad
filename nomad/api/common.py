@@ -38,6 +38,8 @@ pagination_request_parser.add_argument(
     'per_page', type=int, help='Desired calcs per page.', location='args')
 pagination_request_parser.add_argument(
     'order_by', type=str, help='The field to sort by.', location='args')
+pagination_request_parser.add_argument(
+    'order', type=int, help='Use -1 for decending and 1 for acending order.', location='args')
 
 
 def calc_route(ns, prefix: str = ''):

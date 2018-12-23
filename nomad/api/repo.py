@@ -34,7 +34,7 @@ ns = api.namespace('repo', description='Access repository metadata, edit user me
 class RepoCalcResource(Resource):
     @api.response(404, 'The upload or calculation does not exist')
     @api.response(200, 'Metadata send')
-    @api.doc('get_calc')
+    @api.doc('get_repo_calc')
     def get(self, upload_hash, calc_hash):
         """
         Get calculation metadata in repository form.
