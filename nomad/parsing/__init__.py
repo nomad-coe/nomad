@@ -110,6 +110,13 @@ parsers = [
         main_file_re=r'^.*\.out$',  # This looks for files with .out
         main_contents_re=(r' \*\s+CRYSTAL(\d+)\s+\*')
     ),
+    LegacyParser(
+        python_git=dependencies['parsers/CPMD'],
+        parser_class_name='cpmdparser.CPMDParser',
+        main_file_re=r'^.*\.out$',  # This looks for files with .out
+        main_contents_re=(r'\s+VERSION ([\d\.]+)')
+    ),
+
 ]
 """ Instanciation and constructor based config of all parsers. """
 

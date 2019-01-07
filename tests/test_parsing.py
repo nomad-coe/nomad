@@ -32,7 +32,8 @@ parser_examples = [
     ('parsers/vasp', 'tests/data/parsers/vasp.xml'),
     ('parsers/fhi-aims', 'tests/data/parsers/aims.out'),
     ('parsers/cp2k', 'tests/data/parsers/cp2k/si_bulk8.out'),
-    ('parsers/crystal', 'tests/data/parsers/crystal/mgo.out')
+    ('parsers/crystal', 'tests/data/parsers/crystal/mgo.out'),
+    ('parsers/crystal', 'tests/data/parsers/cpmd/output.out')
 ]
 
 
