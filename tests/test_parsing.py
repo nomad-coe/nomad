@@ -34,7 +34,8 @@ parser_examples = [
     ('parsers/cp2k', 'tests/data/parsers/cp2k/si_bulk8.out'),
     ('parsers/crystal', 'tests/data/parsers/crystal/mgo.out'),
     ('parsers/cpmd', 'tests/data/parsers/cpmd/output.out'),
-    ('parsers/nwchem', 'tests/data/parsers/nwchem/output.out')
+    ('parsers/nwchem', 'tests/data/parsers/nwchem/output.out'),
+    ('parsers/bigdft', 'tests/data/parsers/bigdft/output.out')
 ]
 
 

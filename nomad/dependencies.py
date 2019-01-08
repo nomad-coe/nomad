@@ -217,6 +217,10 @@ dependencies = [
         name='parsers/nwchem',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-nwchem',
         git_branch='nomad-fair'),
+    PythonGit(
+        name='parsers/bigdft',
+        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-big-dft',
+        git_branch='nomad-fair'),
 ]
 
 
