@@ -420,7 +420,7 @@ class Upload(Chord):
 
         return self
 
-    def unstage(self):
+    def unstage(self, meta_data):
         self.get_logger().info('unstage')
 
         if not (self.completed or self.current_task == 'uploading'):
@@ -428,7 +428,7 @@ class Upload(Chord):
 
         self.in_staging = False
         RepoCalc.unstage(upload_id=self.upload_id)
-        coe_repo.add_upload(self, restricted=False)  # TODO allow users to choose restricted
+        coe_repo.add_upload(self, meta_data)
         self.save()
 
     @process

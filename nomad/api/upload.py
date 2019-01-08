@@ -89,8 +89,25 @@ upload_with_calcs_model = api.inherit('UploadWithPaginatedCalculations', upload_
     }))
 })
 
+meta_data_model = api.model('MetaData', {
+    'with_embargo': fields.Boolean(default=False, description='Data with embargo is only visible to the upload until the embargo period ended.'),
+    'comments': fields.List(fields.String, description='Comments are shown in the repository for each calculation.'),
+    'references': fields.List(fields.String, descriptions='References allow to link calculations to external source, e.g. URLs.'),
+    'coauthors': fields.List(fields.String, description='A list of co-authors given by user_id.'),
+    'share_with': fields.List(fields.String, description='A list of users to share calculations with given by user_id.')
+})
+
+calc_meta_data_model = api.inherit('CalcMetaData', meta_data_model, {
+    'mainfile': fields.String(description='The calculation main output file is used to identify the calculation in the upload.')
+})
+
+upload_meta_data_model = api.inherit('UploadMetaData', meta_data_model, {
+    'calculations': fields.List(fields.Nested(model=calc_meta_data_model), description='Specific per calculation data that will override the upload data.')
+})
+
 upload_operation_model = api.model('UploadOperation', {
-    'operation': fields.String(description='Currently unstage is the only operation.')
+    'operation': fields.String(description='Currently unstage is the only operation.'),
+    'metadata': fields.Nested(model=upload_meta_data_model, description='Additional upload and calculation meta data that should be considered for the operation')
 })
 
 
@@ -278,8 +295,11 @@ class Upload(Resource):
         """
         Execute an upload operation. Available operations: ``unstage``
 
-        Untage changes the visibility of the upload. Clients can specify, if the calcs
-        should be restricted.
+        Unstage accepts further meta data that allows to provide coauthors, comments,
+        external references, etc.
+
+        Unstage changes the visibility of the upload. Clients can specify the visibility
+        via meta data.
         """
         try:
             upload = UploadProc.get(upload_id)
@@ -294,12 +314,13 @@ class Upload(Resource):
             json_data = {}
 
         operation = json_data.get('operation')
+        meta_data = json_data.get('meta_data', {})
         if operation == 'unstage':
             if not upload.in_staging:
                 abort(400, message='Operation not allowed, upload is not in staging.')
 
             try:
-                upload.unstage()
+                upload.unstage(meta_data)
             except NotAllowedDuringProcessing:
                 abort(400, message='You must not unstage an upload during processing.')
 

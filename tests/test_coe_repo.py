@@ -48,10 +48,10 @@ def assert_coe_upload(upload_hash, repository_db, empty=False):
 
 @pytest.mark.timeout(10)
 def test_add_upload(repository_db, processed_upload):
-    coe_upload_id = add_upload(processed_upload, restricted=False)
+    coe_upload_id = add_upload(processed_upload)
     if coe_upload_id:
         assert_coe_upload(processed_upload.upload_hash, repository_db)
 
-    coe_upload_id = add_upload(processed_upload, restricted=False)
+    coe_upload_id = add_upload(processed_upload)
     if coe_upload_id:
         assert_coe_upload(processed_upload.upload_hash, repository_db)

@@ -49,15 +49,34 @@ from nomad.repo import RepoCalc
 Base = declarative_base()
 
 
-def add_upload(upload, restricted: bool) -> int:
+class UploadMetaData:
+    def __init__(self, user_meta_data_dict):
+        self._upload_data = user_meta_data_dict
+        self._calc_data = {
+            calc['mainfile']: calc
+            for calc in self._upload_data.get('calculations', [])}
+
+    def get(self, mainfile):
+        return self._calc_data.get(mainfile, self._upload_data)
+
+
+def add_upload(upload, user_meta_data: dict = {}) -> int:
     """
     Add the processed upload to the NOMAD-coe repository db. It creates an
     uploads-entry, respective calculation and property entries. Everything in one
-    transaction. Triggers an updates the NOMAD-coe repository elastic search index after
-    success.
+    transaction.
 
-    TODO deal with the restricted parameter
+    Triggers and updates the NOMAD-coe repository elastic search index after
+    success (TODO).
+
+    Arguments:
+        upload: The upload to add
+        upload_meta_data: A dictionary with additional meta data (e.g. user meta data)
+            that should be added to upload and calculations.
+
+    TODO deal with user_meta_data
     """
+    upload_meta_data = UploadMetaData(user_meta_data)
     repo_db = infrastructure.repository_db
     repo_db.begin()
 
@@ -81,7 +100,8 @@ def add_upload(upload, restricted: bool) -> int:
         has_calcs = False
         for repo_calc in RepoCalc.upload_calcs(upload.upload_id):
             has_calcs = True
-            add_calculation(upload, coe_upload, repo_calc, restricted)
+            add_calculation(
+                upload, coe_upload, repo_calc, upload_meta_data.get(repo_calc.mainfile))
 
         # commit
         if has_calcs:
@@ -101,7 +121,7 @@ def add_upload(upload, restricted: bool) -> int:
     return result
 
 
-def add_calculation(upload, coe_upload, calc: RepoCalc, restricted: bool) -> None:
+def add_calculation(upload, coe_upload, calc: RepoCalc, calc_meta_data: dict) -> None:
     repo_db = infrastructure.repository_db
 
     # table based properties
@@ -133,7 +153,7 @@ def add_calculation(upload, coe_upload, calc: RepoCalc, restricted: bool) -> Non
 
     user_metadata = UserMetaData(
         calc=coe_calc,
-        permission=0 if not restricted else 1)
+        permission=1 if calc_meta_data.get('restricted', False) else 0)
     repo_db.add(user_metadata)
 
     spacegroup = Spacegroup(
