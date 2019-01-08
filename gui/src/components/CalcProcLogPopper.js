@@ -11,7 +11,8 @@ class CalcProcLogPopper extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired,
-    archiveId: PropTypes.string.isRequired,
+    uploadHash: PropTypes.string.isRequired,
+    calcHash: PropTypes.string.isRequired,
     open: PropTypes.bool,
     onClose: PropTypes.func,
     anchorEl: PropTypes.any
@@ -28,8 +29,8 @@ class CalcProcLogPopper extends React.Component {
   }
 
   componentDidMount() {
-    const {archiveId} = this.props
-    api.calcProcLog(archiveId).then(logs => {
+    const {uploadHash, calcHash} = this.props
+    api.calcProcLog(uploadHash, calcHash).then(logs => {
       if (logs && logs !== '') {
         this.setState({logs: logs})
       }

@@ -46,6 +46,10 @@ spec:
           value: "{{ .Values.proxy.external.path }}/api"
         - name: NOMAD_API_SECRET
           value: "{{ .Values.api.secret }}"
+        - name: NOMAD_API_ADMIN_PASSWORD
+          value: "{{ .Values.api.adminPassword }}"
+        - name: NOMAD_API_DISABLE_RESET
+          value: "{{ .Values.api.disableReset }}"
         - name: NOMAD_RABBITMQ_HOST
           value: "{{ .Release.Name }}-rabbitmq"
         - name: NOMAD_ELASTIC_HOST

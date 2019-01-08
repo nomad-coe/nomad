@@ -12,35 +12,53 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from flask_restplus import abort
+from flask import g
+from flask_restplus import abort, Resource
 
-from nomad import infrastructure
-from nomad.processing import Upload
+from nomad import infrastructure, config
 
-from .app import app, base_path
+from .app import api
+from .auth import login_really_required
 
 
-# TODO in production this requires authorization
-@app.route('%s/admin/<string:operation>' % base_path, methods=['POST'])
-def call_admin_operation(operation):
-    """
-    Allows to perform administrative operations on the nomad services. The possible
-    operations are *repair_uploads*
-    (cleans incomplete or otherwise unexpectedly failed uploads), *reset* (clears all
-    databases and resets nomad).
+ns = api.namespace('admin', description='Administrative operations')
 
-    .. :quickref: Allows to perform administrative operations on the nomad services.
 
-    :param string operation: the operation to perform
-    :status 400: unknown operation
-    :status 200: operation successfully started
-    :returns: an authentication token that is valid for 10 minutes.
-    """
-    if operation == 'repair_uploads':
-        Upload.repair_all()
-    if operation == 'reset':
-        infrastructure.reset()
-    else:
-        abort(400, message='Unknown operation %s' % operation)
+@ns.route('/<string:operation>')
+@api.doc(params={'operation': 'The operation to perform.'})
+class AdminOperationsResource(Resource):
+    # TODO in production this requires authorization
+    @api.doc('exec_admin_command')
+    @api.response(200, 'Operation performed')
+    @api.response(404, 'Operation does not exist')
+    @api.response(400, 'Operation not available/disabled')
+    @login_really_required
+    def post(self, operation):
+        """
+        Allows to perform administrative operations on the nomad services.
 
-    return 'done', 200
+        The possible operations are ``reset`` and ``remove``.
+
+        The ``reset`` operation will attempt to clear the contents of all databased and
+        indices.
+
+        The ``remove``operation will attempt to remove all databases. Expect the
+        api to stop functioning after this request.
+
+        Reset and remove can be disabled.
+        """
+        if g.user.email != 'admin':
+            abort(401, message='Only the admin user can perform this operation.')
+
+        if operation == 'reset':
+            if config.services.disable_reset:
+                abort(400, message='Operation is disabled')
+            infrastructure.reset()
+        elif operation == 'remove':
+            if config.services.disable_reset:
+                abort(400, message='Operation is disabled')
+            infrastructure.remove()
+        else:
+            abort(404, message='Unknown operation %s' % operation)
+
+        return dict(messager='Operation %s performed.' % operation), 200

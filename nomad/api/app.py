@@ -29,25 +29,21 @@ base_path = config.services.api_base_path
 
 app = Flask(
     __name__,
-    static_url_path='%s/docs' % base_path,
+    static_url_path='/docs',
     static_folder=os.path.abspath(os.path.join(os.path.dirname(__file__), '../../docs/.build/html')))
 """ The Flask app that serves all APIs. """
 
+app.config.setdefault('APPLICATION_ROOT', base_path)
 app.config.setdefault('RESTPLUS_MASK_HEADER', False)
 app.config.setdefault('RESTPLUS_MASK_SWAGGER', False)
 
+
 CORS(app)
 
-authorizations = {
-    'HTTP Basic': {
-        'type': 'basic'
-    }
-}
-
 api = Api(
-    app, version='1.0', title='nomad@FAIRDI API', authorizations=authorizations,
+    app, version='1.0', title='nomad@FAIRDI API',
     description='Official API for nomad@FAIRDI services.')
-""" Provides the flask restful api instance """
+""" Provides the flask restplust api instance """
 
 
 @app.errorhandler(HTTPException)

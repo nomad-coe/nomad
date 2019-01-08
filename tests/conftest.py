@@ -127,6 +127,11 @@ def other_test_user(repository_db):
     return coe_repo.ensure_test_user(email='leonard.hofstadter@nomad-fairdi.tests.de')
 
 
+@pytest.fixture(scope='session')
+def admin_user(repository_db):
+    return coe_repo.admin_user()
+
+
 @pytest.fixture(scope='function')
 def mocksearch(monkeypatch):
     uploads_by_hash = {}

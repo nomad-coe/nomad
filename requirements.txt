@@ -26,3 +26,4 @@ sqlalchemy
 bcrypt
 filelock
 ujson
+bravado

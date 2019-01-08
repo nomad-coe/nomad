@@ -1,3 +1,17 @@
+# Copyright 2018 Markus Scheidgen
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an"AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import pytest
 import time
 import json
@@ -19,6 +33,7 @@ config.services = config.NomadServicesConfig(**services_config)
 from nomad import api  # noqa
 from nomad.files import UploadFile  # noqa
 from nomad.processing import Upload  # noqa
+from nomad.coe_repo import User  # noqa
 
 from tests.processing.test_data import example_files  # noqa
 from tests.test_files import example_file, example_file_mainfile, example_file_contents  # noqa
@@ -53,19 +68,63 @@ def create_auth_headers(user):
 
 
 @pytest.fixture(scope='session')
-def test_user_auth(test_user):
+def test_user_auth(test_user: User):
     return create_auth_headers(test_user)
 
 
 @pytest.fixture(scope='session')
-def test_other_user_auth(other_test_user):
+def test_other_user_auth(other_test_user: User):
     return create_auth_headers(other_test_user)
 
 
+class TestAdmin:
+
+    @pytest.fixture(scope='session')
+    def admin_user_auth(self, admin_user: User):
+        return create_auth_headers(admin_user)
+
+    @pytest.mark.timeout(10)
+    def test_reset(self, client, admin_user_auth, repository_db):
+        rv = client.post('/admin/reset', headers=admin_user_auth)
+        assert rv.status_code == 200
+
+    # TODO disabled as this will destroy the session repository_db beyond repair.
+    # @pytest.mark.timeout(10)
+    # def test_remove(self, client, admin_user_auth, repository_db):
+    #     rv = client.post('/admin/remove', headers=admin_user_auth)
+    #     assert rv.status_code == 200
+
+    def test_doesnotexist(self, client, admin_user_auth):
+        rv = client.post('/admin/doesnotexist', headers=admin_user_auth)
+        assert rv.status_code == 404
+
+    def test_only_admin(self, client, test_user_auth):
+        rv = client.post('/admin/doesnotexist', headers=test_user_auth)
+        assert rv.status_code == 401
+
+    @pytest.fixture(scope='function')
+    def disable_reset(self, monkeypatch):
+        old_config = config.services
+        new_config = config.NomadServicesConfig(
+            config.services.api_host,
+            config.services.api_port,
+            config.services.api_base_path,
+            config.services.api_secret,
+            config.services.admin_password,
+            True)
+        monkeypatch.setattr(config, 'services', new_config)
+        yield None
+        monkeypatch.setattr(config, 'services', old_config)
+
+    def test_disabled(self, client, admin_user_auth, disable_reset):
+        rv = client.post('/admin/reset', headers=admin_user_auth)
+        assert rv.status_code == 400
+
+
 class TestAuth:
-    def test_xtoken_auth(self, client, test_user, no_warn):
+    def test_xtoken_auth(self, client, test_user: User, no_warn):
         rv = client.get('/uploads/', headers={
-            'X-Token': test_user.email
+            'X-Token': test_user.email  # the test users have their email as tokens for convinience
         })
 
         assert rv.status_code == 200
@@ -88,6 +147,11 @@ class TestAuth:
         })
         assert rv.status_code == 401
 
+    def test_get_token(self, client, test_user_auth, test_user: User, no_warn):
+        rv = client.get('/auth/token', headers=test_user_auth)
+        assert rv.status_code == 200
+        assert rv.data.decode('utf-8') == test_user.get_auth_token().decode('utf-8')
+
 
 class TestUploads:
 
@@ -109,8 +173,6 @@ class TestUploads:
         if id is not None:
             assert id == data['upload_id']
         assert 'create_time' in data
-        assert 'upload_url' in data
-        assert 'upload_command' in data
 
         for key, value in kwargs.items():
             assert data.get(key, None) == value
@@ -139,7 +201,7 @@ class TestUploads:
             assert calc['status'] == 'SUCCESS'
             assert calc['current_task'] == 'archiving'
             assert len(calc['tasks']) == 3
-            assert client.get('/logs/%s' % calc['archive_id']).status_code == 200
+            assert client.get('/archive/logs/%s' % calc['archive_id']).status_code == 200
 
         if upload['calcs']['pagination']['total'] > 1:
             rv = client.get('%s?page=2&per_page=1&order_by=status' % upload_endpoint)
@@ -164,6 +226,13 @@ class TestUploads:
         self.assert_uploads(rv.data, count=0)
         assert_coe_upload(upload['upload_hash'], proc_infra['repository_db'], empty=empty_upload)
 
+    def test_get_command(self, client, test_user_auth, no_warn):
+        rv = client.get('/uploads/command', headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert 'upload_command' in data
+        assert 'upload_url' in data
+
     def test_get_empty(self, client, test_user_auth, no_warn):
         rv = client.get('/uploads/', headers=test_user_auth)
 
@@ -174,6 +243,7 @@ class TestUploads:
         rv = client.get('/uploads/123456789012123456789012', headers=test_user_auth)
         assert rv.status_code == 404
 
+    @pytest.mark.timeout(30)
     @pytest.mark.parametrize('file', example_files)
     @pytest.mark.parametrize('mode', ['multipart', 'stream', 'local_path'])
     @pytest.mark.parametrize('name', [None, 'test_name'])
@@ -249,7 +319,7 @@ class TestRepo:
         assert rv.status_code == 404
 
     def test_calcs(self, client, example_elastic_calc, no_warn):
-        rv = client.get('/repo')
+        rv = client.get('/repo/')
         assert rv.status_code == 200
         data = json.loads(rv.data)
         results = data.get('results', None)
@@ -258,7 +328,7 @@ class TestRepo:
         assert len(results) >= 1
 
     def test_calcs_pagination(self, client, example_elastic_calc, no_warn):
-        rv = client.get('/repo?page=1&per_page=1')
+        rv = client.get('/repo/?page=1&per_page=1')
         assert rv.status_code == 200
         data = json.loads(rv.data)
         results = data.get('results', None)
@@ -267,7 +337,7 @@ class TestRepo:
         assert len(results) == 1
 
     def test_calcs_user(self, client, example_elastic_calc, test_user_auth, no_warn):
-        rv = client.get('/repo?owner=user', headers=test_user_auth)
+        rv = client.get('/repo/?owner=user', headers=test_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)
         results = data.get('results', None)
@@ -275,11 +345,11 @@ class TestRepo:
         assert len(results) >= 1
 
     def test_calcs_user_authrequired(self, client, example_elastic_calc, no_warn):
-        rv = client.get('/repo?owner=user')
+        rv = client.get('/repo/?owner=user')
         assert rv.status_code == 401
 
     def test_calcs_user_invisible(self, client, example_elastic_calc, test_other_user_auth, no_warn):
-        rv = client.get('/repo?owner=user', headers=test_other_user_auth)
+        rv = client.get('/repo/?owner=user', headers=test_other_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)
         results = data.get('results', None)
@@ -288,7 +358,7 @@ class TestRepo:
 
 
 class TestArchive:
-    def test_get(self, client, archive, no_warn):
+    def test_get(self, client, archive, repository_db, no_warn):
         rv = client.get('/archive/%s' % archive.object_id)
 
         if rv.headers.get('Content-Encoding') == 'gzip':
@@ -298,18 +368,23 @@ class TestArchive:
 
         assert rv.status_code == 200
 
-    def test_get_calc_proc_log(self, client, archive_log, no_warn):
-        rv = client.get('/logs/%s' % archive_log.object_id)
+    def test_get_calc_proc_log(self, client, archive_log, repository_db, no_warn):
+        rv = client.get('/archive/logs/%s' % archive_log.object_id)
 
         assert len(rv.data) > 0
         assert rv.status_code == 200
 
-    def test_get_non_existing_archive(self, client, no_warn):
+    def test_get_non_existing_archive(self, client, repository_db, no_warn):
         rv = client.get('/archive/%s' % 'doesnt/exist')
         assert rv.status_code == 404
 
+    def test_get_metainfo(self, client):
+        rv = client.get('/archive/metainfo/all.nomadmetainfo.json')
+        assert rv.status_code == 200
+
 
 def test_docs(client):
+    rv = client.get('/docs/index.html')
     rv = client.get('/docs/introduction.html')
     assert rv.status_code == 200
 
@@ -317,7 +392,7 @@ def test_docs(client):
 class TestRaw:
 
     @pytest.fixture
-    def example_upload_hash(self, mockmongo, no_warn):
+    def example_upload_hash(self, mockmongo, repository_db, no_warn):
         upload = Upload(id='test_upload_id', local_path=os.path.abspath(example_file))
         upload.create_time = datetime.datetime.now()
         upload.user_id = 'does@not.exist'

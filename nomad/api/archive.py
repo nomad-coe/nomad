@@ -20,109 +20,127 @@ The archive API of the nomad@FAIRDI APIs. This API is about serving processed
 import os.path
 
 from flask import send_file
-from flask_restplus import abort
+from flask_restplus import abort, Resource
+
+import nomad_meta_info
 
 from nomad import config
 from nomad.files import ArchiveFile, ArchiveLogFile
 from nomad.utils import get_logger
 
-from .app import app, base_path
+from .app import api
+from .auth import login_if_available
+from .common import calc_route
+
+ns = api.namespace(
+    'archive',
+    description='Access archive data and archive processing logs.')
 
 
-@app.route('%s/logs/<string:upload_hash>/<string:calc_hash>' % base_path, methods=['GET'])
-def get_calc_proc_log(upload_hash, calc_hash):
-    """
-    Get calculation processing log. Calcs are references via *upload_hash*, *calc_hash*
-    pairs.
+@calc_route(ns, '/logs')
+class ArchiveCalcLogResource(Resource):
+    @api.doc('get_archive_logs')
+    @api.response(404, 'The upload or calculation does not exist')
+    @api.response(200, 'Archive data send', headers={'Content-Type': 'application/plain'})
+    @login_if_available
+    def get(self, upload_hash, calc_hash):
+        """
+        Get calculation processing log.
 
-    .. :quickref: archive; Get calculation processing logs.
+        Calcs are references via *upload_hash*, *calc_hash* pairs.
+        """
+        archive_id = '%s/%s' % (upload_hash, calc_hash)
 
-    **Example request**:
+        try:
+            archive = ArchiveLogFile(archive_id)
+            if not archive.exists():
+                raise FileNotFoundError()
 
-    .. sourcecode:: http
+            archive_path = archive.os_path
 
-        GET /nomad/api/logs/W36aqCzAKxOCfIiMFsBJh3nHPb4a/7ddvtfRfZAvc3Crr7jOJ8UH0T34I HTTP/1.1
-        Accept: application/json
+            rv = send_file(
+                archive_path,
+                mimetype='text/plain',
+                as_attachment=True,
+                attachment_filename=os.path.basename(archive_path))
 
-    :param string upload_hash: the hash of the upload (from uploaded file contents)
-    :param string calc_hash: the hash of the calculation (from mainfile)
-    :resheader Content-Type: application/json
-    :status 200: calc successfully retrieved
-    :status 404: calc with given hashes does not exist
-    :returns: the log data, a line by line sequence of structured logs
-    """
-    archive_id = '%s/%s' % (upload_hash, calc_hash)
-
-    try:
-        archive = ArchiveLogFile(archive_id)
-        if not archive.exists():
-            raise FileNotFoundError()
-
-        archive_path = archive.os_path
-
-        rv = send_file(
-            archive_path,
-            mimetype='application/text',
-            as_attachment=True,
-            attachment_filename=os.path.basename(archive_path))
-
-        return rv
-    except FileNotFoundError:
-        abort(404, message='Archive/calculation %s does not exist.' % archive_id)
-    except Exception as e:
-        logger = get_logger(
-            __name__, endpoint='logs', action='get',
-            upload_hash=upload_hash, calc_hash=calc_hash)
-        logger.error('Exception on accessing calc proc log', exc_info=e)
-        abort(500, message='Could not accessing the logs.')
+            return rv
+        except FileNotFoundError:
+            abort(404, message='Archive/calculation %s does not exist.' % archive_id)
+        except Exception as e:
+            logger = get_logger(
+                __name__, endpoint='logs', action='get',
+                upload_hash=upload_hash, calc_hash=calc_hash)
+            logger.error('Exception on accessing calc proc log', exc_info=e)
+            abort(500, message='Could not accessing the logs.')
 
 
-@app.route('%s/archive/<string:upload_hash>/<string:calc_hash>' % base_path, methods=['GET'])
-def get_calc(upload_hash, calc_hash):
-    """
-    Get calculation data in archive form. Calcs are references via *upload_hash*, *calc_hash*
-    pairs.
+@calc_route(ns)
+class ArchiveCalcResource(Resource):
+    @api.doc('get_archive_calc')
+    @api.response(404, 'The upload or calculation does not exist')
+    @api.response(200, 'Archive data send')
+    @login_if_available
+    def get(self, upload_hash, calc_hash):
+        """
+        Get calculation data in archive form.
 
-    .. :quickref: archive; Get calculation data in archive form.
+        Calcs are references via *upload_hash*, *calc_hash* pairs.
+        """
+        archive_id = '%s/%s' % (upload_hash, calc_hash)
 
-    **Example request**:
+        try:
+            archive = ArchiveFile(archive_id)
+            if not archive.exists():
+                raise FileNotFoundError()
 
-    .. sourcecode:: http
+            archive_path = archive.os_path
 
-        GET /nomad/api/archive/W36aqCzAKxOCfIiMFsBJh3nHPb4a/7ddvtfRfZAvc3Crr7jOJ8UH0T34I HTTP/1.1
-        Accept: application/json
+            rv = send_file(
+                archive_path,
+                mimetype='application/json',
+                as_attachment=True,
+                attachment_filename=os.path.basename(archive_path))
 
-    :param string upload_hash: the hash of the upload (from uploaded file contents)
-    :param string calc_hash: the hash of the calculation (from mainfile)
-    :resheader Content-Type: application/json
-    :status 200: calc successfully retrieved
-    :status 404: calc with given hashes does not exist
-    :returns: the metainfo formated JSON data of the requested calculation
-    """
-    archive_id = '%s/%s' % (upload_hash, calc_hash)
+            if config.files.compress_archive:
+                rv.headers['Content-Encoding'] = 'gzip'
 
-    try:
-        archive = ArchiveFile(archive_id)
-        if not archive.exists():
-            raise FileNotFoundError()
+            return rv
+        except FileNotFoundError:
+            abort(404, message='Archive %s does not exist.' % archive_id)
+        except Exception as e:
+            logger = get_logger(
+                __name__, endpoint='archive', action='get',
+                upload_hash=upload_hash, calc_hash=calc_hash)
+            logger.error('Exception on accessing archive', exc_info=e)
+            abort(500, message='Could not accessing the archive.')
 
-        archive_path = archive.os_path
 
-        rv = send_file(
-            archive_path,
-            mimetype='application/json',
-            as_attachment=True,
-            attachment_filename=os.path.basename(archive_path))
+@ns.route('/metainfo/<string:metainfo_path>')
+@api.doc(params=dict(metainfo_path='A path or metainfo definition file name.'))
+class MetainfoResource(Resource):
+    @api.doc('get_metainfo')
+    @api.response(404, 'The metainfo does not exist')
+    @api.response(200, 'Metainfo data send')
+    def get(self, metainfo_path):
+        """
+        Get a metainfo definition file.
+        """
+        try:
+            file_dir = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
+            meta_info_path = os.path.normpath(os.path.join(file_dir, metainfo_path.strip()))
 
-        if config.files.compress_archive:
-            rv.headers['Content-Encoding'] = 'gzip'
+            rv = send_file(
+                meta_info_path,
+                mimetype='application/json',
+                as_attachment=True,
+                attachment_filename=os.path.basename(metainfo_path))
 
-        return rv
-    except FileNotFoundError:
-        abort(404, message='Archive %s does not exist.' % archive_id)
-    except Exception as e:
-        logger = get_logger(
-            __name__, endpoint='archive', action='get',
-            upload_hash=upload_hash, calc_hash=calc_hash)
-        logger.error('Exception on accessing archive', exc_info=e)
-        abort(500, message='Could not accessing the archive.')
+            return rv
+        except FileNotFoundError:
+            abort(404, message='The metainfo %s does not exist.' % metainfo_path)
+        except Exception as e:
+            logger = get_logger(
+                __name__, endpoint='metainfo', action='get', metainfo_path=metainfo_path)
+            logger.error('Exception on accessing metainfo', exc_info=e)
+            abort(500, message='Could not accessing the metainfo.')

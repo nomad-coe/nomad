@@ -20,18 +20,22 @@ files, and retrieve the processing status of uploads.
 from flask import g, request
 from flask_restplus import Resource, fields, abort
 from datetime import datetime
+from werkzeug.datastructures import FileStorage
+import os.path
 
-from nomad.processing import Upload as UploadProc
+from nomad import config
+from nomad.processing import Upload
 from nomad.processing import NotAllowedDuringProcessing
 from nomad.utils import get_logger
 from nomad.files import UploadFile
 
-from .app import api, base_path
+from .app import api
 from .auth import login_really_required
+from .common import pagination_request_parser, pagination_model
 
 
 ns = api.namespace(
-    '%s/uploads' % base_path[1:] if base_path is not '' else 'uploads',
+    'uploads',
     description='Uploading data and tracing uploaded data and its processing.')
 
 
@@ -47,7 +51,7 @@ proc_model = api.model('Processing', {
     '_async_status': fields.String(description='Only for debugging nomad')
 })
 
-upload_model = api.inherit('Upload', proc_model, {
+upload_model = api.inherit('UploadProcessing', proc_model, {
     'name': fields.String(
         description='The name of the upload. This can be provided during upload '
                     'using the name query parameter.'),
@@ -59,13 +63,11 @@ upload_model = api.inherit('Upload', proc_model, {
                     'used within nomad to identify uploads.'
     ),
     'additional_metadata': fields.Arbitrary,
-    'upload_url': fields.String,
-    'upload_command': fields.String,
     'local_path': fields.String,
     'upload_time': fields.DateTime(dt_format='iso8601'),
 })
 
-calc_model = api.inherit('Calculation', proc_model, {
+calc_model = api.inherit('UploadCalculationProcessing', proc_model, {
     'archive_id': fields.String,
     'mainfile': fields.String,
     'upload_id': fields.String,
@@ -77,13 +79,10 @@ upload_with_calcs_model = api.inherit('UploadWithPaginatedCalculations', upload_
     'total_calcs': fields.Integer,
     'failed_calcs': fields.Integer,
     'pending_calcs': fields.Integer,
-    'calcs': fields.Nested(model=api.model('PaginatedCalculations', {
-        'pagination': fields.Nested(model=api.model('Pagination', {
-            'total': fields.Integer,
+    'calcs': fields.Nested(model=api.model('UploadPaginatedCalculations', {
+        'pagination': fields.Nested(model=api.inherit('UploadCalculationPagination', pagination_model, {
             'successes': fields.Integer,
             'failures': fields.Integer,
-            'page': fields.Integer,
-            'per_page': fields.Integer,
         })),
         'results': fields.List(fields.Nested(model=calc_model))
     }))
@@ -114,17 +113,20 @@ upload_operation_model = api.model('UploadOperation', {
 upload_metadata_parser = api.parser()
 upload_metadata_parser.add_argument('name', type=str, help='An optional name for the upload.', location='args')
 upload_metadata_parser.add_argument('local_path', type=str, help='Use a local file on the server.', location='args')
+upload_metadata_parser.add_argument('file', type=FileStorage, help='The file to upload.', location='files')
 
 
 @ns.route('/')
-class UploadList(Resource):
+class UploadListResource(Resource):
+    @api.doc('get_uploads')
     @api.marshal_list_with(upload_model, skip_none=True, code=200, description='Uploads send')
     @login_really_required
     def get(self):
         """ Get the list of all uploads from the authenticated user. """
-        return [upload for upload in UploadProc.user_uploads(g.user)], 200
+        return [upload for upload in Upload.user_uploads(g.user)], 200
 
-    @api.marshal_list_with(upload_model, skip_none=True, code=200, description='Upload received')
+    @api.doc('upload')
+    @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload received')
     @api.expect(upload_metadata_parser)
     @login_really_required
     def put(self):
@@ -144,8 +146,12 @@ class UploadList(Resource):
             curl ".../nomad/api/uploads/" --upload-file local_file
         """
         local_path = request.args.get('local_path')
+        if local_path:
+            if not os.path.exists(local_path):
+                abort(404, message='The given local_path was not found.')
+
         # create upload
-        upload = UploadProc.create(
+        upload = Upload.create(
             user=g.user,
             name=request.args.get('name'),
             local_path=local_path)
@@ -200,18 +206,13 @@ class ProxyUpload:
         return self.upload.__getattribute__(name)
 
 
-pagination_parser = api.parser()
-pagination_parser.add_argument('page', type=int, help='The page, starting with 1.', location='args')
-pagination_parser.add_argument('per_page', type=int, help='Desired calcs per page.', location='args')
-pagination_parser.add_argument('order_by', type=str, help='The field to sort the calcs by, use [status,mainfile].', location='args')
-
-
 @ns.route('/<string:upload_id>')
 @api.doc(params={'upload_id': 'The unique id for the requested upload.'})
-class Upload(Resource):
+class UploadResource(Resource):
+    @api.doc('get_upload')
     @api.response(404, 'Upload does not exist')
     @api.marshal_with(upload_with_calcs_model, skip_none=True, code=200, description='Upload send')
-    @api.expect(pagination_parser)
+    @api.expect(pagination_request_parser)
     @login_really_required
     def get(self, upload_id: str):
         """
@@ -221,7 +222,7 @@ class Upload(Resource):
         Use the pagination params to determine the page.
         """
         try:
-            upload = UploadProc.get(upload_id)
+            upload = Upload.get(upload_id)
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
@@ -258,6 +259,7 @@ class Upload(Resource):
 
         return result, 200
 
+    @api.doc('delete_upload')
     @api.response(404, 'Upload does not exist')
     @api.response(400, 'Not allowed during processing or when not in staging')
     @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload deleted')
@@ -270,7 +272,7 @@ class Upload(Resource):
         can be deleted. Deleting an upload in processing is not allowed.
         """
         try:
-            upload = UploadProc.get(upload_id)
+            upload = Upload.get(upload_id)
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
@@ -286,6 +288,7 @@ class Upload(Resource):
         except NotAllowedDuringProcessing:
             abort(400, message='You must not delete an upload during processing.')
 
+    @api.doc('exec_upload_command')
     @api.response(404, 'Upload does not exist or is not allowed')
     @api.response(400, 'Operation is not supported')
     @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload unstaged successfully')
@@ -302,7 +305,7 @@ class Upload(Resource):
         via meta data.
         """
         try:
-            upload = UploadProc.get(upload_id)
+            upload = Upload.get(upload_id)
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
@@ -327,3 +330,27 @@ class Upload(Resource):
             return upload, 200
 
         abort(400, message='Unsuported operation %s.' % operation)
+
+
+upload_command_model = api.model('UploadCommand', {
+    'upload_url': fields.Url,
+    'upload_command': fields.String
+})
+
+
+@ns.route('/command')
+class UploadCommandResource(Resource):
+    @api.doc('get_upload_command')
+    @api.marshal_with(upload_command_model, code=200, description='Upload command send')
+    @login_really_required
+    def get(self):
+        """ Get url and example command for shell based uploads. """
+        upload_url = 'http://%s:%s%s/uploads/' % (
+            config.services.api_host,
+            config.services.api_port,
+            config.services.api_base_path)
+
+        upload_command = 'curl -H "X-Token: %s" "%s" --upload-file <local_file>' % (
+            g.user.get_auth_token().decode('utf-8'), upload_url)
+
+        return dict(upload_url=upload_url, upload_command=upload_command), 200

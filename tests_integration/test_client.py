@@ -12,22 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from werkzeug.wsgi import DispatcherMiddleware
+import pytest
 
-from nomad.api import app
-from nomad import config
+from nomad.client import create_client, upload_file
 
-
-def run_dev_server(*args, **kwargs):
-    def simple(env, resp):
-        resp(b'200 OK', [(b'Content-Type', b'text/plain')])
-        return [
-            ('Development nomad api server. Api is served under %s/.' %
-                config.services.api_base_path).encode('utf-8')]
-
-    app.wsgi_app = DispatcherMiddleware(simple, {config.services.api_base_path: app.wsgi_app})
-    app.run(*args, **kwargs)
+from tests.test_files import example_file
 
 
-if __name__ == '__main__':
-    run_dev_server(debug=True, port=8000)
+@pytest.fixture(scope='session')
+def client():
+    return create_client()
+
+
+def test_client(client):
+    client.repo.get_calcs().response()
+
+
+def test_upload(client):
+    upload_file(example_file, client=client)
