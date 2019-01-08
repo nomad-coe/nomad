@@ -91,7 +91,7 @@ upload_with_calcs_model = api.inherit('UploadWithPaginatedCalculations', upload_
 
 meta_data_model = api.model('MetaData', {
     'with_embargo': fields.Boolean(default=False, description='Data with embargo is only visible to the upload until the embargo period ended.'),
-    'comments': fields.List(fields.String, description='Comments are shown in the repository for each calculation.'),
+    'comment': fields.List(fields.String, description='The comment are shown in the repository for each calculation.'),
     'references': fields.List(fields.String, descriptions='References allow to link calculations to external source, e.g. URLs.'),
     'coauthors': fields.List(fields.String, description='A list of co-authors given by user_id.'),
     'share_with': fields.List(fields.String, description='A list of users to share calculations with given by user_id.')
