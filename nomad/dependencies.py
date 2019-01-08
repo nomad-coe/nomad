@@ -216,7 +216,7 @@ dependencies = [
     PythonGit(
         name='parsers/nwchem',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-nwchem',
-        git_branch='master'),
+        git_branch='nomad-fair'),
 ]
 
 
