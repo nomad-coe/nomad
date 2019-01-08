@@ -210,7 +210,7 @@ dependencies = [
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-crystal',
         git_branch='nomad-fair'),
     PythonGit(
-        name='parsers/CPMD',
+        name='parsers/cpmd',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-cpmd',
         git_branch='nomad-fair'),
     PythonGit(
