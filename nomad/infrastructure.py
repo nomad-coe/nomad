@@ -280,7 +280,7 @@ def reset_repository_db():
     with repository_db_connection(with_trans=False) as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "DROP SCHEMA public CASCADE;"
+                "DROP SCHEMA IF EXISTS public CASCADE;"
                 "CREATE SCHEMA public;"
                 "GRANT ALL ON SCHEMA public TO postgres;"
                 "GRANT ALL ON SCHEMA public TO public;")
