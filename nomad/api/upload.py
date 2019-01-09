@@ -93,11 +93,15 @@ meta_data_model = api.model('MetaData', {
     'comment': fields.List(fields.String, description='The comment are shown in the repository for each calculation.'),
     'references': fields.List(fields.String, descriptions='References allow to link calculations to external source, e.g. URLs.'),
     'coauthors': fields.List(fields.String, description='A list of co-authors given by user_id.'),
-    'share_with': fields.List(fields.String, description='A list of users to share calculations with given by user_id.')
+    'shared_with': fields.List(fields.String, description='A list of users to share calculations with given by user_id.'),
+    '_upload_time': fields.List(fields.DateTime(dt_format='iso8601'), description='Overrride the upload time.'),
+    '_uploader': fields.List(fields.String, description='Override the uploader with the given user id.')
 })
 
 calc_meta_data_model = api.inherit('CalcMetaData', meta_data_model, {
-    'mainfile': fields.String(description='The calculation main output file is used to identify the calculation in the upload.')
+    'mainfile': fields.String(description='The calculation main output file is used to identify the calculation in the upload.'),
+    '_checksum': fields.String(description='Override the calculation checksum'),
+    '_pid': fields.String(description='Assign a specific pid. It must be unique.')
 })
 
 upload_meta_data_model = api.inherit('UploadMetaData', meta_data_model, {
@@ -226,7 +230,7 @@ class UploadResource(Resource):
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
-        if upload.user_id != str(g.user.user_id):
+        if upload.user_id != str(g.user.user_id) and not g.user.is_admin:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
         try:
@@ -276,7 +280,7 @@ class UploadResource(Resource):
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
-        if upload.user_id != str(g.user.user_id):
+        if upload.user_id != str(g.user.user_id) and not g.user.is_admin:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
         if not upload.in_staging:
@@ -291,6 +295,7 @@ class UploadResource(Resource):
     @api.doc('exec_upload_command')
     @api.response(404, 'Upload does not exist or is not allowed')
     @api.response(400, 'Operation is not supported')
+    @api.response(401, 'If the operation is not allowed for the current user')
     @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload unstaged successfully')
     @api.expect(upload_operation_model)
     @login_really_required
@@ -299,7 +304,8 @@ class UploadResource(Resource):
         Execute an upload operation. Available operations: ``unstage``
 
         Unstage accepts further meta data that allows to provide coauthors, comments,
-        external references, etc.
+        external references, etc. See the model for details. The fields that start with
+        ``_underscore`` are only available for users with administrative priviledges.
 
         Unstage changes the visibility of the upload. Clients can specify the visibility
         via meta data.
@@ -309,7 +315,7 @@ class UploadResource(Resource):
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
-        if upload.user_id != str(g.user.user_id):
+        if upload.user_id != str(g.user.user_id) and not g.user.is_admin:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
         json_data = request.get_json()
@@ -317,7 +323,14 @@ class UploadResource(Resource):
             json_data = {}
 
         operation = json_data.get('operation')
+
         meta_data = json_data.get('meta_data', {})
+        for key in meta_data:
+            if key.startswith('_'):
+                if not g.user.is_admin:
+                    abort(401, message='Only admin users can use _meta_data_keys.')
+                break
+
         if operation == 'unstage':
             if not upload.in_staging:
                 abort(400, message='Operation not allowed, upload is not in staging.')

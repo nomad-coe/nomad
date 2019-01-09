@@ -36,7 +36,6 @@ This module also provides functionality to add parsed calculation data to the db
 """
 
 import itertools
-import enum
 from passlib.hash import bcrypt
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum
 from sqlalchemy.orm import relationship
@@ -158,7 +157,7 @@ def add_calculation(upload, coe_upload, calc: RepoCalc, calc_meta_data: dict) ->
     user_metadata = UserMetaData(
         calc=coe_calc,
         label=calc_meta_data.get('comment', None),
-        permission=1 if calc_meta_data.get('restricted', False) else 0)
+        permission=(1 if calc_meta_data.get('with_embargo', False) else 0))
     repo_db.add(user_metadata)
 
     spacegroup = Spacegroup(
@@ -177,7 +176,7 @@ def add_calculation(upload, coe_upload, calc: RepoCalc, calc_meta_data: dict) ->
     coe_calc.set_value(topic_basis_set_type, calc.basis_set_type)
 
     # user relations
-    owner_user_id = calc_meta_data.get('uploader', int(upload.user_id))
+    owner_user_id = calc_meta_data.get('_uploader', int(upload.user_id))
     ownership = Ownership(calc_id=coe_calc.calc_id, user_id=owner_user_id)
     repo_db.add(ownership)
 
@@ -185,29 +184,28 @@ def add_calculation(upload, coe_upload, calc: RepoCalc, calc_meta_data: dict) ->
         coauthorship = CoAuthorship(calc_id=coe_calc.calc_id, user_id=int(coauthor_id))
         repo_db.add(coauthorship)
 
-    for shared_with_id in calc_meta_data.get('share_with', []):
+    for shared_with_id in calc_meta_data.get('shared_with', []):
         shareship = Shareship(calc_id=coe_calc.calc_id, user_id=int(shared_with_id))
         repo_db.add(shareship)
 
     # datasets
-    for dataset_id in calc_meta_data.get('_datasets', []):
+    for dataset_id in calc_meta_data.get('datasets', []):
         dataset = CalcSet(parent_calc_id=dataset_id, children_calc_id=coe_calc.calc_id)
         repo_db.add(dataset)
 
     # references
     for reference in calc_meta_data.get('references', []):
         citation = repo_db.query(Citation).filter_by(
-            label=reference,
-            kind=CitationKind.EXTERNAL).first()
+            value=reference,
+            kind='EXTERNAL').first()
 
         if citation is None:
-            citation = Citation(label=reference, kind=CitationKind.EXTERNAL)
+            citation = Citation(value=reference, kind='EXTERNAL')
             repo_db.add(citation)
 
         metadata_citation = MetaDataCitation(
             calc_id=coe_calc.calc_id,
-            citation_id=citation.citation_id)
-
+            citation=citation)
         repo_db.add(metadata_citation)
 
 
@@ -352,24 +350,20 @@ class CalcSet(Base):  # type: ignore
     children_calc_id = Column(Integer, ForeignKey('calculations.calc_id'), primary_key=True)
 
 
-class MetaDataCitation(Base):  # type: ignore
-    __tablename__ = 'metadata_citations'
-
-    calc_id = Column(Integer, ForeignKey('calculations.calc_id'), primary_key=True)
-    citation_id = Column(Integer, ForeignKey('citations.citation_id'), primary_key=True)
-
-
-class CitationKind(enum.Enum):
-    INTERNAL = 1
-    EXTERNAL = 2
-
-
 class Citation(Base):  # type: ignore
     __tablename__ = 'citations'
 
     citation_id = Column(Integer, primary_key=True)
     value = Column(String)
-    kind = Column(Enum(CitationKind))
+    kind = Column(Enum('INTERNAL', 'EXTERNAL', name='citation_kind_enum'))
+
+
+class MetaDataCitation(Base):  # type: ignore
+    __tablename__ = 'metadata_citations'
+
+    calc_id = Column(Integer, ForeignKey('calculations.calc_id'), primary_key=True)
+    citation_id = Column(Integer, ForeignKey('citations.citation_id'), primary_key=True)
+    citation = relationship('Citation')
 
 
 class LoginException(Exception):
@@ -413,6 +407,10 @@ class User(Base):  # type: ignore
             raise LoginException('No session, user probably not logged in at NOMAD-coe repository GUI')
 
         return session.token.encode('utf-8')
+
+    @property
+    def is_admin(self) -> bool:
+        return self.email == 'admin'
 
     @staticmethod
     def verify_user_password(email, password):

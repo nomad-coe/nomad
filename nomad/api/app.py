@@ -42,7 +42,8 @@ CORS(app)
 
 api = Api(
     app, version='1.0', title='nomad@FAIRDI API',
-    description='Official API for nomad@FAIRDI services.')
+    description='Official API for nomad@FAIRDI services.',
+    validate=True)
 """ Provides the flask restplust api instance """
 
 

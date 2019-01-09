@@ -77,11 +77,12 @@ def test_other_user_auth(other_test_user: User):
     return create_auth_headers(other_test_user)
 
 
-class TestAdmin:
+@pytest.fixture(scope='session')
+def admin_user_auth(admin_user: User):
+    return create_auth_headers(admin_user)
 
-    @pytest.fixture(scope='session')
-    def admin_user_auth(self, admin_user: User):
-        return create_auth_headers(admin_user)
+
+class TestAdmin:
 
     @pytest.mark.timeout(10)
     def test_reset(self, client, admin_user_auth, repository_db):
@@ -209,11 +210,11 @@ class TestUploads:
             upload = self.assert_upload(rv.data)
             assert len(upload['calcs']['results']) == 1
 
-    def assert_unstage(self, client, test_user_auth, upload_id, proc_infra):
+    def assert_unstage(self, client, test_user_auth, upload_id, proc_infra, meta_data={}):
         rv = client.post(
             '/uploads/%s' % upload_id,
             headers=test_user_auth,
-            data=json.dumps(dict(operation='unstage')),
+            data=json.dumps(dict(operation='unstage', meta_data=meta_data)),
             content_type='application/json')
         assert rv.status_code == 200
         rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
@@ -221,10 +222,9 @@ class TestUploads:
         upload = self.assert_upload(rv.data)
         empty_upload = upload['calcs']['pagination']['total'] == 0
 
-        rv = client.get('/uploads/', headers=test_user_auth)
-        assert rv.status_code == 200
-        self.assert_uploads(rv.data, count=0)
-        assert_coe_upload(upload['upload_hash'], proc_infra['repository_db'], empty=empty_upload)
+        assert_coe_upload(
+            upload['upload_hash'], proc_infra['repository_db'],
+            empty=empty_upload, meta_data=meta_data)
 
     def test_get_command(self, client, test_user_auth, no_warn):
         rv = client.get('/uploads/command', headers=test_user_auth)
@@ -285,7 +285,7 @@ class TestUploads:
         assert rv.status_code == 400
         self.assert_processing(client, test_user_auth, upload['upload_id'])
 
-    def test_delete_unstaged(self, client, test_user_auth, proc_infra):
+    def test_delete_unstaged(self, client, test_user_auth, proc_infra, clean_repository_db):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
@@ -301,11 +301,44 @@ class TestUploads:
         assert rv.status_code == 200
 
     @pytest.mark.parametrize('example_file', example_files)
-    def test_post(self, client, test_user_auth, example_file, proc_infra):
+    def test_post(self, client, test_user_auth, example_file, proc_infra, clean_repository_db):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
         self.assert_unstage(client, test_user_auth, upload['upload_id'], proc_infra)
+
+    def test_post_metadata(
+            self, client, proc_infra, admin_user_auth, test_user_auth, test_user,
+            other_test_user, clean_repository_db):
+        rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
+        upload = self.assert_upload(rv.data)
+        self.assert_processing(client, test_user_auth, upload['upload_id'])
+
+        meta_data = dict(comment='test comment')
+        self.assert_unstage(client, admin_user_auth, upload['upload_id'], proc_infra, meta_data)
+
+    def test_post_metadata_forbidden(self, client, proc_infra, test_user_auth, clean_repository_db):
+        rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
+        upload = self.assert_upload(rv.data)
+        self.assert_processing(client, test_user_auth, upload['upload_id'])
+        rv = client.post(
+            '/uploads/%s' % upload['upload_id'],
+            headers=test_user_auth,
+            data=json.dumps(dict(operation='unstage', meta_data=dict(_pid=256))),
+            content_type='application/json')
+        assert rv.status_code == 401
+
+    # TODO validate metadata (or all input models in API for that matter)
+    # def test_post_bad_metadata(self, client, proc_infra, test_user_auth, clean_repository_db):
+    #     rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
+    #     upload = self.assert_upload(rv.data)
+    #     self.assert_processing(client, test_user_auth, upload['upload_id'])
+    #     rv = client.post(
+    #         '/uploads/%s' % upload['upload_id'],
+    #         headers=test_user_auth,
+    #         data=json.dumps(dict(operation='unstage', meta_data=dict(doesnotexist='hi'))),
+    #         content_type='application/json')
+    #     assert rv.status_code == 400
 
 
 class TestRepo:

@@ -117,6 +117,12 @@ def repository_db(monkeysession):
     session.close()
 
 
+@pytest.fixture(scope='function')
+def clean_repository_db(repository_db):
+    repository_db.execute('TRUNCATE uploads CASCADE;')
+    yield repository_db
+
+
 @pytest.fixture(scope='session')
 def test_user(repository_db):
     from nomad import coe_repo

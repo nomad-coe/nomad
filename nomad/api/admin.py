@@ -47,7 +47,7 @@ class AdminOperationsResource(Resource):
 
         Reset and remove can be disabled.
         """
-        if g.user.email != 'admin':
+        if not g.user.is_admin:
             abort(401, message='Only the admin user can perform this operation.')
 
         if operation == 'reset':
