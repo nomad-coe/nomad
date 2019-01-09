@@ -45,6 +45,7 @@ def assert_coe_upload(upload_hash, empty=False, meta_data={}):
     if empty:
         assert coe_upload is None
     else:
+        assert coe_upload is not None
         assert len(coe_upload.calcs) > 0
         for calc in coe_upload.calcs:
             assert_coe_calc(calc, meta_data=meta_data)

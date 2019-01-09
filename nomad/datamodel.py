@@ -26,7 +26,7 @@ import datetime
 T = TypeVar('T')
 
 
-class Entity:
+class Entity():
     @classmethod
     def create_from(cls: Type[T], obj) -> T:
         raise NotImplementedError
@@ -39,7 +39,13 @@ class Entity:
 
 
 class Calc(Entity):
-
+    """
+    Attributes:
+        pid: The persistent id (pid) for the calculation
+        mainfile: The mainfile path relative to upload root
+        calc_hash: A unique hash/checksum that describes unique calculations
+        upload: The upload object that this calculation belongs to.
+    """
     @property
     def pid(self) -> Union[int, str]:
         raise NotImplementedError
@@ -49,12 +55,23 @@ class Calc(Entity):
         raise NotImplementedError
 
     @property
+    def calc_hash(self) -> str:
+        raise NotImplementedError
+
+    @property
     def upload(self) -> 'Upload':
         raise NotImplementedError
 
 
 class Upload(Entity):
-
+    """
+    Attributes:
+        upload_uuid(str): The unique random id that each upload has
+        upload_hash(str): The hash/checksum that describes unique uploads
+        upload_time(datatime): The upload time
+        uploader(repo.User): The user that uploaded this upload
+        calcs(Iterable[Calc]): An iterable over the calculations of this upload
+    """
     @property
     def upload_uuid(self) -> str:
         return '<not assigned>'

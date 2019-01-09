@@ -31,7 +31,7 @@ import logging
 from structlog import wrap_logger
 from contextlib import contextmanager
 
-from nomad import utils, coe_repo
+from nomad import utils, coe_repo, datamodel
 from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile, File
 from nomad.repo import RepoCalc
 from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE
@@ -43,7 +43,7 @@ from nomad.utils import lnr
 class NotAllowedDuringProcessing(Exception): pass
 
 
-class Calc(Proc):
+class Calc(Proc, datamodel.Calc):
     """
     Instances of this class represent calculations. This class manages the elastic
     search index entry, files, and archive for the respective calculation.
@@ -87,6 +87,10 @@ class Calc(Proc):
     @property
     def mainfile_file(self) -> File:
         return File(self.mainfile_tmp_path)
+
+    @property
+    def calc_hash(self) -> str:
+        return utils.archive.calc_hash(self.archive_id)
 
     @property
     def upload(self) -> 'Upload':
@@ -263,12 +267,13 @@ class Calc(Proc):
 
         with utils.timer(logger, 'indexed', step='index'):
             # persist to elastic search
-            RepoCalc.create_from_backend(
+            repo_calc = RepoCalc.create_from_backend(
                 self._parser_backend,
                 additional=additional,
                 upload_hash=upload_hash,
                 calc_hash=calc_hash,
-                upload_id=self.upload_id).persist()
+                upload_id=self.upload_id)
+            repo_calc.persist()
 
         with utils.timer(
                 logger, 'archived', step='archive',
@@ -292,7 +297,7 @@ class Calc(Proc):
                 log_data.update(log_size=self._calc_proc_logfile.size)
 
 
-class Upload(Chord):
+class Upload(Chord, datamodel.Upload):
     """
     Represents uploads in the databases. Provides persistence access to the files storage,
     and processing state.
@@ -346,6 +351,14 @@ class Upload(Chord):
     def user_uploads(cls, user: coe_repo.User) -> List['Upload']:
         """ Returns all uploads for the given user. Currently returns all uploads. """
         return cls.objects(user_id=str(user.user_id), in_staging=True)
+
+    @property
+    def upload_uuid(self):
+        return self.upload_id
+
+    @property
+    def uploader(self):
+        return coe_repo.User.from_user_id(self.user_id)
 
     def get_logger(self, **kwargs):
         logger = super().get_logger()
@@ -547,3 +560,7 @@ class Upload(Chord):
 
     def all_calcs(self, start, end, order_by='mainfile'):
         return Calc.objects(upload_id=self.upload_id)[start:end].order_by(order_by)
+
+    @property
+    def calcs(self):
+        return Calc.objects(upload_id=self.upload_id)

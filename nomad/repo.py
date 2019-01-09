@@ -29,7 +29,7 @@ from elasticsearch_dsl import Document as ElasticDocument, Search, Date, Keyword
 from datetime import datetime
 import time
 
-from nomad import config, infrastructure
+from nomad import config, infrastructure, datamodel
 from nomad.parsing import LocalBackend
 from nomad.utils import get_logger
 
@@ -44,7 +44,21 @@ key_mappings = {
 class AlreadyExists(Exception): pass
 
 
-class RepoCalc(ElasticDocument):
+class RepoUpload(datamodel.Entity):
+    def __init__(self, upload_uuid, upload_hash):
+        self.upload_uuid = upload_uuid
+        self.upload_hash = upload_hash
+
+    @classmethod
+    def create_from(cls, obj):
+        return RepoUpload(obj.upload_uuid, obj.upload_hash)
+
+    @property
+    def calcs(self):
+        return RepoCalc.upload_calcs(self.upload_uuid)
+
+
+class RepoCalc(ElasticDocument, datamodel.Entity):
     """
     Elastic search document that represents a calculation. It is supposed to be a
     component of :class:`Calc`. Should only be created by its parent :class:`Calc`
@@ -77,6 +91,10 @@ class RepoCalc(ElasticDocument):
     XC_functional_name = Keyword()
 
     aux_files = Keyword()
+
+    @property
+    def upload(self):
+        return RepoUpload(self.upload_id, self.upload_hash)
 
     @property
     def archive_id(self) -> str:

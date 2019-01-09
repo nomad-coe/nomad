@@ -46,7 +46,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import BYTEA
 
 from nomad import utils, infrastructure, datamodel
-from nomad.repo import RepoCalc
+from nomad.repo import RepoUpload, RepoCalc
 
 
 Base = declarative_base()
@@ -63,7 +63,7 @@ class UploadMetaData:
         return self._calc_data.get(mainfile, self._upload_data)
 
 
-def add_upload(upload, meta_data: dict = {}) -> int:
+def add_upload(upload: datamodel.Upload, meta_data: dict = {}) -> int:
     """
     Add the processed upload to the NOMAD-coe repository db. It creates an
     uploads-entry, respective calculation and property entries. Everything in one
@@ -85,7 +85,7 @@ def add_upload(upload, meta_data: dict = {}) -> int:
 
     logger = utils.get_logger(
         __name__,
-        upload_id=upload.upload_id,
+        upload_id=upload.upload_uuid,
         upload_hash=upload.upload_hash)
 
     result = None
@@ -95,16 +95,16 @@ def add_upload(upload, meta_data: dict = {}) -> int:
         coe_upload = Upload(
             upload_name=upload.upload_hash,
             created=meta_data.get('_upload_time', upload.upload_time),
-            user_id=int(upload.user_id),
+            user=upload.uploader,
             is_processed=True)
         repo_db.add(coe_upload)
 
         # add calculations and metadata
         has_calcs = False
-        for repo_calc in RepoCalc.upload_calcs(upload.upload_id):
+        for calc in upload.to(RepoUpload).calcs:
             has_calcs = True
             add_calculation(
-                upload, coe_upload, repo_calc, upload_meta_data.get(repo_calc.mainfile))
+                coe_upload, calc.to(RepoCalc), upload_meta_data.get(calc.mainfile))
 
         # commit
         if has_calcs:
@@ -124,14 +124,14 @@ def add_upload(upload, meta_data: dict = {}) -> int:
     return result
 
 
-def add_calculation(upload, coe_upload, calc: RepoCalc, calc_meta_data: dict) -> None:
+def add_calculation(upload: 'Upload', calc: RepoCalc, calc_meta_data: dict) -> None:
     repo_db = infrastructure.repository_db
 
     # table based properties
     coe_calc = Calc(
         calc_id=calc_meta_data.get('_pid', None),
         checksum=calc_meta_data.get('_checksum', calc.calc_hash),
-        upload=coe_upload)
+        upload=upload)
     repo_db.add(coe_calc)
 
     program_version = calc.program_version  # TODO shorten version names
@@ -464,6 +464,10 @@ class User(Base):  # type: ignore
 
     def _generate_auth_token(self, expiration=600):
         assert False, 'Login functions are done by the NOMAD-coe repository GUI'
+
+    @staticmethod
+    def from_user_id(user_id) -> 'User':
+        return infrastructure.repository_db.query(User).get(user_id)
 
     def get_auth_token(self):
         repo_db = infrastructure.repository_db
