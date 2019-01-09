@@ -29,7 +29,7 @@ from nomad import utils
 from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile, RepositoryFile
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator
-from nomad.repo import RepoCalc
+from nomad.repo import RepoCalc, RepoUpload
 
 from tests.test_files import example_file, empty_file
 
@@ -135,7 +135,7 @@ def test_processing_doublets(uploaded_id, worker, test_user, with_error):
 
     upload = run_processing(uploaded_id, test_user)
     assert upload.status == 'SUCCESS'
-    assert RepoCalc.upload_exists(upload.upload_hash)  # pylint: disable=E1101
+    assert upload.to(RepoUpload).exists()
 
     upload = run_processing(uploaded_id, test_user)
     assert upload.status == 'FAILURE'

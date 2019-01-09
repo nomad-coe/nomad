@@ -33,7 +33,7 @@ from contextlib import contextmanager
 
 from nomad import utils, coe_repo, datamodel
 from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile, File
-from nomad.repo import RepoCalc
+from nomad.repo import RepoCalc, RepoUpload
 from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parsers, parser_dict
 from nomad.normalizing import normalizers
@@ -383,7 +383,7 @@ class Upload(Chord, datamodel.Upload):
             ArchiveFile.delete_archives(upload_hash=self.upload_hash)
 
             # delete repo entries
-            RepoCalc.delete_upload(upload_id=self.upload_id)
+            self.to(RepoUpload).delete()
 
             # delete calc processings
             Calc.objects(upload_id=self.upload_id).delete()
@@ -419,7 +419,7 @@ class Upload(Chord, datamodel.Upload):
             raise NotAllowedDuringProcessing()
 
         self.in_staging = False
-        RepoCalc.unstage(upload_id=self.upload_id)
+        self.to(RepoUpload).unstage()
         coe_repo.add_upload(self, meta_data)
         self.save()
 
@@ -465,7 +465,7 @@ class Upload(Chord, datamodel.Upload):
             return
 
         # check if the file was already uploaded and processed before
-        if RepoCalc.upload_exists(self.upload_hash):
+        if self.to(RepoUpload).exists():
             self.fail('The same file was already uploaded and processed.', level=logging.INFO)
             return
 

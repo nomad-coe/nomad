@@ -152,10 +152,11 @@ def mocksearch(monkeypatch):
         uploads_by_id.setdefault(calc.upload_id, []).append(calc)
         by_archive_id[calc.archive_id] = calc
 
-    def upload_exists(upload_hash):
-        return upload_hash in uploads_by_hash
+    def upload_exists(self):
+        return self.upload_hash in uploads_by_hash
 
-    def delete_upload(upload_id):
+    def upload_delete(self):
+        upload_id = self.upload_id
         if upload_id in uploads_by_id:
             for calc in uploads_by_id[upload_id]:
                 del(by_archive_id[calc.archive_id])
@@ -163,14 +164,15 @@ def mocksearch(monkeypatch):
             del(uploads_by_id[upload_id])
             del(uploads_by_hash[upload_hash])
 
-    def upload_calcs(upload_id):
-        return uploads_by_id.get(upload_id, [])
+    @property
+    def upload_calcs(self):
+        return uploads_by_id.get(self.upload_id, [])
 
     monkeypatch.setattr('nomad.repo.RepoCalc.persist', persist)
-    monkeypatch.setattr('nomad.repo.RepoCalc.upload_exists', upload_exists)
-    monkeypatch.setattr('nomad.repo.RepoCalc.delete_upload', delete_upload)
-    monkeypatch.setattr('nomad.repo.RepoCalc.upload_calcs', upload_calcs)
-    monkeypatch.setattr('nomad.repo.RepoCalc.unstage', lambda *args, **kwargs: None)
+    monkeypatch.setattr('nomad.repo.RepoUpload.exists', upload_exists)
+    monkeypatch.setattr('nomad.repo.RepoUpload.delete', upload_delete)
+    monkeypatch.setattr('nomad.repo.RepoUpload.calcs', upload_calcs)
+    monkeypatch.setattr('nomad.repo.RepoUpload.unstage', lambda *args, **kwargs: None)
 
     return by_archive_id
 

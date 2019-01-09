@@ -74,7 +74,7 @@ def assert_elastic_calc(calc: RepoCalc):
 
 def test_create_elastic_calc(example_elastic_calc: RepoCalc, no_warn):
     assert_elastic_calc(example_elastic_calc)
-    assert RepoCalc.upload_exists(example_elastic_calc.upload_hash)
+    assert example_elastic_calc.upload.exists()
 
     get_result: RepoCalc = RepoCalc.get(
         id='%s/%s' % (example_elastic_calc.upload_hash, example_elastic_calc.calc_hash))
@@ -121,6 +121,6 @@ def test_staging_elastic_calc(example_elastic_calc: RepoCalc, no_warn):
 
 
 def test_unstage_elastic_calc(example_elastic_calc: RepoCalc, no_warn):
-    RepoCalc.unstage(upload_id='test_upload_id', staging=False)
+    example_elastic_calc.upload.unstage(staging=False)
 
     assert not RepoCalc.get(id='test_upload_hash/test_calc_hash').staging

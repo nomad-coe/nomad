@@ -55,7 +55,29 @@ class RepoUpload(datamodel.Entity):
 
     @property
     def calcs(self):
-        return RepoCalc.upload_calcs(self.upload_id)
+        return Search(using=infrastructure.elastic_client, index=config.elastic.index_name) \
+            .query('match', upload_id=self.upload_id) \
+            .scan()
+
+    def delete(self):
+        """ Deletes all repo entries of the given upload. """
+        RepoCalc.search().query('match', upload_id=self.upload_id).delete()
+
+    def exists(self):
+        """ Returns true if there are already calcs from the given upload. """
+        # TODO this is deprecated and should be varyfied via repository files
+        search = Search(using=infrastructure.elastic_client, index=config.elastic.index_name) \
+            .query('match', upload_hash=self.upload_hash) \
+            .execute()
+
+        return len(search) > 0
+
+    def unstage(self, staging=False):
+        """ Update the staging property for all repo entries of the given upload. """
+        RepoCalc.update_by_query(self.upload_id, {
+            'inline': 'ctx._source.staging=%s' % ('true' if staging else 'false'),
+            'lang': 'painless'
+        })
 
 
 class RepoCalc(ElasticDocument, datamodel.Entity):
@@ -182,25 +204,6 @@ class RepoCalc(ElasticDocument, datamodel.Entity):
         except ConflictError:
             raise AlreadyExists('Calculation %s does already exist.' % (self.archive_id))
 
-    @staticmethod
-    def delete_upload(upload_id):
-        """ Deletes all repo entries of the given upload. """
-        RepoCalc.search().query('match', upload_id=upload_id).delete()
-
-    @classmethod
-    def unstage(cls, upload_id, staging=False):
-        """ Update the staging property for all repo entries of the given upload. """
-        cls.update_by_query(upload_id, {
-            'inline': 'ctx._source.staging=%s' % ('true' if staging else 'false'),
-            'lang': 'painless'
-        })
-
-    @classmethod
-    def update_upload(cls, upload_id, **kwargs):
-        """ Update all entries of given upload with keyword args. """
-        for calc in RepoCalc.search().query('match', upload_id=upload_id):
-            calc.update(**kwargs)
-
     @classmethod
     def update_by_query(cls, upload_id, script):
         """ Update all entries of a given upload via elastic script. """
@@ -221,23 +224,6 @@ class RepoCalc(ElasticDocument, datamodel.Entity):
     def es_search(body):
         """ Perform an elasticsearch and not elasticsearch_dsl search on the Calc index. """
         return infrastructure.elastic_client.search(index=config.elastic.index_name, body=body)
-
-    @staticmethod
-    def upload_exists(upload_hash):
-        """ Returns true if there are already calcs from the given upload. """
-        # TODO this is deprecated and should be varified via repository files
-        search = Search(using=infrastructure.elastic_client, index=config.elastic.index_name) \
-            .query('match', upload_hash=upload_hash) \
-            .execute()
-
-        return len(search) > 0
-
-    @staticmethod
-    def upload_calcs(upload_id):
-        """ Returns an iterable over all entries for the given upload_id. """
-        return Search(using=infrastructure.elastic_client, index=config.elastic.index_name) \
-            .query('match', upload_id=upload_id) \
-            .scan()
 
     @property
     def json_dict(self):
