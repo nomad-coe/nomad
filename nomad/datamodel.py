@@ -13,10 +13,11 @@
 # limitations under the License.
 
 """
-This module contains classes that allow to represent and manipulate the core
-nomad data entities on a high level of abstraction independent from their representation
-in the coe repository db, the elastic index, json-files, or archive data. It is not
-about representing every detail, but those parts that are directly involved in
+This module contains classes that allow to represent the core
+nomad data entities :class:`Upload` and :class:`Calc` on a high level of abstraction
+independent from their representation in the different modules :py:mod:`nomad.repo`,
+:py:mod:`nomad.processing`, :py:mod:`nomad.coe_repo`, :py:mod:`nomad.files`.
+It is not about representing every detail, but those parts that are directly involved in
 api, processing, migration, mirroring, or other 'infrastructure' operations.
 """
 
@@ -32,6 +33,10 @@ class Entity():
         raise NotImplementedError
 
     def to(self, entity_cls: Type[T]) -> T:
+        """
+        Either provides a type cast if it already has the right type, or adapt
+        the type using the :func:`create_from` of the target class :param:`entity_cls`.
+        """
         if (isinstance(self, entity_cls)):
             return cast(T, self)
         else:
@@ -40,6 +45,8 @@ class Entity():
 
 class Calc(Entity):
     """
+    A nomad calculation.
+
     Attributes:
         pid: The persistent id (pid) for the calculation
         mainfile: The mainfile path relative to upload root
@@ -65,6 +72,8 @@ class Calc(Entity):
 
 class Upload(Entity):
     """
+    A nomad upload.
+
     Attributes:
         upload_id(str): The unique random id that each upload has
         upload_hash(str): The hash/checksum that describes unique uploads
