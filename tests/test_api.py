@@ -222,9 +222,7 @@ class TestUploads:
         upload = self.assert_upload(rv.data)
         empty_upload = upload['calcs']['pagination']['total'] == 0
 
-        assert_coe_upload(
-            upload['upload_hash'], proc_infra['repository_db'],
-            empty=empty_upload, meta_data=meta_data)
+        assert_coe_upload(upload['upload_hash'], empty=empty_upload, meta_data=meta_data)
 
     def test_get_command(self, client, test_user_auth, no_warn):
         rv = client.get('/uploads/command', headers=test_user_auth)

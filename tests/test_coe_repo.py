@@ -13,11 +13,9 @@
 # limitations under the License.
 
 import pytest
-import json
 import datetime
 
-from nomad.coe_repo import User, Calc, CalcMetaData, StructRatio, Upload, add_upload, \
-    UserMetaData, Citation, MetaDataCitation, Shareship, CoAuthorship, Ownership
+from nomad.coe_repo import User, Calc, Upload, add_upload
 
 from tests.processing.test_data import processed_upload  # pylint: disable=unused-import
 from tests.processing.test_data import uploaded_id  # pylint: disable=unused-import
@@ -41,97 +39,36 @@ def test_password_authorize(test_user):
     assert_user(user, test_user)
 
 
-def assert_coe_upload(upload_hash, repository_db, empty=False, meta_data={}):
-    coe_uploads = repository_db.query(Upload).filter_by(upload_name=upload_hash)
+def assert_coe_upload(upload_hash, empty=False, meta_data={}):
+    coe_upload = Upload.from_upload_hash(upload_hash)
+
     if empty:
-        assert coe_uploads.count() == 0
+        assert coe_upload is None
     else:
-        assert coe_uploads.count() == 1
-        coe_upload = coe_uploads.first()
-        coe_upload_id = coe_upload.upload_id
-        one_calc_exist = False
-        for calc in repository_db.query(Calc).filter_by(origin_id=coe_upload_id):
-            one_calc_exist = True
-            assert calc.origin_id == coe_upload_id
-            assert_coe_calc(calc, repository_db, meta_data=meta_data)
+        assert len(coe_upload.calcs) > 0
+        for calc in coe_upload.calcs:
+            assert_coe_calc(calc, meta_data=meta_data)
 
         if '_upload_time' in meta_data:
             assert coe_upload.created.isoformat()[:26] == meta_data['_upload_time']
 
-        assert one_calc_exist
 
+def assert_coe_calc(calc: Calc, meta_data={}):
+    assert int(calc.pid) == int(meta_data.get('_pid', calc.pid))
+    assert calc.calc_hash == meta_data.get('_checksum', calc.calc_hash)
 
-def assert_coe_calc(calc, repository_db, meta_data={}):
-    calc_id = calc.calc_id
-    calc_meta_data = repository_db.query(CalcMetaData).filter_by(calc_id=calc_id).first()
+    # calc data
+    assert len(calc.filenames) == 5
+    assert calc.chemical_formula is not None
 
-    assert calc_meta_data is not None
-    assert calc_meta_data.calc is not None
-    assert calc_meta_data.chemical_formula is not None
-    filenames = calc_meta_data.filenames.decode('utf-8')
-    assert len(json.loads(filenames)) == 5
-
-    # struct ratio
-    struct_ratio = repository_db.query(StructRatio).filter_by(calc_id=calc_id).first()
-    assert struct_ratio is not None
-    assert struct_ratio.chemical_formula == calc_meta_data.chemical_formula
-    assert struct_ratio.formula_units == 1
-
-    # pid
-    if '_pid' in meta_data:
-        assert calc_id == int(meta_data['_pid'])
-
-    # checksum
-    if '_checksum' in meta_data:
-        calc.checksum == meta_data['_checksum']
-
-    # comments
-    comment = repository_db.query(UserMetaData).filter_by(
-        label=meta_data.get('comment', 'not existing comment'),
-        calc_id=calc_id).first()
-    if 'comment' in meta_data:
-        assert comment is not None
-    else:
-        assert comment is None
-
-    # references
-    if 'references' in meta_data:
-        for reference in meta_data['references']:
-            citation = repository_db.query(Citation).filter_by(
-                value=reference, kind='EXTERNAL').first()
-            assert citation is not None
-            assert repository_db.query(MetaDataCitation).filter_by(
-                citation_id=citation.citation_id, calc_id=calc_id).first() is not None
-    else:
-        repository_db.query(MetaDataCitation).filter_by(calc_id=calc_id).first() is None
-
-    # coauthors
-    if 'coauthors' in meta_data:
-        for coauthor in meta_data['coauthors']:
-            assert repository_db.query(CoAuthorship).filter_by(
-                user_id=coauthor, calc_id=calc_id).first() is not None
-    else:
-        assert repository_db.query(CoAuthorship).filter_by(calc_id=calc_id).first() is None
-
-    # coauthors
-    if 'shared_with' in meta_data:
-        for coauthor in meta_data['shared_with']:
-            assert repository_db.query(Shareship).filter_by(
-                user_id=coauthor, calc_id=calc_id).first() is not None
-    else:
-        assert repository_db.query(Shareship).filter_by(calc_id=calc_id).first() is None
-
-    # ownership
-    owners = repository_db.query(Ownership).filter_by(calc_id=calc_id)
-    assert owners.count() == 1
-    if '_uploader' in meta_data:
-        assert owners.first().user_id == meta_data['_uploader']
-
-    # embargo/restriction/permission
-    user_meta_data = repository_db.query(UserMetaData).filter_by(
-        calc_id=calc_meta_data.calc_id).first()
-    assert user_meta_data is not None
-    assert user_meta_data.permission == (1 if meta_data.get('with_embargo', False) else 0)
+    # user meta data
+    assert calc.comment == meta_data.get('comment', None)
+    assert sorted(calc.references) == sorted(meta_data.get('references', []))
+    assert calc.uploader is not None
+    assert calc.uploader.user_id == meta_data.get('_uploader', calc.uploader.user_id)
+    assert sorted(user.user_id for user in calc.coauthors) == sorted(meta_data.get('coauthors', []))
+    assert sorted(user.user_id for user in calc.shared_with) == sorted(meta_data.get('shared_with', []))
+    assert calc.with_embargo == meta_data.get('with_embargo', False)
 
 
 @pytest.mark.timeout(10)
@@ -140,11 +77,11 @@ def test_add_upload(clean_repository_db, processed_upload):
 
     processed_upload.upload_hash = str(1)
     add_upload(processed_upload)
-    assert_coe_upload(processed_upload.upload_hash, clean_repository_db, empty=empty)
+    assert_coe_upload(processed_upload.upload_hash, empty=empty)
 
     processed_upload.upload_hash = str(2)
     add_upload(processed_upload)
-    assert_coe_upload(processed_upload.upload_hash, clean_repository_db, empty=empty)
+    assert_coe_upload(processed_upload.upload_hash, empty=empty)
 
 
 @pytest.mark.timeout(10)
@@ -157,10 +94,10 @@ def test_add_upload_metadata(clean_repository_db, processed_upload, other_test_u
         'references': ['http://external.ref/one', 'http://external.ref/two'],
         '_uploader': other_test_user.user_id,
         'coauthors': [test_user.user_id],
-        '_checksum': 1,
+        '_checksum': '1',
         '_upload_time': datetime.datetime.now().isoformat(),
         '_pid': 256
     }
 
     add_upload(processed_upload, meta_data=meta_data)
-    assert_coe_upload(processed_upload.upload_hash, clean_repository_db, empty=empty, meta_data=meta_data)
+    assert_coe_upload(processed_upload.upload_hash, empty=empty, meta_data=meta_data)

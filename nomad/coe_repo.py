@@ -35,14 +35,17 @@ This module also provides functionality to add parsed calculation data to the db
 .. autofunction:: add_upload
 """
 
+from typing import List, Type
 import itertools
+import json
+import datetime
 from passlib.hash import bcrypt
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum, Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import BYTEA
 
-from nomad import utils, infrastructure
+from nomad import utils, infrastructure, datamodel
 from nomad.repo import RepoCalc
 
 
@@ -177,16 +180,13 @@ def add_calculation(upload, coe_upload, calc: RepoCalc, calc_meta_data: dict) ->
 
     # user relations
     owner_user_id = calc_meta_data.get('_uploader', int(upload.user_id))
-    ownership = Ownership(calc_id=coe_calc.calc_id, user_id=owner_user_id)
-    repo_db.add(ownership)
+    coe_calc.owners.append(repo_db.query(User).get(owner_user_id))
 
     for coauthor_id in calc_meta_data.get('coauthors', []):
-        coauthorship = CoAuthorship(calc_id=coe_calc.calc_id, user_id=int(coauthor_id))
-        repo_db.add(coauthorship)
+        coe_calc.coauthors.append(repo_db.query(User).get(coauthor_id))
 
     for shared_with_id in calc_meta_data.get('shared_with', []):
-        shareship = Shareship(calc_id=coe_calc.calc_id, user_id=int(shared_with_id))
-        repo_db.add(shareship)
+        coe_calc.shared_with.append(repo_db.query(User).get(shared_with_id))
 
     # datasets
     for dataset_id in calc_meta_data.get('datasets', []):
@@ -203,19 +203,88 @@ def add_calculation(upload, coe_upload, calc: RepoCalc, calc_meta_data: dict) ->
             citation = Citation(value=reference, kind='EXTERNAL')
             repo_db.add(citation)
 
-        metadata_citation = MetaDataCitation(
-            calc_id=coe_calc.calc_id,
-            citation=citation)
-        repo_db.add(metadata_citation)
+        coe_calc.citations.append(citation)
 
 
-class Calc(Base):  # type: ignore
+calc_citation_association = Table(
+    'metadata_citations', Base.metadata,
+    Column('calc_id', Integer, ForeignKey('calculations.calc_id')),
+    Column('citation_id', Integer, ForeignKey('citations.citation_id')))
+
+
+ownership = Table(
+    'ownerships', Base.metadata,
+    Column('calc_id', Integer, ForeignKey('calculations.calc_id')),
+    Column('user_id', Integer, ForeignKey('users.user_id')))
+
+co_authorship = Table(
+    'coauthorships', Base.metadata,
+    Column('calc_id', Integer, ForeignKey('calculations.calc_id')),
+    Column('user_id', Integer, ForeignKey('users.user_id')))
+
+shareship = Table(
+    'shareships', Base.metadata,
+    Column('calc_id', Integer, ForeignKey('calculations.calc_id')),
+    Column('user_id', Integer, ForeignKey('users.user_id')))
+
+
+class Calc(Base, datamodel.Calc):  # type: ignore
     __tablename__ = 'calculations'
 
     calc_id = Column(Integer, primary_key=True, autoincrement=True)
     origin_id = Column(Integer, ForeignKey('uploads.upload_id'))
     upload = relationship('Upload')
     checksum = Column(String)
+
+    calc_meta_data = relationship('CalcMetaData', uselist=False)
+    user_meta_data = relationship('UserMetaData', uselist=False)
+    citations = relationship('Citation', secondary=calc_citation_association)
+    owners = relationship('User', secondary=ownership)
+    coauthors = relationship('User', secondary=co_authorship)
+    shared_with = relationship('User', secondary=shareship)
+
+    @classmethod
+    def create_from(cls, obj):
+        repo_db = infrastructure.repository_db
+        return repo_db.query(Calc).filter_by(calc_id=int(obj.pid)).first()
+
+    @property
+    def mainfile(self) -> str:
+        return self.calc_meta_data.location
+
+    @property
+    def pid(self):
+        return self.calc_id
+
+    @property
+    def comment(self) -> str:
+        return self.user_meta_data.label
+
+    @property
+    def calc_hash(self) -> str:
+        return self.checksum
+
+    @property
+    def references(self) -> List[str]:
+        return list(citation.value for citation in self.citations if citation.kind == 'EXTERNAL')
+
+    @property
+    def uploader(self) -> 'User':
+        assert len(self.owners) == 1, 'A calculation can only have one owner.'
+        return self.owners[0]
+
+    @property
+    def with_embargo(self) -> bool:
+        return self.user_meta_data.permission == 1
+
+    @property
+    def chemical_formula(self) -> str:
+        return self.calc_meta_data.chemical_formula
+
+    @property
+    def filenames(self) -> List[str]:
+        filenames = self.calc_meta_data.filenames.decode('utf-8')
+        return json.loads(filenames)
 
     def set_value(self, topic_cid: int, value: str) -> None:
         if value is None:
@@ -304,15 +373,40 @@ class Topics(Base):  # type: ignore
     topic = Column(String)
 
 
-class Upload(Base):  # type: ignore
+class Upload(Base, datamodel.Upload):  # type: ignore
     __tablename__ = 'uploads'
 
     upload_id = Column(Integer, primary_key=True, autoincrement=True)
     upload_name = Column(String)
     user_id = Column(Integer, ForeignKey('users.user_id'))
-    user = relationship('User')
     is_processed = Column(Boolean)
     created = Column(DateTime)
+
+    user = relationship('User')
+    calcs = relationship('Calc')
+
+    @classmethod
+    def create_from(cls, obj):
+        return Upload.from_upload_hash(obj.upload_hash)
+
+    @staticmethod
+    def from_upload_hash(upload_hash) -> 'Upload':
+        repo_db = infrastructure.repository_db
+        uploads = repo_db.query(Upload).filter_by(upload_name=upload_hash)
+        assert uploads.count() <= 1, 'Upload hash/name must be unique'
+        return uploads.first()
+
+    @property
+    def upload_hash(self):
+        return self.upload_name
+
+    @property
+    def uploader(self) -> 'User':
+        return self.user
+
+    @property
+    def upload_time(self) -> Type[datetime.datetime]:
+        return self.created
 
 
 class Session(Base):  # type: ignore
@@ -320,27 +414,6 @@ class Session(Base):  # type: ignore
 
     token = Column(String, primary_key=True)
     user_id = Column(String)
-
-
-class Ownership(Base):  # type: ignore
-    __tablename__ = 'ownerships'
-
-    calc_id = Column(Integer, ForeignKey('calculations.calc_id'), primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.user_id'), primary_key=True)
-
-
-class CoAuthorship(Base):  # type: ignore
-    __tablename__ = 'coauthorships'
-
-    calc_id = Column(Integer, ForeignKey('calculations.calc_id'), primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.user_id'), primary_key=True)
-
-
-class Shareship(Base):  # type: ignore
-    __tablename__ = 'shareships'
-
-    calc_id = Column(Integer, ForeignKey('calculations.calc_id'), primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.user_id'), primary_key=True)
 
 
 class CalcSet(Base):  # type: ignore
@@ -356,14 +429,6 @@ class Citation(Base):  # type: ignore
     citation_id = Column(Integer, primary_key=True)
     value = Column(String)
     kind = Column(Enum('INTERNAL', 'EXTERNAL', name='citation_kind_enum'))
-
-
-class MetaDataCitation(Base):  # type: ignore
-    __tablename__ = 'metadata_citations'
-
-    calc_id = Column(Integer, ForeignKey('calculations.calc_id'), primary_key=True)
-    citation_id = Column(Integer, ForeignKey('citations.citation_id'), primary_key=True)
-    citation = relationship('Citation')
 
 
 class LoginException(Exception):
