@@ -45,17 +45,17 @@ class AlreadyExists(Exception): pass
 
 
 class RepoUpload(datamodel.Entity):
-    def __init__(self, upload_uuid, upload_hash):
-        self.upload_uuid = upload_uuid
+    def __init__(self, upload_id, upload_hash):
+        self.upload_id = upload_id
         self.upload_hash = upload_hash
 
     @classmethod
     def create_from(cls, obj):
-        return RepoUpload(obj.upload_uuid, obj.upload_hash)
+        return RepoUpload(obj.upload_id, obj.upload_hash)
 
     @property
     def calcs(self):
-        return RepoCalc.upload_calcs(self.upload_uuid)
+        return RepoCalc.upload_calcs(self.upload_id)
 
 
 class RepoCalc(ElasticDocument, datamodel.Entity):

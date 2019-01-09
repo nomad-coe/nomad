@@ -85,7 +85,7 @@ def add_upload(upload: datamodel.Upload, meta_data: dict = {}) -> int:
 
     logger = utils.get_logger(
         __name__,
-        upload_id=upload.upload_uuid,
+        upload_id=upload.upload_id,
         upload_hash=upload.upload_hash)
 
     result = None

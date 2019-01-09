@@ -353,10 +353,6 @@ class Upload(Chord, datamodel.Upload):
         return cls.objects(user_id=str(user.user_id), in_staging=True)
 
     @property
-    def upload_uuid(self):
-        return self.upload_id
-
-    @property
     def uploader(self):
         return coe_repo.User.from_user_id(self.user_id)
 
