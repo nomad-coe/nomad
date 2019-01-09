@@ -220,7 +220,7 @@ dependencies = [
     PythonGit(
         name='parsers/bigdft',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-big-dft',
-        git_branch='nomad-fair'),
+        git_branch='nomad-fair')
 ]
 
 
