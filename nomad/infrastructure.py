@@ -166,27 +166,27 @@ def reset():
     This function just attempts to remove everything, there is no exception handling
     or any warranty it will succeed.
     """
-    logger.info('reset mongodb')
     try:
         if not mongo_client:
             setup_mongo()
         mongo_client.drop_database(config.mongo.db_name)
+        logger.info('mongodb resetted')
     except Exception as e:
         logger.error('exception reset mongodb', exc_info=e)
 
-    logger.info('reset elastic search')
     try:
         if not elastic_client:
             setup_elastic()
         elastic_client.indices.delete(index=config.elastic.index_name)
         from nomad.repo import RepoCalc
         RepoCalc.init()
+        logger.info('elastic index resetted')
     except Exception as e:
         logger.error('exception resetting elastic', exc_info=e)
 
-    logger.info('reset repository db')
     try:
         reset_repository_db()
+        logger.info('repository db resetted')
     except Exception as e:
         logger.error('exception resetting repository db', exc_info=e)
 
@@ -204,23 +204,22 @@ def remove():
     This function just attempts to remove everything, there is no exception handling
     or any warranty it will succeed.
     """
-    logger.info('delete mongodb')
     try:
         if not mongo_client:
             setup_mongo()
         mongo_client.drop_database(config.mongo.db_name)
+        logger.info('mongodb deleted')
     except Exception as e:
         logger.error('exception deleting mongodb', exc_info=e)
 
-    logger.info('delete elastic search')
     try:
         if not elastic_client:
             setup_elastic()
         elastic_client.indices.delete(index=config.elastic.index_name)
+        logger.info('elastic index')
     except Exception as e:
         logger.error('exception deleting elastic', exc_info=e)
 
-    logger.info('delete repository db')
     try:
         if repository_db is not None:
             repository_db.expunge_all()
@@ -230,6 +229,7 @@ def remove():
         with repository_db_connection(dbname='postgres', with_trans=False) as con:
             with con.cursor() as cur:
                 cur.execute('DROP DATABASE IF EXISTS %s' % config.repository_db.dbname)
+        logger.info('repository db deleted')
     except Exception as e:
         logger.error('exception deleting repository db', exc_info=e)
 
@@ -272,17 +272,20 @@ def repository_db_connection(dbname=None, with_trans=True):
 def reset_repository_db():
     """ Drops the existing NOMAD-coe repository postgres schema and creates a new minimal one. """
     old_repository_db = repository_db
+
+    # invalidate and close all connections and sessions
     if repository_db is not None:
         repository_db.expunge_all()
         repository_db.invalidate()
-
     if repository_db_conn is not None:
         repository_db_conn.close()
 
+    # perform the reset
     with repository_db_connection(with_trans=False) as conn:
         with conn.cursor() as cur:
+            cur.execute("DROP SCHEMA IF EXISTS public CASCADE;")
+
             cur.execute(
-                "DROP SCHEMA IF EXISTS public CASCADE;"
                 "CREATE SCHEMA public;"
                 "GRANT ALL ON SCHEMA public TO postgres;"
                 "GRANT ALL ON SCHEMA public TO public;")

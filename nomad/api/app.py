@@ -20,6 +20,7 @@ from flask import Flask, jsonify
 from flask_restplus import Api
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
+from werkzeug.wsgi import DispatcherMiddleware
 import os.path
 
 from nomad import config
@@ -36,6 +37,17 @@ app = Flask(
 app.config.setdefault('APPLICATION_ROOT', base_path)
 app.config.setdefault('RESTPLUS_MASK_HEADER', False)
 app.config.setdefault('RESTPLUS_MASK_SWAGGER', False)
+
+
+def api_base_path_response(env, resp):
+    resp(b'200 OK', [(b'Content-Type', b'text/plain')])
+    return [
+        ('Development nomad api server. Api is served under %s/.' %
+            config.services.api_base_path).encode('utf-8')]
+
+
+app.wsgi_app = DispatcherMiddleware(
+    api_base_path_response, {config.services.api_base_path: app.wsgi_app})
 
 
 CORS(app)
