@@ -15,7 +15,7 @@
 import pytest
 import datetime
 
-from nomad.coe_repo import User, Calc, Upload, add_upload
+from nomad.coe_repo import User, Calc, Upload
 
 from tests.processing.test_data import processed_upload  # pylint: disable=unused-import
 from tests.processing.test_data import uploaded_id  # pylint: disable=unused-import
@@ -77,11 +77,11 @@ def test_add_upload(clean_repository_db, processed_upload):
     empty = processed_upload.total_calcs == 0
 
     processed_upload.upload_hash = str(1)
-    add_upload(processed_upload)
+    Upload.add(processed_upload)
     assert_coe_upload(processed_upload.upload_hash, empty=empty)
 
     processed_upload.upload_hash = str(2)
-    add_upload(processed_upload)
+    Upload.add(processed_upload)
     assert_coe_upload(processed_upload.upload_hash, empty=empty)
 
 
@@ -100,5 +100,5 @@ def test_add_upload_metadata(clean_repository_db, processed_upload, other_test_u
         '_pid': 256
     }
 
-    add_upload(processed_upload, meta_data=meta_data)
+    Upload.add(processed_upload, meta_data=meta_data)
     assert_coe_upload(processed_upload.upload_hash, empty=empty, meta_data=meta_data)

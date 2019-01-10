@@ -420,7 +420,7 @@ class Upload(Chord, datamodel.Upload):
 
         self.in_staging = False
         self.to(RepoUpload).unstage()
-        coe_repo.add_upload(self, meta_data)
+        coe_repo.Upload.add(self, meta_data)
         self.save()
 
     @process
