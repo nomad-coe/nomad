@@ -119,6 +119,7 @@ def repository_db(monkeysession):
 
 @pytest.fixture(scope='function')
 def clean_repository_db(repository_db):
+    # do not wonder, this will not setback the id counters
     repository_db.execute('TRUNCATE uploads CASCADE;')
     yield repository_db
 

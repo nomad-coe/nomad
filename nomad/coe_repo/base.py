@@ -121,6 +121,10 @@ class CalcSet(Base):  # type: ignore
     children_calc_id = Column(Integer, ForeignKey('calculations.calc_id'), primary_key=True)
 
 
+calc_dataset_containment = Table(
+    'calcsets', Base.metadata, extend_existing=True)
+
+
 class Citation(Base):  # type: ignore
     __tablename__ = 'citations'
 

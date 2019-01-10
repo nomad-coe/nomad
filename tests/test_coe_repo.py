@@ -102,3 +102,29 @@ def test_add_upload_metadata(clean_repository_db, processed_upload, other_test_u
 
     Upload.add(processed_upload, meta_data=meta_data)
     assert_coe_upload(processed_upload.upload_hash, empty=empty, meta_data=meta_data)
+
+
+@pytest.fixture(scope='function')
+def datasets(clean_repository_db):
+    clean_repository_db.begin()
+    one = Calc()
+    two = Calc()
+    three = Calc()
+    clean_repository_db.add(one)
+    clean_repository_db.add(two)
+    clean_repository_db.add(three)
+    one.children.append(two)
+    two.children.append(three)
+    clean_repository_db.commit()
+
+    return one, two, three
+
+
+def test_dataset(datasets):
+    def ids(id_list):
+        return [item.id for item in id_list]
+
+    one, two, three = datasets
+    assert len(one.datasets) == 0
+    assert ids(two.datasets) == [one.calc_id]
+    assert sorted(ids(three.datasets)) == sorted([one.calc_id, two.calc_id])

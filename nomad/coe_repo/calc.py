@@ -15,13 +15,14 @@
 from typing import List
 import json
 from sqlalchemy import Column, Integer, String, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, aliased
+from sqlalchemy.sql.expression import literal
 
 from nomad import infrastructure, datamodel
 
 from .user import User
 from .base import Base, calc_citation_association, ownership, co_authorship, shareship, \
-    Tag, Topics
+    Tag, Topics, CalcSet, calc_dataset_containment, Citation
 
 
 class Calc(Base, datamodel.Calc):  # type: ignore
@@ -32,12 +33,19 @@ class Calc(Base, datamodel.Calc):  # type: ignore
     upload = relationship('Upload')
     checksum = Column(String)
 
-    calc_meta_data = relationship('CalcMetaData', uselist=False)
-    user_meta_data = relationship('UserMetaData', uselist=False)
-    citations = relationship('Citation', secondary=calc_citation_association)
-    owners = relationship('User', secondary=ownership)
-    coauthors = relationship('User', secondary=co_authorship)
-    shared_with = relationship('User', secondary=shareship)
+    calc_meta_data = relationship('CalcMetaData', uselist=False, lazy='joined')
+    user_meta_data = relationship('UserMetaData', uselist=False, lazy='joined')
+    citations = relationship('Citation', secondary=calc_citation_association, lazy='joined')
+    owners = relationship('User', secondary=ownership, lazy='joined')
+    coauthors = relationship('User', secondary=co_authorship, lazy='joined')
+    shared_with = relationship('User', secondary=shareship, lazy='joined')
+
+    parents = relationship(
+        'Calc',
+        secondary=calc_dataset_containment,
+        primaryjoin=calc_dataset_containment.c.children_calc_id == calc_id,
+        secondaryjoin=calc_dataset_containment.c.parent_calc_id == calc_id,
+        backref='children')
 
     @classmethod
     def create_from(cls, obj):
@@ -82,6 +90,24 @@ class Calc(Base, datamodel.Calc):  # type: ignore
         filenames = self.calc_meta_data.filenames.decode('utf-8')
         return json.loads(filenames)
 
+    @property
+    def datasets(self) -> List['DataSet']:
+        assert self.calc_id is not None
+        repo_db = infrastructure.repository_db
+        query = repo_db.query(literal(self.calc_id).label('calc_id')).cte(recursive=True)
+        right = aliased(query)
+        left = aliased(CalcSet)
+        query = query.union_all(repo_db.query(left.parent_calc_id).join(
+            right, right.c.calc_id == left.children_calc_id))
+        query = repo_db.query(query)
+        dataset_calc_ids = list(r[0] for r in query if not r[0] == self.calc_id)
+        if len(dataset_calc_ids) > 0:
+            return list(
+                DataSet(dataset_calc)
+                for dataset_calc in repo_db.query(Calc).filter(Calc.calc_id.in_(dataset_calc_ids)))
+        else:
+            return []
+
     def set_value(self, topic_cid: int, value: str) -> None:
         if value is None:
             return
@@ -94,3 +120,20 @@ class Calc(Base, datamodel.Calc):  # type: ignore
 
         tag = Tag(calc=self, topic=topic)
         repo_db.add(tag)
+
+
+class DataSet:
+    def __init__(self, dataset_calc: Calc) -> None:
+        self._dataset_calc = dataset_calc
+
+    @property
+    def id(self):
+        return self._dataset_calc.calc_id
+
+    @property
+    def dois(self) -> List[Citation]:
+        return list(citation for citation in self._dataset_calc.citations if citation.kind == 'INTERNAL')
+
+    @property
+    def name(self):
+        return self._dataset_calc.calc_meta_data.chemical_formula
