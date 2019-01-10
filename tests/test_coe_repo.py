@@ -104,27 +104,34 @@ def test_add_upload_metadata(clean_repository_db, processed_upload, other_test_u
     assert_coe_upload(processed_upload.upload_hash, empty=empty, meta_data=meta_data)
 
 
-@pytest.fixture(scope='function')
-def datasets(clean_repository_db):
-    clean_repository_db.begin()
-    one = Calc()
-    two = Calc()
-    three = Calc()
-    clean_repository_db.add(one)
-    clean_repository_db.add(two)
-    clean_repository_db.add(three)
-    one.children.append(two)
-    two.children.append(three)
-    clean_repository_db.commit()
+class TestDataSets:
 
-    return one, two, three
+    @pytest.fixture(scope='function')
+    def datasets(self, clean_repository_db):
+        clean_repository_db.begin()
+        one = Calc()
+        two = Calc()
+        three = Calc()
+        clean_repository_db.add(one)
+        clean_repository_db.add(two)
+        clean_repository_db.add(three)
+        one.children.append(two)
+        two.children.append(three)
+        clean_repository_db.commit()
 
+        return one, two, three
 
-def test_dataset(datasets):
-    def ids(id_list):
-        return [item.id for item in id_list]
+    def assert_datasets(self, datasets, id_list):
+        assert sorted([ds.id for ds in datasets]) == sorted(id_list)
 
-    one, two, three = datasets
-    assert len(one.datasets) == 0
-    assert ids(two.datasets) == [one.calc_id]
-    assert sorted(ids(three.datasets)) == sorted([one.calc_id, two.calc_id])
+    def test_all(self, datasets):
+        one, two, three = datasets
+        self.assert_datasets(one.all_datasets, [])
+        self.assert_datasets(two.all_datasets, [one.calc_id])
+        self.assert_datasets(three.all_datasets, [one.calc_id, two.calc_id])
+
+    def test_direct(self, datasets):
+        one, two, three = datasets
+        self.assert_datasets(one.direct_datasets, [])
+        self.assert_datasets(two.direct_datasets, [one.calc_id])
+        self.assert_datasets(three.direct_datasets, [two.calc_id])

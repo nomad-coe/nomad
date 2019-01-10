@@ -91,7 +91,7 @@ class Calc(Base, datamodel.Calc):  # type: ignore
         return json.loads(filenames)
 
     @property
-    def datasets(self) -> List['DataSet']:
+    def all_datasets(self) -> List['DataSet']:
         assert self.calc_id is not None
         repo_db = infrastructure.repository_db
         query = repo_db.query(literal(self.calc_id).label('calc_id')).cte(recursive=True)
@@ -102,11 +102,15 @@ class Calc(Base, datamodel.Calc):  # type: ignore
         query = repo_db.query(query)
         dataset_calc_ids = list(r[0] for r in query if not r[0] == self.calc_id)
         if len(dataset_calc_ids) > 0:
-            return list(
+            return [
                 DataSet(dataset_calc)
-                for dataset_calc in repo_db.query(Calc).filter(Calc.calc_id.in_(dataset_calc_ids)))
+                for dataset_calc in repo_db.query(Calc).filter(Calc.calc_id.in_(dataset_calc_ids))]
         else:
             return []
+
+    @property
+    def direct_datasets(self) -> List['DataSet']:
+        return [DataSet(dataset_calc) for dataset_calc in self.parents]
 
     def set_value(self, topic_cid: int, value: str) -> None:
         if value is None:
