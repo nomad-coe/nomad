@@ -48,7 +48,7 @@ class Calc(Base, datamodel.Calc):  # type: ignore
         backref='children')
 
     @classmethod
-    def create_from(cls, obj):
+    def load_from(cls, obj):
         repo_db = infrastructure.repository_db
         return repo_db.query(Calc).filter_by(calc_id=int(obj.pid)).first()
 

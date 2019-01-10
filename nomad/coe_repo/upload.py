@@ -99,7 +99,7 @@ class Upload(Base, datamodel.Upload):  # type: ignore
     calcs = relationship('Calc')
 
     @classmethod
-    def create_from(cls, obj):
+    def load_from(cls, obj):
         return Upload.from_upload_hash(obj.upload_hash)
 
     @staticmethod

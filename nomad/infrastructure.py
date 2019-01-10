@@ -86,6 +86,8 @@ def setup_elastic():
     try:
         from nomad.repo import RepoCalc
         RepoCalc.init()
+        from nomad.search import Entry
+        Entry.init()
     except RequestError as e:
         if e.status_code == 400 and 'resource_already_exists_exception' in e.error:
             pass  # happens if two services try this at the same time

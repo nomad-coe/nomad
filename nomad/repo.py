@@ -50,7 +50,7 @@ class RepoUpload(datamodel.Entity):
         self.upload_hash = upload_hash
 
     @classmethod
-    def create_from(cls, obj):
+    def load_from(cls, obj):
         return RepoUpload(obj.upload_id, obj.upload_hash)
 
     @property

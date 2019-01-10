@@ -29,18 +29,18 @@ T = TypeVar('T')
 
 class Entity():
     @classmethod
-    def create_from(cls: Type[T], obj) -> T:
+    def load_from(cls: Type[T], obj) -> T:
         raise NotImplementedError
 
     def to(self, entity_cls: Type[T]) -> T:
         """
         Either provides a type cast if it already has the right type, or adapt
-        the type using the :func:`create_from` of the target class :param:`entity_cls`.
+        the type using the :func:`load_from` of the target class :param:`entity_cls`.
         """
         if (isinstance(self, entity_cls)):
             return cast(T, self)
         else:
-            return cast(T, cast(Type[Entity], entity_cls).create_from(self))
+            return cast(T, cast(Type[Entity], entity_cls).load_from(self))
 
 
 class Calc(Entity):
