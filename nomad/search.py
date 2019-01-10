@@ -59,6 +59,9 @@ class UserData(InnerDoc):
             dataset_doi_id=Long()))
     ))
 
+    def fill_from_coe_repo(self, calc: coe_repo.Calc):
+        pass
+
 
 class CalcData(InnerDoc):
     repository_checksum = Keyword()

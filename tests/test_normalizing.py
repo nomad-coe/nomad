@@ -50,13 +50,12 @@ def normalized_template_example(parsed_template_example) -> LocalBackend:
 
 
 def assert_normalized(backend):
-    assert backend.get_value('atom_species', 0) is not None
-    assert backend.get_value('system_type', 0) is not None
-    assert backend.get_value('crystal_system', 0) is not None
-    assert backend.get_value('space_group_number', 0) is not None
-    assert backend.get_value('XC_functional_name', 0) is not None
-    assert backend.get_value('chemical_composition', 0) is not None
-    assert backend.get_value('chemical_composition_bulk_reduced', 0) is not None
+    count = 0
+    for metainfo in backend.metaInfoEnv().infoKindEls():
+        if 'section_repository_parserdata' in metainfo.superNames:
+            count += 1
+            assert backend.get_value(metainfo.name, 0) is not None
+    assert count > 0
 
 
 def test_normalizer(normalized_example: LocalBackend, no_warn):

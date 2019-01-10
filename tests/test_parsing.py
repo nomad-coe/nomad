@@ -217,7 +217,8 @@ def assert_parser_result(backend):
 
 def run_parser(parser_name, mainfile):
     parser = parser_dict[parser_name]
-    return parser.run(mainfile, logger=utils.get_logger(__name__))
+    result = parser.run(mainfile, logger=utils.get_logger(__name__))
+    return add_calculation_info(result)
 
 
 @pytest.fixture
@@ -235,8 +236,17 @@ def parsed_template_example() -> LocalBackend:
 @pytest.fixture(params=parser_examples, ids=lambda spec: '%s-%s' % spec)
 def parsed_example(request) -> LocalBackend:
     parser_name, mainfile = request.param
-    run_parser(parser_name, mainfile)
     return run_parser(parser_name, mainfile)
+
+
+def add_calculation_info(backend: LocalBackend) -> LocalBackend:
+    backend.openNonOverlappingSection('section_calculation_info')
+    backend.addValue('upload_id', 'test_upload_id')
+    backend.addValue('archive_id', 'test_upload_hash/test_calc_hash')
+    backend.addValue('main_file', 'test/mainfile.txt')
+    backend.addValue('parser_name', 'testParser')
+    backend.closeNonOverlappingSection('section_calculation_info')
+    return backend
 
 
 def test_parser(parsed_example, no_warn):
