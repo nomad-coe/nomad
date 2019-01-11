@@ -25,7 +25,7 @@ from flask_restplus import abort, Resource
 import nomad_meta_info
 
 from nomad import config
-from nomad.files import ArchiveFile, ArchiveLogFile
+from nomad.uploads import UploadFiles
 from nomad.utils import get_logger
 
 from .app import api
@@ -52,17 +52,13 @@ class ArchiveCalcLogResource(Resource):
         archive_id = '%s/%s' % (upload_hash, calc_hash)
 
         try:
-            archive = ArchiveLogFile(archive_id)
-            if not archive.exists():
-                raise FileNotFoundError()
-
-            archive_path = archive.os_path
-
-            rv = send_file(
-                archive_path,
-                mimetype='text/plain',
-                as_attachment=True,
-                attachment_filename=os.path.basename(archive_path))
+            upload_files = UploadFiles.get(upload_hash)
+            with upload_files.archive_log_file(calc_hash, 'rt') as f:
+                rv = send_file(
+                    f,
+                    mimetype='text/plain',
+                    as_attachment=True,
+                    attachment_filename='%s.log' % archive_id)
 
             return rv
         except FileNotFoundError:
@@ -90,23 +86,20 @@ class ArchiveCalcResource(Resource):
         archive_id = '%s/%s' % (upload_hash, calc_hash)
 
         try:
-            archive = ArchiveFile(archive_id)
-            if not archive.exists():
-                raise FileNotFoundError()
-
-            archive_path = archive.os_path
-
-            rv = send_file(
-                archive_path,
-                mimetype='application/json',
-                as_attachment=True,
-                attachment_filename=os.path.basename(archive_path))
+            upload_file = UploadFiles.get(upload_hash)
+            mode = 'rb' if config.files.compress_archive else 'rt'
+            with upload_file.archive_file(calc_hash, mode) as f:
+                rv = send_file(
+                    f,
+                    mimetype='application/json',
+                    as_attachment=True,
+                    attachment_filename='%s.json' % archive_id)
 
             if config.files.compress_archive:
                 rv.headers['Content-Encoding'] = 'gzip'
 
             return rv
-        except FileNotFoundError:
+        except KeyError:
             abort(404, message='Archive %s does not exist.' % archive_id)
         except Exception as e:
             logger = get_logger(

@@ -13,8 +13,8 @@
 # limitations under the License.
 
 """
-The upload API of the nomad@FAIRDI APIs. Provides endpoints to create uploads, upload
-files, and retrieve the processing status of uploads.
+The upload API of the nomad@FAIRDI APIs. Provides endpoints to upload files and
+get the processing status of uploads.
 """
 
 from flask import g, request
@@ -27,7 +27,7 @@ from nomad import config
 from nomad.processing import Upload
 from nomad.processing import NotAllowedDuringProcessing
 from nomad.utils import get_logger
-from nomad.files import UploadFile
+from nomad.uploads import ArchiveBasedStagingUploadFiles
 
 from .app import api
 from .auth import login_really_required
@@ -163,9 +163,11 @@ class UploadListResource(Resource):
         logger = get_logger(__name__, endpoint='upload', action='put', upload_id=upload.upload_id)
         logger.info('upload created')
 
-        uploadFile = UploadFile(upload.upload_id, local_path=local_path)
+        upload_files = ArchiveBasedStagingUploadFiles(
+            upload.upload_id, create=True, local_path=local_path)
 
         if local_path:
+            # file is already there and does not to be received
             pass
         elif request.mimetype == 'application/multipart-formdata':
             # multipart formdata, e.g. with curl -X put "url" -F file=@local_file
@@ -176,11 +178,11 @@ class UploadListResource(Resource):
             if upload.name is '':
                 upload.name = file.filename
 
-            file.save(uploadFile.os_path)
+            file.save(upload_files.upload_file_os_path)
         else:
             # simple streaming data in HTTP body, e.g. with curl "url" -T local_file
             try:
-                with uploadFile.open('wb') as f:
+                with open(upload_files.upload_file_os_path, 'wb') as f:
                     while not request.stream.is_exhausted:
                         f.write(request.stream.read(1024))
 
@@ -188,10 +190,10 @@ class UploadListResource(Resource):
                 logger.error('Error on streaming upload', exc_info=e)
                 abort(400, message='Some IO went wrong, download probably aborted/disrupted.')
 
-        if not uploadFile.is_valid:
-            uploadFile.delete()
+        if not upload_files.is_valid:
+            upload_files.delete()
             upload.delete()
-            abort(400, message='Bad file format, excpected %s.' % ", ".join(UploadFile.formats))
+            abort(400, message='Bad file format, excpected %s.' % ", ".join(upload_files.formats))
 
         logger.info('received uploaded file')
         upload.upload_time = datetime.now()

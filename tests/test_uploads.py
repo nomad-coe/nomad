@@ -21,7 +21,8 @@ import pytest
 from nomad import config
 from nomad.uploads import DirectoryObject, PathObject
 from nomad.uploads import Metadata, MetadataTimeout, PublicMetadata, StagingMetadata
-from nomad.uploads import StagingUploadFiles, PublicUploadFiles, UploadFiles, Restricted
+from nomad.uploads import StagingUploadFiles, PublicUploadFiles, UploadFiles, Restricted, \
+    ArchiveBasedStagingUploadFiles
 
 from tests.test_files import example_file, example_file_contents, example_file_mainfile
 
@@ -167,15 +168,22 @@ class TestPublicMetadata(MetadataContract):
         assert timeout
 
 
-class UploadFilesContract:
+class UploadFilesFixtures:
 
     @pytest.fixture(scope='function')
     def test_upload_id(self) -> Generator[str, None, None]:
+        for bucket in [config.files.staging_bucket, config.files.public_bucket]:
+            directory = DirectoryObject(bucket, 'test_upload', prefix=True)
+            if directory.exists():
+                directory.delete()
         yield 'test_upload'
         for bucket in [config.files.staging_bucket, config.files.public_bucket]:
             directory = DirectoryObject(bucket, 'test_upload', prefix=True)
             if directory.exists():
                 directory.delete()
+
+
+class UploadFilesContract(UploadFilesFixtures):
 
     @pytest.fixture(scope='function', params=['r'])
     def test_upload(self, request, test_upload_id) -> UploadFiles:
@@ -186,7 +194,7 @@ class UploadFilesContract:
         raise NotImplementedError()
 
     def test_create(self, empty_test_upload):
-        pass
+        assert UploadFiles.get(empty_test_upload.upload_id).__class__ == empty_test_upload.__class__
 
     def test_rawfile(self, test_upload):
         try:
@@ -200,10 +208,20 @@ class UploadFilesContract:
             with test_upload.metadata as md:
                 assert md.get(example_calc_hash).get('restricted', False)
 
-    def test_archive(self, test_upload):
+    @pytest.mark.parametrize('prefix', [None, 'examples'])
+    def test_raw_file_manifest(self, test_upload: StagingUploadFiles, prefix: str):
+        raw_files = list(test_upload.raw_file_manifest(path_prefix=prefix))
+        assert sorted(file for file in raw_files if file.startswith('examples')) == sorted(example_file_contents)
+
+    @pytest.mark.parametrize('test_logs', [True, False])
+    def test_archive(self, test_upload, test_logs: bool):
+        if test_logs:
+            open = test_upload.archive_log_file(example_calc_hash, 'rt')
+        else:
+            open = test_upload.archive_file(example_calc_hash, 'rt')
         try:
-            with test_upload.archive_file(example_calc_hash) as f:
-                assert f.read() == b'archive'
+            with open as f:
+                assert f.read() == 'archive'
             if test_upload.public_only:
                 with test_upload.metadata as md:
                     assert not md.get(example_calc_hash).get('restricted', False)
@@ -240,8 +258,10 @@ class TestStagingUploadFiles(UploadFilesContract):
         for calc_spec in calc_specs:
             upload.add_rawfiles(example_file, prefix=None if prefix == 0 else str(prefix))
             hash = str(int(example_calc_hash) + prefix)
-            with upload.archive_file(hash, read=False) as f:
-                f.write(b'archive')
+            with upload.archive_file(hash, 'wt') as f:
+                f.write('archive')
+            with upload.archive_log_file(hash, 'wt') as f:
+                f.write('archive')
             calc = dict(**example_calc)
             calc['hash'] = hash
             if prefix > 0:
@@ -284,8 +304,8 @@ class TestStagingUploadFiles(UploadFilesContract):
                     assert len(content) > 0
 
     def test_write_archive(self, test_upload):
-        with test_upload.archive_file(example_calc_hash) as f:
-            assert f.read() == b'archive'
+        with test_upload.archive_file(example_calc_hash, 'rt') as f:
+            assert f.read() == 'archive'
 
     def test_calc_hash(self, test_upload):
         assert test_upload.calc_hash(example_file_mainfile) is not None
@@ -293,25 +313,49 @@ class TestStagingUploadFiles(UploadFilesContract):
     def test_pack(self, test_upload):
         test_upload.pack()
 
-    def test_all_rawfiles(self, test_upload: StagingUploadFiles):
-        for filepath in test_upload.all_rawfiles:
-            assert os.path.isfile(filepath)
-
-    def test_calc_files(self, test_upload: StagingUploadFiles):
+    @pytest.mark.parametrize('with_mainfile', [True, False])
+    def test_calc_files(self, test_upload: StagingUploadFiles, with_mainfile):
         for calc in test_upload.metadata:
             mainfile = calc['mainfile']
-            calc_files = test_upload.calc_files(mainfile)
-            assert len(list(calc_files)) == len(example_file_contents)
-            for one, two in zip(calc_files, sorted(example_file_contents)):
-                assert one.endswith(two)
-                assert one.startswith(mainfile[:3])
+            calc_files = test_upload.calc_files(mainfile, with_mainfile=with_mainfile)
+            assert len(list(calc_files)) == len(example_file_contents) - 0 if with_mainfile else 1
+            if with_mainfile:
+                for one, two in zip(calc_files, sorted(example_file_contents)):
+                    assert one.endswith(two)
+                    assert one.startswith(mainfile[:3])
+
+    def test_delete(self, test_upload: StagingUploadFiles):
+        test_upload.delete()
+        assert not test_upload.exists()
+
+
+class TestArchiveBasedStagingUploadFiles(UploadFilesFixtures):
+    def test_create(self, test_upload_id):
+        test_upload = ArchiveBasedStagingUploadFiles(test_upload_id, create=True)
+        shutil.copy(example_file, test_upload.upload_file_os_path)
+        test_upload.extract()
+        assert sorted(list(test_upload.raw_file_manifest())) == sorted(example_file_contents)
+        assert os.path.exists(test_upload.upload_file_os_path)
+
+    def test_local_path(self, test_upload_id):
+        test_upload = ArchiveBasedStagingUploadFiles(test_upload_id, create=True, local_path=example_file)
+        test_upload.extract()
+        assert sorted(list(test_upload.raw_file_manifest())) == sorted(example_file_contents)
+        assert os.path.exists(test_upload.upload_file_os_path)
+
+    def test_invalid(self, test_upload_id):
+        assert ArchiveBasedStagingUploadFiles(test_upload_id, create=True, local_path=example_file).is_valid
+        assert not ArchiveBasedStagingUploadFiles(test_upload_id, create=True).is_valid
 
 
 class TestPublicUploadFiles(UploadFilesContract):
 
     @pytest.fixture(scope='function')
     def empty_test_upload(self, test_upload_id: str) -> Generator[UploadFiles, None, None]:
-        yield PublicUploadFiles(test_upload_id, archive_ext='txt', public_only=False)
+        staging_upload = TestStagingUploadFiles.create_upload(test_upload_id, calc_specs='')
+        staging_upload.pack()
+        staging_upload.delete()
+        yield PublicUploadFiles(test_upload_id, archive_ext='txt')
 
     @pytest.fixture(scope='function', params=['r', 'rr', 'pr', 'rp', 'p', 'pp', 'Ppr', 'Prp'])
     def test_upload(self, request, test_upload_id: str) -> PublicUploadFiles:

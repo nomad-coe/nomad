@@ -26,8 +26,8 @@ from flask import Response, request, send_file
 from flask_restplus import abort, Resource, fields
 from werkzeug.exceptions import HTTPException
 
-from nomad.files import RepositoryFile
 from nomad.utils import get_logger
+from nomad.uploads import UploadFiles
 
 from .app import api
 from .auth import login_if_available
@@ -69,15 +69,14 @@ class RawFileFromPathResource(Resource):
         """
         upload_filepath = fix_file_paths(path)
 
-        repository_file = RepositoryFile(upload_hash)
-        if not repository_file.exists():
+        try:
+            upload_files = UploadFiles.get(upload_hash)
+        except KeyError:
             abort(404, message='The upload with hash %s does not exist.' % upload_hash)
 
         if upload_filepath[-1:] == '*':
             upload_filepath = upload_filepath[0:-1]
-            files = list(
-                file for file in repository_file.manifest
-                if file.startswith(upload_filepath))
+            files = list(upload_files.raw_file_manifest(path_prefix=upload_filepath))
             if len(files) == 0:
                 abort(404, message='There are no files for %s.' % upload_filepath)
             else:
@@ -85,8 +84,7 @@ class RawFileFromPathResource(Resource):
                 return respond_to_get_raw_files(upload_hash, files, compress)
 
         try:
-            the_file = repository_file.get_file(upload_filepath)
-            with the_file.open() as f:
+            with upload_files.raw_file(upload_filepath) as f:
                 rv = send_file(
                     f,
                     mimetype='application/octet-stream',
@@ -94,7 +92,7 @@ class RawFileFromPathResource(Resource):
                     attachment_filename=os.path.basename(upload_filepath))
                 return rv
         except KeyError:
-            files = list(file for file in repository_file.manifest if file.startswith(upload_filepath))
+            files = list(file for file in upload_files.raw_file_manifest(upload_filepath))
             if len(files) == 0:
                 abort(404, message='The file %s does not exist.' % upload_filepath)
             else:
@@ -161,8 +159,9 @@ class RawFilesResource(Resource):
 def respond_to_get_raw_files(upload_hash, files, compress=False):
     logger = get_logger(__name__, endpoint='raw', action='get files', upload_hash=upload_hash)
 
-    repository_file = RepositoryFile(upload_hash)
-    if not repository_file.exists():
+    try:
+        upload_file = UploadFiles.get(upload_hash)
+    except KeyError:
         abort(404, message='The upload with hash %s does not exist.' % upload_hash)
 
     def generator():
@@ -170,22 +169,21 @@ def respond_to_get_raw_files(upload_hash, files, compress=False):
         def iterator():
             """ Replace the directory based iter of zipstream with an iter over all given files. """
             try:
-                with repository_file.zipped_container.zip_file() as zf:
-                    for filename in files:
-                        # Write a file to the zipstream.
-                        try:
-                            with zf.open(repository_file.zipped_container.get_zip_path(filename)) as f:
-                                def iter_content():
-                                    while True:
-                                        data = f.read(100000)
-                                        if not data:
-                                            break
-                                        yield data
+                for filename in files:
+                    # Write a file to the zipstream.
+                    try:
+                        with upload_file.raw_file(filename) as f:
+                            def iter_content():
+                                while True:
+                                    data = f.read(100000)
+                                    if not data:
+                                        break
+                                    yield data
 
-                                yield dict(arcname=filename, iterable=iter_content())
-                        except KeyError as e:
-                            # files that are not found, will not be returned
-                            pass
+                            yield dict(arcname=filename, iterable=iter_content())
+                    except KeyError as e:
+                        # files that are not found, will not be returned
+                        pass
 
             except Exception as e:
                 logger.error('Exception while accessing files.', exc_info=e)

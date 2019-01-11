@@ -16,7 +16,7 @@
 This module contains classes that allow to represent the core
 nomad data entities :class:`Upload` and :class:`Calc` on a high level of abstraction
 independent from their representation in the different modules :py:mod:`nomad.repo`,
-:py:mod:`nomad.processing`, :py:mod:`nomad.coe_repo`, :py:mod:`nomad.files`.
+:py:mod:`nomad.processing`, :py:mod:`nomad.coe_repo`, :py:mod:`nomad.uploads`.
 It is not about representing every detail, but those parts that are directly involved in
 api, processing, migration, mirroring, or other 'infrastructure' operations.
 """
