@@ -16,8 +16,6 @@
 The raw API of the nomad@FAIRDI APIs. Can be used to retrieve raw calculation files.
 """
 
-# TODO implement restrictions based on user, permissions, and upload/calc metadata
-
 import os.path
 from zipfile import ZIP_DEFLATED, ZIP_STORED
 
@@ -31,12 +29,6 @@ from .app import api
 from .auth import login_if_available, create_authorization_predicate
 
 ns = api.namespace('raw', description='Downloading raw data files.')
-
-
-def fix_file_paths(path):
-    """ Removed the leading data from file paths that where given in mainfile uris. """
-    # TODO, mainfile URI's should change or this implementation should change
-    return path[5:]
 
 
 raw_file_compress_argument = dict(
@@ -68,7 +60,7 @@ class RawFileFromPathResource(Resource):
         Zip files are streamed; instead of 401 errors, the zip file will just not contain
         any files that the user is not authorized to access.
         """
-        upload_filepath = fix_file_paths(path)
+        upload_filepath = path
 
         upload_files = UploadFiles.get(
             upload_hash, create_authorization_predicate(upload_hash))
@@ -132,7 +124,7 @@ class RawFilesResource(Resource):
         """
         json_data = request.get_json()
         compress = json_data.get('compress', False)
-        files = [fix_file_paths(file.strip()) for file in json_data['files']]
+        files = [file.strip() for file in json_data['files']]
 
         return respond_to_get_raw_files(upload_hash, files, compress)
 
@@ -153,7 +145,7 @@ class RawFilesResource(Resource):
 
         if files_str is None:
             abort(400, message="No files argument given.")
-        files = [fix_file_paths(file.strip()) for file in files_str.split(',')]
+        files = [file.strip() for file in files_str.split(',')]
 
         return respond_to_get_raw_files(upload_hash, files, compress)
 

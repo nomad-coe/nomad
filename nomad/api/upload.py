@@ -23,13 +23,12 @@ from datetime import datetime
 from werkzeug.datastructures import FileStorage
 import os.path
 
-from nomad import config
+from nomad import config, utils
 from nomad.processing import Upload
 from nomad.processing import NotAllowedDuringProcessing
-from nomad.utils import get_logger
-from nomad.uploads import ArchiveBasedStagingUploadFiles
+from nomad.uploads import ArchiveBasedStagingUploadFiles, StagingUploadFiles, UploadFiles
 
-from .app import api
+from .app import api, with_logger
 from .auth import login_really_required
 from .common import pagination_request_parser, pagination_model
 
@@ -133,7 +132,8 @@ class UploadListResource(Resource):
     @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload received')
     @api.expect(upload_metadata_parser)
     @login_really_required
-    def put(self):
+    @with_logger
+    def put(self, logger):
         """
         Upload a file and automatically create a new upload in the process.
         Can be used to upload files via browser or other http clients like curl.
@@ -160,8 +160,7 @@ class UploadListResource(Resource):
             name=request.args.get('name'),
             local_path=local_path)
 
-        logger = get_logger(__name__, endpoint='upload', action='put', upload_id=upload.upload_id)
-        logger.info('upload created')
+        logger.info('upload created', upload_id=upload.upload_id)
 
         upload_files = ArchiveBasedStagingUploadFiles(
             upload.upload_id, create=True, local_path=local_path)
@@ -187,12 +186,13 @@ class UploadListResource(Resource):
                         f.write(request.stream.read(1024))
 
             except Exception as e:
-                logger.error('Error on streaming upload', exc_info=e)
+                logger.warning('Error on streaming upload', exc_info=e)
                 abort(400, message='Some IO went wrong, download probably aborted/disrupted.')
 
         if not upload_files.is_valid:
-            # TODO upload_files.delete()
+            upload_files.delete()
             upload.delete()
+            logger.info('Invalid upload')
             abort(400, message='Bad file format, excpected %s.' % ", ".join(upload_files.formats))
 
         logger.info('received uploaded file')
@@ -267,15 +267,17 @@ class UploadResource(Resource):
 
     @api.doc('delete_upload')
     @api.response(404, 'Upload does not exist')
-    @api.response(400, 'Not allowed during processing or when not in staging')
+    @api.response(401, 'Upload does not belong to authenticated user.')
+    @api.response(400, 'Not allowed during processing')
     @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload deleted')
     @login_really_required
-    def delete(self, upload_id: str):
+    @with_logger
+    def delete(self, upload_id: str, logger):
         """
         Delete an existing upload.
 
-        Only ``is_ready`` uploads
-        can be deleted. Deleting an upload in processing is not allowed.
+        Only uploads that are sill in staging, not already delete, not still uploaded, and
+        not currently processed, can be deleted.
         """
         try:
             upload = Upload.get(upload_id)
@@ -283,19 +285,25 @@ class UploadResource(Resource):
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
         if upload.user_id != str(g.user.user_id) and not g.user.is_admin:
-            abort(404, message='Upload with id %s does not exist.' % upload_id)
+            abort(401, message='Upload with id %s does not belong to you.' % upload_id)
 
-        if not upload.in_staging:
-            abort(400, message='Operation not allowed, upload is not in staging.')
+        with utils.lnr(logger, 'delete processing upload'):
+            try:
+                upload.delete()
+            except NotAllowedDuringProcessing:
+                abort(400, message='You must not delete an upload during processing.')
 
-        try:
-            upload.delete()
-            return upload, 200
-        except NotAllowedDuringProcessing:
-            abort(400, message='You must not delete an upload during processing.')
+        with utils.lnr(logger, 'delete upload files'):
+            upload_files = UploadFiles.get(upload_id)
+            assert upload_files is not None, 'Uploads existing in staging must have files.'
+            if upload_files is not None:
+                assert isinstance(upload_files, StagingUploadFiles), 'Uploads in staging must have staging files.'
+                upload_files.delete()
+
+        return upload, 200
 
     @api.doc('exec_upload_command')
-    @api.response(404, 'Upload does not exist or is not allowed')
+    @api.response(404, 'Upload does not exist or not in staging')
     @api.response(400, 'Operation is not supported')
     @api.response(401, 'If the operation is not allowed for the current user')
     @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload unstaged successfully')
@@ -334,9 +342,6 @@ class UploadResource(Resource):
                 break
 
         if operation == 'unstage':
-            if not upload.in_staging:
-                abort(400, message='Operation not allowed, upload is not in staging.')
-
             try:
                 upload.unstage(meta_data)
             except NotAllowedDuringProcessing:

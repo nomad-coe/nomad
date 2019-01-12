@@ -20,7 +20,7 @@ from nomad.coe_repo import User, Calc, Upload
 from tests.processing.test_data import processed_upload  # pylint: disable=unused-import
 from tests.processing.test_data import uploaded_id  # pylint: disable=unused-import
 from tests.processing.test_data import mocks_forall  # pylint: disable=unused-import
-from tests.test_files import clear_files  # pylint: disable=unused-import
+from tests.test_uploads import clear_files  # pylint: disable=unused-import
 
 
 def assert_user(user, reference):

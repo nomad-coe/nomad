@@ -29,12 +29,12 @@ services_config.update(api_base_path='')
 config.services = config.NomadServicesConfig(**services_config)
 
 from nomad import api, coe_repo  # noqa
-from nomad.uploads import UploadFiles  # noqa
-from nomad.processing import Upload  # noqa
+from nomad.uploads import UploadFiles, PublicUploadFiles  # noqa
+from nomad.processing import Upload, Calc  # noqa
 from nomad.coe_repo import User  # noqa
 
 from tests.processing.test_data import example_files  # noqa
-from tests.test_files import example_file, example_file_mainfile, example_file_contents  # noqa
+from tests.test_uploads import example_file, example_file_mainfile, example_file_contents  # noqa
 from tests.test_uploads import create_staging_upload, create_public_upload  # noqa
 
 # import fixtures
@@ -210,18 +210,27 @@ class TestUploads:
             assert len(upload['calcs']['results']) == 1
 
     def assert_unstage(self, client, test_user_auth, upload_id, proc_infra, meta_data={}):
+        rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
+        upload = self.assert_upload(rv.data)
+        empty_upload = upload['calcs']['pagination']['total'] == 0
+
         rv = client.post(
             '/uploads/%s' % upload_id,
             headers=test_user_auth,
             data=json.dumps(dict(operation='unstage', meta_data=meta_data)),
             content_type='application/json')
         assert rv.status_code == 200
-        rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
-        assert rv.status_code == 200
-        upload = self.assert_upload(rv.data)
-        empty_upload = upload['calcs']['pagination']['total'] == 0
 
-        assert_coe_upload(upload['upload_hash'], empty=empty_upload, meta_data=meta_data)
+        self.assert_upload_does_not_exist(client, upload_id, test_user_auth)
+        assert_coe_upload(upload_id, empty=empty_upload, meta_data=meta_data)
+
+    def assert_upload_does_not_exist(self, client, upload_id: str, test_user_auth):
+        rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
+        assert rv.status_code == 404
+        assert Upload.objects(upload_id=upload_id).first() is None
+        assert Calc.objects(upload_id=upload_id).count() is 0
+        upload_files = UploadFiles.get(upload_id)
+        assert upload_files is None or isinstance(upload_files, PublicUploadFiles)
 
     def test_get_command(self, client, test_user_auth, no_warn):
         rv = client.get('/uploads/command', headers=test_user_auth)
@@ -288,7 +297,7 @@ class TestUploads:
         self.assert_processing(client, test_user_auth, upload['upload_id'])
         self.assert_unstage(client, test_user_auth, upload['upload_id'], proc_infra)
         rv = client.delete('/uploads/%s' % upload['upload_id'], headers=test_user_auth)
-        assert rv.status_code == 400
+        assert rv.status_code == 404
 
     def test_delete(self, client, test_user_auth, proc_infra):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
@@ -296,6 +305,7 @@ class TestUploads:
         self.assert_processing(client, test_user_auth, upload['upload_id'])
         rv = client.delete('/uploads/%s' % upload['upload_id'], headers=test_user_auth)
         assert rv.status_code == 200
+        self.assert_upload_does_not_exist(client, upload['upload_id'], test_user_auth)
 
     @pytest.mark.parametrize('example_file', example_files)
     def test_post(self, client, test_user_auth, example_file, proc_infra, clean_repository_db):
@@ -509,14 +519,14 @@ class TestRaw(UploadFilesBasedTests):
 
     @UploadFilesBasedTests.check_authorizaton
     def test_raw_file(self, client, upload, auth_headers):
-        url = '/raw/%s/data/%s' % (upload, example_file_mainfile)
+        url = '/raw/%s/%s' % (upload, example_file_mainfile)
         rv = client.get(url, headers=auth_headers)
         assert rv.status_code == 200
         assert len(rv.data) > 0
 
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_file_missing_file(self, client, upload, auth_headers):
-        url = '/raw/%s/data/does/not/exist' % upload
+        url = '/raw/%s/does/not/exist' % upload
         rv = client.get(url, headers=auth_headers)
         assert rv.status_code == 404
         data = json.loads(rv.data)
@@ -524,7 +534,7 @@ class TestRaw(UploadFilesBasedTests):
 
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_file_listing(self, client, upload, auth_headers):
-        url = '/raw/%s/data/examples' % upload
+        url = '/raw/%s/examples' % upload
         rv = client.get(url, headers=auth_headers)
         assert rv.status_code == 404
         data = json.loads(rv.data)
@@ -533,7 +543,7 @@ class TestRaw(UploadFilesBasedTests):
     @pytest.mark.parametrize('compress', [True, False])
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_file_wildcard(self, client, upload, auth_headers, compress):
-        url = '/raw/%s/data/examples*' % upload
+        url = '/raw/%s/examples*' % upload
         if compress:
             url = '%s?compress=1' % url
         rv = client.get(url, headers=auth_headers)
@@ -560,7 +570,7 @@ class TestRaw(UploadFilesBasedTests):
     @UploadFilesBasedTests.check_authorizaton
     def test_raw_files(self, client, upload, auth_headers, compress):
         url = '/raw/%s?files=%s' % (
-            upload, ','.join(['data/%s' % file for file in example_file_contents]))
+            upload, ','.join(example_file_contents))
         if compress:
             url = '%s&compress=1' % url
         rv = client.get(url, headers=auth_headers)
@@ -575,7 +585,7 @@ class TestRaw(UploadFilesBasedTests):
     @UploadFilesBasedTests.check_authorizaton
     def test_raw_files_post(self, client, upload, auth_headers, compress):
         url = '/raw/%s' % upload
-        data = dict(files=['data/%s' % file for file in example_file_contents])
+        data = dict(files=example_file_contents)
         if compress is not None:
             data.update(compress=compress)
         rv = client.post(url, data=json.dumps(data), content_type='application/json', headers=auth_headers)
@@ -589,7 +599,7 @@ class TestRaw(UploadFilesBasedTests):
     @pytest.mark.parametrize('compress', [True, False])
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_files_missing_file(self, client, upload, auth_headers, compress):
-        url = '/raw/%s?files=data/%s,missing/file.txt' % (upload, example_file_mainfile)
+        url = '/raw/%s?files=%s,missing/file.txt' % (upload, example_file_mainfile)
         if compress:
             url = '%s&compress=1' % url
         rv = client.get(url, headers=auth_headers)

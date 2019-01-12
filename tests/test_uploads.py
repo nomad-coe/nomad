@@ -25,7 +25,37 @@ from nomad.uploads import Metadata, MetadataTimeout, PublicMetadata, StagingMeta
 from nomad.uploads import StagingUploadFiles, PublicUploadFiles, UploadFiles, Restricted, \
     ArchiveBasedStagingUploadFiles
 
-from tests.test_files import example_file, example_file_contents, example_file_mainfile
+
+# example_file uses an artificial parser for faster test execution, can also be
+# changed to examples_vasp.zip for using vasp parser
+example_file = 'tests/data/proc/examples_template.zip'
+example_file_contents = [
+    'examples_template/template.json',
+    'examples_template/1.aux',
+    'examples_template/2.aux',
+    'examples_template/3.aux',
+    'examples_template/4.aux']
+example_file_mainfile = 'examples_template/template.json'
+empty_file = 'tests/data/proc/empty.zip'
+
+example_bucket = 'test_bucket'
+example_data = dict(test_key='test_value')
+
+
+@pytest.fixture(scope='function')
+def clear_files():
+    """ Utility fixture that removes all files from files and tmp after test. """
+    try:
+        yield
+    finally:
+        try:
+            shutil.rmtree(config.fs.objects)
+        except FileNotFoundError:
+            pass
+        try:
+            shutil.rmtree(config.fs.tmp)
+        except FileNotFoundError:
+            pass
 
 
 class TestObjects:

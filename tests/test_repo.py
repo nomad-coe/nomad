@@ -20,7 +20,7 @@
 # from nomad.parsing import LocalBackend
 # from nomad.repo import AlreadyExists, RepoCalc
 
-# from tests.test_files import example_file  # noqa
+# from tests.test_uploads import example_file  # noqa
 # from tests.test_normalizing import normalized_template_example  # pylint: disable=unused-import
 # from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
 

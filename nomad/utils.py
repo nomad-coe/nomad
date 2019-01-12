@@ -46,6 +46,7 @@ import json
 import uuid
 import time
 import re
+from werkzeug.exceptions import HTTPException
 
 from nomad import config
 
@@ -218,6 +219,9 @@ def lnr(logger, event, **kwargs):
     """
     try:
         yield
+    except HTTPException as e:
+        # ignore HTTPException as they are part of the normal flask error handling
+        raise e
     except Exception as e:
         logger.error(event, exc_info=e, **kwargs)
         raise e

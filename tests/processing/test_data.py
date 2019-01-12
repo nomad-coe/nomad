@@ -31,10 +31,10 @@ from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator
 from nomad.repo import RepoUpload
 
-from tests.test_files import example_file, empty_file
+from tests.test_uploads import example_file, empty_file
 
 # import fixtures
-from tests.test_files import clear_files  # pylint: disable=unused-import
+from tests.test_uploads import clear_files  # pylint: disable=unused-import
 
 example_files = [empty_file, example_file]
 
@@ -128,20 +128,6 @@ def test_processing(uploaded_id, worker, mocksearch, test_user, no_warn):
 def test_processing_with_warning(uploaded_id_with_warning, worker, test_user, mocksearch):
     upload = run_processing(uploaded_id_with_warning, test_user)
     assert_processing(upload, mocksearch)
-
-
-# TODO
-# @pytest.mark.parametrize('uploaded_id', [example_files[1]], indirect=True)
-# def test_processing_doublets(uploaded_id, worker, test_user, with_error):
-
-#     upload = run_processing(uploaded_id, test_user)
-#     assert upload.status == 'SUCCESS'
-#     assert upload.to(RepoUpload).exists()
-
-#     upload = run_processing(uploaded_id, test_user)
-#     assert upload.status == 'FAILURE'
-#     assert len(upload.errors) > 0
-#     assert 'already' in upload.errors[0]
 
 
 @pytest.mark.timeout(30)
