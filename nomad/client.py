@@ -143,7 +143,7 @@ class CalcProcReproduction:
     """
     def __init__(self, archive_id: str, override: bool = False) -> None:
         self.calc_hash = utils.archive.calc_hash(archive_id)
-        self.upload_hash = utils.archive.upload_hash(archive_id)
+        self.upload_id = utils.archive.upload_id(archive_id)
         self.mainfile = None
         self.parser = None
         self.logger = utils.get_logger(__name__, archive_id=archive_id)
@@ -156,7 +156,7 @@ class CalcProcReproduction:
             # download with request, since bravado does not support streaming
             # TODO currently only downloads mainfile
             self.logger.info('Downloading calc.')
-            req = requests.get('%s/raw/%s/%s' % (api_base, self.upload_hash, os.path.dirname(self.mainfile)), stream=True)
+            req = requests.get('%s/raw/%s/%s' % (api_base, self.upload_id, os.path.dirname(self.mainfile)), stream=True)
             with open(local_path, 'wb') as f:
                 for chunk in req.iter_content(chunk_size=1024):
                     f.write(chunk)

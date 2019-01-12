@@ -76,7 +76,6 @@ class Upload(Entity):
 
     Attributes:
         upload_id(str): The unique random id that each upload has
-        upload_hash(str): The hash/checksum that describes unique uploads
         upload_time(datatime): The upload time
         uploader(repo.User): The user that uploaded this upload
         calcs(Iterable[Calc]): An iterable over the calculations of this upload
@@ -84,10 +83,6 @@ class Upload(Entity):
     @property
     def upload_id(self) -> str:
         return '<not assigned>'
-
-    @property
-    def upload_hash(self) -> str:
-        raise NotImplementedError
 
     @property
     def upload_time(self) -> Type[datetime.datetime]:

@@ -45,10 +45,10 @@ pagination_request_parser.add_argument(
 def calc_route(ns, prefix: str = ''):
     """ A resource decorator for /<upload>/<calc> based routes. """
     def decorator(func):
-        ns.route('%s/<string:upload_hash>/<string:calc_hash>' % prefix)(
+        ns.route('%s/<string:upload_id>/<string:calc_hash>' % prefix)(
             api.doc(params={
-                'upload_hash': 'The unique hash for the requested upload.',
-                'calc_hash': 'The unique hash for the requested calculation.'
+                'upload_id': 'The unique id for the requested upload.',
+                'calc_hash': 'The upload unique hash for the requested calculation.'
             })(func)
         )
     return decorator

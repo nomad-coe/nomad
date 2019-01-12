@@ -89,7 +89,7 @@ class UploadMetaData:
 class Upload(Base, datamodel.Upload):  # type: ignore
     __tablename__ = 'uploads'
 
-    upload_id = Column(Integer, primary_key=True, autoincrement=True)
+    coe_upload_id = Column('upload_id', Integer, primary_key=True, autoincrement=True)
     upload_name = Column(String)
     user_id = Column(Integer, ForeignKey('users.user_id'))
     is_processed = Column(Boolean)
@@ -100,17 +100,17 @@ class Upload(Base, datamodel.Upload):  # type: ignore
 
     @classmethod
     def load_from(cls, obj):
-        return Upload.from_upload_hash(obj.upload_hash)
+        return Upload.from_upload_id(obj.upload_id)
 
     @staticmethod
-    def from_upload_hash(upload_hash) -> 'Upload':
+    def from_upload_id(upload_id) -> 'Upload':
         repo_db = infrastructure.repository_db
-        uploads = repo_db.query(Upload).filter_by(upload_name=upload_hash)
+        uploads = repo_db.query(Upload).filter_by(upload_name=upload_id)
         assert uploads.count() <= 1, 'Upload hash/name must be unique'
         return uploads.first()
 
     @property
-    def upload_hash(self):
+    def upload_id(self):
         return self.upload_name
 
     @property
@@ -140,17 +140,14 @@ class Upload(Base, datamodel.Upload):  # type: ignore
         repo_db = infrastructure.repository_db
         repo_db.begin()
 
-        logger = utils.get_logger(
-            __name__,
-            upload_id=upload.upload_id,
-            upload_hash=upload.upload_hash)
+        logger = utils.get_logger(__name__, upload_id=upload.upload_id)
 
         result = None
 
         try:
             # create upload
             coe_upload = Upload(
-                upload_name=upload.upload_hash,
+                upload_name=upload.upload_id,
                 created=meta_data.get('_upload_time', upload.upload_time),
                 user=upload.uploader,
                 is_processed=True)

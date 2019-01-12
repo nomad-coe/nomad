@@ -85,7 +85,7 @@ def processed_upload(uploaded_id, test_user, worker, no_warn) -> Upload:
 def assert_processing(upload: Upload, mocksearch=None):
     assert upload.completed
     assert upload.current_task == 'cleanup'
-    assert upload.upload_hash is not None
+    assert upload.upload_id is not None
     assert len(upload.errors) == 0
     assert upload.status == 'SUCCESS'
 

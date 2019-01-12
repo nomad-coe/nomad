@@ -98,7 +98,7 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
                 if key in ('event', 'stack_info', 'id', 'timestamp'):
                     continue
                 elif key in (
-                        'upload_hash', 'archive_id', 'upload_id', 'calc_hash', 'mainfile',
+                        'archive_id', 'upload_id', 'calc_hash', 'mainfile',
                         'service', 'release'):
                     key = 'nomad.%s' % key
                 else:
@@ -258,8 +258,8 @@ def timer(logger, event, method='info', **kwargs):
 
 class archive:
     @staticmethod
-    def create(upload_hash: str, calc_hash: str) -> str:
-        return '%s/%s' % (upload_hash, calc_hash)
+    def create(upload_id: str, calc_hash: str) -> str:
+        return '%s/%s' % (upload_id, calc_hash)
 
     @staticmethod
     def items(archive_id: str) -> List[str]:
@@ -274,5 +274,5 @@ class archive:
         return archive.item(archive_id, 1)
 
     @staticmethod
-    def upload_hash(archive_id: str) -> str:
+    def upload_id(archive_id: str) -> str:
         return archive.item(archive_id, 0)

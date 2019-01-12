@@ -38,9 +38,9 @@ raw_file_from_path_parser = api.parser()
 raw_file_from_path_parser.add_argument(**raw_file_compress_argument)
 
 
-@ns.route('/<string:upload_hash>/<path:path>')
+@ns.route('/<string:upload_id>/<path:path>')
 @api.doc(params={
-    'upload_hash': 'The unique hash for the requested upload.',
+    'upload_id': 'The unique hash for the requested upload.',
     'path': 'The path to a file or directory.'
 })
 @api.header('Content-Type', 'application/gz')
@@ -51,7 +51,7 @@ class RawFileFromPathResource(Resource):
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
     @api.expect(raw_file_from_path_parser, validate=True)
     @login_if_available
-    def get(self, upload_hash: str, path: str):
+    def get(self, upload_id: str, path: str):
         """
         Get a single raw calculation file or whole directory from a given upload.
 
@@ -63,9 +63,9 @@ class RawFileFromPathResource(Resource):
         upload_filepath = path
 
         upload_files = UploadFiles.get(
-            upload_hash, create_authorization_predicate(upload_hash))
+            upload_id, create_authorization_predicate(upload_id))
         if upload_files is None:
-            abort(404, message='The upload with hash %s does not exist.' % upload_hash)
+            abort(404, message='The upload with hash %s does not exist.' % upload_id)
 
         if upload_filepath[-1:] == '*':
             upload_filepath = upload_filepath[0:-1]
@@ -74,7 +74,7 @@ class RawFileFromPathResource(Resource):
                 abort(404, message='There are no files for %s.' % upload_filepath)
             else:
                 compress = request.args.get('compress', None) is not None
-                return respond_to_get_raw_files(upload_hash, files, compress)
+                return respond_to_get_raw_files(upload_id, files, compress)
 
         try:
             return send_file(
@@ -83,7 +83,7 @@ class RawFileFromPathResource(Resource):
                 as_attachment=True,
                 attachment_filename=os.path.basename(upload_filepath))
         except Restricted:
-            abort(401, message='Not authorized to access upload %s.' % upload_hash)
+            abort(401, message='Not authorized to access upload %s.' % upload_id)
         except KeyError:
             files = list(file for file in upload_files.raw_file_manifest(upload_filepath))
             if len(files) == 0:
@@ -106,9 +106,9 @@ raw_files_request_parser.add_argument(
     'files', required=True, type=str, help='Comma separated list of files to download.', location='args')
 
 
-@ns.route('/<string:upload_hash>')
+@ns.route('/<string:upload_id>')
 @api.doc(params={
-    'upload_hash': 'The unique hash for the requested upload.'
+    'upload_id': 'The unique hash for the requested upload.'
 })
 class RawFilesResource(Resource):
     @api.doc('get_files')
@@ -116,7 +116,7 @@ class RawFilesResource(Resource):
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
     @api.expect(raw_files_request_model, validate=True)
     @login_if_available
-    def post(self, upload_hash):
+    def post(self, upload_id):
         """
         Download multiple raw calculation files in a .zip file.
         Zip files are streamed; instead of 401 errors, the zip file will just not contain
@@ -126,14 +126,14 @@ class RawFilesResource(Resource):
         compress = json_data.get('compress', False)
         files = [file.strip() for file in json_data['files']]
 
-        return respond_to_get_raw_files(upload_hash, files, compress)
+        return respond_to_get_raw_files(upload_id, files, compress)
 
     @api.doc('get_files_alternate')
     @api.response(404, 'The upload or path does not exist')
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
     @api.expect(raw_files_request_parser, validate=True)
     @login_if_available
-    def get(self, upload_hash):
+    def get(self, upload_id):
         """
         Download multiple raw calculation files.
         Download multiple raw calculation files in a .zip file.
@@ -147,14 +147,14 @@ class RawFilesResource(Resource):
             abort(400, message="No files argument given.")
         files = [file.strip() for file in files_str.split(',')]
 
-        return respond_to_get_raw_files(upload_hash, files, compress)
+        return respond_to_get_raw_files(upload_id, files, compress)
 
 
-def respond_to_get_raw_files(upload_hash, files, compress=False):
+def respond_to_get_raw_files(upload_id, files, compress=False):
     upload_files = UploadFiles.get(
-        upload_hash, create_authorization_predicate(upload_hash))
+        upload_id, create_authorization_predicate(upload_id))
     if upload_files is None:
-        abort(404, message='The upload with hash %s does not exist.' % upload_hash)
+        abort(404, message='The upload with hash %s does not exist.' % upload_id)
 
     def generator():
         """ Stream a zip file with all files using zipstream. """
@@ -188,5 +188,5 @@ def respond_to_get_raw_files(upload_hash, files, compress=False):
             yield chunk
 
     response = Response(stream_with_context(generator()), mimetype='application/zip')
-    response.headers['Content-Disposition'] = 'attachment; filename={}'.format('%s.zip' % upload_hash)
+    response.headers['Content-Disposition'] = 'attachment; filename={}'.format('%s.zip' % upload_id)
     return response

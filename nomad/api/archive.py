@@ -42,19 +42,19 @@ class ArchiveCalcLogResource(Resource):
     @api.response(401, 'Not authorized to access the data.')
     @api.response(200, 'Archive data send', headers={'Content-Type': 'application/plain'})
     @login_if_available
-    def get(self, upload_hash, calc_hash):
+    def get(self, upload_id, calc_hash):
         """
         Get calculation processing log.
 
-        Calcs are references via *upload_hash*, *calc_hash* pairs.
+        Calcs are references via *upload_id*, *calc_hash* pairs.
         """
-        archive_id = '%s/%s' % (upload_hash, calc_hash)
+        archive_id = '%s/%s' % (upload_id, calc_hash)
 
         upload_files = UploadFiles.get(
-            upload_hash, is_authorized=create_authorization_predicate(upload_hash, calc_hash))
+            upload_id, is_authorized=create_authorization_predicate(upload_id, calc_hash))
 
         if upload_files is None:
-            abort(404, message='Archive %s does not exist.' % upload_hash)
+            abort(404, message='Upload %s does not exist.' % upload_id)
 
         try:
             return send_file(
@@ -63,7 +63,7 @@ class ArchiveCalcLogResource(Resource):
                 as_attachment=True,
                 attachment_filename='%s.log' % archive_id)
         except Restricted:
-            abort(401, message='Not authorized to access %s/%s.' % (upload_hash, calc_hash))
+            abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_hash))
         except KeyError:
             abort(404, message='Calculation %s does not exist.' % archive_id)
 
@@ -75,19 +75,19 @@ class ArchiveCalcResource(Resource):
     @api.response(401, 'Not authorized to access the data.')
     @api.response(200, 'Archive data send')
     @login_if_available
-    def get(self, upload_hash, calc_hash):
+    def get(self, upload_id, calc_hash):
         """
         Get calculation data in archive form.
 
-        Calcs are references via *upload_hash*, *calc_hash* pairs.
+        Calcs are references via *upload_id*, *calc_hash* pairs.
         """
-        archive_id = '%s/%s' % (upload_hash, calc_hash)
+        archive_id = '%s/%s' % (upload_id, calc_hash)
 
         upload_file = UploadFiles.get(
-            upload_hash, is_authorized=create_authorization_predicate(upload_hash, calc_hash))
+            upload_id, is_authorized=create_authorization_predicate(upload_id, calc_hash))
 
         if upload_file is None:
-            abort(404, message='Archive %s does not exist.' % upload_hash)
+            abort(404, message='Archive %s does not exist.' % upload_id)
 
         try:
             return send_file(
@@ -96,7 +96,7 @@ class ArchiveCalcResource(Resource):
                 as_attachment=True,
                 attachment_filename='%s.json' % archive_id)
         except Restricted:
-            abort(401, message='Not authorized to access %s/%s.' % (upload_hash, calc_hash))
+            abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_hash))
         except KeyError:
             abort(404, message='Calculation %s does not exist.' % archive_id)
 

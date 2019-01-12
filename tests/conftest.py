@@ -144,26 +144,22 @@ def admin_user(repository_db):
 
 @pytest.fixture(scope='function')
 def mocksearch(monkeypatch):
-    uploads_by_hash = {}
     uploads_by_id = {}
     by_archive_id = {}
 
     def persist(calc):
-        uploads_by_hash.setdefault(calc.upload_hash, []).append(calc)
         uploads_by_id.setdefault(calc.upload_id, []).append(calc)
         by_archive_id[calc.archive_id] = calc
 
     def upload_exists(self):
-        return self.upload_hash in uploads_by_hash
+        return self.upload_id in uploads_by_id
 
     def upload_delete(self):
         upload_id = self.upload_id
         if upload_id in uploads_by_id:
             for calc in uploads_by_id[upload_id]:
                 del(by_archive_id[calc.archive_id])
-            upload_hash = uploads_by_id[upload_id][0].upload_hash
             del(uploads_by_id[upload_id])
-            del(uploads_by_hash[upload_hash])
 
     @property
     def upload_calcs(self):

@@ -476,7 +476,7 @@ class UploadFilesBasedTests:
 
         calc_specs = 'r' if restricted else 'p'
         if in_staging:
-            Upload.create(user=test_user, upload_id='test_upload', upload_hash='test_upload')
+            Upload.create(user=test_user, upload_id='test_upload')
             upload_files = create_staging_upload('test_upload', calc_specs=calc_specs)
         else:
             upload_files = create_public_upload('test_upload', calc_specs=calc_specs)

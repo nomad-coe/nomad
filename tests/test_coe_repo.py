@@ -39,8 +39,8 @@ def test_password_authorize(test_user):
     assert_user(user, test_user)
 
 
-def assert_coe_upload(upload_hash, empty=False, meta_data={}):
-    coe_upload = Upload.from_upload_hash(upload_hash)
+def assert_coe_upload(upload_id, empty=False, meta_data={}):
+    coe_upload = Upload.from_upload_id(upload_id)
 
     if empty:
         assert coe_upload is None
@@ -76,13 +76,13 @@ def assert_coe_calc(calc: Calc, meta_data={}):
 def test_add_upload(clean_repository_db, processed_upload):
     empty = processed_upload.total_calcs == 0
 
-    processed_upload.upload_hash = str(1)
+    processed_upload.upload_id = str(1)
     Upload.add(processed_upload)
-    assert_coe_upload(processed_upload.upload_hash, empty=empty)
+    assert_coe_upload(processed_upload.upload_id, empty=empty)
 
-    processed_upload.upload_hash = str(2)
+    processed_upload.upload_id = str(2)
     Upload.add(processed_upload)
-    assert_coe_upload(processed_upload.upload_hash, empty=empty)
+    assert_coe_upload(processed_upload.upload_id, empty=empty)
 
 
 @pytest.mark.timeout(10)
@@ -101,7 +101,7 @@ def test_add_upload_metadata(clean_repository_db, processed_upload, other_test_u
     }
 
     Upload.add(processed_upload, meta_data=meta_data)
-    assert_coe_upload(processed_upload.upload_hash, empty=empty, meta_data=meta_data)
+    assert_coe_upload(processed_upload.upload_id, empty=empty, meta_data=meta_data)
 
 
 class TestDataSets:

@@ -45,13 +45,12 @@ class AlreadyExists(Exception): pass
 
 
 class RepoUpload(datamodel.Entity):
-    def __init__(self, upload_id, upload_hash):
+    def __init__(self, upload_id):
         self.upload_id = upload_id
-        self.upload_hash = upload_hash
 
     @classmethod
     def load_from(cls, obj):
-        return RepoUpload(obj.upload_id, obj.upload_hash)
+        return RepoUpload(obj.upload_id)
 
     @property
     def calcs(self):
@@ -67,7 +66,7 @@ class RepoUpload(datamodel.Entity):
         """ Returns true if there are already calcs from the given upload. """
         # TODO this is deprecated and should be varyfied via repository files
         search = Search(using=infrastructure.elastic_client, index=config.elastic.index_name) \
-            .query('match', upload_hash=self.upload_hash) \
+            .query('match', upload_id=self.upload_id) \
             .execute()
 
         return len(search) > 0
@@ -91,7 +90,6 @@ class RepoCalc(ElasticDocument, datamodel.Entity):
 
     calc_hash = Keyword()
     mainfile = Keyword()
-    upload_hash = Keyword()
     upload_id = Keyword()
 
     upload_time = Date()
@@ -116,38 +114,37 @@ class RepoCalc(ElasticDocument, datamodel.Entity):
 
     @property
     def upload(self):
-        return RepoUpload(self.upload_id, self.upload_hash)
+        return RepoUpload(self.upload_id)
 
     @property
     def archive_id(self) -> str:
         """ The unique id for this calculation. """
-        return '%s/%s' % (self.upload_hash, self.calc_hash)
+        return '%s/%s' % (self.upload_id, self.calc_hash)
 
     @classmethod
     def create_from_backend(
             cls, backend: LocalBackend, additional: Dict[str, Any],
-            upload_id: str, upload_hash: str, calc_hash: str) -> 'RepoCalc':
+            upload_id: str, calc_hash: str) -> 'RepoCalc':
         """
         Create a new calculation instance in elastic search. The data from the given backend
-        will be used. Additional meta-data can be given as *kwargs*. ``upload_id``,
-        ``upload_hash``, and ``calc_hash`` are mandatory.
+        will be used. Additional meta-data can be given as *kwargs*.
+        ``upload_id`` and ``calc_hash`` are mandatory.
 
         Arguments:
             backend: The parsing/normalizing backend that contains the calculation data.
             additional: Additional arguments not stored in the backend. E.g. ``user_id``,
                 ``staging``, ``restricted``
-            upload_hash: The upload hash of the originating upload.
             upload_id: The upload id of the originating upload.
             calc_hash: The upload unique hash for this calculation.
 
         Returns:
             The created instance.
         """
-        assert upload_hash is not None and calc_hash is not None and upload_id is not None
-        additional.update(dict(upload_hash=upload_hash, calc_hash=calc_hash, upload_id=upload_id))
+        assert calc_hash is not None and upload_id is not None
+        additional.update(dict(calc_hash=calc_hash, upload_id=upload_id))
 
         # prepare the entry with all necessary properties from the backend
-        calc = cls(meta=dict(id='%s/%s' % (upload_hash, calc_hash)))
+        calc = cls(meta=dict(id='%s/%s' % (upload_id, calc_hash)))
         for property in cls._doc_type.mapping:
             mapped_property = key_mappings.get(property, property)
 
@@ -165,7 +162,7 @@ class RepoCalc(ElasticDocument, datamodel.Entity):
                         program_name = 'unknown'
                     logger.warning(
                         'Missing property value', property=mapped_property, upload_id=upload_id,
-                        upload_hash=upload_hash, calc_hash=calc_hash, code=program_name)
+                        calc_hash=calc_hash, code=program_name)
                     continue
 
             setattr(calc, property, value)

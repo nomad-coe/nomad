@@ -585,10 +585,6 @@ class StagingUploadFiles(UploadFiles):
 
         return utils.websave_hash(hash.digest(), utils.default_hash_len)
 
-    def upload_hash(self) -> str:
-        """ Returns: A hash for the whole upload. It is only available if upload *is_bag*. """
-        pass
-
 
 class ArchiveBasedStagingUploadFiles(StagingUploadFiles):
     """

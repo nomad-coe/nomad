@@ -55,12 +55,7 @@ upload_model = api.inherit('UploadProcessing', proc_model, {
         description='The name of the upload. This can be provided during upload '
                     'using the name query parameter.'),
     'upload_id': fields.String(
-        description='The unique id for the upload. Its a random uuid and '
-                    'and used within nomad as long as no upload_hash is available.'),
-    'upload_hash': fields.String(
-        description='The unique upload hash. It is based on the uploaded content and '
-                    'used within nomad to identify uploads.'
-    ),
+        description='The unique id for the upload.'),
     'additional_metadata': fields.Arbitrary,
     'local_path': fields.String,
     'upload_time': fields.DateTime(dt_format='iso8601'),

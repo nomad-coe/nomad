@@ -149,7 +149,7 @@ class TokenResource(Resource):
                         'there is no token for you.')
 
 
-def create_authorization_predicate(upload_hash, calc_hash=None):
+def create_authorization_predicate(upload_id, calc_hash=None):
     """
     Returns a predicate that determines if the logged in user has the authorization
     to access the given upload and calculation.
@@ -160,18 +160,18 @@ def create_authorization_predicate(upload_hash, calc_hash=None):
             return False
 
         # look in repository
-        upload = coe_repo.Upload.from_upload_hash(upload_hash)
+        upload = coe_repo.Upload.from_upload_id(upload_id)
         if upload is not None:
             return upload.user_id == g.user.user_id
 
         # look in staging
-        staging_upload = processing.Upload.get(upload_hash)
+        staging_upload = processing.Upload.get(upload_id)
         if staging_upload is not None:
             return str(g.user.user_id) == str(staging_upload.user_id)
 
         # There are no db entries for the given resource
-        if files.UploadFiles.get(upload_hash) is not None:
-            logger = utils.get_logger(__name__, upload_hash=upload_hash, calc_hash=calc_hash)
+        if files.UploadFiles.get(upload_id) is not None:
+            logger = utils.get_logger(__name__, upload_id=upload_id, calc_hash=calc_hash)
             logger.error('Upload files without respective db entry')
 
         raise KeyError
