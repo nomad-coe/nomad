@@ -52,7 +52,7 @@ class Calc(Proc, datamodel.Calc):
     while parsing, including ``program_name``, ``program_version``, etc.
 
     Attributes:
-        archive_id: the hash based archive id of the calc
+        archive_id: the full id upload_id and calc_id based id
         parser: the name of the parser used to process this calc
         upload_id: the id of the upload used to create this calculation
         mainfile: the mainfile (including path in upload) that was used to create this calc
@@ -85,8 +85,8 @@ class Calc(Proc, datamodel.Calc):
         return self.upload_files.raw_file_object(self.mainfile)
 
     @property
-    def calc_hash(self) -> str:
-        return utils.archive.calc_hash(self.archive_id)
+    def calc_id(self) -> str:
+        return utils.archive.calc_id(self.archive_id)
 
     @property
     def upload(self) -> 'Upload':
@@ -103,7 +103,7 @@ class Calc(Proc, datamodel.Calc):
     def get_logger(self, **kwargs):
         logger = super().get_logger()
         logger = logger.bind(
-            upload_id=self.upload_id, mainfile=self.mainfile, calc_hash=self.calc_hash,
+            upload_id=self.upload_id, mainfile=self.mainfile, calc_id=self.calc_id,
             archive_id=self.archive_id, **kwargs)
 
         return logger
@@ -116,7 +116,7 @@ class Calc(Proc, datamodel.Calc):
         logger = self.get_logger(**kwargs)
 
         if self._calc_proc_logwriter is None:
-            self._calc_proc_logwriter_ctx = self.upload_files.archive_log_file(self.calc_hash, 'wt')
+            self._calc_proc_logwriter_ctx = self.upload_files.archive_log_file(self.calc_id, 'wt')
             self._calc_proc_logwriter = self._calc_proc_logwriter_ctx.__enter__()  # pylint: disable=E1101
 
         def save_to_calc_log(logger, method_name, event_dict):
@@ -235,7 +235,7 @@ class Calc(Proc, datamodel.Calc):
     def archiving(self):
         logger = self.get_logger()
 
-        _, calc_hash = self.archive_id.split('/')
+        _, calc_id = self.archive_id.split('/')
         additional = dict(
             mainfile=self.mainfile,
             upload_time=self.upload.upload_time,
@@ -249,7 +249,7 @@ class Calc(Proc, datamodel.Calc):
             repo_calc = RepoCalc.create_from_backend(
                 self._parser_backend,
                 additional=additional,
-                calc_hash=calc_hash,
+                calc_id=calc_id,
                 upload_id=self.upload_id)
             repo_calc.persist()
 
@@ -258,10 +258,10 @@ class Calc(Proc, datamodel.Calc):
                 input_size=self.mainfile_file.size) as log_data:
 
             # persist the archive
-            with self.upload_files.archive_file(self.calc_hash, 'wt') as out:
+            with self.upload_files.archive_file(self.calc_id, 'wt') as out:
                 self._parser_backend.write_json(out, pretty=True)
 
-            log_data.update(archive_size=self.upload_files.archive_file_object(self.calc_hash).size)
+            log_data.update(archive_size=self.upload_files.archive_file_object(self.calc_id).size)
 
         # close loghandler
         if self._calc_proc_logwriter is not None:
@@ -271,7 +271,7 @@ class Calc(Proc, datamodel.Calc):
                 self._calc_proc_logwriter_ctx.__exit__(None, None, None)  # pylint: disable=E1101
                 self._calc_proc_logwriter = None
 
-                log_data.update(log_size=self.upload_files.archive_log_file_object(self.calc_hash).size)
+                log_data.update(log_size=self.upload_files.archive_log_file_object(self.calc_id).size)
 
 
 class Upload(Chord, datamodel.Upload):
@@ -448,7 +448,7 @@ class Upload(Chord, datamodel.Upload):
             total_calcs = 0
             for filename, parser in self.match_mainfiles():
                 calc = Calc.create(
-                    archive_id='%s/%s' % (self.upload_id, utils.hash(filename)),
+                    archive_id='%s/%s' % (self.upload_id, self.upload_files.calc_id(filename)),
                     mainfile=filename, parser=parser.name,
                     upload_id=self.upload_id)
 

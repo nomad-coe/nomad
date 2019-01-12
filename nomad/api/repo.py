@@ -35,19 +35,19 @@ class RepoCalcResource(Resource):
     @api.response(404, 'The upload or calculation does not exist')
     @api.response(200, 'Metadata send')
     @api.doc('get_repo_calc')
-    def get(self, upload_id, calc_hash):
+    def get(self, upload_id, calc_id):
         """
         Get calculation metadata in repository form.
 
         Repository metadata only entails the quanties shown in the repository.
         This is basically the elastic search index entry for the
-        requested calculations. Calcs are references via *upload_id*, *calc_hash*
+        requested calculations. Calcs are references via *upload_id*, *calc_id*
         pairs.
         """
         try:
-            return RepoCalc.get(id='%s/%s' % (upload_id, calc_hash)).json_dict, 200
+            return RepoCalc.get(id='%s/%s' % (upload_id, calc_id)).json_dict, 200
         except NotFoundError:
-            abort(404, message='There is no calculation for %s/%s' % (upload_id, calc_hash))
+            abort(404, message='There is no calculation for %s/%s' % (upload_id, calc_id))
         except Exception as e:
             abort(500, message=str(e))
 

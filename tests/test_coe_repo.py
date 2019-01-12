@@ -56,7 +56,7 @@ def assert_coe_upload(upload_id, empty=False, meta_data={}):
 
 def assert_coe_calc(calc: Calc, meta_data={}):
     assert int(calc.pid) == int(meta_data.get('_pid', calc.pid))
-    assert calc.calc_hash == meta_data.get('_checksum', calc.calc_hash)
+    assert calc.calc_id == meta_data.get('_checksum', calc.calc_id)
 
     # calc data
     assert len(calc.filenames) == 5
@@ -76,11 +76,6 @@ def assert_coe_calc(calc: Calc, meta_data={}):
 def test_add_upload(clean_repository_db, processed_upload):
     empty = processed_upload.total_calcs == 0
 
-    processed_upload.upload_id = str(1)
-    Upload.add(processed_upload)
-    assert_coe_upload(processed_upload.upload_id, empty=empty)
-
-    processed_upload.upload_id = str(2)
     Upload.add(processed_upload)
     assert_coe_upload(processed_upload.upload_id, empty=empty)
 
@@ -127,11 +122,11 @@ class TestDataSets:
     def test_all(self, datasets):
         one, two, three = datasets
         self.assert_datasets(one.all_datasets, [])
-        self.assert_datasets(two.all_datasets, [one.calc_id])
-        self.assert_datasets(three.all_datasets, [one.calc_id, two.calc_id])
+        self.assert_datasets(two.all_datasets, [one.coe_calc_id])
+        self.assert_datasets(three.all_datasets, [one.coe_calc_id, two.coe_calc_id])
 
     def test_direct(self, datasets):
         one, two, three = datasets
         self.assert_datasets(one.direct_datasets, [])
-        self.assert_datasets(two.direct_datasets, [one.calc_id])
-        self.assert_datasets(three.direct_datasets, [two.calc_id])
+        self.assert_datasets(two.direct_datasets, [one.coe_calc_id])
+        self.assert_datasets(three.direct_datasets, [two.coe_calc_id])

@@ -351,7 +351,7 @@ class TestUploads:
 # class TestRepo:
 #     def test_calc(self, client, example_elastic_calc, no_warn):
 #         rv = client.get(
-#             '/repo/%s/%s' % (example_elastic_calc.upload_hash, example_elastic_calc.calc_hash))
+#             '/repo/%s/%s' % (example_elastic_calc.upload_id, example_elastic_calc.calc_id))
 #         assert rv.status_code == 200
 
 #     def test_non_existing_calcs(self, client):

@@ -130,7 +130,7 @@ class CalcProcReproduction:
     (parsing, normalizing) with the locally installed parsers and normalizers.
 
     The use-case is error/warning reproduction. Use ELK to identify errors, use
-    the upload, archive ids/hashes to given by ELK, and reproduce and fix the error
+    the upload, archive ids to given by ELK, and reproduce and fix the error
     in your development environment.
 
     This is a class of :class:`UploadFile` the downloaded raw data will be treated as
@@ -142,7 +142,7 @@ class CalcProcReproduction:
         override: Set to true to override any existing local calculation data.
     """
     def __init__(self, archive_id: str, override: bool = False) -> None:
-        self.calc_hash = utils.archive.calc_hash(archive_id)
+        self.calc_id = utils.archive.calc_id(archive_id)
         self.upload_id = utils.archive.upload_id(archive_id)
         self.mainfile = None
         self.parser = None
@@ -170,10 +170,10 @@ class CalcProcReproduction:
         self.logger.info('Extracting calc data.')
         self.upload_files.extract()
 
-        # find mainfile matching calc_hash
+        # find mainfile matching calc_id
         self.mainfile = next(
             filename for filename in self.upload_files.raw_file_manifest()
-            if self.upload_files.calc_hash(filename) == self.calc_hash)
+            if self.upload_files.calc_id(filename) == self.calc_id)
 
         assert self.mainfile is not None, 'The mainfile could not be found.'
         self.logger = self.logger.bind(mainfile=self.mainfile)

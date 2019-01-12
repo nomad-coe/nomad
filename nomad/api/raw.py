@@ -40,7 +40,7 @@ raw_file_from_path_parser.add_argument(**raw_file_compress_argument)
 
 @ns.route('/<string:upload_id>/<path:path>')
 @api.doc(params={
-    'upload_id': 'The unique hash for the requested upload.',
+    'upload_id': 'The unique id for the requested upload.',
     'path': 'The path to a file or directory.'
 })
 @api.header('Content-Type', 'application/gz')
@@ -65,7 +65,7 @@ class RawFileFromPathResource(Resource):
         upload_files = UploadFiles.get(
             upload_id, create_authorization_predicate(upload_id))
         if upload_files is None:
-            abort(404, message='The upload with hash %s does not exist.' % upload_id)
+            abort(404, message='The upload with id %s does not exist.' % upload_id)
 
         if upload_filepath[-1:] == '*':
             upload_filepath = upload_filepath[0:-1]
@@ -108,7 +108,7 @@ raw_files_request_parser.add_argument(
 
 @ns.route('/<string:upload_id>')
 @api.doc(params={
-    'upload_id': 'The unique hash for the requested upload.'
+    'upload_id': 'The unique id for the requested upload.'
 })
 class RawFilesResource(Resource):
     @api.doc('get_files')
@@ -154,7 +154,7 @@ def respond_to_get_raw_files(upload_id, files, compress=False):
     upload_files = UploadFiles.get(
         upload_id, create_authorization_predicate(upload_id))
     if upload_files is None:
-        abort(404, message='The upload with hash %s does not exist.' % upload_id)
+        abort(404, message='The upload with id %s does not exist.' % upload_id)
 
     def generator():
         """ Stream a zip file with all files using zipstream. """

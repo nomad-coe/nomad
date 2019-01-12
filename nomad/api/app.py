@@ -95,7 +95,7 @@ def with_logger(func):
             args = inspect.getcallargs(wrapper, *args, **kwargs)
             logger_args = {
                 k: v for k, v in args.items()
-                if k in ['upload_id', 'calc_hash']}
+                if k in ['upload_id', 'calc_id']}
             logger = utils.get_logger(__name__, **logger_args)
             args.update(logger=logger)
         try:

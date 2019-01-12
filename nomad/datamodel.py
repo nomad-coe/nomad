@@ -50,7 +50,7 @@ class Calc(Entity):
     Attributes:
         pid: The persistent id (pid) for the calculation
         mainfile: The mainfile path relative to upload root
-        calc_hash: A unique hash/checksum that describes unique calculations
+        calc_id: A unique id/checksum that describes unique calculations
         upload: The upload object that this calculation belongs to.
     """
     @property
@@ -62,7 +62,7 @@ class Calc(Entity):
         raise NotImplementedError
 
     @property
-    def calc_hash(self) -> str:
+    def calc_id(self) -> str:
         raise NotImplementedError
 
     @property

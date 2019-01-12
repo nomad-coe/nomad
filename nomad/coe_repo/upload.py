@@ -100,17 +100,17 @@ class Upload(Base, datamodel.Upload):  # type: ignore
 
     @classmethod
     def load_from(cls, obj):
-        return Upload.from_upload_id(obj.upload_id)
+        return Upload.from_upload_id(str(obj.upload_id))
 
     @staticmethod
-    def from_upload_id(upload_id) -> 'Upload':
+    def from_upload_id(upload_id: str) -> 'Upload':
         repo_db = infrastructure.repository_db
         uploads = repo_db.query(Upload).filter_by(upload_name=upload_id)
-        assert uploads.count() <= 1, 'Upload hash/name must be unique'
+        assert uploads.count() <= 1, 'Upload id/name must be unique'
         return uploads.first()
 
     @property
-    def upload_id(self):
+    def upload_id(self) -> str:
         return self.upload_name
 
     @property
@@ -163,7 +163,7 @@ class Upload(Base, datamodel.Upload):  # type: ignore
             if has_calcs:
                 # empty upload case
                 repo_db.commit()
-                result = coe_upload.upload_id
+                result = coe_upload.coe_upload_id
             else:
                 repo_db.rollback()
         except Exception as e:
@@ -181,8 +181,8 @@ class Upload(Base, datamodel.Upload):  # type: ignore
 
         # table based properties
         coe_calc = Calc(
-            calc_id=calc_meta_data.get('_pid', None),
-            checksum=calc_meta_data.get('_checksum', calc.calc_hash),
+            coe_calc_id=calc_meta_data.get('_pid', None),
+            checksum=calc_meta_data.get('_checksum', calc.calc_id),
             upload=self)
         repo_db.add(coe_calc)
 
@@ -242,7 +242,7 @@ class Upload(Base, datamodel.Upload):  # type: ignore
 
         # datasets
         for dataset_id in calc_meta_data.get('datasets', []):
-            dataset = CalcSet(parent_calc_id=dataset_id, children_calc_id=coe_calc.calc_id)
+            dataset = CalcSet(parent_calc_id=dataset_id, children_calc_id=coe_calc.coe_calc_id)
             repo_db.add(dataset)
 
         # references

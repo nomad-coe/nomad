@@ -103,11 +103,11 @@ class TestObjects:
 
 
 example_calc: Dict[str, Any] = {
-    'hash': '0',
+    'calc_id': '0',
     'mainfile': 'examples_template/template.json',
     'data': 'value'
 }
-example_calc_hash = example_calc['hash']
+example_calc_id = example_calc['calc_id']
 
 
 def assert_example_calc(calc):
@@ -133,7 +133,7 @@ class MetadataContract:
     def test_insert(self, md: Metadata):
         md.insert(example_calc)
         assert len(md) == 1
-        assert_example_calc(md.get(example_calc_hash))
+        assert_example_calc(md.get(example_calc_id))
 
     def test_insert_fail(self, md: Metadata):
         failed = False
@@ -148,14 +148,14 @@ class MetadataContract:
 
     def test_update(self, md: Metadata):
         md.insert(example_calc)
-        md.update(example_calc_hash, dict(data='updated'))
+        md.update(example_calc_id, dict(data='updated'))
         assert len(md) == 1
-        assert md.get(example_calc_hash)['data'] == 'updated'
+        assert md.get(example_calc_id)['data'] == 'updated'
 
     def test_update_fail(self, md: Metadata):
         failed = False
         try:
-            md.update(example_calc_hash, dict(data='updated'))
+            md.update(example_calc_id, dict(data='updated'))
         except KeyError:
             failed = True
         assert failed
@@ -163,12 +163,12 @@ class MetadataContract:
 
     def test_get(self, md: Metadata):
         md.insert(example_calc)
-        assert_example_calc(md.get(example_calc_hash))
+        assert_example_calc(md.get(example_calc_id))
 
     def test_get_fail(self, md: Metadata):
         failed = False
         try:
-            md.get(example_calc_hash)
+            md.get(example_calc_id)
         except KeyError:
             failed = True
         assert failed
@@ -233,11 +233,11 @@ class UploadFilesContract(UploadFilesFixtures):
                 assert len(f.read()) > 0
             if not test_upload._is_authorized():
                 with test_upload.metadata as md:
-                    assert not md.get(example_calc_hash).get('restricted', False)
+                    assert not md.get(example_calc_id).get('restricted', False)
         except Restricted:
             assert not test_upload._is_authorized()
             with test_upload.metadata as md:
-                assert md.get(example_calc_hash).get('restricted', False)
+                assert md.get(example_calc_id).get('restricted', False)
 
     @pytest.mark.parametrize('prefix', [None, 'examples'])
     def test_raw_file_manifest(self, test_upload: StagingUploadFiles, prefix: str):
@@ -248,30 +248,30 @@ class UploadFilesContract(UploadFilesFixtures):
     def test_archive(self, test_upload, test_logs: bool):
         try:
             if test_logs:
-                with test_upload.archive_log_file(example_calc_hash, 'rt') as f:
+                with test_upload.archive_log_file(example_calc_id, 'rt') as f:
                     assert f.read() == 'archive'
             else:
-                f = test_upload.archive_file(example_calc_hash, 'rt')
+                f = test_upload.archive_file(example_calc_id, 'rt')
                 assert json.load(f) == 'archive'
 
             if not test_upload._is_authorized():
                 with test_upload.metadata as md:
-                    assert not md.get(example_calc_hash).get('restricted', False)
+                    assert not md.get(example_calc_id).get('restricted', False)
         except Restricted:
             assert not test_upload._is_authorized()
             with test_upload.metadata as md:
-                assert md.get(example_calc_hash).get('restricted', False)
+                assert md.get(example_calc_id).get('restricted', False)
 
     def test_metadata(self, test_upload):
         with test_upload.metadata as md:
-            assert_example_calc(md.get(example_calc_hash))
+            assert_example_calc(md.get(example_calc_id))
 
     def test_update_metadata(self, test_upload):
         with test_upload.metadata as md:
-            md.update(example_calc_hash, dict(data='updated'))
+            md.update(example_calc_id, dict(data='updated'))
 
         with test_upload.metadata as md:
-            assert md.get(example_calc_hash)['data'] == 'updated'
+            assert md.get(example_calc_id)['data'] == 'updated'
 
 
 def create_staging_upload(upload_id: str, calc_specs: str) -> StagingUploadFiles:
@@ -291,13 +291,13 @@ def create_staging_upload(upload_id: str, calc_specs: str) -> StagingUploadFiles
     prefix = 0
     for calc_spec in calc_specs:
         upload.add_rawfiles(example_file, prefix=None if prefix == 0 else str(prefix))
-        hash = str(int(example_calc_hash) + prefix)
-        with upload.archive_file(hash, 'wt') as f:
+        calc_id = str(int(example_calc_id) + prefix)
+        with upload.archive_file(calc_id, 'wt') as f:
             f.write('"archive"')
-        with upload.archive_log_file(hash, 'wt') as f:
+        with upload.archive_log_file(calc_id, 'wt') as f:
             f.write('archive')
         calc = dict(**example_calc)
-        calc['hash'] = hash
+        calc['calc_id'] = calc_id
         if prefix > 0:
             calc['mainfile'] = os.path.join(str(prefix), calc['mainfile'])
         if calc_spec == 'r':
@@ -341,10 +341,10 @@ class TestStagingUploadFiles(UploadFilesContract):
                     assert len(content) > 0
 
     def test_write_archive(self, test_upload):
-        assert json.load(test_upload.archive_file(example_calc_hash, 'rt')) == 'archive'
+        assert json.load(test_upload.archive_file(example_calc_id, 'rt')) == 'archive'
 
-    def test_calc_hash(self, test_upload):
-        assert test_upload.calc_hash(example_file_mainfile) is not None
+    def test_calc_id(self, test_upload):
+        assert test_upload.calc_id(example_file_mainfile) is not None
 
     def test_pack(self, test_upload):
         test_upload.pack()

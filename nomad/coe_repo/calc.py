@@ -28,7 +28,7 @@ from .base import Base, calc_citation_association, ownership, co_authorship, sha
 class Calc(Base, datamodel.Calc):  # type: ignore
     __tablename__ = 'calculations'
 
-    calc_id = Column(Integer, primary_key=True, autoincrement=True)
+    coe_calc_id = Column('calc_id', Integer, primary_key=True, autoincrement=True)
     origin_id = Column(Integer, ForeignKey('uploads.upload_id'))
     upload = relationship('Upload')
     checksum = Column(String)
@@ -43,14 +43,14 @@ class Calc(Base, datamodel.Calc):  # type: ignore
     parents = relationship(
         'Calc',
         secondary=calc_dataset_containment,
-        primaryjoin=calc_dataset_containment.c.children_calc_id == calc_id,
-        secondaryjoin=calc_dataset_containment.c.parent_calc_id == calc_id,
+        primaryjoin=calc_dataset_containment.c.children_calc_id == coe_calc_id,
+        secondaryjoin=calc_dataset_containment.c.parent_calc_id == coe_calc_id,
         backref='children')
 
     @classmethod
     def load_from(cls, obj):
         repo_db = infrastructure.repository_db
-        return repo_db.query(Calc).filter_by(calc_id=int(obj.pid)).first()
+        return repo_db.query(Calc).filter_by(coe_calc_id=int(obj.pid)).first()
 
     @property
     def mainfile(self) -> str:
@@ -58,14 +58,14 @@ class Calc(Base, datamodel.Calc):  # type: ignore
 
     @property
     def pid(self):
-        return self.calc_id
+        return self.coe_calc_id
 
     @property
     def comment(self) -> str:
         return self.user_meta_data.label
 
     @property
-    def calc_hash(self) -> str:
+    def calc_id(self) -> str:
         return self.checksum
 
     @property
@@ -92,19 +92,19 @@ class Calc(Base, datamodel.Calc):  # type: ignore
 
     @property
     def all_datasets(self) -> List['DataSet']:
-        assert self.calc_id is not None
+        assert self.coe_calc_id is not None
         repo_db = infrastructure.repository_db
-        query = repo_db.query(literal(self.calc_id).label('calc_id')).cte(recursive=True)
+        query = repo_db.query(literal(self.coe_calc_id).label('coe_calc_id')).cte(recursive=True)
         right = aliased(query)
         left = aliased(CalcSet)
         query = query.union_all(repo_db.query(left.parent_calc_id).join(
-            right, right.c.calc_id == left.children_calc_id))
+            right, right.c.coe_calc_id == left.children_calc_id))
         query = repo_db.query(query)
-        dataset_calc_ids = list(r[0] for r in query if not r[0] == self.calc_id)
+        dataset_calc_ids = list(r[0] for r in query if not r[0] == self.coe_calc_id)
         if len(dataset_calc_ids) > 0:
             return [
                 DataSet(dataset_calc)
-                for dataset_calc in repo_db.query(Calc).filter(Calc.calc_id.in_(dataset_calc_ids))]
+                for dataset_calc in repo_db.query(Calc).filter(Calc.coe_calc_id.in_(dataset_calc_ids))]
         else:
             return []
 
@@ -132,7 +132,7 @@ class DataSet:
 
     @property
     def id(self):
-        return self._dataset_calc.calc_id
+        return self._dataset_calc.coe_calc_id
 
     @property
     def dois(self) -> List[Citation]:

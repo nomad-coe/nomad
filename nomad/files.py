@@ -46,6 +46,7 @@ import shutil
 from zipfile import ZipFile, BadZipFile, is_zipfile
 from bagit import make_bag
 import hashlib
+import base64
 import io
 
 from nomad import config, utils
@@ -140,11 +141,11 @@ class Metadata(metaclass=ABCMeta):
         pass
 
     def insert(self, calc: dict) -> None:
-        """ Insert a calc, using hash as key. """
+        """ Insert a calc, using calc_id as key. """
         raise NotImplementedError()
 
-    def update(self, calc_hash: str, updates: dict) -> dict:
-        """ Updating a calc, using hash as key and running dict update with the given data. """
+    def update(self, calc_id: str, updates: dict) -> dict:
+        """ Updating a calc, using calc_id as key and running dict update with the given data. """
         raise NotImplementedError()
 
     def get(self, calc_id: str) -> dict:
@@ -181,16 +182,16 @@ class StagingMetadata(Metadata):
         pass
 
     def insert(self, calc: dict) -> None:
-        id = calc['hash']
+        id = calc['calc_id']
         path = self._dir.join_file('%s.json' % id)
         assert not path.exists()
         with open(path.os_path, 'wt') as f:
             ujson.dump(calc, f)
 
-    def update(self, calc_hash: str, updates: dict) -> dict:
-        metadata = self.get(calc_hash)
+    def update(self, calc_id: str, updates: dict) -> dict:
+        metadata = self.get(calc_id)
         metadata.update(updates)
-        path = self._dir.join_file('%s.json' % calc_hash)
+        path = self._dir.join_file('%s.json' % calc_id)
         with open(path.os_path, 'wt') as f:
             ujson.dump(metadata, f)
         return metadata
@@ -263,24 +264,24 @@ class PublicMetadata(Metadata):
     def insert(self, calc: dict) -> None:
         assert self.data is not None, "Metadata is not open."
 
-        id = calc['hash']
+        id = calc['calc_id']
         assert id not in self.data
         self.data[id] = calc
         self._modified = True
 
-    def update(self, calc_hash: str, updates: dict) -> dict:
+    def update(self, calc_id: str, updates: dict) -> dict:
         assert self.data is not None, "Metadata is not open."
-        if calc_hash not in self.data:
+        if calc_id not in self.data:
             raise KeyError()
 
-        self.data[calc_hash].update(updates)
+        self.data[calc_id].update(updates)
         self._modified = True
-        return self.data[calc_hash]
+        return self.data[calc_id]
 
-    def get(self, calc_hash: str) -> dict:
+    def get(self, calc_id: str) -> dict:
         assert self.data is not None, "Metadata is not open."
 
-        return self.data[calc_hash]
+        return self.data[calc_id]
 
     def __iter__(self) -> Iterator[dict]:
         assert self.data is not None, "Metadata is not open."
@@ -349,24 +350,24 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         """
         raise NotImplementedError()
 
-    def archive_file(self, calc_hash: str, *args, **kwargs) -> IO:
+    def archive_file(self, calc_id: str, *args, **kwargs) -> IO:
         """
         Opens a archive file and returns a file-like objects. Additional args, kwargs are
         delegated to the respective `open` call.
         Arguments:
-            calc_hash: The hash identifying the calculation.
+            calc_id: The id identifying the calculation.
         Raises:
             KeyError: If the calc does not exist.
             Restricted: If the file is restricted and upload access evaluated to False.
         """
         raise NotImplementedError()
 
-    def archive_log_file(self, calc_hash: str, *args, **kwargs) -> IO:
+    def archive_log_file(self, calc_id: str, *args, **kwargs) -> IO:
         """
         Opens a archive log file and returns a file-like objects. Additional args, kwargs are
         delegated to the respective `open` call.
         Arguments:
-            calc_hash: The hash identifying the calculation.
+            calc_id: The id identifying the calculation.
         Raises:
             KeyError: If the calc does not exist.
             Restricted: If the file is restricted and upload access evaluated to False.
@@ -409,21 +410,21 @@ class StagingUploadFiles(UploadFiles):
     def raw_file_object(self, file_path: str) -> PathObject:
         return self._raw_dir.join_file(file_path)
 
-    def archive_file(self, calc_hash: str, *args, **kwargs) -> IO:
+    def archive_file(self, calc_id: str, *args, **kwargs) -> IO:
         if not self._is_authorized():
             raise Restricted
-        return self._file(self.archive_file_object(calc_hash), *args, **kwargs)
+        return self._file(self.archive_file_object(calc_id), *args, **kwargs)
 
-    def archive_log_file(self, calc_hash: str, *args, **kwargs) -> IO:
+    def archive_log_file(self, calc_id: str, *args, **kwargs) -> IO:
         if not self._is_authorized():
             raise Restricted
-        return self._file(self.archive_log_file_object(calc_hash), *args, **kwargs)
+        return self._file(self.archive_log_file_object(calc_id), *args, **kwargs)
 
-    def archive_file_object(self, calc_hash: str) -> PathObject:
-        return self._archive_dir.join_file('%s.%s' % (calc_hash, self._archive_ext))
+    def archive_file_object(self, calc_id: str) -> PathObject:
+        return self._archive_dir.join_file('%s.%s' % (calc_id, self._archive_ext))
 
-    def archive_log_file_object(self, calc_hash: str) -> PathObject:
-        return self._archive_dir.join_file('%s.log' % calc_hash)
+    def archive_log_file_object(self, calc_id: str) -> PathObject:
+        return self._archive_dir.join_file('%s.log' % calc_id)
 
     def add_rawfiles(self, path: str, move: bool = False, prefix: str = None) -> None:
         """
@@ -519,10 +520,10 @@ class StagingUploadFiles(UploadFiles):
         for calc in self.metadata:
             archive_zip = archive_restricted_zip if calc.get('restricted', False) else archive_public_zip
 
-            archive_filename = '%s.%s' % (calc['hash'], self._archive_ext)
+            archive_filename = '%s.%s' % (calc['calc_id'], self._archive_ext)
             archive_zip.write(self._archive_dir.join_file(archive_filename).os_path, archive_filename)
 
-            archive_log_filename = '%s.%s' % (calc['hash'], 'log')
+            archive_log_filename = '%s.%s' % (calc['calc_id'], 'log')
             log_file = self._archive_dir.join_file(archive_log_filename)
             if log_file.exists():
                 archive_zip.write(log_file.os_path, archive_log_filename)
@@ -567,13 +568,34 @@ class StagingUploadFiles(UploadFiles):
             os.path.join(calc_relative_dir, path) for path in os.listdir(calc_dir)
             if os.path.isfile(os.path.join(calc_dir, path)) and (with_mainfile or path != mainfile))
 
-    def calc_hash(self, mainfile: str) -> str:
+    def _websave_hash(self, hash: bytes, length: int = 0) -> str:
+        if length > 0:
+            return base64.b64encode(hash, altchars=b'-_')[0:28].decode('utf-8')
+        else:
+            return base64.b64encode(hash, altchars=b'-_')[0:-2].decode('utf-8')
+
+    def calc_id(self, mainfile: str) -> str:
         """
-        Calculates a hash for the given calc.
+        Calculates a id for the given calc.
         Arguments:
             mainfile: The mainfile path relative to the upload that identifies the calc in the folder structure.
         Returns:
-            The calc hash
+            The calc id
+        Raises:
+            KeyError: If the mainfile does not exist.
+        """
+        hash = hashlib.sha512()
+        hash.update(self.upload_id.encode('utf-8'))
+        hash.update(mainfile.encode('utf-8'))
+        return self._websave_hash(hash.digest(), utils.default_hash_len)
+
+    def calc_hash(self, mainfile: str) -> str:
+        """
+        Calculates a hash for the given calc based on file contents and aux file contents.
+        Arguments:
+            mainfile: The mainfile path relative to the upload that identifies the calc in the folder structure.
+        Returns:
+            The calculated hash
         Raises:
             KeyError: If the mainfile does not exist.
         """
@@ -583,7 +605,7 @@ class StagingUploadFiles(UploadFiles):
                 for data in iter(lambda: f.read(65536), b''):
                     hash.update(data)
 
-        return utils.websave_hash(hash.digest(), utils.default_hash_len)
+        return self._websave_hash(hash.digest(), utils.default_hash_len)
 
 
 class ArchiveBasedStagingUploadFiles(StagingUploadFiles):
@@ -675,11 +697,11 @@ class PublicUploadFiles(UploadFiles):
             except FileNotFoundError:
                 pass
 
-    def archive_file(self, calc_hash: str, *args, **kwargs) -> IO:
-        return self._file('archive', self._archive_ext, '%s.%s' % (calc_hash, self._archive_ext), *args, **kwargs)
+    def archive_file(self, calc_id: str, *args, **kwargs) -> IO:
+        return self._file('archive', self._archive_ext, '%s.%s' % (calc_id, self._archive_ext), *args, **kwargs)
 
-    def archive_log_file(self, calc_hash: str, *args, **kwargs) -> IO:
-        return self._file('archive', self._archive_ext, '%s.log' % calc_hash, *args, **kwargs)
+    def archive_log_file(self, calc_id: str, *args, **kwargs) -> IO:
+        return self._file('archive', self._archive_ext, '%s.log' % calc_id, *args, **kwargs)
 
     def repack(self) -> None:
         """

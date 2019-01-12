@@ -88,7 +88,7 @@ class RepoCalc(ElasticDocument, datamodel.Entity):
     class Index:
         name = config.elastic.index_name
 
-    calc_hash = Keyword()
+    calc_id = Keyword()
     mainfile = Keyword()
     upload_id = Keyword()
 
@@ -119,32 +119,32 @@ class RepoCalc(ElasticDocument, datamodel.Entity):
     @property
     def archive_id(self) -> str:
         """ The unique id for this calculation. """
-        return '%s/%s' % (self.upload_id, self.calc_hash)
+        return '%s/%s' % (self.upload_id, self.calc_id)
 
     @classmethod
     def create_from_backend(
             cls, backend: LocalBackend, additional: Dict[str, Any],
-            upload_id: str, calc_hash: str) -> 'RepoCalc':
+            upload_id: str, calc_id: str) -> 'RepoCalc':
         """
         Create a new calculation instance in elastic search. The data from the given backend
         will be used. Additional meta-data can be given as *kwargs*.
-        ``upload_id`` and ``calc_hash`` are mandatory.
+        ``upload_id`` and ``calc_id`` are mandatory.
 
         Arguments:
             backend: The parsing/normalizing backend that contains the calculation data.
             additional: Additional arguments not stored in the backend. E.g. ``user_id``,
                 ``staging``, ``restricted``
             upload_id: The upload id of the originating upload.
-            calc_hash: The upload unique hash for this calculation.
+            calc_id: The upload unique id for this calculation.
 
         Returns:
             The created instance.
         """
-        assert calc_hash is not None and upload_id is not None
-        additional.update(dict(calc_hash=calc_hash, upload_id=upload_id))
+        assert calc_id is not None and upload_id is not None
+        additional.update(dict(calc_id=calc_id, upload_id=upload_id))
 
         # prepare the entry with all necessary properties from the backend
-        calc = cls(meta=dict(id='%s/%s' % (upload_id, calc_hash)))
+        calc = cls(meta=dict(id='%s/%s' % (upload_id, calc_id)))
         for property in cls._doc_type.mapping:
             mapped_property = key_mappings.get(property, property)
 
@@ -162,7 +162,7 @@ class RepoCalc(ElasticDocument, datamodel.Entity):
                         program_name = 'unknown'
                     logger.warning(
                         'Missing property value', property=mapped_property, upload_id=upload_id,
-                        calc_hash=calc_hash, code=program_name)
+                        calc_id=calc_id, code=program_name)
                     continue
 
             setattr(calc, property, value)

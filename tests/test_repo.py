@@ -34,7 +34,7 @@
 #     auxfiles = list(upload_file.get_siblings(mainfile))
 
 #     try:
-#         calc = RepoCalc.get(id='test_upload_hash/test_calc_hash')
+#         calc = RepoCalc.get(id='test_upload_id/test_calc_id')
 #     except NotFoundError:
 #         pass
 #     else:
@@ -42,8 +42,8 @@
 
 #     entry = RepoCalc.create_from_backend(
 #         normalized_template_example,
-#         upload_hash='test_upload_hash',
-#         calc_hash='test_calc_hash',
+#         upload_id='test_upload_id',
+#         calc_id='test_calc_id',
 #         upload_id='test_upload_id',
 #         additional=dict(
 #             mainfile=mainfile,
@@ -56,7 +56,7 @@
 #     yield entry
 
 #     try:
-#         calc = RepoCalc.get(id='test_upload_hash/test_calc_hash')
+#         calc = RepoCalc.get(id='test_upload_id/test_calc_id')
 #     except NotFoundError:
 #         pass
 #     else:
@@ -76,7 +76,7 @@
 #     assert example_elastic_calc.upload.exists()
 
 #     get_result: RepoCalc = RepoCalc.get(
-#         id='%s/%s' % (example_elastic_calc.upload_hash, example_elastic_calc.calc_hash))
+#         id='%s/%s' % (example_elastic_calc.upload_id, example_elastic_calc.calc_id))
 #     assert_elastic_calc(get_result)
 
 
@@ -85,8 +85,8 @@
 
 #     calc = RepoCalc.create_from_backend(
 #         normalized_template_example,
-#         upload_hash='test_upload_hash',
-#         calc_hash='test_calc_hash',
+#         upload_id='test_upload_id',
+#         calc_id='test_calc_id',
 #         upload_id='test_upload_id',
 #         additional=dict(
 #             mainfile='/test/mainfile',
@@ -105,9 +105,9 @@
 # def test_delete_elastic_calc(example_elastic_calc: RepoCalc):
 #     example_elastic_calc.delete()
 
-#     assert not ArchiveFile('test_upload_hash/test_calc_hash').exists()
+#     assert not ArchiveFile('test_upload_id/test_calc_id').exists()
 #     try:
-#         RepoCalc.get(id='test_upload_hash/test_calc_hash')
+#         RepoCalc.get(id='test_upload_id/test_calc_id')
 #         assert False
 #     except NotFoundError:
 #         pass
@@ -116,10 +116,10 @@
 
 
 # def test_staging_elastic_calc(example_elastic_calc: RepoCalc, no_warn):
-#     assert RepoCalc.get(id='test_upload_hash/test_calc_hash').staging
+#     assert RepoCalc.get(id='test_upload_id/test_calc_id').staging
 
 
 # def test_unstage_elastic_calc(example_elastic_calc: RepoCalc, no_warn):
 #     example_elastic_calc.upload.unstage(staging=False)
 
-#     assert not RepoCalc.get(id='test_upload_hash/test_calc_hash').staging
+#     assert not RepoCalc.get(id='test_upload_id/test_calc_id').staging

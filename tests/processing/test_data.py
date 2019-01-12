@@ -96,14 +96,14 @@ def assert_processing(upload: Upload, mocksearch=None):
         assert calc.parser is not None
         assert calc.mainfile is not None
         assert calc.status == 'SUCCESS', calc.archive_id
-        calc_hash = utils.archive.calc_hash(calc.archive_id)
+        calc_id = utils.archive.calc_id(calc.archive_id)
 
-        with upload_files.archive_file(calc_hash) as archive_json:
+        with upload_files.archive_file(calc_id) as archive_json:
             archive = json.load(archive_json)
         assert 'section_run' in archive
         assert 'section_calculation_info' in archive
 
-        with upload_files.archive_log_file(calc_hash) as f:
+        with upload_files.archive_log_file(calc_id) as f:
             assert 'a test' in f.read()
         assert len(calc.errors) == 0
 
