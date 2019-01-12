@@ -116,11 +116,6 @@ class RepoCalc(ElasticDocument, datamodel.Entity):
     def upload(self):
         return RepoUpload(self.upload_id)
 
-    @property
-    def archive_id(self) -> str:
-        """ The unique id for this calculation. """
-        return '%s/%s' % (self.upload_id, self.calc_id)
-
     @classmethod
     def create_from_backend(
             cls, backend: LocalBackend, additional: Dict[str, Any],
@@ -144,7 +139,7 @@ class RepoCalc(ElasticDocument, datamodel.Entity):
         additional.update(dict(calc_id=calc_id, upload_id=upload_id))
 
         # prepare the entry with all necessary properties from the backend
-        calc = cls(meta=dict(id='%s/%s' % (upload_id, calc_id)))
+        calc = cls(meta=dict(id=calc_id))
         for property in cls._doc_type.mapping:
             mapped_property = key_mappings.get(property, property)
 
@@ -176,7 +171,7 @@ class RepoCalc(ElasticDocument, datamodel.Entity):
             Raises:
                 AlreadyExists: If the calculation already exists in elastic search. We use
                     the elastic document lock here. The elastic document is IDed via the
-                    ``archive_id``.
+                    ``calc_id``.
         """
         try:
             # In practive es operation might fail due to timeout under heavy loads/
@@ -199,7 +194,7 @@ class RepoCalc(ElasticDocument, datamodel.Entity):
                 # if we had and exception and could not fix with retries, throw it
                 raise e_after_retries  # pylint: disable=E0702
         except ConflictError:
-            raise AlreadyExists('Calculation %s does already exist.' % (self.archive_id))
+            raise AlreadyExists('Calculation %s/%s does already exist.' % (self.upload_id, self.calc_id))
 
     @classmethod
     def update_by_query(cls, upload_id, script):
@@ -230,7 +225,5 @@ class RepoCalc(ElasticDocument, datamodel.Entity):
         upload_time = data.get('upload_time', None)
         if upload_time is not None and isinstance(upload_time, datetime):
             data['upload_time'] = data['upload_time'].isoformat()
-
-        data['archive_id'] = self.archive_id
 
         return {key: value for key, value in data.items() if value is not None}

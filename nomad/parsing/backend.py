@@ -513,7 +513,7 @@ class LocalBackend(LegacyParserBackend):
         json_writer.open_object()
 
         # TODO the root sections should be determined programatically
-        for root_section in ['section_run', 'section_calculation_info']:
+        for root_section in ['section_run', 'section_calculation_info', 'section_repository_info']:
             json_writer.key(root_section)
             json_writer.open_array()
             for run in self._delegate.results[root_section]:

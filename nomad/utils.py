@@ -97,7 +97,7 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
                 if key in ('event', 'stack_info', 'id', 'timestamp'):
                     continue
                 elif key in (
-                        'archive_id', 'upload_id', 'calc_id', 'mainfile',
+                        'upload_id', 'calc_id', 'mainfile',
                         'service', 'release'):
                     key = 'nomad.%s' % key
                 else:

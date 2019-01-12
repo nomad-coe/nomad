@@ -62,7 +62,7 @@ upload_model = api.inherit('UploadProcessing', proc_model, {
 })
 
 calc_model = api.inherit('UploadCalculationProcessing', proc_model, {
-    'archive_id': fields.String,
+    'calc_id': fields.String,
     'mainfile': fields.String,
     'upload_id': fields.String,
     'parser': fields.String

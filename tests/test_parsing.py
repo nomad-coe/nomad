@@ -242,7 +242,8 @@ def parsed_example(request) -> LocalBackend:
 def add_calculation_info(backend: LocalBackend) -> LocalBackend:
     backend.openNonOverlappingSection('section_calculation_info')
     backend.addValue('upload_id', 'test_upload_id')
-    backend.addValue('archive_id', 'test_upload_id/test_calc_id')
+    backend.addValue('calc_id', 'test_calc_id')
+    backend.addValue('calc_hash', 'test_calc_hash')
     backend.addValue('main_file', 'test/mainfile.txt')
     backend.addValue('parser_name', 'testParser')
     backend.closeNonOverlappingSection('section_calculation_info')

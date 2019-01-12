@@ -29,7 +29,6 @@ from nomad import utils
 from nomad.files import ArchiveBasedStagingUploadFiles, UploadFiles, StagingUploadFiles
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator
-from nomad.repo import RepoUpload
 
 from tests.test_files import example_file, empty_file
 
@@ -95,15 +94,14 @@ def assert_processing(upload: Upload, mocksearch=None):
     for calc in Calc.objects(upload_id=upload.upload_id):
         assert calc.parser is not None
         assert calc.mainfile is not None
-        assert calc.status == 'SUCCESS', calc.archive_id
-        calc_id = utils.archive.calc_id(calc.archive_id)
+        assert calc.status == 'SUCCESS'
 
-        with upload_files.archive_file(calc_id) as archive_json:
+        with upload_files.archive_file(calc.calc_id) as archive_json:
             archive = json.load(archive_json)
         assert 'section_run' in archive
         assert 'section_calculation_info' in archive
 
-        with upload_files.archive_log_file(calc_id) as f:
+        with upload_files.archive_log_file(calc.calc_id) as f:
             assert 'a test' in f.read()
         assert len(calc.errors) == 0
 
@@ -111,7 +109,7 @@ def assert_processing(upload: Upload, mocksearch=None):
             f.read()
 
         if mocksearch:
-            repo = mocksearch[calc.archive_id]
+            repo = mocksearch[calc.calc_id]
             assert repo is not None
             assert repo.chemical_composition is not None
             assert repo.basis_set_type is not None

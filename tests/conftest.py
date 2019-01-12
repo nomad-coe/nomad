@@ -149,7 +149,7 @@ def mocksearch(monkeypatch):
 
     def persist(calc):
         uploads_by_id.setdefault(calc.upload_id, []).append(calc)
-        by_archive_id[calc.archive_id] = calc
+        by_archive_id[calc.calc_id] = calc
 
     def upload_exists(self):
         return self.upload_id in uploads_by_id
@@ -158,7 +158,7 @@ def mocksearch(monkeypatch):
         upload_id = self.upload_id
         if upload_id in uploads_by_id:
             for calc in uploads_by_id[upload_id]:
-                del(by_archive_id[calc.archive_id])
+                del(by_archive_id[calc.calc_id])
             del(uploads_by_id[upload_id])
 
     @property

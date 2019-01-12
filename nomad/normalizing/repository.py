@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from nomad import utils
-
 from .normalizer import Normalizer
 
 
@@ -29,7 +27,7 @@ class RepositoryNormalizer(Normalizer):
         b.openNonOverlappingSection('section_repository_info')
         b.openNonOverlappingSection('section_repository_parserdata')
 
-        b.addValue('repository_checksum', utils.archive.calc_id(b.get_value('archive_id', 0)))
+        b.addValue('repository_checksum', b.get_value('calc_hash', 0))
         b.addValue('repository_chemical_formula', b.get_value('chemical_composition_bulk_reduced', 0))
         b.addValue('repository_parser_id', b.get_value('parser_name', 0))
         atoms = b.get_value('atom_labels', 0)

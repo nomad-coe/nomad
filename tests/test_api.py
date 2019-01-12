@@ -201,7 +201,7 @@ class TestUploads:
             assert calc['status'] == 'SUCCESS'
             assert calc['current_task'] == 'archiving'
             assert len(calc['tasks']) == 3
-            assert client.get('/archive/logs/%s' % calc['archive_id'], headers=test_user_auth).status_code == 200
+            assert client.get('/archive/logs/%s/%s' % (calc['upload_id'], calc['calc_id']), headers=test_user_auth).status_code == 200
 
         if upload['calcs']['pagination']['total'] > 1:
             rv = client.get('%s?page=2&per_page=1&order_by=status' % upload_endpoint, headers=test_user_auth)

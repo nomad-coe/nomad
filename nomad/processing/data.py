@@ -52,12 +52,12 @@ class Calc(Proc, datamodel.Calc):
     while parsing, including ``program_name``, ``program_version``, etc.
 
     Attributes:
-        archive_id: the full id upload_id and calc_id based id
+        calc_id: the calc_id of this calc
         parser: the name of the parser used to process this calc
         upload_id: the id of the upload used to create this calculation
         mainfile: the mainfile (including path in upload) that was used to create this calc
     """
-    archive_id = StringField(primary_key=True)
+    calc_id = StringField(primary_key=True)
     upload_id = StringField()
     mainfile = StringField()
     parser = StringField()
@@ -78,15 +78,11 @@ class Calc(Proc, datamodel.Calc):
 
     @classmethod
     def get(cls, id):
-        return cls.get_by_id(id, 'archive_id')
+        return cls.get_by_id(id, 'calc_id')
 
     @property
     def mainfile_file(self) -> PathObject:
         return self.upload_files.raw_file_object(self.mainfile)
-
-    @property
-    def calc_id(self) -> str:
-        return utils.archive.calc_id(self.archive_id)
 
     @property
     def upload(self) -> 'Upload':
@@ -103,8 +99,7 @@ class Calc(Proc, datamodel.Calc):
     def get_logger(self, **kwargs):
         logger = super().get_logger()
         logger = logger.bind(
-            upload_id=self.upload_id, mainfile=self.mainfile, calc_id=self.calc_id,
-            archive_id=self.archive_id, **kwargs)
+            upload_id=self.upload_id, mainfile=self.mainfile, calc_id=self.calc_id, **kwargs)
 
         return logger
 
@@ -167,7 +162,8 @@ class Calc(Proc, datamodel.Calc):
 
         self._parser_backend.openNonOverlappingSection('section_calculation_info')
         self._parser_backend.addValue('upload_id', self.upload_id)
-        self._parser_backend.addValue('archive_id', self.archive_id)
+        self._parser_backend.addValue('calc_id', self.calc_id)
+        self._parser_backend.addValue('calc_hash', self.upload_files.calc_hash(self.mainfile))
         self._parser_backend.addValue('main_file', self.mainfile)
         self._parser_backend.addValue('parser_name', self.parser)
 
@@ -235,7 +231,6 @@ class Calc(Proc, datamodel.Calc):
     def archiving(self):
         logger = self.get_logger()
 
-        _, calc_id = self.archive_id.split('/')
         additional = dict(
             mainfile=self.mainfile,
             upload_time=self.upload.upload_time,
@@ -249,7 +244,7 @@ class Calc(Proc, datamodel.Calc):
             repo_calc = RepoCalc.create_from_backend(
                 self._parser_backend,
                 additional=additional,
-                calc_id=calc_id,
+                calc_id=self.calc_id,
                 upload_id=self.upload_id)
             repo_calc.persist()
 
@@ -448,7 +443,7 @@ class Upload(Chord, datamodel.Upload):
             total_calcs = 0
             for filename, parser in self.match_mainfiles():
                 calc = Calc.create(
-                    archive_id='%s/%s' % (self.upload_id, self.upload_files.calc_id(filename)),
+                    calc_id=self.upload_files.calc_id(filename),
                     mainfile=filename, parser=parser.name,
                     upload_id=self.upload_id)
 
