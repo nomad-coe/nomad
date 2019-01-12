@@ -89,7 +89,7 @@ def assert_processing(upload: Upload, mocksearch=None):
     assert len(upload.errors) == 0
     assert upload.status == 'SUCCESS'
 
-    upload_files = UploadFiles.get(upload.upload_id, public_only=False)
+    upload_files = UploadFiles.get(upload.upload_id, is_authorized=lambda: True)
     assert isinstance(upload_files, StagingUploadFiles)
 
     for calc in Calc.objects(upload_id=upload.upload_id):

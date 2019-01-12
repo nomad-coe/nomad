@@ -37,7 +37,7 @@ almost readonly (beside metadata) storage.
 """
 
 from abc import ABCMeta
-from typing import IO, Generator, Dict, Iterator, Iterable
+from typing import IO, Generator, Dict, Iterator, Iterable, Callable
 from filelock import Timeout, FileLock
 import ujson
 import os.path
@@ -45,7 +45,6 @@ import os
 import shutil
 from zipfile import ZipFile, BadZipFile, is_zipfile
 from bagit import make_bag
-import contextlib
 import hashlib
 import io
 
@@ -297,10 +296,13 @@ class Restricted(Exception):
 
 
 class UploadFiles(DirectoryObject, metaclass=ABCMeta):
+
+    _archive_ext = 'json'
+
     def __init__(
-            self, bucket: str, upload_id: str, public_only: bool = True,
-            create: bool = False,
-            archive_ext: str = 'json.gz' if config.files.compress_archive else 'json') -> None:
+            self, bucket: str, upload_id: str,
+            is_authorized: Callable[[], bool] = lambda: False,
+            create: bool = False) -> None:
         self.logger = utils.get_logger(__name__, upload_id=upload_id)
 
         super().__init__(bucket, upload_id, create=create, prefix=True)
@@ -309,8 +311,7 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
             raise KeyError()
 
         self.upload_id = upload_id
-        self.public_only = public_only
-        self._archive_ext = archive_ext
+        self._is_authorized = is_authorized
 
     @staticmethod
     def get(upload_id: str, *args, **kwargs) -> 'UploadFiles':
@@ -326,8 +327,7 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         """ The calc metadata for this upload. """
         raise NotImplementedError
 
-    @contextlib.contextmanager
-    def raw_file(self, file_path: str, *args, **kwargs) -> Generator[IO, None, None]:
+    def raw_file(self, file_path: str, *args, **kwargs) -> IO:
         """
         Opens a raw file and returns a file-like objects. Additional args, kwargs are
         delegated to the respective `open` call.
@@ -349,8 +349,7 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         """
         raise NotImplementedError()
 
-    @contextlib.contextmanager
-    def archive_file(self, calc_hash: str, *args, **kwargs) -> Generator[IO, None, None]:
+    def archive_file(self, calc_hash: str, *args, **kwargs) -> IO:
         """
         Opens a archive file and returns a file-like objects. Additional args, kwargs are
         delegated to the respective `open` call.
@@ -362,8 +361,7 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         """
         raise NotImplementedError()
 
-    @contextlib.contextmanager
-    def archive_log_file(self, calc_hash: str, *args, **kwargs) -> Generator[IO, None, None]:
+    def archive_log_file(self, calc_hash: str, *args, **kwargs) -> IO:
         """
         Opens a archive log file and returns a file-like objects. Additional args, kwargs are
         delegated to the respective `open` call.
@@ -397,40 +395,29 @@ class StagingUploadFiles(UploadFiles):
     def metadata(self) -> Metadata:
         return self._metadata
 
-    @contextlib.contextmanager
-    def _file(self, path_object: PathObject, *args, **kwargs) -> Generator[IO, None, None]:
+    def _file(self, path_object: PathObject, *args, **kwargs) -> IO:
         try:
-            with open(path_object.os_path, *args, **kwargs) as f:
-                yield f
+            return open(path_object.os_path, *args, **kwargs)
         except FileNotFoundError:
             raise KeyError()
 
-    @contextlib.contextmanager
-    def raw_file(self, file_path: str, *args, **kwargs) -> Generator[IO, None, None]:
-        if self.public_only:
+    def raw_file(self, file_path: str, *args, **kwargs) -> IO:
+        if not self._is_authorized():
             raise Restricted
-
-        with self._file(self.raw_file_object(file_path), *args, **kwargs) as f:
-            yield f
+        return self._file(self.raw_file_object(file_path), *args, **kwargs)
 
     def raw_file_object(self, file_path: str) -> PathObject:
         return self._raw_dir.join_file(file_path)
 
-    @contextlib.contextmanager
-    def archive_file(self, calc_hash: str, *args, **kwargs) -> Generator[IO, None, None]:
-        if self.public_only:
+    def archive_file(self, calc_hash: str, *args, **kwargs) -> IO:
+        if not self._is_authorized():
             raise Restricted
+        return self._file(self.archive_file_object(calc_hash), *args, **kwargs)
 
-        with self._file(self.archive_file_object(calc_hash), *args, **kwargs) as f:
-            yield f
-
-    @contextlib.contextmanager
-    def archive_log_file(self, calc_hash: str, *args, **kwargs) -> Generator[IO, None, None]:
-        if self.public_only:
+    def archive_log_file(self, calc_hash: str, *args, **kwargs) -> IO:
+        if not self._is_authorized():
             raise Restricted
-
-        with self._file(self.archive_log_file_object(calc_hash), *args, **kwargs) as f:
-            yield f
+        return self._file(self.archive_log_file_object(calc_hash), *args, **kwargs)
 
     def archive_file_object(self, calc_hash: str) -> PathObject:
         return self._archive_dir.join_file('%s.%s' % (calc_hash, self._archive_ext))
@@ -621,7 +608,7 @@ class ArchiveBasedStagingUploadFiles(StagingUploadFiles):
 
     @property
     def upload_file_os_path(self):
-        if self._local_path:
+        if self._local_path is not None:
             return self._local_path
         else:
             return self._upload_file.os_path
@@ -653,8 +640,7 @@ class PublicUploadFiles(UploadFiles):
     def metadata(self) -> Metadata:
         return self._metadata
 
-    @contextlib.contextmanager
-    def _file(self, prefix: str, ext: str, path: str, *args, **kwargs) -> Generator[IO, None, None]:
+    def _file(self, prefix: str, ext: str, path: str, *args, **kwargs) -> IO:
         mode = kwargs.get('mode') if len(args) == 0 else args[0]
         if 'mode' in kwargs:
             del(kwargs['mode'])
@@ -664,26 +650,22 @@ class PublicUploadFiles(UploadFiles):
             try:
                 zip_file = self.join_file('%s-%s.%s.zip' % (prefix, access, ext))
                 with ZipFile(zip_file.os_path) as zf:
-                    with zf.open(path, 'r', **kwargs) as f:
-                        if 't' in mode:
-                            yield io.TextIOWrapper(f)
-                        else:
-                            yield f
-                        return
+                    f = zf.open(path, 'r', **kwargs)
+                    if access == 'restricted' and not self._is_authorized():
+                        raise Restricted
+                    if 't' in mode:
+                        return io.TextIOWrapper(f)
+                    else:
+                        return f
             except FileNotFoundError:
                 pass
             except KeyError:
                 pass
 
-            if self.public_only:
-                raise Restricted
-
         raise KeyError()
 
-    @contextlib.contextmanager
-    def raw_file(self, file_path: str, *args, **kwargs) -> Generator[IO, None, None]:
-        with self._file('raw', 'bagit', 'data/' + file_path, *args, *kwargs) as f:
-            yield f
+    def raw_file(self, file_path: str, *args, **kwargs) -> IO:
+        return self._file('raw', 'bagit', 'data/' + file_path, *args, *kwargs)
 
     def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
         for access in ['public', 'restricted']:
@@ -697,15 +679,11 @@ class PublicUploadFiles(UploadFiles):
             except FileNotFoundError:
                 pass
 
-    @contextlib.contextmanager
-    def archive_file(self, calc_hash: str, *args, **kwargs) -> Generator[IO, None, None]:
-        with self._file('archive', self._archive_ext, '%s.%s' % (calc_hash, self._archive_ext), *args, **kwargs) as f:
-            yield f
+    def archive_file(self, calc_hash: str, *args, **kwargs) -> IO:
+        return self._file('archive', self._archive_ext, '%s.%s' % (calc_hash, self._archive_ext), *args, **kwargs)
 
-    @contextlib.contextmanager
-    def archive_log_file(self, calc_hash: str, *args, **kwargs) -> Generator[IO, None, None]:
-        with self._file('archive', self._archive_ext, '%s.log' % calc_hash, *args, **kwargs) as f:
-            yield f
+    def archive_log_file(self, calc_hash: str, *args, **kwargs) -> IO:
+        return self._file('archive', self._archive_ext, '%s.log' % calc_hash, *args, **kwargs)
 
     def repack(self) -> None:
         """
@@ -714,6 +692,3 @@ class PublicUploadFiles(UploadFiles):
         the restrictions on calculations. This is potentially a long running operation.
         """
         pass
-
-    def delete(self):
-        assert False, 'cannot delete public upload'

@@ -22,15 +22,13 @@ import os.path
 from zipfile import ZIP_DEFLATED, ZIP_STORED
 
 import zipstream
-from flask import Response, request, send_file
+from flask import Response, request, send_file, stream_with_context
 from flask_restplus import abort, Resource, fields
-from werkzeug.exceptions import HTTPException
 
-from nomad.utils import get_logger
-from nomad.uploads import UploadFiles
+from nomad.uploads import UploadFiles, Restricted
 
 from .app import api
-from .auth import login_if_available
+from .auth import login_if_available, create_authorization_predicate
 
 ns = api.namespace('raw', description='Downloading raw data files.')
 
@@ -57,6 +55,7 @@ raw_file_from_path_parser.add_argument(**raw_file_compress_argument)
 class RawFileFromPathResource(Resource):
     @api.doc('get')
     @api.response(404, 'The upload or path does not exist')
+    @api.response(401, 'Not authorized to access the data.')
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
     @api.expect(raw_file_from_path_parser, validate=True)
     @login_if_available
@@ -66,12 +65,14 @@ class RawFileFromPathResource(Resource):
 
         If the given path points to a file, the file is provided. If the given path
         points to an directory, the directory and all contents is provided as .zip file.
+        Zip files are streamed; instead of 401 errors, the zip file will just not contain
+        any files that the user is not authorized to access.
         """
         upload_filepath = fix_file_paths(path)
 
-        try:
-            upload_files = UploadFiles.get(upload_hash)
-        except KeyError:
+        upload_files = UploadFiles.get(
+            upload_hash, create_authorization_predicate(upload_hash))
+        if upload_files is None:
             abort(404, message='The upload with hash %s does not exist.' % upload_hash)
 
         if upload_filepath[-1:] == '*':
@@ -84,27 +85,19 @@ class RawFileFromPathResource(Resource):
                 return respond_to_get_raw_files(upload_hash, files, compress)
 
         try:
-            with upload_files.raw_file(upload_filepath) as f:
-                rv = send_file(
-                    f,
-                    mimetype='application/octet-stream',
-                    as_attachment=True,
-                    attachment_filename=os.path.basename(upload_filepath))
-                return rv
+            return send_file(
+                upload_files.raw_file(upload_filepath),
+                mimetype='application/octet-stream',
+                as_attachment=True,
+                attachment_filename=os.path.basename(upload_filepath))
+        except Restricted:
+            abort(401, message='Not authorized to access upload %s.' % upload_hash)
         except KeyError:
             files = list(file for file in upload_files.raw_file_manifest(upload_filepath))
             if len(files) == 0:
                 abort(404, message='The file %s does not exist.' % upload_filepath)
             else:
                 abort(404, message='The file %s does not exist, but there are files with matching paths' % upload_filepath, files=files)
-        except HTTPException as e:
-            raise e
-        except Exception as e:
-            logger = get_logger(
-                __name__, endpoint='raw', action='get',
-                upload_hash=upload_hash, upload_filepath=upload_filepath)
-            logger.error('Exception on accessing raw data', exc_info=e)
-            abort(500, message='Could not accessing the raw data.')
 
 
 raw_files_request_model = api.model('RawFilesRequest', {
@@ -132,7 +125,11 @@ class RawFilesResource(Resource):
     @api.expect(raw_files_request_model, validate=True)
     @login_if_available
     def post(self, upload_hash):
-        """ Download multiple raw calculation files. """
+        """
+        Download multiple raw calculation files in a .zip file.
+        Zip files are streamed; instead of 401 errors, the zip file will just not contain
+        any files that the user is not authorized to access.
+        """
         json_data = request.get_json()
         compress = json_data.get('compress', False)
         files = [fix_file_paths(file.strip()) for file in json_data['files']]
@@ -145,7 +142,12 @@ class RawFilesResource(Resource):
     @api.expect(raw_files_request_parser, validate=True)
     @login_if_available
     def get(self, upload_hash):
-        """ Download multiple raw calculation files. """
+        """
+        Download multiple raw calculation files.
+        Download multiple raw calculation files in a .zip file.
+        Zip files are streamed; instead of 401 errors, the zip file will just not contain
+        any files that the user is not authorized to access.
+        """
         files_str = request.args.get('files', None)
         compress = request.args.get('compress', 'false') == 'true'
 
@@ -157,36 +159,34 @@ class RawFilesResource(Resource):
 
 
 def respond_to_get_raw_files(upload_hash, files, compress=False):
-    logger = get_logger(__name__, endpoint='raw', action='get files', upload_hash=upload_hash)
-
-    try:
-        upload_file = UploadFiles.get(upload_hash)
-    except KeyError:
+    upload_files = UploadFiles.get(
+        upload_hash, create_authorization_predicate(upload_hash))
+    if upload_files is None:
         abort(404, message='The upload with hash %s does not exist.' % upload_hash)
 
     def generator():
         """ Stream a zip file with all files using zipstream. """
         def iterator():
             """ Replace the directory based iter of zipstream with an iter over all given files. """
-            try:
-                for filename in files:
-                    # Write a file to the zipstream.
-                    try:
-                        with upload_file.raw_file(filename) as f:
-                            def iter_content():
-                                while True:
-                                    data = f.read(100000)
-                                    if not data:
-                                        break
-                                    yield data
+            for filename in files:
+                # Write a file to the zipstream.
+                try:
+                    with upload_files.raw_file(filename, 'rb') as f:
+                        def iter_content():
+                            while True:
+                                data = f.read(100000)
+                                if not data:
+                                    break
+                                yield data
 
-                            yield dict(arcname=filename, iterable=iter_content())
-                    except KeyError as e:
-                        # files that are not found, will not be returned
-                        pass
-
-            except Exception as e:
-                logger.error('Exception while accessing files.', exc_info=e)
+                        yield dict(arcname=filename, iterable=iter_content())
+                except KeyError:
+                    # files that are not found, will not be returned
+                    pass
+                except Restricted:
+                    # due to the streaming nature, we cannot raise 401 here
+                    # we just leave it out in the download
+                    pass
 
         compression = ZIP_DEFLATED if compress else ZIP_STORED
         zip_stream = zipstream.ZipFile(mode='w', compression=compression, allowZip64=True)
@@ -195,6 +195,6 @@ def respond_to_get_raw_files(upload_hash, files, compress=False):
         for chunk in zip_stream:
             yield chunk
 
-    response = Response(generator(), mimetype='application/zip')
+    response = Response(stream_with_context(generator()), mimetype='application/zip')
     response.headers['Content-Disposition'] = 'attachment; filename={}'.format('%s.zip' % upload_hash)
     return response

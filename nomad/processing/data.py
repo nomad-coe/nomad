@@ -99,7 +99,7 @@ class Calc(Proc, datamodel.Calc):
     @property
     def upload_files(self) -> ArchiveBasedStagingUploadFiles:
         if not self._upload_files:
-            self._upload_files = ArchiveBasedStagingUploadFiles(self.upload_id, public_only=False)
+            self._upload_files = ArchiveBasedStagingUploadFiles(self.upload_id, is_authorized=lambda: True, local_path=self.upload.local_path)
         return self._upload_files
 
     @property
@@ -429,7 +429,7 @@ class Upload(Chord, datamodel.Upload):
     @property
     def upload_files(self) -> ArchiveBasedStagingUploadFiles:
         if not self._upload_files:
-            self._upload_files = ArchiveBasedStagingUploadFiles(self.upload_id, public_only=False)
+            self._upload_files = ArchiveBasedStagingUploadFiles(self.upload_id, is_authorized=lambda: True, local_path=self.local_path)
         return self._upload_files
 
     @task

@@ -191,7 +191,7 @@ class UploadListResource(Resource):
                 abort(400, message='Some IO went wrong, download probably aborted/disrupted.')
 
         if not upload_files.is_valid:
-            upload_files.delete()
+            # TODO upload_files.delete()
             upload.delete()
             abort(400, message='Bad file format, excpected %s.' % ", ".join(upload_files.formats))
 

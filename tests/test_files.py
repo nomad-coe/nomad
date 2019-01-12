@@ -19,8 +19,8 @@ import os
 import os.path
 from zipfile import ZipFile
 
-from nomad.files import Objects, ObjectFile, ArchiveFile, UploadFile, ArchiveLogFile, \
-    BaggedDataContainer, ZippedDataContainer
+# from nomad.files import Objects, ObjectFile, ArchiveFile, UploadFile, ArchiveLogFile, \
+#     BaggedDataContainer, ZippedDataContainer
 from nomad import config
 
 # example_file uses an artificial parser for faster test execution, can also be
@@ -55,238 +55,238 @@ def clear_files():
             pass
 
 
-class TestObjects:
-    @pytest.fixture()
-    def existing_example_file(self, clear_files):
-        with ObjectFile(example_bucket, 'example_file', ext='json').open(mode='wt') as out:
-            json.dump(example_data, out)
+# class TestObjects:
+#     @pytest.fixture()
+#     def existing_example_file(self, clear_files):
+#         with ObjectFile(example_bucket, 'example_file', ext='json').open(mode='wt') as out:
+#             json.dump(example_data, out)
 
-        yield 'example_file', 'json'
+#         yield 'example_file', 'json'
 
-    def test_size(self, existing_example_file):
-        name, ext = existing_example_file
-        assert ObjectFile(example_bucket, name, ext).size > 0
+#     def test_size(self, existing_example_file):
+#         name, ext = existing_example_file
+#         assert ObjectFile(example_bucket, name, ext).size > 0
 
-    def test_exists(self, existing_example_file):
-        name, ext = existing_example_file
-        assert ObjectFile(example_bucket, name, ext).exists()
+#     def test_exists(self, existing_example_file):
+#         name, ext = existing_example_file
+#         assert ObjectFile(example_bucket, name, ext).exists()
 
-    def test_not_exists(self):
-        assert not ObjectFile(example_bucket, 'does_not_exist').exists()
+#     def test_not_exists(self):
+#         assert not ObjectFile(example_bucket, 'does_not_exist').exists()
 
-    def test_open(self, existing_example_file):
-        name, ext = existing_example_file
+#     def test_open(self, existing_example_file):
+#         name, ext = existing_example_file
 
-        assert ObjectFile(example_bucket, name, ext).exists()
-        with ObjectFile(example_bucket, name, ext=ext).open() as f:
-            json.load(f)
+#         assert ObjectFile(example_bucket, name, ext).exists()
+#         with ObjectFile(example_bucket, name, ext=ext).open() as f:
+#             json.load(f)
 
-    def test_delete(self, existing_example_file):
-        name, ext = existing_example_file
-        ObjectFile(example_bucket, name, ext).delete()
-        assert not ObjectFile(example_bucket, name, ext).exists()
+#     def test_delete(self, existing_example_file):
+#         name, ext = existing_example_file
+#         ObjectFile(example_bucket, name, ext).delete()
+#         assert not ObjectFile(example_bucket, name, ext).exists()
 
-    def test_delete_all(self, existing_example_file):
-        name, ext = existing_example_file
-        Objects.delete_all(example_bucket)
-        assert not ObjectFile(example_bucket, name, ext).exists()
-
-
-class TestBaggedDataContainer:
-
-    @pytest.fixture(scope='function')
-    def example_directory(self, clear_files):
-        directory = os.path.join(config.fs.tmp, 'test_container')
-        os.makedirs(directory, exist_ok=True)
-
-        with ZipFile(example_file) as zip_file:
-            zip_file.extractall(directory)
-
-        yield directory
-
-    @pytest.fixture(scope='function')
-    def example_container(self, example_directory):
-        yield BaggedDataContainer.create(example_directory)
-
-    def assert_container(self, container):
-        assert container.manifest is not None
-        assert len(container.manifest) == 5
-        assert container.hash is not None
-        assert container.metadata is not None
-        for file_path in container.manifest:
-            assert file_path.startswith('examples_template')
-
-    def test_make(self, example_container):
-        self.assert_container(example_container)
-
-    def test_metadata(self, example_directory, example_container):
-        example_container.metadata['test'] = dict(k1='v1', k2=True, k3=0)
-        example_container.save_metadata()
-
-        example_container = BaggedDataContainer(example_directory)
-        self.assert_container(example_container)
-        assert example_container.metadata['test']['k1'] == 'v1'
-        assert example_container.metadata['test']['k2']
-        assert example_container.metadata['test']['k3'] == 0
-
-    def test_file(self, example_container):
-        file = example_container.get_file('examples_template/template.json')
-        assert file is not None
-        with file.open('r') as f:
-            assert json.load(f)
+#     def test_delete_all(self, existing_example_file):
+#         name, ext = existing_example_file
+#         Objects.delete_all(example_bucket)
+#         assert not ObjectFile(example_bucket, name, ext).exists()
 
 
-class TestZippedDataContainer(TestBaggedDataContainer):
-    @pytest.fixture(scope='function')
-    def example_container(self, example_directory):
-        BaggedDataContainer.create(example_directory)
-        return ZippedDataContainer.create(example_directory)
+# class TestBaggedDataContainer:
 
-    def test_metadata(self, example_directory, example_container):
-        pass
+#     @pytest.fixture(scope='function')
+#     def example_directory(self, clear_files):
+#         directory = os.path.join(config.fs.tmp, 'test_container')
+#         os.makedirs(directory, exist_ok=True)
 
-    def test_target(self, example_directory):
-        BaggedDataContainer.create(example_directory)
-        target = os.path.join(os.path.dirname(example_directory), 'different.zip')
-        container = ZippedDataContainer.create(example_directory, target=target)
-        self.assert_container(container)
-        with ZipFile(target, 'r') as zip_file:
-            for info in zip_file.filelist:
-                assert info.filename.startswith('different')
+#         with ZipFile(example_file) as zip_file:
+#             zip_file.extractall(directory)
 
+#         yield directory
 
-@pytest.fixture(scope='function', params=[False, True])
-def archive_config(monkeypatch, request):
-    new_config = config.FilesConfig(
-        config.files.uploads_bucket,
-        config.files.raw_bucket,
-        config.files.archive_bucket,
-        config.files.staging_bucket,
-        config.files.public_bucket,
-        request.param)
-    monkeypatch.setattr(config, 'files', new_config)
-    yield
+#     @pytest.fixture(scope='function')
+#     def example_container(self, example_directory):
+#         yield BaggedDataContainer.create(example_directory)
 
+#     def assert_container(self, container):
+#         assert container.manifest is not None
+#         assert len(container.manifest) == 5
+#         assert container.hash is not None
+#         assert container.metadata is not None
+#         for file_path in container.manifest:
+#             assert file_path.startswith('examples_template')
 
-@pytest.fixture(scope='function')
-def archive(clear_files, archive_config):
-    archive = ArchiveFile('__test_upload_hash/__test_calc_hash')
-    with archive.write_archive_json() as out:
-        json.dump(example_data, out)
-    yield archive
+#     def test_make(self, example_container):
+#         self.assert_container(example_container)
 
+#     def test_metadata(self, example_directory, example_container):
+#         example_container.metadata['test'] = dict(k1='v1', k2=True, k3=0)
+#         example_container.save_metadata()
 
-class TestArchiveFile:
+#         example_container = BaggedDataContainer(example_directory)
+#         self.assert_container(example_container)
+#         assert example_container.metadata['test']['k1'] == 'v1'
+#         assert example_container.metadata['test']['k2']
+#         assert example_container.metadata['test']['k3'] == 0
 
-    def test_archive(self, archive: ArchiveFile, no_warn):
-        assert archive.exists()
-
-        with archive.read_archive_json() as file:
-            result = json.load(file)
-
-        assert 'test_key' in result
-        assert result['test_key'] == 'test_value'
-
-    def test_delete_archive(self, archive: ArchiveFile, no_warn):
-        archive.delete()
-        assert not archive.exists()
-
-    def test_delete_archives(self, archive: ArchiveFile, no_warn):
-        ArchiveFile.delete_archives(archive.object_id.split('/')[0])
-        assert not archive.exists()
+#     def test_file(self, example_container):
+#         file = example_container.get_file('examples_template/template.json')
+#         assert file is not None
+#         with file.open('r') as f:
+#             assert json.load(f)
 
 
-class TestUploadFile:
+# class TestZippedDataContainer(TestBaggedDataContainer):
+#     @pytest.fixture(scope='function')
+#     def example_container(self, example_directory):
+#         BaggedDataContainer.create(example_directory)
+#         return ZippedDataContainer.create(example_directory)
 
-    @pytest.fixture()
-    def upload_same_file(self, clear_files):
-        upload = UploadFile('__test_upload_id2')
-        shutil.copyfile(example_file, upload.os_path)
-        yield upload
+#     def test_metadata(self, example_directory, example_container):
+#         pass
 
-    @pytest.fixture()
-    def upload(self, clear_files):
-        upload = UploadFile('__test_upload_id')
-        upload.create_dirs()
-        shutil.copyfile(example_file, upload.os_path)
-        yield upload
-
-    def assert_upload(self, upload: UploadFile):
-        assert upload.exists()
-
-        assert len(upload.filelist) == 5
-        has_json = False
-        for filename in upload.filelist:
-            the_file = upload.get_file(filename)
-            assert the_file.exists()
-            assert the_file.size >= 0
-            if the_file.path.endswith('.json'):
-                has_json = True
-                assert the_file.size > 0
-                with the_file.open() as f:
-                    f.read()
-                break
-        assert has_json
-
-    def test_upload_extracted(self, upload: UploadFile):
-        with upload:
-            self.assert_upload(upload)
-
-    def test_persist(self, upload: UploadFile):
-        with upload:
-            zipped_container = upload.persist()
-
-        assert zipped_container.exists()
-        assert zipped_container.os_path.endswith('%s.zip' % upload.upload_hash())
-
-    def test_delete_upload(self, upload: UploadFile):
-        upload.delete()
-        assert not upload.exists()
-
-    def test_hash(self, upload: UploadFile, upload_same_file: UploadFile, no_warn):
-        with upload:
-            hash = upload.upload_hash()
-            assert hash is not None
-            assert isinstance(hash, str)
-
-        with upload_same_file:
-            assert hash == upload_same_file.upload_hash()
-
-    def test_siblings(self, upload: UploadFile, no_warn):
-        with upload:
-            siblings = list(upload.get_siblings('examples_template/template.json'))
-            assert len(siblings) == 4
-            assert all(sibling.endswith('.aux') for sibling in siblings)
+#     def test_target(self, example_directory):
+#         BaggedDataContainer.create(example_directory)
+#         target = os.path.join(os.path.dirname(example_directory), 'different.zip')
+#         container = ZippedDataContainer.create(example_directory, target=target)
+#         self.assert_container(container)
+#         with ZipFile(target, 'r') as zip_file:
+#             for info in zip_file.filelist:
+#                 assert info.filename.startswith('different')
 
 
-class TestLocalUploadFile(TestUploadFile):
-    @pytest.fixture()
-    def upload_same_file(self, clear_files):
-        upload = UploadFile('__test_upload_id2', local_path=example_file)
-        yield upload
-
-    @pytest.fixture()
-    def upload(self, clear_files):
-        upload = UploadFile('__test_upload_id', local_path=example_file)
-        yield upload
-
-    def test_delete_upload(self, upload: UploadFile):
-        upload.delete()
-        assert upload.exists()
+# @pytest.fixture(scope='function', params=[False, True])
+# def archive_config(monkeypatch, request):
+#     new_config = config.FilesConfig(
+#         config.files.uploads_bucket,
+#         config.files.raw_bucket,
+#         config.files.archive_bucket,
+#         config.files.staging_bucket,
+#         config.files.public_bucket,
+#         request.param)
+#     monkeypatch.setattr(config, 'files', new_config)
+#     yield
 
 
-@pytest.fixture(scope='function')
-def archive_log(clear_files, archive_config):
-    archive_log = ArchiveLogFile('__test_upload_hash/__test_calc_hash')
-    with archive_log.open('wt') as f:
-        f.write('This is a test')
+# @pytest.fixture(scope='function')
+# def archive(clear_files, archive_config):
+#     archive = ArchiveFile('__test_upload_hash/__test_calc_hash')
+#     with archive.write_archive_json() as out:
+#         json.dump(example_data, out)
+#     yield archive
 
-    yield archive_log
+
+# class TestArchiveFile:
+
+#     def test_archive(self, archive: ArchiveFile, no_warn):
+#         assert archive.exists()
+
+#         with archive.read_archive_json() as file:
+#             result = json.load(file)
+
+#         assert 'test_key' in result
+#         assert result['test_key'] == 'test_value'
+
+#     def test_delete_archive(self, archive: ArchiveFile, no_warn):
+#         archive.delete()
+#         assert not archive.exists()
+
+#     def test_delete_archives(self, archive: ArchiveFile, no_warn):
+#         ArchiveFile.delete_archives(archive.object_id.split('/')[0])
+#         assert not archive.exists()
 
 
-class TestArchiveLogFile:
+# class TestUploadFile:
 
-    def test_archive_log_file(self, archive_log):
-        assert archive_log.exists()
-        with archive_log.open('rt') as f:
-            assert 'test' in f.read()
+#     @pytest.fixture()
+#     def upload_same_file(self, clear_files):
+#         upload = UploadFile('__test_upload_id2')
+#         shutil.copyfile(example_file, upload.os_path)
+#         yield upload
+
+#     @pytest.fixture()
+#     def upload(self, clear_files):
+#         upload = UploadFile('__test_upload_id')
+#         upload.create_dirs()
+#         shutil.copyfile(example_file, upload.os_path)
+#         yield upload
+
+#     def assert_upload(self, upload: UploadFile):
+#         assert upload.exists()
+
+#         assert len(upload.filelist) == 5
+#         has_json = False
+#         for filename in upload.filelist:
+#             the_file = upload.get_file(filename)
+#             assert the_file.exists()
+#             assert the_file.size >= 0
+#             if the_file.path.endswith('.json'):
+#                 has_json = True
+#                 assert the_file.size > 0
+#                 with the_file.open() as f:
+#                     f.read()
+#                 break
+#         assert has_json
+
+#     def test_upload_extracted(self, upload: UploadFile):
+#         with upload:
+#             self.assert_upload(upload)
+
+#     def test_persist(self, upload: UploadFile):
+#         with upload:
+#             zipped_container = upload.persist()
+
+#         assert zipped_container.exists()
+#         assert zipped_container.os_path.endswith('%s.zip' % upload.upload_hash())
+
+#     def test_delete_upload(self, upload: UploadFile):
+#         upload.delete()
+#         assert not upload.exists()
+
+#     def test_hash(self, upload: UploadFile, upload_same_file: UploadFile, no_warn):
+#         with upload:
+#             hash = upload.upload_hash()
+#             assert hash is not None
+#             assert isinstance(hash, str)
+
+#         with upload_same_file:
+#             assert hash == upload_same_file.upload_hash()
+
+#     def test_siblings(self, upload: UploadFile, no_warn):
+#         with upload:
+#             siblings = list(upload.get_siblings('examples_template/template.json'))
+#             assert len(siblings) == 4
+#             assert all(sibling.endswith('.aux') for sibling in siblings)
+
+
+# class TestLocalUploadFile(TestUploadFile):
+#     @pytest.fixture()
+#     def upload_same_file(self, clear_files):
+#         upload = UploadFile('__test_upload_id2', local_path=example_file)
+#         yield upload
+
+#     @pytest.fixture()
+#     def upload(self, clear_files):
+#         upload = UploadFile('__test_upload_id', local_path=example_file)
+#         yield upload
+
+#     def test_delete_upload(self, upload: UploadFile):
+#         upload.delete()
+#         assert upload.exists()
+
+
+# @pytest.fixture(scope='function')
+# def archive_log(clear_files, archive_config):
+#     archive_log = ArchiveLogFile('__test_upload_hash/__test_calc_hash')
+#     with archive_log.open('wt') as f:
+#         f.write('This is a test')
+
+#     yield archive_log
+
+
+# class TestArchiveLogFile:
+
+#     def test_archive_log_file(self, archive_log):
+#         assert archive_log.exists()
+#         with archive_log.open('rt') as f:
+#             assert 'test' in f.read()
