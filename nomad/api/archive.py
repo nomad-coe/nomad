@@ -24,7 +24,7 @@ from flask_restplus import abort, Resource
 
 import nomad_meta_info
 
-from nomad.uploads import UploadFiles, Restricted
+from nomad.files import UploadFiles, Restricted
 
 from .app import api
 from .auth import login_if_available, create_authorization_predicate

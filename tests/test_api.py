@@ -29,13 +29,13 @@ services_config.update(api_base_path='')
 config.services = config.NomadServicesConfig(**services_config)
 
 from nomad import api, coe_repo  # noqa
-from nomad.uploads import UploadFiles, PublicUploadFiles  # noqa
+from nomad.files import UploadFiles, PublicUploadFiles  # noqa
 from nomad.processing import Upload, Calc  # noqa
 from nomad.coe_repo import User  # noqa
 
 from tests.processing.test_data import example_files  # noqa
-from tests.test_uploads import example_file, example_file_mainfile, example_file_contents  # noqa
-from tests.test_uploads import create_staging_upload, create_public_upload  # noqa
+from tests.test_files import example_file, example_file_mainfile, example_file_contents  # noqa
+from tests.test_files import create_staging_upload, create_public_upload  # noqa
 
 # import fixtures
 from tests.test_normalizing import normalized_template_example  # noqa pylint: disable=unused-import

@@ -26,15 +26,15 @@ import os.path
 import json
 
 from nomad import utils
-from nomad.uploads import ArchiveBasedStagingUploadFiles, UploadFiles, StagingUploadFiles
+from nomad.files import ArchiveBasedStagingUploadFiles, UploadFiles, StagingUploadFiles
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator
 from nomad.repo import RepoUpload
 
-from tests.test_uploads import example_file, empty_file
+from tests.test_files import example_file, empty_file
 
 # import fixtures
-from tests.test_uploads import clear_files  # pylint: disable=unused-import
+from tests.test_files import clear_files  # pylint: disable=unused-import
 
 example_files = [empty_file, example_file]
 

@@ -23,7 +23,7 @@ import zipstream
 from flask import Response, request, send_file, stream_with_context
 from flask_restplus import abort, Resource, fields
 
-from nomad.uploads import UploadFiles, Restricted
+from nomad.files import UploadFiles, Restricted
 
 from .app import api
 from .auth import login_if_available, create_authorization_predicate

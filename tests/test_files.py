@@ -20,9 +20,9 @@ import pytest
 import json
 
 from nomad import config
-from nomad.uploads import DirectoryObject, PathObject
-from nomad.uploads import Metadata, MetadataTimeout, PublicMetadata, StagingMetadata
-from nomad.uploads import StagingUploadFiles, PublicUploadFiles, UploadFiles, Restricted, \
+from nomad.files import DirectoryObject, PathObject
+from nomad.files import Metadata, MetadataTimeout, PublicMetadata, StagingMetadata
+from nomad.files import StagingUploadFiles, PublicUploadFiles, UploadFiles, Restricted, \
     ArchiveBasedStagingUploadFiles
 
 

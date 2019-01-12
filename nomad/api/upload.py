@@ -26,7 +26,7 @@ import os.path
 from nomad import config, utils
 from nomad.processing import Upload
 from nomad.processing import NotAllowedDuringProcessing
-from nomad.uploads import ArchiveBasedStagingUploadFiles, StagingUploadFiles, UploadFiles
+from nomad.files import ArchiveBasedStagingUploadFiles, StagingUploadFiles, UploadFiles
 
 from .app import api, with_logger
 from .auth import login_really_required

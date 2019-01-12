@@ -28,7 +28,7 @@ from bravado.requests_client import RequestsClient
 from bravado.client import SwaggerClient
 
 from nomad import config, utils
-from nomad.uploads import ArchiveBasedStagingUploadFiles
+from nomad.files import ArchiveBasedStagingUploadFiles
 from nomad.parsing import parsers, parser_dict, LocalBackend
 from nomad.normalizing import normalizers
 

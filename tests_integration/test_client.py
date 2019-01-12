@@ -16,7 +16,7 @@ import pytest
 
 from nomad.client import create_client, upload_file
 
-from tests.test_uploads import example_file
+from tests.test_files import example_file
 
 
 @pytest.fixture(scope='session')

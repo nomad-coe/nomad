@@ -39,7 +39,7 @@ from flask import g, request, make_response
 from flask_restplus import abort, Resource
 from flask_httpauth import HTTPBasicAuth
 
-from nomad import config, processing, uploads, utils, coe_repo
+from nomad import config, processing, files, utils, coe_repo
 from nomad.coe_repo import User, LoginException
 
 from .app import app, api
@@ -170,7 +170,7 @@ def create_authorization_predicate(upload_hash, calc_hash=None):
             return str(g.user.user_id) == str(staging_upload.user_id)
 
         # There are no db entries for the given resource
-        if uploads.UploadFiles.get(upload_hash) is not None:
+        if files.UploadFiles.get(upload_hash) is not None:
             logger = utils.get_logger(__name__, upload_hash=upload_hash, calc_hash=calc_hash)
             logger.error('Upload files without respective db entry')
 

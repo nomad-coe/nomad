@@ -31,7 +31,7 @@ from structlog import wrap_logger
 from contextlib import contextmanager
 
 from nomad import utils, coe_repo, datamodel
-from nomad.uploads import PathObject, ArchiveBasedStagingUploadFiles
+from nomad.files import PathObject, ArchiveBasedStagingUploadFiles
 from nomad.repo import RepoCalc, RepoUpload
 from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parsers, parser_dict
