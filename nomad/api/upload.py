@@ -186,7 +186,7 @@ class UploadListResource(Resource):
 
         if not upload_files.is_valid:
             upload_files.delete()
-            upload.delete()
+            upload.delete(force=True)
             logger.info('Invalid upload')
             abort(400, message='Bad file format, excpected %s.' % ", ".join(upload_files.formats))
 

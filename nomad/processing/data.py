@@ -320,8 +320,8 @@ class Upload(Chord, datamodel.Upload):
         logger = logger.bind(upload_id=self.upload_id, **kwargs)
         return logger
 
-    def delete(self):
-        if not self.completed:
+    def delete(self, force: bool = False):
+        if not (self.completed or force):
             raise NotAllowedDuringProcessing()
 
         Calc.objects(upload_id=self.upload_id).delete()
