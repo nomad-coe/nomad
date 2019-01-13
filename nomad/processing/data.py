@@ -32,7 +32,6 @@ from contextlib import contextmanager
 
 from nomad import utils, coe_repo, datamodel
 from nomad.files import PathObject, ArchiveBasedStagingUploadFiles
-from nomad.repo import RepoCalc, RepoUpload
 from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parsers, parser_dict
 from nomad.normalizing import normalizers
@@ -177,6 +176,12 @@ class Calc(Proc, datamodel.Calc):
 
         self._parser_backend.closeNonOverlappingSection('section_calculation_info')
 
+        self._parser_backend.openNonOverlappingSection('section_repository_info')
+        self._parser_backend.addValue('repository_archive_gid', '%s/%s' % (self.upload_id, self.calc_id))
+        self._parser_backend.addValue(
+            'repository_filepaths', self.upload_files.calc_files(self.mainfile))
+        self._parser_backend.closeNonOverlappingSection('section_repository_info')
+
         self.add_processor_info(self.parser)
 
     @contextmanager
@@ -231,25 +236,9 @@ class Calc(Proc, datamodel.Calc):
     def archiving(self):
         logger = self.get_logger()
 
-        additional = dict(
-            mainfile=self.mainfile,
-            upload_time=self.upload.upload_time,
-            staging=True,
-            restricted=False,
-            user_id=self.upload.user_id,
-            aux_files=list(self.upload_files.calc_files(self.mainfile, with_mainfile=False)))
-
         # persist the repository metadata
         with utils.timer(logger, 'indexed', step='index'):
             self.upload_files.metadata.insert(self._parser_backend.metadata())
-
-        with utils.timer(logger, 'indexed', step='index'):
-            repo_calc = RepoCalc.create_from_backend(
-                self._parser_backend,
-                additional=additional,
-                calc_id=self.calc_id,
-                upload_id=self.upload_id)
-            repo_calc.persist()
 
         # persist the archive
         with utils.timer(
@@ -364,14 +353,11 @@ class Upload(Chord, datamodel.Upload):
         if not (self.completed or self.current_task == 'uploading'):
             raise NotAllowedDuringProcessing()
 
-        self.delete()
-
-        self.to(RepoUpload).unstage()
         coe_repo.Upload.add(self, meta_data)
-        self.save()
 
         self.upload_files.pack()
         self.upload_files.delete()
+        self.delete()
 
     @process
     def process(self):
@@ -404,11 +390,6 @@ class Upload(Chord, datamodel.Upload):
                 self.upload_files.extract()
         except KeyError:
             self.fail('process request for non existing upload', level=logging.ERROR)
-            return
-
-        # check if the file was already uploaded and processed before
-        if self.to(RepoUpload).exists():
-            self.fail('The same file was already uploaded and processed.', level=logging.INFO)
             return
 
     def match_mainfiles(self) -> Generator[Tuple[str, object], None, None]:

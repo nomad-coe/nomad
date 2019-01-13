@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from nomad.parsing import BadContextURI
+
 from .normalizer import Normalizer
 
 
@@ -24,13 +26,20 @@ class RepositoryNormalizer(Normalizer):
         super().normalize(logger)
         b = self._backend
 
-        b.openNonOverlappingSection('section_repository_info')
+        repository_info_context = '/section_repository_info/0'
+        try:
+            b.openContext(repository_info_context)
+        except BadContextURI:
+            b.openNonOverlappingSection('section_repository_info')
+            repository_info_context = None
+
         b.openNonOverlappingSection('section_repository_parserdata')
 
         b.addValue('repository_checksum', b.get_value('calc_hash', 0))
         b.addValue('repository_chemical_formula', b.get_value('chemical_composition_bulk_reduced', 0))
         b.addValue('repository_parser_id', b.get_value('parser_name', 0))
         atoms = b.get_value('atom_labels', 0)
+        # TODO make list unique?
         b.addValue('repository_atomic_elements', atoms)
         b.addValue('repository_atomic_elements_count', len(atoms))
         b.addValue('repository_basis_set_type', b.get_value('program_basis_set_type', 0))
@@ -44,5 +53,8 @@ class RepositoryNormalizer(Normalizer):
         b.addValue('repository_xc_treatment', b.get_value('XC_functional_name', 0))
 
         b.closeNonOverlappingSection('section_repository_parserdata')
-        b.closeNonOverlappingSection('section_repository_info')
+        if repository_info_context is None:
+            b.closeNonOverlappingSection('section_repository_info')
+        else:
+            b.closeContext(repository_info_context)
         b.finishedParsingSession("ParseSuccess", None)

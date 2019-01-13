@@ -36,7 +36,7 @@ almost readonly (beside metadata) storage.
 """
 
 from abc import ABCMeta
-from typing import IO, Generator, Dict, Iterator, Iterable, Callable
+from typing import IO, Generator, Dict, Iterator, Iterable, Callable, List
 import ujson
 import os.path
 import os
@@ -48,7 +48,7 @@ import base64
 import io
 import gzip
 
-from nomad import config, utils
+from nomad import config, utils, datamodel
 
 
 class PathObject:
@@ -335,6 +335,8 @@ class StagingUploadFiles(UploadFiles):
 
     @property
     def metadata(self) -> StagingMetadata:
+        if not self._is_authorized():
+            raise Restricted
         return self._metadata
 
     def _file(self, path_object: PathObject, *args, **kwargs) -> IO:
@@ -492,7 +494,8 @@ class StagingUploadFiles(UploadFiles):
     def calc_files(self, mainfile: str, with_mainfile: bool = True) -> Iterable[str]:
         """
         Returns all the auxfiles and mainfile for a given mainfile. This implements
-        nomad's logic about what is part of a calculation and what not.
+        nomad's logic about what is part of a calculation and what not. The mainfile
+        is first entry, the rest is sorted.
         Arguments:
             mainfile: The mainfile relative to upload
             with_mainfile: Do include the mainfile, default is True
@@ -501,12 +504,16 @@ class StagingUploadFiles(UploadFiles):
         if not mainfile_object.exists():
             raise KeyError()
 
-        mainfile = os.path.basename(mainfile)
+        mainfile_basename = os.path.basename(mainfile)
         calc_dir = os.path.dirname(mainfile_object.os_path)
         calc_relative_dir = calc_dir[len(self._raw_dir.os_path) + 1:]
-        return sorted(
+        aux_files = sorted(
             os.path.join(calc_relative_dir, path) for path in os.listdir(calc_dir)
-            if os.path.isfile(os.path.join(calc_dir, path)) and (with_mainfile or path != mainfile))
+            if os.path.isfile(os.path.join(calc_dir, path)) and path != mainfile_basename)
+        if with_mainfile:
+            return [mainfile] + aux_files
+        else:
+            return aux_files
 
     def _websave_hash(self, hash: bytes, length: int = 0) -> str:
         if length > 0:
@@ -650,3 +657,68 @@ class PublicUploadFiles(UploadFiles):
         the restrictions on calculations. This is potentially a long running operation.
         """
         pass
+
+
+class Calc(datamodel.Calc):
+    @classmethod
+    def load_from(cls, obj):
+        return Calc(obj.upload.upload_id, obj.calc_id)
+
+    def __init__(self, upload_id: str, calc_id: str) -> None:
+        self._calc_id = calc_id
+        upload_files = UploadFiles.get(upload_id, is_authorized=lambda: True)
+        if upload_files is None:
+            raise KeyError
+        self._data = upload_files.metadata.get(calc_id)
+
+    @property
+    def calc_data(self) -> dict:
+        return self._data['section_repository_info']['section_repository_parserdata']
+
+    @property
+    def calc_id(self) -> str:
+        return self._calc_id
+
+    @property
+    def mainfile(self) -> str:
+        return self.files[0]
+
+    @property
+    def files(self) -> List[str]:
+        return self._data['section_repository_info']['repository_filepaths']
+
+    @property
+    def program_name(self) -> str:
+        return self.calc_data['repository_program_name']
+
+    @property
+    def program_version(self) -> str:
+        return self.calc_data['repository_code_version']
+
+    @property
+    def chemical_composition(self) -> str:
+        return self.calc_data['repository_chemical_formula']
+
+    @property
+    def space_group_number(self) -> int:
+        return self.calc_data['repository_spacegroup_nr']
+
+    @property
+    def atom_species(self) -> list:
+        return self.calc_data['repository_atomic_elements']
+
+    @property
+    def system_type(self) -> str:
+        return self.calc_data['repository_system_type']
+
+    @property
+    def XC_functional_name(self) -> str:
+        return self.calc_data['repository_xc_treatment']
+
+    @property
+    def crystal_system(self) -> str:
+        return self.calc_data['repository_crystal_system']
+
+    @property
+    def basis_set_type(self) -> str:
+        return self.calc_data['repository_basis_set_type']

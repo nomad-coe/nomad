@@ -39,7 +39,7 @@ example_files = [empty_file, example_file]
 
 
 @pytest.fixture(scope='function', autouse=True)
-def mocks_forall(mocksearch, mockmongo):
+def mocks_forall(mockmongo):
     pass
 
 
@@ -81,7 +81,7 @@ def processed_upload(uploaded_id, test_user, worker, no_warn) -> Upload:
     return run_processing(uploaded_id, test_user)
 
 
-def assert_processing(upload: Upload, mocksearch=None):
+def assert_processing(upload: Upload):
     assert upload.completed
     assert upload.current_task == 'cleanup'
     assert upload.upload_id is not None
@@ -108,26 +108,19 @@ def assert_processing(upload: Upload, mocksearch=None):
         with upload_files.raw_file(calc.mainfile) as f:
             f.read()
 
-        if mocksearch:
-            repo = mocksearch[calc.calc_id]
-            assert repo is not None
-            assert repo.chemical_composition is not None
-            assert repo.basis_set_type is not None
-            assert len(repo.aux_files) == 4
-
         assert upload_files.metadata.get(calc.calc_id) is not None
 
 
 # @pytest.mark.timeout(30)
-def test_processing(uploaded_id, worker, mocksearch, test_user, no_warn):
+def test_processing(uploaded_id, worker, test_user, no_warn):
     upload = run_processing(uploaded_id, test_user)
-    assert_processing(upload, mocksearch)
+    assert_processing(upload)
 
 
 @pytest.mark.timeout(30)
-def test_processing_with_warning(uploaded_id_with_warning, worker, test_user, mocksearch):
+def test_processing_with_warning(uploaded_id_with_warning, worker, test_user):
     upload = run_processing(uploaded_id_with_warning, test_user)
-    assert_processing(upload, mocksearch)
+    assert_processing(upload)
 
 
 @pytest.mark.timeout(30)

@@ -339,7 +339,7 @@ class TestStagingUploadFiles(UploadFilesContract):
             calc_files = test_upload.calc_files(mainfile, with_mainfile=with_mainfile)
             assert len(list(calc_files)) == len(example_file_contents) - 0 if with_mainfile else 1
             if with_mainfile:
-                for one, two in zip(calc_files, sorted(example_file_contents)):
+                for one, two in zip(calc_files, [mainfile] + sorted(example_file_contents[1:])):
                     assert one.endswith(two)
                     assert one.startswith(mainfile[:3])
 

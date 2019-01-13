@@ -155,7 +155,7 @@ class TestAuth:
 class TestUploads:
 
     @pytest.fixture(scope='function')
-    def proc_infra(self, repository_db, mocksearch, worker, no_warn):
+    def proc_infra(self, repository_db, worker, no_warn):
         return dict(repository_db=repository_db)
 
     def assert_uploads(self, upload_json_str, count=0, **kwargs):

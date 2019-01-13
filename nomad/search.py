@@ -16,10 +16,16 @@
 This module represents calculations in elastic search.
 """
 
+from elasticsearch.exceptions import ConflictError, ConnectionTimeout
+from datetime import datetime
+import time
 from elasticsearch_dsl import Document, InnerDoc, Keyword, Text, Long, Integer, Date, \
     Nested
 
-from nomad import config, datamodel, coe_repo
+from nomad import config, datamodel, coe_repo, infrastructure, datamodel
+
+
+class AlreadyExists(Exception): pass
 
 
 class UserData(InnerDoc):
@@ -78,7 +84,7 @@ class CalcData(InnerDoc):
     repository_xc_treatment = Keyword(store=True)
 
 
-class Calc(InnerDoc, datamodel.Entity):
+class Calc(InnerDoc):
     main_file_uri = Keyword()
     secondary_file_uris = Keyword()
     repository_filepaths = Keyword(index=False)
@@ -100,15 +106,80 @@ class Calc(InnerDoc, datamodel.Entity):
         uploader_name=Text()
     ))
 
-    @staticmethod
-    def create_from(source: datamodel.Calc):
-        coe_calc = source.to(coe_repo.Calc)
-        calc = Calc()
-        calc.main_file_uri = coe_calc.mainfile
 
-
-class Entry(Document):
+class Entry(Document, datamodel.Entity):
     class Index:
         name = config.elastic.coe_repo_calcs_index_name
 
+    calc_id = Keyword()
+    upload_id = Keyword()
     section_repository_info = Nested(Calc)
+
+    def __init__(self, upload_id: str, calc_id: str) -> None:
+        super().__init__(meta=dict(id=calc_id))
+        self.calc_id = calc_id
+        self.upload_id = upload_id
+
+    def persist(self, **kwargs):
+        """
+            Persist this entry to elastic search. Kwargs are passed to elastic search.
+
+            Raises:
+                AlreadyExists: If the calculation already exists in elastic search. We use
+                    the elastic document lock here. The elastic document is IDed via the
+                    ``calc_id``.
+        """
+        try:
+            # In practive es operation might fail due to timeout under heavy loads/
+            # bad configuration. Retries with a small delay is a pragmatic solution.
+            e_after_retries = None
+            for _ in range(0, 2):
+                try:
+                    self.save(op_type='create', **kwargs)
+                    e_after_retries = None
+                    break
+                except ConnectionTimeout as e:
+                    e_after_retries = e
+                    time.sleep(1)
+                except ConflictError as e:  # this should never happen, but happens
+                    e_after_retries = e
+                    time.sleep(1)
+                else:
+                    raise e
+            if e_after_retries is not None:
+                # if we had and exception and could not fix with retries, throw it
+                raise e_after_retries  # pylint: disable=E0702
+        except ConflictError:
+            raise AlreadyExists('Calculation %s/%s does already exist.' % (self.upload_id, self.calc_id))
+
+    @classmethod
+    def update_by_query(cls, upload_id, script):
+        """ Update all entries of a given upload via elastic script. """
+        index = cls._default_index()
+        doc_type = cls._doc_type.name
+        conn = cls._get_connection()
+        body = {
+            'script': script,
+            'query': {
+                'match': {
+                    'upload_id': upload_id
+                }
+            }
+        }
+        conn.update_by_query(index, doc_type=[doc_type], body=body)
+
+    @staticmethod
+    def es_search(body):
+        """ Perform an elasticsearch and not elasticsearch_dsl search on the Calc index. """
+        return infrastructure.elastic_client.search(index=config.elastic.index_name, body=body)
+
+    @property
+    def json_dict(self):
+        """ A json serializable dictionary representation. """
+        data = self.to_dict()
+
+        upload_time = data.get('upload_time', None)
+        if upload_time is not None and isinstance(upload_time, datetime):
+            data['upload_time'] = data['upload_time'].isoformat()
+
+        return {key: value for key, value in data.items() if value is not None}

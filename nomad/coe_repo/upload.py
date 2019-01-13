@@ -43,12 +43,11 @@ This module also provides functionality to add parsed calculation data to the db
 """
 
 from typing import Type
-import itertools
 import datetime
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-from nomad import utils, infrastructure, datamodel
-from nomad.repo import RepoUpload, RepoCalc
+
+from nomad import utils, infrastructure, datamodel, files
 
 from .user import User
 from .calc import Calc
@@ -155,9 +154,9 @@ class Upload(Base, datamodel.Upload):  # type: ignore
 
             # add calculations and metadata
             has_calcs = False
-            for calc in upload.to(RepoUpload).calcs:
+            for calc in upload.calcs:
                 has_calcs = True
-                coe_upload._add_calculation(calc.to(RepoCalc), upload_meta_data.get(calc.mainfile))
+                coe_upload._add_calculation(calc.to(files.Calc), upload_meta_data.get(calc.mainfile))
 
             # commit
             if has_calcs:
@@ -176,7 +175,7 @@ class Upload(Base, datamodel.Upload):  # type: ignore
 
         return result
 
-    def _add_calculation(self, calc: RepoCalc, calc_meta_data: dict) -> None:
+    def _add_calculation(self, calc: files.Calc, calc_meta_data: dict) -> None:
         repo_db = infrastructure.repository_db
 
         # table based properties
@@ -192,13 +191,11 @@ class Upload(Base, datamodel.Upload):  # type: ignore
             code_version = CodeVersion(content=program_version)
             repo_db.add(code_version)
 
-        filenames = itertools.chain([calc.mainfile], calc.aux_files)
-
         metadata = CalcMetaData(
             calc=coe_calc,
             added=calc_meta_data.get('_upload_time', self.upload_time),
             chemical_formula=calc.chemical_composition,
-            filenames=('[%s]' % ','.join(['"%s"' % filename for filename in filenames])).encode('utf-8'),
+            filenames=('[%s]' % ','.join(['"%s"' % filename for filename in calc.files])).encode('utf-8'),
             location=calc.mainfile,
             version=code_version)
         repo_db.add(metadata)

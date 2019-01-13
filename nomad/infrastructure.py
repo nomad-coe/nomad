@@ -84,8 +84,6 @@ def setup_elastic():
     logger.info('setup elastic connection')
 
     try:
-        from nomad.repo import RepoCalc
-        RepoCalc.init()
         from nomad.search import Entry
         Entry.init()
     except RequestError as e:
@@ -178,8 +176,8 @@ def reset():
         if not elastic_client:
             setup_elastic()
         elastic_client.indices.delete(index=config.elastic.index_name)
-        from nomad.repo import RepoCalc
-        RepoCalc.init()
+        from nomad.search import Entry
+        Entry.init()
         logger.info('elastic index resetted')
     except Exception as e:
         logger.error('exception resetting elastic', exc_info=e)

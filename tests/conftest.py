@@ -142,36 +142,36 @@ def admin_user(repository_db):
     return coe_repo.admin_user()
 
 
-@pytest.fixture(scope='function')
-def mocksearch(monkeypatch):
-    uploads_by_id = {}
-    by_archive_id = {}
+# @pytest.fixture(scope='function')
+# def mocksearch(monkeypatch):
+#     uploads_by_id = {}
+#     by_archive_id = {}
 
-    def persist(calc):
-        uploads_by_id.setdefault(calc.upload_id, []).append(calc)
-        by_archive_id[calc.calc_id] = calc
+#     def persist(calc):
+#         uploads_by_id.setdefault(calc.upload_id, []).append(calc)
+#         by_archive_id[calc.calc_id] = calc
 
-    def upload_exists(self):
-        return self.upload_id in uploads_by_id
+#     def upload_exists(self):
+#         return self.upload_id in uploads_by_id
 
-    def upload_delete(self):
-        upload_id = self.upload_id
-        if upload_id in uploads_by_id:
-            for calc in uploads_by_id[upload_id]:
-                del(by_archive_id[calc.calc_id])
-            del(uploads_by_id[upload_id])
+#     def upload_delete(self):
+#         upload_id = self.upload_id
+#         if upload_id in uploads_by_id:
+#             for calc in uploads_by_id[upload_id]:
+#                 del(by_archive_id[calc.calc_id])
+#             del(uploads_by_id[upload_id])
 
-    @property
-    def upload_calcs(self):
-        return uploads_by_id.get(self.upload_id, [])
+#     @property
+#     def upload_calcs(self):
+#         return uploads_by_id.get(self.upload_id, [])
 
-    monkeypatch.setattr('nomad.repo.RepoCalc.persist', persist)
-    monkeypatch.setattr('nomad.repo.RepoUpload.exists', upload_exists)
-    monkeypatch.setattr('nomad.repo.RepoUpload.delete', upload_delete)
-    monkeypatch.setattr('nomad.repo.RepoUpload.calcs', upload_calcs)
-    monkeypatch.setattr('nomad.repo.RepoUpload.unstage', lambda *args, **kwargs: None)
+#     monkeypatch.setattr('nomad.repo.RepoCalc.persist', persist)
+#     monkeypatch.setattr('nomad.repo.RepoUpload.exists', upload_exists)
+#     monkeypatch.setattr('nomad.repo.RepoUpload.delete', upload_delete)
+#     monkeypatch.setattr('nomad.repo.RepoUpload.calcs', upload_calcs)
+#     monkeypatch.setattr('nomad.repo.RepoUpload.unstage', lambda *args, **kwargs: None)
 
-    return by_archive_id
+#     return by_archive_id
 
 
 @pytest.fixture(scope='function')
