@@ -139,7 +139,6 @@ async function archive(uploadId, calcId) {
 
 async function calcProcLog(uploadId, calcId) {
   const client = await swaggerPromise
-  console.log(uploadId + calcId)
   return client.apis.archive.get_archive_logs({
     upload_id: uploadId,
     calc_id: calcId
@@ -216,17 +215,23 @@ async function getMetaInfo() {
         .catch(handleJsonErrors)
         .then(data => {
           if (!cachedMetaInfo) {
-            cachedMetaInfo = {}
+            cachedMetaInfo = {
+              loadedDependencies: {}
+            }
           }
-          if (data.dependencies) {
-            data.dependencies.forEach(dep => {
-              loadMetaInfo(dep.relativePath)
-            })
-          }
+          cachedMetaInfo.loadedDependencies[path] = true
           if (data.metaInfos) {
             data.metaInfos.forEach(info => {
               cachedMetaInfo[info.name] = info
+              info.relativePath = path
             })
+          }
+          if (data.dependencies) {
+            data.dependencies
+              .filter(dep => cachedMetaInfo.loadedDependencies[dep.relativePath] !== true)
+              .forEach(dep => {
+                loadMetaInfo(dep.relativePath)
+              })
           }
         })
     }
