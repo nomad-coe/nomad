@@ -321,8 +321,9 @@ class Upload(Chord, datamodel.Upload):
         return logger
 
     def delete(self):
-        if not (self.completed or self.current_task == 'uploading'):
+        if not self.completed:
             raise NotAllowedDuringProcessing()
+
         Calc.objects(upload_id=self.upload_id).delete()
         super().delete()
 
@@ -350,7 +351,7 @@ class Upload(Chord, datamodel.Upload):
     def unstage(self, meta_data):
         self.get_logger().info('unstage')
 
-        if not (self.completed or self.current_task == 'uploading'):
+        if not self.completed:
             raise NotAllowedDuringProcessing()
 
         coe_repo.Upload.add(self, meta_data)
