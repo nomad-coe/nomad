@@ -79,7 +79,7 @@ class RepoCalcsResource(Resource):
 
         This is currently not implemented!
         """
-        return [], 200
+        return dict(pagination=dict(total=0, page=1, per_page=10), results=[]), 200
         # page = int(request.args.get('page', 1))
         # per_page = int(request.args.get('per_page', 10))
         # owner = request.args.get('owner', 'all')

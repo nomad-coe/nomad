@@ -166,7 +166,7 @@ class Repo extends React.Component {
                     <TableCell padding="dense" key={rowIndex}>{calc[key]}</TableCell>
                   ))}
                   <TableCell padding="dense">
-                    <CalcLinks uploadHash={calc.upload_hash} calcHash={calc.calc_hash} />
+                    <CalcLinks uploadId={calc.upload_id} calcId={calc.calc_id} />
                   </TableCell>
                 </TableRow>
               ))}

@@ -58,7 +58,7 @@ class ArchiveCalcLogResource(Resource):
 
         try:
             return send_file(
-                upload_files.archive_log_file(calc_id, 'rt'),
+                upload_files.archive_log_file(calc_id, 'rb'),
                 mimetype='text/plain',
                 as_attachment=True,
                 attachment_filename='%s.log' % archive_id)
@@ -91,7 +91,7 @@ class ArchiveCalcResource(Resource):
 
         try:
             return send_file(
-                upload_file.archive_file(calc_id, 'rt'),
+                upload_file.archive_file(calc_id, 'rb'),
                 mimetype='application/json',
                 as_attachment=True,
                 attachment_filename='%s.json' % archive_id)

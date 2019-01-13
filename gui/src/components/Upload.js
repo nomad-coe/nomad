@@ -80,7 +80,7 @@ class Upload extends React.Component {
       orderBy: 'status',
       order: 'asc'
     },
-    archiveLogs: null, // { uploadHash, calcHash } ids of archive to show logs for
+    archiveLogs: null, // { uploadId, calcId } ids of archive to show logs for
     loading: true, // its loading data from the server and the user should know about it
     updating: true // it is still not complete and continieusly looking for updates
   }
@@ -292,7 +292,7 @@ class Upload extends React.Component {
     }
 
     const renderRow = (calc, index) => {
-      const { mainfile, calc_hash, upload_hash, parser, tasks, current_task, status, errors } = calc
+      const { mainfile, calc_id, upload_id, parser, tasks, current_task, status, errors } = calc
       const color = status === 'FAILURE' ? 'error' : 'default'
       const row = (
         <TableRow key={index}>
@@ -301,7 +301,7 @@ class Upload extends React.Component {
               {mainfile}
             </Typography>
             <Typography variant="caption" color={color}>
-              {upload_hash}/{calc_hash}
+              {upload_id}/{calc_id}
             </Typography>
           </TableCell>
           <TableCell>
@@ -324,7 +324,7 @@ class Upload extends React.Component {
             <Typography color={color}>
               {(status === 'SUCCESS' || status === 'FAILURE')
                 ?
-                  <a className={classes.logLink} href="#logs" onClick={() => this.setState({archiveLogs: { uploadHash: upload_hash, calcHash: calc_hash }})}>
+                  <a className={classes.logLink} href="#logs" onClick={() => this.setState({archiveLogs: { uploadId: upload_id, calcId: calc_id }})}>
                   {status.toLowerCase()}
                   </a>
                 : status.toLowerCase()
@@ -332,14 +332,14 @@ class Upload extends React.Component {
             </Typography>
           </TableCell>
           <TableCell>
-            <CalcLinks uploadHash={upload_hash} calcHash={calc_hash} disabled={status !== 'SUCCESS'} />
+            <CalcLinks uploadId={upload_id} calcId={calc_id} disabled={status !== 'SUCCESS'} />
           </TableCell>
         </TableRow>
       )
 
       if (status === 'FAILURE') {
         return (
-          <Tooltip key={calc_hash} title={errors.map((error, index) => (<p key={`${calc_hash}-${index}`}>{error}</p>))}>
+          <Tooltip key={calc_id} title={errors.map((error, index) => (<p key={`${calc_id}-${index}`}>{error}</p>))}>
             {row}
           </Tooltip>
         )
@@ -415,8 +415,8 @@ class Upload extends React.Component {
           onClose={() => this.setState({archiveLogs: null})}
           anchorEl={window.parent.document.documentElement.firstElementChild}
           raiseError={this.props.raiseError}
-          uploadHash={this.state.archiveLogs.uploadHash}
-          calcHash={this.state.archiveLogs.calcHash}
+          uploadId={this.state.archiveLogs.uploadId}
+          calcId={this.state.archiveLogs.calcId}
         />
       )
     } else {
