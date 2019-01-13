@@ -28,8 +28,7 @@ almost readonly (beside metadata) storage.
                        /.frozen
                        /.public
                        /.restricted
-    fs/public/<upload>/metadata.json
-                      /metadata.json.lock
+    fs/public/<upload>/metadata.json.gz
                       /raw-public.bagit.zip
                       /raw-restricted.bagit.zip
                       /archive-public.hdf5.zip
@@ -38,7 +37,6 @@ almost readonly (beside metadata) storage.
 
 from abc import ABCMeta
 from typing import IO, Generator, Dict, Iterator, Iterable, Callable
-from filelock import Timeout, FileLock
 import ujson
 import os.path
 import os
@@ -48,6 +46,7 @@ from bagit import make_bag
 import hashlib
 import base64
 import io
+import gzip
 
 from nomad import config, utils
 
@@ -125,29 +124,8 @@ class MetadataTimeout(Exception):
 
 class Metadata(metaclass=ABCMeta):
     """
-    An ABC for a contextmanager that encapsulates access to a set of calc metadata.
-    Allows to add, update, read metadata. Subclasses might deal with concurrent access.
+    An ABC for upload metadata classes that encapsulates access to a set of calc metadata.
     """
-    def __enter__(self) -> 'Metadata':
-        return self
-
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        return None
-
-    def open(self):
-        pass
-
-    def close(self):
-        pass
-
-    def insert(self, calc: dict) -> None:
-        """ Insert a calc, using calc_id as key. """
-        raise NotImplementedError()
-
-    def update(self, calc_id: str, updates: dict) -> dict:
-        """ Updating a calc, using calc_id as key and running dict update with the given data. """
-        raise NotImplementedError()
-
     def get(self, calc_id: str) -> dict:
         """ Retrive the calc metadata for a given calc. """
         raise NotImplementedError()
@@ -169,19 +147,14 @@ class StagingMetadata(Metadata):
     def __init__(self, directory: DirectoryObject) -> None:
         self._dir = directory
 
-    def __enter__(self) -> 'Metadata':
-        return self
-
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        return None
-
-    def open(self):
-        pass
-
-    def close(self):
-        pass
+    def remove(self, calc: dict) -> None:
+        id = calc['calc_id']
+        path = self._dir.join_file('%s.json' % id)
+        assert path.exists()
+        os.remove(path.os_path)
 
     def insert(self, calc: dict) -> None:
+        """ Insert a calc, using calc_id as key. """
         id = calc['calc_id']
         path = self._dir.join_file('%s.json' % id)
         assert not path.exists()
@@ -189,6 +162,7 @@ class StagingMetadata(Metadata):
             ujson.dump(calc, f)
 
     def update(self, calc_id: str, updates: dict) -> dict:
+        """ Updating a calc, using calc_id as key and running dict update with the given data. """
         metadata = self.get(calc_id)
         metadata.update(updates)
         path = self._dir.join_file('%s.json' % calc_id)
@@ -215,51 +189,28 @@ class StagingMetadata(Metadata):
 
 class PublicMetadata(Metadata):
     """
-    A Metadata implementation based on a single .json file. It loads and write
-    the metadata to the given path and uses a lock to deal with concurrent access.
+    A Metadata implementation based on a single .json file.
 
     Arguments:
         path: The parent directory for the metadata and lock file.
-        lock_timeout: Max timeout before __enter__ raises MetadataTimeout while waiting
-            for an available lock on the metadata file. Default is 1s.
     """
     def __init__(self, path: str, lock_timeout=1) -> None:
-        self._db_file = os.path.join(path, 'metadata.json')
-        self._lock_file = os.path.join(path, 'metadata.json.lock')
-        self._lock: FileLock = FileLock(self._lock_file, timeout=lock_timeout)
+        self._db_file = os.path.join(path, 'metadata.json.gz')
         self._modified = False
-        self.data: Dict[str, dict] = None
+        self._data: Dict[str, dict] = None
 
-    def __enter__(self) -> 'Metadata':
-        self.open()
-        return self
+    @property
+    def data(self):
+        if self._data is None:
+            with gzip.open(self._db_file, 'rt') as f:
+                self._data = ujson.load(f)
+        return self._data
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        self.close()
-        return None
-
-    def open(self):
-        assert self.data is None, "Metadata is already open."
-
-        try:
-            self._lock.acquire()
-        except Timeout:
-            raise MetadataTimeout()
-
-        if os.path.exists(self._db_file):
-            with open(self._db_file, 'rt') as f:
-                self.data = ujson.load(f)
-        else:
-            self.data = {}
-            self._modified = True
-
-    def close(self):
-        assert self.data is not None, "Metadata is not open."
-        if self._modified:
-            with open(self._db_file, 'wt') as f:
-                ujson.dump(self.data, f, ensure_ascii=False)
-        self.data = None
-        self._lock.release()
+    def _create(self, calcs: Iterable[dict]) -> None:
+        assert not os.path.exists(self._db_file) and self._data is None
+        self._data = {data['calc_id']: data for data in calcs}
+        with gzip.open(self._db_file, 'wt') as f:
+            ujson.dump(self._data, f)
 
     def insert(self, calc: dict) -> None:
         assert self.data is not None, "Metadata is not open."
@@ -270,25 +221,15 @@ class PublicMetadata(Metadata):
         self._modified = True
 
     def update(self, calc_id: str, updates: dict) -> dict:
-        assert self.data is not None, "Metadata is not open."
-        if calc_id not in self.data:
-            raise KeyError()
-
-        self.data[calc_id].update(updates)
-        self._modified = True
-        return self.data[calc_id]
+        raise NotImplementedError
 
     def get(self, calc_id: str) -> dict:
-        assert self.data is not None, "Metadata is not open."
-
         return self.data[calc_id]
 
     def __iter__(self) -> Iterator[dict]:
-        assert self.data is not None, "Metadata is not open."
         return self.data.values().__iter__()
 
     def __len__(self) -> int:
-        assert self.data is not None, "Metadata is not open."
         return len(self.data)
 
 
@@ -393,7 +334,7 @@ class StagingUploadFiles(UploadFiles):
         return self._size
 
     @property
-    def metadata(self) -> Metadata:
+    def metadata(self) -> StagingMetadata:
         return self._metadata
 
     def _file(self, path_object: PathObject, *args, **kwargs) -> IO:
@@ -532,9 +473,8 @@ class StagingUploadFiles(UploadFiles):
         archive_public_zip.close()
 
         # pack metadata
-        with PublicMetadata(packed_dir.os_path) as packed_metadata:
-            for calc in self.metadata:
-                packed_metadata.insert(calc)
+        packed_metadata = PublicMetadata(packed_dir.os_path)
+        packed_metadata._create(self._metadata)
 
         # move to public bucket
         target_dir = DirectoryObject(config.files.public_bucket, self.upload_id, create=False, prefix=True)

@@ -239,8 +239,8 @@ class Calc(Proc, datamodel.Calc):
             user_id=self.upload.user_id,
             aux_files=list(self.upload_files.calc_files(self.mainfile, with_mainfile=False)))
 
+        # persist the repository metadata
         with utils.timer(logger, 'indexed', step='index'):
-            # persist to elastic search
             repo_calc = RepoCalc.create_from_backend(
                 self._parser_backend,
                 additional=additional,
@@ -248,11 +248,10 @@ class Calc(Proc, datamodel.Calc):
                 upload_id=self.upload_id)
             repo_calc.persist()
 
+        # persist the archive
         with utils.timer(
                 logger, 'archived', step='archive',
                 input_size=self.mainfile_file.size) as log_data:
-
-            # persist the archive
             with self.upload_files.archive_file(self.calc_id, 'wt') as out:
                 self._parser_backend.write_json(out, pretty=True)
 

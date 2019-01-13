@@ -21,7 +21,7 @@ import json
 
 from nomad import config
 from nomad.files import DirectoryObject, PathObject
-from nomad.files import Metadata, MetadataTimeout, PublicMetadata, StagingMetadata
+from nomad.files import Metadata, PublicMetadata, StagingMetadata
 from nomad.files import StagingUploadFiles, PublicUploadFiles, UploadFiles, Restricted, \
     ArchiveBasedStagingUploadFiles
 
@@ -127,48 +127,13 @@ class MetadataContract:
     def md(self, test_dir):
         raise NotImplementedError()
 
-    def test_open_empty(self, md):
-        pass
-
-    def test_insert(self, md: Metadata):
-        md.insert(example_calc)
-        assert len(md) == 1
-        assert_example_calc(md.get(example_calc_id))
-
-    def test_insert_fail(self, md: Metadata):
-        failed = False
-        md.insert(example_calc)
-        try:
-            md.insert(example_calc)
-        except Exception:
-            failed = True
-
-        assert failed
-        assert len(md) == 1
-
-    def test_update(self, md: Metadata):
-        md.insert(example_calc)
-        md.update(example_calc_id, dict(data='updated'))
-        assert len(md) == 1
-        assert md.get(example_calc_id)['data'] == 'updated'
-
-    def test_update_fail(self, md: Metadata):
-        failed = False
-        try:
-            md.update(example_calc_id, dict(data='updated'))
-        except KeyError:
-            failed = True
-        assert failed
-        assert len(md) == 0
-
     def test_get(self, md: Metadata):
-        md.insert(example_calc)
         assert_example_calc(md.get(example_calc_id))
 
     def test_get_fail(self, md: Metadata):
         failed = False
         try:
-            md.get(example_calc_id)
+            md.get('unknown')
         except KeyError:
             failed = True
         assert failed
@@ -177,26 +142,57 @@ class MetadataContract:
 class TestStagingMetadata(MetadataContract):
     @pytest.fixture(scope='function')
     def md(self, test_dir):
-        with StagingMetadata(DirectoryObject(None, None, os_path=test_dir)) as md:
-            yield md
+        md = StagingMetadata(DirectoryObject(None, None, os_path=test_dir))
+        md.insert(example_calc)
+        return md
+
+    def test_remove(self, md: StagingMetadata):
+        md.remove(example_calc)
+        failed = False
+        try:
+            assert md.get(example_calc['calc_id'])
+        except KeyError:
+            failed = True
+        assert failed
+
+    def test_insert(self, md: StagingMetadata):
+        md.remove(example_calc)
+        md.insert(example_calc)
+        assert len(md) == 1
+        assert_example_calc(md.get(example_calc_id))
+
+    def test_insert_fail(self, md: StagingMetadata):
+        failed = False
+        try:
+            md.insert(example_calc)
+        except Exception:
+            failed = True
+
+        assert failed
+        assert len(md) == 1
+
+    def test_update(self, md: StagingMetadata):
+        md.update(example_calc_id, dict(data='updated'))
+        assert len(md) == 1
+        assert md.get(example_calc_id)['data'] == 'updated'
+
+    def test_update_fail(self, md: StagingMetadata):
+        failed = False
+        try:
+            md.update('unknown', dict(data='updated'))
+        except KeyError:
+            failed = True
+        assert failed
+        assert len(md) == 1
 
 
 class TestPublicMetadata(MetadataContract):
 
     @pytest.fixture(scope='function')
     def md(self, test_dir):
-        with PublicMetadata(test_dir) as md:
-            yield md
-
-    def test_lock(self, test_dir):
-        timeout = False
-        with PublicMetadata(test_dir):
-            try:
-                with PublicMetadata(test_dir, lock_timeout=0.1):
-                    pass
-            except MetadataTimeout:
-                timeout = True
-        assert timeout
+        md = PublicMetadata(test_dir)
+        md._create([example_calc])
+        return md
 
 
 class UploadFilesFixtures:
@@ -232,12 +228,10 @@ class UploadFilesContract(UploadFilesFixtures):
             with test_upload.raw_file(example_file_mainfile) as f:
                 assert len(f.read()) > 0
             if not test_upload._is_authorized():
-                with test_upload.metadata as md:
-                    assert not md.get(example_calc_id).get('restricted', False)
+                assert not test_upload.metadata.get(example_calc_id).get('restricted', False)
         except Restricted:
             assert not test_upload._is_authorized()
-            with test_upload.metadata as md:
-                assert md.get(example_calc_id).get('restricted', False)
+            assert test_upload.metadata.get(example_calc_id).get('restricted', False)
 
     @pytest.mark.parametrize('prefix', [None, 'examples'])
     def test_raw_file_manifest(self, test_upload: StagingUploadFiles, prefix: str):
@@ -255,23 +249,13 @@ class UploadFilesContract(UploadFilesFixtures):
                 assert json.load(f) == 'archive'
 
             if not test_upload._is_authorized():
-                with test_upload.metadata as md:
-                    assert not md.get(example_calc_id).get('restricted', False)
+                assert not test_upload.metadata.get(example_calc_id).get('restricted', False)
         except Restricted:
             assert not test_upload._is_authorized()
-            with test_upload.metadata as md:
-                assert md.get(example_calc_id).get('restricted', False)
+            assert test_upload.metadata.get(example_calc_id).get('restricted', False)
 
     def test_metadata(self, test_upload):
-        with test_upload.metadata as md:
-            assert_example_calc(md.get(example_calc_id))
-
-    def test_update_metadata(self, test_upload):
-        with test_upload.metadata as md:
-            md.update(example_calc_id, dict(data='updated'))
-
-        with test_upload.metadata as md:
-            assert md.get(example_calc_id)['data'] == 'updated'
+        assert_example_calc(test_upload.metadata.get(example_calc_id))
 
 
 def create_staging_upload(upload_id: str, calc_specs: str) -> StagingUploadFiles:
@@ -314,8 +298,7 @@ def create_staging_upload(upload_id: str, calc_specs: str) -> StagingUploadFiles
         public_only = False
     upload._is_authorized = lambda: not public_only
 
-    with upload.metadata as md:
-        assert len(md) == len(calc_specs)
+    assert len(upload.metadata) == len(calc_specs)
     return upload
 
 
@@ -363,6 +346,10 @@ class TestStagingUploadFiles(UploadFilesContract):
     def test_delete(self, test_upload: StagingUploadFiles):
         test_upload.delete()
         assert not test_upload.exists()
+
+    def test_update_metadata(self, test_upload):
+        test_upload.metadata.update(example_calc_id, dict(data='updated'))
+        test_upload.metadata.get(example_calc_id)['data'] == 'updated'
 
 
 class TestArchiveBasedStagingUploadFiles(UploadFilesFixtures):
