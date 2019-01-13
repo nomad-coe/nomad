@@ -241,6 +241,9 @@ class Calc(Proc, datamodel.Calc):
 
         # persist the repository metadata
         with utils.timer(logger, 'indexed', step='index'):
+            self.upload_files.metadata.insert(self._parser_backend.metadata())
+
+        with utils.timer(logger, 'indexed', step='index'):
             repo_calc = RepoCalc.create_from_backend(
                 self._parser_backend,
                 additional=additional,

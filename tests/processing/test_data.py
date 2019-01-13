@@ -115,6 +115,8 @@ def assert_processing(upload: Upload, mocksearch=None):
             assert repo.basis_set_type is not None
             assert len(repo.aux_files) == 4
 
+        assert upload_files.metadata.get(calc.calc_id) is not None
+
 
 # @pytest.mark.timeout(30)
 def test_processing(uploaded_id, worker, mocksearch, test_user, no_warn):

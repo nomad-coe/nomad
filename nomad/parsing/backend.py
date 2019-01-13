@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import TextIO, Tuple, List, Any, Callable
+from typing import TextIO, Tuple, List, Any, Callable, Iterable
 from abc import ABCMeta, abstractmethod
 from io import StringIO
 import json
@@ -489,6 +489,27 @@ class LocalBackend(LegacyParserBackend):
         else:
             json_writer.value(value)
 
+    def _obj(self, value: Any, filter: Callable[[str, Any], Any] = None) -> Any:
+        if isinstance(value, list):
+            if len(value) == 1 and isinstance(value[0], Section) and not self._delegate.metaInfoEnv().infoKindEl(value[0].name).repeats:
+                return self._obj(value[0])
+            else:
+                return [self._obj(item) for item in value]
+
+        elif isinstance(value, Section):
+            section = value
+            obj = dict(_name=section.name, _gIndex=section.gIndex)
+            for name, value in section.items():
+                if filter is not None:
+                    value = filter(name, value)
+
+                if value is not None:
+                    obj[name] = self._obj(value, filter=filter)
+            return obj
+
+        else:
+            return JSONStreamWriter._json_serializable_value(value)
+
     @property
     def status(self) -> ParserStatus:
         """ Returns status and potential errors. """
@@ -498,6 +519,13 @@ class LocalBackend(LegacyParserBackend):
         self._status = 'ParseSuccess'
         self._errors = None
         self._warnings: List[str] = []
+
+    def metadata(self, sections: Iterable[str] = ['section_repository_info']) -> dict:
+        """ Returns an json serializable object with all data of the given sections. """
+        data = dict(calc_id=self.get_value('calc_id'))
+        for section in sections:
+            data[section] = self._obj(self._delegate.results[section])
+        return data
 
     def write_json(self, out: TextIO, pretty=True, filter: Callable[[str, Any], Any] = None):
         """
@@ -516,8 +544,8 @@ class LocalBackend(LegacyParserBackend):
         for root_section in ['section_run', 'section_calculation_info', 'section_repository_info']:
             json_writer.key(root_section)
             json_writer.open_array()
-            for run in self._delegate.results[root_section]:
-                LocalBackend._write(json_writer, run, filter=filter)
+            for section in self._delegate.results[root_section]:
+                LocalBackend._write(json_writer, section, filter=filter)
             json_writer.close_array()
 
         json_writer.close_object()

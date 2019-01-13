@@ -50,6 +50,16 @@ class TestLocalBackend(object):
     def test_meta_info(self, meta_info, no_warn):
         assert 'section_topology' in meta_info
 
+    def test_metadata(self, backend, no_warn):
+        g_index = backend.openSection('section_calculation_info')
+        assert g_index == 0
+        backend.addValue('calc_id', 't0')
+        backend.closeSection('section_calculation_info', 0)
+        g_index = backend.openSection('section_repository_info')
+        backend.addValue('repository_calc_id', 1)
+        backend.closeSection('section_repository_info', 0)
+        assert json.dumps(backend.metadata()) is not None
+
     def test_section(self, backend, no_warn):
         g_index = backend.openSection('section_run')
         assert g_index == 0

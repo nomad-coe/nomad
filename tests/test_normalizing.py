@@ -50,11 +50,13 @@ def normalized_template_example(parsed_template_example) -> LocalBackend:
 
 
 def assert_normalized(backend):
+    metadata = backend.metadata()['section_repository_info']['section_repository_parserdata']
     count = 0
     for metainfo in backend.metaInfoEnv().infoKindEls():
         if 'section_repository_parserdata' in metainfo.superNames:
             count += 1
             assert backend.get_value(metainfo.name, 0) is not None
+            assert metadata.get(metainfo.name, None) is not None
     assert count > 0
 
 
