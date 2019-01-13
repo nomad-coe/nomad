@@ -98,7 +98,7 @@ class TestAdmin:
         assert rv.status_code == 404
 
     def test_only_admin(self, client, test_user_auth):
-        rv = client.post('/admin/doesnotexist', headers=test_user_auth)
+        rv = client.post('/admin/reset', headers=test_user_auth)
         assert rv.status_code == 401
 
     @pytest.fixture(scope='function')

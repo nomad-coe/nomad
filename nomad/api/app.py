@@ -61,7 +61,7 @@ api = Api(
 
 
 @app.errorhandler(Exception)
-@api.errorhandler(Exception)
+@api.errorhandler
 def handle(error: Exception):
     status_code = getattr(error, 'code', 500)
     name = getattr(error, 'name', 'Internal Server Error')

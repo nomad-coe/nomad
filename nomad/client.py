@@ -49,11 +49,9 @@ def create_client(
         user: str = user, password: str = pw):
     """ A factory method to create the client. """
 
+    http_client = RequestsClient()
     if user is not None:
-        http_client = RequestsClient()
         http_client.set_basic_auth(host, user, pw)
-    else:
-        http_client = None
 
     client = SwaggerClient.from_url(
         'http://%s:%d%s/swagger.json' % (host, port, base_path),
@@ -299,7 +297,7 @@ def upload(path, name: str, offline: bool, unstage: bool):
 
 @cli.command(help='Attempts to reset the nomad.')
 def reset():
-    _cli_client().admin.exec_admin_command(operation='reset').reponse()
+    _cli_client().admin.exec_reset_command().response()
 
 
 @cli.command(help='Run processing locally.')

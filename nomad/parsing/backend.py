@@ -458,17 +458,19 @@ class LocalBackend(LegacyParserBackend):
         sections = self._delegate.results[meta_name]
         return [section.gIndex for section in sections]
 
-    @staticmethod
     def _write(
-            json_writer: JSONStreamWriter,
-            value: Any,
+            self, json_writer: JSONStreamWriter, value: Any,
             filter: Callable[[str, Any], Any] = None):
 
         if isinstance(value, list):
-            json_writer.open_array()
-            for item in value:
-                LocalBackend._write(json_writer, item, filter=filter)
-            json_writer.close_array()
+            if len(value) == 1 and isinstance(value[0], Section) and \
+                    not self._delegate.metaInfoEnv().infoKindEl(value[0].name).repeats:
+                self._write(json_writer, value[0], filter=filter)
+            else:
+                json_writer.open_array()
+                for item in value:
+                    self._write(json_writer, item, filter=filter)
+                json_writer.close_array()
 
         elif isinstance(value, Section):
             section = value
@@ -482,7 +484,7 @@ class LocalBackend(LegacyParserBackend):
 
                 if value is not None:
                     json_writer.key(name)
-                    LocalBackend._write(json_writer, value, filter=filter)
+                    self._write(json_writer, value, filter=filter)
 
             json_writer.close_object()
 
@@ -491,10 +493,11 @@ class LocalBackend(LegacyParserBackend):
 
     def _obj(self, value: Any, filter: Callable[[str, Any], Any] = None) -> Any:
         if isinstance(value, list):
-            if len(value) == 1 and isinstance(value[0], Section) and not self._delegate.metaInfoEnv().infoKindEl(value[0].name).repeats:
-                return self._obj(value[0])
+            if len(value) == 1 and isinstance(value[0], Section) and \
+                    not self._delegate.metaInfoEnv().infoKindEl(value[0].name).repeats:
+                return self._obj(value[0], filter=filter)
             else:
-                return [self._obj(item) for item in value]
+                return [self._obj(item, filter=filter) for item in value]
 
         elif isinstance(value, Section):
             section = value
@@ -543,10 +546,7 @@ class LocalBackend(LegacyParserBackend):
         # TODO the root sections should be determined programatically
         for root_section in ['section_run', 'section_calculation_info', 'section_repository_info']:
             json_writer.key(root_section)
-            json_writer.open_array()
-            for section in self._delegate.results[root_section]:
-                LocalBackend._write(json_writer, section, filter=filter)
-            json_writer.close_array()
+            self._write(json_writer, self._delegate.results[root_section], filter=filter)
 
         json_writer.close_object()
         json_writer.close()
