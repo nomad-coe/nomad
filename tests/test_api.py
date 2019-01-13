@@ -348,55 +348,6 @@ class TestUploads:
     #     assert rv.status_code == 400
 
 
-# class TestRepo:
-#     def test_calc(self, client, example_elastic_calc, no_warn):
-#         rv = client.get(
-#             '/repo/%s/%s' % (example_elastic_calc.upload_id, example_elastic_calc.calc_id))
-#         assert rv.status_code == 200
-
-#     def test_non_existing_calcs(self, client):
-#         rv = client.get('/repo/doesnt/exist')
-#         assert rv.status_code == 404
-
-#     def test_calcs(self, client, example_elastic_calc, no_warn):
-#         rv = client.get('/repo/')
-#         assert rv.status_code == 200
-#         data = json.loads(rv.data)
-#         results = data.get('results', None)
-#         assert results is not None
-#         assert isinstance(results, list)
-#         assert len(results) >= 1
-
-#     def test_calcs_pagination(self, client, example_elastic_calc, no_warn):
-#         rv = client.get('/repo/?page=1&per_page=1')
-#         assert rv.status_code == 200
-#         data = json.loads(rv.data)
-#         results = data.get('results', None)
-#         assert results is not None
-#         assert isinstance(results, list)
-#         assert len(results) == 1
-
-#     def test_calcs_user(self, client, example_elastic_calc, test_user_auth, no_warn):
-#         rv = client.get('/repo/?owner=user', headers=test_user_auth)
-#         assert rv.status_code == 200
-#         data = json.loads(rv.data)
-#         results = data.get('results', None)
-#         assert results is not None
-#         assert len(results) >= 1
-
-#     def test_calcs_user_authrequired(self, client, example_elastic_calc, no_warn):
-#         rv = client.get('/repo/?owner=user')
-#         assert rv.status_code == 401
-
-#     def test_calcs_user_invisible(self, client, example_elastic_calc, test_other_user_auth, no_warn):
-#         rv = client.get('/repo/?owner=user', headers=test_other_user_auth)
-#         assert rv.status_code == 200
-#         data = json.loads(rv.data)
-#         results = data.get('results', None)
-#         assert results is not None
-#         assert len(results) == 0
-
-
 class UploadFilesBasedTests:
 
     @staticmethod
@@ -513,6 +464,56 @@ class TestArchive(UploadFilesBasedTests):
     def test_get_metainfo(self, client):
         rv = client.get('/archive/metainfo/all.nomadmetainfo.json')
         assert rv.status_code == 200
+
+
+class TestRepo(UploadFilesBasedTests):
+    @UploadFilesBasedTests.ignore_authorization
+    def test_calc(self, client, upload, auth_headers):
+        rv = client.get('/repo/%s/0' % upload, headers=auth_headers)
+        assert rv.status_code == 200
+
+    @UploadFilesBasedTests.ignore_authorization
+    def test_non_existing_calcs(self, client, upload, auth_headers):
+        rv = client.get('/repo/doesnt/exist', headers=auth_headers)
+        assert rv.status_code == 404
+
+    # def test_calcs(self, client, example_elastic_calc, no_warn):
+    #     rv = client.get('/repo/')
+    #     assert rv.status_code == 200
+    #     data = json.loads(rv.data)
+    #     results = data.get('results', None)
+    #     assert results is not None
+    #     assert isinstance(results, list)
+    #     assert len(results) >= 1
+
+    # def test_calcs_pagination(self, client, example_elastic_calc, no_warn):
+    #     rv = client.get('/repo/?page=1&per_page=1')
+    #     assert rv.status_code == 200
+    #     data = json.loads(rv.data)
+    #     results = data.get('results', None)
+    #     assert results is not None
+    #     assert isinstance(results, list)
+    #     assert len(results) == 1
+
+    # def test_calcs_user(self, client, example_elastic_calc, test_user_auth, no_warn):
+    #     rv = client.get('/repo/?owner=user', headers=test_user_auth)
+    #     assert rv.status_code == 200
+    #     data = json.loads(rv.data)
+    #     results = data.get('results', None)
+    #     assert results is not None
+    #     assert len(results) >= 1
+
+    # def test_calcs_user_authrequired(self, client, example_elastic_calc, no_warn):
+    #     rv = client.get('/repo/?owner=user')
+    #     assert rv.status_code == 401
+
+    # def test_calcs_user_invisible(self, client, example_elastic_calc, test_other_user_auth, no_warn):
+    #     rv = client.get('/repo/?owner=user', headers=test_other_user_auth)
+    #     assert rv.status_code == 200
+    #     data = json.loads(rv.data)
+    #     results = data.get('results', None)
+    #     assert results is not None
+    #     assert len(results) == 0
 
 
 class TestRaw(UploadFilesBasedTests):
