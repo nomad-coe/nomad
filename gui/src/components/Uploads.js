@@ -210,7 +210,7 @@ class Uploads extends React.Component {
 
         <Paper className={classes.dropzoneContainer}>
           <Dropzone
-            accept="application/zip"
+            accept={['application/zip', 'application/gzip', 'application/bz2']}
             className={classes.dropzone}
             activeClassName={classes.dropzoneAccept}
             rejectClassName={classes.dropzoneReject}

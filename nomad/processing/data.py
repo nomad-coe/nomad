@@ -31,7 +31,7 @@ from structlog import wrap_logger
 from contextlib import contextmanager
 
 from nomad import utils, coe_repo, datamodel
-from nomad.files import PathObject, ArchiveBasedStagingUploadFiles
+from nomad.files import PathObject, ArchiveBasedStagingUploadFiles, ExtractError
 from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parsers, parser_dict
 from nomad.normalizing import normalizers
@@ -390,7 +390,10 @@ class Upload(Chord, datamodel.Upload):
                     upload_size=self.upload_files.size):
                 self.upload_files.extract()
         except KeyError:
-            self.fail('process request for non existing upload', level=logging.ERROR)
+            self.fail('process request for non existing upload', log_level=logging.ERROR)
+            return
+        except ExtractError:
+            self.fail('bad .zip/.tar file', log_level=logging.INFO)
             return
 
     def match_mainfiles(self) -> Generator[Tuple[str, object], None, None]:

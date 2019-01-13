@@ -42,6 +42,7 @@ import os.path
 import os
 import shutil
 from zipfile import ZipFile, BadZipFile, is_zipfile
+import tarfile
 from bagit import make_bag
 import hashlib
 import base64
@@ -118,7 +119,7 @@ class DirectoryObject(PathObject):
         return os.path.isdir(self.os_path)
 
 
-class MetadataTimeout(Exception):
+class ExtractError(Exception):
     pass
 
 
@@ -369,13 +370,15 @@ class StagingUploadFiles(UploadFiles):
     def archive_log_file_object(self, calc_id: str) -> PathObject:
         return self._archive_dir.join_file('%s.log' % calc_id)
 
-    def add_rawfiles(self, path: str, move: bool = False, prefix: str = None) -> None:
+    def add_rawfiles(self, path: str, move: bool = False, prefix: str = None, force_archive: bool = False) -> None:
         """
         Add rawfiles to the upload. The given file will be copied, moved, or extracted.
         Arguments:
             path: Path to a directory, file, or zip file. Zip files will be extracted.
             move: Whether the file should be moved instead of copied. Zips will be extracted and then deleted.
             prefix: Optional path prefix for the added files.
+            force_archive: Expect the file to be a zip or other support archive file.
+                Usually those files are only extracted if they can be extracted and copied instead.
         """
         assert not self.is_frozen
         assert os.path.exists(path)
@@ -384,7 +387,7 @@ class StagingUploadFiles(UploadFiles):
         if prefix is not None:
             target_dir = target_dir.join_dir(prefix, create=True)
         ext = os.path.splitext(path)[1]
-        if ext == '.zip':
+        if force_archive or ext == '.zip':
             try:
                 with ZipFile(path) as zf:
                     zf.extractall(target_dir.os_path)
@@ -393,6 +396,19 @@ class StagingUploadFiles(UploadFiles):
                 return
             except BadZipFile:
                 pass
+
+        if force_archive or ext in ['.tgz', '.tar.gz', '.tar.bz2']:
+            try:
+                with tarfile.open(path) as tf:
+                    tf.extractall(target_dir.os_path)
+                if move:
+                    os.remove(path)
+                return
+            except tarfile.TarError:
+                pass
+
+        if force_archive:
+            raise ExtractError
 
         if move:
             shutil.move(path, target_dir.os_path)
@@ -566,10 +582,12 @@ class ArchiveBasedStagingUploadFiles(StagingUploadFiles):
     formats = ['zip']
     """ A human readable list of supported file formats. """
 
-    def __init__(self, upload_id: str, local_path: str = None, *args, **kwargs) -> None:
+    def __init__(
+            self, upload_id: str, local_path: str = None, file_name: str = '.upload',
+            *args, **kwargs) -> None:
         super().__init__(upload_id, *args, **kwargs)
         self._local_path = local_path
-        self._upload_file = self.join_file('.upload.zip')
+        self._upload_file = self.join_file(file_name)
 
     @property
     def upload_file_os_path(self):
@@ -589,9 +607,9 @@ class ArchiveBasedStagingUploadFiles(StagingUploadFiles):
 
     def extract(self) -> None:
         assert next(self.raw_file_manifest(), None) is None, 'can only extract once'
-        super().add_rawfiles(self.upload_file_os_path)
+        super().add_rawfiles(self.upload_file_os_path, force_archive=True)
 
-    def add_rawfiles(self, path: str, move: bool = False, prefix: str = None) -> None:
+    def add_rawfiles(self, path: str, move: bool = False, prefix: str = None, force_archive: bool = False) -> None:
         assert False, 'do not add_rawfiles to a %s' % self.__class__.__name__
 
 

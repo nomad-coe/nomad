@@ -157,38 +157,52 @@ class UploadListResource(Resource):
 
         logger.info('upload created', upload_id=upload.upload_id)
 
-        upload_files = ArchiveBasedStagingUploadFiles(
-            upload.upload_id, create=True, local_path=local_path)
+        try:
+            if local_path:
+                # file is already there and does not to be received
+                upload_files = ArchiveBasedStagingUploadFiles(
+                    upload.upload_id, create=True, local_path=local_path)
+            elif request.mimetype == 'application/multipart-formdata':
+                # multipart formdata, e.g. with curl -X put "url" -F file=@local_file
+                # might have performance issues for large files: https://github.com/pallets/flask/issues/2086
+                if 'file' in request.files:
+                    abort(400, message='Bad multipart-formdata, there is no file part.')
+                file = request.files['file']
+                if upload.name is None or upload.name is '':
+                    upload.name = file.filename
 
-        if local_path:
-            # file is already there and does not to be received
-            pass
-        elif request.mimetype == 'application/multipart-formdata':
-            # multipart formdata, e.g. with curl -X put "url" -F file=@local_file
-            # might have performance issues for large files: https://github.com/pallets/flask/issues/2086
-            if 'file' in request.files:
-                abort(400, message='Bad multipart-formdata, there is no file part.')
-            file = request.files['file']
-            if upload.name is '':
-                upload.name = file.filename
+                upload_files = ArchiveBasedStagingUploadFiles(
+                    upload.upload_id, create=True, local_path=local_path,
+                    file_name='.upload.%s' % os.path.splitext(file.filename)[1])
 
-            file.save(upload_files.upload_file_os_path)
-        else:
-            # simple streaming data in HTTP body, e.g. with curl "url" -T local_file
-            try:
-                with open(upload_files.upload_file_os_path, 'wb') as f:
-                    while not request.stream.is_exhausted:
-                        f.write(request.stream.read(1024))
+                file.save(upload_files.upload_file_os_path)
+            else:
+                # simple streaming data in HTTP body, e.g. with curl "url" -T local_file
+                file_name = '.upload'
+                try:
+                    ext = os.path.splitext(upload.name)[1]
+                    if ext is not None:
+                        file_name += '.' + ext
+                except Exception:
+                    pass
 
-            except Exception as e:
-                logger.warning('Error on streaming upload', exc_info=e)
-                abort(400, message='Some IO went wrong, download probably aborted/disrupted.')
+                upload_files = ArchiveBasedStagingUploadFiles(
+                    upload.upload_id, create=True, local_path=local_path,
+                    file_name='.upload')
 
-        if not upload_files.is_valid:
+                try:
+                    with open(upload_files.upload_file_os_path, 'wb') as f:
+                        while not request.stream.is_exhausted:
+                            f.write(request.stream.read(1024))
+
+                except Exception as e:
+                    logger.warning('Error on streaming upload', exc_info=e)
+                    abort(400, message='Some IO went wrong, download probably aborted/disrupted.')
+        except Exception as e:
             upload_files.delete()
             upload.delete(force=True)
-            logger.info('Invalid upload')
-            abort(400, message='Bad file format, excpected %s.' % ", ".join(upload_files.formats))
+            logger.info('Invalid or aborted upload')
+            raise e
 
         logger.info('received uploaded file')
         upload.upload_time = datetime.now()
@@ -365,7 +379,7 @@ class UploadCommandResource(Resource):
             config.services.api_port,
             config.services.api_base_path)
 
-        upload_command = 'curl -H "X-Token: %s" "%s" --upload-file <local_file>' % (
+        upload_command = 'curl -X PUT -H "X-Token: %s" "%s" -F file=@<local_file>' % (
             g.user.get_auth_token().decode('utf-8'), upload_url)
 
         return dict(upload_url=upload_url, upload_command=upload_command), 200
