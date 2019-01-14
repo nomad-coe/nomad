@@ -188,12 +188,12 @@ async function deleteUpload(uploadId) {
     .then(response => response.body)
 }
 
-async function unstageUpload(uploadId) {
+async function commitUpload(uploadId) {
   const client = await swaggerPromise
   return client.apis.uploads.exec_upload_command({
       upload_id: uploadId,
       payload: {
-        operation: 'unstage'
+        operation: 'commit'
       }
     })
     .catch(networkError)
@@ -252,7 +252,7 @@ const api = {
   getUploadCommand: getUploadCommand,
   createUpload: createUpload,
   deleteUpload: deleteUpload,
-  unstageUpload: unstageUpload,
+  commitUpload: commitUpload,
   getUploads: getUploads,
   archive: archive,
   calcProcLog: calcProcLog,

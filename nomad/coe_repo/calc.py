@@ -33,8 +33,8 @@ class Calc(Base, datamodel.Calc):  # type: ignore
     upload = relationship('Upload')
     checksum = Column(String)
 
-    calc_meta_data = relationship('CalcMetaData', uselist=False, lazy='joined')
-    user_meta_data = relationship('UserMetaData', uselist=False, lazy='joined')
+    calc_metadata = relationship('CalcMetaData', uselist=False, lazy='joined')
+    user_metadata = relationship('UserMetaData', uselist=False, lazy='joined')
     citations = relationship('Citation', secondary=calc_citation_association, lazy='joined')
     owners = relationship('User', secondary=ownership, lazy='joined')
     coauthors = relationship('User', secondary=co_authorship, lazy='joined')
@@ -54,7 +54,7 @@ class Calc(Base, datamodel.Calc):  # type: ignore
 
     @property
     def mainfile(self) -> str:
-        return self.calc_meta_data.location
+        return self.calc_metadata.location
 
     @property
     def pid(self):
@@ -62,7 +62,7 @@ class Calc(Base, datamodel.Calc):  # type: ignore
 
     @property
     def comment(self) -> str:
-        return self.user_meta_data.label
+        return self.user_metadata.label
 
     @property
     def calc_id(self) -> str:
@@ -79,15 +79,15 @@ class Calc(Base, datamodel.Calc):  # type: ignore
 
     @property
     def with_embargo(self) -> bool:
-        return self.user_meta_data.permission == 1
+        return self.user_metadata.permission == 1
 
     @property
     def chemical_formula(self) -> str:
-        return self.calc_meta_data.chemical_formula
+        return self.calc_metadata.chemical_formula
 
     @property
     def filenames(self) -> List[str]:
-        filenames = self.calc_meta_data.filenames.decode('utf-8')
+        filenames = self.calc_metadata.filenames.decode('utf-8')
         return json.loads(filenames)
 
     @property
@@ -140,4 +140,4 @@ class DataSet:
 
     @property
     def name(self):
-        return self._dataset_calc.calc_meta_data.chemical_formula
+        return self._dataset_calc.calc_metadata.chemical_formula

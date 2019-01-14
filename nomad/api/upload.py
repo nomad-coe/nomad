@@ -23,10 +23,10 @@ from datetime import datetime
 from werkzeug.datastructures import FileStorage
 import os.path
 
-from nomad import config, utils
+from nomad import config
 from nomad.processing import Upload
-from nomad.processing import NotAllowedDuringProcessing
-from nomad.files import ArchiveBasedStagingUploadFiles, StagingUploadFiles, UploadFiles
+from nomad.processing import ProcessAlreadyRunning
+from nomad.files import ArchiveBasedStagingUploadFiles
 
 from .app import api, with_logger
 from .auth import login_really_required
@@ -41,13 +41,34 @@ ns = api.namespace(
 proc_model = api.model('Processing', {
     'tasks': fields.List(fields.String),
     'current_task': fields.String,
-    'status': fields.String,
-    'completed': fields.Boolean,
+    'tasks_completed': fields.Boolean,
+    'tasks_status': fields.String,
     'errors': fields.List(fields.String),
     'warnings': fields.List(fields.String),
     'create_time': fields.DateTime(dt_format='iso8601'),
     'complete_time': fields.DateTime(dt_format='iso8601'),
-    '_async_status': fields.String(description='Only for debugging nomad')
+    'current_process': fields.String,
+    'process_running': fields.Boolean,
+})
+
+metadata_model = api.model('MetaData', {
+    'with_embargo': fields.Boolean(default=False, description='Data with embargo is only visible to the upload until the embargo period ended.'),
+    'comment': fields.String(description='The comment are shown in the repository for each calculation.'),
+    'references': fields.List(fields.String, descriptions='References allow to link calculations to external source, e.g. URLs.'),
+    'coauthors': fields.List(fields.String, description='A list of co-authors given by user_id.'),
+    'shared_with': fields.List(fields.String, description='A list of users to share calculations with given by user_id.'),
+    '_upload_time': fields.List(fields.DateTime(dt_format='iso8601'), description='Overrride the upload time.'),
+    '_uploader': fields.List(fields.String, description='Override the uploader with the given user id.')
+})
+
+calc_metadata_model = api.inherit('CalcMetaData', metadata_model, {
+    'mainfile': fields.String(description='The calculation main output file is used to identify the calculation in the upload.'),
+    '_checksum': fields.String(description='Override the calculation checksum'),
+    '_pid': fields.String(description='Assign a specific pid. It must be unique.')
+})
+
+upload_metadata_model = api.inherit('UploadMetaData', metadata_model, {
+    'calculations': fields.List(fields.Nested(model=calc_metadata_model), description='Specific per calculation data that will override the upload data.')
 })
 
 upload_model = api.inherit('UploadProcessing', proc_model, {
@@ -56,7 +77,7 @@ upload_model = api.inherit('UploadProcessing', proc_model, {
                     'using the name query parameter.'),
     'upload_id': fields.String(
         description='The unique id for the upload.'),
-    'additional_metadata': fields.Arbitrary,
+    'metadata': fields.Nested(model=upload_metadata_model, description='Additional upload and calculation meta data.'),
     'local_path': fields.String,
     'upload_time': fields.DateTime(dt_format='iso8601'),
 })
@@ -82,29 +103,9 @@ upload_with_calcs_model = api.inherit('UploadWithPaginatedCalculations', upload_
     }))
 })
 
-meta_data_model = api.model('MetaData', {
-    'with_embargo': fields.Boolean(default=False, description='Data with embargo is only visible to the upload until the embargo period ended.'),
-    'comment': fields.List(fields.String, description='The comment are shown in the repository for each calculation.'),
-    'references': fields.List(fields.String, descriptions='References allow to link calculations to external source, e.g. URLs.'),
-    'coauthors': fields.List(fields.String, description='A list of co-authors given by user_id.'),
-    'shared_with': fields.List(fields.String, description='A list of users to share calculations with given by user_id.'),
-    '_upload_time': fields.List(fields.DateTime(dt_format='iso8601'), description='Overrride the upload time.'),
-    '_uploader': fields.List(fields.String, description='Override the uploader with the given user id.')
-})
-
-calc_meta_data_model = api.inherit('CalcMetaData', meta_data_model, {
-    'mainfile': fields.String(description='The calculation main output file is used to identify the calculation in the upload.'),
-    '_checksum': fields.String(description='Override the calculation checksum'),
-    '_pid': fields.String(description='Assign a specific pid. It must be unique.')
-})
-
-upload_meta_data_model = api.inherit('UploadMetaData', meta_data_model, {
-    'calculations': fields.List(fields.Nested(model=calc_meta_data_model), description='Specific per calculation data that will override the upload data.')
-})
-
 upload_operation_model = api.model('UploadOperation', {
-    'operation': fields.String(description='Currently unstage is the only operation.'),
-    'metadata': fields.Nested(model=upload_meta_data_model, description='Additional upload and calculation meta data that should be considered for the operation')
+    'operation': fields.String(description='Currently commit is the only operation.'),
+    'metadata': fields.Nested(model=upload_metadata_model, description='Additional upload and calculation meta data. Will replace previously given metadata.')
 })
 
 
@@ -200,13 +201,13 @@ class UploadListResource(Resource):
                     abort(400, message='Some IO went wrong, download probably aborted/disrupted.')
         except Exception as e:
             upload_files.delete()
-            upload.delete(force=True)
+            upload.delete()
             logger.info('Invalid or aborted upload')
             raise e
 
         logger.info('received uploaded file')
         upload.upload_time = datetime.now()
-        upload.process()
+        upload.process_upload()
         logger.info('initiated processing')
 
         return upload, 200
@@ -258,7 +259,7 @@ class UploadResource(Resource):
         except AssertionError:
             abort(400, message='invalid pagination')
 
-        if order_by not in ['mainfile', 'status', 'parser']:
+        if order_by not in ['mainfile', 'tasks_status', 'parser']:
             abort(400, message='invalid order_by field %s' % order_by)
 
         order_by = ('-%s' if order == -1 else '+%s') % order_by
@@ -277,7 +278,7 @@ class UploadResource(Resource):
     @api.doc('delete_upload')
     @api.response(404, 'Upload does not exist')
     @api.response(401, 'Upload does not belong to authenticated user.')
-    @api.response(400, 'Not allowed during processing')
+    @api.response(400, 'The upload is still/already processed')
     @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload deleted')
     @login_really_required
     @with_logger
@@ -296,31 +297,29 @@ class UploadResource(Resource):
         if upload.user_id != str(g.user.user_id) and not g.user.is_admin:
             abort(401, message='Upload with id %s does not belong to you.' % upload_id)
 
-        with utils.lnr(logger, 'delete processing upload'):
-            try:
-                upload.delete()
-            except NotAllowedDuringProcessing:
-                abort(400, message='You must not delete an upload during processing.')
+        if not upload.tasks_completed:
+            abort(400, message='The upload is not processed yet')
 
-        with utils.lnr(logger, 'delete upload files'):
-            upload_files = UploadFiles.get(upload_id)
-            assert upload_files is not None, 'Uploads existing in staging must have files.'
-            if upload_files is not None:
-                assert isinstance(upload_files, StagingUploadFiles), 'Uploads in staging must have staging files.'
-                upload_files.delete()
+        try:
+            upload.delete_upload()
+        except ProcessAlreadyRunning:
+            abort(400, message='The upload is still/already processed')
+        except Exception as e:
+            logger.error('could not delete processing upload', exc_info=e)
+            raise e
 
         return upload, 200
 
     @api.doc('exec_upload_command')
     @api.response(404, 'Upload does not exist or not in staging')
-    @api.response(400, 'Operation is not supported')
+    @api.response(400, 'Operation is not supported or the upload is still/already processed')
     @api.response(401, 'If the operation is not allowed for the current user')
-    @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload unstaged successfully')
+    @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload commited successfully')
     @api.expect(upload_operation_model)
     @login_really_required
     def post(self, upload_id):
         """
-        Execute an upload operation. Available operations: ``unstage``
+        Execute an upload operation. Available operations: ``commit``
 
         Unstage accepts further meta data that allows to provide coauthors, comments,
         external references, etc. See the model for details. The fields that start with
@@ -343,18 +342,21 @@ class UploadResource(Resource):
 
         operation = json_data.get('operation')
 
-        meta_data = json_data.get('meta_data', {})
-        for key in meta_data:
+        metadata = json_data.get('metadata', {})
+        for key in metadata:
             if key.startswith('_'):
                 if not g.user.is_admin:
-                    abort(401, message='Only admin users can use _meta_data_keys.')
+                    abort(401, message='Only admin users can use _metadata_keys.')
                 break
 
-        if operation == 'unstage':
+        if operation == 'commit':
+            if not upload.tasks_completed:
+                abort(400, message='The upload is not processed yet')
             try:
-                upload.unstage(meta_data)
-            except NotAllowedDuringProcessing:
-                abort(400, message='You must not unstage an upload during processing.')
+                upload.metadata = metadata
+                upload.commit_upload()
+            except ProcessAlreadyRunning:
+                abort(400, message='The upload is still/already processed')
 
             return upload, 200
 

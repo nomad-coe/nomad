@@ -108,7 +108,7 @@ class Uploads extends React.Component {
 
   handleAccept() {
     this.setState({loading: true})
-    Promise.all(this.state.selectedUploads.map(upload => api.unstageUpload(upload.upload_id)))
+    Promise.all(this.state.selectedUploads.map(upload => api.commitUpload(upload.upload_id)))
       .then(() => {
         this.setState({showAccept: false})
         return this.update()

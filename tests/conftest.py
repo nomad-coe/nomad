@@ -169,7 +169,7 @@ def admin_user(repository_db):
 #     monkeypatch.setattr('nomad.repo.RepoUpload.exists', upload_exists)
 #     monkeypatch.setattr('nomad.repo.RepoUpload.delete', upload_delete)
 #     monkeypatch.setattr('nomad.repo.RepoUpload.calcs', upload_calcs)
-#     monkeypatch.setattr('nomad.repo.RepoUpload.unstage', lambda *args, **kwargs: None)
+#     monkeypatch.setattr('nomad.repo.RepoUpload.commit', lambda *args, **kwargs: None)
 
 #     return by_archive_id
 

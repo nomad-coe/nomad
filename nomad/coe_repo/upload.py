@@ -68,15 +68,15 @@ class UploadMetaData:
     Utility class that provides per upload meta data and overriding per calculation
     meta data. For a given *mainfile* data is first read from the `calculations` key
     (a list of calculation dict with a matching `mainfile` key), before it is read
-    from :param:`meta_data_dict` it self.
+    from :param:`metadata_dict` it self.
 
     The class is used to deal with user provided meta-data.
 
     Arguments:
-        meta_data_dict: The python dict with the meta-data.
+        metadata_dict: The python dict with the meta-data.
     """
-    def __init__(self, meta_data_dict: dict) -> None:
-        self._upload_data = meta_data_dict
+    def __init__(self, metadata_dict: dict) -> None:
+        self._upload_data = metadata_dict
         self._calc_data: dict = {
             calc['mainfile']: calc
             for calc in self._upload_data.get('calculations', [])}
@@ -121,7 +121,7 @@ class Upload(Base, datamodel.Upload):  # type: ignore
         return self.created
 
     @staticmethod
-    def add(upload: datamodel.Upload, meta_data: dict = {}) -> int:
+    def add(upload: datamodel.Upload, metadata: dict = {}) -> int:
         """
         Add the upload to the NOMAD-coe repository db. It creates an
         uploads-entry, respective calculation and property entries. Everything in one
@@ -132,10 +132,10 @@ class Upload(Base, datamodel.Upload):  # type: ignore
 
         Arguments:
             upload: The upload to add.
-            upload_meta_data: A dictionary with additional meta data (e.g. user provided
+            upload_metadata: A dictionary with additional meta data (e.g. user provided
                 meta data) that should be added to upload and calculations.
         """
-        upload_meta_data = UploadMetaData(meta_data)
+        upload_metadata = UploadMetaData(metadata)
         repo_db = infrastructure.repository_db
         repo_db.begin()
 
@@ -147,7 +147,7 @@ class Upload(Base, datamodel.Upload):  # type: ignore
             # create upload
             coe_upload = Upload(
                 upload_name=upload.upload_id,
-                created=meta_data.get('_upload_time', upload.upload_time),
+                created=metadata.get('_upload_time', upload.upload_time),
                 user=upload.uploader,
                 is_processed=True)
             repo_db.add(coe_upload)
@@ -156,7 +156,7 @@ class Upload(Base, datamodel.Upload):  # type: ignore
             has_calcs = False
             for calc in upload.calcs:
                 has_calcs = True
-                coe_upload._add_calculation(calc.to(files.Calc), upload_meta_data.get(calc.mainfile))
+                coe_upload._add_calculation(calc.to(files.Calc), upload_metadata.get(calc.mainfile))
 
             # commit
             if has_calcs:
@@ -175,13 +175,13 @@ class Upload(Base, datamodel.Upload):  # type: ignore
 
         return result
 
-    def _add_calculation(self, calc: files.Calc, calc_meta_data: dict) -> None:
+    def _add_calculation(self, calc: files.Calc, calc_metadata: dict) -> None:
         repo_db = infrastructure.repository_db
 
         # table based properties
         coe_calc = Calc(
-            coe_calc_id=calc_meta_data.get('_pid', None),
-            checksum=calc_meta_data.get('_checksum', calc.calc_id),
+            coe_calc_id=calc_metadata.get('_pid', None),
+            checksum=calc_metadata.get('_checksum', calc.calc_id),
             upload=self)
         repo_db.add(coe_calc)
 
@@ -193,7 +193,7 @@ class Upload(Base, datamodel.Upload):  # type: ignore
 
         metadata = CalcMetaData(
             calc=coe_calc,
-            added=calc_meta_data.get('_upload_time', self.upload_time),
+            added=calc_metadata.get('_upload_time', self.upload_time),
             chemical_formula=calc.chemical_composition,
             filenames=('[%s]' % ','.join(['"%s"' % filename for filename in calc.files])).encode('utf-8'),
             location=calc.mainfile,
@@ -208,8 +208,8 @@ class Upload(Base, datamodel.Upload):  # type: ignore
 
         user_metadata = UserMetaData(
             calc=coe_calc,
-            label=calc_meta_data.get('comment', None),
-            permission=(1 if calc_meta_data.get('with_embargo', False) else 0))
+            label=calc_metadata.get('comment', None),
+            permission=(1 if calc_metadata.get('with_embargo', False) else 0))
         repo_db.add(user_metadata)
 
         spacegroup = Spacegroup(
@@ -228,22 +228,22 @@ class Upload(Base, datamodel.Upload):  # type: ignore
         coe_calc.set_value(topic_basis_set_type, calc.basis_set_type)
 
         # user relations
-        owner_user_id = calc_meta_data.get('_uploader', int(self.user_id))
+        owner_user_id = calc_metadata.get('_uploader', int(self.user_id))
         coe_calc.owners.append(repo_db.query(User).get(owner_user_id))
 
-        for coauthor_id in calc_meta_data.get('coauthors', []):
+        for coauthor_id in calc_metadata.get('coauthors', []):
             coe_calc.coauthors.append(repo_db.query(User).get(coauthor_id))
 
-        for shared_with_id in calc_meta_data.get('shared_with', []):
+        for shared_with_id in calc_metadata.get('shared_with', []):
             coe_calc.shared_with.append(repo_db.query(User).get(shared_with_id))
 
         # datasets
-        for dataset_id in calc_meta_data.get('datasets', []):
+        for dataset_id in calc_metadata.get('datasets', []):
             dataset = CalcSet(parent_calc_id=dataset_id, children_calc_id=coe_calc.coe_calc_id)
             repo_db.add(dataset)
 
         # references
-        for reference in calc_meta_data.get('references', []):
+        for reference in calc_metadata.get('references', []):
             citation = repo_db.query(Citation).filter_by(
                 value=reference,
                 kind='EXTERNAL').first()

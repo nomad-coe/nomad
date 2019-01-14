@@ -188,28 +188,29 @@ class TestUploads:
             assert rv.status_code == 200
             upload = self.assert_upload(rv.data)
             assert 'upload_time' in upload
-            if upload['completed']:
+            if upload['tasks_completed']:
                 break
 
         assert len(upload['tasks']) == 4
-        assert upload['status'] == 'SUCCESS'
+        assert upload['tasks_status'] == 'SUCCESS'
         assert upload['current_task'] == 'cleanup'
+        assert not upload['process_running']
         upload_files = UploadFiles.get(upload['upload_id'])
         assert upload_files is not None
         calcs = upload['calcs']['results']
         for calc in calcs:
-            assert calc['status'] == 'SUCCESS'
+            assert calc['tasks_status'] == 'SUCCESS'
             assert calc['current_task'] == 'archiving'
             assert len(calc['tasks']) == 3
             assert client.get('/archive/logs/%s/%s' % (calc['upload_id'], calc['calc_id']), headers=test_user_auth).status_code == 200
 
         if upload['calcs']['pagination']['total'] > 1:
-            rv = client.get('%s?page=2&per_page=1&order_by=status' % upload_endpoint, headers=test_user_auth)
+            rv = client.get('%s?page=2&per_page=1&order_by=tasks_status' % upload_endpoint, headers=test_user_auth)
             assert rv.status_code == 200
             upload = self.assert_upload(rv.data)
             assert len(upload['calcs']['results']) == 1
 
-    def assert_unstage(self, client, test_user_auth, upload_id, proc_infra, meta_data={}):
+    def assert_unstage(self, client, test_user_auth, upload_id, proc_infra, metadata={}):
         rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         empty_upload = upload['calcs']['pagination']['total'] == 0
@@ -217,14 +218,29 @@ class TestUploads:
         rv = client.post(
             '/uploads/%s' % upload_id,
             headers=test_user_auth,
-            data=json.dumps(dict(operation='unstage', meta_data=meta_data)),
+            data=json.dumps(dict(operation='commit', metadata=metadata)),
             content_type='application/json')
         assert rv.status_code == 200
+        upload = self.assert_upload(rv.data)
+        assert upload['current_process'] == 'commit_upload'
+        assert upload['process_running']
 
         self.assert_upload_does_not_exist(client, upload_id, test_user_auth)
-        assert_coe_upload(upload_id, empty=empty_upload, meta_data=meta_data)
+        assert_coe_upload(upload_id, empty=empty_upload, metadata=metadata)
 
     def assert_upload_does_not_exist(self, client, upload_id: str, test_user_auth):
+        # poll until commit/delete completed
+        while True:
+            time.sleep(0.1)
+            rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
+            if rv.status_code == 200:
+                upload = self.assert_upload(rv.data)
+                assert upload['process_running']
+            elif rv.status_code == 404:
+                break
+            else:
+                assert False
+
         rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
         assert rv.status_code == 404
         assert Upload.objects(upload_id=upload_id).first() is None
@@ -321,8 +337,8 @@ class TestUploads:
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
 
-        meta_data = dict(comment='test comment')
-        self.assert_unstage(client, admin_user_auth, upload['upload_id'], proc_infra, meta_data)
+        metadata = dict(comment='test comment')
+        self.assert_unstage(client, admin_user_auth, upload['upload_id'], proc_infra, metadata)
 
     def test_post_metadata_forbidden(self, client, proc_infra, test_user_auth, clean_repository_db):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
@@ -331,7 +347,7 @@ class TestUploads:
         rv = client.post(
             '/uploads/%s' % upload['upload_id'],
             headers=test_user_auth,
-            data=json.dumps(dict(operation='unstage', meta_data=dict(_pid=256))),
+            data=json.dumps(dict(operation='commit', metadata=dict(_pid=256))),
             content_type='application/json')
         assert rv.status_code == 401
 
@@ -343,7 +359,7 @@ class TestUploads:
     #     rv = client.post(
     #         '/uploads/%s' % upload['upload_id'],
     #         headers=test_user_auth,
-    #         data=json.dumps(dict(operation='unstage', meta_data=dict(doesnotexist='hi'))),
+    #         data=json.dumps(dict(operation='commit', metadata=dict(doesnotexist='hi'))),
     #         content_type='application/json')
     #     assert rv.status_code == 400
 
