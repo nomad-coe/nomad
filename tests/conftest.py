@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from mongoengine import connect
 from mongoengine.connection import disconnect
 
-from nomad import config, infrastructure, coe_repo
+from nomad import config, infrastructure
 
 
 @pytest.fixture(scope="session")
@@ -117,53 +117,61 @@ def repository_db(monkeysession):
     session.close()
 
 
+@pytest.fixture(scope='function')
+def clean_repository_db(repository_db):
+    # do not wonder, this will not setback the id counters
+    repository_db.execute('TRUNCATE uploads CASCADE;')
+    yield repository_db
+
+
 @pytest.fixture(scope='session')
 def test_user(repository_db):
+    from nomad import coe_repo
     return coe_repo.ensure_test_user(email='sheldon.cooper@nomad-fairdi.tests.de')
 
 
 @pytest.fixture(scope='session')
 def other_test_user(repository_db):
+    from nomad import coe_repo
     return coe_repo.ensure_test_user(email='leonard.hofstadter@nomad-fairdi.tests.de')
 
 
 @pytest.fixture(scope='session')
 def admin_user(repository_db):
+    from nomad import coe_repo
     return coe_repo.admin_user()
 
 
-@pytest.fixture(scope='function')
-def mocksearch(monkeypatch):
-    uploads_by_hash = {}
-    uploads_by_id = {}
-    by_archive_id = {}
+# @pytest.fixture(scope='function')
+# def mocksearch(monkeypatch):
+#     uploads_by_id = {}
+#     by_archive_id = {}
 
-    def persist(calc):
-        uploads_by_hash.setdefault(calc.upload_hash, []).append(calc)
-        uploads_by_id.setdefault(calc.upload_id, []).append(calc)
-        by_archive_id[calc.archive_id] = calc
+#     def persist(calc):
+#         uploads_by_id.setdefault(calc.upload_id, []).append(calc)
+#         by_archive_id[calc.calc_id] = calc
 
-    def upload_exists(upload_hash):
-        return upload_hash in uploads_by_hash
+#     def upload_exists(self):
+#         return self.upload_id in uploads_by_id
 
-    def delete_upload(upload_id):
-        if upload_id in uploads_by_id:
-            for calc in uploads_by_id[upload_id]:
-                del(by_archive_id[calc.archive_id])
-            upload_hash = uploads_by_id[upload_id][0].upload_hash
-            del(uploads_by_id[upload_id])
-            del(uploads_by_hash[upload_hash])
+#     def upload_delete(self):
+#         upload_id = self.upload_id
+#         if upload_id in uploads_by_id:
+#             for calc in uploads_by_id[upload_id]:
+#                 del(by_archive_id[calc.calc_id])
+#             del(uploads_by_id[upload_id])
 
-    def upload_calcs(upload_id):
-        return uploads_by_id.get(upload_id, [])
+#     @property
+#     def upload_calcs(self):
+#         return uploads_by_id.get(self.upload_id, [])
 
-    monkeypatch.setattr('nomad.repo.RepoCalc.persist', persist)
-    monkeypatch.setattr('nomad.repo.RepoCalc.upload_exists', upload_exists)
-    monkeypatch.setattr('nomad.repo.RepoCalc.delete_upload', delete_upload)
-    monkeypatch.setattr('nomad.repo.RepoCalc.upload_calcs', upload_calcs)
-    monkeypatch.setattr('nomad.repo.RepoCalc.unstage', lambda *args, **kwargs: None)
+#     monkeypatch.setattr('nomad.repo.RepoCalc.persist', persist)
+#     monkeypatch.setattr('nomad.repo.RepoUpload.exists', upload_exists)
+#     monkeypatch.setattr('nomad.repo.RepoUpload.delete', upload_delete)
+#     monkeypatch.setattr('nomad.repo.RepoUpload.calcs', upload_calcs)
+#     monkeypatch.setattr('nomad.repo.RepoUpload.unstage', lambda *args, **kwargs: None)
 
-    return by_archive_id
+#     return by_archive_id
 
 
 @pytest.fixture(scope='function')

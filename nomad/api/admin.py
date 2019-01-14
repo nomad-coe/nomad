@@ -24,41 +24,49 @@ from .auth import login_really_required
 ns = api.namespace('admin', description='Administrative operations')
 
 
-@ns.route('/<string:operation>')
-@api.doc(params={'operation': 'The operation to perform.'})
-class AdminOperationsResource(Resource):
-    # TODO in production this requires authorization
-    @api.doc('exec_admin_command')
-    @api.response(200, 'Operation performed')
-    @api.response(404, 'Operation does not exist')
-    @api.response(400, 'Operation not available/disabled')
+@ns.route('/reset')
+class AdminRemoveResource(Resource):
+    @api.doc('exec_reset_command')
+    @api.response(200, 'Reset performed')
+    @api.response(400, 'Reset not available/disabled')
     @login_really_required
-    def post(self, operation):
+    def post(self):
         """
-        Allows to perform administrative operations on the nomad services.
-
-        The possible operations are ``reset`` and ``remove``.
-
         The ``reset`` operation will attempt to clear the contents of all databased and
         indices.
 
+        Nomad can be configured to disable reset and the operation might not be available.
+        """
+        if not g.user.is_admin:
+            abort(401, message='Only the admin user can perform reset.')
+
+        if config.services.disable_reset:
+            abort(400, message='Operation is disabled')
+
+        infrastructure.reset()
+
+        return dict(messager='Reset performed.'), 200
+
+
+@ns.route('/remove')
+class AdminResetResource(Resource):
+    @api.doc('exec_remove_command')
+    @api.response(200, 'Remove performed')
+    @api.response(400, 'Remove not available/disabled')
+    @login_really_required
+    def post(self):
+        """
         The ``remove``operation will attempt to remove all databases. Expect the
         api to stop functioning after this request.
 
-        Reset and remove can be disabled.
+        Nomad can be configured to disable remove and the operation might not be available.
         """
-        if g.user.email != 'admin':
-            abort(401, message='Only the admin user can perform this operation.')
+        if not g.user.is_admin:
+            abort(401, message='Only the admin user can perform remove.')
 
-        if operation == 'reset':
-            if config.services.disable_reset:
-                abort(400, message='Operation is disabled')
-            infrastructure.reset()
-        elif operation == 'remove':
-            if config.services.disable_reset:
-                abort(400, message='Operation is disabled')
-            infrastructure.remove()
-        else:
-            abort(404, message='Unknown operation %s' % operation)
+        if config.services.disable_reset:
+            abort(400, message='Operation is disabled')
 
-        return dict(messager='Operation %s performed.' % operation), 200
+        infrastructure.remove()
+
+        return dict(messager='Remove performed.'), 200

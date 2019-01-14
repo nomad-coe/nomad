@@ -22,7 +22,7 @@ import logging
 from collections import namedtuple
 
 FilesConfig = namedtuple(
-    'FilesConfig', ['uploads_bucket', 'raw_bucket', 'archive_bucket', 'compress_archive', 'staging_bucket', 'public_bucket'])
+    'FilesConfig', ['uploads_bucket', 'raw_bucket', 'archive_bucket', 'staging_bucket', 'public_bucket'])
 """ API independent configuration for the object storage. """
 
 CeleryConfig = namedtuple('Celery', ['broker_url'])
@@ -34,7 +34,7 @@ FSConfig = namedtuple('FSConfig', ['tmp', 'objects'])
 RepositoryDBConfig = namedtuple('RepositoryDBConfig', ['host', 'port', 'dbname', 'user', 'password'])
 """ Used to configure access to NOMAD-coe repository db. """
 
-ElasticConfig = namedtuple('ElasticConfig', ['host', 'port', 'index_name'])
+ElasticConfig = namedtuple('ElasticConfig', ['host', 'port', 'index_name', 'coe_repo_calcs_index_name'])
 """ Used to configure elastic search. """
 
 MongoConfig = namedtuple('MongoConfig', ['host', 'port', 'db_name'])
@@ -50,7 +50,6 @@ files = FilesConfig(
     uploads_bucket='uploads',
     raw_bucket=os.environ.get('NOMAD_FILES_RAW_BUCKET', 'raw'),
     archive_bucket='archive',
-    compress_archive=True,
     staging_bucket='staging',
     public_bucket='public'
 )
@@ -84,7 +83,8 @@ fs = FSConfig(
 elastic = ElasticConfig(
     host=os.environ.get('NOMAD_ELASTIC_HOST', 'localhost'),
     port=int(os.environ.get('NOMAD_ELASTIC_PORT', 9200)),
-    index_name=os.environ.get('NOMAD_ELASTIC_INDEX_NAME', 'calcs')
+    index_name=os.environ.get('NOMAD_ELASTIC_INDEX_NAME', 'calcs'),
+    coe_repo_calcs_index_name='coe_repo_calcs'
 )
 repository_db = RepositoryDBConfig(
     host=os.environ.get('NOMAD_COE_REPO_DB_HOST', 'localhost'),

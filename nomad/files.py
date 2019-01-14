@@ -13,91 +13,71 @@
 # limitations under the License.
 
 """
-This file storage abstraction uses an *object storage*-like metaphor to store
-objects on the file system. Objects are organized in *buckets* and object ids
-are basically paths. All major file system operations for dealing with
-uploaded files, archive, files, raw files, etc. should be part of this module to
-allow later introduction of real object storage systems.
+Uploads contains classes and functions to create and maintain file structures
+for uploads.
 
-.. note:: This module still uses ``os.path``. As long as the whole nomad runs on a
-    POSIX (or Windows) os everything should be fine. This means respective paths in the
-    dbs, and indices. In the future, this should be replaced with abstract path representations
-    ala ``PathLib``.
+There are two different structures for uploads in two different states: *staging* and *public*.
+Possible operations on uploads differ based on this state. Staging is used for
+processing, heavily editing, creating hashes, etc. Public is supposed to be a
+almost readonly (beside metadata) storage.
 
-.. autoclass:: File
-    :members:
-.. autoclass:: ZippedFile
-    :members:
-.. autoclass:: ObjectFile
-    :members:
-.. autoclass:: UploadFile
-    :members:
-.. autoclass:: ArchiveFile
-    :members:
-.. autoclass:: DataContainer
-    :members:
-.. autoclass:: BaggedDataContainer
-    :members:
-.. autoclass:: ZippedDataContainer
-    :members:
+::
+    fs/staging/<upload>/metadata/<calc>.json
+                       /raw/**
+                       /archive/<calc>.hdf5
+                       /.frozen
+                       /.public
+                       /.restricted
+    fs/public/<upload>/metadata.json.gz
+                      /raw-public.bagit.zip
+                      /raw-restricted.bagit.zip
+                      /archive-public.hdf5.zip
+                      /archive-restricted.hdf5.zip
 """
-from abc import ABC
-from typing import List, Generator, IO, TextIO, cast, Dict, Any
-import os
+
+from abc import ABCMeta
+from typing import IO, Generator, Dict, Iterator, Iterable, Callable, List
+import ujson
 import os.path
-from zipfile import ZipFile, BadZipFile, is_zipfile, ZIP_DEFLATED
+import os
 import shutil
-from contextlib import contextmanager
-import gzip
+from zipfile import ZipFile, BadZipFile, is_zipfile
+import tarfile
+from bagit import make_bag
+import hashlib
+import base64
 import io
-import bagit
-import json
+import gzip
 
-from nomad import config, utils
+from nomad import config, utils, datamodel
 
 
-class File:
+class PathObject:
     """
-    Base class for handling a file. Allows to open (read, write) and delete files.
-
+    Object storage-like abstraction for paths in general.
     Arguments:
-        os_path: The path to the file in the os filesystem.
-
-    Attributes:
-        logger: A structured logger with bucket and object information.
-        path: The abstract path of the file.
+        bucket: The bucket to store this object in
+        object_id: The object id (i.e. directory path)
+        os_path: Override the "object storage" path with the given path.
+        prefix: Add a 3-digit prefix directory, e.g. foo/test/ -> foo/tes/test
     """
-    def __init__(self, os_path: str = None) -> None:
-        self.os_path = os_path
+    def __init__(self, bucket: str, object_id: str, os_path: str = None, prefix: bool = False) -> None:
+        if os_path:
+            self.os_path = os_path
+        else:
+            self.os_path = os.path.join(config.fs.objects, bucket, object_id)
 
-        self.logger = self.bind_logger(utils.get_logger(__name__))
-
-    def bind_logger(self, logger):
-        """ Adds context information to the given logger and returns it. """
-        return logger.bind(path=self.os_path)
-
-    @contextmanager
-    def open(self, mode: str = 'r', *args, **kwargs) -> Generator[IO, None, None]:
-        """ Opens the object with he given mode, etc. """
-        self.logger.debug('open file')
-        try:
-            if mode.startswith('w'):
-                self.create_dirs()
-            with open(self.os_path, mode, *args, **kwargs) as f:
-                yield f
-        except FileNotFoundError:
-            raise KeyError()
+        if prefix:
+            segments = list(os.path.split(self.os_path))
+            last = segments[-1]
+            segments[-1] = last[:3]
+            segments.append(last)
+            self.os_path = os.path.join(*segments)
 
     def delete(self) -> None:
-        """ Deletes the file. """
-        try:
-            os.remove(self.os_path)
-            self.logger.debug('file deleted')
-        except FileNotFoundError:
-            raise KeyError()
+        shutil.rmtree(self.os_path)
 
     def exists(self) -> bool:
-        """ Returns true if object exists. """
         return os.path.exists(self.os_path)
 
     @property
@@ -105,596 +85,658 @@ class File:
         """ Returns the os determined file size. """
         return os.stat(self.os_path).st_size
 
-    @property
-    def path(self) -> str:
+    def __repr__(self) -> str:
         return self.os_path
 
-    def create_dirs(self) -> None:
-        directory = os.path.dirname(self.os_path)
-        if not os.path.isdir(directory):
-            os.makedirs(directory)
+
+class DirectoryObject(PathObject):
+    """
+    Object storage-like abstraction for directories.
+    Arguments:
+        bucket: The bucket to store this object in
+        object_id: The object id (i.e. directory path)
+        create: True if the directory structure should be created. Default is False.
+    """
+    def __init__(self, bucket: str, object_id: str, create: bool = False, **kwargs) -> None:
+        super().__init__(bucket, object_id, **kwargs)
+        self._create = create
+        if create and not os.path.isdir(self.os_path):
+            os.makedirs(self.os_path)
+
+    def join_dir(self, path, create: bool = None) -> 'DirectoryObject':
+        if create is None:
+            create = self._create
+        return DirectoryObject(None, None, create=create, os_path=os.path.join(self.os_path, path))
+
+    def join_file(self, path) -> PathObject:
+        dirname = os.path.dirname(path)
+        if dirname != '':
+            return self.join_dir(dirname).join_file(os.path.basename(path))
+        else:
+            return PathObject(None, None, os_path=os.path.join(self.os_path, path))
+
+    def exists(self) -> bool:
+        return os.path.isdir(self.os_path)
 
 
-class ZippedFile(File):
-    """ A file contained in a .zip archive. """
-    def __init__(self, zip_os_path: str, filename: str) -> None:
-        self.filename = filename
-        super().__init__(zip_os_path)
+class ExtractError(Exception):
+    pass
 
-    def bind_logger(self, logger):
-        return super().bind_logger(logger).bind(filename=self.filename)
 
-    @contextmanager
-    def open(self, *args, **kwargs) -> Generator[IO, None, None]:
-        self.logger.debug('open file')
+class Metadata(metaclass=ABCMeta):
+    """
+    An ABC for upload metadata classes that encapsulates access to a set of calc metadata.
+    """
+    def get(self, calc_id: str) -> dict:
+        """ Retrive the calc metadata for a given calc. """
+        raise NotImplementedError()
+
+    def __iter__(self) -> Iterator[dict]:
+        raise NotImplementedError()
+
+    def __len__(self) -> int:
+        raise NotImplementedError()
+
+
+class StagingMetadata(Metadata):
+    """
+    A Metadata implementation based on individual .json files per calc stored in a given
+    directory.
+    Arguments:
+        directory: The DirectoryObject for the directory to store the metadata in.
+    """
+    def __init__(self, directory: DirectoryObject) -> None:
+        self._dir = directory
+
+    def remove(self, calc: dict) -> None:
+        id = calc['calc_id']
+        path = self._dir.join_file('%s.json' % id)
+        assert path.exists()
+        os.remove(path.os_path)
+
+    def insert(self, calc: dict) -> None:
+        """ Insert a calc, using calc_id as key. """
+        id = calc['calc_id']
+        path = self._dir.join_file('%s.json' % id)
+        assert not path.exists()
+        with open(path.os_path, 'wt') as f:
+            ujson.dump(calc, f)
+
+    def update(self, calc_id: str, updates: dict) -> dict:
+        """ Updating a calc, using calc_id as key and running dict update with the given data. """
+        metadata = self.get(calc_id)
+        metadata.update(updates)
+        path = self._dir.join_file('%s.json' % calc_id)
+        with open(path.os_path, 'wt') as f:
+            ujson.dump(metadata, f)
+        return metadata
+
+    def get(self, calc_id: str) -> dict:
         try:
-            with ZipFile(self.os_path) as zip_file:
-                yield zip_file.open(self.filename, *args, **kwargs)
+            with open(self._dir.join_file('%s.json' % calc_id).os_path, 'rt') as f:
+                return ujson.load(f)
         except FileNotFoundError:
             raise KeyError()
-        except KeyError as e:
-            raise e
-        except Exception as e:
-            msg = 'Could not read upload.'
-            self.logger.error(msg, exc_info=e)
-            raise FileError(msg, e)
 
-    def delete(self) -> None:
-        assert False, "A file in a zip archive cannot be deleted."
+    def __iter__(self) -> Iterator[dict]:
+        for root, _, files in os.walk(self._dir.os_path):
+            for file in files:
+                with open(os.path.join(root, file), 'rt') as f:
+                    yield ujson.load(f)
+
+    def __len__(self) -> int:
+        return len(os.listdir(self._dir.os_path))
+
+
+class PublicMetadata(Metadata):
+    """
+    A Metadata implementation based on a single .json file.
+
+    Arguments:
+        path: The parent directory for the metadata and lock file.
+    """
+    def __init__(self, path: str, lock_timeout=1) -> None:
+        self._db_file = os.path.join(path, 'metadata.json.gz')
+        self._modified = False
+        self._data: Dict[str, dict] = None
+
+    @property
+    def data(self):
+        if self._data is None:
+            with gzip.open(self._db_file, 'rt') as f:
+                self._data = ujson.load(f)
+        return self._data
+
+    def _create(self, calcs: Iterable[dict]) -> None:
+        assert not os.path.exists(self._db_file) and self._data is None
+        self._data = {data['calc_id']: data for data in calcs}
+        with gzip.open(self._db_file, 'wt') as f:
+            ujson.dump(self._data, f)
+
+    def insert(self, calc: dict) -> None:
+        assert self.data is not None, "Metadata is not open."
+
+        id = calc['calc_id']
+        assert id not in self.data
+        self.data[id] = calc
+        self._modified = True
+
+    def update(self, calc_id: str, updates: dict) -> dict:
+        raise NotImplementedError
+
+    def get(self, calc_id: str) -> dict:
+        return self.data[calc_id]
+
+    def __iter__(self) -> Iterator[dict]:
+        return self.data.values().__iter__()
+
+    def __len__(self) -> int:
+        return len(self.data)
+
+
+class Restricted(Exception):
+    pass
+
+
+class UploadFiles(DirectoryObject, metaclass=ABCMeta):
+
+    _archive_ext = 'json'
+
+    def __init__(
+            self, bucket: str, upload_id: str,
+            is_authorized: Callable[[], bool] = lambda: False,
+            create: bool = False) -> None:
+        self.logger = utils.get_logger(__name__, upload_id=upload_id)
+
+        super().__init__(bucket, upload_id, create=create, prefix=True)
+
+        if not create and not self.exists():
+            raise KeyError()
+
+        self.upload_id = upload_id
+        self._is_authorized = is_authorized
+
+    @staticmethod
+    def get(upload_id: str, *args, **kwargs) -> 'UploadFiles':
+        if DirectoryObject(config.files.staging_bucket, upload_id, prefix=True).exists():
+            return StagingUploadFiles(upload_id, *args, **kwargs)
+        elif DirectoryObject(config.files.public_bucket, upload_id, prefix=True).exists():
+            return PublicUploadFiles(upload_id, *args, **kwargs)
+        else:
+            return None
+
+    @property
+    def metadata(self) -> Metadata:
+        """ The calc metadata for this upload. """
+        raise NotImplementedError
+
+    def raw_file(self, file_path: str, *args, **kwargs) -> IO:
+        """
+        Opens a raw file and returns a file-like objects. Additional args, kwargs are
+        delegated to the respective `open` call.
+        Arguments:
+            file_path: The path to the file relative to the upload.
+        Raises:
+            KeyError: If the file does not exist.
+            Restricted: If the file is restricted and upload access evaluated to False.
+        """
+        raise NotImplementedError()
+
+    def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
+        """
+        Returns the path for all raw files in the archive (with a given prefix).
+        Arguments:
+            path_prefix: An optional prefix; only returns those files that have the prefix.
+        Returns:
+            An iterable over all (matching) raw files.
+        """
+        raise NotImplementedError()
+
+    def archive_file(self, calc_id: str, *args, **kwargs) -> IO:
+        """
+        Opens a archive file and returns a file-like objects. Additional args, kwargs are
+        delegated to the respective `open` call.
+        Arguments:
+            calc_id: The id identifying the calculation.
+        Raises:
+            KeyError: If the calc does not exist.
+            Restricted: If the file is restricted and upload access evaluated to False.
+        """
+        raise NotImplementedError()
+
+    def archive_log_file(self, calc_id: str, *args, **kwargs) -> IO:
+        """
+        Opens a archive log file and returns a file-like objects. Additional args, kwargs are
+        delegated to the respective `open` call.
+        Arguments:
+            calc_id: The id identifying the calculation.
+        Raises:
+            KeyError: If the calc does not exist.
+            Restricted: If the file is restricted and upload access evaluated to False.
+        """
+        raise NotImplementedError()
+
+
+class StagingUploadFiles(UploadFiles):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(config.files.staging_bucket, *args, **kwargs)
+
+        self._raw_dir = self.join_dir('raw')
+        self._archive_dir = self.join_dir('archive')
+        self._frozen_file = self.join_file('.frozen')
+
+        metadata_dir = self.join_dir('metadata')
+        self._metadata = StagingMetadata(metadata_dir)
+
+        self._size = 0
 
     @property
     def size(self) -> int:
-        with ZipFile(self.os_path) as zip_file:
-            return zip_file.getinfo(self.filename).file_size
+        return self._size
 
     @property
-    def path(self) -> str:
-        return os.path.join(
-            os.path.dirname(self.os_path),
-            os.path.basename(self.os_path),
-            self.filename)
+    def metadata(self) -> StagingMetadata:
+        if not self._is_authorized():
+            raise Restricted
+        return self._metadata
 
-
-class Objects:
-    @classmethod
-    def _os_path(cls, bucket: str, name: str, ext: str = None) -> str:
-        if ext is not None and ext != '':
-            file_name = '%s.%s' % (name, ext)
-        elif name is None or name == '':
-            file_name = ''
-        else:
-            file_name = name
-
-        # add an extra directory to limit the files per directory (gpfs)
-        file_name = '%s/%s' % (file_name[0:3], file_name)
-
-        path_segments = file_name.split('/')
-        path = os.path.join(*([config.fs.objects, bucket] + path_segments))
-
-        return os.path.abspath(path)
-
-    @classmethod
-    def delete_all(cls, bucket: str, prefix: str = ''):
-        """ Delete all files with given prefix, prefix must denote a directory. """
+    def _file(self, path_object: PathObject, *args, **kwargs) -> IO:
         try:
-            shutil.rmtree(cls._os_path(bucket, prefix, ext=None))
+            return open(path_object.os_path, *args, **kwargs)
         except FileNotFoundError:
-            pass
+            raise KeyError()
+
+    def raw_file(self, file_path: str, *args, **kwargs) -> IO:
+        if not self._is_authorized():
+            raise Restricted
+        return self._file(self.raw_file_object(file_path), *args, **kwargs)
+
+    def raw_file_object(self, file_path: str) -> PathObject:
+        return self._raw_dir.join_file(file_path)
+
+    def archive_file(self, calc_id: str, *args, **kwargs) -> IO:
+        if not self._is_authorized():
+            raise Restricted
+        return self._file(self.archive_file_object(calc_id), *args, **kwargs)
+
+    def archive_log_file(self, calc_id: str, *args, **kwargs) -> IO:
+        if not self._is_authorized():
+            raise Restricted
+        return self._file(self.archive_log_file_object(calc_id), *args, **kwargs)
+
+    def archive_file_object(self, calc_id: str) -> PathObject:
+        return self._archive_dir.join_file('%s.%s' % (calc_id, self._archive_ext))
+
+    def archive_log_file_object(self, calc_id: str) -> PathObject:
+        return self._archive_dir.join_file('%s.log' % calc_id)
+
+    def add_rawfiles(self, path: str, move: bool = False, prefix: str = None, force_archive: bool = False) -> None:
+        """
+        Add rawfiles to the upload. The given file will be copied, moved, or extracted.
+        Arguments:
+            path: Path to a directory, file, or zip file. Zip files will be extracted.
+            move: Whether the file should be moved instead of copied. Zips will be extracted and then deleted.
+            prefix: Optional path prefix for the added files.
+            force_archive: Expect the file to be a zip or other support archive file.
+                Usually those files are only extracted if they can be extracted and copied instead.
+        """
+        assert not self.is_frozen
+        assert os.path.exists(path)
+        self._size += os.stat(path).st_size
+        target_dir = self._raw_dir
+        if prefix is not None:
+            target_dir = target_dir.join_dir(prefix, create=True)
+        ext = os.path.splitext(path)[1]
+        if force_archive or ext == '.zip':
+            try:
+                with ZipFile(path) as zf:
+                    zf.extractall(target_dir.os_path)
+                if move:
+                    os.remove(path)
+                return
+            except BadZipFile:
+                pass
+
+        if force_archive or ext in ['.tgz', '.tar.gz', '.tar.bz2']:
+            try:
+                with tarfile.open(path) as tf:
+                    tf.extractall(target_dir.os_path)
+                if move:
+                    os.remove(path)
+                return
+            except tarfile.TarError:
+                pass
+
+        if force_archive:
+            raise ExtractError
+
+        if move:
+            shutil.move(path, target_dir.os_path)
+        else:
+            shutil.copy(path, target_dir.os_path)
+
+    @property
+    def is_frozen(self) -> bool:
+        """ Returns True if this upload is already *bagged*. """
+        return self._frozen_file.exists()
+
+    def pack(self, bagit_metadata: dict = None) -> None:
+        """
+        Replaces the staging upload data with a public upload record by packing all
+        data into files. It is only available if upload *is_bag*.
+        This is potentially a long running operation.
+        Arguments:
+            bagit_metadata: Additional data added to the bagit metadata.
+        """
+        # freeze the upload
+        assert not self.is_frozen, "Cannot pack an upload that is packed, or packing."
+        with open(self._frozen_file.os_path, 'wt') as f:
+            f.write('frozen')
+
+        # create tmp dirs for restricted and public raw data
+        restricted_dir = self.join_dir('.restricted', create=False)
+        public_dir = self.join_dir('.public', create=True)
+
+        # copy raw -> .restricted
+        shutil.copytree(self._raw_dir.os_path, restricted_dir.os_path)
+
+        # move public data .restricted -> .public
+        for calc in self.metadata:
+            if not calc.get('restricted', True):
+                mainfile: str = calc['mainfile']
+                assert mainfile is not None
+                for filepath in self.calc_files(mainfile):
+                    os.rename(
+                        restricted_dir.join_file(filepath).os_path,
+                        public_dir.join_file(filepath).os_path)
+
+        # create bags
+        make_bag(restricted_dir.os_path, bag_info=bagit_metadata, checksums=['sha512'])
+        make_bag(public_dir.os_path, bag_info=bagit_metadata, checksums=['sha512'])
+
+        # zip bags
+        def zip_dir(zip_filepath, path):
+            root_len = len(path)
+            with ZipFile(zip_filepath, 'w') as zf:
+                for root, _, files in os.walk(path):
+                    for file in files:
+                        filepath = os.path.join(root, file)
+                        zf.write(filepath, filepath[root_len:])
+
+        packed_dir = self.join_dir('.packed', create=True)
+
+        zip_dir(packed_dir.join_file('raw-restricted.bagit.zip').os_path, restricted_dir.os_path)
+        zip_dir(packed_dir.join_file('raw-public.bagit.zip').os_path, public_dir.os_path)
+
+        # zip archives
+        def create_zipfile(prefix: str) -> ZipFile:
+            file = packed_dir.join_file('archive-%s.%s.zip' % (prefix, self._archive_ext))
+            return ZipFile(file.os_path, mode='w')
+
+        archive_public_zip = create_zipfile('public')
+        archive_restricted_zip = create_zipfile('restricted')
+
+        for calc in self.metadata:
+            archive_zip = archive_restricted_zip if calc.get('restricted', False) else archive_public_zip
+
+            archive_filename = '%s.%s' % (calc['calc_id'], self._archive_ext)
+            archive_zip.write(self._archive_dir.join_file(archive_filename).os_path, archive_filename)
+
+            archive_log_filename = '%s.%s' % (calc['calc_id'], 'log')
+            log_file = self._archive_dir.join_file(archive_log_filename)
+            if log_file.exists():
+                archive_zip.write(log_file.os_path, archive_log_filename)
+
+        archive_restricted_zip.close()
+        archive_public_zip.close()
+
+        # pack metadata
+        packed_metadata = PublicMetadata(packed_dir.os_path)
+        packed_metadata._create(self._metadata)
+
+        # move to public bucket
+        target_dir = DirectoryObject(config.files.public_bucket, self.upload_id, create=False, prefix=True)
+        assert not target_dir.exists()
+        shutil.move(packed_dir.os_path, target_dir.os_path)
+
+    def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
+        upload_prefix_len = len(self._raw_dir.os_path) + 1
+        for root, _, files in os.walk(self._raw_dir.os_path):
+            for file in files:
+                path = os.path.join(root, file)[upload_prefix_len:]
+                if path_prefix is None or path.startswith(path_prefix):
+                    yield path
+
+    def calc_files(self, mainfile: str, with_mainfile: bool = True) -> Iterable[str]:
+        """
+        Returns all the auxfiles and mainfile for a given mainfile. This implements
+        nomad's logic about what is part of a calculation and what not. The mainfile
+        is first entry, the rest is sorted.
+        Arguments:
+            mainfile: The mainfile relative to upload
+            with_mainfile: Do include the mainfile, default is True
+        """
+        mainfile_object = self._raw_dir.join_file(mainfile)
+        if not mainfile_object.exists():
+            raise KeyError()
+
+        mainfile_basename = os.path.basename(mainfile)
+        calc_dir = os.path.dirname(mainfile_object.os_path)
+        calc_relative_dir = calc_dir[len(self._raw_dir.os_path) + 1:]
+        aux_files = sorted(
+            os.path.join(calc_relative_dir, path) for path in os.listdir(calc_dir)
+            if os.path.isfile(os.path.join(calc_dir, path)) and path != mainfile_basename)
+        if with_mainfile:
+            return [mainfile] + aux_files
+        else:
+            return aux_files
+
+    def _websave_hash(self, hash: bytes, length: int = 0) -> str:
+        if length > 0:
+            return base64.b64encode(hash, altchars=b'-_')[0:28].decode('utf-8')
+        else:
+            return base64.b64encode(hash, altchars=b'-_')[0:-2].decode('utf-8')
+
+    def calc_id(self, mainfile: str) -> str:
+        """
+        Calculates a id for the given calc.
+        Arguments:
+            mainfile: The mainfile path relative to the upload that identifies the calc in the folder structure.
+        Returns:
+            The calc id
+        Raises:
+            KeyError: If the mainfile does not exist.
+        """
+        hash = hashlib.sha512()
+        hash.update(self.upload_id.encode('utf-8'))
+        hash.update(mainfile.encode('utf-8'))
+        return self._websave_hash(hash.digest(), utils.default_hash_len)
+
+    def calc_hash(self, mainfile: str) -> str:
+        """
+        Calculates a hash for the given calc based on file contents and aux file contents.
+        Arguments:
+            mainfile: The mainfile path relative to the upload that identifies the calc in the folder structure.
+        Returns:
+            The calculated hash
+        Raises:
+            KeyError: If the mainfile does not exist.
+        """
+        hash = hashlib.sha512()
+        for filepath in self.calc_files(mainfile):
+            with open(self._raw_dir.join_file(filepath).os_path, 'rb') as f:
+                for data in iter(lambda: f.read(65536), b''):
+                    hash.update(data)
+
+        return self._websave_hash(hash.digest(), utils.default_hash_len)
 
 
-class ObjectFile(File):
+class ArchiveBasedStagingUploadFiles(StagingUploadFiles):
     """
-    Base class for file objects. Allows to open (read, write) and delete objects.
-    File objects filesystem location is govern by its bucket, object_id, and ext.
-    This object store location can be overridden with a local_path.
+    :class:`StagingUploadFiles` based on a single uploaded archive file (.zip)
 
     Arguments:
-        bucket (str): The 'bucket' for this object.
-        object_id (str): The object_id for this object. Might contain `/` to structure
-            the bucket further. Will be mapped to directories in the filesystem.
-        ext (str): Optional extension for the object file in the filesystem.
-
-    Attributes:
-        logger: A structured logger with bucket and object information.
-        has_local_path: True, if this object is stored somewhere else in the fs.
-    """
-    def __init__(self, bucket: str, object_id: str, ext: str = None, local_path: str = None) -> None:
-        self.bucket = bucket
-        self.object_id = object_id
-        self.ext = ext
-
-        self.has_local_path = local_path is not None
-        path = Objects._os_path(self.bucket, self.object_id, self.ext)
-        path = local_path if self.has_local_path else path
-
-        super().__init__(path)
-
-    def bind_logger(self, logger):
-        """ Adds context information to the given logger and returns it. """
-        return super().bind_logger(logger).bind(bucket=self.bucket, object=self.object_id)
-
-    def delete(self) -> None:
-        """ Deletes the file, if it has not a localpath. Localpath files are never deleted.  """
-        # Do not delete local files, no matter what
-        if not self.has_local_path:
-            super().delete()
-
-
-class FileError(Exception):
-    def __init__(self, msg, cause):
-        super().__init__(msg, cause)
-
-
-class UploadFile(ObjectFile):
-    """
-    Instances of ``UploadFile`` represent an uploaded file in the *'object storage'*.
-
-    Currently only user ``.zip`` files are supported.
-
-    Uploads can be extracted to tmp storage (open/close), the list of files in
-    the upload is provided, and files can be opened for read. Extracting uploads
-    is optional, all functions in this module are also available without extracting.
-    Extracts are automatically bagged with *bagit*.
-
-    This class is a context manager, that extracts the file when using a ``with``
-    statement with instances of this class.
-
-    UploadFiles are stored in their own *bucket*. But, storage can be overridden
-    by providing a ``local_path``. This is useful when the file is already stored
-    in nomad's distributed file system, e.g. for bulk processing of already uploaded
-    files.
-
-    Uploads can be persistet as :class:`ZippedDataContainers` for permanent repository
-    raw data storage.
-
-    Arguments:
-        upload_id: The upload of this uploaded file.
         local_path: Optional override for the path used to store/access the uploaded file.
-
-    Attributes:
-        is_extracted: True if the upload is extracted.
-        upload_extract_dir: The path of the tmp directory with the extracted contents.
-        filelist: A list of filenames relative to the .zipped upload root.
     """
 
     formats = ['zip']
     """ A human readable list of supported file formats. """
 
-    def __init__(self, upload_id: str, local_path: str = None) -> None:
-        super().__init__(
-            bucket=config.files.uploads_bucket,
-            object_id=upload_id,
-            ext='zip',
-            local_path=local_path)
-
-        self._extract_dir: str = os.path.join(config.fs.tmp, 'uploads_extracted', upload_id)
-        self._bagged_container: DataContainer = None
-        if os.path.isdir(self._extract_dir):
-            self._bagged_container = BaggedDataContainer(self._extract_dir)
-
-    def bind_logger(self, logger):
-        return super().bind_logger(logger).bind(upload_id=self.object_id)
-
-    # There is not good way to capsule decorators in a class:
-    # https://medium.com/@vadimpushtaev/decorator-inside-python-class-1e74d23107f6
-    class Decorators:
-        @classmethod
-        def handle_errors(cls, decorated):
-            def wrapper(self, *args, **kwargs):
-                try:
-                    return decorated(self, *args, **kwargs)
-                except Exception as e:
-                    msg = 'Could not %s upload.' % decorated.__name__
-                    self.logger.error(msg, upload_id=self.object_id, exc_info=e)
-                    raise FileError(msg, e)
-            return wrapper
-
-    @contextmanager
-    def _zip(self):
-        assert self.exists(), "Can only access uploaded file if it exists."
-        zip_file = None
-        try:
-            zip_file = ZipFile(self.os_path)
-            yield zip_file
-        except BadZipFile as e:
-            raise FileError('Upload is not a zip file', e)
-        finally:
-            if zip_file is not None:
-                zip_file.close()
+    def __init__(
+            self, upload_id: str, local_path: str = None, file_name: str = '.upload',
+            *args, **kwargs) -> None:
+        super().__init__(upload_id, *args, **kwargs)
+        self._local_path = local_path
+        self._upload_file = self.join_file(file_name)
 
     @property
-    def filelist(self) -> List[str]:
-        if self.is_extracted:
-            return self._bagged_container.manifest
+    def upload_file_os_path(self):
+        if self._local_path is not None:
+            return self._local_path
         else:
-            with self._zip() as zip_file:
-                return [
-                    zip_info.filename for zip_info in zip_file.filelist
-                    if not zip_info.filename.endswith('/')]
+            return self._upload_file.os_path
 
     @property
-    def is_extracted(self) -> bool:
-        return self._bagged_container is not None
+    def is_valid(self) -> bool:
+        if not os.path.exists(self.upload_file_os_path):
+            return False
+        elif not os.path.isfile(self.upload_file_os_path):
+            return False
+        else:
+            return is_zipfile(self.upload_file_os_path)
 
-    @Decorators.handle_errors
-    def upload_hash(self) -> str:
-        assert self.is_extracted
-        return self._bagged_container.hash
-
-    @Decorators.handle_errors
     def extract(self) -> None:
-        """
-        'Opens' the upload. This means the upload files get extracted and bagged to tmp.
+        assert next(self.raw_file_manifest(), None) is None, 'can only extract once'
+        super().add_rawfiles(self.upload_file_os_path, force_archive=True)
 
-        Raises:
-            UploadFileError: If some IO went wrong.
-            KeyError: If the upload does not exist.
-        """
-        os.makedirs(os.path.join(config.fs.tmp, 'uploads_extracted'), exist_ok=True)
+    def add_rawfiles(self, path: str, move: bool = False, prefix: str = None, force_archive: bool = False) -> None:
+        assert False, 'do not add_rawfiles to a %s' % self.__class__.__name__
 
-        with self._zip() as zip_file:
-            zip_file.extractall(self._extract_dir)
 
-        self.logger.debug('extracted uploaded file')
+class PublicUploadFiles(UploadFiles):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(config.files.public_bucket, *args, **kwargs)
 
-        self._bagged_container = BaggedDataContainer.create(self._extract_dir)
-        self.logger.debug('bagged uploaded file')
-
-    def persist(self, object_id: str = None):
-        """
-        Persists the extracted and bagged upload to the repository raw data bucket.
-        """
-        assert self.is_extracted
-        if object_id is None:
-            object_id = self.upload_hash()
-
-        target = Objects._os_path(config.files.raw_bucket, object_id, 'zip')
-        directory = os.path.dirname(target)
-        if not os.path.isdir(directory):
-            os.makedirs(directory)
-
-        return ZippedDataContainer.create(self._extract_dir, target=target)
-
-    @Decorators.handle_errors
-    def remove_extract(self) -> None:
-        """
-        Closes the upload. This means the tmp. files are deleted.
-
-        Raises:
-            UploadFileError: If some IO went wrong.
-            KeyError: If the upload does not exist.
-        """
-        try:
-            shutil.rmtree(self._extract_dir)
-        except FileNotFoundError:
-            raise KeyError()
-
-        self.logger.debug('removed uploaded file extract')
-
-    def __enter__(self):
-        self.extract()
-        return self
-
-    def __exit__(self, exc_type, exc, exc_tb):
-        self.remove_extract()
-
-    def get_file(self, filename: str) -> File:
-        """
-        Returns a :class:`File` instance as a handle to the file with the given name.
-        Only works on extracted uploads. The given filename must be one of the
-        name in ``self.filelist``.
-        """
-        assert self.is_extracted
-        return self._bagged_container.get_file(filename)
+        self._metadata = PublicMetadata(self.os_path)
 
     @property
-    def is_valid(self):
-        return is_zipfile(self.os_path)
+    def metadata(self) -> Metadata:
+        return self._metadata
 
-    def get_siblings(self, filename: str) -> Generator[str, None, None]:
-        """
-        Returns the names of all files that share the same prefix (object id),
-        respectively are part of the same directory (incl. files in sub directories).
-        In nomad terms, the aux files the this file. Returned siblings are relative
-        to the upload root directory.
-        """
-        dirname = os.path.dirname(filename)
-        for other in self.filelist:
-            if other.startswith(dirname) and other != filename:
-                yield other
+    def _file(self, prefix: str, ext: str, path: str, *args, **kwargs) -> IO:
+        mode = kwargs.get('mode') if len(args) == 0 else args[0]
+        if 'mode' in kwargs:
+            del(kwargs['mode'])
+        mode = mode if mode else 'rb'
 
-
-class RepositoryFile(ObjectFile):
-    """
-    Represents a repository file. A repository file is a persistet bagged upload, incl.
-    the upload metadata. It is used to serve raw data.
-    """
-    def __init__(self, upload_hash: str) -> None:
-        super().__init__(
-            bucket=config.files.raw_bucket,
-            object_id=upload_hash,
-            ext='zip')
-
-        self.zipped_container = ZippedDataContainer(self.os_path)
-
-    def get_file(self, path: str) -> ZippedFile:
-        return self.zipped_container.get_file(path)
-
-    @property
-    def manifest(self) -> List[str]:
-        return self.zipped_container.manifest
-
-
-class ArchiveFile(ObjectFile):
-    """
-    Represents the archive file for an individual calculation. Allows to write the
-    archive, read the archive, delete the archive.
-
-    Archive files are stored in their own *bucket*.
-    """
-    def __init__(self, archive_id: str) -> None:
-        super().__init__(
-            bucket=config.files.archive_bucket,
-            object_id=archive_id,
-            ext='json.gz' if config.files.compress_archive else 'json')
-
-    def bind_logger(self, logger):
-        upload_hash, calc_hash = self.object_id.split('/')
-        return super().bind_logger(logger).bind(
-            archive_id=self.object_id, upload_hash=upload_hash, calc_hash=calc_hash)
-
-    @contextmanager
-    def write_archive_json(self) -> Generator[TextIO, None, None]:
-        """ Context manager that yields a file-like to write the archive json. """
-        with self.open('wb') as binary_out:
-            if config.files.compress_archive:
-                gzip_wrapper = cast(TextIO, gzip.open(binary_out, 'wt'))
-                out = gzip_wrapper
-            else:
-                text_wrapper = io.TextIOWrapper(binary_out, encoding='utf-8')
-                out = text_wrapper
-
+        for access in ['public', 'restricted']:
             try:
-                yield out
-            finally:
-                out.flush()
-                out.close()
-
-        self.logger.debug('archive file written')
-
-    @contextmanager
-    def read_archive_json(self) -> Generator[TextIO, None, None]:
-        """ Context manager that yields a file-like to read the archive json. """
-        with self.open(mode='rb') as binary_in:
-            try:
-                if config.files.compress_archive:
-                    gzip_wrapper = cast(TextIO, gzip.open(binary_in, 'rt'))
-                    in_file = gzip_wrapper
-                else:
-                    text_wrapper = io.TextIOWrapper(binary_in, encoding='utf-8')
-                    in_file = text_wrapper
+                zip_file = self.join_file('%s-%s.%s.zip' % (prefix, access, ext))
+                with ZipFile(zip_file.os_path) as zf:
+                    f = zf.open(path, 'r', **kwargs)
+                    if access == 'restricted' and not self._is_authorized():
+                        raise Restricted
+                    if 't' in mode:
+                        return io.TextIOWrapper(f)
+                    else:
+                        return f
             except FileNotFoundError:
-                raise KeyError()
+                pass
+            except KeyError:
+                pass
 
+        raise KeyError()
+
+    def raw_file(self, file_path: str, *args, **kwargs) -> IO:
+        return self._file('raw', 'bagit', 'data/' + file_path, *args, *kwargs)
+
+    def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
+        for access in ['public', 'restricted']:
             try:
-                yield in_file
-            finally:
-                in_file.close()
+                zip_file = self.join_file('raw-%s.bagit.zip' % access)
+                with ZipFile(zip_file.os_path) as zf:
+                    for full_path in zf.namelist():
+                        path = full_path[5:]  # remove data/
+                        if path_prefix is None or path.startswith(path_prefix):
+                            yield path
+            except FileNotFoundError:
+                pass
 
-        self.logger.debug('archive file read')
+    def archive_file(self, calc_id: str, *args, **kwargs) -> IO:
+        return self._file('archive', self._archive_ext, '%s.%s' % (calc_id, self._archive_ext), *args, **kwargs)
 
-    @staticmethod
-    def delete_archives(upload_hash: str):
-        """ Delete all archives of one upload with the given hash. """
-        bucket = config.files.archive_bucket
-        Objects.delete_all(bucket, upload_hash)
+    def archive_log_file(self, calc_id: str, *args, **kwargs) -> IO:
+        return self._file('archive', self._archive_ext, '%s.log' % calc_id, *args, **kwargs)
 
-        utils.get_logger(__name__, bucket=bucket, upload_hash=upload_hash) \
-            .debug('archive files deleted')
-
-
-class ArchiveLogFile(ObjectFile):
-    """
-    Represents a log file that was created for processing a single calculation to create
-    an archive.
-    Logfiles are stored within the *archive_bucket* alongside the archive files.
-    """
-    def __init__(self, archive_id: str) -> None:
-        super().__init__(
-            bucket=config.files.archive_bucket,
-            object_id=archive_id,
-            ext='log')
-
-
-class DataContainer(ABC):
-    """
-    An abstract baseclass for a *data container*. A data container is a persistent
-    bundle of related files, like the calculation raw data of a user upload.
-
-    A container has a *manifest* and arbitrary *metadata*.
-    """
-    @property
-    def manifest(self) -> List[str]:
+    def repack(self) -> None:
         """
-        A readonly list of paths to files within the container relative to the containers
-        payload directory.
+        Replaces the existing public/restricted data file pairs with new ones, based
+        on current restricted information in the metadata. Should be used after updating
+        the restrictions on calculations. This is potentially a long running operation.
         """
         pass
 
-    @property
-    def metadata(self) -> Dict[str, Any]:
-        """
-        The modifiable metadata of this manifest. On the top-level its a string keyed
-        dictionary. The values can be arbitrary, but have to be JSON-serializable.
-        Modifications have to be saved (:func:`save_metadata`).
-        """
-        pass
 
-    def save_metadata(self) -> None:
-        """ Persists metadata changes. """
-        pass
+class Calc(datamodel.Calc):
+    @classmethod
+    def load_from(cls, obj):
+        return Calc(obj.upload.upload_id, obj.calc_id)
 
-    def get_file(self, manifest_path: str) -> File:
-        """
-        Returns a file-like for the given manifest path.
-        """
-        pass
+    def __init__(self, upload_id: str, calc_id: str) -> None:
+        self._calc_id = calc_id
+        upload_files = UploadFiles.get(upload_id, is_authorized=lambda: True)
+        if upload_files is None:
+            raise KeyError
+        self._data = upload_files.metadata.get(calc_id)
 
     @property
-    def hash(self) -> str:
-        return self.metadata['Nomad-Hash']
-
-
-class BaggedDataContainer(DataContainer):
-    """
-    A *data container* based on *bagit*. Once created no more files can be added.
-    """
-    def __init__(self, path: str) -> None:
-        self.path = path
-        self.bag = bagit.Bag(path)
-        self._metadata = None
-        self.payload_directory = os.path.join(path, 'data')
-
-    @staticmethod
-    def create(path: str) -> 'BaggedDataContainer':
-        """
-        Makes a bag from the given directory and returns the respective BaggedDataContainer
-        instance.
-        """
-        bag = bagit.make_bag(path, checksums=['sha512'])
-
-        # TODO implement NOMAD-coe's way of doing the hashing
-        hashes = [
-            value['sha512'] for key, value in bag.entries.items()
-            if key.startswith('data/')
-        ]
-        bag.info['Nomad-Hash'] = utils.hash(''.join(hashes))
-
-        bag.save()
-        return BaggedDataContainer(path)
+    def calc_data(self) -> dict:
+        return self._data['section_repository_info']['section_repository_parserdata']
 
     @property
-    def metadata(self):
-        if self._metadata is None:
-            self._metadata = BaggedDataContainer._load_bagit_metadata(self.bag.info)
-        return self._metadata
-
-    @staticmethod
-    def _load_bagit_metadata(info):
-        metadata = info
-        for key, value in metadata.items():
-            if key not in bagit.STANDARD_BAG_INFO_HEADERS:
-                try:
-                    metadata[key] = json.loads(value)
-                except Exception:
-                    pass
-        return metadata
-
-    def save_metadata(self):
-        metadata = self.bag.info
-        for key, value in metadata.items():
-            if key not in bagit.STANDARD_BAG_INFO_HEADERS and not isinstance(value, str):
-                metadata[key] = json.dumps(value)
-        self.bag.save()
+    def calc_id(self) -> str:
+        return self._calc_id
 
     @property
-    def manifest(self):
-        return [path[5:] for path in self.bag.entries.keys() if path.startswith('data/')]
-
-    def get_file(self, path):
-        return File(os.path.join(self.payload_directory, path))
-
-
-class ZippedDataContainer(File, DataContainer):
-    """
-    A *bagit*-based data container that has been zipped. Its metadata cannot be changed
-    anymore.
-    """
-    def __init__(self, os_path: str) -> None:
-        super(ZippedDataContainer, self).__init__(os_path)
-        self._metadata = None
-        self._base_directory = os.path.splitext(os.path.basename(os_path))[0]
-        self._payload_directory = '%s/data/' % self._base_directory
-        self._payload_deirectory_len = len(self._payload_directory)
-
-    @staticmethod
-    def create(path: str, target: str = None) -> 'ZippedDataContainer':
-        """
-        Creates a zipped bag from a bag.
-
-        Arguments:
-            path: The path to the bag
-            target:
-                The path to the zip (excl. .zip extension). Base dir in zip will be
-                based on the target path.
-        """
-        if not target:
-            target = path + '.zip'
-
-        target = os.path.abspath(target)
-
-        assert os.path.isdir(path)
-        assert os.path.exists(os.path.dirname(target))
-
-        # manually created zipfile instead of shutils.make_zip to use base_dir from
-        # target while zipping path
-        base_dir = os.path.splitext(os.path.basename(target))[0]
-        path_prefix_len = len(path) + 1
-        with ZipFile(target, "w", compression=ZIP_DEFLATED, allowZip64=True) as zip_file:
-            for root, _, filenames in os.walk(path):
-                for name in filenames:
-                    file_path = os.path.join(root, name)
-                    zipped_path = os.path.join(base_dir, file_path[path_prefix_len:])
-                    zip_file.write(file_path, zipped_path)
-
-        return ZippedDataContainer(target)
-
-    @contextmanager
-    def zip_file(self):
-        assert self.exists(), "Can only access uploaded file if it exists."
-        zip_file = None
-        try:
-            zip_file = ZipFile(self.os_path)
-            yield zip_file
-        except BadZipFile as e:
-            raise FileError('Upload is not a zip file', e)
-        finally:
-            if zip_file is not None:
-                zip_file.close()
+    def mainfile(self) -> str:
+        return self.files[0]
 
     @property
-    def manifest(self):
-        with self.zip_file() as zip_file:
-            return [
-                zip_info.filename[self._payload_deirectory_len:] for zip_info in zip_file.filelist
-                if not zip_info.filename.endswith('/') and zip_info.filename.startswith(self._payload_directory)]
+    def files(self) -> List[str]:
+        return self._data['section_repository_info']['repository_filepaths']
 
     @property
-    def metadata(self):
-        if self._metadata is None:
-            self._metadata = self._load_metadata()
-        return self._metadata
+    def program_name(self) -> str:
+        return self.calc_data['repository_program_name']
 
-    def _load_metadata(self):
-        with ZippedFile(self.os_path, '%s/bag-info.txt' % self._base_directory).open('r') as metadata_file:
-            metadata_contents = metadata_file.read()
+    @property
+    def program_version(self) -> str:
+        return self.calc_data['repository_code_version']
 
-        metadata_file = io.StringIO(metadata_contents.decode("utf-8"))
-        tags = {}
-        for name, value in bagit._parse_tags(metadata_file):
-            if name not in tags:
-                tags[name] = value
-                continue
+    @property
+    def chemical_composition(self) -> str:
+        return self.calc_data['repository_chemical_formula']
 
-            if not isinstance(tags[name], list):
-                tags[name] = [tags[name], value]
-            else:
-                tags[name].append(value)
+    @property
+    def space_group_number(self) -> int:
+        return self.calc_data['repository_spacegroup_nr']
 
-        return BaggedDataContainer._load_bagit_metadata(tags)
+    @property
+    def atom_species(self) -> list:
+        return self.calc_data['repository_atomic_elements']
 
-    def get_file(self, path):
-        return ZippedFile(self.path, self._payload_directory + path)
+    @property
+    def system_type(self) -> str:
+        return self.calc_data['repository_system_type']
 
-    def get_zip_path(self, path):
-        return self._payload_directory + path
+    @property
+    def XC_functional_name(self) -> str:
+        return self.calc_data['repository_xc_treatment']
+
+    @property
+    def crystal_system(self) -> str:
+        return self.calc_data['repository_crystal_system']
+
+    @property
+    def basis_set_type(self) -> str:
+        return self.calc_data['repository_basis_set_type']

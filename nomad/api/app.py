@@ -22,8 +22,9 @@ from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 from werkzeug.wsgi import DispatcherMiddleware
 import os.path
+import inspect
 
-from nomad import config
+from nomad import config, utils
 
 base_path = config.services.api_base_path
 """ Provides the root path of the nomad APIs. """
@@ -54,15 +55,17 @@ CORS(app)
 
 api = Api(
     app, version='1.0', title='nomad@FAIRDI API',
-    description='Official API for nomad@FAIRDI services.')
+    description='Official API for nomad@FAIRDI services.',
+    validate=True)
 """ Provides the flask restplust api instance """
 
 
-@app.errorhandler(HTTPException)
-def handle(error):
+@app.errorhandler(Exception)
+@api.errorhandler
+def handle(error: Exception):
     status_code = getattr(error, 'code', 500)
     name = getattr(error, 'name', 'Internal Server Error')
-    description = getattr(error, 'description', None)
+    description = getattr(error, 'description', 'No description available')
     data = dict(
         code=status_code,
         name=name,
@@ -70,4 +73,40 @@ def handle(error):
     data.update(getattr(error, 'data', []))
     response = jsonify(data)
     response.status_code = status_code
+    if status_code == 500:
+        utils.get_logger(__name__).error('internal server error', exc_info=error)
     return response
+
+
+def with_logger(func):
+    """
+    Decorator for endpoint implementations that provides a pre configured logger and
+    automatically logs errors on all 500 responses.
+    """
+    signature = inspect.signature(func)
+    has_logger = 'logger' in signature.parameters
+    wrapper_signature = signature.replace(parameters=tuple(
+        param for param in signature.parameters.values()
+        if param.name != 'logger'
+    ))
+
+    def wrapper(*args, **kwargs):
+        if has_logger:
+            args = inspect.getcallargs(wrapper, *args, **kwargs)
+            logger_args = {
+                k: v for k, v in args.items()
+                if k in ['upload_id', 'calc_id']}
+            logger = utils.get_logger(__name__, **logger_args)
+            args.update(logger=logger)
+        try:
+            return func(**args)
+        except HTTPException as e:
+            if getattr(e, 'code', None) == 500:
+                logger.error('Internal server error', exc_info=e)
+            raise e
+        except Exception as e:
+            logger.error('Internal server error', exc_info=e)
+            raise e
+
+    wrapper.__signature__ = wrapper_signature
+    return wrapper

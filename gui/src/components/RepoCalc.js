@@ -29,8 +29,8 @@ class RepoCalc extends React.Component {
   }
 
   componentDidMount() {
-    const {uploadHash, calcHash} = this.props.match.params
-    api.repo(uploadHash, calcHash).then(data => {
+    const {uploadId, calcId} = this.props.match.params
+    api.repo(uploadId, calcId).then(data => {
       this.setState({data: data})
     }).catch(error => {
       this.setState({data: null})

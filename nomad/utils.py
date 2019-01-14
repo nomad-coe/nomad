@@ -19,7 +19,7 @@
 
 Logging in nomad is structured. Structured logging means that log entries contain
 dictionaries with quantities related to respective events. E.g. having the code,
-parser, parser version, calc_hash, mainfile, etc. for all events that happen during
+parser, parser version, calc_id, mainfile, etc. for all events that happen during
 calculation processing. This means the :func:`get_logger` and all logger functions
 take keyword arguments for structured data. Otherwise :func:`get_logger` can
 be used similar to the standard *logging.getLogger*.
@@ -33,8 +33,7 @@ Depending on the configuration all logs will also be send to a central logstash.
 .. autofunc::nomad.utils.lnr
 """
 
-from typing import Union, IO, cast, List
-import hashlib
+from typing import List
 import base64
 import logging
 import structlog
@@ -46,6 +45,7 @@ import json
 import uuid
 import time
 import re
+from werkzeug.exceptions import HTTPException
 
 from nomad import config
 
@@ -97,7 +97,7 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
                 if key in ('event', 'stack_info', 'id', 'timestamp'):
                     continue
                 elif key in (
-                        'upload_hash', 'archive_id', 'upload_id', 'calc_hash', 'mainfile',
+                        'upload_id', 'calc_id', 'mainfile',
                         'service', 'release'):
                     key = 'nomad.%s' % key
                 else:
@@ -172,28 +172,6 @@ def create_uuid() -> str:
     return base64.b64encode(uuid.uuid4().bytes, altchars=b'-_').decode('utf-8')[0:-2]
 
 
-def hash(obj: Union[IO, str], length=default_hash_len) -> str:
-    """
-    Returns a web-save base64 encoded 28 long hash for the given contents.
-    First 28 character of an URL safe base 64 encoded sha512 digest.
-    """
-    hash = hashlib.sha512()
-    if getattr(obj, 'read', None) is not None:
-        for data in iter(lambda: cast(IO, obj).read(65536), b''):
-            hash.update(data)
-    elif isinstance(obj, str):
-        hash.update(obj.encode('utf-8'))
-
-    return websave_hash(hash.digest(), length)
-
-
-def websave_hash(hash, length=0):
-    if length > 0:
-        return base64.b64encode(hash, altchars=b'-_')[0:28].decode('utf-8')
-    else:
-        return base64.b64encode(hash, altchars=b'-_')[0:-2].decode('utf-8')
-
-
 def get_logger(name, **kwargs):
     """
     Returns a structlog logger that is already attached with a logstash handler.
@@ -218,6 +196,9 @@ def lnr(logger, event, **kwargs):
     """
     try:
         yield
+    except HTTPException as e:
+        # ignore HTTPException as they are part of the normal flask error handling
+        raise e
     except Exception as e:
         logger.error(event, exc_info=e, **kwargs)
         raise e
@@ -254,8 +235,8 @@ def timer(logger, event, method='info', **kwargs):
 
 class archive:
     @staticmethod
-    def create(upload_hash: str, calc_hash: str) -> str:
-        return '%s/%s' % (upload_hash, calc_hash)
+    def create(upload_id: str, calc_id: str) -> str:
+        return '%s/%s' % (upload_id, calc_id)
 
     @staticmethod
     def items(archive_id: str) -> List[str]:
@@ -266,9 +247,9 @@ class archive:
         return archive.items(archive_id)[index]
 
     @staticmethod
-    def calc_hash(archive_id: str) -> str:
+    def calc_id(archive_id: str) -> str:
         return archive.item(archive_id, 1)
 
     @staticmethod
-    def upload_hash(archive_id: str) -> str:
+    def upload_id(archive_id: str) -> str:
         return archive.item(archive_id, 0)

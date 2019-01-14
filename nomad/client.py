@@ -28,7 +28,7 @@ from bravado.requests_client import RequestsClient
 from bravado.client import SwaggerClient
 
 from nomad import config, utils
-from nomad.files import UploadFile
+from nomad.files import ArchiveBasedStagingUploadFiles
 from nomad.parsing import parsers, parser_dict, LocalBackend
 from nomad.normalizing import normalizers
 
@@ -49,11 +49,9 @@ def create_client(
         user: str = user, password: str = pw):
     """ A factory method to create the client. """
 
+    http_client = RequestsClient()
     if user is not None:
-        http_client = RequestsClient()
         http_client.set_basic_auth(host, user, pw)
-    else:
-        http_client = None
 
     client = SwaggerClient.from_url(
         'http://%s:%d%s/swagger.json' % (host, port, base_path),
@@ -130,7 +128,7 @@ class CalcProcReproduction:
     (parsing, normalizing) with the locally installed parsers and normalizers.
 
     The use-case is error/warning reproduction. Use ELK to identify errors, use
-    the upload, archive ids/hashes to given by ELK, and reproduce and fix the error
+    the upload, archive ids to given by ELK, and reproduce and fix the error
     in your development environment.
 
     This is a class of :class:`UploadFile` the downloaded raw data will be treated as
@@ -142,8 +140,8 @@ class CalcProcReproduction:
         override: Set to true to override any existing local calculation data.
     """
     def __init__(self, archive_id: str, override: bool = False) -> None:
-        self.calc_hash = utils.archive.calc_hash(archive_id)
-        self.upload_hash = utils.archive.upload_hash(archive_id)
+        self.calc_id = utils.archive.calc_id(archive_id)
+        self.upload_id = utils.archive.upload_id(archive_id)
         self.mainfile = None
         self.parser = None
         self.logger = utils.get_logger(__name__, archive_id=archive_id)
@@ -156,24 +154,24 @@ class CalcProcReproduction:
             # download with request, since bravado does not support streaming
             # TODO currently only downloads mainfile
             self.logger.info('Downloading calc.')
-            req = requests.get('%s/raw/%s/%s' % (api_base, self.upload_hash, os.path.dirname(self.mainfile)), stream=True)
+            req = requests.get('%s/raw/%s/%s' % (api_base, self.upload_id, os.path.dirname(self.mainfile)), stream=True)
             with open(local_path, 'wb') as f:
                 for chunk in req.iter_content(chunk_size=1024):
                     f.write(chunk)
         else:
             self.logger.info('Calc already downloaded.')
 
-        self.upload_file = UploadFile(upload_id='tmp_%s' % archive_id, local_path=local_path)
+        self.upload_files = ArchiveBasedStagingUploadFiles(upload_id='tmp_%s' % archive_id, local_path=local_path)
 
     def __enter__(self):
         # open/extract upload file
         self.logger.info('Extracting calc data.')
-        self.upload_file.__enter__()
+        self.upload_files.extract()
 
-        # find mainfile matching calc_hash
+        # find mainfile matching calc_id
         self.mainfile = next(
-            filename for filename in self.upload_file.filelist
-            if utils.hash(filename) == self.calc_hash)
+            filename for filename in self.upload_files.raw_file_manifest()
+            if self.upload_files.calc_id(filename) == self.calc_id)
 
         assert self.mainfile is not None, 'The mainfile could not be found.'
         self.logger = self.logger.bind(mainfile=self.mainfile)
@@ -182,19 +180,18 @@ class CalcProcReproduction:
         return self
 
     def __exit__(self, *args):
-        self.upload_file.__exit__(*args)
+        self.upload_files.delete()
 
     def parse(self, parser_name: str = None) -> LocalBackend:
         """
         Run the given parser on the downloaded calculation. If no parser is given,
         do parser matching and use the respective parser.
         """
-        mainfile = self.upload_file.get_file(self.mainfile)
         if parser_name is not None:
             parser = parser_dict.get(parser_name)
         else:
             for potential_parser in parsers:
-                with mainfile.open() as mainfile_f:
+                with self.upload_files.raw_file(self.mainfile) as mainfile_f:
                     if potential_parser.is_mainfile(self.mainfile, lambda fn: mainfile_f):
                         parser = potential_parser
                         break
@@ -203,7 +200,7 @@ class CalcProcReproduction:
         self.logger = self.logger.bind(parser=parser.name)  # type: ignore
         self.logger.info('identified parser')
 
-        parser_backend = parser.run(mainfile.os_path, logger=self.logger)
+        parser_backend = parser.run(self.upload_files.raw_file_object(self.mainfile).os_path, logger=self.logger)
         self.logger.info('ran parser')
         return parser_backend
 
@@ -300,7 +297,7 @@ def upload(path, name: str, offline: bool, unstage: bool):
 
 @cli.command(help='Attempts to reset the nomad.')
 def reset():
-    _cli_client().admin.exec_admin_command(operation='reset').reponse()
+    _cli_client().admin.exec_reset_command().response()
 
 
 @cli.command(help='Run processing locally.')

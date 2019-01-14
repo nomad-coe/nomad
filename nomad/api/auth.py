@@ -39,7 +39,7 @@ from flask import g, request, make_response
 from flask_restplus import abort, Resource
 from flask_httpauth import HTTPBasicAuth
 
-from nomad import config
+from nomad import config, processing, files, utils, coe_repo
 from nomad.coe_repo import User, LoginException
 
 from .app import app, api
@@ -147,3 +147,32 @@ class TokenResource(Resource):
                 401,
                 message='You are not propertly logged in at the NOMAD coe repository, '
                         'there is no token for you.')
+
+
+def create_authorization_predicate(upload_id, calc_id=None):
+    """
+    Returns a predicate that determines if the logged in user has the authorization
+    to access the given upload and calculation.
+    """
+    def func():
+        if g.user is None:
+            # guest users don't have authorized access to anything
+            return False
+
+        # look in repository
+        upload = coe_repo.Upload.from_upload_id(upload_id)
+        if upload is not None:
+            return upload.user_id == g.user.user_id
+
+        # look in staging
+        staging_upload = processing.Upload.get(upload_id)
+        if staging_upload is not None:
+            return str(g.user.user_id) == str(staging_upload.user_id)
+
+        # There are no db entries for the given resource
+        if files.UploadFiles.get(upload_id) is not None:
+            logger = utils.get_logger(__name__, upload_id=upload_id, calc_id=calc_id)
+            logger.error('Upload files without respective db entry')
+
+        raise KeyError
+    return func

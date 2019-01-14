@@ -18,6 +18,7 @@ from .system import SystemNormalizer
 from .symmetry import SymmetryNormalizer
 from .systemtype import SystemTypeNormalizer
 from .fhiaims import FhiAimsBaseNormalizer
+from .repository import RepositoryNormalizer
 
 """
 After parsing calculations have to be normalized with a set of *normalizers*.
@@ -46,5 +47,6 @@ normalizers: List[Any] = [
     SystemNormalizer,
     FhiAimsBaseNormalizer,
     SymmetryNormalizer,
-    SystemTypeNormalizer
+    SystemTypeNormalizer,
+    RepositoryNormalizer
 ]

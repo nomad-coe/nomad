@@ -43,7 +43,7 @@ const handleResponseErrors = (response) => {
 class Upload {
   constructor(json) {
     this.uploading = 0
-    this._assignFromJson(json)
+    Object.assign(this, json)
   }
 
   uploadFile(file) {
@@ -78,17 +78,6 @@ class Upload {
       .then(() => this)
   }
 
-  _assignFromJson(uploadJson) {
-    Object.assign(this, uploadJson)
-    if (this.calcs) {
-      this.calcs.results.forEach(calc => {
-        const archiveId = calc.archive_id.split('/')
-        calc.upload_hash = archiveId[0]
-        calc.calc_hash = archiveId[1]
-      })
-    }
-  }
-
   get(page, perPage, orderBy, order) {
     if (this.uploading !== null && this.uploading !== 100) {
       return new Promise(resolve => resolve(this))
@@ -105,7 +94,7 @@ class Upload {
           .then(handleResponseErrors)
           .then(response => response.body)
           .then(uploadJson => {
-            this._assignFromJson(uploadJson)
+            Object.assign(this, uploadJson)
             return this
           })
       } else {
@@ -137,23 +126,22 @@ async function getUploads() {
     }))
 }
 
-async function archive(uploadHash, calcHash) {
+async function archive(uploadId, calcId) {
   const client = await swaggerPromise
   return client.apis.archive.get_archive_calc({
-      upload_hash: uploadHash,
-      calc_hash: calcHash
+      upload_id: uploadId,
+      calc_id: calcId
     })
     .catch(networkError)
     .then(handleResponseErrors)
     .then(response => response.body)
 }
 
-async function calcProcLog(uploadHash, calcHash) {
+async function calcProcLog(uploadId, calcId) {
   const client = await swaggerPromise
-  console.log(uploadHash + calcHash)
   return client.apis.archive.get_archive_logs({
-    upload_hash: uploadHash,
-    calc_hash: calcHash
+    upload_id: uploadId,
+    calc_id: calcId
   })
     .catch(networkError)
     .then(response => {
@@ -169,11 +157,11 @@ async function calcProcLog(uploadHash, calcHash) {
     })
 }
 
-async function repo(uploadHash, calcHash) {
+async function repo(uploadId, calcId) {
   const client = await swaggerPromise
   return client.apis.repo.get_repo_calc({
-      upload_hash: uploadHash,
-      calc_hash: calcHash
+      upload_id: uploadId,
+      calc_id: calcId
     })
     .catch(networkError)
     .then(handleResponseErrors)
@@ -227,17 +215,23 @@ async function getMetaInfo() {
         .catch(handleJsonErrors)
         .then(data => {
           if (!cachedMetaInfo) {
-            cachedMetaInfo = {}
+            cachedMetaInfo = {
+              loadedDependencies: {}
+            }
           }
-          if (data.dependencies) {
-            data.dependencies.forEach(dep => {
-              loadMetaInfo(dep.relativePath)
-            })
-          }
+          cachedMetaInfo.loadedDependencies[path] = true
           if (data.metaInfos) {
             data.metaInfos.forEach(info => {
               cachedMetaInfo[info.name] = info
+              info.relativePath = path
             })
+          }
+          if (data.dependencies) {
+            data.dependencies
+              .filter(dep => cachedMetaInfo.loadedDependencies[dep.relativePath] !== true)
+              .forEach(dep => {
+                loadMetaInfo(dep.relativePath)
+              })
           }
         })
     }

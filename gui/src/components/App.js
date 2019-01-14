@@ -19,10 +19,10 @@ function App() {
           <Switch>
             <Route exact path="/" component={Home} />
             <Route exact path="/repo" component={Repo} />
-            <Route path="/repo/:uploadHash/:calcHash" component={RepoCalc} />
+            <Route path="/repo/:uploadId/:calcId" component={RepoCalc} />
             <Route path="/upload" component={Uploads} />
             <Route exact path="/archive" render={() => <div>Archive</div>} />
-            <Route path="/archive/:uploadHash/:calcHash" component={ArchiveCalc} />
+            <Route path="/archive/:uploadId/:calcId" component={ArchiveCalc} />
             <Route path="/enc" render={() => <div>{'In the future, you\'ll see charts\'n\'stuff for your calculations and materials.'}</div>} />
             <Route path="/analytics" render={() => <div>{'In the future, you\'ll see analytics notebooks here.'}</div>} />
             <Route path="/profile" render={() => <div>Profile</div>} />

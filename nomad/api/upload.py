@@ -13,8 +13,8 @@
 # limitations under the License.
 
 """
-The upload API of the nomad@FAIRDI APIs. Provides endpoints to create uploads, upload
-files, and retrieve the processing status of uploads.
+The upload API of the nomad@FAIRDI APIs. Provides endpoints to upload files and
+get the processing status of uploads.
 """
 
 from flask import g, request
@@ -23,13 +23,12 @@ from datetime import datetime
 from werkzeug.datastructures import FileStorage
 import os.path
 
-from nomad import config
+from nomad import config, utils
 from nomad.processing import Upload
 from nomad.processing import NotAllowedDuringProcessing
-from nomad.utils import get_logger
-from nomad.files import UploadFile
+from nomad.files import ArchiveBasedStagingUploadFiles, StagingUploadFiles, UploadFiles
 
-from .app import api
+from .app import api, with_logger
 from .auth import login_really_required
 from .common import pagination_request_parser, pagination_model
 
@@ -56,19 +55,14 @@ upload_model = api.inherit('UploadProcessing', proc_model, {
         description='The name of the upload. This can be provided during upload '
                     'using the name query parameter.'),
     'upload_id': fields.String(
-        description='The unique id for the upload. Its a random uuid and '
-                    'and used within nomad as long as no upload_hash is available.'),
-    'upload_hash': fields.String(
-        description='The unique upload hash. It is based on the uploaded content and '
-                    'used within nomad to identify uploads.'
-    ),
+        description='The unique id for the upload.'),
     'additional_metadata': fields.Arbitrary,
     'local_path': fields.String,
     'upload_time': fields.DateTime(dt_format='iso8601'),
 })
 
 calc_model = api.inherit('UploadCalculationProcessing', proc_model, {
-    'archive_id': fields.String,
+    'calc_id': fields.String,
     'mainfile': fields.String,
     'upload_id': fields.String,
     'parser': fields.String
@@ -88,8 +82,29 @@ upload_with_calcs_model = api.inherit('UploadWithPaginatedCalculations', upload_
     }))
 })
 
+meta_data_model = api.model('MetaData', {
+    'with_embargo': fields.Boolean(default=False, description='Data with embargo is only visible to the upload until the embargo period ended.'),
+    'comment': fields.List(fields.String, description='The comment are shown in the repository for each calculation.'),
+    'references': fields.List(fields.String, descriptions='References allow to link calculations to external source, e.g. URLs.'),
+    'coauthors': fields.List(fields.String, description='A list of co-authors given by user_id.'),
+    'shared_with': fields.List(fields.String, description='A list of users to share calculations with given by user_id.'),
+    '_upload_time': fields.List(fields.DateTime(dt_format='iso8601'), description='Overrride the upload time.'),
+    '_uploader': fields.List(fields.String, description='Override the uploader with the given user id.')
+})
+
+calc_meta_data_model = api.inherit('CalcMetaData', meta_data_model, {
+    'mainfile': fields.String(description='The calculation main output file is used to identify the calculation in the upload.'),
+    '_checksum': fields.String(description='Override the calculation checksum'),
+    '_pid': fields.String(description='Assign a specific pid. It must be unique.')
+})
+
+upload_meta_data_model = api.inherit('UploadMetaData', meta_data_model, {
+    'calculations': fields.List(fields.Nested(model=calc_meta_data_model), description='Specific per calculation data that will override the upload data.')
+})
+
 upload_operation_model = api.model('UploadOperation', {
-    'operation': fields.String(description='Currently unstage is the only operation.')
+    'operation': fields.String(description='Currently unstage is the only operation.'),
+    'metadata': fields.Nested(model=upload_meta_data_model, description='Additional upload and calculation meta data that should be considered for the operation')
 })
 
 
@@ -112,7 +127,8 @@ class UploadListResource(Resource):
     @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload received')
     @api.expect(upload_metadata_parser)
     @login_really_required
-    def put(self):
+    @with_logger
+    def put(self, logger):
         """
         Upload a file and automatically create a new upload in the process.
         Can be used to upload files via browser or other http clients like curl.
@@ -139,38 +155,54 @@ class UploadListResource(Resource):
             name=request.args.get('name'),
             local_path=local_path)
 
-        logger = get_logger(__name__, endpoint='upload', action='put', upload_id=upload.upload_id)
-        logger.info('upload created')
+        logger.info('upload created', upload_id=upload.upload_id)
 
-        uploadFile = UploadFile(upload.upload_id, local_path=local_path)
+        try:
+            if local_path:
+                # file is already there and does not to be received
+                upload_files = ArchiveBasedStagingUploadFiles(
+                    upload.upload_id, create=True, local_path=local_path)
+            elif request.mimetype == 'application/multipart-formdata':
+                # multipart formdata, e.g. with curl -X put "url" -F file=@local_file
+                # might have performance issues for large files: https://github.com/pallets/flask/issues/2086
+                if 'file' in request.files:
+                    abort(400, message='Bad multipart-formdata, there is no file part.')
+                file = request.files['file']
+                if upload.name is None or upload.name is '':
+                    upload.name = file.filename
 
-        if local_path:
-            pass
-        elif request.mimetype == 'application/multipart-formdata':
-            # multipart formdata, e.g. with curl -X put "url" -F file=@local_file
-            # might have performance issues for large files: https://github.com/pallets/flask/issues/2086
-            if 'file' in request.files:
-                abort(400, message='Bad multipart-formdata, there is no file part.')
-            file = request.files['file']
-            if upload.name is '':
-                upload.name = file.filename
+                upload_files = ArchiveBasedStagingUploadFiles(
+                    upload.upload_id, create=True, local_path=local_path,
+                    file_name='.upload.%s' % os.path.splitext(file.filename)[1])
 
-            file.save(uploadFile.os_path)
-        else:
-            # simple streaming data in HTTP body, e.g. with curl "url" -T local_file
-            try:
-                with uploadFile.open('wb') as f:
-                    while not request.stream.is_exhausted:
-                        f.write(request.stream.read(1024))
+                file.save(upload_files.upload_file_os_path)
+            else:
+                # simple streaming data in HTTP body, e.g. with curl "url" -T local_file
+                file_name = '.upload'
+                try:
+                    ext = os.path.splitext(upload.name)[1]
+                    if ext is not None:
+                        file_name += '.' + ext
+                except Exception:
+                    pass
 
-            except Exception as e:
-                logger.error('Error on streaming upload', exc_info=e)
-                abort(400, message='Some IO went wrong, download probably aborted/disrupted.')
+                upload_files = ArchiveBasedStagingUploadFiles(
+                    upload.upload_id, create=True, local_path=local_path,
+                    file_name='.upload')
 
-        if not uploadFile.is_valid:
-            uploadFile.delete()
-            upload.delete()
-            abort(400, message='Bad file format, excpected %s.' % ", ".join(UploadFile.formats))
+                try:
+                    with open(upload_files.upload_file_os_path, 'wb') as f:
+                        while not request.stream.is_exhausted:
+                            f.write(request.stream.read(1024))
+
+                except Exception as e:
+                    logger.warning('Error on streaming upload', exc_info=e)
+                    abort(400, message='Some IO went wrong, download probably aborted/disrupted.')
+        except Exception as e:
+            upload_files.delete()
+            upload.delete(force=True)
+            logger.info('Invalid or aborted upload')
+            raise e
 
         logger.info('received uploaded file')
         upload.upload_time = datetime.now()
@@ -209,7 +241,7 @@ class UploadResource(Resource):
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
-        if upload.user_id != str(g.user.user_id):
+        if upload.user_id != str(g.user.user_id) and not g.user.is_admin:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
         try:
@@ -244,36 +276,45 @@ class UploadResource(Resource):
 
     @api.doc('delete_upload')
     @api.response(404, 'Upload does not exist')
-    @api.response(400, 'Not allowed during processing or when not in staging')
+    @api.response(401, 'Upload does not belong to authenticated user.')
+    @api.response(400, 'Not allowed during processing')
     @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload deleted')
     @login_really_required
-    def delete(self, upload_id: str):
+    @with_logger
+    def delete(self, upload_id: str, logger):
         """
         Delete an existing upload.
 
-        Only ``is_ready`` uploads
-        can be deleted. Deleting an upload in processing is not allowed.
+        Only uploads that are sill in staging, not already delete, not still uploaded, and
+        not currently processed, can be deleted.
         """
         try:
             upload = Upload.get(upload_id)
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
-        if upload.user_id != str(g.user.user_id):
-            abort(404, message='Upload with id %s does not exist.' % upload_id)
+        if upload.user_id != str(g.user.user_id) and not g.user.is_admin:
+            abort(401, message='Upload with id %s does not belong to you.' % upload_id)
 
-        if not upload.in_staging:
-            abort(400, message='Operation not allowed, upload is not in staging.')
+        with utils.lnr(logger, 'delete processing upload'):
+            try:
+                upload.delete()
+            except NotAllowedDuringProcessing:
+                abort(400, message='You must not delete an upload during processing.')
 
-        try:
-            upload.delete()
-            return upload, 200
-        except NotAllowedDuringProcessing:
-            abort(400, message='You must not delete an upload during processing.')
+        with utils.lnr(logger, 'delete upload files'):
+            upload_files = UploadFiles.get(upload_id)
+            assert upload_files is not None, 'Uploads existing in staging must have files.'
+            if upload_files is not None:
+                assert isinstance(upload_files, StagingUploadFiles), 'Uploads in staging must have staging files.'
+                upload_files.delete()
+
+        return upload, 200
 
     @api.doc('exec_upload_command')
-    @api.response(404, 'Upload does not exist or is not allowed')
+    @api.response(404, 'Upload does not exist or not in staging')
     @api.response(400, 'Operation is not supported')
+    @api.response(401, 'If the operation is not allowed for the current user')
     @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload unstaged successfully')
     @api.expect(upload_operation_model)
     @login_really_required
@@ -281,15 +322,19 @@ class UploadResource(Resource):
         """
         Execute an upload operation. Available operations: ``unstage``
 
-        Untage changes the visibility of the upload. Clients can specify, if the calcs
-        should be restricted.
+        Unstage accepts further meta data that allows to provide coauthors, comments,
+        external references, etc. See the model for details. The fields that start with
+        ``_underscore`` are only available for users with administrative priviledges.
+
+        Unstage changes the visibility of the upload. Clients can specify the visibility
+        via meta data.
         """
         try:
             upload = Upload.get(upload_id)
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
-        if upload.user_id != str(g.user.user_id):
+        if upload.user_id != str(g.user.user_id) and not g.user.is_admin:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
         json_data = request.get_json()
@@ -297,12 +342,17 @@ class UploadResource(Resource):
             json_data = {}
 
         operation = json_data.get('operation')
-        if operation == 'unstage':
-            if not upload.in_staging:
-                abort(400, message='Operation not allowed, upload is not in staging.')
 
+        meta_data = json_data.get('meta_data', {})
+        for key in meta_data:
+            if key.startswith('_'):
+                if not g.user.is_admin:
+                    abort(401, message='Only admin users can use _meta_data_keys.')
+                break
+
+        if operation == 'unstage':
             try:
-                upload.unstage()
+                upload.unstage(meta_data)
             except NotAllowedDuringProcessing:
                 abort(400, message='You must not unstage an upload during processing.')
 
@@ -329,7 +379,7 @@ class UploadCommandResource(Resource):
             config.services.api_port,
             config.services.api_base_path)
 
-        upload_command = 'curl -H "X-Token: %s" "%s" --upload-file <local_file>' % (
+        upload_command = 'curl -X PUT -H "X-Token: %s" "%s" -F file=@<local_file>' % (
             g.user.get_auth_token().decode('utf-8'), upload_url)
 
         return dict(upload_url=upload_url, upload_command=upload_command), 200

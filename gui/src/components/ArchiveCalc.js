@@ -65,8 +65,8 @@ class ArchiveCalc extends React.Component {
   }
 
   componentDidMount() {
-    const {uploadHash, calcHash} = this.props.match.params
-    api.archive(uploadHash, calcHash).then(data => {
+    const {uploadId, calcId} = this.props.match.params
+    api.archive(uploadId, calcId).then(data => {
       this.setState({data: data})
     }).catch(error => {
       this.setState({data: null})
@@ -92,7 +92,7 @@ class ArchiveCalc extends React.Component {
     const { classes } = this.props
     const { data, showMetaInfo, metaInfo } = this.state
     const metaInfoData = metaInfo ? metaInfo[showMetaInfo] : null
-    const { uploadHash, calcHash } = this.props.match.params
+    const { uploadId, calcId } = this.props.match.params
     return (
       <div className={classes.root} ref={this.logPopperAnchor}>
         <Markdown>{`
@@ -123,8 +123,8 @@ class ArchiveCalc extends React.Component {
         </Paper>
         <CalcProcLogPopper
           open={this.state.showLogs}
-          uploadHash={uploadHash}
-          calcHash={calcHash}
+          uploadId={uploadId}
+          calcId={calcId}
           onClose={() => this.setState({showLogs: false})}
           anchorEl={this.logPopperAnchor.current}
           raiseError={this.props.raiseError}
