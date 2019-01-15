@@ -14,7 +14,7 @@
 
 import ase
 import numpy
-import spglib
+# import spglib
 
 from nomadcore.json_support import addShasOfJson
 from statsnormalizer import stats
@@ -104,14 +104,16 @@ class SystemNormalizer(SystemBasedNormalizer):
             else:
                 classType = 'NoClassification'
 
-            if classType == 'Bulk' and positions is not None and atom_species is not None and cell is not None:
-                acell = numpy.asarray(cell) * 1.0e10
-                cellInv = numpy.linalg.inv(cell)
-                symm = spglib.get_symmetry_dataset(
-                    (acell, numpy.dot(positions, cellInv), atom_species),
-                    0.002, -1)  # use m instead of Angstrom?
-                if symm:
-                    symm['configuration_raw_gid'] = configuration_id
+            # Nomad-FAIRD, this snippet of code does work that the symmetry
+            # normalizer should do so we leave it out of this file.
+            # if classType == 'Bulk' and positions is not None and atom_species is not None and cell is not None:
+            #     acell = numpy.asarray(cell) * 1.0e10
+            #     cellInv = numpy.linalg.inv(cell)
+            #     symm = spglib.get_symmetry_dataset(
+            #         (acell, numpy.dot(positions, cellInv), atom_species),
+            #         0.002, -1)  # use m instead of Angstrom?
+            #     if symm:
+            #         symm['configuration_raw_gid'] = configuration_id
 
         self._backend.addValue("configuration_raw_gid", configuration_id)
         self._backend.addValue("atom_species", atom_species)
@@ -120,7 +122,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         self._backend.addValue("chemical_composition_reduced", formula_reduced)
         self._backend.addValue("chemical_composition_bulk_reduced", formula_bulk)
 
-        if symm is not None:
+        # if symm is not None:
             # for quantity in ["number", "international", "hall", "choice", "pointgroup"]:
             #     v = symm.get(quantity)
             #     if v is not None:
@@ -132,11 +134,11 @@ class SystemNormalizer(SystemBasedNormalizer):
             #         self._backend.addArrayValues(
             #             "spacegroup_3D_" + quantity, numpy.asarray(v))
 
-            n = symm.get("number")
-            if n:
-                self._backend.openNonOverlappingSection('section_symmetry')
-                self._backend.addValue("bravais_lattice", stats.crystalSystem(n))
-                self._backend.closeNonOverlappingSection('section_symmetry')
+            # n = symm.get("number")
+            # if n:
+            #     self._backend.openNonOverlappingSection('section_symmetry')
+            #     self._backend.addValue("bravais_lattice", stats.crystalSystem(n))
+            #     self._backend.closeNonOverlappingSection('section_symmetry')
 
             # for quantity in ["origin_shift", "std_lattice"]:
             #     v = symm.get(quantity)
