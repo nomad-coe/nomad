@@ -119,6 +119,17 @@ class Uploads extends React.Component {
       })
   }
 
+  sortedUploads() {
+    return this.state.uploads.concat()
+      .sort((a, b) => (a.gui_upload_id === b.gui_upload_id) ? 0 : ((a.gui_upload_id < b.gui_upload_id) ? -1 : 1))
+  }
+
+  handleDoesNotExist(nonExistingUupload) {
+    this.setState({
+      uploads: this.state.uploads.filter(upload => upload !== nonExistingUupload)
+    })
+  }
+
   onDrop(files) {
     files.forEach(file => {
       const upload = api.createUpload(file.name)
@@ -139,7 +150,7 @@ class Uploads extends React.Component {
 
   onSelectionAllChanged(checked) {
     if (checked) {
-      this.setState({selectedUploads: [...this.state.uploads.filter(upload => upload.completed)]})
+      this.setState({selectedUploads: [...this.state.uploads.filter(upload => !upload.tasks_running)]})
     } else {
       this.setState({selectedUploads: []})
     }
@@ -181,9 +192,10 @@ class Uploads extends React.Component {
             </FormGroup>
           </div>
           <div className={classes.uploads}>
-            {this.state.uploads.map((upload) => (
-              <Upload key={upload.upload_id} upload={upload}
+            {this.sortedUploads().map(upload => (
+              <Upload key={upload.gui_upload_id} upload={upload}
                 checked={selectedUploads.indexOf(upload) !== -1}
+                onDoesNotExist={() => this.handleDoesNotExist(upload)}
                 onCheckboxChanged={checked => this.onSelectionChanged(upload, checked)}/>
             ))}
           </div>

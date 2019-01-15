@@ -102,7 +102,7 @@ class ArchiveCalcResource(Resource):
 
 
 @ns.route('/metainfo/<string:metainfo_path>')
-@api.doc(params=dict(metainfo_path='A path or metainfo definition file name.'))
+@api.doc(params=dict(nomad_metainfo_path='A path or metainfo definition file name.'))
 class MetainfoResource(Resource):
     @api.doc('get_metainfo')
     @api.response(404, 'The metainfo does not exist')
@@ -113,13 +113,13 @@ class MetainfoResource(Resource):
         """
         try:
             file_dir = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
-            meta_info_path = os.path.normpath(os.path.join(file_dir, metainfo_path.strip()))
+            metainfo_file = os.path.normpath(os.path.join(file_dir, metainfo_path.strip()))
 
             rv = send_file(
-                meta_info_path,
+                metainfo_file,
                 mimetype='application/json',
                 as_attachment=True,
-                attachment_filename=os.path.basename(metainfo_path))
+                attachment_filename=os.path.basename(metainfo_file))
 
             return rv
         except FileNotFoundError:

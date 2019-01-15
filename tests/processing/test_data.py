@@ -82,7 +82,7 @@ def processed_upload(uploaded_id, test_user, worker, no_warn) -> Upload:
 
 
 def assert_processing(upload: Upload):
-    assert upload.tasks_completed
+    assert not upload.tasks_running
     assert upload.current_task == 'cleanup'
     assert upload.upload_id is not None
     assert len(upload.errors) == 0
@@ -127,7 +127,7 @@ def test_processing_with_warning(uploaded_id_with_warning, worker, test_user):
 def test_process_non_existing(worker, test_user, with_error):
     upload = run_processing('__does_not_exist', test_user)
 
-    assert upload.tasks_completed
+    assert not upload.tasks_running
     assert upload.current_task == 'extracting'
     assert upload.tasks_status == 'FAILURE'
     assert len(upload.errors) > 0
@@ -154,7 +154,7 @@ def test_task_failure(monkeypatch, uploaded_id, worker, task, test_user, with_er
     # run the test
     upload = run_processing(uploaded_id, test_user)
 
-    assert upload.tasks_completed
+    assert not upload.tasks_running
 
     if task != 'parsing':
         assert upload.tasks_status == 'FAILURE'

@@ -346,6 +346,8 @@ class Upload(Chord, datamodel.Upload):
             with utils.timer(
                     logger, 'staged upload deleted', step='delete',
                     upload_size=self.upload_files.size):
+                import time
+                time.sleep(10)
                 self.upload_files.delete()
                 self.delete()
 

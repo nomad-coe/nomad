@@ -188,7 +188,7 @@ class TestUploads:
             assert rv.status_code == 200
             upload = self.assert_upload(rv.data)
             assert 'upload_time' in upload
-            if upload['tasks_completed']:
+            if not upload['tasks_running']:
                 break
 
         assert len(upload['tasks']) == 4

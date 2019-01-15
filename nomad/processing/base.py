@@ -53,7 +53,7 @@ RUNNING = 'RUNNING'
 FAILURE = 'FAILURE'
 SUCCESS = 'SUCCESS'
 
-PROCESS_CALLED = 'CALLD'
+PROCESS_CALLED = 'CALLED'
 PROCESS_RUNNING = 'RUNNING'
 PROCESS_COMPLETED = 'COMPLETED'
 
@@ -130,9 +130,9 @@ class Proc(Document, metaclass=ProcMetaclass):
     process_status = StringField(default=None)
 
     @property
-    def tasks_completed(self) -> bool:
+    def tasks_running(self) -> bool:
         """ Returns True of the process has failed or succeeded. """
-        return self.tasks_status in [SUCCESS, FAILURE]
+        return self.tasks_status not in [SUCCESS, FAILURE]
 
     @property
     def process_running(self) -> bool:
@@ -194,7 +194,7 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     def fail(self, *errors, log_level=logging.ERROR, **kwargs):
         """ Allows to fail the process. Takes strings or exceptions as args. """
-        assert not self.tasks_completed, 'Cannot fail a completed process.'
+        assert self.tasks_running, 'Cannot fail a completed process.'
 
         failed_with_exception = False
 
@@ -219,7 +219,7 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     def warning(self, *warnings, log_level=logging.WARNING, **kwargs):
         """ Allows to save warnings. Takes strings or exceptions as args. """
-        assert not self.tasks_completed
+        assert self.tasks_running
 
         logger = self.get_logger(**kwargs)
 
@@ -266,7 +266,7 @@ class Proc(Document, metaclass=ProcMetaclass):
         Reloads the process constantly until it sees a completed process. Should be
         used with care as it can block indefinitely. Just intended for testing purposes.
         """
-        while not self.tasks_completed:
+        while self.tasks_running:
             time.sleep(interval)
             self.reload()
 
@@ -397,7 +397,7 @@ def task(func):
         except Exception as e:
             self.fail(e)
 
-        if self.__class__.tasks[-1] == self.current_task and not self.tasks_completed:
+        if self.__class__.tasks[-1] == self.current_task and self.tasks_running:
             self._complete()
 
     setattr(wrapper, '__task_name', func.__name__)

@@ -18,31 +18,47 @@ const swaggerPromise = Swagger(`${apiBase}/swagger.json`, {
   }
 })
 
-const networkError = (e) => {
-  console.log(e)
-  throw Error('Network related error, cannot reach API: ' + e)
-}
-
-const handleJsonErrors = (e) => {
-  console.log(e)
-  throw Error('API return unexpected data format.')
-}
-
-const handleResponseErrors = (response) => {
-  if (!response.ok) {
-    return response.json()
-      .catch(() => {
-        throw Error(`API error (${response.status}): ${response.statusText}`)
-      }).then(data => {
-        throw Error(`API error (${response.status}): ${data.message}`)
-      })
+export class DoesNotExist extends Error {
+  constructor(msg) {
+    super(msg)
+    this.name = 'DoesNotExist'
   }
-  return response
 }
+
+const handleApiError = (e) => {
+  if (e.response) {
+    const body = e.response.body
+    const message = (body && body.message) ? body.message : e.response.statusText
+    if (e.response.status === 404) {
+      throw new DoesNotExist(message)
+    } else {
+      throw Error(`API error (${e.response.status}): ${message}`)
+    }
+  } else {
+    throw Error('Network related error, cannot reach API: ' + e)
+  }
+}
+
+const upload_to_gui_ids = {}
+let gui_upload_id_counter = 0
 
 class Upload {
   constructor(json) {
-    this.uploading = 0
+    // Cannot use upload_id as key in GUI, because uploads don't have an upload_id
+    // before upload is completed
+    if (json.upload_id) {
+      // instance from the API
+      this.gui_upload_id = upload_to_gui_ids[json.upload_id]
+      if (this.gui_upload_id === undefined) {
+        // never seen in the GUI, needs a GUI id
+        this.gui_upload_id = gui_upload_id_counter++
+        upload_to_gui_ids[json.upload_id] = this.gui_upload_id
+        console.log('new gui ui')
+      }
+    } else {
+      // new instance, not from the API
+      this.gui_upload_id = gui_upload_id_counter++
+    }
     Object.assign(this, json)
   }
 
@@ -65,13 +81,14 @@ class Upload {
         }
       )
       if (uploadRequest.error) {
-        networkError(uploadRequest.error)
+        handleApiError(uploadRequest.error)
       }
       if (uploadRequest.aborted) {
         throw Error('User abort')
       }
       this.uploading = 100
       this.upload_id = uploadRequest.response.upload_id
+      upload_to_gui_ids[this.upload_id] = this.gui_upload_id
     }
 
     return uploadFileWithProgress()
@@ -84,14 +101,13 @@ class Upload {
     } else {
       if (this.upload_id) {
         return swaggerPromise.then(client => client.apis.uploads.get_upload({
-            upload_id: this.upload_id,
-            page: page || 1,
-            per_page: perPage || 5,
-            order_by: orderBy || 'mainfile',
-            order: order || -1
-          }))
-          .catch(networkError)
-          .then(handleResponseErrors)
+          upload_id: this.upload_id,
+          page: page || 1,
+          per_page: perPage || 5,
+          order_by: orderBy || 'mainfile',
+          order: order || -1
+        }))
+          .catch(handleApiError)
           .then(response => response.body)
           .then(uploadJson => {
             Object.assign(this, uploadJson)
@@ -107,7 +123,7 @@ class Upload {
 function createUpload(name) {
   return new Upload({
     name: name,
-    tasks: ['uploading'],
+    tasks: ['uploading', 'extract', 'parse_all', 'cleanup'],
     current_task: 'uploading',
     uploading: 0,
     create_time: new Date()
@@ -117,8 +133,7 @@ function createUpload(name) {
 async function getUploads() {
   const client = await swaggerPromise
   return client.apis.uploads.get_uploads()
-    .catch(networkError)
-    .then(handleResponseErrors)
+    .catch(handleApiError)
     .then(response => response.body.map(uploadJson => {
       const upload = new Upload(uploadJson)
       upload.uploading = 100
@@ -129,11 +144,10 @@ async function getUploads() {
 async function archive(uploadId, calcId) {
   const client = await swaggerPromise
   return client.apis.archive.get_archive_calc({
-      upload_id: uploadId,
-      calc_id: calcId
-    })
-    .catch(networkError)
-    .then(handleResponseErrors)
+    upload_id: uploadId,
+    calc_id: calcId
+  })
+    .catch(handleApiError)
     .then(response => response.body)
 }
 
@@ -143,61 +157,47 @@ async function calcProcLog(uploadId, calcId) {
     upload_id: uploadId,
     calc_id: calcId
   })
-    .catch(networkError)
-    .then(response => {
-      if (!response.ok) {
-        if (response.status === 404) {
-          return ''
-        } else {
-          return handleResponseErrors(response)
-        }
-      } else {
-        return response.text
-      }
-    })
+    .catch(handleApiError)
+    .then(response => response.text)
 }
 
 async function repo(uploadId, calcId) {
   const client = await swaggerPromise
   return client.apis.repo.get_repo_calc({
-      upload_id: uploadId,
-      calc_id: calcId
-    })
-    .catch(networkError)
-    .then(handleResponseErrors)
+    upload_id: uploadId,
+    calc_id: calcId
+  })
+    .catch(handleApiError)
     .then(response => response.body)
 }
 
 async function repoAll(page, perPage, owner) {
   const client = await swaggerPromise
   return client.apis.repo.get_calcs({
-      page: page,
-      per_page: perPage,
-      ower: owner || 'all'
-    })
-    .catch(networkError)
-    .then(handleResponseErrors)
+    page: page,
+    per_page: perPage,
+    ower: owner || 'all'
+  })
+    .catch(handleApiError)
     .then(response => response.body)
 }
 
 async function deleteUpload(uploadId) {
   const client = await swaggerPromise
   return client.apis.uploads.delete_upload({upload_id: uploadId})
-    .catch(networkError)
-    .then(handleResponseErrors)
+    .catch(handleApiError)
     .then(response => response.body)
 }
 
 async function commitUpload(uploadId) {
   const client = await swaggerPromise
   return client.apis.uploads.exec_upload_command({
-      upload_id: uploadId,
-      payload: {
-        operation: 'commit'
-      }
-    })
-    .catch(networkError)
-    .then(handleResponseErrors)
+    upload_id: uploadId,
+    payload: {
+      operation: 'commit'
+    }
+  })
+    .catch(handleApiError)
     .then(response => response.body)
 }
 
@@ -208,11 +208,11 @@ async function getMetaInfo() {
     return cachedMetaInfo
   } else {
     const loadMetaInfo = async(path) => {
-      return fetch(`${apiBase}/archive/metainfo/${path}`)
-        .catch(networkError)
-        .then(handleResponseErrors)
-        .then(response => response.json())
-        .catch(handleJsonErrors)
+      const client = await swaggerPromise
+      console.log(path)
+      return client.apis.archive.get_metainfo({metainfo_path: path})
+        .catch(handleApiError)
+        .then(response => response.body)
         .then(data => {
           if (!cachedMetaInfo) {
             cachedMetaInfo = {
@@ -243,8 +243,7 @@ async function getMetaInfo() {
 async function getUploadCommand() {
   const client = await swaggerPromise
   return client.apis.uploads.get_upload_command()
-    .catch(networkError)
-    .then(handleResponseErrors)
+    .catch(handleApiError)
     .then(response => response.body.upload_command)
 }
 

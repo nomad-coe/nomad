@@ -41,7 +41,7 @@ ns = api.namespace(
 proc_model = api.model('Processing', {
     'tasks': fields.List(fields.String),
     'current_task': fields.String,
-    'tasks_completed': fields.Boolean,
+    'tasks_running': fields.Boolean,
     'tasks_status': fields.String,
     'errors': fields.List(fields.String),
     'warnings': fields.List(fields.String),
@@ -297,7 +297,7 @@ class UploadResource(Resource):
         if upload.user_id != str(g.user.user_id) and not g.user.is_admin:
             abort(401, message='Upload with id %s does not belong to you.' % upload_id)
 
-        if not upload.tasks_completed:
+        if upload.tasks_running:
             abort(400, message='The upload is not processed yet')
 
         try:
@@ -350,7 +350,7 @@ class UploadResource(Resource):
                 break
 
         if operation == 'commit':
-            if not upload.tasks_completed:
+            if upload.tasks_running:
                 abort(400, message='The upload is not processed yet')
             try:
                 upload.metadata = metadata

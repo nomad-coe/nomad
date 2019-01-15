@@ -327,12 +327,13 @@ def worker():
 
 
 @run.command(help='Run the nomad development api.')
-def api():
+@click.option('--debug', help='Does run flask in debug.', is_flag=True)
+def api(debug: bool):
     config.service = 'nomad_api'
     from nomad import infrastructure
     from nomad.api.__main__ import run_dev_server
     infrastructure.setup()
-    run_dev_server(debug=True, port=8000)
+    run_dev_server(debug=debug, port=8000)
 
 
 @cli.command(help='Runs tests and linting. Useful before commit code.')
