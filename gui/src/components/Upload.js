@@ -13,6 +13,7 @@ import { compose } from 'recompose'
 import { withErrors } from './errors'
 import { debug } from '../config'
 import CalcProcLogPopper from './CalcProcLogPopper'
+import CalcDialogButtons from './CalcDialogButtons'
 
 class Upload extends React.Component {
   static propTypes = {
@@ -380,7 +381,7 @@ class Upload extends React.Component {
             </Typography>
           </TableCell>
           <TableCell>
-            <CalcLinks uploadId={upload_id} calcId={calc_id} disabled={tasks_status !== 'SUCCESS'} />
+            <CalcDialogButtons uploadId={upload_id} calcId={calc_id} disabled={tasks_status !== 'SUCCESS'} />
           </TableCell>
         </TableRow>
       )

@@ -1,11 +1,10 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Paper, LinearProgress } from '@material-ui/core'
-import ReactJson from 'react-json-view'
-import api from '../api'
+import { withStyles, Paper } from '@material-ui/core'
 import Markdown from './Markdown'
 import { withErrors } from './errors'
 import { compose } from 'recompose'
+import RepoCalcView from './RepoCalcView'
 
 class RepoCalc extends React.Component {
   static propTypes = {
@@ -19,28 +18,11 @@ class RepoCalc extends React.Component {
     calcData: {
       padding: theme.spacing.unit
     }
-  });
-
-  constructor(props) {
-    super(props)
-    this.state = {
-      data: null
-    }
-  }
-
-  componentDidMount() {
-    const {uploadId, calcId} = this.props.match.params
-    api.repo(uploadId, calcId).then(data => {
-      this.setState({data: data})
-    }).catch(error => {
-      this.setState({data: null})
-      this.props.raiseError(error)
-    })
-  }
+  })
 
   render() {
-    const { classes } = this.props
-    const { data } = this.state
+    const { classes, match, raiseError } = this.props
+    const {uploadId, calcId} = match.params
 
     return (
       <div className={classes.root}>
@@ -48,11 +30,7 @@ class RepoCalc extends React.Component {
           ## The Repository – Raw Code Data
         `}</Markdown>
         <Paper className={classes.calcData}>
-          {
-            data
-              ? <ReactJson src={this.state.data} enableClipboard={false} collapsed={4} />
-              : <LinearProgress variant="query" />
-          }
+          <RepoCalcView uploadId={uploadId} calcId={calcId} raiseError={raiseError} />
         </Paper>
       </div>
 

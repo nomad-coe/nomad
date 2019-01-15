@@ -2,7 +2,8 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import Markdown from './Markdown'
 import { withStyles, Paper, IconButton, FormGroup, Checkbox, FormControlLabel, FormLabel,
-  LinearProgress } from '@material-ui/core'
+  LinearProgress,
+  Typography} from '@material-ui/core'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import Dropzone from 'react-dropzone'
 import api from '../api'
@@ -212,8 +213,8 @@ class Uploads extends React.Component {
 
     return (
       <div className={classes.root}>
+        <Typography variant="h4">Upload your own data</Typography>
         <Markdown>{`
-          ## Upload your own data
           You can upload your own data. Have your code output ready in a popular archive
           format (e.g. \`*.zip\` or \`*.tar.gz\`).  Your upload can
           comprise the output of multiple runs, even of different codes. Don't worry, nomad

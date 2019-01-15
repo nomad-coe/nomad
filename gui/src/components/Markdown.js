@@ -1,7 +1,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import marked from 'marked'
-import { withStyles } from '@material-ui/core'
+import { withStyles, Typography } from '@material-ui/core'
 import extend from '@babel/runtime/helpers/extends'
 
 /**
@@ -13,7 +13,7 @@ import extend from '@babel/runtime/helpers/extends'
 var styles = theme => ({
   root: {
     fontFamily: theme.typography.fontFamily,
-    fontSize: 16,
+    fontSize: theme.typography.fontSize,
     color: theme.palette.text.primary,
     '& .anchor-link': {
       marginTop: -96,
@@ -62,7 +62,7 @@ var styles = theme => ({
       margin: '24px 0 16px'
     }),
     '& p, & ul, & ol': {
-      lineHeight: 2
+      lineHeight: theme.typography.lineHeight
     },
     '& ul': {
       paddingLeft: 0,
@@ -76,7 +76,7 @@ var styles = theme => ({
           marginLeft: -theme.spacing.unit * 4,
           paddingRight: theme.spacing.unit * 4 - 14
         }
-      },
+      }
     },
 
     '& h1, & h2, & h3, & h4': {
@@ -206,12 +206,10 @@ function Markdown(props) {
   }
 
   return (
-    <div>
-      <div
-        className={classes.root}
-        dangerouslySetInnerHTML={{__html: marked(content)}}
-      />
-    </div>
+    <Typography variant="body1"
+      className={classes.root}
+      dangerouslySetInnerHTML={{__html: marked(content)}}
+    />
   )
 }
 

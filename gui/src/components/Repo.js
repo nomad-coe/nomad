@@ -10,8 +10,7 @@ import Paper from '@material-ui/core/Paper'
 import api from '../api'
 import CalcLinks from './CalcLinks'
 import { TableHead, LinearProgress, FormControl, FormControlLabel, Checkbox, FormGroup,
-  FormLabel, IconButton, MuiThemeProvider } from '@material-ui/core'
-import Markdown from './Markdown'
+  FormLabel, IconButton, MuiThemeProvider, Typography } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
 import AnalyticsIcon from '@material-ui/icons/Settings'
@@ -29,8 +28,10 @@ class Repo extends React.Component {
     root: {},
     data: {
       width: '100%',
-      marginTop: theme.spacing.unit * 3,
       overflowX: 'scroll'
+    },
+    title: {
+      marginBottom: theme.spacing.unit * 4
     },
     progressPlaceholder: {
       height: 5
@@ -116,9 +117,7 @@ class Repo extends React.Component {
     }
     return (
       <div className={classes.root}>
-        <Markdown>{`
-          ## The Repository – Raw Code Data
-        `}</Markdown>
+        <Typography variant="h4" className={classes.title}>The Repository – Raw Code Data</Typography>
         {/* <PeriodicTable/> */}
         <FormControl>
           <FormLabel>Filter calculations and only show: </FormLabel>
