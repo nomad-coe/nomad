@@ -253,3 +253,7 @@ class archive:
     @staticmethod
     def upload_id(archive_id: str) -> str:
         return archive.item(archive_id, 0)
+
+
+def to_tuple(self, *args):
+    return tuple(self[arg] for arg in args)

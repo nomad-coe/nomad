@@ -143,18 +143,30 @@ def setup_repository_db():
 
     global repository_db
     global repository_db_conn
+    repository_db_conn, repository_db = sqlalchemy_repository_db(readonly=False)
+    logger.info('setup repository db')
 
-    url = 'postgresql://%s:%s@%s:%d/%s' % (
-        config.repository_db.user,
-        config.repository_db.password,
-        config.repository_db.host,
-        config.repository_db.port,
-        config.repository_db.dbname)
+
+def sqlalchemy_repository_db(readonly=True, **kwargs):
+    """
+    Returns SQLAlchemy connection and session for the given db parameters.
+    It uses the regular `config.repository_db` parameters updated with the given
+    `**kwargs`.
+    """
+    def no_flush():
+        pass
+
+    params = config.repository_db._asdict()
+    params.update(**kwargs)
+    url = 'postgresql://%s:%s@%s:%d/%s' % utils.to_tuple(params, 'user', 'password', 'host', 'port', 'dbname')
     engine = create_engine(url, echo=False)
 
     repository_db_conn = engine.connect()
     repository_db = Session(bind=repository_db_conn, autocommit=True)
-    logger.info('setup repository db')
+    if readonly:
+        repository_db.flush = no_flush
+
+    return repository_db_conn, repository_db
 
 
 def reset():
@@ -261,7 +273,7 @@ def repository_db_connection(dbname=None, with_trans=True):
         logger.error('Unhandled exception within repository db connection.', exc_info=e)
         conn.rollback()
         conn.close()
-        return
+        raise e
 
     conn.commit()
     conn.close()
@@ -276,7 +288,7 @@ def reset_repository_db():
         repository_db.expunge_all()
         repository_db.invalidate()
     if repository_db_conn is not None:
-        repository_db_conn.close()
+        repository_db_conn.close_all()
 
     # perform the reset
     with repository_db_connection(with_trans=False) as conn:
