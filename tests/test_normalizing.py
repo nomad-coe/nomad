@@ -52,8 +52,13 @@ def normalized_template_example(parsed_template_example) -> LocalBackend:
 def assert_normalized(backend):
     assert backend.get_value('atom_species', 0) is not None
     assert backend.get_value('system_type', 0) is not None
-    assert backend.get_value('crystal_system', 0) is not None
-    assert backend.get_value('space_group_number', 0) is not None
+
+    # These tests are not always present for non periodic
+    # cells, where we are simulating a molecule and not a crystal
+    # structure with well defined group symmetries.
+    # assert backend.get_value('crystal_system', 0) is not None
+    # assert backend.get_value('space_group_number', 0) is not None
+
     assert backend.get_value('XC_functional_name', 0) is not None
     assert backend.get_value('chemical_composition', 0) is not None
     assert backend.get_value('chemical_composition_bulk_reduced', 0) is not None

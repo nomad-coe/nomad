@@ -13,17 +13,9 @@
 # limitations under the License.
 
 import ase
-import numpy
-# import spglib
 
 from nomadcore.json_support import addShasOfJson
-from statsnormalizer import stats
-from statsnormalizer import classify_structure
-
 from nomad.normalizing.normalizer import SystemBasedNormalizer
-
-# TODO: check what is wrong, the commented meta names seem not to exist
-#       in the current meta info
 
 
 class SystemNormalizer(SystemBasedNormalizer):
@@ -44,19 +36,19 @@ class SystemNormalizer(SystemBasedNormalizer):
         return 0
 
     def normalize_system(self, section_system) -> None:
-        stats.logging = self.logger
-        classify_structure.logger = self.logger
 
         results = dict()
 
         atom_labels = section_system['atom_labels']
         atom_species = section_system['atom_atom_numbers']
+
         if atom_labels is not None and atom_species is None:
             atom_label_to_num = SystemNormalizer.atom_label_to_num
             atom_species = [atom_label_to_num(atom_label) for atom_label in atom_labels]
 
         periodic_dirs = section_system['configuration_periodic_dimensions']
         formula = None
+
         if atom_species:
             results['atom_species'] = atom_species
             atom_symbols = [ase.data.chemical_symbols[atom_number] for atom_number in atom_species]
@@ -79,81 +71,20 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         if periodic_dirs is not None:
             results['configuration_periodic_dimensions'] = periodic_dirs.tolist()
-
-        symm = None
+        # TODO: @dts, might be good to clean this up so it is more readable in the
+        # future.
         configuration_id = 's' + addShasOfJson(results).b64digests()[0][0:28]
-        if cell is not None and atom_labels is not None:
-            if cell is not None:
-                results['simulation_cell'] = cell
-            if atom_labels is not None:
-                results['atom_labels'] = atom_labels
-
-            results['gIndex'] = section_system['gIndex']
-            results['name'] = 'section_system'
-            structure = classify_structure.ClassifyStructure(None, jsonValue={
-                "sections": [{
-                    "name": "section_run",
-                    "gIndex": 1,
-                    "sections": [results]
-                }]
-            })
-            classification = structure.classify()
-
-            if classification.get('classificationStatus', None) == 'ClassificationSuccess':
-                classType = classification['sections'][0]['sections'][0]['structure_kind']
-            else:
-                classType = 'NoClassification'
-
-            # Nomad-FAIRD, this snippet of code does work that the symmetry
-            # normalizer should do so we leave it out of this file.
-            # if classType == 'Bulk' and positions is not None and atom_species is not None and cell is not None:
-            #     acell = numpy.asarray(cell) * 1.0e10
-            #     cellInv = numpy.linalg.inv(cell)
-            #     symm = spglib.get_symmetry_dataset(
-            #         (acell, numpy.dot(positions, cellInv), atom_species),
-            #         0.002, -1)  # use m instead of Angstrom?
-            #     if symm:
-            #         symm['configuration_raw_gid'] = configuration_id
 
         self._backend.addValue("configuration_raw_gid", configuration_id)
         self._backend.addValue("atom_species", atom_species)
-
         self._backend.addValue("chemical_composition", formula)
         self._backend.addValue("chemical_composition_reduced", formula_reduced)
         self._backend.addValue("chemical_composition_bulk_reduced", formula_bulk)
 
-        # if symm is not None:
-            # for quantity in ["number", "international", "hall", "choice", "pointgroup"]:
-            #     v = symm.get(quantity)
-            #     if v is not None:
-            #         self._backend.addValue("spacegroup_3D_" + quantity, v)
+    # def map_matid_to_nomad_system_types(self, system_type):
+    #     """ We map the system type classification from matid to Nomad values.
 
-            # for quantity in ["transformation_matrix"]:
-            #     v = symm.get(quantity)
-            #     if v is not None:
-            #         self._backend.addArrayValues(
-            #             "spacegroup_3D_" + quantity, numpy.asarray(v))
+    #     Args:
+    #         system_type: This is
+    #     Returns:
 
-            # n = symm.get("number")
-            # if n:
-            #     self._backend.openNonOverlappingSection('section_symmetry')
-            #     self._backend.addValue("bravais_lattice", stats.crystalSystem(n))
-            #     self._backend.closeNonOverlappingSection('section_symmetry')
-
-            # for quantity in ["origin_shift", "std_lattice"]:
-            #     v = symm.get(quantity)
-            #     if v is not None:
-            #         backend.addArrayValues(
-            #             "spacegroup_3D_" + quantity, 1.0e-10 * numpy.asarray(v, dtype=float))
-
-            # for (r, t) in zip(symm.get("rotations", []), symm.get("translations", [])):
-            #     self._backend.openNonOverlappingSection("section_spacegroup_3D_operation")
-            #     self._backend.addArrayValues("spacegroup_3D_rotation", numpy.asarray(r))
-            #     self._backend.addArrayValues(
-            #         "spacegroup_3D_translation", 1.0e-10 * numpy.asarray(t, dtype=float))
-            #     self._backend.closeNonOverlappingSection("section_spacegroup_3D_operation")
-
-            # v = symm.get("wyckoffs")
-            # if v is not None:
-            #     for w in v:
-            #         self._backend.addValue("spacegroup_3D_wyckoff", w)
