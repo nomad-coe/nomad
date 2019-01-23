@@ -53,7 +53,6 @@ class Upload {
         // never seen in the GUI, needs a GUI id
         this.gui_upload_id = gui_upload_id_counter++
         upload_to_gui_ids[json.upload_id] = this.gui_upload_id
-        console.log('new gui ui')
       }
     } else {
       // new instance, not from the API
@@ -209,7 +208,6 @@ async function getMetaInfo() {
   } else {
     const loadMetaInfo = async(path) => {
       const client = await swaggerPromise
-      console.log(path)
       return client.apis.archive.get_metainfo({metainfo_path: path})
         .catch(handleApiError)
         .then(response => response.body)

@@ -8,12 +8,10 @@ import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography,
   TableSortLabel} from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
-import CalcLinks from './CalcLinks'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
 import { debug } from '../config'
-import CalcProcLogPopper from './CalcProcLogPopper'
-import CalcDialogButtons from './CalcDialogButtons'
+import CalcDialog from './CalcDialog'
 
 class Upload extends React.Component {
   static propTypes = {
@@ -65,12 +63,8 @@ class Upload extends React.Component {
       alignItems: 'center',
       display: 'flex'
     },
-    logLink: {
-      color: theme.palette.secondary.main,
-      textDecoration: 'none',
-      '&:hover': {
-        textDecoration: 'underline'
-      }
+    clickableRow: {
+      cursor: 'pointer'
     }
   });
 
@@ -84,7 +78,8 @@ class Upload extends React.Component {
     },
     archiveLogs: null, // { uploadId, calcId } ids of archive to show logs for
     loading: true, // its loading data from the server and the user should know about it
-    updating: true // it is still not complete and continieusly looking for updates
+    updating: true, // it is still not complete and continieusly looking for updates
+    openCalc: null // it is the select calc with open details dialog
   }
 
   _unmounted = false
@@ -345,8 +340,12 @@ class Upload extends React.Component {
     const renderRow = (calc, index) => {
       const { mainfile, calc_id, upload_id, parser, tasks, current_task, tasks_status, errors } = calc
       const color = tasks_status === 'FAILURE' ? 'error' : 'default'
+      const processed = tasks_status === 'FAILURE' || tasks_status === 'SUCCESS'
       const row = (
-        <TableRow key={index}>
+        <TableRow key={index} hover={processed}
+          onClick={() => this.setState({openCalc: processed ? {uploadId: upload_id, calcId: calc_id} : null})}
+          className={processed ? classes.clickableRow : null} >
+
           <TableCell>
             <Typography color={color}>
               {mainfile}
@@ -372,16 +371,7 @@ class Upload extends React.Component {
             </Typography>
           </TableCell>
           <TableCell>
-            <Typography color={color}>
-              {(tasks_status === 'SUCCESS' || tasks_status === 'FAILURE')
-                ? <a className={classes.logLink} href="#logs" onClick={() => this.setState({archiveLogs: { uploadId: upload_id, calcId: calc_id }})}>
-                  {tasks_status.toLowerCase()}
-                </a> : tasks_status.toLowerCase()
-              }
-            </Typography>
-          </TableCell>
-          <TableCell>
-            <CalcDialogButtons uploadId={upload_id} calcId={calc_id} disabled={tasks_status !== 'SUCCESS'} />
+            <Typography color={color}>{tasks_status.toLowerCase()}</Typography>
           </TableCell>
         </TableRow>
       )
@@ -404,8 +394,7 @@ class Upload extends React.Component {
       { id: 'mainfile', sort: true, label: 'mainfile' },
       { id: 'parser', sort: true, label: 'code' },
       { id: 'task', sort: false, label: 'task' },
-      { id: 'tasks_status', sort: true, label: 'status' },
-      { id: 'links', sort: false, label: 'links' }
+      { id: 'tasks_status', sort: true, label: 'status' }
     ]
 
     return (
@@ -456,30 +445,15 @@ class Upload extends React.Component {
     )
   }
 
-  renderLogs() {
-    if (this.state.archiveLogs) {
-      return (
-        <CalcProcLogPopper
-          open={true}
-          onClose={() => this.setState({archiveLogs: null})}
-          anchorEl={window.parent.document.documentElement.firstElementChild}
-          raiseError={this.props.raiseError}
-          uploadId={this.state.archiveLogs.uploadId}
-          calcId={this.state.archiveLogs.calcId}
-        />
-      )
-    } else {
-      return ''
-    }
-  }
-
   render() {
-    const { classes } = this.props
-    const { upload } = this.state
+    const { classes, raiseError } = this.props
+    const { upload, openCalc } = this.state
 
     if (this.state.upload) {
       return (
         <div ref={this.logPopperAnchor}>
+          { openCalc ? <CalcDialog raiseError={raiseError} {...openCalc} onClose={() => this.setState({openCalc: null})} /> : ''}
+
           <ExpansionPanel>
             <ExpansionPanelSummary
               expandIcon={<ExpandMoreIcon/>} classes={{root: classes.summary}}>
@@ -507,7 +481,6 @@ class Upload extends React.Component {
               {this.state.loading && !this.state.updating ? <LinearProgress/> : ''}
             </ExpansionPanelDetails>
           </ExpansionPanel>
-          {this.renderLogs()}
         </div>
       )
     } else {

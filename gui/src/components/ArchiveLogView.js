@@ -1,7 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, LinearProgress } from '@material-ui/core'
-import ReactJson from 'react-json-view'
 import api from '../api'
 import { compose } from 'recompose'
 import { withErrors } from './errors'

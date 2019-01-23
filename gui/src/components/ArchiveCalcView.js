@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, LinearProgress, Typography } from '@material-ui/core'
+import { withStyles, LinearProgress } from '@material-ui/core'
 import ReactJson from 'react-json-view'
 import api from '../api'
 import { compose } from 'recompose'
@@ -16,9 +16,18 @@ class ArchiveCalcView extends React.Component {
   }
 
   static styles = theme => ({
-    root: {},
+    root: {
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%'
+    },
+    metaInfo: {
+      flex: '0 0 auto',
+      overflowY: 'auto'
+    },
     data: {
-      overflow: 'scroll'
+      flex: '1 1',
+      overflowY: 'auto'
     }
   });
 
@@ -62,14 +71,6 @@ class ArchiveCalcView extends React.Component {
 
     return (
       <div className={classes.root}>
-        <div>{
-          showMetaInfo && metaInfo
-            ? metaInfoData
-              ? <Markdown>{metaInfoData.description}</Markdown>
-              : <Markdown>This value has **no** *meta-info* attached to it.</Markdown>
-            : <Markdown>Click a value to show its *meta-info*!</Markdown>
-        }
-        </div>
         <div className={classes.data}>{
           data
             ? <ReactJson
@@ -80,6 +81,14 @@ class ArchiveCalcView extends React.Component {
               onSelect={this.handleShowMetaInfo.bind(this)} />
             : <LinearProgress variant="query" />
         }</div>
+        <div className={classes.metaInfo}>{
+          showMetaInfo && metaInfo
+            ? metaInfoData
+              ? <Markdown>{`**${metaInfoData.name}**: ${metaInfoData.description}`}</Markdown>
+              : <Markdown>This value has **no** *meta-info* attached to it.</Markdown>
+            : <Markdown>Click a value to show its *meta-info*!</Markdown>
+        }
+        </div>
       </div>
     )
   }

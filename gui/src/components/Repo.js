@@ -8,7 +8,6 @@ import TablePagination from '@material-ui/core/TablePagination'
 import TableRow from '@material-ui/core/TableRow'
 import Paper from '@material-ui/core/Paper'
 import api from '../api'
-import CalcLinks from './CalcLinks'
 import { TableHead, LinearProgress, FormControl, FormControlLabel, Checkbox, FormGroup,
   FormLabel, IconButton, MuiThemeProvider, Typography } from '@material-ui/core'
 import { compose } from 'recompose'
@@ -165,7 +164,7 @@ class Repo extends React.Component {
                     <TableCell padding="dense" key={rowIndex}>{calc[key]}</TableCell>
                   ))}
                   <TableCell padding="dense">
-                    <CalcLinks uploadId={calc.upload_id} calcId={calc.calc_id} />
+                    {/* <CalcLinks uploadId={calc.upload_id} calcId={calc.calc_id} /> */}
                   </TableCell>
                 </TableRow>
               ))}
