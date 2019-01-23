@@ -112,6 +112,13 @@ services = NomadServicesConfig(
     admin_password=os.environ.get('NOMAD_API_ADMIN_PASSWORD', 'password'),
     disable_reset=os.environ.get('NOMAD_API_DISABLE_RESET', 'false') == 'true'
 )
+migration_source_db = RepositoryDBConfig(
+    host=os.environ.get('NOMAD_MIGRATION_SOURCE_DB_HOST', 'db-repository.nomad.esc'),
+    port=int(os.environ.get('NOMAD_MIGRATION_SOURCE_DB_PORT', 5432)),
+    dbname=os.environ.get('NOMAD_MIGRATION_SOURCE_DB_NAME', 'nomad_prod'),
+    user=os.environ.get('NOMAD_MIGRATION_SOURCE_USER', 'nomadlab'),
+    password=os.environ.get('NOMAD_MIGRATION_SOURCE_PASSWORD', '*')
+)
 
 console_log_level = get_loglevel_from_env('NOMAD_CONSOLE_LOGLEVEL', default_level=logging.INFO)
 service = os.environ.get('NOMAD_SERVICE', 'unknown nomad service')

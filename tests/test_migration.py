@@ -17,17 +17,18 @@ import os
 
 from nomad import infrastructure, coe_repo
 
-from nomad.migration import NomadCOEMigration
+from nomad.migration import NomadCOEMigration, SourceCalc
 from nomad.infrastructure import repository_db_connection
 
+from tests.conftest import create_repository_db
 
-test_source_db_name = 'migration_source'
+test_source_db_name = 'test_nomad_fair_migration_source'
+test_target_db_name = 'test_nomad_fair_migration_target'
 
 
 class TestNomadCOEMigration:
-
-    @pytest.fixture(scope='session')
-    def source_repo(self):
+    @pytest.fixture(scope='module')
+    def source_repo(self, monkeysession, repository_db):
         try:
             with repository_db_connection(dbname='postgres', with_trans=False) as con:
                 with con.cursor() as cursor:
@@ -47,39 +48,37 @@ class TestNomadCOEMigration:
                 cur.execute(
                     'TRUNCATE TABLE public.users CASCADE;'
                     "INSERT INTO public.users VALUES (1, 'one', 'one', 'one', 'one', NULL, NULL, NULL);"
-                    "INSERT INTO public.users VALUES (2, 'two', 'two', 'two', 'two', NULL, NULL, NULL);")
+                    "INSERT INTO public.users VALUES (2, 'two', 'two', 'two', 'two', NULL, NULL, NULL);"
+                    "INSERT INTO public.calculations VALUES (NULL, NULL, NULL, NULL, 0, false, 1, NULL); "
+                    "INSERT INTO public.metadata VALUES (NULL, NULL, NULL, NULL, NULL, 'formula', '2015-05-27 11:56:37', NULL, decode('[\"$EXTRACTED/upload1/test/out.xml\"]', 'escape'), 1, NULL); "
+                    "INSERT INTO public.user_metadata VALUES (1, 0, 'label1'); "
+                    "INSERT INTO public.ownerships VALUES (1, 1); ")
 
-        yield dict(dbname=test_source_db_name)
-
-        with repository_db_connection(dbname='postgres', with_trans=False) as con:
-            with con.cursor() as cur:
-                cur.execute(
-                    "UPDATE pg_database SET datallowconn = 'false' WHERE datname = '%s'; "
-                    "ALTER DATABASE %s CONNECTION LIMIT 1; "
-                    "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '%s'; " %
-                    (test_source_db_name, test_source_db_name, test_source_db_name))
-                cur.execute("DROP DATABASE %s;" % test_source_db_name)
+        with create_repository_db(monkeysession, exists=True, readonly=True, dbname=test_source_db_name) as db:
+            yield db
 
     @pytest.fixture(scope='function')
-    def target_repo(self, clean_repository_db):
-        # delete the default test users
-        clean_repository_db.query(coe_repo.user.Session).delete()
-        clean_repository_db.query(coe_repo.User).delete()
-        return clean_repository_db
+    def target_repo(self, repository_db):
+        with create_repository_db(readonly=False, exists=False, dbname=test_target_db_name) as db:
+            db.execute('TRUNCATE users CASCADE;')
+            yield db
+            db.execute('TRUNCATE uploads CASCADE;')
 
     @pytest.fixture(scope='function')
     def migration(self, source_repo, target_repo):
-        migration = NomadCOEMigration(**source_repo)
+        migration = NomadCOEMigration()
         yield migration
 
-        migration.source_repo_db.expunge_all()
-        migration.source_repo_db.invalidate()
-        migration.source_repo_db.close_all()
-        migration.source_connection.close()
-        migration.source_connection.engine.dispose()
+    def test_copy_users(self, migration, target_repo):
+        migration.copy_users(target_repo)
+        assert target_repo.query(coe_repo.User).count() == 2
+        assert target_repo.query(coe_repo.User).filter_by(user_id=1).first().email == 'one'
+        assert target_repo.query(coe_repo.User).filter_by(user_id=2).first().email == 'two'
 
-    def test_copy_users(self, migration, clean_repository_db):
-        migration.copy_users()
-        assert clean_repository_db.query(coe_repo.User).count() == 2
-        assert clean_repository_db.query(coe_repo.User).filter_by(user_id=1).first().email == 'one'
-        assert clean_repository_db.query(coe_repo.User).filter_by(user_id=2).first().email == 'two'
+    def test_index(self, migration, mockmongo):
+        SourceCalc.index(migration.source)
+        test_calc = SourceCalc.objects(mainfile='test/out.xml', upload='upload1').first()
+
+        assert test_calc is not None
+        assert test_calc.metadata['_uploader'] == 1
+        assert test_calc.metadata['comment'] == 'label1'

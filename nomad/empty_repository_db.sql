@@ -167,7 +167,8 @@ CREATE TABLE public.calculations (
     origin_id integer,
     nested_depth integer,
     frozen boolean,
-    calc_id integer NOT NULL
+    calc_id integer NOT NULL,
+    handlepid varchar(100) NULL
 );
 
 
@@ -489,19 +490,18 @@ ALTER TABLE public.login_tokens OWNER TO postgres;
 --
 
 CREATE TABLE public.metadata (
-    calc_id integer NOT NULL,
-    version_id integer,
-    location character varying,
-    finished integer,
-    raw_input text,
-    modeling_time double precision,
-    chemical_formula character varying,
-    added timestamp with time zone,
-    oadate timestamp with time zone,
-    download_size bigint,
-    filenames bytea
+	version_id int4 NULL,
+	"location" varchar NULL,
+	finished int4 NULL,
+	raw_input text NULL,
+	modeling_time float8 NULL,
+	chemical_formula varchar NULL,
+	added timestamptz NULL,
+	download_size int8 NULL,
+	filenames bytea NULL,
+	calc_id int4 NOT NULL,
+	oadate timestamptz NULL
 );
-
 
 ALTER TABLE public.metadata OWNER TO postgres;
 

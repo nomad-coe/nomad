@@ -74,7 +74,7 @@ class Calc(Base, datamodel.Calc):  # type: ignore
 
     @property
     def uploader(self) -> User:
-        assert len(self.owners) == 1, 'A calculation can only have one owner.'
+        assert len(self.owners) == 1, 'A calculation must have exactly one owner.'
         return self.owners[0]
 
     @property

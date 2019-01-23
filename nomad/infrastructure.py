@@ -95,64 +95,75 @@ def setup_elastic():
         logger.info('init elastic index')
 
 
-def setup_repository_db():
+def setup_repository_db(**kwargs):
+    """ Creates a connection and stores it in the module variables. """
+    repo_args = dict(readonly=False)
+    repo_args.update(kwargs)
+    connection, db = sqlalchemy_repository_db(**kwargs)
+
+    global repository_db
+    global repository_db_conn
+
+    repository_db_conn, repository_db = connection, db
+    logger.info('setup repository db connection')
+
+    return repository_db_conn, repository_db
+
+
+def sqlalchemy_repository_db(exists: bool = False, readonly: bool = True, **kwargs):
     """
-    Makes sure that a minimal NOMAD-coe repository postgres db exists.
-    Returns:
-        An sqlalchemy session for the NOMAD-coe repository postgres db.
+    Returns SQLAlchemy connection and session for the given db parameters.
+
+    Arguments:
+        exists: Set to False to check and ensure db and schema existence
+        readonly: Set to False for a write enabled connection
+        **kwargs: Overwrite `config.repository_db` parameters
     """
-    # ensure that the database exists
-    exists = False
-    try:
-        with repository_db_connection():
-            logger.info('repository db postgres database already exists')
-            exists = True
-    except psycopg2.OperationalError as e:
-        if not ('database "%s" does not exist' % config.repository_db.dbname) in str(e):
-            raise e
-    if not exists:
+    dbname = kwargs.get('dbname', config.repository_db.dbname)
+    db_exists = exists
+    if not db_exists:
+        try:
+            with repository_db_connection(dbname=dbname):
+                logger.info('repository db postgres database already exists')
+                db_exists = True
+        except psycopg2.OperationalError as e:
+            if not ('database "%s" does not exist' % dbname) in str(e):
+                raise e
+
+    if not db_exists:
         logger.info('repository db postgres database does not exist')
         try:
             with repository_db_connection(dbname='postgres', with_trans=False) as con:
                 with con.cursor() as cursor:
-                    cursor.execute("CREATE DATABASE %s  ;" % config.repository_db.dbname)
+                    cursor.execute("CREATE DATABASE %s  ;" % dbname)
                 logger.info('repository db postgres database created')
         except Exception as e:
             logger.info('could not create repository db postgres database', exc_info=e)
             raise e
 
     # ensure that the schema exists
-    with repository_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "select exists(select * from information_schema.tables "
-                "where table_name='users')")
-            exists = cur.fetchone()[0]
-    if not exists:
-        logger.info('repository db postgres schema does not exists')
-        reset_repository_db()
-    else:
-        logger.info('repository db postgres schema already exists')
+    schema_exists = exists
+    if not schema_exists:
+        with repository_db_connection(dbname=dbname) as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "select exists(select * from information_schema.tables "
+                    "where table_name='users')")
+                schema_exists = cur.fetchone()[0]
+        if not schema_exists:
+            logger.info('repository db postgres schema does not exists')
+            reset_repository_db_schema(dbname=dbname)
+        else:
+            logger.info('repository db postgres schema already exists')
 
     # set the admin user password
-    with repository_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "UPDATE public.users SET password='%s' WHERE user_id=1;" %
-                bcrypt.encrypt(config.services.admin_password, ident='2y'))
+    if not exists:
+        with repository_db_connection(dbname=dbname) as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE public.users SET password='%s' WHERE user_id=1;" %
+                    bcrypt.encrypt(config.services.admin_password, ident='2y'))
 
-    global repository_db
-    global repository_db_conn
-    repository_db_conn, repository_db = sqlalchemy_repository_db(readonly=False)
-    logger.info('setup repository db')
-
-
-def sqlalchemy_repository_db(readonly=True, **kwargs):
-    """
-    Returns SQLAlchemy connection and session for the given db parameters.
-    It uses the regular `config.repository_db` parameters updated with the given
-    `**kwargs`.
-    """
     def no_flush():
         pass
 
@@ -281,17 +292,30 @@ def repository_db_connection(dbname=None, with_trans=True):
 
 def reset_repository_db():
     """ Drops the existing NOMAD-coe repository postgres schema and creates a new minimal one. """
-    old_repository_db = repository_db
+    global repository_db
+    global repository_db_conn
 
     # invalidate and close all connections and sessions
     if repository_db is not None:
         repository_db.expunge_all()
         repository_db.invalidate()
+        repository_db.close_all()
     if repository_db_conn is not None:
-        repository_db_conn.close_all()
+        repository_db_conn.close()
+        repository_db_conn.engine.dispose()
 
     # perform the reset
-    with repository_db_connection(with_trans=False) as conn:
+    reset_repository_db_schema()
+
+    # try tp repair existing db connections
+    if repository_db is not None:
+        new_connection, repository_db = setup_repository_db(exists=False)
+        repository_db.bind = new_connection
+        repository_db_conn = new_connection
+
+
+def reset_repository_db_schema(**kwargs):
+    with repository_db_connection(with_trans=False, **kwargs) as conn:
         with conn.cursor() as cur:
             cur.execute("DROP SCHEMA IF EXISTS public CASCADE;")
 
@@ -302,8 +326,3 @@ def reset_repository_db():
             sql_file = os.path.join(os.path.dirname(__file__), 'empty_repository_db.sql')
             cur.execute(open(sql_file, 'r').read())
             logger.info('(re-)created repository db postgres schema')
-
-    # try tp repair existing db connections
-    if old_repository_db is not None:
-        setup_repository_db()
-        old_repository_db.bind = repository_db_conn

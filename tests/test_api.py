@@ -65,17 +65,17 @@ def create_auth_headers(user):
     }
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='module')
 def test_user_auth(test_user: User):
     return create_auth_headers(test_user)
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='module')
 def test_other_user_auth(other_test_user: User):
     return create_auth_headers(other_test_user)
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='module')
 def admin_user_auth(admin_user: User):
     return create_auth_headers(admin_user)
 
@@ -83,15 +83,15 @@ def admin_user_auth(admin_user: User):
 class TestAdmin:
 
     @pytest.mark.timeout(10)
-    def test_reset(self, client, admin_user_auth, repository_db):
+    def test_reset(self, client, admin_user_auth, expandable_repo_db):
         rv = client.post('/admin/reset', headers=admin_user_auth)
         assert rv.status_code == 200
 
     # TODO disabled as this will destroy the session repository_db beyond repair.
-    # @pytest.mark.timeout(10)
-    # def test_remove(self, client, admin_user_auth, repository_db):
-    #     rv = client.post('/admin/remove', headers=admin_user_auth)
-    #     assert rv.status_code == 200
+    @pytest.mark.timeout(10)
+    def test_remove(self, client, admin_user_auth, expandable_repo_db):
+        rv = client.post('/admin/remove', headers=admin_user_auth)
+        assert rv.status_code == 200
 
     def test_doesnotexist(self, client, admin_user_auth):
         rv = client.post('/admin/doesnotexist', headers=admin_user_auth)
@@ -115,7 +115,7 @@ class TestAdmin:
         yield None
         monkeypatch.setattr(config, 'services', old_config)
 
-    def test_disabled(self, client, admin_user_auth, disable_reset):
+    def test_disabled(self, client, admin_user_auth, disable_reset, repository_db):
         rv = client.post('/admin/reset', headers=admin_user_auth)
         assert rv.status_code == 400
 
@@ -336,7 +336,6 @@ class TestUploads:
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
-
         metadata = dict(comment='test comment')
         self.assert_unstage(client, admin_user_auth, upload['upload_id'], proc_infra, metadata)
 

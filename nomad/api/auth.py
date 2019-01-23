@@ -69,7 +69,8 @@ def verify_password(username_or_token, password):
         # try to authenticate with username/password
         try:
             g.user = User.verify_user_password(username_or_token, password)
-        except Exception:
+        except Exception as e:
+            utils.get_logger(__name__).error('could not verify password', exc_info=e)
             return False
 
     if not g.user:
