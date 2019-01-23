@@ -100,7 +100,8 @@ class SourceCalc(Document):
             calcs = source_query.filter(Calc.coe_calc_id > start_pid).order_by(Calc.coe_calc_id).limit(per_query)
             source_calcs = []
             for calc in calcs:
-                if calc.calc_metadata.filenames is None:
+                if calc.calc_metadata is None or calc.calc_metadata.filenames is None:
+                    yield None, total
                     continue  # dataset case
 
                 filenames = json.loads(calc.calc_metadata.filenames.decode('utf-8'))

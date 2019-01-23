@@ -45,7 +45,7 @@ class Calc(Base, datamodel.Calc):  # type: ignore
         secondary=calc_dataset_containment,
         primaryjoin=calc_dataset_containment.c.children_calc_id == coe_calc_id,
         secondaryjoin=calc_dataset_containment.c.parent_calc_id == coe_calc_id,
-        backref='children', lazy='joined', join_depth=2)
+        backref='children', lazy='subquery', join_depth=1)
 
     @classmethod
     def load_from(cls, obj):

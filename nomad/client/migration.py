@@ -47,11 +47,15 @@ def migration(host, port, user, password, dbname):
 @click.option('--per-query', default=100, help='We index many objects with one query. Default is 100.')
 def index(drop, with_metadata, per_query):
     start = time.time()
-    indexed = 0
-    for _, total in _migration.index(drop=drop, with_metadata=with_metadata, per_query=int(per_query)):
-        indexed += 1
-        eta = total * ((time.time() - start) / indexed)
-        print('indexed: %8d, total: %8d, ETA: %s\r' % (indexed, total, datetime.timedelta(seconds=eta)), end='')
+    indexed_total = 0
+    indexed_calcs = 0
+    for calc, total in _migration.index(drop=drop, with_metadata=with_metadata, per_query=int(per_query)):
+        indexed_total += 1
+        indexed_calcs += 1 if calc is not None else 0
+        eta = total * ((time.time() - start) / indexed_total)
+        print(
+            'indexed: %8d, calcs: %8d, total: %8d, ETA: %s\r' %
+            (indexed_total, indexed_calcs, total, datetime.timedelta(seconds=eta)), end='')
     print('done')
 
 
