@@ -75,10 +75,29 @@ class TestNomadCOEMigration:
         assert target_repo.query(coe_repo.User).filter_by(user_id=1).first().email == 'one'
         assert target_repo.query(coe_repo.User).filter_by(user_id=2).first().email == 'two'
 
-    def test_index(self, migration, mockmongo):
-        SourceCalc.index(migration.source)
-        test_calc = SourceCalc.objects(mainfile='test/out.xml', upload='upload1').first()
+    def perform_index(self, migration, has_indexed, with_metadata, **kwargs):
+        has_source_calc = False
+        for source_calc, total in SourceCalc.index(migration.source, with_metadata=with_metadata, **kwargs):
+            assert source_calc.pid is not None
+            assert source_calc.mainfile == 'test/out.xml'
+            assert source_calc.upload == 'upload1'
+            has_source_calc = True
+            assert total == 1
 
+        assert has_source_calc == has_indexed
+
+        test_calc = SourceCalc.objects(mainfile='test/out.xml', upload='upload1').first()
         assert test_calc is not None
-        assert test_calc.metadata['_uploader'] == 1
-        assert test_calc.metadata['comment'] == 'label1'
+
+        if with_metadata:
+            assert test_calc.metadata['_uploader'] == 1
+            assert test_calc.metadata['comment'] == 'label1'
+
+    @pytest.mark.parametrize('with_metadata', [False, True])
+    def test_create_index(self, migration, mockmongo, with_metadata: bool):
+        self.perform_index(migration, has_indexed=True, drop=True, with_metadata=with_metadata)
+
+    @pytest.mark.parametrize('with_metadata', [True, False])
+    def test_update_index(self, migration, mockmongo, with_metadata: bool):
+        self.perform_index(migration, has_indexed=True, drop=True, with_metadata=with_metadata)
+        self.perform_index(migration, has_indexed=False, drop=False, with_metadata=with_metadata)

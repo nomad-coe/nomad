@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import click
+import time
+import datetime
 
 from nomad import config, infrastructure
 from nomad.migration import NomadCOEMigration
@@ -41,8 +43,16 @@ def migration(host, port, user, password, dbname):
 
 @migration.command(help='Create/update the coe repository db migration index')
 @click.option('--drop', help='Drop the existing index, otherwise it will only add new data.', is_flag=True)
-def index(drop):
-    _migration.index(drop=drop)
+@click.option('--with-metadata', help='Extract metadata for each calc and add it to the index.', is_flag=True)
+@click.option('--per-query', default=100, help='We index many objects with one query. Default is 100.')
+def index(drop, with_metadata, per_query):
+    start = time.time()
+    indexed = 0
+    for _, total in _migration.index(drop=drop, with_metadata=with_metadata, per_query=int(per_query)):
+        indexed += 1
+        eta = total * ((time.time() - start) / indexed)
+        print('indexed: %8d, total: %8d, ETA: %s\r' % (indexed, total, datetime.timedelta(seconds=eta)), end='')
+    print('done')
 
 
 @migration.command(help='Copy users from source into empty target db')

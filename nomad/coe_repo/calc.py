@@ -45,7 +45,7 @@ class Calc(Base, datamodel.Calc):  # type: ignore
         secondary=calc_dataset_containment,
         primaryjoin=calc_dataset_containment.c.children_calc_id == coe_calc_id,
         secondaryjoin=calc_dataset_containment.c.parent_calc_id == coe_calc_id,
-        backref='children')
+        backref='children', lazy='joined', join_depth=2)
 
     @classmethod
     def load_from(cls, obj):
@@ -136,7 +136,7 @@ class DataSet:
 
     @property
     def dois(self) -> List[Citation]:
-        return list(citation for citation in self._dataset_calc.citations if citation.kind == 'INTERNAL')
+        return list(citation.value for citation in self._dataset_calc.citations if citation.kind == 'INTERNAL')
 
     @property
     def name(self):
