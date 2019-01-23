@@ -1,0 +1,18 @@
+title "WATER 6-311G* meta-GGA XC geometry"
+echo
+geometry units angstroms
+ O       0.00000000     0.00000000    -0.06392934
+ H       0.76924532     0.00000000     0.52693942
+ H       -0.76924532     0.00000000     0.52693942
+end
+basis
+ H library 6-311G*
+ O library 6-311G*
+end
+dft
+ iterations 50
+ print  kinetic_energy
+ xc xtpss03 ctpss03
+ decomp
+end
+task dft gradient

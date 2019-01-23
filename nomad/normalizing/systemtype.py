@@ -26,4 +26,6 @@ class SystemTypeNormalizer(SystemBasedNormalizer):
         structure = classify_structure.ClassifyStructure(section_system)
         structure.classify()
         structure_type = structure.classification
+        print("Structure type form the system type normalizer is:")
+        print(structure_type)
         self._backend.addValue('system_type', structure_type)

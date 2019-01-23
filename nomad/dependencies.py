@@ -190,18 +190,6 @@ dependencies = [
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-fhi-aims.git',
         git_branch='nomad-fair'),
     PythonGit(
-        name='normalizers/stats',
-        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/normalizer-stats.git',
-        git_branch='nomad-fair'),
-    PythonGit(
-        name='normalizers/symmetry',
-        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/normalizer-symmetry',
-        git_branch='nomad-fair'),
-    PythonGit(
-        name='normalizers/system-type',
-        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/normalizer-system-type',
-        git_branch='nomad-fair'),
-    PythonGit(
         name='parsers/cp2k',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-cp2k',
         git_branch='nomad-fair'),

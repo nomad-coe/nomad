@@ -50,18 +50,21 @@ def normalized_template_example(parsed_template_example) -> LocalBackend:
 
 
 def assert_normalized(backend):
+    with open("test_file_name.json", "wt") as file:
+        backend.write_json(file)
+    # The assertions are based on the quanitites need for the repository.
     assert backend.get_value('atom_species', 0) is not None
     assert backend.get_value('system_type', 0) is not None
-
-    # These tests are not always present for non periodic
-    # cells, where we are simulating a molecule and not a crystal
-    # structure with well defined group symmetries.
-    # assert backend.get_value('crystal_system', 0) is not None
-    # assert backend.get_value('space_group_number', 0) is not None
-
-    assert backend.get_value('XC_functional_name', 0) is not None
     assert backend.get_value('chemical_composition', 0) is not None
     assert backend.get_value('chemical_composition_bulk_reduced', 0) is not None
+    # The below tests are not always present for non periodic
+    # cells that don't have a simulation_cell or lattice_vectors.
+    if backend.get_value('system_type', 0) not in ['Atom', 'Molecule / Cluster']:
+        assert backend.get_value('crystal_system', 0) is not None
+        assert backend.get_value('space_group_number', 0) is not None
+    # The NWChem example for MD does not have functional information in its output.
+    if backend.get_value('program_name', 0) != 'NWChem':
+        assert backend.get_value('XC_functional_name', 0) is not None
 
 
 def test_normalizer(normalized_example: LocalBackend, no_warn):
