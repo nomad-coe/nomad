@@ -523,11 +523,16 @@ class LocalBackend(LegacyParserBackend):
         self._errors = None
         self._warnings: List[str] = []
 
-    def metadata(self, sections: Iterable[str] = ['section_repository_info']) -> dict:
-        """ Returns an json serializable object with all data of the given sections. """
+    def metadata(self, sections: Iterable[str] = ['section_calculation_info', 'section_repository_info']) -> dict:
+        """
+        Returns an json serializable object with all data of the given sections.
+
+        Used to create the repository view of a parsed and normalized calculation.
+        TODO this is probably not the right spot for this functionality!
+        """
         data = dict(calc_id=self.get_value('calc_id'))
         for section in sections:
-            data[section] = self._obj(self._delegate.results[section])
+            data[section] = self._obj(self._delegate.results[section], lambda name, value: value if name != 'archive_processor_warnings' else None)
         return data
 
     def write_json(self, out: TextIO, pretty=True, filter: Callable[[str, Any], Any] = None):
