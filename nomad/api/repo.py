@@ -43,6 +43,7 @@ class RepoCalcResource(Resource):
         Calcs are references via *upload_id*, *calc_id* pairs.
         """
         # TODO use elastic search instead of the files
+        # TODO add missing user metadata (from elastic or repo db)
         upload_files = UploadFiles.get(upload_id, create_authorization_predicate(upload_id, calc_id))
         if upload_files is None:
             abort(404, message='There is no upload %s' % upload_id)
