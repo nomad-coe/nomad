@@ -19,7 +19,9 @@ from sqlalchemy.orm import relationship, aliased
 from sqlalchemy.sql.expression import literal
 
 from nomad import infrastructure, datamodel
+from nomad.datamodel import CalcWithMetadata
 
+from . import base
 from .user import User
 from .base import Base, calc_citation_association, ownership, co_authorship, shareship, \
     Tag, Topics, CalcSet, calc_dataset_containment, Citation
@@ -39,6 +41,8 @@ class Calc(Base, datamodel.Calc):  # type: ignore
     owners = relationship('User', secondary=ownership, lazy='joined')
     coauthors = relationship('User', secondary=co_authorship, lazy='joined')
     shared_with = relationship('User', secondary=shareship, lazy='joined')
+    tags = relationship('Tag', lazy='joined')
+    spacegroup = relationship('Spacegroup', lazy='joined', uselist=False)
 
     parents = relationship(
         'Calc',
@@ -124,6 +128,63 @@ class Calc(Base, datamodel.Calc):  # type: ignore
 
         tag = Tag(calc=self, topic=topic)
         repo_db.add(tag)
+
+    _dataset_cache: dict = {}
+
+    def to_calc_with_metadata(self):
+        result = CalcWithMetadata(
+            upload_id=self.upload.upload_id if self.upload else None,
+            calc_id=self.calc_id)
+
+        for topic in [tag.topic for tag in self.tags]:
+            if topic.cid == base.topic_code:
+                result.program_name = topic.topic
+            elif topic.cid == base.topic_basis_set_type:
+                result.basis_set_type = topic.topic
+            elif topic.cid == base.topic_xc_treatment:
+                result.XC_functional_name = topic.topic
+            elif topic.cid == base.topic_system_type:
+                result.system_type = topic.topic
+            elif topic.cid == base.topic_atoms:
+                result.setdefault('atom_species', []).append(topic.topic)
+            elif topic.cid == base.topic_crystal_system:
+                result.crystal_system = topic.topic
+            else:
+                raise KeyError('topic cid %s.' % str(topic.cid))
+
+        result.program_version = self.calc_metadata.version.content
+        result.chemical_composition = self.calc_metadata.chemical_formula
+        result.space_group_number = self.spacegroup.n
+        result.setdefault('atom_species', []).sort()
+
+        datasets: List[DataSet] = []
+        for parent in self.parents:
+            parents = Calc._dataset_cache.get(parent, None)
+            if parents is None:
+                parents = parent.all_datasets
+                Calc._dataset_cache[parent] = parents
+            datasets.append(DataSet(parent))
+            datasets.extend(parents)
+
+        result.pid = self.pid
+        result.uploader = self.uploader.user_id
+        result.upload_time = self.calc_metadata.added
+        result.datasets = list(
+            dict(id=ds.id, dois=ds.dois, name=ds.name)
+            for ds in datasets)
+        result.with_embargo = self.with_embargo
+        result.comment = self.comment
+        result.references = self.references
+        result.coauthors = list(user.user_id for user in self.coauthors)
+        result.shared_with = list(user.user_id for user in self.shared_with)
+
+        return {
+            key: value for key, value in result.items()
+            if value is not None and value != []
+        }
+
+
+CalcWithMetadata.register_mapping(Calc, Calc.to_calc_with_metadata)
 
 
 class DataSet:

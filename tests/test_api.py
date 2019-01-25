@@ -30,7 +30,7 @@ config.services = config.NomadServicesConfig(**services_config)
 
 from nomad import api, coe_repo  # noqa
 from nomad.files import UploadFiles, PublicUploadFiles  # noqa
-from nomad.processing import Upload, Calc  # noqa
+from nomad.processing import Upload, Calc, SUCCESS  # noqa
 from nomad.coe_repo import User  # noqa
 
 from tests.processing.test_data import example_files  # noqa
@@ -192,14 +192,14 @@ class TestUploads:
                 break
 
         assert len(upload['tasks']) == 4
-        assert upload['tasks_status'] == 'SUCCESS'
+        assert upload['tasks_status'] == SUCCESS
         assert upload['current_task'] == 'cleanup'
         assert not upload['process_running']
         upload_files = UploadFiles.get(upload['upload_id'])
         assert upload_files is not None
         calcs = upload['calcs']['results']
         for calc in calcs:
-            assert calc['tasks_status'] == 'SUCCESS'
+            assert calc['tasks_status'] == SUCCESS
             assert calc['current_task'] == 'archiving'
             assert len(calc['tasks']) == 3
             assert client.get('/archive/logs/%s/%s' % (calc['upload_id'], calc['calc_id']), headers=test_user_auth).status_code == 200
@@ -218,7 +218,7 @@ class TestUploads:
         rv = client.post(
             '/uploads/%s' % upload_id,
             headers=test_user_auth,
-            data=json.dumps(dict(operation='commit', metadata=metadata)),
+            data=json.dumps(dict(command='commit', metadata=metadata)),
             content_type='application/json')
         assert rv.status_code == 200
         upload = self.assert_upload(rv.data)
@@ -346,7 +346,7 @@ class TestUploads:
         rv = client.post(
             '/uploads/%s' % upload['upload_id'],
             headers=test_user_auth,
-            data=json.dumps(dict(operation='commit', metadata=dict(_pid=256))),
+            data=json.dumps(dict(command='commit', metadata=dict(_pid=256))),
             content_type='application/json')
         assert rv.status_code == 401
 
@@ -358,7 +358,7 @@ class TestUploads:
     #     rv = client.post(
     #         '/uploads/%s' % upload['upload_id'],
     #         headers=test_user_auth,
-    #         data=json.dumps(dict(operation='commit', metadata=dict(doesnotexist='hi'))),
+    #         data=json.dumps(dict(command='commit', metadata=dict(doesnotexist='hi'))),
     #         content_type='application/json')
     #     assert rv.status_code == 400
 

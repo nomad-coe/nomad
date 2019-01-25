@@ -193,7 +193,7 @@ async function commitUpload(uploadId) {
   return client.apis.uploads.exec_upload_command({
     upload_id: uploadId,
     payload: {
-      operation: 'commit'
+      command: 'commit'
     }
   })
     .catch(handleApiError)

@@ -28,7 +28,7 @@ import json
 from nomad import utils
 from nomad.files import ArchiveBasedStagingUploadFiles, UploadFiles, StagingUploadFiles
 from nomad.processing import Upload, Calc
-from nomad.processing.base import task as task_decorator
+from nomad.processing.base import task as task_decorator, FAILURE, SUCCESS
 
 from tests.test_files import example_file, empty_file
 
@@ -86,7 +86,7 @@ def assert_processing(upload: Upload):
     assert upload.current_task == 'cleanup'
     assert upload.upload_id is not None
     assert len(upload.errors) == 0
-    assert upload.tasks_status == 'SUCCESS'
+    assert upload.tasks_status == SUCCESS
 
     upload_files = UploadFiles.get(upload.upload_id, is_authorized=lambda: True)
     assert isinstance(upload_files, StagingUploadFiles)
@@ -94,7 +94,7 @@ def assert_processing(upload: Upload):
     for calc in Calc.objects(upload_id=upload.upload_id):
         assert calc.parser is not None
         assert calc.mainfile is not None
-        assert calc.tasks_status == 'SUCCESS'
+        assert calc.tasks_status == SUCCESS
 
         with upload_files.archive_file(calc.calc_id) as archive_json:
             archive = json.load(archive_json)
@@ -129,7 +129,7 @@ def test_process_non_existing(worker, test_user, with_error):
 
     assert not upload.tasks_running
     assert upload.current_task == 'extracting'
-    assert upload.tasks_status == 'FAILURE'
+    assert upload.tasks_status == FAILURE
     assert len(upload.errors) > 0
 
 
@@ -157,17 +157,17 @@ def test_task_failure(monkeypatch, uploaded_id, worker, task, test_user, with_er
     assert not upload.tasks_running
 
     if task != 'parsing':
-        assert upload.tasks_status == 'FAILURE'
+        assert upload.tasks_status == FAILURE
         assert upload.current_task == task
         assert len(upload.errors) > 0
     else:
         # there is an empty example with no calcs, even if past parsing_all task
         utils.get_logger(__name__).error('fake')
         if upload.total_calcs > 0:  # pylint: disable=E1101
-            assert upload.tasks_status == 'SUCCESS'
+            assert upload.tasks_status == SUCCESS
             assert upload.current_task == 'cleanup'
             assert len(upload.errors) == 0
             for calc in upload.all_calcs(0, 100):  # pylint: disable=E1101
-                assert calc.tasks_status == 'FAILURE'
+                assert calc.tasks_status == FAILURE
                 assert calc.current_task == 'parsing'
                 assert len(calc.errors) > 0

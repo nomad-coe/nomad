@@ -47,20 +47,14 @@ import datetime
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
-from nomad import utils, infrastructure, datamodel, files
+from nomad import utils, infrastructure, datamodel
+from nomad.datamodel import CalcWithMetadata
 
+from . import base
 from .user import User
 from .calc import Calc
 from .base import Base, CalcMetaData, UserMetaData, StructRatio, CodeVersion, Spacegroup, \
     CalcSet, Citation
-
-
-topic_code = 220
-topic_atoms = 10
-topic_system_type = 50
-topic_xc_treatment = 75
-topic_crystal_system = 90
-topic_basis_set_type = 80
 
 
 class UploadMetaData:
@@ -156,7 +150,7 @@ class Upload(Base, datamodel.Upload):  # type: ignore
             has_calcs = False
             for calc in upload.calcs:
                 has_calcs = True
-                coe_upload._add_calculation(calc.to(files.Calc), upload_metadata.get(calc.mainfile))
+                coe_upload._add_calculation(calc.to(CalcWithMetadata), upload_metadata.get(calc.mainfile))
 
             # commit
             if has_calcs:
@@ -175,7 +169,7 @@ class Upload(Base, datamodel.Upload):  # type: ignore
 
         return result
 
-    def _add_calculation(self, calc: files.Calc, calc_metadata: dict) -> None:
+    def _add_calculation(self, calc: CalcWithMetadata, calc_metadata: dict) -> None:
         repo_db = infrastructure.repository_db
 
         # table based properties
@@ -219,13 +213,13 @@ class Upload(Base, datamodel.Upload):  # type: ignore
         repo_db.add(spacegroup)
 
         # topic based properties
-        coe_calc.set_value(topic_code, calc.program_name)
+        coe_calc.set_value(base.topic_code, calc.program_name)
         for atom in set(calc.atom_species):
-            coe_calc.set_value(topic_atoms, str(atom))  # TODO atom label not number
-        coe_calc.set_value(topic_system_type, calc.system_type)
-        coe_calc.set_value(topic_xc_treatment, calc.XC_functional_name)  # TODO function->treatment
-        coe_calc.set_value(topic_crystal_system, calc.crystal_system)
-        coe_calc.set_value(topic_basis_set_type, calc.basis_set_type)
+            coe_calc.set_value(base.topic_atoms, str(atom))  # TODO atom label not number
+        coe_calc.set_value(base.topic_system_type, calc.system_type)
+        coe_calc.set_value(base.topic_xc_treatment, calc.XC_functional_name)  # TODO function->treatment
+        coe_calc.set_value(base.topic_crystal_system, calc.crystal_system)
+        coe_calc.set_value(base.topic_basis_set_type, calc.basis_set_type)
 
         # user relations
         owner_user_id = calc_metadata.get('_uploader', int(self.user_id))

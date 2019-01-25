@@ -18,6 +18,7 @@ import time
 import click
 
 from nomad import utils
+from nomad.processing import FAILURE, SUCCESS
 
 from .main import cli, create_client
 
@@ -45,7 +46,7 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, commit:
             upload = client.uploads.upload(file=f, name=name).response().result
         click.echo('process online: %s' % file_path)
 
-    while upload.tasks_status not in ['SUCCESS', 'FAILURE']:
+    while upload.tasks_status not in [SUCCESS, FAILURE]:
         upload = client.uploads.get_upload(upload_id=upload.upload_id).response().result
         calcs = upload.calcs.pagination
         if calcs is None:
@@ -53,7 +54,7 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, commit:
         else:
             total, successes, failures = (calcs.total, calcs.successes, calcs.failures)
 
-        ret = '\n' if upload.tasks_status in ('SUCCESS', 'FAILURE') else '\r'
+        ret = '\n' if upload.tasks_status in (SUCCESS, FAILURE) else '\r'
 
         print(
             'status: %s; task: %s; parsing: %d/%d/%d                %s' %
@@ -61,12 +62,12 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, commit:
 
         time.sleep(3)
 
-    if upload.tasks_status == 'FAILURE':
+    if upload.tasks_status == FAILURE:
         click.echo('There have been errors:')
         for error in upload.errors:
             click.echo('    %s' % error)
     elif commit:
-        client.uploads.exec_upload_command(upload_id=upload.upload_id, operation='commit').reponse()
+        client.uploads.exec_upload_command(upload_id=upload.upload_id, command='commit').reponse()
 
     return upload.upload_id
 

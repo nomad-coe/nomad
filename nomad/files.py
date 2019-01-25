@@ -36,7 +36,7 @@ almost readonly (beside metadata) storage.
 """
 
 from abc import ABCMeta
-from typing import IO, Generator, Dict, Iterator, Iterable, Callable, List
+from typing import IO, Generator, Dict, Iterator, Iterable, Callable
 import ujson
 import os.path
 import os
@@ -238,7 +238,7 @@ class Restricted(Exception):
     pass
 
 
-class UploadFiles(DirectoryObject, metaclass=ABCMeta):
+class UploadFiles(DirectoryObject, datamodel.Entity, metaclass=ABCMeta):
 
     _archive_ext = 'json'
 
@@ -684,10 +684,14 @@ class Calc(datamodel.Calc):
 
     def __init__(self, upload_id: str, calc_id: str) -> None:
         self._calc_id = calc_id
-        upload_files = UploadFiles.get(upload_id, is_authorized=lambda: True)
-        if upload_files is None:
+        self.upload_files = UploadFiles.get(upload_id, is_authorized=lambda: True)
+        if self.upload_files is None:
             raise KeyError
-        self._data = upload_files.metadata.get(calc_id)
+        self._data = self.upload_files.metadata.get(calc_id)
+
+    @property
+    def upload(self):
+        return self.upload_files
 
     @property
     def calc_data(self) -> dict:
@@ -699,44 +703,24 @@ class Calc(datamodel.Calc):
 
     @property
     def mainfile(self) -> str:
-        return self.files[0]
+        return self._data['section_repository_info']['repository_filepaths'][0]
 
-    @property
-    def files(self) -> List[str]:
-        return self._data['section_repository_info']['repository_filepaths']
+    def to_calc_with_metadata(self):
+        target = datamodel.CalcWithMetadata(upload_id=self.upload.upload_id)
+        target.calc_id = self.calc_id
+        target.basis_set_type = self.calc_data['repository_basis_set_type']
+        target.crystal_system = self.calc_data['repository_crystal_system']
+        target.XC_functional_name = self.calc_data['repository_xc_treatment']
+        target.system_type = self.calc_data['repository_system_type']
+        target.atom_species = self.calc_data['repository_atomic_elements']
+        target.space_group_number = self.calc_data['repository_spacegroup_nr']
+        target.chemical_composition = self.calc_data['repository_chemical_formula']
+        target.program_version = self.calc_data['repository_code_version']
+        target.program_name = self.calc_data['repository_program_name']
+        target.files = self._data['section_repository_info']['repository_filepaths']
+        target.mainfile = self.mainfile
 
-    @property
-    def program_name(self) -> str:
-        return self.calc_data['repository_program_name']
+        return target
 
-    @property
-    def program_version(self) -> str:
-        return self.calc_data['repository_code_version']
 
-    @property
-    def chemical_composition(self) -> str:
-        return self.calc_data['repository_chemical_formula']
-
-    @property
-    def space_group_number(self) -> int:
-        return self.calc_data['repository_spacegroup_nr']
-
-    @property
-    def atom_species(self) -> list:
-        return self.calc_data['repository_atomic_elements']
-
-    @property
-    def system_type(self) -> str:
-        return self.calc_data['repository_system_type']
-
-    @property
-    def XC_functional_name(self) -> str:
-        return self.calc_data['repository_xc_treatment']
-
-    @property
-    def crystal_system(self) -> str:
-        return self.calc_data['repository_crystal_system']
-
-    @property
-    def basis_set_type(self) -> str:
-        return self.calc_data['repository_basis_set_type']
+datamodel.CalcWithMetadata.register_mapping(Calc, Calc.to_calc_with_metadata)

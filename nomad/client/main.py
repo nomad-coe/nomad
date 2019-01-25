@@ -28,7 +28,7 @@ pw = 'password'
 
 
 def create_client():
-    return create_client()
+    return _create_client()
 
 
 def _create_client(

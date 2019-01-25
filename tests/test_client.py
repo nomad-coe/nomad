@@ -12,13 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Swagger/bravado based python client library for the API and various usefull shell commands.
-"""
+import pytest
+from bravado.client import SwaggerClient
 
-from . import local, migration, misc, upload
-from .main import cli, create_client
+from .test_api import client as flask_client, test_user_auth  # noqa pylint: disable=unused-import
+from .bravado_flaks import FlaskTestHttpClient
 
 
-if __name__ == '__main__':
-    cli()  # pylint: disable=E1120
+@pytest.fixture(scope='function')
+def client(flask_client, repository_db, test_user_auth):
+    http_client = FlaskTestHttpClient(flask_client, headers=test_user_auth)
+    return SwaggerClient.from_url('/swagger.json', http_client=http_client)
+
+
+def test_get_upload_command(client):
+    assert client.uploads.get_upload_command().response().result.upload_command is not None

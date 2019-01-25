@@ -24,7 +24,7 @@ from werkzeug.datastructures import FileStorage
 import os.path
 
 from nomad import config
-from nomad.processing import Upload
+from nomad.processing import Upload, FAILURE
 from nomad.processing import ProcessAlreadyRunning
 from nomad.files import ArchiveBasedStagingUploadFiles
 
@@ -103,8 +103,8 @@ upload_with_calcs_model = api.inherit('UploadWithPaginatedCalculations', upload_
     }))
 })
 
-upload_operation_model = api.model('UploadOperation', {
-    'operation': fields.String(description='Currently commit is the only operation.'),
+upload_command_model = api.model('UploadCommand', {
+    'command': fields.String(description='Currently commit is the only command.'),
     'metadata': fields.Nested(model=upload_metadata_model, description='Additional upload and calculation meta data. Will replace previously given metadata.')
 })
 
@@ -313,13 +313,13 @@ class UploadResource(Resource):
     @api.doc('exec_upload_command')
     @api.response(404, 'Upload does not exist or not in staging')
     @api.response(400, 'Operation is not supported or the upload is still/already processed')
-    @api.response(401, 'If the operation is not allowed for the current user')
+    @api.response(401, 'If the command is not allowed for the current user')
     @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload commited successfully')
-    @api.expect(upload_operation_model)
+    @api.expect(upload_command_model)
     @login_really_required
     def post(self, upload_id):
         """
-        Execute an upload operation. Available operations: ``commit``
+        Execute an upload command. Available operations: ``commit``
 
         Unstage accepts further meta data that allows to provide coauthors, comments,
         external references, etc. See the model for details. The fields that start with
@@ -340,7 +340,7 @@ class UploadResource(Resource):
         if json_data is None:
             json_data = {}
 
-        operation = json_data.get('operation')
+        command = json_data.get('command')
 
         metadata = json_data.get('metadata', {})
         for key in metadata:
@@ -349,9 +349,11 @@ class UploadResource(Resource):
                     abort(401, message='Only admin users can use _metadata_keys.')
                 break
 
-        if operation == 'commit':
+        if command == 'commit':
             if upload.tasks_running:
                 abort(400, message='The upload is not processed yet')
+            if upload.tasks_status == FAILURE:
+                abort(400, message='Cannot commit an upload that failed processing')
             try:
                 upload.metadata = metadata
                 upload.commit_upload()
@@ -360,7 +362,7 @@ class UploadResource(Resource):
 
             return upload, 200
 
-        abort(400, message='Unsuported operation %s.' % operation)
+        abort(400, message='Unsuported command %s.' % command)
 
 
 upload_command_model = api.model('UploadCommand', {

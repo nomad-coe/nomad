@@ -31,7 +31,7 @@ from structlog import wrap_logger
 from contextlib import contextmanager
 
 from nomad import utils, coe_repo, datamodel
-from nomad.files import PathObject, ArchiveBasedStagingUploadFiles, ExtractError
+from nomad.files import PathObject, ArchiveBasedStagingUploadFiles, ExtractError, Calc as FilesCalc
 from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parsers, parser_dict
 from nomad.normalizing import normalizers
@@ -255,6 +255,12 @@ class Calc(Proc, datamodel.Calc):
                 self._calc_proc_logwriter = None
 
                 log_data.update(log_size=self.upload_files.archive_log_file_object(self.calc_id).size)
+
+    def to_calc_with_metadata(self):
+        return self.to(FilesCalc).to_calc_with_metadata()
+
+
+datamodel.CalcWithMetadata.register_mapping(Calc, Calc.to_calc_with_metadata)
 
 
 class Upload(Chord, datamodel.Upload):

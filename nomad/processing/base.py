@@ -388,7 +388,7 @@ def task(func):
     only be executed, if the process has not yet reached FAILURE state.
     """
     def wrapper(self, *args, **kwargs):
-        if self.tasks_status == 'FAILURE':
+        if self.tasks_status == FAILURE:
             return
 
         self._continue_with(func.__name__)
