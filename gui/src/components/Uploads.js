@@ -11,8 +11,10 @@ import Upload from './Upload'
 import { withErrors } from './errors'
 import { compose } from 'recompose'
 import DeleteIcon from '@material-ui/icons/Delete'
+import ReloadIcon from '@material-ui/icons/Cached'
 import CheckIcon from '@material-ui/icons/Check'
 import ConfirmDialog from './ConfirmDialog'
+import { Help } from './Help'
 
 class Uploads extends React.Component {
   static propTypes = {
@@ -25,7 +27,9 @@ class Uploads extends React.Component {
       width: '100%'
     },
     dropzoneContainer: {
-      height: 192
+      height: 192,
+      marginTop: theme.spacing.unit * 2,
+      marginBottom: theme.spacing.unit * 2
     },
     dropzone: {
       textAlign: 'center',
@@ -65,7 +69,7 @@ class Uploads extends React.Component {
 
   state = {
     uploads: null,
-    uploadCommand: null,
+    uploadCommand: 'loading ...',
     selectedUploads: [],
     loading: true,
     showAccept: false
@@ -159,52 +163,61 @@ class Uploads extends React.Component {
 
   renderUploads() {
     const { classes } = this.props
-    const { uploads, selectedUploads } = this.state
+    const { selectedUploads } = this.state
+    const uploads = this.state.uploads || []
 
-    if (uploads && uploads.length > 0) {
-      return (
-        <div>
-          <div style={{width: '100%'}}>
-            <Markdown text={'These are the *existing* uploads:'} />
-            <FormGroup className={classes.selectFormGroup} row>
-              <FormControlLabel label="all" style={{flexGrow: 1}} control={(
-                <Checkbox
-                  checked={selectedUploads.length === uploads.length}
-                  onChange={(_, checked) => this.onSelectionAllChanged(checked)}
-                />
-              )} />
-              <FormLabel classes={{root: classes.selectLabel}}>
-                {`selected uploads ${selectedUploads.length}/${uploads.length}`}
-              </FormLabel>
-              <IconButton
-                disabled={selectedUploads.length === 0}
-                onClick={this.onDeleteClicked.bind(this)}
-              >
-                <DeleteIcon />
-              </IconButton>
+    return (<div>
+      <div style={{width: '100%'}}>
+        <FormGroup className={classes.selectFormGroup} row>
+          <FormControlLabel label="all" style={{flexGrow: 1}} control={(
+            <Checkbox
+              checked={selectedUploads.length === uploads.length && uploads.length !== 0}
+              onChange={(_, checked) => this.onSelectionAllChanged(checked)}
+            />
+          )} />
+          <IconButton onClick={() => this.update()}><ReloadIcon /></IconButton>
+          <FormLabel classes={{root: classes.selectLabel}}>
+            {`selected uploads ${selectedUploads.length}/${uploads.length}`}
+          </FormLabel>
+          <IconButton
+            disabled={selectedUploads.length === 0}
+            onClick={this.onDeleteClicked.bind(this)}
+          >
+            <DeleteIcon />
+          </IconButton>
 
-              <IconButton disabled={selectedUploads.length === 0} onClick={this.onAcceptClicked.bind(this)}>
-                <CheckIcon />
-              </IconButton>
-              <ConfirmDialog open={this.state.showAccept} onClose={() => this.setState({showAccept: false})} onOk={this.handleAccept.bind(this)}>
-                If you agree the selected uploads will move out of your private staging area into the public nomad.
-              </ConfirmDialog>
+          <IconButton disabled={selectedUploads.length === 0} onClick={this.onAcceptClicked.bind(this)}>
+            <CheckIcon />
+          </IconButton>
+          <ConfirmDialog open={this.state.showAccept} onClose={() => this.setState({showAccept: false})} onOk={this.handleAccept.bind(this)}>
+              If you agree the selected uploads will move out of your private staging area into the public nomad.
+          </ConfirmDialog>
 
-            </FormGroup>
-          </div>
-          <div className={classes.uploads}>
-            {this.sortedUploads().map(upload => (
-              <Upload key={upload.gui_upload_id} upload={upload}
-                checked={selectedUploads.indexOf(upload) !== -1}
-                onDoesNotExist={() => this.handleDoesNotExist(upload)}
-                onCheckboxChanged={checked => this.onSelectionChanged(upload, checked)}/>
-            ))}
-          </div>
-        </div>
-      )
-    } else {
-      return ''
-    }
+        </FormGroup>
+      </div>
+      <div className={classes.uploads}>{
+        (uploads.length > 0)
+          ? (
+            <div>
+              <Help cookie="uploadList">{`
+                These are all your existing not commiting uploads. You can see how processing
+                progresses and review your uploads before commiting them to the *nomad repository*.
+
+                Select uploads to delete or commit them. Click on uploads to see individual
+                calculations. Click on calculations to see more details on each calculation.
+              `}</Help>
+              {
+                this.sortedUploads().map(upload => (
+                  <Upload key={upload.gui_upload_id} upload={upload}
+                    checked={selectedUploads.indexOf(upload) !== -1}
+                    onDoesNotExist={() => this.handleDoesNotExist(upload)}
+                    onCheckboxChanged={checked => this.onSelectionChanged(upload, checked)}/>
+                ))
+              }
+            </div>
+          ) : ''
+      }</div>
+    </div>)
   }
 
   render() {
@@ -214,12 +227,12 @@ class Uploads extends React.Component {
     return (
       <div className={classes.root}>
         <Typography variant="h4">Upload your own data</Typography>
-        <Markdown>{`
+        <Help cookie="uploadHelp" component={Markdown}>{`
           You can upload your own data. Have your code output ready in a popular archive
           format (e.g. \`*.zip\` or \`*.tar.gz\`).  Your upload can
           comprise the output of multiple runs, even of different codes. Don't worry, nomad
-          will find it, just drop it below:`}
-        </Markdown>
+          will find it, just drop it below:
+        `}</Help>
 
         <Paper className={classes.dropzoneContainer}>
           <Dropzone
@@ -234,16 +247,17 @@ class Uploads extends React.Component {
           </Dropzone>
         </Paper>
 
-        <Markdown>{`
+        <Help cookie="uploadCommandHelp">{`
           Alternatively, you can upload files via the following shell command.
           Replace \`<local_file>\` with your file. After executing the command,
           return here and reload.
+        `}</Help>
 
+        <Markdown>{`
           \`\`\`
             ${uploadCommand}
           \`\`\`
-          `}
-        </Markdown>
+        `}</Markdown>
 
         {this.renderUploads()}
         {this.state.loading ? <LinearProgress/> : ''}

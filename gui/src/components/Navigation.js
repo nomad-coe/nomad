@@ -23,10 +23,11 @@ import ChevronLeftIcon from '@material-ui/icons/ChevronLeft'
 import MenuIcon from '@material-ui/icons/Menu'
 import { Link, withRouter } from 'react-router-dom'
 import { compose } from 'recompose'
-import { Avatar, MuiThemeProvider, IconButton } from '@material-ui/core'
-import { genTheme, repoTheme, archiveTheme, encTheme, appStaticBase, analyticsTheme } from '../config'
+import { MuiThemeProvider, IconButton, Button, Checkbox, FormLabel } from '@material-ui/core'
+import { genTheme, repoTheme, archiveTheme, encTheme, analyticsTheme } from '../config'
 import { ErrorSnacks } from './errors'
 import classNames from 'classnames'
+import { HelpContext } from './Help'
 
 const drawerWidth = 200
 
@@ -153,6 +154,20 @@ class Navigation extends React.Component {
     },
     menuItem: {
       paddingLeft: theme.spacing.unit * 3
+    },
+    barActions: {
+      display: 'flex',
+      alignItems: 'center',
+      '& p': {
+        marginRight: theme.spacing.unit * 2
+      },
+      '& button': {
+        borderColor: theme.palette.getContrastText(theme.palette.primary.main),
+        marginRight: theme.spacing.unit * 4
+      }
+    },
+    barSelect: {
+      color: `${theme.palette.getContrastText(theme.palette.primary.main)} !important`
     }
   })
 
@@ -294,10 +309,22 @@ class Navigation extends React.Component {
                 >
                   <MenuIcon />
                 </IconButton>
-                <Typography variant="title" color="inherit" noWrap className={classes.flex}>
+                <Typography variant="h6" color="inherit" noWrap className={classes.flex}>
                   {selected(toolbarTitles)}
                 </Typography>
-                <Avatar src={`${appStaticBase}/me.jpg`}/>
+                <div className={classes.barActions}>
+                  <Typography color="inherit" variant="body1">Welcome, Markus</Typography>
+                  <Button color="inherit" variant="outlined">Logout</Button>
+                  <FormLabel className={classes.barSelect} >Show help</FormLabel>
+                  <HelpContext.Consumer>{
+                    help => (
+                      <Checkbox
+                        checked={!help.someClosed()} indeterminate={!help.allClosed() && help.someClosed()}
+                        onClick={() => help.switchHelp()}
+                        classes={{root: classes.barSelect, checked: classes.barSelect}} />
+                    )
+                  }</HelpContext.Consumer>
+                </div>
               </Toolbar>
             </AppBar>
           </MuiThemeProvider>
