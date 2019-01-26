@@ -56,7 +56,7 @@ def qa(skip_tests: bool):
     ret_code = 0
     if not skip_tests:
         click.echo('Run tests ...')
-        ret_code += os.system('python -m pytest tests')
+        ret_code += os.system('python -m pytest -svx tests')
     click.echo('Run code style checks ...')
     ret_code += os.system('python -m pycodestyle --ignore=E501,E701 nomad tests')
     click.echo('Run linter ...')

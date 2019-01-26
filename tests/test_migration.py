@@ -20,6 +20,7 @@ from nomad import infrastructure, coe_repo
 
 from nomad.migration import NomadCOEMigration, SourceCalc
 from nomad.infrastructure import repository_db_connection
+from nomad.processing import SUCCESS
 
 from .bravado_flaks import FlaskTestHttpClient
 from tests.conftest import create_repository_db
@@ -56,8 +57,8 @@ def source_repo(monkeysession, repository_db):
                 "INSERT INTO public.calculations VALUES (NULL, NULL, NULL, NULL, 0, false, 2, NULL); "
                 "INSERT INTO public.codefamilies VALUES (1, 'test_code'); "
                 "INSERT INTO public.codeversions VALUES (1, 1, 'test_version'); "
-                "INSERT INTO public.metadata VALUES (1, NULL, NULL, NULL, NULL, 'formula1', '2019-01-01 12:00:00', NULL, decode('[\"$EXTRACTED/upload/test/mainfile.json\"]', 'escape'), 1, NULL); "
-                "INSERT INTO public.metadata VALUES (1, NULL, NULL, NULL, NULL, 'formula2', '2015-01-01 13:00:00', NULL, decode('[\"$EXTRACTED/upload/test/mainfile.json\"]', 'escape'), 2, NULL); "
+                "INSERT INTO public.metadata VALUES (1, NULL, NULL, NULL, NULL, 'formula1', '2019-01-01 12:00:00', NULL, decode('[\"$EXTRACTED/upload/1/template.json\"]', 'escape'), 1, NULL); "
+                "INSERT INTO public.metadata VALUES (1, NULL, NULL, NULL, NULL, 'formula2', '2015-01-01 13:00:00', NULL, decode('[\"$EXTRACTED/upload/2/template.json\"]', 'escape'), 2, NULL); "
                 "INSERT INTO public.spacegroups VALUES (1, 255); "
                 "INSERT INTO public.spacegroups VALUES (2, 255); "
                 "INSERT INTO public.user_metadata VALUES (1, 0, 'label1'); "
@@ -94,14 +95,14 @@ def perform_index(migration, has_indexed, with_metadata, **kwargs):
     has_source_calc = False
     for source_calc, total in SourceCalc.index(migration.source, with_metadata=with_metadata, **kwargs):
         assert source_calc.pid is not None
-        assert source_calc.mainfile == 'test/mainfile.json'
+        assert source_calc.mainfile in ['1/template.json', '2/template.json']
         assert source_calc.upload == 'upload'
         has_source_calc = True
         assert total == 2
 
     assert has_source_calc == has_indexed
 
-    test_calc = SourceCalc.objects(mainfile='test/mainfile.json', upload='upload').first()
+    test_calc = SourceCalc.objects(mainfile='1/template.json', upload='upload').first()
     assert test_calc is not None
 
     if with_metadata:
@@ -120,7 +121,8 @@ def test_update_index(migration, mockmongo, with_metadata: bool):
     perform_index(migration, has_indexed=False, drop=False, with_metadata=with_metadata)
 
 
-def test_migrate(migration, target_repo, flask_client, worker, monkeysession):
+@pytest.fixture(scope='function')
+def migrate_infra(migration, target_repo, flask_client, worker, monkeysession):
     """
     Parameters to test
     - missing upload, extracted, archive, broken archive
@@ -135,7 +137,8 @@ def test_migrate(migration, target_repo, flask_client, worker, monkeysession):
     All with two calcs, two users (for coauthors)
     """
     # source repo is the infrastructure repo
-    migration.index(drop=True, with_metadata=True)
+    indexed = list(migration.index(drop=True, with_metadata=True))
+    assert len(indexed) == 2
     # source repo is the infrastructure repo
     migration.copy_users(target_repo)
 
@@ -148,12 +151,23 @@ def test_migrate(migration, target_repo, flask_client, worker, monkeysession):
     old_repo = infrastructure.repository_db
     monkeysession.setattr('nomad.infrastructure.repository_db', target_repo)
     monkeysession.setattr('nomad.client.create_client', create_client)
-    migrated = 0
-    try:
-        migrated = migration.migrate('upload1')
-    except Exception as e:
-        raise e
-    finally:
-        monkeysession.setattr('nomad.infrastructure.repository_db', old_repo)
 
-    assert migrated == 1
+    yield migration
+
+    monkeysession.setattr('nomad.infrastructure.repository_db', old_repo)
+
+
+@pytest.mark.parametrize('upload, assertions', [('baseline', dict(migrated=2))])
+@pytest.mark.timeout(10)
+def test_migrate(migrate_infra, upload, assertions):
+    upload_path = os.path.join('tests', 'data', 'migration', upload, 'upload')
+    reports = list(migrate_infra.migrate(upload_path))
+    assert len(reports) == 1
+    report = reports[0]
+    assert report['status'] == SUCCESS
+    assert report['total_calcs'] == 2
+    assert report['total_source_calcs'] == 2
+    assert report['migrated_calcs'] == 2
+    # assert report['calcs_with_diffs'] == 0  # TODO
+    assert report['new_calcs'] == 0
+    assert report['missing_calcs'] == 0

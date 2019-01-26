@@ -227,6 +227,7 @@ class ProxyUpload:
 class UploadResource(Resource):
     @api.doc('get_upload')
     @api.response(404, 'Upload does not exist')
+    @api.response(400, 'Invalid parameters')
     @api.marshal_with(upload_with_calcs_model, skip_none=True, code=200, description='Upload send')
     @api.expect(pagination_request_parser)
     @login_really_required

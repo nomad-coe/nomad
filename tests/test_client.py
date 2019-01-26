@@ -14,9 +14,13 @@
 
 import pytest
 from bravado.client import SwaggerClient
+import time
 
-from .test_api import client as flask_client, test_user_auth  # noqa pylint: disable=unused-import
-from .bravado_flaks import FlaskTestHttpClient
+from nomad.processing import SUCCESS
+
+from tests.test_files import example_file, create_public_upload, clear_files  # noqa pylint: disable=unused-import
+from tests.test_api import client as flask_client, test_user_auth  # noqa pylint: disable=unused-import
+from tests.bravado_flaks import FlaskTestHttpClient
 
 
 @pytest.fixture(scope='function')
@@ -27,3 +31,21 @@ def client(flask_client, repository_db, test_user_auth):
 
 def test_get_upload_command(client):
     assert client.uploads.get_upload_command().response().result.upload_command is not None
+
+
+def test_upload(client, worker):
+    with open(example_file, 'rb') as f:
+        upload = client.uploads.upload(file=f, name='test_upload').response().result
+
+    while upload.tasks_running:
+        upload = client.uploads.get_upload(upload_id=upload.upload_id).response().result
+        time.sleep(0.1)
+
+    assert upload.tasks_status == SUCCESS
+
+
+def test_get_repo_calc(client, clear_files):
+    create_public_upload('test_upload', 'pp')
+    repo = client.repo.get_repo_calc(upload_id='test_upload', calc_id='0').response().result
+    assert repo is not None
+    assert repo['calc_id'] is not None

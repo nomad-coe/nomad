@@ -471,11 +471,8 @@ class Upload(Chord, datamodel.Upload):
 
     @task
     def cleanup(self):
-        # TODO issue #83
-        with utils.timer(
-                self.get_logger(), 'pack staging upload', step='cleaning',
-                upload_size=self.upload_files.size):
-            pass
+        # nothing todo with the current processing setup
+        pass
 
     @property
     def processed_calcs(self):

@@ -706,21 +706,28 @@ class Calc(datamodel.Calc):
         return self._data['section_repository_info']['repository_filepaths'][0]
 
     def to_calc_with_metadata(self):
-        target = datamodel.CalcWithMetadata(upload_id=self.upload.upload_id)
-        target.calc_id = self.calc_id
-        target.basis_set_type = self.calc_data['repository_basis_set_type']
-        target.crystal_system = self.calc_data['repository_crystal_system']
-        target.XC_functional_name = self.calc_data['repository_xc_treatment']
-        target.system_type = self.calc_data['repository_system_type']
-        target.atom_species = self.calc_data['repository_atomic_elements']
-        target.space_group_number = self.calc_data['repository_spacegroup_nr']
-        target.chemical_composition = self.calc_data['repository_chemical_formula']
-        target.program_version = self.calc_data['repository_code_version']
-        target.program_name = self.calc_data['repository_program_name']
-        target.files = self._data['section_repository_info']['repository_filepaths']
-        target.mainfile = self.mainfile
+        return repo_data_to_calc_with_metadata(
+            self.upload.upload_id, self.calc_id, self._data)
 
-        return target
+
+def repo_data_to_calc_with_metadata(upload_id, calc_id, repo_data):
+    calc_data = repo_data['section_repository_info']['section_repository_parserdata']
+
+    target = datamodel.CalcWithMetadata(upload_id=upload_id)
+    target.calc_id = calc_id
+    target.basis_set_type = calc_data['repository_basis_set_type']
+    target.crystal_system = calc_data['repository_crystal_system']
+    target.XC_functional_name = calc_data['repository_xc_treatment']
+    target.system_type = calc_data['repository_system_type']
+    target.atom_species = calc_data['repository_atomic_elements']
+    target.space_group_number = calc_data['repository_spacegroup_nr']
+    target.chemical_composition = calc_data['repository_chemical_formula']
+    target.program_version = calc_data['repository_code_version']
+    target.program_name = calc_data['repository_program_name']
+    target.files = repo_data['section_repository_info']['repository_filepaths']
+    target.mainfile = target.files[0]
+
+    return target
 
 
 datamodel.CalcWithMetadata.register_mapping(Calc, Calc.to_calc_with_metadata)

@@ -32,7 +32,7 @@ ns = api.namespace('repo', description='Access repository metadata.')
 class RepoCalcResource(Resource):
     @api.response(404, 'The upload or calculation does not exist')
     @api.response(401, 'Not authorized to access the calculation')
-    @api.response(200, 'Metadata send')
+    @api.response(200, 'Metadata send', fields.Raw)
     @api.doc('get_repo_calc')
     @login_if_available
     def get(self, upload_id, calc_id):
