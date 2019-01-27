@@ -3,11 +3,12 @@ import PropTypes from 'prop-types'
 import { withStyles, Dialog, DialogContent, DialogActions, Button, DialogTitle, Tab, Tabs,
   Typography, FormGroup, FormControlLabel, Checkbox, Divider, FormLabel, IconButton,
   LinearProgress } from '@material-ui/core'
-import api from '../api'
 import SwipeableViews from 'react-swipeable-views'
 import ArchiveCalcView from './ArchiveCalcView'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import ArchiveLogView from './ArchiveLogView'
+import { withApi } from './api'
+import { compose } from 'recompose'
 
 function CalcQuantity(props) {
   const {children, label, typography} = props
@@ -56,6 +57,7 @@ class CalcDialog extends React.Component {
 
   static propTypes = {
     classes: PropTypes.object.isRequired,
+    api: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired,
     uploadId: PropTypes.string.isRequired,
     calcId: PropTypes.string.isRequired,
@@ -70,7 +72,7 @@ class CalcDialog extends React.Component {
 
   componentDidMount() {
     const {uploadId, calcId} = this.props
-    api.repo(uploadId, calcId).then(data => {
+    this.props.api.repo(uploadId, calcId).then(data => {
       this.setState({calcData: data})
     }).catch(error => {
       this.setState({calcData: null})
@@ -210,4 +212,4 @@ class CalcDialog extends React.Component {
   }
 }
 
-export default withStyles(CalcDialog.styles)(CalcDialog)
+export default compose(withApi(false), withStyles(CalcDialog.styles))(CalcDialog)

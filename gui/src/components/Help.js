@@ -1,18 +1,55 @@
 import React from 'react'
 import { withStyles, Button } from '@material-ui/core'
 import Markdown from './Markdown'
-import PropTypes from 'prop-types'
+import PropTypes, { instanceOf } from 'prop-types'
+import { Cookies, withCookies } from 'react-cookie'
 
-export class HelpManager {
-  isOpen(helpKey) {
-    return true
+export const HelpContext = React.createContext()
+
+class HelpProviderComponent extends React.Component {
+  static propTypes = {
+    children: PropTypes.oneOfType([
+      PropTypes.arrayOf(PropTypes.node),
+      PropTypes.node
+    ]).isRequired,
+    cookies: instanceOf(Cookies).isRequired
   }
-  gotIt(helpKey) {
 
+  state = {
+    helpCookies: [],
+    allHelpCookies: [],
+    allClosed: () => this.state.helpCookies.length === this.state.allHelpCookies.length,
+    someClosed: () => this.state.helpCookies.length !== 0,
+    isOpen: (cookie) => {
+      if (this.state.allHelpCookies.indexOf(cookie) === -1) {
+        this.state.allHelpCookies.push(cookie)
+      }
+      return this.state.helpCookies.indexOf(cookie) === -1
+    },
+    gotIt: (cookie) => {
+      const updatedHelpCookies = [...this.state.helpCookies, cookie]
+      this.props.cookies.set('help', updatedHelpCookies)
+      this.setState({helpCookies: updatedHelpCookies})
+    },
+    switchHelp: () => {
+      const updatedCookies = this.state.someClosed() ? [] : this.state.allHelpCookies
+      this.setState({helpCookies: updatedCookies})
+      this.props.cookies.set('help', updatedCookies)
+    }
+  }
+
+  componentDidMount() {
+    this.setState({helpCookies: this.props.cookies.get('help') || []})
+  }
+
+  render() {
+    return (
+      <HelpContext.Provider value={this.state}>
+        {this.props.children}
+      </HelpContext.Provider>
+    )
   }
 }
-
-export const HelpContext = React.createContext(new HelpManager())
 
 class HelpComponent extends React.Component {
   static styles = theme => ({
@@ -64,4 +101,5 @@ class HelpComponent extends React.Component {
   }
 }
 
+export const HelpProvider = withCookies(HelpProviderComponent)
 export const Help = withStyles(HelpComponent.styles)(HelpComponent)

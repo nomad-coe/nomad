@@ -2,14 +2,15 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, LinearProgress } from '@material-ui/core'
 import ReactJson from 'react-json-view'
-import api from '../api'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
 import Markdown from './Markdown'
+import { withApi } from './api'
 
 class ArchiveCalcView extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
+    api: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired,
     uploadId: PropTypes.string.isRequired,
     calcId: PropTypes.string.isRequired
@@ -41,7 +42,7 @@ class ArchiveCalcView extends React.Component {
   }
 
   componentDidMount() {
-    const {uploadId, calcId} = this.props
+    const {uploadId, calcId, api} = this.props
     api.archive(uploadId, calcId).then(data => {
       this.setState({data: data})
     }).catch(error => {
@@ -94,4 +95,4 @@ class ArchiveCalcView extends React.Component {
   }
 }
 
-export default compose(withErrors, withStyles(ArchiveCalcView.styles))(ArchiveCalcView)
+export default compose(withApi(false), withErrors, withStyles(ArchiveCalcView.styles))(ArchiveCalcView)

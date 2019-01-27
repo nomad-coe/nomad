@@ -7,7 +7,6 @@ import TableCell from '@material-ui/core/TableCell'
 import TablePagination from '@material-ui/core/TablePagination'
 import TableRow from '@material-ui/core/TableRow'
 import Paper from '@material-ui/core/Paper'
-import api from '../api'
 import { TableHead, LinearProgress, FormControl, FormControlLabel, Checkbox, FormGroup,
   FormLabel, IconButton, MuiThemeProvider, Typography } from '@material-ui/core'
 import { compose } from 'recompose'
@@ -15,11 +14,13 @@ import { withErrors } from './errors'
 import AnalyticsIcon from '@material-ui/icons/Settings'
 import { analyticsTheme } from '../config'
 import Link from 'react-router-dom/Link'
+import { withApi } from './api'
 // import PeriodicTable from './PeriodicTable'
 
 class Repo extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
+    api: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired
   }
 
@@ -69,7 +70,7 @@ class Repo extends React.Component {
   update(page, rowsPerPage, owner) {
     this.setState({loading: true})
     owner = owner || this.state.owner
-    api.repoAll(page, rowsPerPage, owner).then(data => {
+    this.props.api.repoAll(page, rowsPerPage, owner).then(data => {
       const { pagination: { total, page, per_page }, results } = data
       this.setState({
         data: results,
@@ -196,4 +197,4 @@ class Repo extends React.Component {
   }
 }
 
-export default compose(withErrors, withStyles(Repo.styles))(Repo)
+export default compose(withApi(false), withErrors, withStyles(Repo.styles))(Repo)

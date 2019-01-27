@@ -23,11 +23,12 @@ import ChevronLeftIcon from '@material-ui/icons/ChevronLeft'
 import MenuIcon from '@material-ui/icons/Menu'
 import { Link, withRouter } from 'react-router-dom'
 import { compose } from 'recompose'
-import { MuiThemeProvider, IconButton, Button, Checkbox, FormLabel } from '@material-ui/core'
+import { MuiThemeProvider, IconButton, Button, Checkbox, FormLabel, DialogTitle, DialogContent, DialogContentText, TextField, DialogActions, Dialog } from '@material-ui/core'
 import { genTheme, repoTheme, archiveTheme, encTheme, analyticsTheme } from '../config'
 import { ErrorSnacks } from './errors'
 import classNames from 'classnames'
-import { HelpContext } from './Help'
+import { HelpContext } from './help'
+import { withApi } from './api'
 
 const drawerWidth = 200
 
@@ -54,6 +55,122 @@ const toolbarThemes = {
   '/analytics': analyticsTheme,
   '/dev': genTheme
 }
+
+class LoginLogoutComponent extends React.Component {
+  static propTypes = {
+    classes: PropTypes.object.isRequired,
+    api: PropTypes.object.isRequired,
+    userName: PropTypes.string,
+    login: PropTypes.func.isRequired,
+    logout: PropTypes.func.isRequired
+  }
+
+  static styles = theme => ({
+    root: {
+      display: 'flex',
+      alignItems: 'center',
+      '& p': {
+        marginRight: theme.spacing.unit * 2
+      },
+      '& button': {
+        borderColor: theme.palette.getContrastText(theme.palette.primary.main),
+        marginRight: theme.spacing.unit * 4
+      }
+    }
+  })
+
+  constructor(props) {
+    super(props)
+    this.handleLoginDialogClosed = this.handleLoginDialogClosed.bind(this)
+    this.handleLogout = this.handleLogout.bind(this)
+    this.handleChange = this.handleChange.bind(this)
+  }
+
+  state = {
+    loginDialogOpen: false,
+    userName: null,
+    password: null
+  }
+
+  handleLoginDialogClosed(withLogin) {
+    this.setState({loginDialogOpen: false})
+    if (withLogin) {
+      this.props.login(this.state.userName, this.state.password)
+    }
+  }
+
+  handleChange = name => event => {
+    this.setState({
+      [name]: event.target.value
+    })
+  }
+
+  handleLogout() {
+    this.props.logout()
+  }
+
+  render() {
+    const { classes, userName } = this.props
+    if (userName) {
+      return (
+        <div className={classes.root}>
+          <Typography color="inherit" variant="body1">
+            Welcome, {userName}
+          </Typography>
+          <Button color="inherit" variant="outlined" onClick={this.handleLogout}>Logout</Button>
+        </div>
+      )
+    } else {
+      return (
+        <div className={classes.root}>
+          <Button color="inherit" variant="outlined" onClick={() => this.setState({loginDialogOpen: true})}>Login</Button>
+          <Dialog
+            open={this.state.loginDialogOpen}
+            onClose={this.handleLoginDialogClosed}
+          >
+            <DialogTitle>Login</DialogTitle>
+            <DialogContent>
+              <DialogContentText>
+                To login, please enter your email address and password. If you
+                do not have an account, please go to the nomad repository and
+                create one.
+              </DialogContentText>
+              <TextField
+                autoFocus
+                margin="dense"
+                id="uaseName"
+                label="Email Address"
+                type="email"
+                fullWidth
+                value={this.state.userName}
+                onChange={this.handleChange('userName')}
+              />
+              <TextField
+                margin="dense"
+                id="password"
+                label="Password"
+                type="password"
+                fullWidth
+                value={this.state.password}
+                onChange={this.handleChange('password')}
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={this.handleLoginDialogClosed} color="primary">
+                Cancel
+              </Button>
+              <Button onClick={() => this.handleLoginDialogClosed(true)} color="primary">
+                Login
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </div>
+      )
+    }
+  }
+}
+
+const LoginLogout = compose(withApi(false), withStyles(LoginLogoutComponent.styles))(LoginLogoutComponent)
 
 class Navigation extends React.Component {
   static propTypes = {
@@ -157,14 +274,7 @@ class Navigation extends React.Component {
     },
     barActions: {
       display: 'flex',
-      alignItems: 'center',
-      '& p': {
-        marginRight: theme.spacing.unit * 2
-      },
-      '& button': {
-        borderColor: theme.palette.getContrastText(theme.palette.primary.main),
-        marginRight: theme.spacing.unit * 4
-      }
+      alignItems: 'center'
     },
     barSelect: {
       color: `${theme.palette.getContrastText(theme.palette.primary.main)} !important`
@@ -313,8 +423,7 @@ class Navigation extends React.Component {
                   {selected(toolbarTitles)}
                 </Typography>
                 <div className={classes.barActions}>
-                  <Typography color="inherit" variant="body1">Welcome, Markus</Typography>
-                  <Button color="inherit" variant="outlined">Logout</Button>
+                  <LoginLogout />
                   <FormLabel className={classes.barSelect} >Show help</FormLabel>
                   <HelpContext.Consumer>{
                     help => (

@@ -1,13 +1,14 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, LinearProgress } from '@material-ui/core'
-import api from '../api'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
+import { withApi } from './api'
 
 class ArchiveLogView extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
+    api: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired,
     uploadId: PropTypes.string.isRequired,
     calcId: PropTypes.string.isRequired
@@ -25,12 +26,12 @@ class ArchiveLogView extends React.Component {
   }
 
   componentDidMount() {
-    const {uploadId, calcId} = this.props
+    const {uploadId, calcId, api, raiseError} = this.props
     api.calcProcLog(uploadId, calcId).then(data => {
       this.setState({data: data})
     }).catch(error => {
       this.setState({data: null})
-      this.props.raiseError(error)
+      raiseError(error)
     })
   }
 
@@ -49,4 +50,4 @@ class ArchiveLogView extends React.Component {
   }
 }
 
-export default compose(withErrors, withStyles(ArchiveLogView.styles))(ArchiveLogView)
+export default compose(withApi(false), withErrors, withStyles(ArchiveLogView.styles))(ArchiveLogView)

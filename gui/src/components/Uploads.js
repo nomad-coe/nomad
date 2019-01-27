@@ -6,19 +6,19 @@ import { withStyles, Paper, IconButton, FormGroup, Checkbox, FormControlLabel, F
   Typography} from '@material-ui/core'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import Dropzone from 'react-dropzone'
-import api from '../api'
 import Upload from './Upload'
-import { withErrors } from './errors'
 import { compose } from 'recompose'
 import DeleteIcon from '@material-ui/icons/Delete'
 import ReloadIcon from '@material-ui/icons/Cached'
 import CheckIcon from '@material-ui/icons/Check'
 import ConfirmDialog from './ConfirmDialog'
-import { Help } from './Help'
+import { Help } from './help'
+import { withApi } from './api'
 
 class Uploads extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
+    api: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired
   }
 
@@ -77,7 +77,7 @@ class Uploads extends React.Component {
 
   componentDidMount() {
     this.update()
-    api.getUploadCommand()
+    this.props.api.getUploadCommand()
       .then(command => this.setState({uploadCommand: command}))
       .catch(error => {
         this.props.raiseError(error)
@@ -86,7 +86,7 @@ class Uploads extends React.Component {
 
   update() {
     this.setState({loading: true})
-    api.getUploads()
+    this.props.api.getUploads()
       .then(uploads => {
         const filteredUploads = uploads.filter(upload => !upload.is_state)
         this.setState({uploads: filteredUploads, selectedUploads: [], loading: false})
@@ -99,7 +99,7 @@ class Uploads extends React.Component {
 
   onDeleteClicked() {
     this.setState({loading: true})
-    Promise.all(this.state.selectedUploads.map(upload => api.deleteUpload(upload.upload_id)))
+    Promise.all(this.state.selectedUploads.map(upload => this.props.api.deleteUpload(upload.upload_id)))
       .then(() => this.update())
       .catch(error => {
         this.props.raiseError(error)
@@ -113,7 +113,7 @@ class Uploads extends React.Component {
 
   handleAccept() {
     this.setState({loading: true})
-    Promise.all(this.state.selectedUploads.map(upload => api.commitUpload(upload.upload_id)))
+    Promise.all(this.state.selectedUploads.map(upload => this.props.api.commitUpload(upload.upload_id)))
       .then(() => {
         this.setState({showAccept: false})
         return this.update()
@@ -137,7 +137,7 @@ class Uploads extends React.Component {
 
   onDrop(files) {
     files.forEach(file => {
-      const upload = api.createUpload(file.name)
+      const upload = this.props.api.createUpload(file.name)
       this.setState({uploads: [...this.state.uploads, upload]})
       upload.uploadFile(file).catch(this.props.raiseError)
     })
@@ -266,4 +266,4 @@ class Uploads extends React.Component {
   }
 }
 
-export default compose(withErrors, withStyles(Uploads.styles))(Uploads)
+export default compose(withApi(true), withStyles(Uploads.styles))(Uploads)
