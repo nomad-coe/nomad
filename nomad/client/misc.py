@@ -19,11 +19,12 @@ import click
 
 from nomad import config
 
-from .main import cli, create_client
+from .main import cli
 
 
 @cli.command(help='Attempts to reset the nomad.')
 def reset():
+    from .main import create_client
     create_client().admin.exec_reset_command().response()
 
 

@@ -24,7 +24,9 @@ class Upload extends React.Component {
   }
 
   static styles = theme => ({
-    root: {},
+    root: {
+      marginBottom: theme.spacing.unit
+    },
     heading: {
       fontSize: theme.typography.pxToRem(15),
       fontWeight: theme.typography.fontWeightRegular
@@ -40,10 +42,18 @@ class Upload extends React.Component {
     detailsContent: {
       margin: theme.spacing.unit * 3
     },
+    titleContainer: {
+      flex: '0 0 auto',
+      marginRight: theme.spacing.unit * 2,
+      width: 350,
+      overflowX: 'hidden'
+    },
     title: {
-      flexBasis: '20%',
-      flexShrink: 0,
-      marginRight: theme.spacing.unit * 2
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+      overflowX: 'inherit',
+      direction: 'rtl',
+      textAlign: 'left'
     },
     checkbox: {
       marginRight: theme.spacing.unit * 2
@@ -160,8 +170,8 @@ class Upload extends React.Component {
     const { name, create_time } = this.state.upload
 
     return (
-      <div className={classes.title}>
-        <Typography variant="title">
+      <div className={classes.titleContainer}>
+        <Typography variant="title" className={classes.title}>
           {name || new Date(Date.parse(create_time)).toLocaleString()}
         </Typography>
         {name
@@ -451,7 +461,7 @@ class Upload extends React.Component {
 
     if (this.state.upload) {
       return (
-        <div ref={this.logPopperAnchor}>
+        <div className={classes.root}>
           { openCalc ? <CalcDialog raiseError={raiseError} {...openCalc} onClose={() => this.setState({openCalc: null})} /> : ''}
 
           <ExpansionPanel>
