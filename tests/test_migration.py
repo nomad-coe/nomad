@@ -33,6 +33,12 @@ test_target_db_name = 'test_nomad_fair_migration_target'
 
 @pytest.fixture(scope='module')
 def source_repo(monkeysession, repository_db):
+    """
+    Fixture for an example migration source db with:
+    - two user
+    - two calculations (1 per user)
+    - one calculation with all metadata (dataset, ref, comment, coauther, sharewith)
+    """
     try:
         with repository_db_connection(dbname='postgres', with_trans=False) as con:
             with con.cursor() as cursor:
@@ -47,24 +53,14 @@ def source_repo(monkeysession, repository_db):
                 'CREATE SCHEMA IF NOT EXISTS public;'
                 'GRANT ALL ON SCHEMA public TO postgres;'
                 'GRANT ALL ON SCHEMA public TO public;')
-            sql_file = os.path.join(os.path.dirname(infrastructure.__file__), 'empty_repository_db.sql')
-            cur.execute(open(sql_file, 'r').read())
-            cur.execute(
-                'TRUNCATE TABLE public.users CASCADE;'
-                "INSERT INTO public.users VALUES (1, 'one', 'one', 'one', 'one', NULL, NULL, NULL);"
-                "INSERT INTO public.users VALUES (2, 'two', 'two', 'two', 'two', NULL, NULL, NULL);"
-                "INSERT INTO public.calculations VALUES (NULL, NULL, NULL, NULL, 0, false, 1, NULL); "
-                "INSERT INTO public.calculations VALUES (NULL, NULL, NULL, NULL, 0, false, 2, NULL); "
-                "INSERT INTO public.codefamilies VALUES (1, 'test_code'); "
-                "INSERT INTO public.codeversions VALUES (1, 1, 'test_version'); "
-                "INSERT INTO public.metadata VALUES (1, NULL, NULL, NULL, NULL, 'formula1', '2019-01-01 12:00:00', NULL, decode('[\"$EXTRACTED/upload/1/template.json\"]', 'escape'), 1, NULL); "
-                "INSERT INTO public.metadata VALUES (1, NULL, NULL, NULL, NULL, 'formula2', '2015-01-01 13:00:00', NULL, decode('[\"$EXTRACTED/upload/2/template.json\"]', 'escape'), 2, NULL); "
-                "INSERT INTO public.spacegroups VALUES (1, 255); "
-                "INSERT INTO public.spacegroups VALUES (2, 255); "
-                "INSERT INTO public.user_metadata VALUES (1, 0, 'label1'); "
-                "INSERT INTO public.user_metadata VALUES (2, 1, 'label2'); "
-                "INSERT INTO public.ownerships VALUES (1, 1); "
-                "INSERT INTO public.ownerships VALUES (2, 2); ")
+
+            schema_sql_file, example_data_sql_file = (
+                os.path.join(os.path.dirname(infrastructure.__file__), 'empty_repository_db.sql'),
+                os.path.join('tests', 'data', 'migration', 'example_source_db.sql'))
+
+            for sql_file in [schema_sql_file, example_data_sql_file]:
+                with open(sql_file, 'r') as f:
+                    cur.execute(f.read())
 
     with create_repository_db(monkeysession, exists=True, readonly=True, dbname=test_source_db_name) as db:
         yield db
@@ -168,6 +164,6 @@ def test_migrate(migrate_infra, upload, assertions):
     assert report['total_calcs'] == 2
     assert report['total_source_calcs'] == 2
     assert report['migrated_calcs'] == 2
-    # assert report['calcs_with_diffs'] == 0  # TODO
+    assert report['calcs_with_diffs'] == 0
     assert report['new_calcs'] == 0
     assert report['missing_calcs'] == 0

@@ -146,7 +146,7 @@ class Calc(Base, datamodel.Calc):  # type: ignore
             elif topic.cid == base.topic_system_type:
                 result.system_type = topic.topic
             elif topic.cid == base.topic_atoms:
-                result.setdefault('atom_species', []).append(topic.topic)
+                result.setdefault('atom_labels', []).append(topic.topic)
             elif topic.cid == base.topic_crystal_system:
                 result.crystal_system = topic.topic
             else:
@@ -155,7 +155,7 @@ class Calc(Base, datamodel.Calc):  # type: ignore
         result.program_version = self.calc_metadata.version.content
         result.chemical_composition = self.calc_metadata.chemical_formula
         result.space_group_number = self.spacegroup.n
-        result.setdefault('atom_species', []).sort()
+        result.setdefault('atom_labels', []).sort()
 
         datasets: List[DataSet] = []
         for parent in self.parents:

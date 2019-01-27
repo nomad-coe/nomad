@@ -24,6 +24,8 @@ api, processing, migration, mirroring, or other 'infrastructure' operations.
 from typing import Type, TypeVar, Union, Iterable, cast, Callable, Dict
 import datetime
 
+from nomad import utils
+
 T = TypeVar('T')
 
 
@@ -103,7 +105,7 @@ class UploadWithMetadata(dict, Entity):
         self.upload_id = upload_id
 
 
-class CalcWithMetadata(dict, Entity):
+class CalcWithMetadata(utils.POPO, Entity):
     """
     A dict/POPO class that can be used for mapping calc representations with calc metadata.
     We have many representations of calcs and their calc metadata. To avoid implement
@@ -117,7 +119,7 @@ class CalcWithMetadata(dict, Entity):
 
     @classmethod
     def register_mapping(
-            cls, from_type: Type[T], mapping: Callable[[T], 'CalcWithMetadata']):
+            cls, from_type: Type[Entity], mapping: Callable[[Entity], 'CalcWithMetadata']):
         """
         Register a mapping from instances of another calc representation to instances of
         :class:`CalcWithMetadata`.
@@ -135,18 +137,3 @@ class CalcWithMetadata(dict, Entity):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.upload = UploadWithMetadata(kwargs['upload_id'])
-
-    def __getattr__(self, name):
-        if name in self:
-            return self[name]
-        else:
-            raise AttributeError("No such attribute: " + name)
-
-    def __setattr__(self, name, value):
-        self[name] = value
-
-    def __delattr__(self, name):
-        if name in self:
-            del self[name]
-        else:
-            raise AttributeError("No such attribute: " + name)

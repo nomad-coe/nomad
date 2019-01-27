@@ -33,7 +33,7 @@ import time
 from bravado.exception import HTTPNotFound
 from datetime import datetime
 
-from nomad import utils, config
+from nomad import utils, config, infrastructure
 from nomad.files import repo_data_to_calc_with_metadata
 from nomad.coe_repo import User, Calc
 from nomad.datamodel import CalcWithMetadata
@@ -153,8 +153,16 @@ class NomadCOEMigration:
 
         self.sites, self.pid_prefix = sites, pid_prefix
         self.logger = utils.get_logger(__name__)
-        from nomad.infrastructure import repository_db
-        self.source = repository_db
+        self._client = None
+        self.source = infrastructure.repository_db
+
+    @property
+    def client(self):
+        if self._client is None:
+            from nomad.client import create_client
+            self._client = create_client()
+
+        return self._client
 
     def copy_users(self, target_db):
         """ Copy all users, keeping their ids, within a single transaction. """
@@ -170,6 +178,52 @@ class NomadCOEMigration:
                 password=bcrypt.encrypt(config.services.admin_password, ident='2y'))
             target_db.add(admin)
         target_db.commit()
+
+    def _validate(self, upload_id: str, calc_id: str, source_calc: dict, logger) -> bool:
+        """
+        Validates the given processed calculation, assuming that the data in the given
+        source_calc is correct.
+
+        Returns:
+            False, if the calculation differs from the source calc.
+        """
+        repo_calc = self.client.repo.get_repo_calc(
+            upload_id=upload_id, calc_id=calc_id).response().result
+
+        is_valid = True
+        target_calc = repo_data_to_calc_with_metadata(upload_id, calc_id, repo_calc)
+
+        for key, target_value in target_calc.items():
+            if key in ['calc_id', 'upload_id', 'files']:
+                continue
+
+            source_value = source_calc.get(key, None)
+
+            def report_mismatch():
+                logger.info(
+                    'source target missmatch', quantity=key,
+                    source_value=source_value, target_value=target_value)
+
+            if (source_value is None or target_value is None) and source_value != target_value:
+                report_mismatch()
+                is_valid = False
+                continue
+
+            if isinstance(target_value, list):
+                if len(set(source_value).intersection(target_value)) != len(target_value):
+                    report_mismatch()
+                    is_valid = False
+                continue
+
+            if isinstance(source_value, str):
+                source_value = source_value.lower()
+                target_value = str(target_value).lower()
+
+            if source_value != target_value:
+                report_mismatch()
+                is_valid = False
+
+        return is_valid
 
     def migrate(self, *args):
         """
@@ -235,16 +289,15 @@ class NomadCOEMigration:
                     upload_name = '%s.zip' % source_upload_id
 
             # upload and process the upload file
-            from nomad.client import create_client
-            client = create_client()
-            upload = client.uploads.upload(file=upload_archive_f, name=upload_name).response().result
+
+            upload = self.client.uploads.upload(file=upload_archive_f, name=upload_name).response().result
             upload_archive_f.close()
 
             upload_logger = self.logger.bind(
                 source_upload_id=source_upload_id, upload_id=upload.upload_id)
 
             while upload.tasks_running:
-                upload = client.uploads.get_upload(upload_id=upload.upload_id).response().result
+                upload = self.client.uploads.get_upload(upload_id=upload.upload_id).response().result
                 time.sleep(0.1)
 
             if upload.tasks_status == FAILURE:
@@ -265,16 +318,17 @@ class NomadCOEMigration:
                 metadata_dict[source_calc.mainfile] = source_metadata
 
             # verify upload
-            total_calcs = upload.calcs.pagination.total
-            total_source_calcs = len(metadata_dict)
-            unprocessed_calcs = 0
-            migrated_calcs = 0
-            calcs_with_diffs = 0
-            new_calcs = 0
-            missing_calcs = 0
+            report = utils.POPO()
+            report.total_calcs = upload.calcs.pagination.total
+            report.total_source_calcs = len(metadata_dict)
+            report.unprocessed_calcs = 0
+            report.migrated_calcs = 0
+            report.calcs_with_diffs = 0
+            report.new_calcs = 0
+            report.missing_calcs = 0
 
-            for page in range(1, math.ceil(total_calcs / 100) + 1):
-                upload = client.uploads.get_upload(
+            for page in range(1, math.ceil(report.total_calcs / 100) + 1):
+                upload = self.client.uploads.get_upload(
                     upload_id=upload.upload_id, per_page=100, page=page,
                     order_by='mainfile').response().result
 
@@ -284,14 +338,20 @@ class NomadCOEMigration:
                         mainfile=calc_proc.mainfile)
 
                     source_calc = metadata_dict.get(calc_proc.mainfile, None)
-                    repo_calc = None
                     if calc_proc.tasks_status == SUCCESS:
-                        repo_calc = client.repo.get_repo_calc(
-                            upload_id=upload.upload_id,
-                            calc_id=calc_proc.calc_id).response().result
+                        if source_calc is None:
+                            calc_logger.info('processed a calc that has no source')
+                            report.new_calcs += 1
+                            continue
+                        else:
+                            source_calc.__migrated = True
+                            report.migrated_calcs += 1
 
+                        if not self._validate(
+                                upload.upload_id, calc_proc.calc_id, source_calc, calc_logger):
+                            report.calcs_with_diffs += 1
                     else:
-                        unprocessed_calcs += 1
+                        report.unprocessed_calcs += 1
                         calc_logger.info(
                             'could not process a calc%s.' %
                             ', that is in source' if source_calc is not None else '')
@@ -301,39 +361,14 @@ class NomadCOEMigration:
 
                         continue
 
-                    if source_calc is None:
-                        calc_logger.info('processed a calc that has no source')
-                        new_calcs += 1
-                        continue
-
-                    migrated_calcs += 1
-                    source_calc.__migrated = True
-
-                    has_diff = False
-                    target_calc = repo_data_to_calc_with_metadata(
-                        upload.upload_id, repo_calc['calc_id'], repo_calc)
-
-                    for key, target_value in target_calc.items():
-                        if key in ['calc_id', 'upload_id']:
-                            continue
-
-                        source_value = source_calc.get(key, None)
-                        if source_value != target_value:
-                            has_diff = True
-                            calc_logger.info(
-                                'source target missmatch', quantity=key,
-                                source_value=source_value, target_value=target_value)
-
-                    if has_diff:
-                        calcs_with_diffs += 1
-
             for source_calc in upload_metadata_calcs:
                 if source_calc.__migrated is None:
-                    missing_calcs += 1
+                    report.missing_calcs += 1
                     upload_logger.info('no match for source calc', mainfile=source_calc.mainfile)
                 elif source_calc.__migrated is False:
                     upload_logger.info('source calc not processed', mainfile=source_calc.mainfile)
 
+            # commit upload
             admin_keys = ['upload_time, uploader, pid']
 
             def transform(calcWithMetadata):
@@ -353,30 +388,22 @@ class NomadCOEMigration:
                 transform(calc) for calc in upload_metadata['calculations']
                 if calc.__migrated]
 
-            # commit with metadata
-            if total_calcs > unprocessed_calcs:
-                upload = client.uploads.exec_upload_command(
+            if report.total_calcs > report.unprocessed_calcs:
+                upload = self.client.uploads.exec_upload_command(
                     upload_id=upload.upload_id,
                     payload=dict(command='commit', metadata=upload_metadata)
                 ).response().result
 
                 while upload.process_running:
                     try:
-                        upload = client.uploads.get_upload(upload_id=upload.upload_id).response().result
+                        upload = self.client.uploads.get_upload(
+                            upload_id=upload.upload_id).response().result
                         time.sleep(0.1)
                     except HTTPNotFound:
                         # the proc upload will be deleted by the commit command
                         break
 
             # report
-            report = dict(
-                total_calcs=total_calcs,
-                total_source_calcs=total_source_calcs,
-                unprocessed_calcs=unprocessed_calcs,
-                migrated_calcs=migrated_calcs,
-                calcs_with_diffs=calcs_with_diffs,
-                new_calcs=new_calcs,
-                missing_calcs=new_calcs)
             upload_logger.info('migrated upload', **report)
             report.update(status=SUCCESS)
             yield report

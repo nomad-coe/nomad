@@ -214,10 +214,10 @@ class Upload(Base, datamodel.Upload):  # type: ignore
 
         # topic based properties
         coe_calc.set_value(base.topic_code, calc.program_name)
-        for atom in set(calc.atom_species):
-            coe_calc.set_value(base.topic_atoms, str(atom))  # TODO atom label not number
+        for atom in set(calc.atom_labels):
+            coe_calc.set_value(base.topic_atoms, str(atom))
         coe_calc.set_value(base.topic_system_type, calc.system_type)
-        coe_calc.set_value(base.topic_xc_treatment, calc.XC_functional_name)  # TODO function->treatment
+        coe_calc.set_value(base.topic_xc_treatment, calc.XC_functional_name)
         coe_calc.set_value(base.topic_crystal_system, calc.crystal_system)
         coe_calc.set_value(base.topic_basis_set_type, calc.basis_set_type)
 

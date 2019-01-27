@@ -719,7 +719,7 @@ def repo_data_to_calc_with_metadata(upload_id, calc_id, repo_data):
     target.crystal_system = calc_data['repository_crystal_system']
     target.XC_functional_name = calc_data['repository_xc_treatment']
     target.system_type = calc_data['repository_system_type']
-    target.atom_species = calc_data['repository_atomic_elements']
+    target.atom_labels = calc_data['repository_atomic_elements']
     target.space_group_number = calc_data['repository_spacegroup_nr']
     target.chemical_composition = calc_data['repository_chemical_formula']
     target.program_version = calc_data['repository_code_version']

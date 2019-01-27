@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from nomad.parsing import BadContextURI
 
 from .normalizer import Normalizer
@@ -22,6 +24,29 @@ class RepositoryNormalizer(Normalizer):
     The normalizer that turnes normalized parse results into a set of metadata
     quantities for the repository.
     """
+    xc_treatments = {
+        'gga': 'GGA',
+        'hf_': 'HF',
+        'oep': 'OEP',
+        'hyb': 'hybrid',
+        'mgga': 'meta-GGA',
+        'vdw': 'vdW',
+        'lda': 'LDA'
+    }
+    """ https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/XC-functional """
+
+    version_re = re.compile(r'(\d+(\.\d+(\.\d+)?)?)')
+
+    def map_functional_name_to_xc_treatment(self, name):
+        return RepositoryNormalizer.xc_treatments.get(name[:3].lower(), name)
+
+    def simplify_version(self, version):
+        match = RepositoryNormalizer.version_re.search(version)
+        if match is None:
+            return version
+        else:
+            return match.group(0)
+
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
         b = self._backend
@@ -38,19 +63,20 @@ class RepositoryNormalizer(Normalizer):
         b.addValue('repository_checksum', b.get_value('calc_hash', 0))
         b.addValue('repository_chemical_formula', b.get_value('chemical_composition_bulk_reduced', 0))
         b.addValue('repository_parser_id', b.get_value('parser_name', 0))
-        atoms = b.get_value('atom_labels', 0)
-        # TODO make list unique?
-        b.addValue('repository_atomic_elements', atoms)
-        b.addValue('repository_atomic_elements_count', len(atoms))
+        atom_labels = b.get_value('atom_labels', 0)
+        b.addValue('repository_atomic_elements', list(set(atom_labels)))
+        b.addValue('repository_atomic_elements_count', len(atom_labels))
         b.addValue('repository_basis_set_type', b.get_value('program_basis_set_type', 0))
         b.addValue('repository_crystal_system', b.get_value('crystal_system', 0))
         b.addValue('repository_program_name', b.get_value('program_name', 0))
-        # TODO shorten and normalize the code version
-        b.addValue('repository_code_version', b.get_value('program_version', 0))
+        b.addValue(
+            'repository_code_version',
+            self.simplify_version(b.get_value('program_version', 0)))
         b.addValue('repository_spacegroup_nr', b.get_value('space_group_number', 0))
         b.addValue('repository_system_type', b.get_value('system_type', 0))
-        # TODO shorten and normalize to functional type
-        b.addValue('repository_xc_treatment', b.get_value('XC_functional_name', 0))
+        b.addValue(
+            'repository_xc_treatment',
+            self.map_functional_name_to_xc_treatment(b.get_value('XC_functional_name', 0)))
 
         b.closeNonOverlappingSection('section_repository_parserdata')
         if repository_info_context is None:
