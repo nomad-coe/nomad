@@ -91,7 +91,11 @@ class SourceCalc(Document):
         total = source_query.count()
 
         while True:
-            calcs = source_query.filter(Calc.coe_calc_id > start_pid).order_by(Calc.coe_calc_id).limit(per_query)
+            calcs = source_query \
+                .filter(Calc.coe_calc_id > start_pid) \
+                .order_by(Calc.coe_calc_id) \
+                .limit(per_query)
+
             source_calcs = []
             for calc in calcs:
                 if calc.calc_metadata is None or calc.calc_metadata.filenames is None:
@@ -269,11 +273,12 @@ class NomadCOEMigration:
                 source_upload_id = os.path.split(os.path.split(upload_path)[0])[1]
                 upload_name = os.path.basename(upload_path)
             else:
-                potential_upload_archive = os.path.join(upload_path, NomadCOEMigration.archive_filename)
+                potential_upload_archive = os.path.join(
+                    upload_path, NomadCOEMigration.archive_filename)
                 if os.path.isfile(potential_upload_archive):
                     upload_archive_f = open(potential_upload_archive, 'rb')
                     source_upload_id = os.path.split(os.path.split(potential_upload_archive)[0])[1]
-                    upload_name = '%s.tar.gz' % source_upload_id
+                    upload_name = os.path.basename(potential_upload_archive)
                 else:
                     source_upload_id = os.path.split(upload_path)[1]
                     zip_file = zipstream.ZipFile()
@@ -289,21 +294,12 @@ class NomadCOEMigration:
                     upload_name = '%s.zip' % source_upload_id
 
             # upload and process the upload file
-
-            upload = self.client.uploads.upload(file=upload_archive_f, name=upload_name).response().result
+            upload = self.client.uploads.upload(
+                file=upload_archive_f, name=upload_name).response().result
             upload_archive_f.close()
 
             upload_logger = self.logger.bind(
                 source_upload_id=source_upload_id, upload_id=upload.upload_id)
-
-            while upload.tasks_running:
-                upload = self.client.uploads.get_upload(upload_id=upload.upload_id).response().result
-                time.sleep(0.1)
-
-            if upload.tasks_status == FAILURE:
-                error = 'failed to process upload'
-                upload_logger.logger.error(error, process_errors=upload.errors)
-                return dict(error=error, status=FAILURE)
 
             # grab source metadata
             upload_metadata_calcs = list()
@@ -313,20 +309,34 @@ class NomadCOEMigration:
                 source_metadata = CalcWithMetadata(upload_id=upload.upload_id, **source_calc.metadata)
                 source_metadata.mainfile = source_calc.mainfile
                 source_metadata.pid = source_calc.pid
-                source_metadata.__migrated = None
+                source_metadata.__migrated = False
                 upload_metadata_calcs.append(source_metadata)
                 metadata_dict[source_calc.mainfile] = source_metadata
 
-            # verify upload
             report = utils.POPO()
-            report.total_calcs = upload.calcs.pagination.total
             report.total_source_calcs = len(metadata_dict)
-            report.unprocessed_calcs = 0
+            report.failed_calcs = 0
             report.migrated_calcs = 0
             report.calcs_with_diffs = 0
             report.new_calcs = 0
             report.missing_calcs = 0
 
+            # wait for complete upload
+            while upload.tasks_running:
+                upload = self.client.uploads.get_upload(upload_id=upload.upload_id).response().result
+                time.sleep(0.1)
+
+            if upload.tasks_status == FAILURE:
+                error = 'failed to process upload'
+                report.missing_calcs = report.total_source_calcs
+                report.total_calcs = 0
+                upload_logger.error(error, process_errors=upload.errors)
+                yield report
+                continue
+            else:
+                report.total_calcs = upload.calcs.pagination.total
+
+            # verify upload
             for page in range(1, math.ceil(report.total_calcs / 100) + 1):
                 upload = self.client.uploads.get_upload(
                     upload_id=upload.upload_id, per_page=100, page=page,
@@ -351,22 +361,17 @@ class NomadCOEMigration:
                                 upload.upload_id, calc_proc.calc_id, source_calc, calc_logger):
                             report.calcs_with_diffs += 1
                     else:
-                        report.unprocessed_calcs += 1
-                        calc_logger.info(
-                            'could not process a calc%s.' %
-                            ', that is in source' if source_calc is not None else '')
-
-                        if source_calc is not None:
-                            source_calc.__migrated = False
-
+                        report.failed_calcs += 1
+                        calc_logger.error(
+                            'could not process a calc', process_errors=calc_proc.errors)
                         continue
 
             for source_calc in upload_metadata_calcs:
-                if source_calc.__migrated is None:
+                if source_calc.__migrated is False:
                     report.missing_calcs += 1
-                    upload_logger.info('no match for source calc', mainfile=source_calc.mainfile)
-                elif source_calc.__migrated is False:
-                    upload_logger.info('source calc not processed', mainfile=source_calc.mainfile)
+                    upload_logger.info(
+                        'no match or processed calc for source calc',
+                        mainfile=source_calc.mainfile)
 
             # commit upload
             admin_keys = ['upload_time, uploader, pid']
@@ -388,7 +393,7 @@ class NomadCOEMigration:
                 transform(calc) for calc in upload_metadata['calculations']
                 if calc.__migrated]
 
-            if report.total_calcs > report.unprocessed_calcs:
+            if report.total_calcs > report.failed_calcs:
                 upload = self.client.uploads.exec_upload_command(
                     upload_id=upload.upload_id,
                     payload=dict(command='commit', metadata=upload_metadata)
@@ -405,7 +410,6 @@ class NomadCOEMigration:
 
             # report
             upload_logger.info('migrated upload', **report)
-            report.update(status=SUCCESS)
             yield report
 
     def index(self, *args, **kwargs):

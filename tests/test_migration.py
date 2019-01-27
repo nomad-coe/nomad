@@ -14,13 +14,14 @@
 
 import pytest
 import os
+import os.path
 from bravado.client import SwaggerClient
+import json
 
 from nomad import infrastructure, coe_repo
 
 from nomad.migration import NomadCOEMigration, SourceCalc
 from nomad.infrastructure import repository_db_connection
-from nomad.processing import SUCCESS
 
 from .bravado_flaks import FlaskTestHttpClient
 from tests.conftest import create_repository_db
@@ -153,17 +154,40 @@ def migrate_infra(migration, target_repo, flask_client, worker, monkeysession):
     monkeysession.setattr('nomad.infrastructure.repository_db', old_repo)
 
 
-@pytest.mark.parametrize('upload, assertions', [('baseline', dict(migrated=2))])
+mirgation_test_specs = [
+    ('baseline', dict(migrated=2, source=2)),
+    ('archive', dict(migrated=2, source=2)),
+    ('new_upload', dict(new=2)),
+    ('new_calc', dict(migrated=2, source=2, new=1)),
+    ('missing_calc', dict(migrated=1, source=2, missing=1)),
+    ('missmatch', dict(migrated=2, source=2, diffs=1)),
+    ('failed_calc', dict(migrated=1, source=2, diffs=0, missing=1, failed=1, errors=1)),
+    ('failed_upload', dict(migrated=0, source=2, missing=2, errors=1))
+]
+
+
+@pytest.mark.parametrize('test, assertions', mirgation_test_specs)
 @pytest.mark.timeout(10)
-def test_migrate(migrate_infra, upload, assertions):
-    upload_path = os.path.join('tests', 'data', 'migration', upload, 'upload')
-    reports = list(migrate_infra.migrate(upload_path))
+def test_migrate(migrate_infra, test, assertions, caplog):
+    uploads_path = os.path.join('tests', 'data', 'migration', test)
+    reports = list(migrate_infra.migrate(
+        *[os.path.join(uploads_path, dir) for dir in os.listdir(uploads_path)]))
+
     assert len(reports) == 1
     report = reports[0]
-    assert report['status'] == SUCCESS
-    assert report['total_calcs'] == 2
-    assert report['total_source_calcs'] == 2
-    assert report['migrated_calcs'] == 2
-    assert report['calcs_with_diffs'] == 0
-    assert report['new_calcs'] == 0
-    assert report['missing_calcs'] == 0
+    assert report['total_calcs'] == assertions.get('migrated', 0) + assertions.get('new', 0) + assertions.get('failed', 0)
+
+    assert report['total_source_calcs'] == assertions.get('source', 0)
+    assert report['migrated_calcs'] == assertions.get('migrated', 0)
+    assert report['calcs_with_diffs'] == assertions.get('diffs', 0)
+    assert report['new_calcs'] == assertions.get('new', 0)
+    assert report['missing_calcs'] == assertions.get('missing', 0)
+
+    errors = 0
+    for record in caplog.get_records(when='call'):
+        if record.levelname in ['ERROR', 'CRITICAL']:
+            record_data = json.loads(record.getMessage())
+            if 'source_upload_id' in record_data:
+                errors += 1
+
+    assert errors == assertions.get('errors', 0)

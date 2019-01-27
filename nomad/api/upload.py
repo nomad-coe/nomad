@@ -172,24 +172,13 @@ class UploadListResource(Resource):
                 if upload.name is None or upload.name is '':
                     upload.name = file.filename
 
-                upload_files = ArchiveBasedStagingUploadFiles(
-                    upload.upload_id, create=True, local_path=local_path,
-                    file_name='.upload.%s' % os.path.splitext(file.filename)[1])
+                upload_files = ArchiveBasedStagingUploadFiles(upload.upload_id, create=True)
 
                 file.save(upload_files.upload_file_os_path)
             else:
                 # simple streaming data in HTTP body, e.g. with curl "url" -T local_file
-                file_name = '.upload'
-                try:
-                    ext = os.path.splitext(upload.name)[1]
-                    if ext is not None:
-                        file_name += '.' + ext
-                except Exception:
-                    pass
 
-                upload_files = ArchiveBasedStagingUploadFiles(
-                    upload.upload_id, create=True, local_path=local_path,
-                    file_name='.upload')
+                upload_files = ArchiveBasedStagingUploadFiles(upload.upload_id, create=True)
 
                 try:
                     with open(upload_files.upload_file_os_path, 'wb') as f:

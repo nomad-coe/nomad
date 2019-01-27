@@ -495,4 +495,4 @@ class Upload(Chord, datamodel.Upload):
 
     @property
     def calcs(self):
-        return Calc.objects(upload_id=self.upload_id)
+        return Calc.objects(upload_id=self.upload_id, tasks_status=SUCCESS)

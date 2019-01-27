@@ -66,6 +66,8 @@ api = Api(
 @api.errorhandler
 def handle(error: Exception):
     status_code = getattr(error, 'code', 500)
+    if not isinstance(status_code, int):
+        status_code = 500
     name = getattr(error, 'name', 'Internal Server Error')
     description = getattr(error, 'description', 'No description available')
     data = dict(

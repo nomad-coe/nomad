@@ -92,9 +92,8 @@ class FlaskTestFutureAdapter:
         if len(files) > 1:
             raise NotImplementedError
         if len(files) == 1:
-            data = dict() if data is None else data
             _, (_, f) = files[0]
-            data.update(file=(f, 'file'))
+            data = f
 
         return function(
             url, headers=self._request_params.get('headers'), data=data)
