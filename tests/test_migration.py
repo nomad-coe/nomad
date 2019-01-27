@@ -167,7 +167,7 @@ mirgation_test_specs = [
 
 
 @pytest.mark.parametrize('test, assertions', mirgation_test_specs)
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(30)
 def test_migrate(migrate_infra, test, assertions, caplog):
     uploads_path = os.path.join('tests', 'data', 'migration', test)
     reports = list(migrate_infra.migrate(
