@@ -209,11 +209,22 @@ deploy_kubernetes:
     - cd ops/helm/nomad
     - export KUBECONFIG=/etc/deploy/config
     - helm dep build
-    - export API_VERSION="$(grep "version" Chart.yaml | cut -d" " -f2)"
-    - export RELEASE_NAME="nomad-v${API_VERSION//./-}"
+    - export NOMAD_VERSION="$(grep "version" Chart.yaml | cut -d" " -f2)"
+    - export NUMERIC_VERSION="$(echo ${NOMAD_VERSION} | cut -d"." -f1-2)"
+    - export RELEASE_NAME="nomad-v${NOMAD_VERSION//./-}"
     - export DEPLOYS=$(helm ls | grep $RELEASE_NAME | wc -l)
-    - export EXTERNAL_PATH="/nomad/kubetest/v${API_VERSION}"
-    - if [ ${DEPLOYS}  -eq 0 ]; then helm install --name=${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE} --set proxy.external.path=${EXTERNAL_PATH}; else helm upgrade ${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE}; fi
+    - export EXTERNAL_PATH="/fairdi/nomad/v${NOMAD_VERSION}"
+    - export DBNAME="fairdi_nomad_v${NOMAD_VERSION//./_}"
+    - export FILES_PATH="/scratch/nomad-fair/fs/nomad_v${NOMAD_VERSION}"
+    - if [ ${DEPLOYS}  -eq 0 ]; then \
+        helm install --name=${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE} \
+          --set proxy.nodePort="300${NUMERIC_VERSION//./}"
+          --set proxy.external.path=${EXTERNAL_PATH} \
+          --set dbname=${DBNAME} \
+          --set volumes.files=${FILES_PATH}; \
+      else \
+        helm upgrade ${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE}; \
+      fi
   # except:
   #   - /^dev-.*$/
   when: manual
