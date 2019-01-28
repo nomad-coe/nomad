@@ -62,17 +62,21 @@ class SystemNormalizer(SystemBasedNormalizer):
             # Then the parser hasn't parsed any information about periodicity.
             # We therefore assume we're simulating a single cell without
             # periodicity and don't try to ascertain symmetry information.
-            self.atoms = ase.Atoms(
-                positions=1e10 * np.asarray(self.atom_positions),
-                symbols=np.asarray(self.atom_labels)
-            )
+            try:
+                self.atoms = ase.Atoms(
+                    positions=1e10 * np.asarray(self.atom_positions),
+                    symbols=np.asarray(self.atom_labels)
+                )
+            except Exception:
+                self.logger.error(
+                    'The ASE library is unable to build an object from the parsed vars.'
+                )
             # Classify the material's system type.
             self.system_type_classification()
             if self.nomad_system_type not in ['Atom', 'Molecule / Cluster']:
                 self.logger.error(
-                    'Matid has classified the sim as more than 1D despite having'
-                    'no simulation_cell/lattice_vectors'
-                )
+                    'Matid classified more than 1D despite having no simulation_cell')
+
             # Return w/out symmetry analysis since we don't have a sim_cell.
             return None
 
@@ -95,7 +99,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         except Exception:
             self.logger.error(
                 'The ASE library is unable to build an object from the member'
-                'variables.'
+                'variables: atom_positions, atom_labels, simulation_cell and pbc.'
             )
 
         # Classify the material's system type.
@@ -298,8 +302,8 @@ class SystemNormalizer(SystemBasedNormalizer):
         # Check to make sure a match was found in translating classes.
         if (nomad_classification is None) or (nomad_classification == 'Unknown'):
             # Then something unexpected has happened with our system_type.
-            self.logger.error('Matid classfication has given us an unexpected type.'
-                              ' No match was found for this system type: %s' % system_type)
+            self.logger.error(
+                'Matid classfication has given us an unexpected type: %s' % system_type)
 
         if nomad_classification == 'Atom' and (len(self.atom_labels) > 1):
             nomad_classification = 'Molecule / Cluster'

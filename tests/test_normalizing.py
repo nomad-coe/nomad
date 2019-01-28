@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import pytest
 
 from nomad.parsing import LocalBackend
@@ -20,6 +21,7 @@ from nomad.normalizing import normalizers
 from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_example  # pylint: disable=unused-import
+from tests.test_parsing import parsed_faulty_unknown_matid_example  # pylint: disable=unused-import
 
 
 def run_normalize(backend: LocalBackend) -> LocalBackend:
@@ -50,8 +52,6 @@ def normalized_template_example(parsed_template_example) -> LocalBackend:
 
 
 def assert_normalized(backend):
-    with open("test_file_name.json", "wt") as file:
-        backend.write_json(file)
     # The assertions are based on the quanitites need for the repository.
     assert backend.get_value('atom_species', 0) is not None
     assert backend.get_value('system_type', 0) is not None
@@ -69,3 +69,26 @@ def assert_normalized(backend):
 
 def test_normalizer(normalized_example: LocalBackend, no_warn):
     assert_normalized(normalized_example)
+
+
+def test_normalizer_faulty_matid(
+        parsed_faulty_unknown_matid_example: LocalBackend, caplog):
+    """ Runs normalizer on an example w/ bools for atom pos. Should force matid error."""
+    run_normalize(parsed_faulty_unknown_matid_example)
+    unknown_class_error = (
+        'Matid classfication has given us an unexpected type')
+
+    wrong_class_for_no_sim_cell = (
+        'Matid classified more than 1D despite having no simulation_cell')
+
+    assert_log(caplog, 'ERROR', unknown_class_error)
+    assert_log(caplog, 'ERROR', wrong_class_for_no_sim_cell)
+
+
+def assert_log(caplog, level, event_part):
+    # TODO: @dts, find a new home for this fxn, sadly it can't go in conftest.py
+    record_receieved = False
+    for record in caplog.get_records(when='call'):
+        if record.levelname == level:
+            record_receieved |= event_part in json.loads(record.msg)['event']
+    assert record_receieved

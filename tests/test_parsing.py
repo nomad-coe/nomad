@@ -38,6 +38,10 @@ parser_examples = [
     ('parsers/bigdft', 'tests/data/parsers/bigdft/n2_output.out')
 ]
 
+faulty_unknown_one_d_matid_example = [
+    ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
+]
+
 
 class TestLocalBackend(object):
 
@@ -235,6 +239,14 @@ def parsed_vasp_example() -> LocalBackend:
 def parsed_template_example() -> LocalBackend:
     return run_parser(
         'parsers/template', 'tests/data/parsers/template.json')
+
+
+@pytest.fixture(
+    params=faulty_unknown_one_d_matid_example, ids=lambda spec: '%s-%s' % spec)
+
+def parsed_faulty_unknown_matid_example(caplog, request) -> LocalBackend:
+    parser_name, mainfile = request.param
+    return run_parser(parser_name, mainfile)
 
 
 @pytest.fixture(params=parser_examples, ids=lambda spec: '%s-%s' % spec)

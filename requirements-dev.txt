@@ -11,6 +11,5 @@ pytest-timeout
 pytest-cov
 rope
 mongomock
-
 numpy
 cython>=0.19
