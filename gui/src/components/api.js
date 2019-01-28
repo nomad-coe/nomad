@@ -4,6 +4,7 @@ import { withErrors } from './errors'
 import { UploadRequest } from '@navjobs/upload'
 import Swagger from 'swagger-client'
 import { apiBase } from '../config'
+import { Typography } from '@material-ui/core'
 
 const ApiContext = React.createContext()
 
@@ -213,6 +214,17 @@ class Api {
       .then(response => response.body)
   }
 
+  async authenticate(userName, password) {
+    const client = await this.swaggerPromise
+    return client.apis.auth.get_token()
+      .catch(error => {
+        if (error.response.status !== 401) {
+          this.handleApiError(error)
+        }
+      })
+      .then(response => response !== undefined)
+  }
+
   _cachedMetaInfo = null
 
   async getMetaInfo() {
@@ -272,8 +284,14 @@ export class ApiProvider extends React.Component {
     api: new Api(),
     token: null,
     userName: null,
-    login: (userName, password) => {
-      this.setState({api: new Api(userName, password), userName: userName})
+    login: (userName, password, callback) => {
+      const api = new Api(userName, password)
+      api.authenticate().then(result => {
+        if (result) {
+          this.setState({api: api, userName: userName})
+        }
+        callback(result)
+      })
     },
     logout: () => {
       this.setState({api: new Api(), userName: null})
@@ -296,9 +314,11 @@ export function withApi(loginRequired) {
       return (
         <ApiContext.Consumer>
           {apiContext => (
-            <Component
-              {...props} api={apiContext.api} userName={apiContext.userName}
-              login={apiContext.login} logout={apiContext.logout} />
+            (apiContext.userName || !loginRequired)
+              ? <Component
+                {...props} api={apiContext.api} userName={apiContext.userName}
+                login={apiContext.login} logout={apiContext.logout} />
+              : <Typography color="error">Please login to use this functionality</Typography>
           )}
         </ApiContext.Consumer>
       )

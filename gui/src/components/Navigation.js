@@ -23,7 +23,7 @@ import ChevronLeftIcon from '@material-ui/icons/ChevronLeft'
 import MenuIcon from '@material-ui/icons/Menu'
 import { Link, withRouter } from 'react-router-dom'
 import { compose } from 'recompose'
-import { MuiThemeProvider, IconButton, Button, Checkbox, FormLabel, DialogTitle, DialogContent, DialogContentText, TextField, DialogActions, Dialog } from '@material-ui/core'
+import { MuiThemeProvider, IconButton, Button, Checkbox, FormLabel, DialogTitle, DialogContent, DialogContentText, TextField, DialogActions, Dialog, FormGroup, LinearProgress } from '@material-ui/core'
 import { genTheme, repoTheme, archiveTheme, encTheme, analyticsTheme } from '../config'
 import { ErrorSnacks } from './errors'
 import classNames from 'classnames'
@@ -76,26 +76,40 @@ class LoginLogoutComponent extends React.Component {
         borderColor: theme.palette.getContrastText(theme.palette.primary.main),
         marginRight: theme.spacing.unit * 4
       }
+    },
+    errorText: {
+      marginTop: theme.spacing.unit,
+      marginBottom: theme.spacing.unit
     }
   })
 
   constructor(props) {
     super(props)
-    this.handleLoginDialogClosed = this.handleLoginDialogClosed.bind(this)
     this.handleLogout = this.handleLogout.bind(this)
     this.handleChange = this.handleChange.bind(this)
   }
 
   state = {
     loginDialogOpen: false,
-    userName: null,
-    password: null
+    userName: '',
+    password: '',
+    loggingIn: false,
+    failure: false
   }
 
   handleLoginDialogClosed(withLogin) {
     this.setState({loginDialogOpen: false})
     if (withLogin) {
-      this.props.login(this.state.userName, this.state.password)
+      this.setState({loggingIn: true})
+      this.props.login(this.state.userName, this.state.password, (success) => {
+        if (success) {
+          this.setState({loggingIn: false, loginDialogOpen: false, failure: false})
+        } else {
+          this.setState({loggingIn: false, failure: true, loginDialogOpen: true})
+        }
+      })
+    } else {
+      this.setState({loggingIn: false, failure: false, userName: '', password: '', loginDialogOpen: false})
     }
   }
 
@@ -111,6 +125,7 @@ class LoginLogoutComponent extends React.Component {
 
   render() {
     const { classes, userName } = this.props
+    const { loggingIn, failure } = this.state
     if (userName) {
       return (
         <div className={classes.root}>
@@ -126,7 +141,7 @@ class LoginLogoutComponent extends React.Component {
           <Button color="inherit" variant="outlined" onClick={() => this.setState({loginDialogOpen: true})}>Login</Button>
           <Dialog
             open={this.state.loginDialogOpen}
-            onClose={this.handleLoginDialogClosed}
+            onClose={() => this.handleLoginDialogClosed(false)}
           >
             <DialogTitle>Login</DialogTitle>
             <DialogContent>
@@ -135,31 +150,39 @@ class LoginLogoutComponent extends React.Component {
                 do not have an account, please go to the nomad repository and
                 create one.
               </DialogContentText>
-              <TextField
-                autoFocus
-                margin="dense"
-                id="uaseName"
-                label="Email Address"
-                type="email"
-                fullWidth
-                value={this.state.userName}
-                onChange={this.handleChange('userName')}
-              />
-              <TextField
-                margin="dense"
-                id="password"
-                label="Password"
-                type="password"
-                fullWidth
-                value={this.state.password}
-                onChange={this.handleChange('password')}
-              />
+              {loggingIn ? <LinearProgress/> : ''}
+              {failure ? <DialogContentText className={classes.errorText} color="error">Wrong username or password!</DialogContentText> : ''}
+              <FormGroup>
+                <TextField
+                  disabled={loggingIn}
+                  autoFocus
+                  margin="dense"
+                  id="uaseName"
+                  label="Email Address"
+                  type="email"
+                  fullWidth
+                  value={this.state.userName}
+                  onChange={this.handleChange('userName')}
+                />
+                <TextField
+                  disabled={loggingIn}
+                  margin="dense"
+                  id="password"
+                  label="Password"
+                  type="password"
+                  fullWidth
+                  value={this.state.password}
+                  onChange={this.handleChange('password')}
+                />
+              </FormGroup>
             </DialogContent>
             <DialogActions>
-              <Button onClick={this.handleLoginDialogClosed} color="primary">
+              <Button onClick={() => this.handleLoginDialogClosed(false)} color="primary">
                 Cancel
               </Button>
-              <Button onClick={() => this.handleLoginDialogClosed(true)} color="primary">
+              <Button onClick={() => this.handleLoginDialogClosed(true)} color="primary"
+                disabled={this.state.userName === '' || this.state.password === ''}
+              >
                 Login
               </Button>
             </DialogActions>
