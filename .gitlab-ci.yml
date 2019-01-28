@@ -201,14 +201,13 @@ deploy_kubernetes:
     - mkdir -p /etc/deploy
     # kube_config is a CI/CD variable set in GitLab GUI
     - echo ${kube_config} | base64 -d > /etc/deploy/config
-    - export KUBECONFIG=/etc/deploy/config
-    # - kubectl config use-context homekube
     - helm init --client-only
     - helm repo add stable https://kubernetes-charts.storage.googleapis.com/
     - helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com/
     - helm repo update
   script:
     - cd ops/helm/nomad
+    - export KUBECONFIG=/etc/deploy/config
     - helm dep build
     - export API_VERSION="$(grep "version" Chart.yaml | cut -d" " -f2)"
     - export RELEASE_NAME="kubetest-v${API_VERSION/./-}"
