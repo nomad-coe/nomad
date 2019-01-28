@@ -243,7 +243,6 @@ def parsed_template_example() -> LocalBackend:
 
 @pytest.fixture(
     params=faulty_unknown_one_d_matid_example, ids=lambda spec: '%s-%s' % spec)
-
 def parsed_faulty_unknown_matid_example(caplog, request) -> LocalBackend:
     parser_name, mainfile = request.param
     return run_parser(parser_name, mainfile)
