@@ -56,8 +56,8 @@ buildrawapi:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
     - docker build -t $RAWAPI_TEST_IMAGE -f rawapi.Dockerfile .
     - docker push $RAWAPI_TEST_IMAGE
-  except:
-    - /^dev-.*$/
+  only:
+    - rawapi
 
 
 linting:
@@ -163,8 +163,8 @@ release_rawapi:
     - docker pull $RAWAPI_TEST_IMAGE
     - docker tag $RAWAPI_TEST_IMAGE $RAWAPI_RELEASE_IMAGE
     - docker push $RAWAPI_RELEASE_IMAGE
-  except:
-    - /^dev-.*$/
+  only:
+    - rawapi
   when: manual
 
 deploy_rawapi:
@@ -176,8 +176,8 @@ deploy_rawapi:
     # runner container at /nomad/config/.env
     - cp /nomad/config/.rawapi_env .env
     - docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-  except:
-    - /^dev-.*$/
+  only:
+    - rawapi
   when: manual
 
 deploy:
