@@ -59,6 +59,7 @@ proxy:
     host: "enc-staging-nomad.esc.rzg.mpg.de"
     port: 80
     path: "/fairdi/nomad"
+    kibanaPath: "/fairdi/kibana"
 
 ## configuration of the chart dependency for rabbitmq
 rabbitmq:

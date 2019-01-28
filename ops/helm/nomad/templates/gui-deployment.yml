@@ -23,6 +23,7 @@ data:
       "apiBase": "{{ .Values.proxy.external.path }}/api",
       "appBase": "{{ .Values.proxy.external.path }}",
       "appStaticBase": "{{ .Values.proxy.external.path }}",
+      "kibanaBase": "{{ .Values.proxy.external.kibanaPath }}",
       "appDebug": false
     };
 ---
