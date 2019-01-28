@@ -210,7 +210,7 @@ deploy_kubernetes:
     - export KUBECONFIG=/etc/deploy/config
     - helm dep build
     - export API_VERSION="$(grep "version" Chart.yaml | cut -d" " -f2)"
-    - export RELEASE_NAME="kubetest-v${API_VERSION/./-}"
+    - export RELEASE_NAME="kubetest-v${API_VERSION//./-}"
     - export DEPLOYS=$(helm ls | grep $RELEASE_NAME | wc -l)
     - export EXTERNAL_PATH="/nomad/kubetest/v${API_VERSION}"
     - if [ ${DEPLOYS}  -eq 0 ]; then helm install --name=${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE} --set proxy.external.path=${EXTERNAL_PATH}; else helm upgrade ${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE}; fi
