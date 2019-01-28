@@ -23,6 +23,7 @@ from tests.test_parsing import parsed_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_faulty_unknown_matid_example  # pylint: disable=unused-import
 from tests.utils import assert_log
 
+
 def run_normalize(backend: LocalBackend) -> LocalBackend:
     status, _ = backend.status
 
