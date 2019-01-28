@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import pytest
 
 from nomad.parsing import LocalBackend
@@ -22,7 +21,7 @@ from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-imp
 from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_faulty_unknown_matid_example  # pylint: disable=unused-import
-
+from tests.utils import assert_log
 
 def run_normalize(backend: LocalBackend) -> LocalBackend:
     status, _ = backend.status
@@ -84,11 +83,3 @@ def test_normalizer_faulty_matid(
     assert_log(caplog, 'ERROR', unknown_class_error)
     assert_log(caplog, 'ERROR', wrong_class_for_no_sim_cell)
 
-
-def assert_log(caplog, level, event_part):
-    # TODO: @dts, find a new home for this fxn, sadly it can't go in conftest.py
-    record_receieved = False
-    for record in caplog.get_records(when='call'):
-        if record.levelname == level:
-            record_receieved |= event_part in json.loads(record.msg)['event']
-    assert record_receieved
