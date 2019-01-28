@@ -53,13 +53,13 @@ gui:
 #  It is run via NodePort service
 proxy:
   port: 80
-  nodePort: 30001
+  nodePort: 30003
   nodeIP: 130.183.207.116
   external:
-    host: "localhost"
-    port: 30001
-    ## Add a path segment with the release name to path, e.g. /nomad/liquid-thunder/...
-    path: "/nomad/kubetest"
+    host: "enc-staging-nomad.esc.rzg.mpg.de"
+    port: 80
+    path: "/fairdi/nomad"
+    kibanaPath: "/fairdi/kibana"
 
 ## configuration of the chart dependency for rabbitmq
 rabbitmq:
@@ -70,7 +70,7 @@ rabbitmq:
     erlangCookie: SWQOKODSQALRPCLNMEQG
 
 ## A common name/prefix for all dbs and indices.
-dbname: nomad_kubetest
+dbname: fairdi_nomad
 
 ## Databases that are not run within the cluster.
 #  To run databases in the cluster, use the nomad-full helm chart.
@@ -96,4 +96,4 @@ kibana:
 
 ## Everything concerning the data that is used by the service
 volumes:
-  files: /scratch/nomad-fair/fs/kubetest
+  files: /scratch/nomad-fair/fs
