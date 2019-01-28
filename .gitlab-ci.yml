@@ -17,11 +17,11 @@ stages:
   - deploy
 
 variables:
-  TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:test
+  TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:${CI_COMMIT_REF_NAME}
   RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
-  FRONTEND_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:test
+  FRONTEND_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:${CI_COMMIT_REF_NAME}
   FRONTEND_RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:latest
-  RAWAPI_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/rawapi:test
+  RAWAPI_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/rawapi:${CI_COMMIT_REF_NAME}
   RAWAPI_RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/rawapi:latest
 
   KUBECONFIG: /etc/deploy/config
@@ -167,20 +167,6 @@ release_rawapi:
     - /^dev-.*$/
   when: manual
 
-deploy:
-  stage: deploy
-  script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
-    - cd ops/docker-compose/nomad
-    # secret .env file is stored on the "production" machine and is bind mounted into the
-    # runner container at /nomad/config/.env
-    - cp /nomad/config/.env .
-    - docker-compose -f docker-compose.yml -f docker-compose.prod.yml build
-    - docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --no-deps -d api worker gui
-  except:
-    - /^dev-.*$/
-  when: manual
-
 deploy_rawapi:
   stage: deploy
   script:
@@ -194,7 +180,7 @@ deploy_rawapi:
     - /^dev-.*$/
   when: manual
 
-deploy_kubernetes:
+deploy:
   stage: deploy
   image: dtzar/helm-kubectl
   before_script:
@@ -225,6 +211,6 @@ deploy_kubernetes:
       else
         helm upgrade ${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE};
       fi
-  # except:
-  #   - /^dev-.*$/
+  except:
+    - /^dev-.*$/
   when: manual
