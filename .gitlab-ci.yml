@@ -24,6 +24,9 @@ variables:
   RAWAPI_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/rawapi:test
   RAWAPI_RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/rawapi:latest
 
+  KUBECONFIG: /etc/deploy/config
+  STAGING_NAMESPACE: nomad-fairdi
+
 build:
   stage: build
   script:
@@ -187,6 +190,30 @@ deploy_rawapi:
     # runner container at /nomad/config/.env
     - cp /nomad/config/.rawapi_env .env
     - docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+  except:
+    - /^dev-.*$/
+  when: manual
+
+deploy_kubernetes:
+  stage: deploy
+  image: dtzar/helm-kubectl
+  before_script:
+    - mkdir -p /etc/deploy
+    # kube_config is a CI/CD variable set in GitLab GUI
+    - echo ${kube_config} | base64 -d > /etc/deploy/config
+    # - kubectl config use-context homekube
+    - helm init --client-only
+    - helm repo add stable https://kubernetes-charts.storage.googleapis.com/
+    - helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com/
+    - helm repo update
+  script:
+    - cd ops/helm/nomad
+    - helm dep build
+    - export API_VERSION="$(grep "version" Chart.yaml | cut -d" " -f2)"
+    - export RELEASE_NAME="kubetest-v${API_VERSION/./-}"
+    - export DEPLOYS=$(helm ls | grep $RELEASE_NAME | wc -l)
+    - export EXTERNAL_PATH="/nomad/kubetest/v${API_VERSION}
+    - if [ ${DEPLOYS}  -eq 0 ]; then helm install --name=${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE} --set proxy.external.path=${EXTERNAL_PATH}; else helm upgrade ${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE}; fi
   except:
     - /^dev-.*$/
   when: manual
