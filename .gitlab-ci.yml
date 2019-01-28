@@ -216,14 +216,14 @@ deploy_kubernetes:
     - export EXTERNAL_PATH="/fairdi/nomad/v${NOMAD_VERSION}"
     - export DBNAME="fairdi_nomad_v${NOMAD_VERSION//./_}"
     - export FILES_PATH="/scratch/nomad-fair/fs/nomad_v${NOMAD_VERSION}"
-    - if [ ${DEPLOYS}  -eq 0 ]; then \
-        helm install --name=${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE} \
+    - if [ ${DEPLOYS}  -eq 0 ]; then
+        helm install --name=${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE}
           --set proxy.nodePort="300${NUMERIC_VERSION//./}"
-          --set proxy.external.path=${EXTERNAL_PATH} \
-          --set dbname=${DBNAME} \
-          --set volumes.files=${FILES_PATH}; \
-      else \
-        helm upgrade ${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE}; \
+          --set proxy.external.path=${EXTERNAL_PATH}
+          --set dbname=${DBNAME}
+          --set volumes.files=${FILES_PATH};
+      else
+        helm upgrade ${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE};
       fi
   # except:
   #   - /^dev-.*$/
