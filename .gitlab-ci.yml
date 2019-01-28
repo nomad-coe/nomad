@@ -200,7 +200,7 @@ deploy_kubernetes:
   before_script:
     - mkdir -p /etc/deploy
     # kube_config is a CI/CD variable set in GitLab GUI
-    - echo ${kube_config} | base64 -d > /etc/deploy/config
+    - echo $CI_KUBE_CONFIG | base64 -d > /etc/deploy/config
     - helm init --client-only
     - helm repo add stable https://kubernetes-charts.storage.googleapis.com/
     - helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com/
@@ -212,7 +212,7 @@ deploy_kubernetes:
     - export API_VERSION="$(grep "version" Chart.yaml | cut -d" " -f2)"
     - export RELEASE_NAME="kubetest-v${API_VERSION/./-}"
     - export DEPLOYS=$(helm ls | grep $RELEASE_NAME | wc -l)
-    - export EXTERNAL_PATH="/nomad/kubetest/v${API_VERSION}
+    - export EXTERNAL_PATH="/nomad/kubetest/v${API_VERSION}"
     - if [ ${DEPLOYS}  -eq 0 ]; then helm install --name=${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE} --set proxy.external.path=${EXTERNAL_PATH}; else helm upgrade ${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE}; fi
   # except:
   #   - /^dev-.*$/
