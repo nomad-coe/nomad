@@ -7,6 +7,7 @@ import { apiBase } from '../config'
 import { Typography, withStyles, LinearProgress } from '@material-ui/core'
 import LoginLogout from './LoginLogout'
 import { Cookies, withCookies } from 'react-cookie'
+import { compose } from 'recompose'
 
 const ApiContext = React.createContext()
 
@@ -141,7 +142,7 @@ class Api {
         throw Error(`API error (${e.response.status}): ${message}`)
       }
     } else {
-      throw Error('Network related error, cannot reach API: ' + e)
+      throw Error('Network related error, cannot reach API')
     }
   }
 
@@ -226,15 +227,11 @@ class Api {
       .then(response => response.body)
   }
 
-  static async authenticate(userName, password) {
+  async getSignatureToken() {
     const client = await this.swaggerPromise
     return client.apis.auth.get_token()
-      .catch(error => {
-        if (error.response.status !== 401) {
-          this.handleApiError(error)
-        }
-      })
-      .then(response => response !== undefined)
+      .catch(this.handleApiError)
+      .then(response => response.body)
   }
 
   _cachedMetaInfo = null
@@ -289,7 +286,8 @@ export class ApiProviderComponent extends React.Component {
       PropTypes.arrayOf(PropTypes.node),
       PropTypes.node
     ]).isRequired,
-    cookies: instanceOf(Cookies).isRequired
+    cookies: instanceOf(Cookies).isRequired,
+    raiseError: PropTypes.func.isRequired
   }
 
   componentDidMount() {
@@ -312,9 +310,15 @@ export class ApiProviderComponent extends React.Component {
           client.apis.auth.get_user()
             .catch(error => {
               if (error.response.status !== 401) {
-                this.handleApiError(error)
+                try {
+                  this.handleApiError(error)
+                } catch (e) {
+                  this.setState({isLoggingIn: false, user: null})
+                  this.props.raiseError(error)
+                }
+              } else {
+                this.setState({isLoggingIn: false})
               }
-              this.setState({isLoggingIn: false})
             })
             .then(response => {
               if (response) {
@@ -327,6 +331,10 @@ export class ApiProviderComponent extends React.Component {
               }
               this.setState({isLoggingIn: false})
             })
+        })
+        .catch(error => {
+          this.setState({isLoggingIn: false, user: null})
+          this.props.raiseError(error)
         })
     },
     logout: () => {
@@ -378,7 +386,7 @@ class LoginRequiredUnstyled extends React.Component {
   }
 }
 
-export const ApiProvider = withCookies(ApiProviderComponent)
+export const ApiProvider = compose(withCookies, withErrors)(ApiProviderComponent)
 
 const LoginRequired = withStyles(LoginRequiredUnstyled.styles)(LoginRequiredUnstyled)
 

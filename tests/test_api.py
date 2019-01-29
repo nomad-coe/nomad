@@ -80,6 +80,13 @@ def admin_user_auth(admin_user: User):
     return create_auth_headers(admin_user)
 
 
+@pytest.fixture(scope='function')
+def test_user_signature_token(client, test_user_auth):
+    rv = client.get('/auth/token', headers=test_user_auth)
+    assert rv.status_code == 200
+    return json.loads(rv.data)['token']
+
+
 class TestAdmin:
 
     @pytest.mark.timeout(10)
@@ -158,6 +165,9 @@ class TestAuth:
         })
 
         assert rv.status_code == 200
+
+    def test_signature_token(self, test_user_signature_token, no_warn):
+        assert test_user_signature_token is not None
 
 
 class TestUploads:
@@ -487,9 +497,21 @@ class TestArchive(UploadFilesBasedTests):
         assert rv.status_code == 200
         assert json.loads(rv.data) is not None
 
+    @UploadFilesBasedTests.ignore_authorization
+    def test_get_signed(self, client, upload, _, test_user_signature_token):
+        rv = client.get('/archive/%s/0?token=%s' % (upload, test_user_signature_token))
+        assert rv.status_code == 200
+        assert json.loads(rv.data) is not None
+
     @UploadFilesBasedTests.check_authorizaton
     def test_get_calc_proc_log(self, client, upload, auth_headers):
         rv = client.get('/archive/logs/%s/0' % upload, headers=auth_headers)
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
+
+    @UploadFilesBasedTests.ignore_authorization
+    def test_get_calc_proc_log_signed(self, client, upload, _, test_user_signature_token):
+        rv = client.get('/archive/logs/%s/0?token=%s' % (upload, test_user_signature_token))
         assert rv.status_code == 200
         assert len(rv.data) > 0
 
@@ -563,6 +585,13 @@ class TestRaw(UploadFilesBasedTests):
         assert len(rv.data) > 0
 
     @UploadFilesBasedTests.ignore_authorization
+    def test_raw_file_signed(self, client, upload, _, test_user_signature_token):
+        url = '/raw/%s/%s?token=%s' % (upload, example_file_mainfile, test_user_signature_token)
+        rv = client.get(url)
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
+
+    @UploadFilesBasedTests.ignore_authorization
     def test_raw_file_missing_file(self, client, upload, auth_headers):
         url = '/raw/%s/does/not/exist' % upload
         rv = client.get(url, headers=auth_headers)
@@ -612,6 +641,18 @@ class TestRaw(UploadFilesBasedTests):
         if compress:
             url = '%s&compress=1' % url
         rv = client.get(url, headers=auth_headers)
+
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
+        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
+            assert zip_file.testzip() is None
+            assert len(zip_file.namelist()) == len(example_file_contents)
+
+    @UploadFilesBasedTests.ignore_authorization
+    def test_raw_files_signed(self, client, upload, _, test_user_signature_token):
+        url = '/raw/%s?files=%s&token=%s' % (
+            upload, ','.join(example_file_contents), test_user_signature_token)
+        rv = client.get(url)
 
         assert rv.status_code == 200
         assert len(rv.data) > 0

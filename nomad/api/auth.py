@@ -144,13 +144,13 @@ user_model = api.model('User', {
 
 
 @ns.route('/user')
-class TokenResource(Resource):
+class UserResource(Resource):
     @api.doc('get_user')
     @api.marshal_with(user_model, skip_none=True, code=200, description='User data send')
     @login_really_required
     def get(self):
         """
-        Get the access token for the authenticated user.
+        Get user information including a long term access token for the authenticated user.
 
         You can use basic authentication to access this endpoint and receive a
         token for further api access. This token will expire at some point and presents
@@ -162,6 +162,56 @@ class TokenResource(Resource):
             abort(
                 401,
                 message='User not logged in, provide credentials via Basic HTTP authentication.')
+
+
+token_model = api.model('Token', {
+    'user': fields.Nested(user_model),
+    'token': fields.String(description='The short term token to sign URLs'),
+    'experies_at': fields.DateTime(desription='The time when the token expires')
+})
+
+
+signature_token_argument = dict(
+    name='token', type=str, help='Token that signs the URL and authenticates the user',
+    location='args')
+
+
+@ns.route('/token')
+class TokenResource(Resource):
+    @api.doc('get_token')
+    @api.marshal_with(token_model, skip_none=True, code=200, description='Token send')
+    @login_really_required
+    def get(self):
+        """
+        Generates a short (10s) term JWT token that can be used to authenticate the user in
+        URLs towards most API get request, e.g. for file downloads on the
+        raw or archive api endpoints. Use the token query parameter to sign URLs.
+        """
+        token, expires_at = g.user.get_signature_token()
+        return {
+            'user': g.user,
+            'token': token,
+            'expires_at': expires_at.isoformat()
+        }
+
+
+def with_signature_token(func):
+    """
+    A decorator for API endpoint implementations that validates signed URLs.
+    """
+    @api.response(401, 'Invalid or expired signature token')
+    def wrapper(*args, **kwargs):
+        token = request.args.get('token', None)
+        if token is not None:
+            try:
+                g.user = coe_repo.User.verify_signature_token(token)
+            except LoginException:
+                abort(401, 'Invalid or expired signature token')
+
+        return func(*args, **kwargs)
+    wrapper.__name__ = func.__name__
+    wrapper.__doc__ = func.__doc__
+    return wrapper
 
 
 def create_authorization_predicate(upload_id, calc_id=None):

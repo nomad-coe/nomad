@@ -17,6 +17,12 @@ def monkeysession(request):
 
 
 @pytest.fixture(scope='session', autouse=True)
+def nomad_files(monkeysession):
+    monkeysession.setattr('nomad.config.fs', config.FSConfig(
+        tmp='.volumes/test_fs/tmp', objects='.volumes/test_fs/objects'))
+
+
+@pytest.fixture(scope='session', autouse=True)
 def nomad_logging():
     config.logstash = config.logstash._replace(enabled=False)
     config.console_log_level = logging.CRITICAL

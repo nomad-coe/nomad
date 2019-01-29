@@ -27,12 +27,17 @@ import nomad_meta_info
 from nomad.files import UploadFiles, Restricted
 
 from .app import api
-from .auth import login_if_available, create_authorization_predicate
+from .auth import login_if_available, create_authorization_predicate, \
+    signature_token_argument, with_signature_token
 from .common import calc_route
 
 ns = api.namespace(
     'archive',
     description='Access archive data and archive processing logs.')
+
+
+archive_file_request_parser = api.parser()
+archive_file_request_parser.add_argument(**signature_token_argument)
 
 
 @calc_route(ns, '/logs')
@@ -41,7 +46,9 @@ class ArchiveCalcLogResource(Resource):
     @api.response(404, 'The upload or calculation does not exist')
     @api.response(401, 'Not authorized to access the data.')
     @api.response(200, 'Archive data send', headers={'Content-Type': 'application/plain'})
+    @api.expect(archive_file_request_parser, validate=True)
     @login_if_available
+    @with_signature_token
     def get(self, upload_id, calc_id):
         """
         Get calculation processing log.
@@ -74,7 +81,9 @@ class ArchiveCalcResource(Resource):
     @api.response(404, 'The upload or calculation does not exist')
     @api.response(401, 'Not authorized to access the data.')
     @api.response(200, 'Archive data send')
+    @api.expect(archive_file_request_parser, validate=True)
     @login_if_available
+    @with_signature_token
     def get(self, upload_id, calc_id):
         """
         Get calculation data in archive form.

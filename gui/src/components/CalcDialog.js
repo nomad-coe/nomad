@@ -1,14 +1,13 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, Dialog, DialogContent, DialogActions, Button, DialogTitle, Tab, Tabs,
-  Typography, FormGroup, FormControlLabel, Checkbox, Divider, FormLabel, IconButton,
-  LinearProgress } from '@material-ui/core'
+  Typography, Divider, LinearProgress } from '@material-ui/core'
 import SwipeableViews from 'react-swipeable-views'
 import ArchiveCalcView from './ArchiveCalcView'
-import DownloadIcon from '@material-ui/icons/CloudDownload'
 import ArchiveLogView from './ArchiveLogView'
 import { withApi } from './api'
 import { compose } from 'recompose'
+import RawFiles from './RawFiles'
 
 function CalcQuantity(props) {
   const {children, label, typography} = props
@@ -43,9 +42,6 @@ class CalcDialog extends React.Component {
       overflowY: 'auto',
       height: '70vh',
       zIndex: 1
-    },
-    formLabel: {
-      padding: theme.spacing.unit * 2
     },
     quantityRow: {
       display: 'flex',
@@ -107,7 +103,6 @@ class CalcDialog extends React.Component {
     const { viewIndex } = this.state
 
     const filePaths = this.data('section_repository_info.repository_filepaths') || []
-    const files = filePaths.map(filePath => filePath.substring(filePath.lastIndexOf('/') + 1))
 
     return (
       <Dialog className={classes.dialog} open={true} onClose={onClose} fullWidth={true} maxWidth={'md'} >
@@ -180,19 +175,7 @@ class CalcDialog extends React.Component {
                 </CalcQuantity>
               </div>
               <Divider />
-              <FormGroup row>
-                <FormControlLabel label="select all" control={<Checkbox checked={false} value="select_all" />} style={{flexGrow: 1}}/>
-                <FormLabel className={classes.formLabel}>0/10 files selected</FormLabel>
-                <IconButton><DownloadIcon /></IconButton>
-              </FormGroup>
-              <Divider />
-              <FormGroup row>
-                {files.map((file, index) => (
-                  <FormControlLabel key={index} label={file}
-                    control={<Checkbox checked={false} onChange={() => true} value={file} />}
-                  />
-                ))}
-              </FormGroup>
+              <RawFiles {...calcProps} files={filePaths} />
             </div>
             <div className={classes.tabContent}>
               <ArchiveCalcView {...calcProps} />

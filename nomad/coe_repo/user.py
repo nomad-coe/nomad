@@ -14,8 +14,10 @@
 
 from passlib.hash import bcrypt
 from sqlalchemy import Column, Integer, String
+import datetime
+import jwt
 
-from nomad import infrastructure
+from nomad import infrastructure, config
 
 from .base import Base
 
@@ -74,6 +76,18 @@ class User(Base):  # type: ignore
 
         return session.token.encode('utf-8')
 
+    def get_signature_token(self, expiration=10):
+        """
+        Genertes ver short term JWT token that can be used to sign download URLs.
+
+        Returns: Tuple with token and expiration datetime
+        """
+        expires_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=expiration)
+        token = jwt.encode(
+            dict(user=self.email, exp=expires_at),
+            config.services.api_secret, 'HS256').decode('utf-8')
+        return token, expires_at
+
     @property
     def token(self):
         return self.get_auth_token().decode('utf-8')
@@ -110,6 +124,27 @@ class User(Base):  # type: ignore
         user = repo_db.query(User).filter_by(user_id=session.user_id).first()
         assert user, 'User in sessions must exist.'
         return user
+
+    @staticmethod
+    def verify_signature_token(token):
+        """
+        Verifies the given JWT token. This should be used to verify URLs signed
+        with a short term signature token (see :func:`get_signature_token`)
+        """
+        try:
+            decoded = jwt.decode(token, config.services.api_secret, algorithms=['HS256'])
+            repo_db = infrastructure.repository_db
+            user = repo_db.query(User).filter_by(email=decoded['user']).first()
+            if user is None:
+                raise LoginException('Token signed for invalid user')
+            else:
+                return user
+        except KeyError:
+            raise LoginException('Token with invalid/unexpected payload')
+        except jwt.ExpiredSignatureError:
+            raise LoginException('Expired token')
+        except jwt.InvalidTokenError:
+            raise LoginException('Invalid token')
 
 
 def ensure_test_user(email):

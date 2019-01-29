@@ -25,7 +25,6 @@ import { Link, withRouter } from 'react-router-dom'
 import { compose } from 'recompose'
 import { MuiThemeProvider, IconButton, Checkbox, FormLabel } from '@material-ui/core'
 import { genTheme, repoTheme, archiveTheme, encTheme, analyticsTheme } from '../config'
-import { ErrorSnacks } from './errors'
 import classNames from 'classnames'
 import { HelpContext } from './help'
 import LoginLogout from './LoginLogout'
@@ -332,9 +331,7 @@ class Navigation extends React.Component {
           <MuiThemeProvider theme={theme}>
             <main className={classes.content}>
               <div className={classes.toolbar} />
-              <ErrorSnacks>
-                {children}
-              </ErrorSnacks>
+              {children}
             </main>
           </MuiThemeProvider>
         </div>

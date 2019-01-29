@@ -26,7 +26,8 @@ from flask_restplus import abort, Resource, fields
 from nomad.files import UploadFiles, Restricted
 
 from .app import api
-from .auth import login_if_available, create_authorization_predicate
+from .auth import login_if_available, create_authorization_predicate, \
+    signature_token_argument, with_signature_token
 
 ns = api.namespace('raw', description='Downloading raw data files.')
 
@@ -36,6 +37,7 @@ raw_file_compress_argument = dict(
     location='args')
 raw_file_from_path_parser = api.parser()
 raw_file_from_path_parser.add_argument(**raw_file_compress_argument)
+raw_file_from_path_parser.add_argument(**signature_token_argument)
 
 
 @ns.route('/<string:upload_id>/<path:path>')
@@ -51,6 +53,7 @@ class RawFileFromPathResource(Resource):
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
     @api.expect(raw_file_from_path_parser, validate=True)
     @login_if_available
+    @with_signature_token
     def get(self, upload_id: str, path: str):
         """
         Get a single raw calculation file or whole directory from a given upload.
@@ -78,7 +81,7 @@ class RawFileFromPathResource(Resource):
 
         try:
             return send_file(
-                upload_files.raw_file(upload_filepath),
+                upload_files.raw_file(upload_filepath, 'br'),
                 mimetype='application/octet-stream',
                 as_attachment=True,
                 attachment_filename=os.path.basename(upload_filepath))
@@ -101,9 +104,10 @@ raw_files_request_model = api.model('RawFilesRequest', {
 })
 
 raw_files_request_parser = api.parser()
-raw_files_request_parser.add_argument(**raw_file_compress_argument)
 raw_files_request_parser.add_argument(
     'files', required=True, type=str, help='Comma separated list of files to download.', location='args')
+raw_files_request_parser.add_argument(**raw_file_compress_argument)
+raw_file_from_path_parser.add_argument(**signature_token_argument)
 
 
 @ns.route('/<string:upload_id>')
@@ -133,6 +137,7 @@ class RawFilesResource(Resource):
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
     @api.expect(raw_files_request_parser, validate=True)
     @login_if_available
+    @with_signature_token
     def get(self, upload_id):
         """
         Download multiple raw calculation files.

@@ -27,3 +27,4 @@ bcrypt
 filelock
 ujson
 bravado
+PyJWT
