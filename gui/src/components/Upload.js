@@ -171,11 +171,11 @@ class Upload extends React.Component {
 
     return (
       <div className={classes.titleContainer}>
-        <Typography variant="title" className={classes.title}>
+        <Typography variant="h6" className={classes.title}>
           {name || new Date(Date.parse(create_time)).toLocaleString()}
         </Typography>
         {name
-          ? <Typography variant="subheading">
+          ? <Typography variant="subtitle1">
             {new Date(Date.parse(create_time)).toLocaleString()}
           </Typography>
           : 'this upload has no name'

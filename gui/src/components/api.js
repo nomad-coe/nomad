@@ -122,6 +122,9 @@ class Api {
 
   constructor(user) {
     user = user || {}
+    this.auth_headers = {
+      'X-Token': user.token
+    }
     this.swaggerPromise = Api.createSwaggerClient(user.token)
 
     this.handleApiError = this.handleApiError.bind(this)

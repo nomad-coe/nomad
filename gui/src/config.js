@@ -12,35 +12,42 @@ export const kibanaBase = process.env.REACT_KIBANA_BASE || window.nomadEnv.kiban
 export const appStaticBase = process.env.REACT_APP_APP_STATIC_BASE || window.nomadEnv.appStaticBase
 export const debug = process.env.REACT_APP_DEBUG ? process.env.REACT_APP_DEBUG === 'true' : window.nomadEnv.debug
 
-export const genTheme = createMuiTheme({
+const createTheme = themeData => createMuiTheme({
+  typography: {
+    useNextVariants: true
+  },
+  ...themeData
+})
+
+export const genTheme = createTheme({
   palette: {
     primary: secondary,
     secondary: secondary
   }
 })
 
-export const repoTheme = createMuiTheme({
+export const repoTheme = createTheme({
   palette: {
     primary: repo,
     secondary: repo
   }
 })
 
-export const archiveTheme = createMuiTheme({
+export const archiveTheme = createTheme({
   palette: {
     primary: archive,
     secondary: repo
   }
 })
 
-export const encTheme = createMuiTheme({
+export const encTheme = createTheme({
   palette: {
     primary: enc,
     secondary: repo
   }
 })
 
-export const analyticsTheme = createMuiTheme({
+export const analyticsTheme = createTheme({
   palette: {
     primary: analytics,
     secondary: repo
