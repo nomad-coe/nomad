@@ -4,7 +4,8 @@ import { withErrors } from './errors'
 import { UploadRequest } from '@navjobs/upload'
 import Swagger from 'swagger-client'
 import { apiBase } from '../config'
-import { Typography } from '@material-ui/core'
+import { Typography, FormGroup, FormLabel, Button, withStyles } from '@material-ui/core'
+import LoginLogout from './LoginLogout'
 
 const ApiContext = React.createContext()
 
@@ -325,6 +326,36 @@ export class ApiProvider extends React.Component {
   }
 }
 
+class LoginRequiredUnstyled extends React.Component {
+  static propTypes = {
+    classes: PropTypes.object.isRequired
+  }
+
+  static styles = theme => ({
+    root: {
+      display: 'flex',
+      alignItems: 'center',
+      '& p': {
+        marginRight: theme.spacing.unit * 2
+      }
+    }
+  })
+
+  render() {
+    const {classes} = this.props
+    return (
+      <div className={classes.root}>
+        <Typography>
+          To upload data, you must have a nomad account and you must be logged in.
+        </Typography>
+        <LoginLogout variant="outlined" color="primary"/>
+      </div>
+    )
+  }
+}
+
+const LoginRequired = withStyles(LoginRequiredUnstyled.styles)(LoginRequiredUnstyled)
+
 export function withApi(loginRequired) {
   return function(Component) {
     function WithApiComponent(props) {
@@ -335,7 +366,7 @@ export function withApi(loginRequired) {
               ? <Component
                 {...props} api={apiContext.api} user={apiContext.user}
                 login={apiContext.login} logout={apiContext.logout} />
-              : <Typography color="error">Please login to use this functionality</Typography>
+              : <LoginRequired />
           )}
         </ApiContext.Consumer>
       )
