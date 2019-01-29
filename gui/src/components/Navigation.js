@@ -60,7 +60,7 @@ class LoginLogoutComponent extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
-    userName: PropTypes.string,
+    user: PropTypes.object,
     login: PropTypes.func.isRequired,
     logout: PropTypes.func.isRequired
   }
@@ -124,13 +124,13 @@ class LoginLogoutComponent extends React.Component {
   }
 
   render() {
-    const { classes, userName } = this.props
+    const { classes, user } = this.props
     const { loggingIn, failure } = this.state
-    if (userName) {
+    if (user) {
       return (
         <div className={classes.root}>
           <Typography color="inherit" variant="body1">
-            Welcome, {userName}
+            Welcome, {user.first_name} {user.last_name}
           </Typography>
           <Button color="inherit" variant="outlined" onClick={this.handleLogout}>Logout</Button>
         </div>

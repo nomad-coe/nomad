@@ -178,7 +178,7 @@ class NomadCOEMigration:
         admin = target_db.query(User).filter_by(email='admin').first()
         if admin is None:
             admin = User(
-                user_id=0, email='admin', firstname='admin', lastname='admin',
+                user_id=0, email='admin', first_name='admin', last_name='admin',
                 password=bcrypt.encrypt(config.services.admin_password, ident='2y'))
             target_db.add(admin)
         target_db.commit()

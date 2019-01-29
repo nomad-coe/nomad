@@ -146,10 +146,18 @@ class TestAuth:
         })
         assert rv.status_code == 401
 
-    def test_get_token(self, client, test_user_auth, test_user: User, no_warn):
-        rv = client.get('/auth/token', headers=test_user_auth)
+    def test_get_user(self, client, test_user_auth, test_user: User, no_warn):
+        rv = client.get('/auth/user', headers=test_user_auth)
         assert rv.status_code == 200
-        assert rv.data.decode('utf-8') == test_user.get_auth_token().decode('utf-8')
+        user = json.loads(rv.data)
+        for key in ['first_name', 'last_name', 'email', 'token']:
+            assert key in user
+
+        rv = client.get('/uploads/', headers={
+            'X-Token': user['token']
+        })
+
+        assert rv.status_code == 200
 
 
 class TestUploads:

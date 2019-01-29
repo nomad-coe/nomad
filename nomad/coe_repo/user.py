@@ -43,8 +43,9 @@ class User(Base):  # type: ignore
 
     user_id = Column(Integer, primary_key=True)
     email = Column(String)
-    firstname = Column(String)
-    lastname = Column(String)
+    first_name = Column(String, name='firstname')
+    last_name = Column(String, name='lastname')
+    affiliation = Column(String)
     password = Column(String)
 
     def __repr__(self):
@@ -72,6 +73,10 @@ class User(Base):  # type: ignore
             raise LoginException('No session, user probably not logged in at NOMAD-coe repository GUI')
 
         return session.token.encode('utf-8')
+
+    @property
+    def token(self):
+        return self.get_auth_token().decode('utf-8')
 
     @property
     def is_admin(self) -> bool:

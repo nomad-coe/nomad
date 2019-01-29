@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
 import Markdown from './Markdown'
 import gitInfo from '../gitinfo'
-import { kibanaBase, appBase, apiBase } from '../config'
+import { kibanaBase, apiBase } from '../config'
 
 class Development extends React.Component {
   static propTypes = {

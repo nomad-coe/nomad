@@ -35,8 +35,8 @@ authenticated user information for authorization or otherwise.
 .. autofunction:: login_really_required
 """
 
-from flask import g, request, make_response
-from flask_restplus import abort, Resource
+from flask import g, request
+from flask_restplus import abort, Resource, fields
 from flask_httpauth import HTTPBasicAuth
 
 from nomad import config, processing, files, utils, coe_repo
@@ -126,10 +126,21 @@ ns = api.namespace(
     description='Authentication related endpoints.')
 
 
-@ns.route('/token')
+user_model = api.model('User', {
+    'first_name': fields.String(description='The user\'s first name'),
+    'last_name': fields.String(description='The user\'s last name'),
+    'email': fields.String(description='Guess what, the user\'s email'),
+    'affiliation': fields.String(description='The user\'s affiliation'),
+    'token': fields.String(
+        description='The access token that authenticates the user with the API. '
+        'User the HTTP header "X-Token" to provide it in API requests.')
+})
+
+
+@ns.route('/user')
 class TokenResource(Resource):
-    @api.doc('get_token')
-    @api.response(200, 'Token send', headers={'Content-Type': 'text/plain; charset=utf-8'})
+    @api.doc('get_user')
+    @api.marshal_with(user_model, skip_none=True, code=200, description='User data send')
     @login_really_required
     def get(self):
         """
@@ -140,14 +151,11 @@ class TokenResource(Resource):
         a more secure method of authentication.
         """
         try:
-            response = make_response(g.user.get_auth_token().decode('utf-8'))
-            response.headers['Content-Type'] = 'text/plain; charset=utf-8'
-            return response
+            return g.user
         except LoginException:
             abort(
                 401,
-                message='You are not propertly logged in at the NOMAD coe repository, '
-                        'there is no token for you.')
+                message='User not logged in, provide credentials via Basic HTTP authentication.')
 
 
 def create_authorization_predicate(upload_id, calc_id=None):

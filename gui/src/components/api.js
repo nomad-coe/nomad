@@ -99,22 +99,29 @@ class Upload {
 }
 
 class Api {
-  constructor(userName, password) {
-    userName = userName || 'sheldon.cooper@nomad-fairdi.tests.de'
-    password = password || 'password'
-
-    this.swaggerPromise = Swagger(`${apiBase}/swagger.json`, {
-      authorizations: {
-        'HTTP Basic': {
-          username: userName,
-          password: password
+  static async createSwaggerClient(userNameToken, password) {
+    let data
+    if (userNameToken) {
+      let auth = {
+        'X-Token': userNameToken
+      }
+      if (password) {
+        auth = {
+          'HTTP Basic': {
+            username: userNameToken,
+            password: password
+          }
         }
       }
-    })
-
-    this.auth_headers = {
-      Authorization: 'Basic ' + btoa(`${userName}:${password}`)
+      data = {authorizations: auth}
     }
+
+    return Swagger(`${apiBase}/swagger.json`, data)
+  }
+
+  constructor(user) {
+    user = user || {}
+    this.swaggerPromise = Api.createSwaggerClient(user.token)
 
     this.handleApiError = this.handleApiError.bind(this)
   }
@@ -214,7 +221,7 @@ class Api {
       .then(response => response.body)
   }
 
-  async authenticate(userName, password) {
+  static async authenticate(userName, password) {
     const client = await this.swaggerPromise
     return client.apis.auth.get_token()
       .catch(error => {
@@ -280,21 +287,31 @@ export class ApiProvider extends React.Component {
   }
 
   state = {
-    errors: [],
     api: new Api(),
-    token: null,
-    userName: null,
+    user: null,
     login: (userName, password, callback) => {
-      const api = new Api(userName, password)
-      api.authenticate().then(result => {
-        if (result) {
-          this.setState({api: api, userName: userName})
-        }
-        callback(result)
-      })
+      Api.createSwaggerClient(userName, password)
+        .catch(this.state.api.handleApiError)
+        .then(client => {
+          client.apis.auth.get_user()
+            .catch(error => {
+              if (error.response.status !== 401) {
+                this.handleApiError(error)
+              }
+            })
+            .then(response => {
+              if (response) {
+                const user = response.body
+                this.setState({api: new Api(user), user: user})
+                callback(true)
+              } else {
+                callback(false)
+              }
+            })
+        })
     },
     logout: () => {
-      this.setState({api: new Api(), userName: null})
+      this.setState({api: new Api(), user: null})
     }
   }
 
@@ -314,9 +331,9 @@ export function withApi(loginRequired) {
       return (
         <ApiContext.Consumer>
           {apiContext => (
-            (apiContext.userName || !loginRequired)
+            (apiContext.user || !loginRequired)
               ? <Component
-                {...props} api={apiContext.api} userName={apiContext.userName}
+                {...props} api={apiContext.api} user={apiContext.user}
                 login={apiContext.login} logout={apiContext.logout} />
               : <Typography color="error">Please login to use this functionality</Typography>
           )}
