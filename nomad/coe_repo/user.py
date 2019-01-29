@@ -84,6 +84,9 @@ class User(Base):  # type: ignore
 
     @staticmethod
     def verify_user_password(email, password):
+        if email is None or password is None or email == '' or password == '':
+            return None
+
         repo_db = infrastructure.repository_db
         user = repo_db.query(User).filter_by(email=email).first()
         if not user:
@@ -96,6 +99,9 @@ class User(Base):  # type: ignore
 
     @staticmethod
     def verify_auth_token(token):
+        if token is None or token == '':
+            return None
+
         repo_db = infrastructure.repository_db
         session = repo_db.query(Session).filter_by(token=token).first()
         if session is None:
@@ -119,7 +125,7 @@ def ensure_test_user(email):
     session = repo_db.query(Session).filter_by(
         user_id=existing.user_id).first()
     assert session, 'Test user %s has no session.' % email
-    assert session.token == email, 'Test user %s session has unexpected token.' % email
+    assert session.token == existing.first_name.lower(), 'Test user %s session has unexpected token.' % email
 
     return existing
 

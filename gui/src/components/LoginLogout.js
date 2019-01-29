@@ -11,6 +11,7 @@ class LoginLogout extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
+    isLoggingIn: PropTypes.bool,
     user: PropTypes.object,
     login: PropTypes.func.isRequired,
     logout: PropTypes.func.isRequired,
@@ -27,6 +28,7 @@ class LoginLogout extends React.Component {
       }
     },
     button: {}, // to allow overrides
+    buttonDisabled: {},
     errorText: {
       marginTop: theme.spacing.unit,
       marginBottom: theme.spacing.unit
@@ -43,7 +45,6 @@ class LoginLogout extends React.Component {
     loginDialogOpen: false,
     userName: '',
     password: '',
-    loggingIn: false,
     failure: false
   }
 
@@ -56,23 +57,19 @@ class LoginLogout extends React.Component {
   }
 
   handleLoginDialogClosed(withLogin) {
-    this.setState({loginDialogOpen: false})
     if (withLogin) {
-      if (this._ismounted) {
-        this.setState({loggingIn: true})
-      }
       this.props.login(this.state.userName, this.state.password, (success) => {
         if (this._ismounted) {
           if (success) {
-            this.setState({loggingIn: false, loginDialogOpen: false, failure: false})
+            this.setState({loginDialogOpen: false, failure: false})
           } else {
-            this.setState({loggingIn: false, failure: true, loginDialogOpen: true})
+            this.setState({failure: true, loginDialogOpen: true})
           }
         }
       })
     } else {
       if (this._ismounted) {
-        this.setState({loggingIn: false, failure: false, userName: '', password: '', loginDialogOpen: false})
+        this.setState({failure: false, userName: '', password: '', loginDialogOpen: false})
       }
     }
   }
@@ -88,8 +85,8 @@ class LoginLogout extends React.Component {
   }
 
   render() {
-    const { classes, user, variant, color } = this.props
-    const { loggingIn, failure } = this.state
+    const { classes, user, variant, color, isLoggingIn } = this.props
+    const { failure } = this.state
     if (user) {
       return (
         <div className={classes.root}>
@@ -107,7 +104,7 @@ class LoginLogout extends React.Component {
       return (
         <div className={classes.root}>
           <Button
-            className={classes.button} variant={variant} color={color}
+            className={isLoggingIn ? classes.buttonDisabled : classes.button} variant={variant} color={color} disabled={isLoggingIn}
             onClick={() => this.setState({loginDialogOpen: true})}
           >Login</Button>
           <Dialog
@@ -121,11 +118,11 @@ class LoginLogout extends React.Component {
                 do not have an account, please go to the nomad repository and
                 create one.
               </DialogContentText>
-              {loggingIn ? <LinearProgress/> : ''}
+              {isLoggingIn ? <LinearProgress/> : ''}
               {failure ? <DialogContentText className={classes.errorText} color="error">Wrong username or password!</DialogContentText> : ''}
               <FormGroup>
                 <TextField
-                  disabled={loggingIn}
+                  disabled={isLoggingIn}
                   autoFocus
                   margin="dense"
                   id="uaseName"
@@ -136,7 +133,7 @@ class LoginLogout extends React.Component {
                   onChange={this.handleChange('userName')}
                 />
                 <TextField
-                  disabled={loggingIn}
+                  disabled={isLoggingIn}
                   margin="dense"
                   id="password"
                   label="Password"

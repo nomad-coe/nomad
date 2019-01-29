@@ -1,11 +1,12 @@
 import React from 'react'
-import PropTypes from 'prop-types'
+import PropTypes, { instanceOf } from 'prop-types'
 import { withErrors } from './errors'
 import { UploadRequest } from '@navjobs/upload'
 import Swagger from 'swagger-client'
 import { apiBase } from '../config'
-import { Typography, withStyles } from '@material-ui/core'
+import { Typography, withStyles, LinearProgress } from '@material-ui/core'
 import LoginLogout from './LoginLogout'
+import { Cookies, withCookies } from 'react-cookie'
 
 const ApiContext = React.createContext()
 
@@ -282,19 +283,30 @@ class Api {
   }
 }
 
-export class ApiProvider extends React.Component {
+export class ApiProviderComponent extends React.Component {
   static propTypes = {
     children: PropTypes.oneOfType([
       PropTypes.arrayOf(PropTypes.node),
       PropTypes.node
-    ]).isRequired
+    ]).isRequired,
+    cookies: instanceOf(Cookies).isRequired
+  }
+
+  componentDidMount() {
+    const token = this.props.cookies.get('token')
+    if (token) {
+      this.state.login(token)
+    }
   }
 
   state = {
     api: new Api(),
     user: null,
-    login: (userName, password, successCallback) => {
-      Api.createSwaggerClient(userName, password)
+    isLoggingIn: false,
+    login: (userNameToken, password, successCallback) => {
+      this.setState({isLoggingIn: true})
+      successCallback = successCallback || (() => true)
+      Api.createSwaggerClient(userNameToken, password)
         .catch(this.state.api.handleApiError)
         .then(client => {
           client.apis.auth.get_user()
@@ -302,20 +314,24 @@ export class ApiProvider extends React.Component {
               if (error.response.status !== 401) {
                 this.handleApiError(error)
               }
+              this.setState({isLoggingIn: false})
             })
             .then(response => {
               if (response) {
                 const user = response.body
                 this.setState({api: new Api(user), user: user})
+                this.props.cookies.set('token', user.token)
                 successCallback(true)
               } else {
                 successCallback(false)
               }
+              this.setState({isLoggingIn: false})
             })
         })
     },
     logout: () => {
       this.setState({api: new Api(), user: null})
+      this.props.cookies.set('token', undefined)
     }
   }
 
@@ -331,7 +347,8 @@ export class ApiProvider extends React.Component {
 
 class LoginRequiredUnstyled extends React.Component {
   static propTypes = {
-    classes: PropTypes.object.isRequired
+    classes: PropTypes.object.isRequired,
+    isLoggingIn: PropTypes.bool
   }
 
   static styles = theme => ({
@@ -345,17 +362,23 @@ class LoginRequiredUnstyled extends React.Component {
   })
 
   render() {
-    const {classes} = this.props
-    return (
-      <div className={classes.root}>
-        <Typography>
-          To upload data, you must have a nomad account and you must be logged in.
-        </Typography>
-        <LoginLogout variant="outlined" color="primary"/>
-      </div>
-    )
+    const {classes, isLoggingIn} = this.props
+    if (!isLoggingIn) {
+      return (
+        <div className={classes.root}>
+          <Typography>
+            To upload data, you must have a nomad account and you must be logged in.
+          </Typography>
+          <LoginLogout variant="outlined" color="primary"/>
+        </div>
+      )
+    } else {
+      return <LinearProgress />
+    }
   }
 }
+
+export const ApiProvider = withCookies(ApiProviderComponent)
 
 const LoginRequired = withStyles(LoginRequiredUnstyled.styles)(LoginRequiredUnstyled)
 
@@ -367,9 +390,8 @@ export function withApi(loginRequired) {
           {apiContext => (
             (apiContext.user || !loginRequired)
               ? <Component
-                {...props} api={apiContext.api} user={apiContext.user}
-                login={apiContext.login} logout={apiContext.logout} />
-              : <LoginRequired />
+                {...props} {...apiContext} />
+              : <LoginRequired {...apiContext} />
           )}
         </ApiContext.Consumer>
       )

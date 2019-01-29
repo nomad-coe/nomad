@@ -166,6 +166,9 @@ class Navigation extends React.Component {
     barButton: {
       borderColor: theme.palette.getContrastText(theme.palette.primary.main),
       marginRight: theme.spacing.unit * 4
+    },
+    barButtonDisabled: {
+      marginRight: theme.spacing.unit * 4
     }
   })
 
@@ -311,7 +314,7 @@ class Navigation extends React.Component {
                   {selected(toolbarTitles)}
                 </Typography>
                 <div className={classes.barActions}>
-                  <LoginLogout variant="outlined" color="inherit" classes={{button: classes.barButton}} />
+                  <LoginLogout variant="outlined" color="inherit" classes={{button: classes.barButton, buttonDisabled: classes.barButtonDisabled}} />
                   <FormLabel className={classes.barSelect} >Show help</FormLabel>
                   <HelpContext.Consumer>{
                     help => (

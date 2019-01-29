@@ -44,7 +44,7 @@
       "cwd": "${workspaceFolder}",
       "program": "${workspaceFolder}/.pyenv/bin/pytest",
       "args": [
-        "-sv", "tests/test_migration.py::test_migrate"
+        "-sv", "tests/test_api.py::TestAuth::test_xtoken_auth_denied"
       ]
     },
     {

@@ -123,12 +123,12 @@ class TestAdmin:
 class TestAuth:
     def test_xtoken_auth(self, client, test_user: User, no_warn):
         rv = client.get('/uploads/', headers={
-            'X-Token': test_user.email  # the test users have their email as tokens for convinience
+            'X-Token': test_user.first_name.lower()  # the test users have their firstname as tokens for convinience
         })
 
         assert rv.status_code == 200
 
-    def test_xtoken_auth_denied(self, client, no_warn):
+    def test_xtoken_auth_denied(self, client, no_warn, repository_db):
         rv = client.get('/uploads/', headers={
             'X-Token': 'invalid'
         })
@@ -301,6 +301,7 @@ class TestUploads:
             upload = self.assert_upload(rv.data, local_path=file, name=name)
         else:
             upload = self.assert_upload(rv.data, name=name)
+        assert upload['tasks_running']
 
         self.assert_processing(client, test_user_auth, upload['upload_id'])
 
@@ -308,9 +309,22 @@ class TestUploads:
         rv = client.delete('/uploads/123456789012123456789012', headers=test_user_auth)
         assert rv.status_code == 404
 
-    def test_delete_during_processing(self, client, test_user_auth, proc_infra):
+    @pytest.fixture(scope='function')
+    def slow_processing(self, monkeypatch):
+        old_cleanup = Upload.cleanup
+
+        def slow_cleanup(self):
+            time.sleep(0.5)
+            old_cleanup(self)
+
+        monkeypatch.setattr('nomad.processing.data.Upload.cleanup', slow_cleanup)
+        yield True
+        monkeypatch.setattr('nomad.processing.data.Upload.cleanup', old_cleanup)
+
+    def test_delete_during_processing(self, client, test_user_auth, proc_infra, slow_processing):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
+        assert upload['tasks_running']
         rv = client.delete('/uploads/%s' % upload['upload_id'], headers=test_user_auth)
         assert rv.status_code == 400
         self.assert_processing(client, test_user_auth, upload['upload_id'])

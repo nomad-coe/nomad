@@ -63,20 +63,26 @@ api.authorizations = {
 
 @auth.verify_password
 def verify_password(username_or_token, password):
-    # first try to authenticate by token
-    g.user = User.verify_auth_token(username_or_token)
-    if not g.user:
-        # try to authenticate with username/password
+    if username_or_token is None or username_or_token == '':
+        g.user = None
+        return True
+
+    if password is None or password == '':
+        g.user = User.verify_auth_token(username_or_token)
+        return g.user is not None
+    else:
         try:
             g.user = User.verify_user_password(username_or_token, password)
         except Exception as e:
             utils.get_logger(__name__).error('could not verify password', exc_info=e)
             return False
 
-    if not g.user:
-        return True  # anonymous access
+        return g.user is not None
 
-    return True
+
+@auth.error_handler
+def auth_error_handler():
+    abort(401, 'Could not authenticate user, bad credentials')
 
 
 def login_if_available(func):

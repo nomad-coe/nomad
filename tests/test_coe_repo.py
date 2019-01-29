@@ -30,7 +30,7 @@ def assert_user(user, reference):
 
 
 def test_token_authorize(test_user):
-    user = User.verify_auth_token(test_user.email)
+    user = User.verify_auth_token(test_user.first_name.lower())
     assert_user(user, test_user)
 
 

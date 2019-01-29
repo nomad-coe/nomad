@@ -60,7 +60,7 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, commit:
             'status: %s; task: %s; parsing: %d/%d/%d                %s' %
             (upload.tasks_status, upload.current_task, successes, failures, total, ret), end='')
 
-        time.sleep(3)
+        time.sleep(1)
 
     if upload.tasks_status == FAILURE:
         click.echo('There have been errors:')

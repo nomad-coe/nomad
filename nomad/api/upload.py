@@ -293,7 +293,7 @@ class UploadResource(Resource):
         try:
             upload.delete_upload()
         except ProcessAlreadyRunning:
-            abort(400, message='The upload is still/already processed')
+            abort(400, message='The upload is still processed')
         except Exception as e:
             logger.error('could not delete processing upload', exc_info=e)
             raise e

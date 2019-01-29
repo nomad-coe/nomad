@@ -1155,8 +1155,8 @@ INSERT INTO public.pragma VALUES ('4.59');
 -- Data for Name: sessions; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.sessions VALUES ('leonard.hofstadter@nomad-fairdi.tests.de', 3, '2100-12-17 09:00:00+00', NULL, NULL);
-INSERT INTO public.sessions VALUES ('sheldon.cooper@nomad-fairdi.tests.de', 2, '2100-12-17 09:00:00+00', NULL, NULL);
+INSERT INTO public.sessions VALUES ('leonard', 3, '2100-12-17 09:00:00+00', NULL, NULL);
+INSERT INTO public.sessions VALUES ('sheldon', 2, '2100-12-17 09:00:00+00', NULL, NULL);
 
 
 --
