@@ -4,7 +4,7 @@ import { withErrors } from './errors'
 import { UploadRequest } from '@navjobs/upload'
 import Swagger from 'swagger-client'
 import { apiBase } from '../config'
-import { Typography, FormGroup, FormLabel, Button, withStyles } from '@material-ui/core'
+import { Typography, withStyles } from '@material-ui/core'
 import LoginLogout from './LoginLogout'
 
 const ApiContext = React.createContext()
@@ -290,7 +290,7 @@ export class ApiProvider extends React.Component {
   state = {
     api: new Api(),
     user: null,
-    login: (userName, password, callback) => {
+    login: (userName, password, successCallback) => {
       Api.createSwaggerClient(userName, password)
         .catch(this.state.api.handleApiError)
         .then(client => {
@@ -304,9 +304,9 @@ export class ApiProvider extends React.Component {
               if (response) {
                 const user = response.body
                 this.setState({api: new Api(user), user: user})
-                callback(true)
+                successCallback(true)
               } else {
-                callback(false)
+                successCallback(false)
               }
             })
         })

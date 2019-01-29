@@ -13,7 +13,9 @@ class LoginLogout extends React.Component {
     api: PropTypes.object.isRequired,
     user: PropTypes.object,
     login: PropTypes.func.isRequired,
-    logout: PropTypes.func.isRequired
+    logout: PropTypes.func.isRequired,
+    variant: PropTypes.string,
+    color: PropTypes.string
   }
 
   static styles = theme => ({
@@ -24,6 +26,7 @@ class LoginLogout extends React.Component {
         marginRight: theme.spacing.unit * 2
       }
     },
+    button: {}, // to allow overrides
     errorText: {
       marginTop: theme.spacing.unit,
       marginBottom: theme.spacing.unit
@@ -44,19 +47,33 @@ class LoginLogout extends React.Component {
     failure: false
   }
 
+  componentDidMount() {
+    this._ismounted = true
+  }
+
+  componentWillUnmount() {
+    this._ismounted = false
+  }
+
   handleLoginDialogClosed(withLogin) {
     this.setState({loginDialogOpen: false})
     if (withLogin) {
-      this.setState({loggingIn: true})
+      if (this._ismounted) {
+        this.setState({loggingIn: true})
+      }
       this.props.login(this.state.userName, this.state.password, (success) => {
-        if (success) {
-          this.setState({loggingIn: false, loginDialogOpen: false, failure: false})
-        } else {
-          this.setState({loggingIn: false, failure: true, loginDialogOpen: true})
+        if (this._ismounted) {
+          if (success) {
+            this.setState({loggingIn: false, loginDialogOpen: false, failure: false})
+          } else {
+            this.setState({loggingIn: false, failure: true, loginDialogOpen: true})
+          }
         }
       })
     } else {
-      this.setState({loggingIn: false, failure: false, userName: '', password: '', loginDialogOpen: false})
+      if (this._ismounted) {
+        this.setState({loggingIn: false, failure: false, userName: '', password: '', loginDialogOpen: false})
+      }
     }
   }
 
@@ -71,7 +88,7 @@ class LoginLogout extends React.Component {
   }
 
   render() {
-    const { classes, user, ...otherProps } = this.props
+    const { classes, user, variant, color } = this.props
     const { loggingIn, failure } = this.state
     if (user) {
       return (
@@ -79,13 +96,20 @@ class LoginLogout extends React.Component {
           <Typography color="inherit" variant="body1">
             Welcome, {user.first_name} {user.last_name}
           </Typography>
-          <Button className={classes.button} {...otherProps} onClick={this.handleLogout}>Logout</Button>
+          <Button
+            className={classes.button}
+            variant={variant} color={color}
+            onClick={this.handleLogout}
+          >Logout</Button>
         </div>
       )
     } else {
       return (
         <div className={classes.root}>
-          <Button className={classes.button} {...otherProps} onClick={() => this.setState({loginDialogOpen: true})}>Login</Button>
+          <Button
+            className={classes.button} variant={variant} color={color}
+            onClick={() => this.setState({loginDialogOpen: true})}
+          >Login</Button>
           <Dialog
             open={this.state.loginDialogOpen}
             onClose={() => this.handleLoginDialogClosed(false)}
