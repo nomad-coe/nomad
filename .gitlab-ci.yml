@@ -209,7 +209,7 @@ deploy:
           --set dbname=${DBNAME}
           --set volumes.files=${FILES_PATH};
       else
-        helm upgrade ${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE};
+        helm upgrade ${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE} --recreate-pods;
       fi
   except:
     - /^dev-.*$/

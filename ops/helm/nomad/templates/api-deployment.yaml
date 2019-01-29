@@ -7,7 +7,6 @@ metadata:
     helm.sh/chart: {{ include "nomad.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    date: "{{ .Release.Time.Seconds }}"
 spec:
   replicas: {{ .Values.api.replicas }}
   selector:
