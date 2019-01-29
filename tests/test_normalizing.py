@@ -57,7 +57,7 @@ def assert_normalized(backend):
     assert backend.get_value('system_type', 0) is not None
     assert backend.get_value('chemical_composition', 0) is not None
     assert backend.get_value('chemical_composition_bulk_reduced', 0) is not None
-    # The below tests are not always present for non periodic
+    # The below tests are not always present for non-periodic
     # cells that don't have a simulation_cell or lattice_vectors.
     if backend.get_value('system_type', 0) not in ['Atom', 'Molecule / Cluster']:
         assert backend.get_value('crystal_system', 0) is not None
