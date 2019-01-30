@@ -20,6 +20,11 @@ This module is used to store all configuration values. It makes use of
 import os
 import logging
 from collections import namedtuple
+import warnings
+
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
+
 
 FilesConfig = namedtuple(
     'FilesConfig', ['uploads_bucket', 'raw_bucket', 'archive_bucket', 'staging_bucket', 'public_bucket'])
