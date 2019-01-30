@@ -36,8 +36,8 @@ class Download extends React.Component {
 
   async onDownloadClicked() {
     const {url, api, user, fileName, raiseError} = this.props
-
-    let downloadUrl = url
+    const fullPath = `${apiBase}/${url}`
+    let downloadUrl = fullPath
     if (user) {
       api.getSignatureToken()
         .catch(error => {
@@ -45,7 +45,7 @@ class Download extends React.Component {
           raiseError(error)
         })
         .then(result => {
-          const downloadUrl = new URL(`${apiBase}/${url}`)
+          const downloadUrl = new URL(fullPath)
           downloadUrl.searchParams.append('token', result.token)
           FileSaver.saveAs(downloadUrl.href, fileName)
           this.setState({preparingDownload: false})
