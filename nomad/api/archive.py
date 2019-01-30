@@ -27,12 +27,17 @@ import nomad_meta_info
 from nomad.files import UploadFiles, Restricted
 
 from .app import api
-from .auth import login_if_available, create_authorization_predicate
+from .auth import login_if_available, create_authorization_predicate, \
+    signature_token_argument, with_signature_token
 from .common import calc_route
 
 ns = api.namespace(
     'archive',
     description='Access archive data and archive processing logs.')
+
+
+archive_file_request_parser = api.parser()
+archive_file_request_parser.add_argument(**signature_token_argument)
 
 
 @calc_route(ns, '/logs')
@@ -41,7 +46,9 @@ class ArchiveCalcLogResource(Resource):
     @api.response(404, 'The upload or calculation does not exist')
     @api.response(401, 'Not authorized to access the data.')
     @api.response(200, 'Archive data send', headers={'Content-Type': 'application/plain'})
+    @api.expect(archive_file_request_parser, validate=True)
     @login_if_available
+    @with_signature_token
     def get(self, upload_id, calc_id):
         """
         Get calculation processing log.
@@ -74,7 +81,9 @@ class ArchiveCalcResource(Resource):
     @api.response(404, 'The upload or calculation does not exist')
     @api.response(401, 'Not authorized to access the data.')
     @api.response(200, 'Archive data send')
+    @api.expect(archive_file_request_parser, validate=True)
     @login_if_available
+    @with_signature_token
     def get(self, upload_id, calc_id):
         """
         Get calculation data in archive form.
@@ -102,7 +111,7 @@ class ArchiveCalcResource(Resource):
 
 
 @ns.route('/metainfo/<string:metainfo_path>')
-@api.doc(params=dict(metainfo_path='A path or metainfo definition file name.'))
+@api.doc(params=dict(nomad_metainfo_path='A path or metainfo definition file name.'))
 class MetainfoResource(Resource):
     @api.doc('get_metainfo')
     @api.response(404, 'The metainfo does not exist')
@@ -113,13 +122,13 @@ class MetainfoResource(Resource):
         """
         try:
             file_dir = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
-            meta_info_path = os.path.normpath(os.path.join(file_dir, metainfo_path.strip()))
+            metainfo_file = os.path.normpath(os.path.join(file_dir, metainfo_path.strip()))
 
             rv = send_file(
-                meta_info_path,
+                metainfo_file,
                 mimetype='application/json',
                 as_attachment=True,
-                attachment_filename=os.path.basename(metainfo_path))
+                attachment_filename=os.path.basename(metainfo_file))
 
             return rv
         except FileNotFoundError:

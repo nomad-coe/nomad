@@ -23,6 +23,7 @@ data:
       "apiBase": "{{ .Values.proxy.external.path }}/api",
       "appBase": "{{ .Values.proxy.external.path }}",
       "appStaticBase": "{{ .Values.proxy.external.path }}",
+      "kibanaBase": "{{ .Values.proxy.external.kibanaPath }}",
       "appDebug": false
     };
 ---
@@ -64,6 +65,7 @@ spec:
           name: log
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
+      imagePullPolicy: always
       volumes:
       - name: nginx-conf
         configMap:

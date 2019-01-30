@@ -23,10 +23,11 @@ import ChevronLeftIcon from '@material-ui/icons/ChevronLeft'
 import MenuIcon from '@material-ui/icons/Menu'
 import { Link, withRouter } from 'react-router-dom'
 import { compose } from 'recompose'
-import { Avatar, MuiThemeProvider, IconButton } from '@material-ui/core'
-import { genTheme, repoTheme, archiveTheme, encTheme, appStaticBase, analyticsTheme } from '../config'
-import { ErrorSnacks } from './errors'
+import { MuiThemeProvider, IconButton, Checkbox, FormLabel } from '@material-ui/core'
+import { genTheme, repoTheme, archiveTheme, encTheme, analyticsTheme } from '../config'
 import classNames from 'classnames'
+import { HelpContext } from './help'
+import LoginLogout from './LoginLogout'
 
 const drawerWidth = 200
 
@@ -153,6 +154,20 @@ class Navigation extends React.Component {
     },
     menuItem: {
       paddingLeft: theme.spacing.unit * 3
+    },
+    barActions: {
+      display: 'flex',
+      alignItems: 'center'
+    },
+    barSelect: {
+      color: `${theme.palette.getContrastText(theme.palette.primary.main)} !important`
+    },
+    barButton: {
+      borderColor: theme.palette.getContrastText(theme.palette.primary.main),
+      marginRight: theme.spacing.unit * 4
+    },
+    barButtonDisabled: {
+      marginRight: theme.spacing.unit * 4
     }
   })
 
@@ -294,10 +309,21 @@ class Navigation extends React.Component {
                 >
                   <MenuIcon />
                 </IconButton>
-                <Typography variant="title" color="inherit" noWrap className={classes.flex}>
+                <Typography variant="h6" color="inherit" noWrap className={classes.flex}>
                   {selected(toolbarTitles)}
                 </Typography>
-                <Avatar src={`${appStaticBase}/me.jpg`}/>
+                <div className={classes.barActions}>
+                  <LoginLogout variant="outlined" color="inherit" classes={{button: classes.barButton, buttonDisabled: classes.barButtonDisabled}} />
+                  <FormLabel className={classes.barSelect} >Show help</FormLabel>
+                  <HelpContext.Consumer>{
+                    help => (
+                      <Checkbox
+                        checked={!help.someClosed()} indeterminate={!help.allClosed() && help.someClosed()}
+                        onClick={() => help.switchHelp()}
+                        classes={{root: classes.barSelect, checked: classes.barSelect}} />
+                    )
+                  }</HelpContext.Consumer>
+                </div>
               </Toolbar>
             </AppBar>
           </MuiThemeProvider>
@@ -305,9 +331,7 @@ class Navigation extends React.Component {
           <MuiThemeProvider theme={theme}>
             <main className={classes.content}>
               <div className={classes.toolbar} />
-              <ErrorSnacks>
-                {children}
-              </ErrorSnacks>
+              {children}
             </main>
           </MuiThemeProvider>
         </div>

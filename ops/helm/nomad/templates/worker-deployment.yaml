@@ -61,6 +61,7 @@ spec:
         command: ["python", "-m", "celery", "worker", "-l", "info", "-A", "nomad.processing"]
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
+      imagePullPolicy: always
       volumes:
       - name: files-volume
         hostPath:

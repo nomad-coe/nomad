@@ -30,7 +30,7 @@ config.services = config.NomadServicesConfig(**services_config)
 
 from nomad import api, coe_repo  # noqa
 from nomad.files import UploadFiles, PublicUploadFiles  # noqa
-from nomad.processing import Upload, Calc  # noqa
+from nomad.processing import Upload, Calc, SUCCESS  # noqa
 from nomad.coe_repo import User  # noqa
 
 from tests.processing.test_data import example_files  # noqa
@@ -65,33 +65,40 @@ def create_auth_headers(user):
     }
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='module')
 def test_user_auth(test_user: User):
     return create_auth_headers(test_user)
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='module')
 def test_other_user_auth(other_test_user: User):
     return create_auth_headers(other_test_user)
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='module')
 def admin_user_auth(admin_user: User):
     return create_auth_headers(admin_user)
+
+
+@pytest.fixture(scope='function')
+def test_user_signature_token(client, test_user_auth):
+    rv = client.get('/auth/token', headers=test_user_auth)
+    assert rv.status_code == 200
+    return json.loads(rv.data)['token']
 
 
 class TestAdmin:
 
     @pytest.mark.timeout(10)
-    def test_reset(self, client, admin_user_auth, repository_db):
+    def test_reset(self, client, admin_user_auth, expandable_repo_db):
         rv = client.post('/admin/reset', headers=admin_user_auth)
         assert rv.status_code == 200
 
     # TODO disabled as this will destroy the session repository_db beyond repair.
-    # @pytest.mark.timeout(10)
-    # def test_remove(self, client, admin_user_auth, repository_db):
-    #     rv = client.post('/admin/remove', headers=admin_user_auth)
-    #     assert rv.status_code == 200
+    @pytest.mark.timeout(10)
+    def test_remove(self, client, admin_user_auth, expandable_repo_db):
+        rv = client.post('/admin/remove', headers=admin_user_auth)
+        assert rv.status_code == 200
 
     def test_doesnotexist(self, client, admin_user_auth):
         rv = client.post('/admin/doesnotexist', headers=admin_user_auth)
@@ -115,7 +122,7 @@ class TestAdmin:
         yield None
         monkeypatch.setattr(config, 'services', old_config)
 
-    def test_disabled(self, client, admin_user_auth, disable_reset):
+    def test_disabled(self, client, admin_user_auth, disable_reset, repository_db):
         rv = client.post('/admin/reset', headers=admin_user_auth)
         assert rv.status_code == 400
 
@@ -123,12 +130,12 @@ class TestAdmin:
 class TestAuth:
     def test_xtoken_auth(self, client, test_user: User, no_warn):
         rv = client.get('/uploads/', headers={
-            'X-Token': test_user.email  # the test users have their email as tokens for convinience
+            'X-Token': test_user.first_name.lower()  # the test users have their firstname as tokens for convinience
         })
 
         assert rv.status_code == 200
 
-    def test_xtoken_auth_denied(self, client, no_warn):
+    def test_xtoken_auth_denied(self, client, no_warn, repository_db):
         rv = client.get('/uploads/', headers={
             'X-Token': 'invalid'
         })
@@ -146,10 +153,21 @@ class TestAuth:
         })
         assert rv.status_code == 401
 
-    def test_get_token(self, client, test_user_auth, test_user: User, no_warn):
-        rv = client.get('/auth/token', headers=test_user_auth)
+    def test_get_user(self, client, test_user_auth, test_user: User, no_warn):
+        rv = client.get('/auth/user', headers=test_user_auth)
         assert rv.status_code == 200
-        assert rv.data.decode('utf-8') == test_user.get_auth_token().decode('utf-8')
+        user = json.loads(rv.data)
+        for key in ['first_name', 'last_name', 'email', 'token']:
+            assert key in user
+
+        rv = client.get('/uploads/', headers={
+            'X-Token': user['token']
+        })
+
+        assert rv.status_code == 200
+
+    def test_signature_token(self, test_user_signature_token, no_warn):
+        assert test_user_signature_token is not None
 
 
 class TestUploads:
@@ -188,28 +206,29 @@ class TestUploads:
             assert rv.status_code == 200
             upload = self.assert_upload(rv.data)
             assert 'upload_time' in upload
-            if upload['completed']:
+            if not upload['tasks_running']:
                 break
 
         assert len(upload['tasks']) == 4
-        assert upload['status'] == 'SUCCESS'
+        assert upload['tasks_status'] == SUCCESS
         assert upload['current_task'] == 'cleanup'
+        assert not upload['process_running']
         upload_files = UploadFiles.get(upload['upload_id'])
         assert upload_files is not None
         calcs = upload['calcs']['results']
         for calc in calcs:
-            assert calc['status'] == 'SUCCESS'
+            assert calc['tasks_status'] == SUCCESS
             assert calc['current_task'] == 'archiving'
             assert len(calc['tasks']) == 3
             assert client.get('/archive/logs/%s/%s' % (calc['upload_id'], calc['calc_id']), headers=test_user_auth).status_code == 200
 
         if upload['calcs']['pagination']['total'] > 1:
-            rv = client.get('%s?page=2&per_page=1&order_by=status' % upload_endpoint, headers=test_user_auth)
+            rv = client.get('%s?page=2&per_page=1&order_by=tasks_status' % upload_endpoint, headers=test_user_auth)
             assert rv.status_code == 200
             upload = self.assert_upload(rv.data)
             assert len(upload['calcs']['results']) == 1
 
-    def assert_unstage(self, client, test_user_auth, upload_id, proc_infra, meta_data={}):
+    def assert_unstage(self, client, test_user_auth, upload_id, proc_infra, metadata={}):
         rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         empty_upload = upload['calcs']['pagination']['total'] == 0
@@ -217,14 +236,29 @@ class TestUploads:
         rv = client.post(
             '/uploads/%s' % upload_id,
             headers=test_user_auth,
-            data=json.dumps(dict(operation='unstage', meta_data=meta_data)),
+            data=json.dumps(dict(command='commit', metadata=metadata)),
             content_type='application/json')
         assert rv.status_code == 200
+        upload = self.assert_upload(rv.data)
+        assert upload['current_process'] == 'commit_upload'
+        assert upload['process_running']
 
         self.assert_upload_does_not_exist(client, upload_id, test_user_auth)
-        assert_coe_upload(upload_id, empty=empty_upload, meta_data=meta_data)
+        assert_coe_upload(upload_id, empty=empty_upload, metadata=metadata)
 
     def assert_upload_does_not_exist(self, client, upload_id: str, test_user_auth):
+        # poll until commit/delete completed
+        while True:
+            time.sleep(0.1)
+            rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
+            if rv.status_code == 200:
+                upload = self.assert_upload(rv.data)
+                assert upload['process_running']
+            elif rv.status_code == 404:
+                break
+            else:
+                assert False
+
         rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
         assert rv.status_code == 404
         assert Upload.objects(upload_id=upload_id).first() is None
@@ -277,6 +311,7 @@ class TestUploads:
             upload = self.assert_upload(rv.data, local_path=file, name=name)
         else:
             upload = self.assert_upload(rv.data, name=name)
+        assert upload['tasks_running']
 
         self.assert_processing(client, test_user_auth, upload['upload_id'])
 
@@ -284,9 +319,22 @@ class TestUploads:
         rv = client.delete('/uploads/123456789012123456789012', headers=test_user_auth)
         assert rv.status_code == 404
 
-    def test_delete_during_processing(self, client, test_user_auth, proc_infra):
+    @pytest.fixture(scope='function')
+    def slow_processing(self, monkeypatch):
+        old_cleanup = Upload.cleanup
+
+        def slow_cleanup(self):
+            time.sleep(0.5)
+            old_cleanup(self)
+
+        monkeypatch.setattr('nomad.processing.data.Upload.cleanup', slow_cleanup)
+        yield True
+        monkeypatch.setattr('nomad.processing.data.Upload.cleanup', old_cleanup)
+
+    def test_delete_during_processing(self, client, test_user_auth, proc_infra, slow_processing):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
+        assert upload['tasks_running']
         rv = client.delete('/uploads/%s' % upload['upload_id'], headers=test_user_auth)
         assert rv.status_code == 400
         self.assert_processing(client, test_user_auth, upload['upload_id'])
@@ -320,9 +368,8 @@ class TestUploads:
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
-
-        meta_data = dict(comment='test comment')
-        self.assert_unstage(client, admin_user_auth, upload['upload_id'], proc_infra, meta_data)
+        metadata = dict(comment='test comment')
+        self.assert_unstage(client, admin_user_auth, upload['upload_id'], proc_infra, metadata)
 
     def test_post_metadata_forbidden(self, client, proc_infra, test_user_auth, clean_repository_db):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
@@ -331,7 +378,7 @@ class TestUploads:
         rv = client.post(
             '/uploads/%s' % upload['upload_id'],
             headers=test_user_auth,
-            data=json.dumps(dict(operation='unstage', meta_data=dict(_pid=256))),
+            data=json.dumps(dict(command='commit', metadata=dict(_pid=256))),
             content_type='application/json')
         assert rv.status_code == 401
 
@@ -343,7 +390,7 @@ class TestUploads:
     #     rv = client.post(
     #         '/uploads/%s' % upload['upload_id'],
     #         headers=test_user_auth,
-    #         data=json.dumps(dict(operation='unstage', meta_data=dict(doesnotexist='hi'))),
+    #         data=json.dumps(dict(command='commit', metadata=dict(doesnotexist='hi'))),
     #         content_type='application/json')
     #     assert rv.status_code == 400
 
@@ -450,9 +497,21 @@ class TestArchive(UploadFilesBasedTests):
         assert rv.status_code == 200
         assert json.loads(rv.data) is not None
 
+    @UploadFilesBasedTests.ignore_authorization
+    def test_get_signed(self, client, upload, _, test_user_signature_token):
+        rv = client.get('/archive/%s/0?token=%s' % (upload, test_user_signature_token))
+        assert rv.status_code == 200
+        assert json.loads(rv.data) is not None
+
     @UploadFilesBasedTests.check_authorizaton
     def test_get_calc_proc_log(self, client, upload, auth_headers):
         rv = client.get('/archive/logs/%s/0' % upload, headers=auth_headers)
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
+
+    @UploadFilesBasedTests.ignore_authorization
+    def test_get_calc_proc_log_signed(self, client, upload, _, test_user_signature_token):
+        rv = client.get('/archive/logs/%s/0?token=%s' % (upload, test_user_signature_token))
         assert rv.status_code == 200
         assert len(rv.data) > 0
 
@@ -526,6 +585,13 @@ class TestRaw(UploadFilesBasedTests):
         assert len(rv.data) > 0
 
     @UploadFilesBasedTests.ignore_authorization
+    def test_raw_file_signed(self, client, upload, _, test_user_signature_token):
+        url = '/raw/%s/%s?token=%s' % (upload, example_file_mainfile, test_user_signature_token)
+        rv = client.get(url)
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
+
+    @UploadFilesBasedTests.ignore_authorization
     def test_raw_file_missing_file(self, client, upload, auth_headers):
         url = '/raw/%s/does/not/exist' % upload
         rv = client.get(url, headers=auth_headers)
@@ -575,6 +641,18 @@ class TestRaw(UploadFilesBasedTests):
         if compress:
             url = '%s&compress=1' % url
         rv = client.get(url, headers=auth_headers)
+
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
+        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
+            assert zip_file.testzip() is None
+            assert len(zip_file.namelist()) == len(example_file_contents)
+
+    @UploadFilesBasedTests.ignore_authorization
+    def test_raw_files_signed(self, client, upload, _, test_user_signature_token):
+        url = '/raw/%s?files=%s&token=%s' % (
+            upload, ','.join(example_file_contents), test_user_signature_token)
+        rv = client.get(url)
 
         assert rv.status_code == 200
         assert len(rv.data) > 0

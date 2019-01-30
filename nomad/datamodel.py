@@ -21,8 +21,10 @@ It is not about representing every detail, but those parts that are directly inv
 api, processing, migration, mirroring, or other 'infrastructure' operations.
 """
 
-from typing import Type, TypeVar, Union, Iterable, cast
+from typing import Type, TypeVar, Union, Iterable, cast, Callable, Dict
 import datetime
+
+from nomad import utils
 
 T = TypeVar('T')
 
@@ -95,3 +97,43 @@ class Upload(Entity):
     @property
     def calcs(self) -> Iterable[Calc]:
         raise NotImplementedError
+
+
+class UploadWithMetadata(dict, Entity):
+
+    def __init__(self, upload_id):
+        self.upload_id = upload_id
+
+
+class CalcWithMetadata(utils.POPO, Entity):
+    """
+    A dict/POPO class that can be used for mapping calc representations with calc metadata.
+    We have many representations of calcs and their calc metadata. To avoid implement
+    mappings between all combinations, just implement mappings with the class and use
+    mapping transitivity. E.g. instead of A -> B, A -> this -> B.
+
+    The other calc representations can register mappings from them, in order to allow
+    to use this classes `load_from` method.
+    """
+    mappings: Dict[Type[Entity], Callable[[Entity], 'CalcWithMetadata']] = dict()
+
+    @classmethod
+    def register_mapping(
+            cls, from_type: Type[Entity], mapping: Callable[[Entity], 'CalcWithMetadata']):
+        """
+        Register a mapping from instances of another calc representation to instances of
+        :class:`CalcWithMetadata`.
+        Arguments:
+            from_type: The source calc type of the mapping.
+            mapping: The mapping itself as a callable that takes a source object of the
+                source calc type and returns an instance of :class:`CalcWithMetadata`.
+        """
+        cls.mappings[from_type] = mapping
+
+    @classmethod
+    def load_from(cls, obj):
+        return CalcWithMetadata.mappings[obj.__class__](obj)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.upload = UploadWithMetadata(kwargs['upload_id'])

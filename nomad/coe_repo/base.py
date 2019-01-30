@@ -59,7 +59,7 @@ class CalcMetaData(Base):  # type: ignore
     filenames = Column(BYTEA)
     location = Column(String)
     version_id = Column(Integer, ForeignKey('codeversions.version_id'))
-    version = relationship('CodeVersion')
+    version = relationship('CodeVersion', lazy='joined', uselist=False)
 
 
 class UserMetaData(Base):  # type: ignore
@@ -96,12 +96,20 @@ class Spacegroup(Base):  # type: ignore
     n = Column(Integer)
 
 
+topic_code = 220
+topic_atoms = 10
+topic_system_type = 50
+topic_xc_treatment = 75
+topic_crystal_system = 90
+topic_basis_set_type = 80
+
+
 class Tag(Base):  # type: ignore
     __tablename__ = 'tags'
     calc_id = Column(Integer, ForeignKey('calculations.calc_id'), primary_key=True)
     calc = relationship('Calc')
     tid = Column(Integer, ForeignKey('topics.tid'), primary_key=True)
-    topic = relationship('Topics')
+    topic = relationship('Topics', lazy='joined', uselist=False)
 
     def __repr__(self):
         return '<Tag(calc_id="%d", tid="%d)>' % (int(self.calc_id), int(self.tid))

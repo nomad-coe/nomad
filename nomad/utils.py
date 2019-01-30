@@ -253,3 +253,30 @@ class archive:
     @staticmethod
     def upload_id(archive_id: str) -> str:
         return archive.item(archive_id, 0)
+
+
+def to_tuple(self, *args):
+    return tuple(self[arg] for arg in args)
+
+
+class POPO(dict):
+    """
+    A dict subclass that uses attributes as key/value pairs.
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def __getattr__(self, name):
+        if name in self:
+            return self[name]
+        else:
+            raise AttributeError("No such attribute: " + name)
+
+    def __setattr__(self, name, value):
+        self[name] = value
+
+    def __delattr__(self, name):
+        if name in self:
+            del self[name]
+        else:
+            raise AttributeError("No such attribute: " + name)

@@ -3,6 +3,7 @@ import logging
 from sqlalchemy.orm import Session
 from mongoengine import connect
 from mongoengine.connection import disconnect
+from contextlib import contextmanager
 
 from nomad import config, infrastructure
 
@@ -13,6 +14,12 @@ def monkeysession(request):
     mpatch = MonkeyPatch()
     yield mpatch
     mpatch.undo()
+
+
+@pytest.fixture(scope='session', autouse=True)
+def nomad_files(monkeysession):
+    monkeysession.setattr('nomad.config.fs', config.FSConfig(
+        tmp='.volumes/test_fs/tmp', objects='.volumes/test_fs/objects'))
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -102,19 +109,67 @@ def elastic():
     assert infrastructure.elastic_client is not None
 
 
-@pytest.fixture(scope='session')
-def repository_db(monkeysession):
-    infrastructure.setup_repository_db()
-    assert infrastructure.repository_db_conn is not None
+@contextmanager
+def create_repository_db(monkeysession=None, **kwargs):
+    """
+    A generator that sets up and tears down a test db and monkeypatches it to the
+    respective global infrastructure variables.
+    """
+    db_args = dict(dbname='test_nomad_fair_repo_db')
+    db_args.update(**kwargs)
+
+    old_config = config.repository_db
+    new_config = config.RepositoryDBConfig(
+        old_config.host,
+        old_config.port,
+        db_args.get('dbname'),
+        old_config.user,
+        old_config.password)
+
+    if monkeysession is not None:
+        monkeysession.setattr('nomad.config.repository_db', new_config)
+
+    connection, _ = infrastructure.sqlalchemy_repository_db(**db_args)
+    assert connection is not None
 
     # we use a transaction around the session to rollback anything that happens within
     # test execution
-    trans = infrastructure.repository_db_conn.begin()
-    session = Session(bind=infrastructure.repository_db_conn, autocommit=True)
-    monkeysession.setattr('nomad.infrastructure.repository_db', session)
-    yield infrastructure.repository_db
+    trans = connection.begin()
+    db = Session(bind=connection, autocommit=True)
+
+    old_connection, old_db = None, None
+    if monkeysession is not None:
+        from nomad.infrastructure import repository_db_conn, repository_db
+        old_connection, old_db = repository_db_conn, repository_db
+        monkeysession.setattr('nomad.infrastructure.repository_db_conn', connection)
+        monkeysession.setattr('nomad.infrastructure.repository_db', db)
+
+    yield db
+
+    if monkeysession is not None:
+        monkeysession.setattr('nomad.infrastructure.repository_db_conn', old_connection)
+        monkeysession.setattr('nomad.infrastructure.repository_db', old_db)
+        monkeysession.setattr('nomad.config.repository_db', old_config)
+
     trans.rollback()
-    session.close()
+    db.expunge_all()
+    db.invalidate()
+    db.close_all()
+
+    connection.close()
+    connection.engine.dispose()
+
+
+@pytest.fixture(scope='module')
+def repository_db(monkeysession):
+    with create_repository_db(monkeysession, exists=False) as db:
+        yield db
+
+
+@pytest.fixture(scope='function')
+def expandable_repo_db(monkeysession, repository_db):
+    with create_repository_db(monkeysession, dbname='test_nomad_fair_expandable_repo_db', exists=False) as db:
+        yield db
 
 
 @pytest.fixture(scope='function')
@@ -124,54 +179,22 @@ def clean_repository_db(repository_db):
     yield repository_db
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='module')
 def test_user(repository_db):
     from nomad import coe_repo
     return coe_repo.ensure_test_user(email='sheldon.cooper@nomad-fairdi.tests.de')
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='module')
 def other_test_user(repository_db):
     from nomad import coe_repo
     return coe_repo.ensure_test_user(email='leonard.hofstadter@nomad-fairdi.tests.de')
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='module')
 def admin_user(repository_db):
     from nomad import coe_repo
     return coe_repo.admin_user()
-
-
-# @pytest.fixture(scope='function')
-# def mocksearch(monkeypatch):
-#     uploads_by_id = {}
-#     by_archive_id = {}
-
-#     def persist(calc):
-#         uploads_by_id.setdefault(calc.upload_id, []).append(calc)
-#         by_archive_id[calc.calc_id] = calc
-
-#     def upload_exists(self):
-#         return self.upload_id in uploads_by_id
-
-#     def upload_delete(self):
-#         upload_id = self.upload_id
-#         if upload_id in uploads_by_id:
-#             for calc in uploads_by_id[upload_id]:
-#                 del(by_archive_id[calc.calc_id])
-#             del(uploads_by_id[upload_id])
-
-#     @property
-#     def upload_calcs(self):
-#         return uploads_by_id.get(self.upload_id, [])
-
-#     monkeypatch.setattr('nomad.repo.RepoCalc.persist', persist)
-#     monkeypatch.setattr('nomad.repo.RepoUpload.exists', upload_exists)
-#     monkeypatch.setattr('nomad.repo.RepoUpload.delete', upload_delete)
-#     monkeypatch.setattr('nomad.repo.RepoUpload.calcs', upload_calcs)
-#     monkeypatch.setattr('nomad.repo.RepoUpload.unstage', lambda *args, **kwargs: None)
-
-#     return by_archive_id
 
 
 @pytest.fixture(scope='function')

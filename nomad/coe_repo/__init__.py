@@ -43,5 +43,5 @@ This module also provides functionality to add parsed calculation data to the db
 """
 
 from .user import User, ensure_test_user, admin_user, LoginException
-from .calc import Calc
+from .calc import Calc, DataSet
 from .upload import UploadMetaData, Upload

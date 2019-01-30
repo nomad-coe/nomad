@@ -14,8 +14,10 @@
 
 from passlib.hash import bcrypt
 from sqlalchemy import Column, Integer, String
+import datetime
+import jwt
 
-from nomad import infrastructure
+from nomad import infrastructure, config
 
 from .base import Base
 
@@ -43,8 +45,9 @@ class User(Base):  # type: ignore
 
     user_id = Column(Integer, primary_key=True)
     email = Column(String)
-    firstname = Column(String)
-    lastname = Column(String)
+    first_name = Column(String, name='firstname')
+    last_name = Column(String, name='lastname')
+    affiliation = Column(String)
     password = Column(String)
 
     def __repr__(self):
@@ -73,12 +76,31 @@ class User(Base):  # type: ignore
 
         return session.token.encode('utf-8')
 
+    def get_signature_token(self, expiration=10):
+        """
+        Genertes ver short term JWT token that can be used to sign download URLs.
+
+        Returns: Tuple with token and expiration datetime
+        """
+        expires_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=expiration)
+        token = jwt.encode(
+            dict(user=self.email, exp=expires_at),
+            config.services.api_secret, 'HS256').decode('utf-8')
+        return token, expires_at
+
+    @property
+    def token(self):
+        return self.get_auth_token().decode('utf-8')
+
     @property
     def is_admin(self) -> bool:
         return self.email == 'admin'
 
     @staticmethod
     def verify_user_password(email, password):
+        if email is None or password is None or email == '' or password == '':
+            return None
+
         repo_db = infrastructure.repository_db
         user = repo_db.query(User).filter_by(email=email).first()
         if not user:
@@ -91,6 +113,9 @@ class User(Base):  # type: ignore
 
     @staticmethod
     def verify_auth_token(token):
+        if token is None or token == '':
+            return None
+
         repo_db = infrastructure.repository_db
         session = repo_db.query(Session).filter_by(token=token).first()
         if session is None:
@@ -99,6 +124,27 @@ class User(Base):  # type: ignore
         user = repo_db.query(User).filter_by(user_id=session.user_id).first()
         assert user, 'User in sessions must exist.'
         return user
+
+    @staticmethod
+    def verify_signature_token(token):
+        """
+        Verifies the given JWT token. This should be used to verify URLs signed
+        with a short term signature token (see :func:`get_signature_token`)
+        """
+        try:
+            decoded = jwt.decode(token, config.services.api_secret, algorithms=['HS256'])
+            repo_db = infrastructure.repository_db
+            user = repo_db.query(User).filter_by(email=decoded['user']).first()
+            if user is None:
+                raise LoginException('Token signed for invalid user')
+            else:
+                return user
+        except KeyError:
+            raise LoginException('Token with invalid/unexpected payload')
+        except jwt.ExpiredSignatureError:
+            raise LoginException('Expired token')
+        except jwt.InvalidTokenError:
+            raise LoginException('Invalid token')
 
 
 def ensure_test_user(email):
@@ -114,7 +160,7 @@ def ensure_test_user(email):
     session = repo_db.query(Session).filter_by(
         user_id=existing.user_id).first()
     assert session, 'Test user %s has no session.' % email
-    assert session.token == email, 'Test user %s session has unexpected token.' % email
+    assert session.token == existing.first_name.lower(), 'Test user %s session has unexpected token.' % email
 
     return existing
 

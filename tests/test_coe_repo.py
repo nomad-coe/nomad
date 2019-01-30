@@ -30,7 +30,7 @@ def assert_user(user, reference):
 
 
 def test_token_authorize(test_user):
-    user = User.verify_auth_token(test_user.email)
+    user = User.verify_auth_token(test_user.first_name.lower())
     assert_user(user, test_user)
 
 
@@ -39,7 +39,7 @@ def test_password_authorize(test_user):
     assert_user(user, test_user)
 
 
-def assert_coe_upload(upload_id, empty=False, meta_data={}):
+def assert_coe_upload(upload_id, empty=False, metadata={}):
     coe_upload = Upload.from_upload_id(upload_id)
 
     if empty:
@@ -48,28 +48,28 @@ def assert_coe_upload(upload_id, empty=False, meta_data={}):
         assert coe_upload is not None
         assert len(coe_upload.calcs) > 0
         for calc in coe_upload.calcs:
-            assert_coe_calc(calc, meta_data=meta_data)
+            assert_coe_calc(calc, metadata=metadata)
 
-        if '_upload_time' in meta_data:
-            assert coe_upload.created.isoformat()[:26] == meta_data['_upload_time']
+        if '_upload_time' in metadata:
+            assert coe_upload.created.isoformat()[:26] == metadata['_upload_time']
 
 
-def assert_coe_calc(calc: Calc, meta_data={}):
-    assert int(calc.pid) == int(meta_data.get('_pid', calc.pid))
-    assert calc.calc_id == meta_data.get('_checksum', calc.calc_id)
+def assert_coe_calc(calc: Calc, metadata={}):
+    assert int(calc.pid) == int(metadata.get('_pid', calc.pid))
+    assert calc.calc_id == metadata.get('_checksum', calc.calc_id)
 
     # calc data
     assert len(calc.filenames) == 5
     assert calc.chemical_formula is not None
 
     # user meta data
-    assert calc.comment == meta_data.get('comment', None)
-    assert sorted(calc.references) == sorted(meta_data.get('references', []))
+    assert calc.comment == metadata.get('comment', None)
+    assert sorted(calc.references) == sorted(metadata.get('references', []))
     assert calc.uploader is not None
-    assert calc.uploader.user_id == meta_data.get('_uploader', calc.uploader.user_id)
-    assert sorted(user.user_id for user in calc.coauthors) == sorted(meta_data.get('coauthors', []))
-    assert sorted(user.user_id for user in calc.shared_with) == sorted(meta_data.get('shared_with', []))
-    assert calc.with_embargo == meta_data.get('with_embargo', False)
+    assert calc.uploader.user_id == metadata.get('_uploader', calc.uploader.user_id)
+    assert sorted(user.user_id for user in calc.coauthors) == sorted(metadata.get('coauthors', []))
+    assert sorted(user.user_id for user in calc.shared_with) == sorted(metadata.get('shared_with', []))
+    assert calc.with_embargo == metadata.get('with_embargo', False)
 
 
 @pytest.mark.timeout(10)
@@ -84,7 +84,7 @@ def test_add_upload(clean_repository_db, processed_upload):
 def test_add_upload_metadata(clean_repository_db, processed_upload, other_test_user, test_user):
     empty = processed_upload.total_calcs == 0
 
-    meta_data = {
+    metadata = {
         'comment': 'test comment',
         'with_embargo': True,
         'references': ['http://external.ref/one', 'http://external.ref/two'],
@@ -95,8 +95,8 @@ def test_add_upload_metadata(clean_repository_db, processed_upload, other_test_u
         '_pid': 256
     }
 
-    Upload.add(processed_upload, meta_data=meta_data)
-    assert_coe_upload(processed_upload.upload_id, empty=empty, meta_data=meta_data)
+    Upload.add(processed_upload, metadata=metadata)
+    assert_coe_upload(processed_upload.upload_id, empty=empty, metadata=metadata)
 
 
 class TestDataSets:

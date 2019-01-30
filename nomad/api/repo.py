@@ -32,7 +32,7 @@ ns = api.namespace('repo', description='Access repository metadata.')
 class RepoCalcResource(Resource):
     @api.response(404, 'The upload or calculation does not exist')
     @api.response(401, 'Not authorized to access the calculation')
-    @api.response(200, 'Metadata send')
+    @api.response(200, 'Metadata send', fields.Raw)
     @api.doc('get_repo_calc')
     @login_if_available
     def get(self, upload_id, calc_id):
@@ -43,6 +43,7 @@ class RepoCalcResource(Resource):
         Calcs are references via *upload_id*, *calc_id* pairs.
         """
         # TODO use elastic search instead of the files
+        # TODO add missing user metadata (from elastic or repo db)
         upload_files = UploadFiles.get(upload_id, create_authorization_predicate(upload_id, calc_id))
         if upload_files is None:
             abort(404, message='There is no upload %s' % upload_id)

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
 import Markdown from './Markdown'
 import gitInfo from '../gitinfo'
-import { appBase } from '../config'
+import { kibanaBase, apiBase } from '../config'
 
 class Development extends React.Component {
   static propTypes = {
@@ -20,18 +20,24 @@ class Development extends React.Component {
     return (
       <div className={classes.root}>
         <Markdown>{`
-          # Build info
+          ### Build info
           - version: \`${gitInfo.version}\`
           - ref: \`${gitInfo.ref}\`
           - last commit message: *${gitInfo.log}*
 
-          \n\n# Elastic stack
+          ### ReST API
+          Nomad services can also be accessed programatically via nomad's
+          ReST API. The API is described via [swagger](https://swagger.io/), therefore
+          you can use your favorit swagger client library (e.g.
+          [bravado](https://github.com/Yelp/bravado) for Python).
+          Here is [our API's swagger UI](${apiBase}/) as reference documentation.
+
+          ### Elastic stack
           We use a central logging system based on the *elastic*-stack
           (previously called *Elastic Logstash Kibana* (ELK)-stack).
           This system pushes logs, events, monitoring data,
           and other application metrics to a central database where it
-          can be analysed visually.
-          \n\n[Link to Kiaba](${appBase}/kibana/)
+          can be analysed visually. Here is the [link to Kiaba](${kibanaBase}/)
         `}</Markdown>
       </div>
     )

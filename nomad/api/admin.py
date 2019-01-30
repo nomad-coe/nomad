@@ -32,10 +32,10 @@ class AdminRemoveResource(Resource):
     @login_really_required
     def post(self):
         """
-        The ``reset`` operation will attempt to clear the contents of all databased and
+        The ``reset`` command will attempt to clear the contents of all databased and
         indices.
 
-        Nomad can be configured to disable reset and the operation might not be available.
+        Nomad can be configured to disable reset and the command might not be available.
         """
         if not g.user.is_admin:
             abort(401, message='Only the admin user can perform reset.')
@@ -56,10 +56,10 @@ class AdminResetResource(Resource):
     @login_really_required
     def post(self):
         """
-        The ``remove``operation will attempt to remove all databases. Expect the
+        The ``remove``command will attempt to remove all databases. Expect the
         api to stop functioning after this request.
 
-        Nomad can be configured to disable remove and the operation might not be available.
+        Nomad can be configured to disable remove and the command might not be available.
         """
         if not g.user.is_admin:
             abort(401, message='Only the admin user can perform remove.')

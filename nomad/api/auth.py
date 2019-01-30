@@ -35,8 +35,8 @@ authenticated user information for authorization or otherwise.
 .. autofunction:: login_really_required
 """
 
-from flask import g, request, make_response
-from flask_restplus import abort, Resource
+from flask import g, request
+from flask_restplus import abort, Resource, fields
 from flask_httpauth import HTTPBasicAuth
 
 from nomad import config, processing, files, utils, coe_repo
@@ -63,19 +63,26 @@ api.authorizations = {
 
 @auth.verify_password
 def verify_password(username_or_token, password):
-    # first try to authenticate by token
-    g.user = User.verify_auth_token(username_or_token)
-    if not g.user:
-        # try to authenticate with username/password
+    if username_or_token is None or username_or_token == '':
+        g.user = None
+        return True
+
+    if password is None or password == '':
+        g.user = User.verify_auth_token(username_or_token)
+        return g.user is not None
+    else:
         try:
             g.user = User.verify_user_password(username_or_token, password)
-        except Exception:
+        except Exception as e:
+            utils.get_logger(__name__).error('could not verify password', exc_info=e)
             return False
 
-    if not g.user:
-        return True  # anonymous access
+        return g.user is not None
 
-    return True
+
+@auth.error_handler
+def auth_error_handler():
+    abort(401, 'Could not authenticate user, bad credentials')
 
 
 def login_if_available(func):
@@ -125,28 +132,86 @@ ns = api.namespace(
     description='Authentication related endpoints.')
 
 
-@ns.route('/token')
-class TokenResource(Resource):
-    @api.doc('get_token')
-    @api.response(200, 'Token send', headers={'Content-Type': 'text/plain; charset=utf-8'})
+user_model = api.model('User', {
+    'first_name': fields.String(description='The user\'s first name'),
+    'last_name': fields.String(description='The user\'s last name'),
+    'email': fields.String(description='Guess what, the user\'s email'),
+    'affiliation': fields.String(description='The user\'s affiliation'),
+    'token': fields.String(
+        description='The access token that authenticates the user with the API. '
+        'User the HTTP header "X-Token" to provide it in API requests.')
+})
+
+
+@ns.route('/user')
+class UserResource(Resource):
+    @api.doc('get_user')
+    @api.marshal_with(user_model, skip_none=True, code=200, description='User data send')
     @login_really_required
     def get(self):
         """
-        Get the access token for the authenticated user.
+        Get user information including a long term access token for the authenticated user.
 
         You can use basic authentication to access this endpoint and receive a
         token for further api access. This token will expire at some point and presents
         a more secure method of authentication.
         """
         try:
-            response = make_response(g.user.get_auth_token().decode('utf-8'))
-            response.headers['Content-Type'] = 'text/plain; charset=utf-8'
-            return response
+            return g.user
         except LoginException:
             abort(
                 401,
-                message='You are not propertly logged in at the NOMAD coe repository, '
-                        'there is no token for you.')
+                message='User not logged in, provide credentials via Basic HTTP authentication.')
+
+
+token_model = api.model('Token', {
+    'user': fields.Nested(user_model),
+    'token': fields.String(description='The short term token to sign URLs'),
+    'experies_at': fields.DateTime(desription='The time when the token expires')
+})
+
+
+signature_token_argument = dict(
+    name='token', type=str, help='Token that signs the URL and authenticates the user',
+    location='args')
+
+
+@ns.route('/token')
+class TokenResource(Resource):
+    @api.doc('get_token')
+    @api.marshal_with(token_model, skip_none=True, code=200, description='Token send')
+    @login_really_required
+    def get(self):
+        """
+        Generates a short (10s) term JWT token that can be used to authenticate the user in
+        URLs towards most API get request, e.g. for file downloads on the
+        raw or archive api endpoints. Use the token query parameter to sign URLs.
+        """
+        token, expires_at = g.user.get_signature_token()
+        return {
+            'user': g.user,
+            'token': token,
+            'expires_at': expires_at.isoformat()
+        }
+
+
+def with_signature_token(func):
+    """
+    A decorator for API endpoint implementations that validates signed URLs.
+    """
+    @api.response(401, 'Invalid or expired signature token')
+    def wrapper(*args, **kwargs):
+        token = request.args.get('token', None)
+        if token is not None:
+            try:
+                g.user = coe_repo.User.verify_signature_token(token)
+            except LoginException:
+                abort(401, 'Invalid or expired signature token')
+
+        return func(*args, **kwargs)
+    wrapper.__name__ = func.__name__
+    wrapper.__doc__ = func.__doc__
+    return wrapper
 
 
 def create_authorization_predicate(upload_id, calc_id=None):

@@ -35,9 +35,11 @@ app = Flask(
     static_folder=os.path.abspath(os.path.join(os.path.dirname(__file__), '../../docs/.build/html')))
 """ The Flask app that serves all APIs. """
 
-app.config.setdefault('APPLICATION_ROOT', base_path)
-app.config.setdefault('RESTPLUS_MASK_HEADER', False)
-app.config.setdefault('RESTPLUS_MASK_SWAGGER', False)
+app.config.APPLICATION_ROOT = base_path
+app.config.RESTPLUS_MASK_HEADER = False
+app.config.RESTPLUS_MASK_SWAGGER = False
+app.config.SWAGGER_UI_OPERATION_ID = True
+app.config.SWAGGER_UI_REQUEST_DURATION = True
 
 
 def api_base_path_response(env, resp):
@@ -64,6 +66,8 @@ api = Api(
 @api.errorhandler
 def handle(error: Exception):
     status_code = getattr(error, 'code', 500)
+    if not isinstance(status_code, int):
+        status_code = 500
     name = getattr(error, 'name', 'Internal Server Error')
     description = getattr(error, 'description', 'No description available')
     data = dict(

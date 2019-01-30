@@ -73,6 +73,7 @@ spec:
         command: ["python", "-m", "gunicorn.app.wsgiapp", "-b 0.0.0.0:8000", "nomad.api:app"]
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
+      imagePullPolicy: always
       volumes:
       - name: files-volume
         hostPath:
