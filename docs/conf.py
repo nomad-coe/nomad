@@ -13,7 +13,7 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 import os
 import sys
-from recommonmark.transform import AutoStructify
+# from recommonmark.transform import AutoStructify
 
 sys.path.insert(0, os.path.abspath('..'))
 
@@ -48,15 +48,12 @@ extensions = [
     'sphinxcontrib.httpdomain',
     'sphinxcontrib.autohttp.flask',
     'sphinxcontrib.autohttp.flaskqref',
-    'celery.contrib.sphinx'
+    'celery.contrib.sphinx',
+    'm2r'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['.templates']
-
-source_parsers = {
-    '.md': 'recommonmark.parser.CommonMarkParser',
-}
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -179,8 +176,8 @@ todo_include_todos = True
 # Enably sphinx specifc markdown features
 def setup(app):
     app.add_stylesheet('css/custom.css')
-    app.add_config_value('recommonmark_config', {
-        'enable_auto_doc_ref': True,
-        'enable_eval_rst': True
-    }, True)
-    app.add_transform(AutoStructify)
+    # app.add_config_value('recommonmark_config', {
+    #     'enable_auto_doc_ref': True,
+    #     'enable_eval_rst': True
+    # }, True)
+    # app.add_transform(AutoStructify)

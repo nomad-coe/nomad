@@ -20,109 +20,116 @@ The archive API of the nomad@FAIRDI APIs. This API is about serving processed
 import os.path
 
 from flask import send_file
-from flask_restful import abort
+from flask_restplus import abort, Resource
 
-from nomad import config
-from nomad.files import ArchiveFile, ArchiveLogFile
-from nomad.utils import get_logger
+import nomad_meta_info
 
-from .app import app, base_path
+from nomad.files import UploadFiles, Restricted
 
+from .app import api
+from .auth import login_if_available, create_authorization_predicate, \
+    signature_token_argument, with_signature_token
+from .common import calc_route
 
-@app.route('%s/logs/<string:upload_hash>/<string:calc_hash>' % base_path, methods=['GET'])
-def get_calc_proc_log(upload_hash, calc_hash):
-    """
-    Get calculation processing log. Calcs are references via *upload_hash*, *calc_hash*
-    pairs.
-
-    .. :quickref: archive; Get calculation processing logs.
-
-    **Example request**:
-
-    .. sourcecode:: http
-
-        GET /nomad/api/logs/W36aqCzAKxOCfIiMFsBJh3nHPb4a/7ddvtfRfZAvc3Crr7jOJ8UH0T34I HTTP/1.1
-        Accept: application/json
-
-    :param string upload_hash: the hash of the upload (from uploaded file contents)
-    :param string calc_hash: the hash of the calculation (from mainfile)
-    :resheader Content-Type: application/json
-    :status 200: calc successfully retrieved
-    :status 404: calc with given hashes does not exist
-    :returns: the log data, a line by line sequence of structured logs
-    """
-    archive_id = '%s/%s' % (upload_hash, calc_hash)
-
-    try:
-        archive = ArchiveLogFile(archive_id)
-        if not archive.exists():
-            raise FileNotFoundError()
-
-        archive_path = archive.os_path
-
-        rv = send_file(
-            archive_path,
-            mimetype='application/text',
-            as_attachment=True,
-            attachment_filename=os.path.basename(archive_path))
-
-        return rv
-    except FileNotFoundError:
-        abort(404, message='Archive/calculation %s does not exist.' % archive_id)
-    except Exception as e:
-        logger = get_logger(
-            __name__, endpoint='logs', action='get',
-            upload_hash=upload_hash, calc_hash=calc_hash)
-        logger.error('Exception on accessing calc proc log', exc_info=e)
-        abort(500, message='Could not accessing the logs.')
+ns = api.namespace(
+    'archive',
+    description='Access archive data and archive processing logs.')
 
 
-@app.route('%s/archive/<string:upload_hash>/<string:calc_hash>' % base_path, methods=['GET'])
-def get_calc(upload_hash, calc_hash):
-    """
-    Get calculation data in archive form. Calcs are references via *upload_hash*, *calc_hash*
-    pairs.
+archive_file_request_parser = api.parser()
+archive_file_request_parser.add_argument(**signature_token_argument)
 
-    .. :quickref: archive; Get calculation data in archive form.
 
-    **Example request**:
+@calc_route(ns, '/logs')
+class ArchiveCalcLogResource(Resource):
+    @api.doc('get_archive_logs')
+    @api.response(404, 'The upload or calculation does not exist')
+    @api.response(401, 'Not authorized to access the data.')
+    @api.response(200, 'Archive data send', headers={'Content-Type': 'application/plain'})
+    @api.expect(archive_file_request_parser, validate=True)
+    @login_if_available
+    @with_signature_token
+    def get(self, upload_id, calc_id):
+        """
+        Get calculation processing log.
 
-    .. sourcecode:: http
+        Calcs are references via *upload_id*, *calc_id* pairs.
+        """
+        archive_id = '%s/%s' % (upload_id, calc_id)
 
-        GET /nomad/api/archive/W36aqCzAKxOCfIiMFsBJh3nHPb4a/7ddvtfRfZAvc3Crr7jOJ8UH0T34I HTTP/1.1
-        Accept: application/json
+        upload_files = UploadFiles.get(
+            upload_id, is_authorized=create_authorization_predicate(upload_id, calc_id))
 
-    :param string upload_hash: the hash of the upload (from uploaded file contents)
-    :param string calc_hash: the hash of the calculation (from mainfile)
-    :resheader Content-Type: application/json
-    :status 200: calc successfully retrieved
-    :status 404: calc with given hashes does not exist
-    :returns: the metainfo formated JSON data of the requested calculation
-    """
-    archive_id = '%s/%s' % (upload_hash, calc_hash)
+        if upload_files is None:
+            abort(404, message='Upload %s does not exist.' % upload_id)
 
-    try:
-        archive = ArchiveFile(archive_id)
-        if not archive.exists():
-            raise FileNotFoundError()
+        try:
+            return send_file(
+                upload_files.archive_log_file(calc_id, 'rb'),
+                mimetype='text/plain',
+                as_attachment=True,
+                attachment_filename='%s.log' % archive_id)
+        except Restricted:
+            abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
+        except KeyError:
+            abort(404, message='Calculation %s does not exist.' % archive_id)
 
-        archive_path = archive.os_path
 
-        rv = send_file(
-            archive_path,
-            mimetype='application/json',
-            as_attachment=True,
-            attachment_filename=os.path.basename(archive_path))
+@calc_route(ns)
+class ArchiveCalcResource(Resource):
+    @api.doc('get_archive_calc')
+    @api.response(404, 'The upload or calculation does not exist')
+    @api.response(401, 'Not authorized to access the data.')
+    @api.response(200, 'Archive data send')
+    @api.expect(archive_file_request_parser, validate=True)
+    @login_if_available
+    @with_signature_token
+    def get(self, upload_id, calc_id):
+        """
+        Get calculation data in archive form.
 
-        if config.files.compress_archive:
-            rv.headers['Content-Encoding'] = 'gzip'
+        Calcs are references via *upload_id*, *calc_id* pairs.
+        """
+        archive_id = '%s/%s' % (upload_id, calc_id)
 
-        return rv
-    except FileNotFoundError:
-        abort(404, message='Archive %s does not exist.' % archive_id)
-    except Exception as e:
-        logger = get_logger(
-            __name__, endpoint='archive', action='get',
-            upload_hash=upload_hash, calc_hash=calc_hash)
-        logger.error('Exception on accessing archive', exc_info=e)
-        abort(500, message='Could not accessing the archive.')
+        upload_file = UploadFiles.get(
+            upload_id, is_authorized=create_authorization_predicate(upload_id, calc_id))
+
+        if upload_file is None:
+            abort(404, message='Archive %s does not exist.' % upload_id)
+
+        try:
+            return send_file(
+                upload_file.archive_file(calc_id, 'rb'),
+                mimetype='application/json',
+                as_attachment=True,
+                attachment_filename='%s.json' % archive_id)
+        except Restricted:
+            abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
+        except KeyError:
+            abort(404, message='Calculation %s does not exist.' % archive_id)
+
+
+@ns.route('/metainfo/<string:metainfo_path>')
+@api.doc(params=dict(nomad_metainfo_path='A path or metainfo definition file name.'))
+class MetainfoResource(Resource):
+    @api.doc('get_metainfo')
+    @api.response(404, 'The metainfo does not exist')
+    @api.response(200, 'Metainfo data send')
+    def get(self, metainfo_path):
+        """
+        Get a metainfo definition file.
+        """
+        try:
+            file_dir = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
+            metainfo_file = os.path.normpath(os.path.join(file_dir, metainfo_path.strip()))
+
+            rv = send_file(
+                metainfo_file,
+                mimetype='application/json',
+                as_attachment=True,
+                attachment_filename=os.path.basename(metainfo_file))
+
+            return rv
+        except FileNotFoundError:
+            abort(404, message='The metainfo %s does not exist.' % metainfo_path)

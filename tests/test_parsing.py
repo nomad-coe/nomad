@@ -59,6 +59,16 @@ class TestLocalBackend(object):
     def test_meta_info(self, meta_info, no_warn):
         assert 'section_topology' in meta_info
 
+    def test_metadata(self, backend, no_warn):
+        g_index = backend.openSection('section_calculation_info')
+        assert g_index == 0
+        backend.addValue('calc_id', 't0')
+        backend.closeSection('section_calculation_info', 0)
+        g_index = backend.openSection('section_repository_info')
+        backend.addValue('repository_calc_id', 1)
+        backend.closeSection('section_repository_info', 0)
+        assert json.dumps(backend.metadata()) is not None
+
     def test_section(self, backend, no_warn):
         g_index = backend.openSection('section_run')
         assert g_index == 0
@@ -226,7 +236,8 @@ def assert_parser_result(backend):
 
 def run_parser(parser_name, mainfile):
     parser = parser_dict[parser_name]
-    return parser.run(mainfile, logger=utils.get_logger(__name__))
+    result = parser.run(mainfile, logger=utils.get_logger(__name__))
+    return add_calculation_info(result)
 
 
 @pytest.fixture
@@ -249,9 +260,21 @@ def parsed_faulty_unknown_matid_example(caplog, request) -> LocalBackend:
 
 
 @pytest.fixture(params=parser_examples, ids=lambda spec: '%s-%s' % spec)
-def parsed_example(caplog, request) -> LocalBackend:
+def parsed_example(request) -> LocalBackend:
     parser_name, mainfile = request.param
-    return run_parser(parser_name, mainfile)
+    result = run_parser(parser_name, mainfile)
+    return result
+
+
+def add_calculation_info(backend: LocalBackend) -> LocalBackend:
+    backend.openNonOverlappingSection('section_calculation_info')
+    backend.addValue('upload_id', 'test_upload_id')
+    backend.addValue('calc_id', 'test_calc_id')
+    backend.addValue('calc_hash', 'test_calc_hash')
+    backend.addValue('main_file', 'test/mainfile.txt')
+    backend.addValue('parser_name', 'testParser')
+    backend.closeNonOverlappingSection('section_calculation_info')
+    return backend
 
 
 @pytest.mark.parametrize('parser_name, mainfile', parser_examples)

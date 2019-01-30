@@ -12,8 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import nomad.api
+from nomad.api import app
+
+
+def run_dev_server(*args, **kwargs):
+    app.run(*args, **kwargs)
 
 
 if __name__ == '__main__':
-    nomad.api.app.run(debug=True, port=8000)
+    run_dev_server(debug=True, port=8000)

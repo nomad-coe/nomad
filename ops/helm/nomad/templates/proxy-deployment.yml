@@ -12,7 +12,6 @@ data:
     server {
       listen        80;
       server_name   www.example.com;
-
       location {{ .Values.proxy.external.path }} {
         proxy_pass http://{{ include "nomad.fullname" . }}-gui:{{ .Values.gui.port }};
         proxy_set_header Host $host;
@@ -28,7 +27,7 @@ data:
 
       location {{ .Values.proxy.external.path }}/kibana {
         rewrite ^{{ .Values.proxy.external.path}}/kibana/(.*)$ /$1 break;
-        proxy_pass http://{{ .Values.kibana.host }}:{{ .Values.kibana.port }};  
+        proxy_pass http://{{ .Values.kibana.host }}:{{ .Values.kibana.port }};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
       }
@@ -71,8 +70,8 @@ spec:
         configMap:
           name: {{ include "nomad.fullname" . }}-proxy-config
           items:
-            - key: nginx.conf
-              path: default.conf
+          - key: nginx.conf
+            path: default.conf
       - name: log
         emptyDir: {}
 

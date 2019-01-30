@@ -13,11 +13,12 @@ from nomad.processing.base import Proc, Chord, process, task, SUCCESS, FAILURE, 
 random.seed(0)
 
 
-def assert_proc(proc, current_task, status=SUCCESS, errors=0, warnings=0):
+def assert_proc(proc, current_task, tasks_status=SUCCESS, errors=0, warnings=0):
     assert proc.current_task == current_task
-    assert proc.status == status
+    assert proc.tasks_status == tasks_status
     assert len(proc.errors) == errors
     assert len(proc.warnings) == warnings
+    assert not proc.process_running
 
 
 class Tasks(Proc):
@@ -106,6 +107,25 @@ def test_task_as_proc(worker, no_warn):
     p.process()
     p.block_until_complete()
     assert_proc(p, 'process')
+
+
+class ProcInProc(Proc):
+    @process
+    @task
+    def one(self):
+        self.two()
+
+    @process
+    @task
+    def two(self):
+        pass
+
+
+def test_fail_on_proc_in_proc(worker):
+    p = ProcInProc.create()
+    p.one()
+    p.block_until_complete()
+    assert_proc(p, 'one', FAILURE, 1)
 
 
 class ParentProc(Chord):

@@ -3,7 +3,7 @@ celery[redis]
 elasticsearch-dsl>=6.0.0,<7.0.0
 mongoengine
 flask
-flask-restful
+flask-restplus
 flask-cors
 flask_httpauth
 itsdangerous
@@ -13,6 +13,7 @@ gitpython
 gunicorn
 structlog
 recommonmark
+m2r
 requests
 click
 sphinx
@@ -20,8 +21,12 @@ sphinxcontrib.httpdomain
 sphinx_rtd_theme
 zipstream
 bagit
-psycopg2
+psycopg2-binary
 sqlalchemy
 bcrypt
 matid
 ase==3.15.0
+filelock
+ujson
+bravado
+PyJWT

@@ -51,20 +51,20 @@ def normalized_template_example(parsed_template_example) -> LocalBackend:
     return run_normalize(parsed_template_example)
 
 
+def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
+    run_normalize(parsed_template_example)
+    print(str(caplog.records))
+
+
 def assert_normalized(backend):
-    # The assertions are based on the quanitites need for the repository.
-    assert backend.get_value('atom_species', 0) is not None
-    assert backend.get_value('system_type', 0) is not None
-    assert backend.get_value('chemical_composition', 0) is not None
-    assert backend.get_value('chemical_composition_bulk_reduced', 0) is not None
-    # The below tests are not always present for non-periodic
-    # cells that don't have a simulation_cell or lattice_vectors.
-    if backend.get_value('system_type', 0) not in ['Atom', 'Molecule / Cluster']:
-        assert backend.get_value('crystal_system', 0) is not None
-        assert backend.get_value('space_group_number', 0) is not None
-    # The NWChem example for MD does not have functional information in its output.
-    if backend.get_value('program_name', 0) != 'NWChem':
-        assert backend.get_value('XC_functional_name', 0) is not None
+    metadata = backend.metadata()['section_repository_info']['section_repository_parserdata']
+    count = 0
+    for metainfo in backend.metaInfoEnv().infoKindEls():
+        if 'section_repository_parserdata' in metainfo.superNames:
+            count += 1
+            assert backend.get_value(metainfo.name, 0) is not None
+            assert metadata.get(metainfo.name, None) is not None
+    assert count > 0
 
 
 def test_normalizer(normalized_example: LocalBackend, no_warn):
@@ -83,4 +83,3 @@ def test_normalizer_faulty_matid(
 
     assert_log(caplog, 'ERROR', unknown_class_error)
     assert_log(caplog, 'ERROR', wrong_class_for_no_sim_cell)
-

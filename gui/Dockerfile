@@ -28,10 +28,17 @@ COPY yarn.lock /nomad/app/yarn.lock
 RUN yarn
 COPY . /nomad/app
 
-RUN yarn build
+RUN yarn run build
 
 # production environment
 FROM nginx:1.13.9-alpine
 COPY --from=build /nomad/app/build /app/nomad
 COPY ./gui.conf /etc/nginx/conf.d/default.conf
-CMD ["nginx", "-g", "daemon off;"]
+
+WORKDIR /app/nomad
+CMD nginx -g "daemon off;"
+
+VOLUME /etc/nginx/conf.d
+VOLUME /nomad/app/config
+
+EXPOSE 8080/tcp

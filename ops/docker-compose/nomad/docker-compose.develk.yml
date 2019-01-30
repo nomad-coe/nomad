@@ -38,12 +38,10 @@ services:
         container_name: nomad_elk
         expose:
             - 5000 # logstash beats
-            - 5044 # logstash tcp
         volumes:
             - nomad_elk:/var/lib/elasticsearch
         ports:
             - 5601:5601  # kibana web
-            - 5044:5044   # expose to host, allows metricbeat on host to send data
             - 15000:5000   # allow nomad services to logstash outside of docker
             - 29200:9200  # allows metricbeat config to access es
 
