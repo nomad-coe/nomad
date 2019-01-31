@@ -1,0 +1,42 @@
+WFFIL  EF=-.204956810975   (WFFIL, WFPRI, ENFIL, SUPWF) 
+  7.00       10    4 (R-MT*K-MAX; MAX L IN WF, V-NMT
+ -.4050839945   2   0      global e-param with N other choices, napw 
+ 0   -1.175     0.000 CONT 1 
+ 1   -0.643     0.000 CONT 1 
+ -.4050839945   2   0      global e-param with N other choices, napw 
+ 0   -1.280     0.000 CONT 1 
+ 1   -0.736     0.000 CONT 1 
+ -.4050839945   2   0      global e-param with N other choices, napw 
+ 0   -1.275     0.000 CONT 1 
+ 1   -0.729     0.000 CONT 1 
+ -.4050839945   2   0      global e-param with N other choices, napw 
+ 0   -1.272     0.000 CONT 1 
+ 1   -0.724     0.000 CONT 1 
+ -.4050839945   2   0      global e-param with N other choices, napw 
+ 0   -1.271     0.000 CONT 1 
+ 1   -0.722     0.000 CONT 1 
+ -.4050839945   2   0      global e-param with N other choices, napw 
+ 0   -1.266     0.000 CONT 1 
+ 1   -0.713     0.000 CONT 1 
+ -.4050839945   2   0      global e-param with N other choices, napw 
+ 0   -1.276     0.000 CONT 1 
+ 1   -0.728     0.000 CONT 1 
+ -.4050839945   2   0      global e-param with N other choices, napw 
+ 0   -1.266     0.000 CONT 1 
+ 1   -0.718     0.000 CONT 1 
+ -.4050839945   2   0      global e-param with N other choices, napw 
+ 0   -1.271     0.000 CONT 1 
+ 1   -0.722     0.000 CONT 1 
+ -.4050839945   2   0      global e-param with N other choices, napw 
+ 0   -1.271     0.000 CONT 1 
+ 1   -0.722     0.000 CONT 1 
+ -.4050839945   2   0      global e-param with N other choices, napw 
+ 0   -1.263     0.000 CONT 1 
+ 1   -0.716     0.000 CONT 1 
+ -.4050839945   2   0      global e-param with N other choices, napw 
+ 0   -1.266     0.000 CONT 1 
+ 1   -0.715     0.000 CONT 1 
+ -.4050839945   2   0      global e-param with N other choices, napw 
+ 0   -1.259     0.000 CONT 1 
+ 1   -0.706     0.000 CONT 1 
+K-VECTORS FROM UNIT:4   -9.0       2.5   198   red emin/emax/nband

@@ -1,0 +1,4 @@
+MSR1   0.0   YES  (BROYD/PRATT, extra charge (+1 for additional e), norm)
+0.20            mixing FACTOR for BROYD/PRATT scheme
+1.00  1.00      PW and CLM-scaling factors
+9999  8         idum, HISTORY

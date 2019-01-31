@@ -52,6 +52,8 @@ def normalized_template_example(parsed_template_example) -> LocalBackend:
 
 
 def assert_normalized(backend):
+    with open("test_file_name.json", "wt") as file:
+       backend.write_json(file)
     # The assertions are based on the quanitites need for the repository.
     assert backend.get_value('atom_species', 0) is not None
     assert backend.get_value('system_type', 0) is not None
@@ -83,4 +85,3 @@ def test_normalizer_faulty_matid(
 
     assert_log(caplog, 'ERROR', unknown_class_error)
     assert_log(caplog, 'ERROR', wrong_class_for_no_sim_cell)
-

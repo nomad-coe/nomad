@@ -1,0 +1,7 @@
+Graphite C K edge of first atom.                                                
+ELNES         #  We broaden case.elnes .
+  1  1  0     # We use spectrum 1 out of 1
+   0.000000000        1.000000000        0.000000000          # split energy, weights of spectra
+  0.8676271836E-01   0.8676271836E-01   # core hole lifetime of two edges
+  1   0.000000000           # select linearly energy dependent valence broadening; edge offset
+  0.5000000000          # default spectrometer broadening - Gaussian FWHM

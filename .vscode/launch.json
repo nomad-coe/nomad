@@ -58,6 +58,17 @@
       ]
     },
     {
+      "name": "Python: wien2k normalizer test",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/wien2k-tests/data/parsers/wien2k/ok/ok.scf]"
+      ]
+    },
+
+    {
       "name": "Python: nwchem normalizer test h2o sp test",
       "type": "python",
       "request": "launch",

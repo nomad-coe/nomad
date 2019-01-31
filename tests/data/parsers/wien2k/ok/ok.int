@@ -1,0 +1,16 @@
+Title
+ -0.50 0.002 3.500 0.003  # EMIN, DE, EMAX, Gauss-broadening(>de)
+   13    N   0.000        # NUMBER OF DOS-CASES specified below, G/L/B broadening (Ry)
+    1    3   At1P        # atom, case=column in qtl-header, labe
+    2    3   At2P
+    3    3   At3P
+    4    3   At4P
+    5    3   At5P
+    6    3   At6P
+    7    3   At7P
+    8    3   At8P
+    9    3   At9P
+   10    3   At10P
+   11    3   At11P
+   12    3   At12P
+   13    3   At13P

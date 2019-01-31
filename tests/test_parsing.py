@@ -35,7 +35,8 @@ parser_examples = [
     ('parsers/crystal', 'tests/data/parsers/crystal/si.out'),
     ('parsers/cpmd', 'tests/data/parsers/cpmd/geo_output.out'),
     ('parsers/nwchem', 'tests/data/parsers/nwchem/md/output.out'),
-    ('parsers/bigdft', 'tests/data/parsers/bigdft/n2_output.out')
+    ('parsers/bigdft', 'tests/data/parsers/bigdft/n2_output.out'),
+    ('parsers/wien2k', 'tests/data/parsers/wien2k/ok/ok.scf')
 ]
 
 faulty_unknown_one_d_matid_example = [
