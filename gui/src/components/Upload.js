@@ -190,7 +190,7 @@ class Upload extends React.Component {
     const { calcs, tasks, current_task, tasks_running, tasks_status, process_running, current_process, errors } = upload
 
     // map tasks [ uploading, extracting, parse_all, cleanup ] to steps
-    const steps = [ 'upload', 'process', 'commit' ]
+    const steps = [ 'upload', 'process', 'publish' ]
     let step = null
     const task_index = tasks.indexOf(current_task)
     if (task_index === 0) {
@@ -198,7 +198,7 @@ class Upload extends React.Component {
     } else if (task_index > 0 && tasks_running) {
       step = 'process'
     } else {
-      step = 'commit'
+      step = 'publish'
     }
     const stepIndex = steps.indexOf(step)
 
@@ -278,11 +278,11 @@ class Upload extends React.Component {
           )
         }
       },
-      commit: (props) => {
+      publish: (props) => {
         props.children = 'inspect'
 
         if (process_running) {
-          if (current_process === 'commit_upload') {
+          if (current_process === 'publish_upload') {
             props.children = 'approved'
             props.optional = <Typography variant="caption">moving data ...</Typography>
           } else if (current_process === 'delete_upload') {
@@ -290,7 +290,7 @@ class Upload extends React.Component {
             props.optional = <Typography variant="caption">deleting data ...</Typography>
           }
         } else {
-          props.optional = <Typography variant="caption">commit or delete</Typography>
+          props.optional = <Typography variant="caption">publish or delete</Typography>
         }
       }
     }

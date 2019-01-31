@@ -130,6 +130,8 @@ class Upload(Base, datamodel.Upload):  # type: ignore
                 meta data) that should be added to upload and calculations.
         """
         upload_metadata = UploadMetaData(metadata)
+        assert upload.uploader is not None
+
         repo_db = infrastructure.repository_db
         repo_db.begin()
 
@@ -222,8 +224,13 @@ class Upload(Base, datamodel.Upload):  # type: ignore
         coe_calc.set_value(base.topic_basis_set_type, calc.basis_set_type)
 
         # user relations
-        owner_user_id = calc_metadata.get('_uploader', int(self.user_id))
-        coe_calc.owners.append(repo_db.query(User).get(owner_user_id))
+        owner_user_id = calc_metadata.get('_uploader', None)
+        if owner_user_id is not None:
+            uploader = repo_db.query(User).get(owner_user_id)
+        else:
+            uploader = self.user
+
+        coe_calc.owners.append(uploader)
 
         for coauthor_id in calc_metadata.get('coauthors', []):
             coe_calc.coauthors.append(repo_db.query(User).get(coauthor_id))

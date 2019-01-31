@@ -358,7 +358,7 @@ class Upload(Chord, datamodel.Upload):
         return True  # do not save the process status on the delete upload
 
     @process
-    def commit_upload(self):
+    def publish_upload(self):
         """
         Moves the upload out of staging to add it to the coe repository. It will
         pack the staging upload files in to public upload files, add entries to the
@@ -367,19 +367,19 @@ class Upload(Chord, datamodel.Upload):
         """
         logger = self.get_logger()
 
-        with utils.lnr(logger, 'commit failed'):
+        with utils.lnr(logger, 'publish failed'):
             with utils.timer(
-                    logger, 'upload added to repository', step='commit',
+                    logger, 'upload added to repository', step='publish',
                     upload_size=self.upload_files.size):
                 coe_repo.Upload.add(self, self.metadata)
 
             with utils.timer(
-                    logger, 'staged upload files packed', step='commit',
+                    logger, 'staged upload files packed', step='publish',
                     upload_size=self.upload_files.size):
                 self.upload_files.pack()
 
             with utils.timer(
-                    logger, 'staged upload deleted', step='commit',
+                    logger, 'staged upload deleted', step='publish',
                     upload_size=self.upload_files.size):
                 self.upload_files.delete()
                 self.delete()

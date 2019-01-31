@@ -56,7 +56,7 @@ def setup():
     setup_logging()
     setup_mongo()
     setup_elastic()
-    setup_repository_db()
+    setup_repository_db(readonly=False)
 
 
 def setup_logging():

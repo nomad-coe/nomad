@@ -373,7 +373,7 @@ class NomadCOEMigration:
                         'no match or processed calc for source calc',
                         mainfile=source_calc.mainfile)
 
-            # commit upload
+            # publish upload
             admin_keys = ['upload_time, uploader, pid']
 
             def transform(calcWithMetadata):
@@ -394,9 +394,9 @@ class NomadCOEMigration:
                 if calc.__migrated]
 
             if report.total_calcs > report.failed_calcs:
-                upload = self.client.uploads.exec_upload_command(
+                upload = self.client.uploads.exec_upload_operation(
                     upload_id=upload.upload_id,
-                    payload=dict(command='commit', metadata=upload_metadata)
+                    payload=dict(operation='publish', metadata=upload_metadata)
                 ).response().result
 
                 while upload.process_running:
@@ -405,7 +405,7 @@ class NomadCOEMigration:
                             upload_id=upload.upload_id).response().result
                         time.sleep(0.1)
                     except HTTPNotFound:
-                        # the proc upload will be deleted by the commit command
+                        # the proc upload will be deleted by the publish operation
                         break
 
             # report
