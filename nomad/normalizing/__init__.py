@@ -15,8 +15,6 @@ from typing import List, Any
 
 from .normalizer import Normalizer
 from .system import SystemNormalizer
-from .symmetry import SymmetryNormalizer
-from .systemtype import SystemTypeNormalizer
 from .fhiaims import FhiAimsBaseNormalizer
 from .repository import RepositoryNormalizer
 
@@ -46,7 +44,5 @@ There is one ABC for all normalizer:
 normalizers: List[Any] = [
     SystemNormalizer,
     FhiAimsBaseNormalizer,
-    SymmetryNormalizer,
-    SystemTypeNormalizer,
     RepositoryNormalizer
 ]

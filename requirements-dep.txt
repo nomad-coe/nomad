@@ -6,9 +6,7 @@ hjson
 future
 enum34
 scipy
-spglib
 ase==3.15.0
-systax==0.1.3
 Pint==0.7.2
 mdtraj==1.9.1
 panedr==0.2

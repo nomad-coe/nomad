@@ -18,6 +18,8 @@ from nomad.parsing import BadContextURI
 
 from .normalizer import Normalizer
 
+unavailable_label = 'unavailable'
+
 
 class RepositoryNormalizer(Normalizer):
     """
@@ -31,13 +33,16 @@ class RepositoryNormalizer(Normalizer):
         'hyb': 'hybrid',
         'mgga': 'meta-GGA',
         'vdw': 'vdW',
-        'lda': 'LDA'
+        'lda': 'LDA',
     }
     """ https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/XC-functional """
 
     version_re = re.compile(r'(\d+(\.\d+(\.\d+)?)?)')
 
     def map_functional_name_to_xc_treatment(self, name):
+        if name == unavailable_label:
+            return name
+
         return RepositoryNormalizer.xc_treatments.get(name[:3].lower(), name)
 
     def simplify_version(self, version):
@@ -46,6 +51,12 @@ class RepositoryNormalizer(Normalizer):
             return version
         else:
             return match.group(0)
+
+    def get_optional_value(self, key):
+        try:
+            return self._backend.get_value(key, 0)
+        except KeyError:
+            return unavailable_label
 
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
@@ -61,22 +72,25 @@ class RepositoryNormalizer(Normalizer):
         b.openNonOverlappingSection('section_repository_parserdata')
 
         b.addValue('repository_checksum', b.get_value('calc_hash', 0))
-        b.addValue('repository_chemical_formula', b.get_value('chemical_composition_bulk_reduced', 0))
-        b.addValue('repository_parser_id', b.get_value('parser_name', 0))
-        atom_labels = b.get_value('atom_labels', 0)
-        b.addValue('repository_atomic_elements', list(set(atom_labels)))
-        b.addValue('repository_atomic_elements_count', len(atom_labels))
-        b.addValue('repository_basis_set_type', b.get_value('program_basis_set_type', 0))
-        b.addValue('repository_crystal_system', b.get_value('crystal_system', 0))
         b.addValue('repository_program_name', b.get_value('program_name', 0))
         b.addValue(
             'repository_code_version',
             self.simplify_version(b.get_value('program_version', 0)))
-        b.addValue('repository_spacegroup_nr', b.get_value('space_group_number', 0))
+        b.addValue('repository_parser_id', b.get_value('parser_name', 0))
+
+        b.addValue('repository_chemical_formula', b.get_value('chemical_composition_bulk_reduced', 0))
+        atom_labels = b.get_value('atom_labels', 0)
+        b.addValue('repository_atomic_elements', list(set(atom_labels)))
+        b.addValue('repository_atomic_elements_count', len(atom_labels))
         b.addValue('repository_system_type', b.get_value('system_type', 0))
+
+        b.addValue('repository_crystal_system', self.get_optional_value('crystal_system'))
+        b.addValue('repository_spacegroup_nr', self.get_optional_value('space_group_number'))
+
+        b.addValue('repository_basis_set_type', self.get_optional_value('program_basis_set_type'))
         b.addValue(
             'repository_xc_treatment',
-            self.map_functional_name_to_xc_treatment(b.get_value('XC_functional_name', 0)))
+            self.map_functional_name_to_xc_treatment(self.get_optional_value(('XC_functional_name'))))
 
         b.closeNonOverlappingSection('section_repository_parserdata')
         if repository_info_context is None:

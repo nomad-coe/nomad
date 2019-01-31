@@ -92,6 +92,88 @@ parsers = [
             r'^(.*\n)*'
             r'?\s*Invoking FHI-aims \.\.\.'
             r'?\s*Version')
+    ),
+    LegacyParser(
+        python_git=dependencies['parsers/cp2k'],
+        parser_class_name='cp2kparser.CP2KParser',
+        main_file_re=r'^.*\.out$',  # This looks for files with .out
+        main_contents_re=(
+            r'\*\*\*\* \*\*\*\* \*\*\*\*\*\*  \*\*  PROGRAM STARTED AT\s.*\n'
+            r' \*\*\*\*\* \*\* \*\*\*  \*\*\* \*\*   PROGRAM STARTED ON\s*.*\n'
+            r' \*\*    \*\*\*\*   \*\*\*\*\*\*    PROGRAM STARTED BY .*\n'
+            r' \*\*\*\*\* \*\*    \*\* \*\* \*\*   PROGRAM PROCESS ID .*\n'
+            r'  \*\*\*\* \*\*  \*\*\*\*\*\*\*  \*\*  PROGRAM STARTED IN .*\n'
+        )
+    ),
+    LegacyParser(
+        python_git=dependencies['parsers/crystal'],
+        parser_class_name='crystalparser.CrystalParser',
+        main_file_re=r'^.*\.out$',  # This looks for files with .out
+        main_contents_re=(
+            r'\s*[\*]{22,}'  # Looks for '*' 22 times or more in a row.
+            r'\s*\*\s{20,}\*'  # Looks for a '*' sandwhiched by whitespace.
+            r'\s*\*\s{10,}CRYSTAL(?P<majorVersion>[\d]+)\s{10,}\*'
+            r'\s*\*\s{10,}public \: (?P<minorVersion>[\d\.]+) \- .*\*'
+        )
+    ),
+    LegacyParser(
+        python_git=dependencies['parsers/cpmd'],
+        parser_class_name='cpmdparser.CPMDParser',
+        main_file_re=r'^.*\.out$',  # This looks for files with .out
+        main_contents_re=(
+            r'\s*    \*\*\*\*\*\*  \*\*\*\*\*\*    \*\*\*\*  \*\*\*\*  \*\*\*\*\*\*\s*'
+            r'\s*   \*\*\*\*\*\*\*  \*\*\*\*\*\*\*   \*\*\*\*\*\*\*\*\*\*  \*\*\*\*\*\*\*\s*'
+            r'\s*  \*\*\*       \*\*   \*\*\*  \*\* \*\*\*\* \*\*  \*\*   \*\*\*\s*'
+            r'\s*  \*\*        \*\*   \*\*\*  \*\*  \*\*  \*\*  \*\*    \*\*\s*'
+            r'\s*  \*\*        \*\*\*\*\*\*\*   \*\*      \*\*  \*\*    \*\*\s*'
+            r'\s*  \*\*\*       \*\*\*\*\*\*    \*\*      \*\*  \*\*   \*\*\*\s*'
+            r'\s*   \*\*\*\*\*\*\*  \*\*        \*\*      \*\*  \*\*\*\*\*\*\*\s*'
+            r'\s*    \*\*\*\*\*\*  \*\*        \*\*      \*\*  \*\*\*\*\*\*\s*'
+        )
+    ),
+    LegacyParser(
+        python_git=dependencies['parsers/nwchem'],
+        parser_class_name='nwchemparser.NWChemParser',
+        main_file_re=r'^.*\.out$',  # This looks for files with .out
+        main_contents_re=(
+            r'              Northwest Computational Chemistry Package \(NWChem\) \d+\.\d+'
+            r' ------------------------------------------------------'
+            r'      Environmental Molecular Sciences Laboratory'
+            r'           Pacific Northwest National Laboratory'
+            r'                    Richland, WA 99352'
+        )
+    ),
+    LegacyParser(
+        python_git=dependencies['parsers/bigdft'],
+        parser_class_name='bigdftparser.BigDFTParser',
+        main_file_re=r'^.*\.out$',  # This looks for files with .out
+        main_contents_re=(
+            r'__________________________________ A fast and precise DFT wavelet code\s*'
+            r'\|     \|     \|     \|     \|     \|\s*'
+            r'\|     \|     \|     \|     \|     \|      BBBB         i       gggggg\s*'
+            r'\|_____\|_____\|_____\|_____\|_____\|     B    B               g\s*'
+            r'\|     \|  :  \|  :  \|     \|     \|    B     B        i     g\s*'
+            r'\|     \|-0\+--\|-0\+--\|     \|     \|    B    B         i     g        g\s*'
+            r'\|_____\|__:__\|__:__\|_____\|_____\|___ BBBBB          i     g         g\s*'
+            r'\|  :  \|     \|     \|  :  \|     \|    B    B         i     g         g\s*'
+            r'\|--\+0-\|     \|     \|-0\+--\|     \|    B     B     iiii     g         g\s*'
+            r'\|__:__\|_____\|_____\|__:__\|_____\|    B     B        i      g        g\s*'
+            r'\|     \|  :  \|  :  \|     \|     \|    B BBBB        i        g      g\s*'
+            r'\|     \|-0\+--\|-0\+--\|     \|     \|    B        iiiii          gggggg\s*'
+            r'\|_____\|__:__\|__:__\|_____\|_____\|__BBBBB\s*'
+            r'\|     \|     \|     \|  :  \|     \|                           TTTTTTTTT\s*'
+            r'\|     \|     \|     \|--\+0-\|     \|  DDDDDD          FFFFF        T\s*'
+            r'\|_____\|_____\|_____\|__:__\|_____\| D      D        F        TTTT T\s*'
+            r'\|     \|     \|     \|  :  \|     \|D        D      F        T     T\s*'
+            r'\|     \|     \|     \|--\+0-\|     \|D         D     FFFF     T     T\s*'
+            r'\|_____\|_____\|_____\|__:__\|_____\|D___      D     F         T    T\s*'
+            r'\|     \|     \|  :  \|     \|     \|D         D     F          TTTTT\s*'
+            r'\|     \|     \|--\+0-\|     \|     \| D        D     F         T    T\s*'
+            r'\|_____\|_____\|__:__\|_____\|_____\|          D     F        T     T\s*'
+            r'\|     \|     \|     \|     \|     \|         D               T    T\s*'
+            r'\|     \|     \|     \|     \|     \|   DDDDDD       F         TTTT\s*'
+            r'\|_____\|_____\|_____\|_____\|_____\|______                    www\.bigdft\.org'
+        )
     )
 ]
 """ Instanciation and constructor based config of all parsers. """

@@ -24,6 +24,8 @@ bagit
 psycopg2-binary
 sqlalchemy
 bcrypt
+matid
+ase==3.15.0
 filelock
 ujson
 bravado

@@ -30,7 +30,16 @@ parser_examples = [
     ('parsers/exciting', 'tests/data/parsers/exciting/Ag/INFO.OUT'),
     ('parsers/exciting', 'tests/data/parsers/exciting/GW/INFO.OUT'),
     ('parsers/vasp', 'tests/data/parsers/vasp.xml'),
-    ('parsers/fhi-aims', 'tests/data/parsers/aims.out')
+    ('parsers/fhi-aims', 'tests/data/parsers/aims.out'),
+    ('parsers/cp2k', 'tests/data/parsers/cp2k/si_bulk8.out'),
+    ('parsers/crystal', 'tests/data/parsers/crystal/si.out'),
+    ('parsers/cpmd', 'tests/data/parsers/cpmd/geo_output.out'),
+    ('parsers/nwchem', 'tests/data/parsers/nwchem/md/output.out'),
+    ('parsers/bigdft', 'tests/data/parsers/bigdft/n2_output.out')
+]
+
+faulty_unknown_one_d_matid_example = [
+    ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
 ]
 
 
@@ -243,10 +252,18 @@ def parsed_template_example() -> LocalBackend:
         'parsers/template', 'tests/data/parsers/template.json')
 
 
+@pytest.fixture(
+    params=faulty_unknown_one_d_matid_example, ids=lambda spec: '%s-%s' % spec)
+def parsed_faulty_unknown_matid_example(caplog, request) -> LocalBackend:
+    parser_name, mainfile = request.param
+    return run_parser(parser_name, mainfile)
+
+
 @pytest.fixture(params=parser_examples, ids=lambda spec: '%s-%s' % spec)
 def parsed_example(request) -> LocalBackend:
     parser_name, mainfile = request.param
-    return run_parser(parser_name, mainfile)
+    result = run_parser(parser_name, mainfile)
+    return result
 
 
 def add_calculation_info(backend: LocalBackend) -> LocalBackend:
@@ -260,8 +277,16 @@ def add_calculation_info(backend: LocalBackend) -> LocalBackend:
     return backend
 
 
-def test_parser(parsed_example, no_warn):
+@pytest.mark.parametrize('parser_name, mainfile', parser_examples)
+def test_parser(parser_name, mainfile, caplog):
+    parsed_example = run_parser(parser_name, mainfile)
     assert_parser_result(parsed_example)
+
+    logger_received = False
+    for record in caplog.get_records(when='call'):
+        if record.levelname == 'DEBUG':
+            logger_received |= json.loads(record.msg)['event'] == 'received logger'
+    assert logger_received
 
 
 def test_match(no_warn):

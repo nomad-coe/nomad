@@ -20,6 +20,8 @@ from nomad.normalizing import normalizers
 from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_example  # pylint: disable=unused-import
+from tests.test_parsing import parsed_faulty_unknown_matid_example  # pylint: disable=unused-import
+from tests.utils import assert_log
 
 
 def run_normalize(backend: LocalBackend) -> LocalBackend:
@@ -49,6 +51,11 @@ def normalized_template_example(parsed_template_example) -> LocalBackend:
     return run_normalize(parsed_template_example)
 
 
+def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
+    run_normalize(parsed_template_example)
+    print(str(caplog.records))
+
+
 def assert_normalized(backend):
     metadata = backend.metadata()['section_repository_info']['section_repository_parserdata']
     count = 0
@@ -62,3 +69,17 @@ def assert_normalized(backend):
 
 def test_normalizer(normalized_example: LocalBackend, no_warn):
     assert_normalized(normalized_example)
+
+
+def test_normalizer_faulty_matid(
+        parsed_faulty_unknown_matid_example: LocalBackend, caplog):
+    """ Runs normalizer on an example w/ bools for atom pos. Should force matid error."""
+    run_normalize(parsed_faulty_unknown_matid_example)
+    unknown_class_error = (
+        'Matid classfication has given us an unexpected type')
+
+    wrong_class_for_no_sim_cell = (
+        'Matid classified more than 1D despite having no simulation_cell')
+
+    assert_log(caplog, 'ERROR', unknown_class_error)
+    assert_log(caplog, 'ERROR', wrong_class_for_no_sim_cell)
