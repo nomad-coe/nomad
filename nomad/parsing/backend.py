@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import TextIO, Tuple, List, Any, Callable
+from typing import TextIO, Tuple, List, Any, Callable, Iterable
 from abc import ABCMeta, abstractmethod
 from io import StringIO
 import json
@@ -449,6 +449,9 @@ class LocalBackend(LegacyParserBackend):
             if g_index != -1:
                 sections = [section for section in sections if section.gIndex == g_index]
 
+            if len(sections) == 0:
+                raise KeyError
+
             assert len(sections) == 1
             section = sections[0]
 
@@ -458,17 +461,19 @@ class LocalBackend(LegacyParserBackend):
         sections = self._delegate.results[meta_name]
         return [section.gIndex for section in sections]
 
-    @staticmethod
     def _write(
-            json_writer: JSONStreamWriter,
-            value: Any,
+            self, json_writer: JSONStreamWriter, value: Any,
             filter: Callable[[str, Any], Any] = None):
 
         if isinstance(value, list):
-            json_writer.open_array()
-            for item in value:
-                LocalBackend._write(json_writer, item, filter=filter)
-            json_writer.close_array()
+            if len(value) == 1 and isinstance(value[0], Section) and \
+                    not self._delegate.metaInfoEnv().infoKindEl(value[0].name).repeats:
+                self._write(json_writer, value[0], filter=filter)
+            else:
+                json_writer.open_array()
+                for item in value:
+                    self._write(json_writer, item, filter=filter)
+                json_writer.close_array()
 
         elif isinstance(value, Section):
             section = value
@@ -482,12 +487,34 @@ class LocalBackend(LegacyParserBackend):
 
                 if value is not None:
                     json_writer.key(name)
-                    LocalBackend._write(json_writer, value, filter=filter)
+                    self._write(json_writer, value, filter=filter)
 
             json_writer.close_object()
 
         else:
             json_writer.value(value)
+
+    def _obj(self, value: Any, filter: Callable[[str, Any], Any] = None) -> Any:
+        if isinstance(value, list):
+            if len(value) == 1 and isinstance(value[0], Section) and \
+                    not self._delegate.metaInfoEnv().infoKindEl(value[0].name).repeats:
+                return self._obj(value[0], filter=filter)
+            else:
+                return [self._obj(item, filter=filter) for item in value]
+
+        elif isinstance(value, Section):
+            section = value
+            obj = dict(_name=section.name, _gIndex=section.gIndex)
+            for name, value in section.items():
+                if filter is not None:
+                    value = filter(name, value)
+
+                if value is not None:
+                    obj[name] = self._obj(value, filter=filter)
+            return obj
+
+        else:
+            return JSONStreamWriter._json_serializable_value(value)
 
     @property
     def status(self) -> ParserStatus:
@@ -498,6 +525,18 @@ class LocalBackend(LegacyParserBackend):
         self._status = 'ParseSuccess'
         self._errors = None
         self._warnings: List[str] = []
+
+    def metadata(self, sections: Iterable[str] = ['section_calculation_info', 'section_repository_info']) -> dict:
+        """
+        Returns an json serializable object with all data of the given sections.
+
+        Used to create the repository view of a parsed and normalized calculation.
+        TODO this is probably not the right spot for this functionality!
+        """
+        data = dict(calc_id=self.get_value('calc_id'))
+        for section in sections:
+            data[section] = self._obj(self._delegate.results[section], lambda name, value: value if name != 'archive_processor_warnings' else None)
+        return data
 
     def write_json(self, out: TextIO, pretty=True, filter: Callable[[str, Any], Any] = None):
         """
@@ -513,12 +552,9 @@ class LocalBackend(LegacyParserBackend):
         json_writer.open_object()
 
         # TODO the root sections should be determined programatically
-        for root_section in ['section_run', 'section_calculation_info']:
+        for root_section in ['section_run', 'section_calculation_info', 'section_repository_info']:
             json_writer.key(root_section)
-            json_writer.open_array()
-            for run in self._delegate.results[root_section]:
-                LocalBackend._write(json_writer, run, filter=filter)
-            json_writer.close_array()
+            self._write(json_writer, self._delegate.results[root_section], filter=filter)
 
         json_writer.close_object()
         json_writer.close()

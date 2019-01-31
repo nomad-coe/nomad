@@ -8,3 +8,8 @@ content-type: application/json
 {
     "name": "aims-example-full"
 }
+###
+
+GET http://localhost:8000/nomad/api/v2/uploads/ HTTP/1.1
+Authorization: Basic bGVvbmFyZC5ob2ZzdGFkdGVyQG5vbWFkLWZhaXJkaS50ZXN0cy5kZTo=
+###

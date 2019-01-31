@@ -26,10 +26,9 @@ import os.path
 import json
 
 from nomad import utils
-from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile, RepositoryFile
+from nomad.files import ArchiveBasedStagingUploadFiles, UploadFiles, StagingUploadFiles
 from nomad.processing import Upload, Calc
-from nomad.processing.base import task as task_decorator
-from nomad.repo import RepoCalc
+from nomad.processing.base import task as task_decorator, FAILURE, SUCCESS
 
 from tests.test_files import example_file, empty_file
 
@@ -40,7 +39,7 @@ example_files = [empty_file, example_file]
 
 
 @pytest.fixture(scope='function', autouse=True)
-def mocks_forall(mocksearch, mockmongo):
+def mocks_forall(mockmongo):
     pass
 
 
@@ -48,9 +47,8 @@ def mocks_forall(mocksearch, mockmongo):
 def uploaded_id(request, clear_files) -> Generator[str, None, None]:
     example_file = request.param
     example_upload_id = os.path.basename(example_file).replace('.zip', '')
-    upload_file = UploadFile(example_upload_id)
-    upload_file.create_dirs()
-    shutil.copyfile(example_file, upload_file.os_path)
+    upload_files = ArchiveBasedStagingUploadFiles(example_upload_id, create=True)
+    shutil.copyfile(example_file, upload_files.upload_file_os_path)
 
     yield example_upload_id
 
@@ -59,9 +57,8 @@ def uploaded_id(request, clear_files) -> Generator[str, None, None]:
 def uploaded_id_with_warning(request, clear_files) -> Generator[str, None, None]:
     example_file = 'tests/data/proc/examples_with_warning_template.zip'
     example_upload_id = os.path.basename(example_file).replace('.zip', '')
-    upload_file = UploadFile(example_upload_id)
-    upload_file.create_dirs()
-    shutil.copyfile(example_file, upload_file.os_path)
+    upload_files = ArchiveBasedStagingUploadFiles(example_upload_id, create=True)
+    shutil.copyfile(example_file, upload_files.upload_file_os_path)
 
     yield example_upload_id
 
@@ -70,10 +67,10 @@ def run_processing(uploaded_id: str, test_user) -> Upload:
     upload = Upload.create(upload_id=uploaded_id, user=test_user)
     upload.upload_time = datetime.now()
 
-    assert upload.status == 'RUNNING'
+    assert upload.tasks_status == 'RUNNING'
     assert upload.current_task == 'uploading'
 
-    upload.process()  # pylint: disable=E1101
+    upload.process_upload()  # pylint: disable=E1101
     upload.block_until_complete(interval=.1)
 
     return upload
@@ -84,72 +81,55 @@ def processed_upload(uploaded_id, test_user, worker, no_warn) -> Upload:
     return run_processing(uploaded_id, test_user)
 
 
-def assert_processing(upload: Upload, mocksearch=None):
-    assert upload.completed
+def assert_processing(upload: Upload):
+    assert not upload.tasks_running
     assert upload.current_task == 'cleanup'
-    assert upload.upload_hash is not None
+    assert upload.upload_id is not None
     assert len(upload.errors) == 0
-    assert upload.status == 'SUCCESS'
+    assert upload.tasks_status == SUCCESS
+
+    upload_files = UploadFiles.get(upload.upload_id, is_authorized=lambda: True)
+    assert isinstance(upload_files, StagingUploadFiles)
 
     for calc in Calc.objects(upload_id=upload.upload_id):
         assert calc.parser is not None
         assert calc.mainfile is not None
-        assert calc.status == 'SUCCESS', calc.archive_id
+        assert calc.tasks_status == SUCCESS
 
-        archive_file = ArchiveFile(calc.archive_id)
-        assert archive_file.exists()
-        with archive_file.read_archive_json() as archive_json:
+        with upload_files.archive_file(calc.calc_id) as archive_json:
             archive = json.load(archive_json)
         assert 'section_run' in archive
         assert 'section_calculation_info' in archive
 
-        assert ArchiveLogFile(calc.archive_id).exists()
-        with ArchiveLogFile(calc.archive_id).open('rt') as f:
+        with upload_files.archive_log_file(calc.calc_id) as f:
             assert 'a test' in f.read()
         assert len(calc.errors) == 0
 
-        if mocksearch:
-            repo = mocksearch[calc.archive_id]
-            assert repo is not None
-            assert repo.chemical_composition is not None
-            assert repo.basis_set_type is not None
-            assert len(repo.aux_files) == 4
+        with upload_files.raw_file(calc.mainfile) as f:
+            f.read()
 
-    assert RepositoryFile(upload.upload_hash).exists()
+        assert upload_files.metadata.get(calc.calc_id) is not None
 
 
-@pytest.mark.timeout(30)
-def test_processing(uploaded_id, worker, mocksearch, test_user, no_warn):
+# @pytest.mark.timeout(30)
+def test_processing(uploaded_id, worker, test_user, no_warn):
     upload = run_processing(uploaded_id, test_user)
-    assert_processing(upload, mocksearch)
+    assert_processing(upload)
 
 
 @pytest.mark.timeout(30)
-def test_processing_with_warning(uploaded_id_with_warning, worker, test_user, mocksearch):
+def test_processing_with_warning(uploaded_id_with_warning, worker, test_user):
     upload = run_processing(uploaded_id_with_warning, test_user)
-    assert_processing(upload, mocksearch)
-
-
-@pytest.mark.parametrize('uploaded_id', [example_files[1]], indirect=True)
-def test_processing_doublets(uploaded_id, worker, test_user, with_error):
-
-    upload = run_processing(uploaded_id, test_user)
-    assert upload.status == 'SUCCESS'
-    assert RepoCalc.upload_exists(upload.upload_hash)  # pylint: disable=E1101
-
-    upload = run_processing(uploaded_id, test_user)
-    assert upload.status == 'FAILURE'
-    assert len(upload.errors) > 0
-    assert 'already' in upload.errors[0]
+    assert_processing(upload)
 
 
 @pytest.mark.timeout(30)
 def test_process_non_existing(worker, test_user, with_error):
     upload = run_processing('__does_not_exist', test_user)
 
-    assert upload.completed
+    assert not upload.tasks_running
     assert upload.current_task == 'extracting'
-    assert upload.status == 'FAILURE'
+    assert upload.tasks_status == FAILURE
     assert len(upload.errors) > 0
 
 
@@ -174,20 +154,20 @@ def test_task_failure(monkeypatch, uploaded_id, worker, task, test_user, with_er
     # run the test
     upload = run_processing(uploaded_id, test_user)
 
-    assert upload.completed
+    assert not upload.tasks_running
 
     if task != 'parsing':
-        assert upload.status == 'FAILURE'
+        assert upload.tasks_status == FAILURE
         assert upload.current_task == task
         assert len(upload.errors) > 0
     else:
         # there is an empty example with no calcs, even if past parsing_all task
         utils.get_logger(__name__).error('fake')
         if upload.total_calcs > 0:  # pylint: disable=E1101
-            assert upload.status == 'SUCCESS'
+            assert upload.tasks_status == SUCCESS
             assert upload.current_task == 'cleanup'
             assert len(upload.errors) == 0
             for calc in upload.all_calcs(0, 100):  # pylint: disable=E1101
-                assert calc.status == 'FAILURE'
+                assert calc.tasks_status == FAILURE
                 assert calc.current_task == 'parsing'
                 assert len(calc.errors) > 0

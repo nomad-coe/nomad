@@ -47,16 +47,24 @@ def setup(**kwargs):
 app = Celery('nomad.processing', broker=config.celery.broker_url)
 app.conf.update(worker_hijack_root_logger=False)
 
+CREATED = 'CREATED'
 PENDING = 'PENDING'
 RUNNING = 'RUNNING'
 FAILURE = 'FAILURE'
 SUCCESS = 'SUCCESS'
+
+PROCESS_CALLED = 'CALLED'
+PROCESS_RUNNING = 'RUNNING'
+PROCESS_COMPLETED = 'COMPLETED'
 
 
 class InvalidId(Exception): pass
 
 
 class ProcNotRegistered(Exception): pass
+
+
+class ProcessAlreadyRunning(Exception): pass
 
 
 class ProcMetaclass(TopLevelDocumentMetaclass):
@@ -87,19 +95,20 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     Processing state will be persistet at appropriate
     times and must not be persistet manually. All attributes are stored to mongodb.
-    The class allows to render into a JSON serializable dict via :attr:`json_dict`.
 
     Possible processing states are PENDING, RUNNING, FAILURE, and SUCCESS.
 
     Attributes:
         current_task: the currently running or last completed task
-        status: the overall status of the processing
+        tasks_status: the overall status of the processing
         errors: a list of errors that happened during processing. Error fail a processing
             run
         warnings: a list of warnings that happened during processing. Warnings do not
             fail a processing run
         create_time: the time of creation (not the start of processing)
-        proc_time: the time that processing completed (successfully or not)
+        complete_time: the time that processing completed (successfully or not)
+        current_process: the currently or last run asyncronous process
+        process_status: the status of the currently or last run asyncronous process
     """
 
     meta: Any = {
@@ -110,37 +119,43 @@ class Proc(Document, metaclass=ProcMetaclass):
     """ the ordered list of tasks that comprise a processing run """
 
     current_task = StringField(default=None)
-    status = StringField(default='CREATED')
+    tasks_status = StringField(default=CREATED)
+    create_time = DateTimeField(required=True)
+    complete_time = DateTimeField()
 
     errors = ListField(StringField())
     warnings = ListField(StringField())
 
-    create_time = DateTimeField(required=True)
-    complete_time = DateTimeField()
-
-    _async_status = StringField(default='UNCALLED')
+    current_process = StringField(default=None)
+    process_status = StringField(default=None)
 
     @property
-    def completed(self) -> bool:
+    def tasks_running(self) -> bool:
         """ Returns True of the process has failed or succeeded. """
-        return self.status in [SUCCESS, FAILURE]
+        return self.tasks_status not in [SUCCESS, FAILURE]
+
+    @property
+    def process_running(self) -> bool:
+        """ Returns True of an asynchrounous process is currently running. """
+        return self.process_status is not None and self.process_status != PROCESS_COMPLETED
 
     def get_logger(self):
         return utils.get_logger(
-            'nomad.processing', current_task=self.current_task, process=self.__class__.__name__,
-            status=self.status)
+            'nomad.processing', current_task=self.current_task, proc=self.__class__.__name__,
+            current_process=self.current_process, process_status=self.process_status,
+            tasks_status=self.tasks_status)
 
     @classmethod
     def create(cls, **kwargs):
         """ Factory method that must be used instead of regular constructor. """
         assert cls.tasks is not None and len(cls.tasks) > 0, \
             """ the class attribute tasks must be overwritten with an actual list """
-        assert 'status' not in kwargs, \
+        assert 'tasks_status' not in kwargs, \
             """ do not set the status manually, its managed """
 
         kwargs.setdefault('create_time', datetime.now())
         self = cls(**kwargs)
-        self.status = PENDING if self.current_task is None else RUNNING
+        self.tasks_status = PENDING if self.current_task is None else RUNNING
         self.save()
 
         return self
@@ -179,11 +194,11 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     def fail(self, *errors, log_level=logging.ERROR, **kwargs):
         """ Allows to fail the process. Takes strings or exceptions as args. """
-        assert not self.completed, 'Cannot fail a completed process.'
+        assert self.tasks_running, 'Cannot fail a completed process.'
 
         failed_with_exception = False
 
-        self.status = FAILURE
+        self.tasks_status = FAILURE
 
         logger = self.get_logger(**kwargs)
         for error in errors:
@@ -204,7 +219,7 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     def warning(self, *warnings, log_level=logging.WARNING, **kwargs):
         """ Allows to save warnings. Takes strings or exceptions as args. """
-        assert not self.completed
+        assert self.tasks_running
 
         logger = self.get_logger(**kwargs)
 
@@ -222,13 +237,13 @@ class Proc(Document, metaclass=ProcMetaclass):
             assert tasks.index(task) == tasks.index(self.current_task) + 1, \
                 "tasks must be processed in the right order"
 
-        if self.status == FAILURE:
+        if self.tasks_status == FAILURE:
             return False
 
-        if self.status == PENDING:
+        if self.tasks_status == PENDING:
             assert self.current_task is None
             assert task == tasks[0]  # pylint: disable=E1136
-            self.status = RUNNING
+            self.tasks_status = RUNNING
             self.current_task = task
             self.get_logger().info('started process')
         else:
@@ -239,9 +254,10 @@ class Proc(Document, metaclass=ProcMetaclass):
         return True
 
     def _complete(self):
-        if self.status != FAILURE:
-            assert self.status == RUNNING, 'Can only complete a running process.'
-            self.status = SUCCESS
+        if self.tasks_status != FAILURE:
+            assert self.tasks_status == RUNNING, 'Can only complete a running process, process is %s' % self.tasks_status
+            self.tasks_status = SUCCESS
+            self.complete_time = datetime.now()
             self.save()
             self.get_logger().info('completed process')
 
@@ -250,25 +266,9 @@ class Proc(Document, metaclass=ProcMetaclass):
         Reloads the process constantly until it sees a completed process. Should be
         used with care as it can block indefinitely. Just intended for testing purposes.
         """
-        while not self.completed:
+        while self.tasks_running:
             time.sleep(interval)
             self.reload()
-
-    @property
-    def json_dict(self) -> dict:
-        """ A json serializable dictionary representation. """
-        data = {
-            'tasks': getattr(self.__class__, 'tasks'),
-            'current_task': self.current_task,
-            'status': self.status,
-            'completed': self.completed,
-            'errors': self.errors,
-            'warnings': self.warnings,
-            'create_time': self.create_time.isoformat() if self.create_time is not None else None,
-            'complete_time': self.complete_time.isoformat() if self.complete_time is not None else None,
-            '_async_status': self._async_status
-        }
-        return {key: value for key, value in data.items() if value is not None}
 
 
 class InvalidChordUsage(Exception): pass
@@ -288,6 +288,10 @@ class Chord(Proc):
 
     TODO it is vital that sub classes and children don't miss any calls. This might
     not be practical, because in reality processes might even fail to fail.
+
+    TODO in the current upload processing, the join functionality is not strictly necessary.
+    Nothing is done after join. We only need it to report the upload completed on API
+    request. We could check the join condition on each of thise API queries.
 
     Attributes:
         total_children (int): the number of spawed children, -1 denotes that number was not
@@ -325,7 +329,7 @@ class Chord(Proc):
         total_children, joined = others
 
         self.get_logger().debug(
-            'Check for join', total_children=total_children,
+            'check for join', total_children=total_children,
             completed_children=completed_children, joined=joined)
 
         # check the join condition and raise errors if chord is in bad state
@@ -334,11 +338,11 @@ class Chord(Proc):
                 self.join()
                 self.joined = True
                 self.modify(joined=self.joined)
-                self.get_logger().debug('Chord is joined')
+                self.get_logger().debug('chord is joined')
             else:
-                raise InvalidChordUsage('Chord cannot be joined twice.')
+                raise InvalidChordUsage('chord cannot be joined twice.')
         elif completed_children > total_children and total_children != -1:
-            raise InvalidChordUsage('Chord counter is out of limits.')
+            raise InvalidChordUsage('chord counter is out of limits.')
 
     def join(self):
         """ Subclasses might overwrite to do something after all children have completed. """
@@ -384,7 +388,7 @@ def task(func):
     only be executed, if the process has not yet reached FAILURE state.
     """
     def wrapper(self, *args, **kwargs):
-        if self.status == 'FAILURE':
+        if self.tasks_status == FAILURE:
             return
 
         self._continue_with(func.__name__)
@@ -393,7 +397,7 @@ def task(func):
         except Exception as e:
             self.fail(e)
 
-        if self.__class__.tasks[-1] == self.current_task and not self.completed:
+        if self.__class__.tasks[-1] == self.current_task and self.tasks_running:
             self._complete()
 
     setattr(wrapper, '__task_name', func.__name__)
@@ -432,21 +436,28 @@ def proc_task(task, cls_name, self_id, func_attr):
         cls = all_proc_cls.get(cls_name, None)
 
     if cls is None:
-        logger.error('document not a subcass of Proc')
+        logger.critical('document not a subcass of Proc')
         raise ProcNotRegistered('document %s not a subclass of Proc' % cls_name)
 
     # get the process instance
     try:
-        self = cls.get(self_id)
-    except KeyError as e:
-        logger.warning('called object is missing')
-        raise task.retry(exc=e, countdown=3)
+        try:
+            self = cls.get(self_id)
+        except KeyError as e:
+            logger.warning('called object is missing')
+            raise task.retry(exc=e, countdown=3)
+    except KeyError:
+        logger.critical('called object is missing, retries exeeded')
+
+    logger = self.get_logger()
 
     # get the process function
     func = getattr(self, func_attr, None)
     if func is None:
         logger.error('called function not a function of proc class')
         self.fail('called function %s is not a function of proc class %s' % (func_attr, cls_name))
+        self.process_status = PROCESS_COMPLETED
+        self.save()
         return
 
     # unwrap the process decorator
@@ -454,14 +465,21 @@ def proc_task(task, cls_name, self_id, func_attr):
     if func is None:
         logger.error('called function was not decorated with @process')
         self.fail('called function %s was not decorated with @process' % func_attr)
+        self.process_status = PROCESS_COMPLETED
+        self.save()
         return
 
     # call the process function
+    deleted = False
     try:
-        self._async_status = 'RECEIVED-%s' % func.__name__
-        func(self)
+        self.process_status = PROCESS_RUNNING
+        deleted = func(self)
     except Exception as e:
         self.fail(e)
+    finally:
+        if deleted is None or not deleted:
+            self.process_status = PROCESS_COMPLETED
+            self.save()
 
 
 def process(func):
@@ -469,11 +487,17 @@ def process(func):
     The decorator for process functions that will be called async via celery.
     All calls to the decorated method will result in celery task requests.
     To transfer state, the instance will be saved to the database and loading on
-    the celery task worker. Process methods can call other (process) functions/methods.
+    the celery task worker. Process methods can call other (process) functions/methods on
+    other :class:`Proc` instances. Each :class:`Proc` instance can only run one
+    asny process at a time.
     """
     def wrapper(self, *args, **kwargs):
         assert len(args) == 0 and len(kwargs) == 0, 'process functions must not have arguments'
-        self._async_status = 'CALLED-%s' % func.__name__
+        if self.process_running:
+            raise ProcessAlreadyRunning
+
+        self.current_process = func.__name__
+        self.process_status = PROCESS_CALLED
         self.save()
 
         self_id = self.id.__str__()

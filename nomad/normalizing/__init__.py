@@ -16,6 +16,7 @@ from typing import List, Any
 from .normalizer import Normalizer
 from .system import SystemNormalizer
 from .fhiaims import FhiAimsBaseNormalizer
+from .repository import RepositoryNormalizer
 
 """
 After parsing calculations have to be normalized with a set of *normalizers*.
@@ -43,4 +44,5 @@ There is one ABC for all normalizer:
 normalizers: List[Any] = [
     SystemNormalizer,
     FhiAimsBaseNormalizer,
+    RepositoryNormalizer
 ]

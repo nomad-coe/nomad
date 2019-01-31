@@ -7,21 +7,20 @@ import TableCell from '@material-ui/core/TableCell'
 import TablePagination from '@material-ui/core/TablePagination'
 import TableRow from '@material-ui/core/TableRow'
 import Paper from '@material-ui/core/Paper'
-import api from '../api'
-import CalcLinks from './CalcLinks'
 import { TableHead, LinearProgress, FormControl, FormControlLabel, Checkbox, FormGroup,
-  FormLabel, IconButton, MuiThemeProvider } from '@material-ui/core'
-import Markdown from './Markdown'
+  FormLabel, IconButton, MuiThemeProvider, Typography } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
 import AnalyticsIcon from '@material-ui/icons/Settings'
 import { analyticsTheme } from '../config'
 import Link from 'react-router-dom/Link'
+import { withApi } from './api'
 // import PeriodicTable from './PeriodicTable'
 
 class Repo extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
+    api: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired
   }
 
@@ -29,8 +28,10 @@ class Repo extends React.Component {
     root: {},
     data: {
       width: '100%',
-      marginTop: theme.spacing.unit * 3,
       overflowX: 'scroll'
+    },
+    title: {
+      marginBottom: theme.spacing.unit * 4
     },
     progressPlaceholder: {
       height: 5
@@ -69,7 +70,7 @@ class Repo extends React.Component {
   update(page, rowsPerPage, owner) {
     this.setState({loading: true})
     owner = owner || this.state.owner
-    api.repoAll(page, rowsPerPage, owner).then(data => {
+    this.props.api.repoAll(page, rowsPerPage, owner).then(data => {
       const { pagination: { total, page, per_page }, results } = data
       this.setState({
         data: results,
@@ -116,9 +117,7 @@ class Repo extends React.Component {
     }
     return (
       <div className={classes.root}>
-        <Markdown>{`
-          ## The Repository – Raw Code Data
-        `}</Markdown>
+        <Typography variant="h4" className={classes.title}>The Repository – Raw Code Data</Typography>
         {/* <PeriodicTable/> */}
         <FormControl>
           <FormLabel>Filter calculations and only show: </FormLabel>
@@ -166,7 +165,7 @@ class Repo extends React.Component {
                     <TableCell padding="dense" key={rowIndex}>{calc[key]}</TableCell>
                   ))}
                   <TableCell padding="dense">
-                    <CalcLinks uploadHash={calc.upload_hash} calcHash={calc.calc_hash} />
+                    {/* <CalcLinks uploadId={calc.upload_id} calcId={calc.calc_id} /> */}
                   </TableCell>
                 </TableRow>
               ))}
@@ -198,4 +197,4 @@ class Repo extends React.Component {
   }
 }
 
-export default compose(withErrors, withStyles(Repo.styles))(Repo)
+export default compose(withApi(false), withErrors, withStyles(Repo.styles))(Repo)

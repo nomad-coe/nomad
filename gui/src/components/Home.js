@@ -3,13 +3,12 @@ import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core'
 import Markdown from './Markdown'
 
-
 class Home extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired
   }
   static styles = theme => ({
-    root: {},
+    root: {}
   });
 
   render() {

@@ -1,3 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nomad.fullname" . }}-gui-config
+  labels:
+    app.kubernetes.io/name: {{ include "nomad.name" . }}-gui-config
+    helm.sh/chart: {{ include "nomad.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+data:
+  nginx.conf: |
+    server {
+      listen        8080;
+      server_name   www.example.com;
+      location {{ .Values.proxy.external.path }} {
+        root      /app/;
+        rewrite ^{{ .Values.proxy.external.path }}/(.*)$ /nomad/$1 break;
+        try_files $uri {{ .Values.proxy.external.path }}/index.html;
+      }
+    }
+  env.js: |
+    window.nomadEnv = {
+      "apiBase": "{{ .Values.proxy.external.path }}/api",
+      "appBase": "{{ .Values.proxy.external.path }}",
+      "appStaticBase": "{{ .Values.proxy.external.path }}",
+      "kibanaBase": "{{ .Values.proxy.external.kibanaPath }}",
+      "appDebug": false
+    };
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -23,5 +52,32 @@ spec:
       - name: {{ include "nomad.name" . }}-gui
         image: "{{ .Values.images.frontend.name }}:{{ .Values.images.frontend.tag }}"
         command: ["nginx", "-g", "daemon off;"]
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - mountPath: /etc/nginx/conf.d
+          readOnly: true
+          name: nginx-conf
+        - mountPath: /app/nomad/config
+          readOnly: true
+          name: nomad-app
+        - mountPath: /var/log/nginx
+          name: log
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
+      imagePullPolicy: always
+      volumes:
+      - name: nginx-conf
+        configMap:
+          name: {{ include "nomad.fullname" . }}-gui-config
+          items:
+          - key: nginx.conf
+            path: default.conf
+      - name: nomad-app
+        configMap:
+          name: {{ include "nomad.fullname" . }}-gui-config
+          items:
+          - key: env.js
+            path: env.js
+      - name: log
+        emptyDir: {}

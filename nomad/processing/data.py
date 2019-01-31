@@ -25,28 +25,19 @@ calculations, and files
 """
 
 from typing import List, Any, ContextManager, Tuple, Generator
-from datetime import datetime
-from elasticsearch.exceptions import NotFoundError
-from mongoengine import StringField, BooleanField, DateTimeField, DictField, IntField
+from mongoengine import StringField, DateTimeField, DictField
 import logging
-import base64
-import time
 from structlog import wrap_logger
 from contextlib import contextmanager
 
-from nomad import config, utils, coe_repo
-from nomad.files import UploadFile, ArchiveFile, ArchiveLogFile, File
-from nomad.repo import RepoCalc
-from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE, RUNNING
+from nomad import utils, coe_repo, datamodel
+from nomad.files import PathObject, ArchiveBasedStagingUploadFiles, ExtractError, Calc as FilesCalc
+from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parsers, parser_dict
 from nomad.normalizing import normalizers
-from nomad.utils import lnr
 
 
-class NotAllowedDuringProcessing(Exception): pass
-
-
-class Calc(Proc):
+class Calc(Proc, datamodel.Calc):
     """
     Instances of this class represent calculations. This class manages the elastic
     search index entry, files, and archive for the respective calculation.
@@ -57,39 +48,37 @@ class Calc(Proc):
     while parsing, including ``program_name``, ``program_version``, etc.
 
     Attributes:
-        archive_id: the hash based archive id of the calc
+        calc_id: the calc_id of this calc
         parser: the name of the parser used to process this calc
         upload_id: the id of the upload used to create this calculation
         mainfile: the mainfile (including path in upload) that was used to create this calc
-        mainfile_tmp_path: path to the mainfile extracted for processing
     """
-    archive_id = StringField(primary_key=True)
+    calc_id = StringField(primary_key=True)
     upload_id = StringField()
     mainfile = StringField()
     parser = StringField()
-    mainfile_tmp_path = StringField()
 
     meta: Any = {
         'indices': [
-            'upload_id', 'mainfile', 'code', 'parser', 'status'
+            'upload_id', 'mainfile', 'code', 'parser', 'tasks_status'
         ]
     }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._parser_backend = None
-        self._upload = None
+        self._upload: Upload = None
+        self._upload_files: ArchiveBasedStagingUploadFiles = None
         self._calc_proc_logwriter = None
-        self._calc_proc_logfile = None
         self._calc_proc_logwriter_ctx: ContextManager = None
 
     @classmethod
     def get(cls, id):
-        return cls.get_by_id(id, 'archive_id')
+        return cls.get_by_id(id, 'calc_id')
 
     @property
-    def mainfile_file(self) -> File:
-        return File(self.mainfile_tmp_path)
+    def mainfile_file(self) -> PathObject:
+        return self.upload_files.raw_file_object(self.mainfile)
 
     @property
     def upload(self) -> 'Upload':
@@ -97,34 +86,16 @@ class Calc(Proc):
             self._upload = Upload.get(self.upload_id)
         return self._upload
 
-    def delete(self):
-        """
-        Delete this calculation and all associated data. This includes all files,
-        the archive, and this search index entry.
-        TODO is this needed? Or do we always delete hole uploads in bulk.
-        """
-        # delete the archive
-        if self.archive_id is not None:
-            ArchiveFile(self.archive_id).delete()
-
-        # delete the search index entry
-        try:
-            elastic_entry = RepoCalc.get(self.archive_id)
-            if elastic_entry is not None:
-                elastic_entry.delete()
-        except NotFoundError:
-            pass
-
-        # delete this mongo document
-        super().delete()
+    @property
+    def upload_files(self) -> ArchiveBasedStagingUploadFiles:
+        if not self._upload_files:
+            self._upload_files = ArchiveBasedStagingUploadFiles(self.upload_id, is_authorized=lambda: True, local_path=self.upload.local_path)
+        return self._upload_files
 
     def get_logger(self, **kwargs):
-        upload_hash, calc_hash = self.archive_id.split('/')
         logger = super().get_logger()
         logger = logger.bind(
-            upload_id=self.upload_id, mainfile=self.mainfile,
-            upload_hash=upload_hash, calc_hash=calc_hash,
-            archive_id=self.archive_id, **kwargs)
+            upload_id=self.upload_id, mainfile=self.mainfile, calc_id=self.calc_id, **kwargs)
 
         return logger
 
@@ -136,8 +107,7 @@ class Calc(Proc):
         logger = self.get_logger(**kwargs)
 
         if self._calc_proc_logwriter is None:
-            self._calc_proc_logfile = ArchiveLogFile(self.archive_id)
-            self._calc_proc_logwriter_ctx = self._calc_proc_logfile.open('wt')
+            self._calc_proc_logwriter_ctx = self.upload_files.archive_log_file(self.calc_id, 'wt')
             self._calc_proc_logwriter = self._calc_proc_logwriter_ctx.__enter__()  # pylint: disable=E1101
 
         def save_to_calc_log(logger, method_name, event_dict):
@@ -154,20 +124,8 @@ class Calc(Proc):
 
         return wrap_logger(logger, processors=[save_to_calc_log])
 
-    @property
-    def json_dict(self):
-        """ A json serializable dictionary representation. """
-        data = {
-            'archive_id': self.archive_id,
-            'mainfile': self.mainfile,
-            'upload_id': self.upload_id,
-            'parser': self.parser
-        }
-        data.update(super().json_dict)
-        return {key: value for key, value in data.items() if value is not None}
-
     @process
-    def process(self):
+    def process_calc(self):
         logger = self.get_logger()
         if self.upload is None:
             logger.error('calculation upload does not exist')
@@ -195,11 +153,13 @@ class Calc(Proc):
         parser = parser_dict[self.parser]
 
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
-            self._parser_backend = parser.run(self.mainfile_tmp_path, logger=logger)
+            self._parser_backend = parser.run(
+                self.upload_files.raw_file_object(self.mainfile).os_path, logger=logger)
 
         self._parser_backend.openNonOverlappingSection('section_calculation_info')
         self._parser_backend.addValue('upload_id', self.upload_id)
-        self._parser_backend.addValue('archive_id', self.archive_id)
+        self._parser_backend.addValue('calc_id', self.calc_id)
+        self._parser_backend.addValue('calc_hash', self.upload_files.calc_hash(self.mainfile))
         self._parser_backend.addValue('main_file', self.mainfile)
         self._parser_backend.addValue('parser_name', self.parser)
 
@@ -212,6 +172,12 @@ class Calc(Proc):
             self._parser_backend.addValue('parse_status', 'ParseSuccess')
 
         self._parser_backend.closeNonOverlappingSection('section_calculation_info')
+
+        self._parser_backend.openNonOverlappingSection('section_repository_info')
+        self._parser_backend.addValue('repository_archive_gid', '%s/%s' % (self.upload_id, self.calc_id))
+        self._parser_backend.addValue(
+            'repository_filepaths', self.upload_files.calc_files(self.mainfile))
+        self._parser_backend.closeNonOverlappingSection('section_repository_info')
 
         self.add_processor_info(self.parser)
 
@@ -235,7 +201,7 @@ class Calc(Proc):
             else:
                 self._parser_backend.addValue('archive_processor_status', 'Success')
         else:
-            errors = self._parser_backend.status[1]
+            errors = self._parser_backend.tasks_status[1]
             self._parser_backend.addValue('archive_processor_error', str(errors))
 
         self._parser_backend.closeNonOverlappingSection('section_archive_processing_info')
@@ -267,34 +233,18 @@ class Calc(Proc):
     def archiving(self):
         logger = self.get_logger()
 
-        upload_hash, calc_hash = self.archive_id.split('/')
-        additional = dict(
-            mainfile=self.mainfile,
-            upload_time=self.upload.upload_time,
-            staging=True,
-            restricted=False,
-            user_id=self.upload.user_id,
-            aux_files=list(self.upload.upload_file.get_siblings(self.mainfile)))
-
+        # persist the repository metadata
         with utils.timer(logger, 'indexed', step='index'):
-            # persist to elastic search
-            RepoCalc.create_from_backend(
-                self._parser_backend,
-                additional=additional,
-                upload_hash=upload_hash,
-                calc_hash=calc_hash,
-                upload_id=self.upload_id).persist()
+            self.upload_files.metadata.insert(self._parser_backend.metadata())
 
+        # persist the archive
         with utils.timer(
                 logger, 'archived', step='archive',
                 input_size=self.mainfile_file.size) as log_data:
-
-            # persist the archive
-            archive_file = ArchiveFile(self.archive_id)
-            with archive_file.write_archive_json() as out:
+            with self.upload_files.archive_file(self.calc_id, 'wt') as out:
                 self._parser_backend.write_json(out, pretty=True)
 
-            log_data.update(archive_size=archive_file.size)
+            log_data.update(archive_size=self.upload_files.archive_file_object(self.calc_id).size)
 
         # close loghandler
         if self._calc_proc_logwriter is not None:
@@ -304,10 +254,16 @@ class Calc(Proc):
                 self._calc_proc_logwriter_ctx.__exit__(None, None, None)  # pylint: disable=E1101
                 self._calc_proc_logwriter = None
 
-                log_data.update(log_size=self._calc_proc_logfile.size)
+                log_data.update(log_size=self.upload_files.archive_log_file_object(self.calc_id).size)
+
+    def to_calc_with_metadata(self):
+        return self.to(FilesCalc).to_calc_with_metadata()
 
 
-class Upload(Chord):
+datamodel.CalcWithMetadata.register_mapping(Calc, Calc.to_calc_with_metadata)
+
+
+class Upload(Chord, datamodel.Upload):
     """
     Represents uploads in the databases. Provides persistence access to the files storage,
     and processing state.
@@ -315,12 +271,9 @@ class Upload(Chord):
     Attributes:
         name: optional user provided upload name
         local_path: optional local path, e.g. for files that are already somewhere on the server
-        additional_metadata: optional user provided additional meta data
+        metadata: optional user provided additional meta data
         upload_id: the upload id generated by the database
-        in_staging: true if the upload is still in staging and can be edited by the uploader
-        is_private: true if the upload and its derivitaves are only visible to the uploader
         upload_time: the timestamp when the system realised the upload
-        upload_hash: the hash of the uploaded file
         user_id: the id of the user that created this upload
     """
     id_field = 'upload_id'
@@ -329,31 +282,19 @@ class Upload(Chord):
 
     name = StringField(default=None)
     local_path = StringField(default=None)
-    additional_metadata = DictField(default=None)
-
-    in_staging = BooleanField(default=True)
-    is_private = BooleanField(default=False)
-
+    metadata = DictField(default=None)
     upload_time = DateTimeField()
-    upload_hash = StringField(default=None)
-
     user_id = StringField(required=True)
-    upload_url = StringField(default=None)
-    upload_command = StringField(default=None)
-
-    coe_repo_upload_id = IntField(default=None)
-
-    _initiated_parsers = IntField(default=-1)
 
     meta: Any = {
         'indexes': [
-            'upload_hash', 'user_id', 'status'
+            'user_id', 'tasks_status'
         ]
     }
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._upload_file = None
+        self._upload_files: ArchiveBasedStagingUploadFiles = None
 
     @classmethod
     def get(cls, id):
@@ -362,49 +303,16 @@ class Upload(Chord):
     @classmethod
     def user_uploads(cls, user: coe_repo.User) -> List['Upload']:
         """ Returns all uploads for the given user. Currently returns all uploads. """
-        return cls.objects(user_id=str(user.user_id), in_staging=True)
+        return cls.objects(user_id=str(user.user_id))
+
+    @property
+    def uploader(self):
+        return coe_repo.User.from_user_id(self.user_id)
 
     def get_logger(self, **kwargs):
         logger = super().get_logger()
         logger = logger.bind(upload_id=self.upload_id, **kwargs)
         return logger
-
-    def delete(self):
-        logger = self.get_logger(task='delete')
-
-        if not (self.completed or self.is_stale or self.current_task == 'uploading'):
-            raise NotAllowedDuringProcessing()
-
-        with lnr(logger, 'delete upload file'):
-            try:
-                UploadFile(self.upload_id, local_path=self.local_path).delete()
-            except KeyError:
-                if self.current_task == 'uploading':
-                    logger.debug(
-                        'Upload exist, but file does not exist. '
-                        'It was probably aborted and deleted.')
-                else:
-                    logger.debug('Upload exist, but uploaded file does not exist.')
-
-        with lnr(logger, 'deleting calcs'):
-            # delete archive files
-            ArchiveFile.delete_archives(upload_hash=self.upload_hash)
-
-            # delete repo entries
-            RepoCalc.delete_upload(upload_id=self.upload_id)
-
-            # delete calc processings
-            Calc.objects(upload_id=self.upload_id).delete()
-
-        with lnr(logger, 'deleting upload'):
-            super().delete()
-
-    @classmethod
-    def _external_objects_url(cls, url):
-        """ Replaces the given internal object storage url with an URL that allows
-            external access.
-        """
-        return 'http://%s:%s%s%s' % (config.services.api_host, config.services.api_port, config.services.api_base_path, url)
 
     @classmethod
     def create(cls, **kwargs) -> 'Upload':
@@ -423,49 +331,63 @@ class Upload(Chord):
         kwargs.update(user_id=str(user.user_id))
         self = super().create(**kwargs)
 
-        basic_auth_token = base64.b64encode(b'%s:' % user.get_auth_token()).decode('utf-8')
-
-        self.upload_url = cls._external_objects_url('/uploads/%s/file' % self.upload_id)
-        self.upload_command = 'curl -H "Authorization: Basic %s" "%s" --upload-file local_file' % (
-            basic_auth_token, self.upload_url)
-
         self._continue_with('uploading')
 
         return self
 
-    @property
-    def is_stale(self) -> bool:
-        if self.current_task == 'uploading' and self.upload_time is None:
-            return (datetime.now() - self.create_time).days > 1
-        else:
-            return False
-
-    def unstage(self):
-        self.get_logger().info('unstage')
-        self.in_staging = False
-        RepoCalc.unstage(upload_id=self.upload_id)
-        coe_repo.add_upload(self, restricted=False)  # TODO allow users to choose restricted
-        self.save()
-
-    @property
-    def json_dict(self) -> dict:
-        """ A json serializable dictionary representation. """
-        data = {
-            'name': self.name,
-            'local_path': self.local_path,
-            'additional_metadata': self.additional_metadata,
-            'upload_id': self.upload_id,
-            'upload_hash': self.upload_hash,
-            'upload_url': self.upload_url,
-            'upload_command': self.upload_command,
-            'upload_time': self.upload_time.isoformat() if self.upload_time is not None else None,
-            'is_stale': self.is_stale,
-        }
-        data.update(super().json_dict)
-        return {key: value for key, value in data.items() if value is not None}
+    def delete(self):
+        """ Deletes this upload process state entry and its calcs. """
+        Calc.objects(upload_id=self.upload_id).delete()
+        super().delete()
 
     @process
-    def process(self):
+    def delete_upload(self):
+        """
+        Deletes of the upload, including its processing state and
+        staging files.
+        """
+        logger = self.get_logger()
+
+        with utils.lnr(logger, 'staged upload delete failed'):
+            with utils.timer(
+                    logger, 'staged upload deleted', step='delete',
+                    upload_size=self.upload_files.size):
+                self.upload_files.delete()
+                self.delete()
+
+        return True  # do not save the process status on the delete upload
+
+    @process
+    def commit_upload(self):
+        """
+        Moves the upload out of staging to add it to the coe repository. It will
+        pack the staging upload files in to public upload files, add entries to the
+        coe repository db and remove this instance and its calculation from the
+        processing state db.
+        """
+        logger = self.get_logger()
+
+        with utils.lnr(logger, 'commit failed'):
+            with utils.timer(
+                    logger, 'upload added to repository', step='commit',
+                    upload_size=self.upload_files.size):
+                coe_repo.Upload.add(self, self.metadata)
+
+            with utils.timer(
+                    logger, 'staged upload files packed', step='commit',
+                    upload_size=self.upload_files.size):
+                self.upload_files.pack()
+
+            with utils.timer(
+                    logger, 'staged upload deleted', step='commit',
+                    upload_size=self.upload_files.size):
+                self.upload_files.delete()
+                self.delete()
+
+        return True  # do not save the process status on the delete upload
+
+    @process
+    def process_upload(self):
         self.extracting()
         self.parse_all()
 
@@ -474,11 +396,10 @@ class Upload(Chord):
         pass
 
     @property
-    def upload_file(self):
-        """ The :class:`UploadFile` instance that represents the uploaded file of this upload. """
-        if not self._upload_file:
-            self._upload_file = UploadFile(self.upload_id, local_path=self.local_path)
-        return self._upload_file
+    def upload_files(self) -> ArchiveBasedStagingUploadFiles:
+        if not self._upload_files:
+            self._upload_files = ArchiveBasedStagingUploadFiles(self.upload_id, is_authorized=lambda: True, local_path=self.local_path)
+        return self._upload_files
 
     @task
     def extracting(self):
@@ -492,25 +413,16 @@ class Upload(Chord):
         try:
             with utils.timer(
                     logger, 'upload extracted', step='extracting',
-                    upload_size=self.upload_file.size):
-                self.upload_file.extract()
-        except KeyError as e:
-            self.fail('process request for non existing upload', level=logging.INFO)
+                    upload_size=self.upload_files.size):
+                self.upload_files.extract()
+        except KeyError:
+            self.fail('processing requested for non existing upload', log_level=logging.ERROR)
+            return
+        except ExtractError:
+            self.fail('bad .zip/.tar file', log_level=logging.INFO)
             return
 
-        # create and save a hash for the upload
-        try:
-            self.upload_hash = self.upload_file.upload_hash()
-        except Exception as e:
-            self.fail('could not create upload hash', e)
-            return
-
-        # check if the file was already uploaded and processed before
-        if RepoCalc.upload_exists(self.upload_hash):
-            self.fail('The same file was already uploaded and processed.', level=logging.INFO)
-            return
-
-    def match_mainfiles(self) -> Generator[Tuple[File, str, object], None, None]:
+    def match_mainfiles(self) -> Generator[Tuple[str, object], None, None]:
         """
         Generator function that matches all files in the upload to all parsers to
         determine the upload's mainfiles.
@@ -518,13 +430,12 @@ class Upload(Chord):
         Returns:
             Tuples of mainfile, filename, and parsers
         """
-        for filename in self.upload_file.filelist:
-            potential_mainfile = self.upload_file.get_file(filename)
+        for filename in self.upload_files.raw_file_manifest():
             for parser in parsers:
                 try:
-                    with potential_mainfile.open('r') as mainfile_f:
+                    with self.upload_files.raw_file(filename) as mainfile_f:
                         if parser.is_mainfile(filename, lambda fn: mainfile_f):
-                            yield potential_mainfile, filename, parser
+                            yield filename, parser
                 except Exception as e:
                     self.get_logger().error(
                         'exception while matching pot. mainfile',
@@ -541,17 +452,15 @@ class Upload(Chord):
         # TODO: deal with multiple possible parser specs
         with utils.timer(
                 logger, 'upload extracted', step='matching',
-                upload_size=self.upload_file.size,
-                upload_filecount=len(self.upload_file.filelist)):
+                upload_size=self.upload_files.size):
             total_calcs = 0
-            for mainfile, filename, parser in self.match_mainfiles():
+            for filename, parser in self.match_mainfiles():
                 calc = Calc.create(
-                    archive_id='%s/%s' % (self.upload_hash, utils.hash(filename)),
+                    calc_id=self.upload_files.calc_id(filename),
                     mainfile=filename, parser=parser.name,
-                    mainfile_tmp_path=mainfile.os_path,
                     upload_id=self.upload_id)
 
-                calc.process()
+                calc.process_calc()
                 total_calcs += 1
 
         # have to save the total_calcs information for chord management
@@ -562,26 +471,12 @@ class Upload(Chord):
 
     @task
     def cleanup(self):
-        try:
-            upload = UploadFile(self.upload_id, local_path=self.local_path)
-            with utils.timer(
-                    self.get_logger(), 'upload persisted', step='cleaning',
-                    upload_size=upload.size):
-                upload.persist()
-
-            with utils.timer(
-                    self.get_logger(), 'processing cleaned up', step='cleaning',
-                    upload_size=upload.size):
-                upload.remove_extract()
-        except KeyError as e:
-            self.fail('Upload does not exist', exc_info=e)
-            return
-
-        self.get_logger().debug('closed upload')
+        # nothing todo with the current processing setup
+        pass
 
     @property
     def processed_calcs(self):
-        return Calc.objects(upload_id=self.upload_id, status__in=[SUCCESS, FAILURE]).count()
+        return Calc.objects(upload_id=self.upload_id, tasks_status__in=[SUCCESS, FAILURE]).count()
 
     @property
     def total_calcs(self):
@@ -589,31 +484,15 @@ class Upload(Chord):
 
     @property
     def failed_calcs(self):
-        return Calc.objects(upload_id=self.upload_id, status=FAILURE).count()
+        return Calc.objects(upload_id=self.upload_id, tasks_status=FAILURE).count()
 
     @property
     def pending_calcs(self):
-        return Calc.objects(upload_id=self.upload_id, status=PENDING).count()
+        return Calc.objects(upload_id=self.upload_id, tasks_status=PENDING).count()
 
     def all_calcs(self, start, end, order_by='mainfile'):
         return Calc.objects(upload_id=self.upload_id)[start:end].order_by(order_by)
 
-    @staticmethod
-    def repair_all():
-        """
-        Utitlity function that will look for suspiciously looking conditions in
-        all uncompleted downloads. It ain't a perfect world.
-        """
-        # TODO this was added as a quick fix to #37.
-        # Even though it might be strictly necessary, there should be a tested backup
-        # solution for it Chords to not work properly due to failed to fail processings
-        uploads = Upload.objects(status__in=[PENDING, RUNNING])
-        for upload in uploads:
-            completed = upload.processed_calcs
-            total = upload.total
-            pending = upload.pending_calcs
-
-            if completed + pending == total:
-                time.sleep(2)
-                if pending == upload.pending_calcs:
-                    Calc.objects(upload_id=upload.upload_id, status=PENDING).delete()
+    @property
+    def calcs(self):
+        return Calc.objects(upload_id=self.upload_id, tasks_status=SUCCESS)

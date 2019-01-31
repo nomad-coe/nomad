@@ -20,9 +20,14 @@ This module is used to store all configuration values. It makes use of
 import os
 import logging
 from collections import namedtuple
+import warnings
+
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
+
 
 FilesConfig = namedtuple(
-    'FilesConfig', ['uploads_bucket', 'raw_bucket', 'archive_bucket', 'compress_archive'])
+    'FilesConfig', ['uploads_bucket', 'raw_bucket', 'archive_bucket', 'staging_bucket', 'public_bucket'])
 """ API independent configuration for the object storage. """
 
 CeleryConfig = namedtuple('Celery', ['broker_url'])
@@ -34,7 +39,7 @@ FSConfig = namedtuple('FSConfig', ['tmp', 'objects'])
 RepositoryDBConfig = namedtuple('RepositoryDBConfig', ['host', 'port', 'dbname', 'user', 'password'])
 """ Used to configure access to NOMAD-coe repository db. """
 
-ElasticConfig = namedtuple('ElasticConfig', ['host', 'port', 'index_name'])
+ElasticConfig = namedtuple('ElasticConfig', ['host', 'port', 'index_name', 'coe_repo_calcs_index_name'])
 """ Used to configure elastic search. """
 
 MongoConfig = namedtuple('MongoConfig', ['host', 'port', 'db_name'])
@@ -43,14 +48,15 @@ MongoConfig = namedtuple('MongoConfig', ['host', 'port', 'db_name'])
 LogstashConfig = namedtuple('LogstashConfig', ['enabled', 'host', 'tcp_port', 'level'])
 """ Used to configure and enable/disable the ELK based centralized logging. """
 
-NomadServicesConfig = namedtuple('NomadServicesConfig', ['api_host', 'api_port', 'api_base_path', 'api_secret'])
+NomadServicesConfig = namedtuple('NomadServicesConfig', ['api_host', 'api_port', 'api_base_path', 'api_secret', 'admin_password', 'disable_reset'])
 """ Used to configure nomad services: worker, handler, api """
 
 files = FilesConfig(
     uploads_bucket='uploads',
     raw_bucket=os.environ.get('NOMAD_FILES_RAW_BUCKET', 'raw'),
     archive_bucket='archive',
-    compress_archive=True
+    staging_bucket='staging',
+    public_bucket='public'
 )
 
 rabbit_host = os.environ.get('NOMAD_RABBITMQ_HOST', 'localhost')
@@ -82,7 +88,8 @@ fs = FSConfig(
 elastic = ElasticConfig(
     host=os.environ.get('NOMAD_ELASTIC_HOST', 'localhost'),
     port=int(os.environ.get('NOMAD_ELASTIC_PORT', 9200)),
-    index_name=os.environ.get('NOMAD_ELASTIC_INDEX_NAME', 'calcs')
+    index_name=os.environ.get('NOMAD_ELASTIC_INDEX_NAME', 'calcs'),
+    coe_repo_calcs_index_name='coe_repo_calcs'
 )
 repository_db = RepositoryDBConfig(
     host=os.environ.get('NOMAD_COE_REPO_DB_HOST', 'localhost'),
@@ -106,8 +113,18 @@ services = NomadServicesConfig(
     api_host=os.environ.get('NOMAD_API_HOST', 'localhost'),
     api_port=int(os.environ.get('NOMAD_API_PORT', 8000)),
     api_base_path=os.environ.get('NOMAD_API_BASE_PATH', '/nomad/api'),
-    api_secret=os.environ.get('NOMAD_API_SECRET', 'defaultApiSecret')
+    api_secret=os.environ.get('NOMAD_API_SECRET', 'defaultApiSecret'),
+    admin_password=os.environ.get('NOMAD_API_ADMIN_PASSWORD', 'password'),
+    disable_reset=os.environ.get('NOMAD_API_DISABLE_RESET', 'false') == 'true'
+)
+migration_source_db = RepositoryDBConfig(
+    host=os.environ.get('NOMAD_MIGRATION_SOURCE_DB_HOST', 'db-repository.nomad.esc'),
+    port=int(os.environ.get('NOMAD_MIGRATION_SOURCE_DB_PORT', 5432)),
+    dbname=os.environ.get('NOMAD_MIGRATION_SOURCE_DB_NAME', 'nomad_prod'),
+    user=os.environ.get('NOMAD_MIGRATION_SOURCE_USER', 'nomadlab'),
+    password=os.environ.get('NOMAD_MIGRATION_SOURCE_PASSWORD', '*')
 )
 
 console_log_level = get_loglevel_from_env('NOMAD_CONSOLE_LOGLEVEL', default_level=logging.INFO)
 service = os.environ.get('NOMAD_SERVICE', 'unknown nomad service')
+release = os.environ.get('NOMAD_RELEASE', 'devel')

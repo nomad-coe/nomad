@@ -28,6 +28,8 @@ spec:
         env:
         - name: NOMAD_SERVICE
           value: "api"
+        - name: NOMAD_RELEASE
+          value: "{{ .Release.Name }}"
         - name: NOMAD_LOGSTASH_HOST
           value: "{{ .Values.logstash.host }}"
         - name: NOMAD_LOGSTASH_TCPPORT
@@ -44,6 +46,10 @@ spec:
           value: "{{ .Values.proxy.external.path }}/api"
         - name: NOMAD_API_SECRET
           value: "{{ .Values.api.secret }}"
+        - name: NOMAD_API_ADMIN_PASSWORD
+          value: "{{ .Values.api.adminPassword }}"
+        - name: NOMAD_API_DISABLE_RESET
+          value: "{{ .Values.api.disableReset }}"
         - name: NOMAD_RABBITMQ_HOST
           value: "{{ .Release.Name }}-rabbitmq"
         - name: NOMAD_ELASTIC_HOST
@@ -51,22 +57,23 @@ spec:
         - name: NOMAD_ELASTIC_PORT
           value: "{{ .Values.elastic.port }}"
         - name: NOMAD_ELASTIC_INDEX_NAME
-          value: "{{ .Release.Name }}-nomad"
+          value: "{{ .Values.dbname }}"
         - name: NOMAD_MONGO_HOST
           value: "{{ .Values.mongo.host }}"
         - name: NOMAD_MONGO_PORT
           value: "{{ .Values.mongo.port }}"
         - name: NOMAD_MONGO_DB_NAME
-          value: "{{ .Release.Name }}-nomad"
+          value: "{{ .Values.dbname }}"
         - name: NOMAD_COE_REPO_DB_HOST
           value: "{{ .Values.postgres.host }}"
         - name: NOMAD_COE_REPO_DB_PORT
           value: "{{ .Values.postgres.port }}"
         - name: NOMAD_COE_REPO_DB_NAME
-          value: "{{ .Release.Name }}_nomad"
+          value: "{{ .Values.dbname }}"
         command: ["python", "-m", "gunicorn.app.wsgiapp", "-b 0.0.0.0:8000", "nomad.api:app"]
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
+      imagePullPolicy: always
       volumes:
       - name: files-volume
         hostPath:

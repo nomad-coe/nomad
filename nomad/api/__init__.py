@@ -24,12 +24,12 @@ There is a separate documentation for the API endpoints from a client perspectiv
 .. automodule:: nomad.api.app
 .. automodule:: nomad.api.auth
 .. automodule:: nomad.api.upload
-.. automodule:: nomad.api.repository
+.. automodule:: nomad.api.repo
 .. automodule:: nomad.api.archive
 .. automodule:: nomad.api.admin
 """
 from .app import app
-from . import auth, admin, upload, repository, archive, raw
+from . import auth, admin, upload, repo, archive, raw
 
 
 @app.before_first_request

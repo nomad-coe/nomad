@@ -8,12 +8,10 @@ import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography,
   TableSortLabel} from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
-import CalcLinks from './CalcLinks'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
 import { debug } from '../config'
-import UploadCommand from './UploadCommand'
-import CalcProcLogPopper from './CalcProcLogPopper'
+import CalcDialog from './CalcDialog'
 
 class Upload extends React.Component {
   static propTypes = {
@@ -21,11 +19,14 @@ class Upload extends React.Component {
     raiseError: PropTypes.func.isRequired,
     upload: PropTypes.object.isRequired,
     checked: PropTypes.bool,
-    onCheckboxChanged: PropTypes.func
+    onCheckboxChanged: PropTypes.func,
+    onDoesNotExist: PropTypes.func
   }
 
   static styles = theme => ({
-    root: {},
+    root: {
+      marginBottom: theme.spacing.unit
+    },
     heading: {
       fontSize: theme.typography.pxToRem(15),
       fontWeight: theme.typography.fontWeightRegular
@@ -41,10 +42,18 @@ class Upload extends React.Component {
     detailsContent: {
       margin: theme.spacing.unit * 3
     },
+    titleContainer: {
+      flex: '0 0 auto',
+      marginRight: theme.spacing.unit * 2,
+      width: 350,
+      overflowX: 'hidden'
+    },
     title: {
-      flexBasis: '20%',
-      flexShrink: 0,
-      marginRight: theme.spacing.unit * 2
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+      overflowX: 'inherit',
+      direction: 'rtl',
+      textAlign: 'left'
     },
     checkbox: {
       marginRight: theme.spacing.unit * 2
@@ -64,12 +73,8 @@ class Upload extends React.Component {
       alignItems: 'center',
       display: 'flex'
     },
-    logLink: {
-      color: theme.palette.secondary.main,
-      textDecoration: 'none',
-      '&:hover': {
-        textDecoration: 'underline'
-      }
+    clickableRow: {
+      cursor: 'pointer'
     }
   });
 
@@ -78,12 +83,13 @@ class Upload extends React.Component {
     params: {
       page: 1,
       perPage: 5,
-      orderBy: 'status',
+      orderBy: 'tasks_status',
       order: 'asc'
     },
-    archiveLogs: null, // archive id of archive to show logs for
+    archiveLogs: null, // { uploadId, calcId } ids of archive to show logs for
     loading: true, // its loading data from the server and the user should know about it
-    updating: true // it is still not complete and continieusly looking for updates
+    updating: true, // it is still not complete and continieusly looking for updates
+    openCalc: null // it is the select calc with open details dialog
   }
 
   _unmounted = false
@@ -95,10 +101,11 @@ class Upload extends React.Component {
 
     const {page, perPage, orderBy, order} = params
     this.setState({loading: true})
-    this.state.upload.get(page, perPage, orderBy, order)
+    this.state.upload.get(page, perPage, orderBy, order === 'asc' ? 1 : -1)
       .then(upload => {
+        const {tasks_running, process_running, current_task} = upload
         if (!this._unmounted) {
-          const continueUpdating = upload.status !== 'SUCCESS' && upload.status !== 'FAILURE' && !upload.is_stale
+          const continueUpdating = tasks_running || process_running || current_task === 'uploading'
           this.setState({upload: upload, loading: false, params: params, updating: continueUpdating})
           if (continueUpdating) {
             window.setTimeout(() => {
@@ -112,13 +119,23 @@ class Upload extends React.Component {
       .catch(error => {
         if (!this._unmounted) {
           this.setState({loading: false, ...params})
-          this.props.raiseError(error)
+          if (error.name === 'DoesNotExist') {
+            this.props.onDoesNotExist()
+          } else {
+            this.props.raiseError(error)
+          }
         }
       })
   }
 
   componentDidMount() {
     this.update(this.state.params)
+  }
+
+  componentDidUpdate(prevProps) {
+    if (!prevProps.upload.process_running && this.props.upload.process_running) {
+      this.update(this.state.params)
+    }
   }
 
   componentWillUnmount() {
@@ -153,12 +170,12 @@ class Upload extends React.Component {
     const { name, create_time } = this.state.upload
 
     return (
-      <div className={classes.title}>
-        <Typography variant="title">
+      <div className={classes.titleContainer}>
+        <Typography variant="h6" className={classes.title}>
           {name || new Date(Date.parse(create_time)).toLocaleString()}
         </Typography>
         {name
-          ? <Typography variant="subheading">
+          ? <Typography variant="subtitle1">
             {new Date(Date.parse(create_time)).toLocaleString()}
           </Typography>
           : 'this upload has no name'
@@ -170,86 +187,124 @@ class Upload extends React.Component {
   renderStepper() {
     const { classes } = this.props
     const { upload } = this.state
-    const { calcs, tasks, current_task, status, errors, waiting } = upload
+    const { calcs, tasks, current_task, tasks_running, tasks_status, process_running, current_process, errors } = upload
 
-    let activeStep = tasks.indexOf(current_task)
-    activeStep += (status === 'SUCCESS') ? 1 : 0
+    // map tasks [ uploading, extracting, parse_all, cleanup ] to steps
+    const steps = [ 'upload', 'process', 'commit' ]
+    let step = null
+    const task_index = tasks.indexOf(current_task)
+    if (task_index === 0) {
+      step = 'upload'
+    } else if (task_index > 0 && tasks_running) {
+      step = 'process'
+    } else {
+      step = 'commit'
+    }
+    const stepIndex = steps.indexOf(step)
 
     const labelPropsFactories = {
-      uploading: (props) => {
-        props.children = 'uploading'
-        const { uploading } = upload
-        if (upload.status !== 'FAILURE') {
-          props.optional = (
-            <Typography variant="caption">
-              {waiting ? 'waiting for upload' : `${uploading || 0}%`}
-            </Typography>
-          )
+      upload: (props) => {
+        if (step === 'upload') {
+          props.children = 'uploading'
+          const { uploading } = upload
+          if (upload.tasks_status !== 'FAILURE') {
+            props.optional = (
+              <Typography variant="caption">
+                {`${uploading || 0}%`}
+              </Typography>
+            )
+          }
+        } else {
+          props.children = 'uploaded'
         }
       },
-      extracting: (props) => {
-        props.children = 'extracting'
+      process: (props) => {
+        props.error = tasks_status === 'FAILURE'
+
+        const processIndex = steps.indexOf('process')
+        if (stepIndex <= processIndex) {
+          props.children = 'processing'
+        } else {
+          props.children = 'processed'
+        }
+
         if (current_task === 'extracting') {
+          props.children = 'extracting'
           props.optional = (
             <Typography variant="caption">
               be patient
             </Typography>
           )
+        } else if (current_task === 'parse_all') {
+          props.children = 'parsing'
         }
-      },
-      parse_all: (props) => {
-        props.children = 'parse'
-        if (!calcs) {
-          props.optional = (
-            <Typography variant="caption" >
-              loading...
-            </Typography>
-          )
-        } else if (calcs.pagination.total > 0) {
-          const { total, successes, failures } = calcs.pagination
 
-          if (failures) {
+        if (stepIndex >= processIndex) {
+          if (!calcs) {
+            props.optional = (
+              <Typography variant="caption" >
+                matching...
+              </Typography>
+            )
+          } else if (calcs.pagination.total > 0) {
+            const { total, successes, failures } = calcs.pagination
+            if (failures) {
+              props.error = true
+              props.optional = (
+                <Typography variant="caption" color="error">
+                  {successes + failures}/{total}, {failures} failed
+                </Typography>
+              )
+            } else {
+              props.optional = (
+                <Typography variant="caption">
+                  {successes + failures}/{total}
+                </Typography>
+              )
+            }
+          } else if (tasks_status === 'SUCCESS') {
             props.error = true
             props.optional = (
-              <Typography variant="caption" color="error">
-                {successes + failures}/{total}, {failures} failed
-              </Typography>
-            )
-          } else {
-            props.optional = (
-              <Typography variant="caption">
-                {successes + failures}/{total}
-              </Typography>
+              <Typography variant="caption" color="error">No calculations found.</Typography>
             )
           }
-        } else if (status === 'SUCCESS') {
-          props.error = true
+        }
+
+        if (tasks_status === 'FAILURE') {
           props.optional = (
-            <Typography variant="caption" color="error">No calculations found.</Typography>
+            <Typography variant="caption" color="error">
+              {errors.join(' ')}
+            </Typography>
           )
+        }
+      },
+      commit: (props) => {
+        props.children = 'inspect'
+
+        if (process_running) {
+          if (current_process === 'commit_upload') {
+            props.children = 'approved'
+            props.optional = <Typography variant="caption">moving data ...</Typography>
+          } else if (current_process === 'delete_upload') {
+            props.children = 'declined'
+            props.optional = <Typography variant="caption">deleting data ...</Typography>
+          }
+        } else {
+          props.optional = <Typography variant="caption">commit or delete</Typography>
         }
       }
     }
 
     return (
-      <Stepper activeStep={activeStep} classes={{root: classes.stepper}}>
-        {tasks.map((label, index) => {
+      <Stepper activeStep={steps.indexOf(step)} classes={{root: classes.stepper}}>
+        {steps.map((label, index) => {
           const labelProps = {
-            children: label,
-            error: activeStep === index && status === 'FAILURE'
+            children: label
           }
 
           const labelPropsFactory = labelPropsFactories[label]
           if (labelPropsFactory) {
             labelPropsFactory(labelProps)
-          }
-
-          if (labelProps.error && status === 'FAILURE') {
-            labelProps.optional = (
-              <Typography variant="caption" color="error">
-                {errors.join(' ')}
-              </Typography>
-            )
           }
 
           return (
@@ -265,20 +320,22 @@ class Upload extends React.Component {
   renderCalcTable() {
     const { classes } = this.props
     const { page, perPage, orderBy, order } = this.state.params
-    const { calcs, status, waiting, upload_command } = this.state.upload
+    const { calcs, tasks_status, waiting } = this.state.upload
     const { pagination, results } = calcs
 
     if (pagination.total === 0) {
-      if (this.state.upload.completed) {
+      if (!this.state.upload.tasks_running) {
         return (
           <Typography className={classes.detailsContent}>
-            {status === 'SUCCESS' ? 'No calculcations found.' : 'No calculations to show.'}
+            {tasks_status === 'SUCCESS' ? 'No calculcations found.' : 'No calculations to show.'}
           </Typography>
         )
       } else {
         if (waiting) {
           return (
-            <UploadCommand uploadCommand={upload_command} />
+            <Typography className={classes.detailsContent}>
+                Uploading ...
+            </Typography>
           )
         } else {
           return (
@@ -291,16 +348,20 @@ class Upload extends React.Component {
     }
 
     const renderRow = (calc, index) => {
-      const { mainfile, archive_id, parser, tasks, current_task, status, errors } = calc
-      const color = status === 'FAILURE' ? 'error' : 'default'
+      const { mainfile, calc_id, upload_id, parser, tasks, current_task, tasks_status, errors } = calc
+      const color = tasks_status === 'FAILURE' ? 'error' : 'default'
+      const processed = tasks_status === 'FAILURE' || tasks_status === 'SUCCESS'
       const row = (
-        <TableRow key={index}>
+        <TableRow key={index} hover={processed}
+          onClick={() => this.setState({openCalc: processed ? {uploadId: upload_id, calcId: calc_id} : null})}
+          className={processed ? classes.clickableRow : null} >
+
           <TableCell>
             <Typography color={color}>
               {mainfile}
             </Typography>
             <Typography variant="caption" color={color}>
-              {archive_id}
+              {upload_id}/{calc_id}
             </Typography>
           </TableCell>
           <TableCell>
@@ -320,25 +381,14 @@ class Upload extends React.Component {
             </Typography>
           </TableCell>
           <TableCell>
-            <Typography color={color}>
-              {(status === 'SUCCESS' || status === 'FAILURE')
-                ?
-                  <a className={classes.logLink} href="#" onClick={() => this.setState({archiveLogs:  archive_id})}>
-                  {status.toLowerCase()}
-                  </a>
-                : status.toLowerCase()
-              }
-            </Typography>
-          </TableCell>
-          <TableCell>
-            <CalcLinks calcId={archive_id} disabled={status !== 'SUCCESS'} />
+            <Typography color={color}>{tasks_status.toLowerCase()}</Typography>
           </TableCell>
         </TableRow>
       )
 
-      if (status === 'FAILURE') {
+      if (tasks_status === 'FAILURE') {
         return (
-          <Tooltip key={archive_id} title={errors.map((error, index) => (<p key={`${archive_id}-${index}`}>{error}</p>))}>
+          <Tooltip key={calc_id} title={errors.map((error, index) => (<p key={`${calc_id}-${index}`}>{error}</p>))}>
             {row}
           </Tooltip>
         )
@@ -354,8 +404,7 @@ class Upload extends React.Component {
       { id: 'mainfile', sort: true, label: 'mainfile' },
       { id: 'parser', sort: true, label: 'code' },
       { id: 'task', sort: false, label: 'task' },
-      { id: 'status', sort: true, label: 'status' },
-      { id: 'links', sort: false, label: 'links' }
+      { id: 'tasks_status', sort: true, label: 'status' }
     ]
 
     return (
@@ -391,6 +440,7 @@ class Upload extends React.Component {
               <TableCell colSpan={6} />
             </TableRow>
           )}
+
           <TableRow>
             <TablePagination
               count={total}
@@ -405,33 +455,19 @@ class Upload extends React.Component {
     )
   }
 
-  renderLogs() {
-    if (this.state.archiveLogs) {
-      return (
-        <CalcProcLogPopper
-          open={true}
-          onClose={() => this.setState({archiveLogs: null})}
-          anchorEl={window.parent.document.documentElement.firstElementChild}
-          raiseError={this.props.raiseError}
-          archiveId={this.state.archiveLogs}
-        />
-      )
-    } else {
-      return ''
-    }
-  }
-
   render() {
-    const { classes } = this.props
-    const { upload } = this.state
+    const { classes, raiseError } = this.props
+    const { upload, openCalc } = this.state
 
     if (this.state.upload) {
       return (
-        <div ref={this.logPopperAnchor}>
+        <div className={classes.root}>
+          { openCalc ? <CalcDialog raiseError={raiseError} {...openCalc} onClose={() => this.setState({openCalc: null})} /> : ''}
+
           <ExpansionPanel>
             <ExpansionPanelSummary
               expandIcon={<ExpandMoreIcon/>} classes={{root: classes.summary}}>
-              {!(upload.completed || upload.waiting)
+              {(upload.tasks_running || upload.process_running)
                 ? <div className={classes.progress}>
                   <CircularProgress size={32}/>
                 </div>
@@ -455,7 +491,6 @@ class Upload extends React.Component {
               {this.state.loading && !this.state.updating ? <LinearProgress/> : ''}
             </ExpansionPanelDetails>
           </ExpansionPanel>
-          {this.renderLogs()}
         </div>
       )
     } else {

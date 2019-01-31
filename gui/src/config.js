@@ -5,41 +5,49 @@ import analytics from '@material-ui/core/colors/lightGreen'
 import secondary from '@material-ui/core/colors/blueGrey'
 import { createMuiTheme } from '@material-ui/core'
 
-export const apiBase = process.env.REACT_APP_API_BASE
-export const objectsBase = process.env.REACT_APP_OBJECT_BASE
-export const appBase = process.env.REACT_APP_APP_BASE
-export const appStaticBase = process.env.REACT_APP_APP_STATIC_BASE
-export const debug = process.env.REACT_APP_DEBUG === 'true'
+window.nomadEnv = window.nomadEnv || {}
+export const apiBase = process.env.REACT_APP_API_BASE || window.nomadEnv.apiBase
+export const appBase = process.env.REACT_APP_APP_BASE || window.nomadEnv.appBase
+export const kibanaBase = process.env.REACT_KIBANA_BASE || window.nomadEnv.kibanaBase
+export const appStaticBase = process.env.REACT_APP_APP_STATIC_BASE || window.nomadEnv.appStaticBase
+export const debug = process.env.REACT_APP_DEBUG ? process.env.REACT_APP_DEBUG === 'true' : window.nomadEnv.debug
 
-export const genTheme = createMuiTheme({
+const createTheme = themeData => createMuiTheme({
+  typography: {
+    useNextVariants: true
+  },
+  ...themeData
+})
+
+export const genTheme = createTheme({
   palette: {
     primary: secondary,
     secondary: secondary
   }
 })
 
-export const repoTheme = createMuiTheme({
+export const repoTheme = createTheme({
   palette: {
     primary: repo,
     secondary: repo
   }
 })
 
-export const archiveTheme = createMuiTheme({
+export const archiveTheme = createTheme({
   palette: {
     primary: archive,
     secondary: repo
   }
 })
 
-export const encTheme = createMuiTheme({
+export const encTheme = createTheme({
   palette: {
     primary: enc,
     secondary: repo
   }
 })
 
-export const analyticsTheme = createMuiTheme({
+export const analyticsTheme = createTheme({
   palette: {
     primary: analytics,
     secondary: repo

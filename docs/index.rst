@@ -11,4 +11,5 @@ and infrastructure with a simplyfied architecture and consolidated code base.
    setup
    dev_guidelines
    api
+   ops
    reference
