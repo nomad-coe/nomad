@@ -94,6 +94,10 @@ class TemplateParser(ArtificalParser):
         self.backend.closeSection(name, index)
 
     def run(self, mainfile: str, logger=None) -> LocalBackend:
+        # tell tests about received logger
+        if logger is not None:
+            logger.debug('received logger')
+
         self.init_backend()
 
         if 'warning' in mainfile:
@@ -168,6 +172,10 @@ class GenerateRandomParser(TemplateParser):
             return value
 
     def run(self, mainfile: str, logger=None) -> LocalBackend:
+        # tell tests about received logger
+        if logger is not None:
+            logger.debug('received logger')
+
         self.init_backend()
         seed = int(os.path.basename(mainfile).split('_')[1])
         random.seed(seed)

@@ -1,0 +1,397 @@
+ cp_groups: we are using a 1 x 1 grid (groups x nprocs).
+ PROGRAM CPMD STARTED AT: 2016-07-15 12:18:48.376
+ SETCNST| USING: CODATA 2006 UNITS
+
+
+               ******  ******    ****  ****  ******
+              *******  *******   **********  *******
+             ***       **   ***  ** **** **  **   ***
+             **        **   ***  **  **  **  **    **
+             **        *******   **      **  **    **
+             ***       ******    **      **  **   ***
+              *******  **        **      **  *******
+               ******  **        **      **  ******
+
+                          VERSION 4.1-rUnversioned directory
+
+                            COPYRIGHT
+                      IBM RESEARCH DIVISION
+                MPI FESTKOERPERFORSCHUNG STUTTGART
+
+                       The CPMD consortium
+                  Home Page: http://www.cpmd.org
+               Mailing List: cpmd-list@cpmd.org
+                     E-mail: cpmd@cpmd.org
+
+
+                  ***  Jun 22 2016 -- 12:41:05  ***
+
+ THE INPUT FILE IS:                                     input.inp
+ THIS JOB RUNS ON:                                      lenovo700
+ THE CURRENT DIRECTORY IS:
+ /home/lauri/Dropbox/nomad-dev/nomad-lab-base/parsers/cpmd/test/unittests/cpmd_4.1/geo_opt
+ THE TEMPORARY DIRECTORY IS:
+ /home/lauri/Dropbox/nomad-dev/nomad-lab-base/parsers/cpmd/test/unittests/cpmd_4.1/geo_opt
+ THE PROCESS ID IS:                                          3514
+ THE JOB WAS SUBMITTED BY:                                  lauri
+
+
+ ******************************************************************************
+ * INFO - INFO - INFO - INFO - INFO - INFO - INFO - INFO - INFO - INFO - INFO *
+ ******************************************************************************
+ * isolated hydrogen molecule.                                                *
+ * geometry optimization                                                      *
+ ******************************************************************************
+
+ OPTIMIZATION OF IONIC POSITIONS
+
+ USING SEED       123456 TO INIT. PSEUDO RANDOM NUMBER GEN.
+ PATH TO THE RESTART FILES:                                    ./
+ GRAM-SCHMIDT ORTHOGONALIZATION
+ MAXIMUM NUMBER OF STEPS:                             10000 STEPS
+ MAXIMUM NUMBER OF ITERATIONS FOR SC:                 10000 STEPS
+ PRINT INTERMEDIATE RESULTS EVERY                     10001 STEPS
+ STORE INTERMEDIATE RESULTS EVERY                     10001 STEPS
+ STORE INTERMEDIATE RESULTS EVERY     10001 SELF-CONSISTENT STEPS
+ NUMBER OF DISTINCT RESTART FILES:                              1
+ TEMPERATURE IS CALCULATED ASSUMING EXTENDED BULK BEHAVIOR
+ FICTITIOUS ELECTRON MASS:                               400.0000
+ TIME STEP FOR ELECTRONS:                                  5.0000
+ TIME STEP FOR IONS:                                       5.0000
+ CONVERGENCE CRITERIA FOR WAVEFUNCTION OPTIMIZATION:   1.0000E-07
+ WAVEFUNCTION OPTIMIZATION BY PRECONDITIONED DIIS
+ THRESHOLD FOR THE WF-HESSIAN IS                           0.5000
+ MAXIMUM NUMBER OF VECTORS RETAINED FOR DIIS:                  10
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED
+ CONVERGENCE CRITERIA FOR GEOMETRY OPTIMIZATION:     1.000000E-04
+ GEOMETRY OPTIMIZATION BY GDIIS/BFGS
+   SIZE OF GDIIS MATRIX:                                        5
+GEOMETRY OPTIMIZATION IS SAVED ON FILE GEO_OPT.xyz
+ EMPIRICAL INITIAL HESSIAN (DISCO PARAMETRISATION)
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+
+ EXCHANGE CORRELATION FUNCTIONALS
+    LDA EXCHANGE:                                            NONE
+    LDA XC THROUGH PADE APPROXIMATION
+    S.GOEDECKER, J.HUTTER, M.TETER PRB 541703 (1996)
+
+ ***     DETSP| SIZE OF THE PROGRAM IS NOT AVAILABLE          ***
+
+ ***************************** ATOMS ****************************
+   NR   TYPE        X(BOHR)        Y(BOHR)        Z(BOHR)     MBL
+    1      H       8.259993       7.558904       7.558904       3
+    2      H       6.857816       7.558904       7.558904       3
+ ****************************************************************
+
+ NUMBER OF STATES:                                              1
+ NUMBER OF ELECTRONS:                                     2.00000
+ CHARGE:                                                  0.00000
+ ELECTRON TEMPERATURE(KELVIN):                            0.00000
+ OCCUPATION
+  2.0
+
+    ============================================================
+    |    Pseudopotential Report     Thu Jan 11 18:21:49 1996   |
+    ------------------------------------------------------------
+    |  Atomic Symbol                   :   H                   |
+    |  Atomic Number                   :   1                   |
+    |  Number of core states           :   0                   |
+    |  Number of valence states        :   1                   |
+    |  Exchange-Correlation Functional :                       |
+    |     Slater exchange :   .6667                            |
+    |     LDA correlation : Ceperley-Alder                     |
+    |  Electron Configuration :   N   L  Occupation            |
+    |                             1   S    1.0000              |
+    |  Full Potential Total Energy     -.445894                |
+    |  Trouiller-Martins normconserving PP                     |
+    |     n    l        rc       energy                        |
+    |     1    S     .5000      -.23366                        |
+    |     2    P     .5000      -.23366                        |
+    |  Number of Mesh Points :   511                           |
+    |  Pseudoatom Total Energy    -.445889                     |
+    ============================================================
+
+ ****************************************************************
+ *   ATOM       MASS   RAGGIO NLCC              PSEUDOPOTENTIAL *
+ *      H     1.0080   1.2000  NO                   S     LOCAL *
+ ****************************************************************
+
+
+ PARAPARAPARAPARAPARAPARAPARAPARAPARAPARAPARAPARAPARAPARAPARAPARA
+  NCPU     NGW     NHG  PLANES  GXRAYS  HXRAYS ORBITALS Z-PLANES
+     0   17133  136605      90    1281    5089       1       1
+                G=0 COMPONENT ON PROCESSOR :     0
+ PARAPARAPARAPARAPARAPARAPARAPARAPARAPARAPARAPARAPARAPARAPARAPARA
+
+ ***    loadpa| SIZE OF THE PROGRAM IS NOT AVAILABLE          ***
+
+ OPENMPOPENMPOPENMPOPENMPOPENMPOPENMPOPENMPOPENMPOPENMPOPENMPOPEN
+ NUMBER OF CPUS PER TASK                                        1
+ OPENMPOPENMPOPENMPOPENMPOPENMPOPENMPOPENMPOPENMPOPENMPOPENMPOPEN
+
+ ***     rggen| SIZE OF THE PROGRAM IS NOT AVAILABLE          ***
+
+ ************************** SUPERCELL ***************************
+ SYMMETRY:                                           SIMPLE CUBIC
+ LATTICE CONSTANT(a.u.):                                 15.11781
+ CELL DIMENSION:  15.1178  1.0000  1.0000  0.0000  0.0000  0.0000
+ VOLUME(OMEGA IN BOHR^3):                              3455.14726
+ LATTICE VECTOR A1(BOHR):           15.1178     0.0000     0.0000
+ LATTICE VECTOR A2(BOHR):            0.0000    15.1178     0.0000
+ LATTICE VECTOR A3(BOHR):            0.0000     0.0000    15.1178
+ RECIP. LAT. VEC. B1(2Pi/BOHR):      0.0661     0.0000     0.0000
+ RECIP. LAT. VEC. B2(2Pi/BOHR):      0.0000     0.0661     0.0000
+ RECIP. LAT. VEC. B3(2Pi/BOHR):      0.0000     0.0000     0.0661
+ REAL SPACE MESH:                    90           90           90
+ WAVEFUNCTION CUTOFF(RYDBERG):                           70.00000
+ DENSITY CUTOFF(RYDBERG):          (DUAL= 4.00)         280.00000
+ NUMBER OF PLANE WAVES FOR WAVEFUNCTION CUTOFF:             17133
+ NUMBER OF PLANE WAVES FOR DENSITY CUTOFF:                 136605
+ ****************************************************************
+
+ ***  RINFORCE| SIZE OF THE PROGRAM IS NOT AVAILABLE          ***
+ ***    FFTPRP| SIZE OF THE PROGRAM IS NOT AVAILABLE          ***
+
+ GENERATE ATOMIC BASIS SET
+      H        SLATER ORBITALS
+        1S        ALPHA=   1.0000      OCCUPATION= 1.00
+
+
+ INITIALIZATION TIME:                                0.48 SECONDS
+
+ ***    GMOPTS| SIZE OF THE PROGRAM IS NOT AVAILABLE          ***
+ ***     PHFAC| SIZE OF THE PROGRAM IS NOT AVAILABLE          ***
+ NOTE: ATOMIC GUESS USING DISTRIBUTED LINALG WITH LANCZOS
+ ***    ATOMWF| SIZE OF THE PROGRAM IS NOT AVAILABLE          ***
+ ATRHO| CHARGE(R-SPACE):    2.000000 (G-SPACE):    2.000000
+
+   ATOM          COORDINATES            GRADIENTS (-FORCES)
+   1  H  8.2600  7.5589  7.5589   0.000E+00  0.000E+00  0.000E+00
+   2  H  6.8578  7.5589  7.5589   0.000E+00  0.000E+00  0.000E+00
+
+ INITIALIZE EMPIRICAL HESSIAN
+                           <<<<< ASSUMED BONDS >>>>>
+    2 <-->  1
+ TOTAL NUMBER OF MOLECULAR STRUCTURES:  1
+
+   ATOM          COORDINATES            GRADIENTS (-FORCES)
+   1  H  8.2600  7.5589  7.5589   0.000E+00  0.000E+00  0.000E+00
+   2  H  6.8578  7.5589  7.5589   0.000E+00  0.000E+00  0.000E+00
+ CPU TIME FOR INITIALIZATION                         0.83 SECONDS
+
+
+ ================================================================
+ =                  GEOMETRY OPTIMIZATION                       =
+ ================================================================
+ NFI      GEMAX       CNORM           ETOT        DETOT      TCPU
+ EWALD| SUM IN REAL SPACE OVER                      1* 1* 1 CELLS
+   1  3.816E-02   2.886E-03      -1.096898   -1.097E+00      0.21
+   2  8.628E-03   1.041E-03      -1.130803   -3.391E-02      0.21
+   3  2.736E-03   2.293E-04      -1.132376   -1.572E-03      0.20
+   4  6.115E-04   4.235E-05      -1.132456   -8.056E-05      0.21
+   5  1.532E-04   7.007E-06      -1.132459   -3.315E-06      0.20
+   6  3.895E-05   1.396E-06      -1.132460   -1.338E-07      0.21
+   7  6.288E-06   4.459E-07      -1.132460   -7.717E-09      0.21
+   8  7.941E-07   1.282E-07      -1.132460   -4.283E-10      0.21
+   9  1.237E-07   2.861E-08      -1.132460   -1.992E-11      0.21
+  10  2.278E-08   5.401E-09      -1.132460   -8.606E-13      0.21
+
+ RESTART INFORMATION WRITTEN ON FILE                  ./RESTART.1
+
+   ATOM          COORDINATES            GRADIENTS (-FORCES)
+   1  H  8.2600  7.5589  7.5589  -1.780E-02  8.421E-17  7.760E-17
+   2  H  6.8578  7.5589  7.5589   1.780E-02  1.778E-16  1.682E-16
+ ****************************************************************
+ *** TOTAL STEP NR.    10           GEOMETRY STEP NR.      1  ***
+ *** GNMAX=  1.779860E-02                ETOT=     -1.132460  ***
+ *** GNORM=  1.027603E-02               DETOT=     0.000E+00  ***
+ *** CNSTR=  0.000000E+00                TCPU=          2.07  ***
+ ****************************************************************
+   1  5.012E-03   9.718E-04      -1.131471    9.887E-04      0.25
+   2  4.287E-04   1.613E-04      -1.132846   -1.375E-03      0.25
+   3  1.489E-04   3.429E-05      -1.132883   -3.658E-05      0.24
+   4  3.265E-05   6.786E-06      -1.132885   -1.887E-06      0.22
+   5  7.649E-06   9.659E-07      -1.132885   -9.037E-08      0.20
+   6  1.707E-06   2.336E-07      -1.132885   -2.124E-09      0.20
+   7  3.870E-07   5.941E-08      -1.132885   -9.984E-11      0.21
+   8  7.619E-08   1.498E-08      -1.132885   -5.241E-12      0.24
+   9  2.806E-08   2.950E-09      -1.132885   -1.432E-13      0.22
+
+ RESTART INFORMATION WRITTEN ON FILE                  ./RESTART.1
+
+   ATOM          COORDINATES            GRADIENTS (-FORCES)
+   1  H  8.2895  7.5589  7.5589   2.695E-03  7.970E-17  7.714E-17
+   2  H  6.8283  7.5589  7.5589  -2.695E-03  1.350E-16  1.183E-16
+ ****************************************************************
+ *** TOTAL STEP NR.    19           GEOMETRY STEP NR.      2  ***
+ *** GNMAX=  2.694583E-03 [2.95E-02]     ETOT=     -1.132885  ***
+ *** GNORM=  1.555718E-03               DETOT=    -4.251E-04  ***
+ *** CNSTR=  0.000000E+00                TCPU=          2.02  ***
+ ****************************************************************
+   1  6.188E-04   1.259E-04      -1.132872    1.251E-05      0.14
+   2  6.604E-05   2.142E-05      -1.132895   -2.326E-05      0.14
+   3  2.121E-05   4.085E-06      -1.132896   -6.178E-07      0.14
+   4  5.282E-06   7.354E-07      -1.132896   -2.729E-08      0.14
+   5  1.316E-06   1.026E-07      -1.132896   -1.177E-09      0.14
+   6  3.022E-07   2.511E-08      -1.132896   -2.822E-11      0.15
+   7  4.514E-08   6.465E-09      -1.132896   -1.464E-12      0.16
+   8  6.481E-09   1.550E-09      -1.132896   -7.150E-14      0.14
+
+ RESTART INFORMATION WRITTEN ON FILE                  ./RESTART.1
+
+   ATOM          COORDINATES            GRADIENTS (-FORCES)
+   1  H  8.2856  7.5589  7.5589   2.320E-04  6.810E-17  9.413E-17
+   2  H  6.8322  7.5589  7.5589  -2.320E-04  1.697E-16  1.268E-16
+ ****************************************************************
+ *** TOTAL STEP NR.    27           GEOMETRY STEP NR.      3  ***
+ *** GNMAX=  2.319650E-04 [3.88E-03]     ETOT=     -1.132896  ***
+ *** GNORM=  1.339250E-04               DETOT=    -1.140E-05  ***
+ *** CNSTR=  0.000000E+00                TCPU=          1.13  ***
+ ****************************************************************
+   1  2.342E-05   4.736E-06      -1.132896   -2.010E-08      0.13
+   2  2.423E-06   8.019E-07      -1.132896   -3.290E-08      0.13
+   3  7.883E-07   1.543E-07      -1.132896   -8.668E-10      0.13
+   4  1.573E-07   2.777E-08      -1.132896   -3.902E-11      0.13
+   5  3.639E-08   3.740E-09      -1.132896   -1.561E-12      0.14
+
+ RESTART INFORMATION WRITTEN ON FILE                  ./RESTART.1
+
+   ATOM          COORDINATES            GRADIENTS (-FORCES)
+   1  H  8.2855  7.5589  7.5589   1.381E-04  1.267E-16  1.019E-16
+   2  H  6.8323  7.5589  7.5589  -1.381E-04  1.620E-16  1.442E-16
+ ****************************************************************
+ *** TOTAL STEP NR.    32           GEOMETRY STEP NR.      4  ***
+ *** GNMAX=  1.381353E-04 [1.46E-04]     ETOT=     -1.132896  ***
+ *** GNORM=  7.975243E-05               DETOT=    -5.391E-08  ***
+ *** CNSTR=  0.000000E+00                TCPU=          0.66  ***
+ ****************************************************************
+   1  9.625E-06   1.945E-06      -1.132896   -8.527E-09      0.13
+   2  9.934E-07   3.289E-07      -1.132896   -5.549E-09      0.14
+   3  3.220E-07   6.333E-08      -1.132896   -1.457E-10      0.14
+   4  7.210E-08   1.115E-08      -1.132896   -6.622E-12      0.13
+   5  1.683E-08   1.567E-09      -1.132896   -4.368E-13      0.14
+
+ RESTART INFORMATION WRITTEN ON FILE                  ./RESTART.1
+
+ TOTAL INTEGRATED ELECTRONIC DENSITY
+    IN G-SPACE =                                     2.0000000000
+    IN R-SPACE =                                     2.0000000000
+
+ (K+E1+L+N+X)           TOTAL ENERGY =           -1.13289611 A.U.
+ (K)                  KINETIC ENERGY =            1.06574787 A.U.
+ (E1=A-S+R)     ELECTROSTATIC ENERGY =           -0.49247553 A.U.
+ (S)                           ESELF =            0.66490380 A.U.
+ (R)                             ESR =            0.15550684 A.U.
+ (L)    LOCAL PSEUDOPOTENTIAL ENERGY =           -1.06363345 A.U.
+ (N)      N-L PSEUDOPOTENTIAL ENERGY =            0.00000000 A.U.
+ (X)     EXCHANGE-CORRELATION ENERGY =           -0.64253500 A.U.
+
+
+   ATOM          COORDINATES            GRADIENTS (-FORCES)
+   1  H  8.2854  7.5589  7.5589   9.967E-05  9.505E-17  6.575E-17
+   2  H  6.8324  7.5589  7.5589  -9.967E-05  1.824E-16  1.335E-16
+ ****************************************************************
+ *** TOTAL STEP NR.    37           GEOMETRY STEP NR.      5  ***
+ *** GNMAX=  9.966603E-05 [5.98E-05]     ETOT=     -1.132896  ***
+ *** GNORM=  5.754221E-05               DETOT=    -1.423E-08  ***
+ *** CNSTR=  0.000000E+00                TCPU=          0.68  ***
+ ****************************************************************
+ ================================================================
+ =              END OF GEOMETRY OPTIMIZATION                    =
+ ================================================================
+
+
+
+ RESTART INFORMATION WRITTEN ON FILE                  ./RESTART.1
+
+ ****************************************************************
+ *                                                              *
+ *                        FINAL RESULTS                         *
+ *                                                              *
+ ****************************************************************
+
+   ATOM          COORDINATES            GRADIENTS (-FORCES)
+   1  H  8.2854  7.5589  7.5589   9.967E-05  9.505E-17  6.575E-17
+   2  H  6.8324  7.5589  7.5589  -9.967E-05  1.824E-16  1.335E-16
+
+ ****************************************************************
+
+
+ ELECTRONIC GRADIENT:
+    MAX. COMPONENT =    1.68333E-08         NORM =    1.56737E-09
+ NUCLEAR GRADIENT:
+    MAX. COMPONENT =    9.96660E-05         NORM =    5.75422E-05
+
+
+ TOTAL INTEGRATED ELECTRONIC DENSITY
+    IN G-SPACE =                                     2.0000000000
+    IN R-SPACE =                                     2.0000000000
+
+ (K+E1+L+N+X)           TOTAL ENERGY =           -1.13289611 A.U.
+ (K)                  KINETIC ENERGY =            1.06574787 A.U.
+ (E1=A-S+R)     ELECTROSTATIC ENERGY =           -0.49247553 A.U.
+ (S)                           ESELF =            0.66490380 A.U.
+ (R)                             ESR =            0.15550684 A.U.
+ (L)    LOCAL PSEUDOPOTENTIAL ENERGY =           -1.06363345 A.U.
+ (N)      N-L PSEUDOPOTENTIAL ENERGY =            0.00000000 A.U.
+ (X)     EXCHANGE-CORRELATION ENERGY =           -0.64253500 A.U.
+
+ ****************************************************************
+
+
+
+ ****************************************************************
+ *                                                              *
+ *                            TIMING                            *
+ *                                                              *
+ ****************************************************************
+ SUBROUTINE       CALLS             SELF TIME          TOTAL TIME
+                            AVERAGE   MAXIMUM   AVERAGE   MAXIMUM
+ cpmd                 1        0.01      0.01      7.87      7.87
+ gmopts               1        0.00      0.00      7.40      7.40
+ RGMOPT               1        0.01      0.01      7.40      7.40
+ updwf               37        0.00      0.00      6.56      6.56
+ forcedr             37        0.00      0.00      6.46      6.46
+ forces              37        0.00      0.00      6.46      6.46
+ forces_a            37        0.00      0.00      4.97      4.97
+ rscpot              37        0.00      0.00      4.97      4.97
+ vofrho              38        0.00      0.00      4.32      4.32
+ INVFFTN            115        2.89      2.89      2.89      2.89
+ VOFRHOB             38        0.14      0.14      2.81      2.81
+ FWFFTN              77        1.77      1.77      1.77      1.77
+ vpsi                39        0.17      0.17      1.58      1.58
+ VOFRHOA             38        0.08      0.08      1.51      1.51
+ xcener_new          38        0.12      0.12      1.35      1.35
+ mikeu               38        1.24      1.24      1.24      1.24
+ rhoofr              37        0.22      0.22      0.98      0.98
+ initrun              1        0.00      0.00      0.83      0.83
+ rinitwf              1        0.00      0.00      0.83      0.83
+ ATOMWF               1        0.00      0.00      0.83      0.83
+ ATRHO                1        0.35      0.35      0.39      0.39
+ rinit                1        0.00      0.00      0.25      0.25
+ rggen                1        0.01      0.01      0.25      0.25
+ loadpa               1        0.01      0.01      0.25      0.25
+ ppener              38        0.17      0.17      0.17      0.17
+ EICALC              38        0.10      0.10      0.10      0.10
+ RINFORCE             1        0.00      0.00      0.10      0.10
+ dist_ksmat           1        0.00      0.00      0.10      0.10
+ NUMPW                1        0.10      0.10      0.10      0.10
+ loadpa_b             1        0.10      0.10      0.10      0.10
+ FORMFN               1        0.09      0.09      0.09      0.09
+ loadpa_c             1        0.09      0.09      0.09      0.09
+ odiis               37        0.08      0.08      0.08      0.08
+ loadpa_a             1        0.04      0.04      0.04      0.04
+ potfor               5        0.03      0.03      0.03      0.03
+ forces_b            37        0.01      0.01      0.01      0.01
+ ortho               41        0.00      0.00      0.01      0.01
+ rgs                 41        0.01      0.01      0.01      0.01
+ PUTPS                1        0.01      0.01      0.01      0.01
+ ****************************************************************
+
+       CPU TIME :    0 HOURS  0 MINUTES  7.86 SECONDS
+   ELAPSED TIME :    0 HOURS  0 MINUTES  7.88 SECONDS
+ ***      CPMD| SIZE OF THE PROGRAM IS NOT AVAILABLE          ***
+
+ PROGRAM CPMD ENDED AT:   2016-07-15 12:18:56.253

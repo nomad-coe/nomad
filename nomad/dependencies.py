@@ -16,8 +16,8 @@
 This module allows to configure and install all necessary legecy nomad GIT repositories
 to process (parser, normalizer, etc.) uploaded calculations.
 
-Parsers are developed as independed, individual python programs in their own GIT repositories.
-They are build on a common modules called *python-common*, also in a separate GIT.
+Parsers are developed as independent, individual python programs in their own GIT repositories.
+They are built on a common modules called *python-common*, also in a separate GIT.
 All parsers depend on the *meta-info*, which is also maintained in its own GIT.
 
 Preparing dependencies
@@ -190,18 +190,27 @@ dependencies = [
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-fhi-aims.git',
         git_branch='nomad-fair'),
     PythonGit(
-        name='normalizers/stats',
-        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/normalizer-stats.git',
+        name='parsers/cp2k',
+        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-cp2k',
         git_branch='nomad-fair'),
     PythonGit(
-        name='normalizers/symmetry',
-        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/normalizer-symmetry',
+        name='parsers/crystal',
+        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-crystal',
         git_branch='nomad-fair'),
     PythonGit(
-        name='normalizers/system-type',
-        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/normalizer-system-type',
+        name='parsers/cpmd',
+        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-cpmd',
+        git_branch='nomad-fair'),
+    PythonGit(
+        name='parsers/nwchem',
+        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-nwchem',
+        git_branch='nomad-fair'),
+    PythonGit(
+        name='parsers/bigdft',
+        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-big-dft',
         git_branch='nomad-fair')
 ]
+
 
 dependencies_dict = {dependency.name: dependency for dependency in dependencies}
 

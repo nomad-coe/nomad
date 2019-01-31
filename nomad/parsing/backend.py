@@ -449,6 +449,9 @@ class LocalBackend(LegacyParserBackend):
             if g_index != -1:
                 sections = [section for section in sections if section.gIndex == g_index]
 
+            if len(sections) == 0:
+                raise KeyError
+
             assert len(sections) == 1
             section = sections[0]
 

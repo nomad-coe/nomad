@@ -44,7 +44,27 @@
       "cwd": "${workspaceFolder}",
       "program": "${workspaceFolder}/.pyenv/bin/pytest",
       "args": [
-        "-sv", "tests/test_api.py::TestAuth::test_xtoken_auth_denied"
+        "-sv", "tests/test_api.py::TestUploads::test_put[None-multipart-tests/data/proc/examples_template.zip]"
+      ]
+    },
+    {
+      "name": "Python: crystal normalizer test",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/crystal-tests/data/parsers/crystal/si.out]"
+      ]
+    },
+    {
+      "name": "Python: nwchem normalizer test h2o sp test",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/nwchem-tests/data/parsers/nwchem/sp_output.out]"
       ]
     },
     {
