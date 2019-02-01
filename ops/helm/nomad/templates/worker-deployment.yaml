@@ -59,6 +59,26 @@ spec:
         - name: NOMAD_COE_REPO_DB_NAME
           value: "{{ .Values.dbname }}"
         command: ["python", "-m", "celery", "worker", "-l", "info", "-A", "nomad.processing"]
+        livenessProbe:
+          exec:
+            env:
+            - name: NOMAD_LOGSTASH_LEVEL
+            - value: 30
+            command:
+            - sh -c
+            - celery -A nomad.processing status
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          exec:
+            env:
+            - name: NOMAD_LOGSTASH_LEVEL
+            - value: 30
+            command:
+            - sh -c
+            - celery -A nomad.processing status
+          initialDelaySeconds: 5
+          periodSeconds: 5
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
       imagePullPolicy: always

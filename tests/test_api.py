@@ -56,6 +56,11 @@ def client(mockmongo):
     Upload._get_collection().drop()
 
 
+def test_alive(client):
+    rv = client.get('/alive')
+    assert rv.status_code == 200
+
+
 def create_auth_headers(user):
     basic_auth_str = '%s:password' % user.email
     basic_auth_bytes = basic_auth_str.encode('utf-8')
