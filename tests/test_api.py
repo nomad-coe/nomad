@@ -122,6 +122,7 @@ class TestAdmin:
             config.services.api_base_path,
             config.services.api_secret,
             config.services.admin_password,
+            config.services.upload_url,
             True)
         monkeypatch.setattr(config, 'services', new_config)
         yield None

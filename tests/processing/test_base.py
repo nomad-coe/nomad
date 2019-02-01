@@ -1,13 +1,10 @@
 import pytest
-from mongoengine import connect, IntField, ReferenceField, BooleanField, EmbeddedDocumentField
-from mongoengine.connection import disconnect
+from mongoengine import ReferenceField
 import time
-import logging
 import json
 import random
 import time
 
-from nomad import config
 from nomad.processing.base import Proc, Chord, process, task, SUCCESS, FAILURE, RUNNING, PENDING
 
 random.seed(0)

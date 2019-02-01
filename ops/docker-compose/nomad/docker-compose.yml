@@ -19,6 +19,8 @@ x-common-variables: &nomad_backend_env
     NOMAD_LOGSTASH_HOST: elk
     NOMAD_ELASTIC_HOST: elastic
     NOMAD_MONGO_HOST: mongo
+    NOMAD_SMTP_HOST: ''
+    NOMAD_UPLOAD_URL: ''
 
 services:
     # postgres for NOMAD-coe repository API and GUI

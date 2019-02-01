@@ -4,6 +4,12 @@ from sqlalchemy.orm import Session
 from mongoengine import connect
 from mongoengine.connection import disconnect
 from contextlib import contextmanager
+from collections import namedtuple
+from smtpd import SMTPServer
+from threading import Lock, Thread
+import asyncore
+import time
+import pytest
 
 from nomad import config, infrastructure
 
@@ -214,3 +220,106 @@ def with_error(caplog):
             count += 1
 
     assert count > 0
+
+
+"""
+Fixture for mocked SMTP server for testing.
+Based on https://gist.github.com/akheron/cf3863cdc424f08929e4cb7dc365ef23.
+"""
+
+RecordedMessage = namedtuple(
+    'RecordedMessage',
+    'peer envelope_from envelope_recipients data',
+)
+
+
+class ThreadSafeList:
+    def __init__(self, *args, **kwds):
+        self._items = []
+        self._lock = Lock()
+
+    def clear(self):
+        with self._lock:
+            self._items = []
+
+    def add(self, item):
+        with self._lock:
+            self._items.append(item)
+
+    def copy(self):
+        with self._lock:
+            return self._items[:]
+
+
+class SMTPServerThread(Thread):
+    def __init__(self, messages):
+        super().__init__()
+        self.messages = messages
+        self.host_port = None
+
+    def run(self):
+        _messages = self.messages
+
+        class _SMTPServer(SMTPServer):
+            def process_message(self, peer, mailfrom, rcpttos, data, **kwargs):
+                msg = RecordedMessage(peer, mailfrom, rcpttos, data)
+                _messages.add(msg)
+
+        self.smtp = _SMTPServer(('127.0.0.1', config.mail.port), None)
+        self.host_port = self.smtp.socket.getsockname()
+        try:
+            asyncore.loop(timeout=None)
+        except Exception:
+            pass
+
+    def close(self):
+        self.smtp.close()
+
+
+class SMTPServerFixture:
+    def __init__(self):
+        self._messages = ThreadSafeList()
+        self._thread = SMTPServerThread(self._messages)
+        self._thread.start()
+
+    @property
+    def host_port(self):
+        '''SMTP server's listening address as a (host, port) tuple'''
+        while self._thread.host_port is None:
+            time.sleep(0.1)
+        return self._thread.host_port
+
+    @property
+    def host(self):
+        return self.host_port[0]
+
+    @property
+    def port(self):
+        return self.host_port[1]
+
+    @property
+    def messages(self):
+        '''A list of RecordedMessage objects'''
+        return self._messages.copy()
+
+    def clear(self):
+        self._messages.clear()
+
+    def close(self):
+        self._thread.close()
+        self._thread.join(10)
+        if self._thread.is_alive():
+            raise RuntimeError('smtp server thread did not stop in 10 sec')
+
+
+@pytest.fixture(scope='session')
+def smtpd(request):
+    fixture = SMTPServerFixture()
+    request.addfinalizer(fixture.close)
+    return fixture
+
+
+@pytest.fixture(scope='function', autouse=True)
+def mails(smtpd):
+    smtpd.clear()
+    yield smtpd

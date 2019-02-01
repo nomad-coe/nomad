@@ -48,8 +48,11 @@ MongoConfig = namedtuple('MongoConfig', ['host', 'port', 'db_name'])
 LogstashConfig = namedtuple('LogstashConfig', ['enabled', 'host', 'tcp_port', 'level'])
 """ Used to configure and enable/disable the ELK based centralized logging. """
 
-NomadServicesConfig = namedtuple('NomadServicesConfig', ['api_host', 'api_port', 'api_base_path', 'api_secret', 'admin_password', 'disable_reset'])
+NomadServicesConfig = namedtuple('NomadServicesConfig', ['api_host', 'api_port', 'api_base_path', 'api_secret', 'admin_password', 'upload_url', 'disable_reset'])
 """ Used to configure nomad services: worker, handler, api """
+
+MailConfig = namedtuple('MailConfig', ['enabled', 'host', 'port', 'user', 'password', 'from_address'])
+""" Used to configure how nomad can send email """
 
 files = FilesConfig(
     uploads_bucket='uploads',
@@ -115,6 +118,7 @@ services = NomadServicesConfig(
     api_base_path=os.environ.get('NOMAD_API_BASE_PATH', '/nomad/api'),
     api_secret=os.environ.get('NOMAD_API_SECRET', 'defaultApiSecret'),
     admin_password=os.environ.get('NOMAD_API_ADMIN_PASSWORD', 'password'),
+    upload_url=os.environ.get('NOMAD_UPLOAD_URL', 'http://localhost/nomad/uploads'),
     disable_reset=os.environ.get('NOMAD_API_DISABLE_RESET', 'false') == 'true'
 )
 migration_source_db = RepositoryDBConfig(
@@ -123,6 +127,14 @@ migration_source_db = RepositoryDBConfig(
     dbname=os.environ.get('NOMAD_MIGRATION_SOURCE_DB_NAME', 'nomad_prod'),
     user=os.environ.get('NOMAD_MIGRATION_SOURCE_USER', 'nomadlab'),
     password=os.environ.get('NOMAD_MIGRATION_SOURCE_PASSWORD', '*')
+)
+mail = MailConfig(
+    enabled=True,
+    host=os.environ.get('NOMAD_SMTP_HOST', 'localhost'),
+    port=int(os.environ.get('NOMAD_SMTP_PORT', 8995)),
+    user=os.environ.get('NOMAD_SMTP_USER', None),
+    password=os.environ.get('NOMAD_SMTP_PASSWORD', None),
+    from_address=os.environ.get('NOMAD_MAIL_FROM', 'webmaster@nomad-coe.eu')
 )
 
 console_log_level = get_loglevel_from_env('NOMAD_CONSOLE_LOGLEVEL', default_level=logging.INFO)

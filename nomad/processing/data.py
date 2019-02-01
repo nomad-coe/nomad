@@ -30,7 +30,7 @@ import logging
 from structlog import wrap_logger
 from contextlib import contextmanager
 
-from nomad import utils, coe_repo, datamodel
+from nomad import utils, coe_repo, datamodel, config, infrastructure
 from nomad.files import PathObject, ArchiveBasedStagingUploadFiles, ExtractError, Calc as FilesCalc
 from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parsers, parser_dict
@@ -471,8 +471,18 @@ class Upload(Chord, datamodel.Upload):
 
     @task
     def cleanup(self):
-        # nothing todo with the current processing setup
-        pass
+        # send email about process finish
+        user = self.uploader
+        name = '%s %s' % (user.first_name, user.last_name)
+        message = '\n'.join([
+            'Dear %s,' % name,
+            '',
+            'your data %suploaded %s has completed processing.' % (
+                self.name if self.name else '', self.upload_time.isoformat()),
+            'You can review your data on your upload page: %s' % config.services.upload_url
+        ])
+        infrastructure.send_mail(
+            name=name, email=user.email, message=message, subject='Processing completed')
 
     @property
     def processed_calcs(self):
