@@ -268,7 +268,7 @@ class SMTPServerThread(Thread):
         self.smtp = _SMTPServer(('127.0.0.1', config.mail.port), None)
         self.host_port = self.smtp.socket.getsockname()
         try:
-            asyncore.loop(timeout=None)
+            asyncore.loop(1)
         except Exception:
             pass
 
