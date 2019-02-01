@@ -1,7 +1,10 @@
 FROM sebp/elk
 
-RUN apt-get update -qq \
-&& apt-get install -qqy elasticsearch-curator
+# RUN apt-get update -qq \
+# && apt-get install -qqy elasticsearch-curator
+RUN apt-get update -qq && apt-get install -qqy python3-pip
+RUN pip3 install --upgrade pip
+RUN pip3 install elasticsearch-curator
 
 ENV LOGSTASH_PATH_CONF /etc/logstash
 
