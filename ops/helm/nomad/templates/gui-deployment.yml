@@ -63,6 +63,18 @@ spec:
           name: nomad-app
         - mountPath: /var/log/nginx
           name: log
+        livenessProbe:
+          httpGet:
+            path: "{{ .Values.proxy.external.path }}/index.html"
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: "{{ .Values.proxy.external.path }}/index.html"
+            port: 8080
+          initialDelaySeconds: 3
+          periodSeconds: 3
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
       imagePullPolicy: always

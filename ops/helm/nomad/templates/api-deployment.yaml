@@ -73,13 +73,13 @@ spec:
         command: ["python", "-m", "gunicorn.app.wsgiapp", "-b 0.0.0.0:8000", "nomad.api:app"]
         livenessProbe:
           httpGet:
-            path: "{{ .Values.proxy.external.path }}/alive"
+            path: "{{ .Values.proxy.external.path }}/api/alive"
             port: 8000
           initialDelaySeconds: 15
           periodSeconds: 15
         readinessProbe:
           httpGet:
-            path: "{{ .Values.proxy.external.path }}/alive"
+            path: "{{ .Values.proxy.external.path }}/api/alive"
             port: 8000
           initialDelaySeconds: 5
           periodSeconds: 5
