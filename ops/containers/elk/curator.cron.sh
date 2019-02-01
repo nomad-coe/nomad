@@ -1,2 +1,2 @@
 #!/bin/sh
-curator /etc/curator/rotate_indices.yml
+curator --config /etc/curator/config.yml /etc/curator/rotate_indices.yml

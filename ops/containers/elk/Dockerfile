@@ -9,6 +9,7 @@ RUN pip3 install elasticsearch-curator
 ENV LOGSTASH_PATH_CONF /etc/logstash
 
 ADD ./rotate_indices.curator.yml /etc/curator/rotate_indices.yml
+ADD ./curator.config.yml /etc/curator/config.yml
 ADD ./curator.cron.sh /etc/cron.daily/curator
 RUN chmod a+x /etc/cron.daily/curator
 
