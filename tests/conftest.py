@@ -307,9 +307,7 @@ class SMTPServerFixture:
 
     def close(self):
         self._thread.close()
-        self._thread.join(10)
-        if self._thread.is_alive():
-            raise RuntimeError('smtp server thread did not stop in 10 sec')
+        self._thread.join(1)
 
 
 @pytest.fixture(scope='session')
