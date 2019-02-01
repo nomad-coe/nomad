@@ -14,7 +14,7 @@ actions:
       actionable list of indices (ignore_empty_list) and exit cleanly.
     options:
       ignore_empty_list: True
-      disable_action: True
+      disable_action: False
     filters:
     - filtertype: pattern
       kind: prefix
