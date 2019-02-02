@@ -77,8 +77,9 @@ spec:
             - name: NOMAD_LOGSTASH_LEVEL
             - value: 30
             command:
-            - sh -c
-            - celery -A nomad.processing status
+            - sh 
+            - -c
+            - python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
           initialDelaySeconds: 30
           periodSeconds: 30
         readinessProbe:
@@ -87,8 +88,9 @@ spec:
             - name: NOMAD_LOGSTASH_LEVEL
             - value: 30
             command:
-            - sh -c
-            - celery -A nomad.processing status
+            - sh 
+            - -c
+            - python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
           initialDelaySeconds: 5
           periodSeconds: 5
       imagePullSecrets:
