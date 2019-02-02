@@ -61,8 +61,8 @@ class ArchiveLogView extends React.Component {
           <DownloadIcon />
         </Download>
         {
-          data
-            ? <pre>{data}</pre>
+          data !== null
+            ? <pre>{data || 'empty log'}</pre>
             : <LinearProgress variant="query" />
         }
       </div>

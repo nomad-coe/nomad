@@ -12,6 +12,7 @@ import { compose } from 'recompose'
 import { withErrors } from './errors'
 import { debug } from '../config'
 import CalcDialog from './CalcDialog'
+import ArchiveLogDialog from './ArchiveLogDialog'
 
 class Upload extends React.Component {
   static propTypes = {
@@ -187,7 +188,7 @@ class Upload extends React.Component {
   renderStepper() {
     const { classes } = this.props
     const { upload } = this.state
-    const { calcs, tasks, current_task, tasks_running, tasks_status, process_running, current_process, errors } = upload
+    const { calcs, tasks, current_task, tasks_running, tasks_status, process_running, current_process } = upload
 
     // map tasks [ uploading, extracting, parse_all, cleanup ] to steps
     const steps = [ 'upload', 'process', 'publish' ]
@@ -273,7 +274,7 @@ class Upload extends React.Component {
         if (tasks_status === 'FAILURE') {
           props.optional = (
             <Typography variant="caption" color="error">
-              {errors.join(' ')}
+              processing failed
             </Typography>
           )
         }
@@ -353,7 +354,7 @@ class Upload extends React.Component {
       const processed = tasks_status === 'FAILURE' || tasks_status === 'SUCCESS'
       const row = (
         <TableRow key={index} hover={processed}
-          onClick={() => this.setState({openCalc: processed ? {uploadId: upload_id, calcId: calc_id} : null})}
+          onClick={() => this.setState({openCalc: processed ? calc : null})}
           className={processed ? classes.clickableRow : null} >
 
           <TableCell>
@@ -387,8 +388,9 @@ class Upload extends React.Component {
       )
 
       if (tasks_status === 'FAILURE') {
+        const error_html = `Calculation processing failed with errors: ${errors.join(', ')}`
         return (
-          <Tooltip key={calc_id} title={errors.map((error, index) => (<p key={`${calc_id}-${index}`}>{error}</p>))}>
+          <Tooltip key={calc_id} title={error_html}>
             {row}
           </Tooltip>
         )
@@ -455,14 +457,30 @@ class Upload extends React.Component {
     )
   }
 
+  renderOpenCalc() {
+    const { openCalc } = this.state
+    if (openCalc) {
+      if (openCalc.errors && openCalc.errors.length > 0) {
+        return <ArchiveLogDialog calcId={openCalc.calc_id} uploadId={openCalc.upload_id}
+          onClose={() => this.setState({openCalc: null})} />
+      } else {
+        return <CalcDialog calcId={openCalc.calc_id} uploadId={openCalc.upload_id}
+          onClose={() => this.setState({openCalc: null})} />
+      }
+    }
+
+    return ''
+  }
+
   render() {
-    const { classes, raiseError } = this.props
-    const { upload, openCalc } = this.state
+    const { classes } = this.props
+    const { upload } = this.state
+    const { errors } = upload
 
     if (this.state.upload) {
       return (
         <div className={classes.root}>
-          { openCalc ? <CalcDialog raiseError={raiseError} {...openCalc} onClose={() => this.setState({openCalc: null})} /> : ''}
+          { this.renderOpenCalc() }
 
           <ExpansionPanel>
             <ExpansionPanelSummary
@@ -483,6 +501,11 @@ class Upload extends React.Component {
               {this.renderTitle()} {this.renderStepper()}
             </ExpansionPanelSummary>
             <ExpansionPanelDetails style={{width: '100%'}} classes={{root: classes.details}}>
+              {errors && errors.length > 0
+                ? <Typography className={classes.detailsContent} color="error">
+                  Upload processing has errors: {errors.join(', ')}
+                </Typography> : ''
+              }
               {upload.calcs ? this.renderCalcTable() : ''}
               {debug
                 ? <div className={classes.detailsContent}>

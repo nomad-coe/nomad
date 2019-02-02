@@ -318,6 +318,16 @@ def smtpd(request):
 
 
 @pytest.fixture(scope='function', autouse=True)
-def mails(smtpd):
+def mails(smtpd, monkeypatch):
     smtpd.clear()
+
+    old_config = config.mail
+    new_config = config.MailConfig(
+        'localhost',
+        old_config.port,
+        old_config.user,
+        old_config.password,
+        old_config.from_address)
+
+    monkeypatch.setattr('nomad.config.mail', new_config)
     yield smtpd

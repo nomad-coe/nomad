@@ -93,33 +93,30 @@ class Calc(Proc, datamodel.Calc):
         return self._upload_files
 
     def get_logger(self, **kwargs):
-        logger = super().get_logger()
-        logger = logger.bind(
-            upload_id=self.upload_id, mainfile=self.mainfile, calc_id=self.calc_id, **kwargs)
-
-        return logger
-
-    def get_calc_logger(self, **kwargs):
         """
         Returns a wrapped logger that additionally saves all entries to the calculation
         processing log in the archive.
         """
-        logger = self.get_logger(**kwargs)
+        logger = super().get_logger()
+        logger = logger.bind(
+            upload_id=self.upload_id, mainfile=self.mainfile, calc_id=self.calc_id, **kwargs)
 
-        if self._calc_proc_logwriter is None:
+        if self._calc_proc_logwriter_ctx is None:
             self._calc_proc_logwriter_ctx = self.upload_files.archive_log_file(self.calc_id, 'wt')
             self._calc_proc_logwriter = self._calc_proc_logwriter_ctx.__enter__()  # pylint: disable=E1101
 
         def save_to_calc_log(logger, method_name, event_dict):
-            program = event_dict.get('normalizer', 'parser')
-            event = event_dict.get('event', '')
-            entry = '[%s] %s: %s' % (method_name, program, event)
-            if len(entry) > 120:
-                self._calc_proc_logwriter.write(entry[:120])
-                self._calc_proc_logwriter.write('...')
-            else:
-                self._calc_proc_logwriter.write(entry)
-            self._calc_proc_logwriter.write('\n')
+            if self._calc_proc_logwriter is not None:
+                program = event_dict.get('normalizer', 'parser')
+                event = event_dict.get('event', '')
+                entry = '[%s] %s: %s' % (method_name, program, event)
+                if len(entry) > 120:
+                    self._calc_proc_logwriter.write(entry[:120])
+                    self._calc_proc_logwriter.write('...')
+                else:
+                    self._calc_proc_logwriter.write(entry)
+                self._calc_proc_logwriter.write('\n')
+
             return event_dict
 
         return wrap_logger(logger, processors=[save_to_calc_log])
@@ -149,7 +146,7 @@ class Calc(Proc, datamodel.Calc):
     @task
     def parsing(self):
         context = dict(parser=self.parser, step=self.parser)
-        logger = self.get_calc_logger(**context)
+        logger = self.get_logger(**context)
         parser = parser_dict[self.parser]
 
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
@@ -212,7 +209,7 @@ class Calc(Proc, datamodel.Calc):
         for normalizer in normalizers:
             normalizer_name = normalizer.__name__
             context = dict(normalizer=normalizer_name, step=normalizer_name)
-            logger = self.get_calc_logger(**context)
+            logger = self.get_logger(**context)
 
             with utils.timer(
                     logger, 'normalizer executed', input_size=self.mainfile_file.size):
@@ -481,8 +478,13 @@ class Upload(Chord, datamodel.Upload):
                 self.name if self.name else '', self.upload_time.isoformat()),
             'You can review your data on your upload page: %s' % config.services.upload_url
         ])
-        infrastructure.send_mail(
-            name=name, email=user.email, message=message, subject='Processing completed')
+        try:
+            infrastructure.send_mail(
+                name=name, email=user.email, message=message, subject='Processing completed')
+        except Exception as e:
+            # probably due to email configuration problems
+            # don't fail or present this error to clients
+            self.logger.error('could not send after processing email', exc_info=e)
 
     @property
     def processed_calcs(self):

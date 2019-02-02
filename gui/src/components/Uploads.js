@@ -128,9 +128,12 @@ class Uploads extends React.Component {
       })
   }
 
-  sortedUploads() {
+  sortedUploads(order) {
+    order = order || -1
     return this.state.uploads.concat()
-      .sort((a, b) => (a.gui_upload_id === b.gui_upload_id) ? 0 : ((a.gui_upload_id < b.gui_upload_id) ? -1 : 1))
+      .sort((a, b) => (a.gui_upload_id === b.gui_upload_id)
+        ? 0
+        : ((a.gui_upload_id < b.gui_upload_id) ? -1 : 1) * order)
   }
 
   handleDoesNotExist(nonExistingUupload) {

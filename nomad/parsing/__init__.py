@@ -58,12 +58,13 @@ based on NOMAD-coe's *python-common* module.
 
 from nomad.parsing.backend import AbstractParserBackend, LocalBackend, LegacyLocalBackend, JSONStreamWriter, BadContextURI, WrongContextState
 from nomad.parsing.parser import Parser, LegacyParser
-from nomad.parsing.artificial import TemplateParser, GenerateRandomParser
+from nomad.parsing.artificial import TemplateParser, GenerateRandomParser, ChaosParser
 from nomad.dependencies import dependencies_dict as dependencies
 
 parsers = [
     GenerateRandomParser(),
     TemplateParser(),
+    ChaosParser(),
     LegacyParser(
         python_git=dependencies['parsers/vasp'],
         parser_class_name='vaspparser.VASPRunParserInterface',

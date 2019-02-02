@@ -51,7 +51,7 @@ LogstashConfig = namedtuple('LogstashConfig', ['enabled', 'host', 'tcp_port', 'l
 NomadServicesConfig = namedtuple('NomadServicesConfig', ['api_host', 'api_port', 'api_base_path', 'api_secret', 'admin_password', 'upload_url', 'disable_reset'])
 """ Used to configure nomad services: worker, handler, api """
 
-MailConfig = namedtuple('MailConfig', ['enabled', 'host', 'port', 'user', 'password', 'from_address'])
+MailConfig = namedtuple('MailConfig', ['host', 'port', 'user', 'password', 'from_address'])
 """ Used to configure how nomad can send email """
 
 files = FilesConfig(
@@ -129,8 +129,7 @@ migration_source_db = RepositoryDBConfig(
     password=os.environ.get('NOMAD_MIGRATION_SOURCE_PASSWORD', '*')
 )
 mail = MailConfig(
-    enabled=True,
-    host=os.environ.get('NOMAD_SMTP_HOST', 'localhost'),
+    host=os.environ.get('NOMAD_SMTP_HOST', ''),  # empty or None host disables email
     port=int(os.environ.get('NOMAD_SMTP_PORT', 8995)),
     user=os.environ.get('NOMAD_SMTP_USER', None),
     password=os.environ.get('NOMAD_SMTP_PASSWORD', None),
