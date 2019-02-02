@@ -82,7 +82,7 @@ def handle(error: Exception):
     return response
 
 
-@app.route("%s/alive" % base_path)
+@app.route('/alive')
 def alive():
     """ Simply endpoint to utilize kubernetes liveness/readiness probing. """
     return "I am, alive!"
