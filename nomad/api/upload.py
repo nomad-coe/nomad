@@ -346,6 +346,7 @@ class UploadResource(Resource):
                 abort(400, message='Cannot publish an upload that failed processing')
             try:
                 upload.metadata = metadata
+                print('ÜÜÜÜÜÜÜÜ ' + str(upload.metadata))
                 upload.publish_upload()
             except ProcessAlreadyRunning:
                 abort(400, message='The upload is still/already processed')

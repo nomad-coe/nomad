@@ -175,8 +175,9 @@ class Upload(Base, datamodel.Upload):  # type: ignore
         repo_db = infrastructure.repository_db
 
         # table based properties
+        coe_calc_id = calc_metadata.get('_pid', None)
         coe_calc = Calc(
-            coe_calc_id=calc_metadata.get('_pid', None),
+            coe_calc_id=coe_calc_id,
             checksum=calc_metadata.get('_checksum', calc.calc_id),
             upload=self)
         repo_db.add(coe_calc)
@@ -239,18 +240,38 @@ class Upload(Base, datamodel.Upload):  # type: ignore
             coe_calc.shared_with.append(repo_db.query(User).get(shared_with_id))
 
         # datasets
-        for dataset_id in calc_metadata.get('datasets', []):
+        for dataset in calc_metadata.get('datasets', []):
+            dataset_id = dataset['id']
+            coe_dataset = repo_db.query(Calc).get(dataset_id)
+            if coe_dataset is None:
+                coe_dataset = Calc(coe_calc_id=dataset_id)
+                repo_db.add(coe_dataset)
+
+                metadata = CalcMetaData(
+                    calc=coe_dataset,
+                    added=calc_metadata.get('_upload_time', self.upload_time),
+                    chemical_formula=dataset['name'])
+                repo_db.add(metadata)
+
+                for doi in dataset['dois']:
+                    self._add_citation(coe_dataset, doi, 'INTERNAL')
+
+                # cause a flush to avoid future inconsistencies
+                coe_dataset = repo_db.query(Calc).get(dataset_id)
+
             dataset = CalcSet(parent_calc_id=dataset_id, children_calc_id=coe_calc.coe_calc_id)
             repo_db.add(dataset)
 
         # references
         for reference in calc_metadata.get('references', []):
-            citation = repo_db.query(Citation).filter_by(
-                value=reference,
-                kind='EXTERNAL').first()
+            self._add_citation(coe_calc, reference, 'EXTERNAL')
 
-            if citation is None:
-                citation = Citation(value=reference, kind='EXTERNAL')
-                repo_db.add(citation)
+    def _add_citation(self, coe_calc: Calc, value: str, kind: str) -> None:
+        repo_db = infrastructure.repository_db
+        citation = repo_db.query(Citation).filter_by(value=value, kind=kind).first()
 
-            coe_calc.citations.append(citation)
+        if citation is None:
+            citation = Citation(value=value, kind=kind)
+            repo_db.add(citation)
+
+        coe_calc.citations.append(citation)

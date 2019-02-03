@@ -80,7 +80,7 @@ class SourceCalc(Document):
                 should be read at a time to optimize for your application.
 
         Returns:
-            yields tuples (:class:`SourceCalc`, #calcs_total)
+            yields tuples (:class:`SourceCalc`, #calcs_total[incl. datasets])
         """
         if drop:
             SourceCalc.drop_collection()
@@ -99,7 +99,6 @@ class SourceCalc(Document):
             source_calcs = []
             for calc in calcs:
                 if calc.calc_metadata is None or calc.calc_metadata.filenames is None:
-                    yield None, total
                     continue  # dataset case
 
                 filenames = json.loads(calc.calc_metadata.filenames.decode('utf-8'))
@@ -308,7 +307,7 @@ class NomadCOEMigration:
             for source_calc in SourceCalc.objects(upload=source_upload_id):
                 source_metadata = CalcWithMetadata(upload_id=upload.upload_id, **source_calc.metadata)
                 source_metadata.mainfile = source_calc.mainfile
-                source_metadata.pid = source_calc.pid
+                source_metadata.pid = str(source_calc.pid)
                 source_metadata.__migrated = False
                 upload_metadata_calcs.append(source_metadata)
                 metadata_dict[source_calc.mainfile] = source_metadata
@@ -374,12 +373,14 @@ class NomadCOEMigration:
                         mainfile=source_calc.mainfile)
 
             # publish upload
-            admin_keys = ['upload_time, uploader, pid']
+            admin_keys = ['upload_time', 'uploader', 'pid']
 
             def transform(calcWithMetadata):
                 result = dict()
+                print('.::')
                 for key, value in calcWithMetadata.items():
                     if key in admin_keys:
+                        print('.... ' + key)
                         target_key = '_%s' % key
                     else:
                         target_key = key

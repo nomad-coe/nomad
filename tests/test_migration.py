@@ -95,7 +95,7 @@ def perform_index(migration, has_indexed, with_metadata, **kwargs):
         assert source_calc.mainfile in ['1/template.json', '2/template.json']
         assert source_calc.upload == 'upload'
         has_source_calc = True
-        assert total == 2
+        assert total == 3  # 2 calcs + 1 dataset
 
     assert has_source_calc == has_indexed
 
@@ -177,11 +177,21 @@ def test_migrate(migrate_infra, test, assertions, caplog):
     report = reports[0]
     assert report['total_calcs'] == assertions.get('migrated', 0) + assertions.get('new', 0) + assertions.get('failed', 0)
 
+    # assert if new, diffing, migrated calcs where detected correctly
     assert report['total_source_calcs'] == assertions.get('source', 0)
     assert report['migrated_calcs'] == assertions.get('migrated', 0)
     assert report['calcs_with_diffs'] == assertions.get('diffs', 0)
     assert report['new_calcs'] == assertions.get('new', 0)
     assert report['missing_calcs'] == assertions.get('missing', 0)
+
+    # assert if migrated calcs have correct user metadata
+    if assertions.get('migrated', 0) > 0:
+        repo_db = infrastructure.repository_db
+        for calc in repo_db.query(coe_repo.Calc):
+            print('#### ' + str(calc.coe_calc_id))
+        calc_1 = repo_db.query(coe_repo.Calc).get(1)
+        assert calc_1 is not None
+        assert len(calc_1.parents) == 1
 
     errors = 0
     for record in caplog.get_records(when='call'):
