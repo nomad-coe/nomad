@@ -23,6 +23,7 @@ import logging
 import os.path
 import glob
 
+from nomad import utils
 from nomad.parsing.backend import LocalBackend
 from nomad.dependencies import PythonGit
 
@@ -112,23 +113,17 @@ class LegacyParser(Parser):
         init_signature = inspect.getargspec(Parser.__init__)
         kwargs = dict(
             backend=lambda meta_info: create_backend(meta_info, logger=logger),
-            log_level=logging.DEBUG, logger=logger, debug=True)
+            log_level=logging.DEBUG, debug=True)
         kwargs = {key: value for key, value in kwargs.items() if key in init_signature.args}
-        self.parser = Parser(**kwargs)
 
-        # TODO the following should be deprecated and loggers should be handed via the parser
-        # constructor only
-        if logger is not None and 'logger' not in init_signature.args:
-            if hasattr(self.parser, 'setup_logger'):
-                self.parser.setup_logger(logger.bind(parser=self.name))
-            else:
-                logger.warning('could not setup parser logger')
+        with utils.legacy_logger(logger):
+            self.parser = Parser(**kwargs)
 
-        with patch.object(sys, 'argv', []):
-            backend = self.parser.parse(mainfile)
+            with patch.object(sys, 'argv', []):
+                backend = self.parser.parse(mainfile)
 
-        if backend is None or not hasattr(backend, 'status'):
-            backend = self.parser.parser_context.super_backend
+            if backend is None or not hasattr(backend, 'status'):
+                backend = self.parser.parser_context.super_backend
 
         return backend
 

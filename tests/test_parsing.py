@@ -279,15 +279,9 @@ def add_calculation_info(backend: LocalBackend) -> LocalBackend:
 
 
 @pytest.mark.parametrize('parser_name, mainfile', parser_examples)
-def test_parser(parser_name, mainfile, caplog):
+def test_parser(parser_name, mainfile):
     parsed_example = run_parser(parser_name, mainfile)
     assert_parser_result(parsed_example)
-
-    logger_received = False
-    for record in caplog.get_records(when='call'):
-        if record.levelname == 'DEBUG':
-            logger_received |= json.loads(record.msg)['event'] == 'received logger'
-    assert logger_received
 
 
 def test_match(no_warn):
