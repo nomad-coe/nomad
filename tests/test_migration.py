@@ -18,7 +18,7 @@ import os.path
 from bravado.client import SwaggerClient
 import json
 
-from nomad import infrastructure, coe_repo
+from nomad import infrastructure, coe_repo, datamodel
 
 from nomad.migration import NomadCOEMigration, SourceCalc
 from nomad.infrastructure import repository_db_connection
@@ -166,6 +166,7 @@ mirgation_test_specs = [
 ]
 
 
+@pytest.mark.filterwarnings("ignore: SAWarning")
 @pytest.mark.parametrize('test, assertions', mirgation_test_specs)
 @pytest.mark.timeout(30)
 def test_migrate(migrate_infra, test, assertions, caplog):
@@ -185,13 +186,30 @@ def test_migrate(migrate_infra, test, assertions, caplog):
     assert report['missing_calcs'] == assertions.get('missing', 0)
 
     # assert if migrated calcs have correct user metadata
+    repo_db = infrastructure.repository_db
     if assertions.get('migrated', 0) > 0:
-        repo_db = infrastructure.repository_db
-        for calc in repo_db.query(coe_repo.Calc):
-            print('#### ' + str(calc.coe_calc_id))
         calc_1 = repo_db.query(coe_repo.Calc).get(1)
         assert calc_1 is not None
-        assert len(calc_1.parents) == 1
+        metadata = calc_1.to(datamodel.CalcWithMetadata)
+        assert metadata.pid <= 2
+        assert metadata.uploader == 1
+        assert metadata.upload_time.isoformat() == '2019-01-01T12:00:00+00:00'
+        assert len(metadata.datasets) == 1
+        assert metadata.datasets[0]['id'] == 3
+        assert metadata.datasets[0]['name'] == 'test_dataset'
+        assert metadata.datasets[0]['dois'][0] == 'internal_ref'
+        assert metadata.comment == 'label1'
+        assert len(metadata.coauthors) == 1
+        assert metadata.coauthors[0] == 2
+        assert len(metadata.references) == 1
+        assert metadata.references[0] == 'external_ref'
+
+    if assertions.get('migrated', 0) > 1:
+        calc_2 = repo_db.query(coe_repo.Calc).get(2)
+        assert calc_1 is not None
+        metadata = calc_2.to(datamodel.CalcWithMetadata)
+        assert len(metadata.shared_with) == 1
+        assert metadata.shared_with[0] == 1
 
     errors = 0
     for record in caplog.get_records(when='call'):

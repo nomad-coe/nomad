@@ -31,7 +31,6 @@ from passlib.hash import bcrypt
 from werkzeug.contrib.iterio import IterIO
 import time
 from bravado.exception import HTTPNotFound
-from datetime import datetime
 
 from nomad import utils, config, infrastructure
 from nomad.files import repo_data_to_calc_with_metadata
@@ -305,9 +304,10 @@ class NomadCOEMigration:
             metadata_dict = dict()
             upload_metadata = dict(calculations=upload_metadata_calcs)
             for source_calc in SourceCalc.objects(upload=source_upload_id):
-                source_metadata = CalcWithMetadata(upload_id=upload.upload_id, **source_calc.metadata)
+                source_calc.metadata.upload_id = upload.upload_id
+                source_metadata = CalcWithMetadata(**source_calc.metadata)
                 source_metadata.mainfile = source_calc.mainfile
-                source_metadata.pid = str(source_calc.pid)
+                source_metadata.pid = source_calc.pid
                 source_metadata.__migrated = False
                 upload_metadata_calcs.append(source_metadata)
                 metadata_dict[source_calc.mainfile] = source_metadata
@@ -374,20 +374,26 @@ class NomadCOEMigration:
 
             # publish upload
             admin_keys = ['upload_time', 'uploader', 'pid']
+            user_metadata_keys = [
+                'upload_time', 'uploader', 'pid', 'references', 'datasets', 'mainfile',
+                'with_embargo', 'comment', 'references', 'coauthors', 'shared_with']
 
             def transform(calcWithMetadata):
                 result = dict()
-                print('.::')
                 for key, value in calcWithMetadata.items():
-                    if key in admin_keys:
-                        print('.... ' + key)
-                        target_key = '_%s' % key
-                    else:
-                        target_key = key
+                    if key in user_metadata_keys:
+                        if key in admin_keys:
+                            target_key = '_%s' % key
+                        else:
+                            target_key = key
 
-                    if isinstance(value, datetime):
-                        value = value.isoformat()
-                    result[target_key] = value
+                        if key in ['pid', 'uploader']:
+                            value = str(value)
+
+                        if key in ['coauthors', 'shared_with']:
+                            value = [str(item) for item in value]
+
+                        result[target_key] = value
                 return result
 
             upload_metadata['calculations'] = [

@@ -57,8 +57,8 @@ metadata_model = api.model('MetaData', {
     'references': fields.List(fields.String, descriptions='References allow to link calculations to external source, e.g. URLs.'),
     'coauthors': fields.List(fields.String, description='A list of co-authors given by user_id.'),
     'shared_with': fields.List(fields.String, description='A list of users to share calculations with given by user_id.'),
-    '_upload_time': fields.List(fields.DateTime(dt_format='iso8601'), description='Overrride the upload time.'),
-    '_uploader': fields.List(fields.String, description='Override the uploader with the given user id.')
+    '_upload_time': fields.DateTime(dt_format='iso8601', description='Overrride the upload time.'),
+    '_uploader': fields.String(description='Override the uploader with the given user id.')
 })
 
 calc_metadata_model = api.inherit('CalcMetaData', metadata_model, {
@@ -346,7 +346,6 @@ class UploadResource(Resource):
                 abort(400, message='Cannot publish an upload that failed processing')
             try:
                 upload.metadata = metadata
-                print('ÜÜÜÜÜÜÜÜ ' + str(upload.metadata))
                 upload.publish_upload()
             except ProcessAlreadyRunning:
                 abort(400, message='The upload is still/already processed')
