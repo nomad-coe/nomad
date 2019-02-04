@@ -20,6 +20,8 @@ import importlib
 import inspect
 from unittest.mock import patch
 import logging
+import os.path
+import glob
 
 from nomad.parsing.backend import LocalBackend
 from nomad.dependencies import PythonGit
@@ -132,3 +134,24 @@ class LegacyParser(Parser):
 
     def __repr__(self):
         return self.python_git.__repr__()
+
+
+class VaspOutcarParser(LegacyParser):
+    """
+    LegacyParser that only matches mailfiles, if there is no .xml in the
+    same directory, i.e. to use the VASP OUTCAR parser in absence of .xml
+    output file.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.name = 'parsers/vaspoutcar'
+
+    def is_mainfile(self, filename: str, *args, **kwargs) -> bool:
+        is_mainfile = super().is_mainfile(filename, *args, **kwargs)
+
+        if is_mainfile:
+            os.path.dirname(filename)
+            if len(glob.glob('%s/*.xml*' % filename)) > 0:
+                return False
+
+        return is_mainfile

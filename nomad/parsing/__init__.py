@@ -57,9 +57,10 @@ based on NOMAD-coe's *python-common* module.
 """
 
 from nomad.parsing.backend import AbstractParserBackend, LocalBackend, LegacyLocalBackend, JSONStreamWriter, BadContextURI, WrongContextState
-from nomad.parsing.parser import Parser, LegacyParser
+from nomad.parsing.parser import Parser, LegacyParser, VaspOutcarParser
 from nomad.parsing.artificial import TemplateParser, GenerateRandomParser, ChaosParser
 from nomad.dependencies import dependencies_dict as dependencies
+
 
 parsers = [
     GenerateRandomParser(),
@@ -75,6 +76,12 @@ parsers = [
             r'?\s*<generator>'
             r'?\s*<i name="program" type="string">\s*vasp\s*</i>'
             r'?')
+    ),
+    VaspOutcarParser(
+        python_git=dependencies['parsers/vasp'],
+        parser_class_name='vaspparser.VaspOutcarParser',
+        main_file_re=r'^OUTCAR(\.[^\.]*)?$',
+        main_contents_re=(r'^\svasp\..*$')
     ),
     LegacyParser(
         python_git=dependencies['parsers/exciting'],
