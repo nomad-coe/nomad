@@ -73,24 +73,18 @@ spec:
         command: ["python", "-m", "celery", "worker", "-l", "info", "-A", "nomad.processing"]
         livenessProbe:
           exec:
-            env:
-            - name: NOMAD_LOGSTASH_LEVEL
-            - value: 30
             command:
-            - sh 
+            - bash 
             - -c
-            - python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
+            - NOMAD_LOGSTASH_LEVEL=30 python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
           initialDelaySeconds: 30
           periodSeconds: 30
         readinessProbe:
           exec:
-            env:
-            - name: NOMAD_LOGSTASH_LEVEL
-            - value: 30
             command:
-            - sh 
+            - bash 
             - -c
-            - python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
+            - NOMAD_LOGSTASH_LEVEL=30 python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
           initialDelaySeconds: 5
           periodSeconds: 5
       imagePullSecrets:
