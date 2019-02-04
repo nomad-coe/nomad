@@ -138,6 +138,7 @@ def migrate_infra(migration, target_repo, flask_client, worker, monkeysession):
     assert len(indexed) == 2
     # source repo is the infrastructure repo
     migration.copy_users(target_repo)
+    migration.set_new_pid_prefix(target_repo)
 
     # target repo is the infrastructure repo
     def create_client():
@@ -166,7 +167,7 @@ mirgation_test_specs = [
 ]
 
 
-@pytest.mark.filterwarnings("ignore: SAWarning")
+@pytest.mark.filterwarnings("ignore:SAWarning")
 @pytest.mark.parametrize('test, assertions', mirgation_test_specs)
 @pytest.mark.timeout(30)
 def test_migrate(migrate_infra, test, assertions, caplog):
@@ -210,6 +211,10 @@ def test_migrate(migrate_infra, test, assertions, caplog):
         metadata = calc_2.to(datamodel.CalcWithMetadata)
         assert len(metadata.shared_with) == 1
         assert metadata.shared_with[0] == 1
+
+    # assert pid prefix of new calcs
+    if assertions.get('new', 0) > 0:
+        assert repo_db.query(coe_repo.Calc).get(7000000) is not None
 
     errors = 0
     for record in caplog.get_records(when='call'):

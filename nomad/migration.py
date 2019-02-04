@@ -181,6 +181,11 @@ class NomadCOEMigration:
             target_db.add(admin)
         target_db.commit()
 
+    def set_new_pid_prefix(self, target_db, prefix=7000000):
+        target_db.begin()
+        target_db.execute('ALTER SEQUENCE calculations_calc_id_seq RESTART WITH %d' % prefix)
+        target_db.commit()
+
     def _validate(self, upload_id: str, calc_id: str, source_calc: dict, logger) -> bool:
         """
         Validates the given processed calculation, assuming that the data in the given
