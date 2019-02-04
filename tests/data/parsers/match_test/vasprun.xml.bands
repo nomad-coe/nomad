@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<modeling>
+ <generator>
+  <i name="program" type="string">vasp</i>
+  <i name="version" type="string">4.6.35 </i>
+  <i name="subversion" type="string">3Apr08 complex  parallel</i>
+  <i name="platform" type="string">LinuxIFC</i>
+  <i name="date" type="string">2013 04 21</i>
+  <i name="time" type="string">17:15:34</i>
+ </generator>

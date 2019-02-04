@@ -212,7 +212,7 @@ dependencies = [
     PythonGit(
         name='parsers/wien2k',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-wien2k',
-        git_branch='master')
+        git_branch='nomad-fair')
 ]
 
 

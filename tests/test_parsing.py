@@ -29,19 +29,21 @@ parser_examples = [
     ('parsers/template', 'tests/data/parsers/template.json'),
     ('parsers/exciting', 'tests/data/parsers/exciting/Ag/INFO.OUT'),
     ('parsers/exciting', 'tests/data/parsers/exciting/GW/INFO.OUT'),
-    ('parsers/vasp', 'tests/data/parsers/vasp.xml'),
-    ('parsers/fhi-aims', 'tests/data/parsers/aims.out'),
+    ('parsers/vasp', 'tests/data/parsers/vasp/vasp.xml'),
+    ('parsers/fhi-aims', 'tests/data/parsers/fhi-aims/aims.out'),
     ('parsers/cp2k', 'tests/data/parsers/cp2k/si_bulk8.out'),
     ('parsers/crystal', 'tests/data/parsers/crystal/si.out'),
     ('parsers/cpmd', 'tests/data/parsers/cpmd/geo_output.out'),
     ('parsers/nwchem', 'tests/data/parsers/nwchem/md/output.out'),
     ('parsers/bigdft', 'tests/data/parsers/bigdft/n2_output.out'),
-    ('parsers/wien2k', 'tests/data/parsers/wien2k/ok/ok.scf')
+    ('parsers/wien2k', 'tests/data/parsers/wien2k/AlN/AlN_ZB.scf'),
 ]
 
 faulty_unknown_one_d_matid_example = [
     ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
 ]
+
+correct_num_output_files = 22
 
 
 class TestLocalBackend(object):
@@ -291,8 +293,7 @@ def test_parser(parser_name, mainfile, caplog):
 
 
 def test_match(no_warn):
-    directory = 'tests/data/proc/match'
-
+    directory = 'tests/data/parsers'
     count = 0
     for dirpath, _, filenames in os.walk(directory):
         for filename in filenames:
@@ -301,4 +302,4 @@ def test_match(no_warn):
                 if parser.is_mainfile(fullname, lambda fn: open(fn)):
                     count += 1
 
-    assert count == 6
+    assert count == correct_num_output_files

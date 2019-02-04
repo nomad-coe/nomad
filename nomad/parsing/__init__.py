@@ -116,19 +116,22 @@ parsers = [
             r'\s*\*\s{10,}public \: (?P<minorVersion>[\d\.]+) \- .*\*'
         )
     ),
+    # The main contents regex of CPMD was causing a catostrophic backtracking issue
+    # when searching through the first 500 bytes of main files. We decided
+    # to use only a portion of the regex to avoid that issue.
     LegacyParser(
         python_git=dependencies['parsers/cpmd'],
         parser_class_name='cpmdparser.CPMDParser',
         main_file_re=r'^.*\.out$',
         main_contents_re=(
-            r'\s*    \*\*\*\*\*\*  \*\*\*\*\*\*    \*\*\*\*  \*\*\*\*  \*\*\*\*\*\*\s*'
-            r'\s*   \*\*\*\*\*\*\*  \*\*\*\*\*\*\*   \*\*\*\*\*\*\*\*\*\*  \*\*\*\*\*\*\*\s*'
-            r'\s*  \*\*\*       \*\*   \*\*\*  \*\* \*\*\*\* \*\*  \*\*   \*\*\*\s*'
-            r'\s*  \*\*        \*\*   \*\*\*  \*\*  \*\*  \*\*  \*\*    \*\*\s*'
-            r'\s*  \*\*        \*\*\*\*\*\*\*   \*\*      \*\*  \*\*    \*\*\s*'
-            r'\s*  \*\*\*       \*\*\*\*\*\*    \*\*      \*\*  \*\*   \*\*\*\s*'
-            r'\s*   \*\*\*\*\*\*\*  \*\*        \*\*      \*\*  \*\*\*\*\*\*\*\s*'
-            r'\s*    \*\*\*\*\*\*  \*\*        \*\*      \*\*  \*\*\*\*\*\*\s*'
+            # r'\s+\*\*\*\*\*\*  \*\*\*\*\*\*    \*\*\*\*  \*\*\*\*  \*\*\*\*\*\*\s*'
+            # r'\s+\*\*\*\*\*\*\*  \*\*\*\*\*\*\*   \*\*\*\*\*\*\*\*\*\*  \*\*\*\*\*\*\*\s+'
+            r'\*\*\*       \*\*   \*\*\*  \*\* \*\*\*\* \*\*  \*\*   \*\*\*'
+            # r'\s+\*\*        \*\*   \*\*\*  \*\*  \*\*  \*\*  \*\*    \*\*\s+'
+            # r'\s+\*\*        \*\*\*\*\*\*\*   \*\*      \*\*  \*\*    \*\*\s+'
+            # r'\s+\*\*\*       \*\*\*\*\*\*    \*\*      \*\*  \*\*   \*\*\*\s+'
+            # r'\s+\*\*\*\*\*\*\*  \*\*        \*\*      \*\*  \*\*\*\*\*\*\*\s+'
+            # r'\s+\*\*\*\*\*\*  \*\*        \*\*      \*\*  \*\*\*\*\*\*\s+'
         )
     ),
     LegacyParser(
@@ -136,11 +139,11 @@ parsers = [
         parser_class_name='nwchemparser.NWChemParser',
         main_file_re=r'^.*\.out$',
         main_contents_re=(
-            r'              Northwest Computational Chemistry Package \(NWChem\) \d+\.\d+'
-            r' ------------------------------------------------------'
-            r'      Environmental Molecular Sciences Laboratory'
-            r'           Pacific Northwest National Laboratory'
-            r'                    Richland, WA 99352'
+            r'\s+Northwest Computational Chemistry Package \(NWChem\) \d+\.\d+'
+            r'\s+------------------------------------------------------'
+            r'\s+Environmental Molecular Sciences Laboratory'
+            r'\s+Pacific Northwest National Laboratory'
+            r'\s+Richland, WA 99352'
         )
     ),
     LegacyParser(

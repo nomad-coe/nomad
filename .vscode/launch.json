@@ -58,6 +58,26 @@
       ]
     },
     {
+      "name": "Python: cp2k normalizer test",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/cp2k-tests/data/parsers/cp2k/si_bulk8.out]"
+      ]
+    },
+    {
+      "name": "Python: cpmd normalizer test",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/cpmd-tests/data/parsers/cpmd/geo_output.out]"
+      ]
+    },
+    {
       "name": "Python: wien2k normalizer test",
       "type": "python",
       "request": "launch",
@@ -69,6 +89,16 @@
     },
 
     {
+      "name": "Python: test_parsing match test",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_parsing.py::test_match"
+      ]
+    },
+    {
       "name": "Python: nwchem normalizer test h2o sp test",
       "type": "python",
       "request": "launch",
@@ -76,6 +106,16 @@
       "program": "${workspaceFolder}/.pyenv/bin/pytest",
       "args": [
         "-sv", "tests/test_normalizing.py::test_normalizer[parsers/nwchem-tests/data/parsers/nwchem/sp_output.out]"
+      ]
+    },
+    {
+      "name": "Python: Vasp XML test",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/vasp-tests/data/parsers/vasp/vasp.xml]"
       ]
     },
     {

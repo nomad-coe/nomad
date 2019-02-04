@@ -1,0 +1,614 @@
+{
+  "section_run": {
+    "_name": "section_run",
+    "_gIndex": 0,
+    "calculation_file_uri": "nmd://uri",
+    "program_version": "CARBON",
+    "program_basis_set_type": "(L)APW+lo",
+    "program_name": "exciting",
+    "section_method": {
+      "_name": "section_method",
+      "_gIndex": 0,
+      "smearing_width": 4.35974394e-21,
+      "smearing_kind": "gaussian",
+      "x_exciting_scf_threshold_potential_change_list": 4.3597439399999995e-24,
+      "x_exciting_scf_threshold_energy_change": 4.3597439399999995e-24,
+      "x_exciting_scf_threshold_charge_change_list": 1e-05,
+      "electronic_structure_method": "DFT",
+      "scf_threshold_energy_change": 4.3597439399999995e-24,
+      "x_exciting_scf_threshold_potential_change": 4.3597439399999995e-24,
+      "x_exciting_scf_threshold_charge_change": 1e-05,
+      "section_XC_functionals": [
+        {
+          "_name": "section_XC_functionals",
+          "_gIndex": 0,
+          "XC_functional_name": "LDA_C_PW"
+        },
+        {
+          "_name": "section_XC_functionals",
+          "_gIndex": 1,
+          "XC_functional_name": "LDA_X_PZ"
+        }
+      ]
+    },
+    "section_system": {
+      "_name": "section_system",
+      "_gIndex": 0,
+      "x_exciting_clathrates": false,
+      "simulation_cell": [
+        [
+          2.7146790907371e-10,
+          2.7146790907371e-10,
+          0.0
+        ],
+        [
+          2.7146790907371e-10,
+          0.0,
+          2.7146790907371e-10
+        ],
+        [
+          0.0,
+          2.7146790907371e-10,
+          2.7146790907371e-10
+        ]
+      ],
+      "x_exciting_simulation_reciprocal_cell": [
+        [
+          11572611526.952097,
+          11572611526.952097,
+          -11572611526.952097
+        ],
+        [
+          11572611526.952097,
+          -11572611526.952097,
+          11572611526.952097
+        ],
+        [
+          -11572611526.952097,
+          11572611526.952097,
+          11572611526.952097
+        ]
+      ],
+      "x_exciting_unit_cell_volume": 4.001156046123446e-29,
+      "x_exciting_brillouin_zone_volume": 6.199463619336048e+30,
+      "x_exciting_muffin_tin_radius": 1.1112721424070001e-10,
+      "x_exciting_muffin_tin_points": 300,
+      "x_exciting_number_of_atoms": 2,
+      "x_exciting_number_kpoint_x": 4,
+      "x_exciting_number_kpoint_y": 4,
+      "x_exciting_number_kpoint_z": 4,
+      "x_exciting_number_kpoints": 8,
+      "x_exciting_rgkmax": 7.0,
+      "x_exciting_gkmax": 62990870785.6034,
+      "x_exciting_gmaxvr": 226767135054.9394,
+      "x_exciting_gvector_size_x": 30,
+      "x_exciting_gvector_size_y": 30,
+      "x_exciting_gvector_size_z": 30,
+      "x_exciting_gvector_total": 7799,
+      "x_exciting_lmaxapw": 8,
+      "x_exciting_nuclear_charge": -28.0,
+      "x_exciting_electronic_charge": 28.0,
+      "x_exciting_core_charge_initial": 20.0,
+      "x_exciting_valence_charge_initial": 8.0,
+      "x_exciting_empty_states": 5,
+      "x_exciting_valence_states": 10,
+      "x_exciting_hamiltonian_size": 184,
+      "x_exciting_pw": 176,
+      "x_exciting_lo": 8,
+      "x_exciting_smearing_type": "Gaussian",
+      "x_exciting_potential_mixing": "multisecant Broyden ",
+      "configuration_raw_gid": "si1AW37kCWZMn_sAsexxV3shtVzNv",
+      "atom_species": [
+        14,
+        14
+      ],
+      "chemical_composition": "SiSi",
+      "chemical_composition_reduced": "Si2",
+      "chemical_composition_bulk_reduced": "Si2",
+      "system_type": "Bulk",
+      "configuration_periodic_dimensions": [
+        true, 
+        true, 
+        true
+      ],
+      "atom_positions": [
+        [
+          0.0, 
+          0.0, 
+          0.0
+        ], 
+        [
+          1.35733954536855e-10, 
+          1.35733954536855e-10, 
+          1.35733954536855e-10
+        ]
+      ],
+      "atom_labels": [
+        "Si", 
+        "Si"
+      ],
+      "x_exciting_section_atoms_group": {
+        "_name": "x_exciting_section_atoms_group",
+        "_gIndex": 0,
+        "x_exciting_geometry_atom_labels": "Si",
+        "x_exciting_atom_position_format": "lattice",
+        "x_exciting_geometry_atom_number": "2",
+        "x_exciting_geometry_atom_positions_x": 0.25,
+        "x_exciting_geometry_atom_positions_y": 0.25,
+        "x_exciting_geometry_atom_positions_z": 0.25
+      },
+      "x_exciting_section_spin": {
+        "_name": "x_exciting_section_spin",
+        "_gIndex": 0,
+        "x_exciting_spin_treatment": "spin-unpolarised\n"
+      },
+      "x_exciting_section_xc": {
+        "_name": "x_exciting_section_xc",
+        "_gIndex": 0,
+        "x_exciting_xc_functional": 3
+      },
+      "section_symmetry": {
+        "_name": "section_symmetry",
+        "_gIndex": 0,
+        "symmetry_method": "Matid (spg)",
+        "space_group_number": 227,
+        "hall_number": 525,
+        "hall_symbol": "F 4d 2 3 -1d",
+        "international_short_symbol": "Fd-3m",
+        "point_group": "m-3m",
+        "crystal_system": "cubic",
+        "bravais_lattice": "cF",
+        "origin_shift": [
+          0.0, 
+          0.0, 
+          0.0
+        ],
+        "transformation_matrix": [
+          [
+            0.5, 
+            0.5, 
+            0.0
+          ], 
+          [
+            0.5, 
+            0.0, 
+            0.5
+          ], 
+          [
+            0.0, 
+            0.5, 
+            0.5
+          ]
+        ],
+        "section_std_system": {
+          "_name": "section_std_system",
+          "_gIndex": 0,
+          "lattice_vectors_std": [
+            [
+              5.4293581814742, 
+              0.0, 
+              0.0
+            ], 
+            [
+              0.0, 
+              5.4293581814742, 
+              0.0
+            ], 
+            [
+              0.0, 
+              0.0, 
+              5.4293581814742
+            ]
+          ],
+          "atom_positions_std": [
+            [
+              0.0, 
+              0.0, 
+              0.0
+            ], 
+            [
+              0.25, 
+              0.75, 
+              0.75
+            ], 
+            [
+              0.0, 
+              0.5, 
+              0.5
+            ], 
+            [
+              0.25, 
+              0.25, 
+              0.25
+            ], 
+            [
+              0.5, 
+              0.0, 
+              0.5
+            ], 
+            [
+              0.75, 
+              0.75, 
+              0.25
+            ], 
+            [
+              0.5, 
+              0.5, 
+              0.0
+            ], 
+            [
+              0.75, 
+              0.25, 
+              0.75
+            ]
+          ],
+          "atomic_numbers_std": [
+            14, 
+            14, 
+            14, 
+            14, 
+            14, 
+            14, 
+            14, 
+            14
+          ],
+          "wyckoff_letters_std": [
+            "a", 
+            "a", 
+            "a", 
+            "a", 
+            "a", 
+            "a", 
+            "a", 
+            "a"
+          ],
+          "equivalent_atoms_std": [
+            0, 
+            0, 
+            0, 
+            0, 
+            0, 
+            0, 
+            0, 
+            0
+          ]
+        },
+        "section_primitive_system": {
+          "_name": "section_primitive_system",
+          "_gIndex": 0,
+          "lattice_vectors_primitive": [
+            [
+              0.0, 
+              2.7146790907371, 
+              2.7146790907371
+            ], 
+            [
+              2.7146790907371, 
+              0.0, 
+              2.7146790907371
+            ], 
+            [
+              2.7146790907371, 
+              2.7146790907371, 
+              0.0
+            ]
+          ],
+          "atom_positions_primitive": [
+            [
+              0.0, 
+              0.0, 
+              -0.0
+            ], 
+            [
+              0.25, 
+              0.25, 
+              0.25
+            ]
+          ],
+          "atomic_numbers_primitive": [
+            14, 
+            14
+          ],
+          "wyckoff_letters_primitive": [
+            "a", 
+            "a"
+          ],
+          "equivalent_atoms_primitive": [
+            0, 
+            0
+          ]
+        },
+        "section_original_system": {
+          "_name": "section_original_system",
+          "_gIndex": 0,
+          "wyckoff_letters_original": [
+            "a", 
+            "a"
+          ],
+          "equivalent_atoms_original": [
+            0, 
+            0
+          ]
+        }
+      }
+    },
+    "section_single_configuration_calculation": {
+      "_name": "section_single_configuration_calculation",
+      "_gIndex": 0,
+      "energy_total": -2.520253298764264e-15,
+      "x_exciting_fermi_energy": 8.770081400500518e-19,
+      "electronic_kinetic_energy": 2.524636933272704e-15,
+      "x_exciting_coulomb_energy": -4.871846049762752e-15,
+      "x_exciting_exchange_energy": -1.6368933726932359e-16,
+      "x_exciting_correlation_energy": -9.35484496129508e-18,
+      "x_exciting_dos_fermi": 0.0,
+      "x_exciting_core_leakage": 0.00460708,
+      "x_exciting_interstitial_charge": 3.89386735,
+      "x_exciting_total_MT_charge": 24.10613265,
+      "x_exciting_gap": 9.312958023832499e-20,
+      "single_configuration_to_calculation_method_ref": 0,
+      "single_configuration_calculation_to_system_ref": 0,
+      "section_scf_iteration": [
+        {
+          "_name": "section_scf_iteration",
+          "_gIndex": 0,
+          "energy_total_scf_iteration": -2.5246069151713516e-15,
+          "x_exciting_fermi_energy_scf_iteration": 8.20893570616236e-19,
+          "electronic_kinetic_energy_scf_iteration": 2.5215237201264514e-15,
+          "x_exciting_coulomb_energy_scf_iteration": -4.87292344237206e-15,
+          "x_exciting_exchange_energy_scf_iteration": -1.638439433372752e-16,
+          "x_exciting_correlation_energy_scf_iteration": -9.363249632065173e-18,
+          "x_exciting_dos_fermi_scf_iteration": 0.0,
+          "x_exciting_core_charge_scf_iteration": 20.0,
+          "x_exciting_core_leakage_scf_iteration": 0.00463657,
+          "x_exciting_valence_charge_scf_iteration": 8.0,
+          "x_exciting_interstitial_charge_scf_iteration": 3.7921182,
+          "x_exciting_total_MT_charge_scf_iteration": 24.2078818,
+          "x_exciting_gap_scf_iteration": 1.6972456999956362e-19,
+          "x_exciting_time_scf_iteration": 2.32
+        },
+        {
+          "_name": "section_scf_iteration",
+          "_gIndex": 1,
+          "energy_total_scf_iteration": -2.522777338468727e-15,
+          "x_exciting_fermi_energy_scf_iteration": 8.40393397336674e-19,
+          "electronic_kinetic_energy_scf_iteration": 2.5227743314225392e-15,
+          "x_exciting_coulomb_energy_scf_iteration": -4.8724095281380854e-15,
+          "x_exciting_exchange_energy_scf_iteration": -1.637819188733461e-16,
+          "x_exciting_correlation_energy_scf_iteration": -9.360222923432267e-18,
+          "x_exciting_dos_fermi_scf_iteration": 0.0,
+          "x_exciting_core_charge_scf_iteration": 20.0,
+          "x_exciting_core_leakage_scf_iteration": 0.00464447,
+          "x_exciting_valence_charge_scf_iteration": 8.0,
+          "x_exciting_interstitial_charge_scf_iteration": 3.82607742,
+          "x_exciting_total_MT_charge_scf_iteration": 24.17392258,
+          "x_exciting_gap_scf_iteration": 1.448474351035296e-19,
+          "x_exciting_time_scf_iteration": 3.88,
+          "x_exciting_effective_potential_convergence_scf_iteration": 7.2407935278702e-20,
+          "x_exciting_energy_convergence_scf_iteration": 0.419652,
+          "x_exciting_charge_convergence_scf_iteration": 0.00310683
+        },
+        {
+          "_name": "section_scf_iteration",
+          "_gIndex": 2,
+          "energy_total_scf_iteration": -2.5215692172370784e-15,
+          "x_exciting_fermi_energy_scf_iteration": 8.543906168406804e-19,
+          "electronic_kinetic_energy_scf_iteration": 2.5236273086103947e-15,
+          "x_exciting_coulomb_energy_scf_iteration": -4.8720976662806084e-15,
+          "x_exciting_exchange_energy_scf_iteration": -1.6374076463445008e-16,
+          "x_exciting_correlation_energy_scf_iteration": -9.358094976012592e-18,
+          "x_exciting_dos_fermi_scf_iteration": 0.0,
+          "x_exciting_core_charge_scf_iteration": 20.0,
+          "x_exciting_core_leakage_scf_iteration": 0.00464422,
+          "x_exciting_valence_charge_scf_iteration": 8.0,
+          "x_exciting_interstitial_charge_scf_iteration": 3.85110032,
+          "x_exciting_total_MT_charge_scf_iteration": 24.14889968,
+          "x_exciting_gap_scf_iteration": 1.2639612680066158e-19,
+          "x_exciting_time_scf_iteration": 5.47,
+          "x_exciting_effective_potential_convergence_scf_iteration": 4.7201639715197996e-20,
+          "x_exciting_energy_convergence_scf_iteration": 0.277108,
+          "x_exciting_charge_convergence_scf_iteration": 0.00229889
+        },
+        {
+          "_name": "section_scf_iteration",
+          "_gIndex": 3,
+          "energy_total_scf_iteration": -2.5204044792070122e-15,
+          "x_exciting_fermi_energy_scf_iteration": 8.76592133283297e-19,
+          "electronic_kinetic_energy_scf_iteration": 2.5245556112741734e-15,
+          "x_exciting_coulomb_energy_scf_iteration": -4.8719107860310094e-15,
+          "x_exciting_exchange_energy_scf_iteration": -1.636943109524052e-16,
+          "x_exciting_correlation_energy_scf_iteration": -9.354993541368555e-18,
+          "x_exciting_dos_fermi_scf_iteration": 0.0,
+          "x_exciting_core_charge_scf_iteration": 20.0,
+          "x_exciting_core_leakage_scf_iteration": 0.00460193,
+          "x_exciting_valence_charge_scf_iteration": 8.0,
+          "x_exciting_interstitial_charge_scf_iteration": 3.89281519,
+          "x_exciting_total_MT_charge_scf_iteration": 24.10718481,
+          "x_exciting_gap_scf_iteration": 9.359437253976839e-20,
+          "x_exciting_time_scf_iteration": 7.04,
+          "x_exciting_effective_potential_convergence_scf_iteration": 2.5449089703522597e-21,
+          "x_exciting_energy_convergence_scf_iteration": 0.267157,
+          "x_exciting_charge_convergence_scf_iteration": 0.00400366
+        },
+        {
+          "_name": "section_scf_iteration",
+          "_gIndex": 4,
+          "energy_total_scf_iteration": -2.5202479907760173e-15,
+          "x_exciting_fermi_energy_scf_iteration": 8.769190268839181e-19,
+          "electronic_kinetic_energy_scf_iteration": 2.5246338961878804e-15,
+          "x_exciting_coulomb_energy_scf_iteration": -4.871838105480942e-15,
+          "x_exciting_exchange_energy_scf_iteration": -1.6368893979146859e-16,
+          "x_exciting_correlation_energy_scf_iteration": -9.354841735084564e-18,
+          "x_exciting_dos_fermi_scf_iteration": 0.0,
+          "x_exciting_core_charge_scf_iteration": 20.0,
+          "x_exciting_core_leakage_scf_iteration": 0.00460746,
+          "x_exciting_valence_charge_scf_iteration": 8.0,
+          "x_exciting_interstitial_charge_scf_iteration": 3.89378868,
+          "x_exciting_total_MT_charge_scf_iteration": 24.10621132,
+          "x_exciting_gap_scf_iteration": 9.31964151129252e-20,
+          "x_exciting_time_scf_iteration": 8.61,
+          "x_exciting_effective_potential_convergence_scf_iteration": 2.1009170072466001e-22,
+          "x_exciting_energy_convergence_scf_iteration": 0.035894,
+          "x_exciting_charge_convergence_scf_iteration": 8.39117e-05
+        },
+        {
+          "_name": "section_scf_iteration",
+          "_gIndex": 5,
+          "energy_total_scf_iteration": -2.5202524250715787e-15,
+          "x_exciting_fermi_energy_scf_iteration": 8.77022440010175e-19,
+          "electronic_kinetic_energy_scf_iteration": 2.5246386123844853e-15,
+          "x_exciting_coulomb_energy_scf_iteration": -4.871846845023645e-15,
+          "x_exciting_exchange_energy_scf_iteration": -1.636893489970348e-16,
+          "x_exciting_correlation_energy_scf_iteration": -9.35484347898214e-18,
+          "x_exciting_dos_fermi_scf_iteration": 0.0,
+          "x_exciting_core_charge_scf_iteration": 20.0,
+          "x_exciting_core_leakage_scf_iteration": 0.00460708,
+          "x_exciting_valence_charge_scf_iteration": 8.0,
+          "x_exciting_interstitial_charge_scf_iteration": 3.89389898,
+          "x_exciting_total_MT_charge_scf_iteration": 24.10610102,
+          "x_exciting_gap_scf_iteration": 9.31101357803526e-20,
+          "x_exciting_time_scf_iteration": 10.18,
+          "x_exciting_effective_potential_convergence_scf_iteration": 2.7544775018041197e-23,
+          "x_exciting_energy_convergence_scf_iteration": 0.00101711,
+          "x_exciting_charge_convergence_scf_iteration": 1.6122e-05
+        },
+        {
+          "_name": "section_scf_iteration",
+          "_gIndex": 6,
+          "energy_total_scf_iteration": -2.520253424455682e-15,
+          "x_exciting_fermi_energy_scf_iteration": 8.770088812065216e-19,
+          "electronic_kinetic_energy_scf_iteration": 2.524636893250255e-15,
+          "x_exciting_coulomb_energy_scf_iteration": -4.871846130025638e-15,
+          "x_exciting_exchange_energy_scf_iteration": -1.6368934263180865e-16,
+          "x_exciting_correlation_energy_scf_iteration": -9.35484504848996e-18,
+          "x_exciting_dos_fermi_scf_iteration": 0.0,
+          "x_exciting_core_charge_scf_iteration": 20.0,
+          "x_exciting_core_leakage_scf_iteration": 0.00460707,
+          "x_exciting_valence_charge_scf_iteration": 8.0,
+          "x_exciting_interstitial_charge_scf_iteration": 3.89386737,
+          "x_exciting_total_MT_charge_scf_iteration": 24.10613263,
+          "x_exciting_gap_scf_iteration": 9.31291006664916e-20,
+          "x_exciting_time_scf_iteration": 12.0,
+          "x_exciting_effective_potential_convergence_scf_iteration": 2.2470251059078202e-24,
+          "x_exciting_energy_convergence_scf_iteration": 0.000229228,
+          "x_exciting_charge_convergence_scf_iteration": 3.04357e-06
+        },
+        {
+          "_name": "section_scf_iteration",
+          "_gIndex": 7,
+          "energy_total_scf_iteration": -2.5202532928350123e-15,
+          "x_exciting_fermi_energy_scf_iteration": 8.770080964526125e-19,
+          "electronic_kinetic_energy_scf_iteration": 2.5246369331855096e-15,
+          "x_exciting_coulomb_energy_scf_iteration": -4.8718460440950854e-15,
+          "x_exciting_exchange_energy_scf_iteration": -1.636893369641415e-16,
+          "x_exciting_correlation_energy_scf_iteration": -9.35484496129508e-18,
+          "x_exciting_dos_fermi_scf_iteration": 0.0,
+          "x_exciting_core_charge_scf_iteration": 20.0,
+          "x_exciting_core_leakage_scf_iteration": 0.00460708,
+          "x_exciting_valence_charge_scf_iteration": 8.0,
+          "x_exciting_interstitial_charge_scf_iteration": 3.89386728,
+          "x_exciting_total_MT_charge_scf_iteration": 24.10613272,
+          "x_exciting_gap_scf_iteration": 9.312966743320381e-20,
+          "x_exciting_time_scf_iteration": 13.87,
+          "x_exciting_effective_potential_convergence_scf_iteration": 1.42657797307104e-25,
+          "x_exciting_energy_convergence_scf_iteration": 3.01922e-05,
+          "x_exciting_charge_convergence_scf_iteration": 1.12491e-07
+        },
+        {
+          "_name": "section_scf_iteration",
+          "_gIndex": 8,
+          "energy_total_scf_iteration": -2.5202532990694463e-15,
+          "x_exciting_fermi_energy_scf_iteration": 8.770081400500518e-19,
+          "electronic_kinetic_energy_scf_iteration": 2.5246369332291068e-15,
+          "x_exciting_coulomb_energy_scf_iteration": -4.871846050067935e-15,
+          "x_exciting_exchange_energy_scf_iteration": -1.6368933726932359e-16,
+          "x_exciting_correlation_energy_scf_iteration": -9.35484496129508e-18,
+          "x_exciting_dos_fermi_scf_iteration": 0.0,
+          "x_exciting_core_charge_scf_iteration": 20.0,
+          "x_exciting_core_leakage_scf_iteration": 0.00460708,
+          "x_exciting_valence_charge_scf_iteration": 8.0,
+          "x_exciting_interstitial_charge_scf_iteration": 3.89386735,
+          "x_exciting_total_MT_charge_scf_iteration": 24.10613265,
+          "x_exciting_gap_scf_iteration": 9.312958023832499e-20,
+          "x_exciting_time_scf_iteration": 15.47,
+          "x_exciting_effective_potential_convergence_scf_iteration": 7.3971339455586e-27,
+          "x_exciting_energy_convergence_scf_iteration": 1.43386e-06,
+          "x_exciting_charge_convergence_scf_iteration": 1.12626e-08
+        },
+        {
+          "_name": "section_scf_iteration",
+          "_gIndex": 9,
+          "energy_total_scf_iteration": -2.5202532987206665e-15,
+          "x_exciting_fermi_energy_scf_iteration": 8.770081400500518e-19,
+          "electronic_kinetic_energy_scf_iteration": 2.524636933272704e-15,
+          "x_exciting_coulomb_energy_scf_iteration": -4.871846049762752e-15,
+          "x_exciting_exchange_energy_scf_iteration": -1.6368933726932359e-16,
+          "x_exciting_correlation_energy_scf_iteration": -9.35484496129508e-18,
+          "x_exciting_dos_fermi_scf_iteration": 0.0,
+          "x_exciting_core_charge_scf_iteration": 20.0,
+          "x_exciting_core_leakage_scf_iteration": 0.00460708,
+          "x_exciting_valence_charge_scf_iteration": 8.0,
+          "x_exciting_interstitial_charge_scf_iteration": 3.89386735,
+          "x_exciting_total_MT_charge_scf_iteration": 24.10613265,
+          "x_exciting_gap_scf_iteration": 9.312958023832499e-20,
+          "x_exciting_time_scf_iteration": 17.12,
+          "x_exciting_effective_potential_convergence_scf_iteration": 6.3664904781426e-28,
+          "x_exciting_energy_convergence_scf_iteration": 8.46192e-08,
+          "x_exciting_charge_convergence_scf_iteration": 2.31526e-10
+        },
+        {
+          "_name": "section_scf_iteration",
+          "_gIndex": 10,
+          "energy_total_scf_iteration": -2.520253298764264e-15,
+          "x_exciting_fermi_energy_scf_iteration": 8.770081400500518e-19,
+          "electronic_kinetic_energy_scf_iteration": 2.524636933272704e-15,
+          "x_exciting_coulomb_energy_scf_iteration": -4.871846049762752e-15,
+          "x_exciting_exchange_energy_scf_iteration": -1.6368933726932359e-16,
+          "x_exciting_correlation_energy_scf_iteration": -9.35484496129508e-18,
+          "x_exciting_dos_fermi_scf_iteration": 0.0,
+          "x_exciting_core_charge_scf_iteration": 20.0,
+          "x_exciting_core_leakage_scf_iteration": 0.00460708,
+          "x_exciting_valence_charge_scf_iteration": 8.0,
+          "x_exciting_interstitial_charge_scf_iteration": 3.89386735,
+          "x_exciting_total_MT_charge_scf_iteration": 24.10613265,
+          "x_exciting_gap_scf_iteration": 9.312958023832499e-20,
+          "x_exciting_time_scf_iteration": 18.72,
+          "x_exciting_effective_potential_convergence_scf_iteration": 1.7501145708584403e-29,
+          "x_exciting_energy_convergence_scf_iteration": 6.27119e-09,
+          "x_exciting_charge_convergence_scf_iteration": 2.3064e-11
+        }
+      ]
+    }
+  },
+  "section_calculation_info": {
+    "_name": "section_calculation_info",
+    "_gIndex": 0,
+    "upload_id": "test_upload_id",
+    "calc_id": "test_calc_id",
+    "calc_hash": "test_calc_hash",
+    "main_file": "test/mainfile.txt",
+    "parser_name": "testParser"
+  },
+  "section_repository_info": {
+    "_name": "section_repository_info",
+    "_gIndex": 0,
+    "section_repository_parserdata": {
+      "_name": "section_repository_parserdata",
+      "_gIndex": 0,
+      "repository_checksum": "test_calc_hash",
+      "repository_program_name": "exciting",
+      "repository_code_version": "CARBON",
+      "repository_parser_id": "testParser",
+      "repository_chemical_formula": "Si2",
+      "repository_atomic_elements": [
+        "Si"
+      ],
+      "repository_atomic_elements_count": 2,
+      "repository_system_type": "Bulk",
+      "repository_crystal_system": "cubic",
+      "repository_spacegroup_nr": 227,
+      "repository_basis_set_type": "(L)APW+lo",
+      "repository_xc_treatment": "LDA"
+    }
+  }
+}

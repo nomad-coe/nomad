@@ -83,12 +83,18 @@ class LegacyParser(Parser):
         self._main_contents_re = re.compile(main_contents_re)
 
     def is_mainfile(self, filename: str, open: Callable[[str], IO[Any]]) -> bool:
+        # Number of bytes to read at top of file. We might have to change this
+        # in the future since there is variable size information at the top of the
+        # file for instance for crystal parser.
+        num_bytes = 2000
         if self._main_file_re.match(filename):
             file = None
             try:
                 file = open(filename)
-                contents = file.read(500)
-                return self._main_contents_re.match(contents) is not None
+
+                contents = file.read(num_bytes)
+                fake_var = self._main_contents_re.search(contents) is not None
+                return fake_var
             finally:
                 if file:
                     file.close()

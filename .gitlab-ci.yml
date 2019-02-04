@@ -17,12 +17,15 @@ stages:
   - deploy
 
 variables:
-  TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:test
+  TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:${CI_COMMIT_REF_NAME}
   RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
-  FRONTEND_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:test
+  FRONTEND_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:${CI_COMMIT_REF_NAME}
   FRONTEND_RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:latest
-  RAWAPI_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/rawapi:test
+  RAWAPI_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/rawapi:${CI_COMMIT_REF_NAME}
   RAWAPI_RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/rawapi:latest
+
+  KUBECONFIG: /etc/deploy/config
+  STAGING_NAMESPACE: nomad-fairdi
 
 build:
   stage: build
@@ -53,8 +56,8 @@ buildrawapi:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
     - docker build -t $RAWAPI_TEST_IMAGE -f rawapi.Dockerfile .
     - docker push $RAWAPI_TEST_IMAGE
-  except:
-    - /^dev-.*$/
+  only:
+    - rawapi
 
 
 linting:
@@ -160,22 +163,8 @@ release_rawapi:
     - docker pull $RAWAPI_TEST_IMAGE
     - docker tag $RAWAPI_TEST_IMAGE $RAWAPI_RELEASE_IMAGE
     - docker push $RAWAPI_RELEASE_IMAGE
-  except:
-    - /^dev-.*$/
-  when: manual
-
-deploy:
-  stage: deploy
-  script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
-    - cd ops/docker-compose/nomad
-    # secret .env file is stored on the "production" machine and is bind mounted into the
-    # runner container at /nomad/config/.env
-    - cp /nomad/config/.env .
-    - docker-compose -f docker-compose.yml -f docker-compose.prod.yml build
-    - docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --no-deps -d api worker gui
-  except:
-    - /^dev-.*$/
+  only:
+    - rawapi
   when: manual
 
 deploy_rawapi:
@@ -187,6 +176,41 @@ deploy_rawapi:
     # runner container at /nomad/config/.env
     - cp /nomad/config/.rawapi_env .env
     - docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+  only:
+    - rawapi
+  when: manual
+
+deploy:
+  stage: deploy
+  image: dtzar/helm-kubectl
+  before_script:
+    - mkdir -p /etc/deploy
+    # kube_config is a CI/CD variable set in GitLab GUI
+    - echo $CI_KUBE_CONFIG | base64 -d > /etc/deploy/config
+    - helm init --client-only
+    - helm repo add stable https://kubernetes-charts.storage.googleapis.com/
+    - helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com/
+    - helm repo update
+  script:
+    - cd ops/helm/nomad
+    - export KUBECONFIG=/etc/deploy/config
+    - helm dep build
+    - export NOMAD_VERSION="$(grep "version" Chart.yaml | cut -d" " -f2)"
+    - export NUMERIC_VERSION="$(echo ${NOMAD_VERSION} | cut -d"." -f1-2)"
+    - export RELEASE_NAME="nomad-v${NOMAD_VERSION//./-}"
+    - export DEPLOYS=$(helm ls | grep $RELEASE_NAME | wc -l)
+    - export EXTERNAL_PATH="/fairdi/nomad/v${NOMAD_VERSION}"
+    - export DBNAME="fairdi_nomad_v${NOMAD_VERSION//./_}"
+    - export FILES_PATH="/scratch/nomad-fair/fs/nomad_v${NOMAD_VERSION}"
+    - if [ ${DEPLOYS}  -eq 0 ]; then
+        helm install --name=${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE}
+          --set proxy.nodePort="300${NUMERIC_VERSION//./}"
+          --set proxy.external.path=${EXTERNAL_PATH}
+          --set dbname=${DBNAME}
+          --set volumes.files=${FILES_PATH};
+      else
+        helm upgrade ${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE} --recreate-pods;
+      fi
   except:
     - /^dev-.*$/
   when: manual
