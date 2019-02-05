@@ -146,7 +146,10 @@ class PythonGit():
                 new_branch = git.create_head(self.git_branch)
                 git.head.reference = new_branch
 
-            git.submodule_update(init=True)
+            try:
+                git.submodule_update(init=True)
+            except Exception:
+                pass
 
             if os.path.exists('requirements.txt'):
                 _logger.info('install requirements.txt for %s' % self.name)
@@ -179,10 +182,11 @@ dependencies = [
     #     git_url='https://gitlab.mpcdf.mpg.de/NoMaD/NomadRepositoryParser.git',
     #     git_branch='v2.1'
     # ),
-    PythonGit(
-        name='nomad-lab-base',
-        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-lab-base.git',
-        git_branch='nomad-FAIRDI'),
+    # not strictly necessary or useful for the common build
+    # PythonGit(
+    #     name='nomad-lab-base',
+    #     git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-lab-base.git',
+    #     git_branch='nomad-FAIR'),
     PythonGit(
         name='nomad-meta-info',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info.git',

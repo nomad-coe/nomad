@@ -40,6 +40,7 @@ filelock
 ujson
 bravado
 PyJWT
+jsonschema[format]
 
 # dev/ops related
 setuptools
