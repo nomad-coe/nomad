@@ -15,22 +15,23 @@
 """
 Interface to the NOMAD-coe repository postgres database. This implementation is based on
 SQLAlchemy. There are model classes that represent entries in the *users* and *session*
-tables.
+tables. All DB entities are implemented as classes, but most are hidden and data
+can be accessed via the various relations with :class:`User`, :class:`Calc`, :class:`Upload`.
 
-This module allows to authenticate users based on user password or session tokens.
-It allows to access the user data like names and user_id.
+To load an entity from the database use :data:`nomad.infrastructure.repository_db`
+(the SQLAlchemy session), e.g.:
+
+.. code-block:: python
+
+    repository_db.Query(coe_repo.Calc).filter_by(upload_id=some_id)
 
 .. autoclass:: User
     :members:
     :undoc-members:
 
-.. autoclass:: Session
-    :members:
-    :undoc-members:
-
 .. autofunction:: ensure_test_user
-
-This module also provides functionality to add parsed calculation data to the db:
+.. autodata:: admin_user
+.. autoexception:: LoginException
 
 .. autoclass:: UploadMetaData
     :members:
@@ -38,6 +39,9 @@ This module also provides functionality to add parsed calculation data to the db
     :members:
     :undoc-members:
 .. autoclass:: Calc
+    :members:
+    :undoc-members:
+.. autoclass:: DataSet
     :members:
     :undoc-members:
 """

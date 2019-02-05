@@ -44,7 +44,7 @@ The parser definitions are available via the following two variables.
 Parsers are reused for multiple caclulations.
 
 Parsers in NOMAD-coe use a *backend* to create output. There are different NOMAD-coe
-basends. In nomad@FAIR, we only currently only use a single backed. A version of
+basends. In nomad@FAIRDI, we only currently only use a single backed. A version of
 NOMAD-coe's *LocalBackend*. It stores all parser results in memory. The following
 classes provide a interface definition for *backends* as an ABC and a concrete implementation
 based on NOMAD-coe's *python-common* module.

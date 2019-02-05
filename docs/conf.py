@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'nomad-FAIR'
+project = 'nomad-FAIRDI'
 copyright = '2018, FAIRDI e.V.'
 author = 'FAIRDI e.V.'
 
@@ -138,7 +138,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'nomad-FAIR.tex', 'nomad-FAIR Documentation',
+    (master_doc, 'nomad-FAIRDI.tex', 'nomad-FAIRDI Documentation',
      'the NOMAD developers', 'manual'),
 ]
 
@@ -148,7 +148,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'nomad', 'nomad-FAIR Documentation',
+    (master_doc, 'nomad', 'nomad-FAIRDI Documentation',
      [author], 1)
 ]
 
@@ -159,13 +159,20 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'nomad-FAIR', 'nomad-FAIR Documentation',
-     author, 'nomad-FAIR', 'One line description of project.',
+    (master_doc, 'nomad-FAIRDI', 'nomad-FAIRDI Documentation',
+     author, 'nomad-FAIRDI', 'One line description of project.',
      'Miscellaneous'),
 ]
 
 
 # -- Extension configuration -------------------------------------------------
+autodoc_member_order = 'bysource'
+autodoc_default_options = {
+    'member-order': 'bysource',
+    'special-members': '__init__',
+    'undoc-members': None,
+    'exclude-members': '__weakref__'
+}
 
 # -- Options for todo extension ----------------------------------------------
 

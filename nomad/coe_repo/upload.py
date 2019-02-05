@@ -62,7 +62,7 @@ class UploadMetaData:
     Utility class that provides per upload meta data and overriding per calculation
     meta data. For a given *mainfile* data is first read from the `calculations` key
     (a list of calculation dict with a matching `mainfile` key), before it is read
-    from :param:`metadata_dict` it self.
+    from `metadata_dict` it self.
 
     The class is used to deal with user provided meta-data.
 

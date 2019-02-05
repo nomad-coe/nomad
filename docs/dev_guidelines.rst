@@ -108,7 +108,7 @@ processing. To create hashes we use :py:func:`nomad.utils.hash`.
 NOMAD-coe Dependencies
 ----------------------
 
-We currently clone and install NOMAD-coe dependencies *"outside"* the nomad-FAIR project
+We currently clone and install NOMAD-coe dependencies *"outside"* the nomad-FAIRDI project
 (see :py:mod:`nomad.dependencies`). The installed projects become part of the python
 environment and all dependencies are used like regular pipy packages and python modules.
 
@@ -116,20 +116,20 @@ This allows us to target (e.g. install) individual commits. In theory, these mig
 change during runtime, allowing to update parsers or normalizers on a running nomad.
 More importantly, we can address commit hashes to identify exact parser/normalizer versions.
 On the downside, common functions for all dependencies (e.g. the python-common package,
-or nomad_meta_info) cannot be part of the nomad-FAIR project. In general, it is hard
-to simultaneously develop nomad-FAIR and NOMAD-coe dependencies.
+or nomad_meta_info) cannot be part of the nomad-FAIRDI project. In general, it is hard
+to simultaneously develop nomad-FAIRDI and NOMAD-coe dependencies.
 
-Another approach is to integrate the NOMAD-coe sources with nomad-FAIR. The lacking
+Another approach is to integrate the NOMAD-coe sources with nomad-FAIRDI. The lacking
 availability of individual commit hashes, could be replaces with hashes of source-code
 files.
 
-We use the branch ``nomad-fair`` on all dependencies for nomad-FAIR specific changes.
+We use the branch ``nomad-fair`` on all dependencies for nomad-FAIRDI specific changes.
 
 
 Parsers
 ^^^^^^^
 
-There are several steps to take, to make a NOMOAD-coe parser fit for nomad-FAIR:
+There are several steps to take, to make a NOMOAD-coe parser fit for nomad-FAIRDI:
 
 - Implement ``nomadcore.baseclasses.ParserInterface``. Make sure that the meta-info is
   only loaded for each parse instance, not for each parser run.
@@ -155,7 +155,7 @@ There are several steps to take, to make a NOMOAD-coe parser fit for nomad-FAIR:
 Normalizers
 ^^^^^^^^^^^
 
-There are several steps to take, to make a NOMOAD-coe normalizer fit for nomad-FAIR:
+There are several steps to take, to make a NOMOAD-coe normalizer fit for nomad-FAIRDI:
 
 - If written in scala, re-write it in python.
 - The normalizer should read from the provided backend. In NOMAD-coe normalizers read
@@ -167,7 +167,7 @@ There are several steps to take, to make a NOMOAD-coe normalizer fit for nomad-F
 Logging
 -------
 
-There are three important prerequisites to understand about nomad-FAIR's logging:
+There are three important prerequisites to understand about nomad-FAIRDI's logging:
 
 - All log entries are recorded in a central elastic search database. To make this database
   useful, log entries must be sensible in size, frequence, meaning, level, and logger name.
@@ -177,7 +177,7 @@ There are three important prerequisites to understand about nomad-FAIR's logging
   end all entries are stored as JSON dictionaries with ``@timestamp``, ``level``,
   ``logger_name``, ``event`` plus custom context data. Keep events very short, most
   information goes into the context.
-- We use logging to inform us about the state of nomad-FAIR, not about user
+- We use logging to inform us about the state of nomad-FAIRDI, not about user
   behavior, input, data. Do not confuse this when determining the log-level for an event.
   A user providing an invalid upload file, for example, should never be an error.
 

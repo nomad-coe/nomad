@@ -11,22 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Any
-
-from .normalizer import Normalizer
-from .system import SystemNormalizer
-from .fhiaims import FhiAimsBaseNormalizer
-from .repository import RepositoryNormalizer
 
 """
 After parsing calculations have to be normalized with a set of *normalizers*.
 In NOMAD-coe those were programmed in python (we'll reuse) and scala (we'll rewrite).
 
 Currently the normalizers are:
-- system.py
-- symmetry.py
+- system.py (contains aspects of format stats, system, system type, and symmetry normalizer)
 - fhiaims.py
-- systemtype.py
+- repository.py
 
 The normalizers are available via
 
@@ -38,9 +31,14 @@ There is one ABC for all normalizer:
     :members:
 """
 
-# The loose explicit type is necessary to avoid a ABC class as item type that causes
-# further errors on instantiating the normalizers. A solution would be to use objects
-# instead of classes.
+from typing import List, Any
+
+from .normalizer import Normalizer
+from .system import SystemNormalizer
+from .fhiaims import FhiAimsBaseNormalizer
+from .repository import RepositoryNormalizer
+
+
 normalizers: List[Any] = [
     SystemNormalizer,
     FhiAimsBaseNormalizer,

@@ -17,8 +17,6 @@ Endpoints can use *flask_httpauth* based authentication either with basic HTTP
 authentication or access tokens. Currently the authentication is validated against
 users and sessions in the NOMAD-coe repository postgres db.
 
-.. autodata:: base_path
-
 There are two authentication "schemes" to authenticate users. First we use
 HTTP Basic Authentication (username, password), which also works with username=token,
 password=''. Second, there is a curstom HTTP header 'X-Token' that can be used to
