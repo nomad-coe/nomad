@@ -12,4 +12,5 @@ and infrastructure with a simplyfied architecture and consolidated code base.
    dev_guidelines
    api
    ops
+   parser_tutorial
    reference
