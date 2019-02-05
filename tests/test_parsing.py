@@ -29,7 +29,7 @@ parser_examples = [
     ('parsers/template', 'tests/data/parsers/template.json'),
     ('parsers/exciting', 'tests/data/parsers/exciting/Ag/INFO.OUT'),
     ('parsers/exciting', 'tests/data/parsers/exciting/GW/INFO.OUT'),
-    ('parsers/vasp', 'tests/data/parsers/vasp.xml'),
+    ('parsers/vasp', 'tests/data/parsers/vasp/vasp.xml'),
     ('parsers/vaspoutcar', 'tests/data/parsers/vasp_outcar/OUTCAR'),
     ('parsers/fhi-aims', 'tests/data/parsers/aims.out'),
     ('parsers/cp2k', 'tests/data/parsers/cp2k/si_bulk8.out'),

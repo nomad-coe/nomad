@@ -27,8 +27,6 @@ from tests.utils import assert_log
 def run_normalize(backend: LocalBackend) -> LocalBackend:
     status, _ = backend.status
 
-    print("Im in run_normalize")
-
     assert status == 'ParseSuccess'
 
     for normalizer_class in normalizers:
