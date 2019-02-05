@@ -56,6 +56,11 @@ def client(mockmongo):
     Upload._get_collection().drop()
 
 
+def test_alive(client):
+    rv = client.get('/alive')
+    assert rv.status_code == 200
+
+
 def create_auth_headers(user):
     basic_auth_str = '%s:password' % user.email
     basic_auth_bytes = basic_auth_str.encode('utf-8')
@@ -117,6 +122,7 @@ class TestAdmin:
             config.services.api_base_path,
             config.services.api_secret,
             config.services.admin_password,
+            config.services.upload_url,
             True)
         monkeypatch.setattr(config, 'services', new_config)
         yield None
@@ -236,18 +242,18 @@ class TestUploads:
         rv = client.post(
             '/uploads/%s' % upload_id,
             headers=test_user_auth,
-            data=json.dumps(dict(command='commit', metadata=metadata)),
+            data=json.dumps(dict(operation='publish', metadata=metadata)),
             content_type='application/json')
         assert rv.status_code == 200
         upload = self.assert_upload(rv.data)
-        assert upload['current_process'] == 'commit_upload'
+        assert upload['current_process'] == 'publish_upload'
         assert upload['process_running']
 
         self.assert_upload_does_not_exist(client, upload_id, test_user_auth)
         assert_coe_upload(upload_id, empty=empty_upload, metadata=metadata)
 
     def assert_upload_does_not_exist(self, client, upload_id: str, test_user_auth):
-        # poll until commit/delete completed
+        # poll until publish/delete completed
         while True:
             time.sleep(0.1)
             rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
@@ -378,7 +384,7 @@ class TestUploads:
         rv = client.post(
             '/uploads/%s' % upload['upload_id'],
             headers=test_user_auth,
-            data=json.dumps(dict(command='commit', metadata=dict(_pid=256))),
+            data=json.dumps(dict(operation='publish', metadata=dict(_pid=256))),
             content_type='application/json')
         assert rv.status_code == 401
 
@@ -390,7 +396,7 @@ class TestUploads:
     #     rv = client.post(
     #         '/uploads/%s' % upload['upload_id'],
     #         headers=test_user_auth,
-    #         data=json.dumps(dict(command='commit', metadata=dict(doesnotexist='hi'))),
+    #         data=json.dumps(dict(operation='publish', metadata=dict(doesnotexist='hi'))),
     #         content_type='application/json')
     #     assert rv.status_code == 400
 

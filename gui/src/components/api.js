@@ -215,12 +215,15 @@ class Api {
       .then(response => response.body)
   }
 
-  async commitUpload(uploadId) {
+  async publishUpload(uploadId, withEmbargo) {
     const client = await this.swaggerPromise
-    return client.apis.uploads.exec_upload_command({
+    return client.apis.uploads.exec_upload_operation({
       upload_id: uploadId,
       payload: {
-        command: 'commit'
+        operation: 'publish',
+        metadata: {
+          with_embargo: withEmbargo
+        }
       }
     })
       .catch(this.handleApiError)

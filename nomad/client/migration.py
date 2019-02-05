@@ -25,6 +25,10 @@ from .main import cli
 _migration: NomadCOEMigration = None
 
 
+def _setup():
+    pass
+
+
 @cli.group(help='Migrate data from NOMAD CoE to nomad@FAIRDI')
 @click.option('-h', '--host', default=config.migration_source_db.host, help='The migration repository source db host, default is "%s".' % config.migration_source_db.host)
 @click.option('-p', '--port', default=config.migration_source_db.port, help='The migration repository source db port, default is %d.' % config.migration_source_db.port)
@@ -32,13 +36,16 @@ _migration: NomadCOEMigration = None
 @click.option('-w', '--password', default=config.migration_source_db.password, help='The migration repository source db password.')
 @click.option('-db', '--dbname', default=config.migration_source_db.dbname, help='The migration repository source db name, default is %s.' % config.migration_source_db.dbname)
 def migration(host, port, user, password, dbname):
-    infrastructure.setup_logging()
-    infrastructure.setup_repository_db(
-        readony=True, host=host, port=port, user=user, password=password, dbname=dbname)
-    infrastructure.setup_mongo()
+    global _setup
 
-    global _migration
-    _migration = NomadCOEMigration()
+    def _setup():
+        infrastructure.setup_logging()
+        infrastructure.setup_repository_db(
+            readony=True, host=host, port=port, user=user, password=password, dbname=dbname)
+        infrastructure.setup_mongo()
+
+        global _migration
+        _migration = NomadCOEMigration()
 
 
 @migration.command(help='Create/update the coe repository db migration index')
@@ -46,6 +53,7 @@ def migration(host, port, user, password, dbname):
 @click.option('--with-metadata', help='Extract metadata for each calc and add it to the index.', is_flag=True)
 @click.option('--per-query', default=100, help='We index many objects with one query. Default is 100.')
 def index(drop, with_metadata, per_query):
+    _setup()
     start = time.time()
     indexed_total = 0
     indexed_calcs = 0
@@ -66,10 +74,20 @@ def index(drop, with_metadata, per_query):
 @click.option('-w', '--password', default=config.repository_db.password, help='The migration repository target db password.')
 @click.option('-db', '--dbname', default=config.repository_db.dbname, help='The migration repository target db name, default is %s.' % config.repository_db.dbname)
 def copy_users(**kwargs):
+    _setup()
     _, db = infrastructure.sqlalchemy_repository_db(readonly=False, **kwargs)
     _migration.copy_users(db)
 
 
-@migration.command(help='Upload the given upload locations. Uses the existing index to provide user metadata.')
-def upload():
-    pass
+@migration.command(help='Set the pid auto increment to the given prefix')
+@click.option('--prefix', default=7000000, help='The int to set the pid auto increment counter to')
+def prefix(prefix: int):
+    _setup()
+    _migration.set_new_pid_prefix(prefix)
+
+
+@migration.command(help='Upload the given upload locations. Uses the existing index to provide user metadata')
+@click.argument('paths', nargs=-1)
+def upload(paths: list):
+    _setup()
+    _migration.migrate(*paths)

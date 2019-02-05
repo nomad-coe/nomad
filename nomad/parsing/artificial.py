@@ -23,6 +23,8 @@ import numpy as np
 import random
 from ase.data import chemical_symbols
 import numpy
+import sys
+import time
 
 from nomadcore.local_meta_info import loadJsonFile, InfoKindEl
 import nomad_meta_info
@@ -109,6 +111,48 @@ class TemplateParser(ArtificalParser):
         self.backend.finishedParsingSession('ParseSuccess', [])
         logger.debug('a test log entry')
         return self.backend
+
+
+class ChaosParser(ArtificalParser):
+    """
+    Parser that emulates typical error situations. Files can contain a json string (or
+    object with key `chaos`) with one of the following string values:
+    - exit
+    - deadlock
+    - consume_ram
+    - exception
+    - random
+    """
+    name = 'parsers/chaos'
+
+    def is_mainfile(self, filename: str, open: Callable[[str], IO[Any]]) -> bool:
+        return filename.endswith('chaos.json')
+
+    def run(self, mainfile: str, logger=None) -> LocalBackend:
+        self.init_backend()
+
+        chaos_json = json.load(open(mainfile, 'r'))
+        if isinstance(chaos_json, str):
+            chaos = chaos_json
+        elif isinstance(chaos_json, dict):
+            chaos = chaos_json.get('chaos', None)
+        else:
+            chaos = None
+
+        if chaos == 'random':
+            chaos = random.choice(['exit', 'deadlock', 'consume_ram', 'exception'])
+
+        if chaos == 'exit':
+            sys.exit(1)
+        elif chaos == 'deadlock':
+            while True:
+                time.sleep(1)
+        elif chaos == 'consume_ram':
+            pass
+        elif chaos == 'exception':
+            raise Exception('Some chaos happened, muhuha...')
+
+        raise Exception('Unknown chaos')
 
 
 class GenerateRandomParser(TemplateParser):

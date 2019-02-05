@@ -24,13 +24,6 @@ data:
         proxy_pass_request_headers on;
         proxy_pass http://{{ include "nomad.fullname" . }}-api:{{ .Values.api.port }};
       }
-
-      location {{ .Values.proxy.external.path }}/kibana {
-        rewrite ^{{ .Values.proxy.external.path}}/kibana/(.*)$ /$1 break;
-        proxy_pass http://{{ .Values.kibana.host }}:{{ .Values.kibana.port }};
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-      }
     }
 ---
 apiVersion: apps/v1

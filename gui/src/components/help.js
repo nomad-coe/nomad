@@ -1,8 +1,9 @@
 import React from 'react'
-import { withStyles, Button } from '@material-ui/core'
+import { withStyles, Button, Collapse, Fade } from '@material-ui/core'
 import Markdown from './Markdown'
 import PropTypes, { instanceOf } from 'prop-types'
 import { Cookies, withCookies } from 'react-cookie'
+import classNames from 'classnames'
 
 export const HelpContext = React.createContext()
 
@@ -51,16 +52,97 @@ class HelpProviderComponent extends React.Component {
   }
 }
 
-class HelpComponent extends React.Component {
+export class Help extends React.Component {
+  static propTypes = {
+    children: PropTypes.any,
+    cookie: PropTypes.string.isRequired
+  }
+
+  render() {
+    const { children, cookie } = this.props
+
+    return (
+      <HelpContext.Consumer>{
+        help => (
+          <Collapse in={help.isOpen(cookie)}>
+            <GotIt onGotIt={() => help.gotIt(cookie)}>
+              {children}
+            </GotIt>
+          </Collapse>
+        )
+      }</HelpContext.Consumer>
+    )
+  }
+}
+
+class AgreeComponent extends React.Component {
+  static propTypes = {
+    children: PropTypes.oneOfType([
+      PropTypes.node, PropTypes.arrayOf(PropTypes.node)
+    ]).isRequired,
+    message: PropTypes.string.isRequired,
+    cookie: PropTypes.string.isRequired,
+    cookies: instanceOf(Cookies).isRequired
+  }
+
+  state = {
+    agreed: this.props.cookies.get(this.props.cookie)
+  }
+
+  onAgreeClicked() {
+    this.props.cookies.set(this.props.cookie, true)
+    this.setState({agreed: true})
+  }
+
+  render() {
+    const { children, message } = this.props
+    const { agreed } = this.state
+
+    return (
+      <div>
+        <Collapse in={!agreed}>
+          <GotIt onGotIt={() => this.onAgreeClicked()} color="error">
+            {message}
+          </GotIt>
+        </Collapse>
+        <Fade in={!!agreed}>
+          <div>
+            {children}
+          </div>
+        </Fade>
+      </div>
+    )
+  }
+}
+
+export const Agree = withCookies(AgreeComponent)
+
+class GotItUnstyled extends React.Component {
+  static propTypes = {
+    classes: PropTypes.object.isRequired,
+    onGotIt: PropTypes.func.isRequired,
+    children: PropTypes.node.isRequired,
+    color: PropTypes.oneOf(['primary', 'error']).isRequired
+  }
+
+  static defaultProps = {
+    color: 'primary'
+  }
+
   static styles = theme => ({
     root: {
       marginTop: theme.spacing.unit * 2,
       marginBottom: theme.spacing.unit * 2,
       borderRadius: theme.spacing.unit * 0.5,
-      border: `1px solid ${theme.palette.primary.main}`,
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center'
+    },
+    rootPrimary: {
+      border: `1px solid ${theme.palette.primary.main}`
+    },
+    rootError: {
+      border: `1px solid ${theme.palette.error.main}`
     },
     content: {
       paddingLeft: theme.spacing.unit * 2,
@@ -72,34 +154,27 @@ class HelpComponent extends React.Component {
     }
   })
 
-  static propTypes = {
-    classes: PropTypes.object.isRequired,
-    children: PropTypes.any,
-    cookie: PropTypes.string.isRequired
-  }
-
   render() {
-    const { classes, children, cookie } = this.props
-
+    const { classes, children, onGotIt, color } = this.props
+    const rootClassName = classNames(classes.root, {
+      [classes.rootPrimary]: color === 'primary',
+      [classes.rootError]: color === 'error'
+    })
     return (
-      <HelpContext.Consumer>{
-        help => (
-          help.isOpen(cookie)
-            ? <div className={classes.root}>
-              <div className={classes.content}>
-                <Markdown>
-                  {children}
-                </Markdown>
-              </div>
-              <div className={classes.actions}>
-                <Button color="primary" onClick={() => help.gotIt(cookie)}>Got it</Button>
-              </div>
-            </div> : ''
-        )
-      }</HelpContext.Consumer>
+      <div className={rootClassName}>
+        <div className={classes.content}>
+          <Markdown>
+            {children}
+          </Markdown>
+        </div>
+        <div className={classes.actions}>
+          <Button color="primary" onClick={onGotIt}>Got it</Button>
+        </div>
+      </div>
     )
   }
 }
 
+const GotIt = withStyles(GotItUnstyled.styles)(GotItUnstyled)
+
 export const HelpProvider = withCookies(HelpProviderComponent)
-export const Help = withStyles(HelpComponent.styles)(HelpComponent)

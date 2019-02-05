@@ -18,7 +18,7 @@ import os.path
 from bravado.client import SwaggerClient
 import json
 
-from nomad import infrastructure, coe_repo
+from nomad import infrastructure, coe_repo, datamodel
 
 from nomad.migration import NomadCOEMigration, SourceCalc
 from nomad.infrastructure import repository_db_connection
@@ -95,7 +95,7 @@ def perform_index(migration, has_indexed, with_metadata, **kwargs):
         assert source_calc.mainfile in ['1/template.json', '2/template.json']
         assert source_calc.upload == 'upload'
         has_source_calc = True
-        assert total == 2
+        assert total == 3  # 2 calcs + 1 dataset
 
     assert has_source_calc == has_indexed
 
@@ -138,6 +138,7 @@ def migrate_infra(migration, target_repo, flask_client, worker, monkeysession):
     assert len(indexed) == 2
     # source repo is the infrastructure repo
     migration.copy_users(target_repo)
+    migration.set_new_pid_prefix(target_repo)
 
     # target repo is the infrastructure repo
     def create_client():
@@ -166,6 +167,7 @@ mirgation_test_specs = [
 ]
 
 
+@pytest.mark.filterwarnings("ignore:SAWarning")
 @pytest.mark.parametrize('test, assertions', mirgation_test_specs)
 @pytest.mark.timeout(30)
 def test_migrate(migrate_infra, test, assertions, caplog):
@@ -177,11 +179,42 @@ def test_migrate(migrate_infra, test, assertions, caplog):
     report = reports[0]
     assert report['total_calcs'] == assertions.get('migrated', 0) + assertions.get('new', 0) + assertions.get('failed', 0)
 
+    # assert if new, diffing, migrated calcs where detected correctly
     assert report['total_source_calcs'] == assertions.get('source', 0)
     assert report['migrated_calcs'] == assertions.get('migrated', 0)
     assert report['calcs_with_diffs'] == assertions.get('diffs', 0)
     assert report['new_calcs'] == assertions.get('new', 0)
     assert report['missing_calcs'] == assertions.get('missing', 0)
+
+    # assert if migrated calcs have correct user metadata
+    repo_db = infrastructure.repository_db
+    if assertions.get('migrated', 0) > 0:
+        calc_1 = repo_db.query(coe_repo.Calc).get(1)
+        assert calc_1 is not None
+        metadata = calc_1.to(datamodel.CalcWithMetadata)
+        assert metadata.pid <= 2
+        assert metadata.uploader == 1
+        assert metadata.upload_time.isoformat() == '2019-01-01T12:00:00+00:00'
+        assert len(metadata.datasets) == 1
+        assert metadata.datasets[0]['id'] == 3
+        assert metadata.datasets[0]['name'] == 'test_dataset'
+        assert metadata.datasets[0]['dois'][0] == 'internal_ref'
+        assert metadata.comment == 'label1'
+        assert len(metadata.coauthors) == 1
+        assert metadata.coauthors[0] == 2
+        assert len(metadata.references) == 1
+        assert metadata.references[0] == 'external_ref'
+
+    if assertions.get('migrated', 0) > 1:
+        calc_2 = repo_db.query(coe_repo.Calc).get(2)
+        assert calc_1 is not None
+        metadata = calc_2.to(datamodel.CalcWithMetadata)
+        assert len(metadata.shared_with) == 1
+        assert metadata.shared_with[0] == 1
+
+    # assert pid prefix of new calcs
+    if assertions.get('new', 0) > 0:
+        assert repo_db.query(coe_repo.Calc).get(7000000) is not None
 
     errors = 0
     for record in caplog.get_records(when='call'):

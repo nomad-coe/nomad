@@ -120,29 +120,33 @@ class LoginLogout extends React.Component {
               </DialogContentText>
               {isLoggingIn ? <LinearProgress/> : ''}
               {failure ? <DialogContentText className={classes.errorText} color="error">Wrong username or password!</DialogContentText> : ''}
-              <FormGroup>
-                <TextField
-                  disabled={isLoggingIn}
-                  autoFocus
-                  margin="dense"
-                  id="uaseName"
-                  label="Email Address"
-                  type="email"
-                  fullWidth
-                  value={this.state.userName}
-                  onChange={this.handleChange('userName')}
-                />
-                <TextField
-                  disabled={isLoggingIn}
-                  margin="dense"
-                  id="password"
-                  label="Password"
-                  type="password"
-                  fullWidth
-                  value={this.state.password}
-                  onChange={this.handleChange('password')}
-                />
-              </FormGroup>
+              <form>
+                <FormGroup>
+                  <TextField
+                    autoComplete="username"
+                    disabled={isLoggingIn}
+                    autoFocus
+                    margin="dense"
+                    id="uaseName"
+                    label="Email Address"
+                    type="email"
+                    fullWidth
+                    value={this.state.userName}
+                    onChange={this.handleChange('userName')}
+                  />
+                  <TextField
+                    autoComplete="current-password"
+                    disabled={isLoggingIn}
+                    margin="dense"
+                    id="password"
+                    label="Password"
+                    type="password"
+                    fullWidth
+                    value={this.state.password}
+                    onChange={this.handleChange('password')}
+                  />
+                </FormGroup>
+              </form>
             </DialogContent>
             <DialogActions>
               <Button onClick={() => this.handleLoginDialogClosed(false)} color="primary">

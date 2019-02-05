@@ -48,3 +48,17 @@ INSERT INTO public.user_metadata VALUES (1, 0, 'label1');
 INSERT INTO public.user_metadata VALUES (2, 1, 'label2');
 INSERT INTO public.ownerships VALUES (1, 1);
 INSERT INTO public.ownerships VALUES (2, 2);
+INSERT INTO public.coauthorships VALUES (1, 2);
+INSERT INTO public.shareships VALUES (2, 1);
+
+-- example dataset
+INSERT INTO public.calculations VALUES (NULL, NULL, NULL, NULL, 1, false, 3, NULL);
+INSERT INTO public.calcsets VALUES (3, 1);
+INSERT INTO public.calcsets VALUES (3, 2);
+INSERT INTO public.citations VALUES(1, 'internal_ref', 'INTERNAL');
+INSERT INTO public.metadata_citations VALUES (3, 1);
+INSERT INTO public.metadata VALUES (NULL, NULL, NULL, NULL, NULL, 'test_dataset', '2019-01-01 12:00:00', NULL, NULL, 3, NULL);
+
+-- example ref
+INSERT INTO public.citations VALUES(2, 'external_ref', 'EXTERNAL');
+INSERT INTO public.metadata_citations VALUES (1, 2);

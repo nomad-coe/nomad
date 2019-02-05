@@ -24,8 +24,9 @@ from datetime import datetime
 import shutil
 import os.path
 import json
+import re
 
-from nomad import utils
+from nomad import utils, infrastructure
 from nomad.files import ArchiveBasedStagingUploadFiles, UploadFiles, StagingUploadFiles
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator, FAILURE, SUCCESS
@@ -36,6 +37,13 @@ from tests.test_files import example_file, empty_file
 from tests.test_files import clear_files  # pylint: disable=unused-import
 
 example_files = [empty_file, example_file]
+
+
+def test_send_mail(mails):
+    infrastructure.send_mail('test name', 'test@email.de', 'test message', 'subjct')
+
+    for message in mails.messages:
+        assert re.search(r'test message', message.data.decode('utf-8')) is not None
 
 
 @pytest.fixture(scope='function', autouse=True)
@@ -111,10 +119,13 @@ def assert_processing(upload: Upload):
         assert upload_files.metadata.get(calc.calc_id) is not None
 
 
-# @pytest.mark.timeout(30)
-def test_processing(uploaded_id, worker, test_user, no_warn):
+@pytest.mark.timeout(30)
+def test_processing(uploaded_id, worker, test_user, no_warn, mails):
     upload = run_processing(uploaded_id, test_user)
     assert_processing(upload)
+
+    assert len(mails.messages) == 1
+    assert re.search(r'Processing completed', mails.messages[0].data.decode('utf-8')) is not None
 
 
 @pytest.mark.timeout(30)

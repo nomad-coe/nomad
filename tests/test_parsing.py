@@ -29,8 +29,9 @@ parser_examples = [
     ('parsers/template', 'tests/data/parsers/template.json'),
     ('parsers/exciting', 'tests/data/parsers/exciting/Ag/INFO.OUT'),
     ('parsers/exciting', 'tests/data/parsers/exciting/GW/INFO.OUT'),
-    ('parsers/vasp', 'tests/data/parsers/vasp/vasp.xml'),
-    ('parsers/fhi-aims', 'tests/data/parsers/fhi-aims/aims.out'),
+    ('parsers/vasp', 'tests/data/parsers/vasp.xml'),
+    ('parsers/vaspoutcar', 'tests/data/parsers/vasp_outcar/OUTCAR'),
+    ('parsers/fhi-aims', 'tests/data/parsers/aims.out'),
     ('parsers/cp2k', 'tests/data/parsers/cp2k/si_bulk8.out'),
     ('parsers/crystal', 'tests/data/parsers/crystal/si.out'),
     ('parsers/cpmd', 'tests/data/parsers/cpmd/geo_output.out'),
@@ -281,15 +282,9 @@ def add_calculation_info(backend: LocalBackend) -> LocalBackend:
 
 
 @pytest.mark.parametrize('parser_name, mainfile', parser_examples)
-def test_parser(parser_name, mainfile, caplog):
+def test_parser(parser_name, mainfile):
     parsed_example = run_parser(parser_name, mainfile)
     assert_parser_result(parsed_example)
-
-    logger_received = False
-    for record in caplog.get_records(when='call'):
-        if record.levelname == 'DEBUG':
-            logger_received |= json.loads(record.msg)['event'] == 'received logger'
-    assert logger_received
 
 
 def test_match(no_warn):
