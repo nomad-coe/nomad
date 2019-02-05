@@ -57,8 +57,6 @@ def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
 
 
 def assert_normalized(backend):
-    with open("test_file_name.json", "wt") as file:
-        backend.write_json(file)
     metadata = backend.metadata()['section_repository_info']['section_repository_parserdata']
     count = 0
     for metainfo in backend.metaInfoEnv().infoKindEls():
