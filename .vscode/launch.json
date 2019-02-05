@@ -84,7 +84,7 @@
       "cwd": "${workspaceFolder}",
       "program": "${workspaceFolder}/.pyenv/bin/pytest",
       "args": [
-        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/wien2k-tests/data/parsers/wien2k/ok/ok.scf]"
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/wien2k-tests/data/parsers/wien2k/AlN/AlN_ZB.scf]"
       ]
     },
 
