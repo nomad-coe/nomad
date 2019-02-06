@@ -35,7 +35,7 @@ source .pyenv/bin/activate
 Third, install the development dependencies, including the documentation system
 [sphinx](http://www.sphinx-doc.org/en/master/index.html):
 ```
-pip install -r requirements-dev.txt
+pip install -r requirements.txt
 ```
 
 Forth, generate the documentation:
