@@ -33,6 +33,7 @@ class SystemNormalizer(SystemBasedNormalizer):
 
     @staticmethod
     def atom_label_to_num(atom_label):
+        # Take first three characters and make first letter capitalized.
         atom_label = atom_label[:3].title()
 
         for symbol_length in reversed(range(1, 4)):
@@ -79,7 +80,6 @@ class SystemNormalizer(SystemBasedNormalizer):
 
             # Return w/out symmetry analysis since we don't have a sim_cell.
             return None
-
         self.pbc = section_system.get('configuration_periodic_dimensions', None)
         # If no pbc is found assume there is no periodicity.
         if self.pbc is None:
@@ -87,7 +87,6 @@ class SystemNormalizer(SystemBasedNormalizer):
         # The pbc should be defined as a single-dimensional list.
         if len(np.asarray(self.pbc).shape) == 2:
             self.pbc = self.pbc[0, :]
-
         # Build an ASE atoms object to feed into Matid.
         try:
             self.atoms = ase.Atoms(
@@ -105,6 +104,8 @@ class SystemNormalizer(SystemBasedNormalizer):
         # Classify the material's system type.
         self.system_type_classification()
         # Analyze the symmetry of the material.
+        # TODO: @dansp, should we run the symmetry analysis on materials that have
+        # pbc = false, false, false?
         self.symmetry_analysis()
 
     def system_analysis(self) -> None:

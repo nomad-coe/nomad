@@ -226,6 +226,10 @@ dependencies = [
     PythonGit(
         name='parsers/bigdft',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-big-dft',
+        git_branch='nomad-fair'),
+    PythonGit(
+        name='parsers/wien2k',
+        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-wien2k',
         git_branch='nomad-fair')
 ]
 

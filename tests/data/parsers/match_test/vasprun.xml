@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<modeling>
+ <generator>
+  <i name="program" type="string">vasp </i>
+  <i name="version" type="string">5.3.2  </i>
+  <i name="subversion" type="string">13Sep12 (build Mar 19 2013 10:46:17) complex                          serial </i>
+  <i name="platform" type="string">LinuxIFC </i>
+  <i name="date" type="string">2013 12 05 </i>
