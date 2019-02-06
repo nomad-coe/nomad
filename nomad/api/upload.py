@@ -57,8 +57,8 @@ metadata_model = api.model('MetaData', {
     'references': fields.List(fields.String, descriptions='References allow to link calculations to external source, e.g. URLs.'),
     'coauthors': fields.List(fields.String, description='A list of co-authors given by user_id.'),
     'shared_with': fields.List(fields.String, description='A list of users to share calculations with given by user_id.'),
-    '_upload_time': fields.List(fields.DateTime(dt_format='iso8601'), description='Overrride the upload time.'),
-    '_uploader': fields.List(fields.String, description='Override the uploader with the given user id.')
+    '_upload_time': fields.DateTime(dt_format='iso8601', description='Overrride the upload time.'),
+    '_uploader': fields.String(description='Override the uploader with the given user id.')
 })
 
 calc_metadata_model = api.inherit('CalcMetaData', metadata_model, {
@@ -103,8 +103,8 @@ upload_with_calcs_model = api.inherit('UploadWithPaginatedCalculations', upload_
     }))
 })
 
-upload_command_model = api.model('UploadCommand', {
-    'command': fields.String(description='Currently commit is the only command.'),
+upload_operation_model = api.model('UploadOperation', {
+    'operation': fields.String(description='Currently publish is the only operation.'),
     'metadata': fields.Nested(model=upload_metadata_model, description='Additional upload and calculation meta data. Will replace previously given metadata.')
 })
 
@@ -300,20 +300,20 @@ class UploadResource(Resource):
 
         return upload, 200
 
-    @api.doc('exec_upload_command')
+    @api.doc('exec_upload_operation')
     @api.response(404, 'Upload does not exist or not in staging')
     @api.response(400, 'Operation is not supported or the upload is still/already processed')
-    @api.response(401, 'If the command is not allowed for the current user')
-    @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload commited successfully')
-    @api.expect(upload_command_model)
+    @api.response(401, 'If the operation is not allowed for the current user')
+    @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload published successfully')
+    @api.expect(upload_operation_model)
     @login_really_required
     def post(self, upload_id):
         """
-        Execute an upload command. Available operations: ``commit``
+        Execute an upload operation. Available operations: ``publish``
 
         Unstage accepts further meta data that allows to provide coauthors, comments,
         external references, etc. See the model for details. The fields that start with
-        ``_underscore`` are only available for users with administrative priviledges.
+        ``_underscore`` are only available for users with administrative privileges.
 
         Unstage changes the visibility of the upload. Clients can specify the visibility
         via meta data.
@@ -330,7 +330,7 @@ class UploadResource(Resource):
         if json_data is None:
             json_data = {}
 
-        command = json_data.get('command')
+        operation = json_data.get('operation')
 
         metadata = json_data.get('metadata', {})
         for key in metadata:
@@ -339,20 +339,20 @@ class UploadResource(Resource):
                     abort(401, message='Only admin users can use _metadata_keys.')
                 break
 
-        if command == 'commit':
+        if operation == 'publish':
             if upload.tasks_running:
                 abort(400, message='The upload is not processed yet')
             if upload.tasks_status == FAILURE:
-                abort(400, message='Cannot commit an upload that failed processing')
+                abort(400, message='Cannot publish an upload that failed processing')
             try:
                 upload.metadata = metadata
-                upload.commit_upload()
+                upload.publish_upload()
             except ProcessAlreadyRunning:
                 abort(400, message='The upload is still/already processed')
 
             return upload, 200
 
-        abort(400, message='Unsuported command %s.' % command)
+        abort(400, message='Unsuported operation %s.' % operation)
 
 
 upload_command_model = api.model('UploadCommand', {

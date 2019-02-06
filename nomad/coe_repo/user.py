@@ -30,6 +30,8 @@ class Session(Base):  # type: ignore
 
 
 class LoginException(Exception):
+    """ Exception that is raised if the user could not be logged in despite present
+    credentials. """
     pass
 
 
@@ -166,6 +168,10 @@ def ensure_test_user(email):
 
 
 def admin_user():
+    """
+    Returns the admin user, a special user with `user_id==0`.
+    Its password is part of :mod:`nomad.config`.
+    """
     repo_db = infrastructure.repository_db
     admin = repo_db.query(User).filter_by(user_id=1).first()
     assert admin, 'Admin user does not exist.'

@@ -30,7 +30,7 @@ import logging
 from structlog import wrap_logger
 from contextlib import contextmanager
 
-from nomad import utils, coe_repo, datamodel
+from nomad import utils, coe_repo, datamodel, config, infrastructure
 from nomad.files import PathObject, ArchiveBasedStagingUploadFiles, ExtractError, Calc as FilesCalc
 from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parsers, parser_dict
@@ -93,33 +93,30 @@ class Calc(Proc, datamodel.Calc):
         return self._upload_files
 
     def get_logger(self, **kwargs):
-        logger = super().get_logger()
-        logger = logger.bind(
-            upload_id=self.upload_id, mainfile=self.mainfile, calc_id=self.calc_id, **kwargs)
-
-        return logger
-
-    def get_calc_logger(self, **kwargs):
         """
         Returns a wrapped logger that additionally saves all entries to the calculation
         processing log in the archive.
         """
-        logger = self.get_logger(**kwargs)
+        logger = super().get_logger()
+        logger = logger.bind(
+            upload_id=self.upload_id, mainfile=self.mainfile, calc_id=self.calc_id, **kwargs)
 
-        if self._calc_proc_logwriter is None:
+        if self._calc_proc_logwriter_ctx is None:
             self._calc_proc_logwriter_ctx = self.upload_files.archive_log_file(self.calc_id, 'wt')
             self._calc_proc_logwriter = self._calc_proc_logwriter_ctx.__enter__()  # pylint: disable=E1101
 
         def save_to_calc_log(logger, method_name, event_dict):
-            program = event_dict.get('normalizer', 'parser')
-            event = event_dict.get('event', '')
-            entry = '[%s] %s: %s' % (method_name, program, event)
-            if len(entry) > 120:
-                self._calc_proc_logwriter.write(entry[:120])
-                self._calc_proc_logwriter.write('...')
-            else:
-                self._calc_proc_logwriter.write(entry)
-            self._calc_proc_logwriter.write('\n')
+            if self._calc_proc_logwriter is not None:
+                program = event_dict.get('normalizer', 'parser')
+                event = event_dict.get('event', '')
+                entry = '[%s] %s: %s' % (method_name, program, event)
+                if len(entry) > 120:
+                    self._calc_proc_logwriter.write(entry[:120])
+                    self._calc_proc_logwriter.write('...')
+                else:
+                    self._calc_proc_logwriter.write(entry)
+                self._calc_proc_logwriter.write('\n')
+
             return event_dict
 
         return wrap_logger(logger, processors=[save_to_calc_log])
@@ -149,7 +146,7 @@ class Calc(Proc, datamodel.Calc):
     @task
     def parsing(self):
         context = dict(parser=self.parser, step=self.parser)
-        logger = self.get_calc_logger(**context)
+        logger = self.get_logger(**context)
         parser = parser_dict[self.parser]
 
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
@@ -212,7 +209,7 @@ class Calc(Proc, datamodel.Calc):
         for normalizer in normalizers:
             normalizer_name = normalizer.__name__
             context = dict(normalizer=normalizer_name, step=normalizer_name)
-            logger = self.get_calc_logger(**context)
+            logger = self.get_logger(**context)
 
             with utils.timer(
                     logger, 'normalizer executed', input_size=self.mainfile_file.size):
@@ -358,7 +355,7 @@ class Upload(Chord, datamodel.Upload):
         return True  # do not save the process status on the delete upload
 
     @process
-    def commit_upload(self):
+    def publish_upload(self):
         """
         Moves the upload out of staging to add it to the coe repository. It will
         pack the staging upload files in to public upload files, add entries to the
@@ -367,19 +364,19 @@ class Upload(Chord, datamodel.Upload):
         """
         logger = self.get_logger()
 
-        with utils.lnr(logger, 'commit failed'):
+        with utils.lnr(logger, 'publish failed'):
             with utils.timer(
-                    logger, 'upload added to repository', step='commit',
+                    logger, 'upload added to repository', step='publish',
                     upload_size=self.upload_files.size):
                 coe_repo.Upload.add(self, self.metadata)
 
             with utils.timer(
-                    logger, 'staged upload files packed', step='commit',
+                    logger, 'staged upload files packed', step='publish',
                     upload_size=self.upload_files.size):
                 self.upload_files.pack()
 
             with utils.timer(
-                    logger, 'staged upload deleted', step='commit',
+                    logger, 'staged upload deleted', step='publish',
                     upload_size=self.upload_files.size):
                 self.upload_files.delete()
                 self.delete()
@@ -471,8 +468,23 @@ class Upload(Chord, datamodel.Upload):
 
     @task
     def cleanup(self):
-        # nothing todo with the current processing setup
-        pass
+        # send email about process finish
+        user = self.uploader
+        name = '%s %s' % (user.first_name, user.last_name)
+        message = '\n'.join([
+            'Dear %s,' % name,
+            '',
+            'your data %suploaded %s has completed processing.' % (
+                self.name if self.name else '', self.upload_time.isoformat()),
+            'You can review your data on your upload page: %s' % config.services.upload_url
+        ])
+        try:
+            infrastructure.send_mail(
+                name=name, email=user.email, message=message, subject='Processing completed')
+        except Exception as e:
+            # probably due to email configuration problems
+            # don't fail or present this error to clients
+            self.logger.error('could not send after processing email', exc_info=e)
 
     @property
     def processed_calcs(self):

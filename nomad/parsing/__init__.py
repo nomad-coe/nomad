@@ -44,7 +44,7 @@ The parser definitions are available via the following two variables.
 Parsers are reused for multiple caclulations.
 
 Parsers in NOMAD-coe use a *backend* to create output. There are different NOMAD-coe
-basends. In nomad@FAIR, we only currently only use a single backed. A version of
+basends. In nomad@FAIRDI, we only currently only use a single backed. A version of
 NOMAD-coe's *LocalBackend*. It stores all parser results in memory. The following
 classes provide a interface definition for *backends* as an ABC and a concrete implementation
 based on NOMAD-coe's *python-common* module.
@@ -57,13 +57,15 @@ based on NOMAD-coe's *python-common* module.
 """
 
 from nomad.parsing.backend import AbstractParserBackend, LocalBackend, LegacyLocalBackend, JSONStreamWriter, BadContextURI, WrongContextState
-from nomad.parsing.parser import Parser, LegacyParser
-from nomad.parsing.artificial import TemplateParser, GenerateRandomParser
+from nomad.parsing.parser import Parser, LegacyParser, VaspOutcarParser
+from nomad.parsing.artificial import TemplateParser, GenerateRandomParser, ChaosParser
 from nomad.dependencies import dependencies_dict as dependencies
+
 
 parsers = [
     GenerateRandomParser(),
     TemplateParser(),
+    ChaosParser(),
     LegacyParser(
         python_git=dependencies['parsers/vasp'],
         parser_class_name='vaspparser.VASPRunParserInterface',
@@ -74,6 +76,12 @@ parsers = [
             r'?\s*<generator>'
             r'?\s*<i name="program" type="string">\s*vasp\s*</i>'
             r'?')
+    ),
+    VaspOutcarParser(
+        python_git=dependencies['parsers/vasp'],
+        parser_class_name='vaspparser.VaspOutcarParser',
+        main_file_re=r'^OUTCAR(\.[^\.]*)?$',
+        main_contents_re=(r'^\svasp\..*$')
     ),
     LegacyParser(
         python_git=dependencies['parsers/exciting'],

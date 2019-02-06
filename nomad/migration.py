@@ -31,7 +31,6 @@ from passlib.hash import bcrypt
 from werkzeug.contrib.iterio import IterIO
 import time
 from bravado.exception import HTTPNotFound
-from datetime import datetime
 
 from nomad import utils, config, infrastructure
 from nomad.files import repo_data_to_calc_with_metadata
@@ -80,7 +79,7 @@ class SourceCalc(Document):
                 should be read at a time to optimize for your application.
 
         Returns:
-            yields tuples (:class:`SourceCalc`, #calcs_total)
+            yields tuples (:class:`SourceCalc`, #calcs_total[incl. datasets])
         """
         if drop:
             SourceCalc.drop_collection()
@@ -99,7 +98,6 @@ class SourceCalc(Document):
             source_calcs = []
             for calc in calcs:
                 if calc.calc_metadata is None or calc.calc_metadata.filenames is None:
-                    yield None, total
                     continue  # dataset case
 
                 filenames = json.loads(calc.calc_metadata.filenames.decode('utf-8'))
@@ -181,6 +179,11 @@ class NomadCOEMigration:
                 user_id=0, email='admin', first_name='admin', last_name='admin',
                 password=bcrypt.encrypt(config.services.admin_password, ident='2y'))
             target_db.add(admin)
+        target_db.commit()
+
+    def set_new_pid_prefix(self, target_db, prefix=7000000):
+        target_db.begin()
+        target_db.execute('ALTER SEQUENCE calculations_calc_id_seq RESTART WITH %d' % prefix)
         target_db.commit()
 
     def _validate(self, upload_id: str, calc_id: str, source_calc: dict, logger) -> bool:
@@ -306,7 +309,8 @@ class NomadCOEMigration:
             metadata_dict = dict()
             upload_metadata = dict(calculations=upload_metadata_calcs)
             for source_calc in SourceCalc.objects(upload=source_upload_id):
-                source_metadata = CalcWithMetadata(upload_id=upload.upload_id, **source_calc.metadata)
+                source_calc.metadata.upload_id = upload.upload_id
+                source_metadata = CalcWithMetadata(**source_calc.metadata)
                 source_metadata.mainfile = source_calc.mainfile
                 source_metadata.pid = source_calc.pid
                 source_metadata.__migrated = False
@@ -373,20 +377,28 @@ class NomadCOEMigration:
                         'no match or processed calc for source calc',
                         mainfile=source_calc.mainfile)
 
-            # commit upload
-            admin_keys = ['upload_time, uploader, pid']
+            # publish upload
+            admin_keys = ['upload_time', 'uploader', 'pid']
+            user_metadata_keys = [
+                'upload_time', 'uploader', 'pid', 'references', 'datasets', 'mainfile',
+                'with_embargo', 'comment', 'references', 'coauthors', 'shared_with']
 
             def transform(calcWithMetadata):
                 result = dict()
                 for key, value in calcWithMetadata.items():
-                    if key in admin_keys:
-                        target_key = '_%s' % key
-                    else:
-                        target_key = key
+                    if key in user_metadata_keys:
+                        if key in admin_keys:
+                            target_key = '_%s' % key
+                        else:
+                            target_key = key
 
-                    if isinstance(value, datetime):
-                        value = value.isoformat()
-                    result[target_key] = value
+                        if key in ['pid', 'uploader']:
+                            value = str(value)
+
+                        if key in ['coauthors', 'shared_with']:
+                            value = [str(item) for item in value]
+
+                        result[target_key] = value
                 return result
 
             upload_metadata['calculations'] = [
@@ -394,9 +406,9 @@ class NomadCOEMigration:
                 if calc.__migrated]
 
             if report.total_calcs > report.failed_calcs:
-                upload = self.client.uploads.exec_upload_command(
+                upload = self.client.uploads.exec_upload_operation(
                     upload_id=upload.upload_id,
-                    payload=dict(command='commit', metadata=upload_metadata)
+                    payload=dict(operation='publish', metadata=upload_metadata)
                 ).response().result
 
                 while upload.process_running:
@@ -405,7 +417,7 @@ class NomadCOEMigration:
                             upload_id=upload.upload_id).response().result
                         time.sleep(0.1)
                     except HTTPNotFound:
-                        # the proc upload will be deleted by the commit command
+                        # the proc upload will be deleted by the publish operation
                         break
 
             # report

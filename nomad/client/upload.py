@@ -23,7 +23,7 @@ from nomad.processing import FAILURE, SUCCESS
 from .main import cli, create_client
 
 
-def upload_file(file_path: str, name: str = None, offline: bool = False, commit: bool = False, client=None):
+def upload_file(file_path: str, name: str = None, offline: bool = False, publish: bool = False, client=None):
     """
     Upload a file to nomad.
 
@@ -31,7 +31,7 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, commit:
         file_path: path to the file, absolute or relative to call directory
         name: optional name, default is the file_path's basename
         offline: allows to process data without upload, requires client to be run on the server
-        commit: automatically commit after successful processing
+        publish: automatically publish after successful processing
 
     Returns: The upload_id
     """
@@ -66,8 +66,8 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, commit:
         click.echo('There have been errors:')
         for error in upload.errors:
             click.echo('    %s' % error)
-    elif commit:
-        client.uploads.exec_upload_command(upload_id=upload.upload_id, command='commit').reponse()
+    elif publish:
+        client.uploads.exec_upload_operation(upload_id=upload.upload_id, payload=dict(operation='publish')).response()
 
     return upload.upload_id
 
@@ -84,9 +84,9 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, commit:
     help='Upload files "offline": files will not be uploaded, but processed were they are. '
     'Only works when run on the nomad host.')
 @click.option(
-    '--commit', is_flag=True, default=False,
+    '--publish', is_flag=True, default=False,
     help='Automatically move upload out of the staging area after successful processing')
-def upload(path, name: str, offline: bool, commit: bool):
+def upload(path, name: str, offline: bool, publish: bool):
     utils.configure_logging()
     paths = path
     click.echo('uploading files from %s paths' % len(paths))
@@ -94,7 +94,7 @@ def upload(path, name: str, offline: bool, commit: bool):
         click.echo('uploading %s' % path)
         if os.path.isfile(path):
             name = name if name is not None else os.path.basename(path)
-            upload_file(path, name, offline, commit)
+            upload_file(path, name, offline, publish)
 
         elif os.path.isdir(path):
             for (dirpath, _, filenames) in os.walk(path):
@@ -102,7 +102,7 @@ def upload(path, name: str, offline: bool, commit: bool):
                     if filename.endswith('.zip'):
                         file_path = os.path.abspath(os.path.join(dirpath, filename))
                         name = os.path.basename(file_path)
-                        upload_file(file_path, name, offline, commit)
+                        upload_file(file_path, name, offline, publish)
 
         else:
             click.echo('Unknown path type %s.' % path)

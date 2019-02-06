@@ -52,7 +52,9 @@ These *guidelines* are partially enforced by CI/CD. As part of CI all tests are 
 branches; further we run a *linter*, *pep8* checker, and *mypy* (static type checker). You can
 run ``nomad qa`` to run all these tests and checks before committing.
 
-Only the CI/CD on ``master`` will create new ``*:latest`` images and allow to deploy.
+The CI/CD will run on all refs that do not start with ``dev-``. The CI/CD will
+not release or deploy anything automatically, but it can be manually triggered after the
+build and test stage completed successfully.
 
 
 Git/GitLab
@@ -72,7 +74,7 @@ Terms and Identifiers
 There are is some terminology consistently used in this documentation and the source
 code. Use this terminology for identifiers.
 
-Do not use abbreviations. There are (few) exceptions: `proc` (processing); `exc`, `e` (exception);
+Do not use abbreviations. There are (few) exceptions: ``proc`` (processing); ``exc``, ``e`` (exception);
 ``calc`` (calculation), ``repo`` (repository), ``utils`` (utilities), and ``aux`` (auxiliary).
 Other exceptions are ``f`` for file-like streams and ``i`` for index running variables.
 Btw., the latter is almost never necessary in python.
@@ -88,27 +90,32 @@ Terms:
 - repo entry: Some quantities of a calculation that are used to represent that calculation in the repository.
 - archive data: The normalized data of one calculation in nomad's meta-info-based format.
 
-Ids and Hashes
---------------
+Ids
+---
 
-Throughout nomad, we use different ids and hashes to refer to entities. If something
+Throughout nomad, we use different ids. If something
 is called *id*, it is usually a random uuid and has no semantic connection to the entity
 it identifies. If something is called a *hash* than it is a hash build based on the
 entity it identifies. This means either the whole thing or just some properties of
 said entities.
 
-The most common hashes are the *upload_hash* and *calc_hash*. The upload hash is
-a hash over an uploaded file, as each upload usually refers to an individual user upload
-(usually a .zip file). The calc_hash is a hash over the mainfile path within an upload.
-The combination of upload_hash and calc_hash is used to identify calculations. They
-allow us to id calculations independently of any random ids that are created during
-processing. To create hashes we use :py:func:`nomad.utils.hash`.
+- The most common hashes is the ``calc_hash`` based on mainfile and auxfile contents.
+- The ``upload_id`` is a UUID assigned at upload time and never changed afterwards.
+- The ``mainfile`` is a path within an upload that points to a main code output file.
+  Since, the upload directory structure does not change, this uniquely ids a calc within the upload.
+- The ``calc_id`` (internal calculation id) is a hash over the ``mainfile`` and respective
+  ``upload_id``. Therefore, each `calc_id` ids a calc on its own.
+- We often use pairs of `upload_id/calc_id`, which in many context allow to resolve a calc
+  related file on the filesystem without having to ask a database about it.
+- The ``pid`` or (``coe_calc_id``) is an sequential interger id.
+- Calculation ``handle`` or ``handle_id`` are created based on those ``pid``.
+  To create hashes we use :py:func:`nomad.utils.hash`.
 
 
 NOMAD-coe Dependencies
 ----------------------
 
-We currently clone and install NOMAD-coe dependencies *"outside"* the nomad-FAIR project
+We currently clone and install NOMAD-coe dependencies *"outside"* the nomad-FAIRDI project
 (see :py:mod:`nomad.dependencies`). The installed projects become part of the python
 environment and all dependencies are used like regular pipy packages and python modules.
 
@@ -116,22 +123,24 @@ This allows us to target (e.g. install) individual commits. In theory, these mig
 change during runtime, allowing to update parsers or normalizers on a running nomad.
 More importantly, we can address commit hashes to identify exact parser/normalizer versions.
 On the downside, common functions for all dependencies (e.g. the python-common package,
-or nomad_meta_info) cannot be part of the nomad-FAIR project. In general, it is hard
-to simultaneously develop nomad-FAIR and NOMAD-coe dependencies.
+or nomad_meta_info) cannot be part of the nomad-FAIRDI project. In general, it is hard
+to simultaneously develop nomad-FAIRDI and NOMAD-coe dependencies.
 
-Another approach is to integrate the NOMAD-coe sources with nomad-FAIR. The lacking
+Another approach is to integrate the NOMAD-coe sources with nomad-FAIRDI. The lacking
 availability of individual commit hashes, could be replaces with hashes of source-code
 files.
 
-We use the branch ``nomad-fair`` on all dependencies for nomad-FAIR specific changes.
+We use the branch ``nomad-fair`` on all dependencies for nomad-FAIRDI specific changes.
 
 
 Parsers
 ^^^^^^^
 
-There are several steps to take, to make a NOMOAD-coe parser fit for nomad-FAIR:
+There are several steps to take, to wrap a NOMOAD-coe parser into a nomad@FAIRDI parser:
 
-- Implement ``nomadcore.baseclasses.ParserInterface``. Make sure that the meta-info is
+- Implement ``nomadcore.baseclasses.ParserInterface`` or a class with a similar constructutor
+  and `parse` method interface.
+- Make sure that the meta-info is
   only loaded for each parse instance, not for each parser run.
 - Have a root package that bears the parser name, e.g. ``vaspparser``
 - The important classes (e.g. the parser interface implementation) in the root module
@@ -140,34 +149,22 @@ There are several steps to take, to make a NOMOAD-coe parser fit for nomad-FAIR:
 - Have a test module. Don't go overboard with the test data.
 - Make it a pypi-style package, i.e. create ``setup.py`` script.
 - The package name should be the parser name, e.g. ``vaspparser``.
-- The parser should only use the provided logger
-  (:py:func:`nomadcore.baseclasses.ParserInterface::setup_logger`).
-  This is important for two reasons. First, our logging uses structured logging and
-  all entries are tagged data about parser, upload_ids, mainfiles, etc. This is important
-  to make errors easily reproduceable. Second, we store all logs on a parser run to
-  be available for end users.
-- Keep logging sensible (see logging below). Do not log everything. Do not log massive
-  amounts of data. Keep in mind what are errors (as in the parser cannot perform its job)
-  and what not (the input is faulty).
+- Let the parser logging as it is. We will catch it with a handler installed on the root logger.
+  This handler will redirect all legacy log events and put it though the nomad@FAIRDI
+  treatment described below.
 - Remove all scala code.
 
 
 Normalizers
 ^^^^^^^^^^^
 
-There are several steps to take, to make a NOMOAD-coe normalizer fit for nomad-FAIR:
-
-- If written in scala, re-write it in python.
-- The normalizer should read from the provided backend. In NOMAD-coe normalizers read
-  data from provided serialized dictionaries. Don't do that; we do not want to use such
-  a normalizer specific interface.
-- Do package, module, and logging related changes as you would for a parser.
+We are rewriting all NOMAD-coe normalizers, see :py:mod:`nomad.normalizing`.
 
 
 Logging
 -------
 
-There are three important prerequisites to understand about nomad-FAIR's logging:
+There are three important prerequisites to understand about nomad-FAIRDI's logging:
 
 - All log entries are recorded in a central elastic search database. To make this database
   useful, log entries must be sensible in size, frequence, meaning, level, and logger name.
@@ -177,9 +174,9 @@ There are three important prerequisites to understand about nomad-FAIR's logging
   end all entries are stored as JSON dictionaries with ``@timestamp``, ``level``,
   ``logger_name``, ``event`` plus custom context data. Keep events very short, most
   information goes into the context.
-- We use logging to inform us about the state of nomad-FAIR, not about user
+- We use logging to inform about the state of nomad-FAIRDI, not about user
   behavior, input, data. Do not confuse this when determining the log-level for an event.
-  A user providing an invalid upload file, for example, should never be an error.
+  For example, a user providing an invalid upload file, for example, should never be an error.
 
 Please follow the following rules when logging:
 

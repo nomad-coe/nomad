@@ -58,7 +58,35 @@ spec:
           value: "{{ .Values.postgres.port }}"
         - name: NOMAD_COE_REPO_DB_NAME
           value: "{{ .Values.dbname }}"
+        - name: NOMAD_UPLOAD_URL
+          value: "{{ .Values.uploadurl }}"
+        - name: NOMAD_SMTP_HOST
+          value: "{{ .Values.mail.host }}"
+        - name: NOMAD_SMTP_PORT
+          value: "{{ .Values.mail.port }}"
+        - name: NOMAD_SMTP_USER
+          value: "{{ .Values.mail.user }}"
+        - name: NOMAD_SMTP_PASSWORD
+          value: "{{ .Values.mail.password }}"
+        - name: NOMAD_MAIL_FROM
+          value: "{{ .Values.mail.from }}"
         command: ["python", "-m", "celery", "worker", "-l", "info", "-A", "nomad.processing"]
+        livenessProbe:
+          exec:
+            command:
+            - bash 
+            - -c
+            - NOMAD_LOGSTASH_LEVEL=30 python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          exec:
+            command:
+            - bash 
+            - -c
+            - NOMAD_LOGSTASH_LEVEL=30 python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
+          initialDelaySeconds: 5
+          periodSeconds: 5
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
       imagePullPolicy: always

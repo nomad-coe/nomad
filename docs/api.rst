@@ -7,6 +7,7 @@ Summary
 .. qrefflask:: nomad.api:app
   :undoc-static:
 
+
 API Details
 -----------
 

@@ -1,5 +1,5 @@
-nomad@FAIR
-==========
+nomad@FAIRDI
+============
 
 This project is a prototype for the continuation of the original NOMAD-coe software
 and infrastructure with a simplyfied architecture and consolidated code base.
@@ -12,4 +12,5 @@ and infrastructure with a simplyfied architecture and consolidated code base.
    dev_guidelines
    api
    ops
+   parser_tutorial
    reference

@@ -178,10 +178,7 @@ class Calc(Base, datamodel.Calc):  # type: ignore
         result.coauthors = list(user.user_id for user in self.coauthors)
         result.shared_with = list(user.user_id for user in self.shared_with)
 
-        return {
-            key: value for key, value in result.items()
-            if value is not None and value != []
-        }
+        return result
 
 
 CalcWithMetadata.register_mapping(Calc, Calc.to_calc_with_metadata)

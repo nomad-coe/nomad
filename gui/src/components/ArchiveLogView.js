@@ -1,9 +1,11 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, LinearProgress } from '@material-ui/core'
+import { withStyles, LinearProgress, Fab } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
 import { withApi } from './api'
+import Download from './Download'
+import DownloadIcon from '@material-ui/icons/CloudDownload'
 
 class ArchiveLogView extends React.Component {
   static propTypes = {
@@ -15,7 +17,17 @@ class ArchiveLogView extends React.Component {
   }
 
   static styles = theme => ({
-    root: {}
+    root: {
+      '& pre': {
+        overflowX: 'auto'
+      }
+    },
+    downloadFab: {
+      position: 'absolute',
+      zIndex: 1,
+      top: theme.spacing.unit,
+      right: theme.spacing.unit * 3
+    }
   });
 
   constructor(props) {
@@ -36,15 +48,23 @@ class ArchiveLogView extends React.Component {
   }
 
   render() {
-    const { classes } = this.props
+    const { classes, uploadId, calcId } = this.props
     const { data } = this.state
 
     return (
-      <div className={classes.root}>{
-        data
-          ? <pre>{data}</pre>
-          : <LinearProgress variant="query" />
-      }
+      <div className={classes.root}>
+        <Download
+          classes={{root: classes.downloadFab}} tooltip="download logfile"
+          component={Fab} className={classes.downloadFab} color="primary" size="medium"
+          url={`archive/logs/${uploadId}/${calcId}`} fileName={`${calcId}.log`}
+        >
+          <DownloadIcon />
+        </Download>
+        {
+          data !== null
+            ? <pre>{data || 'empty log'}</pre>
+            : <LinearProgress variant="query" />
+        }
       </div>
     )
   }

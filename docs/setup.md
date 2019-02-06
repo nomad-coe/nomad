@@ -49,11 +49,9 @@ virtualenv -p `which python3` .pyenv
 source .pyenv/bin/activate
 ```
 
-We use *pip* to manage dependencies. There are multiple *requirements* files.
-One of them, called *requirements-dev* contains all tools necessary to develop and build
-nomad.
+We use *pip* to manage required python packages.
 ```
-pip install -r requirements-dev.txt
+pip install -r requirements.txt
 ```
 
 ### Install NOMAD-coe dependencies.
@@ -63,14 +61,7 @@ Those dependencies are managed and configured via python in
 `nomad/dependencies.py`. This gives us more flexibility in interacting with
 different parser, normalizer versions from within the running nomad infrastructure.
 
-We compiled a the *requirements-dep* file with python modules that are commonly
-used in NOMAD-coe. It is optional, but you should install them first, as they sort
-out some issues with installing dependencies in the right order later.
-```
-pip install -r requirements-dep.txt
-```
-
-To actually run the dependencies script:
+To run the dependencies script and install all dependencies into your environment:
 ```
 python nomad/dependencies.py --dev
 ```
@@ -82,7 +73,6 @@ dependency code without having to reinstall after.
 ### Install nomad
 Finally, you can add nomad to the environment itself.
 ```
-pip install -r requirements.txt
 pip install -e .
 ```
 
@@ -272,8 +262,20 @@ You need to have the infrastructure partially running: elastic, rabbitmq.
 The rest should be mocked or provided by the tests. Make sure that you do no run any
 worker, as they will fight for tasks in the queue.
 ```
-cd instrastructure
-docker-compose up -d elastic rabbitmq
-cd ..
-pytest -sv tests
+cd ops/docker-compose
+docker-compose up -d elastic rabbitmq postgres
+cd ../..
+pytest -svx tests
 ```
+
+We use pylint, pycodestyle, and mypy to ensure code quality. To run those:
+```
+nomad qa --skip-test
+```
+
+To run all tests and code qa:
+```
+nomad qa
+```
+
+This mimiques the tests and checks that the GitLab CI/CD will perform.

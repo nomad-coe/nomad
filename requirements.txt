@@ -1,3 +1,18 @@
+# science/physics related
+numpy
+cython>=0.19
+pandas
+h5py
+hjson
+scipy
+ase==3.15.0
+Pint==0.7.2
+matid
+
+# infrastructue related
+pyyaml
+future
+enum34
 requests
 celery[redis]
 elasticsearch-dsl>=6.0.0,<7.0.0
@@ -16,17 +31,32 @@ recommonmark
 m2r
 requests
 click
-sphinx
-sphinxcontrib.httpdomain
-sphinx_rtd_theme
 zipstream
 bagit
 psycopg2-binary
 sqlalchemy
 bcrypt
-matid
-ase==3.15.0
 filelock
 ujson
 bravado
 PyJWT
+jsonschema[format]
+
+# dev/ops related
+setuptools
+sphinx
+sphinxcontrib.httpdomain
+sphinx_rtd_theme
+watchdog
+gitpython
+mypy
+pylint
+pylint_plugin_utils
+astroid==2.0.4  # bug in pylint_mongoengine with latest version
+pylint_mongoengine
+pycodestyle
+pytest==3.10.0  # celery fixtures not compatible with 4.x
+pytest-timeout
+pytest-cov
+rope
+mongomock

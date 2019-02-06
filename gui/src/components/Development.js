@@ -38,6 +38,13 @@ class Development extends React.Component {
           This system pushes logs, events, monitoring data,
           and other application metrics to a central database where it
           can be analysed visually. Here is the [link to Kiaba](${kibanaBase}/)
+
+          ### Test user
+          During development this GUI might not be connected to the actual nomad
+          repository. Therefore, you cannot create a user or login with an existing
+          user. You might use our test users \`sheldon.cooper@nomad-fairdi.tests.de\`
+          or \`leonard.hofstadter@nomad-fairdi.tests.de\` both
+          with password \`password\`.
         `}</Markdown>
       </div>
     )

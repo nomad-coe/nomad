@@ -82,6 +82,12 @@ def handle(error: Exception):
     return response
 
 
+@app.route('/alive')
+def alive():
+    """ Simply endpoint to utilize kubernetes liveness/readiness probing. """
+    return "I am, alive!"
+
+
 def with_logger(func):
     """
     Decorator for endpoint implementations that provides a pre configured logger and

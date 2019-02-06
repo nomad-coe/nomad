@@ -2,10 +2,9 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, FormGroup, FormControlLabel, Checkbox, FormLabel, IconButton, Divider } from '@material-ui/core'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
-import FileSaver from 'file-saver'
-import { apiBase } from '../config'
 import { withApi } from './api'
 import { compose } from 'recompose'
+import Download from './Download'
 
 class RawFiles extends React.Component {
   static propTypes = {
@@ -43,29 +42,8 @@ class RawFiles extends React.Component {
     }
   }
 
-  async onDownloadClicked() {
-    const {uploadId, calcId, api, user} = this.props
-    const files = this.state.selectedFiles
-    const downloadFile = files.length === 1 ? this.label(files[0]) : `${calcId}.zip`
-
-    let url
-    let token
-    if (user) {
-      token = (await api.getSignatureToken()).token
-      url = files.length === 1
-        ? `${apiBase}/raw/${uploadId}/${files[0]}?token=${token}`
-        : `${apiBase}/raw/${uploadId}?files=${encodeURIComponent(files.join(','))}&token=${token}`
-    } else {
-      url = files.length === 1
-        ? `${apiBase}/raw/${uploadId}/${files[0]}`
-        : `${apiBase}/raw/${uploadId}?files=${encodeURIComponent(files.join(','))}`
-    }
-
-    FileSaver.saveAs(url, downloadFile)
-  }
-
   render() {
-    const {classes, files} = this.props
+    const {classes, files, uploadId, calcId} = this.props
     const {selectedFiles} = this.state
     const someSelected = selectedFiles.length > 0
     const allSelected = files.length === selectedFiles.length && someSelected
@@ -85,12 +63,13 @@ class RawFiles extends React.Component {
           <FormLabel className={classes.formLabel}>
             {selectedFiles.length}/{files.length} files selected
           </FormLabel>
-          <IconButton
-            disabled={selectedFiles.length === 0}
-            onClick={() => this.onDownloadClicked()}
+          <Download component={IconButton} disabled={selectedFiles.length === 0}
+            tooltip="download selected files"
+            url={(selectedFiles.length === 1) ? `raw/${uploadId}/${selectedFiles[0]}` : `raw/${uploadId}?files=${encodeURIComponent(selectedFiles.join(','))}`}
+            fileName={selectedFiles.length === 1 ? this.label(selectedFiles[0]) : `${calcId}.zip`}
           >
             <DownloadIcon />
-          </IconButton>
+          </Download>
         </FormGroup>
         <Divider />
         <FormGroup row>

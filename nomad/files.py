@@ -21,7 +21,8 @@ Possible operations on uploads differ based on this state. Staging is used for
 processing, heavily editing, creating hashes, etc. Public is supposed to be a
 almost readonly (beside metadata) storage.
 
-::
+.. code-block:: sh
+
     fs/staging/<upload>/metadata/<calc>.json
                        /raw/**
                        /archive/<calc>.hdf5
@@ -33,6 +34,7 @@ almost readonly (beside metadata) storage.
                       /raw-restricted.bagit.zip
                       /archive-public.hdf5.zip
                       /archive-restricted.hdf5.zip
+
 """
 
 from abc import ABCMeta
@@ -373,6 +375,7 @@ class StagingUploadFiles(UploadFiles):
     def add_rawfiles(self, path: str, move: bool = False, prefix: str = None, force_archive: bool = False) -> None:
         """
         Add rawfiles to the upload. The given file will be copied, moved, or extracted.
+
         Arguments:
             path: Path to a directory, file, or zip file. Zip files will be extracted.
             move: Whether the file should be moved instead of copied. Zips will be extracted and then deleted.

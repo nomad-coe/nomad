@@ -1,11 +1,13 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, LinearProgress } from '@material-ui/core'
+import { withStyles, LinearProgress, Fab } from '@material-ui/core'
 import ReactJson from 'react-json-view'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
 import Markdown from './Markdown'
 import { withApi } from './api'
+import DownloadIcon from '@material-ui/icons/CloudDownload'
+import Download from './Download'
 
 class ArchiveCalcView extends React.Component {
   static propTypes = {
@@ -27,8 +29,13 @@ class ArchiveCalcView extends React.Component {
       overflowY: 'auto'
     },
     data: {
-      flex: '1 1',
-      overflowY: 'auto'
+      flex: '1 1'
+    },
+    downloadFab: {
+      position: 'absolute',
+      zIndex: 1,
+      top: theme.spacing.unit,
+      right: theme.spacing.unit * 3
     }
   });
 
@@ -66,12 +73,19 @@ class ArchiveCalcView extends React.Component {
   }
 
   render() {
-    const { classes } = this.props
+    const { classes, uploadId, calcId } = this.props
     const { data, showMetaInfo, metaInfo } = this.state
     const metaInfoData = metaInfo ? metaInfo[showMetaInfo] : null
 
     return (
       <div className={classes.root}>
+        <Download
+          classes={{root: classes.downloadFab}} tooltip="download calculation archive"
+          component={Fab} className={classes.downloadFab} color="primary" size="medium"
+          url={`archive/${uploadId}/${calcId}`} fileName={`${calcId}.json`}
+        >
+          <DownloadIcon />
+        </Download>
         <div className={classes.data}>{
           data
             ? <ReactJson

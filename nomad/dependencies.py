@@ -20,7 +20,21 @@ Parsers are developed as independent, individual python programs in their own GI
 They are built on a common modules called *python-common*, also in a separate GIT.
 All parsers depend on the *meta-info*, which is also maintained in its own GIT.
 
-Preparing dependencies
+Using dependencies
+------------------
+
+To install all dependencies (clone, install requirements, install the dependency as python package)
+use the following:
+
+.. code-block:: sh
+
+    python -m nomad.dependencies --dev
+
+With the `--dev` parameter *pip* will use `-e` to install. The dependencies are cloned
+into `.dependencies` and installed into your current python environment.
+
+
+Adding dependencies
 ----------------------
 
 To make GIT maintained python modules available, we use:
@@ -29,12 +43,12 @@ To make GIT maintained python modules available, we use:
     :members:
 
 
-Dependencies are configured in
+Dependencies are listed in
 
 .. autodata:: dependencies
 
 
-To install all dependencies use
+Dependencies can be programmatically installed with:
 
 .. autofunction:: prepare
 """
@@ -132,7 +146,10 @@ class PythonGit():
                 new_branch = git.create_head(self.git_branch)
                 git.head.reference = new_branch
 
-            git.submodule_update(init=True)
+            try:
+                git.submodule_update(init=True)
+            except Exception:
+                pass
 
             if os.path.exists('requirements.txt'):
                 _logger.info('install requirements.txt for %s' % self.name)
@@ -165,10 +182,11 @@ dependencies = [
     #     git_url='https://gitlab.mpcdf.mpg.de/NoMaD/NomadRepositoryParser.git',
     #     git_branch='v2.1'
     # ),
-    PythonGit(
-        name='nomad-lab-base',
-        git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-lab-base.git',
-        git_branch='nomad-FAIR'),
+    # not strictly necessary or useful for the common build
+    # PythonGit(
+    #     name='nomad-lab-base',
+    #     git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-lab-base.git',
+    #     git_branch='nomad-FAIR'),
     PythonGit(
         name='nomad-meta-info',
         git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info.git',

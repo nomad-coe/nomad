@@ -24,8 +24,8 @@ WORKDIR /install
 
 # We also install the -dev dependencies, to use this image for test and qa
 RUN pip install --upgrade pip
-COPY requirements.txt requirements.txt
-RUN pip install -r requirements.txt
+COPY rawapi.requirements.txt rawapi.requirements.txt
+RUN pip install -r rawapi.requirements.txt
 
 # do that after the dependencies to use docker's layer caching
 COPY . /install

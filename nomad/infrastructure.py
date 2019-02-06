@@ -14,7 +14,9 @@
 
 """
 This module provides function to establish connections to the database, searchengine, etc.
-infrastructure services.
+infrastructure services. Usually everything is setup at once with :func:`setup`. This
+is run once for each *api* and *worker* process. Individual functions for partial setups
+exist to facilitate testing, :py:mod:`nomad.migration`, aspects of :py:mod:`nomad.client`, etc.
 """
 
 import os.path
@@ -28,6 +30,8 @@ from elasticsearch.exceptions import RequestError
 from elasticsearch_dsl import connections
 from mongoengine import connect
 from passlib.hash import bcrypt
+import smtplib
+from email.mime.text import MIMEText
 
 from nomad import config, utils
 
@@ -56,7 +60,7 @@ def setup():
     setup_logging()
     setup_mongo()
     setup_elastic()
-    setup_repository_db()
+    setup_repository_db(readonly=False)
 
 
 def setup_logging():
@@ -326,3 +330,35 @@ def reset_repository_db_schema(**kwargs):
             sql_file = os.path.join(os.path.dirname(__file__), 'empty_repository_db.sql')
             cur.execute(open(sql_file, 'r').read())
             logger.info('(re-)created repository db postgres schema')
+
+
+def send_mail(name: str, email: str, message: str, subject: str):
+    if config.mail.host is None or config.mail.host.strip() == '':
+        return
+
+    logger = utils.get_logger(__name__)
+    server = smtplib.SMTP(config.mail.host, config.mail.port)
+
+    if config.mail.port == 995:
+        try:
+            server.starttls()
+        except Exception as e:
+            logger.warning('Could use TTS', exc_info=e)
+
+    if config.mail.user is not None:
+        try:
+            server.login("youremailusername", "password")
+        except Exception as e:
+            logger.warning('Could not log into mail server', exc_info=e)
+
+    msg = MIMEText(message)
+    msg['Subject'] = subject
+    msg['From'] = 'nomad@fairdi webmaster'
+    msg['To'] = name
+
+    try:
+        server.send_message(msg, config.mail.from_address, email)
+    except Exception as e:
+        logger.error('Could send email', exc_info=e)
+
+    server.quit()

@@ -1,9 +1,10 @@
 import React from 'react'
-import PropTypes from 'prop-types'
+import PropTypes, { instanceOf } from 'prop-types'
 import Markdown from './Markdown'
 import { withStyles, Paper, IconButton, FormGroup, Checkbox, FormControlLabel, FormLabel,
   LinearProgress,
-  Typography} from '@material-ui/core'
+  Typography,
+  Tooltip} from '@material-ui/core'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import Dropzone from 'react-dropzone'
 import Upload from './Upload'
@@ -12,14 +13,16 @@ import DeleteIcon from '@material-ui/icons/Delete'
 import ReloadIcon from '@material-ui/icons/Cached'
 import CheckIcon from '@material-ui/icons/Check'
 import ConfirmDialog from './ConfirmDialog'
-import { Help } from './help'
+import { Help, Agree } from './help'
 import { withApi } from './api'
+import { withCookies, Cookies } from 'react-cookie'
 
 class Uploads extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
-    raiseError: PropTypes.func.isRequired
+    raiseError: PropTypes.func.isRequired,
+    cookies: instanceOf(Cookies).isRequired
   }
 
   static styles = theme => ({
@@ -72,7 +75,7 @@ class Uploads extends React.Component {
     uploadCommand: 'loading ...',
     selectedUploads: [],
     loading: true,
-    showAccept: false
+    showPublish: false
   }
 
   componentDidMount() {
@@ -107,15 +110,16 @@ class Uploads extends React.Component {
       })
   }
 
-  onAcceptClicked() {
-    this.setState({showAccept: true})
+  onPublishClicked() {
+    this.setState({showPublish: true})
   }
 
-  handleAccept() {
+  onPublish(withEmbargo) {
     this.setState({loading: true})
-    Promise.all(this.state.selectedUploads.map(upload => this.props.api.commitUpload(upload.upload_id)))
+    Promise.all(this.state.selectedUploads
+      .map(upload => this.props.api.publishUpload(upload.upload_id, withEmbargo)))
       .then(() => {
-        this.setState({showAccept: false})
+        this.setState({showPublish: false})
         return this.update()
       })
       .catch(error => {
@@ -124,9 +128,12 @@ class Uploads extends React.Component {
       })
   }
 
-  sortedUploads() {
+  sortedUploads(order) {
+    order = order || -1
     return this.state.uploads.concat()
-      .sort((a, b) => (a.gui_upload_id === b.gui_upload_id) ? 0 : ((a.gui_upload_id < b.gui_upload_id) ? -1 : 1))
+      .sort((a, b) => (a.gui_upload_id === b.gui_upload_id)
+        ? 0
+        : ((a.gui_upload_id < b.gui_upload_id) ? -1 : 1) * order)
   }
 
   handleDoesNotExist(nonExistingUupload) {
@@ -163,7 +170,7 @@ class Uploads extends React.Component {
 
   renderUploads() {
     const { classes } = this.props
-    const { selectedUploads } = this.state
+    const { selectedUploads, showPublish } = this.state
     const uploads = this.state.uploads || []
 
     return (<div>
@@ -175,23 +182,36 @@ class Uploads extends React.Component {
               onChange={(_, checked) => this.onSelectionAllChanged(checked)}
             />
           )} />
-          <IconButton onClick={() => this.update()}><ReloadIcon /></IconButton>
+          <Tooltip title="reload uploads" >
+            <IconButton onClick={() => this.update()}><ReloadIcon /></IconButton>
+          </Tooltip>
           <FormLabel classes={{root: classes.selectLabel}}>
             {`selected uploads ${selectedUploads.length}/${uploads.length}`}
           </FormLabel>
-          <IconButton
-            disabled={selectedUploads.length === 0}
-            onClick={this.onDeleteClicked.bind(this)}
-          >
-            <DeleteIcon />
-          </IconButton>
+          <Tooltip title="delete selected uploads" >
+            <div>
+              <IconButton
+                disabled={selectedUploads.length === 0}
+                onClick={this.onDeleteClicked.bind(this)}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </div>
+          </Tooltip>
 
-          <IconButton disabled={selectedUploads.length === 0} onClick={this.onAcceptClicked.bind(this)}>
-            <CheckIcon />
-          </IconButton>
-          <ConfirmDialog open={this.state.showAccept} onClose={() => this.setState({showAccept: false})} onOk={this.handleAccept.bind(this)}>
-              If you agree the selected uploads will move out of your private staging area into the public nomad.
-          </ConfirmDialog>
+          <Tooltip title="publish selected uploads" >
+            <div>
+              <IconButton disabled={selectedUploads.length === 0} onClick={() => this.onPublishClicked()}>
+                <CheckIcon />
+              </IconButton>
+            </div>
+          </Tooltip>
+
+          <ConfirmDialog
+            open={showPublish}
+            onClose={() => this.setState({showPublish: false})}
+            onPublish={(withEmbargo) => this.onPublish(withEmbargo)}
+          />
 
         </FormGroup>
       </div>
@@ -200,11 +220,15 @@ class Uploads extends React.Component {
           ? (
             <div>
               <Help cookie="uploadList">{`
-                These are all your existing not commiting uploads. You can see how processing
-                progresses and review your uploads before commiting them to the *nomad repository*.
+                These are all your uploads in the *staging area*. You can see the
+                progress on data progresses and review your uploads before publishing
+                them to the *nomad repository*.
 
-                Select uploads to delete or commit them. Click on uploads to see individual
+                Select uploads to delete or publish them. Click on uploads to see individual
                 calculations. Click on calculations to see more details on each calculation.
+
+                When you select and click publish, you will be ask if you want to publish
+                with or without the optional *embargo period*.
               `}</Help>
               {
                 this.sortedUploads().map(upload => (
@@ -224,46 +248,69 @@ class Uploads extends React.Component {
     const { classes } = this.props
     const { uploadCommand } = this.state
 
+    const agreement = `
+      By uploading and downloading data, you agree to the
+      [terms of use](https://www.nomad-coe.eu/the-project/nomad-repository/nomad-repository-terms).
+
+      Note that uploaded files become downloadable. Uploaded data is licensed under the
+      Creative Commons Attribution license ([CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)).
+      You can put an *embargo* on uploaded data. The *embargo period* lasts up to 36 month.
+      If you do not decide on an *embargo* after upload, data will be made public after 48h
+      automatically.
+    `
+
     return (
       <div className={classes.root}>
         <Typography variant="h4">Upload your own data</Typography>
-        <Help cookie="uploadHelp" component={Markdown}>{`
-          You can upload your own data. Have your code output ready in a popular archive
-          format (e.g. \`*.zip\` or \`*.tar.gz\`).  Your upload can
-          comprise the output of multiple runs, even of different codes. Don't worry, nomad
-          will find it, just drop it below:
-        `}</Help>
+        <Agree message={agreement} cookie="agreedToUploadTerms">
+          <Help cookie="uploadHelp" component={Markdown}>{`
+            To upload your own data, please put all relevant files in a
+            \`*.zip\` or \`*.tar.gz\` archive. We encourage you to add all code input and
+            output files, as well as any other auxiliary files that you might have created.
+            You can put data from multiple calculations, using your preferred directory
+            structure, into your archives. Drop your archive file(s) below.
 
-        <Paper className={classes.dropzoneContainer}>
-          <Dropzone
-            accept={['application/zip', 'application/gzip', 'application/bz2']}
-            className={classes.dropzone}
-            activeClassName={classes.dropzoneAccept}
-            rejectClassName={classes.dropzoneReject}
-            onDrop={this.onDrop.bind(this)}
-          >
-            <p>drop files here</p>
-            <UploadIcon style={{fontSize: 36}}/>
-          </Dropzone>
-        </Paper>
+            Uploaded data will not be public immediately. This is called the *staging area*.
+            After uploading and processing, you can decide if you want to make the data public,
+            delete it again, or put an *embargo* on it.
 
-        <Help cookie="uploadCommandHelp">{`
-          Alternatively, you can upload files via the following shell command.
-          Replace \`<local_file>\` with your file. After executing the command,
-          return here and reload.
-        `}</Help>
+            The *embargo* allows you to shared it with selected users, create a DOI
+            for your data, and later publish the data. The *embargo* might last up to
+            36 month before it becomes public automatically. During an *embargo*
+            some meta-data will be available.
+          `}</Help>
 
-        <Markdown>{`
-          \`\`\`
-            ${uploadCommand}
-          \`\`\`
-        `}</Markdown>
+          <Paper className={classes.dropzoneContainer}>
+            <Dropzone
+              accept={['application/zip', 'application/gzip', 'application/bz2']}
+              className={classes.dropzone}
+              activeClassName={classes.dropzoneAccept}
+              rejectClassName={classes.dropzoneReject}
+              onDrop={this.onDrop.bind(this)}
+            >
+              <p>drop files here</p>
+              <UploadIcon style={{fontSize: 36}}/>
+            </Dropzone>
+          </Paper>
 
-        {this.renderUploads()}
-        {this.state.loading ? <LinearProgress/> : ''}
+          <Help cookie="uploadCommandHelp">{`
+            Alternatively, you can upload files via the following shell command.
+            Replace \`<local_file>\` with your archive file. After executing the command,
+            return here and reload (e.g. press the reload button below).
+          `}</Help>
+
+          <Markdown>{`
+            \`\`\`
+              ${uploadCommand}
+            \`\`\`
+          `}</Markdown>
+
+          {this.renderUploads()}
+          {this.state.loading ? <LinearProgress/> : ''}
+        </Agree>
       </div>
     )
   }
 }
 
-export default compose(withApi(true), withStyles(Uploads.styles))(Uploads)
+export default compose(withApi(true), withCookies, withStyles(Uploads.styles))(Uploads)

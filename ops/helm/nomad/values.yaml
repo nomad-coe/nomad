@@ -72,6 +72,9 @@ rabbitmq:
 ## A common name/prefix for all dbs and indices.
 dbname: fairdi_nomad
 
+## The url for the upload page, used in emails to forward the user
+uploadurl: 'http://nomad.fairdi.eu/uploads'
+
 ## Databases that are not run within the cluster.
 #  To run databases in the cluster, use the nomad-full helm chart.
 mongo:
@@ -93,6 +96,13 @@ logstash:
 kibana:
   port: 15601
   host: enc-preprocessing-nomad.esc
+
+mail:
+  host: ''
+  port: 995
+  user: ''
+  password: ''
+  from: 'webmaster@fairdi.eu'
 
 ## Everything concerning the data that is used by the service
 volumes:

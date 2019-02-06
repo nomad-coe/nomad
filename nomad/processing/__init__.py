@@ -34,15 +34,9 @@ This module does not contain the functions to do the actual work. Those are enca
 in :py:mod:`nomad.files`, :py:mod:`nomad.repo`, :py:mod:`nomad.users`,
 :py:mod:`nomad.parsing`, and :py:mod:`nomad.normalizing`.
 
-Processing app
---------------
-
 Refer to http://www.celeryproject.org/ to learn about celery apps and workers. The
 nomad celery app uses a *RabbitMQ* broker. We use celery to distribute processing load
 in a cluster.
-
-Processing
-----------
 
 We use an abstract processing base class and document (:class:`Proc`) that provides all
 necessary functions to execute a process as a series of potentially distributed steps. In
@@ -55,11 +49,6 @@ We also don't have to deal with celery result backends and synchronizing with th
 
 There are two concrete processes :class:`Upload` and :class: `Calc`. Instances of both
 classes do represent the processing state, as well as the respective entity.
-
-.. figure:: proc.png
-   :alt: nomad processing workflow
-
-   This is the basic workflow of a nomad upload processing.
 
 .. autoclass:: nomad.processing.data.Upload
     :members:

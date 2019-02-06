@@ -68,6 +68,47 @@ def sanitize_logevent(event: str) -> str:
     return sanitized_event
 
 
+@contextmanager
+def legacy_logger(logger):
+    """ Context manager that makes the given logger the logger for legacy log entries. """
+    LogstashHandler.legacy_logger = logger
+    try:
+        yield
+    finally:
+        LogstashHandler.legacy_logger = None
+
+
+class LogstashHandler(logstash.TCPLogstashHandler):
+    """
+    A log handler that emits records to logstash. It also filters logs for being
+    structlog entries. All other entries are diverted to a global `legacy_logger`.
+    This legacy logger is supposed to be a structlog logger that turns legacy
+    records into structlog entries with reasonable binds depending on the current
+    execution context (e.g. parsing/normalizing, etc.). If no legacy logger is
+    set, they get emitted as usual (e.g. non nomad logs, celery, dbs, etc.)
+    """
+
+    legacy_logger = None
+
+    def filter(self, record):
+        if super().filter(record):
+            is_structlog = record.msg.startswith('{') and record.msg.endswith('}')
+            if is_structlog:
+                return True
+            else:
+                if LogstashHandler.legacy_logger is None:
+                    return True
+                else:
+                    LogstashHandler.legacy_logger.log(
+                        record.levelno, record.msg, args=record.args,
+                        exc_info=record.exc_info, stack_info=record.stack_info,
+                        legacy_logger=record.name)
+
+                    return False
+
+        return False
+
+
 class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
 
     def format(self, record):
@@ -120,10 +161,10 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
 def add_logstash_handler(logger):
     logstash_handler = next((
         handler for handler in logger.handlers
-        if isinstance(handler, logstash.TCPLogstashHandler)), None)
+        if isinstance(handler, LogstashHandler)), None)
 
     if logstash_handler is None:
-        logstash_handler = logstash.TCPLogstashHandler(
+        logstash_handler = LogstashHandler(
             config.logstash.host,
             config.logstash.tcp_port, version=1)
         logstash_handler.formatter = LogstashFormatter(tags=['nomad', config.service, config.release])
@@ -156,7 +197,7 @@ def configure_logging():
     logging.basicConfig(level=logging.DEBUG)
     root = logging.getLogger()
     for handler in root.handlers:
-        if not isinstance(handler, logstash.TCPLogstashHandler):
+        if not isinstance(handler, LogstashHandler):
             handler.setLevel(config.console_log_level)
 
     # configure logstash
