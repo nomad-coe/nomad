@@ -10,6 +10,7 @@ from threading import Lock, Thread
 import asyncore
 import time
 import pytest
+import elasticsearch.exceptions
 
 from nomad import config, infrastructure
 
@@ -109,9 +110,17 @@ def mockmongo(monkeypatch):
     connection.drop_database('test_db')
 
 
-@pytest.fixture(scope='session')
-def elastic():
+@pytest.fixture(scope='function')
+def elastic(monkeysession):
+    monkeysession.setattr('nomad.config.elastic', config.elastic._replace(index_name='test_nomad_fairdi_calcs'))
     infrastructure.setup_elastic()
+    try:
+        from nomad.search import Entry
+        Entry._index.delete()
+        Entry.init(index=config.elastic.index_name)
+    except elasticsearch.exceptions.NotFoundError:
+        pass
+
     assert infrastructure.elastic_client is not None
 
 
@@ -121,7 +130,7 @@ def create_repository_db(monkeysession=None, **kwargs):
     A generator that sets up and tears down a test db and monkeypatches it to the
     respective global infrastructure variables.
     """
-    db_args = dict(dbname='test_nomad_fair_repo_db')
+    db_args = dict(dbname='test_nomad_fairdi_repo_db')
     db_args.update(**kwargs)
 
     old_config = config.repository_db
@@ -174,7 +183,7 @@ def repository_db(monkeysession):
 
 @pytest.fixture(scope='function')
 def expandable_repo_db(monkeysession, repository_db):
-    with create_repository_db(monkeysession, dbname='test_nomad_fair_expandable_repo_db', exists=False) as db:
+    with create_repository_db(monkeysession, dbname='test_nomad_fairdi_expandable_repo_db', exists=False) as db:
         yield db
 
 
@@ -256,6 +265,7 @@ class SMTPServerThread(Thread):
         super().__init__()
         self.messages = messages
         self.host_port = None
+        self.smtp = None
 
     def run(self):
         _messages = self.messages
@@ -273,7 +283,8 @@ class SMTPServerThread(Thread):
             pass
 
     def close(self):
-        self.smtp.close()
+        if self.smtp is not None:
+            self.smtp.close()
 
 
 class SMTPServerFixture:

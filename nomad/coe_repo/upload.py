@@ -149,13 +149,14 @@ class Upload(Base, datamodel.Upload):  # type: ignore
             repo_db.add(coe_upload)
 
             # add calculations and metadata
-            has_calcs = False
+            calcs = []
             for calc in upload.calcs:
-                has_calcs = True
-                coe_upload._add_calculation(calc.to(CalcWithMetadata), upload_metadata.get(calc.mainfile))
+                calcs.append(
+                    coe_upload._add_calculation(
+                        calc.to(CalcWithMetadata), upload_metadata.get(calc.mainfile)))
 
             # commit
-            if has_calcs:
+            if len(calcs) > 0:
                 # empty upload case
                 repo_db.commit()
                 result = coe_upload.coe_upload_id
@@ -171,7 +172,7 @@ class Upload(Base, datamodel.Upload):  # type: ignore
 
         return result
 
-    def _add_calculation(self, calc: CalcWithMetadata, calc_metadata: dict) -> None:
+    def _add_calculation(self, calc: CalcWithMetadata, calc_metadata: dict) -> Calc:
         repo_db = infrastructure.repository_db
 
         # table based properties
@@ -265,6 +266,8 @@ class Upload(Base, datamodel.Upload):  # type: ignore
         # references
         for reference in calc_metadata.get('references', []):
             self._add_citation(coe_calc, reference, 'EXTERNAL')
+
+        return coe_calc
 
     def _add_citation(self, coe_calc: Calc, value: str, kind: str) -> None:
         repo_db = infrastructure.repository_db
