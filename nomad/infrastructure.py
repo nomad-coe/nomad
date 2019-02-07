@@ -89,7 +89,8 @@ def setup_elastic():
 
     try:
         from nomad.search import Entry
-        Entry.init()
+        Entry.init(index=config.elastic.index_name)
+        logger.info('initialized elastic index', index_name=config.elastic.index_name)
     except RequestError as e:
         if e.status_code == 400 and 'resource_already_exists_exception' in e.error:
             pass  # happens if two services try this at the same time
@@ -202,10 +203,10 @@ def reset():
     try:
         if not elastic_client:
             setup_elastic()
-        elastic_client.indices.delete(index=config.elastic.index_name)
-        from nomad.search import Entry
-        Entry.init()
-        logger.info('elastic index resetted')
+            elastic_client.indices.delete(index=config.elastic.index_name)
+            from nomad.search import Entry
+            Entry.init(index=config.elastic.index_name)
+            logger.info('elastic index resetted')
     except Exception as e:
         logger.error('exception resetting elastic', exc_info=e)
 

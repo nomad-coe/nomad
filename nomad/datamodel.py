@@ -61,19 +61,19 @@ class Entity():
     A common base class for all nomad entities. It provides the functions necessary
     to apply transformations.
     """
-    mappings: Dict[Type['Entity'], Callable[['Entity'], 'Entity']] = dict()
+    mappings: Dict = dict()
 
     @classmethod
     def register_mapping(
-            cls, from_type: Type['Entity'], mapping: Callable[['Entity'], 'Entity']):
+            cls, from_type: Type[T], mapping: Callable[[T], 'Entity']):
         """
         Register a mapping from instances of another calc representation to instances of
-        :class:`CalcWithMetadata`.
+        this calc representation.
 
         Arguments:
             from_type: The source calc type of the mapping.
             mapping: The mapping itself as a callable that takes a source object of the
-                source calc type and returns an instance of :class:`CalcWithMetadata`.
+                source calc type and returns an instance of target calc type.
         """
         cls.mappings[from_type] = mapping
 

@@ -12,8 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import nomad.search  # pylint: disable=W0611
+from nomad import datamodel, search
 
 
-def test_helloworld(elastic):
+def test_init_mapping(elastic):
     pass
+
+
+def test_index_calc(elastic):
+    calc = datamodel.CalcWithMetadata(upload_id='test_upload', calc_id='test_calc')
+    calc.to(search.Entry).save(op_type='create')

@@ -109,7 +109,7 @@ class Calc(InnerDoc):
 
 class Entry(Document, datamodel.Entity):
     class Index:
-        name = config.elastic.coe_repo_calcs_index_name
+        name = config.elastic.index_name
 
     calc_id = Keyword()
     upload_id = Keyword()
@@ -119,6 +119,11 @@ class Entry(Document, datamodel.Entity):
         super().__init__(meta=dict(id=calc_id))
         self.calc_id = calc_id
         self.upload_id = upload_id
+
+    @classmethod
+    def from_calc_with_metadata(cls, source: datamodel.CalcWithMetadata) -> 'Entry':
+        target = Entry(source.upload_id, source.calc_id)
+        return target
 
     def persist(self, **kwargs):
         """
@@ -183,3 +188,6 @@ class Entry(Document, datamodel.Entity):
             data['upload_time'] = data['upload_time'].isoformat()
 
         return {key: value for key, value in data.items() if value is not None}
+
+
+Entry.register_mapping(datamodel.CalcWithMetadata, Entry.from_calc_with_metadata)
