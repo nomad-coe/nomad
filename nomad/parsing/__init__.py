@@ -116,7 +116,7 @@ parsers = [
     LegacyParser(
         python_git=dependencies['parsers/crystal'],
         parser_class_name='crystalparser.CrystalParser',
-        main_file_re=r'^.*\.out$',  # This looks for files with .out
+        main_file_re=r'^.*\.out$',
         main_contents_re=(
             r'\s*[\*]{22,}'  # Looks for '*' 22 times or more in a row.
             r'\s*\*\s{20,}\*'  # Looks for a '*' sandwhiched by whitespace.
@@ -124,37 +124,40 @@ parsers = [
             r'\s*\*\s{10,}public \: (?P<minorVersion>[\d\.]+) \- .*\*'
         )
     ),
+    # The main contents regex of CPMD was causing a catostrophic backtracking issue
+    # when searching through the first 500 bytes of main files. We decided
+    # to use only a portion of the regex to avoid that issue.
     LegacyParser(
         python_git=dependencies['parsers/cpmd'],
         parser_class_name='cpmdparser.CPMDParser',
-        main_file_re=r'^.*\.out$',  # This looks for files with .out
+        main_file_re=r'^.*\.out$',
         main_contents_re=(
-            r'\s*    \*\*\*\*\*\*  \*\*\*\*\*\*    \*\*\*\*  \*\*\*\*  \*\*\*\*\*\*\s*'
-            r'\s*   \*\*\*\*\*\*\*  \*\*\*\*\*\*\*   \*\*\*\*\*\*\*\*\*\*  \*\*\*\*\*\*\*\s*'
-            r'\s*  \*\*\*       \*\*   \*\*\*  \*\* \*\*\*\* \*\*  \*\*   \*\*\*\s*'
-            r'\s*  \*\*        \*\*   \*\*\*  \*\*  \*\*  \*\*  \*\*    \*\*\s*'
-            r'\s*  \*\*        \*\*\*\*\*\*\*   \*\*      \*\*  \*\*    \*\*\s*'
-            r'\s*  \*\*\*       \*\*\*\*\*\*    \*\*      \*\*  \*\*   \*\*\*\s*'
-            r'\s*   \*\*\*\*\*\*\*  \*\*        \*\*      \*\*  \*\*\*\*\*\*\*\s*'
-            r'\s*    \*\*\*\*\*\*  \*\*        \*\*      \*\*  \*\*\*\*\*\*\s*'
+            # r'\s+\*\*\*\*\*\*  \*\*\*\*\*\*    \*\*\*\*  \*\*\*\*  \*\*\*\*\*\*\s*'
+            # r'\s+\*\*\*\*\*\*\*  \*\*\*\*\*\*\*   \*\*\*\*\*\*\*\*\*\*  \*\*\*\*\*\*\*\s+'
+            r'\*\*\*       \*\*   \*\*\*  \*\* \*\*\*\* \*\*  \*\*   \*\*\*'
+            # r'\s+\*\*        \*\*   \*\*\*  \*\*  \*\*  \*\*  \*\*    \*\*\s+'
+            # r'\s+\*\*        \*\*\*\*\*\*\*   \*\*      \*\*  \*\*    \*\*\s+'
+            # r'\s+\*\*\*       \*\*\*\*\*\*    \*\*      \*\*  \*\*   \*\*\*\s+'
+            # r'\s+\*\*\*\*\*\*\*  \*\*        \*\*      \*\*  \*\*\*\*\*\*\*\s+'
+            # r'\s+\*\*\*\*\*\*  \*\*        \*\*      \*\*  \*\*\*\*\*\*\s+'
         )
     ),
     LegacyParser(
         python_git=dependencies['parsers/nwchem'],
         parser_class_name='nwchemparser.NWChemParser',
-        main_file_re=r'^.*\.out$',  # This looks for files with .out
+        main_file_re=r'^.*\.out$',
         main_contents_re=(
-            r'              Northwest Computational Chemistry Package \(NWChem\) \d+\.\d+'
-            r' ------------------------------------------------------'
-            r'      Environmental Molecular Sciences Laboratory'
-            r'           Pacific Northwest National Laboratory'
-            r'                    Richland, WA 99352'
+            r'\s+Northwest Computational Chemistry Package \(NWChem\) \d+\.\d+'
+            r'\s+------------------------------------------------------'
+            r'\s+Environmental Molecular Sciences Laboratory'
+            r'\s+Pacific Northwest National Laboratory'
+            r'\s+Richland, WA 99352'
         )
     ),
     LegacyParser(
         python_git=dependencies['parsers/bigdft'],
         parser_class_name='bigdftparser.BigDFTParser',
-        main_file_re=r'^.*\.out$',  # This looks for files with .out
+        main_file_re=r'^.*\.out$',
         main_contents_re=(
             r'__________________________________ A fast and precise DFT wavelet code\s*'
             r'\|     \|     \|     \|     \|     \|\s*'
@@ -182,8 +185,15 @@ parsers = [
             r'\|     \|     \|     \|     \|     \|   DDDDDD       F         TTTT\s*'
             r'\|_____\|_____\|_____\|_____\|_____\|______                    www\.bigdft\.org'
         )
+    ),
+    LegacyParser(
+        python_git=dependencies['parsers/wien2k'],
+        parser_class_name='wien2kparser.Wien2kParser',
+        main_file_re=r'^.*\.scf$',  # This looks for files with .scf
+        main_contents_re=r':ITE[0-9]+:  1. ITERATION'
     )
 ]
+
 """ Instanciation and constructor based config of all parsers. """
 
 parser_dict = {parser.name: parser for parser in parsers}  # type: ignore

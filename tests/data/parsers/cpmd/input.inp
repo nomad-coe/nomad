@@ -10,7 +10,7 @@ geometry optimization
  CONVERGENCE GEOMETRY
   1.0d-4
 &END
-  
+
 &SYSTEM
  SYMMETRY
   1
@@ -19,11 +19,11 @@ geometry optimization
   8.00 1.0 1.0  0.0  0.0  0.0
  CUTOFF
   70.0
-&END 
+&END
 
 &DFT
  FUNCTIONAL LDA
-&END  
+&END
 
 &ATOMS
 *H_MT_LDA.psp
@@ -31,5 +31,5 @@ geometry optimization
   2
  4.371   4.000   4.000
  3.629   4.000   4.000
-&END  
+&END
 
