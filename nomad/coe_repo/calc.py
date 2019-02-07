@@ -149,6 +149,9 @@ class Calc(Base, datamodel.Calc):  # type: ignore
                 result.setdefault('atom_labels', []).append(topic.topic)
             elif topic.cid == base.topic_crystal_system:
                 result.crystal_system = topic.topic
+            elif topic.cid in [1996, 1994, 703, 702, 701, 100]:
+                # user/author, restriction, formulas?, another category
+                pass 
             else:
                 raise KeyError('topic cid %s.' % str(topic.cid))
 
