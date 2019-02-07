@@ -167,7 +167,7 @@ def add_logstash_handler(logger):
         logstash_handler = LogstashHandler(
             config.logstash.host,
             config.logstash.tcp_port, version=1)
-        logstash_handler.formatter = LogstashFormatter(tags=['nomad', config.service, config.release])
+        logstash_handler.formatter = LogstashFormatter(tags=['nomad', config.release])
         logstash_handler.setLevel(config.logstash.level)
         logger.addHandler(logstash_handler)
 
