@@ -25,7 +25,6 @@ import glob
 
 from nomad import utils
 from nomad.parsing.backend import LocalBackend
-from nomad.dependencies import PythonGit
 
 
 class Parser(metaclass=ABCMeta):
@@ -34,7 +33,7 @@ class Parser(metaclass=ABCMeta):
     and extracted files. Further, allows to run the parser on those 'main files'.
 
     Arguments:
-        python_git: The :class:`PythonGit` that describes the parser code.
+        name: The name of the parser
         parser_class_name: Full qualified name of the main parser class. We assume it have one
                            parameter for the backend.
         main_file_re: A regexp that matches main file paths that this parser can handle.
@@ -63,8 +62,8 @@ class Parser(metaclass=ABCMeta):
 
 class LegacyParser(Parser):
     """
-    A parser implementation for legacy NOMAD-coe parsers. Uses a
-    :class:`nomad.dependencies.PythonGit` to specify the old parser repository. It
+    A parser implementation for legacy NOMAD-coe parsers. It assumes that parsers
+    are installed to the python environment. It
     uses regular expessions to match parsers to mainfiles.
 
     Arguments:
@@ -76,11 +75,10 @@ class LegacyParser(Parser):
             potential mainfile.
     """
     def __init__(
-            self, python_git: PythonGit, parser_class_name: str, main_file_re: str,
+            self, name: str, parser_class_name: str, main_file_re: str,
             main_contents_re: str) -> None:
 
-        self.name = python_git.name
-        self.python_git = python_git
+        self.name = name
         self.parser_class_name = parser_class_name
         self._main_file_re = re.compile(main_file_re)
         self._main_contents_re = re.compile(main_contents_re)
@@ -134,7 +132,7 @@ class LegacyParser(Parser):
         return backend
 
     def __repr__(self):
-        return self.python_git.__repr__()
+        return self.name
 
 
 class VaspOutcarParser(LegacyParser):

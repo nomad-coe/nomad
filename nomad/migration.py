@@ -57,7 +57,7 @@ class SourceCalc(Document):
     sites = ['/data/nomad/extracted/', '/nomad/repository/extracted/']
     prefixes = [extracted_prefix] + sites
 
-    meta = dict(indexes=['pid', 'upload'])
+    meta = dict(indexes=['upload'])
 
     _dataset_cache: dict = {}
 

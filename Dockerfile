@@ -37,12 +37,10 @@ RUN pip install -r requirements.txt
 
 # Use docker build --build-args CACHEBUST=2 to not cache this (e.g. when you know deps have changed)
 ARG CACHEBUST=1
-COPY nomad/dependencies.py /install/nomad/dependencies.py
-COPY nomad/config.py /install/nomad/config.py
-RUN python nomad/dependencies.py
 
-# do that after the dependencies to use docker's layer caching
+# Install all NOMAD-CoE dependencies and nomad@FAIRDI
 COPY . /install
+RUN sh dependencies.sh
 RUN pip install .
 WORKDIR /install/docs
 RUN make html
@@ -62,7 +60,7 @@ WORKDIR /app
 # transfer installed packages from dependency stage
 COPY --from=build /usr/local/lib/python3.6/site-packages /usr/local/lib/python3.6/site-packages
 # copy the meta-info, since it files are loaded via relative paths. TODO that should change.
-COPY --from=build /install/.dependencies/nomad-meta-info /app/.dependencies/nomad-meta-info
+COPY --from=build /install/dependencies/nomad-meta-info /app/dependencies/nomad-meta-info
 # copy the documentation, its files will be served by the API
 COPY --from=build /install/docs/.build /app/docs/.build
 # copy the nomad command
