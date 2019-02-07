@@ -88,13 +88,14 @@ class SourceCalc(Document):
         last_source_calc = SourceCalc.objects().order_by('-pid').first()
         start_pid = last_source_calc.pid if last_source_calc is not None else 0
         source_query = source.query(Calc)
-        total = source_query.count()
+        total = source_query.count() - SourceCalc.objects.count()
 
         while True:
-            calcs = source_query \
-                .filter(Calc.coe_calc_id > start_pid) \
-                .order_by(Calc.coe_calc_id) \
-                .limit(per_query)
+            with utils.timer(logger, 'query source db'):
+                calcs = source_query \
+                    .filter(Calc.coe_calc_id > start_pid) \
+                    .order_by(Calc.coe_calc_id) \
+                    .limit(per_query)
 
             source_calcs = []
             for calc in calcs:
@@ -123,7 +124,8 @@ class SourceCalc(Document):
             if len(source_calcs) == 0:
                 break
             else:
-                SourceCalc.objects.insert(source_calcs)
+                with utils.timer(logger, 'write index'):
+                    SourceCalc.objects.insert(source_calcs)
 
 
 class NomadCOEMigration:
