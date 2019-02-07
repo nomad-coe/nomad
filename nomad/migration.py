@@ -32,11 +32,43 @@ from werkzeug.contrib.iterio import IterIO
 import time
 from bravado.exception import HTTPNotFound
 
-from nomad import utils, config, infrastructure
+from nomad import utils, config, infrastructure, datamodel
 from nomad.files import repo_data_to_calc_with_metadata
 from nomad.coe_repo import User, Calc
 from nomad.datamodel import CalcWithMetadata
 from nomad.processing import FAILURE, SUCCESS
+
+
+class UploadApiCalcMetadata(dict, datamodel.Entity):
+    pass
+
+    @classmethod
+    def from_calc_with_metadata(cls, source: CalcWithMetadata) -> 'UploadApiCalcMetadata':
+        """
+        Transform CalcWithMetadata read from repo to metadata dict suitable
+        for the API upload endpoint
+        """
+        def transform_dataset(dataset):
+            result = dict(**dataset)
+            result.update(dois=[doi['value'] for doi in dataset['dois']])
+            return result
+
+        return UploadApiCalcMetadata(
+            _upload_time=source.upload_time,
+            _uploader=str(source.uploader['user_id']),
+            _pid=str(source.pid),
+            references=list(ref['value'] for ref in source.get('references', [])),
+            datasets=[transform_dataset(ds) for ds in source.get('datasets', [])],
+            mainfile=source.mainfile,
+            with_embargo=source.with_embargo,
+            comment=source.comment,
+            coauthors=list(str(user['user_id']) for user in source.get('coauthors', [])),
+            shared_with=list(str(user['user_id']) for user in source.get('shared_with', []))
+        )
+
+
+UploadApiCalcMetadata.register_mapping(
+    CalcWithMetadata, UploadApiCalcMetadata.from_calc_with_metadata)
 
 
 class SourceCalc(Document):
@@ -212,7 +244,7 @@ class NomadCOEMigration:
         target_calc = repo_data_to_calc_with_metadata(upload_id, calc_id, repo_calc)
 
         for key, target_value in target_calc.items():
-            if key in ['calc_id', 'upload_id', 'files']:
+            if key in ['calc_id', 'upload_id', 'files', 'calc_hash']:
                 continue
 
             source_value = source_calc.get(key, None)
@@ -389,31 +421,8 @@ class NomadCOEMigration:
                         mainfile=source_calc.mainfile)
 
             # publish upload
-            admin_keys = ['upload_time', 'uploader', 'pid']
-            user_metadata_keys = [
-                'upload_time', 'uploader', 'pid', 'references', 'datasets', 'mainfile',
-                'with_embargo', 'comment', 'references', 'coauthors', 'shared_with']
-
-            def transform(calcWithMetadata):
-                result = dict()
-                for key, value in calcWithMetadata.items():
-                    if key in user_metadata_keys:
-                        if key in admin_keys:
-                            target_key = '_%s' % key
-                        else:
-                            target_key = key
-
-                        if key in ['pid', 'uploader']:
-                            value = str(value)
-
-                        if key in ['coauthors', 'shared_with']:
-                            value = [str(item) for item in value]
-
-                        result[target_key] = value
-                return result
-
             upload_metadata['calculations'] = [
-                transform(calc) for calc in upload_metadata['calculations']
+                calc.to(UploadApiCalcMetadata) for calc in upload_metadata['calculations']
                 if calc.__migrated]
 
             if report.total_calcs > report.failed_calcs:

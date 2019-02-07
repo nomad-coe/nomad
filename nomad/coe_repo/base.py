@@ -139,3 +139,6 @@ class Citation(Base):  # type: ignore
     citation_id = Column(Integer, primary_key=True)
     value = Column(String)
     kind = Column(Enum('INTERNAL', 'EXTERNAL', name='citation_kind_enum'))
+
+    def to_dict(self) -> dict:
+        return dict(id=self.citation_id, value=self.value)

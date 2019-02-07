@@ -85,10 +85,10 @@ class CalcData(InnerDoc):
 
 
 class Calc(InnerDoc):
-    main_file_uri = Keyword()
-    secondary_file_uris = Keyword()
+    # main_file_uri = Keyword()
+    # secondary_file_uris = Keyword()
     repository_filepaths = Keyword(index=False)
-    repository_archive_gid = Keyword()
+    # repository_archive_gid = Keyword()
     repository_calc_id = Long(store=True)
     repository_calc_pid = Keyword(store=True)
     upload_id = Long()
@@ -115,14 +115,36 @@ class Entry(Document, datamodel.Entity):
     upload_id = Keyword()
     section_repository_info = Nested(Calc)
 
-    def __init__(self, upload_id: str, calc_id: str) -> None:
-        super().__init__(meta=dict(id=calc_id))
+    def __init__(self, upload_id: str, calc_id: str, **kwargs) -> None:
+        super().__init__(meta=dict(id=calc_id), **kwargs)
         self.calc_id = calc_id
         self.upload_id = upload_id
 
     @classmethod
     def from_calc_with_metadata(cls, source: datamodel.CalcWithMetadata) -> 'Entry':
-        target = Entry(source.upload_id, source.calc_id)
+        target = Entry(
+            upload_id=source.upload_id,
+            calc_id=source.calc_id,
+            section_repository_info=Calc(
+                section_repository_parserdata=CalcData(
+                    repository_checksum=source.calc_hash,
+                    repository_chemical_formula=source.chemical_composition,
+                    # repository_parser_id
+                    repository_atomic_elements=source.atom_labels,
+                    repository_atomic_elements_count=len(source.atom_labels),
+                    repository_basis_set_type=source.basis_set_type,
+                    repository_code_version=source.program_version,
+                    repository_crystal_system=source.crystal_system,
+                    repository_program_name=source.program_name,
+                    repository_spacegroup_nr=source.space_group_number,
+                    repository_system_type=source.system_type,
+                    repository_xc_treatment=source.XC_functional_name
+                ),
+                section_repository_userdata=UserData(
+
+                )
+            )
+        )
         return target
 
     def persist(self, **kwargs):
@@ -190,4 +212,4 @@ class Entry(Document, datamodel.Entity):
         return {key: value for key, value in data.items() if value is not None}
 
 
-Entry.register_mapping(datamodel.CalcWithMetadata, Entry.from_calc_with_metadata)
+# Entry.register_mapping(datamodel.CalcWithMetadata, Entry.from_calc_with_metadata)

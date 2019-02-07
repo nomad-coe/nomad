@@ -148,6 +148,14 @@ class User(Base):  # type: ignore
         except jwt.InvalidTokenError:
             raise LoginException('Invalid token')
 
+    def to_dict(self) -> dict:
+        return dict(
+            user_id=self.user_id,
+            first_name=self.first_name,
+            last_name=self.last_name,
+            email=self.email,
+            affiliation=self.affiliation)
+
 
 def ensure_test_user(email):
     """

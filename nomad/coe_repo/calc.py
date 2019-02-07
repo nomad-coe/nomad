@@ -136,6 +136,8 @@ class Calc(Base, datamodel.Calc):  # type: ignore
             upload_id=self.upload.upload_id if self.upload else None,
             calc_id=self.calc_id)
 
+        result.calc_hash = self.checksum
+
         for topic in [tag.topic for tag in self.tags]:
             if topic.cid == base.topic_code:
                 result.program_name = topic.topic
@@ -151,7 +153,7 @@ class Calc(Base, datamodel.Calc):  # type: ignore
                 result.crystal_system = topic.topic
             elif topic.cid in [1996, 1994, 703, 702, 701, 100]:
                 # user/author, restriction, formulas?, another category
-                pass 
+                pass
             else:
                 raise KeyError('topic cid %s.' % str(topic.cid))
 
@@ -170,16 +172,18 @@ class Calc(Base, datamodel.Calc):  # type: ignore
             datasets.extend(parents)
 
         result.pid = self.pid
-        result.uploader = self.uploader.user_id
+        result.uploader = self.uploader.to_dict()
         result.upload_time = self.calc_metadata.added
         result.datasets = list(
             dict(id=ds.id, dois=ds.dois, name=ds.name)
             for ds in datasets)
         result.with_embargo = self.with_embargo
         result.comment = self.comment
-        result.references = self.references
-        result.coauthors = list(user.user_id for user in self.coauthors)
-        result.shared_with = list(user.user_id for user in self.shared_with)
+        result.references = list(
+            citation.to_dict() for citation in self.citations
+            if citation.kind == 'EXTERNAL')
+        result.coauthors = list(user.to_dict() for user in self.coauthors)
+        result.shared_with = list(user.to_dict() for user in self.shared_with)
 
         return result
 
@@ -197,7 +201,9 @@ class DataSet:
 
     @property
     def dois(self) -> List[Citation]:
-        return list(citation.value for citation in self._dataset_calc.citations if citation.kind == 'INTERNAL')
+        return list(
+            citation.to_dict() for citation in self._dataset_calc.citations
+            if citation.kind == 'INTERNAL')
 
     @property
     def name(self):

@@ -103,7 +103,7 @@ def perform_index(migration, has_indexed, with_metadata, **kwargs):
     assert test_calc is not None
 
     if with_metadata:
-        assert test_calc.metadata['uploader'] == 1
+        assert test_calc.metadata['uploader']['user_id'] == 1
         assert test_calc.metadata['comment'] == 'label1'
 
 
@@ -193,24 +193,24 @@ def test_migrate(migrate_infra, test, assertions, caplog):
         assert calc_1 is not None
         metadata = calc_1.to(datamodel.CalcWithMetadata)
         assert metadata.pid <= 2
-        assert metadata.uploader == 1
+        assert metadata.uploader['user_id'] == 1
         assert metadata.upload_time.isoformat() == '2019-01-01T12:00:00+00:00'
         assert len(metadata.datasets) == 1
         assert metadata.datasets[0]['id'] == 3
         assert metadata.datasets[0]['name'] == 'test_dataset'
-        assert metadata.datasets[0]['dois'][0] == 'internal_ref'
+        assert metadata.datasets[0]['dois'][0]['value'] == 'internal_ref'
         assert metadata.comment == 'label1'
         assert len(metadata.coauthors) == 1
-        assert metadata.coauthors[0] == 2
+        assert metadata.coauthors[0]['user_id'] == 2
         assert len(metadata.references) == 1
-        assert metadata.references[0] == 'external_ref'
+        assert metadata.references[0]['value'] == 'external_ref'
 
     if assertions.get('migrated', 0) > 1:
         calc_2 = repo_db.query(coe_repo.Calc).get(2)
         assert calc_1 is not None
         metadata = calc_2.to(datamodel.CalcWithMetadata)
         assert len(metadata.shared_with) == 1
-        assert metadata.shared_with[0] == 1
+        assert metadata.shared_with[0]['user_id'] == 1
 
     # assert pid prefix of new calcs
     if assertions.get('new', 0) > 0:

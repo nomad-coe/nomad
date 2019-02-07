@@ -179,7 +179,7 @@ class Upload(Base, datamodel.Upload):  # type: ignore
         coe_calc_id = calc_metadata.get('_pid', None)
         coe_calc = Calc(
             coe_calc_id=coe_calc_id,
-            checksum=calc_metadata.get('_checksum', calc.calc_id),
+            checksum=calc_metadata.get('_checksum', calc.calc_hash),
             upload=self)
         repo_db.add(coe_calc)
 

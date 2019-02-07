@@ -718,6 +718,7 @@ def repo_data_to_calc_with_metadata(upload_id, calc_id, repo_data):
 
     target = datamodel.CalcWithMetadata(upload_id=upload_id)
     target.calc_id = calc_id
+    target.calc_hash = calc_data['repository_checksum']
     target.basis_set_type = calc_data['repository_basis_set_type']
     target.crystal_system = calc_data['repository_crystal_system']
     target.XC_functional_name = calc_data['repository_xc_treatment']
