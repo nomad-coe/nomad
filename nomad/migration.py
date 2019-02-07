@@ -81,6 +81,7 @@ class SourceCalc(Document):
         Returns:
             yields tuples (:class:`SourceCalc`, #calcs_total[incl. datasets])
         """
+        logger = utils.get_logger(__name__)
         if drop:
             SourceCalc.drop_collection()
 
@@ -97,24 +98,27 @@ class SourceCalc(Document):
 
             source_calcs = []
             for calc in calcs:
-                if calc.calc_metadata is None or calc.calc_metadata.filenames is None:
-                    continue  # dataset case
+                try:
+                    if calc.calc_metadata is None or calc.calc_metadata.filenames is None:
+                        continue  # dataset case
 
-                filenames = json.loads(calc.calc_metadata.filenames.decode('utf-8'))
-                filename = filenames[0]
-                for prefix in SourceCalc.prefixes:
-                    filename = filename.replace(prefix, '')
-                segments = [file.strip('\\') for file in filename.split('/')]
+                    filenames = json.loads(calc.calc_metadata.filenames.decode('utf-8'))
+                    filename = filenames[0]
+                    for prefix in SourceCalc.prefixes:
+                        filename = filename.replace(prefix, '')
+                    segments = [file.strip('\\') for file in filename.split('/')]
 
-                source_calc = SourceCalc(pid=calc.pid)
-                source_calc.upload = segments[0]
-                source_calc.mainfile = os.path.join(*segments[1:])
-                if with_metadata:
-                    source_calc.metadata = calc.to(CalcWithMetadata)
-                source_calcs.append(source_calc)
-                start_pid = source_calc.pid
+                    source_calc = SourceCalc(pid=calc.pid)
+                    source_calc.upload = segments[0]
+                    source_calc.mainfile = os.path.join(*segments[1:])
+                    if with_metadata:
+                        source_calc.metadata = calc.to(CalcWithMetadata)
+                    source_calcs.append(source_calc)
+                    start_pid = source_calc.pid
 
-                yield source_calc, total
+                    yield source_calc, total
+                except Exception as e:
+                    logger.error('could not index', pid=calc.pid, exc_info=e)
 
             if len(source_calcs) == 0:
                 break
