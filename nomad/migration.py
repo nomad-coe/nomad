@@ -91,20 +91,25 @@ class SourceCalc(Document):
         total = source_query.count() - SourceCalc.objects.count()
 
         while True:
-            with utils.timer(logger, 'query source db'):
-                calcs = source_query \
-                    .filter(Calc.coe_calc_id > start_pid) \
-                    .order_by(Calc.coe_calc_id) \
-                    .limit(per_query)
+            query_timer = utils.timer(logger, 'query source db')
+            query_timer.__enter__()  # pylint: disable=E1101
+            calcs = source_query \
+                .filter(Calc.coe_calc_id > start_pid) \
+                .order_by(Calc.coe_calc_id) \
+                .limit(per_query)
 
             source_calcs = []
             for calc in calcs:
+                query_timer.__exit__(None, None, None)  # pylint: disable=E1101
                 try:
                     if calc.calc_metadata is None or calc.calc_metadata.filenames is None:
                         continue  # dataset case
 
                     filenames = json.loads(calc.calc_metadata.filenames.decode('utf-8'))
                     filename = filenames[0]
+                    if len(filenames) == 1 and (filename.endswith('.tgz') or filename.endswith('.zip')):
+                        continue  # also a dataset, some datasets have a downloadable archive
+
                     for prefix in SourceCalc.prefixes:
                         filename = filename.replace(prefix, '')
                     segments = [file.strip('\\') for file in filename.split('/')]
