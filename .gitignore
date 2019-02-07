@@ -5,7 +5,6 @@ __pycache__
 *.pyc
 *.egg-info/
 /data/
-.dependencies/
 .volumes/
 .pytest_cache/
 .coverage

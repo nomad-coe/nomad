@@ -14,9 +14,8 @@
 
 """
 The *parsing* module is an interface for the existing NOMAD-coe parsers.
-The parser code is used via :mod:`nomad.dependencies`. This module redefines
-some of the old NOMAD-coe python-common functionality to create a more coherent
-interface to the parsers.
+This module redefines some of the old NOMAD-coe python-common functionality to create a
+more coherent interface to the parsers.
 
 Assumption about parsers
 ------------------------
@@ -59,7 +58,6 @@ based on NOMAD-coe's *python-common* module.
 from nomad.parsing.backend import AbstractParserBackend, LocalBackend, LegacyLocalBackend, JSONStreamWriter, BadContextURI, WrongContextState
 from nomad.parsing.parser import Parser, LegacyParser, VaspOutcarParser
 from nomad.parsing.artificial import TemplateParser, GenerateRandomParser, ChaosParser
-from nomad.dependencies import dependencies_dict as dependencies
 
 
 parsers = [
@@ -67,7 +65,7 @@ parsers = [
     TemplateParser(),
     ChaosParser(),
     LegacyParser(
-        python_git=dependencies['parsers/vasp'],
+        name='parsers/vasp',
         parser_class_name='vaspparser.VASPRunParserInterface',
         main_file_re=r'^.*\.xml(\.[^\.]*)?$',
         main_contents_re=(
@@ -78,13 +76,13 @@ parsers = [
             r'?')
     ),
     VaspOutcarParser(
-        python_git=dependencies['parsers/vasp'],
+        name='parsers/vasp',
         parser_class_name='vaspparser.VaspOutcarParser',
         main_file_re=r'^OUTCAR(\.[^\.]*)?$',
         main_contents_re=(r'^\svasp\..*$')
     ),
     LegacyParser(
-        python_git=dependencies['parsers/exciting'],
+        name='parsers/exciting',
         parser_class_name='excitingparser.ExcitingParser',
         main_file_re=r'^.*/INFO\.OUT?',
         main_contents_re=(
@@ -93,7 +91,7 @@ parsers = [
             r'\s*\|\s*version hash id:\s*\S*\s*=')
     ),
     LegacyParser(
-        python_git=dependencies['parsers/fhi-aims'],
+        name='parsers/fhi-aims',
         parser_class_name='fhiaimsparser.FHIaimsParser',
         main_file_re=r'^.*\.out$',
         main_contents_re=(
@@ -102,7 +100,7 @@ parsers = [
             r'?\s*Version')
     ),
     LegacyParser(
-        python_git=dependencies['parsers/cp2k'],
+        name='parsers/cp2k',
         parser_class_name='cp2kparser.CP2KParser',
         main_file_re=r'^.*\.out$',  # This looks for files with .out
         main_contents_re=(
@@ -114,7 +112,7 @@ parsers = [
         )
     ),
     LegacyParser(
-        python_git=dependencies['parsers/crystal'],
+        name='parsers/crystal',
         parser_class_name='crystalparser.CrystalParser',
         main_file_re=r'^.*\.out$',
         main_contents_re=(
@@ -128,7 +126,7 @@ parsers = [
     # when searching through the first 500 bytes of main files. We decided
     # to use only a portion of the regex to avoid that issue.
     LegacyParser(
-        python_git=dependencies['parsers/cpmd'],
+        name='parsers/cpmd',
         parser_class_name='cpmdparser.CPMDParser',
         main_file_re=r'^.*\.out$',
         main_contents_re=(
@@ -143,7 +141,7 @@ parsers = [
         )
     ),
     LegacyParser(
-        python_git=dependencies['parsers/nwchem'],
+        name='parsers/nwchem',
         parser_class_name='nwchemparser.NWChemParser',
         main_file_re=r'^.*\.out$',
         main_contents_re=(
@@ -155,7 +153,7 @@ parsers = [
         )
     ),
     LegacyParser(
-        python_git=dependencies['parsers/bigdft'],
+        name='parsers/bigdft',
         parser_class_name='bigdftparser.BigDFTParser',
         main_file_re=r'^.*\.out$',
         main_contents_re=(
@@ -187,7 +185,7 @@ parsers = [
         )
     ),
     LegacyParser(
-        python_git=dependencies['parsers/wien2k'],
+        name='parsers/wien2k',
         parser_class_name='wien2kparser.Wien2kParser',
         main_file_re=r'^.*\.scf$',  # This looks for files with .scf
         main_contents_re=r':ITE[0-9]+:  1. ITERATION'

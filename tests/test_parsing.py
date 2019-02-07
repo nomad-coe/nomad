@@ -247,7 +247,7 @@ def run_parser(parser_name, mainfile):
 @pytest.fixture
 def parsed_vasp_example() -> LocalBackend:
     return run_parser(
-        'parsers/vasp', '.dependencies/parsers/vasp/test/examples/xml/perovskite.xml')
+        'parsers/vasp', 'dependencies/parsers/vasp/test/examples/xml/perovskite.xml')
 
 
 @pytest.fixture

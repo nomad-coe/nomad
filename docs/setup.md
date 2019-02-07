@@ -63,10 +63,10 @@ different parser, normalizer versions from within the running nomad infrastructu
 
 To run the dependencies script and install all dependencies into your environment:
 ```
-python nomad/dependencies.py --dev
+./dependencies.sh
 ```
 This will checkout the proper version of the respective NOMAD-coe modules, install
-further requirements, and install the modules themselves. The `--dev` option will install
+further requirements, and install the modules themselves. The `-e` option will install
 the NOMAD-coe dependencies with symbolic links allowing you to change the downloaded
 dependency code without having to reinstall after.
 

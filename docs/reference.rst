@@ -11,11 +11,6 @@ nomad.infrastructure
 .. automodule:: nomad.infrastructure
     :members:
 
-nomad.dependencies
-------------------
-.. automodule:: nomad.dependencies
-    :members:
-
 nomad.datamodel
 ---------------
 .. automodule:: nomad.datamodel

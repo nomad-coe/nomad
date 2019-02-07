@@ -315,21 +315,16 @@ You a writing a python program. You know what to do.
 
 ## Added the parser to nomad@FAIRDI
 
-First, you add your project to the list of :py:mod:`nomad.dependencies`:
-```python
-dependencies = [
-    PythonGit(
-    name='parsers/vasp',
-    git_url='https://gitlab.mpcdf.mpg.de/nomad-lab/parser-vasp.git',
-    git_branch='nomad-fair'),
-]
+First, you add your parser to the dependencies. Put it into the dependencies folder, then:
+```
+git submodule add dependencies/parsers/vasp
 ```
 
 Second, you add your parser to the list of parsers :py:mod:`nomad.parsing`:
 ```python
 parsers = [
     LegacyParser(
-        python_git=dependencies['parsers/vasp'],
+        name='parsers/vasp',
         parser_class_name='vaspparser.VaspOutcarParser',
         main_file_re=r'^OUTCAR(\.[^\.]*)?$',
         main_contents_re=(r'^\svasp\..*$')
