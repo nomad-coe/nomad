@@ -65,6 +65,8 @@ COPY --from=build /usr/local/lib/python3.6/site-packages /usr/local/lib/python3.
 COPY --from=build /install/.dependencies/nomad-meta-info /app/.dependencies/nomad-meta-info
 # copy the documentation, its files will be served by the API
 COPY --from=build /install/docs/.build /app/docs/.build
+# copy the nomad command
+COPY --from=build /usr/local/bin/nomad /usr/local/bin/nomad
 
 RUN mkdir -p /app/.volumes/fs
 RUN useradd -ms /bin/bash nomad

@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Swagger/bravado based python client library for the API and various usefull shell commands.
-"""
+import nomad.client
 
-from . import local, migration, misc, upload
-from .main import cli, create_client
+if __name__ == '__main__':
+    nomad.client.cli()  # pylint: disable=E1120
