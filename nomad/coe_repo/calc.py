@@ -41,7 +41,7 @@ class Calc(Base, datamodel.Calc):  # type: ignore
     owners = relationship('User', secondary=ownership, lazy='joined')
     coauthors = relationship('User', secondary=co_authorship, lazy='joined')
     shared_with = relationship('User', secondary=shareship, lazy='joined')
-    tags = relationship('Tag', lazy='joined')
+    tags = relationship('Tag', lazy='subquery', join_depth=1)
     spacegroup = relationship('Spacegroup', lazy='joined', uselist=False)
 
     parents = relationship(

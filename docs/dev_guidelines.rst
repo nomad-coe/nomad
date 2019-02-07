@@ -115,16 +115,14 @@ said entities.
 NOMAD-coe Dependencies
 ----------------------
 
-We currently clone and install NOMAD-coe dependencies *"outside"* the nomad-FAIRDI project
-(see :py:mod:`nomad.dependencies`). The installed projects become part of the python
-environment and all dependencies are used like regular pipy packages and python modules.
+We currently use git submodules to maintain references to NOMAD-coe dependencies.
+All dependencies are python packages and installed via pip to your python environement.
 
-This allows us to target (e.g. install) individual commits. In theory, these might
-change during runtime, allowing to update parsers or normalizers on a running nomad.
-More importantly, we can address commit hashes to identify exact parser/normalizer versions.
-On the downside, common functions for all dependencies (e.g. the python-common package,
-or nomad_meta_info) cannot be part of the nomad-FAIRDI project. In general, it is hard
-to simultaneously develop nomad-FAIRDI and NOMAD-coe dependencies.
+This allows us to target (e.g. install) individual commits. More importantly, we can address c
+ommit hashes to identify exact parser/normalizer versions. On the downside, common functions
+for all dependencies (e.g. the python-common package, or nomad_meta_info) cannot be part
+of the nomad-FAIRDI project. In general, it is hard to simultaneously develop nomad-FAIRDI
+and NOMAD-coe dependencies.
 
 Another approach is to integrate the NOMAD-coe sources with nomad-FAIRDI. The lacking
 availability of individual commit hashes, could be replaces with hashes of source-code

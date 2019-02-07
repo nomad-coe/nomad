@@ -57,7 +57,7 @@ class SourceCalc(Document):
     sites = ['/data/nomad/extracted/', '/nomad/repository/extracted/']
     prefixes = [extracted_prefix] + sites
 
-    meta = dict(indexes=['pid', 'upload'])
+    meta = dict(indexes=['upload'])
 
     _dataset_cache: dict = {}
 
@@ -81,15 +81,18 @@ class SourceCalc(Document):
         Returns:
             yields tuples (:class:`SourceCalc`, #calcs_total[incl. datasets])
         """
+        logger = utils.get_logger(__name__)
         if drop:
             SourceCalc.drop_collection()
 
         last_source_calc = SourceCalc.objects().order_by('-pid').first()
         start_pid = last_source_calc.pid if last_source_calc is not None else 0
         source_query = source.query(Calc)
-        total = source_query.count()
+        total = source_query.count() - SourceCalc.objects.count()
 
         while True:
+            query_timer = utils.timer(logger, 'query source db')
+            query_timer.__enter__()  # pylint: disable=E1101
             calcs = source_query \
                 .filter(Calc.coe_calc_id > start_pid) \
                 .order_by(Calc.coe_calc_id) \
@@ -97,29 +100,37 @@ class SourceCalc(Document):
 
             source_calcs = []
             for calc in calcs:
-                if calc.calc_metadata is None or calc.calc_metadata.filenames is None:
-                    continue  # dataset case
+                query_timer.__exit__(None, None, None)  # pylint: disable=E1101
+                try:
+                    if calc.calc_metadata is None or calc.calc_metadata.filenames is None:
+                        continue  # dataset case
 
-                filenames = json.loads(calc.calc_metadata.filenames.decode('utf-8'))
-                filename = filenames[0]
-                for prefix in SourceCalc.prefixes:
-                    filename = filename.replace(prefix, '')
-                segments = [file.strip('\\') for file in filename.split('/')]
+                    filenames = json.loads(calc.calc_metadata.filenames.decode('utf-8'))
+                    filename = filenames[0]
+                    if len(filenames) == 1 and (filename.endswith('.tgz') or filename.endswith('.zip')):
+                        continue  # also a dataset, some datasets have a downloadable archive
 
-                source_calc = SourceCalc(pid=calc.pid)
-                source_calc.upload = segments[0]
-                source_calc.mainfile = os.path.join(*segments[1:])
-                if with_metadata:
-                    source_calc.metadata = calc.to(CalcWithMetadata)
-                source_calcs.append(source_calc)
-                start_pid = source_calc.pid
+                    for prefix in SourceCalc.prefixes:
+                        filename = filename.replace(prefix, '')
+                    segments = [file.strip('\\') for file in filename.split('/')]
 
-                yield source_calc, total
+                    source_calc = SourceCalc(pid=calc.pid)
+                    source_calc.upload = segments[0]
+                    source_calc.mainfile = os.path.join(*segments[1:])
+                    if with_metadata:
+                        source_calc.metadata = calc.to(CalcWithMetadata)
+                    source_calcs.append(source_calc)
+                    start_pid = source_calc.pid
+
+                    yield source_calc, total
+                except Exception as e:
+                    logger.error('could not index', pid=calc.pid, exc_info=e)
 
             if len(source_calcs) == 0:
                 break
             else:
-                SourceCalc.objects.insert(source_calcs)
+                with utils.timer(logger, 'write index'):
+                    SourceCalc.objects.insert(source_calcs)
 
 
 class NomadCOEMigration:

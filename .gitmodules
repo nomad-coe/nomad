@@ -1,9 +1,44 @@
-[submodule "submodules/python-common"]
-	path = submodules/python-common
-	url = git@gitlab.mpcdf.mpg.de:nomad-lab/python-common.git
-[submodule "submodules/meta-info"]
-	path = submodules/nomad-meta-info
-	url = git@gitlab.mpcdf.mpg.de:nomad-lab/nomad-meta-info.git
-[submodule "submodules/parsers/vasp"]
-	path = submodules/parsers/vasp
-	url = git@gitlab.mpcdf.mpg.de:nomad-lab/parser-vasp.git
+[submodule "dependencies/nomad-meta-info"]
+	path = dependencies/nomad-meta-info
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info.git
+	branch = nomad-fair
+[submodule "dependencies/python_common"]
+	path = dependencies/python_common
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/python-common.git
+	branch = nomad-fair
+[submodule "dependencies/parsers/vasp"]
+	path = dependencies/parsers/vasp
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-vasp.git
+	branch = nomad-fair
+[submodule "dependencies/parsers/exciting"]
+	path = dependencies/parsers/exciting
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-exciting.git
+	branch = nomad-fair
+[submodule "dependencies/parsers/fhi-aims"]
+	path = dependencies/parsers/fhi-aims
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-fhi-aims.git
+	branch = nomad-fair
+[submodule "dependencies/parsers/cp2k"]
+	path = dependencies/parsers/cp2k
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-cp2k
+	branch = nomad-fair
+[submodule "dependencies/parsers/crystal"]
+	path = dependencies/parsers/crystal
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-crystal
+	branch = nomad-fair
+[submodule "dependencies/parsers/cpmd"]
+	path = dependencies/parsers/cpmd
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-cpmd
+	branch = nomad-fair
+[submodule "dependencies/parsers/nwchem"]
+	path = dependencies/parsers/nwchem
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-nwchem
+	branch = nomad-fair
+[submodule "dependencies/parsers/bigdft"]
+	path = dependencies/parsers/bigdft
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-big-dft
+	branch = nomad-fair
+[submodule "dependencies/parsers/wien2k"]
+	path = dependencies/parsers/wien2k
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-wien2k
+	branch = nomad-fair

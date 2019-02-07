@@ -6,7 +6,7 @@ echo "log into docker registry..."
 docker login gitlab-registry.mpcdf.mpg.de -u $1 -p $2
 
 echo "building images..."
-cd .dependencies/nomad-lab-base
+cd dependencies/nomad-lab-base
 sbt "project repoTool" docker
 sbt "project repoWebservice" docker
 
