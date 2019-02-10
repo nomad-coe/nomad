@@ -42,3 +42,6 @@
 	path = dependencies/parsers/wien2k
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-wien2k
 	branch = nomad-fair
+[submodule "dependencies/parsers/gaussian"]
+	path = dependencies/parsers/gaussian
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gaussian

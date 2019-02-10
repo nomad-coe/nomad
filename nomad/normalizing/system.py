@@ -308,4 +308,5 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         if nomad_classification == 'Atom' and (len(self.atom_labels) > 1):
             nomad_classification = 'Molecule / Cluster'
+
         return nomad_classification

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import re
+import json
 
 from nomad.parsing import BadContextURI
 
@@ -68,7 +69,8 @@ class RepositoryNormalizer(Normalizer):
         except BadContextURI:
             b.openNonOverlappingSection('section_repository_info')
             repository_info_context = None
-
+        with open("test_file_inside_repopy_normalizer.json", "wt") as file:
+            b.write_json(file)
         b.openNonOverlappingSection('section_repository_parserdata')
 
         b.addValue('repository_checksum', b.get_value('calc_hash', 0))
@@ -77,7 +79,6 @@ class RepositoryNormalizer(Normalizer):
             'repository_code_version',
             self.simplify_version(b.get_value('program_version', 0)))
         b.addValue('repository_parser_id', b.get_value('parser_name', 0))
-
         b.addValue('repository_chemical_formula', b.get_value('chemical_composition_bulk_reduced', 0))
         atom_labels = b.get_value('atom_labels', 0)
         b.addValue('repository_atomic_elements', list(set(atom_labels)))
