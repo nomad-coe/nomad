@@ -135,6 +135,6 @@ mail = MailConfig(
     from_address=os.environ.get('NOMAD_MAIL_FROM', 'webmaster@nomad-coe.eu')
 )
 
-console_log_level = get_loglevel_from_env('NOMAD_CONSOLE_LOGLEVEL', default_level=logging.INFO)
+console_log_level = get_loglevel_from_env('NOMAD_CONSOLE_LOGLEVEL', default_level=logging.WARNING)
 service = os.environ.get('NOMAD_SERVICE', 'unknown nomad service')
 release = os.environ.get('NOMAD_RELEASE', 'devel')

@@ -18,16 +18,17 @@ from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship, aliased
 from sqlalchemy.sql.expression import literal
 
-from nomad import infrastructure, datamodel
+from nomad import infrastructure, utils
 from nomad.datamodel import CalcWithMetadata
 
 from . import base
 from .user import User
 from .base import Base, calc_citation_association, ownership, co_authorship, shareship, \
-    Tag, Topics, CalcSet, calc_dataset_containment, Citation
+    Tag, Topics, CalcSet, calc_dataset_containment, Citation, Spacegroup, CalcMetaData, \
+    CodeVersion, StructRatio, UserMetaData
 
 
-class Calc(Base, datamodel.Calc):  # type: ignore
+class Calc(Base):
     __tablename__ = 'calculations'
 
     coe_calc_id = Column('calc_id', Integer, primary_key=True, autoincrement=True)
@@ -61,7 +62,7 @@ class Calc(Base, datamodel.Calc):  # type: ignore
         return self.calc_metadata.location
 
     @property
-    def pid(self):
+    def pid(self) -> int:
         return self.coe_calc_id
 
     @property
@@ -86,13 +87,17 @@ class Calc(Base, datamodel.Calc):  # type: ignore
         return self.user_metadata.permission == 1
 
     @property
-    def chemical_formula(self) -> str:
+    def formula(self) -> str:
         return self.calc_metadata.chemical_formula
 
     @property
-    def filenames(self) -> List[str]:
-        filenames = self.calc_metadata.filenames.decode('utf-8')
-        return json.loads(filenames)
+    def files(self) -> List[str]:
+        if self.calc_metadata is not None:
+            if self.calc_metadata.filenames is not None:
+                filenames = self.calc_metadata.filenames.decode('utf-8')
+                return json.loads(filenames)
+
+        return []
 
     @property
     def all_datasets(self) -> List['DataSet']:
@@ -116,7 +121,7 @@ class Calc(Base, datamodel.Calc):  # type: ignore
     def direct_datasets(self) -> List['DataSet']:
         return [DataSet(dataset_calc) for dataset_calc in self.parents]
 
-    def set_value(self, topic_cid: int, value: str) -> None:
+    def _set_value(self, topic_cid: int, value: str) -> None:
         if value is None:
             return
 
@@ -131,24 +136,129 @@ class Calc(Base, datamodel.Calc):  # type: ignore
 
     _dataset_cache: dict = {}
 
-    def to_calc_with_metadata(self):
+    def apply_calc_with_metadata(self, calc: CalcWithMetadata) -> None:
+        """
+        Applies the data from ``source`` to this coe Calc object.
+        """
+        repo_db = infrastructure.repository_db
+
+        self.checksum = calc.calc_id
+        source_code_version = calc.code_version  # TODO shorten version names
+        code_version_obj = repo_db.query(CodeVersion).filter_by(content=source_code_version).first()
+        if code_version_obj is None:
+            code_version_obj = CodeVersion(content=source_code_version)
+            repo_db.add(code_version_obj)
+
+        metadata = CalcMetaData(
+            calc=self,
+            added=calc.upload_time if calc.upload_time is not None else self.upload.upload_time,
+            chemical_formula=calc.formula,
+            filenames=('[%s]' % ','.join(['"%s"' % filename for filename in calc.files])).encode('utf-8'),
+            location=calc.mainfile,
+            version=code_version_obj)
+        repo_db.add(metadata)
+
+        struct_ratio = StructRatio(
+            calc=self,
+            chemical_formula=calc.formula,
+            formula_units=1, nelem=len(calc.atoms))
+        repo_db.add(struct_ratio)
+
+        user_metadata = UserMetaData(
+            calc=self,
+            label=calc.comment,
+            permission=(1 if calc.with_embargo else 0))
+        repo_db.add(user_metadata)
+
+        spacegroup = Spacegroup(calc=self, n=calc.spacegroup)
+        repo_db.add(spacegroup)
+
+        # topic based properties
+        self._set_value(base.topic_code, calc.code_name)
+        for atom in set(calc.atoms):
+            self._set_value(base.topic_atoms, str(atom))
+        self._set_value(base.topic_system_type, calc.system)
+        self._set_value(base.topic_xc_treatment, calc.xc_functional)
+        self._set_value(base.topic_crystal_system, calc.crystal_system)
+        self._set_value(base.topic_basis_set_type, calc.basis_set)
+
+        # user relations
+        if calc.uploader is not None:
+            uploader = repo_db.query(User).get(calc.uploader.id)
+        else:
+            uploader = self.upload.user
+
+        self.owners.append(uploader)
+
+        for coauthor in calc.coauthors:
+            self.coauthors.append(repo_db.query(User).get(coauthor.id))
+
+        for shared_with in calc.shared_with:
+            self.shared_with.append(repo_db.query(User).get(shared_with.id))
+
+        # datasets
+        for dataset in calc.datasets:
+            dataset_id = dataset.id
+            coe_dataset = repo_db.query(Calc).get(dataset_id)
+            if coe_dataset is None:
+                coe_dataset = Calc(coe_calc_id=dataset_id)
+                repo_db.add(coe_dataset)
+
+                metadata = CalcMetaData(
+                    calc=coe_dataset,
+                    added=self.upload.upload_time,
+                    chemical_formula=dataset.name)
+                repo_db.add(metadata)
+
+                if dataset.doi is not None:
+                    self._add_citation(coe_dataset, dataset.doi['value'], 'INTERNAL')
+
+                # cause a flush to avoid future inconsistencies
+                coe_dataset = repo_db.query(Calc).get(dataset_id)
+
+            dataset = CalcSet(parent_calc_id=dataset_id, children_calc_id=self.coe_calc_id)
+            repo_db.add(dataset)
+
+        # references
+        for reference in calc.references:
+            self._add_citation(self, reference['value'], 'EXTERNAL')
+
+    def _add_citation(self, coe_calc: 'Calc', value: str, kind: str) -> None:
+        repo_db = infrastructure.repository_db
+        citation = repo_db.query(Citation).filter_by(value=value, kind=kind).first()
+
+        if citation is None:
+            citation = Citation(value=value, kind=kind)
+            repo_db.add(citation)
+
+        coe_calc.citations.append(citation)
+
+    def to_calc_with_metadata(self) -> CalcWithMetadata:
+        """
+        Creates a :class:`CalcWithMetadata` instance with UCPM ids, and all UMD/CMD.
+        Be aware that ``upload_id`` and ``calc_id``, might be old coe repository
+        ``upload_name`` and calculation ``checksum`` depending on the context, i.e. used
+        database.
+        """
         result = CalcWithMetadata(
             upload_id=self.upload.upload_id if self.upload else None,
-            calc_id=self.calc_id)
+            calc_id=self.checksum)
 
-        result.calc_hash = self.checksum
+        result.pid = self.pid
+        result.mainfile = self.mainfile
+        result.files = self.files
 
         for topic in [tag.topic for tag in self.tags]:
             if topic.cid == base.topic_code:
-                result.program_name = topic.topic
+                result.code_name = topic.topic
             elif topic.cid == base.topic_basis_set_type:
-                result.basis_set_type = topic.topic
+                result.basis_set = topic.topic
             elif topic.cid == base.topic_xc_treatment:
-                result.XC_functional_name = topic.topic
+                result.xc_functional = topic.topic
             elif topic.cid == base.topic_system_type:
-                result.system_type = topic.topic
+                result.system = topic.topic
             elif topic.cid == base.topic_atoms:
-                result.setdefault('atom_labels', []).append(topic.topic)
+                result.atoms.append(topic.topic)
             elif topic.cid == base.topic_crystal_system:
                 result.crystal_system = topic.topic
             elif topic.cid in [1996, 1994, 703, 702, 701, 100]:
@@ -157,10 +267,10 @@ class Calc(Base, datamodel.Calc):  # type: ignore
             else:
                 raise KeyError('topic cid %s.' % str(topic.cid))
 
-        result.program_version = self.calc_metadata.version.content
-        result.chemical_composition = self.calc_metadata.chemical_formula
-        result.space_group_number = self.spacegroup.n
-        result.setdefault('atom_labels', []).sort()
+        result.code_version = self.calc_metadata.version.content
+        result.formula = self.calc_metadata.chemical_formula
+        result.spacegroup = self.spacegroup.n
+        result.atoms.sort()
 
         datasets: List[DataSet] = []
         for parent in self.parents:
@@ -172,23 +282,20 @@ class Calc(Base, datamodel.Calc):  # type: ignore
             datasets.extend(parents)
 
         result.pid = self.pid
-        result.uploader = self.uploader.to_dict()
+        result.uploader = self.uploader.to_popo()
         result.upload_time = self.calc_metadata.added
         result.datasets = list(
-            dict(id=ds.id, dois=ds.dois, name=ds.name)
+            utils.POPO(id=ds.id, doi=ds.doi.to_popo(), name=ds.name)
             for ds in datasets)
         result.with_embargo = self.with_embargo
         result.comment = self.comment
         result.references = list(
-            citation.to_dict() for citation in self.citations
+            citation.to_popo() for citation in self.citations
             if citation.kind == 'EXTERNAL')
-        result.coauthors = list(user.to_dict() for user in self.coauthors)
-        result.shared_with = list(user.to_dict() for user in self.shared_with)
+        result.coauthors = list(user.to_popo() for user in self.coauthors)
+        result.shared_with = list(user.to_popo() for user in self.shared_with)
 
         return result
-
-
-CalcWithMetadata.register_mapping(Calc, Calc.to_calc_with_metadata)
 
 
 class DataSet:
@@ -200,10 +307,15 @@ class DataSet:
         return self._dataset_calc.coe_calc_id
 
     @property
-    def dois(self) -> List[Citation]:
-        return list(
-            citation.to_dict() for citation in self._dataset_calc.citations
-            if citation.kind == 'INTERNAL')
+    def doi(self) -> Citation:
+        doi = None
+        for citation in self._dataset_calc.citations:
+            if citation.kind == 'INTERNAL':
+                if doi is not None:
+                    utils.get_logger(__name__).warning(
+                        'dataset with multiple dois', dataset_id=self.id)
+                doi = citation
+        return doi
 
     @property
     def name(self):

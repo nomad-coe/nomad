@@ -30,14 +30,15 @@ import logging
 from structlog import wrap_logger
 from contextlib import contextmanager
 
-from nomad import utils, coe_repo, datamodel, config, infrastructure
-from nomad.files import PathObject, ArchiveBasedStagingUploadFiles, ExtractError, Calc as FilesCalc
+from nomad import utils, coe_repo, config, infrastructure
+from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles
 from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parsers, parser_dict
 from nomad.normalizing import normalizers
+from nomad.datamodel import UploadWithMetadata, CalcWithMetadata
 
 
-class Calc(Proc, datamodel.Calc):
+class Calc(Proc):
     """
     Instances of this class represent calculations. This class manages the elastic
     search index entry, files, and archive for the respective calculation.
@@ -232,7 +233,8 @@ class Calc(Proc, datamodel.Calc):
 
         # persist the repository metadata
         with utils.timer(logger, 'indexed', step='index'):
-            self.upload_files.metadata.insert(self._parser_backend.metadata())
+            self.upload_files.metadata.insert(
+                self._parser_backend.to_calc_with_metadata().to_dict())
 
         # persist the archive
         with utils.timer(
@@ -253,14 +255,16 @@ class Calc(Proc, datamodel.Calc):
 
                 log_data.update(log_size=self.upload_files.archive_log_file_object(self.calc_id).size)
 
-    def to_calc_with_metadata(self):
-        return self.to(FilesCalc).to_calc_with_metadata()
+    def to_calc_with_metadata(self) -> CalcWithMetadata:
+        upload_files = UploadFiles.get(self.upload_id, is_authorized=lambda: True)
+        if self.upload_files is None:
+            raise KeyError
+
+        _data = upload_files.metadata.get(self.calc_id)
+        return CalcWithMetadata(**_data)
 
 
-datamodel.CalcWithMetadata.register_mapping(Calc, Calc.to_calc_with_metadata)
-
-
-class Upload(Chord, datamodel.Upload):
+class Upload(Chord):
     """
     Represents uploads in the databases. Provides persistence access to the files storage,
     and processing state.
@@ -368,7 +372,7 @@ class Upload(Chord, datamodel.Upload):
             with utils.timer(
                     logger, 'upload added to repository', step='publish',
                     upload_size=self.upload_files.size):
-                coe_repo.Upload.add(self, self.metadata)
+                coe_repo.Upload.add(self.to_upload_with_metadata())
 
             with utils.timer(
                     logger, 'staged upload files packed', step='publish',
@@ -508,3 +512,44 @@ class Upload(Chord, datamodel.Upload):
     @property
     def calcs(self):
         return Calc.objects(upload_id=self.upload_id, tasks_status=SUCCESS)
+
+    def to_upload_with_metadata(self) -> UploadWithMetadata:
+        calc_metadata = dict()
+        user_upload_time = None
+        if self.metadata is not None:
+            user_upload_time = self.metadata.get('_upload_time')
+            for calc in self.metadata.get('calculations', []):
+                calc_metadata[calc['mainfile']] = calc
+
+        def apply_metadata(calc):
+            metadata = calc_metadata.get(calc.mainfile, self.metadata)
+            if metadata is None:
+                return calc
+
+            calc.pid = metadata.get('_pid')
+            calc.comment = metadata.get('comment')
+            calc.upload_time = metadata.get('_upload_time')
+            uploader_id = metadata.get('_uploader')
+            if uploader_id is not None:
+                calc.uploader = utils.POPO(id=uploader_id)
+            calc.references = [utils.POPO(value=ref) for ref in metadata.get('references', [])]
+            calc.with_embargo = metadata.get('with_embargo', False)
+            calc.coauthors = [
+                utils.POPO(id=user) for user in metadata.get('coauthors', [])]
+            calc.shared_with = [
+                utils.POPO(id=user) for user in metadata.get('shared_with', [])]
+            calc.datasets = [
+                utils.POPO(id=ds['id'], doi=utils.POPO(value=ds.get('_doi')), name=ds.get('_name'))
+                for ds in metadata.get('datasets', [])]
+
+            return calc
+
+        result = UploadWithMetadata(
+            upload_id=self.upload_id,
+            uploader=utils.POPO(id=int(self.user_id)),
+            upload_time=self.upload_time if user_upload_time is None else user_upload_time)
+
+        result.calcs = [
+            apply_metadata(calc.to_calc_with_metadata()) for calc in self.calcs]
+
+        return result

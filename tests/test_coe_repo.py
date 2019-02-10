@@ -16,6 +16,7 @@ import pytest
 import datetime
 
 from nomad.coe_repo import User, Calc, Upload
+from nomad import processing
 
 from tests.processing.test_data import processed_upload  # pylint: disable=unused-import
 from tests.processing.test_data import uploaded_id  # pylint: disable=unused-import
@@ -55,12 +56,11 @@ def assert_coe_upload(upload_id, empty=False, metadata={}):
 
 
 def assert_coe_calc(calc: Calc, metadata={}):
-    assert int(calc.pid) == int(metadata.get('_pid', calc.pid))
-    assert calc.calc_id == metadata.get('_checksum', calc.calc_id)
+    assert calc.pid == int(metadata.get('_pid', calc.pid))
 
     # calc data
-    assert len(calc.filenames) == 5
-    assert calc.chemical_formula is not None
+    assert len(calc.files) == 5
+    assert calc.formula is not None
 
     # user meta data
     assert calc.comment == metadata.get('comment', None)
@@ -73,10 +73,10 @@ def assert_coe_calc(calc: Calc, metadata={}):
 
 
 @pytest.mark.timeout(10)
-def test_add_upload(clean_repository_db, processed_upload):
+def test_add_upload(clean_repository_db, processed_upload: processing.Upload):
     empty = processed_upload.total_calcs == 0
 
-    Upload.add(processed_upload)
+    Upload.add(processed_upload.to_upload_with_metadata())
     assert_coe_upload(processed_upload.upload_id, empty=empty)
 
 
@@ -84,19 +84,19 @@ def test_add_upload(clean_repository_db, processed_upload):
 def test_add_upload_metadata(clean_repository_db, processed_upload, other_test_user, test_user):
     empty = processed_upload.total_calcs == 0
 
-    metadata = {
+    processed_upload.metadata = {
         'comment': 'test comment',
         'with_embargo': True,
         'references': ['http://external.ref/one', 'http://external.ref/two'],
         '_uploader': other_test_user.user_id,
         'coauthors': [test_user.user_id],
-        '_checksum': '1',
         '_upload_time': datetime.datetime.now().isoformat(),
         '_pid': 256
     }
 
-    Upload.add(processed_upload, metadata=metadata)
-    assert_coe_upload(processed_upload.upload_id, empty=empty, metadata=metadata)
+    Upload.add(processed_upload.to_upload_with_metadata())
+    assert_coe_upload(
+        processed_upload.upload_id, empty=empty, metadata=processed_upload.metadata)
 
 
 class TestDataSets:

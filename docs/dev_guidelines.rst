@@ -90,6 +90,9 @@ Terms:
 - repo entry: Some quantities of a calculation that are used to represent that calculation in the repository.
 - archive data: The normalized data of one calculation in nomad's meta-info-based format.
 
+
+.. _id-reference-label:
+
 Ids
 ---
 

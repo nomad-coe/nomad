@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import TextIO, Tuple, List, Any, Callable, Iterable
+from typing import TextIO, Tuple, List, Any, Callable
 from abc import ABCMeta, abstractmethod
 from io import StringIO
 import json
@@ -23,6 +23,7 @@ from nomadcore.local_backend import LocalBackend as LegacyLocalBackend
 from nomadcore.local_backend import Section, Results
 
 from nomad.utils import get_logger
+from nomad.datamodel import CalcWithMetadata
 
 logger = get_logger(__name__)
 
@@ -526,17 +527,32 @@ class LocalBackend(LegacyParserBackend):
         self._errors = None
         self._warnings: List[str] = []
 
-    def metadata(self, sections: Iterable[str] = ['section_calculation_info', 'section_repository_info']) -> dict:
-        """
-        Returns an json serializable object with all data of the given sections.
+    def to_calc_with_metadata(self) -> CalcWithMetadata:
+        repo_data = dict(calc_id=self.get_value('calc_id'))
+        for section in ['section_calculation_info', 'section_repository_info']:
+            repo_data[section] = self._obj(
+                self._delegate.results[section],
+                lambda name, value: value if name != 'archive_processor_warnings' else None)
 
-        Used to create the repository view of a parsed and normalized calculation.
-        TODO this is probably not the right spot for this functionality!
-        """
-        data = dict(calc_id=self.get_value('calc_id'))
-        for section in sections:
-            data[section] = self._obj(self._delegate.results[section], lambda name, value: value if name != 'archive_processor_warnings' else None)
-        return data
+        calc_data = repo_data['section_repository_info']['section_repository_parserdata']
+
+        target = CalcWithMetadata()
+        target.upload_id = repo_data['section_calculation_info']['upload_id']
+        target.calc_id = repo_data['section_calculation_info']['calc_id']
+        target.calc_hash = calc_data['repository_checksum']
+        target.basis_set = calc_data['repository_basis_set_type']
+        target.crystal_system = calc_data['repository_crystal_system']
+        target.xc_functional = calc_data['repository_xc_treatment']
+        target.system = calc_data['repository_system_type']
+        target.atoms = calc_data['repository_atomic_elements']
+        target.spacegroup = calc_data['repository_spacegroup_nr']
+        target.formula = calc_data['repository_chemical_formula']
+        target.code_version = calc_data['repository_code_version']
+        target.code_name = calc_data['repository_program_name']
+        target.files = repo_data['section_repository_info'].get('repository_filepaths', [])
+        target.mainfile = repo_data['section_calculation_info'].get('main_file', None)
+
+        return target
 
     def write_json(self, out: TextIO, pretty=True, filter: Callable[[str, Any], Any] = None):
         """

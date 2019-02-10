@@ -19,6 +19,6 @@ def test_init_mapping(elastic):
     pass
 
 
-# def test_index_calc(elastic):
-#     calc = datamodel.CalcWithMetadata(upload_id='test_upload', calc_id='test_calc')
-#     calc.to(search.Entry).save(op_type='create')
+def test_index_calc(elastic):
+    calc = datamodel.CalcWithMetadata(upload_id='test_upload', calc_id='test_calc')
+    search.Entry.from_calc_with_metadata(calc).save(op_type='create')

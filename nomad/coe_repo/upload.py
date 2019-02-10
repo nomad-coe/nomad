@@ -47,14 +47,12 @@ import datetime
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
-from nomad import utils, infrastructure, datamodel
-from nomad.datamodel import CalcWithMetadata
+from nomad import utils, infrastructure
+from nomad.datamodel import UploadWithMetadata
 
-from . import base
-from .user import User
 from .calc import Calc
-from .base import Base, CalcMetaData, UserMetaData, StructRatio, CodeVersion, Spacegroup, \
-    CalcSet, Citation
+from .base import Base
+from .user import User
 
 
 class UploadMetaData:
@@ -79,7 +77,7 @@ class UploadMetaData:
         return self._calc_data.get(mainfile, self._upload_data)
 
 
-class Upload(Base, datamodel.Upload):  # type: ignore
+class Upload(Base):  # type: ignore
     __tablename__ = 'uploads'
 
     coe_upload_id = Column('upload_id', Integer, primary_key=True, autoincrement=True)
@@ -90,10 +88,6 @@ class Upload(Base, datamodel.Upload):  # type: ignore
 
     user = relationship('User')
     calcs = relationship('Calc')
-
-    @classmethod
-    def load_from(cls, obj):
-        return Upload.from_upload_id(str(obj.upload_id))
 
     @staticmethod
     def from_upload_id(upload_id: str) -> 'Upload':
@@ -107,7 +101,7 @@ class Upload(Base, datamodel.Upload):  # type: ignore
         return self.upload_name
 
     @property
-    def uploader(self) -> 'User':
+    def uploader(self) -> User:
         return self.user
 
     @property
@@ -115,21 +109,15 @@ class Upload(Base, datamodel.Upload):  # type: ignore
         return self.created
 
     @staticmethod
-    def add(upload: datamodel.Upload, metadata: dict = {}) -> int:
+    def add(upload: UploadWithMetadata) -> int:
         """
         Add the upload to the NOMAD-coe repository db. It creates an
         uploads-entry, respective calculation and property entries. Everything in one
         transaction.
 
-        Triggers and updates the NOMAD-coe repository elastic search index after
-        success (TODO).
-
         Arguments:
-            upload: The upload to add.
-            upload_metadata: A dictionary with additional meta data (e.g. user provided
-                meta data) that should be added to upload and calculations.
+            upload: The upload to add, including calculations with respective IDs, UMD, CMD.
         """
-        upload_metadata = UploadMetaData(metadata)
         assert upload.uploader is not None
 
         repo_db = infrastructure.repository_db
@@ -143,20 +131,24 @@ class Upload(Base, datamodel.Upload):  # type: ignore
             # create upload
             coe_upload = Upload(
                 upload_name=upload.upload_id,
-                created=metadata.get('_upload_time', upload.upload_time),
-                user=upload.uploader,
+                created=upload.upload_time,
+                user_id=upload.uploader.id,
                 is_processed=True)
             repo_db.add(coe_upload)
 
             # add calculations and metadata
-            calcs = []
+            has_calcs = False
             for calc in upload.calcs:
-                calcs.append(
-                    coe_upload._add_calculation(
-                        calc.to(CalcWithMetadata), upload_metadata.get(calc.mainfile)))
+                has_calcs = True
+                coe_calc = Calc(
+                    coe_calc_id=calc.pid,
+                    checksum=calc.calc_id,
+                    upload=coe_upload)
+                repo_db.add(coe_calc)
+                coe_calc.apply_calc_with_metadata(calc)
 
             # commit
-            if len(calcs) > 0:
+            if has_calcs:
                 # empty upload case
                 repo_db.commit()
                 result = coe_upload.coe_upload_id
@@ -167,114 +159,4 @@ class Upload(Base, datamodel.Upload):  # type: ignore
             repo_db.rollback()
             raise e
 
-        # TODO trigger index update
-        pass
-
         return result
-
-    def _add_calculation(self, calc: CalcWithMetadata, calc_metadata: dict) -> Calc:
-        repo_db = infrastructure.repository_db
-
-        # table based properties
-        coe_calc_id = calc_metadata.get('_pid', None)
-        coe_calc = Calc(
-            coe_calc_id=coe_calc_id,
-            checksum=calc_metadata.get('_checksum', calc.calc_hash),
-            upload=self)
-        repo_db.add(coe_calc)
-
-        program_version = calc.program_version  # TODO shorten version names
-        code_version = repo_db.query(CodeVersion).filter_by(content=program_version).first()
-        if code_version is None:
-            code_version = CodeVersion(content=program_version)
-            repo_db.add(code_version)
-
-        metadata = CalcMetaData(
-            calc=coe_calc,
-            added=calc_metadata.get('_upload_time', self.upload_time),
-            chemical_formula=calc.chemical_composition,
-            filenames=('[%s]' % ','.join(['"%s"' % filename for filename in calc.files])).encode('utf-8'),
-            location=calc.mainfile,
-            version=code_version)
-        repo_db.add(metadata)
-
-        struct_ratio = StructRatio(
-            calc=coe_calc,
-            chemical_formula=calc.chemical_composition,
-            formula_units=1, nelem=1)
-        repo_db.add(struct_ratio)
-
-        user_metadata = UserMetaData(
-            calc=coe_calc,
-            label=calc_metadata.get('comment', None),
-            permission=(1 if calc_metadata.get('with_embargo', False) else 0))
-        repo_db.add(user_metadata)
-
-        spacegroup = Spacegroup(
-            calc=coe_calc,
-            n=int(calc.space_group_number)
-        )
-        repo_db.add(spacegroup)
-
-        # topic based properties
-        coe_calc.set_value(base.topic_code, calc.program_name)
-        for atom in set(calc.atom_labels):
-            coe_calc.set_value(base.topic_atoms, str(atom))
-        coe_calc.set_value(base.topic_system_type, calc.system_type)
-        coe_calc.set_value(base.topic_xc_treatment, calc.XC_functional_name)
-        coe_calc.set_value(base.topic_crystal_system, calc.crystal_system)
-        coe_calc.set_value(base.topic_basis_set_type, calc.basis_set_type)
-
-        # user relations
-        owner_user_id = calc_metadata.get('_uploader', None)
-        if owner_user_id is not None:
-            uploader = repo_db.query(User).get(owner_user_id)
-        else:
-            uploader = self.user
-
-        coe_calc.owners.append(uploader)
-
-        for coauthor_id in calc_metadata.get('coauthors', []):
-            coe_calc.coauthors.append(repo_db.query(User).get(coauthor_id))
-
-        for shared_with_id in calc_metadata.get('shared_with', []):
-            coe_calc.shared_with.append(repo_db.query(User).get(shared_with_id))
-
-        # datasets
-        for dataset in calc_metadata.get('datasets', []):
-            dataset_id = dataset['id']
-            coe_dataset = repo_db.query(Calc).get(dataset_id)
-            if coe_dataset is None:
-                coe_dataset = Calc(coe_calc_id=dataset_id)
-                repo_db.add(coe_dataset)
-
-                metadata = CalcMetaData(
-                    calc=coe_dataset,
-                    added=calc_metadata.get('_upload_time', self.upload_time),
-                    chemical_formula=dataset['name'])
-                repo_db.add(metadata)
-
-                for doi in dataset['dois']:
-                    self._add_citation(coe_dataset, doi, 'INTERNAL')
-
-                # cause a flush to avoid future inconsistencies
-                coe_dataset = repo_db.query(Calc).get(dataset_id)
-
-            dataset = CalcSet(parent_calc_id=dataset_id, children_calc_id=coe_calc.coe_calc_id)
-            repo_db.add(dataset)
-
-        # references
-        for reference in calc_metadata.get('references', []):
-            self._add_citation(coe_calc, reference, 'EXTERNAL')
-
-        return coe_calc
-
-    def _add_citation(self, coe_calc: Calc, value: str, kind: str) -> None:
-        repo_db = infrastructure.repository_db
-        citation = repo_db.query(Citation).filter_by(value=value, kind=kind).first()
-
-        if citation is None:
-            citation = Citation(value=value, kind=kind)
-            repo_db.add(citation)
-
-        coe_calc.citations.append(citation)

@@ -17,7 +17,7 @@ from sqlalchemy import Column, Integer, String
 import datetime
 import jwt
 
-from nomad import infrastructure, config
+from nomad import infrastructure, config, utils
 
 from .base import Base
 
@@ -148,8 +148,8 @@ class User(Base):  # type: ignore
         except jwt.InvalidTokenError:
             raise LoginException('Invalid token')
 
-    def to_dict(self) -> dict:
-        return dict(
+    def to_popo(self) -> utils.POPO:
+        return utils.POPO(
             user_id=self.user_id,
             first_name=self.first_name,
             last_name=self.last_name,

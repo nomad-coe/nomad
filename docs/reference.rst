@@ -53,3 +53,7 @@ nomad.client
 nomad.utils
 -----------
 .. automodule:: nomad.utils
+
+nomad.migration
+---------------
+.. automodule:: nomad.migration
