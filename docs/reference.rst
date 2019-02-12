@@ -57,3 +57,7 @@ nomad.utils
 nomad.migration
 ---------------
 .. automodule:: nomad.migration
+
+tests
+-----
+.. automodule:: tests

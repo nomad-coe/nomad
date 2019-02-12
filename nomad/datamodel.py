@@ -122,3 +122,23 @@ class CalcWithMetadata():
             key: value for key, value in self.__dict__.items()
             if value is not None
         }
+
+    def apply_user_metadata(self, metadata: dict):
+        """
+        Applies a user provided metadata dict to this calc.
+        """
+        self.pid = metadata.get('_pid')
+        self.comment = metadata.get('comment')
+        self.upload_time = metadata.get('_upload_time')
+        uploader_id = metadata.get('_uploader')
+        if uploader_id is not None:
+            self.uploader = utils.POPO(id=uploader_id)
+        self.references = [utils.POPO(value=ref) for ref in metadata.get('references', [])]
+        self.with_embargo = metadata.get('with_embargo', False)
+        self.coauthors = [
+            utils.POPO(id=user) for user in metadata.get('coauthors', [])]
+        self.shared_with = [
+            utils.POPO(id=user) for user in metadata.get('shared_with', [])]
+        self.datasets = [
+            utils.POPO(id=ds['id'], doi=utils.POPO(value=ds.get('_doi')), name=ds.get('_name'))
+            for ds in metadata.get('datasets', [])]

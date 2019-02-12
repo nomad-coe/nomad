@@ -150,7 +150,7 @@ class User(Base):  # type: ignore
 
     def to_popo(self) -> utils.POPO:
         return utils.POPO(
-            user_id=self.user_id,
+            id=self.user_id,
             first_name=self.first_name,
             last_name=self.last_name,
             email=self.email,

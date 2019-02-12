@@ -423,7 +423,7 @@ class NomadCOEMigration:
         """ Transforms to a dict that fullfils the API's uploade metadata model. """
         return dict(
             _upload_time=source.upload_time,
-            _uploader=source.uploader['user_id'],
+            _uploader=source.uploader['id'],
             _pid=source.pid,
             references=[ref['value'] for ref in source.references],
             datasets=[dict(
@@ -433,8 +433,8 @@ class NomadCOEMigration:
             mainfile=source.mainfile,
             with_embargo=source.with_embargo,
             comment=source.comment,
-            coauthors=list(user['user_id'] for user in source.coauthors),
-            shared_with=list(user['user_id'] for user in source.shared_with)
+            coauthors=list(user['id'] for user in source.coauthors),
+            shared_with=list(user['id'] for user in source.shared_with)
         )
 
     def index(self, *args, **kwargs):

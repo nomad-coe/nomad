@@ -30,7 +30,7 @@ import logging
 from structlog import wrap_logger
 from contextlib import contextmanager
 
-from nomad import utils, coe_repo, config, infrastructure
+from nomad import utils, coe_repo, config, infrastructure, search
 from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles
 from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parsers, parser_dict
@@ -231,14 +231,19 @@ class Calc(Proc):
     def archiving(self):
         logger = self.get_logger()
 
+        calc_with_metadata = self._parser_backend.to_calc_with_metadata()
+
         # persist the repository metadata
-        with utils.timer(logger, 'indexed', step='index'):
-            self.upload_files.metadata.insert(
-                self._parser_backend.to_calc_with_metadata().to_dict())
+        with utils.timer(logger, 'saved repo metadata', step='persist'):
+            self.upload_files.metadata.insert(calc_with_metadata.to_dict())
+
+        # index in search
+        with utils.timer(logger, 'indexed', step='persist'):
+            search.Entry.from_calc_with_metadata(calc_with_metadata, published=False).persist()
 
         # persist the archive
         with utils.timer(
-                logger, 'archived', step='archive',
+                logger, 'archived', step='persist',
                 input_size=self.mainfile_file.size) as log_data:
             with self.upload_files.archive_file(self.calc_id, 'wt') as out:
                 self._parser_backend.write_json(out, pretty=True)
@@ -248,7 +253,7 @@ class Calc(Proc):
         # close loghandler
         if self._calc_proc_logwriter is not None:
             with utils.timer(
-                    logger, 'archived log', step='archive_log',
+                    logger, 'archived log', step='persist',
                     input_size=self.mainfile_file.size) as log_data:
                 self._calc_proc_logwriter_ctx.__exit__(None, None, None)  # pylint: disable=E1101
                 self._calc_proc_logwriter = None
@@ -351,6 +356,11 @@ class Upload(Chord):
 
         with utils.lnr(logger, 'staged upload delete failed'):
             with utils.timer(
+                    logger, 'upload deleted from index', step='delete',
+                    upload_size=self.upload_files.size):
+                search.Entry.delete_upload(self.upload_id)
+
+            with utils.timer(
                     logger, 'staged upload deleted', step='delete',
                     upload_size=self.upload_files.size):
                 self.upload_files.delete()
@@ -369,15 +379,22 @@ class Upload(Chord):
         logger = self.get_logger()
 
         with utils.lnr(logger, 'publish failed'):
+            upload_with_metadata = self.to_upload_with_metadata()
+
             with utils.timer(
                     logger, 'upload added to repository', step='publish',
                     upload_size=self.upload_files.size):
-                coe_repo.Upload.add(self.to_upload_with_metadata())
+                coe_repo.Upload.add(upload_with_metadata)
 
             with utils.timer(
                     logger, 'staged upload files packed', step='publish',
                     upload_size=self.upload_files.size):
                 self.upload_files.pack()
+
+            with utils.timer(
+                    logger, 'index updated', step='publish',
+                    upload_size=self.upload_files.size):
+                search.Entry.publish_upload(upload_with_metadata)
 
             with utils.timer(
                     logger, 'staged upload deleted', step='publish',
@@ -523,25 +540,8 @@ class Upload(Chord):
 
         def apply_metadata(calc):
             metadata = calc_metadata.get(calc.mainfile, self.metadata)
-            if metadata is None:
-                return calc
-
-            calc.pid = metadata.get('_pid')
-            calc.comment = metadata.get('comment')
-            calc.upload_time = metadata.get('_upload_time')
-            uploader_id = metadata.get('_uploader')
-            if uploader_id is not None:
-                calc.uploader = utils.POPO(id=uploader_id)
-            calc.references = [utils.POPO(value=ref) for ref in metadata.get('references', [])]
-            calc.with_embargo = metadata.get('with_embargo', False)
-            calc.coauthors = [
-                utils.POPO(id=user) for user in metadata.get('coauthors', [])]
-            calc.shared_with = [
-                utils.POPO(id=user) for user in metadata.get('shared_with', [])]
-            calc.datasets = [
-                utils.POPO(id=ds['id'], doi=utils.POPO(value=ds.get('_doi')), name=ds.get('_name'))
-                for ds in metadata.get('datasets', [])]
-
+            if metadata is not None:
+                calc.apply_user_metadata(metadata)
             return calc
 
         result = UploadWithMetadata(

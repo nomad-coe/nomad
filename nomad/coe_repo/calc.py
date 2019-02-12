@@ -17,6 +17,7 @@ import json
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship, aliased
 from sqlalchemy.sql.expression import literal
+from datetime import datetime
 
 from nomad import infrastructure, utils
 from nomad.datamodel import CalcWithMetadata
@@ -149,9 +150,16 @@ class Calc(Base):
             code_version_obj = CodeVersion(content=source_code_version)
             repo_db.add(code_version_obj)
 
+        if calc.upload_time is not None:
+            added_time = calc.upload_time
+        elif self.upload is not None and self.upload.upload_time is not None:
+            added_time = self.upload.upload_time
+        else:
+            added_time = datetime.now()
+
         metadata = CalcMetaData(
             calc=self,
-            added=calc.upload_time if calc.upload_time is not None else self.upload.upload_time,
+            added=added_time,
             chemical_formula=calc.formula,
             filenames=('[%s]' % ','.join(['"%s"' % filename for filename in calc.files])).encode('utf-8'),
             location=calc.mainfile,
@@ -183,41 +191,45 @@ class Calc(Base):
         self._set_value(base.topic_basis_set_type, calc.basis_set)
 
         # user relations
+        def add_users_to_relation(source_users, relation):
+            for source_user in source_users:
+                coe_user = repo_db.query(User).get(source_user.id)
+                source_user.update(coe_user.to_popo())
+                relation.append(coe_user)
+
         if calc.uploader is not None:
-            uploader = repo_db.query(User).get(calc.uploader.id)
-        else:
-            uploader = self.upload.user
+            add_users_to_relation([calc.uploader], self.owners)
+        elif self.upload is not None and self.upload.user is not None:
+            self.owners.append(self.upload.user)
+            calc.uploader = self.upload.user.to_popo()
 
-        self.owners.append(uploader)
-
-        for coauthor in calc.coauthors:
-            self.coauthors.append(repo_db.query(User).get(coauthor.id))
-
-        for shared_with in calc.shared_with:
-            self.shared_with.append(repo_db.query(User).get(shared_with.id))
+        add_users_to_relation(calc.coauthors, self.coauthors)
+        add_users_to_relation(calc.shared_with, self.shared_with)
 
         # datasets
         for dataset in calc.datasets:
             dataset_id = dataset.id
-            coe_dataset = repo_db.query(Calc).get(dataset_id)
-            if coe_dataset is None:
-                coe_dataset = Calc(coe_calc_id=dataset_id)
-                repo_db.add(coe_dataset)
+            coe_dataset_calc: Calc = repo_db.query(Calc).get(dataset_id)
+            if coe_dataset_calc is None:
+                coe_dataset_calc = Calc(coe_calc_id=dataset_id)
+                repo_db.add(coe_dataset_calc)
 
                 metadata = CalcMetaData(
-                    calc=coe_dataset,
+                    calc=coe_dataset_calc,
                     added=self.upload.upload_time,
                     chemical_formula=dataset.name)
                 repo_db.add(metadata)
 
                 if dataset.doi is not None:
-                    self._add_citation(coe_dataset, dataset.doi['value'], 'INTERNAL')
+                    self._add_citation(coe_dataset_calc, dataset.doi['value'], 'INTERNAL')
 
                 # cause a flush to avoid future inconsistencies
-                coe_dataset = repo_db.query(Calc).get(dataset_id)
+                coe_dataset_calc = repo_db.query(Calc).get(dataset_id)
 
-            dataset = CalcSet(parent_calc_id=dataset_id, children_calc_id=self.coe_calc_id)
-            repo_db.add(dataset)
+            coe_dataset_rel = CalcSet(parent_calc_id=dataset_id, children_calc_id=self.coe_calc_id)
+            repo_db.add(coe_dataset_rel)
+
+            dataset.update(DataSet(coe_dataset_calc).to_popo())
 
         # references
         for reference in calc.references:
@@ -284,9 +296,7 @@ class Calc(Base):
         result.pid = self.pid
         result.uploader = self.uploader.to_popo()
         result.upload_time = self.calc_metadata.added
-        result.datasets = list(
-            utils.POPO(id=ds.id, doi=ds.doi.to_popo(), name=ds.name)
-            for ds in datasets)
+        result.datasets = list(ds.to_popo() for ds in datasets)
         result.with_embargo = self.with_embargo
         result.comment = self.comment
         result.references = list(
@@ -320,3 +330,6 @@ class DataSet:
     @property
     def name(self):
         return self._dataset_calc.calc_metadata.chemical_formula
+
+    def to_popo(self):
+        return utils.POPO(id=self.id, doi=self.doi.to_popo(), name=self.name)

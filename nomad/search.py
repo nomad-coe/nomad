@@ -20,20 +20,27 @@ from elasticsearch.exceptions import ConflictError, ConnectionTimeout
 from datetime import datetime
 import time
 from elasticsearch_dsl import Document, InnerDoc, Keyword, Text, Date, \
-    Nested
+    Nested, Boolean, Search
 
-from nomad import config, datamodel, infrastructure, datamodel
+from nomad import config, datamodel, infrastructure, datamodel, coe_repo
 
 
 class AlreadyExists(Exception): pass
 
 
 class User(InnerDoc):
-    def __init__(self, user):
-        super().__init__(
-            id=user.user_id,
-            name='%s %s' % (user.first_name, user.last_name),
-            name_keyword='%s %s' % (user.first_name, user.last_name))
+
+    @classmethod
+    def from_user_popo(cls, user):
+        self = cls(id=user.id)
+
+        if 'first_name' not in user:
+            user = coe_repo.User.from_user_id(user.id).to_popo()
+
+        self.name = '%s %s' % (user['first_name'], user['last_name'])
+        self.name_keyword = '%s %s' % (user['first_name'], user['last_name'])
+
+        return self
 
     id = Keyword()
     name = Text()
@@ -41,8 +48,10 @@ class User(InnerDoc):
 
 
 class Dataset(InnerDoc):
-    def __init__(self, dataset):
-        super().__init__(
+
+    @classmethod
+    def from_dataset_popo(cls, dataset):
+        return cls(
             id=dataset.id,
             doi=dataset.doi.value if dataset.doi is not None else None,
             name=dataset.name)
@@ -57,15 +66,17 @@ class Entry(Document):
         name = config.elastic.index_name
 
     upload_id = Keyword()
-    upload_time = Date(format='epoch_millis')
+    upload_time = Date()
     calc_id = Keyword()
     calc_hash = Keyword()
     pid = Keyword()
     mainfile = Keyword()
-    files = Keyword()
+    files = Keyword(multi=True)
     uploader = Nested(User)
 
-    with_embargo = Keyword()
+    with_embargo = Boolean()
+    published = Boolean()
+
     coauthors = Nested(User)
     shared_with = Nested(User)
     comment = Text()
@@ -73,7 +84,7 @@ class Entry(Document):
     datasets = Nested(Dataset)
 
     formula = Keyword()
-    atoms = Keyword()
+    atoms = Keyword(multi=True)
     basis_set = Keyword()
     xc_functional = Keyword()
     system = Keyword()
@@ -83,7 +94,7 @@ class Entry(Document):
     code_version = Keyword()
 
     @classmethod
-    def from_calc_with_metadata(cls, source: datamodel.CalcWithMetadata) -> 'Entry':
+    def from_calc_with_metadata(cls, source: datamodel.CalcWithMetadata, published: bool = False) -> 'Entry':
         return Entry(
             meta=dict(id=source.calc_id),
             upload_id=source.upload_id,
@@ -93,14 +104,15 @@ class Entry(Document):
             pid=str(source.pid),
             mainfile=source.mainfile,
             files=source.files,
-            uploader=User(source.uploader) if source.uploader is not None else None,
+            uploader=User.from_user_popo(source.uploader) if source.uploader is not None else None,
 
             with_embargo=source.with_embargo,
-            coauthors=[User(user) for user in source.coauthors],
-            shared_with=[User(user) for user in source.shared_with],
+            published=published,
+            coauthors=[User.from_user_popo(user) for user in source.coauthors],
+            shared_with=[User.from_user_popo(user) for user in source.shared_with],
             comment=source.comment,
             references=[ref.value for ref in source.references],
-            datasets=[Dataset(ds) for ds in source.datasets],
+            datasets=[Dataset.from_dataset_popo(ds) for ds in source.datasets],
 
             formula=source.formula,
             atoms=list(set(source.atoms)),
@@ -111,6 +123,11 @@ class Entry(Document):
             spacegroup=source.spacegroup,
             code_name=source.code_name,
             code_version=source.code_version)
+
+    @classmethod
+    def add_upload(cls, source: datamodel.UploadWithMetadata):
+        for calc in source.calcs:
+            cls.from_calc_with_metadata(calc).save(op_type='create')
 
     def persist(self, **kwargs):
         """
@@ -160,6 +177,16 @@ class Entry(Document):
         }
         conn.update_by_query(index, doc_type=[doc_type], body=body)
 
+    @classmethod
+    def publish_upload(cls, upload: datamodel.UploadWithMetadata):
+        cls.update_by_query(upload.upload_id, 'ctx._source["published"] = true')
+        # TODO run update on all calcs with their new metadata
+
+    @classmethod
+    def delete_upload(cls, upload_id):
+        index = cls._default_index()
+        Search(index=index).query('match', upload_id=upload_id).delete()
+
     @staticmethod
     def es_search(body):
         """ Perform an elasticsearch and not elasticsearch_dsl search on the Calc index. """
@@ -175,6 +202,3 @@ class Entry(Document):
             data['upload_time'] = data['upload_time'].isoformat()
 
         return {key: value for key, value in data.items() if value is not None}
-
-
-# Entry.register_mapping(datamodel.CalcWithMetadata, Entry.from_calc_with_metadata)

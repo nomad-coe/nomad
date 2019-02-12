@@ -90,6 +90,8 @@ def setup_elastic():
     try:
         from nomad.search import Entry
         Entry.init(index=config.elastic.index_name)
+        Entry._index._name = config.elastic.index_name
+
         logger.info('initialized elastic index', index_name=config.elastic.index_name)
     except RequestError as e:
         if e.status_code == 400 and 'resource_already_exists_exception' in e.error:
@@ -98,6 +100,8 @@ def setup_elastic():
             raise e
     else:
         logger.info('init elastic index')
+
+    return elastic_client
 
 
 def setup_repository_db(**kwargs):

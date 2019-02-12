@@ -34,7 +34,7 @@ class SingleTask(Proc):
         pass
 
 
-def test_tasks(mockmongo):
+def test_tasks(mongo):
     p = Tasks.create()
     assert p.tasks == ['a', 'b']
     assert_proc(p, None, PENDING)
@@ -56,7 +56,7 @@ class FailTasks(Proc):
         self.fail('fail fail fail')
 
 
-def test_fail(mockmongo, with_error):
+def test_fail(mongo, with_error):
     p = FailTasks.create()
     p.will_fail()
 
@@ -84,7 +84,7 @@ class SimpleProc(Proc):
         pass
 
 
-def test_simple_process(mockmongo, worker, no_warn):
+def test_simple_process(mongo, worker, no_warn):
     p = SimpleProc.create()
     p.process()
     p.block_until_complete()
@@ -99,7 +99,7 @@ class TaskInProc(Proc):
 
 
 @pytest.mark.timeout(5)
-def test_task_as_proc(mockmongo, worker, no_warn):
+def test_task_as_proc(mongo, worker, no_warn):
     p = TaskInProc.create()
     p.process()
     p.block_until_complete()
@@ -118,7 +118,7 @@ class ProcInProc(Proc):
         pass
 
 
-def test_fail_on_proc_in_proc(mockmongo, worker):
+def test_fail_on_proc_in_proc(mongo, worker):
     p = ProcInProc.create()
     p.one()
     p.block_until_complete()
@@ -152,7 +152,7 @@ class ChildProc(Proc):
 
 
 @pytest.mark.timeout(10)
-def test_counter(mockmongo, worker, no_warn):
+def test_counter(mongo, worker, no_warn):
     p = ParentProc.create()
     p.spawn_children()
     p.block_until_complete()
