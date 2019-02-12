@@ -62,7 +62,7 @@ def run_processing(uploaded_id: str, test_user) -> Upload:
     assert upload.current_task == 'uploading'
 
     upload.process_upload()  # pylint: disable=E1101
-    upload.block_until_complete(interval=.1)
+    upload.block_until_complete(interval=.01)
 
     return upload
 
@@ -105,7 +105,7 @@ def test_processing(processed, no_warn, mails):
 
 
 @pytest.mark.timeout(10)
-def test_processing_with_warning(raw_files, worker, test_user, with_warn):
+def test_processing_with_warning(proc_infra, test_user, with_warn):
     example_file = 'tests/data/proc/examples_with_warning_template.zip'
     example_upload_id = os.path.basename(example_file).replace('.zip', '')
     upload_files = ArchiveBasedStagingUploadFiles(example_upload_id, create=True)
@@ -116,7 +116,7 @@ def test_processing_with_warning(raw_files, worker, test_user, with_warn):
 
 
 @pytest.mark.timeout(10)
-def test_process_non_existing(worker, test_user, with_error):
+def test_process_non_existing(proc_infra, test_user, with_error):
     upload = run_processing('__does_not_exist', test_user)
 
     assert not upload.tasks_running
@@ -127,7 +127,7 @@ def test_process_non_existing(worker, test_user, with_error):
 
 @pytest.mark.parametrize('task', ['extracting', 'parse_all', 'cleanup', 'parsing'])
 @pytest.mark.timeout(10)
-def test_task_failure(monkeypatch, uploaded, worker, task, test_user, with_error):
+def test_task_failure(monkeypatch, uploaded, worker, task, proc_infra, test_user, with_error):
     # mock the task method to through exceptions
     if hasattr(Upload, task):
         cls = Upload

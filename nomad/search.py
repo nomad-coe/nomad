@@ -16,9 +16,6 @@
 This module represents calculations in elastic search.
 """
 
-from elasticsearch.exceptions import ConflictError, ConnectionTimeout
-from datetime import datetime
-import time
 from elasticsearch_dsl import Document, InnerDoc, Keyword, Text, Date, \
     Nested, Boolean, Search
 
@@ -127,39 +124,7 @@ class Entry(Document):
     @classmethod
     def add_upload(cls, source: datamodel.UploadWithMetadata):
         for calc in source.calcs:
-            cls.from_calc_with_metadata(calc).save(op_type='create')
-
-    def persist(self, **kwargs):
-        """
-            Persist this entry to elastic search. Kwargs are passed to elastic search.
-
-            Raises:
-                AlreadyExists: If the calculation already exists in elastic search. We use
-                    the elastic document lock here. The elastic document is IDed via the
-                    ``calc_id``.
-        """
-        try:
-            # In practive es operation might fail due to timeout under heavy loads/
-            # bad configuration. Retries with a small delay is a pragmatic solution.
-            e_after_retries = None
-            for _ in range(0, 2):
-                try:
-                    self.save(op_type='create', **kwargs)
-                    e_after_retries = None
-                    break
-                except ConnectionTimeout as e:
-                    e_after_retries = e
-                    time.sleep(1)
-                except ConflictError as e:  # this should never happen, but happens
-                    e_after_retries = e
-                    time.sleep(1)
-                else:
-                    raise e
-            if e_after_retries is not None:
-                # if we had and exception and could not fix with retries, throw it
-                raise e_after_retries  # pylint: disable=E0702
-        except ConflictError:
-            raise AlreadyExists('Calculation %s/%s does already exist.' % (self.upload_id, self.calc_id))
+            cls.from_calc_with_metadata(calc).save()
 
     @classmethod
     def update_by_query(cls, upload_id, script):
@@ -191,14 +156,3 @@ class Entry(Document):
     def es_search(body):
         """ Perform an elasticsearch and not elasticsearch_dsl search on the Calc index. """
         return infrastructure.elastic_client.search(index=config.elastic.index_name, body=body)
-
-    @property
-    def json_dict(self):
-        """ A json serializable dictionary representation. """
-        data = self.to_dict()
-
-        upload_time = data.get('upload_time', None)
-        if upload_time is not None and isinstance(upload_time, datetime):
-            data['upload_time'] = data['upload_time'].isoformat()
-
-        return {key: value for key, value in data.items() if value is not None}

@@ -236,7 +236,7 @@ class TestUploads:
 
     @pytest.mark.parametrize('mode', ['multipart', 'stream', 'local_path'])
     @pytest.mark.parametrize('name', [None, 'test_name'])
-    def test_put(self, client, test_user_auth, proc_infra, example_upload, mode, name):
+    def test_put(self, client, test_user_auth, proc_infra, example_upload, mode, name, no_warn):
         file = example_upload
         if name:
             url = '/uploads/?name=%s' % name
@@ -281,7 +281,7 @@ class TestUploads:
         yield True
         monkeypatch.setattr('nomad.processing.data.Upload.cleanup', old_cleanup)
 
-    def test_delete_during_processing(self, client, test_user_auth, proc_infra, slow_processing):
+    def test_delete_during_processing(self, client, test_user_auth, proc_infra, slow_processing, no_warn):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         assert upload['tasks_running']
@@ -289,7 +289,7 @@ class TestUploads:
         assert rv.status_code == 400
         self.assert_processing(client, test_user_auth, upload['upload_id'])
 
-    def test_delete_unstaged(self, client, test_user_auth, proc_infra):
+    def test_delete_unstaged(self, client, test_user_auth, proc_infra, no_warn):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
@@ -297,7 +297,7 @@ class TestUploads:
         rv = client.delete('/uploads/%s' % upload['upload_id'], headers=test_user_auth)
         assert rv.status_code == 404
 
-    def test_delete(self, client, test_user_auth, proc_infra):
+    def test_delete(self, client, test_user_auth, proc_infra, no_warn):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
@@ -305,7 +305,7 @@ class TestUploads:
         assert rv.status_code == 200
         self.assert_upload_does_not_exist(client, upload['upload_id'], test_user_auth)
 
-    def test_post(self, client, test_user_auth, example_upload, proc_infra):
+    def test_post(self, client, test_user_auth, example_upload, proc_infra, no_warn):
         rv = client.put('/uploads/?local_path=%s' % example_upload, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
@@ -313,14 +313,14 @@ class TestUploads:
 
     def test_post_metadata(
             self, client, proc_infra, admin_user_auth, test_user_auth, test_user,
-            other_test_user):
+            other_test_user, no_warn):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
         metadata = dict(comment='test comment')
         self.assert_unstage(client, admin_user_auth, upload['upload_id'], proc_infra, metadata)
 
-    def test_post_metadata_forbidden(self, client, proc_infra, test_user_auth):
+    def test_post_metadata_forbidden(self, client, proc_infra, test_user_auth, no_warn):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])

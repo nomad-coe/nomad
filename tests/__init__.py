@@ -24,10 +24,17 @@ Otherwise the test submodules follow the names of the nomad code modules.
 
 from nomad import config
 
-# For convinience we test the api without path prefix.
-# This should be setup with a fixture with in conftest.py, but it will be too late.
-# After importing the api module, the config values have already been used and
+
+# This should be setup with fixtures with in conftest.py, but it will be too late.
+# After importing the api/infrastructure module, the config values have already been used and
 # changing them afterwards does not change anything anymore.
+
+# For convinience we test the api without path prefix.
 services_config = config.services._asdict()
 services_config.update(api_base_path='')
 config.services = config.NomadServicesConfig(**services_config)
+
+# We use a mocked in memory mongo version.
+mongo_config = config.mongo._asdict()
+mongo_config.update(host='mongomock://localhost')
+config.mongo = config.MongoConfig(**mongo_config)

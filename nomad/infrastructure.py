@@ -78,6 +78,7 @@ def setup_mongo():
     global mongo_client
     mongo_client = connect(db=config.mongo.db_name, host=config.mongo.host, port=config.mongo.port)
     logger.info('setup mongo connection')
+    return mongo_client
 
 
 def setup_elastic():

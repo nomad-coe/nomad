@@ -194,7 +194,7 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     def fail(self, *errors, log_level=logging.ERROR, **kwargs):
         """ Allows to fail the process. Takes strings or exceptions as args. """
-        assert self.tasks_running, 'Cannot fail a completed process.'
+        assert self.process_running or self.tasks_running, 'Cannot fail a completed process.'
 
         failed_with_exception = False
 
@@ -219,7 +219,7 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     def warning(self, *warnings, log_level=logging.WARNING, **kwargs):
         """ Allows to save warnings. Takes strings or exceptions as args. """
-        assert self.tasks_running
+        assert self.process_running or self.tasks_running
 
         logger = self.get_logger(**kwargs)
 

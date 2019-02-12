@@ -239,7 +239,7 @@ class Calc(Proc):
 
         # index in search
         with utils.timer(logger, 'indexed', step='persist'):
-            search.Entry.from_calc_with_metadata(calc_with_metadata, published=False).persist()
+            search.Entry.from_calc_with_metadata(calc_with_metadata, published=False).save()
 
         # persist the archive
         with utils.timer(

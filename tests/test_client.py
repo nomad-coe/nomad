@@ -19,11 +19,11 @@ from nomad.processing import SUCCESS
 from tests.test_files import example_file, create_public_upload
 
 
-def test_get_upload_command(bravado):
+def test_get_upload_command(bravado, no_warn):
     assert bravado.uploads.get_upload_command().response().result.upload_command is not None
 
 
-def test_upload(bravado, proc_infra):
+def test_upload(bravado, proc_infra, no_warn):
     with open(example_file, 'rb') as f:
         upload = bravado.uploads.upload(file=f, name='test_upload').response().result
 
@@ -34,7 +34,7 @@ def test_upload(bravado, proc_infra):
     assert upload.tasks_status == SUCCESS
 
 
-def test_get_repo_calc(bravado, raw_files):
+def test_get_repo_calc(bravado, raw_files, no_warn):
     create_public_upload('test_upload', 'pp')
     repo = bravado.repo.get_repo_calc(upload_id='test_upload', calc_id='0').response().result
     assert repo is not None

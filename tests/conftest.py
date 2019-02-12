@@ -16,8 +16,6 @@ from typing import Tuple
 import pytest
 import logging
 from sqlalchemy.orm import Session
-from mongoengine import connect
-from mongoengine.connection import disconnect
 from contextlib import contextmanager
 from collections import namedtuple
 from smtpd import SMTPServer
@@ -79,7 +77,7 @@ def raw_files(raw_files_infra):
 
 
 @pytest.fixture(scope='function')
-def client(monkeysession):
+def client(monkeysession, mongo):
     api.app.config['TESTING'] = True
     client = api.app.test_client()
 
@@ -99,22 +97,31 @@ def celery_config():
 
 
 @pytest.fixture(scope='session')
+def purged_app(celery_session_app):
+    """
+    Purges all pending tasks of the celery app before test. This is necessary to
+    remove tasks from the queue that might be 'left over' from prior tests.
+    """
+    celery_session_app.control.purge()
+    yield celery_session_app
+
+
+@pytest.fixture(scope='session')
 def worker(celery_session_worker):
     """ Provides a clean worker (no old tasks) per function. Waits for all tasks to be completed. """
     pass
 
 
+@pytest.fixture(scope='session')
+def mongo_infra(monkeysession):
+    return infrastructure.setup_mongo()
+
+
 @pytest.fixture(scope='function')
-def mongo(monkeypatch):
+def mongo(mongo_infra):
     """ Provides a cleaned mocked mongo per function. """
-
-    disconnect()
-    connection = connect('test_db', host='mongomock://localhost')
-    monkeypatch.setattr('nomad.infrastructure.setup_mongo', lambda **kwargs: None)
-
-    yield
-
-    connection.drop_database('test_db')
+    mongo_infra.drop_database('test_db')
+    return mongo_infra
 
 
 @pytest.fixture(scope='session')

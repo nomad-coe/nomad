@@ -46,7 +46,7 @@ def test_index_upload(elastic, processed: processing.Upload):
 
 
 def create_entry(calc_with_metadata: datamodel.CalcWithMetadata):
-    search.Entry.from_calc_with_metadata(calc_with_metadata).save(op_type='create')
+    search.Entry.from_calc_with_metadata(calc_with_metadata).save()
     assert_entry(calc_with_metadata.calc_id)
 
 
