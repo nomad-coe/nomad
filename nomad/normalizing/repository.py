@@ -69,8 +69,6 @@ class RepositoryNormalizer(Normalizer):
         except BadContextURI:
             b.openNonOverlappingSection('section_repository_info')
             repository_info_context = None
-        with open("test_file_inside_repopy_normalizer.json", "wt") as file:
-            b.write_json(file)
         b.openNonOverlappingSection('section_repository_parserdata')
 
         b.addValue('repository_checksum', b.get_value('calc_hash', 0))

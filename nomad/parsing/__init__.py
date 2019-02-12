@@ -200,6 +200,17 @@ parsers = [
             r'\s\*\*\*\*\*\*\*\*\*\*\*\**'
             r'\s*Gaussian\s*(?P<program_version>[0-9]+):\s*(?P<x_gaussian_program_implementation>[A-Za-z0-9-.]+)\s*(?P<x_gaussian_program_release_date>[0-9][0-9]?\-[A-Z][a-z][a-z]\-[0-9]+)'
             r'\s*(?P<x_gaussian_program_execution_date>[0-9][0-9]?\-[A-Z][a-z][a-z]\-[0-9]+)')
+    ),
+    LegacyParser(
+        name='parsers/quantumespresso',
+        parser_class_name='gaussianparser.GaussianParser',
+        main_file_re=r'^.*\.out$',
+        main_contents_re=(
+            r'\s*Cite this work as:'
+            r'\s*Gaussian [0-9]+, Revision [A-Za-z0-9.]*,'
+            r'\s\*\*\*\*\*\*\*\*\*\*\*\**'
+            r'\s*Gaussian\s*(?P<program_version>[0-9]+):\s*(?P<x_gaussian_program_implementation>[A-Za-z0-9-.]+)\s*(?P<x_gaussian_program_release_date>[0-9][0-9]?\-[A-Z][a-z][a-z]\-[0-9]+)'
+            r'\s*(?P<x_gaussian_program_execution_date>[0-9][0-9]?\-[A-Z][a-z][a-z]\-[0-9]+)')
     )
 ]
 
