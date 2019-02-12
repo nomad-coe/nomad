@@ -45,3 +45,4 @@
 [submodule "dependencies/parsers/gaussian"]
 	path = dependencies/parsers/gaussian
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gaussian
+
