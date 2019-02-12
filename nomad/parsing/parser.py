@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Callable, IO
 from abc import ABCMeta, abstractmethod
 import sys
 import re
@@ -41,8 +40,8 @@ class Parser(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def is_mainfile(self, filename: str, open: Callable[[str], IO[Any]]) -> bool:
-        """ Checks if a file is a mainfile via the parsers ``main_contents_re``. """
+    def is_mainfile(self, filename: str, mime: str, buffer: str) -> bool:
+        """ Checks if a file is a mainfile for the parsers. """
         pass
 
     @abstractmethod
@@ -70,37 +69,27 @@ class LegacyParser(Parser):
         python_get: the git repository and commit that contains the legacy parser
         parser_class_name: the main parser class that implements NOMAD-coe's
             python-common *ParserInterface*. Instances of this class are currently not reused.
-        main_file_re: A regexp that is used to match the paths of potential mainfiles
-        main_contents_re: A regexp that is used to match the first 500 bytes of a
+        mainfile_mime_re: A regexp that is used to match against a files mime type
+        mainfile_contents_re: A regexp that is used to match the first 1024 bytes of a
             potential mainfile.
+        mainfile_name_re: A regexp that is used to match the paths of potential mainfiles
     """
     def __init__(
-            self, name: str, parser_class_name: str, main_file_re: str,
-            main_contents_re: str) -> None:
+            self, name: str, parser_class_name: str,
+            mainfile_contents_re: str,
+            mainfile_mime_re: str = r'text/.*',
+            mainfile_name_re: str = r'.*') -> None:
 
         self.name = name
         self.parser_class_name = parser_class_name
-        self._main_file_re = re.compile(main_file_re)
-        self._main_contents_re = re.compile(main_contents_re)
+        self._mainfile_mime_re = re.compile(mainfile_mime_re)
+        self._mainfile_name_re = re.compile(mainfile_name_re)
+        self._mainfile_contents_re = re.compile(mainfile_contents_re)
 
-    def is_mainfile(self, filename: str, open: Callable[[str], IO[Any]]) -> bool:
-        # Number of bytes to read at top of file. We might have to change this
-        # in the future since there is variable size information at the top of the
-        # file for instance for crystal parser.
-        num_bytes = 2000
-        if self._main_file_re.match(filename):
-            file = None
-            try:
-                file = open(filename)
-
-                contents = file.read(num_bytes)
-                fake_var = self._main_contents_re.search(contents) is not None
-                return fake_var
-            finally:
-                if file:
-                    file.close()
-
-        return False
+    def is_mainfile(self, filename: str, mime: str, buffer: str) -> bool:
+        return self._mainfile_name_re.match(filename) is not None and \
+            self._mainfile_mime_re.match(mime) is not None and \
+            self._mainfile_contents_re.search(buffer) is not None
 
     def run(self, mainfile: str, logger=None) -> LocalBackend:
         # TODO we need a homogeneous interface to parsers, but we dont have it right now.

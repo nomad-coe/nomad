@@ -107,9 +107,23 @@ def purged_app(celery_session_app):
 
 
 @pytest.fixture(scope='session')
-def worker(celery_session_worker):
+def celery_inspect(purged_app):
+    yield purged_app.control.inspect()
+
+
+@pytest.fixture(scope='session')
+def worker(celery_session_worker, celery_inspect):
     """ Provides a clean worker (no old tasks) per function. Waits for all tasks to be completed. """
     pass
+
+    # wait until there no more active tasks, to leave clean worker and queues for the next
+    # test run.
+    while True:
+        empty = True
+        for value in celery_inspect.active().values():
+            empty = empty and len(value) == 0
+        if empty:
+            break
 
 
 @pytest.fixture(scope='session')
@@ -128,15 +142,28 @@ def mongo(mongo_infra):
 def elastic_infra(monkeysession):
     """ Provides elastic infrastructure to the session """
     monkeysession.setattr('nomad.config.elastic', config.elastic._replace(index_name='test_nomad_fairdi_calcs'))
-    return infrastructure.setup_elastic()
+    try:
+        return infrastructure.setup_elastic()
+    except Exception:
+        # try to delete index, error might be caused by changed mapping
+        from elasticsearch_dsl import connections
+        connections.create_connection(hosts=['%s:%d' % (config.elastic.host, config.elastic.port)]) \
+            .indices.delete(index='test_nomad_fairdi_calcs')
+        return infrastructure.setup_elastic()
 
 
 @pytest.fixture(scope='function')
 def elastic(elastic_infra):
     """ Provides a clean elastic per function. Clears elastic before test. """
-    elastic_infra.delete_by_query(
-        index='test_nomad_fairdi_calcs', body=dict(query=dict(match_all={})),
-        wait_for_completion=True, refresh=True)
+    while True:
+        try:
+            elastic_infra.delete_by_query(
+                index='test_nomad_fairdi_calcs', body=dict(query=dict(match_all={})),
+                wait_for_completion=True, refresh=True)
+            break
+        except Exception:
+            time.sleep(0.1)
+
     assert infrastructure.elastic_client is not None
     return elastic_infra
 

@@ -21,7 +21,7 @@ from nomadcore.local_meta_info import loadJsonFile
 import nomad_meta_info
 
 from nomad import utils
-from nomad.parsing import JSONStreamWriter, parser_dict
+from nomad.parsing import JSONStreamWriter, parser_dict, match_parser
 from nomad.parsing import LocalBackend, BadContextURI
 
 parser_examples = [
@@ -44,7 +44,7 @@ faulty_unknown_one_d_matid_example = [
     ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
 ]
 
-correct_num_output_files = 14
+correct_num_output_files = 15
 
 
 class TestLocalBackend(object):
@@ -293,8 +293,10 @@ def test_match(no_warn):
     for dirpath, _, filenames in os.walk(directory):
         for filename in filenames:
             fullname = os.path.join(dirpath, filename)
-            for parser in parser_dict.values():
-                if parser.is_mainfile(fullname, lambda fn: open(fn)):
-                    count += 1
+            parser = match_parser(fullname, lambda: open(fullname, 'rb'))
+            if parser is not None:
+                count += 1
+            else:
+                print(fullname)
 
     assert count == correct_num_output_files

@@ -33,7 +33,7 @@ from contextlib import contextmanager
 from nomad import utils, coe_repo, config, infrastructure, search
 from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles
 from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE
-from nomad.parsing import parsers, parser_dict
+from nomad.parsing import parser_dict, match_parser
 from nomad.normalizing import normalizers
 from nomad.datamodel import UploadWithMetadata, CalcWithMetadata
 
@@ -449,15 +449,14 @@ class Upload(Chord):
             Tuples of mainfile, filename, and parsers
         """
         for filename in self.upload_files.raw_file_manifest():
-            for parser in parsers:
-                try:
-                    with self.upload_files.raw_file(filename) as mainfile_f:
-                        if parser.is_mainfile(filename, lambda fn: mainfile_f):
-                            yield filename, parser
-                except Exception as e:
-                    self.get_logger().error(
-                        'exception while matching pot. mainfile',
-                        mainfile=filename, exc_info=e)
+            try:
+                parser = match_parser(filename, lambda: self.upload_files.raw_file(filename, 'rb'))
+                if parser is not None:
+                    yield filename, parser
+            except Exception as e:
+                self.get_logger().error(
+                    'exception while matching pot. mainfile',
+                    mainfile=filename, exc_info=e)
 
     @task
     def parse_all(self):
