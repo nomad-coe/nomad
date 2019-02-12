@@ -52,7 +52,7 @@ RUN \
 # Second, create a slim final image
 FROM final
 
-RUN apt-get update && apt-get install -y --no-install-recommends libgomp1
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && apt-get install -y libmagic-dev
 
 # copy the sources for tests, coverage, qa, etc.
 COPY . /app
