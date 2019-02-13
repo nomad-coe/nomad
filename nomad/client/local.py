@@ -91,7 +91,7 @@ class CalcProcReproduction:
         if parser_name is not None:
             parser = parser_dict.get(parser_name)
         else:
-            parser = match_parser(self.mainfile, lambda: self.upload_files.raw_file(self.mainfile, 'rb'))
+            parser = match_parser(self.mainfile, self.upload_files)
 
         assert parser is not None, 'there is not parser matching %s' % self.mainfile
         self.logger = self.logger.bind(parser=parser.name)  # type: ignore

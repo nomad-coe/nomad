@@ -50,7 +50,6 @@ import hashlib
 import base64
 import io
 import gzip
-import bz2
 
 from nomad import config, utils
 
@@ -273,14 +272,12 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         """ The calc metadata for this upload. """
         raise NotImplementedError
 
-    def raw_file(self, file_path: str, *args, compressed: bool = True, **kwargs) -> IO:
+    def raw_file(self, file_path: str, *args, **kwargs) -> IO:
         """
         Opens a raw file and returns a file-like object. Additional args, kwargs are
         delegated to the respective `open` call.
         Arguments:
             file_path: The path to the file relative to the upload.
-            compressed: If True will open the raw file as it is, even if it is compressed.
-                With False, it will transparently open to read the decompressed file contents.
         Raises:
             KeyError: If the file does not exist.
             Restricted: If the file is restricted and upload access evaluated to False.
@@ -345,26 +342,13 @@ class StagingUploadFiles(UploadFiles):
             raise Restricted
         return self._metadata
 
-    _compressions = {
-        b'\x1f\x8b\x08': gzip.open,
-        b'\x42\x5a\x68': bz2.open
-    }
-
-    def _file(self, path_object: PathObject, *args, compressed: bool = True, **kwargs) -> IO:
+    def _file(self, path_object: PathObject, *args, **kwargs) -> IO:
         try:
-            open_compressed = None
-            if not compressed:
-                with open(path_object.os_path, 'rb') as f:
-                    open_compressed = StagingUploadFiles._compressions[f.read(3)]
-
-            if open_compressed is not None and not compressed:
-                return open_compressed(path_object.os_path, *args, **kwargs)
-            else:
-                return open(path_object.os_path, *args, **kwargs)
+            return open(path_object.os_path, *args, **kwargs)
         except FileNotFoundError:
             raise KeyError()
 
-    def raw_file(self, file_path: str, *args, compressed: bool = False, **kwargs) -> IO:
+    def raw_file(self, file_path: str, *args, **kwargs) -> IO:
         if not self._is_authorized():
             raise Restricted
         return self._file(self.raw_file_object(file_path), *args, **kwargs)
@@ -432,7 +416,10 @@ class StagingUploadFiles(UploadFiles):
         if move:
             shutil.move(path, target_dir.os_path)
         else:
-            shutil.copy(path, target_dir.os_path)
+            if os.path.isdir(path):
+                shutil.copytree(path, os.path.join(target_dir.os_path, os.path.dirname(path)))
+            else:
+                shutil.copy(path, target_dir.os_path)
 
     @property
     def is_frozen(self) -> bool:
@@ -666,8 +653,7 @@ class PublicUploadFiles(UploadFiles):
 
         raise KeyError()
 
-    def raw_file(self, file_path: str, *args, compressed: bool = True, **kwargs) -> IO:
-        assert compressed, 'not supported'
+    def raw_file(self, file_path: str, *args, **kwargs) -> IO:
         return self._file('raw', 'bagit', 'data/' + file_path, *args, *kwargs)
 
     def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:

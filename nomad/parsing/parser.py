@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List
 from abc import ABCMeta, abstractmethod
 import sys
 import re
@@ -30,17 +31,10 @@ class Parser(metaclass=ABCMeta):
     """
     Instances specify a parser. It allows to find *main files* from  given uploaded
     and extracted files. Further, allows to run the parser on those 'main files'.
-
-    Arguments:
-        name: The name of the parser
-        parser_class_name: Full qualified name of the main parser class. We assume it have one
-                           parameter for the backend.
-        main_file_re: A regexp that matches main file paths that this parser can handle.
-        main_contents_re: A regexp that matches main file headers that this parser can parse.
     """
 
     @abstractmethod
-    def is_mainfile(self, filename: str, mime: str, buffer: str) -> bool:
+    def is_mainfile(self, filename: str, mime: str, buffer: str, compression: str = None) -> bool:
         """ Checks if a file is a mainfile for the parsers. """
         pass
 
@@ -73,23 +67,27 @@ class LegacyParser(Parser):
         mainfile_contents_re: A regexp that is used to match the first 1024 bytes of a
             potential mainfile.
         mainfile_name_re: A regexp that is used to match the paths of potential mainfiles
+        supported_compressions: A list of [gz, bz2], if the parser supports compressed files
     """
     def __init__(
             self, name: str, parser_class_name: str,
             mainfile_contents_re: str,
             mainfile_mime_re: str = r'text/.*',
-            mainfile_name_re: str = r'.*') -> None:
+            mainfile_name_re: str = r'.*',
+            supported_compressions: List[str] = []) -> None:
 
         self.name = name
         self.parser_class_name = parser_class_name
         self._mainfile_mime_re = re.compile(mainfile_mime_re)
         self._mainfile_name_re = re.compile(mainfile_name_re)
         self._mainfile_contents_re = re.compile(mainfile_contents_re)
+        self._supported_compressions = supported_compressions
 
-    def is_mainfile(self, filename: str, mime: str, buffer: str) -> bool:
+    def is_mainfile(self, filename: str, mime: str, buffer: str, compression: str = None) -> bool:
         return self._mainfile_name_re.match(filename) is not None and \
             self._mainfile_mime_re.match(mime) is not None and \
-            self._mainfile_contents_re.search(buffer) is not None
+            self._mainfile_contents_re.search(buffer) is not None and \
+            (compression is None or compression in self._supported_compressions)
 
     def run(self, mainfile: str, logger=None) -> LocalBackend:
         # TODO we need a homogeneous interface to parsers, but we dont have it right now.

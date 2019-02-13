@@ -20,7 +20,7 @@ import pytest
 from nomadcore.local_meta_info import loadJsonFile
 import nomad_meta_info
 
-from nomad import utils
+from nomad import utils, files
 from nomad.parsing import JSONStreamWriter, parser_dict, match_parser
 from nomad.parsing import LocalBackend, BadContextURI
 
@@ -30,6 +30,7 @@ parser_examples = [
     ('parsers/exciting', 'tests/data/parsers/exciting/Ag/INFO.OUT'),
     ('parsers/exciting', 'tests/data/parsers/exciting/GW/INFO.OUT'),
     ('parsers/vasp', 'tests/data/parsers/vasp/vasp.xml'),
+    ('parsers/vasp', 'tests/data/parsers/vasp_compressed/vasp.xml.gz'),
     ('parsers/vaspoutcar', 'tests/data/parsers/vasp_outcar/OUTCAR'),
     ('parsers/fhi-aims', 'tests/data/parsers/fhi-aims/aims.out'),
     ('parsers/cp2k', 'tests/data/parsers/cp2k/si_bulk8.out'),
@@ -44,7 +45,7 @@ faulty_unknown_one_d_matid_example = [
     ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
 ]
 
-correct_num_output_files = 15
+correct_num_output_files = 16
 
 
 class TestLocalBackend(object):
@@ -287,16 +288,15 @@ def test_parser(parser_name, mainfile):
     assert_parser_result(parsed_example)
 
 
-def test_match(no_warn):
-    directory = 'tests/data/parsers'
+def test_match(raw_files, no_warn):
+    example_upload_id = 'example_upload_id'
+    upload_files = files.StagingUploadFiles(example_upload_id, create=True, is_authorized=lambda: True)
+    upload_files.add_rawfiles('tests/data/parsers')
+
     count = 0
-    for dirpath, _, filenames in os.walk(directory):
-        for filename in filenames:
-            fullname = os.path.join(dirpath, filename)
-            parser = match_parser(fullname, lambda: open(fullname, 'rb'))
-            if parser is not None:
-                count += 1
-            else:
-                print(fullname)
+    for mainfile in upload_files.raw_file_manifest():
+        parser = match_parser(mainfile, upload_files)
+        if parser is not None:
+            count += 1
 
     assert count == correct_num_output_files

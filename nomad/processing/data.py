@@ -450,7 +450,7 @@ class Upload(Chord):
         """
         for filename in self.upload_files.raw_file_manifest():
             try:
-                parser = match_parser(filename, lambda: self.upload_files.raw_file(filename, 'rb'))
+                parser = match_parser(filename, self.upload_files)
                 if parser is not None:
                     yield filename, parser
             except Exception as e:

@@ -60,13 +60,23 @@ based on NOMAD-coe's *python-common* module.
 """
 from typing import Callable, IO
 import magic
+import gzip
+import bz2
+
+from nomad import files
 
 from nomad.parsing.backend import AbstractParserBackend, LocalBackend, LegacyLocalBackend, JSONStreamWriter, BadContextURI, WrongContextState
 from nomad.parsing.parser import Parser, LegacyParser, VaspOutcarParser
 from nomad.parsing.artificial import TemplateParser, GenerateRandomParser, ChaosParser
 
 
-def match_parser(mainfile: str, open: Callable[[], IO]) -> 'Parser':
+_compressions = {
+    b'\x1f\x8b\x08': ('gz', gzip.open),
+    b'\x42\x5a\x68': ('bz2', bz2.open)
+}
+
+
+def match_parser(mainfile: str, upload_files: files.StagingUploadFiles) -> 'Parser':
     """
     Performs parser matching. This means it take the given mainfile and potentially
     opens it with the given callback and tries to identify a parser that can parse
@@ -81,7 +91,10 @@ def match_parser(mainfile: str, open: Callable[[], IO]) -> 'Parser':
 
     Returns: The parser, or None if no parser could be matched.
     """
-    with open() as f:
+    with upload_files.raw_file(mainfile, 'rb') as f:
+        compression, open_compressed = _compressions.get(f.read(3), (None, open))
+
+    with open_compressed(upload_files.raw_file_object(mainfile).os_path, 'rb') as f:
         buffer = f.read(2048)
 
     mime_type = magic.from_buffer(buffer, mime=True)
@@ -89,7 +102,7 @@ def match_parser(mainfile: str, open: Callable[[], IO]) -> 'Parser':
         return None
 
     for parser in parsers:
-        if parser.is_mainfile(mainfile, mime_type, buffer.decode('utf-8')):
+        if parser.is_mainfile(mainfile, mime_type, buffer.decode('utf-8'), compression):
             return parser
 
     return None
@@ -108,7 +121,8 @@ parsers = [
             r'?\s*<modeling>'
             r'?\s*<generator>'
             r'?\s*<i name="program" type="string">\s*vasp\s*</i>'
-            r'?')
+            r'?'),
+        supported_compressions=['gz', 'bz2']
     ),
     VaspOutcarParser(
         name='parsers/vasp',
