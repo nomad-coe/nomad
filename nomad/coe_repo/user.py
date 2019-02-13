@@ -13,9 +13,12 @@
 # limitations under the License.
 
 from passlib.hash import bcrypt
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.orm import relationship
 import datetime
 import jwt
+import random
+import string
 
 from nomad import infrastructure, config, utils
 
@@ -25,8 +28,9 @@ from .base import Base
 class Session(Base):  # type: ignore
     __tablename__ = 'sessions'
 
-    token = Column(String, primary_key=True)
-    user_id = Column(String)
+    token = Column(String)
+    user_id = Column(String, ForeignKey('users.user_id'), primary_key=True)
+    user = relationship('User')
 
 
 class LoginException(Exception):
@@ -52,19 +56,50 @@ class User(Base):  # type: ignore
     affiliation = Column(String)
     password = Column(String)
 
+    _token_chars = string.ascii_uppercase + string.ascii_lowercase + string.digits
+
     def __repr__(self):
         return '<User(email="%s")>' % self.email
 
-    def _hash_password(self, password):
-        assert False, 'Login functions are done by the NOMAD-coe repository GUI'
-        # password_hash = bcrypt.encrypt(password, ident='2y')
-        # self.password = password_hash
+    @staticmethod
+    def create_user(email: str, password: str, crypted: bool, **kwargs):
+        repo_db = infrastructure.repository_db
+        repo_db.begin()
+        try:
+            user = User(email=email, **kwargs)
+            repo_db.add(user)
+            user.set_password(password, crypted)
+
+            # TODO this has to change, e.g. trade for JWTs
+            token = ''.join(random.choices(User._token_chars, k=64))
+            repo_db.add(Session(token=token, user=user))
+
+            repo_db.commit()
+            return user
+        except Exception as e:
+            repo_db.rollback()
+            utils.get_logger('__name__').error('could not create user', email=email, exc_info=e)
+            raise e
+
+    def update(self, crypted: bool = True, password: str = None, **kwargs):
+        repo_db = infrastructure.repository_db
+        repo_db.begin()
+        try:
+            if password is not None:
+                self.set_password(password, crypted=crypted)
+
+            for key in kwargs:
+                setattr(self, key, kwargs.get(key))
+
+            repo_db.commit()
+        except Exception as e:
+            repo_db.rollback()
+            utils.get_logger('__name__').error(
+                'could not edit user', email=self.email, user_id=self.user_id, exc_info=e)
+            raise e
 
     def _verify_password(self, password):
         return bcrypt.verify(password, self.password)
-
-    def _generate_auth_token(self, expiration=600):
-        assert False, 'Login functions are done by the NOMAD-coe repository GUI'
 
     @staticmethod
     def from_user_id(user_id) -> 'User':
@@ -89,6 +124,20 @@ class User(Base):  # type: ignore
             dict(user=self.email, exp=expires_at),
             config.services.api_secret, 'HS256').decode('utf-8')
         return token, expires_at
+
+    def set_password(self, password: str, crypted: bool):
+        """
+        Sets the users password. With ``crypted=True`` password is supposed to
+        be already bcrypted and 2y-indented.
+        """
+        if password is None:
+            return
+
+        if crypted:
+            self.password = password
+        else:
+            password_hash = bcrypt.encrypt(password, ident='2y')
+            self.password = password_hash
 
     @property
     def token(self):

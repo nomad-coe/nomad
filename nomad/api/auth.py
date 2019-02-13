@@ -135,6 +135,7 @@ user_model = api.model('User', {
     'last_name': fields.String(description='The user\'s last name'),
     'email': fields.String(description='Guess what, the user\'s email'),
     'affiliation': fields.String(description='The user\'s affiliation'),
+    'password': fields.String(description='The bcrypt 2y-indented password for initial and changed password'),
     'token': fields.String(
         description='The access token that authenticates the user with the API. '
         'User the HTTP header "X-Token" to provide it in API requests.')
@@ -160,6 +161,54 @@ class UserResource(Resource):
             abort(
                 401,
                 message='User not logged in, provide credentials via Basic HTTP authentication.')
+
+    @api.doc('create_user')
+    @api.expect(user_model)
+    @api.marshal_with(user_model, skip_none=True, code=200, description='User created')
+    @login_really_required
+    def put(self):
+        """
+        Creates a new user account. Currently only the admin user is allows. The
+        NOMAD-CoE repository GUI should be used to create user accounts for now.
+        Passwords have to be encrypted by the client with bcrypt and 2y indent.
+        """
+        if not g.user.is_admin:
+            abort(401, message='Only the admin user can perform create user.')
+
+        data = request.get_json()
+        if data is None:
+            data = {}
+
+        for required_key in ['last_name', 'first_name', 'password', 'email']:
+            if required_key not in data:
+                abort(400, message='The %s is missing' % required_key)
+
+        user = coe_repo.User.create_user(
+            email=data['email'], password=data.get('password', None), crypted=True,
+            first_name=data['first_name'], last_name=data['last_name'],
+            affiliation=data.get('affiliation', None))
+
+        return user, 200
+
+    @api.doc('update_user')
+    @api.expect(user_model)
+    @api.marshal_with(user_model, skip_none=True, code=200, description='User updated')
+    @login_really_required
+    def post(self):
+        """
+        Allows to edit the authenticated user and change his password. Password
+        have to be encrypted by the client with bcrypt and 2y indent.
+        """
+        data = request.get_json()
+        if data is None:
+            data = {}
+
+        if 'email' in data:
+            abort(400, message='Cannot change the users email.')
+
+        g.user.update(crypted=True, **data)
+
+        return g.user, 200
 
 
 token_model = api.model('Token', {

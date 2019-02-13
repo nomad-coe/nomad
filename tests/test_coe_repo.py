@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import pytest
+from passlib.hash import bcrypt
 
 from nomad.coe_repo import User, Calc, Upload
 from nomad import processing, parsing, datamodel
@@ -115,6 +116,20 @@ def test_add_upload_with_metadata(processed, example_user_metadata):
     Upload.add(upload_with_metadata)
     assert_coe_upload(
         processed.upload_id, upload_with_metadata)
+
+
+@pytest.mark.parametrize('crypted', [True, False])
+def test_create_user(postgres, crypted):
+    password = bcrypt.encrypt('test_password', ident='2y') if crypted else 'test_password'
+    data = dict(
+        email='test@email.com', last_name='Teser', first_name='testi', password=password)
+
+    user = User.create_user(**data, crypted=crypted)
+
+    authenticated_user = User.verify_user_password('test@email.com', 'test_password')
+    assert authenticated_user is not None
+    assert user.user_id == authenticated_user.user_id
+    assert user.get_auth_token() is not None
 
 
 class TestDataSets:

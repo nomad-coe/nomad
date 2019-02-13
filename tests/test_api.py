@@ -19,6 +19,7 @@ import base64
 import zipfile
 import io
 import inspect
+from passlib.hash import bcrypt
 
 from nomad import config, coe_repo
 from nomad.files import UploadFiles, PublicUploadFiles
@@ -112,7 +113,9 @@ class TestAuth:
     def test_get_user(self, client, test_user_auth, test_user: User, no_warn):
         rv = client.get('/auth/user', headers=test_user_auth)
         assert rv.status_code == 200
-        user = json.loads(rv.data)
+        self.assert_user(client, json.loads(rv.data))
+
+    def assert_user(self, client, user):
         for key in ['first_name', 'last_name', 'email', 'token']:
             assert key in user
 
@@ -124,6 +127,49 @@ class TestAuth:
 
     def test_signature_token(self, test_user_signature_token, no_warn):
         assert test_user_signature_token is not None
+
+    def test_put_user(self, client, postgres, admin_user_auth):
+        rv = client.put(
+            '/auth/user', headers=admin_user_auth,
+            content_type='application/json', data=json.dumps(dict(
+                email='test@email.com', last_name='Tester', first_name='Testi',
+                password=bcrypt.encrypt('test_password', ident='2y'))))
+
+        assert rv.status_code == 200
+        self.assert_user(client, json.loads(rv.data))
+
+    def test_put_user_admin_only(self, client, test_user_auth):
+        rv = client.put(
+            '/auth/user', headers=test_user_auth,
+            content_type='application/json', data=json.dumps(dict(
+                email='test@email.com', last_name='Tester', first_name='Testi',
+                password=bcrypt.encrypt('test_password', ident='2y'))))
+        assert rv.status_code == 401
+
+    def test_put_user_required_field(self, client, admin_user_auth):
+        rv = client.put(
+            '/auth/user', headers=admin_user_auth,
+            content_type='application/json', data=json.dumps(dict(
+                email='test@email.com', password=bcrypt.encrypt('test_password', ident='2y'))))
+        assert rv.status_code == 400
+
+    def test_post_user(self, client, postgres, admin_user_auth):
+        rv = client.put(
+            '/auth/user', headers=admin_user_auth,
+            content_type='application/json', data=json.dumps(dict(
+                email='test@email.com', last_name='Tester', first_name='Testi',
+                password=bcrypt.encrypt('test_password', ident='2y'))))
+
+        assert rv.status_code == 200
+        user = json.loads(rv.data)
+
+        rv = client.post(
+            '/auth/user', headers={'X-Token': user['token']},
+            content_type='application/json', data=json.dumps(dict(
+                last_name='Tester', first_name='Testi v.',
+                password=bcrypt.encrypt('test_password_changed', ident='2y'))))
+        assert rv.status_code == 200
+        self.assert_user(client, json.loads(rv.data))
 
 
 class TestUploads:
