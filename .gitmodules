@@ -46,3 +46,6 @@
 	path = dependencies/parsers/gaussian
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gaussian
 
+[submodule "dependencies/parsers/quantum-espresso"]
+	path = dependencies/parsers/quantum-espresso
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-quantum-espresso

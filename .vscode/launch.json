@@ -138,6 +138,17 @@
       ]
     },
     {
+      "name": "Python: Quantum Espresso",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_parsing.py::test_parser[parsers/quantumespresso-tests/data/parsers/quantum-espresso/W.out]"
+      ]
+    },
+
+    {
       "name": "Python: Current File",
       "type": "python",
       "request": "launch",

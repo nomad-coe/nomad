@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import re
-import json
 
 from nomad.parsing import BadContextURI
 
@@ -62,7 +61,9 @@ class RepositoryNormalizer(Normalizer):
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
         b = self._backend
-
+        # Don't check this in!
+        with open("test_file_quantum_espresso.json", "wt") as file:
+            b.write_json(file)
         repository_info_context = '/section_repository_info/0'
         try:
             b.openContext(repository_info_context)
