@@ -121,15 +121,9 @@ class LegacyParser(Parser):
         kwargs = {key: value for key, value in kwargs.items() if key in init_signature.args}
 
         with utils.legacy_logger(logger):
-            print('keyword arguments')
-            print(kwargs)
-            print("parser name")
-            print(str(Parser))
             self.parser = Parser(**kwargs)
 
             with patch.object(sys, 'argv', []):
-                print("mainfile is:")
-                print(mainfile)
                 backend = self.parser.parse(mainfile)
 
             if backend is None or not hasattr(backend, 'status'):

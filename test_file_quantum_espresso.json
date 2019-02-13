@@ -2,769 +2,88 @@
   "section_run": {
     "_name": "section_run",
     "_gIndex": 0,
-    "calculation_file_uri": "file://tests/data/parsers/quantum-espresso/benchmark.out",
-    "program_version": "5.2.1 (svn rev. 11920)",
-    "time_run_date_start": 1451140249,
-    "x_qe_program_name": "PWSCF",
+    "program_name": "VASP",
+    "program_version": "4.6.35  3Apr08 complex  parallel LinuxIFC",
     "program_basis_set_type": "plane waves",
-    "program_name": "Quantum Espresso",
-    "x_qe_input_filename": "dft1.in",
-    "time_run_date_end": 1451140249,
-    "run_clean_end": true,
-    "x_qe_profile_function": [
-      "init_run", 
-      "electrons", 
-      "wfcinit", 
-      "potinit", 
-      "c_bands", 
-      "sum_band", 
-      "v_of_rho", 
-      "mix_rho", 
-      "init_us_2", 
-      "cegterg", 
-      "h_psi", 
-      "g_psi", 
-      "cdiaghg", 
-      "add_vuspsi", 
-      "calbec", 
-      "fft", 
-      "fftw", 
-      "davcio", 
-      "PWSCF"
-    ],
-    "x_qe_profile_cputime": [
-      0.04, 
-      0.12, 
-      0.01, 
-      0.01, 
-      0.05, 
-      0.02, 
-      0.05, 
-      0.0, 
-      0.0, 
-      0.05, 
-      0.04, 
-      0.0, 
-      0.01, 
-      0.0, 
-      0.01, 
-      0.0, 
-      0.03, 
-      0.0, 
-      0.19
-    ],
-    "x_qe_profile_walltime": [
-      0.03, 
-      0.03, 
-      0.0, 
-      0.0, 
-      0.01, 
-      0.0, 
-      0.01, 
-      0.0, 
-      0.0, 
-      0.01, 
-      0.01, 
-      0.0, 
-      0.0, 
-      0.0, 
-      0.0, 
-      0.0, 
-      0.01, 
-      0.0, 
-      0.09
-    ],
-    "x_qe_profile_ncalls": [
-      1.0, 
-      1.0, 
-      1.0, 
-      1.0, 
-      6.0, 
-      6.0, 
-      6.0, 
-      6.0, 
-      26.0, 
-      12.0, 
-      36.0, 
-      22.0, 
-      32.0, 
-      36.0, 
-      36.0, 
-      67.0, 
-      328.0, 
-      2.0, 
-      NaN
-    ],
-    "x_qe_profile_category": [
-      "", 
-      "", 
-      "", 
-      "", 
-      "", 
-      "", 
-      "", 
-      "", 
-      "", 
-      "", 
-      "", 
-      "", 
-      "", 
-      "", 
-      "General", 
-      "General", 
-      "General", 
-      "General", 
-      "General"
-    ],
-    "x_qe_profile_caller": [
-      "", 
-      "", 
-      "init_run", 
-      "init_run", 
-      "electrons", 
-      "electrons", 
-      "electrons", 
-      "electrons", 
-      "c_bands", 
-      "c_bands", 
-      "*egterg", 
-      "*egterg", 
-      "*egterg", 
-      "h_psi", 
-      "", 
-      "", 
-      "", 
-      "", 
-      ""
-    ],
     "section_method": {
       "_name": "section_method",
       "_gIndex": 0,
-      "x_qe_sticks_sum_G_PW": 283,
-      "x_qe_sticks_sum_G_dense": 1459,
-      "x_qe_sticks_sum_G_smooth": 1459,
-      "x_qe_sticks_sum_PW": 55,
-      "x_qe_sticks_sum_dense": 163,
-      "x_qe_sticks_sum_smooth": 163,
-      "scf_threshold_energy_change": 2.179872170368037e-24,
-      "x_qe_potential_mixing_beta": 0.7,
-      "x_qe_potential_mixing_iterations": 8,
-      "x_qe_potential_mixing_scheme": "plain",
-      "x_qe_xc_functional_num": " 1  4  2  2 0 0",
-      "x_qe_xc_functional_shortname": "PW91",
-      "x_qe_starting_potential": "superposition of free atoms",
-      "x_qe_starting_charge": 7.99901,
-      "x_qe_starting_charge_renormalized": 8.0,
-      "x_qe_starting_wfc": "are    8 randomized atomic wfcs",
-      "x_qe_time_setup_cpu1_end": 0.0,
-      "x_qe_per_process_mem": 13421772.8,
-      "x_qe_xc_functional_user_enforced": true,
-      "x_qe_xc_icorr": 4,
-      "x_qe_xc_icorr_comment": "Perdew-Wang",
-      "x_qe_xc_icorr_name": "pw",
-      "x_qe_xc_iexch": 1,
-      "x_qe_xc_iexch_comment": "Slater (alpha=2/3)",
-      "x_qe_xc_iexch_name": "sla",
-      "x_qe_xc_igcc": 2,
-      "x_qe_xc_igcc_comment": "Perdew-Wang 91 corr.",
-      "x_qe_xc_igcc_name": "ggc",
-      "x_qe_xc_igcx": 2,
-      "x_qe_xc_igcx_comment": "Perdew-Wang 91",
-      "x_qe_xc_igcx_name": "ggx",
       "electronic_structure_method": "DFT",
-      "x_qe_allocated_array_name": [
-        "Kohn-Sham Wavefunctions", 
-        "NL pseudopotentials", 
-        "Each V/rho on FFT grid", 
-        "Each G-vector array", 
-        "G-vector shells"
-      ],
-      "x_qe_allocated_array_size": [
-        83886.08, 
-        167772.16, 
-        419430.4, 
-        83886.08, 
-        0.0
-      ],
-      "x_qe_allocated_array_dimensions": [
-        "186,    4", 
-        "186,    8", 
-        "3375", 
-        "1459", 
-        "43"
-      ],
-      "x_qe_temporary_array_name": [
-        "Auxiliary wavefunctions", 
-        "Each subspace H/S matrix", 
-        "Each <psi_i|beta_j> matrix", 
-        "Arrays for rho mixing"
-      ],
-      "x_qe_temporary_array_size": [
-        419430.4, 
-        0.0, 
-        0.0, 
-        3439329.28
-      ],
-      "x_qe_temporary_array_dimensions": [
-        "186,   16", 
-        "16,   16", 
-        "8,    4", 
-        "3375,    8"
-      ],
-      "section_method_basis_set": [
-        {
-          "_name": "section_method_basis_set",
-          "_gIndex": 0,
-          "mapping_section_method_basis_set_cell_associated": 0,
-          "method_basis_set_kind": "wavefunction"
-        },
-        {
-          "_name": "section_method_basis_set",
-          "_gIndex": 1,
-          "mapping_section_method_basis_set_cell_associated": 1,
-          "method_basis_set_kind": "density"
-        }
-      ],
-      "section_method_atom_kind": {
-        "_name": "section_method_atom_kind",
+      "section_XC_functionals": {
+        "_name": "section_XC_functionals",
         "_gIndex": 0,
-        "method_atom_kind_explicit_electrons": 4.0,
-        "method_atom_kind_label": "Si",
-        "x_qe_kind_mass": 28.086,
-        "x_qe_pp_label": "Si",
-        "x_qe_pp_weight": 1.0,
-        "x_qe_pp_comment": "Generated by new atomic code, or converted to UPF format",
-        "x_qe_pp_filename": "/home/fs395/scratch/QE/espresso/pseudo/Si.pz-vbc.UPF",
-        "x_qe_pp_idx": 1,
-        "x_qe_pp_l": 1,
-        "x_qe_pp_l_idx": 2,
-        "x_qe_pp_md5sum": "6dfa03ddd5817404712e03e4d12deb78",
-        "x_qe_pp_nbeta": 2,
-        "x_qe_pp_ndmx": 431,
-        "x_qe_pp_type": "Norm-conserving",
-        "x_qe_pp_valence": 4.0,
-        "method_atom_kind_pseudopotential_name": "Si.pz-vbc.UPF"
-      },
-      "section_XC_functionals": [
-        {
-          "_name": "section_XC_functionals",
-          "_gIndex": 0,
-          "XC_functional_name": "GGA_C_PW91"
-        },
-        {
-          "_name": "section_XC_functionals",
-          "_gIndex": 1,
-          "XC_functional_name": "GGA_X_PW91"
-        }
-      ]
+        "XC_functional_name": "GGA_X_PBE"
+      }
     },
     "section_system": {
       "_name": "section_system",
       "_gIndex": 0,
-      "x_qe_ibrav": 2,
-      "x_qe_alat": 5.397607548834e-10,
-      "x_qe_cell_volume": 3.931370027105755e-29,
-      "number_of_atoms": 2,
-      "x_qe_number_of_species": 1,
-      "x_qe_number_of_states": 4,
-      "x_qe_nsymm": 24,
-      "x_qe_symm_inversion": false,
-      "x_qe_nsymm_ignored": 24,
-      "x_qe_nk": 2,
-      "x_qe_dense_g_vectors": 1459,
-      "configuration_raw_gid": "sQxzp_3munLdEJC8j23t5fMsZ1xHJ",
+      "configuration_raw_gid": "sTZqOzYKfxJbI5jmm8xVLp4OcGhdj",
       "atom_species": [
+        35,
+        19,
         14,
         14
       ],
-      "chemical_composition": "SiSi",
-      "chemical_composition_reduced": "Si2",
-      "chemical_composition_bulk_reduced": "Si2",
-      "system_type": "Bulk",
-      "simulation_cell": [
-        [
-          -2.698803774417e-10, 
-          0.0, 
-          2.698803774417e-10
-        ], 
-        [
-          0.0, 
-          2.698803774417e-10, 
-          2.698803774417e-10
-        ], 
-        [
-          -2.698803774417e-10, 
-          2.698803774417e-10, 
-          0.0
-        ]
-      ],
-      "x_qe_reciprocal_cell": [
-        [
-          -11640685711.833366, 
-          -11640685711.833366, 
-          11640685711.833366
-        ], 
-        [
-          11640685711.833366, 
-          11640685711.833366, 
-          11640685711.833366
-        ], 
-        [
-          -11640685711.833366, 
-          11640685711.833366, 
-          -11640685711.833366
-        ]
-      ],
-      "atom_positions": [
-        [
-          0.0, 
-          0.0, 
-          0.0
-        ], 
-        [
-          1.3494018872085e-10, 
-          1.3494018872085e-10, 
-          1.3494018872085e-10
-        ]
-      ],
-      "atom_labels": [
-        "Si", 
-        "Si"
-      ],
-      "x_qe_atom_idx": [
-        1, 
-        2
-      ],
-      "x_qe_celldm": [
-        5.397607548834e-10, 
-        0.0, 
-        0.0, 
-        0.0, 
-        0.0, 
-        0.0
-      ],
-      "x_qe_k_info_vec": [
-        [
-          2910171427.9583416, 
-          2910171427.9583416, 
-          2910171427.9583416
-        ], 
-        [
-          2910171427.9583416, 
-          2910171427.9583416, 
-          8730514283.875025
-        ]
-      ],
-      "x_qe_k_info_ik": [
-        1, 
-        2
-      ],
-      "x_qe_k_info_wk": [
-        0.5, 
-        1.5
-      ],
-      "x_qe_dense_FFT_grid": [
-        [
-          15, 
-          15, 
-          15
-        ]
-      ],
-      "number_of_electrons": [
-        8.0
-      ],
+      "chemical_composition": "BrKSiSi",
+      "chemical_composition_reduced": "BrKSi2",
+      "chemical_composition_bulk_reduced": "BrKSi2",
+      "system_type": "Unknown",
       "configuration_periodic_dimensions": [
         true, 
         true, 
         true
       ],
-      "section_symmetry": {
-        "_name": "section_symmetry",
-        "_gIndex": 0,
-        "symmetry_method": "Matid (spg)",
-        "space_group_number": 227,
-        "hall_number": 525,
-        "hall_symbol": "F 4d 2 3 -1d",
-        "international_short_symbol": "Fd-3m",
-        "point_group": "m-3m",
-        "crystal_system": "cubic",
-        "bravais_lattice": "cF",
-        "origin_shift": [
-          0.0, 
-          0.0, 
-          0.0
-        ],
-        "transformation_matrix": [
-          [
-            -0.5, 
-            0.0, 
-            -0.5
-          ], 
-          [
-            0.0, 
-            0.5, 
-            0.5
-          ], 
-          [
-            0.5, 
-            0.5, 
-            0.0
-          ]
-        ],
-        "section_std_system": {
-          "_name": "section_std_system",
-          "_gIndex": 0,
-          "lattice_vectors_std": [
-            [
-              5.397607548833999, 
-              0.0, 
-              0.0
-            ], 
-            [
-              0.0, 
-              5.397607548833999, 
-              0.0
-            ], 
-            [
-              0.0, 
-              0.0, 
-              5.397607548833999
-            ]
-          ],
-          "atom_positions_std": [
-            [
-              0.0, 
-              0.0, 
-              0.0
-            ], 
-            [
-              0.75, 
-              0.25, 
-              0.75
-            ], 
-            [
-              0.0, 
-              0.5, 
-              0.5
-            ], 
-            [
-              0.75, 
-              0.75, 
-              0.25
-            ], 
-            [
-              0.5, 
-              0.0, 
-              0.5
-            ], 
-            [
-              0.25, 
-              0.25, 
-              0.25
-            ], 
-            [
-              0.5, 
-              0.5, 
-              0.0
-            ], 
-            [
-              0.25, 
-              0.75, 
-              0.75
-            ]
-          ],
-          "atomic_numbers_std": [
-            14, 
-            14, 
-            14, 
-            14, 
-            14, 
-            14, 
-            14, 
-            14
-          ],
-          "wyckoff_letters_std": [
-            "a", 
-            "a", 
-            "a", 
-            "a", 
-            "a", 
-            "a", 
-            "a", 
-            "a"
-          ],
-          "equivalent_atoms_std": [
-            0, 
-            0, 
-            0, 
-            0, 
-            0, 
-            0, 
-            0, 
-            0
-          ]
-        },
-        "section_primitive_system": {
-          "_name": "section_primitive_system",
-          "_gIndex": 0,
-          "lattice_vectors_primitive": [
-            [
-              0.0, 
-              2.6988037744169997, 
-              2.6988037744169997
-            ], 
-            [
-              2.6988037744169997, 
-              0.0, 
-              2.6988037744169997
-            ], 
-            [
-              2.6988037744169997, 
-              2.6988037744169997, 
-              0.0
-            ]
-          ],
-          "atom_positions_primitive": [
-            [
-              0.0, 
-              0.0, 
-              -0.0
-            ], 
-            [
-              0.25, 
-              0.25, 
-              0.25
-            ]
-          ],
-          "atomic_numbers_primitive": [
-            14, 
-            14
-          ],
-          "wyckoff_letters_primitive": [
-            "a", 
-            "a"
-          ],
-          "equivalent_atoms_primitive": [
-            0, 
-            0
-          ]
-        },
-        "section_original_system": {
-          "_name": "section_original_system",
-          "_gIndex": 0,
-          "wyckoff_letters_original": [
-            "a", 
-            "a"
-          ],
-          "equivalent_atoms_original": [
-            0, 
-            0
-          ]
-        }
-      }
+      "atom_positions": [
+        [
+          true, 
+          false, 
+          true
+        ], 
+        [
+          true, 
+          false, 
+          true
+        ], 
+        [
+          true, 
+          false, 
+          true
+        ], 
+        [
+          true, 
+          true, 
+          false
+        ]
+      ],
+      "atom_labels": [
+        "Br", 
+        "K", 
+        "Si", 
+        "Si"
+      ]
     },
-    "x_qe_section_parallel": {
-      "_name": "x_qe_section_parallel",
-      "_gIndex": 0,
-      "x_qe_nthreads": 4
-    },
-    "x_qe_section_compile_options": [
-      {
-        "_name": "x_qe_section_compile_options",
-        "_gIndex": 0,
-        "x_qe_compile_parallel_version": "Serial multi-threaded"
-      },
-      {
-        "_name": "x_qe_section_compile_options",
-        "_gIndex": 1,
-        "x_qe_ntypx": 10,
-        "x_qe_npk": 40000,
-        "x_qe_lmaxx": 3
-      }
-    ],
-    "section_basis_set_cell_dependent": [
-      {
-        "_name": "section_basis_set_cell_dependent",
-        "_gIndex": 0,
-        "basis_set_planewave_cutoff": 2.6158466044416446e-17,
-        "basis_set_cell_dependent_name": "PW_12.0",
-        "basis_set_cell_dependent_kind": "plane_waves"
-      },
-      {
-        "_name": "section_basis_set_cell_dependent",
-        "_gIndex": 1,
-        "basis_set_planewave_cutoff": 1.0463386417766578e-16,
-        "basis_set_cell_dependent_name": "PW_48.0",
-        "basis_set_cell_dependent_kind": "plane_waves"
-      }
-    ],
     "section_single_configuration_calculation": {
       "_name": "section_single_configuration_calculation",
       "_gIndex": 0,
-      "energy_total": -3.451479994620605e-17,
-      "x_qe_energy_total_harris_foulkes_estimate": -3.451479994620605e-17,
-      "x_qe_energy_total_accuracy_estimate": 8.719488681472149e-26,
-      "x_qe_convergence_iterations": 5,
-      "x_qe_output_datafile": "pwscf.save",
-      "single_configuration_to_calculation_method_ref": 0,
       "single_configuration_calculation_to_system_ref": 0,
-      "x_qe_energy_decomposition_name": [
-        "one-electron contribution", 
-        "hartree contribution", 
-        "xc contribution", 
-        "ewald contribution"
-      ],
-      "x_qe_energy_decomposition_value": [
-        1.048965228611283e-17, 
-        2.450590560602209e-18, 
-        -1.0615729378440631e-17, 
-        -3.683931341448046e-17
-      ],
-      "energy_reference_highest_occupied": [
-        8.821583974180001e-19
-      ],
-      "section_scf_iteration": [
-        {
-          "_name": "section_scf_iteration",
-          "_gIndex": 0,
-          "x_qe_iteration_beta": 0.7,
-          "x_qe_iteration_ecutwfc": 2.6158466044416446e-17,
-          "x_qe_iteration_number": 1,
-          "time_scf_iteration_cpu1_end": 0.1,
-          "energy_total_scf_iteration": -3.45078845415315e-17,
-          "x_qe_energy_total_harris_foulkes_estimate_iteration": -3.454359934918359e-17,
-          "x_qe_energy_total_accuracy_estimate_iteration": 1.5190443578954008e-19,
-          "x_qe_section_scf_diagonalization": [
-            {
-              "_name": "x_qe_section_scf_diagonalization",
-              "_gIndex": 0,
-              "x_qe_scf_diagonalization_algorithm": "davidson",
-              "x_qe_scf_diagonalization_ethr": 0.01,
-              "x_qe_scf_diagonalization_iteration_avg": 2.0
-            },
-            {
-              "_name": "x_qe_section_scf_diagonalization",
-              "_gIndex": 1,
-              "x_qe_scf_diagonalization_algorithm": "davidson",
-              "x_qe_scf_diagonalization_ethr": 0.000869,
-              "x_qe_scf_diagonalization_iteration_avg": 1.0
-            }
-          ]
-        },
-        {
-          "_name": "section_scf_iteration",
-          "_gIndex": 1,
-          "x_qe_iteration_beta": 0.7,
-          "x_qe_iteration_ecutwfc": 2.6158466044416446e-17,
-          "x_qe_iteration_number": 2,
-          "time_scf_iteration_cpu1_end": 0.1,
-          "energy_total_scf_iteration": -3.451407197789476e-17,
-          "x_qe_energy_total_harris_foulkes_estimate_iteration": -3.451406936204815e-17,
-          "x_qe_energy_total_accuracy_estimate_iteration": 6.666441473976124e-21,
-          "x_qe_section_scf_diagonalization": [
-            {
-              "_name": "x_qe_section_scf_diagonalization",
-              "_gIndex": 2,
-              "x_qe_scf_diagonalization_algorithm": "davidson",
-              "x_qe_scf_diagonalization_ethr": 0.000871,
-              "x_qe_scf_diagonalization_iteration_avg": 1.0
-            }
-          ]
-        },
-        {
-          "_name": "section_scf_iteration",
-          "_gIndex": 2,
-          "x_qe_iteration_beta": 0.7,
-          "x_qe_iteration_ecutwfc": 2.6158466044416446e-17,
-          "x_qe_iteration_number": 3,
-          "time_scf_iteration_cpu1_end": 0.1,
-          "energy_total_scf_iteration": -3.451472633192286e-17,
-          "x_qe_energy_total_harris_foulkes_estimate_iteration": -3.451473439744989e-17,
-          "x_qe_energy_total_accuracy_estimate_iteration": 1.4153910002199667e-22,
-          "x_qe_section_scf_diagonalization": [
-            {
-              "_name": "x_qe_section_scf_diagonalization",
-              "_gIndex": 3,
-              "x_qe_scf_diagonalization_algorithm": "davidson",
-              "x_qe_scf_diagonalization_ethr": 3.82e-05,
-              "x_qe_scf_diagonalization_iteration_avg": 2.0
-            }
-          ]
-        },
-        {
-          "_name": "section_scf_iteration",
-          "_gIndex": 3,
-          "x_qe_iteration_beta": 0.7,
-          "x_qe_iteration_ecutwfc": 2.6158466044416446e-17,
-          "x_qe_iteration_number": 4,
-          "time_scf_iteration_cpu1_end": 0.1,
-          "energy_total_scf_iteration": -3.451479931404312e-17,
-          "x_qe_energy_total_harris_foulkes_estimate_iteration": -3.451479946663417e-17,
-          "x_qe_energy_total_accuracy_estimate_iteration": 2.2670670571827585e-24,
-          "x_qe_section_scf_diagonalization": [
-            {
-              "_name": "x_qe_section_scf_diagonalization",
-              "_gIndex": 4,
-              "x_qe_scf_diagonalization_algorithm": "davidson",
-              "x_qe_scf_diagonalization_ethr": 8.12e-07,
-              "x_qe_scf_diagonalization_iteration_avg": 3.0
-            }
-          ]
-        },
-        {
-          "_name": "section_scf_iteration",
-          "_gIndex": 4,
-          "x_qe_iteration_beta": 0.7,
-          "x_qe_iteration_ecutwfc": 2.6158466044416446e-17,
-          "x_qe_iteration_number": 5,
-          "time_scf_iteration_cpu1_end": 0.1,
-          "x_qe_section_scf_diagonalization": [
-            {
-              "_name": "x_qe_section_scf_diagonalization",
-              "_gIndex": 5,
-              "x_qe_scf_diagonalization_algorithm": "davidson",
-              "x_qe_scf_diagonalization_ethr": 1.3e-08,
-              "x_qe_scf_diagonalization_iteration_avg": 2.0
-            }
-          ]
-        }
-      ],
-      "section_eigenvalues": {
-        "_name": "section_eigenvalues",
-        "_gIndex": 0,
-        "x_qe_eigenvalues_number_of_planewaves": [
-          180, 
-          186
-        ],
-        "eigenvalues_kpoints": [
-          [
-            -0.24999999999999994, 
-            0.24999999999999994, 
-            0.24999999999999997
-          ], 
-          [
-            -0.4999999999999999, 
-            0.4999999999999999, 
-            0.24999999999999994
-          ]
-        ],
-        "eigenvalues_values": [
-          [
-            [
-              -7.7705561705e-19, 
-              3.8327266950659997e-19, 
-              8.821583974180001e-19, 
-              8.821583974180001e-19
-            ], 
-            [
-              -4.672908067397999e-19, 
-              -9.5009068229e-21, 
-              4.360323426395e-19, 
-              6.459655333653999e-19
-            ]
-          ]
-        ]
-      }
+      "single_configuration_to_calculation_method_ref": 0,
+      "energy_free": -1.5936767191492225e-18,
+      "energy_total": -1.5935696296699573e-18,
+      "energy_total_T0": -3.2126683561907e-22
+    },
+    "section_sampling_method": {
+      "_name": "section_sampling_method",
+      "_gIndex": 0,
+      "sampling_method": "geometry_optimization"
+    },
+    "section_frame_sequence": {
+      "_name": "section_frame_sequence",
+      "_gIndex": 0,
+      "frame_sequence_to_sampling_ref": 0,
+      "frame_sequence_local_frames_ref": [
+        0
+      ]
     }
   },
   "section_calculation_info": {
