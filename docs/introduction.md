@@ -189,6 +189,27 @@ the *archive data* (a hierarchy of all parsed quantities), and the uploaded *raw
 - Materials aggregate calculations based on common system properties
 (e.g. system type, atoms, lattice, space group, etc.).
 
+### Data
+We distinguish various forms of calculation data:
+- raw data: The raw files provided by nomad users
+- archive data: The data extracted from raw files by nomad parsers and normalizers.
+This data is represented in the *meta-info* format.
+- materials data: Aggregated information about calculations that simulated the *same* material.
+
+### Metadata
+Metadata refers to those pieces of data, those quantities/attributes that we use
+to represent, identify, and index uploads and calculations in the API, search, GUI, etc.
+There are three catergories of metadata:
+- ids: attributes that are necessary to uniquely identify entities. See also :ref:`id-reference-label`.
+- user metadata: attributes provided by the user, e.g. comments, references, coauthors, datasets, etc.
+- calculation metadata: metadata parsed from raw files that describe calculations on a high level, e.g. code name, basis set, system type, etc.
+
+Those sets of metadata along with the actual raw and archive data are often transformed,
+passed, stored, etc. by the various nomad modules.
+
+.. figure:: datamodel_dataflow.png
+   :alt: nomad's data flow
+
 ### Implementation
 The different entities have often multiple implementations for different storage systems.
 For example, aspects of calculations are stored in files (raw files, calc metadata, archive data),

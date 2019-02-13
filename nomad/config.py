@@ -39,7 +39,7 @@ FSConfig = namedtuple('FSConfig', ['tmp', 'objects'])
 RepositoryDBConfig = namedtuple('RepositoryDBConfig', ['host', 'port', 'dbname', 'user', 'password'])
 """ Used to configure access to NOMAD-coe repository db. """
 
-ElasticConfig = namedtuple('ElasticConfig', ['host', 'port', 'index_name', 'coe_repo_calcs_index_name'])
+ElasticConfig = namedtuple('ElasticConfig', ['host', 'port', 'index_name'])
 """ Used to configure elastic search. """
 
 MongoConfig = namedtuple('MongoConfig', ['host', 'port', 'db_name'])
@@ -91,20 +91,19 @@ fs = FSConfig(
 elastic = ElasticConfig(
     host=os.environ.get('NOMAD_ELASTIC_HOST', 'localhost'),
     port=int(os.environ.get('NOMAD_ELASTIC_PORT', 9200)),
-    index_name=os.environ.get('NOMAD_ELASTIC_INDEX_NAME', 'calcs'),
-    coe_repo_calcs_index_name='coe_repo_calcs'
+    index_name=os.environ.get('NOMAD_ELASTIC_INDEX_NAME', 'nomad_fairdi_calcs')
 )
 repository_db = RepositoryDBConfig(
     host=os.environ.get('NOMAD_COE_REPO_DB_HOST', 'localhost'),
     port=int(os.environ.get('NOMAD_COE_REPO_DB_PORT', 5432)),
-    dbname=os.environ.get('NOMAD_COE_REPO_DB_NAME', 'nomad'),
+    dbname=os.environ.get('NOMAD_COE_REPO_DB_NAME', 'nomad_fairdi_repo_db'),
     user=os.environ.get('NOMAD_COE_REPO_DB_USER', 'postgres'),
     password=os.environ.get('NOMAD_COE_REPO_PASSWORD', 'nomad')
 )
 mongo = MongoConfig(
     host=os.environ.get('NOMAD_MONGO_HOST', 'localhost'),
     port=int(os.environ.get('NOMAD_MONGO_PORT', 27017)),
-    db_name=os.environ.get('NOMAD_MONGO_DB_NAME', 'users')
+    db_name=os.environ.get('NOMAD_MONGO_DB_NAME', 'nomad_fairdi')
 )
 logstash = LogstashConfig(
     enabled=True,
@@ -136,6 +135,6 @@ mail = MailConfig(
     from_address=os.environ.get('NOMAD_MAIL_FROM', 'webmaster@nomad-coe.eu')
 )
 
-console_log_level = get_loglevel_from_env('NOMAD_CONSOLE_LOGLEVEL', default_level=logging.INFO)
+console_log_level = get_loglevel_from_env('NOMAD_CONSOLE_LOGLEVEL', default_level=logging.WARNING)
 service = os.environ.get('NOMAD_SERVICE', 'unknown nomad service')
 release = os.environ.get('NOMAD_RELEASE', 'devel')

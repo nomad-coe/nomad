@@ -56,15 +56,16 @@ def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
     print(str(caplog.records))
 
 
-def assert_normalized(backend):
-    metadata = backend.metadata()['section_repository_info']['section_repository_parserdata']
-    count = 0
-    for metainfo in backend.metaInfoEnv().infoKindEls():
-        if 'section_repository_parserdata' in metainfo.superNames:
-            count += 1
-            assert backend.get_value(metainfo.name, 0) is not None
-            assert metadata.get(metainfo.name, None) is not None
-    assert count > 0
+def assert_normalized(backend: LocalBackend):
+    metadata = backend.to_calc_with_metadata()
+    assert metadata.code_name is not None
+    assert metadata.code_version is not None
+    assert metadata.basis_set is not None
+    assert metadata.xc_functional is not None
+    assert metadata.system is not None
+    assert metadata.crystal_system is not None
+    assert len(metadata.atoms) > 0
+    assert metadata.spacegroup is not None
 
 
 def test_normalizer(normalized_example: LocalBackend, no_warn):

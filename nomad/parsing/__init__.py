@@ -24,7 +24,7 @@ For now, we make a few assumption about parsers
 - they have no conflicting python requirments
 - they can be loaded at the same time and can be used within the same python process
 - they are uniquely identified by a GIT URL and publicly accessible
-- their version is uniquly identified by a GIT commit SHA
+- their version is uniquely identified by a GIT commit SHA
 
 Each parser is defined via an instance of :class:`Parser`.
 
@@ -42,6 +42,10 @@ The parser definitions are available via the following two variables.
 
 Parsers are reused for multiple caclulations.
 
+Parsers and calculation files are matched via regular expressions.
+
+.. autofunc:: nomad.parsing.match_parser
+
 Parsers in NOMAD-coe use a *backend* to create output. There are different NOMAD-coe
 basends. In nomad@FAIRDI, we only currently only use a single backed. A version of
 NOMAD-coe's *LocalBackend*. It stores all parser results in memory. The following
@@ -54,10 +58,54 @@ based on NOMAD-coe's *python-common* module.
     :members:
 
 """
+from typing import Callable, IO
+import magic
+import gzip
+import bz2
+
+from nomad import files
 
 from nomad.parsing.backend import AbstractParserBackend, LocalBackend, LegacyLocalBackend, JSONStreamWriter, BadContextURI, WrongContextState
 from nomad.parsing.parser import Parser, LegacyParser, VaspOutcarParser
 from nomad.parsing.artificial import TemplateParser, GenerateRandomParser, ChaosParser
+
+
+_compressions = {
+    b'\x1f\x8b\x08': ('gz', gzip.open),
+    b'\x42\x5a\x68': ('bz2', bz2.open)
+}
+
+
+def match_parser(mainfile: str, upload_files: files.StagingUploadFiles) -> 'Parser':
+    """
+    Performs parser matching. This means it take the given mainfile and potentially
+    opens it with the given callback and tries to identify a parser that can parse
+    the file.
+
+    This is determined by filename (e.g. *.out), mime type (e.g. text/*, application/xml),
+    and beginning file contents.
+
+    Arguments:
+        mainfile: The upload relative path to the mainfile
+        open: A function that allows to open a stream to the file
+
+    Returns: The parser, or None if no parser could be matched.
+    """
+    with upload_files.raw_file(mainfile, 'rb') as f:
+        compression, open_compressed = _compressions.get(f.read(3), (None, open))
+
+    with open_compressed(upload_files.raw_file_object(mainfile).os_path, 'rb') as f:
+        buffer = f.read(2048)
+
+    mime_type = magic.from_buffer(buffer, mime=True)
+    if mime_type.startswith('application') and not mime_type.endswith('xml'):
+        return None
+
+    for parser in parsers:
+        if parser.is_mainfile(mainfile, mime_type, buffer.decode('utf-8'), compression):
+            return parser
+
+    return None
 
 
 parsers = [
@@ -67,25 +115,26 @@ parsers = [
     LegacyParser(
         name='parsers/vasp',
         parser_class_name='vaspparser.VASPRunParserInterface',
-        main_file_re=r'^.*\.xml(\.[^\.]*)?$',
-        main_contents_re=(
+        mainfile_mime_re=r'(application/xml)|(text/.*)',
+        mainfile_contents_re=(
             r'^\s*<\?xml version="1\.0" encoding="ISO-8859-1"\?>\s*'
             r'?\s*<modeling>'
             r'?\s*<generator>'
             r'?\s*<i name="program" type="string">\s*vasp\s*</i>'
-            r'?')
+            r'?'),
+        supported_compressions=['gz', 'bz2']
     ),
     VaspOutcarParser(
         name='parsers/vasp',
         parser_class_name='vaspparser.VaspOutcarParser',
-        main_file_re=r'^OUTCAR(\.[^\.]*)?$',
-        main_contents_re=(r'^\svasp\..*$')
+        mainfile_name_re=r'(.*/)?OUTCAR(\.[^\.]*)?',
+        mainfile_contents_re=(r'^\svasp\.')
     ),
     LegacyParser(
         name='parsers/exciting',
         parser_class_name='excitingparser.ExcitingParser',
-        main_file_re=r'^.*/INFO\.OUT?',
-        main_contents_re=(
+        mainfile_name_re=r'^.*/INFO\.OUT?',
+        mainfile_contents_re=(
             r'^\s*=================================================+\s*'
             r'\s*\|\s*EXCITING\s+\S+\s+started\s*='
             r'\s*\|\s*version hash id:\s*\S*\s*=')
@@ -93,8 +142,7 @@ parsers = [
     LegacyParser(
         name='parsers/fhi-aims',
         parser_class_name='fhiaimsparser.FHIaimsParser',
-        main_file_re=r'^.*\.out$',
-        main_contents_re=(
+        mainfile_contents_re=(
             r'^(.*\n)*'
             r'?\s*Invoking FHI-aims \.\.\.'
             r'?\s*Version')
@@ -102,8 +150,7 @@ parsers = [
     LegacyParser(
         name='parsers/cp2k',
         parser_class_name='cp2kparser.CP2KParser',
-        main_file_re=r'^.*\.out$',  # This looks for files with .out
-        main_contents_re=(
+        mainfile_contents_re=(
             r'\*\*\*\* \*\*\*\* \*\*\*\*\*\*  \*\*  PROGRAM STARTED AT\s.*\n'
             r' \*\*\*\*\* \*\* \*\*\*  \*\*\* \*\*   PROGRAM STARTED ON\s*.*\n'
             r' \*\*    \*\*\*\*   \*\*\*\*\*\*    PROGRAM STARTED BY .*\n'
@@ -114,8 +161,7 @@ parsers = [
     LegacyParser(
         name='parsers/crystal',
         parser_class_name='crystalparser.CrystalParser',
-        main_file_re=r'^.*\.out$',
-        main_contents_re=(
+        mainfile_contents_re=(
             r'\s*[\*]{22,}'  # Looks for '*' 22 times or more in a row.
             r'\s*\*\s{20,}\*'  # Looks for a '*' sandwhiched by whitespace.
             r'\s*\*\s{10,}CRYSTAL(?P<majorVersion>[\d]+)\s{10,}\*'
@@ -128,8 +174,7 @@ parsers = [
     LegacyParser(
         name='parsers/cpmd',
         parser_class_name='cpmdparser.CPMDParser',
-        main_file_re=r'^.*\.out$',
-        main_contents_re=(
+        mainfile_contents_re=(
             # r'\s+\*\*\*\*\*\*  \*\*\*\*\*\*    \*\*\*\*  \*\*\*\*  \*\*\*\*\*\*\s*'
             # r'\s+\*\*\*\*\*\*\*  \*\*\*\*\*\*\*   \*\*\*\*\*\*\*\*\*\*  \*\*\*\*\*\*\*\s+'
             r'\*\*\*       \*\*   \*\*\*  \*\* \*\*\*\* \*\*  \*\*   \*\*\*'
@@ -143,8 +188,7 @@ parsers = [
     LegacyParser(
         name='parsers/nwchem',
         parser_class_name='nwchemparser.NWChemParser',
-        main_file_re=r'^.*\.out$',
-        main_contents_re=(
+        mainfile_contents_re=(
             r'\s+Northwest Computational Chemistry Package \(NWChem\) \d+\.\d+'
             r'\s+------------------------------------------------------'
             r'\s+Environmental Molecular Sciences Laboratory'
@@ -155,8 +199,7 @@ parsers = [
     LegacyParser(
         name='parsers/bigdft',
         parser_class_name='bigdftparser.BigDFTParser',
-        main_file_re=r'^.*\.out$',
-        main_contents_re=(
+        mainfile_contents_re=(
             r'__________________________________ A fast and precise DFT wavelet code\s*'
             r'\|     \|     \|     \|     \|     \|\s*'
             r'\|     \|     \|     \|     \|     \|      BBBB         i       gggggg\s*'
@@ -187,13 +230,11 @@ parsers = [
     LegacyParser(
         name='parsers/wien2k',
         parser_class_name='wien2kparser.Wien2kParser',
-        main_file_re=r'^.*\.scf$',  # This looks for files with .scf
-        main_contents_re=r':ITE[0-9]+:  1. ITERATION'
+        mainfile_contents_re=r':LABEL\d+: using WIEN2k_\d+\.\d+'
     ),
     LegacyParser(
         name='parsers/gaussian',
         parser_class_name='gaussianparser.GaussianParser',
-        main_file_re=r'^.*\.out$',
         main_contents_re=(
             r'\s*Cite this work as:'
             r'\s*Gaussian [0-9]+, Revision [A-Za-z0-9.]*,'
@@ -204,8 +245,10 @@ parsers = [
     LegacyParser(
         name='parsers/quantumespresso',
         parser_class_name='quantumespressoparser.QuantumEspressoParserPWSCF',
-        main_file_re=r'^.*\.out$',  # It's not clear what type of extensions we should handler (.log?), either *star or .log,
-        main_contents_re=r"^PWSCF$"
+        main_contents_re=(
+            r'^\s*Program (?<programName>\S+)\s+v\.(?<version>\S+)(?:\s+\(svn\s+rev\.\s'
+            r'+(?<revision>\d+)\s*\))?\s+starts[^\n]+'
+            r'(?:\s*\n?)*This program is part of the open-source Quantum')
     )
 ]
 

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import sys
 import requests
 import click
@@ -72,6 +73,8 @@ def cli(host: str, port: int, verbose: bool, user: str, password: str):
         config.console_log_level = logging.DEBUG
     else:
         config.console_log_level = logging.WARNING
+
+    config.service = os.environ.get('NOMAD_SERVICE', 'client')
 
     global api_base
     api_base = 'http://%s:%d/nomad/api' % (host, port)

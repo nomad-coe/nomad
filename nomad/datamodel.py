@@ -16,8 +16,8 @@
 This module contains classes that allow to represent the core
 nomad data entities :class:`Upload` and :class:`Calc` on a high level of abstraction
 independent from their representation in the different modules
-:py:mod:`nomad.processing`, :py:mod:`nomad.coe_repo`, :py:mod:`nomad.files`,
-:py:mod:`nomad.search`.
+:py:mod:`nomad.processing`, :py:mod:`nomad.coe_repo`, :py:mod:`nomad.parsing`,
+:py:mod:`nomad.search`, :py:mod:`nomad.api`, :py:mod:`nomad.migration`.
 
 It is not about representing every detail, but those parts that are directly involved in
 api, processing, migration, mirroring, or other 'infrastructure' operations.
@@ -26,142 +26,119 @@ Transformations between different implementations of the same entity can be buil
 and used. To ease the number of necessary transformations the classes
 :class:`UploadWithMetadata` and :class:`CalcWithMetadata` can act as intermediate
 representations. Therefore, implement only transformation from and to these
-classes.
+classes. These are the implemented transformations:
 
-To implement a transformation, provide a transformation method in the source
-entity class and register it:
-
-.. code-block:: python
-
-    def to_my_target_entity(self):
-        target = MyTargetEntity()
-        target.property_x = # your transformation code
-
-        return target
-
-    MyTargetEntity.register_mapping(MySourceEntity.to_my_target_entity)
-
-To apply a transformation, use:
-
-.. code-block:: python
-
-    my_target_entity_instance = my_source_entity_instance.to(MyTargetEntity)
+.. image:: datamodel_transformations.png
 """
 
-from typing import Type, TypeVar, Union, Iterable, cast, Callable, Dict
+from typing import Iterable, List
 import datetime
 
 from nomad import utils
 
-T = TypeVar('T')
 
-
-class Entity():
-    """
-    A common base class for all nomad entities. It provides the functions necessary
-    to apply transformations.
-    """
-    mappings: Dict[Type['Entity'], Callable[['Entity'], 'Entity']] = dict()
-
-    @classmethod
-    def register_mapping(
-            cls, from_type: Type['Entity'], mapping: Callable[['Entity'], 'Entity']):
-        """
-        Register a mapping from instances of another calc representation to instances of
-        :class:`CalcWithMetadata`.
-
-        Arguments:
-            from_type: The source calc type of the mapping.
-            mapping: The mapping itself as a callable that takes a source object of the
-                source calc type and returns an instance of :class:`CalcWithMetadata`.
-        """
-        cls.mappings[from_type] = mapping
-
-    @classmethod
-    def load_from(cls, obj):
-        """
-        Create an entity of this class from an instance of a different
-        class for the same entity type. This requires a registered mapping or
-        overloaded implementation.
-
-        Arguments:
-            obj: The source entity instance.
-        """
-        return cls.mappings[obj.__class__](obj)
-
-    def to(self, entity_cls: Type[T]) -> T:
-        """
-        Either provides a type cast if it already has the right type, or adapt
-        the type using the :func:`load_from` of the target class `entity_cls`.
-        """
-        if (isinstance(self, entity_cls)):
-            return cast(T, self)
-        else:
-            return cast(T, cast(Type[Entity], entity_cls).load_from(self))
-
-
-class Calc(Entity):
-
-    @property
-    def pid(self) -> Union[int, str]:
-        """ The repisitory pid, either as int or str. """
-        raise NotImplementedError
-
-    @property
-    def mainfile(self) -> str:
-        """ The mainfile (path) that identifies a calc within an upload. """
-        raise NotImplementedError
-
-    @property
-    def calc_id(self) -> str:
-        """ The internal UUID based on upoad_id and mainfile. """
-        raise NotImplementedError
-
-    @property
-    def upload(self) -> 'Upload':
-        """ A reference to the upload (of same implementation). """
-        raise NotImplementedError
-
-
-class Upload(Entity):
-
-    @property
-    def upload_id(self) -> str:
-        """ The randomly choosed upload UUID """
-        return '<not assigned>'
-
-    @property
-    def upload_time(self) -> Type[datetime.datetime]:
-        """ The upload time assigned by the API after receiving the uploaded raw archive. """
-        raise NotImplementedError
-
-    @property
-    def uploader(self):
-        """ A reference to the uploaded (i.e. :class:`coe_repo.User`) """
-        raise NotImplementedError
-
-    @property
-    def calcs(self) -> Iterable[Calc]:
-        """ A list of references to the upload's calcs (of same implementation) """
-        raise NotImplementedError
-
-
-class UploadWithMetadata(dict, Entity):
+class UploadWithMetadata():
     """
     See :class:`CalcWithMetadata`.
     """
 
-    def __init__(self, upload_id):
-        self.upload_id = upload_id
+    def __init__(self, **kwargs):
+        self.upload_id: str = None
+        self.uploader: utils.POPO = None
+        self.upload_time: datetime.datetime = None
+
+        self.calcs: Iterable[CalcWithMetadata] = list()
+
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
 
-class CalcWithMetadata(utils.POPO, Entity):
+class CalcWithMetadata():
     """
     A dict/POPO class that can be used for mapping calc representations with calc metadata.
     We have many representations of calcs and their calc metadata. To avoid implement
     mappings between all combinations, just implement mappings with the class and use
     mapping transitivity. E.g. instead of A -> B, A -> this -> B.
+
+    Attributes:
+        upload_id: The ``upload_id`` of the calculations upload (random UUID).
+        calc_id: The unique mainfile based calculation id.
+        upload_time: The time when the calc was uploaded.
+        calc_hash: The raw file content based checksum/hash of this calculation.
+        pid: The unique persistent id of this calculation.
+        mainfile: The upload relative mainfile path.
+        files: A list of all files, relative to upload.
+        uploader: An object describing the uploading user, has at least ``user_id``
+        with_embargo: Show if user set an embargo on the calculation.
+        coauthors: List of coauther user objects with at ``user_id``.
+        shared_with: List of users this calcs ownership is shared with, objects with at ``user_id``.
+        comment: String comment.
+        references: Objects describing user provided references, keys are ``id`` and ``value``.
+        datasets: Objects describing the datasets, keys are ``id``, ``name``, ``doi``.
+            DOI is optional, is an object with key ``id``, ``value``.
+        formula: The chemical formula
+        atoms: A list of all atoms, as labels. All atoms means the whole composition, with atom labels repeated.
+        basis_set: The basis set type of this calculation.
+        xc_functional: The class of functional used.
+        system: The system type, e.g. Atom/Molecule, 2D, Bulk(3D)
+        crystal_system: The symmetry describing crystal_system type.
+        spacegroup: The spacegroup, as spacegroup number.
+        code_name: The name of the used code.
+        code_version: The version of the used code.
     """
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.upload = UploadWithMetadata(kwargs['upload_id'])
+        self.upload_id: str = None
+        self.calc_id: str = None
+
+        self.upload_time: datetime.datetime = None
+        self.calc_hash: str = None
+        self.pid: int = None
+        self.mainfile: str = None
+        self.files: List[str] = None
+        self.uploader: utils.POPO = None
+
+        self.with_embargo: bool = None
+        self.coauthors: List[utils.POPO] = []
+        self.shared_with: List[utils.POPO] = []
+        self.comment: str = None
+        self.references: List[utils.POPO] = []
+        self.datasets: List[utils.POPO] = []
+
+        self.formula: str = None
+        self.atoms: List[str] = []
+        self.basis_set: str = None
+        self.xc_functional: str = None
+        self.system: str = None
+        self.crystal_system: str = None
+        self.spacegroup: str = None
+        self.code_name: str = None
+        self.code_version: str = None
+
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def to_dict(self):
+        return {
+            key: value for key, value in self.__dict__.items()
+            if value is not None
+        }
+
+    def apply_user_metadata(self, metadata: dict):
+        """
+        Applies a user provided metadata dict to this calc.
+        """
+        self.pid = metadata.get('_pid')
+        self.comment = metadata.get('comment')
+        self.upload_time = metadata.get('_upload_time')
+        uploader_id = metadata.get('_uploader')
+        if uploader_id is not None:
+            self.uploader = utils.POPO(id=uploader_id)
+        self.references = [utils.POPO(value=ref) for ref in metadata.get('references', [])]
+        self.with_embargo = metadata.get('with_embargo', False)
+        self.coauthors = [
+            utils.POPO(id=user) for user in metadata.get('coauthors', [])]
+        self.shared_with = [
+            utils.POPO(id=user) for user in metadata.get('shared_with', [])]
+        self.datasets = [
+            utils.POPO(id=ds['id'], doi=utils.POPO(value=ds.get('_doi')), name=ds.get('_name'))
+            for ds in metadata.get('datasets', [])]

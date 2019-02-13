@@ -67,34 +67,13 @@ class RepoCalcView extends React.Component {
     })
   }
 
-  data(quantity) {
-    const path = quantity.split('.')
-    let data = this.state.calcData
-    for (let i = 0; i < path.length; i++) {
-      if (data) {
-        data = data[path[i]]
-      }
-    }
-    return data
-  }
-
-  renderQuantity(quantity, label, defaultValue) {
-    const value = this.data(quantity) || defaultValue || ''
-
-    return (
-      <div key={quantity}>
-        <Typography variant="caption">{label}</Typography>
-        <Typography variant="body1">{value}</Typography>
-      </div>
-    )
-  }
-
   render() {
     const { classes, ...calcProps } = this.props
     const { uploadId, calcId } = calcProps
+    const calcData = this.state.calcData || {}
 
-    const filePaths = this.data('section_repository_info.repository_filepaths') || []
-    const mainfile = this.data('section_calculation_info.main_file')
+    const filePaths = calcData.files || []
+    const mainfile = calcData.mainfile
     const calcPath = mainfile ? mainfile.substring(0, mainfile.lastIndexOf('/')) : null
 
     return (
@@ -111,48 +90,48 @@ class RepoCalcView extends React.Component {
           </Download>
           <div className={classes.quantityRow}>
             <CalcQuantity label="chemical formula" typography="h4">
-              {this.data('section_repository_info.section_repository_parserdata.repository_chemical_formula')}
+              {calcData.formula}
             </CalcQuantity>
           </div>
           <div className={classes.quantityRow}>
             <CalcQuantity label='dft code'>
-              {this.data('section_repository_info.section_repository_parserdata.repository_program_name')}
+              {calcData.code_name}
             </CalcQuantity>
             <CalcQuantity label='dft code version'>
-              {this.data('section_repository_info.section_repository_parserdata.repository_code_version')}
+              {calcData.code_version}
             </CalcQuantity>
           </div>
           <div className={classes.quantityRow}>
             <CalcQuantity label='basis set'>
-              {this.data('section_repository_info.section_repository_parserdata.repository_basis_set_type')}
+              {calcData.basis_set}
             </CalcQuantity>
             <CalcQuantity label='xc functional'>
-              {this.data('section_repository_info.section_repository_parserdata.repository_xc_treatment')}
+              {calcData.xc_functional}
             </CalcQuantity>
           </div>
           <div className={classes.quantityRow}>
             <CalcQuantity label='system type'>
-              {this.data('section_repository_info.section_repository_parserdata.repository_system_type')}
+              {calcData.system}
             </CalcQuantity>
             <CalcQuantity label='crystal system'>
-              {this.data('section_repository_info.section_repository_parserdata.repository_crystal_system')}
+              {calcData.crystal_system}
             </CalcQuantity>
             <CalcQuantity label='spacegroup'>
-              {this.data('section_repository_info.section_repository_parserdata.repository_spacegroup_nr')}
+              {calcData.spacegroup}
             </CalcQuantity>
           </div>
           <div className={classes.quantityRow}>
             <CalcQuantity label='upload id'>
-              {this.data('section_calculation_info.upload_id')}
+              {calcData.upload_id}
             </CalcQuantity>
             <CalcQuantity label='calculation id'>
-              {this.data('section_calculation_info.calc_id')}
+              {calcData.calc_id}
             </CalcQuantity>
             <CalcQuantity label='mainfile'>
               {mainfile}
             </CalcQuantity>
             <CalcQuantity label='calculation hash'>
-              {this.data('section_calculation_info.calc_hash')}
+              {calcData.calc_hash}
             </CalcQuantity>
           </div>
           <Divider />

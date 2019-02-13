@@ -15,74 +15,26 @@
 import pytest
 import time
 import json
-from mongoengine import connect
-from mongoengine.connection import disconnect
 import base64
 import zipfile
 import io
 import inspect
+from passlib.hash import bcrypt
 
-from nomad import config
-# for convinience we test the api without path prefix
-services_config = config.services._asdict()
-services_config.update(api_base_path='')
-config.services = config.NomadServicesConfig(**services_config)
+from nomad import config, coe_repo
+from nomad.files import UploadFiles, PublicUploadFiles
+from nomad.processing import Upload, Calc, SUCCESS
+from nomad.coe_repo import User
 
-from nomad import api, coe_repo  # noqa
-from nomad.files import UploadFiles, PublicUploadFiles  # noqa
-from nomad.processing import Upload, Calc, SUCCESS  # noqa
-from nomad.coe_repo import User  # noqa
-
-from tests.processing.test_data import example_files  # noqa
-from tests.test_files import example_file, example_file_mainfile, example_file_contents  # noqa
-from tests.test_files import create_staging_upload, create_public_upload  # noqa
-
-# import fixtures
-from tests.test_normalizing import normalized_template_example  # noqa pylint: disable=unused-import
-from tests.test_parsing import parsed_template_example  # noqa pylint: disable=unused-import
-# from tests.test_repo import example_elastic_calc  # noqa pylint: disable=unused-import
-from tests.test_coe_repo import assert_coe_upload  # noqa
-
-
-@pytest.fixture(scope='function')
-def client(mockmongo):
-    disconnect()
-    connect('users_test', host=config.mongo.host, port=config.mongo.port, is_mock=True)
-
-    api.app.config['TESTING'] = True
-    client = api.app.test_client()
-
-    yield client
-    Upload._get_collection().drop()
+from tests.conftest import create_auth_headers
+from tests.test_files import example_file, example_file_mainfile, example_file_contents
+from tests.test_files import create_staging_upload, create_public_upload
+from tests.test_coe_repo import assert_coe_upload
 
 
 def test_alive(client):
     rv = client.get('/alive')
     assert rv.status_code == 200
-
-
-def create_auth_headers(user):
-    basic_auth_str = '%s:password' % user.email
-    basic_auth_bytes = basic_auth_str.encode('utf-8')
-    basic_auth_base64 = base64.b64encode(basic_auth_bytes).decode('utf-8')
-    return {
-        'Authorization': 'Basic %s' % basic_auth_base64
-    }
-
-
-@pytest.fixture(scope='module')
-def test_user_auth(test_user: User):
-    return create_auth_headers(test_user)
-
-
-@pytest.fixture(scope='module')
-def test_other_user_auth(other_test_user: User):
-    return create_auth_headers(other_test_user)
-
-
-@pytest.fixture(scope='module')
-def admin_user_auth(admin_user: User):
-    return create_auth_headers(admin_user)
 
 
 @pytest.fixture(scope='function')
@@ -95,13 +47,12 @@ def test_user_signature_token(client, test_user_auth):
 class TestAdmin:
 
     @pytest.mark.timeout(10)
-    def test_reset(self, client, admin_user_auth, expandable_repo_db):
+    def test_reset(self, client, admin_user_auth, expandable_postgres):
         rv = client.post('/admin/reset', headers=admin_user_auth)
         assert rv.status_code == 200
 
-    # TODO disabled as this will destroy the session repository_db beyond repair.
     @pytest.mark.timeout(10)
-    def test_remove(self, client, admin_user_auth, expandable_repo_db):
+    def test_remove(self, client, admin_user_auth, expandable_postgres):
         rv = client.post('/admin/remove', headers=admin_user_auth)
         assert rv.status_code == 200
 
@@ -128,7 +79,7 @@ class TestAdmin:
         yield None
         monkeypatch.setattr(config, 'services', old_config)
 
-    def test_disabled(self, client, admin_user_auth, disable_reset, repository_db):
+    def test_disabled(self, client, admin_user_auth, disable_reset, postgres):
         rv = client.post('/admin/reset', headers=admin_user_auth)
         assert rv.status_code == 400
 
@@ -141,7 +92,7 @@ class TestAuth:
 
         assert rv.status_code == 200
 
-    def test_xtoken_auth_denied(self, client, no_warn, repository_db):
+    def test_xtoken_auth_denied(self, client, no_warn, postgres):
         rv = client.get('/uploads/', headers={
             'X-Token': 'invalid'
         })
@@ -162,7 +113,9 @@ class TestAuth:
     def test_get_user(self, client, test_user_auth, test_user: User, no_warn):
         rv = client.get('/auth/user', headers=test_user_auth)
         assert rv.status_code == 200
-        user = json.loads(rv.data)
+        self.assert_user(client, json.loads(rv.data))
+
+    def assert_user(self, client, user):
         for key in ['first_name', 'last_name', 'email', 'token']:
             assert key in user
 
@@ -175,12 +128,51 @@ class TestAuth:
     def test_signature_token(self, test_user_signature_token, no_warn):
         assert test_user_signature_token is not None
 
+    def test_put_user(self, client, postgres, admin_user_auth):
+        rv = client.put(
+            '/auth/user', headers=admin_user_auth,
+            content_type='application/json', data=json.dumps(dict(
+                email='test@email.com', last_name='Tester', first_name='Testi',
+                password=bcrypt.encrypt('test_password', ident='2y'))))
+
+        assert rv.status_code == 200
+        self.assert_user(client, json.loads(rv.data))
+
+    def test_put_user_admin_only(self, client, test_user_auth):
+        rv = client.put(
+            '/auth/user', headers=test_user_auth,
+            content_type='application/json', data=json.dumps(dict(
+                email='test@email.com', last_name='Tester', first_name='Testi',
+                password=bcrypt.encrypt('test_password', ident='2y'))))
+        assert rv.status_code == 401
+
+    def test_put_user_required_field(self, client, admin_user_auth):
+        rv = client.put(
+            '/auth/user', headers=admin_user_auth,
+            content_type='application/json', data=json.dumps(dict(
+                email='test@email.com', password=bcrypt.encrypt('test_password', ident='2y'))))
+        assert rv.status_code == 400
+
+    def test_post_user(self, client, postgres, admin_user_auth):
+        rv = client.put(
+            '/auth/user', headers=admin_user_auth,
+            content_type='application/json', data=json.dumps(dict(
+                email='test@email.com', last_name='Tester', first_name='Testi',
+                password=bcrypt.encrypt('test_password', ident='2y'))))
+
+        assert rv.status_code == 200
+        user = json.loads(rv.data)
+
+        rv = client.post(
+            '/auth/user', headers={'X-Token': user['token']},
+            content_type='application/json', data=json.dumps(dict(
+                last_name='Tester', first_name='Testi v.',
+                password=bcrypt.encrypt('test_password_changed', ident='2y'))))
+        assert rv.status_code == 200
+        self.assert_user(client, json.loads(rv.data))
+
 
 class TestUploads:
-
-    @pytest.fixture(scope='function')
-    def proc_infra(self, repository_db, worker, no_warn):
-        return dict(repository_db=repository_db)
 
     def assert_uploads(self, upload_json_str, count=0, **kwargs):
         data = json.loads(upload_json_str)
@@ -237,7 +229,6 @@ class TestUploads:
     def assert_unstage(self, client, test_user_auth, upload_id, proc_infra, metadata={}):
         rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
-        empty_upload = upload['calcs']['pagination']['total'] == 0
 
         rv = client.post(
             '/uploads/%s' % upload_id,
@@ -250,7 +241,7 @@ class TestUploads:
         assert upload['process_running']
 
         self.assert_upload_does_not_exist(client, upload_id, test_user_auth)
-        assert_coe_upload(upload_id, empty=empty_upload, metadata=metadata)
+        assert_coe_upload(upload_id, user_metadata=metadata)
 
     def assert_upload_does_not_exist(self, client, upload_id: str, test_user_auth):
         # poll until publish/delete completed
@@ -289,11 +280,10 @@ class TestUploads:
         rv = client.get('/uploads/123456789012123456789012', headers=test_user_auth)
         assert rv.status_code == 404
 
-    @pytest.mark.timeout(30)
-    @pytest.mark.parametrize('file', example_files)
     @pytest.mark.parametrize('mode', ['multipart', 'stream', 'local_path'])
     @pytest.mark.parametrize('name', [None, 'test_name'])
-    def test_put(self, client, test_user_auth, proc_infra, file, mode, name):
+    def test_put(self, client, test_user_auth, proc_infra, example_upload, mode, name, no_warn):
+        file = example_upload
         if name:
             url = '/uploads/?name=%s' % name
         else:
@@ -337,7 +327,7 @@ class TestUploads:
         yield True
         monkeypatch.setattr('nomad.processing.data.Upload.cleanup', old_cleanup)
 
-    def test_delete_during_processing(self, client, test_user_auth, proc_infra, slow_processing):
+    def test_delete_during_processing(self, client, test_user_auth, proc_infra, slow_processing, no_warn):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         assert upload['tasks_running']
@@ -345,7 +335,7 @@ class TestUploads:
         assert rv.status_code == 400
         self.assert_processing(client, test_user_auth, upload['upload_id'])
 
-    def test_delete_unstaged(self, client, test_user_auth, proc_infra, clean_repository_db):
+    def test_delete_unstaged(self, client, test_user_auth, proc_infra, no_warn):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
@@ -353,7 +343,7 @@ class TestUploads:
         rv = client.delete('/uploads/%s' % upload['upload_id'], headers=test_user_auth)
         assert rv.status_code == 404
 
-    def test_delete(self, client, test_user_auth, proc_infra):
+    def test_delete(self, client, test_user_auth, proc_infra, no_warn):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
@@ -361,23 +351,22 @@ class TestUploads:
         assert rv.status_code == 200
         self.assert_upload_does_not_exist(client, upload['upload_id'], test_user_auth)
 
-    @pytest.mark.parametrize('example_file', example_files)
-    def test_post(self, client, test_user_auth, example_file, proc_infra, clean_repository_db):
-        rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
+    def test_post(self, client, test_user_auth, example_upload, proc_infra, no_warn):
+        rv = client.put('/uploads/?local_path=%s' % example_upload, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
         self.assert_unstage(client, test_user_auth, upload['upload_id'], proc_infra)
 
     def test_post_metadata(
             self, client, proc_infra, admin_user_auth, test_user_auth, test_user,
-            other_test_user, clean_repository_db):
+            other_test_user, no_warn):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
         metadata = dict(comment='test comment')
         self.assert_unstage(client, admin_user_auth, upload['upload_id'], proc_infra, metadata)
 
-    def test_post_metadata_forbidden(self, client, proc_infra, test_user_auth, clean_repository_db):
+    def test_post_metadata_forbidden(self, client, proc_infra, test_user_auth, no_warn):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
@@ -389,7 +378,7 @@ class TestUploads:
         assert rv.status_code == 401
 
     # TODO validate metadata (or all input models in API for that matter)
-    # def test_post_bad_metadata(self, client, proc_infra, test_user_auth, clean_repository_db):
+    # def test_post_bad_metadata(self, client, proc_infra, test_user_auth, postgres):
     #     rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
     #     upload = self.assert_upload(rv.data)
     #     self.assert_processing(client, test_user_auth, upload['upload_id'])
@@ -457,7 +446,7 @@ class UploadFilesBasedTests:
         return wrapper
 
     @pytest.fixture(scope='function')
-    def test_data(self, request, clean_repository_db, no_warn, test_user, other_test_user):
+    def test_data(self, request, postgres, mongo, no_warn, test_user, other_test_user):
         # delete potential old test files
         for _ in [0, 1]:
             upload_files = UploadFiles.get('test_upload')
@@ -484,12 +473,12 @@ class UploadFilesBasedTests:
             upload_files = create_staging_upload('test_upload', calc_specs=calc_specs)
         else:
             upload_files = create_public_upload('test_upload', calc_specs=calc_specs)
-            clean_repository_db.begin()
+            postgres.begin()
             coe_upload = coe_repo.Upload(
                 upload_name='test_upload',
                 user_id=test_user.user_id, is_processed=True)
-            clean_repository_db.add(coe_upload)
-            clean_repository_db.commit()
+            postgres.add(coe_upload)
+            postgres.commit()
 
         yield 'test_upload', authorized, auth_headers
 

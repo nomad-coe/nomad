@@ -44,7 +44,7 @@
       "cwd": "${workspaceFolder}",
       "program": "${workspaceFolder}/.pyenv/bin/pytest",
       "args": [
-        "-sv", "tests/test_api.py::TestUploads::test_put[None-multipart-tests/data/proc/examples_template.zip]"
+        "-sv", "tests/test_parsing.py::test_parser[parsers/vasp-tests/data/parsers/vasp_compressed/vasp.xml.gz]"
       ]
     },
     {

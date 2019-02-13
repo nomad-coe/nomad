@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="ISO-8859-1"?>
-<modeling>
- <generator>
-  <i name="program" type="string">vasp </i>
-  <i name="version" type="string">5.2.2  </i>
-  <i name="subversion" type="string">15Apr09 complex  parallel </i>
-  <i name="platform" type="string">LinuxIFC </i>

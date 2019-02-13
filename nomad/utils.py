@@ -137,6 +137,8 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
             for key, value in structlog.items():
                 if key in ('event', 'stack_info', 'id', 'timestamp'):
                     continue
+                elif key in ['exception']:
+                    pass
                 elif key in (
                         'upload_id', 'calc_id', 'mainfile',
                         'service', 'release'):
@@ -158,6 +160,33 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
         return self.serialize(message)
 
 
+class ConsoleFormatter(LogstashFormatter):
+    @classmethod
+    def serialize(cls, message_dict):
+        from io import StringIO
+
+        logger = message_dict.pop('logger_name', None)
+        event = message_dict.pop('event', None)
+        level = message_dict.pop('level', None)
+        exception = message_dict.pop('exception', None)
+        time = message_dict.pop('@timestamp', None)
+        for key in ['type', 'tags', 'stack_info', 'path', 'message', 'host', '@version']:
+            message_dict.pop(key)
+        keys = list(message_dict.keys())
+        keys.sort()
+
+        out = StringIO()
+        out.write('%s %s %s %s' % (
+            level.ljust(8), logger.ljust(20)[:20], time.ljust(19)[:19], event))
+        if exception is not None:
+            out.write('\n  - exception: %s' % str(exception).replace('\n', '\n    '))
+
+        for key in keys:
+            out.write('\n  - %s: %s' % (key, str(message_dict.get(key, None))))
+
+        return out.getvalue()
+
+
 def add_logstash_handler(logger):
     logstash_handler = next((
         handler for handler in logger.handlers
@@ -167,7 +196,7 @@ def add_logstash_handler(logger):
         logstash_handler = LogstashHandler(
             config.logstash.host,
             config.logstash.tcp_port, version=1)
-        logstash_handler.formatter = LogstashFormatter(tags=['nomad', config.service, config.release])
+        logstash_handler.formatter = LogstashFormatter(tags=['nomad', config.release])
         logstash_handler.setLevel(config.logstash.level)
         logger.addHandler(logstash_handler)
 
@@ -199,13 +228,14 @@ def configure_logging():
     for handler in root.handlers:
         if not isinstance(handler, LogstashHandler):
             handler.setLevel(config.console_log_level)
+            handler.setFormatter(ConsoleFormatter())
 
     # configure logstash
     if config.logstash.enabled:
         add_logstash_handler(root)
-        root.info('Structlog configured for logstash')
 
-    root.info('Structlog configured')
+    logger = get_logger(__name__)
+    logger.info('structlog configured', with_logstash=config.logstash.enabled)
 
 
 def create_uuid() -> str:

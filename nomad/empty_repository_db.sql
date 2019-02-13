@@ -1247,7 +1247,7 @@ INSERT INTO public.users VALUES (3, 'Leonard', 'Hofstadter', 'leonard.hofstadter
 -- Name: users_user_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.users_user_id_seq', 1, true);
+SELECT pg_catalog.setval('public.users_user_id_seq', 4, true);
 
 
 --

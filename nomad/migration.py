@@ -20,9 +20,8 @@ other/older nomad@FAIRDI instances to mass upload it to a new nomad@FAIRDI insta
 .. autoclass:: SourceCalc
 """
 
-from typing import Generator, Tuple, List
+from typing import Generator, Tuple, List, Iterable
 import os.path
-import json
 import zipstream
 import zipfile
 import math
@@ -33,7 +32,6 @@ import time
 from bravado.exception import HTTPNotFound
 
 from nomad import utils, config, infrastructure
-from nomad.files import repo_data_to_calc_with_metadata
 from nomad.coe_repo import User, Calc
 from nomad.datamodel import CalcWithMetadata
 from nomad.processing import FAILURE, SUCCESS
@@ -81,45 +79,56 @@ class SourceCalc(Document):
         Returns:
             yields tuples (:class:`SourceCalc`, #calcs_total[incl. datasets])
         """
+        logger = utils.get_logger(__name__)
         if drop:
             SourceCalc.drop_collection()
 
         last_source_calc = SourceCalc.objects().order_by('-pid').first()
         start_pid = last_source_calc.pid if last_source_calc is not None else 0
         source_query = source.query(Calc)
-        total = source_query.count()
+        total = source_query.count() - SourceCalc.objects.count()
 
         while True:
-            calcs = source_query \
+            query_timer = utils.timer(logger, 'query source db')
+            query_timer.__enter__()  # pylint: disable=E1101
+            calcs: Iterable[Calc] = source_query \
                 .filter(Calc.coe_calc_id > start_pid) \
                 .order_by(Calc.coe_calc_id) \
                 .limit(per_query)
 
             source_calcs = []
             for calc in calcs:
-                if calc.calc_metadata is None or calc.calc_metadata.filenames is None:
-                    continue  # dataset case
+                query_timer.__exit__(None, None, None)  # pylint: disable=E1101
+                try:
+                    filenames = calc.files
+                    if filenames is None or len(filenames) == 0:
+                        continue  # dataset case
 
-                filenames = json.loads(calc.calc_metadata.filenames.decode('utf-8'))
-                filename = filenames[0]
-                for prefix in SourceCalc.prefixes:
-                    filename = filename.replace(prefix, '')
-                segments = [file.strip('\\') for file in filename.split('/')]
+                    filename = filenames[0]
+                    if len(filenames) == 1 and (filename.endswith('.tgz') or filename.endswith('.zip')):
+                        continue  # also a dataset, some datasets have a downloadable archive
 
-                source_calc = SourceCalc(pid=calc.pid)
-                source_calc.upload = segments[0]
-                source_calc.mainfile = os.path.join(*segments[1:])
-                if with_metadata:
-                    source_calc.metadata = calc.to(CalcWithMetadata)
-                source_calcs.append(source_calc)
-                start_pid = source_calc.pid
+                    for prefix in SourceCalc.prefixes:
+                        filename = filename.replace(prefix, '')
+                    segments = [file.strip('\\') for file in filename.split('/')]
 
-                yield source_calc, total
+                    source_calc = SourceCalc(pid=calc.pid)
+                    source_calc.upload = segments[0]
+                    source_calc.mainfile = os.path.join(*segments[1:])
+                    if with_metadata:
+                        source_calc.metadata = calc.to_calc_with_metadata().__dict__
+                    source_calcs.append(source_calc)
+                    start_pid = source_calc.pid
+
+                    yield source_calc, total
+                except Exception as e:
+                    logger.error('could not index', pid=calc.pid, exc_info=e)
 
             if len(source_calcs) == 0:
                 break
             else:
-                SourceCalc.objects.insert(source_calcs)
+                with utils.timer(logger, 'write index'):
+                    SourceCalc.objects.insert(source_calcs)
 
 
 class NomadCOEMigration:
@@ -186,7 +195,16 @@ class NomadCOEMigration:
         target_db.execute('ALTER SEQUENCE calculations_calc_id_seq RESTART WITH %d' % prefix)
         target_db.commit()
 
-    def _validate(self, upload_id: str, calc_id: str, source_calc: dict, logger) -> bool:
+    def _to_comparable_list(self, list):
+        for item in list:
+            if isinstance(item, dict):
+                for key in item.keys():
+                    if key.endswith('id'):
+                        yield item.get(key)
+            else:
+                yield item
+
+    def _validate(self, upload_id: str, calc_id: str, source_calc: CalcWithMetadata, logger) -> bool:
         """
         Validates the given processed calculation, assuming that the data in the given
         source_calc is correct.
@@ -198,13 +216,11 @@ class NomadCOEMigration:
             upload_id=upload_id, calc_id=calc_id).response().result
 
         is_valid = True
-        target_calc = repo_data_to_calc_with_metadata(upload_id, calc_id, repo_calc)
-
-        for key, target_value in target_calc.items():
-            if key in ['calc_id', 'upload_id', 'files']:
+        for key, target_value in repo_calc.items():
+            if key in ['calc_id', 'upload_id', 'files', 'calc_hash']:
                 continue
 
-            source_value = source_calc.get(key, None)
+            source_value = getattr(source_calc, key, None)
 
             def report_mismatch():
                 logger.info(
@@ -217,7 +233,9 @@ class NomadCOEMigration:
                 continue
 
             if isinstance(target_value, list):
-                if len(set(source_value).intersection(target_value)) != len(target_value):
+                source_list = list(self._to_comparable_list(source_value))
+                target_list = list(self._to_comparable_list(target_value))
+                if len(set(source_list).intersection(target_list)) != len(target_list):
                     report_mismatch()
                     is_valid = False
                 continue
@@ -309,8 +327,8 @@ class NomadCOEMigration:
             metadata_dict = dict()
             upload_metadata = dict(calculations=upload_metadata_calcs)
             for source_calc in SourceCalc.objects(upload=source_upload_id):
-                source_calc.metadata.upload_id = upload.upload_id
                 source_metadata = CalcWithMetadata(**source_calc.metadata)
+                source_metadata.upload_id = upload.upload_id
                 source_metadata.mainfile = source_calc.mainfile
                 source_metadata.pid = source_calc.pid
                 source_metadata.__migrated = False
@@ -378,32 +396,9 @@ class NomadCOEMigration:
                         mainfile=source_calc.mainfile)
 
             # publish upload
-            admin_keys = ['upload_time', 'uploader', 'pid']
-            user_metadata_keys = [
-                'upload_time', 'uploader', 'pid', 'references', 'datasets', 'mainfile',
-                'with_embargo', 'comment', 'references', 'coauthors', 'shared_with']
-
-            def transform(calcWithMetadata):
-                result = dict()
-                for key, value in calcWithMetadata.items():
-                    if key in user_metadata_keys:
-                        if key in admin_keys:
-                            target_key = '_%s' % key
-                        else:
-                            target_key = key
-
-                        if key in ['pid', 'uploader']:
-                            value = str(value)
-
-                        if key in ['coauthors', 'shared_with']:
-                            value = [str(item) for item in value]
-
-                        result[target_key] = value
-                return result
-
             upload_metadata['calculations'] = [
-                transform(calc) for calc in upload_metadata['calculations']
-                if calc.__migrated]
+                self._to_api_metadata(calc)
+                for calc in upload_metadata['calculations'] if calc.__migrated]
 
             if report.total_calcs > report.failed_calcs:
                 upload = self.client.uploads.exec_upload_operation(
@@ -423,6 +418,24 @@ class NomadCOEMigration:
             # report
             upload_logger.info('migrated upload', **report)
             yield report
+
+    def _to_api_metadata(self, source: CalcWithMetadata) -> dict:
+        """ Transforms to a dict that fullfils the API's uploade metadata model. """
+        return dict(
+            _upload_time=source.upload_time,
+            _uploader=source.uploader['id'],
+            _pid=source.pid,
+            references=[ref['value'] for ref in source.references],
+            datasets=[dict(
+                id=ds['id'],
+                _doi=ds.get('doi', {'value': None})['value'],
+                _name=ds.get('name', None)) for ds in source.datasets],
+            mainfile=source.mainfile,
+            with_embargo=source.with_embargo,
+            comment=source.comment,
+            coauthors=list(user['id'] for user in source.coauthors),
+            shared_with=list(user['id'] for user in source.shared_with)
+        )
 
     def index(self, *args, **kwargs):
         """ see :func:`SourceCalc.index` """

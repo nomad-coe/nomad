@@ -41,6 +41,7 @@ ujson
 bravado
 PyJWT
 jsonschema[format]
+python-magic
 
 # dev/ops related
 setuptools
