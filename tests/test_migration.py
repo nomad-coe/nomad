@@ -27,8 +27,8 @@ from tests.conftest import create_postgres_infra, create_auth_headers
 from tests.bravado_flask import FlaskTestHttpClient
 from tests.test_api import create_auth_headers
 
-test_source_db_name = 'test_nomad_fair_migration_source'
-test_target_db_name = 'test_nomad_fair_migration_target'
+test_source_db_name = 'test_nomad_fairdi_migration_source'
+test_target_db_name = 'test_nomad_fairdi_migration_target'
 
 
 @pytest.fixture(scope='module')
