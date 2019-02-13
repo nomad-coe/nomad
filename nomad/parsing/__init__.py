@@ -235,7 +235,7 @@ parsers = [
     LegacyParser(
         name='parsers/gaussian',
         parser_class_name='gaussianparser.GaussianParser',
-        main_contents_re=(
+        mainfile_contents_re=(
             r'\s*Cite this work as:'
             r'\s*Gaussian [0-9]+, Revision [A-Za-z0-9.]*,'
             r'\s\*\*\*\*\*\*\*\*\*\*\*\**'
@@ -245,7 +245,7 @@ parsers = [
     LegacyParser(
         name='parsers/quantumespresso',
         parser_class_name='quantumespressoparser.QuantumEspressoParserPWSCF',
-        main_contents_re=(
+        mainfile_contents_re=(
             r'^\s*Program (?<programName>\S+)\s+v\.(?<version>\S+)(?:\s+\(svn\s+rev\.\s'
             r'+(?<revision>\d+)\s*\))?\s+starts[^\n]+'
             r'(?:\s*\n?)*This program is part of the open-source Quantum')
