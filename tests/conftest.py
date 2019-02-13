@@ -111,6 +111,24 @@ def celery_inspect(purged_app):
     yield purged_app.control.inspect()
 
 
+# The follwing workarround seems unnecessary. I'll leave it here for an incubation period
+# @pytest.fixture()
+# def patched_celery(monkeypatch):
+#     # There is a bug in celery, which prevents to use the celery_worker for multiple
+#     # tests: https://github.com/celery/celery/issues/4088
+#     # The bug has a fix from Aug 2018, but it is not yet released (TODO).
+#     # We monkeypatch a similar solution here.
+#     def add_reader(self, fds, callback, *args):
+#         from kombu.utils.eventio import ERR, READ, poll
+#         if self.poller is None:
+#             self.poller = poll()
+#         return self.add(fds, callback, READ | ERR, args)
+#     monkeypatch.setattr('kombu.asynchronous.hub.Hub.add_reader', add_reader)
+#     yield
+
+
+# It might be necessary to make this a function scoped fixture, if old tasks keep
+# 'bleeding' into successive tests.
 @pytest.fixture(scope='session')
 def worker(celery_session_worker, celery_inspect):
     """ Provides a clean worker (no old tasks) per function. Waits for all tasks to be completed. """
