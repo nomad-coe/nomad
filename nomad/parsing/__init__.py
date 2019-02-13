@@ -246,8 +246,8 @@ parsers = [
         name='parsers/quantumespresso',
         parser_class_name='quantumespressoparser.QuantumEspressoParserPWSCF',
         mainfile_contents_re=(
-            r'^\s*Program (?<programName>\S+)\s+v\.(?<version>\S+)(?:\s+\(svn\s+rev\.\s'
-            r'+(?<revision>\d+)\s*\))?\s+starts[^\n]+'
+            r'^\s*Program (?P<programName>\S+)\s+v\.(?P<version>\S+)(?:\s+\(svn\s+rev\.\s+'
+            r'(?P<revision>\d+)\s*\))?\s+starts[^\n]+'
             r'(?:\s*\n?)*This program is part of the open-source Quantum')
     )
 ]
