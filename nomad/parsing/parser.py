@@ -35,7 +35,15 @@ class Parser(metaclass=ABCMeta):
 
     @abstractmethod
     def is_mainfile(self, filename: str, mime: str, buffer: str, compression: str = None) -> bool:
-        """ Checks if a file is a mainfile for the parsers. """
+        """
+        Checks if a file is a mainfile for the parsers.
+
+        Arguments:
+            filename: The filesystem path to the mainfile
+            mime: The mimetype of the mainfile guessed with libmagic
+            buffer: The first 2k of the mainfile contents
+            compression: The compression of the mainfile ``[None, 'gz', 'bz2']``
+        """
         pass
 
     @abstractmethod
@@ -136,8 +144,8 @@ class VaspOutcarParser(LegacyParser):
         is_mainfile = super().is_mainfile(filename, *args, **kwargs)
 
         if is_mainfile:
-            os.path.dirname(filename)
-            if len(glob.glob('%s/*.xml*' % filename)) > 0:
+            directory = os.path.dirname(filename)
+            if len(glob.glob('%s/*.xml*' % directory)) > 0:
                 return False
 
         return is_mainfile

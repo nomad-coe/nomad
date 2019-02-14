@@ -94,7 +94,8 @@ def match_parser(mainfile: str, upload_files: files.StagingUploadFiles) -> 'Pars
     with upload_files.raw_file(mainfile, 'rb') as f:
         compression, open_compressed = _compressions.get(f.read(3), (None, open))
 
-    with open_compressed(upload_files.raw_file_object(mainfile).os_path, 'rb') as f:
+    mainfile_path = upload_files.raw_file_object(mainfile).os_path
+    with open_compressed(mainfile_path, 'rb') as f:
         buffer = f.read(2048)
 
     mime_type = magic.from_buffer(buffer, mime=True)
@@ -102,7 +103,7 @@ def match_parser(mainfile: str, upload_files: files.StagingUploadFiles) -> 'Pars
         return None
 
     for parser in parsers:
-        if parser.is_mainfile(mainfile, mime_type, buffer.decode('utf-8'), compression):
+        if parser.is_mainfile(mainfile_path, mime_type, buffer.decode('utf-8'), compression):
             return parser
 
     return None

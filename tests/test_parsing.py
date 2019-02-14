@@ -46,7 +46,7 @@ faulty_unknown_one_d_matid_example = [
     ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
 ]
 
-correct_num_output_files = 17
+correct_num_output_files = 18
 
 
 class TestLocalBackend(object):
