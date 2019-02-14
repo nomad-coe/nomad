@@ -45,3 +45,9 @@
 [submodule "dependencies/parsers/parser-band"]
 	path = dependencies/parsers/band
 	url = git@gitlab.mpcdf.mpg.de:nomad-lab/parser-band.git
+[submodule "dependencies/parsers/gaussian"]
+	path = dependencies/parsers/gaussian
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gaussian
+[submodule "dependencies/parsers/quantum-espresso"]
+	path = dependencies/parsers/quantum-espresso
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-quantum-espresso

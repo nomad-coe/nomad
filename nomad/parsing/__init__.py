@@ -201,31 +201,31 @@ parsers = [
         name='parsers/bigdft',
         parser_class_name='bigdftparser.BigDFTParser',
         mainfile_contents_re=(
-            r'__________________________________ A fast and precise DFT wavelet code\s*'
-            r'\|     \|     \|     \|     \|     \|\s*'
-            r'\|     \|     \|     \|     \|     \|      BBBB         i       gggggg\s*'
-            r'\|_____\|_____\|_____\|_____\|_____\|     B    B               g\s*'
-            r'\|     \|  :  \|  :  \|     \|     \|    B     B        i     g\s*'
-            r'\|     \|-0\+--\|-0\+--\|     \|     \|    B    B         i     g        g\s*'
+            # r'__________________________________ A fast and precise DFT wavelet code\s*'
+            # r'\|     \|     \|     \|     \|     \|\s*'
+            # r'\|     \|     \|     \|     \|     \|      BBBB         i       gggggg\s*'
+            # r'\|_____\|_____\|_____\|_____\|_____\|     B    B               g\s*'
+            # r'\|     \|  :  \|  :  \|     \|     \|    B     B        i     g\s*'
+            # r'\|     \|-0\+--\|-0\+--\|     \|     \|    B    B         i     g        g\s*'
             r'\|_____\|__:__\|__:__\|_____\|_____\|___ BBBBB          i     g         g\s*'
-            r'\|  :  \|     \|     \|  :  \|     \|    B    B         i     g         g\s*'
-            r'\|--\+0-\|     \|     \|-0\+--\|     \|    B     B     iiii     g         g\s*'
-            r'\|__:__\|_____\|_____\|__:__\|_____\|    B     B        i      g        g\s*'
-            r'\|     \|  :  \|  :  \|     \|     \|    B BBBB        i        g      g\s*'
-            r'\|     \|-0\+--\|-0\+--\|     \|     \|    B        iiiii          gggggg\s*'
-            r'\|_____\|__:__\|__:__\|_____\|_____\|__BBBBB\s*'
-            r'\|     \|     \|     \|  :  \|     \|                           TTTTTTTTT\s*'
-            r'\|     \|     \|     \|--\+0-\|     \|  DDDDDD          FFFFF        T\s*'
-            r'\|_____\|_____\|_____\|__:__\|_____\| D      D        F        TTTT T\s*'
-            r'\|     \|     \|     \|  :  \|     \|D        D      F        T     T\s*'
-            r'\|     \|     \|     \|--\+0-\|     \|D         D     FFFF     T     T\s*'
-            r'\|_____\|_____\|_____\|__:__\|_____\|D___      D     F         T    T\s*'
-            r'\|     \|     \|  :  \|     \|     \|D         D     F          TTTTT\s*'
-            r'\|     \|     \|--\+0-\|     \|     \| D        D     F         T    T\s*'
-            r'\|_____\|_____\|__:__\|_____\|_____\|          D     F        T     T\s*'
-            r'\|     \|     \|     \|     \|     \|         D               T    T\s*'
-            r'\|     \|     \|     \|     \|     \|   DDDDDD       F         TTTT\s*'
-            r'\|_____\|_____\|_____\|_____\|_____\|______                    www\.bigdft\.org'
+            # r'\|  :  \|     \|     \|  :  \|     \|    B    B         i     g         g\s*'
+            # r'\|--\+0-\|     \|     \|-0\+--\|     \|    B     B     iiii     g         g\s*'
+            # r'\|__:__\|_____\|_____\|__:__\|_____\|    B     B        i      g        g\s*'
+            # r'\|     \|  :  \|  :  \|     \|     \|    B BBBB        i        g      g\s*'
+            # r'\|     \|-0\+--\|-0\+--\|     \|     \|    B        iiiii          gggggg\s*'
+            # r'\|_____\|__:__\|__:__\|_____\|_____\|__BBBBB\s*'
+            # r'\|     \|     \|     \|  :  \|     \|                           TTTTTTTTT\s*'
+            # r'\|     \|     \|     \|--\+0-\|     \|  DDDDDD          FFFFF        T\s*'
+            # r'\|_____\|_____\|_____\|__:__\|_____\| D      D        F        TTTT T\s*'
+            # r'\|     \|     \|     \|  :  \|     \|D        D      F        T     T\s*'
+            # r'\|     \|     \|     \|--\+0-\|     \|D         D     FFFF     T     T\s*'
+            # r'\|_____\|_____\|_____\|__:__\|_____\|D___      D     F         T    T\s*'
+            # r'\|     \|     \|  :  \|     \|     \|D         D     F          TTTTT\s*'
+            # r'\|     \|     \|--\+0-\|     \|     \| D        D     F         T    T\s*'
+            # r'\|_____\|_____\|__:__\|_____\|_____\|          D     F        T     T\s*'
+            # r'\|     \|     \|     \|     \|     \|         D               T    T\s*'
+            # r'\|     \|     \|     \|     \|     \|   DDDDDD       F         TTTT\s*'
+            # r'\|_____\|_____\|_____\|_____\|_____\|______                    www\.bigdft\.org'
         )
     ),
     LegacyParser(
@@ -236,7 +236,24 @@ parsers = [
     LegacyParser(
         name='parsers/band',
         parser_class_name='bandparser.BANDParser',
-        mainfile_contents_re=r' +\* +Amsterdam Density Functional +\(ADF\)'
+        mainfile_contents_re=r' +\* +Amsterdam Density Functional +\(ADF\)'),
+    LegacyParser(
+        name='parsers/gaussian',
+        parser_class_name='gaussianparser.GaussianParser',
+        mainfile_contents_re=(
+            r'\s*Cite this work as:'
+            r'\s*Gaussian [0-9]+, Revision [A-Za-z0-9.]*,'
+            r'\s\*\*\*\*\*\*\*\*\*\*\*\**'
+            r'\s*Gaussian\s*([0-9]+):\s*([A-Za-z0-9-.]+)\s*([0-9][0-9]?\-[A-Z][a-z][a-z]\-[0-9]+)'
+            r'\s*([0-9][0-9]?\-[A-Z][a-z][a-z]\-[0-9]+)')
+    ),
+    LegacyParser(
+        name='parsers/quantumespresso',
+        parser_class_name='quantumespressoparser.QuantumEspressoParserPWSCF',
+        mainfile_contents_re=(
+            r'^\s*Program (\S+)\s+v\.(\S+)(?:\s+\(svn\s+rev\.\s+'
+            r'(\d+)\s*\))?\s+starts[^\n]+'
+            r'(?:\s*\n?)*This program is part of the open-source Quantum')
     )
 ]
 
