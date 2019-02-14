@@ -234,7 +234,7 @@ parsers = [
     ),
     LegacyParser(
         name='parsers/band',
-        parser_class_name='bandparser.parser_band.BANDParser',
+        parser_class_name='bandparser.BANDParser',
         mainfile_contents_re=r' +\* +Amsterdam Density Functional +\(ADF\)'
     )
 ]
