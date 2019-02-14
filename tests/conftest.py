@@ -36,6 +36,7 @@ from tests.processing import test_data as test_processing
 from tests.test_files import example_file, empty_file
 from tests.bravado_flask import FlaskTestHttpClient
 
+test_log_level = logging.CRITICAL
 example_files = [empty_file, example_file]
 
 
@@ -50,7 +51,7 @@ def monkeysession(request):
 @pytest.fixture(scope='session', autouse=True)
 def nomad_logging():
     config.logstash = config.logstash._replace(enabled=False)
-    config.console_log_level = logging.CRITICAL
+    config.console_log_level = test_log_level
     infrastructure.setup_logging()
 
 
@@ -129,7 +130,7 @@ def celery_inspect(purged_app):
 
 # It might be necessary to make this a function scoped fixture, if old tasks keep
 # 'bleeding' into successive tests.
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='function')
 def worker(celery_session_worker, celery_inspect):
     """ Provides a clean worker (no old tasks) per function. Waits for all tasks to be completed. """
     pass
@@ -170,17 +171,21 @@ def elastic_infra(monkeysession):
         return infrastructure.setup_elastic()
 
 
-@pytest.fixture(scope='function')
-def elastic(elastic_infra):
-    """ Provides a clean elastic per function. Clears elastic before test. """
+def clear_elastic(elastic):
     while True:
         try:
-            elastic_infra.delete_by_query(
+            elastic.delete_by_query(
                 index='test_nomad_fairdi_calcs', body=dict(query=dict(match_all={})),
                 wait_for_completion=True, refresh=True)
             break
         except Exception:
             time.sleep(0.1)
+
+
+@pytest.fixture(scope='function')
+def elastic(elastic_infra):
+    """ Provides a clean elastic per function. Clears elastic before test. """
+    clear_elastic(elastic_infra)
 
     assert infrastructure.elastic_client is not None
     return elastic_infra
@@ -302,7 +307,7 @@ def test_user_auth(test_user: coe_repo.User):
 
 
 @pytest.fixture(scope='module')
-def test_other_user_auth(other_test_user: coe_repo.User):
+def other_test_user_auth(other_test_user: coe_repo.User):
     return create_auth_headers(other_test_user)
 
 
@@ -483,14 +488,14 @@ def example_user_metadata(other_test_user, test_user) -> dict:
     }
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope='session')
 def parsed(example_mainfile: Tuple[str, str]) -> parsing.LocalBackend:
     """ Provides a parsed calculation in the form of a LocalBackend. """
     parser, mainfile = example_mainfile
     return test_parsing.run_parser(parser, mainfile)
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope='session')
 def normalized(parsed: parsing.LocalBackend) -> parsing.LocalBackend:
     """ Provides a normalized calculation in the form of a LocalBackend. """
     return test_normalizing.run_normalize(parsed)

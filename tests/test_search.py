@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from elasticsearch_dsl import Q
+
 from nomad import datamodel, search, processing, parsing
 from nomad.search import Entry
 
@@ -46,10 +48,15 @@ def test_index_upload(elastic, processed: processing.Upload):
 
 
 def create_entry(calc_with_metadata: datamodel.CalcWithMetadata):
-    search.Entry.from_calc_with_metadata(calc_with_metadata).save()
+    search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
     assert_entry(calc_with_metadata.calc_id)
 
 
 def assert_entry(calc_id):
     calc = Entry.get(calc_id)
     assert calc is not None
+
+    search = Entry.search().query(Q('term', calc_id=calc_id))[0:10]
+    assert search.count() == 1
+    results = list(hit.to_dict() for hit in search)
+    assert results[0]['calc_id'] == calc_id

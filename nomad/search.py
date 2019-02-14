@@ -17,7 +17,7 @@ This module represents calculations in elastic search.
 """
 
 from elasticsearch_dsl import Document, InnerDoc, Keyword, Text, Date, \
-    Nested, Boolean, Search
+    Object, Boolean, Search
 
 from nomad import config, datamodel, infrastructure, datamodel, coe_repo
 
@@ -29,7 +29,7 @@ class User(InnerDoc):
 
     @classmethod
     def from_user_popo(cls, user):
-        self = cls(id=user.id)
+        self = cls(user_id=user.id)
 
         if 'first_name' not in user:
             user = coe_repo.User.from_user_id(user.id).to_popo()
@@ -39,7 +39,7 @@ class User(InnerDoc):
 
         return self
 
-    id = Keyword()
+    user_id = Keyword()
     name = Text()
     name_keyword = Keyword()
 
@@ -69,16 +69,16 @@ class Entry(Document):
     pid = Keyword()
     mainfile = Keyword()
     files = Keyword(multi=True)
-    uploader = Nested(User)
+    uploader = Object(User)
 
     with_embargo = Boolean()
     published = Boolean()
 
-    coauthors = Nested(User)
-    shared_with = Nested(User)
+    coauthors = Object(User)
+    shared_with = Object(User)
     comment = Text()
     references = Keyword()
-    datasets = Nested(Dataset)
+    datasets = Object(Dataset)
 
     formula = Keyword()
     atoms = Keyword(multi=True)
@@ -91,7 +91,7 @@ class Entry(Document):
     code_version = Keyword()
 
     @classmethod
-    def from_calc_with_metadata(cls, source: datamodel.CalcWithMetadata, published: bool = False) -> 'Entry':
+    def from_calc_with_metadata(cls, source: datamodel.CalcWithMetadata) -> 'Entry':
         return Entry(
             meta=dict(id=source.calc_id),
             upload_id=source.upload_id,
@@ -104,7 +104,7 @@ class Entry(Document):
             uploader=User.from_user_popo(source.uploader) if source.uploader is not None else None,
 
             with_embargo=source.with_embargo,
-            published=published,
+            published=source.published,
             coauthors=[User.from_user_popo(user) for user in source.coauthors],
             shared_with=[User.from_user_popo(user) for user in source.shared_with],
             comment=source.comment,

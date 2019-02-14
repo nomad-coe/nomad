@@ -18,8 +18,11 @@ meta-data.
 """
 
 from flask_restplus import Resource, abort, fields
+from flask import request, g
+from elasticsearch_dsl import Q
 
 from nomad.files import UploadFiles, Restricted
+from nomad.search import Entry
 
 from .app import api
 from .auth import login_if_available, create_authorization_predicate
@@ -80,38 +83,42 @@ class RepoCalcsResource(Resource):
 
         This is currently not implemented!
         """
-        return dict(pagination=dict(total=0, page=1, per_page=10), results=[]), 200
-        # page = int(request.args.get('page', 1))
-        # per_page = int(request.args.get('per_page', 10))
-        # owner = request.args.get('owner', 'all')
+        # return dict(pagination=dict(total=0, page=1, per_page=10), results=[]), 200
 
-        # try:
-        #     assert page >= 1
-        #     assert per_page > 0
-        # except AssertionError:
-        #     abort(400, message='invalid pagination')
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        owner = request.args.get('owner', 'all')
 
-        # if owner == 'all':
-        #     search = RepoCalc.search().query('match_all')
-        # elif owner == 'user':
-        #     if g.user is None:
-        #         abort(401, message='Authentication required for owner value user.')
-        #     search = RepoCalc.search().query('match_all')
-        #     search = search.filter('term', user_id=str(g.user.user_id))
-        # elif owner == 'staging':
-        #     if g.user is None:
-        #         abort(401, message='Authentication required for owner value user.')
-        #     search = RepoCalc.search().query('match_all')
-        #     search = search.filter('term', user_id=str(g.user.user_id)).filter('term', staging=True)
-        # else:
-        #     abort(400, message='Invalid owner value. Valid values are all|user|staging, default is all')
+        try:
+            assert page >= 1
+            assert per_page > 0
+        except AssertionError:
+            abort(400, message='invalid pagination')
 
-        # search = search[(page - 1) * per_page: page * per_page]
-        # return {
-        #     'pagination': {
-        #         'total': search.count(),
-        #         'page': page,
-        #         'per_page': per_page
-        #     },
-        #     'results': [result.json_dict for result in search]
-        # }, 200
+        if owner == 'all':
+            if g.user is None:
+                q = Q('term', published=True)
+            else:
+                q = Q('term', published=True) | Q('term', uploader__user_id=g.user.user_id)
+        elif owner == 'user':
+            if g.user is None:
+                abort(401, message='Authentication required for owner value user.')
+
+            q = Q('term', uploader__user_id=g.user.user_id)
+        elif owner == 'staging':
+            if g.user is None:
+                abort(401, message='Authentication required for owner value user.')
+            q = Q('term', published=False) & Q('term', uploader__user_id=g.user.user_id)
+        else:
+            abort(400, message='Invalid owner value. Valid values are all|user|staging, default is all')
+
+        search = Entry.search().query(q)
+        search = search[(page - 1) * per_page: page * per_page]
+        return {
+            'pagination': {
+                'total': search.count(),
+                'page': page,
+                'per_page': per_page
+            },
+            'results': [hit.to_dict() for hit in search]
+        }, 200
