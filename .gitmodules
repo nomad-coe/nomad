@@ -42,10 +42,12 @@
 	path = dependencies/parsers/wien2k
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-wien2k
 	branch = nomad-fair
+[submodule "dependencies/parsers/parser-band"]
+	path = dependencies/parsers/band
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-band
 [submodule "dependencies/parsers/gaussian"]
 	path = dependencies/parsers/gaussian
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gaussian
-
 [submodule "dependencies/parsers/quantum-espresso"]
 	path = dependencies/parsers/quantum-espresso
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-quantum-espresso

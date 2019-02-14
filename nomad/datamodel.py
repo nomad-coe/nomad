@@ -98,6 +98,7 @@ class CalcWithMetadata():
         self.uploader: utils.POPO = None
 
         self.with_embargo: bool = None
+        self.published: bool = False
         self.coauthors: List[utils.POPO] = []
         self.shared_with: List[utils.POPO] = []
         self.comment: str = None
@@ -114,14 +115,17 @@ class CalcWithMetadata():
         self.code_name: str = None
         self.code_version: str = None
 
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+        self.update(**kwargs)
 
     def to_dict(self):
         return {
             key: value for key, value in self.__dict__.items()
             if value is not None
         }
+
+    def update(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
     def apply_user_metadata(self, metadata: dict):
         """

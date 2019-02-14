@@ -1,0 +1,1236 @@
+
+
+ Parallel Execution: Process Information
+ ==============================================================================
+ Rank   Node Name                              NodeID   MyNodeRank  NodeMaster
+    0   node035                                   0          0          0
+    1   node035                                   0          1         -1
+    2   node035                                   0          2         -1
+    3   node035                                   0          3         -1
+    4   node035                                   0          4         -1
+    5   node035                                   0          5         -1
+    6   node035                                   0          6         -1
+    7   node035                                   0          7         -1
+ ==============================================================================
+
+
+May use up to 123235MB of RAM as shared memory on node 0
+
+ *******************************************************************************
+ *                                                                             *
+ *  -------------------------------------                                      *
+ *   Amsterdam Density Functional  (ADF)         2018                          *
+ *  -------------------------------------                                      *
+ *                                               r70352 2018-11-12             *
+ *                                                                             *
+ *                                                                             *
+ *                              =================                              *
+ *                              |               |                              *
+ *                              |     A M S     |                              *
+ *                              |               |                              *
+ *                              =================                              *
+ *                                                                             *
+ *                                                                             *
+ *   Online information and documentation:  https://www.scm.com/support/       *
+ *   E-mail:  support@scm.com   info@scm.com                                   *
+ *                                                                             *
+ *   Scientific publications using ADF results must be properly referenced     *
+ *   See the User Manuals (or the web site) for recommended citations          *
+ *   The terms and conditions of the End User License Agreement apply to       *
+ *   the use of ADF, https://www.scm.com/license-terms/                        *
+ *                                                                             *
+ **********************  x86_64_linux_intel / intelmpi  ************************
+ 
+ Licensed to: Dr. Ralf Tonner / Philipps-Universt?t, Theoretical Surface Chemistry Group / Marburg / DE
+ SCM User ID: u12265
+  
+ AMS 2018  RunTime: Nov21-2018 13:54:42  Nodes: 1  Procs: 8
+
+ AMS jobname: ams
+ AMS jobid  : 332013412
+
+ Start   directory: /local/2876732.1.parallel_long/
+ Results directory: /local/2876732.1.parallel_long/ams.results/
+ Scratch directory: /local/2876732.1.parallel_long/amstmp_ams_kid0.332013412/
+
+       ****************************
+       * SINGLE POINT CALCULATION *
+       ****************************
+ 
+---------------
+Geometry
+---------------
+Atoms
+  Index Symbol       x (bohr)       y (bohr)       z (bohr)
+      1      C     7.95274649     6.53111496    17.14262515
+      2      C     8.71055586     8.89758851    16.25381087
+      3      C     9.14727438     4.36723014    16.22386131
+      4      C    10.98390160     4.55910368    14.32223927
+      5      C    11.68246334     6.92040535    13.22237967
+      6      C    10.55039679     9.08986207    14.35958881
+      7      H    11.98560687     2.82978455    13.77423230
+      8      H     8.66441028     2.50811422    16.97679550
+      9      H     6.48816804     6.37897340    18.58533142
+     10      H     7.87298055    10.61733539    17.02807100
+     11      H    11.19803359    10.98615261    13.82801331
+ 
+Lattice vectors (bohr)
+      1    16.48056584     0.00000000     0.00000000
+      2     0.00000000    14.28693452     0.00000000
+ 
+Atoms
+  Index Symbol   x (angstrom)   y (angstrom)   z (angstrom)
+      1      C     4.20841220     3.45611720     9.07148656
+      2      C     4.60942766     4.70840107     8.60114630
+      3      C     4.84052914     2.31103867     8.58529768
+      4      C     5.81243041     2.41257377     7.57900263
+      5      C     6.18209337     3.66212080     6.99698199
+      6      C     5.58302955     4.81014786     7.59876716
+      7      H     6.34251001     1.49745749     7.28900983
+      8      H     4.58500847     1.32723689     8.98373329
+      9      H     3.43339067     3.37560735     9.83493384
+     10      H     4.16620189     5.61845193     9.01086712
+     11      H     5.92574418     5.81362159     7.31746952
+ 
+Lattice vectors (angstrom)
+      1     8.72113986     0.00000000     0.00000000
+      2     0.00000000     7.56032016     0.00000000
+ 
+Total System Charge             0.00000
+ 
+
+ *******************************************************************************
+ *                                                                             *
+ *  -------------------------------------                                      *
+ *   Amsterdam Density Functional  (ADF)         2018                          *
+ *  -------------------------------------                                      *
+ *                                               r70352 2018-11-12             *
+ *                                                                             *
+ *                                                                             *
+ *                             ===================                             *
+ *                             |                 |                             *
+ *                             |     B A N D     |                             *
+ *                             |                 |                             *
+ *                             ===================                             *
+ *                                                                             *
+ *                                                                             *
+ *   Online information and documentation:  https://www.scm.com/support/       *
+ *   E-mail:  support@scm.com   info@scm.com                                   *
+ *                                                                             *
+ *   Scientific publications using ADF results must be properly referenced     *
+ *   See the User Manuals (or the web site) for recommended citations          *
+ *   The terms and conditions of the End User License Agreement apply to       *
+ *   the use of ADF, https://www.scm.com/license-terms/                        *
+ *                                                                             *
+ **********************  x86_64_linux_intel / intelmpi  ************************
+ 
+ Licensed to: Dr. Ralf Tonner / Philipps-Universt?t, Theoretical Surface Chemistry Group / Marburg / DE
+ SCM User ID: u12265
+  
+ BAND 2018  RunTime: Nov21-2018 13:54:45  Nodes: 1  Procs: 8
+
+ AMS jobname: ams
+ AMS jobid  : 332013412
+
+ Start   directory: /local/2876732.1.parallel_long/
+ Results directory: /local/2876732.1.parallel_long/ams.results/
+ Scratch directory: /local/2876732.1.parallel_long/amstmp_ams_kid0.332013412/
+
+ 
+-----------------
+Band Engine Input
+-----------------
+ 
+  Basis
+   Type DZP
+   Core large
+  End
+  XC
+   LDA LDA
+   GGA PBE
+   dispersion Grimme3 BJdamp
+  END
+ KSpace
+  Regular
+   NumberOfPoints 1 1
+  end 
+ End
+ NumericalQuality Good
+ Unrestricted True
+ Occupations
+  1 15 // 14
+ end
+ Relativity
+  Level Scalar
+ End
+ SCF
+  Mixing 0.2
+  Iterations 300
+ End
+ Convergence
+ criterion 1E-6
+ End
+ UseSymmetry False
+ Dependency basis=1e-8
+ 
+
+   LockSharedArrayModule: size of slices    32 exact locking     T
+
+ Using the following basis set files:
+ 
+ C              : /home/ag_tonner/chemsoft/lx24-amd64/adf2018.105r70352/atomicdata/Band/DZP/C.1s
+ H              : /home/ag_tonner/chemsoft/lx24-amd64/adf2018.105r70352/atomicdata/Band/DZP/H
+
+ Settings for Grimme 3 dispersion correction
+
+      damping                        BJ
+      s6                          1.000
+      a1                          0.429
+      s8                          0.788
+      a2                          4.441
+
+ Other (technical) parameters
+
+      alpha                      14.000
+      version                         4
+ 
+
+
+
+ =====================
+ C O N F I N E M E N T
+ =====================
+  
+ Basis functions confinement radius        20.000
+ Width                                      2.000
+
+
+
+ ===============================
+ M O D E L   P A R A M E T E R S
+ ===============================
+  
+ DENSITY FUNCTIONAL POTENTIAL (scf)
+    LDA:                               VWN                                      
+    Gradient Corrections:              PBEc PBEx                               == Not Default ==
+ DENSITY FUNCTIONAL ENERGY (post-scf)
+    Gradient Corrections:              Becke88 Perdew86 PW91x PW91c EV93x PW...== Not Default ==
+
+ SPIN  (restricted / unrestr.)
+    Molecule:                          UNrestricted                            == Not Default ==
+
+ OTHER ASPECTS
+    Relativistic Corrections:          scalar (ZORA,APA)                       == Not Default ==
+
+    Nuclear Charge Density Model:      Point Charge Nuclei                      
+
+
+
+ ========================
+ S. C. F.   O P T I O N S
+ ========================
+  
+
+ * DIIS settings info for DIRAC   *
+    Cond              0.1E+07
+    CLarge          20.00
+    CHuge           50.00
+    DiMix            1.00
+    IopPly              1
+    NCyDmp              5
+    IPrint              0
+    Adaptable           F
+    Method         diis                
+    Dimix Decay fac  1.00
+
+ * DIIS settings info for SCF     *
+    Cond              0.1E+07
+    CLarge          20.00
+    CHuge           20.00
+    DiMix            0.20
+    IopPly              1
+    NCyDmp              1
+    IPrint              0
+    Adaptable           T
+    Method         DIIS                
+    Dimix Decay fac  1.00
+ growth factor   1.10000000000000     
+ shrink factor  0.909090909100000     
+
+    Mix            0.2000
+    Degenerate          F
+    Edegen          1.0E-04
+    SCFRTX           9.90
+    Convrg          1.0E-06
+    Ncyclx            300
+    Vsplit          5.0E-02
+ getinp: use Shared Memory T
+ blockIterator: dynamic default: T
+
+ FunctionSetOverlapModule: use new routines     3
+
+
+   size of slices for column locking    32 exact locking
+
+
+
+
+                             **  R A D I A L   F U N C T I O N S  **
+
+ TOTAL NR. OF TYPES OF ATOMS                              2
+
+
+
+
+                             ---------------------
+                                   T Y P E   1
+                             ---------------------
+
+ RADIAL POINTS                                         3000
+
+
+
+
+ ............................ D I R A C ................................
+
+ NUCLEAR CHARGE                                 6.0000               **>  C  <**
+ (POINT NUCLEUS)
+ VALENCE CHARGE                                 4.0000
+ NET CHARGE                                     0.0000
+
+ VALENCE ORBITALS INCLUDED IN THE CRYSTAL BASIS
+ NR. OF (RADIAL) CORE FUNCTIONS                 1
+ Radial grid       nr of points               3000
+                   range                      0.10E-05     0.10E+03
+  
+  ** SCF-FUNCTIONAL INFO **
+    ZORA
+    SCALAR
+  
+ Self consistent error   0.18E-08
+
+
+  Orbital    Q         E(a.u.)     E(eV)           <R>
+ -------------------------------------------------------------------
+  1S         2.00    -10.050188       -273.4795   0.271
+  2S         2.00     -0.505399        -13.7526   1.571
+  2P         2.00     -0.194278         -5.2866   1.799
+
+
+ Sum (energy eigenvalues)                     -21.4997
+ Total energy LDA                             -37.4486
+              + Becke88                       -38.0235
+              + Becke88+Perdew86              -37.8257
+              + Perdew-Wang (91) X            -38.0083
+              + Perdew-Wang (91) X+C          -37.8070
+              + EV93x+PW91c                   -38.0194
+              + PW86x+Perdew86c               -37.8745
+              + Becke88+LYP                   -38.1993
+              + Becke (alt)                   -38.0235
+              + PBE                           -37.7748
+              + RPBE                          -37.8379
+ Kinetic energy                                37.6740
+ Classical e-e repulsion                       17.6991
+ e-nucl. attraction.                          -88.0675
+
+ ......................................................................
+
+
+ Sum first order eigenvalues                  -21.4911
+ First order  LDA                             -37.4400
+              + Becke88                       -38.0149
+              + Becke88+Perdew86              -37.8171
+              + Perdew-Wang (91) X            -37.9997
+              + Perdew-Wang (91) X+C          -37.7985
+              + EV93x+PW91c                   -38.0108
+              + PW86x+Perdew86c               -37.8659
+              + Becke88+LYP                   -38.1907
+              + Becke (alt)                   -38.0149
+              + PBE                           -37.7662
+              + RPBE                          -37.8293
+
+ ......................................................................
+
+
+
+
+ SLATER TYPE ORBITAL SETS
+   2   0    1.9800
+   2   1    2.2000
+   3   2    2.2000
+ nRadialFuncs=           0
+ summary of added auto gaussians
+                   Type             valence
+            Spher. Harm                 zlm
+    Nr. of radial func.                   0
+ summary of added auto kin gaussians
+                   Type     valence kinetic
+            Spher. Harm                 zlm
+    Nr. of radial func.                   0
+
+ NR. OF RADIAL VALENCE ORBITALS                           5
+ NR. OF RADIAL CORE ORBITALS                              1
+ NR. OF RADIAL FIT FUNCTIONS                              0
+
+
+
+
+                             ---------------------
+                                   T Y P E   2
+                             ---------------------
+
+ RADIAL POINTS                                         3000
+
+
+
+
+ ............................ D I R A C ................................
+
+ NUCLEAR CHARGE                                 1.0000               **>  H  <**
+ (POINT NUCLEUS)
+ VALENCE CHARGE                                 1.0000
+ NET CHARGE                                     0.0000
+
+ VALENCE ORBITALS INCLUDED IN THE CRYSTAL BASIS
+ Radial grid       nr of points               3000
+                   range                      0.10E-05     0.10E+03
+  
+  ** SCF-FUNCTIONAL INFO **
+    ZORA
+    SCALAR
+  
+ Self consistent error   0.58E-08
+
+
+  Orbital    Q         E(a.u.)     E(eV)           <R>
+ -------------------------------------------------------------------
+  1S         1.00     -0.238623         -6.4932   1.635
+
+
+ Sum (energy eigenvalues)                      -0.2386
+ Total energy LDA                              -0.4454
+              + Becke88                        -0.4891
+              + Becke88+Perdew86               -0.4653
+              + Perdew-Wang (91) X             -0.4852
+              + Perdew-Wang (91) X+C           -0.4603
+              + EV93x+PW91c                    -0.4830
+              + PW86x+Perdew86c                -0.4666
+              + Becke88+LYP                    -0.5024
+              + Becke (alt)                    -0.4891
+              + PBE                            -0.4589
+              + RPBE                           -0.4655
+ Kinetic energy                                 0.4474
+ Classical e-e repulsion                        0.2899
+ e-nucl. attraction.                           -0.9448
+
+ ......................................................................
+
+
+ Sum first order eigenvalues                   -0.2386
+ First order  LDA                              -0.4454
+              + Becke88                        -0.4891
+              + Becke88+Perdew86               -0.4652
+              + Perdew-Wang (91) X             -0.4852
+              + Perdew-Wang (91) X+C           -0.4603
+              + EV93x+PW91c                    -0.4830
+              + PW86x+Perdew86c                -0.4666
+              + Becke88+LYP                    -0.5024
+              + Becke (alt)                    -0.4891
+              + PBE                            -0.4589
+              + RPBE                           -0.4655
+
+ ......................................................................
+
+
+
+
+ SLATER TYPE ORBITAL SETS
+   1   0    1.2800
+   2   1    1.2500
+ nRadialFuncs=           0
+ summary of added auto gaussians
+                   Type             valence
+            Spher. Harm                 zlm
+    Nr. of radial func.                   0
+ summary of added auto kin gaussians
+                   Type     valence kinetic
+            Spher. Harm                 zlm
+    Nr. of radial func.                   0
+
+ NR. OF RADIAL VALENCE ORBITALS                           3
+ NR. OF RADIAL CORE ORBITALS                              0
+ NR. OF RADIAL FIT FUNCTIONS                              0
+
+
+
+ ======================================================
+ R A N G E S    F O R    A T O M I C    O R B I T A L S
+ ======================================================
+  
+   --------------------------------------------------------------------------------
+                            valence            core valence kinetic    core kinetic
+   --------------------------------------------------------------------------------
+
+             Cutoff       1.000E-07       1.000E-07       1.000E-07       1.000E-07
+   --------------------------------------------------------------------------------
+ 
+   --------------------------------------------------------------------------------
+               Type         valence            core valence kinetic    core kinetic
+   --------------------------------------------------------------------------------
+                  C           24.80            4.31           24.95            4.33
+                  H           23.61            0.00           24.05            0.00
+   --------------------------------------------------------------------------------
+ 
+
+
+
+ ====================
+ R U N    C O N F I G
+ ====================
+  
+ 
+ Use Symmetry  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  F
+ Calculate gradient of basis  .  .  .  .  .  .  .  .  .  .  .  F
+ Calculate sec. der. of basis .  .  .  .  .  .  .  .  .  .  .  F
+ Calculate operator T working on basis .  .  .  .  .  .  .  .  T
+ Calculate dk-basis  .  .  .  .  .  .  .  .  .  .  .  .  .  .  F
+ Calculate gradient of fit .  .  .  .  .  .  .  .  .  .  .  .  T
+ Calculate sec. der. of fit.  .  .  .  .  .  .  .  .  .  .  .  T
+ Calculate gradient of fit pot.  .  .  .  .  .  .  .  .  .  .  F
+ Kin. energy via grad.  .  .  .  .  .  .  .  .  .  .  .  .  .  F
+ Turnover rule for xc.  .  .  .  .  .  .  .  .  .  .  .  .  .  F
+ Calculate gradient of energy .  .  .  .  .  .  .  .  .  .  .  F
+ Calculate analytical strain derivatives  .  .  .  .  .  .  .  F
+ Calculate kin. energy density.  .  .  .  .  .  .  .  .  .  .  F
+ Calculate nuc. grad of kin. energy density  .  .  .  .  .  .  F
+ Calculate der. of density .  .  .  .  .  .  .  .  .  .  .  .  T
+ Calculate second der. of density.  .  .  .  .  .  .  .  .  .  T
+ Calculate nuc. grad. of density .  .  .  .  .  .  .  .  .  .  F
+ Calculate nuc. grad. of grad. density .  .  .  .  .  .  .  .  F
+ Exact rho during SCF.  .  .  .  .  .  .  .  .  .  .  .  .  .  T
+ Exact grad. rho during SCF.  .  .  .  .  .  .  .  .  .  .  .  F
+ Exact grad. rho post SCF  .  .  .  .  .  .  .  .  .  .  .  .  F
+ Store history of dens. matrix.  .  .  .  .  .  .  .  .  .  .  T
+ Store original Bloch functions  .  .  .  .  .  .  .  .  .  .  F
+ Direct fit .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  F
+ Direct basis  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  T
+ STO based fitting.  .  .  .  .  .  .  .  .  .  .  .  .  .  .  F
+ Zlm fitting.  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  T
+ Calculate fragment energy in mol. grid.  .  .  .  .  .  .  .  T
+ Map atoms to unit cell .  .  .  .  .  .  .  .  .  .  .  .  .  T
+ Calculate DOS .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  F
+ Calculate band structure  .  .  .  .  .  .  .  .  .  .  .  .  F
+ Calculate EFG .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  F
+ Calculate properties.  .  .  .  .  .  .  .  .  .  .  .  .  .  T
+ Calculate kinetic energy  .  .  .  .  .  .  .  .  .  .  .  .  T
+ Save file tape10 .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  F
+ Save file Points .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  F
+
+
+
+ ==================================================
+ G E O M E T R Y    I N    X - Y - Z    F O R M A T
+ ==================================================
+  
+ C      -3.232696626     2.660526838     0.810696023
+ C      -2.831681173    -3.647509453     0.340355763
+ C      -2.600579687     1.515448307     0.324507141
+ C      -1.628678419     1.616983406    -0.681787910
+ C      -1.259015464     2.866530442    -1.263808543
+ C      -1.858079282    -3.545762664    -0.662023382
+ H      -1.098598817     0.701867133    -0.971780708
+ H      -2.856100364     0.531646525     0.722942753
+ H      -4.007718162     2.580016989     1.574143303
+ H      -3.274906943    -2.737458594     0.750076582
+ H      -1.515364649    -2.542288929    -0.943321021
+ VEC1     8.721139862     0.000000000     0.000000000
+ VEC2     0.000000000     7.560320162     0.000000000
+
+   Total nr. of atoms:         11
+
+
+
+
+
+                       2 - D I M E N S I O N A L   C R Y S T A L
+
+
+                             IN K-SPACE ONLY THE GAMMA POINT
+
+
+
+
+   REAL SPACE LATTICE VECTORS                         LENGTH
+   --------------------------                         ------
+   1)  16.4805658365   0.0000000000                   16.481
+   2)   0.0000000000  14.2869345229                   14.287
+
+   ----------------------------------------
+   Angles between lattice vectors
+   ----------------------------------------
+
+     pair          angle
+
+     2 1            90.000000
+ 
+
+
+ SMALLEST INTERATOMIC DISTANCE =      2.061440870099
+ BeckeGrid: periodic partition function using cells up to order            5
+
+
+
+ ===============================
+ K - S P A C E   S A M P L I N G
+ ===============================
+  
+ Custom Regular k-space grid.
+ 
+   Single k-point
+
+
+
+ =========
+ C E L L S
+ =========
+  
+
+   Nr. of cells for valence functions:         41
+
+
+
+ ===========================
+ L I N E A R   S C A L I N G
+ ===========================
+  
+ Neglecting functions
+              Valence  1.00E-07
+                 Core  1.00E-07
+                  Fit  0.00E+00
+            Multipole  1.00E-08
+   Screening function  3.16E-05
+
+
+
+ =========================================
+ N U M E R I C A L   I N T E G R A T I O N
+ =========================================
+  
+ Becke grid quality: GOOD           
+  
+ Lebedev angular grid order:             min:  11 max:  31
+ Nr. of radial points:                   min:  56 max:  65
+
+ Total nr. of points                                 140160
+ Block length                                           128
+ Nr. of unique blocks                                  1095
+ Total nr. of blocks                                   1095
+
+ Percentage dummy points                               0.00%
+ Nr. of k-points processed together in baspnt            30
+ Nr. of symmetry operators (real space)                   1
+ Symmetry operators in k-space                            2
+
+
+
+ Total charge,    analytically                           41.000000000000
+                  numerically                            40.999982786538
+                  relative error                     -0.42E-06
+
+ Valence density, analytically                           29.000000000000
+                  numerically                            28.999999773368
+                  relative error                     -0.78E-08
+
+
+
+ INTEGRATED CHARGE PER ATOM:
+
+  SET      TOTAL CHARGE      REL. ERROR      Valence CHARGE    REL. ERROR
+ ------------------------------------------------------------------------
+   1       5.9999973991      -0.433E-06      4.0000004009       0.100E-06
+   2       5.9999975931      -0.401E-06      3.9999995502      -0.112E-06
+   3       5.9999981444      -0.309E-06      3.9999999135      -0.216E-07
+   4       5.9999965985      -0.567E-06      3.9999995026      -0.124E-06
+   5       5.9999971329      -0.478E-06      4.0000006254       0.156E-06
+   6       5.9999962129      -0.631E-06      4.0000000753       0.188E-07
+   7       0.9999996998      -0.300E-06      0.9999996998      -0.300E-06
+   8       1.0000007322       0.732E-06      1.0000007322       0.732E-06
+   9       1.0000000654       0.654E-07      1.0000000654       0.654E-07
+  10       1.0000006108       0.611E-06      1.0000006108       0.611E-06
+  11       0.9999985974      -0.140E-05      0.9999985974      -0.140E-05
+
+ Norms of functions from routine baspnt
+ Maximum error in norms     2.777E-06 for function      100
+ Minimum accuracy required  1.000E-03
+
+ Norms of functions from routine corpnt
+ Maximum error in norms     1.982E-06 for function        6
+ Minimum accuracy required  1.000E-03
+
+ Sparseness info - valence
+   nr. of functions             103
+   max. nr. of functions        103
+   min. nr. of functions         50
+   avr. nr. of functions        102
+   percentage stored           99.0
+ 
+
+ Sparseness info - core
+   nr. of functions               6
+   max. nr. of functions          6
+   min. nr. of functions          0
+   avr. nr. of functions          2
+   percentage stored           33.3
+ 
+
+ Frozen core overlap error  1.67E-04
+ PrepareHam: needLdotB F
+
+ FunctionSetTransformOption:     2
+   Cut off:   1.00E-10
+
+
+
+
+ ========================
+ Density Fitting (zlmFit)
+ ========================
+  
+ ZlmFit Fit Quality: GOOD           
+  
+ Max L-expansion:                        min:   7 max:   8
+ Nr. of radial interpolation points:     min:  72 max:  84
+ BeckeGrid: periodic partition function using cells up to order            5
+ skipDiagonalization F parmix=  0.200000000000000      ncylx=         300
+ restartSCF F
+ forceRestartSolution F
+
+
+
+                                          *******************************
+                                          *  S C F   P R O C E D U R E  *
+                                          *******************************
+  
+
+ Nr. of basis functions                  103
+ Nr. of core functions                     6
+ Nr. of fit functions                      0
+ Nr. of symmetry unique K-points           1
+ Valence charge                           29.00
+
+ Settings for convergence
+ --------------------------------------------------------------------------------
+   Initial density:          psi
+   start. from max. spin     T
+ --------------------------------------------------------------------------------
+
+ cyc=  0 err=0.00E+00 cpu=  16s ela=  16s
+ cyc=  1 err=9.71E-01 meth=m nvec= 1 mix=0.2000 cpu=  16s ela=  16s fit=7.45E-03
+ cyc=  2 err=7.80E-01 meth=d nvec= 2 mix=0.2000 cpu=  15s ela=  17s fit=4.94E-03
+ cyc=  3 err=7.44E-02 meth=d nvec= 3 mix=0.2000 cpu=  15s ela=  16s fit=4.88E-03
+ cyc=  4 err=5.09E-02 meth=d nvec= 4 mix=0.2000 cpu=  16s ela=  16s fit=5.01E-03
+ cyc=  5 err=1.79E-02 meth=d nvec= 5 mix=0.2000 cpu=  16s ela=  16s fit=5.02E-03
+ cyc=  6 err=1.14E-02 meth=d nvec= 4 mix=0.2200 cpu=  15s ela=  16s fit=5.02E-03
+ cyc=  7 err=5.36E-03 meth=d nvec= 5 mix=0.2200 cpu=  16s ela=  16s fit=5.02E-03
+ cyc=  8 err=2.28E-03 meth=d nvec= 6 mix=0.2200 cpu=  16s ela=  16s fit=5.02E-03
+ cyc=  9 err=1.29E-03 meth=d nvec= 6 mix=0.2420 cpu=  15s ela=  16s fit=5.02E-03
+ cyc= 10 err=8.54E-04 meth=d nvec= 7 mix=0.2420 cpu=  16s ela=  16s fit=5.02E-03
+ cyc= 11 err=3.65E-04 meth=d nvec= 7 mix=0.2662 cpu=  16s ela=  16s fit=5.02E-03
+ cyc= 12 err=2.86E-04 meth=d nvec= 7 mix=0.2928 cpu=  15s ela=  16s fit=5.02E-03
+ cyc= 13 err=9.79E-05 meth=d nvec= 7 mix=0.3221 cpu=  16s ela=  16s fit=5.02E-03
+ cyc= 14 err=3.98E-05 meth=d nvec= 7 mix=0.3543 cpu=  16s ela=  16s fit=5.02E-03
+ cyc= 15 err=1.83E-05 meth=d nvec= 8 mix=0.3543 cpu=  15s ela=  16s fit=5.02E-03
+ cyc= 16 err=7.31E-06 meth=d nvec= 8 mix=0.3897 cpu=  15s ela=  16s fit=5.02E-03
+ cyc= 17 err=3.74E-06 meth=d nvec= 7 mix=0.4287 cpu=  16s ela=  16s fit=5.02E-03
+
+ CONVERGENCE REACHED
+ cyc= 18 err=7.46E-07 meth=d nvec= 7 mix=0.4716 cpu=  16s ela=  16s fit=5.02E-03
+
+
+         -------------------- CYCLE   19 --------------------
+ Self consistent error (density)                       7.46E-07
+
+
+
+                                             *************************
+                                             *  P R O P E R T I E S  *
+                                             *************************
+  
+
+
+
+ ===================================
+ B A N D   E N E R G Y   R A N G E S
+ ===================================
+  
+ The energies below are in Hartree.
+ ========================================================================================
+       band      min(up)      max(up)    occup(up)      min(dn)      max(dn)    occup(dn)
+ ========================================================================================
+          1     -0.80212     -0.80212      1.00000     -0.79723     -0.79723      1.00000
+          2     -0.70208     -0.70208      1.00000     -0.69961     -0.69961      1.00000
+          3     -0.69759     -0.69759      1.00000     -0.68849     -0.68849      1.00000
+          4     -0.56558     -0.56558      1.00000     -0.56276     -0.56276      1.00000
+          5     -0.56344     -0.56344      1.00000     -0.55441     -0.55441      1.00000
+          6     -0.48540     -0.48540      1.00000     -0.48115     -0.48115      1.00000
+          7     -0.42655     -0.42655      1.00000     -0.42129     -0.42129      1.00000
+          8     -0.42564     -0.42564      1.00000     -0.42052     -0.42052      1.00000
+          9     -0.39625     -0.39625      1.00000     -0.39432     -0.39432      1.00000
+         10     -0.36873     -0.36873      1.00000     -0.36016     -0.36016      1.00000
+         11     -0.34959     -0.34959      1.00000     -0.34651     -0.34651      1.00000
+         12     -0.32469     -0.32469      1.00000     -0.32038     -0.32038      1.00000
+         13     -0.25630     -0.25630      1.00000     -0.25289     -0.25289      1.00000
+         14     -0.25281     -0.25281      1.00000     -0.24730     -0.24730      1.00000
+         15     -0.24812     -0.24812      1.00000     -0.15614     -0.15614      0.00000
+         16     -0.07121     -0.07121      0.00000     -0.06360     -0.06360      0.00000
+         17     -0.06320     -0.06320      0.00000     -0.05913     -0.05913      0.00000
+         18     -0.00089     -0.00089      0.00000      0.00112      0.00112      0.00000
+         19      0.06307      0.06307      0.00000      0.06533      0.06533      0.00000
+         20      0.07547      0.07547      0.00000      0.08254      0.08254      0.00000
+         21      0.10577      0.10577      0.00000      0.10693      0.10693      0.00000
+         22      0.13597      0.13597      0.00000      0.13903      0.13903      0.00000
+         23      0.15736      0.15736      0.00000      0.15982      0.15982      0.00000
+         24      0.19826      0.19826      0.00000      0.20651      0.20651      0.00000
+         25      0.25412      0.25412      0.00000      0.26046      0.26046      0.00000
+         26      0.26347      0.26347      0.00000      0.26951      0.26951      0.00000
+         27      0.27633      0.27633      0.00000      0.28672      0.28672      0.00000
+         28      0.31048      0.31048      0.00000      0.31920      0.31920      0.00000
+         29      0.34796      0.34796      0.00000      0.35162      0.35162      0.00000
+         30      0.38011      0.38011      0.00000      0.38110      0.38110      0.00000
+         31      0.40875      0.40875      0.00000      0.41867      0.41867      0.00000
+         32      0.43806      0.43806      0.00000      0.44281      0.44281      0.00000
+         33      0.45138      0.45138      0.00000      0.45582      0.45582      0.00000
+         34      0.45680      0.45680      0.00000      0.46196      0.46196      0.00000
+         35      0.46014      0.46014      0.00000      0.46244      0.46244      0.00000
+         36      0.46068      0.46068      0.00000      0.46855      0.46855      0.00000
+         37      0.48105      0.48105      0.00000      0.48384      0.48384      0.00000
+         38      0.49530      0.49530      0.00000      0.49893      0.49893      0.00000
+         39      0.50804      0.50804      0.00000      0.51847      0.51847      0.00000
+         40      0.51199      0.51199      0.00000      0.54252      0.54252      0.00000
+         41      0.57899      0.57899      0.00000      0.57993      0.57993      0.00000
+         42      0.59908      0.59908      0.00000      0.60212      0.60212      0.00000
+         43      0.62240      0.62240      0.00000      0.64895      0.64895      0.00000
+         44      0.67909      0.67909      0.00000      0.69134      0.69134      0.00000
+         45      0.75941      0.75941      0.00000      0.76375      0.76375      0.00000
+         46      0.76355      0.76355      0.00000      0.76928      0.76928      0.00000
+         47      0.78233      0.78233      0.00000      0.78520      0.78520      0.00000
+ ========================================================================================
+
+----------------------------------------
+Band gap information
+----------------------------------------
+Number of valence electrons                    29
+Valence band index                             14
+Valence band spin index                         2
+Conduction band index                          15
+Conduction band spin index                      2
+Top of valence band (a.u.)                 -0.247
+Bottom of conduction band (a.u.)           -0.156
+Band gap (a.u.)                             0.091
+Band gap (eV)                               2.481
+Band gap (kcal/mol)                        57.204
+ 
+
+
+
+ ===================================
+ B A N D   E N E R G Y   R A N G E S
+ ===================================
+  
+ The energies below are in Hartree.
+ ========================================================================================
+       band      min(up)      max(up)    occup(up)      min(dn)      max(dn)    occup(dn)
+ ========================================================================================
+          1     -0.80212     -0.80212      1.00000     -0.79723     -0.79723      1.00000
+          2     -0.70208     -0.70208      1.00000     -0.69961     -0.69961      1.00000
+          3     -0.69759     -0.69759      1.00000     -0.68849     -0.68849      1.00000
+          4     -0.56558     -0.56558      1.00000     -0.56276     -0.56276      1.00000
+          5     -0.56344     -0.56344      1.00000     -0.55441     -0.55441      1.00000
+          6     -0.48540     -0.48540      1.00000     -0.48115     -0.48115      1.00000
+          7     -0.42655     -0.42655      1.00000     -0.42129     -0.42129      1.00000
+          8     -0.42564     -0.42564      1.00000     -0.42052     -0.42052      1.00000
+          9     -0.39625     -0.39625      1.00000     -0.39432     -0.39432      1.00000
+         10     -0.36873     -0.36873      1.00000     -0.36016     -0.36016      1.00000
+         11     -0.34959     -0.34959      1.00000     -0.34651     -0.34651      1.00000
+         12     -0.32469     -0.32469      1.00000     -0.32038     -0.32038      1.00000
+         13     -0.25630     -0.25630      1.00000     -0.25289     -0.25289      1.00000
+         14     -0.25281     -0.25281      1.00000     -0.24730     -0.24730      1.00000
+         15     -0.24812     -0.24812      1.00000     -0.15614     -0.15614      0.00000
+         16     -0.07121     -0.07121      0.00000     -0.06360     -0.06360      0.00000
+         17     -0.06320     -0.06320      0.00000     -0.05913     -0.05913      0.00000
+         18     -0.00089     -0.00089      0.00000      0.00112      0.00112      0.00000
+         19      0.06307      0.06307      0.00000      0.06533      0.06533      0.00000
+         20      0.07547      0.07547      0.00000      0.08254      0.08254      0.00000
+         21      0.10577      0.10577      0.00000      0.10693      0.10693      0.00000
+         22      0.13597      0.13597      0.00000      0.13903      0.13903      0.00000
+         23      0.15736      0.15736      0.00000      0.15982      0.15982      0.00000
+         24      0.19826      0.19826      0.00000      0.20651      0.20651      0.00000
+         25      0.25412      0.25412      0.00000      0.26046      0.26046      0.00000
+         26      0.26347      0.26347      0.00000      0.26951      0.26951      0.00000
+         27      0.27633      0.27633      0.00000      0.28672      0.28672      0.00000
+         28      0.31048      0.31048      0.00000      0.31920      0.31920      0.00000
+         29      0.34796      0.34796      0.00000      0.35162      0.35162      0.00000
+         30      0.38011      0.38011      0.00000      0.38110      0.38110      0.00000
+         31      0.40875      0.40875      0.00000      0.41867      0.41867      0.00000
+         32      0.43806      0.43806      0.00000      0.44281      0.44281      0.00000
+         33      0.45138      0.45138      0.00000      0.45582      0.45582      0.00000
+         34      0.45680      0.45680      0.00000      0.46196      0.46196      0.00000
+         35      0.46014      0.46014      0.00000      0.46244      0.46244      0.00000
+         36      0.46068      0.46068      0.00000      0.46855      0.46855      0.00000
+         37      0.48105      0.48105      0.00000      0.48384      0.48384      0.00000
+         38      0.49530      0.49530      0.00000      0.49893      0.49893      0.00000
+         39      0.50804      0.50804      0.00000      0.51847      0.51847      0.00000
+         40      0.51199      0.51199      0.00000      0.54252      0.54252      0.00000
+         41      0.57899      0.57899      0.00000      0.57993      0.57993      0.00000
+         42      0.59908      0.59908      0.00000      0.60212      0.60212      0.00000
+         43      0.62240      0.62240      0.00000      0.64895      0.64895      0.00000
+         44      0.67909      0.67909      0.00000      0.69134      0.69134      0.00000
+ ========================================================================================
+
+
+
+ =============================
+ E N E R G Y   A N A L Y S I S
+ =============================
+  
+ Formation energy w.r.t. spherically-symmetric spin-restricted atoms
+
+                                                             (a.u.)            (eV)     (kCal/mol)
+ --------------------------------------------------------------------------------------------------
+
+ Kinetic                                                       2.26847117      61.7282     1423.49
+ XC                                                           -2.24219091     -61.0131    -1407.00
+ Electrostatic                                                -1.97360120     -53.7044    -1238.45
+ V(atomic)*def                                                -0.78081701     -21.2471     -489.97
+ V(def)*def                                                    0.21090974       5.7391      132.35
+ Dispersion                                                   -0.01095189      -0.2980       -6.87
+ --------------------------------------------------------------------------------------------------
+
+ Final bond energy (PBE)                                      -2.52818009     -68.7953    -1586.46
+ 
+ Fit error correction used (Vdef*err)                         -0.00002254      -0.0006       -0.01
+
+ ==================================================================================================
+
+
+
+ ==========================
+ D I P O L E    M O M E N T
+ ==========================
+  
+   ==================================================
+    direction       dipole (a.u.)      dipole (Debye)
+   ==================================================
+            z            0.335261            0.852150
+   ==================================================
+
+
+
+ Form Factors not computed: only 1 k-point.
+   min. nr. of func/process                    13
+   noper                                        1
+   nfunc                                      109
+   nprocsThisNode                               8
+   nfuncThisProcess                            14
+   safeMaxFuncSliceSize                        14
+   requestedMaxFuncSliceSize                  128
+   actual maxFuncSliceSize                     14
+   numSlices                                    1
+   storeCoopPerBasPair                          F
+   nEnergies                                    1
+       Nr. of bands used for DOS:     41
+   nband_dosplot                               41
+   bandSliceSize                               21
+   num band slices                              2
+
+
+
+ =======================================
+ M U L L I K E N   P O P U L A T I O N S
+ =======================================
+  
+
+ BASISFUNCTION         Q
+ --------------------------------
+ 1/C/NO/2s                   0.670   0.672
+ 1/C/NO/2p_y                 0.208   0.211
+ 1/C/NO/2p_z                 0.364   0.382
+ 1/C/NO/2p_x                 0.358   0.376
+ 1/C/STO1.98/2s             -0.000  -0.000
+ 1/C/STO2.2/2p_y             0.204   0.203
+ 1/C/STO2.2/2p_z             0.106   0.105
+ 1/C/STO2.2/2p_x             0.112   0.109
+ 1/C/STO2.2/3d_xy            0.007   0.007
+ 1/C/STO2.2/3d_yz            0.007   0.007
+ 1/C/STO2.2/3d_z2            0.004   0.004
+ 1/C/STO2.2/3d_xz            0.005   0.005
+ 1/C/STO2.2/3d_x2-y2         0.008   0.008
+                    -------------
+ Charge on atom              2.053   2.090
+ 
+ 2/C/NO/2s                   0.677   0.670
+ 2/C/NO/2p_y                 0.286   0.285
+ 2/C/NO/2p_z                 0.332   0.309
+ 2/C/NO/2p_x                 0.347   0.325
+ 2/C/STO1.98/2s             -0.001  -0.001
+ 2/C/STO2.2/2p_y             0.176   0.175
+ 2/C/STO2.2/2p_z             0.127   0.127
+ 2/C/STO2.2/2p_x             0.120   0.120
+ 2/C/STO2.2/3d_xy            0.008   0.007
+ 2/C/STO2.2/3d_yz            0.008   0.008
+ 2/C/STO2.2/3d_z2            0.006   0.006
+ 2/C/STO2.2/3d_xz            0.004   0.004
+ 2/C/STO2.2/3d_x2-y2         0.006   0.006
+                    -------------
+ Charge on atom              2.094   2.042
+ 
+ 3/C/NO/2s                   0.677   0.671
+ 3/C/NO/2p_y                 0.303   0.303
+ 3/C/NO/2p_z                 0.332   0.308
+ 3/C/NO/2p_x                 0.331   0.309
+ 3/C/STO1.98/2s             -0.001  -0.001
+ 3/C/STO2.2/2p_y             0.169   0.168
+ 3/C/STO2.2/2p_z             0.127   0.128
+ 3/C/STO2.2/2p_x             0.126   0.127
+ 3/C/STO2.2/3d_xy            0.006   0.006
+ 3/C/STO2.2/3d_yz            0.007   0.007
+ 3/C/STO2.2/3d_z2            0.006   0.006
+ 3/C/STO2.2/3d_xz            0.005   0.005
+ 3/C/STO2.2/3d_x2-y2         0.008   0.007
+                    -------------
+ Charge on atom              2.096   2.043
+ 
+ 4/C/NO/2s                   0.666   0.671
+ 4/C/NO/2p_y                 0.284   0.304
+ 4/C/NO/2p_z                 0.314   0.352
+ 4/C/NO/2p_x                 0.334   0.370
+ 4/C/STO1.98/2s              0.004   0.001
+ 4/C/STO2.2/2p_y             0.175   0.160
+ 4/C/STO2.2/2p_z             0.128   0.112
+ 4/C/STO2.2/2p_x             0.121   0.110
+ 4/C/STO2.2/3d_xy            0.009   0.007
+ 4/C/STO2.2/3d_yz            0.008   0.007
+ 4/C/STO2.2/3d_z2            0.007   0.005
+ 4/C/STO2.2/3d_xz            0.005   0.003
+ 4/C/STO2.2/3d_x2-y2         0.006   0.004
+                    -------------
+ Charge on atom              2.062   2.106
+ 
+ 5/C/NO/2s                   0.795   0.595
+ 5/C/NO/2p_y                 0.246   0.211
+ 5/C/NO/2p_z                 0.604   0.233
+ 5/C/NO/2p_x                 0.596   0.203
+ 5/C/STO1.98/2s              0.002   0.011
+ 5/C/STO2.2/2p_y             0.191   0.196
+ 5/C/STO2.2/2p_z             0.046   0.045
+ 5/C/STO2.2/2p_x             0.045   0.044
+ 5/C/STO2.2/3d_xy            0.006   0.007
+ 5/C/STO2.2/3d_yz            0.007   0.008
+ 5/C/STO2.2/3d_z2            0.004   0.006
+ 5/C/STO2.2/3d_xz            0.003   0.003
+ 5/C/STO2.2/3d_x2-y2         0.007   0.007
+                    -------------
+ Charge on atom              2.550   1.568
+ 
+ 6/C/NO/2s                   0.666   0.671
+ 6/C/NO/2p_y                 0.305   0.320
+ 6/C/NO/2p_z                 0.313   0.351
+ 6/C/NO/2p_x                 0.317   0.357
+ 6/C/STO1.98/2s              0.004   0.001
+ 6/C/STO2.2/2p_y             0.166   0.156
+ 6/C/STO2.2/2p_z             0.130   0.112
+ 6/C/STO2.2/2p_x             0.127   0.113
+ 6/C/STO2.2/3d_xy            0.007   0.006
+ 6/C/STO2.2/3d_yz            0.007   0.006
+ 6/C/STO2.2/3d_z2            0.007   0.006
+ 6/C/STO2.2/3d_xz            0.006   0.003
+ 6/C/STO2.2/3d_x2-y2         0.008   0.005
+                    -------------
+ Charge on atom              2.063   2.107
+ 
+ 7/H/NO/1s                  -0.050  -0.052
+ 7/H/STO1.28/1s              0.444   0.434
+ 7/H/STO1.25/2p_y            0.001   0.001
+ 7/H/STO1.25/2p_z            0.006   0.007
+ 7/H/STO1.25/2p_x            0.006   0.006
+                    -------------
+ Charge on atom              0.408   0.396
+ 
+ 8/H/NO/1s                  -0.021  -0.021
+ 8/H/STO1.28/1s              0.426   0.422
+ 8/H/STO1.25/2p_y            0.001   0.001
+ 8/H/STO1.25/2p_z            0.007   0.007
+ 8/H/STO1.25/2p_x            0.008   0.007
+                    -------------
+ Charge on atom              0.421   0.416
+ 
+ 9/H/NO/1s                  -0.006  -0.016
+ 9/H/STO1.28/1s              0.415   0.419
+ 9/H/STO1.25/2p_y            0.006   0.006
+ 9/H/STO1.25/2p_z            0.005   0.005
+ 9/H/STO1.25/2p_x            0.005   0.005
+                    -------------
+ Charge on atom              0.424   0.420
+ 
+ 10/H/NO/1s                 -0.018  -0.017
+ 10/H/STO1.28/1s             0.424   0.419
+ 10/H/STO1.25/2p_y           0.002   0.002
+ 10/H/STO1.25/2p_z           0.007   0.007
+ 10/H/STO1.25/2p_x           0.007   0.007
+                    -------------
+ Charge on atom              0.423   0.417
+ 
+ 11/H/NO/1s                 -0.052  -0.055
+ 11/H/STO1.28/1s             0.446   0.436
+ 11/H/STO1.25/2p_y           0.000   0.000
+ 11/H/STO1.25/2p_z           0.007   0.007
+ 11/H/STO1.25/2p_x           0.006   0.007
+                    -------------
+ Charge on atom              0.406   0.395
+ 
+ Total charge               15.000  14.000
+
+
+ ATOM/ATOM OVERLAP MATRIX
+ (OFF-DIAGONAL ELEMENTS HALF OF OVERLAP POPULATION)
+ (order of atoms as on input)
+
+              ** SPIN 1
+ ATOM         CORE    1       2       3       4       5       6       7       8       9
+           -------------------------------------------------------------------------------
+   0)
+      1 :  0.0101
+   1)
+      1 : -0.0015  1.5061
+   2)
+      1 : -0.0016  0.2677  1.5666
+   3)
+      1 : -0.0016  0.2694 -0.0507  1.5670
+   4)
+      1 : -0.0018 -0.0561 -0.0271  0.2604  1.5139
+   5)
+      1 : -0.0025 -0.0230 -0.0586 -0.0578  0.2603  2.2386
+   6)
+      1 : -0.0018 -0.0559  0.2612 -0.0268 -0.0598  0.2615  1.5142
+   7)
+      1 :  0.0001  0.0035 -0.0015 -0.0329  0.1967 -0.0354  0.0040  0.2810
+   8)
+      1 :  0.0001 -0.0315  0.0055  0.1983 -0.0319  0.0045 -0.0018 -0.0079  0.2921
+   9)
+      1 :  0.0002  0.2021 -0.0344 -0.0340  0.0050 -0.0063  0.0049  0.0002 -0.0078  0.3015
+  10)
+      1 :  0.0001 -0.0313  0.2008  0.0057 -0.0020  0.0041 -0.0314  0.0012 -0.0009 -0.0072
+     11 :  0.2913
+  11)
+      1 :  0.0001  0.0037 -0.0338 -0.0015  0.0041 -0.0350  0.1949 -0.0015  0.0020  0.0001
+     11 : -0.0079  0.2810
+
+              ** SPIN 2
+ ATOM         CORE    1       2       3       4       5       6       7       8       9
+           -------------------------------------------------------------------------------
+   0)
+      1 :  0.0095
+   1)
+      1 : -0.0015  1.5472
+   2)
+      1 : -0.0017  0.2672  1.4871
+   3)
+      1 : -0.0017  0.2690 -0.0557  1.4871
+   4)
+      1 : -0.0018 -0.0603 -0.0267  0.2620  1.5523
+   5)
+      1 : -0.0017 -0.0194 -0.0368 -0.0363  0.2804  1.1530
+   6)
+      1 : -0.0018 -0.0600  0.2629 -0.0263 -0.0607  0.2811  1.5523
+   7)
+      1 :  0.0002  0.0037 -0.0009 -0.0276  0.1875 -0.0288  0.0038  0.2670
+   8)
+      1 :  0.0001 -0.0313  0.0056  0.1983 -0.0330  0.0029 -0.0019 -0.0086  0.2891
+   9)
+      1 :  0.0001  0.2024 -0.0308 -0.0304  0.0044 -0.0009  0.0043  0.0005 -0.0062  0.2818
+  10)
+      1 :  0.0001 -0.0311  0.2005  0.0056 -0.0020  0.0027 -0.0325  0.0012 -0.0014 -0.0058
+     11 :  0.2886
+  11)
+      1 :  0.0002  0.0038 -0.0283 -0.0007  0.0038 -0.0282  0.1857 -0.0020  0.0020  0.0004
+     11 : -0.0085  0.2666
+
+
+
+ ======================
+ Atomic Charge Analysis
+ ======================
+  
+ Deformation charges with respect to neutral atoms.
+ 
+   ----------------------------------------------------------
+     Atom      Hirshfeld     Voronoi         CM5    Mulliken
+   ----------------------------------------------------------
+      1  C        -0.048      -0.055      -0.103      -0.143
+      2  C        -0.046      -0.050      -0.100      -0.137
+      3  C        -0.046      -0.051      -0.100      -0.139
+      4  C        -0.057      -0.052      -0.108      -0.168
+      5  C         0.000      -0.023      -0.007      -0.118
+      6  C        -0.057      -0.053      -0.108      -0.170
+      7  H         0.048       0.053       0.102       0.196
+      8  H         0.053       0.059       0.107       0.164
+      9  H         0.052       0.058       0.106       0.156
+     10  H         0.053       0.058       0.108       0.160
+     11  H         0.048       0.055       0.102       0.199
+   ----------------------------------------------------------
+      Total:       0.000      -0.000       0.000      -0.000
+   ----------------------------------------------------------
+ 
+
+
+
+ ============================================
+ Atomic Charge Analysis (Spin Up - Spin Down)
+ ============================================
+  
+   ----------------------------------------------------------
+     Atom      Hirshfeld     Voronoi         CM5    Mulliken
+   ----------------------------------------------------------
+      1  C         0.018       0.026       0.018       0.036
+      2  C        -0.036      -0.040      -0.036      -0.052
+      3  C        -0.036      -0.040      -0.036      -0.052
+      4  C        -0.048      -0.007      -0.048       0.044
+      5  C        -0.808      -0.883      -0.808      -0.982
+      6  C        -0.048      -0.008      -0.048       0.044
+      7  H        -0.013      -0.014      -0.013      -0.012
+      8  H        -0.007      -0.010      -0.007      -0.005
+      9  H        -0.001      -0.000      -0.001      -0.004
+     10  H        -0.007      -0.010      -0.007      -0.005
+     11  H        -0.013      -0.014      -0.013      -0.012
+   ----------------------------------------------------------
+      Total:      -1.000      -1.000      -1.000      -1.000
+   ----------------------------------------------------------
+ 
+ WARNING: matrix written, but never read. Matrix name: S(C/C)**-1
+
+
+    =====================
+     CALCULATION RESULTS
+    =====================
+
+Energy (hartree)            -2.52818009
+
+
+
+ =================
+ Timing Statistics
+ =================
+  
+ Total Used :                     CPU=      315.75      System=        5.87     Elapsed=      329.00
+
+ Calls  Section                     ( Mean, Percentage )
+ ---------------------------------------------------------------------------------------------------
+     3  ><      ................      0.78    0.74             0.10    5.06             1.07    0.97
+     1  GETINP  ................      0.30    0.10             0.14    2.39             3.32    1.01
+    20  EIGSYS  ................     15.66   99.16             0.27   92.55            16.12   98.02
+
+AMS application finished. Exiting.
+ NORMAL TERMINATION
+     Total cpu time:     317.30
+  Total system time:       6.29
+ Total elapsed time:     331.11

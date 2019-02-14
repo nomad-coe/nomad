@@ -49,13 +49,13 @@ class Repo extends React.Component {
   })
 
   static rowConfig = {
-    chemical_composition: 'Formula',
-    program_name: 'Code',
-    basis_set_type: 'Basis set',
-    system_type: 'System',
-    crystal_system: 'Crystal',
-    space_group_number: 'Space group',
-    XC_functional_name: 'XT treatment'
+    formula: 'Formula',
+    code_name: 'Code',
+    basis_set: 'Basis set',
+    system: 'System',
+    crystal_system: 'Crystal system',
+    spacegroup: 'Spacegroup',
+    xc_functional: 'XT treatment'
   }
 
   state = {

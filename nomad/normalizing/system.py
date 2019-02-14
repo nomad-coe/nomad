@@ -249,9 +249,6 @@ class SystemNormalizer(SystemBasedNormalizer):
         self._backend.closeSection('section_original_system', origGid)
 
         self._backend.closeSection('section_symmetry', symGid)
-        # nomad-xt: context already closed in nomad-xt.
-        # backend.closeContext(context)
-        sys.stdout.flush()
 
     def system_type_classification(self) -> None:
         """Try to classify the ASE materials object using Matid's classification."""

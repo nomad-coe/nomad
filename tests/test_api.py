@@ -21,12 +21,11 @@ import io
 import inspect
 from passlib.hash import bcrypt
 
-from nomad import config, coe_repo
+from nomad import config, coe_repo, search, parsing
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
-from nomad.coe_repo import User
 
-from tests.conftest import create_auth_headers
+from tests.conftest import create_auth_headers, clear_elastic
 from tests.test_files import example_file, example_file_mainfile, example_file_contents
 from tests.test_files import create_staging_upload, create_public_upload
 from tests.test_coe_repo import assert_coe_upload
@@ -85,7 +84,7 @@ class TestAdmin:
 
 
 class TestAuth:
-    def test_xtoken_auth(self, client, test_user: User, no_warn):
+    def test_xtoken_auth(self, client, test_user: coe_repo.User, no_warn):
         rv = client.get('/uploads/', headers={
             'X-Token': test_user.first_name.lower()  # the test users have their firstname as tokens for convinience
         })
@@ -110,7 +109,7 @@ class TestAuth:
         })
         assert rv.status_code == 401
 
-    def test_get_user(self, client, test_user_auth, test_user: User, no_warn):
+    def test_get_user(self, client, test_user_auth, test_user: coe_repo.User, no_warn):
         rv = client.get('/auth/user', headers=test_user_auth)
         assert rv.status_code == 200
         self.assert_user(client, json.loads(rv.data))
@@ -521,6 +520,24 @@ class TestArchive(UploadFilesBasedTests):
 
 
 class TestRepo(UploadFilesBasedTests):
+    @pytest.fixture(scope='class')
+    def example_elastic_calcs(
+            self, elastic_infra, normalized: parsing.LocalBackend,
+            test_user: coe_repo.User, other_test_user: coe_repo.User):
+
+        clear_elastic(elastic_infra)
+
+        calc_with_metadata = normalized.to_calc_with_metadata()
+
+        calc_with_metadata.update(calc_id='1', uploader=test_user.to_popo(), published=True)
+        search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
+
+        calc_with_metadata.update(calc_id='2', uploader=other_test_user.to_popo(), published=True)
+        search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
+
+        calc_with_metadata.update(calc_id='3', uploader=other_test_user.to_popo(), published=False)
+        search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
+
     @UploadFilesBasedTests.ignore_authorization
     def test_calc(self, client, upload, auth_headers):
         rv = client.get('/repo/%s/0' % upload, headers=auth_headers)
@@ -531,43 +548,39 @@ class TestRepo(UploadFilesBasedTests):
         rv = client.get('/repo/doesnt/exist', headers=auth_headers)
         assert rv.status_code == 404
 
-    # def test_calcs(self, client, example_elastic_calc, no_warn):
-    #     rv = client.get('/repo/')
-    #     assert rv.status_code == 200
-    #     data = json.loads(rv.data)
-    #     results = data.get('results', None)
-    #     assert results is not None
-    #     assert isinstance(results, list)
-    #     assert len(results) >= 1
+    @pytest.mark.parametrize('calcs, owner, auth', [
+        (2, 'all', 'none'),
+        (2, 'all', 'test_user'),
+        (1, 'user', 'test_user'),
+        (2, 'user', 'other_test_user'),
+        (0, 'staging', 'test_user'),
+        (1, 'staging', 'other_test_user'),
+    ])
+    def test_search(self, client, example_elastic_calcs, no_warn, test_user_auth, other_test_user_auth, calcs, owner, auth):
+        auth = dict(none=None, test_user=test_user_auth, other_test_user=other_test_user_auth).get(auth)
+        rv = client.get('/repo/?owner=%s' % owner, headers=auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        results = data.get('results', None)
+        assert results is not None
+        assert isinstance(results, list)
+        assert len(results) == calcs
+        if calcs > 0:
+            for key in ['uploader', 'calc_id', 'formula', 'upload_id']:
+                assert key in results[0]
 
-    # def test_calcs_pagination(self, client, example_elastic_calc, no_warn):
-    #     rv = client.get('/repo/?page=1&per_page=1')
-    #     assert rv.status_code == 200
-    #     data = json.loads(rv.data)
-    #     results = data.get('results', None)
-    #     assert results is not None
-    #     assert isinstance(results, list)
-    #     assert len(results) == 1
+    def test_calcs_pagination(self, client, example_elastic_calcs, no_warn):
+        rv = client.get('/repo/?page=1&per_page=1')
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        results = data.get('results', None)
+        assert results is not None
+        assert isinstance(results, list)
+        assert len(results) == 1
 
-    # def test_calcs_user(self, client, example_elastic_calc, test_user_auth, no_warn):
-    #     rv = client.get('/repo/?owner=user', headers=test_user_auth)
-    #     assert rv.status_code == 200
-    #     data = json.loads(rv.data)
-    #     results = data.get('results', None)
-    #     assert results is not None
-    #     assert len(results) >= 1
-
-    # def test_calcs_user_authrequired(self, client, example_elastic_calc, no_warn):
-    #     rv = client.get('/repo/?owner=user')
-    #     assert rv.status_code == 401
-
-    # def test_calcs_user_invisible(self, client, example_elastic_calc, test_other_user_auth, no_warn):
-    #     rv = client.get('/repo/?owner=user', headers=test_other_user_auth)
-    #     assert rv.status_code == 200
-    #     data = json.loads(rv.data)
-    #     results = data.get('results', None)
-    #     assert results is not None
-    #     assert len(results) == 0
+    def test_search_user_authrequired(self, client, example_elastic_calcs, no_warn):
+        rv = client.get('/repo/?owner=user')
+        assert rv.status_code == 401
 
 
 class TestRaw(UploadFilesBasedTests):

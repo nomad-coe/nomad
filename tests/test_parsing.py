@@ -30,7 +30,7 @@ parser_examples = [
     ('parsers/exciting', 'tests/data/parsers/exciting/Ag/INFO.OUT'),
     ('parsers/exciting', 'tests/data/parsers/exciting/GW/INFO.OUT'),
     ('parsers/vasp', 'tests/data/parsers/vasp/vasp.xml'),
-    # ('parsers/vasp', 'tests/data/parsers/vasp_compressed/vasp.xml.gz'),
+    ('parsers/vasp', 'tests/data/parsers/vasp_compressed/vasp.xml.gz'),
     ('parsers/vaspoutcar', 'tests/data/parsers/vasp_outcar/OUTCAR'),
     ('parsers/fhi-aims', 'tests/data/parsers/fhi-aims/aims.out'),
     ('parsers/cp2k', 'tests/data/parsers/cp2k/si_bulk8.out'),
@@ -39,6 +39,7 @@ parser_examples = [
     ('parsers/nwchem', 'tests/data/parsers/nwchem/single_point/output.out'),
     ('parsers/bigdft', 'tests/data/parsers/bigdft/n2_output.out'),
     ('parsers/wien2k', 'tests/data/parsers/wien2k/AlN/AlN_ZB.scf'),
+    # ('parsers/band', 'tests/data/parsers/band_adf.out'),  # causes spglib to segfault
     ('parsers/gaussian', 'tests/data/parsers/gaussian/aniline.out'),
     ('parsers/quantumespresso', 'tests/data/parsers/quantum-espresso/benchmark.out'),
     ('parsers/quantumespresso', 'tests/data/parsers/quantum-espresso/W.out')
@@ -48,7 +49,7 @@ faulty_unknown_one_d_matid_example = [
     ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
 ]
 
-correct_num_output_files = 17
+correct_num_output_files = 19
 
 
 class TestLocalBackend(object):
