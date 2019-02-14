@@ -14,7 +14,6 @@
 
 import ase
 import numpy as np
-import sys
 import matid
 
 from matid import SymmetryAnalyzer, Classifier
