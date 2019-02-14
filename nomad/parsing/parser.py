@@ -22,6 +22,7 @@ from unittest.mock import patch
 import logging
 import os.path
 import glob
+import json
 
 from nomad import utils
 from nomad.parsing.backend import LocalBackend
@@ -115,6 +116,10 @@ class LegacyParser(Parser):
 
             if backend is None or not hasattr(backend, 'status'):
                 backend = self.parser.parser_context.super_backend
+
+        # Don't check this in!
+        with open("test_file_parser_py_output.json", "wt") as file:
+            backend.write_json(file)
 
         return backend
 

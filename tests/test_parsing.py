@@ -40,7 +40,8 @@ parser_examples = [
     ('parsers/bigdft', 'tests/data/parsers/bigdft/n2_output.out'),
     ('parsers/wien2k', 'tests/data/parsers/wien2k/AlN/AlN_ZB.scf'),
     ('parsers/gaussian', 'tests/data/parsers/gaussian/aniline.out'),
-    ('parsers/quantumespresso', 'tests/data/parsers/quantum-espresso/benchmark.out')
+    ('parsers/quantumespresso', 'tests/data/parsers/quantum-espresso/benchmark.out'),
+    ('parsers/quantumespresso', 'tests/data/parsers/quantum-espresso/W.out')
 ]
 
 faulty_unknown_one_d_matid_example = [

@@ -49,3 +49,6 @@
 [submodule "dependencies/parsers/quantum-espresso"]
 	path = dependencies/parsers/quantum-espresso
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-quantum-espresso
+[submodule "dependencies/parsers/abinit"]
+	path = dependencies/parsers/abinit
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-abinit
