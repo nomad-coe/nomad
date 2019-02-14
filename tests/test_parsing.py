@@ -39,13 +39,14 @@ parser_examples = [
     ('parsers/nwchem', 'tests/data/parsers/nwchem/single_point/output.out'),
     ('parsers/bigdft', 'tests/data/parsers/bigdft/n2_output.out'),
     ('parsers/wien2k', 'tests/data/parsers/wien2k/AlN/AlN_ZB.scf'),
+    ('parsers/band', 'tests/data/parsers/band_adf.out')
 ]
 
 faulty_unknown_one_d_matid_example = [
     ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
 ]
 
-correct_num_output_files = 16
+correct_num_output_files = 17
 
 
 class TestLocalBackend(object):

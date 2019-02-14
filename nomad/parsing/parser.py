@@ -97,7 +97,7 @@ class LegacyParser(Parser):
             return LocalBackend(meta_info, debug=False, logger=logger)
 
         module_name = self.parser_class_name.split('.')[:-1]
-        parser_class = self.parser_class_name.split('.')[1]
+        parser_class = self.parser_class_name.split('.')[-1]
         module = importlib.import_module('.'.join(module_name))
         Parser = getattr(module, parser_class)
 

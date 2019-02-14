@@ -231,6 +231,11 @@ parsers = [
         name='parsers/wien2k',
         parser_class_name='wien2kparser.Wien2kParser',
         mainfile_contents_re=r':LABEL\d+: using WIEN2k_\d+\.\d+'
+    ),
+    LegacyParser(
+        name='parsers/band',
+        parser_class_name='bandparser.parser_band.BANDParser',
+        mainfile_contents_re=r' +\* +Amsterdam Density Functional +\(ADF\)'
     )
 ]
 
