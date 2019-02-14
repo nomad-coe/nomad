@@ -20,6 +20,7 @@ import matid.utils.segfault_protect
 # A patch for the segfault protection of systax (internally uses protection for spglib calls.)
 # We basically disable the protection. The multiprocessing based original protection.
 # somehow interfers with the celery work infrastructure and leads to a deadlock. Its a TODO.
+# It also seems to deadlock without celery .. just not working consistently.
 def segfault_protect_patch(f, *args, **kwargs):
     return f(*args, **kwargs)
 
