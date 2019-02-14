@@ -46,6 +46,7 @@ def setup(**kwargs):
 
 app = Celery('nomad.processing', broker=config.celery.broker_url)
 app.conf.update(worker_hijack_root_logger=False)
+app.conf.update(task_reject_on_worker_lost=True)
 
 CREATED = 'CREATED'
 PENDING = 'PENDING'
@@ -128,6 +129,8 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     current_process = StringField(default=None)
     process_status = StringField(default=None)
+
+    _celery_task_id = StringField(default=None)
 
     @property
     def tasks_running(self) -> bool:
@@ -415,7 +418,7 @@ all_proc_cls = {cls.__name__: cls for cls in all_subclasses(Proc)}
 """ Name dictionary for all Proc classes. """
 
 
-@app.task(bind=True, ignore_results=True, max_retries=3)
+@app.task(bind=True, ignore_results=True, max_retries=3, acks_late=True)
 def proc_task(task, cls_name, self_id, func_attr):
     """
     The celery task that is used to execute async process functions.
@@ -468,6 +471,15 @@ def proc_task(task, cls_name, self_id, func_attr):
         self.process_status = PROCESS_COMPLETED
         self.save()
         return
+
+    # check requeued task after catastrophic failure, e.g. segfault
+    if self._celery_task_id is not None:
+        if self._celery_task_id == task.request.id and task.request.retries == 0:
+            self.fail('task failed catastrophically, probably with sys.exit or segfault')
+
+    if self._celery_task_id != task.request.id:
+        self._celery_task_id = task.request.id
+        self.save()
 
     # call the process function
     deleted = False
