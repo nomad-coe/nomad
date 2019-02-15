@@ -131,9 +131,9 @@ def celery_inspect(purged_app):
 # It might be necessary to make this a function scoped fixture, if old tasks keep
 # 'bleeding' into successive tests.
 @pytest.fixture(scope='function')
-def worker(celery_session_worker, celery_inspect):
+def worker(mongo, celery_session_worker, celery_inspect):
     """ Provides a clean worker (no old tasks) per function. Waits for all tasks to be completed. """
-    pass
+    yield
 
     # wait until there no more active tasks, to leave clean worker and queues for the next
     # test run.
@@ -250,7 +250,7 @@ def postgres_infra(monkeysession):
 
 
 @pytest.fixture(scope='function')
-def proc_infra(postgres, elastic, mongo, worker):
+def proc_infra(worker, postgres, elastic, mongo, raw_files):
     """ Combines all fixtures necessary for processing (postgres, elastic, worker, files, mongo) """
     return dict(
         postgres=postgres,

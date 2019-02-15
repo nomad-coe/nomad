@@ -32,7 +32,7 @@ from contextlib import contextmanager
 
 from nomad import utils, coe_repo, config, infrastructure, search
 from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles
-from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE
+from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parser_dict, match_parser
 from nomad.normalizing import normalizers
 from nomad.datamodel import UploadWithMetadata, CalcWithMetadata
@@ -141,8 +141,13 @@ class Calc(Proc):
             except Exception as e:
                 logger.error('could not close calculation proc log', exc_info=e)
 
-            # inform parent proc about completion
-            self.upload.completed_child()
+    def on_process_complete(self, process_name):
+        # the save might be necessary to correctly read the join condition from the db
+        self.save()
+        # in case of error, the process_name might be unknown
+        if process_name == 'process_calc' or process_name is None:
+            self.upload.reload()
+            self.upload.check_join()
 
     @task
     def parsing(self):
@@ -270,7 +275,7 @@ class Calc(Proc):
         return CalcWithMetadata(**_data)
 
 
-class Upload(Chord):
+class Upload(Proc):
     """
     Represents uploads in the databases. Provides persistence access to the files storage,
     and processing state.
@@ -467,11 +472,9 @@ class Upload(Chord):
         """
         logger = self.get_logger()
 
-        # TODO: deal with multiple possible parser specs
         with utils.timer(
                 logger, 'upload extracted', step='matching',
                 upload_size=self.upload_files.size):
-            total_calcs = 0
             for filename, parser in self.match_mainfiles():
                 calc = Calc.create(
                     calc_id=self.upload_files.calc_id(filename),
@@ -479,10 +482,19 @@ class Upload(Chord):
                     upload_id=self.upload_id)
 
                 calc.process_calc()
-                total_calcs += 1
 
-        # have to save the total_calcs information for chord management
-        self.spwaned_childred(total_calcs)
+    def on_process_complete(self, process_name):
+        if process_name == 'process_upload':
+            self.check_join()
+
+    def check_join(self):
+        total_calcs = self.total_calcs
+        processed_calcs = self.processed_calcs
+
+        self.get_logger().debug('check join', processed_calcs=processed_calcs, total_calcs=total_calcs)
+        if not self.process_running and processed_calcs >= total_calcs:
+            self.get_logger().debug('join')
+            self.join()
 
     def join(self):
         self.cleanup()

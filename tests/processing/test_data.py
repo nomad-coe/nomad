@@ -12,12 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-To run this test, a celery worker must be running. The test worker provided by
-the celery pytest plugin is currently not working. It results on a timeout when
-reading from the redis result backend, even though all task apperently ended successfully.
-"""
-
 from typing import Generator
 import pytest
 from datetime import datetime
@@ -127,7 +121,7 @@ def test_process_non_existing(proc_infra, test_user, with_error):
 
 @pytest.mark.parametrize('task', ['extracting', 'parse_all', 'cleanup', 'parsing'])
 @pytest.mark.timeout(10)
-def test_task_failure(monkeypatch, uploaded, worker, task, proc_infra, test_user, with_error):
+def test_task_failure(monkeypatch, uploaded, task, proc_infra, test_user, with_error):
     # mock the task method to through exceptions
     if hasattr(Upload, task):
         cls = Upload
@@ -163,3 +157,26 @@ def test_task_failure(monkeypatch, uploaded, worker, task, proc_infra, test_user
                 assert calc.tasks_status == FAILURE
                 assert calc.current_task == 'parsing'
                 assert len(calc.errors) > 0
+
+# TODO timeout
+# consume_ram, segfault, and exit are not testable with the celery test worker
+@pytest.mark.parametrize('failure', ['exception'])
+def test_malicious_parser_task_failure(proc_infra, failure, test_user):
+    example_file = 'tests/data/proc/chaos_%s.zip' % failure
+    example_upload_id = os.path.basename(example_file).replace('.zip', '')
+    upload_files = ArchiveBasedStagingUploadFiles(example_upload_id, create=True)
+    shutil.copyfile(example_file, upload_files.upload_file_os_path)
+
+    upload = run_processing(example_upload_id, test_user)
+
+    assert not upload.tasks_running
+    assert upload.current_task == 'cleanup'
+    assert len(upload.errors) == 0
+    assert upload.tasks_status == SUCCESS
+
+    calcs = Calc.objects(upload_id=upload.upload_id)
+    assert calcs.count() == 1
+    calc = next(calcs)
+    assert not calc.tasks_running
+    assert calc.tasks_status == FAILURE
+    assert len(calc.errors) == 1

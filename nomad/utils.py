@@ -100,7 +100,7 @@ class LogstashHandler(logstash.TCPLogstashHandler):
                     return True
                 else:
                     LogstashHandler.legacy_logger.log(
-                        record.levelno, record.msg, args=record.args,
+                        record.levelno, sanitize_logevent(record.msg), args=record.args,
                         exc_info=record.exc_info, stack_info=record.stack_info,
                         legacy_logger=record.name)
 
@@ -121,7 +121,7 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
         message = {
             '@timestamp': self.format_timestamp(record.created),
             '@version': '1',
-            'event': sanitize_logevent(structlog['event']),
+            'event': structlog['event'],
             'message': structlog['event'],
             'host': self.host,
             'path': record.pathname,

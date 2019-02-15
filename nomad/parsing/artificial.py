@@ -151,8 +151,11 @@ class ChaosParser(ArtificalParser):
                 time.sleep(1)
         elif chaos == 'consume_ram':
             data = []
+            i = 0
             while True:
                 data.append('a' * 10**6)
+                i += 1
+                logger.info('ate %d mb' % i)
         elif chaos == 'exception':
             raise Exception('Some chaos happened, muhuha...')
         elif chaos == 'segfault':

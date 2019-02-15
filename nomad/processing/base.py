@@ -15,13 +15,13 @@
 from typing import List, Any
 import logging
 import time
-from celery import Celery
+from celery import Celery, Task
+from celery.worker.request import Request
 from celery.signals import after_setup_task_logger, after_setup_logger, worker_process_init
-from mongoengine import Document, StringField, ListField, DateTimeField, IntField, \
-    ValidationError, BooleanField
+from billiard.exceptions import WorkerLostError
+from mongoengine import Document, StringField, ListField, DateTimeField, ValidationError
 from mongoengine.connection import MongoEngineConnectionError
 from mongoengine.base.metaclasses import TopLevelDocumentMetaclass
-from pymongo import ReturnDocument
 from datetime import datetime
 
 from nomad import config, utils, infrastructure
@@ -46,7 +46,8 @@ def setup(**kwargs):
 
 app = Celery('nomad.processing', broker=config.celery.broker_url)
 app.conf.update(worker_hijack_root_logger=False)
-app.conf.update(task_reject_on_worker_lost=True)
+app.conf.update(worker_max_memory_per_child=config.celery.max_memory)
+app.conf.update(task_time_limit=config.celery.timeout)
 
 CREATED = 'CREATED'
 PENDING = 'PENDING'
@@ -66,6 +67,9 @@ class ProcNotRegistered(Exception): pass
 
 
 class ProcessAlreadyRunning(Exception): pass
+
+
+class ProcObjectDoesNotExist(Exception): pass
 
 
 class ProcMetaclass(TopLevelDocumentMetaclass):
@@ -130,7 +134,7 @@ class Proc(Document, metaclass=ProcMetaclass):
     current_process = StringField(default=None)
     process_status = StringField(default=None)
 
-    _celery_task_id = StringField(default=None)
+    # _celery_task_id = StringField(default=None)
 
     @property
     def tasks_running(self) -> bool:
@@ -261,8 +265,17 @@ class Proc(Document, metaclass=ProcMetaclass):
             assert self.tasks_status == RUNNING, 'Can only complete a running process, process is %s' % self.tasks_status
             self.tasks_status = SUCCESS
             self.complete_time = datetime.now()
+            self.on_tasks_complete()
             self.save()
             self.get_logger().info('completed process')
+
+    def on_tasks_complete(self):
+        """ Callback that is called when the list of task are completed """
+        pass
+
+    def on_process_complete(self, process_name):
+        """ Callback that is called when the corrent process completed """
+        pass
 
     def block_until_complete(self, interval=0.01):
         """
@@ -272,113 +285,6 @@ class Proc(Document, metaclass=ProcMetaclass):
         while self.tasks_running:
             time.sleep(interval)
             self.reload()
-
-
-class InvalidChordUsage(Exception): pass
-
-
-class Chord(Proc):
-    """
-    A special Proc base class that manages a chord of child processes. It saves some
-    additional state to track child processes and provides methods to control that
-    state.
-
-    It uses a counter approach with atomic updates to track the number of processed
-    children.
-
-    TODO the joined attribute is not strictly necessary and only serves debugging purposes.
-    Maybe it should be removed, since it also requires another save.
-
-    TODO it is vital that sub classes and children don't miss any calls. This might
-    not be practical, because in reality processes might even fail to fail.
-
-    TODO in the current upload processing, the join functionality is not strictly necessary.
-    Nothing is done after join. We only need it to report the upload completed on API
-    request. We could check the join condition on each of thise API queries.
-
-    Attributes:
-        total_children (int): the number of spawed children, -1 denotes that number was not
-            saved yet
-        completed_children (int): the number of completed child procs
-        joined (bool): true if all children are completed and the join method was already called
-    """
-    total_children = IntField(default=-1)
-    completed_children = IntField(default=0)
-    joined = BooleanField(default=False)
-
-    meta = {
-        'abstract': True
-    }
-
-    def spwaned_childred(self, total_children=1):
-        """
-        Subclasses must call this method after all childred have been spawned.
-
-        Arguments:
-            total_children (int): the number of spawned children
-        """
-        self.total_children = total_children
-        self.modify(total_children=self.total_children)
-        self._check_join(children=0)
-
-    def completed_child(self):
-        """ Children must call this, when they completed processing. """
-        self._check_join(children=1)
-
-    def _check_join(self, children):
-        # incr the counter and get reference values atomically
-        completed_children, others = self.incr_counter(
-            'completed_children', children, ['total_children', 'joined'])
-        total_children, joined = others
-
-        self.get_logger().debug(
-            'check for join', total_children=total_children,
-            completed_children=completed_children, joined=joined)
-
-        # check the join condition and raise errors if chord is in bad state
-        if completed_children == total_children:
-            if not joined:
-                self.join()
-                self.joined = True
-                self.modify(joined=self.joined)
-                self.get_logger().debug('chord is joined')
-            else:
-                raise InvalidChordUsage('chord cannot be joined twice.')
-        elif completed_children > total_children and total_children != -1:
-            raise InvalidChordUsage('chord counter is out of limits.')
-
-    def join(self):
-        """ Subclasses might overwrite to do something after all children have completed. """
-        pass
-
-    def incr_counter(self, field, value=1, other_fields=None):
-        """
-        Atomically increases the given field by value and return the new value.
-        Optionally return also other values from the updated object to avoid
-        reloads.
-
-        Arguments:
-            field: the name of the field to increment, must be a :class:`IntField`
-            value: the value to increment the field by, default is 1
-            other_fields: an optional list of field names that should also be returned
-
-        Returns:
-            either the value of the updated field, or a tuple with this value and a list
-            of value for the given other fields
-        """
-        # use a primitive but atomic pymongo call
-        updated_raw = self._get_collection().find_one_and_update(
-            {'_id': self.id},
-            {'$inc': {field: value}},
-            return_document=ReturnDocument.AFTER)
-
-        if updated_raw is None:
-            raise KeyError('object does not exist, was probaly not yet written to db')
-
-        if other_fields is None:
-            return updated_raw[field]
-        else:
-            return updated_raw[field], [updated_raw[field] for field in other_fields]
 
 
 def task(func):
@@ -418,19 +324,56 @@ all_proc_cls = {cls.__name__: cls for cls in all_subclasses(Proc)}
 """ Name dictionary for all Proc classes. """
 
 
-@app.task(bind=True, ignore_results=True, max_retries=3, acks_late=True)
-def proc_task(task, cls_name, self_id, func_attr):
+class NomadCeleryRequest(Request):
     """
-    The celery task that is used to execute async process functions.
-    It ignores results, since all results are handled via the self document.
-    It retries for 3 times with a countdown of 3 on missing 'selfs', since this
-    might happen in sharded, distributed mongo setups where the object might not
-    have yet been propagated and therefore appear missing.
+    A custom celery request class that allows to catch error in the worker main
+    thread, which cannot be caught on the worker threads themselves.
     """
-    logger = utils.get_logger(__name__, cls=cls_name, id=self_id, func=func_attr)
+
+    def _fail(self, event, **kwargs):
+        args = self._payload[0]
+        # this might be run in the worker main thread, which does not have a mongo
+        # connection by default
+        if infrastructure.mongo_client is None:
+            infrastructure.setup_mongo()
+        if infrastructure.repository_db is None:
+            infrastructure.setup_repository_db()
+        proc = unwarp_task(self.task, *args)
+        proc.fail('task timeout occurred', **kwargs)
+        proc.process_status = PROCESS_COMPLETED
+        proc.on_process_complete(None)
+        proc.save()
+
+    def on_timeout(self, soft, timeout):
+        if not soft:
+            self._fail('task timeout occurred', timeout=timeout)
+
+        super().on_timeout(soft, timeout)
+
+    def on_failure(self, exc_info, send_failed_event=True, return_ok=False):
+        if isinstance(exc_info.exception, WorkerLostError):
+            self._fail(
+                'task failed due to worker lost: %s' % str(exc_info.exception),
+                exc_info=exc_info)
+
+        super().on_failure(
+            exc_info,
+            send_failed_event=send_failed_event,
+            return_ok=return_ok
+        )
+
+
+class NomadCeleryTask(Task):
+    Request = NomadCeleryRequest
+
+
+def unwarp_task(task, cls_name, self_id, *args, **kwargs):
+    """
+    Retrieves the proc object that the given task is executed on from the database.
+    """
+    logger = utils.get_logger(__name__, cls=cls_name, id=self_id)
 
     # get the process class
-    logger.debug('received process function call')
     global all_proc_cls
     cls = all_proc_cls.get(cls_name, None)
     if cls is None:
@@ -451,8 +394,24 @@ def proc_task(task, cls_name, self_id, func_attr):
             raise task.retry(exc=e, countdown=3)
     except KeyError:
         logger.critical('called object is missing, retries exeeded')
+        raise ProcObjectDoesNotExist()
+
+    return self
+
+
+@app.task(bind=True, base=NomadCeleryTask, ignore_results=True, max_retries=3, acks_late=True)
+def proc_task(task, cls_name, self_id, func_attr):
+    """
+    The celery task that is used to execute async process functions.
+    It ignores results, since all results are handled via the self document.
+    It retries for 3 times with a countdown of 3 on missing 'selfs', since this
+    might happen in sharded, distributed mongo setups where the object might not
+    have yet been propagated and therefore appear missing.
+    """
+    self = unwarp_task(task, cls_name, self_id)
 
     logger = self.get_logger()
+    logger.debug('received process function call')
 
     # get the process function
     func = getattr(self, func_attr, None)
@@ -469,17 +428,9 @@ def proc_task(task, cls_name, self_id, func_attr):
         logger.error('called function was not decorated with @process')
         self.fail('called function %s was not decorated with @process' % func_attr)
         self.process_status = PROCESS_COMPLETED
+        self.on_process_complete(None)
         self.save()
         return
-
-    # check requeued task after catastrophic failure, e.g. segfault
-    if self._celery_task_id is not None:
-        if self._celery_task_id == task.request.id and task.request.retries == 0:
-            self.fail('task failed catastrophically, probably with sys.exit or segfault')
-
-    if self._celery_task_id != task.request.id:
-        self._celery_task_id = task.request.id
-        self.save()
 
     # call the process function
     deleted = False
@@ -491,6 +442,7 @@ def proc_task(task, cls_name, self_id, func_attr):
     finally:
         if deleted is None or not deleted:
             self.process_status = PROCESS_COMPLETED
+            self.on_process_complete(func.__name__)
             self.save()
 
 

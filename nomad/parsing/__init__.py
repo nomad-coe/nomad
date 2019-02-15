@@ -104,6 +104,7 @@ def match_parser(mainfile: str, upload_files: files.StagingUploadFiles) -> 'Pars
 
     for parser in parsers:
         if parser.is_mainfile(mainfile_path, mime_type, buffer.decode('utf-8'), compression):
+            # TODO: deal with multiple possible parser specs
             return parser
 
     return None
