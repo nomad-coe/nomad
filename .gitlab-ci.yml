@@ -31,7 +31,7 @@ build:
   stage: build
   before_script:
     - git submodule sync
-    - git submodule update --init --depth 1
+    - git submodule update --init
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
     - docker build --no-cache -t $TEST_IMAGE .

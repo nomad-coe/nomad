@@ -44,7 +44,7 @@
       "cwd": "${workspaceFolder}",
       "program": "${workspaceFolder}/.pyenv/bin/pytest",
       "args": [
-        "-sv", "tests/test_api.py::TestUploads::test_put[None-multipart-tests/data/proc/examples_template.zip]"
+        "-sv", "tests/test_api.py::TestRepo::test_search[2-user-other_test_user]"
       ]
     },
     {
@@ -87,7 +87,26 @@
         "-sv", "tests/test_normalizing.py::test_normalizer[parsers/wien2k-tests/data/parsers/wien2k/AlN/AlN_ZB.scf]"
       ]
     },
-
+    {
+      "name": "Python: gaussian normalizer test",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/gaussian-tests/data/parsers/gaussian/Al.out]"
+      ]
+    },
+    {
+      "name": "Python: aniline gaussian normalizer  test",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/gaussian-tests/data/parsers/gaussian/al-1.out]"
+      ]
+    },
     {
       "name": "Python: test_parsing match test",
       "type": "python",
@@ -118,6 +137,17 @@
         "-sv", "tests/test_normalizing.py::test_normalizer[parsers/vasp-tests/data/parsers/vasp/vasp.xml]"
       ]
     },
+    {
+      "name": "Python: Quantum Espresso",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_parsing.py::test_parser[parsers/quantumespresso-tests/data/parsers/quantum-espresso/W.out]"
+      ]
+    },
+
     {
       "name": "Python: Current File",
       "type": "python",

@@ -100,7 +100,7 @@ class LogstashHandler(logstash.TCPLogstashHandler):
                     return True
                 else:
                     LogstashHandler.legacy_logger.log(
-                        record.levelno, record.msg, args=record.args,
+                        record.levelno, sanitize_logevent(record.msg), args=record.args,
                         exc_info=record.exc_info, stack_info=record.stack_info,
                         legacy_logger=record.name)
 
@@ -121,7 +121,7 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
         message = {
             '@timestamp': self.format_timestamp(record.created),
             '@version': '1',
-            'event': sanitize_logevent(structlog['event']),
+            'event': structlog['event'],
             'message': structlog['event'],
             'host': self.host,
             'path': record.pathname,
@@ -137,6 +137,8 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
             for key, value in structlog.items():
                 if key in ('event', 'stack_info', 'id', 'timestamp'):
                     continue
+                elif key in ['exception']:
+                    pass
                 elif key in (
                         'upload_id', 'calc_id', 'mainfile',
                         'service', 'release'):
@@ -156,6 +158,33 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
             message.update(self.get_debug_fields(record))
 
         return self.serialize(message)
+
+
+class ConsoleFormatter(LogstashFormatter):
+    @classmethod
+    def serialize(cls, message_dict):
+        from io import StringIO
+
+        logger = message_dict.pop('logger_name', None)
+        event = message_dict.pop('event', None)
+        level = message_dict.pop('level', None)
+        exception = message_dict.pop('exception', None)
+        time = message_dict.pop('@timestamp', None)
+        for key in ['type', 'tags', 'stack_info', 'path', 'message', 'host', '@version']:
+            message_dict.pop(key)
+        keys = list(message_dict.keys())
+        keys.sort()
+
+        out = StringIO()
+        out.write('%s %s %s %s' % (
+            level.ljust(8), logger.ljust(20)[:20], time.ljust(19)[:19], event))
+        if exception is not None:
+            out.write('\n  - exception: %s' % str(exception).replace('\n', '\n    '))
+
+        for key in keys:
+            out.write('\n  - %s: %s' % (key, str(message_dict.get(key, None))))
+
+        return out.getvalue()
 
 
 def add_logstash_handler(logger):
@@ -199,13 +228,14 @@ def configure_logging():
     for handler in root.handlers:
         if not isinstance(handler, LogstashHandler):
             handler.setLevel(config.console_log_level)
+            handler.setFormatter(ConsoleFormatter())
 
     # configure logstash
     if config.logstash.enabled:
         add_logstash_handler(root)
-        root.info('Structlog configured for logstash')
 
-    root.info('Structlog configured')
+    logger = get_logger(__name__)
+    logger.info('structlog configured', with_logstash=config.logstash.enabled)
 
 
 def create_uuid() -> str:

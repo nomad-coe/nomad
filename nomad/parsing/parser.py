@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Callable, IO
+from typing import List
 from abc import ABCMeta, abstractmethod
 import sys
 import re
@@ -31,18 +31,19 @@ class Parser(metaclass=ABCMeta):
     """
     Instances specify a parser. It allows to find *main files* from  given uploaded
     and extracted files. Further, allows to run the parser on those 'main files'.
-
-    Arguments:
-        name: The name of the parser
-        parser_class_name: Full qualified name of the main parser class. We assume it have one
-                           parameter for the backend.
-        main_file_re: A regexp that matches main file paths that this parser can handle.
-        main_contents_re: A regexp that matches main file headers that this parser can parse.
     """
 
     @abstractmethod
-    def is_mainfile(self, filename: str, open: Callable[[str], IO[Any]]) -> bool:
-        """ Checks if a file is a mainfile via the parsers ``main_contents_re``. """
+    def is_mainfile(self, filename: str, mime: str, buffer: str, compression: str = None) -> bool:
+        """
+        Checks if a file is a mainfile for the parsers.
+
+        Arguments:
+            filename: The filesystem path to the mainfile
+            mime: The mimetype of the mainfile guessed with libmagic
+            buffer: The first 2k of the mainfile contents
+            compression: The compression of the mainfile ``[None, 'gz', 'bz2']``
+        """
         pass
 
     @abstractmethod
@@ -70,37 +71,31 @@ class LegacyParser(Parser):
         python_get: the git repository and commit that contains the legacy parser
         parser_class_name: the main parser class that implements NOMAD-coe's
             python-common *ParserInterface*. Instances of this class are currently not reused.
-        main_file_re: A regexp that is used to match the paths of potential mainfiles
-        main_contents_re: A regexp that is used to match the first 500 bytes of a
+        mainfile_mime_re: A regexp that is used to match against a files mime type
+        mainfile_contents_re: A regexp that is used to match the first 1024 bytes of a
             potential mainfile.
+        mainfile_name_re: A regexp that is used to match the paths of potential mainfiles
+        supported_compressions: A list of [gz, bz2], if the parser supports compressed files
     """
     def __init__(
-            self, name: str, parser_class_name: str, main_file_re: str,
-            main_contents_re: str) -> None:
+            self, name: str, parser_class_name: str,
+            mainfile_contents_re: str,
+            mainfile_mime_re: str = r'text/.*',
+            mainfile_name_re: str = r'.*',
+            supported_compressions: List[str] = []) -> None:
 
         self.name = name
         self.parser_class_name = parser_class_name
-        self._main_file_re = re.compile(main_file_re)
-        self._main_contents_re = re.compile(main_contents_re)
+        self._mainfile_mime_re = re.compile(mainfile_mime_re)
+        self._mainfile_name_re = re.compile(mainfile_name_re)
+        self._mainfile_contents_re = re.compile(mainfile_contents_re)
+        self._supported_compressions = supported_compressions
 
-    def is_mainfile(self, filename: str, open: Callable[[str], IO[Any]]) -> bool:
-        # Number of bytes to read at top of file. We might have to change this
-        # in the future since there is variable size information at the top of the
-        # file for instance for crystal parser.
-        num_bytes = 2000
-        if self._main_file_re.match(filename):
-            file = None
-            try:
-                file = open(filename)
-
-                contents = file.read(num_bytes)
-                fake_var = self._main_contents_re.search(contents) is not None
-                return fake_var
-            finally:
-                if file:
-                    file.close()
-
-        return False
+    def is_mainfile(self, filename: str, mime: str, buffer: str, compression: str = None) -> bool:
+        return self._mainfile_name_re.match(filename) is not None and \
+            self._mainfile_mime_re.match(mime) is not None and \
+            self._mainfile_contents_re.search(buffer) is not None and \
+            (compression is None or compression in self._supported_compressions)
 
     def run(self, mainfile: str, logger=None) -> LocalBackend:
         # TODO we need a homogeneous interface to parsers, but we dont have it right now.
@@ -110,7 +105,7 @@ class LegacyParser(Parser):
             return LocalBackend(meta_info, debug=False, logger=logger)
 
         module_name = self.parser_class_name.split('.')[:-1]
-        parser_class = self.parser_class_name.split('.')[1]
+        parser_class = self.parser_class_name.split('.')[-1]
         module = importlib.import_module('.'.join(module_name))
         Parser = getattr(module, parser_class)
 
@@ -149,8 +144,8 @@ class VaspOutcarParser(LegacyParser):
         is_mainfile = super().is_mainfile(filename, *args, **kwargs)
 
         if is_mainfile:
-            os.path.dirname(filename)
-            if len(glob.glob('%s/*.xml*' % filename)) > 0:
+            directory = os.path.dirname(filename)
+            if len(glob.glob('%s/*.xml*' % directory)) > 0:
                 return False
 
         return is_mainfile

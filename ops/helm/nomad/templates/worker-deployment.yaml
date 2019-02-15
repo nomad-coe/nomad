@@ -22,6 +22,11 @@ spec:
       containers:
       - name: {{ include "nomad.name" . }}-worker
         image: "{{ .Values.images.nomad.name }}:{{ .Values.images.nomad.tag }}"
+        resources:
+          limits:
+            memory: "{{ .Values.worker.memlimit }}Gi"
+          requests:
+            memory: "{{ .Values.worker.memrequest }}Gi"
         volumeMounts:
         - mountPath: /app/.volumes/fs
           name: files-volume
@@ -74,7 +79,7 @@ spec:
         livenessProbe:
           exec:
             command:
-            - bash 
+            - bash
             - -c
             - NOMAD_LOGSTASH_LEVEL=30 python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
           initialDelaySeconds: 30
@@ -82,7 +87,7 @@ spec:
         readinessProbe:
           exec:
             command:
-            - bash 
+            - bash
             - -c
             - NOMAD_LOGSTASH_LEVEL=30 python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
           initialDelaySeconds: 5

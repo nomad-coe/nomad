@@ -51,7 +51,7 @@ import base64
 import io
 import gzip
 
-from nomad import config, utils, datamodel
+from nomad import config, utils
 
 
 class PathObject:
@@ -240,7 +240,7 @@ class Restricted(Exception):
     pass
 
 
-class UploadFiles(DirectoryObject, datamodel.Entity, metaclass=ABCMeta):
+class UploadFiles(DirectoryObject, metaclass=ABCMeta):
 
     _archive_ext = 'json'
 
@@ -274,7 +274,7 @@ class UploadFiles(DirectoryObject, datamodel.Entity, metaclass=ABCMeta):
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
         """
-        Opens a raw file and returns a file-like objects. Additional args, kwargs are
+        Opens a raw file and returns a file-like object. Additional args, kwargs are
         delegated to the respective `open` call.
         Arguments:
             file_path: The path to the file relative to the upload.
@@ -416,7 +416,10 @@ class StagingUploadFiles(UploadFiles):
         if move:
             shutil.move(path, target_dir.os_path)
         else:
-            shutil.copy(path, target_dir.os_path)
+            if os.path.isdir(path):
+                shutil.copytree(path, os.path.join(target_dir.os_path, os.path.dirname(path)))
+            else:
+                shutil.copy(path, target_dir.os_path)
 
     @property
     def is_frozen(self) -> bool:
@@ -678,59 +681,3 @@ class PublicUploadFiles(UploadFiles):
         the restrictions on calculations. This is potentially a long running operation.
         """
         pass
-
-
-class Calc(datamodel.Calc):
-    @classmethod
-    def load_from(cls, obj):
-        return Calc(obj.upload.upload_id, obj.calc_id)
-
-    def __init__(self, upload_id: str, calc_id: str) -> None:
-        self._calc_id = calc_id
-        self.upload_files = UploadFiles.get(upload_id, is_authorized=lambda: True)
-        if self.upload_files is None:
-            raise KeyError
-        self._data = self.upload_files.metadata.get(calc_id)
-
-    @property
-    def upload(self):
-        return self.upload_files
-
-    @property
-    def calc_data(self) -> dict:
-        return self._data['section_repository_info']['section_repository_parserdata']
-
-    @property
-    def calc_id(self) -> str:
-        return self._calc_id
-
-    @property
-    def mainfile(self) -> str:
-        return self._data['section_repository_info']['repository_filepaths'][0]
-
-    def to_calc_with_metadata(self):
-        return repo_data_to_calc_with_metadata(
-            self.upload.upload_id, self.calc_id, self._data)
-
-
-def repo_data_to_calc_with_metadata(upload_id, calc_id, repo_data):
-    calc_data = repo_data['section_repository_info']['section_repository_parserdata']
-
-    target = datamodel.CalcWithMetadata(upload_id=upload_id)
-    target.calc_id = calc_id
-    target.basis_set_type = calc_data['repository_basis_set_type']
-    target.crystal_system = calc_data['repository_crystal_system']
-    target.XC_functional_name = calc_data['repository_xc_treatment']
-    target.system_type = calc_data['repository_system_type']
-    target.atom_labels = calc_data['repository_atomic_elements']
-    target.space_group_number = calc_data['repository_spacegroup_nr']
-    target.chemical_composition = calc_data['repository_chemical_formula']
-    target.program_version = calc_data['repository_code_version']
-    target.program_name = calc_data['repository_program_name']
-    target.files = repo_data['section_repository_info']['repository_filepaths']
-    target.mainfile = target.files[0]
-
-    return target
-
-
-datamodel.CalcWithMetadata.register_mapping(Calc, Calc.to_calc_with_metadata)

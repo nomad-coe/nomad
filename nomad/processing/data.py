@@ -30,14 +30,15 @@ import logging
 from structlog import wrap_logger
 from contextlib import contextmanager
 
-from nomad import utils, coe_repo, datamodel, config, infrastructure
-from nomad.files import PathObject, ArchiveBasedStagingUploadFiles, ExtractError, Calc as FilesCalc
-from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE
-from nomad.parsing import parsers, parser_dict
+from nomad import utils, coe_repo, config, infrastructure, search
+from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles
+from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
+from nomad.parsing import parser_dict, match_parser
 from nomad.normalizing import normalizers
+from nomad.datamodel import UploadWithMetadata, CalcWithMetadata
 
 
-class Calc(Proc, datamodel.Calc):
+class Calc(Proc):
     """
     Instances of this class represent calculations. This class manages the elastic
     search index entry, files, and archive for the respective calculation.
@@ -140,8 +141,13 @@ class Calc(Proc, datamodel.Calc):
             except Exception as e:
                 logger.error('could not close calculation proc log', exc_info=e)
 
-            # inform parent proc about completion
-            self.upload.completed_child()
+    def on_process_complete(self, process_name):
+        # the save might be necessary to correctly read the join condition from the db
+        self.save()
+        # in case of error, the process_name might be unknown
+        if process_name == 'process_calc' or process_name is None:
+            self.upload.reload()
+            self.upload.check_join()
 
     @task
     def parsing(self):
@@ -230,13 +236,20 @@ class Calc(Proc, datamodel.Calc):
     def archiving(self):
         logger = self.get_logger()
 
+        calc_with_metadata = self._parser_backend.to_calc_with_metadata()
+
         # persist the repository metadata
-        with utils.timer(logger, 'indexed', step='index'):
-            self.upload_files.metadata.insert(self._parser_backend.metadata())
+        with utils.timer(logger, 'saved repo metadata', step='persist'):
+            self.upload_files.metadata.insert(calc_with_metadata.to_dict())
+
+        # index in search
+        with utils.timer(logger, 'indexed', step='persist'):
+            calc_with_metadata.update(published=False, uploader=self.upload.uploader.to_popo())
+            search.Entry.from_calc_with_metadata(calc_with_metadata).save()
 
         # persist the archive
         with utils.timer(
-                logger, 'archived', step='archive',
+                logger, 'archived', step='persist',
                 input_size=self.mainfile_file.size) as log_data:
             with self.upload_files.archive_file(self.calc_id, 'wt') as out:
                 self._parser_backend.write_json(out, pretty=True)
@@ -246,21 +259,23 @@ class Calc(Proc, datamodel.Calc):
         # close loghandler
         if self._calc_proc_logwriter is not None:
             with utils.timer(
-                    logger, 'archived log', step='archive_log',
+                    logger, 'archived log', step='persist',
                     input_size=self.mainfile_file.size) as log_data:
                 self._calc_proc_logwriter_ctx.__exit__(None, None, None)  # pylint: disable=E1101
                 self._calc_proc_logwriter = None
 
                 log_data.update(log_size=self.upload_files.archive_log_file_object(self.calc_id).size)
 
-    def to_calc_with_metadata(self):
-        return self.to(FilesCalc).to_calc_with_metadata()
+    def to_calc_with_metadata(self) -> CalcWithMetadata:
+        upload_files = UploadFiles.get(self.upload_id, is_authorized=lambda: True)
+        if self.upload_files is None:
+            raise KeyError
+
+        _data = upload_files.metadata.get(self.calc_id)
+        return CalcWithMetadata(**_data)
 
 
-datamodel.CalcWithMetadata.register_mapping(Calc, Calc.to_calc_with_metadata)
-
-
-class Upload(Chord, datamodel.Upload):
+class Upload(Proc):
     """
     Represents uploads in the databases. Provides persistence access to the files storage,
     and processing state.
@@ -347,6 +362,11 @@ class Upload(Chord, datamodel.Upload):
 
         with utils.lnr(logger, 'staged upload delete failed'):
             with utils.timer(
+                    logger, 'upload deleted from index', step='delete',
+                    upload_size=self.upload_files.size):
+                search.Entry.delete_upload(self.upload_id)
+
+            with utils.timer(
                     logger, 'staged upload deleted', step='delete',
                     upload_size=self.upload_files.size):
                 self.upload_files.delete()
@@ -365,15 +385,22 @@ class Upload(Chord, datamodel.Upload):
         logger = self.get_logger()
 
         with utils.lnr(logger, 'publish failed'):
+            upload_with_metadata = self.to_upload_with_metadata()
+
             with utils.timer(
                     logger, 'upload added to repository', step='publish',
                     upload_size=self.upload_files.size):
-                coe_repo.Upload.add(self, self.metadata)
+                coe_repo.Upload.add(upload_with_metadata)
 
             with utils.timer(
                     logger, 'staged upload files packed', step='publish',
                     upload_size=self.upload_files.size):
                 self.upload_files.pack()
+
+            with utils.timer(
+                    logger, 'index updated', step='publish',
+                    upload_size=self.upload_files.size):
+                search.Entry.publish_upload(upload_with_metadata)
 
             with utils.timer(
                     logger, 'staged upload deleted', step='publish',
@@ -428,15 +455,14 @@ class Upload(Chord, datamodel.Upload):
             Tuples of mainfile, filename, and parsers
         """
         for filename in self.upload_files.raw_file_manifest():
-            for parser in parsers:
-                try:
-                    with self.upload_files.raw_file(filename) as mainfile_f:
-                        if parser.is_mainfile(filename, lambda fn: mainfile_f):
-                            yield filename, parser
-                except Exception as e:
-                    self.get_logger().error(
-                        'exception while matching pot. mainfile',
-                        mainfile=filename, exc_info=e)
+            try:
+                parser = match_parser(filename, self.upload_files)
+                if parser is not None:
+                    yield filename, parser
+            except Exception as e:
+                self.get_logger().error(
+                    'exception while matching pot. mainfile',
+                    mainfile=filename, exc_info=e)
 
     @task
     def parse_all(self):
@@ -446,11 +472,9 @@ class Upload(Chord, datamodel.Upload):
         """
         logger = self.get_logger()
 
-        # TODO: deal with multiple possible parser specs
         with utils.timer(
                 logger, 'upload extracted', step='matching',
                 upload_size=self.upload_files.size):
-            total_calcs = 0
             for filename, parser in self.match_mainfiles():
                 calc = Calc.create(
                     calc_id=self.upload_files.calc_id(filename),
@@ -458,10 +482,19 @@ class Upload(Chord, datamodel.Upload):
                     upload_id=self.upload_id)
 
                 calc.process_calc()
-                total_calcs += 1
 
-        # have to save the total_calcs information for chord management
-        self.spwaned_childred(total_calcs)
+    def on_process_complete(self, process_name):
+        if process_name == 'process_upload':
+            self.check_join()
+
+    def check_join(self):
+        total_calcs = self.total_calcs
+        processed_calcs = self.processed_calcs
+
+        self.get_logger().debug('check join', processed_calcs=processed_calcs, total_calcs=total_calcs)
+        if not self.process_running and processed_calcs >= total_calcs:
+            self.get_logger().debug('join')
+            self.join()
 
     def join(self):
         self.cleanup()
@@ -508,3 +541,27 @@ class Upload(Chord, datamodel.Upload):
     @property
     def calcs(self):
         return Calc.objects(upload_id=self.upload_id, tasks_status=SUCCESS)
+
+    def to_upload_with_metadata(self) -> UploadWithMetadata:
+        calc_metadata = dict()
+        user_upload_time = None
+        if self.metadata is not None:
+            user_upload_time = self.metadata.get('_upload_time')
+            for calc in self.metadata.get('calculations', []):
+                calc_metadata[calc['mainfile']] = calc
+
+        def apply_metadata(calc):
+            metadata = calc_metadata.get(calc.mainfile, self.metadata)
+            if metadata is not None:
+                calc.apply_user_metadata(metadata)
+            return calc
+
+        result = UploadWithMetadata(
+            upload_id=self.upload_id,
+            uploader=utils.POPO(id=int(self.user_id)),
+            upload_time=self.upload_time if user_upload_time is None else user_upload_time)
+
+        result.calcs = [
+            apply_metadata(calc.to_calc_with_metadata()) for calc in self.calcs]
+
+        return result

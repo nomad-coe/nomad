@@ -16,141 +16,115 @@
 This module represents calculations in elastic search.
 """
 
-from elasticsearch.exceptions import ConflictError, ConnectionTimeout
-from datetime import datetime
-import time
-from elasticsearch_dsl import Document, InnerDoc, Keyword, Text, Long, Integer, Date, \
-    Nested
+from elasticsearch_dsl import Document, InnerDoc, Keyword, Text, Date, \
+    Object, Boolean, Search
 
-from nomad import config, datamodel, coe_repo, infrastructure, datamodel
+from nomad import config, datamodel, infrastructure, datamodel, coe_repo
 
 
 class AlreadyExists(Exception): pass
 
 
-class UserData(InnerDoc):
-    repository_open_date = Date(format='epoch_millis')
-    repository_access_now = Keyword()
-    repository_comment = Keyword()
+class User(InnerDoc):
 
-    section_citation = Nested(properties=dict(
-        citation_repo_id=Integer(),
-        citation_value=Keyword()
-    ))
+    @classmethod
+    def from_user_popo(cls, user):
+        self = cls(user_id=user.id)
 
-    section_author_info = Nested(properties=dict(
-        author_repo_id=Integer(index=True),
-        author_first_name=Keyword(),
-        author_last_name=Keyword(),
-        author_name=Text()
-    ))
+        if 'first_name' not in user:
+            user = coe_repo.User.from_user_id(user.id).to_popo()
 
-    section_shared_with = Nested(properties=dict(
-        shared_with_repo_id=Keyword(),
-        shared_with_first_name=Keyword(),
-        shared_with_last_name=Keyword(),
-        shared_with_username=Keyword(),
-        shared_with_name=Text()
-    ))
+        self.name = '%s %s' % (user['first_name'], user['last_name'])
+        self.name_keyword = '%s %s' % (user['first_name'], user['last_name'])
 
-    section_repository_dataset = Nested(properties=dict(
-        dataset_checksum=Keyword(),
-        dataset_pid=Keyword(),
-        dataset_name=Keyword(),
-        dataset_parent_pid=Keyword(),
-        dataset_calc_id=Long(),
-        dataset_parent_calc_id=Long(),
-        section_dataset_doi=Nested(properties=dict(
-            dataset_doi_name=Keyword(),
-            dataset_doi_id=Long()))
-    ))
+        return self
 
-    def fill_from_coe_repo(self, calc: coe_repo.Calc):
-        pass
+    user_id = Keyword()
+    name = Text()
+    name_keyword = Keyword()
 
 
-class CalcData(InnerDoc):
-    repository_checksum = Keyword()
-    repository_chemical_formula = Keyword()
-    repository_parser_id = Keyword()
-    repository_atomic_elements = Keyword(store=True)
-    repository_atomic_elements_count = Integer(store=True)
-    repository_basis_set_type = Keyword(store=True)
-    repository_code_version = Keyword(store=True)
-    repository_crystal_system = Keyword(store=True)
-    repository_program_name = Keyword(store=True)
-    repository_spacegroup_nr = Keyword(store=True)
-    repository_system_type = Keyword(store=True)
-    repository_xc_treatment = Keyword(store=True)
+class Dataset(InnerDoc):
+
+    @classmethod
+    def from_dataset_popo(cls, dataset):
+        return cls(
+            id=dataset.id,
+            doi=dataset.doi.value if dataset.doi is not None else None,
+            name=dataset.name)
+
+    id = Keyword()
+    doi = Keyword()
+    name = Keyword()
 
 
-class Calc(InnerDoc):
-    main_file_uri = Keyword()
-    secondary_file_uris = Keyword()
-    repository_filepaths = Keyword(index=False)
-    repository_archive_gid = Keyword()
-    repository_calc_id = Long(store=True)
-    repository_calc_pid = Keyword(store=True)
-    upload_id = Long()
-    upload_date = Date(format='epoch_millis')
-    repository_grouping_checksum = Keyword()
-
-    section_repository_userdata = Nested(UserData)
-    section_repository_parserdata = Nested(CalcData)
-
-    section_uploader_info = Nested(properties=dict(
-        uploader_repo_id=Keyword(),
-        uploader_first_name=Keyword(),
-        uploader_last_name=Keyword(),
-        uploader_username=Keyword(),
-        uploader_name=Text()
-    ))
-
-
-class Entry(Document, datamodel.Entity):
+class Entry(Document):
     class Index:
-        name = config.elastic.coe_repo_calcs_index_name
+        name = config.elastic.index_name
 
-    calc_id = Keyword()
     upload_id = Keyword()
-    section_repository_info = Nested(Calc)
+    upload_time = Date()
+    calc_id = Keyword()
+    calc_hash = Keyword()
+    pid = Keyword()
+    mainfile = Keyword()
+    files = Keyword(multi=True)
+    uploader = Object(User)
 
-    def __init__(self, upload_id: str, calc_id: str) -> None:
-        super().__init__(meta=dict(id=calc_id))
-        self.calc_id = calc_id
-        self.upload_id = upload_id
+    with_embargo = Boolean()
+    published = Boolean()
 
-    def persist(self, **kwargs):
-        """
-            Persist this entry to elastic search. Kwargs are passed to elastic search.
+    coauthors = Object(User)
+    shared_with = Object(User)
+    comment = Text()
+    references = Keyword()
+    datasets = Object(Dataset)
 
-            Raises:
-                AlreadyExists: If the calculation already exists in elastic search. We use
-                    the elastic document lock here. The elastic document is IDed via the
-                    ``calc_id``.
-        """
-        try:
-            # In practive es operation might fail due to timeout under heavy loads/
-            # bad configuration. Retries with a small delay is a pragmatic solution.
-            e_after_retries = None
-            for _ in range(0, 2):
-                try:
-                    self.save(op_type='create', **kwargs)
-                    e_after_retries = None
-                    break
-                except ConnectionTimeout as e:
-                    e_after_retries = e
-                    time.sleep(1)
-                except ConflictError as e:  # this should never happen, but happens
-                    e_after_retries = e
-                    time.sleep(1)
-                else:
-                    raise e
-            if e_after_retries is not None:
-                # if we had and exception and could not fix with retries, throw it
-                raise e_after_retries  # pylint: disable=E0702
-        except ConflictError:
-            raise AlreadyExists('Calculation %s/%s does already exist.' % (self.upload_id, self.calc_id))
+    formula = Keyword()
+    atoms = Keyword(multi=True)
+    basis_set = Keyword()
+    xc_functional = Keyword()
+    system = Keyword()
+    crystal_system = Keyword()
+    spacegroup = Keyword()
+    code_name = Keyword()
+    code_version = Keyword()
+
+    @classmethod
+    def from_calc_with_metadata(cls, source: datamodel.CalcWithMetadata) -> 'Entry':
+        return Entry(
+            meta=dict(id=source.calc_id),
+            upload_id=source.upload_id,
+            upload_time=source.upload_time,
+            calc_id=source.calc_id,
+            calc_hash=source.calc_hash,
+            pid=str(source.pid),
+            mainfile=source.mainfile,
+            files=source.files,
+            uploader=User.from_user_popo(source.uploader) if source.uploader is not None else None,
+
+            with_embargo=source.with_embargo,
+            published=source.published,
+            coauthors=[User.from_user_popo(user) for user in source.coauthors],
+            shared_with=[User.from_user_popo(user) for user in source.shared_with],
+            comment=source.comment,
+            references=[ref.value for ref in source.references],
+            datasets=[Dataset.from_dataset_popo(ds) for ds in source.datasets],
+
+            formula=source.formula,
+            atoms=list(set(source.atoms)),
+            basis_set=source.basis_set,
+            xc_functional=source.xc_functional,
+            system=source.system,
+            crystal_system=source.crystal_system,
+            spacegroup=source.spacegroup,
+            code_name=source.code_name,
+            code_version=source.code_version)
+
+    @classmethod
+    def add_upload(cls, source: datamodel.UploadWithMetadata):
+        for calc in source.calcs:
+            cls.from_calc_with_metadata(calc).save()
 
     @classmethod
     def update_by_query(cls, upload_id, script):
@@ -168,18 +142,17 @@ class Entry(Document, datamodel.Entity):
         }
         conn.update_by_query(index, doc_type=[doc_type], body=body)
 
+    @classmethod
+    def publish_upload(cls, upload: datamodel.UploadWithMetadata):
+        cls.update_by_query(upload.upload_id, 'ctx._source["published"] = true')
+        # TODO run update on all calcs with their new metadata
+
+    @classmethod
+    def delete_upload(cls, upload_id):
+        index = cls._default_index()
+        Search(index=index).query('match', upload_id=upload_id).delete()
+
     @staticmethod
     def es_search(body):
         """ Perform an elasticsearch and not elasticsearch_dsl search on the Calc index. """
         return infrastructure.elastic_client.search(index=config.elastic.index_name, body=body)
-
-    @property
-    def json_dict(self):
-        """ A json serializable dictionary representation. """
-        data = self.to_dict()
-
-        upload_time = data.get('upload_time', None)
-        if upload_time is not None and isinstance(upload_time, datetime):
-            data['upload_time'] = data['upload_time'].isoformat()
-
-        return {key: value for key, value in data.items() if value is not None}

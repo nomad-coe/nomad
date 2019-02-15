@@ -18,22 +18,21 @@ import os.path
 from bravado.client import SwaggerClient
 import json
 
-from nomad import infrastructure, coe_repo, datamodel
+from nomad import infrastructure, coe_repo
 
 from nomad.migration import NomadCOEMigration, SourceCalc
 from nomad.infrastructure import repository_db_connection
 
-from .bravado_flaks import FlaskTestHttpClient
-from tests.conftest import create_repository_db
-from tests.test_api import client as flask_client, create_auth_headers  # noqa pylint: disable=unused-import
-from tests.test_client import client as bravado_client  # noqa pylint: disable=unused-import
+from tests.conftest import create_postgres_infra, create_auth_headers
+from tests.bravado_flask import FlaskTestHttpClient
+from tests.test_api import create_auth_headers
 
-test_source_db_name = 'test_nomad_fair_migration_source'
-test_target_db_name = 'test_nomad_fair_migration_target'
+test_source_db_name = 'test_nomad_fairdi_migration_source'
+test_target_db_name = 'test_nomad_fairdi_migration_target'
 
 
 @pytest.fixture(scope='module')
-def source_repo(monkeysession, repository_db):
+def source_repo(monkeysession, postgres_infra):
     """
     Fixture for an example migration source db with:
     - two user
@@ -63,13 +62,13 @@ def source_repo(monkeysession, repository_db):
                 with open(sql_file, 'r') as f:
                     cur.execute(f.read())
 
-    with create_repository_db(monkeysession, exists=True, readonly=True, dbname=test_source_db_name) as db:
+    with create_postgres_infra(monkeysession, exists=True, readonly=True, dbname=test_source_db_name) as db:
         yield db
 
 
 @pytest.fixture(scope='function')
-def target_repo(repository_db):
-    with create_repository_db(readonly=False, exists=False, dbname=test_target_db_name) as db:
+def target_repo(postgres):
+    with create_postgres_infra(readonly=False, exists=False, dbname=test_target_db_name) as db:
         db.execute('TRUNCATE users CASCADE;')
         yield db
         db.execute('TRUNCATE uploads CASCADE;')
@@ -103,23 +102,23 @@ def perform_index(migration, has_indexed, with_metadata, **kwargs):
     assert test_calc is not None
 
     if with_metadata:
-        assert test_calc.metadata['uploader'] == 1
+        assert test_calc.metadata['uploader']['id'] == 1
         assert test_calc.metadata['comment'] == 'label1'
 
 
 @pytest.mark.parametrize('with_metadata', [False, True])
-def test_create_index(migration, mockmongo, with_metadata: bool):
+def test_create_index(migration, mongo, with_metadata: bool):
     perform_index(migration, has_indexed=True, drop=True, with_metadata=with_metadata)
 
 
 @pytest.mark.parametrize('with_metadata', [True, False])
-def test_update_index(migration, mockmongo, with_metadata: bool):
+def test_update_index(migration, mongo, with_metadata: bool):
     perform_index(migration, has_indexed=True, drop=True, with_metadata=with_metadata)
     perform_index(migration, has_indexed=False, drop=False, with_metadata=with_metadata)
 
 
 @pytest.fixture(scope='function')
-def migrate_infra(migration, target_repo, flask_client, worker, monkeysession):
+def migrate_infra(migration, target_repo, proc_infra, client, monkeysession):
     """
     Parameters to test
     - missing upload, extracted, archive, broken archive
@@ -143,7 +142,7 @@ def migrate_infra(migration, target_repo, flask_client, worker, monkeysession):
     # target repo is the infrastructure repo
     def create_client():
         admin = target_repo.query(coe_repo.User).filter_by(email='admin').first()
-        http_client = FlaskTestHttpClient(flask_client, headers=create_auth_headers(admin))
+        http_client = FlaskTestHttpClient(client, headers=create_auth_headers(admin))
         return SwaggerClient.from_url('/swagger.json', http_client=http_client)
 
     old_repo = infrastructure.repository_db
@@ -189,28 +188,28 @@ def test_migrate(migrate_infra, test, assertions, caplog):
     # assert if migrated calcs have correct user metadata
     repo_db = infrastructure.repository_db
     if assertions.get('migrated', 0) > 0:
-        calc_1 = repo_db.query(coe_repo.Calc).get(1)
+        calc_1: coe_repo.Calc = repo_db.query(coe_repo.Calc).get(1)
         assert calc_1 is not None
-        metadata = calc_1.to(datamodel.CalcWithMetadata)
+        metadata = calc_1.to_calc_with_metadata()
         assert metadata.pid <= 2
-        assert metadata.uploader == 1
+        assert metadata.uploader['id'] == 1
         assert metadata.upload_time.isoformat() == '2019-01-01T12:00:00+00:00'
         assert len(metadata.datasets) == 1
         assert metadata.datasets[0]['id'] == 3
         assert metadata.datasets[0]['name'] == 'test_dataset'
-        assert metadata.datasets[0]['dois'][0] == 'internal_ref'
+        assert metadata.datasets[0]['doi']['value'] == 'internal_ref'
         assert metadata.comment == 'label1'
         assert len(metadata.coauthors) == 1
-        assert metadata.coauthors[0] == 2
+        assert metadata.coauthors[0]['id'] == 2
         assert len(metadata.references) == 1
-        assert metadata.references[0] == 'external_ref'
+        assert metadata.references[0]['value'] == 'external_ref'
 
     if assertions.get('migrated', 0) > 1:
-        calc_2 = repo_db.query(coe_repo.Calc).get(2)
+        calc_2: coe_repo.Calc = repo_db.query(coe_repo.Calc).get(2)
         assert calc_1 is not None
-        metadata = calc_2.to(datamodel.CalcWithMetadata)
+        metadata = calc_2.to_calc_with_metadata()
         assert len(metadata.shared_with) == 1
-        assert metadata.shared_with[0] == 1
+        assert metadata.shared_with[0]['id'] == 1
 
     # assert pid prefix of new calcs
     if assertions.get('new', 0) > 0:

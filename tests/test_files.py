@@ -42,22 +42,6 @@ example_bucket = 'test_bucket'
 example_data = dict(test_key='test_value')
 
 
-@pytest.fixture(scope='function')
-def clear_files():
-    """ Utility fixture that removes all files from files and tmp after test. """
-    try:
-        yield
-    finally:
-        try:
-            shutil.rmtree(config.fs.objects)
-        except FileNotFoundError:
-            pass
-        try:
-            shutil.rmtree(config.fs.tmp)
-        except FileNotFoundError:
-            pass
-
-
 class TestObjects:
 
     @pytest.fixture(scope='function')

@@ -51,20 +51,26 @@ proc_model = api.model('Processing', {
     'process_running': fields.Boolean,
 })
 
+dataset_model = api.model('DataSet', {
+    'id': fields.Integer(required=True, description='The repository db dataset id'),
+    '_doi': fields.String(description='The DOI of the dataset'),
+    '_name': fields.String(description='The unique dataset name')
+})
+
 metadata_model = api.model('MetaData', {
     'with_embargo': fields.Boolean(default=False, description='Data with embargo is only visible to the upload until the embargo period ended.'),
     'comment': fields.String(description='The comment are shown in the repository for each calculation.'),
     'references': fields.List(fields.String, descriptions='References allow to link calculations to external source, e.g. URLs.'),
-    'coauthors': fields.List(fields.String, description='A list of co-authors given by user_id.'),
-    'shared_with': fields.List(fields.String, description='A list of users to share calculations with given by user_id.'),
+    'coauthors': fields.List(fields.Integer, description='A list of co-authors given by user_id.'),
+    'shared_with': fields.List(fields.Integer, description='A list of users to share calculations with given by user_id.'),
     '_upload_time': fields.DateTime(dt_format='iso8601', description='Overrride the upload time.'),
-    '_uploader': fields.String(description='Override the uploader with the given user id.')
+    '_uploader': fields.Integer(description='Override the uploader with the given user id.'),
+    'datasets': fields.List(fields.Nested(model=dataset_model), description='A list of datasets.')
 })
 
 calc_metadata_model = api.inherit('CalcMetaData', metadata_model, {
     'mainfile': fields.String(description='The calculation main output file is used to identify the calculation in the upload.'),
-    '_checksum': fields.String(description='Override the calculation checksum'),
-    '_pid': fields.String(description='Assign a specific pid. It must be unique.')
+    '_pid': fields.Integer(description='Assign a specific pid. It must be unique.')
 })
 
 upload_metadata_model = api.inherit('UploadMetaData', metadata_model, {

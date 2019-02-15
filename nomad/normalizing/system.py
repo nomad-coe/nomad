@@ -14,7 +14,6 @@
 
 import ase
 import numpy as np
-import sys
 import matid
 
 from matid import SymmetryAnalyzer, Classifier
@@ -249,9 +248,6 @@ class SystemNormalizer(SystemBasedNormalizer):
         self._backend.closeSection('section_original_system', origGid)
 
         self._backend.closeSection('section_symmetry', symGid)
-        # nomad-xt: context already closed in nomad-xt.
-        # backend.closeContext(context)
-        sys.stdout.flush()
 
     def system_type_classification(self) -> None:
         """Try to classify the ASE materials object using Matid's classification."""
@@ -308,4 +304,5 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         if nomad_classification == 'Atom' and (len(self.atom_labels) > 1):
             nomad_classification = 'Molecule / Cluster'
+
         return nomad_classification

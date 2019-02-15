@@ -12,12 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-To run this test, a celery worker must be running. The test worker provided by
-the celery pytest plugin is currently not working. It results on a timeout when
-reading from the redis result backend, even though all task apperently ended successfully.
-"""
-
 from typing import Generator
 import pytest
 from datetime import datetime
@@ -31,13 +25,6 @@ from nomad.files import ArchiveBasedStagingUploadFiles, UploadFiles, StagingUplo
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator, FAILURE, SUCCESS
 
-from tests.test_files import example_file, empty_file
-
-# import fixtures
-from tests.test_files import clear_files  # pylint: disable=unused-import
-
-example_files = [empty_file, example_file]
-
 
 def test_send_mail(mails):
     infrastructure.send_mail('test name', 'test@email.de', 'test message', 'subjct')
@@ -47,22 +34,12 @@ def test_send_mail(mails):
 
 
 @pytest.fixture(scope='function', autouse=True)
-def mocks_forall(mockmongo):
+def mongo_forall(mongo):
     pass
 
 
-@pytest.fixture(scope='function', params=example_files)
-def uploaded_id(request, clear_files) -> Generator[str, None, None]:
-    example_file = request.param
-    example_upload_id = os.path.basename(example_file).replace('.zip', '')
-    upload_files = ArchiveBasedStagingUploadFiles(example_upload_id, create=True)
-    shutil.copyfile(example_file, upload_files.upload_file_os_path)
-
-    yield example_upload_id
-
-
 @pytest.fixture
-def uploaded_id_with_warning(request, clear_files) -> Generator[str, None, None]:
+def uploaded_id_with_warning(raw_files) -> Generator[str, None, None]:
     example_file = 'tests/data/proc/examples_with_warning_template.zip'
     example_upload_id = os.path.basename(example_file).replace('.zip', '')
     upload_files = ArchiveBasedStagingUploadFiles(example_upload_id, create=True)
@@ -79,14 +56,9 @@ def run_processing(uploaded_id: str, test_user) -> Upload:
     assert upload.current_task == 'uploading'
 
     upload.process_upload()  # pylint: disable=E1101
-    upload.block_until_complete(interval=.1)
+    upload.block_until_complete(interval=.01)
 
     return upload
-
-
-@pytest.fixture
-def processed_upload(uploaded_id, test_user, worker, no_warn) -> Upload:
-    return run_processing(uploaded_id, test_user)
 
 
 def assert_processing(upload: Upload):
@@ -119,23 +91,26 @@ def assert_processing(upload: Upload):
         assert upload_files.metadata.get(calc.calc_id) is not None
 
 
-@pytest.mark.timeout(30)
-def test_processing(uploaded_id, worker, test_user, no_warn, mails):
-    upload = run_processing(uploaded_id, test_user)
-    assert_processing(upload)
+def test_processing(processed, no_warn, mails):
+    assert_processing(processed)
 
     assert len(mails.messages) == 1
     assert re.search(r'Processing completed', mails.messages[0].data.decode('utf-8')) is not None
 
 
-@pytest.mark.timeout(30)
-def test_processing_with_warning(uploaded_id_with_warning, worker, test_user):
-    upload = run_processing(uploaded_id_with_warning, test_user)
+@pytest.mark.timeout(10)
+def test_processing_with_warning(proc_infra, test_user, with_warn):
+    example_file = 'tests/data/proc/examples_with_warning_template.zip'
+    example_upload_id = os.path.basename(example_file).replace('.zip', '')
+    upload_files = ArchiveBasedStagingUploadFiles(example_upload_id, create=True)
+    shutil.copyfile(example_file, upload_files.upload_file_os_path)
+
+    upload = run_processing(example_upload_id, test_user)
     assert_processing(upload)
 
 
-@pytest.mark.timeout(30)
-def test_process_non_existing(worker, test_user, with_error):
+@pytest.mark.timeout(10)
+def test_process_non_existing(proc_infra, test_user, with_error):
     upload = run_processing('__does_not_exist', test_user)
 
     assert not upload.tasks_running
@@ -145,8 +120,8 @@ def test_process_non_existing(worker, test_user, with_error):
 
 
 @pytest.mark.parametrize('task', ['extracting', 'parse_all', 'cleanup', 'parsing'])
-@pytest.mark.timeout(30)
-def test_task_failure(monkeypatch, uploaded_id, worker, task, test_user, with_error):
+@pytest.mark.timeout(10)
+def test_task_failure(monkeypatch, uploaded, task, proc_infra, test_user, with_error):
     # mock the task method to through exceptions
     if hasattr(Upload, task):
         cls = Upload
@@ -163,7 +138,7 @@ def test_task_failure(monkeypatch, uploaded_id, worker, task, test_user, with_er
     monkeypatch.setattr('nomad.processing.data.%s.%s' % (cls.__name__, task), mock)
 
     # run the test
-    upload = run_processing(uploaded_id, test_user)
+    upload = run_processing(uploaded, test_user)
 
     assert not upload.tasks_running
 
@@ -182,3 +157,26 @@ def test_task_failure(monkeypatch, uploaded_id, worker, task, test_user, with_er
                 assert calc.tasks_status == FAILURE
                 assert calc.current_task == 'parsing'
                 assert len(calc.errors) > 0
+
+# TODO timeout
+# consume_ram, segfault, and exit are not testable with the celery test worker
+@pytest.mark.parametrize('failure', ['exception'])
+def test_malicious_parser_task_failure(proc_infra, failure, test_user):
+    example_file = 'tests/data/proc/chaos_%s.zip' % failure
+    example_upload_id = os.path.basename(example_file).replace('.zip', '')
+    upload_files = ArchiveBasedStagingUploadFiles(example_upload_id, create=True)
+    shutil.copyfile(example_file, upload_files.upload_file_os_path)
+
+    upload = run_processing(example_upload_id, test_user)
+
+    assert not upload.tasks_running
+    assert upload.current_task == 'cleanup'
+    assert len(upload.errors) == 0
+    assert upload.tasks_status == SUCCESS
+
+    calcs = Calc.objects(upload_id=upload.upload_id)
+    assert calcs.count() == 1
+    calc = next(calcs)
+    assert not calc.tasks_running
+    assert calc.tasks_status == FAILURE
+    assert len(calc.errors) == 1

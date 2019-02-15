@@ -61,14 +61,12 @@ class RepositoryNormalizer(Normalizer):
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
         b = self._backend
-
         repository_info_context = '/section_repository_info/0'
         try:
             b.openContext(repository_info_context)
         except BadContextURI:
             b.openNonOverlappingSection('section_repository_info')
             repository_info_context = None
-
         b.openNonOverlappingSection('section_repository_parserdata')
 
         b.addValue('repository_checksum', b.get_value('calc_hash', 0))
@@ -77,7 +75,6 @@ class RepositoryNormalizer(Normalizer):
             'repository_code_version',
             self.simplify_version(b.get_value('program_version', 0)))
         b.addValue('repository_parser_id', b.get_value('parser_name', 0))
-
         b.addValue('repository_chemical_formula', b.get_value('chemical_composition_bulk_reduced', 0))
         atom_labels = b.get_value('atom_labels', 0)
         b.addValue('repository_atomic_elements', list(set(atom_labels)))

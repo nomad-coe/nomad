@@ -20,7 +20,7 @@ from typing import Union, Callable, cast
 
 from nomad import config, utils
 from nomad.files import ArchiveBasedStagingUploadFiles
-from nomad.parsing import parsers, parser_dict, LocalBackend
+from nomad.parsing import parser_dict, LocalBackend, match_parser
 from nomad.normalizing import normalizers
 
 from .main import cli, api_base
@@ -91,11 +91,7 @@ class CalcProcReproduction:
         if parser_name is not None:
             parser = parser_dict.get(parser_name)
         else:
-            for potential_parser in parsers:
-                with self.upload_files.raw_file(self.mainfile) as mainfile_f:
-                    if potential_parser.is_mainfile(self.mainfile, lambda fn: mainfile_f):
-                        parser = potential_parser
-                        break
+            parser = match_parser(self.mainfile, self.upload_files)
 
         assert parser is not None, 'there is not parser matching %s' % self.mainfile
         self.logger = self.logger.bind(parser=parser.name)  # type: ignore

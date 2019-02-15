@@ -78,6 +78,7 @@ def setup_mongo():
     global mongo_client
     mongo_client = connect(db=config.mongo.db_name, host=config.mongo.host, port=config.mongo.port)
     logger.info('setup mongo connection')
+    return mongo_client
 
 
 def setup_elastic():
@@ -89,14 +90,17 @@ def setup_elastic():
 
     try:
         from nomad.search import Entry
-        Entry.init()
+        Entry.init(index=config.elastic.index_name)
+        Entry._index._name = config.elastic.index_name
+        logger.info('initialized elastic index', index_name=config.elastic.index_name)
     except RequestError as e:
         if e.status_code == 400 and 'resource_already_exists_exception' in e.error:
-            pass  # happens if two services try this at the same time
+            # happens if two services try this at the same time
+            pass
         else:
             raise e
-    else:
-        logger.info('init elastic index')
+
+    return elastic_client
 
 
 def setup_repository_db(**kwargs):
@@ -202,10 +206,10 @@ def reset():
     try:
         if not elastic_client:
             setup_elastic()
-        elastic_client.indices.delete(index=config.elastic.index_name)
-        from nomad.search import Entry
-        Entry.init()
-        logger.info('elastic index resetted')
+            elastic_client.indices.delete(index=config.elastic.index_name)
+            from nomad.search import Entry
+            Entry.init(index=config.elastic.index_name)
+            logger.info('elastic index resetted')
     except Exception as e:
         logger.error('exception resetting elastic', exc_info=e)
 

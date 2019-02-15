@@ -16,7 +16,6 @@
 Parser for creating artificial test, brenchmark, and demonstration data.
 """
 
-from typing import Callable, IO, Any
 import json
 import os.path
 import numpy as np
@@ -25,6 +24,8 @@ from ase.data import chemical_symbols
 import numpy
 import sys
 import time
+import os
+import signal
 
 from nomadcore.local_meta_info import loadJsonFile, InfoKindEl
 import nomad_meta_info
@@ -58,7 +59,7 @@ class TemplateParser(ArtificalParser):
     """
     name = 'parsers/template'
 
-    def is_mainfile(self, filename: str, open: Callable[[str], IO[Any]]) -> bool:
+    def is_mainfile(self, filename: str, mime: str, buffer: str, compression: str = None) -> bool:
         return filename.endswith('template.json')
 
     def transform_value(self, name, value):
@@ -121,11 +122,12 @@ class ChaosParser(ArtificalParser):
     - deadlock
     - consume_ram
     - exception
+    - segfault
     - random
     """
     name = 'parsers/chaos'
 
-    def is_mainfile(self, filename: str, open: Callable[[str], IO[Any]]) -> bool:
+    def is_mainfile(self, filename: str, mime: str, buffer: str, compression: str = None) -> bool:
         return filename.endswith('chaos.json')
 
     def run(self, mainfile: str, logger=None) -> LocalBackend:
@@ -140,7 +142,7 @@ class ChaosParser(ArtificalParser):
             chaos = None
 
         if chaos == 'random':
-            chaos = random.choice(['exit', 'deadlock', 'consume_ram', 'exception'])
+            chaos = random.choice(['exit', 'deadlock', 'consume_ram', 'exception', 'segfault'])
 
         if chaos == 'exit':
             sys.exit(1)
@@ -148,9 +150,16 @@ class ChaosParser(ArtificalParser):
             while True:
                 time.sleep(1)
         elif chaos == 'consume_ram':
-            pass
+            data = []
+            i = 0
+            while True:
+                data.append('a' * 10**6)
+                i += 1
+                logger.info('ate %d mb' % i)
         elif chaos == 'exception':
             raise Exception('Some chaos happened, muhuha...')
+        elif chaos == 'segfault':
+            os.kill(os.getpid(), signal.SIGSEGV)
 
         raise Exception('Unknown chaos')
 
@@ -180,7 +189,7 @@ class GenerateRandomParser(TemplateParser):
         self.template = json.load(open(template_file, 'r'))
         self.random = None
 
-    def is_mainfile(self, filename: str, open: Callable[[str], IO[Any]]) -> bool:
+    def is_mainfile(self, filename: str, mime: str, buffer: str, compression: str = None) -> bool:
         return os.path.basename(filename).startswith('random_')
 
     def transform_section(self, name, section):

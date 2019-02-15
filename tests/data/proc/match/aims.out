@@ -1,9 +1,0 @@
-  MPI-parallelism will be employed.
-------------------------------------------------------------
-          Invoking FHI-aims ...
-          Version 160210
-          Git rev. (modified): 3e7c3af [waf] move extension options to Configurat[...]
-          Compiled on 2016/02/25 at 08:54:27 on host node17.timewarp.
-
-          When using FHI-aims, please cite the following reference:
-
