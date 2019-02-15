@@ -400,7 +400,13 @@ class Upload(Proc):
             with utils.timer(
                     logger, 'index updated', step='publish',
                     upload_size=self.upload_files.size):
-                search.Entry.publish_upload(upload_with_metadata)
+                coe_upload = coe_repo.Upload.from_upload_id(upload_with_metadata.upload_id)
+                if coe_upload is not None:
+                    for coe_calc in coe_upload.calcs:
+                        entry = search.Entry.from_calc_with_metadata(
+                            coe_calc.to_calc_with_metadata())
+                        entry.published = True
+                        entry.save(refresh=True)
 
             with utils.timer(
                     logger, 'staged upload deleted', step='publish',

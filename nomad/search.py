@@ -17,7 +17,7 @@ This module represents calculations in elastic search.
 """
 
 from elasticsearch_dsl import Document, InnerDoc, Keyword, Text, Date, \
-    Object, Boolean, Search
+    Object, Boolean, Search, Integer
 
 from nomad import config, datamodel, infrastructure, datamodel, coe_repo
 
@@ -90,41 +90,64 @@ class Entry(Document):
     code_name = Keyword()
     code_version = Keyword()
 
+    n_total_energies = Integer()
+    n_geometries = Integer()
+    geometries = Keyword(multi=True)
+    quantities = Keyword(multi=True)
+
     @classmethod
     def from_calc_with_metadata(cls, source: datamodel.CalcWithMetadata) -> 'Entry':
-        return Entry(
-            meta=dict(id=source.calc_id),
-            upload_id=source.upload_id,
-            upload_time=source.upload_time,
-            calc_id=source.calc_id,
-            calc_hash=source.calc_hash,
-            pid=str(source.pid),
-            mainfile=source.mainfile,
-            files=source.files,
-            uploader=User.from_user_popo(source.uploader) if source.uploader is not None else None,
+        entry = Entry(meta=dict(id=source.calc_id))
+        entry.update(source)
+        return entry
 
-            with_embargo=source.with_embargo,
-            published=source.published,
-            coauthors=[User.from_user_popo(user) for user in source.coauthors],
-            shared_with=[User.from_user_popo(user) for user in source.shared_with],
-            comment=source.comment,
-            references=[ref.value for ref in source.references],
-            datasets=[Dataset.from_dataset_popo(ds) for ds in source.datasets],
+    def update(self, source: datamodel.CalcWithMetadata) -> None:
+        self.upload_id = source.upload_id
+        self.upload_time = source.upload_time
+        self.calc_id = source.calc_id
+        self.calc_hash = source.calc_hash
+        self.pid = str(source.pid)
+        self.mainfile = source.mainfile
+        self.files = source.files
+        self.uploader = User.from_user_popo(source.uploader) if source.uploader is not None else None
 
-            formula=source.formula,
-            atoms=list(set(source.atoms)),
-            basis_set=source.basis_set,
-            xc_functional=source.xc_functional,
-            system=source.system,
-            crystal_system=source.crystal_system,
-            spacegroup=source.spacegroup,
-            code_name=source.code_name,
-            code_version=source.code_version)
+        self.with_embargo = source.with_embargo
+        self.published = source.published
+        self.coauthors = [User.from_user_popo(user) for user in source.coauthors]
+        self.shared_with = [User.from_user_popo(user) for user in source.shared_with]
+        self.comment = source.comment
+        self.references = [ref.value for ref in source.references]
+        self.datasets = [Dataset.from_dataset_popo(ds) for ds in source.datasets]
 
-    @classmethod
-    def add_upload(cls, source: datamodel.UploadWithMetadata):
-        for calc in source.calcs:
-            cls.from_calc_with_metadata(calc).save()
+        self.formula = source.formula
+        self.atoms = list(set(source.atoms))
+        self.basis_set = source.basis_set
+        self.xc_functional = source.xc_functional
+        self.system = source.system
+        self.crystal_system = source.crystal_system
+        self.spacegroup = source.spacegroup
+        self.code_name = source.code_name
+        self.code_version = source.code_version
+
+        if source.backend is not None:
+            quantities = set()
+            geometries = set()
+            n_total_energies = 0
+            n_geometries = 0
+
+            for meta_info, _, value in source.backend._delegate.results.traverse():
+                quantities.add(meta_info)
+                if meta_info == 'energy_total':
+                    n_total_energies += 1
+                if meta_info == 'section_system':
+                    n_geometries += 1
+                if meta_info == 'configuration_raw_gid':
+                    geometries.add(value)
+
+            self.geometries = list(geometries)
+            self.quantities = list(quantities)
+            self.n_total_energies = n_total_energies
+            self.n_geometries = n_geometries
 
     @classmethod
     def update_by_query(cls, upload_id, script):

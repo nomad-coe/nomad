@@ -60,3 +60,16 @@ def assert_entry(calc_id):
     assert search.count() == 1
     results = list(hit.to_dict() for hit in search)
     assert results[0]['calc_id'] == calc_id
+
+
+def assert_search_upload(upload_id, published: bool = False):
+    search = Entry.search().query('match_all')[0:10]
+    if search.count() > 0:
+        for hit in search:
+            hit = hit.to_dict()
+            if published:
+                assert int(hit.get('pid')) > 0
+                assert hit.get('published')
+
+            for coauthor in hit.get('coauthors', []):
+                assert coauthor.get('name', None) is not None
