@@ -87,7 +87,7 @@ class Upload(Base):  # type: ignore
     created = Column(DateTime)
 
     user = relationship('User')
-    calcs = relationship('Calc')
+    calcs = relationship('Calc', lazy='subquery')
 
     @staticmethod
     def from_upload_id(upload_id: str) -> 'Upload':

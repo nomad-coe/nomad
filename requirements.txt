@@ -61,3 +61,5 @@ pytest-timeout
 pytest-cov
 rope
 mongomock
+names
+essential_generators

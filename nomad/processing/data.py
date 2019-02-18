@@ -364,7 +364,7 @@ class Upload(Proc):
             with utils.timer(
                     logger, 'upload deleted from index', step='delete',
                     upload_size=self.upload_files.size):
-                search.Entry.delete_upload(self.upload_id)
+                search.delete_upload(self.upload_id)
 
             with utils.timer(
                     logger, 'staged upload deleted', step='delete',
@@ -400,7 +400,10 @@ class Upload(Proc):
             with utils.timer(
                     logger, 'index updated', step='publish',
                     upload_size=self.upload_files.size):
-                search.Entry.publish_upload(upload_with_metadata)
+                coe_upload = coe_repo.Upload.from_upload_id(upload_with_metadata.upload_id)
+                if coe_upload is not None:
+                    search.publish(
+                        [coe_calc.to_calc_with_metadata() for coe_calc in coe_upload.calcs])
 
             with utils.timer(
                     logger, 'staged upload deleted', step='publish',

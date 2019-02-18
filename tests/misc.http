@@ -13,3 +13,6 @@ content-type: application/json
 GET http://localhost:8000/nomad/api/v2/uploads/ HTTP/1.1
 Authorization: Basic bGVvbmFyZC5ob2ZzdGFkdGVyQG5vbWFkLWZhaXJkaS50ZXN0cy5kZTo=
 ###
+
+
+GET http://localhost:9200/test_nomad_fairdi_calcs/_search HTTP/1.1

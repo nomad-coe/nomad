@@ -99,16 +99,16 @@ class RepoCalcsResource(Resource):
             if g.user is None:
                 q = Q('term', published=True)
             else:
-                q = Q('term', published=True) | Q('term', uploader__user_id=g.user.user_id)
+                q = Q('term', published=True) | Q('term', owners__user_id=g.user.user_id)
         elif owner == 'user':
             if g.user is None:
                 abort(401, message='Authentication required for owner value user.')
 
-            q = Q('term', uploader__user_id=g.user.user_id)
+            q = Q('term', owners__user_id=g.user.user_id)
         elif owner == 'staging':
             if g.user is None:
                 abort(401, message='Authentication required for owner value user.')
-            q = Q('term', published=False) & Q('term', uploader__user_id=g.user.user_id)
+            q = Q('term', published=False) & Q('term', owners__user_id=g.user.user_id)
         else:
             abort(400, message='Invalid owner value. Valid values are all|user|staging, default is all')
 
