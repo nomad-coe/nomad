@@ -211,6 +211,8 @@ deploy:
           --set proxy.nodePort="300${NUMERIC_VERSION//./}"
           --set proxy.external.path=${EXTERNAL_PATH}
           --set dbname=${DBNAME}
+          --set worker.replicas=1
+          --set worker.memrequest=32
           --set volumes.files=${FILES_PATH};
       else
         helm upgrade ${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE} --recreate-pods;
