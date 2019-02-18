@@ -16,6 +16,9 @@ import os.path
 import os
 import sys
 import click
+import asyncio
+from watchgod import run_process
+from concurrent.futures import ProcessPoolExecutor
 
 from nomad import config
 
@@ -35,19 +38,42 @@ def run():
 
 @run.command(help='Run the nomad development worker.')
 def worker():
-    config.service = 'nomad_worker'
-    from nomad import processing
-    processing.app.worker_main(['worker', '--loglevel=INFO'])
+    run_worker()
 
 
 @run.command(help='Run the nomad development api.')
 @click.option('--debug', help='Does run flask in debug.', is_flag=True)
 def api(debug: bool):
+    run_api(debug=debug)
+
+
+def run_api(**kwargs):
     config.service = 'nomad_api'
     from nomad import infrastructure
     from nomad.api.__main__ import run_dev_server
     infrastructure.setup()
-    run_dev_server(debug=debug, port=8000)
+    run_dev_server(port=8000, **kwargs)
+
+
+def run_worker():
+    from nomad import processing
+    processing.app.worker_main(['worker', '--loglevel=INFO'])
+
+
+def run_watched_worker():
+    run_process('./nomad', run_worker)
+
+
+def run_watched_api():
+    run_process('./nomad', run_api)
+
+
+@run.command(help='Run both api and worker with watchdog.')
+def apiworker():
+    executor = ProcessPoolExecutor(2)
+    loop = asyncio.get_event_loop()
+    loop.run_in_executor(executor, run_watched_worker)
+    loop.run_in_executor(executor, run_watched_api)
 
 
 @cli.command(help='Runs tests and linting. Useful before commit code.')
