@@ -3,3 +3,8 @@
 /nomad/nomadlab/raw-data/data/R-1/R-173P-ju6WxRSCnbb1eAL3gO0BtF.zip
 /nomad/nomadlab/raw-data/data/R2V/R2VndW9osqfkbNZXN0ETXe8Jo8WYj.zip
 /nomad/nomadlab/raw-data/data/R6J/R6JYXAnfqhWvN329Pniz0Zg6OUTIm.zip
+
+# vasp
+/nomad/repository/data/uploads/ftp_upload_for_uid_487_at_2017_06_27_20_45_44/archive.tar.gz
+# aims
+/nomad/repository/data/uploads/zGbAfPhne9SDmg7Vl207Gw68MxaU6FQtgTlFKAMU/archive.tar.gz

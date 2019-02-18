@@ -19,32 +19,30 @@ import click
 import logging
 from bravado.requests_client import RequestsClient
 from bravado.client import SwaggerClient
+from urllib.parse import urlparse
 
-from nomad import config
+from nomad import config, utils
 
 
-api_base = 'http://%s:%d/%s' % (config.services.api_host, config.services.api_port, config.services.api_base_path)
-user = 'leonard.hofstadter@nomad-fairdi.tests.de'
-pw = 'password'
+default_url = 'http://%s:%d/%s' % (config.services.api_host, config.services.api_port, config.services.api_base_path.strip('/'))
+nomad_url = os.environ.get('NOMAD_URL', default_url)
+user = os.environ.get('NOMAD_USER', 'leonard.hofstadter@nomad-fairdi.tests.de')
+pw = os.environ.get('NOMAD_PASSWORD', 'password')
 
 
 def create_client():
     return _create_client()
 
 
-def _create_client(
-        host: str = config.services.api_host,
-        port: int = config.services.api_port,
-        base_path: str = config.services.api_base_path,
-        user: str = user, password: str = pw):
+def _create_client(user: str = user, password: str = pw):
     """ A factory method to create the client. """
-
+    host = urlparse(nomad_url).netloc.split(':')[0]
     http_client = RequestsClient()
     if user is not None:
         http_client.set_basic_auth(host, user, pw)
 
     client = SwaggerClient.from_url(
-        'http://%s:%d%s/swagger.json' % (host, port, base_path),
+        '%s/swagger.json' % nomad_url,
         http_client=http_client)
 
     return client
@@ -57,18 +55,17 @@ def handle_common_errors(func):
         except requests.exceptions.ConnectionError:
             click.echo(
                 '\nCould not connect to nomad at %s. '
-                'Check connection and host/port options.' % api_base)
+                'Check connection and url.' % nomad_url)
             sys.exit(0)
     return wrapper
 
 
 @click.group()
-@click.option('-h', '--host', default=config.services.api_host, help='The host nomad runs on, default is "%s".' % config.services.api_host)
-@click.option('-p', '--port', default=config.services.api_port, help='the port nomad runs with, default is %d.' % config.services.api_port)
+@click.option('-n', '--url', default=nomad_url, help='The URL where nomad is running "%s".' % nomad_url)
 @click.option('-u', '--user', default=None, help='the user name to login, default no login.')
 @click.option('-w', '--password', default=None, help='the password use to login.')
 @click.option('-v', '--verbose', help='sets log level to debug', is_flag=True)
-def cli(host: str, port: int, verbose: bool, user: str, password: str):
+def cli(url: str, verbose: bool, user: str, password: str):
     if verbose:
         config.console_log_level = logging.DEBUG
     else:
@@ -76,13 +73,15 @@ def cli(host: str, port: int, verbose: bool, user: str, password: str):
 
     config.service = os.environ.get('NOMAD_SERVICE', 'client')
 
-    global api_base
-    api_base = 'http://%s:%d/nomad/api' % (host, port)
+    utils.get_logger(__name__).info('Used nomad is %s' % url)
+
+    global nomad_url
+    nomad_url = url
 
     global create_client
 
     def create_client():  # pylint: disable=W0612
         if user is not None:
-            return _create_client(host=host, port=port, user=user, password=password)
+            return _create_client(user=user, password=password)
         else:
-            return _create_client(host=host, port=port)
+            return _create_client()

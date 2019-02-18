@@ -207,6 +207,7 @@ deploy:
     - export FILES_PATH="/scratch/nomad-fair/fs/nomad_v${NOMAD_VERSION}"
     - if [ ${DEPLOYS}  -eq 0 ]; then
         helm install --name=${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE}
+          --set api.disableReset="false"
           --set proxy.nodePort="300${NUMERIC_VERSION//./}"
           --set proxy.external.path=${EXTERNAL_PATH}
           --set dbname=${DBNAME}
