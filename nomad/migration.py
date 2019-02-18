@@ -20,7 +20,7 @@ other/older nomad@FAIRDI instances to mass upload it to a new nomad@FAIRDI insta
 .. autoclass:: SourceCalc
 """
 
-from typing import Generator, Tuple, List, Iterable
+from typing import Generator, Tuple, List, Iterable, Any
 import os.path
 import zipstream
 import zipfile
@@ -331,7 +331,7 @@ class NomadCOEMigration:
                                 os.path.join(root[path_prefix:], file),
                                 zipfile.ZIP_DEFLATED)
                     zip_file.write(upload_path)
-                    upload_archive_f = IterIO(zip_file)
+                    upload_archive_f = IterIO(zip_file)  # type: ignore
                     upload_name = '%s.zip' % source_upload_id
 
             # upload and process the upload file
@@ -343,7 +343,7 @@ class NomadCOEMigration:
                 source_upload_id=source_upload_id, upload_id=upload.upload_id)
 
             # grab source metadata
-            upload_metadata_calcs = list()
+            upload_metadata_calcs: List[Any] = list()
             metadata_dict = dict()
             upload_metadata = dict(calculations=upload_metadata_calcs)
             for source_calc in SourceCalc.objects(upload=source_upload_id):
@@ -351,7 +351,7 @@ class NomadCOEMigration:
                 source_metadata.upload_id = upload.upload_id
                 source_metadata.mainfile = source_calc.mainfile
                 source_metadata.pid = source_calc.pid
-                source_metadata.__migrated = False
+                source_metadata.__migrated = False  # type: ignore
                 upload_metadata_calcs.append(source_metadata)
                 metadata_dict[source_calc.mainfile] = source_metadata
 
