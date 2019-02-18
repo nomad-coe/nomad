@@ -42,13 +42,13 @@ bravado
 PyJWT
 jsonschema[format]
 python-magic
+watchgod
 
 # dev/ops related
 setuptools
 sphinx
 sphinxcontrib.httpdomain
 sphinx_rtd_theme
-watchdog
 gitpython
 mypy
 pylint
