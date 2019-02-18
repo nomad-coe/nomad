@@ -339,7 +339,7 @@ class NomadCeleryRequest(Request):
         if infrastructure.repository_db is None:
             infrastructure.setup_repository_db()
         proc = unwarp_task(self.task, *args)
-        proc.fail('task timeout occurred', **kwargs)
+        proc.fail(event, **kwargs)
         proc.process_status = PROCESS_COMPLETED
         proc.on_process_complete(None)
         proc.save()
