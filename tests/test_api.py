@@ -20,6 +20,7 @@ import zipfile
 import io
 import inspect
 from passlib.hash import bcrypt
+from datetime import datetime
 
 from nomad import config, coe_repo, search, parsing
 from nomad.files import UploadFiles, PublicUploadFiles
@@ -29,6 +30,7 @@ from tests.conftest import create_auth_headers, clear_elastic
 from tests.test_files import example_file, example_file_mainfile, example_file_contents
 from tests.test_files import create_staging_upload, create_public_upload
 from tests.test_coe_repo import assert_coe_upload
+from tests.test_search import assert_search_upload
 
 
 def test_alive(client):
@@ -241,6 +243,7 @@ class TestUploads:
 
         self.assert_upload_does_not_exist(client, upload_id, test_user_auth)
         assert_coe_upload(upload_id, user_metadata=metadata)
+        assert_search_upload(upload_id, published=True)
 
     def assert_upload_does_not_exist(self, client, upload_id: str, test_user_auth):
         # poll until publish/delete completed
@@ -358,11 +361,12 @@ class TestUploads:
 
     def test_post_metadata(
             self, client, proc_infra, admin_user_auth, test_user_auth, test_user,
-            other_test_user, no_warn):
+            other_test_user, no_warn, example_user_metadata):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
-        metadata = dict(comment='test comment')
+        metadata = dict(**example_user_metadata)
+        metadata['_upload_time'] = datetime.now().isoformat()
         self.assert_unstage(client, admin_user_auth, upload['upload_id'], proc_infra, metadata)
 
     def test_post_metadata_forbidden(self, client, proc_infra, test_user_auth, no_warn):
