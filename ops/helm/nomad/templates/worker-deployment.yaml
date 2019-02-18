@@ -26,7 +26,7 @@ spec:
           limits:
             memory: "{{ .Values.worker.memlimit }}Gi"
           requests:
-            memory: "{{ .Values.worker.memrequest }}Gi"
+            memory: "{{ .Values.worker.memrequest }}Gi"
         volumeMounts:
         - mountPath: /app/.volumes/fs
           name: files-volume
