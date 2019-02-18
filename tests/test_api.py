@@ -545,6 +545,7 @@ class TestRepo(UploadFilesBasedTests):
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(calc_id='2', uploader=other_test_user.to_popo(), published=True)
+        calc_with_metadata.update(atoms=['Fe'], comment='this is a specific word')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(calc_id='3', uploader=other_test_user.to_popo(), published=False)
@@ -566,9 +567,9 @@ class TestRepo(UploadFilesBasedTests):
         (1, 'user', 'test_user'),
         (2, 'user', 'other_test_user'),
         (0, 'staging', 'test_user'),
-        (1, 'staging', 'other_test_user'),
+        (1, 'staging', 'other_test_user')
     ])
-    def test_search(self, client, example_elastic_calcs, no_warn, test_user_auth, other_test_user_auth, calcs, owner, auth):
+    def test_search_owner(self, client, example_elastic_calcs, no_warn, test_user_auth, other_test_user_auth, calcs, owner, auth):
         auth = dict(none=None, test_user=test_user_auth, other_test_user=other_test_user_auth).get(auth)
         rv = client.get('/repo/?owner=%s' % owner, headers=auth)
         assert rv.status_code == 200
@@ -581,7 +582,45 @@ class TestRepo(UploadFilesBasedTests):
             for key in ['uploader', 'calc_id', 'formula', 'upload_id']:
                 assert key in results[0]
 
-    def test_calcs_pagination(self, client, example_elastic_calcs, no_warn):
+    @pytest.mark.parametrize('calcs, quantity, value', [
+        (2, 'system', 'Bulk'),
+        (0, 'system', 'Atom'),
+        (1, 'atoms', 'Br'),
+        (1, 'atoms', 'Fe'),
+        (0, 'atoms', ['Fe', 'Br']),
+        (1, 'comment', 'specific'),
+        (1, 'authors', 'Hofstadter, Leonard'),
+        (2, 'files', 'test/mainfile.txt'),
+        (2, 'paths', 'mainfile.txt'),
+        (2, 'paths', 'test'),
+        (2, 'quantities', ['wyckoff_letters_primitive', 'hall_number']),
+        (0, 'quantities', 'dos')
+    ])
+    def test_search_quantities(self, client, example_elastic_calcs, no_warn, test_user_auth, calcs, quantity, value):
+        if isinstance(value, list):
+            query_string = '&'.join('%s=%s' % (quantity, item) for item in value)
+        else:
+            query_string = '%s=%s' % (quantity, value)
+
+        rv = client.get('/repo/?%s' % query_string, headers=test_user_auth)
+
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+
+        results = data.get('results', None)
+        assert results is not None
+        assert isinstance(results, list)
+        assert len(results) == calcs
+
+        aggregations = data.get('aggregations', None)
+        assert aggregations is not None
+        if quantity == 'system' and calcs != 0:
+            # for simplicity we only assert on aggregations for this case
+            assert 'system' in aggregations
+            assert len(aggregations['system']) == 1
+            assert value in aggregations['system']
+
+    def test_search_pagination(self, client, example_elastic_calcs, no_warn):
         rv = client.get('/repo/?page=1&per_page=1')
         assert rv.status_code == 200
         data = json.loads(rv.data)
