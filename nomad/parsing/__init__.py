@@ -254,8 +254,14 @@ parsers = [
             r'^\s*Program (\S+)\s+v\.(\S+)(?:\s+\(svn\s+rev\.\s+'
             r'(\d+)\s*\))?\s+starts[^\n]+'
             r'(?:\s*\n?)*This program is part of the open-source Quantum')
+    ),
+    LegacyParser(
+        name='parsers/abinit',
+        parser_class_name='abinitparser.AbinitParser',
+        mainfile_contents_re=(r'^\n\.Version\s*[0-9.]*\s*of ABINIT\s*')
     )
 ]
+
 
 """ Instanciation and constructor based config of all parsers. """
 

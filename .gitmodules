@@ -54,3 +54,4 @@
 [submodule "dependencies/parsers/abinit"]
 	path = dependencies/parsers/abinit
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-abinit
+
