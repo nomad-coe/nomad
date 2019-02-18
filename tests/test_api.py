@@ -129,12 +129,20 @@ class TestAuth:
     def test_signature_token(self, test_user_signature_token, no_warn):
         assert test_user_signature_token is not None
 
-    def test_put_user(self, client, postgres, admin_user_auth):
+    @pytest.mark.parametrize('token, affiliation', [
+        ('test_token', dict(name='HU Berlin', address='Unter den Linden 6')),
+        (None, None)])
+    def test_put_user(self, client, postgres, admin_user_auth, token, affiliation):
+        data = dict(
+            email='test@email.com', last_name='Tester', first_name='Testi',
+            token=token, affiliation=affiliation,
+            password=bcrypt.encrypt('test_password', ident='2y'))
+
+        data = {key: value for key, value in data.items() if value is not None}
+
         rv = client.put(
             '/auth/user', headers=admin_user_auth,
-            content_type='application/json', data=json.dumps(dict(
-                email='test@email.com', last_name='Tester', first_name='Testi',
-                password=bcrypt.encrypt('test_password', ident='2y'))))
+            content_type='application/json', data=json.dumps(data))
 
         assert rv.status_code == 200
         self.assert_user(client, json.loads(rv.data))

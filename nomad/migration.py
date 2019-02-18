@@ -26,15 +26,18 @@ import zipstream
 import zipfile
 import math
 from mongoengine import Document, IntField, StringField, DictField
-from passlib.hash import bcrypt
 from werkzeug.contrib.iterio import IterIO
 import time
-from bravado.exception import HTTPNotFound
+from bravado.exception import HTTPNotFound, HTTPBadRequest
 
-from nomad import utils, config, infrastructure
-from nomad.coe_repo import User, Calc
+from nomad import utils, infrastructure
+from nomad.coe_repo import User, Calc, LoginException
 from nomad.datamodel import CalcWithMetadata
 from nomad.processing import FAILURE, SUCCESS
+
+
+default_pid_prefix = 7000000
+""" The default pid prefix for new non migrated calcualtions """
 
 
 class SourceCalc(Document):
@@ -175,25 +178,36 @@ class NomadCOEMigration:
 
         return self._client
 
-    def copy_users(self, target_db):
-        """ Copy all users, keeping their ids, within a single transaction. """
-        target_db.begin()
+    def copy_users(self):
+        """ Copy all users. """
         for source_user in self.source.query(User).all():
-            self.source.expunge(source_user)  # removes user from the source session
-            target_db.merge(source_user)
+            if source_user.user_id <= 2:
+                # skip first two users to keep example users
+                # they probably are either already the example users, or [root, Evgeny]
+                continue
 
-        admin = target_db.query(User).filter_by(email='admin').first()
-        if admin is None:
-            admin = User(
-                user_id=0, email='admin', first_name='admin', last_name='admin',
-                password=bcrypt.encrypt(config.services.admin_password, ident='2y'))
-            target_db.add(admin)
-        target_db.commit()
+            create_user_payload = dict(
+                user_id=source_user.user_id,
+                email=source_user.email,
+                first_name=source_user.first_name,
+                last_name=source_user.last_name,
+                password=source_user.password
+            )
 
-    def set_new_pid_prefix(self, target_db, prefix=7000000):
-        target_db.begin()
-        target_db.execute('ALTER SEQUENCE calculations_calc_id_seq RESTART WITH %d' % prefix)
-        target_db.commit()
+            try:
+                create_user_payload.update(token=source_user.token)
+            except LoginException:
+                pass
+
+            if source_user.affiliation is not None:
+                create_user_payload.update(affiliation=dict(
+                    name=source_user.affiliation.name,
+                    address=source_user.affiliation.address))
+
+            try:
+                self.client.auth.create_user(payload=create_user_payload).response()
+            except HTTPBadRequest as e:
+                self.logger.error('could not create user due to bad data', exc_info=e, user_id=source_user.user_id)
 
     def _to_comparable_list(self, list):
         for item in list:
@@ -250,7 +264,7 @@ class NomadCOEMigration:
 
         return is_valid
 
-    def migrate(self, *args):
+    def migrate(self, *args, prefix: int = default_pid_prefix):
         """
         Migrate the given uploads.
 
@@ -265,8 +279,14 @@ class NomadCOEMigration:
         Uses PIDs of identified old calculations. Will create new PIDs for previously
         unknown uploads. New PIDs will be choosed from a `prefix++` range of ints.
 
+        Arguments:
+            prefix: The PID prefix that should be used for new non migrated calcualtions.
+
         Returns: Yields a dictionary with status and statistics for each given upload.
         """
+        if prefix is not None:
+            self.logger.info('set pid prefix', pid_prefix=prefix)
+            self.client.admin.exec_pidprefix_command(payload=dict(prefix=prefix)).response()
 
         upload_specs = args
         for upload_spec in upload_specs:

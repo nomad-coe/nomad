@@ -69,7 +69,10 @@ def source_repo(monkeysession, postgres_infra):
 @pytest.fixture(scope='function')
 def target_repo(postgres):
     with create_postgres_infra(readonly=False, exists=False, dbname=test_target_db_name) as db:
-        db.execute('TRUNCATE users CASCADE;')
+        db.execute('DELETE FROM affiliations;')
+        db.execute('DELETE FROM sessions WHERE user_id >= 3;')
+        db.execute('DELETE FROM users WHERE user_id >= 3;')
+        assert db.query(coe_repo.User).filter_by(email='admin').first() is not None
         yield db
         db.execute('TRUNCATE uploads CASCADE;')
 
@@ -78,13 +81,6 @@ def target_repo(postgres):
 def migration(source_repo, target_repo):
     migration = NomadCOEMigration(sites=['tests/data/migration'])
     yield migration
-
-
-def test_copy_users(migration, target_repo):
-    migration.copy_users(target_repo)
-    assert target_repo.query(coe_repo.User).count() == 3
-    assert target_repo.query(coe_repo.User).filter_by(user_id=1).first().email == 'one'
-    assert target_repo.query(coe_repo.User).filter_by(user_id=2).first().email == 'two'
 
 
 def perform_index(migration, has_indexed, with_metadata, **kwargs):
@@ -102,7 +98,7 @@ def perform_index(migration, has_indexed, with_metadata, **kwargs):
     assert test_calc is not None
 
     if with_metadata:
-        assert test_calc.metadata['uploader']['id'] == 1
+        assert test_calc.metadata['uploader']['id'] == 3
         assert test_calc.metadata['comment'] == 'label1'
 
 
@@ -135,9 +131,6 @@ def migrate_infra(migration, target_repo, proc_infra, client, monkeysession):
     # source repo is the infrastructure repo
     indexed = list(migration.index(drop=True, with_metadata=True))
     assert len(indexed) == 2
-    # source repo is the infrastructure repo
-    migration.copy_users(target_repo)
-    migration.set_new_pid_prefix(target_repo)
 
     # target repo is the infrastructure repo
     def create_client():
@@ -149,9 +142,17 @@ def migrate_infra(migration, target_repo, proc_infra, client, monkeysession):
     monkeysession.setattr('nomad.infrastructure.repository_db', target_repo)
     monkeysession.setattr('nomad.client.create_client', create_client)
 
+    # source repo is the still the original infrastructure repo
+    migration.copy_users()
+
     yield migration
 
     monkeysession.setattr('nomad.infrastructure.repository_db', old_repo)
+
+
+def test_copy_users(migrate_infra, target_repo):
+    assert target_repo.query(coe_repo.User).filter_by(user_id=3).first().email == 'one'
+    assert target_repo.query(coe_repo.User).filter_by(user_id=4).first().email == 'two'
 
 
 mirgation_test_specs = [
@@ -172,7 +173,7 @@ mirgation_test_specs = [
 def test_migrate(migrate_infra, test, assertions, caplog):
     uploads_path = os.path.join('tests', 'data', 'migration', test)
     reports = list(migrate_infra.migrate(
-        *[os.path.join(uploads_path, dir) for dir in os.listdir(uploads_path)]))
+        *[os.path.join(uploads_path, dir) for dir in os.listdir(uploads_path)], prefix=7000000))
 
     assert len(reports) == 1
     report = reports[0]
@@ -192,7 +193,7 @@ def test_migrate(migrate_infra, test, assertions, caplog):
         assert calc_1 is not None
         metadata = calc_1.to_calc_with_metadata()
         assert metadata.pid <= 2
-        assert metadata.uploader['id'] == 1
+        assert metadata.uploader['id'] == 3
         assert metadata.upload_time.isoformat() == '2019-01-01T12:00:00+00:00'
         assert len(metadata.datasets) == 1
         assert metadata.datasets[0]['id'] == 3
@@ -200,7 +201,7 @@ def test_migrate(migrate_infra, test, assertions, caplog):
         assert metadata.datasets[0]['doi']['value'] == 'internal_ref'
         assert metadata.comment == 'label1'
         assert len(metadata.coauthors) == 1
-        assert metadata.coauthors[0]['id'] == 2
+        assert metadata.coauthors[0]['id'] == 4
         assert len(metadata.references) == 1
         assert metadata.references[0]['value'] == 'external_ref'
 
@@ -209,7 +210,7 @@ def test_migrate(migrate_infra, test, assertions, caplog):
         assert calc_1 is not None
         metadata = calc_2.to_calc_with_metadata()
         assert len(metadata.shared_with) == 1
-        assert metadata.shared_with[0]['id'] == 1
+        assert metadata.shared_with[0]['id'] == 3
 
     # assert pid prefix of new calcs
     if assertions.get('new', 0) > 0:

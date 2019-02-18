@@ -7,8 +7,8 @@ SET check_function_bodies = false;
 SET client_min_messages = warning;
 
 TRUNCATE TABLE public.users CASCADE;
-INSERT INTO public.users VALUES (1, 'one', 'one', 'one', 'one', NULL, NULL, NULL);
-INSERT INTO public.users VALUES (2, 'two', 'two', 'two', 'two', NULL, NULL, NULL);
+INSERT INTO public.users VALUES (3, 'one', 'one', 'one', 'one', NULL, '$2y$12$jths1LQPsLofuBQ3evVIluhQeQ/BZfbdTSZHFcPGdcNmHz2WvDj.y', NULL);
+INSERT INTO public.users VALUES (4, 'two', 'two', 'two', 'two', NULL, '$2y$12$jths1LQPsLofuBQ3evVIluhQeQ/BZfbdTSZHFcPGdcNmHz2WvDj.y', NULL);
 INSERT INTO public.calculations VALUES (NULL, NULL, NULL, NULL, 0, false, 1, NULL);
 INSERT INTO public.calculations VALUES (NULL, NULL, NULL, NULL, 0, false, 2, NULL);
 INSERT INTO public.codefamilies VALUES (1, 'VASP');
@@ -46,10 +46,10 @@ INSERT INTO public.spacegroups VALUES (1, 123);
 INSERT INTO public.spacegroups VALUES (2, 123);
 INSERT INTO public.user_metadata VALUES (1, 0, 'label1');
 INSERT INTO public.user_metadata VALUES (2, 1, 'label2');
-INSERT INTO public.ownerships VALUES (1, 1);
-INSERT INTO public.ownerships VALUES (2, 2);
-INSERT INTO public.coauthorships VALUES (1, 2);
-INSERT INTO public.shareships VALUES (2, 1);
+INSERT INTO public.ownerships VALUES (1, 3);
+INSERT INTO public.ownerships VALUES (2, 4);
+INSERT INTO public.coauthorships VALUES (1, 4);
+INSERT INTO public.shareships VALUES (2, 3);
 
 -- example dataset
 INSERT INTO public.calculations VALUES (NULL, NULL, NULL, NULL, 1, false, 3, NULL);

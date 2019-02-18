@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from flask import g
-from flask_restplus import abort, Resource
+from flask import g, request
+from flask_restplus import abort, Resource, fields
 
 from nomad import infrastructure, config
 
@@ -70,3 +70,29 @@ class AdminResetResource(Resource):
         infrastructure.remove()
 
         return dict(messager='Remove performed.'), 200
+
+
+pidprefix_model = api.model('PidPrefix', {
+    'prefix': fields.Integer(description='The prefix. All new calculations will get an id that is greater.', required=True)
+})
+
+
+@ns.route('/pidprefix')
+class AdminPidPrefixResource(Resource):
+    @api.doc('exec_pidprefix_command')
+    @api.response(200, 'Pid prefix set')
+    @api.response(400, 'Bad pid prefix data')
+    @api.expect(pidprefix_model)
+    @login_really_required
+    def post(self):
+        """
+        The ``pidprefix``command will set the pid counter to the given value.
+
+        This might be useful while migrating data with old pids.
+        """
+        if not g.user.is_admin:
+            abort(401, message='Only the admin user can perform remove.')
+
+        infrastructure.set_pid_prefix(**request.get_json())
+
+        return dict(messager='PID prefix set.'), 200

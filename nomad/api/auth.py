@@ -131,10 +131,13 @@ ns = api.namespace(
 
 
 user_model = api.model('User', {
+    'user_id': fields.Integer(description='The id to use in the repo db, make sure it does not already exist.'),
     'first_name': fields.String(description='The user\'s first name'),
     'last_name': fields.String(description='The user\'s last name'),
     'email': fields.String(description='Guess what, the user\'s email'),
-    'affiliation': fields.String(description='The user\'s affiliation'),
+    'affiliation': fields.Nested(model=api.model('Affiliation', {
+        'name': fields.String(description='The name of the affiliation', default='not given'),
+        'address': fields.String(description='The address of the affiliation', default='not given')})),
     'password': fields.String(description='The bcrypt 2y-indented password for initial and changed password'),
     'token': fields.String(
         description='The access token that authenticates the user with the API. '
@@ -164,6 +167,7 @@ class UserResource(Resource):
 
     @api.doc('create_user')
     @api.expect(user_model)
+    @api.response(400, 'Invalid user data')
     @api.marshal_with(user_model, skip_none=True, code=200, description='User created')
     @login_really_required
     def put(self):
@@ -183,15 +187,21 @@ class UserResource(Resource):
             if required_key not in data:
                 abort(400, message='The %s is missing' % required_key)
 
+        if 'user_id' in data:
+            if coe_repo.User.from_user_id(data['user_id']) is not None:
+                abort(400, 'User with given user_id %d already exists.' % data['user_id'])
+
         user = coe_repo.User.create_user(
             email=data['email'], password=data.get('password', None), crypted=True,
             first_name=data['first_name'], last_name=data['last_name'],
-            affiliation=data.get('affiliation', None))
+            affiliation=data.get('affiliation', None), token=data.get('token', None),
+            user_id=data.get('user_id', None))
 
         return user, 200
 
     @api.doc('update_user')
     @api.expect(user_model)
+    @api.response(400, 'Invalid user data')
     @api.marshal_with(user_model, skip_none=True, code=200, description='User updated')
     @login_really_required
     def post(self):

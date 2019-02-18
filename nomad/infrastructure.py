@@ -188,6 +188,16 @@ def sqlalchemy_repository_db(exists: bool = False, readonly: bool = True, **kwar
     return repository_db_conn, repository_db
 
 
+def set_pid_prefix(prefix=7000000, target_db=None):
+    if target_db is None:
+        target_db = repository_db
+
+    target_db.begin()
+    target_db.execute('ALTER SEQUENCE calculations_calc_id_seq RESTART WITH %d' % prefix)
+    target_db.commit()
+    logger.info('set pid prefix', pid_prefix=prefix)
+
+
 def reset():
     """
     Resets the databases mongo, elastic/calcs, repository db and all files. Be careful.

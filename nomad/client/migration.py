@@ -68,26 +68,14 @@ def index(drop, with_metadata, per_query):
 
 
 @migration.command(help='Copy users from source into empty target db')
-@click.option('-h', '--host', default=config.repository_db.host, help='The migration repository target db host, default is "%s".' % config.repository_db.host)
-@click.option('-p', '--port', default=config.repository_db.port, help='The migration repository target db port, default is %d.' % config.repository_db.port)
-@click.option('-u', '--user', default=config.repository_db.user, help='The migration repository target db user, default is %s.' % config.repository_db.user)
-@click.option('-w', '--password', default=config.repository_db.password, help='The migration repository target db password.')
-@click.option('-db', '--dbname', default=config.repository_db.dbname, help='The migration repository target db name, default is %s.' % config.repository_db.dbname)
 def copy_users(**kwargs):
     _setup()
-    _, db = infrastructure.sqlalchemy_repository_db(readonly=False, **kwargs)
-    _migration.copy_users(db)
-
-
-@migration.command(help='Set the pid auto increment to the given prefix')
-@click.option('--prefix', default=7000000, help='The int to set the pid auto increment counter to')
-def prefix(prefix: int):
-    _setup()
-    _migration.set_new_pid_prefix(prefix)
+    _migration.copy_users()
 
 
 @migration.command(help='Upload the given upload locations. Uses the existing index to provide user metadata')
 @click.argument('paths', nargs=-1)
-def upload(paths: list):
+@click.option('--prefix', default=None, type=int, help='Set the pid counter to this value. The counter will not be changed if not given.')
+def upload(paths: list, prefix: int):
     _setup()
-    _migration.migrate(*paths)
+    _migration.migrate(*paths, prefix=prefix)
