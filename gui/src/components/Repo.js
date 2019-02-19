@@ -8,13 +8,14 @@ import TablePagination from '@material-ui/core/TablePagination'
 import TableRow from '@material-ui/core/TableRow'
 import Paper from '@material-ui/core/Paper'
 import { TableHead, LinearProgress, FormControl, FormControlLabel, Checkbox, FormGroup,
-  FormLabel, IconButton, MuiThemeProvider, Typography } from '@material-ui/core'
+  FormLabel, IconButton, MuiThemeProvider, Typography, Tooltip, TableSortLabel } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
 import AnalyticsIcon from '@material-ui/icons/Settings'
 import { analyticsTheme } from '../config'
 import Link from 'react-router-dom/Link'
 import { withApi } from './api'
+import CalcDialog from './CalcDialog'
 // import PeriodicTable from './PeriodicTable'
 
 class Repo extends React.Component {
@@ -45,6 +46,9 @@ class Repo extends React.Component {
     },
     selectLabel: {
       padding: theme.spacing.unit * 2
+    },
+    clickableRow: {
+      cursor: 'pointer'
     }
   })
 
@@ -64,13 +68,24 @@ class Repo extends React.Component {
     rowsPerPage: 10,
     total: 0,
     loading: true,
-    owner: 'all'
+    owner: 'all',
+    sortedBy: 'formula',
+    sortOrder: 'asc',
+    openCalc: null
   }
 
-  update(page, rowsPerPage, owner) {
-    this.setState({loading: true})
-    owner = owner || this.state.owner
-    this.props.api.repoAll(page, rowsPerPage, owner).then(data => {
+  update(changes) {
+    changes = changes || {}
+    const { page, rowsPerPage, owner, sortedBy, sortOrder } = {...this.state, ...changes}
+    this.setState({loading: true, ...changes})
+
+    this.props.api.search({
+      page: page,
+      per_page: rowsPerPage,
+      owner: owner || 'all',
+      order_by: sortedBy,
+      order: (sortOrder === 'asc') ? 1 : -1
+    }).then(data => {
       const { pagination: { total, page, per_page }, results } = data
       this.setState({
         data: results,
@@ -88,26 +103,41 @@ class Repo extends React.Component {
   }
 
   componentDidMount() {
-    const { page, rowsPerPage } = this.state
-    this.update(page, rowsPerPage)
+    this.update()
   }
 
   handleChangePage = (event, page) => {
-    this.update(page + 1, this.state.rowsPerPage)
+    this.update({page: this.state.page + 1})
   }
 
   handleChangeRowsPerPage = event => {
     const rowsPerPage = event.target.value
-    this.update(this.state.page, rowsPerPage)
+    this.update({rowsPerPage: rowsPerPage})
   }
 
   handleOwnerChange(owner) {
-    this.update(this.state.page, this.state.rowsPerPage, owner)
+    this.update({owner: owner})
+  }
+
+  handleSort(columnKey) {
+    if (this.state.sortedBy === columnKey) {
+      this.update({sortOrder: (this.state.sortOrder === 'asc') ? 'desc' : 'asc'})
+    } else {
+      this.update({sortOrder: 'asc', sortedBy: columnKey})
+    }
+  }
+
+  handleCalcClose() {
+    this.setState({openCalc: null})
+  }
+
+  handleClickCalc(calc_id) {
+    this.setState({openCalc: calc_id})
   }
 
   render() {
     const { classes } = this.props
-    const { data, rowsPerPage, page, total, loading } = this.state
+    const { data, rowsPerPage, page, total, loading, sortedBy, sortOrder, openCalc } = this.state
     const emptyRows = rowsPerPage - Math.min(rowsPerPage, total - (page - 1) * rowsPerPage)
 
     const ownerLabel = {
@@ -117,6 +147,7 @@ class Repo extends React.Component {
     }
     return (
       <div className={classes.root}>
+        { openCalc ? <CalcDialog calcId={openCalc.calc_id} uploadId={openCalc.upload_id} onClose={() => this.handleCalcClose()} /> : ''}
         <Typography variant="h4" className={classes.title}>The Repository – Raw Code Data</Typography>
         {/* <PeriodicTable/> */}
         <FormControl>
@@ -152,21 +183,33 @@ class Repo extends React.Component {
           <Table>
             <TableHead>
               <TableRow>
-                {Object.values(Repo.rowConfig).map((name, index) => (
-                  <TableCell padding="dense" key={index}>{name}</TableCell>
+                {Object.keys(Repo.rowConfig).map(key => (
+                  <TableCell padding="dense" key={key}>
+                    <Tooltip
+                      title="Sort"
+                      placement={'bottom-start'}
+                      enterDelay={300}
+                    >
+                      <TableSortLabel
+                        active={sortedBy === key}
+                        direction={sortOrder}
+                        onClick={() => this.handleSort(key)}
+                      >
+                        {Repo.rowConfig[key]}
+                      </TableSortLabel>
+                    </Tooltip>
+                  </TableCell>
                 ))}
-                <TableCell/>
               </TableRow>
             </TableHead>
             <TableBody>
               {data.map((calc, index) => (
-                <TableRow hover tabIndex={-1} key={index}>
+                <TableRow hover tabIndex={-1} key={index} className={classes.clickableRow}>
                   {Object.keys(Repo.rowConfig).map((key, rowIndex) => (
-                    <TableCell padding="dense" key={rowIndex}>{calc[key]}</TableCell>
+                    <TableCell padding="dense" key={rowIndex} onClick={() => this.handleClickCalc(calc)} >
+                      {calc[key]}
+                    </TableCell>
                   ))}
-                  <TableCell padding="dense">
-                    {/* <CalcLinks uploadId={calc.upload_id} calcId={calc.calc_id} /> */}
-                  </TableCell>
                 </TableRow>
               ))}
               {emptyRows > 0 && (

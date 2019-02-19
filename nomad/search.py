@@ -195,6 +195,9 @@ aggregations = {
 
 
 search_quantities = {
+    'formula': ('term', 'formula', 'The full reduced formula.'),
+    'spacegroup': ('term', 'spacegroup', 'The spacegroup as int.'),
+    'basis_set': ('term', 'basis_set', 'The basis set type.'),
     'atoms': ('term', 'atoms', (
         'Search the given atom. This quantity can be used multiple times to search for '
         'results with all the given atoms. The atoms are given by their case sensitive '
@@ -221,7 +224,8 @@ elastic field and description.
 
 
 def aggregate_search(
-        page: int = 1, per_page: int = 10, q: Q = None, **kwargs) -> Tuple[int, List[dict], Dict[str, Dict[str, int]]]:
+        page: int = 1, per_page: int = 10, order_by: str = 'formula', order: int = -1,
+        q: Q = None, **kwargs) -> Tuple[int, List[dict], Dict[str, Dict[str, int]]]:
     """
     Performs a search and returns paginated search results and aggregation bucket sizes
     based on key quantities.
@@ -258,6 +262,10 @@ def aggregate_search(
             search.aggs.bucket(aggregation, A('terms', field='authors.name_keyword', size=size))
         else:
             search.aggs.bucket(aggregation, A('terms', field=aggregation, size=size))
+
+    if order_by not in search_quantities:
+        raise KeyError('Unknown order quantity %s' % order_by)
+    search = search.sort(order_by if order == 1 else '-%s' % order_by)
 
     response = search[(page - 1) * per_page: page * per_page].execute()  # pylint: disable=no-member
 

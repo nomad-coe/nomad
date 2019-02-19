@@ -97,14 +97,24 @@ class RepoCalcsResource(Resource):
         that have the certain value. You can also use these aggregations on an empty
         search to determine the possible values.
         """
-        page = int(request.args.get('page', 1))
-        per_page = int(request.args.get('per_page', 10))
+
+        try:
+            page = int(request.args.get('page', 1))
+            per_page = int(request.args.get('per_page', 10))
+            order = int(request.args.get('order', -1))
+        except Exception:
+            abort(400, message='bad parameter types')
+
         owner = request.args.get('owner', 'all')
+        order_by = request.args.get('order_by', 'formula')
 
         try:
             assert page >= 1
             assert per_page > 0
         except AssertionError:
+            abort(400, message='invalid pagination')
+
+        if order not in [-1, 1]:
             abort(400, message='invalid pagination')
 
         if owner == 'all':
@@ -126,12 +136,10 @@ class RepoCalcsResource(Resource):
 
         data = dict(**request.args)
         data.pop('owner', None)
-        data.pop('page', None)
-        data.pop('per_page', None)
+        data.update(per_page=per_page, page=page, order=order, order_by=order_by)
 
         try:
-            total, results, aggregations = search.aggregate_search(
-                page=page, per_page=per_page, q=q, **data)
+            total, results, aggregations = search.aggregate_search(q=q, **data)
         except KeyError as e:
             abort(400, str(e))
 

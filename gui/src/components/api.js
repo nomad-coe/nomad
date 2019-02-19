@@ -197,13 +197,9 @@ class Api {
       .then(response => response.body)
   }
 
-  async repoAll(page, perPage, owner) {
+  async search(search) {
     const client = await this.swaggerPromise
-    return client.apis.repo.search({
-      page: page,
-      per_page: perPage,
-      owner: owner || 'all'
-    })
+    return client.apis.repo.search(search)
       .catch(this.handleApiError)
       .then(response => response.body)
   }

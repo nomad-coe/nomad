@@ -545,7 +545,7 @@ class TestRepo(UploadFilesBasedTests):
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(calc_id='2', uploader=other_test_user.to_popo(), published=True)
-        calc_with_metadata.update(atoms=['Fe'], comment='this is a specific word')
+        calc_with_metadata.update(atoms=['Fe'], comment='this is a specific word', formula='AAA', basis_set='zzz')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(calc_id='3', uploader=other_test_user.to_popo(), published=False)
@@ -628,8 +628,19 @@ class TestRepo(UploadFilesBasedTests):
         results = data.get('results', None)
         assert data['pagination']['total'] == 2
         assert results is not None
-        assert isinstance(results, list)
         assert len(results) == n_results
+
+    @pytest.mark.parametrize('first, order_by, order', [
+        ('1', 'formula', -1), ('2', 'formula', 1),
+        ('2', 'basis_set', -1), ('1', 'basis_set', 1)])
+    def test_search_order(self, client, example_elastic_calcs, no_warn, first, order_by, order):
+        rv = client.get('/repo/?order_by=%s&order=%d' % (order_by, order))
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        results = data.get('results', None)
+        assert data['pagination']['total'] == 2
+        assert len(results) == 2
+        assert results[0]['calc_id'] == first
 
     def test_search_user_authrequired(self, client, example_elastic_calcs, no_warn):
         rv = client.get('/repo/?owner=user')
