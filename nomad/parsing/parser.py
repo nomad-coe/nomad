@@ -125,10 +125,6 @@ class LegacyParser(Parser):
             if backend is None or not hasattr(backend, 'status'):
                 backend = self.parser.parser_context.super_backend
 
-        # Don't check this in!
-        with open("test_file_parser_py_output.json", "wt") as file:
-            backend.write_json(file)
-
         return backend
 
     def __repr__(self):
