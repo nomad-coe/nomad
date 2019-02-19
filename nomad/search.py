@@ -18,11 +18,15 @@ This module represents calculations in elastic search.
 
 from typing import Iterable, Dict, Tuple, List
 from elasticsearch_dsl import Document, InnerDoc, Keyword, Text, Date, \
-    Object, Boolean, Search, Integer, Q, A
+    Object, Boolean, Search, Integer, Q, A, analyzer, tokenizer
 import elasticsearch.helpers
 import ase.data
 
 from nomad import config, datamodel, infrastructure, datamodel, coe_repo, parsing
+
+path_analyzer = analyzer(
+    'path_analyzer',
+    tokenizer=tokenizer('path_tokenizer', 'pattern', pattern='/'))
 
 
 class AlreadyExists(Exception): pass
@@ -39,13 +43,11 @@ class User(InnerDoc):
 
         name = '%s, %s' % (user['last_name'], user['first_name'])
         self.name = name
-        self.name_keyword = name
 
         return self
 
     user_id = Keyword()
-    name = Text()
-    name_keyword = Keyword()
+    name = Text(fields={'keyword': Keyword()})
 
 
 class Dataset(InnerDoc):
@@ -72,7 +74,7 @@ class Entry(Document):
     calc_hash = Keyword()
     pid = Keyword()
     mainfile = Keyword()
-    files = Keyword(multi=True)
+    files = Text(multi=True, analyzer=path_analyzer, fields={'keyword': Keyword()})
     uploader = Object(User)
 
     with_embargo = Boolean()
@@ -99,11 +101,6 @@ class Entry(Document):
     geometries = Keyword(multi=True)
     quantities = Keyword(multi=True)
 
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-    #     self.authors = []
-    #     self.owners = []
-
     @classmethod
     def from_calc_with_metadata(cls, source: datamodel.CalcWithMetadata) -> 'Entry':
         entry = Entry(meta=dict(id=source.calc_id))
@@ -116,8 +113,15 @@ class Entry(Document):
         self.calc_id = source.calc_id
         self.calc_hash = source.calc_hash
         self.pid = str(source.pid)
+
         self.mainfile = source.mainfile
-        self.files = source.files
+        if source.files is None:
+            self.files = [self.mainfile]
+        elif self.mainfile not in source.files:
+            self.files = [self.mainfile] + source.files
+        else:
+            self.files = source.files
+
         self.uploader = User.from_user_popo(source.uploader) if source.uploader is not None else None
 
         self.with_embargo = source.with_embargo
@@ -179,7 +183,7 @@ def publish(calcs: Iterable[datamodel.CalcWithMetadata]) -> None:
     elasticsearch.helpers.bulk(infrastructure.elastic_client, elastic_updates())
 
 
-default_aggregations = {
+aggregations = {
     'atoms': len(ase.data.chemical_symbols),
     'system': 10,
     'crystal_system': 10,
@@ -187,12 +191,37 @@ default_aggregations = {
     'xc_functional': 10,
     'authors': 10
 }
+""" The available aggregations in :func:`aggregate_search` and their maximum aggregation size """
+
+
+search_quantities = {
+    'atoms': ('term', 'atoms', (
+        'Search the given atom. This quantity can be used multiple times to search for '
+        'results with all the given atoms. The atoms are given by their case sensitive '
+        'symbol, e.g. Fe.')),
+
+    'system': ('term', 'system', 'Search for the given system type.'),
+    'crystal_system': ('term', 'crystal_system', 'Search for the given crystal system.'),
+    'code_name': ('term', 'code_name', 'Search for the given code name.'),
+    'xc_functional': ('term', 'xc_functional', 'Search for the given xc functional treatment'),
+    'authors': ('term', 'authors.name.keyword', (
+        'Search for the given author. Exact keyword matches in the form "Lastname, Firstname".')),
+
+    'comment': ('match', 'comment', 'Search within the comments. This is a text search ala google.'),
+    'paths': ('match', 'files', (
+        'Search for elements in one of the file paths. The paths are split at all "/".')),
+
+    'files': ('term', 'files.keyword', 'Search for exact file name with full path.'),
+    'quantities': ('term', 'quantities', 'Search for the existence of a certain meta-info quantity')
+}
+"""
+The available search quantities in :func:`aggregate_search` as tuples with *search type*,
+elastic field and description.
+"""
 
 
 def aggregate_search(
-        page: int = 0, per_page: int = 10, q: Q = None,
-        aggregations: Dict[str, int] = default_aggregations,
-        **kwargs) -> Tuple[int, List[dict], Dict[str, Dict[str, int]]]:
+        page: int = 0, per_page: int = 10, q: Q = None, **kwargs) -> Tuple[int, List[dict], Dict[str, Dict[str, int]]]:
     """
     Performs a search and returns paginated search results and aggregation bucket sizes
     based on key quantities.
@@ -203,7 +232,7 @@ def aggregate_search(
         q: An *elasticsearch_dsl* query used to further filter the results (via `and`)
         aggregations: A customized list of aggregations to perform. Keys are index fields,
             and values the amount of buckets to return. Only works on *keyword* field.
-        **kwargs: Field, value pairs to search for.
+        **kwargs: Quantity, value pairs to search for.
 
     Returns: A tuple with the total hits, an array with the results, an dictionary with
         the aggregation data.
@@ -211,12 +240,18 @@ def aggregate_search(
 
     search = Search()
     if q is not None:
-        search.query(q)
+        search = search.query(q)
+
     for key, value in kwargs.items():
-        if key == 'comment':
-            search = search.query(Q('match', **{key: value}))
+        query_type, field, _ = search_quantities.get(key, (None, None, None))
+        if query_type is None:
+            raise KeyError('Unknown quantity %s' % key)
+
+        if isinstance(value, list):
+            for item in value:
+                search = search.query(Q(query_type, **{field: item}))
         else:
-            search = search.query(Q('term', **{key: value}))
+            search = search.query(Q(query_type, **{field: value}))
 
     for aggregation, size in aggregations.items():
         if aggregation == 'authors':
@@ -261,7 +296,7 @@ def authors(per_page: int = 10, after: str = None, prefix: str = None) -> Tuple[
     """
     composite = dict(
         size=per_page,
-        sources=dict(authors=dict(terms=dict(field='authors.name_keyword'))))
+        sources=dict(authors=dict(terms=dict(field='authors.name.keyword'))))
     if after is not None:
         composite.update(after=dict(authors=after))
 
