@@ -14,7 +14,6 @@
 
 import ase
 import numpy as np
-import sys
 import matid
 
 from matid import SymmetryAnalyzer, Classifier
@@ -47,6 +46,9 @@ class SystemNormalizer(SystemBasedNormalizer):
         """ Main normalizer that runs system, syste_type and symmetry analysis."""
 
         self.atom_labels = section_system['atom_labels']
+        # print("self.atom_labels")
+        # print(self.atom_labels)
+        # self.atom_labels =  'Fe' #['Fe2']
         self.atom_species = section_system['atom_atom_numbers']
         self.atom_positions = section_system['atom_positions']
         self.periodic_dirs = section_system['configuration_periodic_dimensions']
@@ -91,7 +93,8 @@ class SystemNormalizer(SystemBasedNormalizer):
         try:
             self.atoms = ase.Atoms(
                 positions=1e10 * np.asarray(self.atom_positions),
-                symbols=np.asarray(self.atom_labels),
+                # Removed np.asarray() for atom labels
+                symbols=self.atom_labels,
                 cell=1e10 * np.asarray(self.cell),
                 pbc=self.pbc
             )

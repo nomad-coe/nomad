@@ -42,7 +42,7 @@ parser_examples = [
     # ('parsers/band', 'tests/data/parsers/band_adf.out'),  # causes spglib to segfault
     ('parsers/gaussian', 'tests/data/parsers/gaussian/aniline.out'),
     ('parsers/abinit', 'tests/data/parsers/abinit/Fe.out'),
-    ('parsers/quantumespresso', 'tests/data/parsers/quantum-espresso/W.out')
+    ('parsers/quantumespresso', 'tests/data/parsers/quantum-espresso/benchmark.out')
 ]
 
 faulty_unknown_one_d_matid_example = [
@@ -241,6 +241,7 @@ def assert_parser_result(backend):
     status, errors = backend.status
     assert status == 'ParseSuccess'
     assert errors is None or len(errors) == 0
+
 
 
 def run_parser(parser_name, mainfile):
