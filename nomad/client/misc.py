@@ -17,7 +17,6 @@ import os
 import sys
 import click
 import asyncio
-from watchgod import run_process
 from concurrent.futures import ProcessPoolExecutor
 
 from nomad import config
@@ -60,20 +59,12 @@ def run_worker():
     processing.app.worker_main(['worker', '--loglevel=INFO'])
 
 
-def run_watched_worker():
-    run_process('./nomad', run_worker)
-
-
-def run_watched_api():
-    run_process('./nomad', run_api)
-
-
 @run.command(help='Run both api and worker with watchdog.')
 def apiworker():
     executor = ProcessPoolExecutor(2)
     loop = asyncio.get_event_loop()
-    loop.run_in_executor(executor, run_watched_worker)
-    loop.run_in_executor(executor, run_watched_api)
+    loop.run_in_executor(executor, run_api)
+    loop.run_in_executor(executor, run_worker)
 
 
 @cli.command(help='Runs tests and linting. Useful before commit code.')
