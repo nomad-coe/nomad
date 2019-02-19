@@ -77,5 +77,9 @@ def copy_users(**kwargs):
 @click.argument('paths', nargs=-1)
 @click.option('--prefix', default=None, type=int, help='Set the pid counter to this value. The counter will not be changed if not given.')
 def upload(paths: list, prefix: int):
-    _setup()
+    infrastructure.setup_logging()
+    infrastructure.setup_mongo()
+
+    global _migration
+    _migration = NomadCOEMigration()
     _migration.migrate(*paths, prefix=prefix)
