@@ -243,7 +243,6 @@ def assert_parser_result(backend):
     assert errors is None or len(errors) == 0
 
 
-
 def run_parser(parser_name, mainfile):
     parser = parser_dict[parser_name]
     result = parser.run(mainfile, logger=utils.get_logger(__name__))

@@ -22,7 +22,6 @@ from unittest.mock import patch
 import logging
 import os.path
 import glob
-import json
 
 from nomad import utils
 from nomad.parsing.backend import LocalBackend
