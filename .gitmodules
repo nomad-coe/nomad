@@ -55,3 +55,6 @@
 	path = dependencies/parsers/abinit
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-abinit
 
+[submodule "dependencies/parsers/orca"]
+	path = dependencies/parsers/orca
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-orca

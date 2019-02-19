@@ -46,12 +46,12 @@ class SystemNormalizer(SystemBasedNormalizer):
         """ Main normalizer that runs system, syste_type and symmetry analysis."""
 
         self.atom_labels = section_system['atom_labels']
-        # print("self.atom_labels")
-        # print(self.atom_labels)
-        # self.atom_labels =  'Fe' #['Fe2']
         self.atom_species = section_system['atom_atom_numbers']
         self.atom_positions = section_system['atom_positions']
-        self.periodic_dirs = section_system['configuration_periodic_dimensions']
+        # Assume if no config for periodic dimensions that we simply don't have any.
+        # TODO: @dts, this may be something we should change since many DFT programs
+        # have implicit periodicity. Talk with Georg/Claudia.
+        self.periodic_dirs = section_system.get('configuration_periodic_dimensions', None)
         # Try to first read the cell information from the renamed metainfo
         # lattice_vectors, if this doesn't work try the depreciated name
         # simulation_cell. Otherwise, if neither are present, assign None.
