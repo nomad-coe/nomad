@@ -191,7 +191,8 @@ class NomadCOEMigration:
                 email=source_user.email,
                 first_name=source_user.first_name,
                 last_name=source_user.last_name,
-                password=source_user.password
+                password=source_user.password,
+                created=source_user.created
             )
 
             try:
@@ -206,6 +207,7 @@ class NomadCOEMigration:
 
             try:
                 self.client.auth.create_user(payload=create_user_payload).response()
+                self.logger.info('copied user', user_id=source_user.user_id)
             except HTTPBadRequest as e:
                 self.logger.error('could not create user due to bad data', exc_info=e, user_id=source_user.user_id)
 

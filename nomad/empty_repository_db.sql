@@ -1154,9 +1154,9 @@ INSERT INTO public.pragma VALUES ('4.59');
 --
 -- Data for Name: sessions; Type: TABLE DATA; Schema: public; Owner: postgres
 --
-
-INSERT INTO public.sessions VALUES ('leonard', 3, '2100-12-17 09:00:00+00', NULL, NULL);
-INSERT INTO public.sessions VALUES ('sheldon', 2, '2100-12-17 09:00:00+00', NULL, NULL);
+INSERT INTO public.sessions VALUES ('leonard', 2, '2100-12-17 09:00:00+00', NULL, NULL);
+INSERT INTO public.sessions VALUES ('sheldon', 1, '2100-12-17 09:00:00+00', NULL, NULL);
+INSERT INTO public.sessions VALUES ('admin', 0, '2100-12-17 09:00:00+00', NULL, NULL);
 
 
 --
@@ -1238,16 +1238,16 @@ SELECT pg_catalog.setval('public.uploads_upload_id_seq', 1, false);
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.users VALUES (1, 'admin', 'admin', 'admin', 'admin', NULL, NULL, NULL);
-INSERT INTO public.users VALUES (2, 'Sheldon', 'Cooper', 'sheldon.cooper', 'sheldon.cooper@nomad-fairdi.tests.de', NULL, '$2y$12$jths1LQPsLofuBQ3evVIluhQeQ/BZfbdTSZHFcPGdcNmHz2WvDj.y', NULL);
-INSERT INTO public.users VALUES (3, 'Leonard', 'Hofstadter', 'leonard.hofstadter', 'leonard.hofstadter@nomad-fairdi.tests.de', NULL, '$2y$12$jths1LQPsLofuBQ3evVIluhQeQ/BZfbdTSZHFcPGdcNmHz2WvDj.y', NULL);
+INSERT INTO public.users VALUES (0, 'admin', 'admin', 'admin', 'admin', NULL, NULL, NULL);
+INSERT INTO public.users VALUES (1, 'Sheldon', 'Cooper', 'sheldon.cooper', 'sheldon.cooper@nomad-fairdi.tests.de', NULL, '$2y$12$jths1LQPsLofuBQ3evVIluhQeQ/BZfbdTSZHFcPGdcNmHz2WvDj.y', NULL);
+INSERT INTO public.users VALUES (2, 'Leonard', 'Hofstadter', 'leonard.hofstadter', 'leonard.hofstadter@nomad-fairdi.tests.de', NULL, '$2y$12$jths1LQPsLofuBQ3evVIluhQeQ/BZfbdTSZHFcPGdcNmHz2WvDj.y', NULL);
 
 
 --
 -- Name: users_user_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.users_user_id_seq', 4, true);
+SELECT pg_catalog.setval('public.users_user_id_seq', 3, true);
 
 
 --

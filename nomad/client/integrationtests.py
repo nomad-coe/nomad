@@ -68,7 +68,7 @@ def integrationtests():
         assert len(search.results) <= search.pagination.total
     finally:
         print('delete the upload again')
-        client.uploads.delete_upload(upload_id=upload.upload_id)
+        client.uploads.delete_upload(upload_id=upload.upload_id).response()
         while upload.process_running:
             upload = client.uploads.get_upload(upload_id=upload.upload_id).response().result
 

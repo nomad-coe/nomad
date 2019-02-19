@@ -23,7 +23,7 @@ from nomad.files import ArchiveBasedStagingUploadFiles
 from nomad.parsing import parser_dict, LocalBackend, match_parser
 from nomad.normalizing import normalizers
 
-from .main import cli, nomad_url
+from .main import cli, get_nomad_url
 
 
 class CalcProcReproduction:
@@ -55,7 +55,7 @@ class CalcProcReproduction:
             # download with request, since bravado does not support streaming
             # TODO currently only downloads mainfile
             self.logger.info('Downloading calc.')
-            req = requests.get('%s/raw/%s/%s' % (nomad_url, self.upload_id, os.path.dirname(self.mainfile)), stream=True)
+            req = requests.get('%s/raw/%s/%s' % (get_nomad_url(), self.upload_id, os.path.dirname(self.mainfile)), stream=True)
             with open(local_path, 'wb') as f:
                 for chunk in req.iter_content(chunk_size=1024):
                     f.write(chunk)
@@ -139,7 +139,7 @@ class CalcProcReproduction:
     help='Override existing local calculation data.')
 def local(archive_id, **kwargs):
     utils.configure_logging()
-    utils.get_logger(__name__).info('Using %s' % nomad_url)
+    utils.get_logger(__name__).info('Using %s' % get_nomad_url())
     with CalcProcReproduction(archive_id, **kwargs) as local:
         backend = local.parse()
         local.normalize_all(parser_backend=backend)

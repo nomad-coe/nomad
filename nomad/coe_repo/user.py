@@ -14,7 +14,7 @@
 
 from typing import Dict
 from passlib.hash import bcrypt
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 import datetime
 import jwt
@@ -65,6 +65,7 @@ class User(Base):  # type: ignore
     last_name = Column(String, name='lastname')
     affiliation = relationship('Affiliation', lazy='joined')
     password = Column(String)
+    created = Column(DateTime)
 
     _token_chars = string.ascii_uppercase + string.ascii_lowercase + string.digits
 
@@ -247,6 +248,6 @@ def admin_user():
     Its password is part of :mod:`nomad.config`.
     """
     repo_db = infrastructure.repository_db
-    admin = repo_db.query(User).filter_by(user_id=1).first()
+    admin = repo_db.query(User).filter_by(user_id=0).first()
     assert admin, 'Admin user does not exist.'
     return admin

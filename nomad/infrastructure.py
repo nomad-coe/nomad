@@ -35,7 +35,7 @@ from email.mime.text import MIMEText
 
 from nomad import config, utils
 
-logger = utils.get_logger(__name__)
+logger = None
 
 elastic_client = None
 """ The elastic search client. """
@@ -65,6 +65,10 @@ def setup():
 
 def setup_logging():
     utils.configure_logging()
+
+    global logger
+    logger = utils.get_logger(__name__)
+
     logger.info(
         'setup logging',
         logstash=config.logstash.enabled,
@@ -169,7 +173,7 @@ def sqlalchemy_repository_db(exists: bool = False, readonly: bool = True, **kwar
         with repository_db_connection(dbname=dbname) as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    "UPDATE public.users SET password='%s' WHERE user_id=1;" %
+                    "UPDATE public.users SET password='%s' WHERE user_id=0;" %
                     bcrypt.encrypt(config.services.admin_password, ident='2y'))
 
     def no_flush():

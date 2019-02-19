@@ -36,6 +36,7 @@ authenticated user information for authorization or otherwise.
 from flask import g, request
 from flask_restplus import abort, Resource, fields
 from flask_httpauth import HTTPBasicAuth
+from datetime import datetime
 
 from nomad import config, processing, files, utils, coe_repo
 from nomad.coe_repo import User, LoginException
@@ -71,6 +72,8 @@ def verify_password(username_or_token, password):
     else:
         try:
             g.user = User.verify_user_password(username_or_token, password)
+        except LoginException:
+            return False
         except Exception as e:
             utils.get_logger(__name__).error('could not verify password', exc_info=e)
             return False
@@ -141,7 +144,8 @@ user_model = api.model('User', {
     'password': fields.String(description='The bcrypt 2y-indented password for initial and changed password'),
     'token': fields.String(
         description='The access token that authenticates the user with the API. '
-        'User the HTTP header "X-Token" to provide it in API requests.')
+        'User the HTTP header "X-Token" to provide it in API requests.'),
+    'created': fields.DateTime(dt_format='iso8601', description='The create date for the user.')
 })
 
 
@@ -194,6 +198,7 @@ class UserResource(Resource):
         user = coe_repo.User.create_user(
             email=data['email'], password=data.get('password', None), crypted=True,
             first_name=data['first_name'], last_name=data['last_name'],
+            created=data.get('created', datetime.now()),
             affiliation=data.get('affiliation', None), token=data.get('token', None),
             user_id=data.get('user_id', None))
 

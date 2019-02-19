@@ -269,8 +269,8 @@ def postgres(postgres_infra):
     """ Provides a clean coe repository db per function. Clears db before test. """
     # do not wonder, this will not setback the id counters
     postgres_infra.execute('TRUNCATE uploads CASCADE;')
-    postgres_infra.execute('DELETE FROM sessions WHERE user_id >= 4;')
-    postgres_infra.execute('DELETE FROM users WHERE user_id >= 4;')
+    postgres_infra.execute('DELETE FROM sessions WHERE user_id >= 3;')
+    postgres_infra.execute('DELETE FROM users WHERE user_id >= 3;')
     yield postgres_infra
 
 
