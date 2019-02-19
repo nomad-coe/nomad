@@ -61,7 +61,7 @@ class Repo extends React.Component {
   state = {
     data: [],
     page: 1,
-    rowsPerPage: 5,
+    rowsPerPage: 10,
     total: 0,
     loading: true,
     owner: 'all'

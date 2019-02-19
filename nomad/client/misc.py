@@ -59,7 +59,7 @@ def run_worker():
     processing.app.worker_main(['worker', '--loglevel=INFO'])
 
 
-@run.command(help='Run both api and worker with watchdog.')
+@run.command(help='Run both api and worker.')
 def apiworker():
     executor = ProcessPoolExecutor(2)
     loop = asyncio.get_event_loop()

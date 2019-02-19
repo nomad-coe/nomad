@@ -221,13 +221,13 @@ elastic field and description.
 
 
 def aggregate_search(
-        page: int = 0, per_page: int = 10, q: Q = None, **kwargs) -> Tuple[int, List[dict], Dict[str, Dict[str, int]]]:
+        page: int = 1, per_page: int = 10, q: Q = None, **kwargs) -> Tuple[int, List[dict], Dict[str, Dict[str, int]]]:
     """
     Performs a search and returns paginated search results and aggregation bucket sizes
     based on key quantities.
 
     Arguments:
-        page: The page to return starting with 0
+        page: The page to return starting with page 1
         per_page: Results per page
         q: An *elasticsearch_dsl* query used to further filter the results (via `and`)
         aggregations: A customized list of aggregations to perform. Keys are index fields,
@@ -238,7 +238,7 @@ def aggregate_search(
         the aggregation data.
     """
 
-    search = Search()
+    search = Search(index=config.elastic.index_name)
     if q is not None:
         search = search.query(q)
 
@@ -259,7 +259,7 @@ def aggregate_search(
         else:
             search.aggs.bucket(aggregation, A('terms', field=aggregation, size=size))
 
-    response = search[page * per_page: (page + 1) * per_page].execute()  # pylint: disable=no-member
+    response = search[(page - 1) * per_page: page * per_page].execute()  # pylint: disable=no-member
 
     total_results = response.hits.total
     search_results = [hit.to_dict() for hit in response.hits]

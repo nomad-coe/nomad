@@ -42,7 +42,6 @@ bravado
 PyJWT
 jsonschema[format]
 python-magic
-watchgod
 
 # dev/ops related
 setuptools

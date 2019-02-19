@@ -620,14 +620,16 @@ class TestRepo(UploadFilesBasedTests):
             assert len(aggregations['system']) == 1
             assert value in aggregations['system']
 
-    def test_search_pagination(self, client, example_elastic_calcs, no_warn):
-        rv = client.get('/repo/?page=1&per_page=1')
+    @pytest.mark.parametrize('n_results, page, per_page', [(2, 1, 5), (1, 1, 1), (0, 2, 3)])
+    def test_search_pagination(self, client, example_elastic_calcs, no_warn, n_results, page, per_page):
+        rv = client.get('/repo/?page=%d&per_page=%d' % (page, per_page))
         assert rv.status_code == 200
         data = json.loads(rv.data)
         results = data.get('results', None)
+        assert data['pagination']['total'] == 2
         assert results is not None
         assert isinstance(results, list)
-        assert len(results) == 1
+        assert len(results) == n_results
 
     def test_search_user_authrequired(self, client, example_elastic_calcs, no_warn):
         rv = client.get('/repo/?owner=user')

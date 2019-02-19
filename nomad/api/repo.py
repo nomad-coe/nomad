@@ -81,7 +81,7 @@ for search_quantity in search.search_quantities.keys():
 
 @ns.route('/')
 class RepoCalcsResource(Resource):
-    @api.doc('get_calcs')
+    @api.doc('search')
     @api.response(400, 'Invalid requests, e.g. wrong owner type or bad quantities')
     @api.expect(repo_request_parser, validate=True)
     @api.marshal_with(repo_calcs_model, skip_none=True, code=200, description='Metadata send')
@@ -97,12 +97,12 @@ class RepoCalcsResource(Resource):
         that have the certain value. You can also use these aggregations on an empty
         search to determine the possible values.
         """
-        page = int(request.args.get('page', 0))
+        page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
         owner = request.args.get('owner', 'all')
 
         try:
-            assert page >= 0
+            assert page >= 1
             assert per_page > 0
         except AssertionError:
             abort(400, message='invalid pagination')

@@ -220,10 +220,10 @@ def reset():
     try:
         if not elastic_client:
             setup_elastic()
-            elastic_client.indices.delete(index=config.elastic.index_name)
-            from nomad.search import Entry
-            Entry.init(index=config.elastic.index_name)
-            logger.info('elastic index resetted')
+        elastic_client.indices.delete(index=config.elastic.index_name)
+        from nomad.search import Entry
+        Entry.init(index=config.elastic.index_name)
+        logger.info('elastic index resetted')
     except Exception as e:
         logger.error('exception resetting elastic', exc_info=e)
 

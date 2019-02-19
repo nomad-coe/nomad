@@ -199,10 +199,10 @@ class Api {
 
   async repoAll(page, perPage, owner) {
     const client = await this.swaggerPromise
-    return client.apis.repo.get_calcs({
+    return client.apis.repo.search({
       page: page,
       per_page: perPage,
-      ower: owner || 'all'
+      owner: owner || 'all'
     })
       .catch(this.handleApiError)
       .then(response => response.body)
