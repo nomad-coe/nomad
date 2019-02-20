@@ -30,6 +30,8 @@ spec:
         volumeMounts:
         - mountPath: /app/.volumes/fs
           name: files-volume
+        - mountPath: /nomad
+          name: nomad-volume
         env:
         - name: NOMAD_SERVICE
           value: "worker"
@@ -99,4 +101,8 @@ spec:
       - name: files-volume
         hostPath:
           path: {{ .Values.volumes.files }}
+          type: Directory
+      - name: nomad-volume
+        hostPath:
+          path: {{ .Values.volumes.nomad }}
           type: Directory

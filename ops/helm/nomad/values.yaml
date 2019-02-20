@@ -112,3 +112,4 @@ mail:
 ## Everything concerning the data that is used by the service
 volumes:
   files: /scratch/nomad-fair/fs
+  nomad: /nomad
