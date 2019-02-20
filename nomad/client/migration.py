@@ -16,7 +16,7 @@ import click
 import time
 import datetime
 
-from nomad import config, infrastructure
+from nomad import config, infrastructure, utils
 from nomad.migration import NomadCOEMigration
 
 from .main import cli
@@ -80,6 +80,8 @@ def upload(paths: list, prefix: int):
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
 
-    global _migration
-    _migration = NomadCOEMigration()
-    _migration.migrate(*paths, prefix=prefix)
+    logger = utils.get_logger(__name__)
+
+    migration = NomadCOEMigration()
+    for result in migration.migrate(*paths, prefix=prefix):
+        logger.info('got migration with result', **result)
