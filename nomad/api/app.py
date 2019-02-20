@@ -23,7 +23,6 @@ from werkzeug.exceptions import HTTPException
 from werkzeug.wsgi import DispatcherMiddleware
 import os.path
 import inspect
-import logging
 
 from nomad import config, utils
 
@@ -41,10 +40,6 @@ app.config.RESTPLUS_MASK_HEADER = False  # type: ignore
 app.config.RESTPLUS_MASK_SWAGGER = False  # type: ignore
 app.config.SWAGGER_UI_OPERATION_ID = True  # type: ignore
 app.config.SWAGGER_UI_REQUEST_DURATION = True  # type: ignore
-
-gunicorn_logger = logging.getLogger('gunicorn.error')
-app.logger.handlers = gunicorn_logger.handlers
-app.logger.setLevel(gunicorn_logger.level)
 
 
 def api_base_path_response(env, resp):

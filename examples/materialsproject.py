@@ -1,27 +1,41 @@
 """
 This is a brief example demonstrating the public nomad@FAIRDI API for doing operations
-that are necessary during a *materials-project<->nomad* integration.
+that might be necessary to integrate external project data.
 """
 
-# create the bravado client
-nomad_url = 'http://enc-staging-nomad.esc.rzg.mpg/fairdi/nomad/mp-test/api'
-user = 'phuck@lbl.gov'
+# This does not assume many specific python packages. Only the bravado
+# library that allows to use swagger-based ReST APIs is required.
+# It can be install via `pip install bravado`
+from bravado.requests_client import RequestsClient
+from bravado.client import SwaggerClient
+from bravado.exception import HTTPNotFound
+from urllib.parse import urlparse
+import time
+import os.path
+import sys
+
+nomad_url = 'http://enc-staging-nomad.esc.rzg.mpg/fairdi/nomad/v0.3.0/api'
+user = 'leonard.hofstadter@nomad-fairdi.tests.de'
 password = 'password'
 
+# lets assume we have a test file from our external project
+# with (among others) `/external_id/BrSiTi/vasp.xml.gz`
+upload_file = 'externa_project_example.tgz'
+
+# create the bravado client
 host = urlparse(nomad_url).netloc.split(':')[0]
 http_client = RequestsClient()
 http_client.set_basic_auth(host, user, password)
 client = SwaggerClient.from_url('%s/swagger.json' % nomad_url, http_client=http_client)
 
 # upload data
-test_file = '/...'
 #   create the upload by uploaded a .zip file
-upload = client.uploads.upload(file=test_file).response().result
+upload = client.uploads.upload(file=upload_file).response().result
 #   constantly polling the upload to get updates on the processing
 while upload.processing_running:
     upload = client.uploads.get_upload(upload_id=upload.upload_id).response().result
     time.sleep(5)
-    print('processed: %d, failures: %d' % (upload.processed_calcs, upload_failed_calcs))
+    print('processed: %d, failures: %d' % (upload.processed_calcs, upload.failed_calcs))
 
 #   check if processing was a success
 if upload.tasks_status != 'SUCCESS':
@@ -51,7 +65,7 @@ while upload.processing_running:
     try:
         upload = client.uploads.get_upload(upload_id=upload.upload_id).response().result
         time.sleep(1)
-    except HttpNotFound:
+    except HTTPNotFound:
         # upload gets deleted from the upload staging area once published
         break
 

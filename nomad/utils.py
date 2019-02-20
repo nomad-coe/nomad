@@ -201,8 +201,6 @@ def add_logstash_handler(logger):
         logstash_handler.formatter = LogstashFormatter(tags=['nomad', config.release])
         logstash_handler.setLevel(config.logstash.level)
         logger.addHandler(logstash_handler)
-        logging.getLogger('gunicorn.error').addHandler(logstash_handler)
-        logging.getLogger('gunicorn.access').addHandler(logstash_handler)
 
 
 def configure_logging():
