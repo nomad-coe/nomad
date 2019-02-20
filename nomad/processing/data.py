@@ -24,11 +24,12 @@ calculations, and files
     :members:
 """
 
-from typing import List, Any, ContextManager, Tuple, Generator
+from typing import List, Any, ContextManager, Tuple, Generator, Dict
 from mongoengine import StringField, DateTimeField, DictField
 import logging
 from structlog import wrap_logger
 from contextlib import contextmanager
+import os.path
 
 from nomad import utils, coe_repo, config, infrastructure, search
 from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles
@@ -461,11 +462,19 @@ class Upload(Proc):
         Returns:
             Tuples of mainfile, filename, and parsers
         """
+        directories_with_match: Dict[str, str] = dict()
         for filename in self.upload_files.raw_file_manifest():
             try:
                 parser = match_parser(filename, self.upload_files)
                 if parser is not None:
-                    yield filename, parser
+                    directory = os.path.dirname(filename)
+                    if directory in directories_with_match:
+                        self.warnings.append(
+                            'The directory %s contains data from multiple code runs. '
+                            'Nomad only processed %s.' % (directory, os.path.basename(filename)))
+                    else:
+                        directories_with_match[directory] = filename
+                        yield filename, parser
             except Exception as e:
                 self.get_logger().error(
                     'exception while matching pot. mainfile',

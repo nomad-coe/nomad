@@ -1,7 +1,8 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import periodicTableData from './PeriodicTableData'
-import { withStyles, Paper, Typography, Button, Tooltip } from '@material-ui/core'
+import { withStyles, Typography, Button, Tooltip } from '@material-ui/core'
+import chroma from 'chroma-js'
 
 const elements = []
 for (var i = 0; i < 10; i++) {
@@ -17,7 +18,9 @@ class ElementUnstyled extends React.Component {
     classes: PropTypes.object.isRequired,
     element: PropTypes.object.isRequired,
     onClick: PropTypes.func,
-    selected: PropTypes.bool
+    selected: PropTypes.bool,
+    count: PropTypes.number.isRequired,
+    heatmapScale: PropTypes.func.isRequired
   }
 
   static styles = theme => ({
@@ -40,9 +43,6 @@ class ElementUnstyled extends React.Component {
       minHeight: 0,
       borderRadius: 0
     },
-    contained: {
-      backgroundColor: 'white'
-    },
     containedPrimary: {
       backgroundColor: theme.palette.primary.main
     },
@@ -54,62 +54,51 @@ class ElementUnstyled extends React.Component {
       padding: 0,
       fontSize: 8
     },
-    actinide: {
-      backgroundColor: '#E8EAF6'
-    },
-    alkalimetal: {
-      backgroundColor: '#E3F2FD'
-    },
-    alkalineearthmetal: {
-      backgroundColor: '#EDE7F6'
-    },
-    diatomicnonmetal: {
-      backgroundColor: '#F3E5F5'
-    },
-    lanthanide: {
-      backgroundColor: '#FCE4EC'
-    },
-    metalloid: {
-      backgroundColor: '#FFEBEE'
-    },
-    noblegas: {
-      backgroundColor: '#E0F7FA'
-    },
-    polyatomicnonmetal: {
-      backgroundColor: '#E0F2F1'
-    },
-    'post-transitionmetal': {
-      backgroundColor: '#E1F5FE'
-    },
-    transitionmetal: {
-      backgroundColor: '#F9FBE7'
+    count: {
+      position: 'absolute',
+      bottom: 2,
+      right: 2,
+      margin: 0,
+      padding: 0,
+      fontSize: 8
     }
   })
 
   render() {
-    const {classes, element, selected} = this.props
+    const {classes, element, selected, count, heatmapScale} = this.props
     const buttonClasses = {
       root: classes.button,
-      contained: (!selected ? classes[element.category] : null) || classes.contained,
       containedPrimary: classes.containedPrimary
     }
+    const disabled = count <= 0
 
     return (
       <div className={classes.root}>
         <Tooltip title={element.name}>
-          <Button
-            classes={buttonClasses}
-            onClick={this.props.onClick} variant="contained"
-            color={selected ? 'primary' : 'default'}
-          >
-            {element.symbol}
-          </Button>
+          <div>
+            <Button
+              disabled={disabled}
+              classes={buttonClasses}
+              style={{backgroundColor: count > 0 && !selected ? heatmapScale(count).hex() : undefined}}
+              onClick={this.props.onClick} variant="contained"
+              color={selected ? 'primary' : 'default'}
+            >
+              {element.symbol}
+            </Button>
+          </div>
         </Tooltip>
         <Typography
           classes={{root: classes.number}} variant="caption"
-          style={selected ? {color: 'white'} : {}}>
+          style={selected ? {color: 'white'} : disabled ? {color: '#BDBDBD'} : {}}>
           {element.number}
         </Typography>
+        {count >= 0
+          ? <Typography
+            classes={{root: classes.count}} variant="caption"
+            style={selected ? {color: 'white'} : disabled ? {color: '#BDBDBD'} : {}}>
+            {count}
+          </Typography> : ''
+        }
       </div>
     )
   }
@@ -119,12 +108,13 @@ const Element = withStyles(ElementUnstyled.styles)(ElementUnstyled)
 
 class PeriodicTable extends React.Component {
   static propTypes = {
-    classes: PropTypes.object.isRequired
+    classes: PropTypes.object.isRequired,
+    aggregations: PropTypes.object,
+    onSelectionChanged: PropTypes.func.isRequired
   }
 
   static styles = theme => ({
     root: {
-      padding: theme.spacing.unit * 2,
       overflowX: 'scroll'
     },
     table: {
@@ -144,19 +134,25 @@ class PeriodicTable extends React.Component {
   onElementClicked(element) {
     const index = this.state.selected.indexOf(element)
     const isClicked = index >= 0
+    let selected
     if (isClicked) {
-      const selected = [...this.state.selected]
-      selected.slice(index, 1)
+      selected = [...this.state.selected]
+      selected.splice(index, 1)
       this.setState({selected: selected})
     } else {
-      this.setState({selected: [element, ...this.state.selected]})
+      selected = [element, ...this.state.selected]
+      this.setState({selected: selected})
     }
+
+    this.props.onSelectionChanged(selected.map(element => element.symbol))
   }
 
   render() {
-    const {classes} = this.props
+    const {classes, aggregations} = this.props
+    const max = aggregations ? Math.max(...Object.values(aggregations)) || 1 : 1
+    const heatmapScale = chroma.scale(['#ffcdd2', '#d50000']).domain([1, max], 10, 'log')
     return (
-      <Paper className={classes.root}>
+      <div className={classes.root}>
         <table className={classes.table}>
           <tbody>
             {elements.map((row, i) => (
@@ -166,6 +162,9 @@ class PeriodicTable extends React.Component {
                     {element
                       ? <Element
                         element={element}
+                        count={aggregations ? aggregations[element.symbol] || 0 : 0}
+                        heatmapScale={heatmapScale}
+                        relativeCount={aggregations ? (aggregations[element.symbol] || 0) / max : 0}
                         onClick={() => this.onElementClicked(element)}
                         selected={this.state.selected.indexOf(element) >= 0}
                       /> : ''}
@@ -175,7 +174,7 @@ class PeriodicTable extends React.Component {
             ))}
           </tbody>
         </table>
-      </Paper>
+      </div>
     )
   }
 }
