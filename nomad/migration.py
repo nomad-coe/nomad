@@ -310,16 +310,21 @@ class NomadCOEMigration:
                 yield dict(status=FAILURE, error=error)
                 continue
 
+            logger = self.logger.bind(upload_path=upload_path)
+            logger.debug('upload path determined')
+
             # prepare the upload by determining/creating an upload file, name, source upload id
             if os.path.isfile(upload_path):
-                upload_archive_f = open(upload_path, 'rb')
+                local_path = upload_path
+                # upload_archive_f = open(upload_path, 'rb')
                 source_upload_id = os.path.split(os.path.split(upload_path)[0])[1]
                 upload_name = os.path.basename(upload_path)
             else:
                 potential_upload_archive = os.path.join(
                     upload_path, NomadCOEMigration.archive_filename)
                 if os.path.isfile(potential_upload_archive):
-                    upload_archive_f = open(potential_upload_archive, 'rb')
+                    local_path = potential_upload_archive
+                    # upload_archive_f = open(potential_upload_archive, 'rb')
                     source_upload_id = os.path.split(os.path.split(potential_upload_archive)[0])[1]
                     upload_name = os.path.basename(potential_upload_archive)
                 else:
@@ -333,15 +338,24 @@ class NomadCOEMigration:
                                 os.path.join(root[path_prefix:], file),
                                 zipfile.ZIP_DEFLATED)
                     zip_file.write(upload_path)
+                    local_path = None
                     upload_archive_f = IterIO(zip_file)  # type: ignore
                     upload_name = '%s.zip' % source_upload_id
+            logger.debug('upload archive file determined', upload_archive_file=upload_name)
 
             # upload and process the upload file
-            upload = self.client.uploads.upload(
-                file=upload_archive_f, name=upload_name).response().result
-            upload_archive_f.close()
+            if local_path is None:
+                assert upload_archive_f is not None
+                upload = self.client.uploads.upload(
+                    file=upload_archive_f, name=upload_name).response().result
+            else:
+                upload = self.client.uploads.upload(
+                    name=upload_name, local_path=local_path).response().result
+            logger.debug(
+                'upload archive file uploaded',
+                upload_archive_file=upload_name, local_path=local_path)
 
-            upload_logger = self.logger.bind(
+            logger = logger.bind(
                 source_upload_id=source_upload_id, upload_id=upload.upload_id)
 
             # grab source metadata
@@ -356,6 +370,7 @@ class NomadCOEMigration:
                 source_metadata.__migrated = False  # type: ignore
                 upload_metadata_calcs.append(source_metadata)
                 metadata_dict[source_calc.mainfile] = source_metadata
+            logger.debug('loaded source metadata', calcs=len(upload_metadata_calcs))
 
             report = utils.POPO()
             report.total_source_calcs = len(metadata_dict)
@@ -369,12 +384,13 @@ class NomadCOEMigration:
             while upload.tasks_running:
                 upload = self.client.uploads.get_upload(upload_id=upload.upload_id).response().result
                 time.sleep(0.1)
+            logger.debug('upload completed')
 
             if upload.tasks_status == FAILURE:
                 error = 'failed to process upload'
                 report.missing_calcs = report.total_source_calcs
                 report.total_calcs = 0
-                upload_logger.error(error, process_errors=upload.errors)
+                logger.error(error, process_errors=upload.errors)
                 yield report
                 continue
             else:
@@ -387,7 +403,7 @@ class NomadCOEMigration:
                     order_by='mainfile').response().result
 
                 for calc_proc in upload.calcs.results:
-                    calc_logger = upload_logger.bind(
+                    calc_logger = logger.bind(
                         calc_id=calc_proc.calc_id,
                         mainfile=calc_proc.mainfile)
 
@@ -413,9 +429,10 @@ class NomadCOEMigration:
             for source_calc in upload_metadata_calcs:
                 if source_calc.__migrated is False:
                     report.missing_calcs += 1
-                    upload_logger.info(
+                    logger.info(
                         'no match or processed calc for source calc',
                         mainfile=source_calc.mainfile)
+            logger.debug('upload verified')
 
             # publish upload
             upload_metadata['calculations'] = [
@@ -436,9 +453,10 @@ class NomadCOEMigration:
                     except HTTPNotFound:
                         # the proc upload will be deleted by the publish operation
                         break
+            logger.debug('upload published')
 
             # report
-            upload_logger.info('migrated upload', **report)
+            logger.info('migrated upload', **report)
             yield report
 
     def _to_api_metadata(self, source: CalcWithMetadata) -> dict:

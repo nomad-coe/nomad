@@ -15,18 +15,29 @@ client = SwaggerClient.from_url('%s/swagger.json' % nomad_url, http_client=http_
 
 # upload data
 test_file = '/...'
+#   create the upload by uploaded a .zip file
 upload = client.uploads.upload(file=test_file).response().result
-while upload.tasks_running:
-    upload client.uploads.get_upload(upload_id=upload.upload_id).response().result
+#   constantly polling the upload to get updates on the processing
+while upload.processing_running:
+    upload = client.uploads.get_upload(upload_id=upload.upload_id).response().result
+    time.sleep(5)
     print('processed: %d, failures: %d' % (upload.processed_calcs, upload_failed_calcs))
 
+#   check if processing was a success
 if upload.tasks_status != 'SUCCESS':
     print('something went wrong')
     print('errors: %s' % str(upload.errors))
+    # delete the unsuccessful upload
     client.uploads.delete_upload(upload_id=upload.upload_id)
     sys.exit(1)
 
 # publish data
+#   In the upload staging area the data is only visible to you. It has to be published
+#   to get into the public nomad.
+#   Therefore, the later search and download steps will work without publishing, but only if the
+#   client is authenticated with your user account. You should do that for testing stuff out,
+#   because there is no user-based deleting of published data.
+#   The publish step also allows you to provide additional metadata, see below.
 client.uploads.exec_upload_operation(upload_id=upload.upload_id, payload={
     'operation': 'publish',
     'metadata': {
@@ -36,9 +47,22 @@ client.uploads.exec_upload_operation(upload_id=upload.upload_id, payload={
         # 'external_id': 'a/mp/id'  this does also not work, but we could implement something like this
     }
 })
+while upload.processing_running:
+    try:
+        upload = client.uploads.get_upload(upload_id=upload.upload_id).response().result
+        time.sleep(1)
+    except HttpNotFound:
+        # upload gets deleted from the upload staging area once published
+        break
 
 # search for data
-result = client.repo.get_calcs(paths='tags1/tag2').response().result
+#   The `paths` searchkey is a text search (works like google), where tokens are separated
+#   by '/'. You can basically search for (multiple) parts within a file path. Note
+#   that the following will also match `/prefix/tag1/something/else/tag2/vasp.xml`. It will
+#   not match `/tag2/tag3/vaps.xml` and also not `/tag1/tags2.xml`.
+result = client.repo.get_calcs(paths='tag1/tag2').response().result
+#   The results are paginated. The pagination key holds an object with total, page, per_page
+#   kind of information
 if result.pagination.total == 0:
     print('not found')
     sys.exit(1)
@@ -46,6 +70,7 @@ elif result.pagination.total > 1:
     print('my ids are not specific enough, bummer ...')
     sys.exit(1)
 else:
+    # The results key holds an array with the current page data
     calc = result.results[0]
 
 # download data
