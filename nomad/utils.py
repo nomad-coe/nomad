@@ -148,6 +148,8 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
 
                 message[key] = value
         else:
+            structlog['nomad.service'] = config.service
+            structlog['nomad.release'] = config.release
             message.update(structlog)
 
         # Add extra fields
@@ -199,6 +201,8 @@ def add_logstash_handler(logger):
         logstash_handler.formatter = LogstashFormatter(tags=['nomad', config.release])
         logstash_handler.setLevel(config.logstash.level)
         logger.addHandler(logstash_handler)
+        logging.getLogger('gunicorn.error').addHandler(logstash_handler)
+        logging.getLogger('gunicorn.access').addHandler(logstash_handler)
 
 
 def configure_logging():

@@ -47,7 +47,7 @@ def api(debug: bool):
 
 
 def run_api(**kwargs):
-    config.service = 'nomad_api'
+    config.service = 'api'
     from nomad import infrastructure
     from nomad.api.__main__ import run_dev_server
     infrastructure.setup()
@@ -55,6 +55,7 @@ def run_api(**kwargs):
 
 
 def run_worker():
+    config.service = 'worker'
     from nomad import processing
     processing.app.worker_main(['worker', '--loglevel=INFO'])
 
