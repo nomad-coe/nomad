@@ -72,8 +72,8 @@ linting:
     - python -m pylint --load-plugins=pylint_mongoengine nomad tests
     - python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests
   except:
-    - /^dev-.*$/
-    - variables:
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
       - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
 
 tests:
@@ -106,8 +106,8 @@ tests:
     - cd /app
     - python -m pytest --cov=nomad -sv tests
   except:
-    - /^dev-.*$/
-    - variables:
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
       - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
 
 # does currently not work, current GitLab CI runner does not network services with each other
