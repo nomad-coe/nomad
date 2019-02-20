@@ -157,6 +157,41 @@ This time we needed some exception handling, since the upload will be removed fr
 staging area, and you will get a 404 on the `uploads` endpoint.
 
 
-### Searching for data
+## Searching for data
+The *repo* part of the API contains a *search* endpoint that support many different
+quantities to search for. These include `formula` (e.g. *AcAg*), `system` (e.g. *bulk/2D/atom*), `spacegroup`, `authors`, `code` (e.g. *VASP*), etc.
+In the following example, we search for the specific path segment `AcAg`.
 
-### Downloading data
+```python
+result = client.repo.search(paths='AcAg').response().result
+if result.pagination.total == 0:
+    print('not found')
+elif result.pagination.total > 1:
+    print('my ids are not specific enough, bummer ... or did I uploaded stuff multiple times?')
+calc = result.results[0]
+print(calc)
+```
+
+The result of a search always contains the key `pagination` with pagination data (`total`, `page`, `per_page`) and `results` with an array of the search result. The search results depend on
+the type of search and their is no formal swagger model for it, therefore you get plain
+dictionaries.
+
+
+## Downloading data
+The *raw* api allows to download data. You can do that either via bravado:
+```python
+client.raw.get(upload_id=calc['upload_id'], path=calc['mainfile']).response()
+```
+
+In case of published data, you can also create plain URLs and use a tool like *curl*:
+```python
+print('%s/raw/%s/%s' % (nomad_url, calc['upload_id'], calc['mainfile']))
+print('%s/raw/%s/%s/*' % (nomad_url, calc['upload_id'], os.path.dirname(calc['mainfile'])))
+```
+
+There are different options to download individual files, or zips with multiple files.
+
+## Conclusions
+This was just a small glimpse into the nomad API. You should checkout our swagger documentation
+for more details on all the API endpoints and their parameters. You can explore the
+API via swagger-ui and even try it in your browser. Just visit the API url.

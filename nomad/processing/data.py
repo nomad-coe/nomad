@@ -395,6 +395,10 @@ class Upload(Proc):
             with utils.timer(
                     logger, 'staged upload files packed', step='publish',
                     upload_size=self.upload_files.size):
+                for calc_metadata in upload_with_metadata.calcs:
+                    calc_metadata.published = True
+                    self.upload_files.metadata.update(
+                        calc_id=calc_metadata.calc_id, updates=calc_metadata.to_dict())
                 self.upload_files.pack()
 
             with utils.timer(

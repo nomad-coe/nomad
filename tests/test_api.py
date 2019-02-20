@@ -22,7 +22,7 @@ import inspect
 from passlib.hash import bcrypt
 from datetime import datetime
 
-from nomad import config, coe_repo, search, parsing
+from nomad import config, coe_repo, search, parsing, files
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
 
@@ -252,6 +252,20 @@ class TestUploads:
         self.assert_upload_does_not_exist(client, upload_id, test_user_auth)
         assert_coe_upload(upload_id, user_metadata=metadata)
         assert_search_upload(upload_id, published=True)
+
+        upload_files = files.UploadFiles.get(upload_id=upload_id)
+        assert isinstance(upload_files, files.PublicUploadFiles)
+        for calc_metadata in upload_files.metadata:
+            assert calc_metadata.get('published', False)
+            assert 'with_embargo' in calc_metadata
+            assert calc_metadata['with_embargo'] == metadata.get('with_embargo', False)
+            try:
+                with upload_files.raw_file(calc_metadata['mainfile']) as f:
+                    assert f.read() is not None
+            except files.Restricted:
+                assert calc_metadata['with_embargo']
+            else:
+                assert not calc_metadata['with_embargo']
 
     def assert_upload_does_not_exist(self, client, upload_id: str, test_user_auth):
         # poll until publish/delete completed

@@ -212,10 +212,10 @@ class UploadFilesContract(UploadFilesFixtures):
             with test_upload.raw_file(example_file_mainfile) as f:
                 assert len(f.read()) > 0
             if not test_upload._is_authorized():
-                assert not test_upload.metadata.get(example_calc_id).get('restricted', False)
+                assert not test_upload.metadata.get(example_calc_id).get('with_embargo', False)
         except Restricted:
             assert not test_upload._is_authorized()
-            assert test_upload.metadata.get(example_calc_id).get('restricted', False)
+            assert test_upload.metadata.get(example_calc_id).get('with_embargo', False)
 
     @pytest.mark.parametrize('prefix', [None, 'examples'])
     def test_raw_file_manifest(self, test_upload: StagingUploadFiles, prefix: str):
@@ -233,10 +233,10 @@ class UploadFilesContract(UploadFilesFixtures):
                 assert json.load(f) == 'archive'
 
             if not test_upload._is_authorized():
-                assert not test_upload.metadata.get(example_calc_id).get('restricted', False)
+                assert not test_upload.metadata.get(example_calc_id).get('with_embargo', False)
         except Restricted:
             assert not test_upload._is_authorized()
-            assert test_upload.metadata.get(example_calc_id).get('restricted', False)
+            assert test_upload.metadata.get(example_calc_id).get('with_embargo', False)
 
     def test_metadata(self, test_upload):
         assert_example_calc(test_upload.metadata.get(example_calc_id))
@@ -269,9 +269,9 @@ def create_staging_upload(upload_id: str, calc_specs: str) -> StagingUploadFiles
         if prefix > 0:
             calc['mainfile'] = os.path.join(str(prefix), calc['mainfile'])
         if calc_spec == 'r':
-            calc['restricted'] = True
+            calc['with_embargo'] = True
         elif calc_spec == 'p':
-            calc['restricted'] = False
+            calc['with_embargo'] = False
         upload.metadata.insert(calc)
         prefix += 1
 

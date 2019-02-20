@@ -448,7 +448,7 @@ class StagingUploadFiles(UploadFiles):
 
         # move public data .restricted -> .public
         for calc in self.metadata:
-            if not calc.get('restricted', True):
+            if not calc.get('with_embargo', False):
                 mainfile: str = calc['mainfile']
                 assert mainfile is not None
                 for filepath in self.calc_files(mainfile):
@@ -483,7 +483,7 @@ class StagingUploadFiles(UploadFiles):
         archive_restricted_zip = create_zipfile('restricted')
 
         for calc in self.metadata:
-            archive_zip = archive_restricted_zip if calc.get('restricted', False) else archive_public_zip
+            archive_zip = archive_restricted_zip if calc.get('with_embargo', False) else archive_public_zip
 
             archive_filename = '%s.%s' % (calc['calc_id'], self._archive_ext)
             archive_zip.write(self._archive_dir.join_file(archive_filename).os_path, archive_filename)
