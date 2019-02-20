@@ -73,6 +73,8 @@ linting:
     - python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests
   except:
     - /^dev-.*$/
+    variables:
+    - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
 
 tests:
   stage: test
@@ -105,6 +107,8 @@ tests:
     - python -m pytest --cov=nomad -sv tests
   except:
     - /^dev-.*$/
+    variables:
+    - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
 
 # does currently not work, current GitLab CI runner does not network services with each other
 # integration-tests:
