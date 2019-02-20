@@ -70,7 +70,7 @@ spec:
           value: "{{ .Values.postgres.port }}"
         - name: NOMAD_COE_REPO_DB_NAME
           value: "{{ .Values.dbname }}"
-        command: ["python", "-m", "gunicorn.app.wsgiapp", "--log-config", "ops/gunicorn.log", "-w", "{{ .Values.api.worker }}", "-b 0.0.0.0:8000", "nomad.api:app"]
+        command: ["python", "-m", "gunicorn.app.wsgiapp", "--log-config", "ops/gunicorn.log.conf", "-w", "{{ .Values.api.worker }}", "-b 0.0.0.0:8000", "nomad.api:app"]
         livenessProbe:
           httpGet:
             path: "{{ .Values.proxy.external.path }}/api/alive"
