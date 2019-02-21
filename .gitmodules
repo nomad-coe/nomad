@@ -58,3 +58,6 @@
 [submodule "dependencies/parsers/orca"]
 	path = dependencies/parsers/orca
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-orca
+[submodule "dependencies/parsers/castep"]
+	path = dependencies/parsers/castep
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-castep

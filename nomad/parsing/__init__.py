@@ -269,6 +269,11 @@ parsers = [
             r'\s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
             r'\s*'
             r'\s*--- An Ab Initio, DFT and Semiempirical electronic structure package ---\s*')
+    ),
+    LegacyParser(
+        name='parsers/castep',
+        parser_class_name='castepparser.CastepParser',
+        mainfile_contents_re=(r'\s\|\s*CCC\s*AA\s*SSS\s*TTTTT\s*EEEEE\s*PPPP\s*\|\s*')
     )
 ]
 

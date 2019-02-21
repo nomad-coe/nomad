@@ -48,10 +48,10 @@ class SystemNormalizer(SystemBasedNormalizer):
         self.atom_labels = section_system['atom_labels']
         self.atom_species = section_system['atom_atom_numbers']
         self.atom_positions = section_system['atom_positions']
-        # Assume if no config for periodic dimensions that we simply don't have any.
-        # TODO: @dts, this may be something we should change since many DFT programs
-        # have implicit periodicity. Talk with Georg/Claudia.
         self.periodic_dirs = section_system.get('configuration_periodic_dimensions', None)
+        if self.periodic_dirs is None:
+            self.logger.warning(
+                'Unable to get PBCs in this section_system, assume False, False, Fasle')
         # Try to first read the cell information from the renamed metainfo
         # lattice_vectors, if this doesn't work try the depreciated name
         # simulation_cell. Otherwise, if neither are present, assign None.
@@ -119,7 +119,6 @@ class SystemNormalizer(SystemBasedNormalizer):
             self.atom_species = [
                 atom_label_to_num(atom_label) for atom_label in self.atom_labels
             ]
-
         formula = None
 
         if self.atom_species:
@@ -133,7 +132,6 @@ class SystemNormalizer(SystemBasedNormalizer):
                 formula_bulk = formula_reduced
             else:
                 formula_bulk = formula
-
         if self.cell is not None:
             results['lattice_vectors'] = self.cell
 
@@ -149,7 +147,6 @@ class SystemNormalizer(SystemBasedNormalizer):
         # TODO: @dts, might be good to clean this up so it is more readable in the
         # future.
         configuration_id = 's' + addShasOfJson(results).b64digests()[0][0:28]
-
         self._backend.addValue('configuration_raw_gid', configuration_id)
         self._backend.addValue('atom_species', self.atom_species)
         self._backend.addValue('chemical_composition', formula)
