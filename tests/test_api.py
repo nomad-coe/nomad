@@ -471,7 +471,7 @@ class UploadFilesBasedTests:
         return wrapper
 
     @pytest.fixture(scope='function')
-    def test_data(self, request, postgres, mongo, no_warn, test_user, other_test_user):
+    def test_data(self, request, postgres, mongo, raw_files, no_warn, test_user, other_test_user):
         # delete potential old test files
         for _ in [0, 1]:
             upload_files = UploadFiles.get('test_upload')

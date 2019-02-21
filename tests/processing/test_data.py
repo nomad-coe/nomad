@@ -110,18 +110,6 @@ def test_processing_with_warning(proc_infra, test_user, with_warn):
 
 
 @pytest.mark.timeout(10)
-def test_processing_with_multi_calc_dir(proc_infra, test_user, no_warn):
-    example_file = 'tests/data/proc/examples_multi_calc_dir.zip'
-    example_upload_id = os.path.basename(example_file).replace('.zip', '')
-    upload_files = ArchiveBasedStagingUploadFiles(example_upload_id, create=True)
-    shutil.copyfile(example_file, upload_files.upload_file_os_path)
-
-    upload = run_processing(example_upload_id, test_user)
-    assert len(upload.warnings) > 0
-    assert_processing(upload)
-
-
-@pytest.mark.timeout(10)
 def test_process_non_existing(proc_infra, test_user, with_error):
     upload = run_processing('__does_not_exist', test_user)
 

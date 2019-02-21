@@ -468,13 +468,16 @@ class Upload(Proc):
                 parser = match_parser(filename, self.upload_files)
                 if parser is not None:
                     directory = os.path.dirname(filename)
+                    # TODO this might give us the chance to store directory based relationship
+                    # between calcs for the future?
                     if directory in directories_with_match:
-                        self.warnings.append(
+                        self.info.append(
                             'The directory %s contains data from multiple code runs. '
                             'Nomad only processed %s.' % (directory, os.path.basename(filename)))
                     else:
                         directories_with_match[directory] = filename
-                        yield filename, parser
+
+                    yield filename, parser
             except Exception as e:
                 self.get_logger().error(
                     'exception while matching pot. mainfile',

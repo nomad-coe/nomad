@@ -53,7 +53,6 @@ def normalized_template_example(parsed_template_example) -> LocalBackend:
 
 def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
     run_normalize(parsed_template_example)
-    print(str(caplog.records))
 
 
 def assert_normalized(backend: LocalBackend):

@@ -135,7 +135,6 @@ class RepoCalcsResource(Resource):
             abort(400, message='Invalid owner value. Valid values are all|user|staging, default is all')
 
         data = dict(**request.args)
-        print(data)
         data.pop('owner', None)
         data.update(per_page=per_page, page=page, order=order, order_by=order_by)
 

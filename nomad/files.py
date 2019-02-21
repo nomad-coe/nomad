@@ -35,6 +35,22 @@ almost readonly (beside metadata) storage.
                       /archive-public.hdf5.zip
                       /archive-restricted.hdf5.zip
 
+There is an implicit relationship between files, based on them being in the same
+directory. Each directory with at least one *mainfile* is a *calculation directory*
+and all the files are *aux* files to that *mainfile*. This is independent of the
+respective files actually contributing data or not. A *calculation directory* might
+contain multiple *mainfile*. E.g., user simulated multiple states of the same system, have
+one calculation based on the other, etc. In this case the other *mainfile* is an *aux*
+file to the original *mainfile* and vice versa.
+
+Published files are kept in pairs of public and restricted files. Here the multiple *mainfiles*
+per directory provides a dilemma. If on *mainfile* is restricted, all its *aux* files
+should be restricted too. But if one of the *aux* files is actually a *mainfile* it
+might be published!
+
+There are multiple ways to solve this. Due to the rarity of the case, we take the
+most simple solution: if one file is public, all files are made public, execpt those
+being other mainfiles. Therefore, the aux files of a restricted calc might become public!
 """
 
 from abc import ABCMeta
@@ -446,15 +462,29 @@ class StagingUploadFiles(UploadFiles):
         # copy raw -> .restricted
         shutil.copytree(self._raw_dir.os_path, restricted_dir.os_path)
 
-        # move public data .restricted -> .public
+        # We do a trick to deal with multiple mainfiles sharing the same aux files while
+        # having different restriction, we first move all aux files to public (including
+        # potentially restricted mainfiles) and then we only move the restricted mainfiles
+        # back.
+        # move public aux files .restricted -> .public
         for calc in self.metadata:
             if not calc.get('with_embargo', False):
-                mainfile: str = calc['mainfile']
+                mainfile = calc['mainfile']
                 assert mainfile is not None
                 for filepath in self.calc_files(mainfile):
-                    os.rename(
-                        restricted_dir.join_file(filepath).os_path,
-                        public_dir.join_file(filepath).os_path)
+                    source = restricted_dir.join_file(filepath)
+                    # file might have already been moved due to related calcs among aux files
+                    if source.exists():
+                        os.rename(source.os_path, public_dir.join_file(filepath).os_path)
+        # move restricted mainfiles back .public -> .restricted
+        for calc in self.metadata:
+            if calc.get('with_embargo', False):
+                mainfile = calc['mainfile']
+                assert mainfile is not None
+                source = public_dir.join_file(mainfile)
+                # file might not have been moved since all mainfiles among aux files were restricted
+                if source.exists():
+                    os.rename(source.os_path, restricted_dir.join_file(mainfile).os_path)
 
         # create bags
         make_bag(restricted_dir.os_path, bag_info=bagit_metadata, checksums=['sha512'])
@@ -662,9 +692,10 @@ class PublicUploadFiles(UploadFiles):
                 zip_file = self.join_file('raw-%s.bagit.zip' % access)
                 with ZipFile(zip_file.os_path) as zf:
                     for full_path in zf.namelist():
-                        path = full_path[5:]  # remove data/
-                        if path_prefix is None or path.startswith(path_prefix):
-                            yield path
+                        if full_path.startswith('data/'):
+                            path = full_path[5:]  # remove data/
+                            if path_prefix is None or path.startswith(path_prefix):
+                                yield path
             except FileNotFoundError:
                 pass
 
@@ -680,4 +711,4 @@ class PublicUploadFiles(UploadFiles):
         on current restricted information in the metadata. Should be used after updating
         the restrictions on calculations. This is potentially a long running operation.
         """
-        pass
+        raise NotImplementedError()

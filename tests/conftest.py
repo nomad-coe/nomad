@@ -64,17 +64,18 @@ def raw_files_infra(monkeysession):
 @pytest.fixture(scope='function')
 def raw_files(raw_files_infra):
     """ Provides cleaned out files directory structure per function. Clears files after test. """
+    directories = [config.fs.objects, config.fs.tmp]
+    for directory in directories:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
     try:
         yield
     finally:
-        try:
-            shutil.rmtree(config.fs.objects)
-        except FileNotFoundError:
-            pass
-        try:
-            shutil.rmtree(config.fs.tmp)
-        except FileNotFoundError:
-            pass
+        for directory in directories:
+            try:
+                shutil.rmtree(directory)
+            except FileNotFoundError:
+                pass
 
 
 @pytest.fixture(scope='function')
