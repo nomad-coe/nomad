@@ -118,7 +118,12 @@ class Package(Document):
                         'directory exceeds max package size', directory=upload_path, size=package.size)
 
                 package.save()
-                logger.info('created package', size=package.size, package_id=package.package_id, upload_id=package.upload_id)
+                logger.info(
+                    'created package',
+                    size=package.size,
+                    files=len(package.filenames),
+                    package_id=package.package_id,
+                    upload_id=package.upload_id)
 
             package = create_package()
 
@@ -140,7 +145,7 @@ class Package(Document):
                     package = create_package()
 
                 for filename in directory_filenames:
-                    package.filenames.append(directory_filenames)
+                    package.filenames.append(filename)
                 package.size += directory_size
 
                 logger.debug('packaged directory', directory=root, size=directory_size)
