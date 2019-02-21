@@ -40,7 +40,7 @@ from nomad.processing import FAILURE, SUCCESS
 default_pid_prefix = 7000000
 """ The default pid prefix for new non migrated calculations """
 
-max_package_size = 32 * 1024 * 1024 * 1024  # 32 GB
+max_package_size = 16 * 1024 * 1024 * 1024  # 16 GB
 """ The maximum size of a package that will be used as an upload on nomad@FAIRDI """
 
 
@@ -114,7 +114,8 @@ class Package(Document):
 
                 if package.size > max_package_size:
                     # a single directory seems to big for a package
-                    logger.error('directory exceeds max package size', directory=root, size=package.size)
+                    logger.error(
+                        'directory exceeds max package size', directory=upload_path, size=package.size)
 
                 package.save()
                 logger.info('created package', size=package.size, package_id=package.package_id, upload_id=package.upload_id)
@@ -138,10 +139,15 @@ class Package(Document):
                     save_package(package)
                     package = create_package()
 
-                package.filenames = directory_filenames
+                for filename in directory_filenames:
+                    package.filenames.append(directory_filenames)
                 package.size += directory_size
 
+                logger.debug('packaged directory', directory=root, size=directory_size)
+
             save_package(package)
+
+            logger.info('completed upload', directory=upload_path, upload_id=upload_id)
 
 
 class SourceCalc(Document):
