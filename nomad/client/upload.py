@@ -39,7 +39,7 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, publish
         client = create_client()
     if offline:
         upload = client.uploads.upload(
-            local_path=os.path.abspath(file_path), name=name).reponse().result
+            local_path=os.path.abspath(file_path), name=name).response().result
         click.echo('process offline: %s' % file_path)
     else:
         with open(file_path, 'rb') as f:

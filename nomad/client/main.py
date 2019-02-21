@@ -74,9 +74,12 @@ def handle_common_errors(func):
 @click.option('-n', '--url', default=_nomad_url, help='The URL where nomad is running "%s".' % _nomad_url)
 @click.option('-u', '--user', default=None, help='the user name to login, default no login.')
 @click.option('-w', '--password', default=_pw, help='the password use to login.')
-@click.option('-v', '--verbose', help='sets log level to debug', is_flag=True)
-def cli(url: str, verbose: bool, user: str, password: str):
-    if verbose:
+@click.option('-v', '--verbose', help='sets log level to info', is_flag=True)
+@click.option('--debug', help='sets log level to debug', is_flag=True)
+def cli(url: str, verbose: bool, debug: bool, user: str, password: str):
+    if debug:
+        config.console_log_level = logging.DEBUG
+    elif verbose:
         config.console_log_level = logging.INFO
     else:
         config.console_log_level = logging.WARNING
