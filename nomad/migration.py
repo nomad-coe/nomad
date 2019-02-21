@@ -30,6 +30,7 @@ from werkzeug.contrib.iterio import IterIO
 import time
 from bravado.exception import HTTPNotFound, HTTPBadRequest
 import glob
+import os
 
 from nomad import utils, infrastructure
 from nomad.coe_repo import User, Calc, LoginException
@@ -68,6 +69,18 @@ class Package(Document):
 
     meta = dict(indexes=['upload_id'])
 
+    @staticmethod
+    def walk(directory):
+        """ Similar to os.walk, but hopefully faster. """
+        files: List[os.DirEntry] = []
+        for entry in os.scandir(directory):
+            if entry.is_dir():
+                yield from Package.walk(entry.path)
+            else:
+                files.append(entry)
+
+        yield directory, files
+
     @classmethod
     def index(cls, *upload_paths):
         """
@@ -100,6 +113,7 @@ class Package(Document):
             restricted = month
 
             def create_package():
+                cls.timer = time.time()
                 package = Package(
                     package_id=utils.create_uuid(),
                     upload_id=upload_id,
@@ -123,22 +137,23 @@ class Package(Document):
                     size=package.size,
                     files=len(package.filenames),
                     package_id=package.package_id,
+                    exec_time=time.time() - cls.timer,
                     upload_id=package.upload_id)
 
             package = create_package()
 
-            for root, _, files in os.walk(upload_path, followlinks=True):
+            for root, files in Package.walk(upload_path):
                 directory_filenames: List[str] = []
                 directory_size = 0
 
                 if len(files) == 0:
                     continue
 
-                for file in files:
-                    filepath = os.path.join(root, file)
+                for file_object in files:
+                    filepath = os.path.join(root, file_object.name)
                     filename = filepath[len(upload_path) + 1:]
                     directory_filenames.append(filename)
-                    directory_size += os.path.getsize(filepath)
+                    directory_size += file_object.stat().st_size
 
                 if (package.size + directory_size) > max_package_size and package.size > 0:
                     save_package(package)
