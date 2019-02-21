@@ -81,91 +81,97 @@ class Package(Document):
         logger = utils.get_logger(__name__)
 
         for upload_path in upload_paths:
-            stats = runstats.Statistics()
-            upload_path = os.path.abspath(upload_path)
-            upload_id = os.path.basename(upload_path)
-            if cls.objects(upload_id=upload_id).first() is not None:
-                logger.info('upload already exists, skip', upload_id=upload_id)
-                continue
-
-            restrict_files = glob.glob(os.path.join(upload_path, 'RESTRICTED_*'))
-            month = 0
-            for restrict_file in restrict_files:
-                restrict_file = os.path.basename(restrict_file)
-                try:
-                    new_month = int(restrict_file[len('RESTRICTED_'):])
-                    if new_month > month:
-                        month = new_month
-                except Exception:
-                    month = 36
-            if month > 36:
-                month = 36
-            restricted = month
-
-            def create_package():
-                cls.timer = time.time()
-                package = Package(
-                    package_id=utils.create_uuid(),
-                    upload_id=upload_id,
-                    upload_path=upload_path,
-                    restricted=restricted,
-                    size=0)
-                return package
-
-            def save_package(package):
-                if len(package.filenames) == 0:
-                    return
-
-                if package.size > max_package_size:
-                    # a single directory seems to big for a package
-                    logger.error(
-                        'directory exceeds max package size', directory=upload_path, size=package.size)
-
-                package.save()
-                logger.info(
-                    'created package',
-                    size=package.size,
-                    files=len(package.filenames),
-                    package_id=package.package_id,
-                    exec_time=time.time() - cls.timer,
-                    upload_id=package.upload_id)
-
-            package = create_package()
-
-            for root, _, files in os.walk(upload_path):
-                directory_filenames: List[str] = []
-                directory_size = 0
-
-                if len(files) == 0:
+            try:
+                stats = runstats.Statistics()
+                upload_path = os.path.abspath(upload_path)
+                upload_id = os.path.basename(upload_path)
+                if cls.objects(upload_id=upload_id).first() is not None:
+                    logger.info('upload already exists, skip', upload_id=upload_id)
                     continue
 
-                for file in files:
-                    filepath = os.path.join(root, file)
-                    filename = filepath[len(upload_path) + 1:]
-                    directory_filenames.append(filename)
-                    # getting file stats is pretty expensive with gpfs
-                    # if an upload has more then 1000 files, its pretty likely that
-                    # size patterns repeat ... goood enough
-                    if len(stats) < use_stats_for_filestats_threshold:
-                        filesize = os.path.getsize(filepath)
-                        stats.push(filesize)
-                    else:
-                        filesize = stats.mean()
-                    directory_size += filesize
+                restrict_files = glob.glob(os.path.join(upload_path, 'RESTRICTED_*'))
+                month = 0
+                for restrict_file in restrict_files:
+                    restrict_file = os.path.basename(restrict_file)
+                    try:
+                        new_month = int(restrict_file[len('RESTRICTED_'):])
+                        if new_month > month:
+                            month = new_month
+                    except Exception:
+                        month = 36
+                if month > 36:
+                    month = 36
+                restricted = month
 
-                if (package.size + directory_size) > max_package_size and package.size > 0:
-                    save_package(package)
-                    package = create_package()
+                def create_package():
+                    cls.timer = time.time()
+                    package = Package(
+                        package_id=utils.create_uuid(),
+                        upload_id=upload_id,
+                        upload_path=upload_path,
+                        restricted=restricted,
+                        size=0)
+                    return package
 
-                for filename in directory_filenames:
-                    package.filenames.append(filename)
-                package.size += directory_size
+                def save_package(package):
+                    if len(package.filenames) == 0:
+                        return
 
-                logger.debug('packaged directory', directory=root, size=directory_size)
+                    if package.size > max_package_size:
+                        # a single directory seems to big for a package
+                        logger.error(
+                            'directory exceeds max package size', directory=upload_path, size=package.size)
 
-            save_package(package)
+                    package.save()
+                    logger.info(
+                        'created package',
+                        size=package.size,
+                        files=len(package.filenames),
+                        package_id=package.package_id,
+                        exec_time=time.time() - cls.timer,
+                        upload_id=package.upload_id)
 
-            logger.info('completed upload', directory=upload_path, upload_id=upload_id)
+                package = create_package()
+
+                for root, _, files in os.walk(upload_path):
+                    directory_filenames: List[str] = []
+                    directory_size = 0
+
+                    if len(files) == 0:
+                        continue
+
+                    for file in files:
+                        filepath = os.path.join(root, file)
+                        filename = filepath[len(upload_path) + 1:]
+                        directory_filenames.append(filename)
+                        # getting file stats is pretty expensive with gpfs
+                        # if an upload has more then 1000 files, its pretty likely that
+                        # size patterns repeat ... goood enough
+                        if len(stats) < use_stats_for_filestats_threshold:
+                            filesize = os.path.getsize(filepath)
+                            stats.push(filesize)
+                        else:
+                            filesize = stats.mean()
+                        directory_size += filesize
+
+                    if (package.size + directory_size) > max_package_size and package.size > 0:
+                        save_package(package)
+                        package = create_package()
+
+                    for filename in directory_filenames:
+                        package.filenames.append(filename)
+                    package.size += directory_size
+
+                    logger.debug('packaged directory', directory=root, size=directory_size)
+
+                save_package(package)
+
+                logger.info('completed upload', directory=upload_path, upload_id=upload_id)
+            except Exception as e:
+                logger.error(
+                    'could create packae from upload',
+                    upload_path=upload_path, upload_id=upload_id, exc_info=e)
+                continue
 
 
 class SourceCalc(Document):
