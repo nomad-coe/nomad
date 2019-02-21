@@ -31,6 +31,7 @@ import time
 from bravado.exception import HTTPNotFound, HTTPBadRequest
 import glob
 import os
+import runstats
 
 from nomad import utils, infrastructure
 from nomad.coe_repo import User, Calc, LoginException
@@ -43,6 +44,7 @@ default_pid_prefix = 7000000
 
 max_package_size = 16 * 1024 * 1024 * 1024  # 16 GB
 """ The maximum size of a package that will be used as an upload on nomad@FAIRDI """
+use_stats_for_filestats_threshold = 1024
 
 
 class Package(Document):
@@ -69,18 +71,6 @@ class Package(Document):
 
     meta = dict(indexes=['upload_id'])
 
-    @staticmethod
-    def walk(directory):
-        """ Similar to os.walk, but hopefully faster. """
-        files: List[os.DirEntry] = []
-        for entry in os.scandir(directory):
-            if entry.is_dir():
-                yield from Package.walk(entry.path)
-            else:
-                files.append(entry)
-
-        yield directory, files
-
     @classmethod
     def index(cls, *upload_paths):
         """
@@ -91,6 +81,7 @@ class Package(Document):
         logger = utils.get_logger(__name__)
 
         for upload_path in upload_paths:
+            stats = runstats.Statistics()
             upload_path = os.path.abspath(upload_path)
             upload_id = os.path.basename(upload_path)
             if cls.objects(upload_id=upload_id).first() is not None:
@@ -142,18 +133,26 @@ class Package(Document):
 
             package = create_package()
 
-            for root, files in Package.walk(upload_path):
+            for root, _, files in os.walk(upload_path):
                 directory_filenames: List[str] = []
                 directory_size = 0
 
                 if len(files) == 0:
                     continue
 
-                for file_object in files:
-                    filepath = os.path.join(root, file_object.name)
+                for file in files:
+                    filepath = os.path.join(root, file)
                     filename = filepath[len(upload_path) + 1:]
                     directory_filenames.append(filename)
-                    directory_size += file_object.stat().st_size
+                    # getting file stats is pretty expensive with gpfs
+                    # if an upload has more then 1000 files, its pretty likely that
+                    # size patterns repeat ... goood enough
+                    if stats._count < use_stats_for_filestats_threshold:
+                        filesize = os.path.getsize(filepath)
+                        stats.push(filesize)
+                    else:
+                        filesize = stats.mean()
+                    directory_size += filesize
 
                 if (package.size + directory_size) > max_package_size and package.size > 0:
                     save_package(package)
