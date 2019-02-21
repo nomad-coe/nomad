@@ -85,9 +85,8 @@ class Package(Document):
             upload_path = os.path.abspath(upload_path)
             upload_id = os.path.basename(upload_path)
             if cls.objects(upload_id=upload_id).first() is not None:
-                logger.info('upload already exists, deleting existing', upload_id=upload_id)
-                cls.objects(upload_id=upload_id).delete()
-                return
+                logger.info('upload already exists, skip', upload_id=upload_id)
+                continue
 
             restrict_files = glob.glob(os.path.join(upload_path, 'RESTRICTED_*'))
             month = 0
@@ -147,7 +146,7 @@ class Package(Document):
                     # getting file stats is pretty expensive with gpfs
                     # if an upload has more then 1000 files, its pretty likely that
                     # size patterns repeat ... goood enough
-                    if stats._count < use_stats_for_filestats_threshold:
+                    if len(stats) < use_stats_for_filestats_threshold:
                         filesize = os.path.getsize(filepath)
                         stats.push(filesize)
                     else:

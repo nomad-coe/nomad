@@ -42,6 +42,7 @@ bravado
 PyJWT
 jsonschema[format]
 python-magic
+runstats
 
 # dev/ops related
 setuptools
