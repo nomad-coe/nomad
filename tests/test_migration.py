@@ -17,10 +17,11 @@ import os
 import os.path
 from bravado.client import SwaggerClient
 import json
+import glob
 
 from nomad import infrastructure, coe_repo
 
-from nomad.migration import NomadCOEMigration, SourceCalc
+from nomad.migration import NomadCOEMigration, SourceCalc, Package
 from nomad.infrastructure import repository_db_connection
 
 from tests.conftest import create_postgres_infra, create_auth_headers
@@ -81,6 +82,26 @@ def target_repo(postgres):
 def migration(source_repo, target_repo):
     migration = NomadCOEMigration(sites=['tests/data/migration'])
     yield migration
+
+
+@pytest.fixture(scope='function')
+def source_package(mongo, migration):
+    migration.package(*glob.glob('tests/data/migration/*'))
+
+
+@pytest.mark.parametrize('n_packages, restriction, upload', [
+    (1, 36, 'baseline'), (2, 0, 'too_big'), (1, 24, 'restriction')])
+def test_package(mongo, migration, monkeypatch, n_packages, restriction, upload):
+    Package.objects().delete()  # the mongo fixture drops the db, but we still get old results, probably mongoengine caching
+    monkeypatch.setattr('nomad.migration.max_package_size', 3)
+    migration.package(*glob.glob(os.path.join('tests/data/migration/packaging', upload)))
+    packages = Package.objects()
+    for package in packages:
+        assert len(package.files) > 0
+        assert package.size > 0
+        assert package.restricted == restriction
+
+    assert packages.count() == n_packages
 
 
 def perform_index(migration, has_indexed, with_metadata, **kwargs):
@@ -171,7 +192,7 @@ mirgation_test_specs = [
 @pytest.mark.parametrize('test, assertions', mirgation_test_specs)
 @pytest.mark.timeout(30)
 def test_migrate(migrate_infra, test, assertions, caplog):
-    uploads_path = os.path.join('tests', 'data', 'migration', test)
+    uploads_path = os.path.join('tests/data/migration', test)
     reports = list(migrate_infra.migrate(
         *[os.path.join(uploads_path, dir) for dir in os.listdir(uploads_path)], prefix=7000000))
 
