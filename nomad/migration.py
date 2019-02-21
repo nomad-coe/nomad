@@ -25,7 +25,7 @@ import os.path
 import zipstream
 import zipfile
 import math
-from mongoengine import Document, IntField, StringField, DictField, EmbeddedDocument, EmbeddedDocumentListField
+from mongoengine import Document, IntField, StringField, DictField, ListField
 from werkzeug.contrib.iterio import IterIO
 import time
 from bravado.exception import HTTPNotFound, HTTPBadRequest
@@ -44,15 +44,6 @@ max_package_size = 32 * 1024 * 1024 * 1024  # 32 GB
 """ The maximum size of a package that will be used as an upload on nomad@FAIRDI """
 
 
-class File(EmbeddedDocument):
-    filename = StringField()
-    """ The package relative filename """
-    filepath = StringField()
-    """ The full fs path """
-    size = IntField()
-    """ The file size """
-
-
 class Package(Document):
     """
     A Package represents split origin NOMAD CoE uploads. We use packages as uploads
@@ -64,7 +55,10 @@ class Package(Document):
 
     package_id = StringField(primary_key=True)
     """ A random UUID for the package. Could serve later is target upload id."""
-    files = EmbeddedDocumentListField(File)
+    filenames = ListField(StringField(), default=[])
+    """ The files in the package relative to the upload path """
+    upload_path = StringField()
+    """ The absolute path of the source upload """
     upload_id = StringField()
     """ The source upload_id. There might be multiple packages per upload (this is the point). """
     restricted = IntField()
@@ -109,12 +103,13 @@ class Package(Document):
                 package = Package(
                     package_id=utils.create_uuid(),
                     upload_id=upload_id,
+                    upload_path=upload_path,
                     restricted=restricted,
                     size=0)
                 return package
 
             def save_package(package):
-                if len(package.files) == 0:
+                if len(package.filenames) == 0:
                     return
 
                 if package.size > max_package_size:
@@ -127,7 +122,7 @@ class Package(Document):
             package = create_package()
 
             for root, _, files in os.walk(upload_path, followlinks=True):
-                directory_file_objects: List[File] = []
+                directory_filenames: List[str] = []
                 directory_size = 0
 
                 if len(files) == 0:
@@ -135,20 +130,16 @@ class Package(Document):
 
                 for file in files:
                     filepath = os.path.join(root, file)
-                    file_object = File(
-                        filepath=filepath,
-                        filename=filepath[len(upload_path) + 1:],
-                        size=os.path.getsize(filepath))
-                    directory_size += file_object.size
-                    directory_file_objects.append(file_object)
+                    filename = filepath[len(upload_path) + 1:]
+                    directory_filenames.append(filename)
+                    directory_size += os.path.getsize(filepath)
 
                 if (package.size + directory_size) > max_package_size and package.size > 0:
                     save_package(package)
                     package = create_package()
 
-                for file_object in directory_file_objects:
-                    package.files.append(file_object)
-                    package.size += directory_size
+                package.filenames = directory_filenames
+                package.size += directory_size
 
             save_package(package)
 

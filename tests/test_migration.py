@@ -97,7 +97,7 @@ def test_package(mongo, migration, monkeypatch, n_packages, restriction, upload)
     migration.package(*glob.glob(os.path.join('tests/data/migration/packaging', upload)))
     packages = Package.objects()
     for package in packages:
-        assert len(package.files) > 0
+        assert len(package.filenames) > 0
         assert package.size > 0
         assert package.restricted == restriction
 
