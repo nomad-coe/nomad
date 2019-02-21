@@ -67,6 +67,16 @@ def index(drop, with_metadata, per_query):
     print('done')
 
 
+@migration.command(help='Add an upload folder to the package index.')
+@click.argument('upload-paths', nargs=-1)
+def package(upload_paths):
+    infrastructure.setup_logging()
+    infrastructure.setup_mongo()
+
+    migration = NomadCOEMigration()
+    migration.package(*upload_paths)
+
+
 @migration.command(help='Copy users from source into empty target db')
 def copy_users(**kwargs):
     _setup()

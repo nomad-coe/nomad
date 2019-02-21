@@ -252,10 +252,17 @@ def aggregate_search(
             raise KeyError('Unknown quantity %s' % key)
 
         if isinstance(value, list):
-            for item in value:
-                search = search.query(Q(query_type, **{field: item}))
+            values = value
         else:
-            search = search.query(Q(query_type, **{field: value}))
+            values = [value]
+
+        for item in values:
+            if key == 'atoms':
+                items = item.split(',')
+            else:
+                items = [item]
+            for item in items:
+                search = search.query(Q(query_type, **{field: item}))
 
     for aggregation, size in aggregations.items():
         if aggregation == 'authors':

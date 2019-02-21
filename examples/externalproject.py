@@ -48,7 +48,7 @@ client.uploads.exec_upload_operation(upload_id=upload.upload_id, payload={
         # 'coauthors': ['sheldon.cooper@ucla.edu'],  this does not yet work with emails
         # 'external_id': 'external_id'  this does also not work, but we could implement something like this
     }
-})
+}).response().result
 while upload.process_running:
     try:
         upload = client.uploads.get_upload(upload_id=upload.upload_id).response().result
@@ -68,10 +68,8 @@ elif result.pagination.total > 1:
 calc = result.results[0]
 
 # download data
-#   via api
 client.raw.get(upload_id=calc['upload_id'], path=calc['mainfile']).response()
-#   via download
-#   just the 'mainfile'
-url = '%s/raw/%s/%s' % (nomad_url, calc['upload_id'], calc['mainfile'])
-#   all files
-url = '%s/raw/%s/%s/*' % (nomad_url, calc['upload_id'], os.path.dirname(calc['mainfile']))
+
+# download urls, e.g. for curl
+print('%s/raw/%s/%s' % (nomad_url, calc['upload_id'], calc['mainfile']))
+print('%s/raw/%s/%s/*' % (nomad_url, calc['upload_id'], os.path.dirname(calc['mainfile'])))

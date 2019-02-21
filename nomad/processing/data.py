@@ -24,11 +24,12 @@ calculations, and files
     :members:
 """
 
-from typing import List, Any, ContextManager, Tuple, Generator
+from typing import List, Any, ContextManager, Tuple, Generator, Dict
 from mongoengine import StringField, DateTimeField, DictField
 import logging
 from structlog import wrap_logger
 from contextlib import contextmanager
+import os.path
 
 from nomad import utils, coe_repo, config, infrastructure, search
 from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles
@@ -395,6 +396,10 @@ class Upload(Proc):
             with utils.timer(
                     logger, 'staged upload files packed', step='publish',
                     upload_size=self.upload_files.size):
+                for calc_metadata in upload_with_metadata.calcs:
+                    calc_metadata.published = True
+                    self.upload_files.metadata.update(
+                        calc_id=calc_metadata.calc_id, updates=calc_metadata.to_dict())
                 self.upload_files.pack()
 
             with utils.timer(
@@ -457,10 +462,21 @@ class Upload(Proc):
         Returns:
             Tuples of mainfile, filename, and parsers
         """
+        directories_with_match: Dict[str, str] = dict()
         for filename in self.upload_files.raw_file_manifest():
             try:
                 parser = match_parser(filename, self.upload_files)
                 if parser is not None:
+                    directory = os.path.dirname(filename)
+                    # TODO this might give us the chance to store directory based relationship
+                    # between calcs for the future?
+                    if directory in directories_with_match:
+                        self.info.append(
+                            'The directory %s contains data from multiple code runs. '
+                            'Nomad only processed %s.' % (directory, os.path.basename(filename)))
+                    else:
+                        directories_with_match[directory] = filename
+
                     yield filename, parser
             except Exception as e:
                 self.get_logger().error(

@@ -25,10 +25,11 @@ import os.path
 import zipstream
 import zipfile
 import math
-from mongoengine import Document, IntField, StringField, DictField
+from mongoengine import Document, IntField, StringField, DictField, EmbeddedDocument, EmbeddedDocumentListField
 from werkzeug.contrib.iterio import IterIO
 import time
 from bravado.exception import HTTPNotFound, HTTPBadRequest
+import glob
 
 from nomad import utils, infrastructure
 from nomad.coe_repo import User, Calc, LoginException
@@ -37,7 +38,119 @@ from nomad.processing import FAILURE, SUCCESS
 
 
 default_pid_prefix = 7000000
-""" The default pid prefix for new non migrated calcualtions """
+""" The default pid prefix for new non migrated calculations """
+
+max_package_size = 32 * 1024 * 1024 * 1024  # 32 GB
+""" The maximum size of a package that will be used as an upload on nomad@FAIRDI """
+
+
+class File(EmbeddedDocument):
+    filename = StringField()
+    """ The package relative filename """
+    filepath = StringField()
+    """ The full fs path """
+    size = IntField()
+    """ The file size """
+
+
+class Package(Document):
+    """
+    A Package represents split origin NOMAD CoE uploads. We use packages as uploads
+    in nomad@FAIRDI. Some of the uploads in nomad are very big (alfow lib) and need
+    to be split down to yield practical (i.e. for mirrors) upload sizes. Therefore,
+    uploads are split over multiple packages if one upload gets to large. A package
+    always contains full directories of files to preserve *mainfile* *aux* file relations.
+    """
+
+    package_id = StringField(primary_key=True)
+    """ A random UUID for the package. Could serve later is target upload id."""
+    files = EmbeddedDocumentListField(File)
+    upload_id = StringField()
+    """ The source upload_id. There might be multiple packages per upload (this is the point). """
+    restricted = IntField()
+    """ The restricted in month, 0 for unrestricted """
+    size = IntField()
+    """ The sum of all file sizes """
+
+    meta = dict(indexes=['upload_id'])
+
+    @classmethod
+    def index(cls, *upload_paths):
+        """
+        Creates Package objects for the given uploads in nomad. The given uploads are
+        supposed to be path to the extracted upload directories. If the upload is already
+        in the db, the upload is skipped entirely.
+        """
+        logger = utils.get_logger(__name__)
+
+        for upload_path in upload_paths:
+            upload_path = os.path.abspath(upload_path)
+            upload_id = os.path.basename(upload_path)
+            if cls.objects(upload_id=upload_id).first() is not None:
+                logger.info('upload already exists, deleting existing', upload_id=upload_id)
+                cls.objects(upload_id=upload_id).delete()
+                return
+
+            restrict_files = glob.glob(os.path.join(upload_path, 'RESTRICTED_*'))
+            month = 0
+            for restrict_file in restrict_files:
+                restrict_file = os.path.basename(restrict_file)
+                try:
+                    new_month = int(restrict_file[len('RESTRICTED_'):])
+                    if new_month > month:
+                        month = new_month
+                except Exception:
+                    month = 36
+            if month > 36:
+                month = 36
+            restricted = month
+
+            def create_package():
+                package = Package(
+                    package_id=utils.create_uuid(),
+                    upload_id=upload_id,
+                    restricted=restricted,
+                    size=0)
+                return package
+
+            def save_package(package):
+                if len(package.files) == 0:
+                    return
+
+                if package.size > max_package_size:
+                    # a single directory seems to big for a package
+                    logger.error('directory exceeds max package size', directory=root, size=package.size)
+
+                package.save()
+                logger.info('created package', size=package.size, package_id=package.package_id, upload_id=package.upload_id)
+
+            package = create_package()
+
+            for root, _, files in os.walk(upload_path, followlinks=True):
+                directory_file_objects: List[File] = []
+                directory_size = 0
+
+                if len(files) == 0:
+                    continue
+
+                for file in files:
+                    filepath = os.path.join(root, file)
+                    file_object = File(
+                        filepath=filepath,
+                        filename=filepath[len(upload_path) + 1:],
+                        size=os.path.getsize(filepath))
+                    directory_size += file_object.size
+                    directory_file_objects.append(file_object)
+
+                if (package.size + directory_size) > max_package_size and package.size > 0:
+                    save_package(package)
+                    package = create_package()
+
+                for file_object in directory_file_objects:
+                    package.files.append(file_object)
+                    package.size += directory_size
+
+            save_package(package)
 
 
 class SourceCalc(Document):
@@ -480,3 +593,7 @@ class NomadCOEMigration:
     def index(self, *args, **kwargs):
         """ see :func:`SourceCalc.index` """
         return SourceCalc.index(self.source, *args, **kwargs)
+
+    def package(self, *args, **kwargs):
+        """ see :func:`Package.add` """
+        return Package.index(*args, **kwargs)
