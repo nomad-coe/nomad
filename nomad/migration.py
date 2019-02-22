@@ -379,27 +379,30 @@ class NomadCOEMigration:
 
         is_valid = True
         for key, target_value in repo_calc.items():
-            if key in ['calc_id', 'upload_id', 'files', 'calc_hash']:
+            if key in ['calc_id', 'upload_id', 'files', 'calc_hash', 'formula']:
                 continue
 
             source_value = getattr(source_calc, key, None)
 
-            def report_mismatch():
+            def check_mismatch() -> bool:
+                # some exceptions
+                if source_value == '3d' and target_value == 'bulk':
+                    return True
+
                 logger.info(
                     'source target missmatch', quantity=key,
                     source_value=source_value, target_value=target_value)
+                return False
 
-            if (source_value is None or target_value is None) and source_value != target_value:
-                report_mismatch()
-                is_valid = False
+            if source_value is None and target_value is not None:
+                is_valid &= check_mismatch()
                 continue
 
             if isinstance(target_value, list):
                 source_list = list(self._to_comparable_list(source_value))
                 target_list = list(self._to_comparable_list(target_value))
                 if len(set(source_list).intersection(target_list)) != len(target_list):
-                    report_mismatch()
-                    is_valid = False
+                    is_valid &= check_mismatch()
                 continue
 
             if isinstance(source_value, str):
@@ -407,8 +410,7 @@ class NomadCOEMigration:
                 target_value = str(target_value).lower()
 
             if source_value != target_value:
-                report_mismatch()
-                is_valid = False
+                is_valid &= check_mismatch()
 
         return is_valid
 
@@ -614,8 +616,8 @@ class NomadCOEMigration:
             mainfile=source.mainfile,
             with_embargo=source.with_embargo,
             comment=source.comment,
-            coauthors=list(user['id'] for user in source.coauthors),
-            shared_with=list(user['id'] for user in source.shared_with)
+            coauthors=list(int(user['id']) for user in source.coauthors),
+            shared_with=list(int(user['id']) for user in source.shared_with)
         )
 
     def index(self, *args, **kwargs):

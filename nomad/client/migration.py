@@ -96,4 +96,4 @@ def upload(paths: list, prefix: int, create_packages: bool = False):
     migration = NomadCOEMigration()
     for path in paths:
         for result in migration.migrate(path, prefix=prefix, create_packages=create_packages):
-                logger.info('got migration with result', **result)
+            logger.info('got migration with result', **result)

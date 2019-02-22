@@ -16,7 +16,7 @@ INSERT INTO public.codeversions VALUES (1, 1, '4.6.35');
 -- topcis
 INSERT INTO public.topics VALUES (1, 90, 'tetragonal');
 INSERT INTO public.topics VALUES (2, 220, 'VASP');
-INSERT INTO public.topics VALUES (3, 50, 'bulk');
+INSERT INTO public.topics VALUES (3, 50, '3d');
 INSERT INTO public.topics VALUES (4, 75, 'GGA');
 INSERT INTO public.topics VALUES (5, 80, 'plane waves');
 INSERT INTO public.topics VALUES (6, 10, 'Br');
