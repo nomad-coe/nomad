@@ -8,3 +8,6 @@
 /nomad/repository/data/uploads/ftp_upload_for_uid_487_at_2017_06_27_20_45_44/archive.tar.gz
 # aims
 /nomad/repository/data/uploads/zGbAfPhne9SDmg7Vl207Gw68MxaU6FQtgTlFKAMU/archive.tar.gz
+
+# aims, extracted
+/nomad/repository/data/extracted/0wFKM2jQ7qH4f3moVtW3_LI7bpL-smp9K2oXlQFI

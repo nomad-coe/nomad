@@ -85,13 +85,15 @@ def copy_users(**kwargs):
 
 @migration.command(help='Upload the given upload locations. Uses the existing index to provide user metadata')
 @click.argument('paths', nargs=-1)
+@click.option('--create-packages', help='Allow migration to create package entries on the fly.', is_flag=True)
 @click.option('--prefix', default=None, type=int, help='Set the pid counter to this value. The counter will not be changed if not given.')
-def upload(paths: list, prefix: int):
+def upload(paths: list, prefix: int, create_packages: bool = False):
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
 
     logger = utils.get_logger(__name__)
 
     migration = NomadCOEMigration()
-    for result in migration.migrate(*paths, prefix=prefix):
-        logger.info('got migration with result', **result)
+    for path in paths:
+        for result in migration.migrate(path, prefix=prefix, create_packages=create_packages):
+                logger.info('got migration with result', **result)
