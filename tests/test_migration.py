@@ -18,6 +18,7 @@ import os.path
 from bravado.client import SwaggerClient
 import json
 import glob
+from io import StringIO
 
 from nomad import infrastructure, coe_repo
 
@@ -80,6 +81,7 @@ def target_repo(postgres):
 
 @pytest.fixture(scope='function')
 def migration(source_repo, target_repo):
+    Package.objects().delete()  # the mongo fixture drops the db, but we still get old results, probably mongoengine caching
     migration = NomadCOEMigration(sites=['tests/data/migration'])
     yield migration
 
@@ -92,7 +94,6 @@ def source_package(mongo, migration):
 @pytest.mark.parametrize('n_packages, restriction, upload', [
     (1, 36, 'baseline'), (2, 0, 'too_big'), (1, 24, 'restriction')])
 def test_package(mongo, migration, monkeypatch, n_packages, restriction, upload):
-    Package.objects().delete()  # the mongo fixture drops the db, but we still get old results, probably mongoengine caching
     monkeypatch.setattr('nomad.migration.max_package_size', 3)
     migration.package(*glob.glob(os.path.join('tests/data/migration/packaging', upload)))
     packages = Package.objects()
@@ -178,7 +179,7 @@ def test_copy_users(migrate_infra, target_repo):
 
 mirgation_test_specs = [
     ('baseline', dict(migrated=2, source=2)),
-    ('archive', dict(migrated=2, source=2)),
+    # ('archive', dict(migrated=2, source=2)),
     ('new_upload', dict(new=2)),
     ('new_calc', dict(migrated=2, source=2, new=1)),
     ('missing_calc', dict(migrated=1, source=2, missing=1)),
@@ -191,10 +192,18 @@ mirgation_test_specs = [
 @pytest.mark.filterwarnings("ignore:SAWarning")
 @pytest.mark.parametrize('test, assertions', mirgation_test_specs)
 @pytest.mark.timeout(30)
-def test_migrate(migrate_infra, test, assertions, caplog):
-    uploads_path = os.path.join('tests/data/migration', test)
-    reports = list(migrate_infra.migrate(
-        *[os.path.join(uploads_path, dir) for dir in os.listdir(uploads_path)], prefix=7000000))
+def test_migrate(migrate_infra, test, assertions, monkeypatch, caplog):
+    if test == 'failed_upload':
+        def with_error(*args, **kwargs):
+            return StringIO('hello, this is not a zip')
+
+        monkeypatch.setattr('nomad.migration.Package.open_package_upload_file', with_error)
+
+    upload_path = os.path.join('tests/data/migration', test)
+    upload_path = os.path.join(upload_path, os.listdir(upload_path)[0])
+
+    pid_prefix = 10
+    reports = list(migrate_infra.migrate(upload_path, prefix=pid_prefix, create_packages=True))
 
     assert len(reports) == 1
     report = reports[0]
@@ -235,7 +244,7 @@ def test_migrate(migrate_infra, test, assertions, caplog):
 
     # assert pid prefix of new calcs
     if assertions.get('new', 0) > 0:
-        assert repo_db.query(coe_repo.Calc).get(7000000) is not None
+        assert repo_db.query(coe_repo.Calc).get(pid_prefix) is not None
 
     errors = 0
     for record in caplog.get_records(when='call'):

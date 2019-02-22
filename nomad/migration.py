@@ -20,7 +20,7 @@ other/older nomad@FAIRDI instances to mass upload it to a new nomad@FAIRDI insta
 .. autoclass:: SourceCalc
 """
 
-from typing import Generator, Tuple, List, Iterable, Any
+from typing import Generator, Tuple, List, Iterable, Any, IO
 import os.path
 import zipstream
 import zipfile
@@ -70,6 +70,18 @@ class Package(Document):
     """ The sum of all file sizes """
 
     meta = dict(indexes=['upload_id'])
+
+    def open_package_upload_file(self) -> IO:
+        """
+        Creates a streaming zip file from the files of this package.
+        """
+        zip_file = zipstream.ZipFile()
+
+        for filename in self.filenames:
+            filepath = os.path.join(self.upload_path, filename)
+            zip_file.write(filepath, filename, zipfile.ZIP_DEFLATED)
+
+        return IterIO(zip_file)  # type: ignore
 
     @classmethod
     def index(cls, *upload_paths):
@@ -400,14 +412,58 @@ class NomadCOEMigration:
 
         return is_valid
 
-    def migrate(self, *args, prefix: int = default_pid_prefix):
+    def _open_packages(
+            self, source_upload_path: str,
+            create: bool = False) -> Iterable[Tuple[str, str, IO]]:
+
+        logger = self.logger.bind(source_upload_path=source_upload_path)
+
+        if os.path.isfile(source_upload_path):
+            # assume its a path to an archive files
+            logger.error('currently no support for migrating archive files')
+            return
+
+        source_upload_id = os.path.basename(source_upload_path)
+        logger = logger.bind(source_upload_id=source_upload_id)
+
+        package_query = Package.objects(upload_id=source_upload_id)
+
+        if package_query.count() == 0:
+            if create:
+                Package.index(source_upload_path)
+                package_query = Package.objects(upload_id=source_upload_id)
+                if package_query.count() == 0:
+                    logger.error('no package exists, even after indexing')
+                    return
+            else:
+                logger.error('no package exists for upload')
+                return
+
+        logger.debug('identified packages for source upload', n_packages=package_query.count())
+        for package in package_query:
+            package_id = package.package_id
+            try:
+                upload_f = package.open_package_upload_file()
+            except Exception as e:
+                logger.error(
+                    'could not open package for upload, skipping',
+                    package_id=package_id, exc_info=e)
+                continue
+
+            logger.debug('opened package for upload', package_id=package_id)
+            yield package_id, source_upload_id, upload_f
+
+    def migrate(
+            self, upload_path, prefix: int = default_pid_prefix,
+            create_packages: bool = False):
         """
         Migrate the given uploads.
 
-        It takes upload 'id's as args. Alternatively takes absolute paths to uploads.
-        It tries to be as flexible as possible with those 'id's: looking at all
-        configured sites, dealing with extracted and tarred/zipped uploads, dealing
-        with paths to files and directories.
+        It takes paths to extracted uploads as arguments.
+
+        Requires :class:`Package` instances for the given upload paths. Those will
+        be created, if they do not already exists. The packages determine the uploads
+        for the target infrastructure.
 
         Requires a build :func:`index` to look for existing data in the source db. This
         will be used to add user (and other, PID, ...) metadata and validate calculations.
@@ -416,7 +472,10 @@ class NomadCOEMigration:
         unknown uploads. New PIDs will be choosed from a `prefix++` range of ints.
 
         Arguments:
+            upload_path: A filepath to the upload directory.
             prefix: The PID prefix that should be used for new non migrated calcualtions.
+            create_packages: If True, will create non existing packages.
+                Will skip with errors otherwise.
 
         Returns: Yields a dictionary with status and statistics for each given upload.
         """
@@ -424,70 +483,18 @@ class NomadCOEMigration:
             self.logger.info('set pid prefix', pid_prefix=prefix)
             self.client.admin.exec_pidprefix_command(payload=dict(prefix=prefix)).response()
 
-        upload_specs = args
-        for upload_spec in upload_specs:
-            # identify upload
-            upload_path = None
-            abs_upload_path = os.path.abspath(upload_spec)
-            if os.path.exists(abs_upload_path):
-                upload_path = upload_spec
-            else:
-                for site in self.sites:
-                    potential_upload_path = os.path.join(site, upload_spec)
-                    if os.path.exists(potential_upload_path):
-                        upload_path = potential_upload_path
-                        break
+        for package_id, source_upload_id, upload_f in self._open_packages(
+                upload_path, create=create_packages):
 
-            if upload_path is None:
-                error = 'upload does not exist'
-                self.logger.error(error, upload_spec=upload_spec)
-                yield dict(status=FAILURE, error=error)
-                continue
-
-            logger = self.logger.bind(upload_path=upload_path)
-            logger.debug('upload path determined')
-
-            # prepare the upload by determining/creating an upload file, name, source upload id
-            if os.path.isfile(upload_path):
-                local_path = upload_path
-                # upload_archive_f = open(upload_path, 'rb')
-                source_upload_id = os.path.split(os.path.split(upload_path)[0])[1]
-                upload_name = os.path.basename(upload_path)
-            else:
-                potential_upload_archive = os.path.join(
-                    upload_path, NomadCOEMigration.archive_filename)
-                if os.path.isfile(potential_upload_archive):
-                    local_path = potential_upload_archive
-                    # upload_archive_f = open(potential_upload_archive, 'rb')
-                    source_upload_id = os.path.split(os.path.split(potential_upload_archive)[0])[1]
-                    upload_name = os.path.basename(potential_upload_archive)
-                else:
-                    source_upload_id = os.path.split(upload_path)[1]
-                    zip_file = zipstream.ZipFile()
-                    path_prefix = len(upload_path) + 1
-                    for root, _, files in os.walk(upload_path):
-                        for file in files:
-                            zip_file.write(
-                                os.path.join(root, file),
-                                os.path.join(root[path_prefix:], file),
-                                zipfile.ZIP_DEFLATED)
-                    zip_file.write(upload_path)
-                    local_path = None
-                    upload_archive_f = IterIO(zip_file)  # type: ignore
-                    upload_name = '%s.zip' % source_upload_id
-            logger.debug('upload archive file determined', upload_archive_file=upload_name)
+            logger = self.logger.bind(
+                package_id=package_id, source_upload_id=source_upload_id, upload_path=upload_path)
 
             # upload and process the upload file
-            if local_path is None:
-                assert upload_archive_f is not None
-                upload = self.client.uploads.upload(
-                    file=upload_archive_f, name=upload_name).response().result
-            else:
-                upload = self.client.uploads.upload(
-                    name=upload_name, local_path=local_path).response().result
-            logger.debug(
-                'upload archive file uploaded',
-                upload_archive_file=upload_name, local_path=local_path)
+            assert upload_f is not None
+            upload = self.client.uploads.upload(
+                file=upload_f, name=package_id).response().result
+
+            logger.debug('upload archive file uploaded')
 
             logger = logger.bind(
                 source_upload_id=source_upload_id, upload_id=upload.upload_id)
