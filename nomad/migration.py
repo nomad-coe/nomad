@@ -395,8 +395,10 @@ class NomadCOEMigration:
                 return False
 
             if source_value is None and target_value is not None:
-                is_valid &= check_mismatch()
                 continue
+
+            if target_value is None and source_value is not None:
+                is_valid &= check_mismatch()
 
             if isinstance(target_value, list):
                 source_list = list(self._to_comparable_list(source_value))
