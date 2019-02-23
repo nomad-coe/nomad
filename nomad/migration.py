@@ -23,7 +23,6 @@ other/older nomad@FAIRDI instances to mass upload it to a new nomad@FAIRDI insta
 from typing import Generator, Tuple, List, Iterable, Any, IO
 import os.path
 import zipstream
-import zipfile
 import math
 from mongoengine import Document, IntField, StringField, DictField, ListField
 from werkzeug.contrib.iterio import IterIO
@@ -75,11 +74,11 @@ class Package(Document):
         """
         Creates a streaming zip file from the files of this package.
         """
-        zip_file = zipstream.ZipFile()
+        zip_file = zipstream.ZipFile(compression=zipstream.ZIP_STORED, allowZip64=True)
 
         for filename in self.filenames:
             filepath = os.path.join(self.upload_path, filename)
-            zip_file.write(filepath, filename, zipfile.ZIP_DEFLATED)
+            zip_file.write(filepath, filename)
 
         return IterIO(zip_file)  # type: ignore
 
