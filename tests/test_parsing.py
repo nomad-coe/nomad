@@ -41,14 +41,17 @@ parser_examples = [
     ('parsers/wien2k', 'tests/data/parsers/wien2k/AlN/AlN_ZB.scf'),
     # ('parsers/band', 'tests/data/parsers/band_adf.out'),  # causes spglib to segfault
     ('parsers/gaussian', 'tests/data/parsers/gaussian/aniline.out'),
-    ('parsers/quantumespresso', 'tests/data/parsers/quantum-espresso/benchmark.out')
+    ('parsers/abinit', 'tests/data/parsers/abinit/Fe.out'),
+    ('parsers/quantumespresso', 'tests/data/parsers/quantum-espresso/benchmark.out'),
+    ('parsers/orca', 'tests/data/parsers/orca/orca3dot2706823.out'),
+    ('parsers/castep', 'tests/data/parsers/castep/BC2N-Pmm2-Raman.castep')
 ]
 
 faulty_unknown_one_d_matid_example = [
     ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
 ]
 
-correct_num_output_files = 19
+correct_num_output_files = 22
 
 
 class TestLocalBackend(object):

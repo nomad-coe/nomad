@@ -255,8 +255,29 @@ parsers = [
             r'^\s*Program (\S+)\s+v\.(\S+)(?:\s+\(svn\s+rev\.\s+'
             r'(\d+)\s*\))?\s+starts[^\n]+'
             r'(?:\s*\n?)*This program is part of the open-source Quantum')
+    ),
+    LegacyParser(
+        name='parsers/abinit',
+        parser_class_name='abinitparser.AbinitParser',
+        mainfile_contents_re=(r'^\n\.Version\s*[0-9.]*\s*of ABINIT\s*')
+    ),
+    LegacyParser(
+        name='parsers/orca',
+        parser_class_name='orcaparser.OrcaParser',
+        mainfile_contents_re=(
+            r'\s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
+            r'\s+\* O   R   C   A \*\s*'
+            r'\s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
+            r'\s*'
+            r'\s*--- An Ab Initio, DFT and Semiempirical electronic structure package ---\s*')
+    ),
+    LegacyParser(
+        name='parsers/castep',
+        parser_class_name='castepparser.CastepParser',
+        mainfile_contents_re=(r'\s\|\s*CCC\s*AA\s*SSS\s*TTTTT\s*EEEEE\s*PPPP\s*\|\s*')
     )
 ]
+
 
 """ Instanciation and constructor based config of all parsers. """
 

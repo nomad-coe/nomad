@@ -138,16 +138,35 @@
       ]
     },
     {
-      "name": "Python: Quantum Espresso",
+      "name": "Quantum Espresso Normalizer",
       "type": "python",
       "request": "launch",
       "cwd": "${workspaceFolder}",
       "program": "${workspaceFolder}/.pyenv/bin/pytest",
       "args": [
-        "-sv", "tests/test_parsing.py::test_parser[parsers/quantumespresso-tests/data/parsers/quantum-espresso/W.out]"
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/quantumespresso-tests/data/parsers/quantum-espresso/W.out]"
       ]
     },
-
+    {
+      "name": "Abinit Normalizer",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/abinit-tests/data/parsers/abinit/Fe.out]"
+      ]
+    },
+    {
+      "name": "Castep Normalizer",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/castep-tests/data/parsers/castep/BC2N-Pmm2-Raman.castep]"
+      ]
+    },
     {
       "name": "Python: Current File",
       "type": "python",
