@@ -259,7 +259,7 @@ class SystemNormalizer(SystemBasedNormalizer):
             matid_system_type = classifier.classify(self.atoms)
         except Exception:
             self.logger.error(
-                'The matid project clsasification fails on the ASE'
+                'The matid project classification fails on the ASE'
                 ' object from this section.'
             )
             return None  # Without saving any system type value.

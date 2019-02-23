@@ -43,7 +43,7 @@ parser_examples = [
     ('parsers/gaussian', 'tests/data/parsers/gaussian/aniline.out'),
     ('parsers/abinit', 'tests/data/parsers/abinit/Fe.out'),
     ('parsers/quantumespresso', 'tests/data/parsers/quantum-espresso/benchmark.out'),
-    ('parsers/orca', 'tests/data/parsers/orca/orca3dot2706823.out'),
+    # ('parsers/orca', 'tests/data/parsers/orca/orca3dot2706823.out'),
     ('parsers/castep', 'tests/data/parsers/castep/BC2N-Pmm2-Raman.castep')
 ]
 
