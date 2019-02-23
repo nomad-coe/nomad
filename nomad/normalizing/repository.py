@@ -52,7 +52,7 @@ class RepositoryNormalizer(Normalizer):
         else:
             return match.group(0)
 
-    def get_optional_value(self, key, section, unavailable_value = None):
+    def get_optional_value(self, key, section, unavailable_value=None):
         # Section is section_system, section_symmetry, etc...
         val = None  # Initialize to None, so we can compare section values.
         diff_flag = False  # Flag to store whether vals differ between sections.
