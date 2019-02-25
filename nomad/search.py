@@ -215,7 +215,10 @@ search_quantities = {
         'Search for elements in one of the file paths. The paths are split at all "/".')),
 
     'files': ('term', 'files.keyword', 'Search for exact file name with full path.'),
-    'quantities': ('term', 'quantities', 'Search for the existence of a certain meta-info quantity')
+    'quantities': ('term', 'quantities', 'Search for the existence of a certain meta-info quantity'),
+    'upload_id': ('term', 'upload_id', 'Search for the upload_id.'),
+    'calc_id': ('term', 'calc_id', 'Search for the calc_id.'),
+    'mainfile': ('term', 'mainfile', 'Search for the mainfile.')
 }
 """
 The available search quantities in :func:`aggregate_search` as tuples with *search type*,

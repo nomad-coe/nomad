@@ -193,7 +193,6 @@ class UploadListResource(Resource):
                 try:
                     with open(upload_files.upload_file_os_path, 'wb') as f:
                         while not request.stream.is_exhausted:
-                            print(io.DEFAULT_BUFFER_SIZE)
                             f.write(request.stream.read(io.DEFAULT_BUFFER_SIZE))
 
                 except Exception as e:

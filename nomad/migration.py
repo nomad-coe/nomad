@@ -399,7 +399,7 @@ class NomadCOEMigration:
             else:
                 yield item
 
-    def _validate(self, upload_id: str, calc_id: str, source_calc: CalcWithMetadata, logger) -> bool:
+    def _validate(self, repo_calc: dict, source_calc: CalcWithMetadata, logger) -> bool:
         """
         Validates the given processed calculation, assuming that the data in the given
         source_calc is correct.
@@ -407,12 +407,13 @@ class NomadCOEMigration:
         Returns:
             False, if the calculation differs from the source calc.
         """
-        repo_calc = self.client.repo.get_repo_calc(
-            upload_id=upload_id, calc_id=calc_id).response().result
+        keys_to_validate = [
+            'atoms', 'basis_set', 'xc_functional', 'system', 'crystal_system',
+            'spacegroup', 'code_name', 'code_version']
 
         is_valid = True
         for key, target_value in repo_calc.items():
-            if key in ['calc_id', 'upload_id', 'files', 'calc_hash', 'formula']:
+            if key not in keys_to_validate:
                 continue
 
             source_value = getattr(source_calc, key, None)
@@ -579,10 +580,11 @@ class NomadCOEMigration:
             else:
                 report.total_calcs = upload.calcs.pagination.total
 
-            # verify upload
-            for page in range(1, math.ceil(report.total_calcs / 100) + 1):
+            # verify upload: check for processing errors
+            per_page = 200
+            for page in range(1, math.ceil(report.total_calcs / per_page) + 1):
                 upload = self.client.uploads.get_upload(
-                    upload_id=upload.upload_id, per_page=100, page=page,
+                    upload_id=upload.upload_id, per_page=per_page, page=page,
                     order_by='mainfile').response().result
 
                 for calc_proc in upload.calcs.results:
@@ -600,14 +602,22 @@ class NomadCOEMigration:
                             source_calc.__migrated = True
                             report.migrated_calcs += 1
 
-                        if not self._validate(
-                                upload.upload_id, calc_proc.calc_id, source_calc, calc_logger):
-                            report.calcs_with_diffs += 1
                     else:
                         report.failed_calcs += 1
                         calc_logger.error(
                             'could not process a calc', process_errors=calc_proc.errors)
                         continue
+
+            # very upload: calc data
+            for page in range(1, math.ceil(report.total_calcs / per_page) + 1):
+                search = self.client.repo.search(
+                    page=page, per_page=per_page, upload_id=upload.upload_id,
+                    order_by='mainfile').response().result
+                for calc in search.results:
+                    source_calc = metadata_dict.get(calc_proc.mainfile, None)
+                    calc_logger = logger.bind(calc_id=calc['calc_id'], mainfile=calc['mainfile'])
+                    if not self._validate(calc, source_calc, calc_logger):
+                        report.calcs_with_diffs += 1
 
             for source_calc in upload_metadata_calcs:
                 if source_calc.__migrated is False:
