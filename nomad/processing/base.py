@@ -282,7 +282,7 @@ class Proc(Document, metaclass=ProcMetaclass):
         Reloads the process constantly until it sees a completed process. Should be
         used with care as it can block indefinitely. Just intended for testing purposes.
         """
-        while self.tasks_running:
+        while self.tasks_running or self.process_running:
             time.sleep(interval)
             self.reload()
 
