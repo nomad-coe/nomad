@@ -157,8 +157,13 @@ class Calc(Proc):
         parser = parser_dict[self.parser]
 
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
-            self._parser_backend = parser.run(
-                self.upload_files.raw_file_object(self.mainfile).os_path, logger=logger)
+            try:
+                self._parser_backend = parser.run(
+                    self.upload_files.raw_file_object(self.mainfile).os_path, logger=logger)
+            except Exception as e:
+                self.fail(
+                    'parser failed with exception', level=logging.ERROR,
+                    exc_info=e, error=str(e), **context)
 
         self._parser_backend.openNonOverlappingSection('section_calculation_info')
         self._parser_backend.addValue('upload_id', self.upload_id)
@@ -171,7 +176,7 @@ class Calc(Proc):
             logger.error(self._parser_backend.status[1])
             error = self._parser_backend.status[1]
             self._parser_backend.addValue('parse_status', 'ParseFailure')
-            self.fail(error, level=logging.DEBUG, **context)
+            self.fail(error, level=logging.INFO, **context)
         else:
             self._parser_backend.addValue('parse_status', 'ParseSuccess')
 
@@ -221,13 +226,19 @@ class Calc(Proc):
             with utils.timer(
                     logger, 'normalizer executed', input_size=self.mainfile_file.size):
                 with self.use_parser_backend(normalizer_name) as backend:
-                    normalizer(backend).normalize(logger=logger)
+                    try:
+                        normalizer(backend).normalize(logger=logger)
+                    except Exception as e:
+                        self.fail(
+                            'normalizer failed with exception', level=logging.ERROR,
+                            exc_info=e, error=str(e), **context)
+                        self._parser_backend.status = ['ParseFailure', str(e)]
 
             failed = self._parser_backend.status[0] != 'ParseSuccess'
             if failed:
                 logger.error(self._parser_backend.status[1])
                 error = self._parser_backend.status[1]
-                self.fail(error, level=logging.WARNING, **context)
+                self.fail(error, level=logging.WARNING, error=error, **context)
                 break
             else:
                 logger.debug(
