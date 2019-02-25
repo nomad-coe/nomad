@@ -164,6 +164,7 @@ class Calc(Proc):
                 self.fail(
                     'parser failed with exception', level=logging.ERROR,
                     exc_info=e, error=str(e), **context)
+                return
 
         self._parser_backend.openNonOverlappingSection('section_calculation_info')
         self._parser_backend.addValue('upload_id', self.upload_id)
@@ -335,7 +336,7 @@ class Upload(Proc):
 
     def get_logger(self, **kwargs):
         logger = super().get_logger()
-        logger = logger.bind(upload_id=self.upload_id, **kwargs)
+        logger = logger.bind(upload_id=self.upload_id, upload_name=self.name, **kwargs)
         return logger
 
     @classmethod
@@ -479,12 +480,10 @@ class Upload(Proc):
                 parser = match_parser(filename, self.upload_files)
                 if parser is not None:
                     directory = os.path.dirname(filename)
-                    # TODO this might give us the chance to store directory based relationship
-                    # between calcs for the future?
                     if directory in directories_with_match:
-                        self.info.append(
-                            'The directory %s contains data from multiple code runs. '
-                            'Nomad only processed %s.' % (directory, os.path.basename(filename)))
+                        # TODO this might give us the chance to store directory based relationship
+                        # between calcs for the future?
+                        pass
                     else:
                         directories_with_match[directory] = filename
 
