@@ -136,7 +136,7 @@ def test_update_index(migration, mongo, with_metadata: bool):
 
 
 @pytest.fixture(scope='function')
-def migrate_infra(migration, target_repo, proc_infra, client, monkeysession):
+def migrate_infra(migration, target_repo, proc_infra, client, monkeypatch):
     """
     Parameters to test
     - missing upload, extracted, archive, broken archive
@@ -160,16 +160,17 @@ def migrate_infra(migration, target_repo, proc_infra, client, monkeysession):
         http_client = FlaskTestHttpClient(client, headers=create_auth_headers(admin))
         return SwaggerClient.from_url('/swagger.json', http_client=http_client)
 
-    old_repo = infrastructure.repository_db
-    monkeysession.setattr('nomad.infrastructure.repository_db', target_repo)
-    monkeysession.setattr('nomad.client.create_client', create_client)
+    def stream_upload_with_client(client, upload_f, name=None):
+        return client.uploads.upload(file=upload_f, name=name).response().result
+
+    monkeypatch.setattr('nomad.infrastructure.repository_db', target_repo)
+    monkeypatch.setattr('nomad.client.create_client', create_client)
+    monkeypatch.setattr('nomad.client.stream_upload_with_client', stream_upload_with_client)
 
     # source repo is the still the original infrastructure repo
     migration.copy_users()
 
     yield migration
-
-    monkeysession.setattr('nomad.infrastructure.repository_db', old_repo)
 
 
 def test_copy_users(migrate_infra, target_repo):

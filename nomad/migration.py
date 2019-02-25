@@ -58,23 +58,26 @@ def iterable_to_stream(iterable, buffer_size=io.DEFAULT_BUFFER_SIZE):
         def __init__(self):
             self.leftover = None
             self.iterator = iter(iterable)
+
         def readable(self):
             return True
+
         def readinto(self, b):
-            l = len(b)  # We're supposed to return at most this much
+            requested_len = len(b)  # We're supposed to return at most this much
             while True:
                 try:
                     chunk = next(self.iterator)
-                except StopIteration as e:
+                except StopIteration:
                     if len(self.leftover) == 0:
                         return 0  # indicate EOF
                     chunk = self.leftover
-                output, self.leftover = chunk[:l], chunk[l:]
+                output, self.leftover = chunk[:requested_len], chunk[requested_len:]
                 len_output = len(output)
                 if len_output == 0:
                     continue  # do not prematurely indicate EOF
                 b[:len_output] = output
                 return len_output
+
     return io.BufferedReader(IterStream(), buffer_size=buffer_size)
 
 
@@ -101,7 +104,6 @@ class Package(Document):
     """ The sum of all file sizes """
 
     meta = dict(indexes=['upload_id'])
-
 
     def open_package_upload_file(self) -> IO:
         """
@@ -514,6 +516,8 @@ class NomadCOEMigration:
 
         Returns: Yields a dictionary with status and statistics for each given upload.
         """
+        from nomad.client import stream_upload_with_client
+
         if prefix is not None:
             self.logger.info('set pid prefix', pid_prefix=prefix)
             self.client.admin.exec_pidprefix_command(payload=dict(prefix=prefix)).response()
@@ -526,10 +530,13 @@ class NomadCOEMigration:
 
             # upload and process the upload file
             assert upload_f is not None
-            upload = self.client.uploads.upload(
-                file=upload_f, name=package_id).response().result
+            try:
+                upload = stream_upload_with_client(self.client, upload_f, name=package_id)
+            except Exception as e:
+                self.logger.error('could not upload package', exc_info=e)
+                continue
 
-            logger.debug('upload archive file uploaded')
+            logger.debug('package file uploaded')
 
             logger = logger.bind(
                 source_upload_id=source_upload_id, upload_id=upload.upload_id)
@@ -660,31 +667,3 @@ class NomadCOEMigration:
     def package(self, *args, **kwargs):
         """ see :func:`Package.add` """
         return Package.index(*args, **kwargs)
-
-
-if __name__ == '__main__':
-    import sys
-    from nomad import infrastructure
-    infrastructure.setup_logging()
-    infrastructure.setup_mongo()
-    test_upload_id = sys.argv[1]
-    package = Package.objects(upload_id=test_upload_id).first()
-
-    f = package.open_package_upload_file()
-    r = 0
-    i = 0
-    import time
-    start = time.time()
-    with open('tf.zip', 'wb') as tf:
-        while True:
-            c = f.read(1024*1000)
-            tf.write(c)
-            r += len(c)
-            i += 1
-            if i % 10 == 0:
-                print('### ' + str(r/(time.time() - start)))
-                r = 0
-                start = time.time()
-            if len(c) == 0:
-                break
-

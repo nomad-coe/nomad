@@ -22,6 +22,7 @@ from flask_restplus import Resource, fields, abort
 from datetime import datetime
 from werkzeug.datastructures import FileStorage
 import os.path
+import io
 
 from nomad import config
 from nomad.processing import Upload, FAILURE
@@ -156,13 +157,15 @@ class UploadListResource(Resource):
             if not os.path.exists(local_path):
                 abort(404, message='The given local_path was not found.')
 
+        upload_name = request.args.get('name')
         # create upload
         upload = Upload.create(
             user=g.user,
-            name=request.args.get('name'),
+            name=upload_name,
             local_path=local_path)
 
-        logger.info('upload created', upload_id=upload.upload_id)
+        logger = logger.bind(upload_id=upload.upload_id, upload_name=upload_name)
+        logger.info('upload created', )
 
         try:
             if local_path:
@@ -170,6 +173,7 @@ class UploadListResource(Resource):
                 upload_files = ArchiveBasedStagingUploadFiles(
                     upload.upload_id, create=True, local_path=local_path)
             elif request.mimetype == 'application/multipart-formdata':
+                logger.info('receive upload as multipart formdata')
                 # multipart formdata, e.g. with curl -X put "url" -F file=@local_file
                 # might have performance issues for large files: https://github.com/pallets/flask/issues/2086
                 if 'file' in request.files:
@@ -183,13 +187,14 @@ class UploadListResource(Resource):
                 file.save(upload_files.upload_file_os_path)
             else:
                 # simple streaming data in HTTP body, e.g. with curl "url" -T local_file
-
+                logger.info('started to receive upload streaming data')
                 upload_files = ArchiveBasedStagingUploadFiles(upload.upload_id, create=True)
 
                 try:
                     with open(upload_files.upload_file_os_path, 'wb') as f:
                         while not request.stream.is_exhausted:
-                            f.write(request.stream.read(1024))
+                            print(io.DEFAULT_BUFFER_SIZE)
+                            f.write(request.stream.read(io.DEFAULT_BUFFER_SIZE))
 
                 except Exception as e:
                     logger.warning('Error on streaming upload', exc_info=e)
