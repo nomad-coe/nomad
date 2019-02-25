@@ -11,3 +11,5 @@
 
 # aims, extracted
 /nomad/repository/data/extracted/0wFKM2jQ7qH4f3moVtW3_LI7bpL-smp9K2oXlQFI
+# very large repo of very small vasp files
+/nomad/repository/data/extracted/01ff7cb7276543e5ad72cd74d249a8ca
