@@ -61,3 +61,6 @@
 [submodule "dependencies/parsers/castep"]
 	path = dependencies/parsers/castep
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-castep
+[submodule "dependencies/parsers/dl-poly"]
+	path = dependencies/parsers/dl-poly
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-dl-poly

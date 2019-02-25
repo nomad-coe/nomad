@@ -274,6 +274,11 @@ parsers = [
         name='parsers/castep',
         parser_class_name='castepparser.CastepParser',
         mainfile_contents_re=(r'\s\|\s*CCC\s*AA\s*SSS\s*TTTTT\s*EEEEE\s*PPPP\s*\|\s*')
+    ),
+    LegacyParser(
+        name='parsers/dl-poly',
+        parser_class_name='dlpolyparser.DlPolyParserWrapper',
+        mainfile_contents_re=(r'\*\* DL_POLY \*\*')
     )
 ]
 

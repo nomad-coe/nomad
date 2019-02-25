@@ -46,7 +46,6 @@ class SystemNormalizer(SystemBasedNormalizer):
         """ Main normalizer that runs system, syste_type and symmetry analysis."""
 
         self.atom_labels = section_system['atom_labels']
-        self.atom_species = section_system['atom_atom_numbers']
         self.atom_positions = section_system['atom_positions']
         self.periodic_dirs = section_system.get('configuration_periodic_dimensions', None)
         if self.periodic_dirs is None:
@@ -114,24 +113,28 @@ class SystemNormalizer(SystemBasedNormalizer):
     def system_analysis(self) -> None:
         """Analyze system properties of a simulation from parsed values."""
         results = dict()
-        if self.atom_labels is not None and self.atom_species is None:
+        formula = None
+        # TODO: @dts, might be good to clean this up so it is more readable in the
+        # future. Most of this flow is from the old system-classifier.
+        if self.atom_labels is not None:
             atom_label_to_num = SystemNormalizer.atom_label_to_num
             self.atom_species = [
                 atom_label_to_num(atom_label) for atom_label in self.atom_labels
             ]
-        formula = None
-
-        if self.atom_species:
+            self._backend.addValue('atom_species', self.atom_species)
             results['atom_species'] = self.atom_species
             atom_symbols = [
                 ase.data.chemical_symbols[atom_number] for atom_number in self.atom_species
             ]
             formula = ase.Atoms(atom_symbols).get_chemical_formula(mode='all')
+            self._backend.addValue('chemical_composition', formula)
             formula_reduced = ase.Atoms(atom_symbols).get_chemical_formula(mode='reduce')
+            self._backend.addValue('chemical_composition_reduced', formula_reduced)
             if self.periodic_dirs is not None and any(self.periodic_dirs):
                 formula_bulk = formula_reduced
             else:
                 formula_bulk = formula
+            self._backend.addValue('chemical_composition_bulk_reduced', formula_bulk)
         if self.cell is not None:
             results['lattice_vectors'] = self.cell
 
@@ -144,14 +147,8 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         if self.periodic_dirs is not None:
             results['configuration_periodic_dimensions'] = self.periodic_dirs.tolist()
-        # TODO: @dts, might be good to clean this up so it is more readable in the
-        # future.
         configuration_id = 's' + addShasOfJson(results).b64digests()[0][0:28]
         self._backend.addValue('configuration_raw_gid', configuration_id)
-        self._backend.addValue('atom_species', self.atom_species)
-        self._backend.addValue('chemical_composition', formula)
-        self._backend.addValue('chemical_composition_reduced', formula_reduced)
-        self._backend.addValue('chemical_composition_bulk_reduced', formula_bulk)
 
     def symmetry_analysis(self) -> None:
         """Analyze the symmetry of the material bein simulated.

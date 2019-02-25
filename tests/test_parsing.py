@@ -44,14 +44,15 @@ parser_examples = [
     ('parsers/abinit', 'tests/data/parsers/abinit/Fe.out'),
     ('parsers/quantumespresso', 'tests/data/parsers/quantum-espresso/benchmark.out'),
     ('parsers/orca', 'tests/data/parsers/orca/orca3dot2706823.out'),
-    ('parsers/castep', 'tests/data/parsers/castep/BC2N-Pmm2-Raman.castep')
+    ('parsers/castep', 'tests/data/parsers/castep/BC2N-Pmm2-Raman.castep'),
+    ('parsers/dl-poly', 'tests/data/parsers/dl-poly/OUTPUT')
 ]
 
 faulty_unknown_one_d_matid_example = [
     ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
 ]
 
-correct_num_output_files = 22
+correct_num_output_files = 23
 
 
 class TestLocalBackend(object):

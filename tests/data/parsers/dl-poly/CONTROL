@@ -1,0 +1,25 @@
+SODIUM CHLORIDE WITH (27000 IONS)
+
+restart scale
+
+temperature           500.0
+equilibration steps   200
+steps                 200
+timestep              0.001
+#scale                 5
+
+cutoff                12.0
+rvdw                  12.0
+ewald precision       1d-6  
+
+#ensemble nvt hoover   0.02
+ensemble nvt berendsen 0.01
+
+print every           10
+stats every           10
+collect
+
+job time              100
+close time            10
+
+finish

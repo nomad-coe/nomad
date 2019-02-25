@@ -168,6 +168,16 @@
       ]
     },
     {
+      "name": "DL-Poly Normalizer",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/dl-poly-tests/data/parsers/dl-poly/OUTPUT]"
+      ]
+    },
+    {
       "name": "Python: Current File",
       "type": "python",
       "request": "launch",
