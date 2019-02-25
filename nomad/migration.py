@@ -25,12 +25,12 @@ import os.path
 import zipstream
 import math
 from mongoengine import Document, IntField, StringField, DictField, ListField
-from werkzeug.contrib.iterio import IterIO
 import time
 from bravado.exception import HTTPNotFound, HTTPBadRequest
 import glob
 import os
 import runstats
+import io
 
 from nomad import utils, infrastructure
 from nomad.coe_repo import User, Calc, LoginException
@@ -44,6 +44,38 @@ default_pid_prefix = 7000000
 max_package_size = 16 * 1024 * 1024 * 1024  # 16 GB
 """ The maximum size of a package that will be used as an upload on nomad@FAIRDI """
 use_stats_for_filestats_threshold = 1024
+
+
+def iterable_to_stream(iterable, buffer_size=io.DEFAULT_BUFFER_SIZE):
+    """
+    Lets you use an iterable (e.g. a generator) that yields bytestrings as a read-only
+    input stream.
+
+    The stream implements Python 3's newer I/O API (available in Python 2's io module).
+    For efficiency, the stream is buffered.
+    """
+    class IterStream(io.RawIOBase):
+        def __init__(self):
+            self.leftover = None
+            self.iterator = iter(iterable)
+        def readable(self):
+            return True
+        def readinto(self, b):
+            l = len(b)  # We're supposed to return at most this much
+            while True:
+                try:
+                    chunk = next(self.iterator)
+                except StopIteration as e:
+                    if len(self.leftover) == 0:
+                        return 0  # indicate EOF
+                    chunk = self.leftover
+                output, self.leftover = chunk[:l], chunk[l:]
+                len_output = len(output)
+                if len_output == 0:
+                    continue  # do not prematurely indicate EOF
+                b[:len_output] = output
+                return len_output
+    return io.BufferedReader(IterStream(), buffer_size=buffer_size)
 
 
 class Package(Document):
@@ -70,17 +102,17 @@ class Package(Document):
 
     meta = dict(indexes=['upload_id'])
 
+
     def open_package_upload_file(self) -> IO:
         """
         Creates a streaming zip file from the files of this package.
         """
         zip_file = zipstream.ZipFile(compression=zipstream.ZIP_STORED, allowZip64=True)
-
         for filename in self.filenames:
             filepath = os.path.join(self.upload_path, filename)
             zip_file.write(filepath, filename)
 
-        return IterIO(zip_file)  # type: ignore
+        return iterable_to_stream(zip_file)  # type: ignore
 
     @classmethod
     def index(cls, *upload_paths):
@@ -628,3 +660,31 @@ class NomadCOEMigration:
     def package(self, *args, **kwargs):
         """ see :func:`Package.add` """
         return Package.index(*args, **kwargs)
+
+
+if __name__ == '__main__':
+    import sys
+    from nomad import infrastructure
+    infrastructure.setup_logging()
+    infrastructure.setup_mongo()
+    test_upload_id = sys.argv[1]
+    package = Package.objects(upload_id=test_upload_id).first()
+
+    f = package.open_package_upload_file()
+    r = 0
+    i = 0
+    import time
+    start = time.time()
+    with open('tf.zip', 'wb') as tf:
+        while True:
+            c = f.read(1024*1000)
+            tf.write(c)
+            r += len(c)
+            i += 1
+            if i % 10 == 0:
+                print('### ' + str(r/(time.time() - start)))
+                r = 0
+                start = time.time()
+            if len(c) == 0:
+                break
+
