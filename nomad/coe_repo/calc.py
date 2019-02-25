@@ -29,6 +29,9 @@ from .base import Base, calc_citation_association, ownership, co_authorship, sha
     CodeVersion, StructRatio, UserMetaData
 
 
+class IllegalCalcMetadata(Exception): pass
+
+
 class Calc(Base):
     __tablename__ = 'calculations'
 
@@ -194,6 +197,9 @@ class Calc(Base):
         def add_users_to_relation(source_users, relation):
             for source_user in source_users:
                 coe_user = repo_db.query(User).get(source_user.id)
+                if coe_user is None:
+                    raise IllegalCalcMetadata(
+                        'User with user_id %s does not exist.' % source_user.id)
                 source_user.update(coe_user.to_popo())
                 relation.append(coe_user)
 
