@@ -64,3 +64,6 @@
 [submodule "dependencies/parsers/dl-poly"]
 	path = dependencies/parsers/dl-poly
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-dl-poly
+[submodule "dependencies/parsers/lib-atoms"]
+	path = dependencies/parsers/lib-atoms
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-lib-atoms
