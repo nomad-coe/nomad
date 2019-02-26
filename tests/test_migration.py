@@ -180,6 +180,7 @@ def test_copy_users(migrate_infra, target_repo):
 
 mirgation_test_specs = [
     ('baseline', dict(migrated=2, source=2)),
+    ('baseline', dict(migrated=2, source=2, local=True)),
     # ('archive', dict(migrated=2, source=2)),
     ('new_upload', dict(new=2)),
     ('new_calc', dict(migrated=2, source=2, new=1)),
@@ -204,7 +205,9 @@ def test_migrate(migrate_infra, test, assertions, monkeypatch, caplog):
     upload_path = os.path.join(upload_path, os.listdir(upload_path)[0])
 
     pid_prefix = 10
-    reports = list(migrate_infra.migrate(upload_path, prefix=pid_prefix, create_packages=True))
+    reports = list(migrate_infra.migrate(
+        upload_path, prefix=pid_prefix, create_packages=True,
+        local=assertions.get('local', False)))
 
     assert len(reports) == 1
     report = reports[0]

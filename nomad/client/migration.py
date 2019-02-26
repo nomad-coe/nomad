@@ -87,7 +87,8 @@ def copy_users(**kwargs):
 @click.argument('paths', nargs=-1)
 @click.option('--create-packages', help='Allow migration to create package entries on the fly.', is_flag=True)
 @click.option('--prefix', default=None, type=int, help='Set the pid counter to this value. The counter will not be changed if not given.')
-def upload(paths: list, prefix: int, create_packages: bool = False):
+@click.option('--local', help='Create local upload files.', is_flag=True)
+def upload(paths: list, prefix: int, create_packages: bool = False, local: bool = False):
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
 
@@ -95,5 +96,6 @@ def upload(paths: list, prefix: int, create_packages: bool = False):
 
     migration = NomadCOEMigration()
     for path in paths:
-        for result in migration.migrate(path, prefix=prefix, create_packages=create_packages):
+        for result in migration.migrate(
+                path, prefix=prefix, create_packages=create_packages, local=local):
             logger.info('got migration with result', **result)
