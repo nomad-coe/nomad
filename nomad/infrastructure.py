@@ -376,7 +376,7 @@ def reset_repository_db_content():
         'topics',
         'uploads'
     ]
-    with repository_db_connection(with_trans=False) as conn:
+    with repository_db_connection(with_trans=True) as conn:
         with conn.cursor() as cur:
             cur.execute('TRUNCATE %s CASCADE;' % ', '.join(tables))
 
