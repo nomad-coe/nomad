@@ -25,7 +25,7 @@ ns = api.namespace('admin', description='Administrative operations')
 
 
 @ns.route('/reset')
-class AdminRemoveResource(Resource):
+class AdminResetResource(Resource):
     @api.doc('exec_reset_command')
     @api.response(200, 'Reset performed')
     @api.response(400, 'Reset not available/disabled')
@@ -43,13 +43,13 @@ class AdminRemoveResource(Resource):
         if config.services.disable_reset:
             abort(400, message='Operation is disabled')
 
-        infrastructure.reset()
+        infrastructure.reset(repo_content_only=True)
 
         return dict(messager='Reset performed.'), 200
 
 
 @ns.route('/remove')
-class AdminResetResource(Resource):
+class AdminRemoveResource(Resource):
     @api.doc('exec_remove_command')
     @api.response(200, 'Remove performed')
     @api.response(400, 'Remove not available/disabled')

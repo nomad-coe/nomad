@@ -202,12 +202,16 @@ def set_pid_prefix(prefix=7000000, target_db=None):
     logger.info('set pid prefix', pid_prefix=prefix)
 
 
-def reset():
+def reset(repo_content_only: bool = False):
     """
     Resets the databases mongo, elastic/calcs, repository db and all files. Be careful.
     In contrast to :func:`remove`, it will only remove the contents of dbs and indicies.
     This function just attempts to remove everything, there is no exception handling
     or any warranty it will succeed.
+
+    Arguments:
+        repo_content_only: True will only remove the calc/upload data from the repo db.
+            But still reset all other dbs.
     """
     try:
         if not mongo_client:
@@ -228,7 +232,10 @@ def reset():
         logger.error('exception resetting elastic', exc_info=e)
 
     try:
-        reset_repository_db()
+        if repo_content_only:
+            reset_repository_db_content()
+        else:
+            reset_repository_db()
         logger.info('repository db resetted')
     except Exception as e:
         logger.error('exception resetting repository db', exc_info=e)
@@ -347,7 +354,33 @@ def reset_repository_db_schema(**kwargs):
                 "GRANT ALL ON SCHEMA public TO public;")
             sql_file = os.path.join(os.path.dirname(__file__), 'empty_repository_db.sql')
             cur.execute(open(sql_file, 'r').read())
-            logger.info('(re-)created repository db postgres schema')
+    logger.info('(re-)created repository db postgres schema')
+
+
+def reset_repository_db_content():
+    tables = [
+        'calcsets',
+        'calculations',
+        'citations',
+        'coauthorships',
+        'codefamilies',
+        'codeversions',
+        'doi_mapping',
+        'metadata',
+        'metadata_citations',
+        'ownerships',
+        'shareships',
+        'spacegroups',
+        'struct_ratios',
+        'tags',
+        'topics',
+        'uploads'
+    ]
+    with repository_db_connection(with_trans=False) as conn:
+        with conn.cursor() as cur:
+            cur.execute('TRUNCATE %s CASCADE;' % ', '.join(tables))
+
+    logger.info('removed repository db content')
 
 
 def send_mail(name: str, email: str, message: str, subject: str):
