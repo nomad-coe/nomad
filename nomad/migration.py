@@ -530,12 +530,13 @@ class NomadCOEMigration:
                 package_id=package_id, source_upload_id=source_upload_id, upload_path=upload_path)
 
             # upload and process the upload file
-            assert upload_f is not None
-            try:
-                upload = stream_upload_with_client(self.client, upload_f, name=package_id)
-            except Exception as e:
-                self.logger.error('could not upload package', exc_info=e)
-                continue
+            with utils.timer(logger, 'upload completed'):
+                assert upload_f is not None
+                try:
+                    upload = stream_upload_with_client(self.client, upload_f, name=package_id)
+                except Exception as e:
+                    self.logger.error('could not upload package', exc_info=e)
+                    continue
 
             logger.debug('package file uploaded')
 
@@ -565,10 +566,13 @@ class NomadCOEMigration:
             report.missing_calcs = 0
 
             # wait for complete upload
-            while upload.tasks_running:
-                upload = self.client.uploads.get_upload(upload_id=upload.upload_id).response().result
-                time.sleep(0.1)
-            logger.debug('upload completed')
+            with utils.timer(logger, 'upload processing completed'):
+                while upload.tasks_running:
+                    sleep_time = 0.1
+                    upload = self.client.uploads.get_upload(upload_id=upload.upload_id).response().result
+                    time.sleep(sleep_time)
+                    if sleep_time < 60:
+                        sleep_time *= 2
 
             if upload.tasks_status == FAILURE:
                 error = 'failed to process upload'
@@ -580,6 +584,8 @@ class NomadCOEMigration:
             else:
                 report.total_calcs = upload.calcs.pagination.total
 
+            timer = utils.timer(logger, 'validation completed')
+            timer.__enter__()  # type: ignore, pylint: disable=no-member
             # verify upload: check for processing errors
             per_page = 200
             for page in range(1, math.ceil(report.total_calcs / per_page) + 1):
@@ -625,28 +631,28 @@ class NomadCOEMigration:
                     logger.info(
                         'no match or processed calc for source calc',
                         mainfile=source_calc.mainfile)
-            logger.debug('upload verified')
+            timer.__exit__(None, None, None)  # type: ignore, pylint: disable=no-member
 
             # publish upload
-            upload_metadata['calculations'] = [
-                self._to_api_metadata(calc)
-                for calc in upload_metadata['calculations'] if calc.__migrated]
+            with utils.timer(logger, 'upload published'):
+                upload_metadata['calculations'] = [
+                    self._to_api_metadata(calc)
+                    for calc in upload_metadata['calculations'] if calc.__migrated]
 
-            if report.total_calcs > report.failed_calcs:
-                upload = self.client.uploads.exec_upload_operation(
-                    upload_id=upload.upload_id,
-                    payload=dict(operation='publish', metadata=upload_metadata)
-                ).response().result
+                if report.total_calcs > report.failed_calcs:
+                    upload = self.client.uploads.exec_upload_operation(
+                        upload_id=upload.upload_id,
+                        payload=dict(operation='publish', metadata=upload_metadata)
+                    ).response().result
 
-                while upload.process_running:
-                    try:
-                        upload = self.client.uploads.get_upload(
-                            upload_id=upload.upload_id).response().result
-                        time.sleep(0.1)
-                    except HTTPNotFound:
-                        # the proc upload will be deleted by the publish operation
-                        break
-            logger.debug('upload published')
+                    while upload.process_running:
+                        try:
+                            upload = self.client.uploads.get_upload(
+                                upload_id=upload.upload_id).response().result
+                            time.sleep(0.1)
+                        except HTTPNotFound:
+                            # the proc upload will be deleted by the publish operation
+                            break
 
             # report
             logger.info('migrated upload', **report)
