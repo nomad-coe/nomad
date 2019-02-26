@@ -168,8 +168,8 @@ class SystemNormalizer(SystemBasedNormalizer):
             try:
                 classifier = Classifier()
                 system_type = classifier.classify(atoms)
-            except Exception:
-                self.logger.error('matid project system classification failed')
+            except Exception as e:
+                self.logger.error('matid project system classification failed', exc_info=e)
             else:
                 # Convert Matid classification to a Nomad classification.
                 system_type = self.map_matid_to_nomad_system_types(atoms, system_type)
