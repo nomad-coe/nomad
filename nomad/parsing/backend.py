@@ -558,7 +558,9 @@ class LocalBackend(LegacyParserBackend):
 
         return target
 
-    def write_json(self, out: TextIO, pretty=True, filter: Callable[[str, Any], Any] = None):
+    def write_json(
+            self, out: TextIO, pretty=True, filter: Callable[[str, Any], Any] = None,
+            root_sections = ['section_run', 'section_calculation_info', 'section_repository_info']):
         """
         Writes the results stored in the backend after parsing in an 'archive'.json
         style format.
@@ -572,7 +574,7 @@ class LocalBackend(LegacyParserBackend):
         json_writer.open_object()
 
         # TODO the root sections should be determined programatically
-        for root_section in ['section_run', 'section_calculation_info', 'section_repository_info']:
+        for root_section in root_sections:
             json_writer.key(root_section)
             self._write(json_writer, self._delegate.results[root_section], filter=filter)
 

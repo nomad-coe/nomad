@@ -61,3 +61,6 @@
 [submodule "dependencies/parsers/castep"]
 	path = dependencies/parsers/castep
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-castep
+[submodule "dependencies/parsers/photoemission"]
+	path = dependencies/parsers/photoemission
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-photoemission.git

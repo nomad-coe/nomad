@@ -28,13 +28,13 @@
       ]
     },
     {
-      "name": "Python: worker nomad.processing",
+      "name": "Photoemission Parser",
       "type": "python",
       "request": "launch",
-      "cwd": "${workspaceFolder}",
-      "program": "${workspaceFolder}/.pyenv/bin/celery",
+      "cwd": "${workspaceFolder}/dependencies/parsers/photoemission",
+      "program": "${workspaceFolder}/.pyenv/bin/python",
       "args": [
-        "worker", "-l" , "debug",  "-A", "nomad.processing"
+        "-m", "photoemissionparser", "test.json"
       ]
     },
     {
