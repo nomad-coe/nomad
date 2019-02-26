@@ -153,16 +153,19 @@ class CalcProcReproduction:
 
 @cli.command(help='Run processing locally.')
 @click.argument('ARCHIVE_ID', nargs=1, required=True, type=str)
-@click.option(
-    '--override', is_flag=True, default=False, help='Override existing local calculation data.')
+@click.option('--override', is_flag=True, default=False, help='Override existing local calculation data.')
+@click.option('--show-backend', is_flag=True, default=False, help='Print the backend data.')
+@click.option('--show-metadata', is_flag=True, default=False, help='Print the extracted repo metadata.')
 @click.option('--mainfile', default=None, type=str, help='Use this mainfile (in case mainfile cannot be retrived via API.')
-def local(archive_id, **kwargs):
+def local(archive_id, show_backend=False, show_metadata=False, **kwargs):
     print(kwargs)
     utils.configure_logging()
     utils.get_logger(__name__).info('Using %s' % get_nomad_url())
     with CalcProcReproduction(archive_id, **kwargs) as local:
         backend = local.parse()
         local.normalize_all(parser_backend=backend)
-        backend.write_json(sys.stdout, pretty=True)
-        metadata = backend.to_calc_with_metadata()
-        ujson.dump(metadata.to_dict(), sys.stdout, indent=4)
+        if show_backend:
+            backend.write_json(sys.stdout, pretty=True)
+        if show_metadata:
+            metadata = backend.to_calc_with_metadata()
+            ujson.dump(metadata.to_dict(), sys.stdout, indent=4)
