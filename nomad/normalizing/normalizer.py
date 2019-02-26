@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABCMeta, abstractmethod
-from typing import List, Dict, Any
+from typing import List
 
 from nomad.parsing import AbstractParserBackend
 from nomad.utils import get_logger
@@ -72,25 +72,17 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         ]
 
     def _normalize_system(self, g_index):
-        input_data = dict(
-            uri='/section_run/0/section_system/%d' % g_index,
-            gIndex=g_index)
-        for quantity in self.quantities:
-            try:
-                input_data[quantity] = self._backend.get_value(quantity, g_index)
-            except KeyError:
-                # only fail when the normalizer actually uses the respecitive value
-                pass
+        context = '/section_run/0/section_system/%d' % g_index
 
-        context = input_data['uri']
         self._backend.openContext(context)
         try:
-            self.normalize_system(input_data)
+            self.normalize_system(g_index)
         finally:
             self._backend.closeContext(context)
 
     @abstractmethod
-    def normalize_system(self, section_system: Dict[str, Any]) -> None:
+    def normalize_system(self, section_system_index: int) -> None:
+        """ Normalize the given section. """
         pass
 
     def normalize(self, logger=None) -> None:

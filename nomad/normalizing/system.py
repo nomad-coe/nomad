@@ -12,17 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any
 import ase
 import numpy as np
 import matid
+import json
 
 from matid import SymmetryAnalyzer, Classifier
 
-from nomadcore.json_support import addShasOfJson
+from nomad import utils
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 
 
 class SystemNormalizer(SystemBasedNormalizer):
+
     """
     This normalizer performs all system (atoms, cells, etc.) related normalizations
     of the legacy NOMAD-coe *stats* normalizer.
@@ -42,118 +45,141 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         return 0
 
-    def normalize_system(self, section_system) -> None:
-        """ Main normalizer that runs system, syste_type and symmetry analysis."""
+    def normalize_system(self, index) -> None:
+        """
+        The 'main' method of this :class:`SystemBasedNormalizer`.
+        Normalizes the section with the given `index`.
+        Normalizes geometry, classifies, system_type, and runs symmetry analysis.
+        """
 
-        self.atom_labels = section_system['atom_labels']
-        self.atom_species = section_system['atom_atom_numbers']
-        self.atom_positions = section_system['atom_positions']
-        self.periodic_dirs = section_system.get('configuration_periodic_dimensions', None)
-        if self.periodic_dirs is None:
-            self.logger.warning(
-                'Unable to get PBCs in this section_system, assume False, False, Fasle')
-        # Try to first read the cell information from the renamed metainfo
-        # lattice_vectors, if this doesn't work try the depreciated name
-        # simulation_cell. Otherwise, if neither are present, assign None.
-        self.cell = section_system.get(
-            'lattice_vectors', section_system.get('simulation_cell', None)
-        )
-        # Run a system analysis on the system.
-        self.system_analysis()
-
-        if self.cell is None:
-            # Then the parser hasn't parsed any information about periodicity.
-            # We therefore assume we're simulating a single cell without
-            # periodicity and don't try to ascertain symmetry information.
+        def get_value(key: str, default: Any = None, nonp: bool = False) -> Any:
             try:
-                self.atoms = ase.Atoms(
-                    positions=1e10 * np.asarray(self.atom_positions),
-                    symbols=np.asarray(self.atom_labels)
-                )
-            except Exception:
-                self.logger.error(
-                    'The ASE library is unable to build an object from the parsed vars.'
-                )
-            # Classify the material's system type.
-            self.system_type_classification()
-            if self.nomad_system_type not in ['Atom', 'Molecule / Cluster']:
-                self.logger.error(
-                    'Matid classified more than 1D despite having no simulation_cell')
+                value = self._backend.get_value(key, index)
+                if nonp and type(value).__module__ == np.__name__:
+                    value = value.tolist()
+                return value
+            except KeyError:
+                return default
 
-            # Return w/out symmetry analysis since we don't have a sim_cell.
-            return None
-        self.pbc = section_system.get('configuration_periodic_dimensions', None)
-        # If no pbc is found assume there is no periodicity.
-        if self.pbc is None:
-            self.pbc = np.array([False, False, False])
-        # The pbc should be defined as a single-dimensional list.
-        if len(np.asarray(self.pbc).shape) == 2:
-            self.pbc = self.pbc[0, :]
-        # Build an ASE atoms object to feed into Matid.
+        def set_value(key: str, value: Any):
+            self._backend.addValue(key, value)
+
+        # analyze atoms labels
+        atom_labels = get_value('atom_labels', nonp=True)
+        atom_species = get_value('atom_species', nonp=True)
+        if atom_labels is None and atom_species is None:
+            self.logger.error('calculation has neither atom species nor labels')
+            return
+
+        if atom_labels is None:
+            atom_labels = list(ase.data.chemical_symbols[species] for species in atom_species)
+        else:
+            atom_labels = atom_labels
+
+        symbols = ''.join(atom_labels)
+        symbols = symbols.replace('1', '')
         try:
-            self.atoms = ase.Atoms(
-                positions=1e10 * np.asarray(self.atom_positions),
-                # Removed np.asarray() for atom labels
-                symbols=self.atom_labels,
-                cell=1e10 * np.asarray(self.cell),
-                pbc=self.pbc
-            )
-        except Exception:
+            atoms = ase.Atoms(symbols=symbols)
+        except Exception as e:
             self.logger.error(
-                'The ASE library is unable to build an object from the member'
-                'variables: atom_positions, atom_labels, simulation_cell and pbc.'
-            )
+                'cannot build ase atoms from atom labels',
+                atom_labels=atom_labels, exc_info=e)
+            return
+        chemical_symbols = list(atoms.get_chemical_symbols())
+        if atom_labels != chemical_symbols:
+            self.logger.error('atom labels are ambiguous', atom_labels=atom_labels)
+            return
 
-        # Classify the material's system type.
-        self.system_type_classification()
-        # Analyze the symmetry of the material.
-        # TODO: @dansp, should we run the symmetry analysis on materials that have
-        # pbc = false, false, false?
-        self.symmetry_analysis()
+        if atom_species is None:
+            atom_species = atoms.get_atomic_numbers().tolist()
+            set_value('atom_species', atom_species)
+        else:
+            if atom_species != atoms.get_atomic_numbers().tolist():
+                self.logger.warning(
+                    'atom species do not match labels',
+                    atom_labels=atom_labels, atom_species=atom_species)
+                atom_species = atoms.get_atomic_numbers().tolist()
+            set_value('atom_species', atom_species)
 
-    def system_analysis(self) -> None:
-        """Analyze system properties of a simulation from parsed values."""
-        results = dict()
-        if self.atom_labels is not None and self.atom_species is None:
-            atom_label_to_num = SystemNormalizer.atom_label_to_num
-            self.atom_species = [
-                atom_label_to_num(atom_label) for atom_label in self.atom_labels
-            ]
-        formula = None
+        # periodic boundary conditions
+        pbc = get_value('configuration_periodic_dimensions', nonp=True)
+        if pbc is None:
+            pbc = [False, False, False]
+            self.logger.warning('missing configuration_periodic_dimensions')
+            set_value('configuration_periodic_dimensions', pbc)
+        try:
+            atoms.set_pbc(pbc)
+        except Exception as e:
+            self.logger.error('cannot use pbc with ase atoms', exc_info=e, pbc=pbc)
+            return
 
-        if self.atom_species:
-            results['atom_species'] = self.atom_species
-            atom_symbols = [
-                ase.data.chemical_symbols[atom_number] for atom_number in self.atom_species
-            ]
-            formula = ase.Atoms(atom_symbols).get_chemical_formula(mode='all')
-            formula_reduced = ase.Atoms(atom_symbols).get_chemical_formula(mode='reduce')
-            if self.periodic_dirs is not None and any(self.periodic_dirs):
-                formula_bulk = formula_reduced
+        # formulas
+        formula = atoms.get_chemical_formula(mode='all')
+        formula_reduced = atoms.get_chemical_formula(mode='reduce')
+        if any(atoms.pbc):
+            formula_bulk = formula_reduced
+        else:
+            formula_bulk = formula
+        set_value('chemical_composition', formula)
+        set_value('chemical_composition_reduced', formula_reduced)
+        set_value('chemical_composition_bulk_reduced', formula_bulk)
+
+        # positions
+        atom_positions = get_value('atom_positions', None)
+        if atom_positions is None:
+            self.logger.warning('no atom positions, skip further system analysis')
+            return
+        if len(atom_positions) != atoms.get_number_of_atoms():
+            self.logger.error(
+                'len of atom position does not match number of atoms',
+                n_atom_positions=len(atom_positions), n_atoms=atoms.get_number_of_atoms())
+            return
+        try:
+            atoms.set_positions(1e10 * atom_positions)
+        except Exception as e:
+            self.logger.error('cannot use positions with ase atoms', exc_info=e)
+            return
+
+        # lattice vectors
+        lattice_vectors = get_value('lattice_vectors')
+        if lattice_vectors is None:
+            lattice_vectors = get_value('simulation_cell')
+            if lattice_vectors is not None:
+                set_value('lattice_vectors', lattice_vectors)
+        if lattice_vectors is None and any(pbc):
+            self.logger.error('no lattice vectors but periodicity', pbc=pbc)
+        else:
+            try:
+                atoms.set_cell(1e10 * lattice_vectors)
+            except Exception as e:
+                self.logger.error('cannot use lattice_vectors with ase atoms', exc_info=e)
+                return
+
+        # configuration
+        configuration = [
+            atom_labels, atoms.positions.tolist(),
+            atoms.cell.tolist() if atoms.cell is not None else None,
+            atoms.pbc.tolist()]
+        configuration_id = utils.hash(json.dumps(configuration).encode('utf-8'))
+        set_value('configuration_raw_gid', configuration_id)
+
+        # system type analysis
+        if atom_positions is not None:
+            try:
+                classifier = Classifier()
+                system_type = classifier.classify(atoms)
+            except Exception:
+                self.logger.error('matid project system classification failed')
             else:
-                formula_bulk = formula
-        if self.cell is not None:
-            results['lattice_vectors'] = self.cell
+                # Convert Matid classification to a Nomad classification.
+                system_type = self.map_matid_to_nomad_system_types(atoms, system_type)
+                set_value('system_type', system_type)
 
-        if self.atom_positions is not None:
-            results['atom_positions'] = self.atom_positions
-            if not formula:
-                formula = (
-                    'X%d' % len(self.atom_positions) if len(self.atom_positions) != 1 else 'X'
-                )
+        # symmetry analysis
+        if atom_positions is not None and (lattice_vectors is not None or not any(pbc)):
+            self.symmetry_analysis(atoms)
 
-        if self.periodic_dirs is not None:
-            results['configuration_periodic_dimensions'] = self.periodic_dirs.tolist()
-        # TODO: @dts, might be good to clean this up so it is more readable in the
-        # future.
-        configuration_id = 's' + addShasOfJson(results).b64digests()[0][0:28]
-        self._backend.addValue('configuration_raw_gid', configuration_id)
-        self._backend.addValue('atom_species', self.atom_species)
-        self._backend.addValue('chemical_composition', formula)
-        self._backend.addValue('chemical_composition_reduced', formula_reduced)
-        self._backend.addValue('chemical_composition_bulk_reduced', formula_bulk)
-
-    def symmetry_analysis(self) -> None:
+    def symmetry_analysis(self, atoms) -> None:
         """Analyze the symmetry of the material bein simulated.
 
         We feed in the parsed values in section_system to the
@@ -173,7 +199,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         # Try to use Matid's symmetry analyzer to anlyze the ASE object.
         # TODO: dts, find out what the symmetry_tol does.
         try:
-            symm = SymmetryAnalyzer(self.atoms, symmetry_tol=0.1)
+            symm = SymmetryAnalyzer(atoms, symmetry_tol=0.1)
 
             space_group_number = symm.get_space_group_number()
 
@@ -207,12 +233,10 @@ class SystemNormalizer(SystemBasedNormalizer):
             transform = symm._get_spglib_transformation_matrix()
             origin_shift = symm._get_spglib_origin_shift()
 
-        except Exception:
-            self.logger.error(
-                'The matid project symmetry analyzer fails on the ASE'
-                ' object from this section.'
-            )
-            return None  # Without trying to write any symmetry data.
+        except Exception as e:
+            self.logger.error('matid symmetry analysis fails with exception', exc_info=e)
+            return
+
         # Write data extracted from Matid symmetry analysis to the backend.
         symGid = self._backend.openSection('section_symmetry')
         # TODO: @dts, should we change the symmetry_method to MATID?
@@ -250,23 +274,6 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         self._backend.closeSection('section_symmetry', symGid)
 
-    def system_type_classification(self) -> None:
-        """Try to classify the ASE materials object using Matid's classification."""
-        try:
-            # Define the classifier as Matid's Classifier that we've imported.
-            classifier = Classifier()
-            # Perform classification on the atoms ASE object.
-            matid_system_type = classifier.classify(self.atoms)
-        except Exception:
-            self.logger.error(
-                'The matid project classification fails on the ASE'
-                ' object from this section.'
-            )
-            return None  # Without saving any system type value.
-        # Convert Matid classification to a Nomad classification.
-        self.nomad_system_type = self.map_matid_to_nomad_system_types(matid_system_type)
-        self._backend.addValue('system_type', self.nomad_system_type)
-
     # Create a class static dictionary for mapping Matid classifications
     # to Nomad classifications.
     translation_dict = {
@@ -280,7 +287,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         matid.classifications.Unknown: 'Unknown'
     }
 
-    def map_matid_to_nomad_system_types(self, system_type):
+    def map_matid_to_nomad_system_types(self, atoms, system_type):
         """ We map the system type classification from matid to Nomad values.
 
         Args:
@@ -303,7 +310,7 @@ class SystemNormalizer(SystemBasedNormalizer):
             self.logger.error(
                 'Matid classfication has given us an unexpected type: %s' % system_type)
 
-        if nomad_classification == 'Atom' and (len(self.atom_labels) > 1):
+        if nomad_classification == 'Atom' and (atoms.get_number_of_atoms() > 1):
             nomad_classification = 'Molecule / Cluster'
 
         return nomad_classification
