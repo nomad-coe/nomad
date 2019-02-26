@@ -279,6 +279,11 @@ parsers = [
         name='parsers/dl-poly',
         parser_class_name='dlpolyparser.DlPolyParserWrapper',
         mainfile_contents_re=(r'\*\* DL_POLY \*\*')
+    ),
+    LegacyParser(
+        name='parsers/lib-atoms',
+        parser_class_name='libatomsparser.LibAtomsParserWrapper',
+        mainfile_contents_re=(r'\s*<GAP_params\s')
     )
 ]
 

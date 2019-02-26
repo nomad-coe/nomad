@@ -178,6 +178,16 @@
       ]
     },
     {
+      "name": "Lib Atoms Normalizer",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/lib-atoms-tests/data/parsers/lib-atoms/gp.xml]"
+      ]
+    },
+    {
       "name": "Python: Current File",
       "type": "python",
       "request": "launch",

@@ -44,7 +44,6 @@ class SystemNormalizer(SystemBasedNormalizer):
 
     def normalize_system(self, section_system) -> None:
         """ Main normalizer that runs system, syste_type and symmetry analysis."""
-
         self.atom_labels = section_system['atom_labels']
         self.atom_positions = section_system['atom_positions']
         self.periodic_dirs = section_system.get('configuration_periodic_dimensions', None)
