@@ -14,9 +14,12 @@
 
 import os.path
 import os
+import io
 import requests
 import click
 from typing import Union, Callable, cast
+import sys
+import ujson
 
 from nomad import config, utils
 from nomad.files import ArchiveBasedStagingUploadFiles
@@ -40,12 +43,20 @@ class CalcProcReproduction:
         archive_id: The archive_id of the calculation to locally process.
         override: Set to true to override any existing local calculation data.
     """
-    def __init__(self, archive_id: str, override: bool = False) -> None:
+    def __init__(self, archive_id: str, override: bool = False, mainfile: str = None) -> None:
         self.calc_id = utils.archive.calc_id(archive_id)
         self.upload_id = utils.archive.upload_id(archive_id)
-        self.mainfile = None
+        self.mainfile = mainfile
         self.parser = None
         self.logger = utils.get_logger(__name__, archive_id=archive_id)
+
+        from .main import create_client
+        client = create_client()
+        if self.mainfile is None:
+            calc = client.repo.get_repo_calc(upload_id=self.upload_id, calc_id=self.calc_id).response().result
+            self.mainfile = calc['mainfile']
+        else:
+            self.logger.info('Using provided mainfile', mainfile=self.mainfile)
 
         local_path = os.path.join(config.fs.tmp, 'repro_%s.zip' % archive_id)
         if not os.path.exists(os.path.dirname(local_path)):
@@ -54,27 +65,27 @@ class CalcProcReproduction:
             # download raw if not already downloaded or if override is set
             # download with request, since bravado does not support streaming
             # TODO currently only downloads mainfile
-            self.logger.info('Downloading calc.')
-            req = requests.get('%s/raw/%s/%s' % (get_nomad_url(), self.upload_id, os.path.dirname(self.mainfile)), stream=True)
+            self.logger.info('Downloading calc.', mainfile=self.mainfile)
+            token = client.auth.get_user().response().result.token
+            req = requests.get('%s/raw/%s/%s' % (get_nomad_url(), self.upload_id, os.path.dirname(self.mainfile)) + '/*', stream=True, headers={'X-Token': token})
             with open(local_path, 'wb') as f:
-                for chunk in req.iter_content(chunk_size=1024):
+                for chunk in req.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
                     f.write(chunk)
         else:
             self.logger.info('Calc already downloaded.')
 
-        self.upload_files = ArchiveBasedStagingUploadFiles(upload_id='tmp_%s' % archive_id, local_path=local_path)
+        self.upload_files = ArchiveBasedStagingUploadFiles(upload_id='tmp_%s' % archive_id, local_path=local_path, create=True, is_authorized=lambda: True)
 
     def __enter__(self):
         # open/extract upload file
         self.logger.info('Extracting calc data.')
-        self.upload_files.extract()
+        try:
+            self.upload_files.extract()
+        except AssertionError:
+            # already extracted
+            pass
 
-        # find mainfile matching calc_id
-        self.mainfile = next(
-            filename for filename in self.upload_files.raw_file_manifest()
-            if self.upload_files.calc_id(filename) == self.calc_id)
-
-        assert self.mainfile is not None, 'The mainfile could not be found.'
+        assert self.mainfile is not None
         self.logger = self.logger.bind(mainfile=self.mainfile)
         self.logger.info('Identified mainfile.')
 
@@ -98,6 +109,14 @@ class CalcProcReproduction:
         self.logger.info('identified parser')
 
         parser_backend = parser.run(self.upload_files.raw_file_object(self.mainfile).os_path, logger=self.logger)
+        parser_backend.openNonOverlappingSection('section_calculation_info')
+        parser_backend.addValue('upload_id', self.upload_id)
+        parser_backend.addValue('calc_id', self.calc_id)
+        parser_backend.addValue('calc_hash', "no hash")
+        parser_backend.addValue('main_file', self.mainfile)
+        parser_backend.addValue('parser_name', parser.__class__.__name__)
+        parser_backend.closeNonOverlappingSection('section_calculation_info')
+
         self.logger.info('ran parser')
         return parser_backend
 
@@ -135,12 +154,15 @@ class CalcProcReproduction:
 @cli.command(help='Run processing locally.')
 @click.argument('ARCHIVE_ID', nargs=1, required=True, type=str)
 @click.option(
-    '--override', is_flag=True, default=False,
-    help='Override existing local calculation data.')
+    '--override', is_flag=True, default=False, help='Override existing local calculation data.')
+@click.option('--mainfile', default=None, type=str, help='Use this mainfile (in case mainfile cannot be retrived via API.')
 def local(archive_id, **kwargs):
+    print(kwargs)
     utils.configure_logging()
     utils.get_logger(__name__).info('Using %s' % get_nomad_url())
     with CalcProcReproduction(archive_id, **kwargs) as local:
         backend = local.parse()
         local.normalize_all(parser_backend=backend)
-        # backend.write_json(sys.stdout, pretty=True)
+        backend.write_json(sys.stdout, pretty=True)
+        metadata = backend.to_calc_with_metadata()
+        ujson.dump(metadata.to_dict(), sys.stdout, indent=4)

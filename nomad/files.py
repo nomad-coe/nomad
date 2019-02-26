@@ -616,7 +616,8 @@ class ArchiveBasedStagingUploadFiles(StagingUploadFiles):
             *args, **kwargs) -> None:
         super().__init__(upload_id, *args, **kwargs)
         self._local_path = local_path
-        self._upload_file = self.join_file(file_name)
+        if self._local_path is None:
+            self._upload_file = self.join_file(file_name)
 
     @property
     def upload_file_os_path(self):
