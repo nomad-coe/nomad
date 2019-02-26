@@ -192,8 +192,17 @@ class UploadListResource(Resource):
 
                 try:
                     with open(upload_files.upload_file_os_path, 'wb') as f:
+                        received_data = 0
+                        received_last = 0
                         while not request.stream.is_exhausted:
-                            f.write(request.stream.read(io.DEFAULT_BUFFER_SIZE))
+                            data = request.stream.read(io.DEFAULT_BUFFER_SIZE)
+                            received_data += len(data)
+                            received_last += len(data)
+                            if received_last > 1e6:
+                                received_last = 0
+                                # TODO remove this logging or reduce it to debug
+                                logger.info('received streaming data', size=len(received_data))
+                            f.write(data)
 
                 except Exception as e:
                     logger.warning('Error on streaming upload', exc_info=e)

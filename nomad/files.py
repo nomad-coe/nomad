@@ -63,7 +63,6 @@ from zipfile import ZipFile, BadZipFile, is_zipfile
 import tarfile
 from bagit import make_bag
 import hashlib
-import base64
 import io
 import gzip
 
@@ -567,12 +566,6 @@ class StagingUploadFiles(UploadFiles):
         else:
             return aux_files
 
-    def _websave_hash(self, hash: bytes, length: int = 0) -> str:
-        if length > 0:
-            return base64.b64encode(hash, altchars=b'-_')[0:28].decode('utf-8')
-        else:
-            return base64.b64encode(hash, altchars=b'-_')[0:-2].decode('utf-8')
-
     def calc_id(self, mainfile: str) -> str:
         """
         Calculates a id for the given calc.
@@ -586,7 +579,7 @@ class StagingUploadFiles(UploadFiles):
         hash = hashlib.sha512()
         hash.update(self.upload_id.encode('utf-8'))
         hash.update(mainfile.encode('utf-8'))
-        return self._websave_hash(hash.digest(), utils.default_hash_len)
+        return utils.hash(hash.digest())
 
     def calc_hash(self, mainfile: str) -> str:
         """
@@ -604,7 +597,7 @@ class StagingUploadFiles(UploadFiles):
                 for data in iter(lambda: f.read(65536), b''):
                     hash.update(data)
 
-        return self._websave_hash(hash.digest(), utils.default_hash_len)
+        return utils.hash(hash.digest())
 
 
 class ArchiveBasedStagingUploadFiles(StagingUploadFiles):

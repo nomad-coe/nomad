@@ -53,6 +53,14 @@ default_hash_len = 28
 """ Length of hashes and hash-based ids (e.g. calc, upload) in nomad. """
 
 
+def hash(hash: bytes, length: int = default_hash_len) -> str:
+    """ Creates a websave hash for the given bytes of the given length. """
+    if length > 0:
+        return base64.b64encode(hash, altchars=b'-_')[:length].decode('utf-8')
+    else:
+        return base64.b64encode(hash, altchars=b'-_')[0:-2].decode('utf-8')
+
+
 def sanitize_logevent(event: str) -> str:
     """
     Prepares a log event or message for analysis in elastic stack. It removes numbers,
