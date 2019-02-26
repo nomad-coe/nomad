@@ -23,6 +23,7 @@ other/older nomad@FAIRDI instances to mass upload it to a new nomad@FAIRDI insta
 from typing import Generator, Tuple, List, Iterable, Any, IO
 import os.path
 import zipstream
+import zipfile
 import math
 from mongoengine import Document, IntField, StringField, DictField, ListField
 import time
@@ -32,7 +33,7 @@ import os
 import runstats
 import io
 
-from nomad import utils, infrastructure
+from nomad import utils, infrastructure, config
 from nomad.coe_repo import User, Calc, LoginException
 from nomad.datamodel import CalcWithMetadata
 from nomad.processing import FAILURE, SUCCESS
@@ -106,15 +107,26 @@ class Package(Document):
     meta = dict(indexes=['upload_id'])
 
     def open_package_upload_file(self) -> IO:
-        """
-        Creates a streaming zip file from the files of this package.
-        """
+        """ Creates a streaming zip file from the files of this package. """
         zip_file = zipstream.ZipFile(compression=zipstream.ZIP_STORED, allowZip64=True)
         for filename in self.filenames:
             filepath = os.path.join(self.upload_path, filename)
             zip_file.write(filepath, filename)
 
         return iterable_to_stream(zip_file)  # type: ignore
+
+    def create_package_upload_file(self) -> str:
+        """  Creates a zip file for the package in tmp and returns its path. """
+        upload_filepath = os.path.join(config.fs.tmp, '%s.zip' % self.package_id)
+        if not os.path.isfile(upload_filepath):
+            with zipfile.ZipFile(
+                    upload_filepath, 'w',
+                    compression=zipfile.ZIP_STORED, allowZip64=True) as zip_file:
+                for filename in self.filenames:
+                    filepath = os.path.join(self.upload_path, filename)
+                    zip_file.write(filepath, filename)
+
+        return upload_filepath
 
     @classmethod
     def index(cls, *upload_paths):
@@ -450,9 +462,9 @@ class NomadCOEMigration:
 
         return is_valid
 
-    def _open_packages(
+    def _packages(
             self, source_upload_path: str,
-            create: bool = False) -> Iterable[Tuple[str, str, IO]]:
+            create: bool = False) -> Iterable[Tuple[Package, str]]:
 
         logger = self.logger.bind(source_upload_path=source_upload_path)
 
@@ -479,21 +491,11 @@ class NomadCOEMigration:
 
         logger.debug('identified packages for source upload', n_packages=package_query.count())
         for package in package_query:
-            package_id = package.package_id
-            try:
-                upload_f = package.open_package_upload_file()
-            except Exception as e:
-                logger.error(
-                    'could not open package for upload, skipping',
-                    package_id=package_id, exc_info=e)
-                continue
-
-            logger.debug('opened package for upload', package_id=package_id)
-            yield package_id, source_upload_id, upload_f
+            yield package, source_upload_id,
 
     def migrate(
             self, upload_path, prefix: int = default_pid_prefix,
-            create_packages: bool = False):
+            create_packages: bool = False, local: bool = False):
         """
         Migrate the given uploads.
 
@@ -514,6 +516,7 @@ class NomadCOEMigration:
             prefix: The PID prefix that should be used for new non migrated calcualtions.
             create_packages: If True, will create non existing packages.
                 Will skip with errors otherwise.
+            local: Instead of streaming an upload, create a local file and use local_path on the upload.
 
         Returns: Yields a dictionary with status and statistics for each given upload.
         """
@@ -523,17 +526,24 @@ class NomadCOEMigration:
             self.logger.info('set pid prefix', pid_prefix=prefix)
             self.client.admin.exec_pidprefix_command(payload=dict(prefix=prefix)).response()
 
-        for package_id, source_upload_id, upload_f in self._open_packages(
-                upload_path, create=create_packages):
+        for package, source_upload_id in self._packages(upload_path, create=create_packages):
+            package_id = package.package_id
 
             logger = self.logger.bind(
                 package_id=package_id, source_upload_id=source_upload_id, upload_path=upload_path)
 
             # upload and process the upload file
             with utils.timer(logger, 'upload completed'):
-                assert upload_f is not None
                 try:
-                    upload = stream_upload_with_client(self.client, upload_f, name=package_id)
+                    if local:
+                        upload_filepath = package.create_package_upload_file()
+                        self.logger.debug('created package upload file')
+                        upload = self.client.uploads.upload(
+                            name=package_id, local_path=upload_filepath).response().result
+                    else:
+                        upload_f = package.open_package_upload_file()
+                        self.logger.debug('opened package upload file')
+                        upload = stream_upload_with_client(self.client, upload_f, name=package_id)
                 except Exception as e:
                     self.logger.error('could not upload package', exc_info=e)
                     continue
