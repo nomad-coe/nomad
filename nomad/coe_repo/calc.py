@@ -29,6 +29,25 @@ from .base import Base, calc_citation_association, ownership, co_authorship, sha
     CodeVersion, StructRatio, UserMetaData
 
 
+class QueryCache:
+    """
+    Caches queries to avoid unnecessary flushes while bulk creating calcs.
+    Faster than even SQLAlchemy with ``autoflush=False``, because of reasons.
+    """
+
+    def __init__(self):
+        self._cache = {}
+
+    def __call__(self, entity, **kwargs):
+        key = json.dumps(dict(entity=entity.__class__.__name__, **kwargs))
+        value = self._cache.get(key, None)
+        if value is None:
+            value = infrastructure.repository_db.query(entity).filter_by(**kwargs).first()
+            if value is not None:
+                self._cache[key] = value
+        return value
+
+
 class IllegalCalcMetadata(Exception): pass
 
 
@@ -48,6 +67,10 @@ class Calc(Base):
     shared_with = relationship('User', secondary=shareship, lazy='joined')
     tags = relationship('Tag', lazy='subquery', join_depth=1)
     spacegroup = relationship('Spacegroup', lazy='joined', uselist=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.topic_ids = {}
 
     parents = relationship(
         'Calc',
@@ -125,28 +148,29 @@ class Calc(Base):
     def direct_datasets(self) -> List['DataSet']:
         return [DataSet(dataset_calc) for dataset_calc in self.parents]
 
-    def _set_value(self, topic_cid: int, value: str) -> None:
+    def _set_value(self, topic_cid: int, value: str, cache: QueryCache) -> None:
         if value is None:
             return
 
         repo_db = infrastructure.repository_db
-        topic = repo_db.query(Topics).filter_by(topic=value).first()
+        topic = cache(Topics, cid=topic_cid, topic=value)
         if not topic:
             topic = Topics(cid=topic_cid, topic=value)
             repo_db.add(topic)
+            repo_db.flush()
 
-        tag = repo_db.query(Tag).filter_by(calc=self, topic=topic).first()
-        if tag is None:
+        if topic.tid not in self.topic_ids:
             tag = Tag(calc=self, topic=topic)
+            self.topic_ids[topic.tid] = topic.tid
             repo_db.add(tag)
         else:
             logger = utils.get_logger(
                 __name__, calc_id=self.calc_id, upload_id=self.upload.upload_id)
-            logger.warning('double tag on same calc', cid=topic.cid, tid=topic.tid)
+            logger.warning('double tag on same calc', cid=topic.cid, tid=topic.tid, value=topic.topic)
 
     _dataset_cache: dict = {}
 
-    def apply_calc_with_metadata(self, calc: CalcWithMetadata) -> None:
+    def apply_calc_with_metadata(self, calc: CalcWithMetadata, cache: QueryCache) -> None:
         """
         Applies the data from ``source`` to this coe Calc object.
         """
@@ -154,7 +178,7 @@ class Calc(Base):
 
         self.checksum = calc.calc_id
         source_code_version = calc.code_version  # TODO shorten version names
-        code_version_obj = repo_db.query(CodeVersion).filter_by(content=source_code_version).first()
+        code_version_obj = cache(CodeVersion, content=source_code_version)
         if code_version_obj is None:
             code_version_obj = CodeVersion(content=source_code_version)
             repo_db.add(code_version_obj)
@@ -191,18 +215,18 @@ class Calc(Base):
         repo_db.add(spacegroup)
 
         # topic based properties
-        self._set_value(base.topic_code, calc.code_name)
+        self._set_value(base.topic_code, calc.code_name, cache)
         for atom in set(calc.atoms):
-            self._set_value(base.topic_atoms, str(atom))
-        self._set_value(base.topic_system_type, calc.system)
-        self._set_value(base.topic_xc_treatment, calc.xc_functional)
-        self._set_value(base.topic_crystal_system, calc.crystal_system)
-        self._set_value(base.topic_basis_set_type, calc.basis_set)
+            self._set_value(base.topic_atoms, str(atom), cache)
+        self._set_value(base.topic_system_type, calc.system, cache)
+        self._set_value(base.topic_xc_treatment, calc.xc_functional, cache)
+        self._set_value(base.topic_crystal_system, calc.crystal_system, cache)
+        self._set_value(base.topic_basis_set_type, calc.basis_set, cache)
 
         # user relations
         def add_users_to_relation(source_users, relation):
             for source_user in source_users:
-                coe_user = repo_db.query(User).get(source_user.id)
+                coe_user = cache(User, user_id=source_user.id)
                 if coe_user is None:
                     raise IllegalCalcMetadata(
                         'User with user_id %s does not exist.' % source_user.id)
@@ -221,7 +245,7 @@ class Calc(Base):
         # datasets
         for dataset in calc.datasets:
             dataset_id = dataset.id
-            coe_dataset_calc: Calc = repo_db.query(Calc).get(dataset_id)
+            coe_dataset_calc: Calc = cache(Calc, coe_calc_id=dataset_id)
             if coe_dataset_calc is None:
                 coe_dataset_calc = Calc(coe_calc_id=dataset_id)
                 repo_db.add(coe_dataset_calc)
@@ -233,10 +257,10 @@ class Calc(Base):
                 repo_db.add(metadata)
 
                 if dataset.doi is not None:
-                    self._add_citation(coe_dataset_calc, dataset.doi['value'], 'INTERNAL')
+                    self._add_citation(coe_dataset_calc, dataset.doi['value'], 'INTERNAL', cache)
 
                 # cause a flush to avoid future inconsistencies
-                coe_dataset_calc = repo_db.query(Calc).get(dataset_id)
+                repo_db.flush()
 
             coe_dataset_rel = CalcSet(parent_calc_id=dataset_id, children_calc_id=self.coe_calc_id)
             repo_db.add(coe_dataset_rel)
@@ -245,11 +269,11 @@ class Calc(Base):
 
         # references
         for reference in calc.references:
-            self._add_citation(self, reference['value'], 'EXTERNAL')
+            self._add_citation(self, reference['value'], 'EXTERNAL', cache)
 
-    def _add_citation(self, coe_calc: 'Calc', value: str, kind: str) -> None:
+    def _add_citation(self, coe_calc: 'Calc', value: str, kind: str, cache: QueryCache) -> None:
         repo_db = infrastructure.repository_db
-        citation = repo_db.query(Citation).filter_by(value=value, kind=kind).first()
+        citation = cache(Citation, value=value, kind=kind)
 
         if citation is None:
             citation = Citation(value=value, kind=kind)
