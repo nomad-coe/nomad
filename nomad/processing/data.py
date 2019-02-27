@@ -61,8 +61,8 @@ class Calc(Proc):
     parser = StringField()
 
     meta: Any = {
-        'indices': [
-            'upload_id', 'mainfile', 'code', 'parser', 'tasks_status'
+        'indexes': [
+            'upload_id', 'mainfile', 'parser', 'tasks_status'
         ]
     }
 

@@ -205,20 +205,17 @@ def test_migrate(migrate_infra, test, assertions, monkeypatch, caplog):
     upload_path = os.path.join(upload_path, os.listdir(upload_path)[0])
 
     pid_prefix = 10
-    reports = list(migrate_infra.migrate(
-        upload_path, prefix=pid_prefix, create_packages=True,
-        local=assertions.get('local', False)))
+    migrate_infra.set_pid_prefix(pid_prefix)
+    report = migrate_infra.migrate(upload_path, create_packages=True, local=assertions.get('local', False))
 
-    assert len(reports) == 1
-    report = reports[0]
-    assert report['total_calcs'] == assertions.get('migrated', 0) + assertions.get('new', 0) + assertions.get('failed', 0)
+    assert report.total_calcs == assertions.get('migrated', 0) + assertions.get('new', 0) + assertions.get('failed', 0)
 
     # assert if new, diffing, migrated calcs where detected correctly
-    assert report['total_source_calcs'] == assertions.get('source', 0)
-    assert report['migrated_calcs'] == assertions.get('migrated', 0)
-    assert report['calcs_with_diffs'] == assertions.get('diffs', 0)
-    assert report['new_calcs'] == assertions.get('new', 0)
-    assert report['missing_calcs'] == assertions.get('missing', 0)
+    assert report.total_source_calcs == assertions.get('source', 0)
+    assert report.migrated_calcs == assertions.get('migrated', 0)
+    assert report.calcs_with_diffs == assertions.get('diffs', 0)
+    assert report.new_calcs == assertions.get('new', 0)
+    assert report.missing_calcs == assertions.get('missing', 0)
 
     # assert if migrated calcs have correct user metadata
     repo_db = infrastructure.repository_db
