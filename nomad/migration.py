@@ -21,6 +21,7 @@ other/older nomad@FAIRDI instances to mass upload it to a new nomad@FAIRDI insta
 """
 
 from typing import Generator, Tuple, List, Iterable, Any, IO
+import os
 import os.path
 import zipstream
 import zipfile
@@ -118,6 +119,8 @@ class Package(Document):
     def create_package_upload_file(self) -> str:
         """  Creates a zip file for the package in tmp and returns its path. """
         upload_filepath = os.path.join(config.fs.nomad_tmp, '%s.zip' % self.package_id)
+        if not os.path.exists(os.path.dirname(upload_filepath)):
+            os.mkdir(os.path.dirname(upload_filepath))
         if not os.path.isfile(upload_filepath):
             with zipfile.ZipFile(
                     upload_filepath, 'w',

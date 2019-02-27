@@ -58,7 +58,7 @@ def nomad_logging():
 @pytest.fixture(scope='session', autouse=True)
 def raw_files_infra(monkeysession):
     monkeysession.setattr('nomad.config.fs', config.FSConfig(
-        tmp='.volumes/test_fs/tmp', objects='.volumes/test_fs/objects'))
+        tmp='.volumes/test_fs/tmp', objects='.volumes/test_fs/objects', nomad_tmp='.volumes/test_fs/nomad_tmp'))
 
 
 @pytest.fixture(scope='function')
