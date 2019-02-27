@@ -135,8 +135,14 @@ class Calc(Base):
             topic = Topics(cid=topic_cid, topic=value)
             repo_db.add(topic)
 
-        tag = Tag(calc=self, topic=topic)
-        repo_db.add(tag)
+        tag = repo_db.query(Tag).filter_by(calc=self, topic=topic).first()
+        if tag is None:
+            tag = Tag(calc=self, topic=topic)
+            repo_db.add(tag)
+        else:
+            logger = utils.get_logger(
+                __name__, calc_id=self.calc_id, upload_id=self.upload.upload_id)
+            logger.warning('double tag on same calc', cid=topic.cid, tid=topic.tid)
 
     _dataset_cache: dict = {}
 
