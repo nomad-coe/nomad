@@ -277,7 +277,7 @@ def aggregate_search(
         raise KeyError('Unknown order quantity %s' % order_by)
     search = search.sort(order_by if order == 1 else '-%s' % order_by)
 
-    response = search[(page - 1) * per_page: page * per_page].execute()  # pylint: disable=no-member
+    response = search[(page - 1) * per_page: page * per_page].execute()  # pylint: disable=E1101
 
     total_results = response.hits.total
     search_results = [hit.to_dict() for hit in response.hits]

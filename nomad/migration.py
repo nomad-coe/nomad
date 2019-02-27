@@ -615,7 +615,7 @@ class NomadCOEMigration:
             has_successful_calc = False
             upload_total_calcs = upload.calcs.pagination.total
             timer = utils.timer(logger, 'validation completed')
-            timer.__enter__()  # type: ignore, pylint: disable=no-member
+            timer.__enter__()  # type: ignore, pylint: disable=E1101
             # verify upload: check for processing errors
             per_page = 200
             for page in range(1, math.ceil(upload_total_calcs / per_page) + 1):
@@ -655,7 +655,7 @@ class NomadCOEMigration:
                     calc_logger = logger.bind(calc_id=calc['calc_id'], mainfile=calc['mainfile'])
                     if not self._validate(calc, source_calc, calc_logger):
                         report.calcs_with_diffs += 1
-            timer.__exit__(None, None, None)  # type: ignore, pylint: disable=no-member
+            timer.__exit__(None, None, None)  # type: ignore, pylint: disable=E1101
 
             # publish upload
             with utils.timer(logger, 'upload published'):
