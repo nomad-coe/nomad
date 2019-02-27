@@ -249,7 +249,7 @@ class SourceCalc(Document):
     sites = ['/data/nomad/extracted/', '/nomad/repository/extracted/']
     prefixes = [extracted_prefix] + sites
 
-    meta = dict(indexes=['upload'])
+    meta = dict(indexes=['upload', 'mainfile'])
 
     _dataset_cache: dict = {}
 
@@ -464,17 +464,16 @@ class NomadCOEMigration:
 
     def _packages(
             self, source_upload_path: str,
-            create: bool = False) -> Iterable[Tuple[Package, str]]:
+            create: bool = False) -> Tuple[Iterable[Package], str]:
 
-        logger = self.logger.bind(source_upload_path=source_upload_path)
+        source_upload_id = os.path.basename(source_upload_path)
+        logger = self.logger.bind(
+            source_upload_path=source_upload_path, source_upload_id=source_upload_id)
 
         if os.path.isfile(source_upload_path):
             # assume its a path to an archive files
             logger.error('currently no support for migrating archive files')
-            return
-
-        source_upload_id = os.path.basename(source_upload_path)
-        logger = logger.bind(source_upload_id=source_upload_id)
+            return [], source_upload_id
 
         package_query = Package.objects(upload_id=source_upload_id)
 
@@ -484,18 +483,17 @@ class NomadCOEMigration:
                 package_query = Package.objects(upload_id=source_upload_id)
                 if package_query.count() == 0:
                     logger.error('no package exists, even after indexing')
-                    return
+                    return [], source_upload_id
             else:
                 logger.error('no package exists for upload')
-                return
+                return [], source_upload_id
 
         logger.debug('identified packages for source upload', n_packages=package_query.count())
-        for package in package_query:
-            yield package, source_upload_id,
+        return package_query, source_upload_id
 
     def migrate(
             self, upload_path, prefix: int = default_pid_prefix,
-            create_packages: bool = False, local: bool = False):
+            create_packages: bool = False, local: bool = False) -> utils.POPO:
         """
         Migrate the given uploads.
 
@@ -526,11 +524,37 @@ class NomadCOEMigration:
             self.logger.info('set pid prefix', pid_prefix=prefix)
             self.client.admin.exec_pidprefix_command(payload=dict(prefix=prefix)).response()
 
-        for package, source_upload_id in self._packages(upload_path, create=create_packages):
+        logger = self.logger.bind(upload_path=upload_path)
+
+        packages, source_upload_id = self._packages(upload_path, create=create_packages)
+
+        report = utils.POPO()
+        report.total_source_calcs = SourceCalc.objects(upload=source_upload_id).count()
+        report.total_calcs = 0
+        report.failed_calcs = 0
+        report.migrated_calcs = 0
+        report.calcs_with_diffs = 0
+        report.new_calcs = 0
+        report.missing_calcs = 0
+
+        # grab source metadata
+        upload_metadata_calcs: List[Any] = list()
+        metadata_dict = dict()
+        upload_metadata = dict(calculations=upload_metadata_calcs)
+        for source_calc in SourceCalc.objects(upload=source_upload_id):
+            source_metadata = CalcWithMetadata(**source_calc.metadata)
+            source_metadata.mainfile = source_calc.mainfile
+            source_metadata.pid = source_calc.pid
+            source_metadata.__migrated = False  # type: ignore
+            upload_metadata_calcs.append(source_metadata)
+            metadata_dict[source_calc.mainfile] = source_metadata
+
+        logger.debug('loaded source metadata', calcs=len(upload_metadata_calcs))
+
+        for package in packages:
             package_id = package.package_id
 
-            logger = self.logger.bind(
-                package_id=package_id, source_upload_id=source_upload_id, upload_path=upload_path)
+            logger = logger.bind(package_id=package_id, source_upload_id=source_upload_id)
 
             # upload and process the upload file
             with utils.timer(logger, 'upload completed'):
@@ -553,28 +577,6 @@ class NomadCOEMigration:
             logger = logger.bind(
                 source_upload_id=source_upload_id, upload_id=upload.upload_id)
 
-            # grab source metadata
-            upload_metadata_calcs: List[Any] = list()
-            metadata_dict = dict()
-            upload_metadata = dict(calculations=upload_metadata_calcs)
-            for source_calc in SourceCalc.objects(upload=source_upload_id):
-                source_metadata = CalcWithMetadata(**source_calc.metadata)
-                source_metadata.upload_id = upload.upload_id
-                source_metadata.mainfile = source_calc.mainfile
-                source_metadata.pid = source_calc.pid
-                source_metadata.__migrated = False  # type: ignore
-                upload_metadata_calcs.append(source_metadata)
-                metadata_dict[source_calc.mainfile] = source_metadata
-            logger.debug('loaded source metadata', calcs=len(upload_metadata_calcs))
-
-            report = utils.POPO()
-            report.total_source_calcs = len(metadata_dict)
-            report.failed_calcs = 0
-            report.migrated_calcs = 0
-            report.calcs_with_diffs = 0
-            report.new_calcs = 0
-            report.missing_calcs = 0
-
             # wait for complete upload
             with utils.timer(logger, 'upload processing completed'):
                 while upload.tasks_running:
@@ -586,19 +588,18 @@ class NomadCOEMigration:
 
             if upload.tasks_status == FAILURE:
                 error = 'failed to process upload'
-                report.missing_calcs = report.total_source_calcs
-                report.total_calcs = 0
                 logger.error(error, process_errors=upload.errors)
-                yield report
                 continue
             else:
-                report.total_calcs = upload.calcs.pagination.total
+                report.total_calcs += upload.calcs.pagination.total
 
+            has_successful_calc = False
+            upload_total_calcs = upload.calcs.pagination.total
             timer = utils.timer(logger, 'validation completed')
             timer.__enter__()  # type: ignore, pylint: disable=no-member
             # verify upload: check for processing errors
             per_page = 200
-            for page in range(1, math.ceil(report.total_calcs / per_page) + 1):
+            for page in range(1, math.ceil(upload_total_calcs / per_page) + 1):
                 upload = self.client.uploads.get_upload(
                     upload_id=upload.upload_id, per_page=per_page, page=page,
                     order_by='mainfile').response().result
@@ -610,6 +611,7 @@ class NomadCOEMigration:
 
                     source_calc = metadata_dict.get(calc_proc.mainfile, None)
                     if calc_proc.tasks_status == SUCCESS:
+                        has_successful_calc = True
                         if source_calc is None:
                             calc_logger.info('processed a calc that has no source')
                             report.new_calcs += 1
@@ -624,8 +626,8 @@ class NomadCOEMigration:
                             'could not process a calc', process_errors=calc_proc.errors)
                         continue
 
-            # very upload: calc data
-            for page in range(1, math.ceil(report.total_calcs / per_page) + 1):
+            # verify upload: calc data
+            for page in range(1, math.ceil(upload_total_calcs / per_page) + 1):
                 search = self.client.repo.search(
                     page=page, per_page=per_page, upload_id=upload.upload_id,
                     order_by='mainfile').response().result
@@ -634,13 +636,6 @@ class NomadCOEMigration:
                     calc_logger = logger.bind(calc_id=calc['calc_id'], mainfile=calc['mainfile'])
                     if not self._validate(calc, source_calc, calc_logger):
                         report.calcs_with_diffs += 1
-
-            for source_calc in upload_metadata_calcs:
-                if source_calc.__migrated is False:
-                    report.missing_calcs += 1
-                    logger.info(
-                        'no match or processed calc for source calc',
-                        mainfile=source_calc.mainfile)
             timer.__exit__(None, None, None)  # type: ignore, pylint: disable=no-member
 
             # publish upload
@@ -649,7 +644,7 @@ class NomadCOEMigration:
                     self._to_api_metadata(calc)
                     for calc in upload_metadata['calculations'] if calc.__migrated]
 
-                if report.total_calcs > report.failed_calcs:
+                if has_successful_calc:
                     upload = self.client.uploads.exec_upload_operation(
                         upload_id=upload.upload_id,
                         payload=dict(operation='publish', metadata=upload_metadata)
@@ -664,9 +659,17 @@ class NomadCOEMigration:
                             # the proc upload will be deleted by the publish operation
                             break
 
-            # report
             logger.info('migrated upload', **report)
-            yield report
+
+        # check for missing source calcs
+        for source_calc in upload_metadata_calcs:
+            if source_calc.__migrated is False:
+                report.missing_calcs += 1
+                logger.info(
+                    'no match or processed calc for source calc',
+                    mainfile=source_calc.mainfile)
+
+        return report
 
     def _to_api_metadata(self, source: CalcWithMetadata) -> dict:
         """ Transforms to a dict that fullfils the API's uploade metadata model. """
