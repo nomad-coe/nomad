@@ -33,7 +33,7 @@ FilesConfig = namedtuple(
 CeleryConfig = namedtuple('Celery', ['broker_url', 'max_memory', 'timeout'])
 """ Used to configure the RabbitMQ for celery. """
 
-FSConfig = namedtuple('FSConfig', ['tmp', 'objects'])
+FSConfig = namedtuple('FSConfig', ['tmp', 'objects', 'nomad_tmp'])
 """ Used to configure file stystem access. """
 
 RepositoryDBConfig = namedtuple('RepositoryDBConfig', ['host', 'port', 'dbname', 'user', 'password'])
@@ -88,7 +88,8 @@ celery = CeleryConfig(
 
 fs = FSConfig(
     tmp=os.environ.get('NOMAD_FILES_TMP_DIR', '.volumes/fs/tmp'),
-    objects=os.environ.get('NOMAD_FILES_OBJECTS_DIR', '.volumes/fs/objects')
+    objects=os.environ.get('NOMAD_FILES_OBJECTS_DIR', '.volumes/fs/objects'),
+    nomad_tmp=os.environ.get('NOMAD_FILES_NOMAD_TMP_DIR', '/nomad/tmp')
 )
 elastic = ElasticConfig(
     host=os.environ.get('NOMAD_ELASTIC_HOST', 'localhost'),

@@ -117,7 +117,7 @@ class Package(Document):
 
     def create_package_upload_file(self) -> str:
         """  Creates a zip file for the package in tmp and returns its path. """
-        upload_filepath = os.path.join(config.fs.tmp, '%s.zip' % self.package_id)
+        upload_filepath = os.path.join(config.fs.nomad_tmp, '%s.zip' % self.package_id)
         if not os.path.isfile(upload_filepath):
             with zipfile.ZipFile(
                     upload_filepath, 'w',
