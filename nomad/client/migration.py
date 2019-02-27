@@ -83,19 +83,32 @@ def copy_users(**kwargs):
     _migration.copy_users()
 
 
+@migration.command(help='Set the repo db PID calc counter.')
+@click.argument('prefix', nargs=1, type=int, default=7000000)
+def pid_prefix(prefix: int):
+    infrastructure.setup_logging()
+    migration = NomadCOEMigration()
+    migration.set_pid_prefix(prefix=prefix)
+
+
 @migration.command(help='Upload the given upload locations. Uses the existing index to provide user metadata')
 @click.argument('paths', nargs=-1)
 @click.option('--create-packages', help='Allow migration to create package entries on the fly.', is_flag=True)
-@click.option('--prefix', default=None, type=int, help='Set the pid counter to this value. The counter will not be changed if not given.')
 @click.option('--local', help='Create local upload files.', is_flag=True)
-def upload(paths: list, prefix: int, create_packages: bool = False, local: bool = False):
-    infrastructure.setup_logging()
-    infrastructure.setup_mongo()
+@click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
+def upload(paths: list, create_packages, local: bool, parallel: int):
 
-    logger = utils.get_logger(__name__)
+    def run_migration(paths):
+        infrastructure.setup_logging()
+        infrastructure.setup_mongo()
 
-    migration = NomadCOEMigration()
-    for path in paths:
-        for result in migration.migrate(
-                path, prefix=prefix, create_packages=create_packages, local=local):
-            logger.info('got migration with result', **result)
+        logger = utils.get_logger(__name__)
+        migration = NomadCOEMigration()
+        for path in paths:
+            report = migration.migrate(path, create_packages=create_packages, local=local)
+            logger.info('got migration with result', **report)
+
+    if parallel == 1:
+        run_migration(paths)
+    else:
+        raise NotImplementedError()

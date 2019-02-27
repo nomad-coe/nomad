@@ -205,9 +205,8 @@ def test_migrate(migrate_infra, test, assertions, monkeypatch, caplog):
     upload_path = os.path.join(upload_path, os.listdir(upload_path)[0])
 
     pid_prefix = 10
-    report = migrate_infra.migrate(
-        upload_path, prefix=pid_prefix, create_packages=True,
-        local=assertions.get('local', False))
+    migrate_infra.set_pid_prefix(pid_prefix)
+    report = migrate_infra.migrate(upload_path, create_packages=True, local=assertions.get('local', False))
 
     assert report.total_calcs == assertions.get('migrated', 0) + assertions.get('new', 0) + assertions.get('failed', 0)
 

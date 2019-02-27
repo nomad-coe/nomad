@@ -465,6 +465,17 @@ class NomadCOEMigration:
     def _packages(
             self, source_upload_path: str,
             create: bool = False) -> Tuple[Iterable[Package], str]:
+        """
+        Creates a iterator over packages for the given upload path. Packages are
+        taken from the :class:`Package` index.
+
+        Arguments:
+            source_upload_path: The path to the extracted upload.
+            create: If True, will index packages if they not exist.
+
+        Returns:
+            A tuple with the package iterable and the source_upload_id (last path segment)
+        """
 
         source_upload_id = os.path.basename(source_upload_path)
         logger = self.logger.bind(
@@ -491,9 +502,16 @@ class NomadCOEMigration:
         logger.debug('identified packages for source upload', n_packages=package_query.count())
         return package_query, source_upload_id
 
+    def set_pid_prefix(self, prefix: int = default_pid_prefix):
+        """
+        Sets the repo db pid counter to the given values. Allows to create new calcs
+        without interfering with migration calcs with already existing PIDs.
+        """
+        self.logger.info('set pid prefix', pid_prefix=prefix)
+        self.client.admin.exec_pidprefix_command(payload=dict(prefix=prefix)).response()
+
     def migrate(
-            self, upload_path, prefix: int = default_pid_prefix,
-            create_packages: bool = False, local: bool = False) -> utils.POPO:
+            self, upload_path, create_packages: bool = False, local: bool = False) -> utils.POPO:
         """
         Migrate the given uploads.
 
@@ -507,11 +525,10 @@ class NomadCOEMigration:
         will be used to add user (and other, PID, ...) metadata and validate calculations.
 
         Uses PIDs of identified old calculations. Will create new PIDs for previously
-        unknown uploads. New PIDs will be choosed from a `prefix++` range of ints.
+        unknown uploads. See :func:`set_pid_prefix` on how to avoid conflicts.
 
         Arguments:
             upload_path: A filepath to the upload directory.
-            prefix: The PID prefix that should be used for new non migrated calcualtions.
             create_packages: If True, will create non existing packages.
                 Will skip with errors otherwise.
             local: Instead of streaming an upload, create a local file and use local_path on the upload.
@@ -520,14 +537,12 @@ class NomadCOEMigration:
         """
         from nomad.client import stream_upload_with_client
 
-        if prefix is not None:
-            self.logger.info('set pid prefix', pid_prefix=prefix)
-            self.client.admin.exec_pidprefix_command(payload=dict(prefix=prefix)).response()
-
         logger = self.logger.bind(upload_path=upload_path)
 
+        # get the packages
         packages, source_upload_id = self._packages(upload_path, create=create_packages)
 
+        # initialize report
         report = utils.POPO()
         report.total_source_calcs = SourceCalc.objects(upload=source_upload_id).count()
         report.total_calcs = 0
@@ -548,9 +563,9 @@ class NomadCOEMigration:
             source_metadata.__migrated = False  # type: ignore
             upload_metadata_calcs.append(source_metadata)
             metadata_dict[source_calc.mainfile] = source_metadata
-
         logger.debug('loaded source metadata', calcs=len(upload_metadata_calcs))
 
+        # iterate all packages of upload
         for package in packages:
             package_id = package.package_id
 
