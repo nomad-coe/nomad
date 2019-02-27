@@ -544,6 +544,7 @@ class NomadCOEMigration:
 
         # initialize report
         report = utils.POPO()
+        report.packages = 0
         report.total_source_calcs = SourceCalc.objects(upload=source_upload_id).count()
         report.total_calcs = 0
         report.failed_calcs = 0
@@ -675,6 +676,7 @@ class NomadCOEMigration:
                             break
 
             logger.info('migrated upload', **report)
+            report.packages += 1
 
         # check for missing source calcs
         for source_calc in upload_metadata_calcs:

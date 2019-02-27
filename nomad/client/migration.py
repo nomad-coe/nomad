@@ -15,6 +15,7 @@
 import click
 import time
 import datetime
+from ppworkflows import Workflow, GeneratorTask, StatusTask, SimpleTask
 
 from nomad import config, infrastructure, utils
 from nomad.migration import NomadCOEMigration
@@ -98,17 +99,35 @@ def pid_prefix(prefix: int):
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 def upload(paths: list, create_packages, local: bool, parallel: int):
 
-    def run_migration(paths):
+    def producer():
+        for path in paths:
+            yield path
+
+    def work(task):
         infrastructure.setup_logging()
         infrastructure.setup_mongo()
 
         logger = utils.get_logger(__name__)
         migration = NomadCOEMigration()
-        for path in paths:
-            report = migration.migrate(path, create_packages=create_packages, local=local)
-            logger.info('got migration with result', **report)
 
-    if parallel == 1:
-        run_migration(paths)
-    else:
-        raise NotImplementedError()
+        while True:
+            path = task.get()
+            report = migration.migrate(path, create_packages=create_packages, local=local)
+            logger.info('migrated upload with result', upload_path=path, **report)
+
+            task.put([
+                ('uploads: {:7d}', 1),
+                ('packages: {:7d}', report.packages),
+                ('total_source_calcs: {:7d}', report.total_source_calcs),
+                ('total_calcs: {:7d}', report.total_calcs),
+                ('failed_calcs: {:7d}', report.failed_calcs),
+                ('migrated_calcs: {:7d}', report.migrated_calcs),
+                ('calcs_with_diffs: {:7d}', report.calcs_with_diffs),
+                ('new_calcs: {:7d}', report.new_calcs),
+                ('missing_calcs: {:7d}', report.missing_calcs)])
+
+    workflow = Workflow()
+    workflow.add_task(GeneratorTask(producer), outputs=["paths"])
+    workflow.add_task(SimpleTask(work), input="paths", outputs=["sums"], runner_count=parallel)
+    workflow.add_task(StatusTask(), input="sums")
+    workflow.run()
