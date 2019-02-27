@@ -147,9 +147,17 @@ class PeriodicTable extends React.Component {
     this.props.onSelectionChanged(selected.map(element => element.symbol))
   }
 
+  unSelectedAggregations() {
+    const { aggregations } = this.props
+    const { selected } = this.state
+    return Object.keys(aggregations)
+      .filter(key => selected.indexOf(key) === -1)
+      .map(key => aggregations[key])
+  }
+
   render() {
     const {classes, aggregations} = this.props
-    const max = aggregations ? Math.max(...Object.values(aggregations)) || 1 : 1
+    const max = aggregations ? Math.max(...this.unSelectedAggregations()) || 1 : 1
     const heatmapScale = chroma.scale(['#ffcdd2', '#d50000']).domain([1, max], 10, 'log')
     return (
       <div className={classes.root}>
