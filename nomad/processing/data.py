@@ -281,14 +281,6 @@ class Calc(Proc):
 
                 log_data.update(log_size=self.upload_files.archive_log_file_object(self.calc_id).size)
 
-    def to_calc_with_metadata(self) -> CalcWithMetadata:
-        upload_files = UploadFiles.get(self.upload_id, is_authorized=lambda: True)
-        if self.upload_files is None:
-            raise KeyError
-
-        _data = upload_files.metadata.get(self.calc_id)
-        return CalcWithMetadata(**_data)
-
 
 class Upload(Proc):
     """
@@ -582,25 +574,47 @@ class Upload(Proc):
         return Calc.objects(upload_id=self.upload_id, tasks_status=SUCCESS)
 
     def to_upload_with_metadata(self) -> UploadWithMetadata:
-        calc_metadata = dict()
-        user_upload_time = None
+        # TODO remove the very verbose metadata after debugging and optimizing
+
+        logger = self.get_logger(step='publish')
+
+        # prepare user metadata per upload and per calc
+        logger.info('prepare user metadata per upload and per calc')
+        calc_metadatas: Dict[str, Any] = dict()
+        upload_metadata: Dict[str, Any] = dict()
+
         if self.metadata is not None:
-            user_upload_time = self.metadata.get('_upload_time')
+            upload_metadata.update(self.metadata)
+            if 'calculations' in upload_metadata:
+                del(upload_metadata['calculations'])
+
             for calc in self.metadata.get('calculations', []):
-                calc_metadata[calc['mainfile']] = calc
+                calc_metadatas[calc['mainfile']] = calc
 
-        def apply_metadata(calc):
-            metadata = calc_metadata.get(calc.mainfile, self.metadata)
-            if metadata is not None:
-                calc.apply_user_metadata(metadata)
-            return calc
-
+        user_upload_time = upload_metadata.get('_upload_time', None)
         result = UploadWithMetadata(
             upload_id=self.upload_id,
             uploader=utils.POPO(id=int(self.user_id)),
             upload_time=self.upload_time if user_upload_time is None else user_upload_time)
 
-        result.calcs = [
-            apply_metadata(calc.to_calc_with_metadata()) for calc in self.calcs]
+        logger.info('read calc data from files and apply user metadata')
+        upload_files = UploadFiles.get(self.upload_id, is_authorized=lambda: True)
+        if self.upload_files is None:
+            raise KeyError
+
+        def apply_metadata(calc):
+            calc_data = upload_files.metadata.get(calc.calc_id)
+            calc_with_metadata = CalcWithMetadata(**calc_data)
+
+            calc_metadata = dict(calc_metadatas.get(calc.mainfile, {}))
+            calc_metadata.update(upload_metadata)
+            calc_with_metadata.apply_user_metadata(calc_metadata)
+
+            logger.info('prepared calc with metadata', calc_id=calc_with_metadata.calc_id)
+            return calc_with_metadata
+
+        result.calcs = [apply_metadata(calc) for calc in self.calcs]
+
+        logger.info('prepared user metadata')
 
         return result
