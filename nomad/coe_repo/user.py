@@ -206,8 +206,8 @@ class User(Base):  # type: ignore
             user = repo_db.query(User).filter_by(email=decoded['user']).first()
             if user is None:
                 raise LoginException('Token signed for invalid user')
-            else:
-                return user
+
+            return user
         except KeyError:
             raise LoginException('Token with invalid/unexpected payload')
         except jwt.ExpiredSignatureError:
