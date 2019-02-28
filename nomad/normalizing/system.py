@@ -140,8 +140,9 @@ class SystemNormalizer(SystemBasedNormalizer):
             lattice_vectors = get_value('simulation_cell')
             if lattice_vectors is not None:
                 set_value('lattice_vectors', lattice_vectors)
-        if lattice_vectors is None and any(pbc):
-            self.logger.error('no lattice vectors but periodicity', pbc=pbc)
+        if lattice_vectors is None:
+            if any(pbc):
+                self.logger.error('no lattice vectors but periodicity', pbc=pbc)
         else:
             try:
                 atoms.set_cell(1e10 * lattice_vectors)
