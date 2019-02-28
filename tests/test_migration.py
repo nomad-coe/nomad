@@ -73,7 +73,7 @@ def target_repo(postgres):
     with create_postgres_infra(readonly=False, exists=False, dbname=test_target_db_name) as db:
         db.execute('DELETE FROM sessions WHERE user_id >= 3;')
         db.execute('DELETE FROM users WHERE user_id >= 3;')
-        db.execute('DELETE FROM affiliations;')
+        db.execute('DELETE FROM affiliations WHERE a_id >= 1;')
         assert db.query(coe_repo.User).filter_by(email='admin').first() is not None
         yield db
         db.execute('TRUNCATE uploads CASCADE;')
