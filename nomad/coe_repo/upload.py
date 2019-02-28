@@ -50,7 +50,7 @@ from sqlalchemy.orm import relationship
 from nomad import utils, infrastructure
 from nomad.datamodel import UploadWithMetadata
 
-from .calc import Calc, QueryCache
+from .calc import Calc, PublishContext
 from .base import Base
 from .user import User
 
@@ -139,7 +139,7 @@ class Upload(Base):  # type: ignore
             has_calcs = False
             # reuse the cache for the whole transaction to profit from repeating
             # star schema entries for users, ds, topics, etc.
-            cache = QueryCache()
+            context = PublishContext(upload_id=upload.upload_id)
             for calc in upload.calcs:
                 has_calcs = True
                 coe_calc = Calc(
@@ -147,7 +147,7 @@ class Upload(Base):  # type: ignore
                     checksum=calc.calc_id,
                     upload=coe_upload)
                 repo_db.add(coe_calc)
-                coe_calc.apply_calc_with_metadata(calc, cache=cache)
+                coe_calc.apply_calc_with_metadata(calc, context=context)
 
             # commit
             if has_calcs:

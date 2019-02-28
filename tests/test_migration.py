@@ -179,34 +179,38 @@ def test_copy_users(migrate_infra, target_repo):
 
 
 mirgation_test_specs = [
-    ('baseline', dict(migrated=2, source=2)),
-    ('baseline', dict(migrated=2, source=2, local=True)),
+    ('baseline', 'baseline', dict(migrated=2, source=2), {}),
+    ('local', 'baseline', dict(migrated=2, source=2), dict(local=True)),
     # ('archive', dict(migrated=2, source=2)),
-    ('new_upload', dict(new=2)),
-    ('new_calc', dict(migrated=2, source=2, new=1)),
-    ('missing_calc', dict(migrated=1, source=2, missing=1)),
-    ('missmatch', dict(migrated=2, source=2, diffs=1)),
-    ('failed_calc', dict(migrated=1, source=2, diffs=0, missing=1, failed=1, errors=1)),
-    ('failed_upload', dict(migrated=0, source=2, missing=2, errors=1))
+    ('new_upload', 'new_upload', dict(new=2), {}),
+    ('new_calc', 'new_calc', dict(migrated=2, source=2, new=1), {}),
+    ('missing_calc', 'missing_calc', dict(migrated=1, source=2, missing=1), {}),
+    ('missmatch', 'missmatch', dict(migrated=2, source=2, diffs=1), {}),
+    ('failed_calc', 'failed_calc', dict(migrated=1, source=2, diffs=0, missing=1, failed=1, errors=1), {}),
+    ('failed_upload', 'baseline', dict(migrated=0, source=2, missing=2, errors=1), {}),
+    ('failed_publish', 'baseline', dict(migrated=0, source=2, missing=2, failed=2, errors=1), {})
 ]
 
 
 @pytest.mark.filterwarnings("ignore:SAWarning")
-@pytest.mark.parametrize('test, assertions', mirgation_test_specs)
+@pytest.mark.parametrize('name, test, assertions, kwargs', mirgation_test_specs)
 @pytest.mark.timeout(30)
-def test_migrate(migrate_infra, test, assertions, monkeypatch, caplog):
-    if test == 'failed_upload':
-        def with_error(*args, **kwargs):
-            return StringIO('hello, this is not a zip')
+def test_migrate(migrate_infra, name, test, assertions, kwargs, monkeypatch, caplog):
+    def with_error(*args, **kwargs):
+        return StringIO('hello, this is not a zip')
 
+    if name == 'failed_upload':
         monkeypatch.setattr('nomad.migration.Package.open_package_upload_file', with_error)
+
+    if name == 'failed_publish':
+        monkeypatch.setattr('nomad.processing.data.Upload.to_upload_with_metadata', with_error)
 
     upload_path = os.path.join('tests/data/migration', test)
     upload_path = os.path.join(upload_path, os.listdir(upload_path)[0])
 
     pid_prefix = 10
     migrate_infra.set_pid_prefix(pid_prefix)
-    report = migrate_infra.migrate(upload_path, create_packages=True, local=assertions.get('local', False))
+    report = migrate_infra.migrate(upload_path, create_packages=True, **kwargs)
 
     assert report.total_calcs == assertions.get('migrated', 0) + assertions.get('new', 0) + assertions.get('failed', 0)
 

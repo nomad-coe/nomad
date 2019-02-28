@@ -598,16 +598,13 @@ class NomadCOEMigration:
 
             # wait for complete upload
             with utils.timer(logger, 'upload processing completed'):
+                sleep = utils.SleepTimeBackoff()
                 while upload.tasks_running:
-                    sleep_time = 0.1
                     upload = self.client.uploads.get_upload(upload_id=upload.upload_id).response().result
-                    time.sleep(sleep_time)
-                    if sleep_time < 60:
-                        sleep_time *= 2
+                    sleep()
 
             if upload.tasks_status == FAILURE:
-                error = 'failed to process upload'
-                logger.error(error, process_errors=upload.errors)
+                logger.error('failed to process upload', process_errors=upload.errors)
                 continue
             else:
                 report.total_calcs += upload.calcs.pagination.total
@@ -669,14 +666,23 @@ class NomadCOEMigration:
                         payload=dict(operation='publish', metadata=upload_metadata)
                     ).response().result
 
+                    sleep = utils.SleepTimeBackoff()
                     while upload.process_running:
                         try:
                             upload = self.client.uploads.get_upload(
                                 upload_id=upload.upload_id).response().result
-                            time.sleep(0.1)
+                            sleep()
                         except HTTPNotFound:
                             # the proc upload will be deleted by the publish operation
                             break
+
+                    if upload.tasks_status == FAILURE:
+                        logger.error('could not publish upload', process_errors=upload.errors)
+                        report.failed_calcs = report.total_calcs
+                        report.migrated_calcs = 0
+                        report.calcs_with_diffs = 0
+                        report.new_calcs = 0
+                        report.missing_calcs = report.total_source_calcs
 
             logger.info('migrated upload', **report)
             report.packages += 1

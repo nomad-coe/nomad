@@ -114,15 +114,9 @@ class SystemNormalizer(SystemBasedNormalizer):
             return
 
         # formulas
-        formula = atoms.get_chemical_formula(mode='all')
-        formula_reduced = atoms.get_chemical_formula(mode='reduce')
-        if any(atoms.pbc):
-            formula_bulk = formula_reduced
-        else:
-            formula_bulk = formula
-        set_value('chemical_composition', formula)
-        set_value('chemical_composition_reduced', formula_reduced)
-        set_value('chemical_composition_bulk_reduced', formula_bulk)
+        set_value('chemical_composition', atoms.get_chemical_formula(mode='all'))
+        set_value('chemical_composition_reduced', atoms.get_chemical_formula(mode='reduce'))
+        set_value('chemical_composition_bulk_reduced', atoms.get_chemical_formula(mode='hill'))
 
         # positions
         atom_positions = get_value('atom_positions', None)

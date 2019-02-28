@@ -15,7 +15,8 @@
 import pytest
 from passlib.hash import bcrypt
 
-from nomad.coe_repo import User, Calc, Upload, QueryCache
+from nomad.coe_repo import User, Calc, Upload
+from nomad.coe_repo.calc import PublishContext
 from nomad import processing, parsing, datamodel
 
 
@@ -87,7 +88,7 @@ def test_add_normalized_calc(postgres, normalized: parsing.LocalBackend, test_us
     calc_with_metadata.uploader = test_user.to_popo()
     calc_with_metadata.files = [calc_with_metadata.mainfile, '1', '2', '3', '4']
     coe_calc = Calc()
-    coe_calc.apply_calc_with_metadata(calc_with_metadata, QueryCache())
+    coe_calc.apply_calc_with_metadata(calc_with_metadata, PublishContext())
 
     assert_coe_calc(coe_calc, calc_with_metadata)
 
@@ -99,7 +100,7 @@ def test_add_normalized_calc_with_metadata(
     calc_with_metadata.files = [calc_with_metadata.mainfile, '1', '2', '3', '4']
     calc_with_metadata.apply_user_metadata(example_user_metadata)
     coe_calc = Calc(coe_calc_id=calc_with_metadata.pid)
-    coe_calc.apply_calc_with_metadata(calc_with_metadata, QueryCache())
+    coe_calc.apply_calc_with_metadata(calc_with_metadata, PublishContext())
 
     assert_coe_calc(coe_calc, calc_with_metadata)
 

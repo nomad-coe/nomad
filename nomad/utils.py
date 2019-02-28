@@ -361,3 +361,22 @@ class POPO(dict):
             del self[name]
         else:
             raise AttributeError("No such attribute: " + name)
+
+
+class SleepTimeBackoff:
+    """
+    Provides increasingly larger sleeps. Useful when
+    observing long running processes with unknown runtime.
+    """
+
+    def __init__(self, start_time: float = 0.1, max_time: float = 60):
+        self.current_time = start_time
+        self.max_time = max_time
+
+    def __call__(self):
+        self.sleep()
+
+    def sleep(self):
+        time.sleep(self.current_time)
+        self.current_time *= 2
+        self.current_time = min(self.max_time, self.current_time)
