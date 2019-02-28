@@ -148,6 +148,7 @@ class Upload(Base):  # type: ignore
                     upload=coe_upload)
                 repo_db.add(coe_calc)
                 coe_calc.apply_calc_with_metadata(calc, context=context)
+                logger.info('added calculation, not yet committed', calc_id=coe_calc.calc_id)
 
             # commit
             if has_calcs:
@@ -156,6 +157,7 @@ class Upload(Base):  # type: ignore
                 result = coe_upload.coe_upload_id
             else:
                 repo_db.rollback()
+            logger.info('added upload')
         except Exception as e:
             logger.error('Unexpected exception.', exc_info=e)
             repo_db.rollback()

@@ -396,6 +396,7 @@ class Upload(Proc):
         processing state db.
         """
         logger = self.get_logger()
+        logger.info('started to publish', step='publish')
 
         with utils.lnr(logger, 'publish failed'):
             upload_with_metadata = self.to_upload_with_metadata()
