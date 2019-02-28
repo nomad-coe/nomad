@@ -1237,10 +1237,10 @@ SELECT pg_catalog.setval('public.uploads_upload_id_seq', 1, false);
 --
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
 --
-
+INSERT INTO public.affiliations VALUES (0, 'UCAL', 'LA, California', NULL);
 INSERT INTO public.users VALUES (0, 'admin', 'admin', 'admin', 'admin', NULL, NULL, NULL);
-INSERT INTO public.users VALUES (1, 'Sheldon', 'Cooper', 'sheldon.cooper', 'sheldon.cooper@nomad-fairdi.tests.de', NULL, '$2y$12$jths1LQPsLofuBQ3evVIluhQeQ/BZfbdTSZHFcPGdcNmHz2WvDj.y', NULL);
-INSERT INTO public.users VALUES (2, 'Leonard', 'Hofstadter', 'leonard.hofstadter', 'leonard.hofstadter@nomad-fairdi.tests.de', NULL, '$2y$12$jths1LQPsLofuBQ3evVIluhQeQ/BZfbdTSZHFcPGdcNmHz2WvDj.y', NULL);
+INSERT INTO public.users VALUES (1, 'Sheldon', 'Cooper', 'sheldon.cooper', 'sheldon.cooper@nomad-fairdi.tests.de', 0, '$2y$12$jths1LQPsLofuBQ3evVIluhQeQ/BZfbdTSZHFcPGdcNmHz2WvDj.y', NULL);
+INSERT INTO public.users VALUES (2, 'Leonard', 'Hofstadter', 'leonard.hofstadter', 'leonard.hofstadter@nomad-fairdi.tests.de', 0, '$2y$12$jths1LQPsLofuBQ3evVIluhQeQ/BZfbdTSZHFcPGdcNmHz2WvDj.y', NULL);
 
 
 --
