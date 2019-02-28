@@ -359,20 +359,20 @@ def reset_repository_db_schema(**kwargs):
 
 def reset_repository_db_content():
     tables = [
-        'citations',
-        'metadata_citations',
-        'coauthorships',
-        'codefamilies',
-        'codeversions',
-        'doi_mapping',
         'metadata',
-        'user_metadata',
+        'codeversions',
+        'codefamilies',
         'ownerships',
+        'coauthorships',
         'shareships',
+        'metadata_citations',
+        'citations',
         'spacegroups',
         'struct_ratios',
         'tags',
         'topics',
+        'user_metadata',
+        'doi_mapping',
         'calcsets',
         'calculations',
         'uploads'
