@@ -177,7 +177,7 @@ class StagingMetadata(Metadata):
         path = self._dir.join_file('%s.json' % id)
         assert not path.exists()
         with open(path.os_path, 'wt') as f:
-            json.dump(calc, f)
+            json.dump(calc, f, sort_keys=True, default=str)
 
     def update(self, calc_id: str, updates: dict) -> dict:
         """ Updating a calc, using calc_id as key and running dict update with the given data. """
@@ -185,7 +185,7 @@ class StagingMetadata(Metadata):
         metadata.update(updates)
         path = self._dir.join_file('%s.json' % calc_id)
         with open(path.os_path, 'wt') as f:
-            json.dump(metadata, f)
+            json.dump(metadata, f, sort_keys=True, default=str)
         return metadata
 
     def get(self, calc_id: str) -> dict:
@@ -228,7 +228,7 @@ class PublicMetadata(Metadata):
         assert not os.path.exists(self._db_file) and self._data is None
         self._data = {data['calc_id']: data for data in calcs}
         with gzip.open(self._db_file, 'wt') as f:
-            json.dump(self._data, f)
+            json.dump(self._data, f, sort_keys=True, default=str)
 
     def insert(self, calc: dict) -> None:
         assert self.data is not None, "Metadata is not open."
