@@ -55,7 +55,7 @@ being other mainfiles. Therefore, the aux files of a restricted calc might becom
 
 from abc import ABCMeta
 from typing import IO, Generator, Dict, Iterator, Iterable, Callable
-import ujson
+import json
 import os.path
 import os
 import shutil
@@ -177,7 +177,7 @@ class StagingMetadata(Metadata):
         path = self._dir.join_file('%s.json' % id)
         assert not path.exists()
         with open(path.os_path, 'wt') as f:
-            ujson.dump(calc, f)
+            json.dump(calc, f)
 
     def update(self, calc_id: str, updates: dict) -> dict:
         """ Updating a calc, using calc_id as key and running dict update with the given data. """
@@ -185,13 +185,13 @@ class StagingMetadata(Metadata):
         metadata.update(updates)
         path = self._dir.join_file('%s.json' % calc_id)
         with open(path.os_path, 'wt') as f:
-            ujson.dump(metadata, f)
+            json.dump(metadata, f)
         return metadata
 
     def get(self, calc_id: str) -> dict:
         try:
             with open(self._dir.join_file('%s.json' % calc_id).os_path, 'rt') as f:
-                return ujson.load(f)
+                return json.load(f)
         except FileNotFoundError:
             raise KeyError()
 
@@ -199,7 +199,7 @@ class StagingMetadata(Metadata):
         for root, _, files in os.walk(self._dir.os_path):
             for file in files:
                 with open(os.path.join(root, file), 'rt') as f:
-                    yield ujson.load(f)
+                    yield json.load(f)
 
     def __len__(self) -> int:
         return len(os.listdir(self._dir.os_path))
@@ -221,14 +221,14 @@ class PublicMetadata(Metadata):
     def data(self):
         if self._data is None:
             with gzip.open(self._db_file, 'rt') as f:
-                self._data = ujson.load(f)
+                self._data = json.load(f)
         return self._data
 
     def _create(self, calcs: Iterable[dict]) -> None:
         assert not os.path.exists(self._db_file) and self._data is None
         self._data = {data['calc_id']: data for data in calcs}
         with gzip.open(self._db_file, 'wt') as f:
-            ujson.dump(self._data, f)
+            json.dump(self._data, f)
 
     def insert(self, calc: dict) -> None:
         assert self.data is not None, "Metadata is not open."
