@@ -376,4 +376,8 @@ class DataSet:
         return self._dataset_calc.calc_metadata.chemical_formula
 
     def to_popo(self):
-        return utils.POPO(id=self.id, doi=self.doi.to_popo(), name=self.name)
+        popo = utils.POPO(id=self.id, name=self.name)
+        if self.doi is not None:
+            popo.update(doi=self.doi.to_popo())
+
+        return popo
