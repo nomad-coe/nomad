@@ -570,8 +570,16 @@ class StagingUploadFiles(UploadFiles):
         mainfile_basename = os.path.basename(mainfile)
         calc_dir = os.path.dirname(mainfile_object.os_path)
         calc_relative_dir = calc_dir[len(self._raw_dir.os_path) + 1:]
+
+        ls = os.listdir(calc_dir)
+        if len(ls) > config.auxfile_cutoff:
+            # If there are two many of them, its probably just a directory with lots of
+            # calculations. In this case it does not make any sense to provide thousands of
+            # aux files.
+            return [mainfile] if with_mainfile else []
+
         aux_files = sorted(
-            os.path.join(calc_relative_dir, path) for path in os.listdir(calc_dir)
+            os.path.join(calc_relative_dir, path) for path in ls
             if os.path.isfile(os.path.join(calc_dir, path)) and path != mainfile_basename)
         if with_mainfile:
             return [mainfile] + aux_files
