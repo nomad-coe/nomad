@@ -201,7 +201,7 @@ class UploadListResource(Resource):
                             if received_last > 1e6:
                                 received_last = 0
                                 # TODO remove this logging or reduce it to debug
-                                logger.info('received streaming data', size=len(received_data))
+                                logger.info('received streaming data', size=received_data)
                             f.write(data)
 
                 except Exception as e:
