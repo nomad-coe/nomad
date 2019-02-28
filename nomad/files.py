@@ -92,7 +92,19 @@ class PathObject:
             self.os_path = os.path.join(*segments)
 
     def delete(self) -> None:
+        basename = os.path.basename(self.os_path)
+        parent_directory = os.path.dirname(self.os_path)
+        parent_name = os.path.basename(parent_directory)
+
         shutil.rmtree(self.os_path)
+
+        if len(parent_name) == 3 and basename.startswith(parent_name):
+            try:
+                if not os.listdir(parent_directory):
+                    os.rmdir(parent_directory)
+            except Exception as e:
+                utils.get_logger(__name__).error(
+                    'could not remove empty prefix dir', directory=parent_directory, exc_info=e)
 
     def exists(self) -> bool:
         return os.path.exists(self.os_path)

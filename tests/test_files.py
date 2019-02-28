@@ -89,6 +89,16 @@ class TestObjects:
         assert os.path.exists(directory.os_path) == create
         assert os.path.exists(os.path.dirname(file.os_path)) == create
 
+    def test_delete_prefix(self, test_bucket: str):
+        dir_1 = DirectoryObject(test_bucket, 'test_directory1', create=True, prefix=True)
+        dir_2 = DirectoryObject(test_bucket, 'test_directory2', create=True, prefix=True)
+        dir_1.delete()
+        dir_2.delete()
+
+        prefix = os.path.dirname(dir_2.os_path)
+        assert len(os.path.basename(prefix)) == 3
+        assert not os.path.exists(prefix)
+
 
 example_calc: Dict[str, Any] = {
     'calc_id': '0',
