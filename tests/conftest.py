@@ -99,6 +99,13 @@ def celery_config():
 
 
 @pytest.fixture(scope='session')
+def celery_worker_parameters():
+    return {
+        'queues': ('celery', 'uploads', 'calcs')
+    }
+
+
+@pytest.fixture(scope='session')
 def purged_app(celery_session_app):
     """
     Purges all pending tasks of the celery app before test. This is necessary to

@@ -57,7 +57,7 @@ def run_api(**kwargs):
 def run_worker():
     config.service = 'worker'
     from nomad import processing
-    processing.app.worker_main(['worker', '--loglevel=INFO'])
+    processing.app.worker_main(['worker', '--loglevel=INFO', '-Q', 'celery,uploads,calcs'])
 
 
 @run.command(help='Run both api and worker.')

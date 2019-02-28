@@ -467,9 +467,12 @@ def process(func):
         self_id = self.id.__str__()
         cls_name = self.__class__.__name__
 
-        logger = utils.get_logger(__name__, cls=cls_name, id=self_id, func=func.__name__)
+        queue = getattr(self.__class__, 'queue', None)
+
+        logger = utils.get_logger(
+            __name__, cls=cls_name, id=self_id, func=func.__name__, queue=queue)
         logger.debug('calling process function')
-        return proc_task.s(cls_name, self_id, func.__name__).delay()
+        return proc_task.apply_async(args=[cls_name, self_id, func.__name__], queue=queue)
 
     task = getattr(func, '__task_name', None)
     if task is not None:

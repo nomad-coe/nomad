@@ -83,7 +83,7 @@ services:
             - mongo
         volumes:
             - ${VOLUME_BINDS}/fs:/app/.volumes/fs
-        command: python -m celery worker -l info -A nomad.processing
+        command: python -m celery worker -l info -A nomad.processing -Q celery,cacls,uploads
 
     # nomad api
     api:

@@ -60,6 +60,8 @@ class Calc(Proc):
     mainfile = StringField()
     parser = StringField()
 
+    queue = 'calcs'
+
     meta: Any = {
         'indexes': [
             'upload_id', 'mainfile', 'parser', 'tasks_status'
@@ -310,6 +312,8 @@ class Upload(Proc):
     metadata = DictField(default=None)
     upload_time = DateTimeField()
     user_id = StringField(required=True)
+
+    queue = 'uploads'
 
     meta: Any = {
         'indexes': [
