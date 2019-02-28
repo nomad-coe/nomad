@@ -413,10 +413,15 @@ class Upload(Proc):
             with utils.timer(
                     logger, 'staged upload files packed', step='publish',
                     upload_size=self.upload_files.size):
-                for calc_metadata in upload_with_metadata.calcs:
-                    calc_metadata.published = True
-                    self.upload_files.metadata.update(
-                        calc_id=calc_metadata.calc_id, updates=calc_metadata.to_dict())
+                coe_upload = coe_repo.Upload.from_upload_id(upload_with_metadata.upload_id)
+                if coe_upload is not None:
+                    for coe_calc in coe_upload.calcs:
+                        calc_metadata = coe_calc.to_calc_with_metadata()
+                        calc_metadata.published = True
+                        self.upload_files.metadata.update(
+                            calc_id=calc_metadata.calc_id, updates=calc_metadata.to_dict())
+                    logger.info('metadata updated after publish to coe repo', step='publish')
+
                 self.upload_files.pack()
 
             with utils.timer(
