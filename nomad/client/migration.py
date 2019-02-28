@@ -111,7 +111,7 @@ def upload(paths: list, create_packages, local: bool, parallel: int):
         migration = NomadCOEMigration()
 
         while True:
-            path = task.get()
+            path = task.get_one()
             report = migration.migrate(path, create_packages=create_packages, local=local)
             logger.info('migrated upload with result', upload_path=path, **report)
 
