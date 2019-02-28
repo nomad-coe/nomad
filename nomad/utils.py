@@ -247,6 +247,12 @@ def configure_logging():
     logger = get_logger(__name__)
     logger.info('structlog configured', with_logstash=config.logstash.enabled)
 
+    # configure log levels
+    for logger in [
+            'celery.app.trace', 'celery.worker.strategy', 'bagit', 'elasticsearch',
+            'urllib3.connectionpool', 'bravado.client']:
+        logging.getLogger(logger).setLevel(logging.WARNING)
+
 
 def create_uuid() -> str:
     """ Returns a web-save base64 encoded random uuid (type 4). """
