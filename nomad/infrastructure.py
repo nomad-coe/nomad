@@ -240,10 +240,10 @@ def reset(repo_content_only: bool = False):
     except Exception as e:
         logger.error('exception resetting repository db', exc_info=e)
 
-    logger.info('reset files')
     try:
         shutil.rmtree(config.fs.objects, ignore_errors=True)
         shutil.rmtree(config.fs.tmp, ignore_errors=True)
+        logger.info('files resetted')
     except Exception as e:
         logger.error('exception deleting files', exc_info=e)
 
