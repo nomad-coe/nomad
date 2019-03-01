@@ -262,12 +262,11 @@ class Calc(Base):
                 if dataset.doi is not None:
                     self._add_citation(coe_dataset_calc, dataset.doi['value'], 'INTERNAL', context)
 
-                # cause a flush to avoid future inconsistencies
-                # repo_db.flush()
+                # cause a flush to create the backdirection of the above established
+                # metadata-dataset_calc relation
+                repo_db.flush()
 
             self.parents.append(coe_dataset_calc)
-            # coe_dataset_rel = CalcSet(parent_calc_id=dataset_id, children_calc_id=self.coe_calc_id)
-            # repo_db.add(coe_dataset_rel)
 
             dataset.update(DataSet(coe_dataset_calc).to_popo())
 
@@ -377,8 +376,7 @@ class DataSet:
         return self._dataset_calc.calc_metadata.chemical_formula
 
     def to_popo(self):
-        popo = utils.POPO(id=self.id, name=self.name)
-        if self.doi is not None:
-            popo.update(doi=self.doi.to_popo())
-
-        return popo
+        return utils.POPO(
+           id=self.id, 
+           name=self.name,
+           doi=self.doi.to_popo() if self.doi is not None else None)

@@ -116,12 +116,9 @@ def upload(paths: list, create_packages, local: bool, parallel: int):
             logger.info('migrated upload with result', upload_path=path, **report)
 
             task.put([
-                ('uploads: {:7d}', 1),
-                ('packages: {:7d}', report.packages),
-                ('total_source_calcs: {:7d}', report.total_source_calcs),
-                ('total_calcs: {:7d}', report.total_calcs),
-                ('failed_calcs: {:7d}', report.failed_calcs),
+                ('uploads: {:5d}', 1),
                 ('migrated_calcs: {:7d}', report.migrated_calcs),
+                ('failed_calcs: {:7d}', report.failed_calcs),
                 ('calcs_with_diffs: {:7d}', report.calcs_with_diffs),
                 ('new_calcs: {:7d}', report.new_calcs),
                 ('missing_calcs: {:7d}', report.missing_calcs)])
