@@ -227,7 +227,9 @@ class SystemNormalizer(SystemBasedNormalizer):
 
             transform = symm._get_spglib_transformation_matrix()
             origin_shift = symm._get_spglib_origin_shift()
-
+        except ValueError as e:
+            self.logger.debug('symmetry analysis is not available', details=str(e))
+            return
         except Exception as e:
             self.logger.error('matid symmetry analysis fails with exception', exc_info=e)
             return

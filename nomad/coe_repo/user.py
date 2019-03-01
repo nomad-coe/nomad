@@ -216,12 +216,17 @@ class User(Base):  # type: ignore
             raise LoginException('Invalid token')
 
     def to_popo(self) -> utils.POPO:
-        return utils.POPO(
+        popo = utils.POPO(
             id=self.user_id,
             first_name=self.first_name,
             last_name=self.last_name,
-            email=self.email,
-            affiliation=self.affiliation)
+            email=self.email)
+        if self.affiliation is not None:
+            popo.update(affiliation=dict(
+                name=self.affiliation.name,
+                address=self.affiliation.address))
+
+        return popo
 
 
 def ensure_test_user(email):

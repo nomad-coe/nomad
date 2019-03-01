@@ -359,26 +359,28 @@ def reset_repository_db_schema(**kwargs):
 
 def reset_repository_db_content():
     tables = [
-        'calcsets',
-        'calculations',
-        'citations',
-        'coauthorships',
-        'codefamilies',
-        'codeversions',
-        'doi_mapping',
         'metadata',
-        'metadata_citations',
+        'codeversions',
+        'codefamilies',
         'ownerships',
+        'coauthorships',
         'shareships',
+        'metadata_citations',
+        'citations',
         'spacegroups',
         'struct_ratios',
         'tags',
         'topics',
+        'user_metadata',
+        'doi_mapping',
+        'calcsets',
+        'calculations',
         'uploads'
     ]
     with repository_db_connection(with_trans=True) as conn:
         with conn.cursor() as cur:
-            cur.execute('TRUNCATE %s CASCADE;' % ', '.join(tables))
+            for table in tables:
+                cur.execute('DELETE FROM %s;' % table)
 
     logger.info('removed repository db content')
 

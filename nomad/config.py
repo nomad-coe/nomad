@@ -141,3 +141,9 @@ mail = MailConfig(
 console_log_level = get_loglevel_from_env('NOMAD_CONSOLE_LOGLEVEL', default_level=logging.WARNING)
 service = os.environ.get('NOMAD_SERVICE', 'unknown nomad service')
 release = os.environ.get('NOMAD_RELEASE', 'devel')
+
+auxfile_cutoff = 30
+"""
+Number of max auxfiles. More auxfiles means no auxfiles, but probably a directory of many
+mainfiles.
+"""

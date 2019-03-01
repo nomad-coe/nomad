@@ -92,7 +92,19 @@ class PathObject:
             self.os_path = os.path.join(*segments)
 
     def delete(self) -> None:
+        basename = os.path.basename(self.os_path)
+        parent_directory = os.path.dirname(self.os_path)
+        parent_name = os.path.basename(parent_directory)
+
         shutil.rmtree(self.os_path)
+
+        if len(parent_name) == 3 and basename.startswith(parent_name):
+            try:
+                if not os.listdir(parent_directory):
+                    os.rmdir(parent_directory)
+            except Exception as e:
+                utils.get_logger(__name__).error(
+                    'could not remove empty prefix dir', directory=parent_directory, exc_info=e)
 
     def exists(self) -> bool:
         return os.path.exists(self.os_path)
@@ -177,7 +189,7 @@ class StagingMetadata(Metadata):
         path = self._dir.join_file('%s.json' % id)
         assert not path.exists()
         with open(path.os_path, 'wt') as f:
-            json.dump(calc, f)
+            json.dump(calc, f, sort_keys=True, default=str)
 
     def update(self, calc_id: str, updates: dict) -> dict:
         """ Updating a calc, using calc_id as key and running dict update with the given data. """
@@ -185,7 +197,7 @@ class StagingMetadata(Metadata):
         metadata.update(updates)
         path = self._dir.join_file('%s.json' % calc_id)
         with open(path.os_path, 'wt') as f:
-            json.dump(metadata, f)
+            json.dump(metadata, f, sort_keys=True, default=str)
         return metadata
 
     def get(self, calc_id: str) -> dict:
@@ -228,7 +240,7 @@ class PublicMetadata(Metadata):
         assert not os.path.exists(self._db_file) and self._data is None
         self._data = {data['calc_id']: data for data in calcs}
         with gzip.open(self._db_file, 'wt') as f:
-            json.dump(self._data, f)
+            json.dump(self._data, f, sort_keys=True, default=str)
 
     def insert(self, calc: dict) -> None:
         assert self.data is not None, "Metadata is not open."
@@ -558,8 +570,16 @@ class StagingUploadFiles(UploadFiles):
         mainfile_basename = os.path.basename(mainfile)
         calc_dir = os.path.dirname(mainfile_object.os_path)
         calc_relative_dir = calc_dir[len(self._raw_dir.os_path) + 1:]
+
+        ls = os.listdir(calc_dir)
+        if len(ls) > config.auxfile_cutoff:
+            # If there are two many of them, its probably just a directory with lots of
+            # calculations. In this case it does not make any sense to provide thousands of
+            # aux files.
+            return [mainfile] if with_mainfile else []
+
         aux_files = sorted(
-            os.path.join(calc_relative_dir, path) for path in os.listdir(calc_dir)
+            os.path.join(calc_relative_dir, path) for path in ls
             if os.path.isfile(os.path.join(calc_dir, path)) and path != mainfile_basename)
         if with_mainfile:
             return [mainfile] + aux_files
