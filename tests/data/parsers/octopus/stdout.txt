@@ -1,0 +1,537 @@
+    <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+                                ___
+                             .-'   `'.
+                            /         \
+                            |         ;
+                            |         |           ___.--,
+                   _.._     |0) ~ (0) |    _.---'`__.-( (_.
+            __.--'`_.. '.__.\    '--. \_.-' ,.--'`     `""`
+           ( ,.--'`   ',__ /./;   ;, '.__.'`    __
+           _`) )  .---.__.' / |   |\   \__..--""  """--.,_
+          `---' .'.''-._.-'`_./  /\ '.  \ _.-~~~````~~~-._`-.__.'
+                | |  .' _.-' |  |  \  \  '.               `~---`
+                 \ \/ .'     \  \   '. '-._)
+                  \/ /        \  \    `=.__`~-.
+             jgs  / /\         `) )    / / `"".`\
+            , _.-'.'\ \        / /    ( (     / /
+             `--~`   ) )    .-'.'      '.'.  | (
+                    (/`    ( (`          ) )  '-;
+                     `      '-;         (-'
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2, or (at your option)
+    any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+
+    <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+
+                           Running octopus
+
+Version                : mimus
+Revision               : 15432
+Build time             : Fri Jun 24 18:04:44 CEST 2016
+Configuration options  : max-dim=3 mpi sse2
+Optional libraries     : metis mpi2 pfft scalapack
+Architecture           : x86_64
+C compiler             : mpicc -std=gnu99 (gcc)
+C compiler flags       : -g -O2
+Fortran compiler       : mpif90 (gfortran) (GCC version 4.9.2)
+Fortran compiler flags : -g -fbounds-check -ffree-line-length-none -fbacktrace -Wall -Wl,-rpath=/home/askhl/install/fftw-3.3.4/lib -Wl,-rpath=/home/askhl/i
+
+            The octopus is swimming in jormungandr (Linux)
+
+
+            Calculation started on 2016/07/13 at 13:55:45
+
+
+************************** Calculation Mode **************************
+Input: [CalculationMode = gs]
+**********************************************************************
+
+Reading Coordinates from Coordinates block
+Input: [PseudopotentialSet = standard]
+
+****************************** Species *******************************
+Reading pseudopotential from file:
+      '/home/askhl/install/octopus/share/octopus/pseudopotentials/PSF/O.psf'
+      Calculating atomic pseudo-eigenfunctions for species O ....
+Info: l =  0 component used as local potential.
+Info: l =  1 is maximum angular momentum considered.
+Number of orbitals: total =      9, bound =      4
+Reading pseudopotential from file:
+      '/home/askhl/install/octopus/share/octopus/pseudopotentials/PSF/H.psf'
+      Calculating atomic pseudo-eigenfunctions for species H ....
+Info: l =  0 component used as local potential.
+Info: l =  0 is maximum angular momentum considered.
+Number of orbitals: total =     16, bound =      1
+**********************************************************************
+
+
+***************************** Symmetries *****************************
+Symmetry elements : (C2) 2*(sigma)
+Symmetry group    : C2v
+**********************************************************************
+
+Input: [SpinComponents = unpolarized]
+Input: [SmearingFunction = semiconducting]
+Input: [SymmetrizeDensity = no]
+
+******************************* States *******************************
+Total electronic charge  =        8.000
+Number of states         =        4
+States block-size        =        4
+**********************************************************************
+
+Info: Using default spacing(1) [A] =  0.230
+Info: Using default spacing(2) [A] =  0.230
+Info: Using default spacing(3) [A] =  0.230
+Input: [CurvMethod = curv_uniform]
+Input: [DerivativesStencil = stencil_star]
+
+************************** Parallelization ***************************
+Info: Octopus will run in *parallel*
+
+      Number of processes           :       4
+      Number of threads per process :       1
+
+Info: Number of nodes in ParDomains  group:     4 (   29427)
+Info: Octopus will waste at least  0.00% of computer time.
+**********************************************************************
+
+Info: Could not find a compatible mesh partition in 'restart/partition'.
+Reason: fingerprint does not exist
+Info: Using METIS 5 multilevel recursive bisection to partition the mesh.
+Info: Mesh partition:
+
+      Partition quality:    0.930908E-08
+
+                 Neighbours         Ghost points
+      Average  :          3                 5180
+      Minimum  :          3                 5023
+      Maximum  :          3                 5402
+
+      Nodes in domain-group      1
+        Neighbours     :         3        Local points    :      7356
+        Ghost points   :      5023        Boundary points :      4753
+      Nodes in domain-group      2
+        Neighbours     :         3        Local points    :      7357
+        Ghost points   :      5238        Boundary points :      4640
+      Nodes in domain-group      3
+        Neighbours     :         3        Local points    :      7357
+        Ghost points   :      5402        Boundary points :      4655
+      Nodes in domain-group      4
+        Neighbours     :         3        Local points    :      7357
+        Ghost points   :      5057        Boundary points :      4700
+
+Info: Generating weights for finite-difference discretization of x-gradient
+Info: Generating weights for finite-difference discretization of y-gradient
+Info: Generating weights for finite-difference discretization of z-gradient
+Info: Generating weights for finite-difference discretization of Laplacian
+
+******************************** Grid ********************************
+Simulation Box:
+  Type = minimum
+  Species =     O     Radius =   4.000 A
+  Species =     H     Radius =   4.000 A
+  Octopus will run in 3 dimension(s).
+  Octopus will treat the system as periodic in 0 dimension(s).
+Main mesh:
+  Spacing [A] = ( 0.230, 0.230, 0.230)    volume/point [A^3] =      0.01217
+  # inner mesh =      29427
+  # total mesh =      48175
+  Grid Cutoff [eV] =   710.854928    Grid Cutoff [Ry] =    52.246878
+**********************************************************************
+
+Info: states-block size = 0.5 MiB
+Input: [StatesOrthogonalization = gram_schmidt]
+
+****************************** Hartree *******************************
+The chosen Poisson solver is 'interpolating scaling functions'
+**********************************************************************
+
+
+**************************** Theory Level ****************************
+Input: [TheoryLevel = dft]
+
+Exchange-correlation:
+  Exchange
+    Slater exchange (LDA)
+    [1] PAM Dirac, Proceedings of the Cambridge Philosophical Society 26, 376 (1930)
+    [2] F Bloch, Zeitschrift fuer Physik 57, 545 (1929)
+  Correlation
+    Perdew & Zunger (Modified) (LDA)
+    [1] Perdew and Zunger, Phys. Rev. B 23, 5048 (1981)
+    [2] Modified to improve the matching between the low- and high-rs parts
+
+Input: [SICCorrection = sic_none]
+**********************************************************************
+
+Input: [FilterPotentials = filter_TS]
+Info: Pseudopotential for O
+  Radii for localized parts:
+    local part     =  1.2 A
+    non-local part =  1.0 A
+    orbitals       =  3.8 A
+
+Info: Pseudopotential for H
+  Radii for localized parts:
+    local part     =  1.0 A
+    non-local part =  0.0 A
+    orbitals       =  4.6 A
+
+Input: [RelativisticCorrection = non_relativistic]
+
+****************** Approximate memory requirements *******************
+Mesh
+  global  :       0.9 MiB
+  local   :       0.4 MiB
+  total   :       1.3 MiB
+
+States
+  real    :       1.5 MiB (par_kpoints + par_states + par_domains)
+  complex :       2.9 MiB (par_kpoints + par_states + par_domains)
+
+**********************************************************************
+
+Info: Generating external potential
+      done.
+Info: Octopus initialization completed.
+Info: Starting calculation mode.
+Info: Allocating ground state wave-functions
+Info: Blocks of states
+      Block       1 contains       4 states:       1 -       4
+Info: Ground-state allocation done.
+Input: [MixField = potential] (what to mix during SCF cycles)
+Input: [MixingScheme = broyden]
+
+**************************** Eigensolver *****************************
+Input: [Eigensolver = cg]
+Input: [Preconditioner = pre_filter]
+Input: [PreconditionerFilterFactor = 0.5000]
+Input: [SubspaceDiagonalization = standard]
+**********************************************************************
+
+Input: [LCAOStart = lcao_full]
+Input: [LCAOScaleFactor = 1.000]
+Input: [LCAOMaximumOrbitalRadius = 10.58 A]
+Info: Single-precision storage for     2 extra orbitals will be allocated.
+Info: Unnormalized total charge =      7.999752
+Info: Renormalized total charge =      8.000000
+Info: Setting up Hamiltonian.
+Info: Performing initial LCAO calculation with      6 orbitals.
+Info: Getting Hamiltonian matrix elements.
+
+Eigenvalues [eV]
+ #st  Spin   Eigenvalue      Occupation
+   1   --   -29.222659       2.000000
+   2   --   -15.955691       2.000000
+   3   --   -13.237858       2.000000
+   4   --   -11.432563       2.000000
+Info: SCF using real wavefunctions.
+Info: Starting SCF iteration.
+
+
+*********************** SCF CYCLE ITER #    1 ************************
+ etot  = -3.85067644E+02 abs_ev   =  4.43E+01 rel_ev   =  4.64E-01
+ ediff =        4.69E+00 abs_dens =  2.63E+00 rel_dens =  3.29E-01
+Matrix vector products:    108
+Converged eigenvectors:      0
+
+#  State  Eigenvalue [eV]  Occupation    Error
+      1      -24.182940    2.000000   (1.1E-04)
+      2      -12.661590    2.000000   (7.6E-05)
+      3       -6.274150    2.000000   (8.4E-04)
+      4       -4.577129    2.000000   (2.2E-04)
+
+Density of states:
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+%----------------------------------------%---------------------%-----%
+                                                                     ^
+
+
+Elapsed time for SCF step     1:          0.29
+**********************************************************************
+
+
+
+*********************** SCF CYCLE ITER #    2 ************************
+ etot  = -4.71653665E+02 abs_ev   =  2.35E+01 rel_ev   =  1.97E-01
+ ediff =       -3.18E+00 abs_dens =  1.63E+00 rel_dens =  2.04E-01
+Matrix vector products:    108
+Converged eigenvectors:      0
+
+#  State  Eigenvalue [eV]  Occupation    Error
+      1      -26.946801    2.000000   (1.1E-05)
+      2      -14.595699    2.000000   (9.1E-06)
+      3       -9.955348    2.000000   (8.1E-05)
+      4       -7.929810    2.000000   (4.0E-05)
+
+Density of states:
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+%--------------------------------------------%----------------%------%
+                                                                     ^
+
+
+Elapsed time for SCF step     2:          0.30
+**********************************************************************
+
+
+
+*********************** SCF CYCLE ITER #    3 ************************
+ etot  = -4.70317864E+02 abs_ev   =  2.45E+00 rel_ev   =  2.10E-02
+ ediff =        4.91E-02 abs_dens =  9.06E-02 rel_dens =  1.13E-02
+Matrix vector products:    107
+Converged eigenvectors:      0
+
+#  State  Eigenvalue [eV]  Occupation    Error
+      1      -26.446838    2.000000   (1.7E-06)
+      2      -14.100191    2.000000   (9.6E-07)
+      3       -9.893964    2.000000   (6.6E-06)
+      4       -7.763688    2.000000   (3.6E-06)
+
+Density of states:
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+%---------------------------------------------%--------------%-------%
+                                                                     ^
+
+
+Elapsed time for SCF step     3:          0.28
+**********************************************************************
+
+
+
+*********************** SCF CYCLE ITER #    4 ************************
+ etot  = -4.64219660E+02 abs_ev   =  4.90E+00 rel_ev   =  4.40E-02
+ ediff =        2.24E-01 abs_dens =  9.95E-02 rel_dens =  1.24E-02
+Matrix vector products:    105
+Converged eigenvectors:      2
+
+#  State  Eigenvalue [eV]  Occupation    Error
+      1      -25.594936    2.000000   (9.6E-07)
+      2      -13.247316    2.000000   (9.1E-07)
+      3       -9.562218    2.000000   (4.2E-06)
+      4       -7.349604    2.000000   (4.2E-06)
+
+Density of states:
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+%----------------------------------------------%-------------%-------%
+                                                                     ^
+
+
+Elapsed time for SCF step     4:          0.28
+**********************************************************************
+
+
+
+*********************** SCF CYCLE ITER #    5 ************************
+ etot  = -4.63147832E+02 abs_ev   =  6.61E-01 rel_ev   =  5.96E-03
+ ediff =        3.94E-02 abs_dens =  1.99E-02 rel_dens =  2.49E-03
+Matrix vector products:    102
+Converged eigenvectors:      0
+
+#  State  Eigenvalue [eV]  Occupation    Error
+      1      -25.532953    2.000000   (1.1E-06)
+      2      -13.146349    2.000000   (8.9E-07)
+      3       -9.447035    2.000000   (1.4E-06)
+      4       -7.297241    2.000000   (8.3E-07)
+
+Density of states:
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+%----------------------------------------------%-------------%-------%
+                                                                     ^
+
+
+Elapsed time for SCF step     5:          0.27
+**********************************************************************
+
+
+
+*********************** SCF CYCLE ITER #    6 ************************
+ etot  = -4.63564718E+02 abs_ev   =  1.36E-01 rel_ev   =  1.22E-03
+ ediff =       -1.53E-02 abs_dens =  7.31E-03 rel_dens =  9.13E-04
+Matrix vector products:     81
+Converged eigenvectors:      4
+
+#  State  Eigenvalue [eV]  Occupation    Error
+      1      -25.546199    2.000000   (9.3E-07)
+      2      -13.159759    2.000000   (7.6E-07)
+      3       -9.470904    2.000000   (7.9E-07)
+      4       -7.314541    2.000000   (8.5E-07)
+
+Density of states:
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+%----------------------------------------------%-------------%-------%
+                                                                     ^
+
+
+Elapsed time for SCF step     6:          0.24
+**********************************************************************
+
+
+
+*********************** SCF CYCLE ITER #    7 ************************
+ etot  = -4.63582376E+02 abs_ev   =  1.10E-02 rel_ev   =  9.91E-05
+ ediff =       -6.49E-04 abs_dens =  2.27E-04 rel_dens =  2.84E-05
+Matrix vector products:     50
+Converged eigenvectors:      4
+
+#  State  Eigenvalue [eV]  Occupation    Error
+      1      -25.547509    2.000000   (7.9E-07)
+      2      -13.161627    2.000000   (9.9E-07)
+      3       -9.472336    2.000000   (8.4E-07)
+      4       -7.315433    2.000000   (7.8E-07)
+
+Density of states:
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+%----------------------------------------------%-------------%-------%
+                                                                     ^
+
+
+Elapsed time for SCF step     7:          0.16
+**********************************************************************
+
+
+
+*********************** SCF CYCLE ITER #    8 ************************
+ etot  = -4.63594619E+02 abs_ev   =  1.68E-02 rel_ev   =  1.52E-04
+ ediff =       -4.50E-04 abs_dens =  3.85E-04 rel_dens =  4.81E-05
+Matrix vector products:     56
+Converged eigenvectors:      4
+
+#  State  Eigenvalue [eV]  Occupation    Error
+      1      -25.549484    2.000000   (7.0E-07)
+      2      -13.165007    2.000000   (6.6E-07)
+      3       -9.474485    2.000000   (8.7E-07)
+      4       -7.316339    2.000000   (8.9E-07)
+
+Density of states:
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+%----------------------------------------------%-------------%-------%
+                                                                     ^
+
+
+Elapsed time for SCF step     8:          0.17
+**********************************************************************
+
+
+
+*********************** SCF CYCLE ITER #    9 ************************
+ etot  = -4.63594495E+02 abs_ev   =  2.42E-05 rel_ev   =  2.18E-07
+ ediff =        4.54E-06 abs_dens =  8.78E-06 rel_dens =  1.10E-06
+Matrix vector products:     17
+Converged eigenvectors:      4
+
+#  State  Eigenvalue [eV]  Occupation    Error
+      1      -25.549474    2.000000   (8.9E-07)
+      2      -13.164973    2.000000   (8.7E-07)
+      3       -9.474500    2.000000   (8.5E-07)
+      4       -7.316355    2.000000   (9.5E-07)
+
+Density of states:
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+%----------------------------------------------%-------------%-------%
+                                                                     ^
+
+
+Elapsed time for SCF step     9:          0.07
+**********************************************************************
+
+Info: SCF converged in    9 iterations
+
+Info: Writing output to static/
+
+             Calculation ended on 2016/07/13 at 13:55:50
+
+                          Walltime:  04.753s
+
+Octopus emitted 1 warning.

@@ -67,3 +67,6 @@
 [submodule "dependencies/parsers/lib-atoms"]
 	path = dependencies/parsers/lib-atoms
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-lib-atoms
+[submodule "dependencies/parsers/octopus"]
+	path = dependencies/parsers/octopus
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-octopus

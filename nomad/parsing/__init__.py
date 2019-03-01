@@ -284,9 +284,13 @@ parsers = [
         name='parsers/lib-atoms',
         parser_class_name='libatomsparser.LibAtomsParserWrapper',
         mainfile_contents_re=(r'\s*<GAP_params\s')
+    ),
+    LegacyParser(
+        name='parsers/octopus',
+        parser_class_name='octopusparser.OctopusParserWrapper',
+        mainfile_contents_re=(r'\*{32} Grid \*{32}Simulation Box:')
     )
 ]
-
 
 """ Instanciation and constructor based config of all parsers. """
 
