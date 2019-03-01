@@ -671,7 +671,7 @@ class NomadCOEMigration:
             # publish upload
             if len(calc_mainfiles) > 0:
                 with utils.timer(logger, 'upload published'):
-                    upload_metadata = dict(with_embargo=(package.restricted > 0))  # TODO replace with_embargo with int in months
+                    upload_metadata = dict(with_embargo=(package.restricted > 0))
                     upload_metadata['calculations'] = [
                         self._to_api_metadata(source_calc_with_metadata)
                         for _, source_calc_with_metadata in source_calcs.values()]

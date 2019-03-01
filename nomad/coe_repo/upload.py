@@ -147,6 +147,7 @@ class Upload(Base):  # type: ignore
                     checksum=calc.calc_id,
                     upload=coe_upload)
                 repo_db.add(coe_calc)
+                repo_db.flush()  # to avoid missing calc parent key constraint violation
                 coe_calc.apply_calc_with_metadata(calc, context=context)
                 logger.debug('added calculation, not yet committed', calc_id=coe_calc.calc_id)
 
