@@ -250,7 +250,7 @@ def configure_logging():
     # configure log levels
     for logger in [
             'celery.app.trace', 'celery.worker.strategy', 'bagit', 'elasticsearch',
-            'urllib3.connectionpool', 'bravado.client']:
+            'urllib3.connectionpool', 'bravado', 'bravado_core', 'swagger_spec_validator']:
         logging.getLogger(logger).setLevel(logging.WARNING)
 
 
