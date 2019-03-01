@@ -263,10 +263,11 @@ class Calc(Base):
                     self._add_citation(coe_dataset_calc, dataset.doi['value'], 'INTERNAL', context)
 
                 # cause a flush to avoid future inconsistencies
-                repo_db.flush()
+                # repo_db.flush()
 
-            coe_dataset_rel = CalcSet(parent_calc_id=dataset_id, children_calc_id=self.coe_calc_id)
-            repo_db.add(coe_dataset_rel)
+            self.parents.append(coe_dataset_calc)
+            # coe_dataset_rel = CalcSet(parent_calc_id=dataset_id, children_calc_id=self.coe_calc_id)
+            # repo_db.add(coe_dataset_rel)
 
             dataset.update(DataSet(coe_dataset_calc).to_popo())
 
