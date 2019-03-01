@@ -1,0 +1,17 @@
+DELETE FROM citations;
+DELETE FROM metadata_citations;
+DELETE FROM coauthorships;
+DELETE FROM ownerships;
+DELETE FROM shareships;
+DELETE FROM codeversions;
+DELETE FROM codefamilies;
+DELETE FROM doi_mapping;
+DELETE FROM metadata;
+DELETE FROM user_metadata;
+DELETE FROM spacegroups;
+DELETE FROM struct_ratios;
+DELETE FROM tags;
+DELETE FROM topics;
+DELETE FROM calcsets;
+DELETE FROM calculations;
+DELETE FROM uploads;
