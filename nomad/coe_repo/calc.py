@@ -377,6 +377,6 @@ class DataSet:
 
     def to_popo(self):
         return utils.POPO(
-           id=self.id, 
-           name=self.name,
-           doi=self.doi.to_popo() if self.doi is not None else None)
+            id=self.id,
+            name=self.name,
+            doi=self.doi.to_popo() if self.doi is not None else None)
