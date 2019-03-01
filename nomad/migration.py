@@ -572,7 +572,6 @@ class NomadCOEMigration:
 
             # initialize package report
             report = utils.POPO()
-            report.total_source_calcs = 0
             report.total_calcs = 0
             report.failed_calcs = 0
             report.migrated_calcs = 0
@@ -704,7 +703,7 @@ class NomadCOEMigration:
             else:
                 logger.info('no successful calcs, skip publish')
 
-            report.missing_calcs = report.total_source_calcs - report.migrated_calcs
+            report.missing_calcs = report.total_calcs - report.migrated_calcs
             logger.info('migrated package', **report)
 
             for key, value in report.items():

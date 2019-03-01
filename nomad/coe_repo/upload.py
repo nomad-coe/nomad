@@ -148,7 +148,7 @@ class Upload(Base):  # type: ignore
                     upload=coe_upload)
                 repo_db.add(coe_calc)
                 coe_calc.apply_calc_with_metadata(calc, context=context)
-                logger.info('added calculation, not yet committed', calc_id=coe_calc.calc_id)
+                logger.debug('added calculation, not yet committed', calc_id=coe_calc.calc_id)
 
             # commit
             if has_calcs:

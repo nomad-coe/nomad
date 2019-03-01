@@ -77,8 +77,11 @@ class PathObject:
         object_id: The object id (i.e. directory path)
         os_path: Override the "object storage" path with the given path.
         prefix: Add a 3-digit prefix directory, e.g. foo/test/ -> foo/tes/test
+        create_prefix: Create the prefix right away
     """
-    def __init__(self, bucket: str, object_id: str, os_path: str = None, prefix: bool = False) -> None:
+    def __init__(
+            self, bucket: str, object_id: str, os_path: str = None,
+            prefix: bool = False, create_prefix: bool = False) -> None:
         if os_path:
             self.os_path = os_path
         else:
@@ -90,6 +93,9 @@ class PathObject:
             segments[-1] = last[:3]
             segments.append(last)
             self.os_path = os.path.join(*segments)
+
+            if create_prefix:
+                os.makedirs(os.path.dirname(self.os_path), exist_ok=True)
 
     def delete(self) -> None:
         basename = os.path.basename(self.os_path)
@@ -461,6 +467,8 @@ class StagingUploadFiles(UploadFiles):
         Arguments:
             bagit_metadata: Additional data added to the bagit metadata.
         """
+        self.logger.debug('started to pack upload')
+
         # freeze the upload
         assert not self.is_frozen, "Cannot pack an upload that is packed, or packing."
         with open(self._frozen_file.os_path, 'wt') as f:
@@ -472,6 +480,7 @@ class StagingUploadFiles(UploadFiles):
 
         # copy raw -> .restricted
         shutil.copytree(self._raw_dir.os_path, restricted_dir.os_path)
+        self.logger.debug('copied raw data')
 
         # We do a trick to deal with multiple mainfiles sharing the same aux files while
         # having different restriction, we first move all aux files to public (including
@@ -496,10 +505,12 @@ class StagingUploadFiles(UploadFiles):
                 # file might not have been moved since all mainfiles among aux files were restricted
                 if source.exists():
                     os.rename(source.os_path, restricted_dir.join_file(mainfile).os_path)
+        self.logger.debug('moved public data')
 
         # create bags
         make_bag(restricted_dir.os_path, bag_info=bagit_metadata, checksums=['sha512'])
         make_bag(public_dir.os_path, bag_info=bagit_metadata, checksums=['sha512'])
+        self.logger.debug('created raw file bags')
 
         # zip bags
         def zip_dir(zip_filepath, path):
@@ -514,6 +525,7 @@ class StagingUploadFiles(UploadFiles):
 
         zip_dir(packed_dir.join_file('raw-restricted.bagit.zip').os_path, restricted_dir.os_path)
         zip_dir(packed_dir.join_file('raw-public.bagit.zip').os_path, public_dir.os_path)
+        self.logger.debug('zipped bags')
 
         # zip archives
         def create_zipfile(prefix: str) -> ZipFile:
@@ -536,15 +548,20 @@ class StagingUploadFiles(UploadFiles):
 
         archive_restricted_zip.close()
         archive_public_zip.close()
+        self.logger.debug('zipped archives')
 
         # pack metadata
         packed_metadata = PublicMetadata(packed_dir.os_path)
         packed_metadata._create(self._metadata)
+        self.logger.debug('packed metadata')
 
         # move to public bucket
-        target_dir = DirectoryObject(config.files.public_bucket, self.upload_id, create=False, prefix=True)
+        target_dir = DirectoryObject(
+            config.files.public_bucket, self.upload_id, create=False, prefix=True,
+            create_prefix=True)
         assert not target_dir.exists()
-        shutil.move(packed_dir.os_path, target_dir.os_path)
+        os.rename(packed_dir.os_path, target_dir.os_path)
+        self.logger.debug('moved to public bucket')
 
     def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
         upload_prefix_len = len(self._raw_dir.os_path) + 1

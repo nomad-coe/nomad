@@ -610,7 +610,7 @@ class Upload(Proc):
             calc_metadata.update(upload_metadata)
             calc_with_metadata.apply_user_metadata(calc_metadata)
 
-            logger.info('prepared calc with metadata', calc_id=calc_with_metadata.calc_id)
+            logger.debug('prepared calc with metadata', calc_id=calc_with_metadata.calc_id)
             return calc_with_metadata
 
         result.calcs = [apply_metadata(calc) for calc in self.calcs]

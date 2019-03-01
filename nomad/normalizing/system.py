@@ -302,12 +302,15 @@ class SystemNormalizer(SystemBasedNormalizer):
                 nomad_classification = SystemNormalizer.translation_dict[matid_class]
                 break
         # Check to make sure a match was found in translating classes.
-        if (nomad_classification is None) or (nomad_classification == 'Unknown'):
+        if nomad_classification is None:
             # Then something unexpected has happened with our system_type.
             self.logger.error(
                 'Matid classfication has given us an unexpected type: %s' % system_type)
 
         if nomad_classification == 'Atom' and (atoms.get_number_of_atoms() > 1):
             nomad_classification = 'Molecule / Cluster'
+
+        if nomad_classification == 'Unknown':
+            self.logger.warning('Could not determine system type.')
 
         return nomad_classification
