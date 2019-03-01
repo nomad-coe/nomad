@@ -20,7 +20,7 @@ other/older nomad@FAIRDI instances to mass upload it to a new nomad@FAIRDI insta
 .. autoclass:: SourceCalc
 """
 
-from typing import Generator, Tuple, List, Iterable, Any, IO
+from typing import Generator, Tuple, List, Iterable, IO
 import os
 import os.path
 import zipstream
@@ -248,11 +248,17 @@ class SourceCalc(Document):
     upload = StringField()
     metadata = DictField()
 
+    migration_id = StringField()
+    """
+    used to id individual runs, if this has the id of the current run, its migrated by
+    this run.
+    """
+
     extracted_prefix = '$EXTRACTED/'
     sites = ['/data/nomad/extracted/', '/nomad/repository/extracted/']
     prefixes = [extracted_prefix] + sites
 
-    meta = dict(indexes=['upload', 'mainfile'])
+    meta = dict(indexes=['upload', 'mainfile', 'migration_id'])
 
     _dataset_cache: dict = {}
 
@@ -539,41 +545,40 @@ class NomadCOEMigration:
         Returns: Yields a dictionary with status and statistics for each given upload.
         """
         from nomad.client import stream_upload_with_client
+        migration_id = utils.create_uuid()
 
-        logger = self.logger.bind(upload_path=upload_path)
+        logger = self.logger.bind(upload_path=upload_path, migration_id=migration_id)
+
+        source_calcs = None  # grab source calcs while waiting for the first processing
 
         # get the packages
         packages, source_upload_id = self._packages(upload_path, create=create_packages)
 
-        # initialize report
-        report = utils.POPO()
-        report.packages = 0
-        report.total_source_calcs = SourceCalc.objects(upload=source_upload_id).count()
-        report.total_calcs = 0
-        report.failed_calcs = 0
-        report.migrated_calcs = 0
-        report.calcs_with_diffs = 0
-        report.new_calcs = 0
-        report.missing_calcs = 0
-
-        # grab source metadata
-        upload_metadata_calcs: List[Any] = list()
-        metadata_dict = dict()
-        upload_metadata = dict(calculations=upload_metadata_calcs)
-        for source_calc in SourceCalc.objects(upload=source_upload_id):
-            source_metadata = CalcWithMetadata(**source_calc.metadata)
-            source_metadata.mainfile = source_calc.mainfile
-            source_metadata.pid = source_calc.pid
-            source_metadata.__migrated = False  # type: ignore
-            upload_metadata_calcs.append(source_metadata)
-            metadata_dict[source_calc.mainfile] = source_metadata
-        logger.debug('loaded source metadata', calcs=len(upload_metadata_calcs))
+        # initialize upload report
+        upload_report = utils.POPO()
+        upload_report.total_source_calcs = 0
+        upload_report.total_calcs = 0
+        upload_report.failed_calcs = 0
+        upload_report.migrated_calcs = 0
+        upload_report.calcs_with_diffs = 0
+        upload_report.new_calcs = 0
+        upload_report.missing_calcs = 0
 
         # iterate all packages of upload
         for package in packages:
             package_id = package.package_id
-
             logger = logger.bind(package_id=package_id, source_upload_id=source_upload_id)
+            logger.debug('start to process package')
+
+            # initialize package report
+            report = utils.POPO()
+            report.total_source_calcs = 0
+            report.total_calcs = 0
+            report.failed_calcs = 0
+            report.migrated_calcs = 0
+            report.calcs_with_diffs = 0
+            report.new_calcs = 0
+            report.missing_calcs = 0
 
             # upload and process the upload file
             with utils.timer(logger, 'upload completed'):
@@ -591,8 +596,6 @@ class NomadCOEMigration:
                     self.logger.error('could not upload package', exc_info=e)
                     continue
 
-            logger.debug('package file uploaded')
-
             logger = logger.bind(
                 source_upload_id=source_upload_id, upload_id=upload.upload_id)
 
@@ -609,58 +612,71 @@ class NomadCOEMigration:
             else:
                 report.total_calcs += upload.calcs.pagination.total
 
-            has_successful_calc = False
+            calc_mainfiles = []
             upload_total_calcs = upload.calcs.pagination.total
-            timer = utils.timer(logger, 'validation completed')
-            timer.__enter__()  # type: ignore, pylint: disable=E1101
-            # verify upload: check for processing errors
-            per_page = 200
-            for page in range(1, math.ceil(upload_total_calcs / per_page) + 1):
-                upload = self.client.uploads.get_upload(
-                    upload_id=upload.upload_id, per_page=per_page, page=page,
-                    order_by='mainfile').response().result
 
-                for calc_proc in upload.calcs.results:
-                    calc_logger = logger.bind(
-                        calc_id=calc_proc.calc_id,
-                        mainfile=calc_proc.mainfile)
+            # check for processing errors
+            with utils.timer(logger, 'checked upload processing'):
+                per_page = 200
+                for page in range(1, math.ceil(upload_total_calcs / per_page) + 1):
+                    upload = self.client.uploads.get_upload(
+                        upload_id=upload.upload_id, per_page=per_page, page=page,
+                        order_by='mainfile').response().result
 
-                    source_calc = metadata_dict.get(calc_proc.mainfile, None)
-                    if calc_proc.tasks_status == SUCCESS:
-                        has_successful_calc = True
-                        if source_calc is None:
-                            calc_logger.info('processed a calc that has no source')
-                            report.new_calcs += 1
-                            continue
+                    for calc_proc in upload.calcs.results:
+                        calc_logger = logger.bind(
+                            calc_id=calc_proc.calc_id,
+                            mainfile=calc_proc.mainfile)
+
+                        if calc_proc.tasks_status == SUCCESS:
+                            calc_mainfiles.append(calc_proc.mainfile)
                         else:
-                            source_calc.__migrated = True
+                            report.failed_calcs += 1
+                            calc_logger.error(
+                                'could not process a calc', process_errors=calc_proc.errors)
+                            continue
+
+            # grab source calcs
+            source_calcs = dict()
+            with utils.timer(logger, 'loaded source metadata'):
+                for source_calc in SourceCalc.objects(
+                        upload=source_upload_id, mainfile__in=calc_mainfiles):
+
+                    source_calc_with_metadata = CalcWithMetadata(**source_calc.metadata)
+                    source_calc_with_metadata.pid = source_calc.pid
+                    source_calc_with_metadata.mainfile = source_calc.mainfile
+                    source_calcs[source_calc.mainfile] = (source_calc, source_calc_with_metadata)
+
+            # verify upload against source
+            with utils.timer(logger, 'varyfied upload against source calcs'):
+                for page in range(1, math.ceil(upload_total_calcs / per_page) + 1):
+                    search = self.client.repo.search(
+                        page=page, per_page=per_page, upload_id=upload.upload_id,
+                        order_by='mainfile').response().result
+                    for calc in search.results:
+                        source_calc, source_calc_with_metadata = source_calcs.get(
+                            calc['mainfile'], (None, None))
+
+                        if source_calc is not None:
                             report.migrated_calcs += 1
 
-                    else:
-                        report.failed_calcs += 1
-                        calc_logger.error(
-                            'could not process a calc', process_errors=calc_proc.errors)
-                        continue
-
-            # verify upload: calc data
-            for page in range(1, math.ceil(upload_total_calcs / per_page) + 1):
-                search = self.client.repo.search(
-                    page=page, per_page=per_page, upload_id=upload.upload_id,
-                    order_by='mainfile').response().result
-                for calc in search.results:
-                    source_calc = metadata_dict.get(calc_proc.mainfile, None)
-                    calc_logger = logger.bind(calc_id=calc['calc_id'], mainfile=calc['mainfile'])
-                    if not self._validate(calc, source_calc, calc_logger):
-                        report.calcs_with_diffs += 1
-            timer.__exit__(None, None, None)  # type: ignore, pylint: disable=E1101
+                            calc_logger = logger.bind(calc_id=calc['calc_id'], mainfile=calc['mainfile'])
+                            if not self._validate(calc, source_calc_with_metadata, calc_logger):
+                                report.calcs_with_diffs += 1
+                        else:
+                            calc_logger.info('processed a calc that has no source')
+                            report.new_calcs += 1
+                SourceCalc.objects(upload=source_upload_id, mainfile__in=calc_mainfiles) \
+                    .update(migration_id=migration_id)
 
             # publish upload
-            with utils.timer(logger, 'upload published'):
-                upload_metadata['calculations'] = [
-                    self._to_api_metadata(calc)
-                    for calc in upload_metadata['calculations'] if calc.__migrated]
+            if len(calc_mainfiles) > 0:
+                with utils.timer(logger, 'upload published'):
+                    upload_metadata = dict(with_embargo=(package.restricted > 0))  # TODO replace with_embargo with int in months
+                    upload_metadata['calculations'] = [
+                        self._to_api_metadata(source_calc_with_metadata)
+                        for _, source_calc_with_metadata in source_calcs.values()]
 
-                if has_successful_calc:
                     upload = self.client.uploads.exec_upload_operation(
                         upload_id=upload.upload_id,
                         payload=dict(operation='publish', metadata=upload_metadata)
@@ -682,37 +698,42 @@ class NomadCOEMigration:
                         report.migrated_calcs = 0
                         report.calcs_with_diffs = 0
                         report.new_calcs = 0
-                        report.missing_calcs = report.total_source_calcs
 
-            logger.info('migrated upload', **report)
-            report.packages += 1
+                        SourceCalc.objects(upload=source_upload_id, mainfile__in=calc_mainfiles) \
+                            .update(migration_id=None)
+            else:
+                logger.info('no successful calcs, skip publish')
 
-        # check for missing source calcs
-        for source_calc in upload_metadata_calcs:
-            if source_calc.__migrated is False:
-                report.missing_calcs += 1
-                logger.info(
-                    'no match or processed calc for source calc',
-                    mainfile=source_calc.mainfile)
+            report.missing_calcs = report.total_source_calcs - report.migrated_calcs
+            logger.info('migrated package', **report)
 
-        return report
+            for key, value in report.items():
+                upload_report[key] += value
 
-    def _to_api_metadata(self, source: CalcWithMetadata) -> dict:
+        upload_report.total_source_calcs = SourceCalc.objects(upload=source_upload_id).count()
+        upload_report.missing_calcs = SourceCalc.objects(upload=source_upload_id, migration_id__ne=migration_id).count()
+
+        self.logger.info(
+            'migrated upload', upload_path=upload_path, migration_id=migration_id, **upload_report)
+        return upload_report
+
+    def _to_api_metadata(self, calc_with_metadata: CalcWithMetadata) -> dict:
         """ Transforms to a dict that fullfils the API's uploade metadata model. """
+
         return dict(
-            _upload_time=source.upload_time,
-            _uploader=source.uploader['id'],
-            _pid=source.pid,
-            references=[ref['value'] for ref in source.references],
+            _upload_time=calc_with_metadata.upload_time,
+            _uploader=calc_with_metadata.uploader['id'],
+            _pid=calc_with_metadata.pid,
+            references=[ref['value'] for ref in calc_with_metadata.references],
             datasets=[dict(
                 id=ds['id'],
                 _doi=ds.get('doi', {'value': None})['value'],
-                _name=ds.get('name', None)) for ds in source.datasets],
-            mainfile=source.mainfile,
-            with_embargo=source.with_embargo,
-            comment=source.comment,
-            coauthors=list(int(user['id']) for user in source.coauthors),
-            shared_with=list(int(user['id']) for user in source.shared_with)
+                _name=ds.get('name', None)) for ds in calc_with_metadata.datasets],
+            mainfile=calc_with_metadata.mainfile,
+            with_embargo=calc_with_metadata.with_embargo,
+            comment=calc_with_metadata.comment,
+            coauthors=list(int(user['id']) for user in calc_with_metadata.coauthors),
+            shared_with=list(int(user['id']) for user in calc_with_metadata.shared_with)
         )
 
     def index(self, *args, **kwargs):
