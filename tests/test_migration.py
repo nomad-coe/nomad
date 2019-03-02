@@ -186,7 +186,7 @@ mirgation_test_specs = [
     ('new_calc', 'new_calc', dict(migrated=2, source=2, new=1), {}),
     ('missing_calc', 'missing_calc', dict(migrated=1, source=2, missing=1), {}),
     ('missmatch', 'missmatch', dict(migrated=2, source=2, diffs=1), {}),
-    ('failed_calc', 'failed_calc', dict(migrated=1, source=2, diffs=0, missing=1, failed=1, errors=1), {}),
+    ('failed_calc', 'failed_calc', dict(migrated=1, source=2, diffs=0, missing=1, failed=1), {}),
     ('failed_upload', 'baseline', dict(migrated=0, source=2, missing=2, errors=1), {}),
     ('failed_publish', 'baseline', dict(migrated=0, source=2, missing=2, failed=2, errors=1), {})
 ]

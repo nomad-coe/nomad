@@ -20,7 +20,7 @@ import json
 
 from matid import SymmetryAnalyzer, Classifier
 
-from nomad import utils
+from nomad import utils, config
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 
 
@@ -31,7 +31,7 @@ class SystemNormalizer(SystemBasedNormalizer):
     of the legacy NOMAD-coe *stats* normalizer.
     """
     def __init__(self, backend):
-        super().__init__(backend, all_sections=True)
+        super().__init__(backend, all_sections=config.normalize.all_systems)
 
     @staticmethod
     def atom_label_to_num(atom_label):
@@ -175,7 +175,7 @@ class SystemNormalizer(SystemBasedNormalizer):
             self.symmetry_analysis(atoms)
 
     def symmetry_analysis(self, atoms) -> None:
-        """Analyze the symmetry of the material bein simulated.
+        """Analyze the symmetry of the material being simulated.
 
         We feed in the parsed values in section_system to the
         the symmetry analyzer. We then use the Matid library

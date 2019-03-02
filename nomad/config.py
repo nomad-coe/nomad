@@ -54,6 +54,9 @@ NomadServicesConfig = namedtuple('NomadServicesConfig', ['api_host', 'api_port',
 MailConfig = namedtuple('MailConfig', ['host', 'port', 'user', 'password', 'from_address'])
 """ Used to configure how nomad can send email """
 
+NormalizeConfig = namedtuple('NormalizeConfig', ['all_systems'])
+""" Used to configure the normalizers """
+
 files = FilesConfig(
     uploads_bucket='uploads',
     raw_bucket=os.environ.get('NOMAD_FILES_RAW_BUCKET', 'raw'),
@@ -136,6 +139,9 @@ mail = MailConfig(
     user=os.environ.get('NOMAD_SMTP_USER', None),
     password=os.environ.get('NOMAD_SMTP_PASSWORD', None),
     from_address=os.environ.get('NOMAD_MAIL_FROM', 'webmaster@nomad-coe.eu')
+)
+normalize = NormalizeConfig(
+    all_systems=False
 )
 
 console_log_level = get_loglevel_from_env('NOMAD_CONSOLE_LOGLEVEL', default_level=logging.WARNING)

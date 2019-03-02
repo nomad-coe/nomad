@@ -435,7 +435,8 @@ class NomadCOEMigration:
 
                 logger.info(
                     'source target missmatch', quantity=key,
-                    source_value=source_value, target_value=target_value)
+                    source_value=source_value, target_value=target_value,
+                    value_diff='%s->%s' % (str(source_value), str(target_value)))
                 return False
 
             if source_value is None and target_value is not None:

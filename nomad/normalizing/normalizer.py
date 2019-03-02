@@ -89,27 +89,51 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         super().normalize(logger)
 
         if self._all_sections:
-            systems = self._backend.get_sections(s_system)
+            try:
+                systems = self._backend.get_sections(s_system)
+            except Exception:
+                systems = []
         else:
             # look for sccs in last frames
             sccs = []
-            for frame_seq in self._backend.get_sections(s_frame_sequence):
-                frames = self._backend.get_value(r_frame_sequence_local_frames, frame_seq)
+            try:
+                frame_seqs = self._backend.get_sections(s_frame_sequence)
+            except Exception:
+                frame_seqs = []
+
+            for frame_seq in frame_seqs:
+                try:
+                    frames = self._backend.get_value(r_frame_sequence_local_frames, frame_seq)
+                except Exception:
+                    frames = []
+
                 if len(frames) > 0:
                     sccs.append(frames[-1])
 
             # no sccs from frames -> consider all sccs
             if len(sccs) == 0:
-                sccs = self._backend.get_sections(s_scc)
+                try:
+                    sccs = self._backend.get_sections(s_scc)
+                except Exception:
+                    sccs = []
 
-            # no sccs -> consider all systems
-            systems = [self._backend.get_value(r_scc_to_system, scc) for scc in sccs]
+            try:
+                systems = [self._backend.get_value(r_scc_to_system, scc) for scc in sccs]
+            except Exception:
+                systems = []
 
             # only take the first, and last two systems
             if len(systems) == 0:
-                systems = self._backend.get_sections(s_system)
-                if len(systems) > 2:
-                    systems = [systems[0], systems[-2], systems[-1]]
+                try:
+                    systems = self._backend.get_sections(s_system)
+                except Exception:
+                    systems = []
+
+            if len(systems) > 2:
+                systems = [systems[0], systems[-2], systems[-1]]
+
+        if len(systems) == 0:
+            self.logger.error('no section system found')
 
         for g_index in systems:
             try:
