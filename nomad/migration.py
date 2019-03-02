@@ -231,7 +231,7 @@ class Package(Document):
                 logger.info('completed upload', directory=upload_path, upload_id=upload_id)
             except Exception as e:
                 logger.error(
-                    'could create packae from upload',
+                    'could create package from upload',
                     upload_path=upload_path, upload_id=upload_id, exc_info=e)
                 continue
 
@@ -661,7 +661,7 @@ class NomadCOEMigration:
                         calc_mainfiles.append(calc_proc.mainfile)
                     else:
                         report.failed_calcs += 1
-                        calc_logger.error(
+                        calc_logger.info(
                             'could not process a calc', process_errors=calc_proc.errors)
                         continue
 
