@@ -97,7 +97,8 @@ def pid_prefix(prefix: int):
 @click.option('--create-packages', help='Allow migration to create package entries on the fly.', is_flag=True)
 @click.option('--local', help='Create local upload files.', is_flag=True)
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
-def upload(paths: list, create_packages, local: bool, parallel: int):
+@click.option('--migration-version', default=0, type=int, help='The version number, only packages with lower or no number will be migrated.')
+def upload(paths: list, create_packages, local: bool, parallel: int, migration_version: int):
 
     def producer():
         for path in paths:
@@ -108,7 +109,7 @@ def upload(paths: list, create_packages, local: bool, parallel: int):
         infrastructure.setup_mongo()
 
         logger = utils.get_logger(__name__)
-        migration = NomadCOEMigration()
+        migration = NomadCOEMigration(migration_version=migration_version)
 
         while True:
             path = task.get_one()

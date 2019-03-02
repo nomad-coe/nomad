@@ -82,7 +82,7 @@ def target_repo(postgres):
 @pytest.fixture(scope='function')
 def migration(source_repo, target_repo):
     Package.objects().delete()  # the mongo fixture drops the db, but we still get old results, probably mongoengine caching
-    migration = NomadCOEMigration(sites=['tests/data/migration'])
+    migration = NomadCOEMigration()
     yield migration
 
 
@@ -193,9 +193,13 @@ mirgation_test_specs = [
 
 
 @pytest.mark.filterwarnings("ignore:SAWarning")
-@pytest.mark.parametrize('name, test, assertions, kwargs', mirgation_test_specs)
+@pytest.mark.parametrize('name, test_directory, assertions, kwargs', mirgation_test_specs)
 @pytest.mark.timeout(30)
-def test_migrate(migrate_infra, name, test, assertions, kwargs, monkeypatch, caplog):
+def test_migrate(migrate_infra, name, test_directory, assertions, kwargs, monkeypatch, caplog):
+    perform_migration_test(migrate_infra, name, test_directory, assertions, kwargs, monkeypatch, caplog)
+
+
+def perform_migration_test(migrate_infra, name, test_directory, assertions, kwargs, monkeypatch, caplog):
     def with_error(*args, **kwargs):
         return StringIO('hello, this is not a zip')
 
@@ -205,7 +209,7 @@ def test_migrate(migrate_infra, name, test, assertions, kwargs, monkeypatch, cap
     if name == 'failed_publish':
         monkeypatch.setattr('nomad.processing.data.Upload.to_upload_with_metadata', with_error)
 
-    upload_path = os.path.join('tests/data/migration', test)
+    upload_path = os.path.join('tests/data/migration', test_directory)
     upload_path = os.path.join(upload_path, os.listdir(upload_path)[0])
 
     pid_prefix = 10
@@ -259,3 +263,11 @@ def test_migrate(migrate_infra, name, test, assertions, kwargs, monkeypatch, cap
                 errors += 1
 
     assert errors == assertions.get('errors', 0)
+
+
+def test_skip_on_same_version(migrate_infra, monkeypatch, caplog):
+    assertions = dict(migrated=2, source=2)
+    perform_migration_test(migrate_infra, 'baseline', 'baseline', assertions, {}, monkeypatch, caplog)
+
+    assertions = dict(source=2)
+    perform_migration_test(migrate_infra, 'baseline', 'baseline', assertions, {}, monkeypatch, caplog)

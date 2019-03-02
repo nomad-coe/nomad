@@ -181,6 +181,11 @@ def publish(calcs: Iterable[datamodel.CalcWithMetadata]) -> None:
             yield entry.to_dict(include_meta=True)
 
     elasticsearch.helpers.bulk(infrastructure.elastic_client, elastic_updates())
+    refresh()
+
+
+def refresh():
+    infrastructure.elastic_client.indices.refresh(config.elastic.index_name)
 
 
 aggregations = {

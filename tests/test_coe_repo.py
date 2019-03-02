@@ -107,7 +107,7 @@ def test_add_normalized_calc_with_metadata(
 
 def test_add_upload(processed: processing.Upload):
     upload_with_metadata = processed.to_upload_with_metadata()
-    Upload.add(upload_with_metadata)
+    Upload.publish(upload_with_metadata)(True)
     assert_coe_upload(processed.upload_id, upload_with_metadata)
 
 
@@ -132,14 +132,14 @@ def test_add_upload(processed: processing.Upload):
 #     import time
 #     start = time.time()
 #     upload_with_metadata.calcs = many_calcs()
-#     Upload.add(upload_with_metadata)
+#     Upload.publish(upload_with_metadata)(True)
 #     print('########### %d' % (time.time() - start))
 
 
 def test_add_upload_with_metadata(processed, example_user_metadata):
     processed.metadata = example_user_metadata
     upload_with_metadata = processed.to_upload_with_metadata()
-    Upload.add(upload_with_metadata)
+    Upload.publish(upload_with_metadata)(True)
     assert_coe_upload(
         processed.upload_id, upload_with_metadata)
 
