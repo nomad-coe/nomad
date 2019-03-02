@@ -20,7 +20,7 @@ other/older nomad@FAIRDI instances to mass upload it to a new nomad@FAIRDI insta
 .. autoclass:: SourceCalc
 """
 
-from typing import Generator, Tuple, List, Iterable, IO
+from typing import Generator, Tuple, List, Iterable, IO, Any
 import os
 import os.path
 import zipstream
@@ -28,7 +28,7 @@ import zipfile
 import math
 from mongoengine import Document, IntField, StringField, DictField, ListField
 import time
-from bravado.exception import HTTPNotFound, HTTPBadRequest
+from bravado.exception import HTTPNotFound, HTTPBadRequest, HTTPGatewayTimeout
 import glob
 import os
 import runstats
@@ -569,6 +569,29 @@ class NomadCOEMigration:
         self.logger.info('migrated upload', upload_path=upload_path, **upload_report)
         return upload_report
 
+    def nomad(self, operation: str, *args, **kwargs) -> Any:
+        """
+        Calls nomad via the bravado client. It deals with a very busy nomad and catches,
+        backsoff, and retries on gateway timouts.
+
+        Arguments:
+            operation: Comma separated string of api, endpoint, operation,
+                e.g. 'uploads.get_upload'.
+        """
+        op_path = operation.split('.')
+        op = self.client
+        for op_path_segment in op_path:
+            op = getattr(op, op_path_segment)
+
+        sleep = utils.SleepTimeBackoff()
+        while True:
+            try:
+                return op(*args, **kwargs).response().result
+            except HTTPGatewayTimeout:
+                sleep()
+            except Exception as e:
+                raise e
+
     def migrate_package(self, package: Package, local: bool = False):
         source_upload_id = package.upload_id
         package_id = package.package_id
@@ -592,8 +615,8 @@ class NomadCOEMigration:
                 if local:
                     upload_filepath = package.create_package_upload_file()
                     self.logger.debug('created package upload file')
-                    upload = self.client.uploads.upload(
-                        name=package_id, local_path=upload_filepath).response().result
+                    upload = self.nomad(
+                        'uploads.upload', name=package_id, local_path=upload_filepath)
                 else:
                     upload_f = package.open_package_upload_file()
                     self.logger.debug('opened package upload file')
@@ -609,7 +632,7 @@ class NomadCOEMigration:
         with utils.timer(logger, 'upload processing completed'):
             sleep = utils.SleepTimeBackoff()
             while upload.tasks_running:
-                upload = self.client.uploads.get_upload(upload_id=upload.upload_id).response().result
+                upload = self.nomad('uploads.get_upload', upload_id=upload.upload_id)
                 sleep()
 
         if upload.tasks_status == FAILURE:
@@ -625,9 +648,9 @@ class NomadCOEMigration:
         with utils.timer(logger, 'checked upload processing'):
             per_page = 200
             for page in range(1, math.ceil(upload_total_calcs / per_page) + 1):
-                upload = self.client.uploads.get_upload(
-                    upload_id=upload.upload_id, per_page=per_page, page=page,
-                    order_by='mainfile').response().result
+                upload = self.nomad(
+                    'uploads.get_upload', upload_id=upload.upload_id, per_page=per_page,
+                    page=page, order_by='mainfile')
 
                 for calc_proc in upload.calcs.results:
                     calc_logger = logger.bind(
@@ -657,9 +680,10 @@ class NomadCOEMigration:
         calcs_in_search = 0
         with utils.timer(logger, 'varyfied upload against source calcs'):
             for page in range(1, math.ceil(upload_total_calcs / per_page) + 1):
-                search = self.client.repo.search(
-                    page=page, per_page=per_page, upload_id=upload.upload_id,
-                    order_by='mainfile').response().result
+                search = self.nomad(
+                    'repo.search', page=page, per_page=per_page, upload_id=upload.upload_id,
+                    order_by='mainfile')
+
                 for calc in search.results:
                     calcs_in_search += 1
                     source_calc, source_calc_with_metadata = source_calcs.get(
@@ -686,16 +710,14 @@ class NomadCOEMigration:
                     self._to_api_metadata(source_calc_with_metadata)
                     for _, source_calc_with_metadata in source_calcs.values()]
 
-                upload = self.client.uploads.exec_upload_operation(
-                    upload_id=upload.upload_id,
-                    payload=dict(operation='publish', metadata=upload_metadata)
-                ).response().result
+                upload = self.nomad(
+                    'uploads.exec_upload_operation', upload_id=upload.upload_id,
+                    payload=dict(operation='publish', metadata=upload_metadata))
 
                 sleep = utils.SleepTimeBackoff()
                 while upload.process_running:
                     try:
-                        upload = self.client.uploads.get_upload(
-                            upload_id=upload.upload_id).response().result
+                        upload = self.nomad('uploads.get_upload', upload_id=upload.upload_id)
                         sleep()
                     except HTTPNotFound:
                         # the proc upload will be deleted by the publish operation
