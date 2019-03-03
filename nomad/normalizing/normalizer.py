@@ -135,6 +135,8 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         if len(systems) == 0:
             self.logger.error('no section system found')
 
+        self.logger.info('chose systems for normalization', number_of_systems=len(systems))
+
         for g_index in systems:
             try:
                 self._normalize_system(g_index)

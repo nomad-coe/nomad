@@ -160,19 +160,27 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         # system type analysis
         if atom_positions is not None:
-            try:
-                classifier = Classifier()
-                system_type = classifier.classify(atoms)
-            except Exception as e:
-                self.logger.error('matid project system classification failed', exc_info=e)
-            else:
-                # Convert Matid classification to a Nomad classification.
-                system_type = self.map_matid_to_nomad_system_types(atoms, system_type)
-                set_value('system_type', system_type)
+            with utils.timer(
+                    self.logger, 'system classification executed',
+                    system_size=atoms.get_number_of_atoms()):
+
+                try:
+                    classifier = Classifier()
+                    system_type = classifier.classify(atoms)
+                except Exception as e:
+                    self.logger.error('matid project system classification failed', exc_info=e)
+                else:
+                    # Convert Matid classification to a Nomad classification.
+                    system_type = self.map_matid_to_nomad_system_types(atoms, system_type)
+                    set_value('system_type', system_type)
 
         # symmetry analysis
         if atom_positions is not None and (lattice_vectors is not None or not any(pbc)):
-            self.symmetry_analysis(atoms)
+            with utils.timer(
+                    self.logger, 'symmetry analysis executed',
+                    system_size=atoms.get_number_of_atoms()):
+
+                self.symmetry_analysis(atoms)
 
     def symmetry_analysis(self, atoms) -> None:
         """Analyze the symmetry of the material being simulated.

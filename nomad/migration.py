@@ -700,8 +700,8 @@ class NomadCOEMigration:
                         calc_logger.info('processed a calc that has no source')
                         report.new_calcs += 1
 
-                if len(calc_mainfiles) != calcs_in_search:
-                    logger.error('missmatch between processed calcs and calcs found with search')
+            if len(calc_mainfiles) != calcs_in_search:
+                logger.error('missmatch between processed calcs and calcs found with search')
 
         # publish upload
         if len(calc_mainfiles) > 0:
