@@ -266,8 +266,8 @@ def perform_migration_test(migrate_infra, name, test_directory, assertions, kwar
 
 
 def test_skip_on_same_version(migrate_infra, monkeypatch, caplog):
-    assertions = dict(migrated=2, source=2)
+    assertions = dict(migrated=2, source=2, skipped_packages=0)
     perform_migration_test(migrate_infra, 'baseline', 'baseline', assertions, {}, monkeypatch, caplog)
 
-    assertions = dict(source=2)
+    assertions = dict(migrated=2, source=2, skipped_packages=1)
     perform_migration_test(migrate_infra, 'baseline', 'baseline', assertions, {}, monkeypatch, caplog)

@@ -110,6 +110,7 @@ class Package(Document):
     """ The sum of all file sizes """
 
     migration_version = IntField()
+    report = DictField()
 
     meta = dict(indexes=['upload_id', 'migration_version'])
 
@@ -560,6 +561,8 @@ class NomadCOEMigration:
         for package in packages:
             if package.migration_version is not None and package.migration_version >= self.migration_version:
                 logger.info('package already migrated', package_id=package.package_id)
+                report.add(Report(**package.report))
+                report.skipped_packages += 1
                 continue
 
             report.add(self.migrate_package(package))
@@ -770,11 +773,13 @@ class NomadCOEMigration:
                     SourceCalc.objects(upload=source_upload_id, mainfile__in=calc_mainfiles) \
                         .update(migration_version=self.migration_version)
                     package.migration_version = self.migration_version
-                    package.save()
         else:
             logger.info('no successful calcs, skip publish')
 
         report.missing_calcs = report.total_source_calcs - report.migrated_calcs
+        package.report = report
+        package.save()
+
         logger.info('migrated package', **report)
 
         return report
@@ -808,11 +813,10 @@ class NomadCOEMigration:
 
 
 class Report(utils.POPO):
-    def __init__(self):
-        super().__init__()
-
+    def __init__(self, *args, **kwargs):
         self.total_packages = 0
         self.failed_packages = 0
+        self.skipped_packages = 0
         self.total_calcs = 0  # the calcs that have been found by the target
         self.total_source_calcs = 0  # the calcs in the source index
         self.failed_calcs = 0  # the calcs found b the target that could not be processed/published
@@ -820,6 +824,8 @@ class Report(utils.POPO):
         self.calcs_with_diffs = 0  # the calcs from the source, successfully added to the target with different metadata
         self.new_calcs = 0  # the calcs successfully added to the target that were not found in the source
         self.missing_calcs = 0  # the calcs in the source, that could not be added to the target due to failure or not founding the calc
+
+        super().__init__(*args, **kwargs)
 
     def add(self, other: 'Report') -> None:
         for key, value in other.items():
