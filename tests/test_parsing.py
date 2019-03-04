@@ -46,8 +46,8 @@ parser_examples = [
     ('parsers/orca', 'tests/data/parsers/orca/orca3dot2706823.out'),
     ('parsers/castep', 'tests/data/parsers/castep/BC2N-Pmm2-Raman.castep'),
     ('parsers/dl-poly', 'tests/data/parsers/dl-poly/OUTPUT'),
-    ('parsers/lib-atoms', 'tests/data/parsers/lib-atoms/gp.xml'),
-    ('parsers/octopus', 'tests/data/parsers/octopus/stdout.txt'),
+    # ('parsers/lib-atoms', 'tests/data/parsers/lib-atoms/gp.xml')
+    # ('parsers/octopus', 'tests/data/parsers/octopus/stdout.txt')
 ]
 
 faulty_unknown_one_d_matid_example = [

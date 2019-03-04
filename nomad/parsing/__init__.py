@@ -288,9 +288,13 @@ parsers = [
     LegacyParser(
         name='parsers/octopus',
         parser_class_name='octopusparser.OctopusParserWrapper',
-        mainfile_contents_re=(r'\*{32} Grid \*{32}Simulation Box:')
+        mainfile_contents_re=(r'\|0\) ~ \(0\) \|')
+        # We decided to use the octopus eyes instead of
+        # r'\*{32} Grid \*{32}Simulation Box:' since it was so far down in the file.
     )
 ]
+
+
 
 """ Instanciation and constructor based config of all parsers. """
 
