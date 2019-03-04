@@ -103,4 +103,4 @@ def upload(paths: list, create_packages, local: bool, parallel: int, migration_v
     infrastructure.setup_mongo()
 
     migration = NomadCOEMigration(migration_version=migration_version, threads=parallel)
-    migration.migrate(paths)
+    migration.migrate(*paths, local=local, create_packages=create_packages)
