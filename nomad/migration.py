@@ -20,7 +20,7 @@ other/older nomad@FAIRDI instances to mass upload it to a new nomad@FAIRDI insta
 .. autoclass:: SourceCalc
 """
 
-from typing import Generator, Tuple, List, Iterable, IO, Any
+from typing import Generator, Tuple, List, Iterable, IO, Any, Dict
 import os
 import os.path
 import zipstream
@@ -34,6 +34,7 @@ import glob
 import os
 import runstats
 import io
+import threading
 
 from nomad import utils, infrastructure, config
 from nomad.coe_repo import User, Calc, LoginException
@@ -344,6 +345,8 @@ class NomadCOEMigration:
     Arguments:
         migration_version: The migration version. Only packages/calculations with
             no migration version or a lower migration version are migrated.
+        threads: Number of threads to run migration in parallel.
+        quiet: Prints stats if not quiet
     """
 
     default_sites = [
@@ -357,10 +360,12 @@ class NomadCOEMigration:
     archive_filename = 'archive.tar.gz'
     """ The standard name for tarred uploads in the CoE repository. """
 
-    def __init__(self, migration_version: int = 0) -> None:
+    def __init__(self, migration_version: int = 0, threads: int = 1, quiet: bool = False) -> None:
         self.logger = utils.get_logger(__name__, migration_version=migration_version)
         self.migration_version = migration_version
         self._client = None
+        self._threads = threads
+        self._quiet = quiet
 
         self.source = infrastructure.repository_db
 
@@ -468,7 +473,7 @@ class NomadCOEMigration:
 
     def _packages(
             self, source_upload_path: str,
-            create: bool = False) -> Tuple[Iterable[Package], str]:
+            create: bool = False) -> Tuple[Any, str]:
         """
         Creates a iterator over packages for the given upload path. Packages are
         taken from the :class:`Package` index.
@@ -478,7 +483,7 @@ class NomadCOEMigration:
             create: If True, will index packages if they not exist.
 
         Returns:
-            A tuple with the package iterable and the source_upload_id (last path segment)
+            A tuple with the package query and the source_upload_id (last path segment)
         """
 
         source_upload_id = os.path.basename(source_upload_path)
@@ -529,7 +534,8 @@ class NomadCOEMigration:
         self.logger.info('set pid prefix', pid_prefix=prefix)
         self.client.admin.exec_pidprefix_command(payload=dict(prefix=prefix)).response()
 
-    def migrate(self, upload_path, create_packages: bool = False, local: bool = False) -> utils.POPO:
+    def migrate(
+            self, *args, create_packages: bool = True, local: bool = False) -> utils.POPO:
         """
         Migrate the given uploads.
 
@@ -551,34 +557,86 @@ class NomadCOEMigration:
                 Will skip with errors otherwise.
             local: Instead of streaming an upload, create a local file and use local_path on the upload.
 
-        Returns: Yields a dictionary with status and statistics for each given upload.
+        Returns: Dictionary with statistics on the migration.
         """
-        # get the packages
-        packages, source_upload_id = self._packages(upload_path, create=create_packages)
-        logger = self.logger.bind(source_upload_id=source_upload_id)
 
-        report = Report()
-        for package in packages:
-            if package.migration_version is not None and package.migration_version >= self.migration_version:
-                logger.info('package already migrated', package_id=package.package_id)
-                report.add(Report(**package.report))
-                report.skipped_packages += 1
-                continue
+        cv = threading.Condition()
+        overall_report = Report()
+        upload_reports: Dict[str, Report] = {}
+        threads = []
 
-            report.add(self.migrate_package(package))
+        def migrate_package(package: Package, of_packages: int):
+            logger = self.logger.bind(package_id=package.package_id, source_upload_id=package.upload_id)
+            try:
+                package_report = self.migrate_package(package, local=local)
+            except Exception as e:
+                logger.error(
+                    'unexpected exception while migrating packages', exc_info=e)
 
-        total_source_calcs = SourceCalc.objects(upload=source_upload_id).count()
-        if total_source_calcs != report.total_source_calcs:
-            self.logger.warning(
-                'upload packages miss source calcs',
-                package_source_calcs=report.total_source_calcs,
-                upload_source_calcs=total_source_calcs)
+            with cv:
+                try:
+                    overall_report.add(package_report)
 
-            report.missing_calcs += total_source_calcs - report.total_source_calcs
-            report.total_source_calcs = total_source_calcs
+                    upload_report = upload_reports[package.upload_id]
+                    upload_report.add(package_report)
 
-        self.logger.info('migrated upload', upload_path=upload_path, **report)
-        return report
+                    if upload_report.total_packages == of_packages:
+                        missing_calcs = SourceCalc.objects(
+                            upload=package.upload_id, migration_version__ne=self.migration_version).count()
+                        total_source_calcs = SourceCalc.objects(upload=package.upload_id).count()
+
+                        overall_report.missing_calcs -= upload_report.missing_calcs
+                        overall_report.missing_calcs += missing_calcs
+                        overall_report.total_source_calcs -= upload_report.total_source_calcs
+                        overall_report.total_source_calcs += total_source_calcs
+
+                        upload_report.missing_calcs = missing_calcs
+                        upload_report.total_source_calcs = total_source_calcs
+
+                        logger.info('migrated upload', **upload_report)
+
+                    if not self._quiet:
+                        print(
+                            'packages: %d, source calcs: %d, migrated: %d, failed: %d, missing: %d' % (
+                                overall_report.total_packages, overall_report.total_source_calcs,
+                                overall_report.migrated_calcs, overall_report.failed_calcs,
+                                overall_report.missing_calcs))
+                except Exception as e:
+                    logger.error('unexpected exception while migrating packages', exc_info=e)
+
+                self._threads += 1
+                cv.notify()
+
+        for arg in args:
+            package_query, source_upload_id = self._packages(arg, create=create_packages)
+            number_of_packages = package_query.count()
+            for package in package_query:
+                with cv:
+                    if source_upload_id not in upload_reports:
+                        upload_reports[source_upload_id] = Report()
+
+                    if package.migration_version is not None and package.migration_version >= self.migration_version:
+                        self.logger.info(
+                            'package already migrated, skip it',
+                            package_id=package.package_id, source_upload_id=package.upload_id)
+                        upload_report = upload_reports[package.upload_id]
+                        upload_report.add(package.report)
+                        upload_report.skipped_packages += 1
+                        overall_report.add(package.report)
+                        overall_report.skipped_packages += 1
+
+                        continue
+
+                    cv.wait_for(lambda: self._threads > 0)
+                    self._threads -= 1
+                    thread = threading.Thread(target=lambda: migrate_package(package, number_of_packages))
+                    threads.append(thread)
+                    thread.start()
+
+        for thread in threads:
+            thread.join()
+
+        return overall_report
 
     def nomad(self, operation: str, *args, **kwargs) -> Any:
         """

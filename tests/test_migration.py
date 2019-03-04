@@ -82,7 +82,7 @@ def target_repo(postgres):
 @pytest.fixture(scope='function')
 def migration(source_repo, target_repo):
     Package.objects().delete()  # the mongo fixture drops the db, but we still get old results, probably mongoengine caching
-    migration = NomadCOEMigration()
+    migration = NomadCOEMigration(quiet=True)
     yield migration
 
 

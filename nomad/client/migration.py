@@ -15,9 +15,8 @@
 import click
 import time
 import datetime
-from ppworkflows import Workflow, GeneratorTask, StatusTask, SimpleTask
 
-from nomad import config, infrastructure, utils
+from nomad import config, infrastructure
 from nomad.migration import NomadCOEMigration
 
 from .main import cli
@@ -100,32 +99,8 @@ def pid_prefix(prefix: int):
 @click.option('--migration-version', default=0, type=int, help='The version number, only packages with lower or no number will be migrated.')
 def upload(paths: list, create_packages, local: bool, parallel: int, migration_version: int):
 
-    def producer():
-        for path in paths:
-            yield path
+    infrastructure.setup_logging()
+    infrastructure.setup_mongo()
 
-    def work(task):
-        infrastructure.setup_logging()
-        infrastructure.setup_mongo()
-
-        logger = utils.get_logger(__name__)
-        migration = NomadCOEMigration(migration_version=migration_version)
-
-        while True:
-            path = task.get_one()
-            report = migration.migrate(path, create_packages=create_packages, local=local)
-            logger.info('migrated upload with result', upload_path=path, **report)
-
-            task.put([
-                ('uploads: {:5d}', 1),
-                ('migrated_calcs: {:7d}', report.migrated_calcs),
-                ('failed_calcs: {:7d}', report.failed_calcs),
-                ('calcs_with_diffs: {:7d}', report.calcs_with_diffs),
-                ('new_calcs: {:7d}', report.new_calcs),
-                ('missing_calcs: {:7d}', report.missing_calcs)])
-
-    workflow = Workflow()
-    workflow.add_task(GeneratorTask(producer), outputs=["paths"])
-    workflow.add_task(SimpleTask(work), input="paths", outputs=["sums"], runner_count=parallel)
-    workflow.add_task(StatusTask(), input="sums")
-    workflow.run()
+    migration = NomadCOEMigration(migration_version=migration_version, threads=parallel)
+    migration.migrate(paths)
