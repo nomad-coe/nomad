@@ -61,7 +61,6 @@ import os
 import shutil
 from zipfile import ZipFile, BadZipFile, is_zipfile
 import tarfile
-from bagit import make_bag
 import hashlib
 import io
 import gzip
@@ -474,66 +473,51 @@ class StagingUploadFiles(UploadFiles):
         with open(self._frozen_file.os_path, 'wt') as f:
             f.write('frozen')
 
-        # create tmp dirs for restricted and public raw data
-        restricted_dir = self.join_dir('.restricted', create=False)
-        public_dir = self.join_dir('.public', create=True)
+        packed_dir = self.join_dir('.packed', create=True)
 
-        # copy raw -> .restricted
-        shutil.copytree(self._raw_dir.os_path, restricted_dir.os_path)
-        self.logger.debug('copied raw data')
+        def create_zipfile(kind: str, prefix: str, ext: str) -> ZipFile:
+            file = packed_dir.join_file('%s-%s.%s.zip' % (kind, prefix, ext))
+            return ZipFile(file.os_path, mode='w')
 
-        # We do a trick to deal with multiple mainfiles sharing the same aux files while
-        # having different restriction, we first move all aux files to public (including
-        # potentially restricted mainfiles) and then we only move the restricted mainfiles
-        # back.
-        # move public aux files .restricted -> .public
+        # In prior versions we used bagit on raw files. There was not much purpose for
+        # it, so it was removed. Check 0.3.x for the implementation
+
+        # zip raw files
+        raw_public_zip = create_zipfile('raw', 'public', 'plain')
+        raw_restricted_zip = create_zipfile('raw', 'restricted', 'plain')
+
+        # 1. add all public raw files
+        # 1.1 collect all public mainfiles and aux files
+        public_files: Dict[str, str] = {}
         for calc in self.metadata:
             if not calc.get('with_embargo', False):
                 mainfile = calc['mainfile']
                 assert mainfile is not None
                 for filepath in self.calc_files(mainfile):
-                    source = restricted_dir.join_file(filepath)
-                    # file might have already been moved due to related calcs among aux files
-                    if source.exists():
-                        os.rename(source.os_path, public_dir.join_file(filepath).os_path)
-        # move restricted mainfiles back .public -> .restricted
+                    public_files[filepath] = None
+        # 1.2 remove the non public mainfiles that have been added as auxfiles of public mainfiles
         for calc in self.metadata:
             if calc.get('with_embargo', False):
                 mainfile = calc['mainfile']
                 assert mainfile is not None
-                source = public_dir.join_file(mainfile)
-                # file might not have been moved since all mainfiles among aux files were restricted
-                if source.exists():
-                    os.rename(source.os_path, restricted_dir.join_file(mainfile).os_path)
-        self.logger.debug('moved public data')
+                if mainfile in public_files:
+                    del(public_files[mainfile])
+        # 1.3 zip all remaining public
+        for filepath in public_files.keys():
+            raw_public_zip.write(self._raw_dir.join_file(filepath).os_path, filepath)
 
-        # create bags
-        make_bag(restricted_dir.os_path, bag_info=bagit_metadata, checksums=['sha512'])
-        make_bag(public_dir.os_path, bag_info=bagit_metadata, checksums=['sha512'])
-        self.logger.debug('created raw file bags')
+        # 2. everything else becomes restricted
+        for filepath in self.raw_file_manifest():
+            if filepath not in public_files:
+                raw_restricted_zip.write(self._raw_dir.join_file(filepath).os_path, filepath)
 
-        # zip bags
-        def zip_dir(zip_filepath, path):
-            root_len = len(path)
-            with ZipFile(zip_filepath, 'w') as zf:
-                for root, _, files in os.walk(path):
-                    for file in files:
-                        filepath = os.path.join(root, file)
-                        zf.write(filepath, filepath[root_len:])
-
-        packed_dir = self.join_dir('.packed', create=True)
-
-        zip_dir(packed_dir.join_file('raw-restricted.bagit.zip').os_path, restricted_dir.os_path)
-        zip_dir(packed_dir.join_file('raw-public.bagit.zip').os_path, public_dir.os_path)
-        self.logger.debug('zipped bags')
+        raw_restricted_zip.close()
+        raw_public_zip.close()
+        self.logger.debug('zipped raw files')
 
         # zip archives
-        def create_zipfile(prefix: str) -> ZipFile:
-            file = packed_dir.join_file('archive-%s.%s.zip' % (prefix, self._archive_ext))
-            return ZipFile(file.os_path, mode='w')
-
-        archive_public_zip = create_zipfile('public')
-        archive_restricted_zip = create_zipfile('restricted')
+        archive_public_zip = create_zipfile('archive', 'public', self._archive_ext)
+        archive_restricted_zip = create_zipfile('archive', 'restricted', self._archive_ext)
 
         for calc in self.metadata:
             archive_zip = archive_restricted_zip if calc.get('with_embargo', False) else archive_public_zip
@@ -712,18 +696,16 @@ class PublicUploadFiles(UploadFiles):
         raise KeyError()
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
-        return self._file('raw', 'bagit', 'data/' + file_path, *args, *kwargs)
+        return self._file('raw', 'plain', file_path, *args, *kwargs)
 
     def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
         for access in ['public', 'restricted']:
             try:
-                zip_file = self.join_file('raw-%s.bagit.zip' % access)
+                zip_file = self.join_file('raw-%s.plain.zip' % access)
                 with ZipFile(zip_file.os_path) as zf:
-                    for full_path in zf.namelist():
-                        if full_path.startswith('data/'):
-                            path = full_path[5:]  # remove data/
-                            if path_prefix is None or path.startswith(path_prefix):
-                                yield path
+                    for path in zf.namelist():
+                        if path_prefix is None or path.startswith(path_prefix):
+                            yield path
             except FileNotFoundError:
                 pass
 
