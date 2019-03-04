@@ -294,11 +294,7 @@ parsers = [
         # r'\*{32} Grid \*{32}Simulation Box:' since it was so far down in the file.
     )
 ]
-<<<<<<< HEAD
 
-
-=======
->>>>>>> 04728a259b25a898a44adae27cf2871d83eca714
 """ Instanciation and constructor based config of all parsers. """
 
 parser_dict = {parser.name: parser for parser in parsers}  # type: ignore
