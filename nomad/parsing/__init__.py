@@ -295,7 +295,6 @@ parsers = [
 ]
 
 
-
 """ Instanciation and constructor based config of all parsers. """
 
 parser_dict = {parser.name: parser for parser in parsers}  # type: ignore
