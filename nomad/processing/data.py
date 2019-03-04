@@ -24,15 +24,16 @@ calculations, and files
     :members:
 """
 
-from typing import List, Any, ContextManager, Tuple, Generator
+from typing import List, Any, ContextManager, Tuple, Generator, Dict
 from mongoengine import StringField, DateTimeField, DictField
 import logging
 from structlog import wrap_logger
 from contextlib import contextmanager
+import os.path
 
 from nomad import utils, coe_repo, config, infrastructure, search
 from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles
-from nomad.processing.base import Proc, Chord, process, task, PENDING, SUCCESS, FAILURE
+from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parser_dict, match_parser
 from nomad.normalizing import normalizers
 from nomad.datamodel import UploadWithMetadata, CalcWithMetadata
@@ -59,9 +60,11 @@ class Calc(Proc):
     mainfile = StringField()
     parser = StringField()
 
+    queue = 'calcs'
+
     meta: Any = {
-        'indices': [
-            'upload_id', 'mainfile', 'code', 'parser', 'tasks_status'
+        'indexes': [
+            'upload_id', 'mainfile', 'parser', 'tasks_status'
         ]
     }
 
@@ -141,8 +144,13 @@ class Calc(Proc):
             except Exception as e:
                 logger.error('could not close calculation proc log', exc_info=e)
 
-            # inform parent proc about completion
-            self.upload.completed_child()
+    def on_process_complete(self, process_name):
+        # the save might be necessary to correctly read the join condition from the db
+        self.save()
+        # in case of error, the process_name might be unknown
+        if process_name == 'process_calc' or process_name is None:
+            self.upload.reload()
+            self.upload.check_join()
 
     @task
     def parsing(self):
@@ -151,8 +159,14 @@ class Calc(Proc):
         parser = parser_dict[self.parser]
 
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
-            self._parser_backend = parser.run(
-                self.upload_files.raw_file_object(self.mainfile).os_path, logger=logger)
+            try:
+                self._parser_backend = parser.run(
+                    self.upload_files.raw_file_object(self.mainfile).os_path, logger=logger)
+            except Exception as e:
+                self.fail(
+                    'parser failed with exception', level=logging.ERROR,
+                    exc_info=e, error=str(e), **context)
+                return
 
         self._parser_backend.openNonOverlappingSection('section_calculation_info')
         self._parser_backend.addValue('upload_id', self.upload_id)
@@ -165,7 +179,7 @@ class Calc(Proc):
             logger.error(self._parser_backend.status[1])
             error = self._parser_backend.status[1]
             self._parser_backend.addValue('parse_status', 'ParseFailure')
-            self.fail(error, level=logging.DEBUG, **context)
+            self.fail(error, level=logging.INFO, **context)
         else:
             self._parser_backend.addValue('parse_status', 'ParseSuccess')
 
@@ -215,13 +229,19 @@ class Calc(Proc):
             with utils.timer(
                     logger, 'normalizer executed', input_size=self.mainfile_file.size):
                 with self.use_parser_backend(normalizer_name) as backend:
-                    normalizer(backend).normalize(logger=logger)
+                    try:
+                        normalizer(backend).normalize(logger=logger)
+                    except Exception as e:
+                        self.fail(
+                            'normalizer failed with exception', level=logging.ERROR,
+                            exc_info=e, error=str(e), **context)
+                        self._parser_backend.status = ['ParseFailure', str(e)]
 
             failed = self._parser_backend.status[0] != 'ParseSuccess'
             if failed:
                 logger.error(self._parser_backend.status[1])
                 error = self._parser_backend.status[1]
-                self.fail(error, level=logging.WARNING, **context)
+                self.fail(error, level=logging.WARNING, error=error, **context)
                 break
             else:
                 logger.debug(
@@ -261,16 +281,8 @@ class Calc(Proc):
 
                 log_data.update(log_size=self.upload_files.archive_log_file_object(self.calc_id).size)
 
-    def to_calc_with_metadata(self) -> CalcWithMetadata:
-        upload_files = UploadFiles.get(self.upload_id, is_authorized=lambda: True)
-        if self.upload_files is None:
-            raise KeyError
 
-        _data = upload_files.metadata.get(self.calc_id)
-        return CalcWithMetadata(**_data)
-
-
-class Upload(Chord):
+class Upload(Proc):
     """
     Represents uploads in the databases. Provides persistence access to the files storage,
     and processing state.
@@ -292,6 +304,8 @@ class Upload(Chord):
     metadata = DictField(default=None)
     upload_time = DateTimeField()
     user_id = StringField(required=True)
+
+    queue = 'uploads'
 
     meta: Any = {
         'indexes': [
@@ -318,7 +332,7 @@ class Upload(Chord):
 
     def get_logger(self, **kwargs):
         logger = super().get_logger()
-        logger = logger.bind(upload_id=self.upload_id, **kwargs)
+        logger = logger.bind(upload_id=self.upload_id, upload_name=self.name, **kwargs)
         return logger
 
     @classmethod
@@ -359,7 +373,7 @@ class Upload(Chord):
             with utils.timer(
                     logger, 'upload deleted from index', step='delete',
                     upload_size=self.upload_files.size):
-                search.Entry.delete_upload(self.upload_id)
+                search.delete_upload(self.upload_id)
 
             with utils.timer(
                     logger, 'staged upload deleted', step='delete',
@@ -378,6 +392,7 @@ class Upload(Chord):
         processing state db.
         """
         logger = self.get_logger()
+        logger.info('started to publish', step='publish')
 
         with utils.lnr(logger, 'publish failed'):
             upload_with_metadata = self.to_upload_with_metadata()
@@ -385,24 +400,41 @@ class Upload(Chord):
             with utils.timer(
                     logger, 'upload added to repository', step='publish',
                     upload_size=self.upload_files.size):
-                coe_repo.Upload.add(upload_with_metadata)
+                upload_transaction_complete = coe_repo.Upload.publish(upload_with_metadata)
 
-            with utils.timer(
-                    logger, 'staged upload files packed', step='publish',
-                    upload_size=self.upload_files.size):
-                self.upload_files.pack()
+            try:
+                with utils.timer(
+                        logger, 'staged upload files packed', step='publish',
+                        upload_size=self.upload_files.size):
+                    coe_upload = coe_repo.Upload.from_upload_id(upload_with_metadata.upload_id)
+                    if coe_upload is not None:
+                        for coe_calc in coe_upload.calcs:
+                            calc_metadata = coe_calc.to_calc_with_metadata()
+                            calc_metadata.published = True
+                            self.upload_files.metadata.update(
+                                calc_id=calc_metadata.calc_id, updates=calc_metadata.to_dict())
+                        logger.info('metadata updated after publish to coe repo', step='publish')
 
-            with utils.timer(
-                    logger, 'index updated', step='publish',
-                    upload_size=self.upload_files.size):
-                search.Entry.publish_upload(upload_with_metadata)
+                    self.upload_files.pack()
 
-            with utils.timer(
-                    logger, 'staged upload deleted', step='publish',
-                    upload_size=self.upload_files.size):
-                self.upload_files.delete()
-                self.delete()
+                with utils.timer(
+                        logger, 'index updated', step='publish',
+                        upload_size=self.upload_files.size):
+                    coe_upload = coe_repo.Upload.from_upload_id(upload_with_metadata.upload_id)
+                    if coe_upload is not None:
+                        search.publish(
+                            [coe_calc.to_calc_with_metadata() for coe_calc in coe_upload.calcs])
 
+                with utils.timer(
+                        logger, 'staged upload deleted', step='publish',
+                        upload_size=self.upload_files.size):
+                    self.upload_files.delete()
+                    self.delete()
+            except Exception as e:
+                upload_transaction_complete(False)
+                raise e
+
+        upload_transaction_complete(True)
         return True  # do not save the process status on the delete upload
 
     @process
@@ -449,10 +481,19 @@ class Upload(Chord):
         Returns:
             Tuples of mainfile, filename, and parsers
         """
+        directories_with_match: Dict[str, str] = dict()
         for filename in self.upload_files.raw_file_manifest():
             try:
                 parser = match_parser(filename, self.upload_files)
                 if parser is not None:
+                    directory = os.path.dirname(filename)
+                    if directory in directories_with_match:
+                        # TODO this might give us the chance to store directory based relationship
+                        # between calcs for the future?
+                        pass
+                    else:
+                        directories_with_match[directory] = filename
+
                     yield filename, parser
             except Exception as e:
                 self.get_logger().error(
@@ -467,11 +508,9 @@ class Upload(Chord):
         """
         logger = self.get_logger()
 
-        # TODO: deal with multiple possible parser specs
         with utils.timer(
                 logger, 'upload extracted', step='matching',
                 upload_size=self.upload_files.size):
-            total_calcs = 0
             for filename, parser in self.match_mainfiles():
                 calc = Calc.create(
                     calc_id=self.upload_files.calc_id(filename),
@@ -479,16 +518,27 @@ class Upload(Chord):
                     upload_id=self.upload_id)
 
                 calc.process_calc()
-                total_calcs += 1
 
-        # have to save the total_calcs information for chord management
-        self.spwaned_childred(total_calcs)
+    def on_process_complete(self, process_name):
+        if process_name == 'process_upload':
+            self.check_join()
+
+    def check_join(self):
+        total_calcs = self.total_calcs
+        processed_calcs = self.processed_calcs
+
+        self.get_logger().debug('check join', processed_calcs=processed_calcs, total_calcs=total_calcs)
+        if not self.process_running and processed_calcs >= total_calcs:
+            self.get_logger().debug('join')
+            self.join()
 
     def join(self):
         self.cleanup()
 
     @task
     def cleanup(self):
+        search.refresh()
+
         # send email about process finish
         user = self.uploader
         name = '%s %s' % (user.first_name, user.last_name)
@@ -531,25 +581,47 @@ class Upload(Chord):
         return Calc.objects(upload_id=self.upload_id, tasks_status=SUCCESS)
 
     def to_upload_with_metadata(self) -> UploadWithMetadata:
-        calc_metadata = dict()
-        user_upload_time = None
+        # TODO remove the very verbose metadata after debugging and optimizing
+
+        logger = self.get_logger(step='publish')
+
+        # prepare user metadata per upload and per calc
+        logger.info('prepare user metadata per upload and per calc')
+        calc_metadatas: Dict[str, Any] = dict()
+        upload_metadata: Dict[str, Any] = dict()
+
         if self.metadata is not None:
-            user_upload_time = self.metadata.get('_upload_time')
+            upload_metadata.update(self.metadata)
+            if 'calculations' in upload_metadata:
+                del(upload_metadata['calculations'])
+
             for calc in self.metadata.get('calculations', []):
-                calc_metadata[calc['mainfile']] = calc
+                calc_metadatas[calc['mainfile']] = calc
 
-        def apply_metadata(calc):
-            metadata = calc_metadata.get(calc.mainfile, self.metadata)
-            if metadata is not None:
-                calc.apply_user_metadata(metadata)
-            return calc
-
+        user_upload_time = upload_metadata.get('_upload_time', None)
         result = UploadWithMetadata(
             upload_id=self.upload_id,
             uploader=utils.POPO(id=int(self.user_id)),
             upload_time=self.upload_time if user_upload_time is None else user_upload_time)
 
-        result.calcs = [
-            apply_metadata(calc.to_calc_with_metadata()) for calc in self.calcs]
+        logger.info('read calc data from files and apply user metadata')
+        upload_files = UploadFiles.get(self.upload_id, is_authorized=lambda: True)
+        if self.upload_files is None:
+            raise KeyError
+
+        def apply_metadata(calc):
+            calc_data = upload_files.metadata.get(calc.calc_id)
+            calc_with_metadata = CalcWithMetadata(**calc_data)
+
+            calc_metadata = dict(calc_metadatas.get(calc.mainfile, {}))
+            calc_metadata.update(upload_metadata)
+            calc_with_metadata.apply_user_metadata(calc_metadata)
+
+            logger.debug('prepared calc with metadata', calc_id=calc_with_metadata.calc_id)
+            return calc_with_metadata
+
+        result.calcs = [apply_metadata(calc) for calc in self.calcs]
+
+        logger.info('prepared user metadata')
 
         return result

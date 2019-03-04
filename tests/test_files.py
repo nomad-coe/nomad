@@ -18,6 +18,9 @@ import os.path
 import shutil
 import pytest
 import json
+import itertools
+import zipfile
+import re
 
 from nomad import config
 from nomad.files import DirectoryObject, PathObject
@@ -29,6 +32,7 @@ from nomad.files import StagingUploadFiles, PublicUploadFiles, UploadFiles, Rest
 # example_file uses an artificial parser for faster test execution, can also be
 # changed to examples_vasp.zip for using vasp parser
 example_file = 'tests/data/proc/examples_template.zip'
+example_directory = 'tests/data/proc/examples_template'
 example_file_contents = [
     'examples_template/template.json',
     'examples_template/1.aux',
@@ -85,6 +89,16 @@ class TestObjects:
         assert os.path.exists(directory.os_path) == create
         assert os.path.exists(os.path.dirname(file.os_path)) == create
 
+    def test_delete_prefix(self, test_bucket: str):
+        dir_1 = DirectoryObject(test_bucket, 'test_directory1', create=True, prefix=True)
+        dir_2 = DirectoryObject(test_bucket, 'test_directory2', create=True, prefix=True)
+        dir_1.delete()
+        dir_2.delete()
+
+        prefix = os.path.dirname(dir_2.os_path)
+        assert len(os.path.basename(prefix)) == 3
+        assert not os.path.exists(prefix)
+
 
 example_calc: Dict[str, Any] = {
     'calc_id': '0',
@@ -92,6 +106,52 @@ example_calc: Dict[str, Any] = {
     'data': 'value'
 }
 example_calc_id = example_calc['calc_id']
+
+
+def generate_example_calc(calc_id: int, with_mainfile_prefix: bool, subdirectory: str = None, **kwargs):
+    example_calc = dict(calc_id=str(calc_id), data='value')
+    if with_mainfile_prefix:
+        mainfile = '%d.template.json' % calc_id
+    else:
+        mainfile = 'template.json'
+
+    if subdirectory is not None:
+        mainfile = os.path.join(subdirectory, mainfile)
+
+    example_calc['mainfile'] = mainfile
+    example_calc.update(**kwargs)
+
+    example_file = os.path.join(config.fs.tmp, 'example.zip')
+    with zipfile.ZipFile(example_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for filepath in example_file_contents:
+            filename = os.path.basename(filepath)
+            arcname = filename
+            if arcname == 'template.json' and with_mainfile_prefix:
+                arcname = '%d.template.json' % calc_id
+
+            if subdirectory is not None:
+                arcname = os.path.join(subdirectory, arcname)
+            zf.write(os.path.join(example_directory, filename), arcname)
+
+    return example_calc, example_file
+
+
+def assert_example_files(names, with_mainfile: bool = True):
+    # TODO its complicated
+    # To compare the files with the example_file_contents list we have to assume
+    # - different subdirectories
+    # - mainfile prefixes
+    # - mainfiles among aux files
+    is_multi = any(re.search(r'[0-9].t', name) for name in names)
+
+    def normalized_file(name):
+        name = re.sub(r'[0-9].t', 't', name)
+        name = re.sub(r'^[0-9]\/', '', name)
+        return name
+
+    source = sorted(set(normalized_file(name) for name in names if not name.endswith('template.json') or with_mainfile or not is_multi))
+    target = sorted(name for name in example_file_contents if not name.endswith('template.json') or with_mainfile)
+    assert source == target
 
 
 def assert_example_calc(calc):
@@ -208,19 +268,21 @@ class UploadFilesContract(UploadFilesFixtures):
         assert UploadFiles.get(empty_test_upload.upload_id).__class__ == empty_test_upload.__class__
 
     def test_rawfile(self, test_upload):
-        try:
-            with test_upload.raw_file(example_file_mainfile) as f:
-                assert len(f.read()) > 0
-            if not test_upload._is_authorized():
-                assert not test_upload.metadata.get(example_calc_id).get('restricted', False)
-        except Restricted:
-            assert not test_upload._is_authorized()
-            assert test_upload.metadata.get(example_calc_id).get('restricted', False)
+        assert len(test_upload.metadata) > 0
+        for calc in test_upload.metadata:
+            try:
+                with test_upload.raw_file(calc['mainfile']) as f:
+                    assert len(f.read()) > 0
+                if not test_upload._is_authorized():
+                    assert not test_upload.metadata.get(calc['calc_id']).get('with_embargo', False)
+            except Restricted:
+                assert not test_upload._is_authorized()
+                assert test_upload.metadata.get(calc['calc_id']).get('with_embargo', False)
 
     @pytest.mark.parametrize('prefix', [None, 'examples'])
     def test_raw_file_manifest(self, test_upload: StagingUploadFiles, prefix: str):
         raw_files = list(test_upload.raw_file_manifest(path_prefix=prefix))
-        assert sorted(file for file in raw_files if file.startswith('examples')) == sorted(example_file_contents)
+        assert_example_files(raw_files)
 
     @pytest.mark.parametrize('test_logs', [True, False])
     def test_archive(self, test_upload, test_logs: bool):
@@ -233,10 +295,10 @@ class UploadFilesContract(UploadFilesFixtures):
                 assert json.load(f) == 'archive'
 
             if not test_upload._is_authorized():
-                assert not test_upload.metadata.get(example_calc_id).get('restricted', False)
+                assert not test_upload.metadata.get(example_calc_id).get('with_embargo', False)
         except Restricted:
             assert not test_upload._is_authorized()
-            assert test_upload.metadata.get(example_calc_id).get('restricted', False)
+            assert test_upload.metadata.get(example_calc_id).get('with_embargo', False)
 
     def test_metadata(self, test_upload):
         assert_example_calc(test_upload.metadata.get(example_calc_id))
@@ -250,37 +312,36 @@ def create_staging_upload(upload_id: str, calc_specs: str) -> StagingUploadFiles
     Arguments:
         upload_id: The id that should be given to this test upload.
         calc_specs: A string that determines the properties of the given upload.
-            With letters determining example calcs being public `p` or restricted `p`.
+            With letters determining example calcs being public `p` or restricted `r`.
             The calcs will be copies of calcs in `example_file`.
             First calc is at top level, following calcs will be put under 1/, 2/, etc.
+            All calcs with capital `P`/`R` will be put in the same directory under multi/.
     """
     upload = StagingUploadFiles(upload_id, create=True, is_authorized=lambda: True)
 
     prefix = 0
     for calc_spec in calc_specs:
-        upload.add_rawfiles(example_file, prefix=None if prefix == 0 else str(prefix))
-        calc_id = str(int(example_calc_id) + prefix)
+        is_multi = calc_spec in ['R', 'P']
+        calc_spec = calc_spec.lower()
+
+        if is_multi or prefix == 0:
+            directory = 'examples_template'
+        else:
+            directory = os.path.join(str(prefix), 'examples_template')
+
+        calc, upload_file = generate_example_calc(
+            prefix, with_mainfile_prefix=is_multi, subdirectory=directory, with_embargo=calc_spec == 'r')
+        calc_id = calc['calc_id']
+
+        upload.add_rawfiles(upload_file)
+
         with upload.archive_file(calc_id, 'wt') as f:
             f.write('"archive"')
         with upload.archive_log_file(calc_id, 'wt') as f:
             f.write('archive')
-        calc = dict(**example_calc)
-        calc['calc_id'] = calc_id
-        if prefix > 0:
-            calc['mainfile'] = os.path.join(str(prefix), calc['mainfile'])
-        if calc_spec == 'r':
-            calc['restricted'] = True
-        elif calc_spec == 'p':
-            calc['restricted'] = False
+
         upload.metadata.insert(calc)
         prefix += 1
-
-    if calc_specs.startswith('P'):
-        public_only = True
-        calc_specs = calc_specs[1:]
-    else:
-        public_only = False
-    upload._is_authorized = lambda: not public_only
 
     assert len(upload.metadata) == len(calc_specs)
     return upload
@@ -288,7 +349,7 @@ def create_staging_upload(upload_id: str, calc_specs: str) -> StagingUploadFiles
 
 class TestStagingUploadFiles(UploadFilesContract):
 
-    @pytest.fixture(scope='function', params=['r', 'rr', 'pr', 'rp', 'p', 'pp'])
+    @pytest.fixture(scope='function', params=['r', 'rr', 'pr', 'rp', 'p', 'pp', 'RP', 'RR', 'PP'])
     def test_upload(self, request, test_upload_id: str) -> StagingUploadFiles:
         return create_staging_upload(test_upload_id, calc_specs=request.param)
 
@@ -321,11 +382,7 @@ class TestStagingUploadFiles(UploadFilesContract):
         for calc in test_upload.metadata:
             mainfile = calc['mainfile']
             calc_files = test_upload.calc_files(mainfile, with_mainfile=with_mainfile)
-            assert len(list(calc_files)) == len(example_file_contents) - 0 if with_mainfile else 1
-            if with_mainfile:
-                for one, two in zip(calc_files, [mainfile] + sorted(example_file_contents[1:])):
-                    assert one.endswith(two)
-                    assert one.startswith(mainfile[:3])
+            assert_example_files(calc_files, with_mainfile=with_mainfile)
 
     def test_delete(self, test_upload: StagingUploadFiles):
         test_upload.delete()
@@ -368,15 +425,10 @@ class TestPublicUploadFiles(UploadFilesContract):
     def empty_test_upload(self, test_upload_id: str) -> Generator[UploadFiles, None, None]:
         yield create_public_upload(test_upload_id, calc_specs='', is_authorized=lambda: True)
 
-    @pytest.fixture(scope='function', params=['r', 'rr', 'pr', 'rp', 'p', 'pp', 'Ppr', 'Prp'])
+    @pytest.fixture(scope='function', params=itertools.product(
+        ['r', 'rr', 'pr', 'rp', 'p', 'pp', 'RP', 'RR', 'PP'], [True, False]))
     def test_upload(self, request, test_upload_id: str) -> PublicUploadFiles:
-        calc_specs = request.param
-        if calc_specs.startswith('P'):
-            public_only = True
-            calc_specs = calc_specs[1:]
-        else:
-            public_only = False
-
+        calc_specs, protected = request.param
         staging_upload = create_staging_upload(test_upload_id, calc_specs=calc_specs)
         staging_upload.pack()
-        return PublicUploadFiles(test_upload_id, is_authorized=lambda: not public_only)
+        return PublicUploadFiles(test_upload_id, is_authorized=lambda: not protected)

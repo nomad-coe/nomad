@@ -42,7 +42,7 @@ This module also provides functionality to add parsed calculation data to the db
     :undoc-members:
 """
 
-from typing import Type
+from typing import Type, Callable
 import datetime
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
@@ -50,7 +50,7 @@ from sqlalchemy.orm import relationship
 from nomad import utils, infrastructure
 from nomad.datamodel import UploadWithMetadata
 
-from .calc import Calc
+from .calc import Calc, PublishContext
 from .base import Base
 from .user import User
 
@@ -87,7 +87,7 @@ class Upload(Base):  # type: ignore
     created = Column(DateTime)
 
     user = relationship('User')
-    calcs = relationship('Calc')
+    calcs = relationship('Calc', lazy='subquery')
 
     @staticmethod
     def from_upload_id(upload_id: str) -> 'Upload':
@@ -109,7 +109,7 @@ class Upload(Base):  # type: ignore
         return self.created
 
     @staticmethod
-    def add(upload: UploadWithMetadata) -> int:
+    def publish(upload: UploadWithMetadata) -> Callable[[bool], int]:
         """
         Add the upload to the NOMAD-coe repository db. It creates an
         uploads-entry, respective calculation and property entries. Everything in one
@@ -117,6 +117,10 @@ class Upload(Base):  # type: ignore
 
         Arguments:
             upload: The upload to add, including calculations with respective IDs, UMD, CMD.
+
+        Returns: A callback that allows to commit or rollback the publish transaction.
+            The callback returns the ``coe_upload_id`` or -1, if rolledback or no upload
+            was created, due to no calcs in the upload.
         """
         assert upload.uploader is not None
 
@@ -125,8 +129,7 @@ class Upload(Base):  # type: ignore
 
         logger = utils.get_logger(__name__, upload_id=upload.upload_id)
 
-        result = None
-
+        has_calcs = False
         try:
             # create upload
             coe_upload = Upload(
@@ -137,7 +140,9 @@ class Upload(Base):  # type: ignore
             repo_db.add(coe_upload)
 
             # add calculations and metadata
-            has_calcs = False
+            # reuse the cache for the whole transaction to profit from repeating
+            # star schema entries for users, ds, topics, etc.
+            context = PublishContext(upload_id=upload.upload_id)
             for calc in upload.calcs:
                 has_calcs = True
                 coe_calc = Calc(
@@ -145,18 +150,29 @@ class Upload(Base):  # type: ignore
                     checksum=calc.calc_id,
                     upload=coe_upload)
                 repo_db.add(coe_calc)
-                coe_calc.apply_calc_with_metadata(calc)
+
+                coe_calc.apply_calc_with_metadata(calc, context=context)
+                logger.debug('added calculation, not yet committed', calc_id=coe_calc.calc_id)
 
             # commit
-            if has_calcs:
-                # empty upload case
-                repo_db.commit()
-                result = coe_upload.coe_upload_id
-            else:
-                repo_db.rollback()
+            def complete(commit: bool) -> int:
+                if commit:
+                    if has_calcs:
+                        # empty upload case
+                        repo_db.commit()
+                        return coe_upload.coe_upload_id
+                    else:
+                        repo_db.rollback()
+                        return -1
+
+                    logger.info('added upload')
+                else:
+                    repo_db.rollback()
+                    logger.info('rolled upload back')
+                    return -1
+
+            return complete
         except Exception as e:
             logger.error('Unexpected exception.', exc_info=e)
             repo_db.rollback()
             raise e
-
-        return result

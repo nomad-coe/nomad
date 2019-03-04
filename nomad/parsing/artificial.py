@@ -24,6 +24,8 @@ from ase.data import chemical_symbols
 import numpy
 import sys
 import time
+import os
+import signal
 
 from nomadcore.local_meta_info import loadJsonFile, InfoKindEl
 import nomad_meta_info
@@ -120,6 +122,7 @@ class ChaosParser(ArtificalParser):
     - deadlock
     - consume_ram
     - exception
+    - segfault
     - random
     """
     name = 'parsers/chaos'
@@ -139,7 +142,7 @@ class ChaosParser(ArtificalParser):
             chaos = None
 
         if chaos == 'random':
-            chaos = random.choice(['exit', 'deadlock', 'consume_ram', 'exception'])
+            chaos = random.choice(['exit', 'deadlock', 'consume_ram', 'exception', 'segfault'])
 
         if chaos == 'exit':
             sys.exit(1)
@@ -147,9 +150,16 @@ class ChaosParser(ArtificalParser):
             while True:
                 time.sleep(1)
         elif chaos == 'consume_ram':
-            pass
+            data = []
+            i = 0
+            while True:
+                data.append('a' * 10**6)
+                i += 1
+                logger.info('ate %d mb' % i)
         elif chaos == 'exception':
             raise Exception('Some chaos happened, muhuha...')
+        elif chaos == 'segfault':
+            os.kill(os.getpid(), signal.SIGSEGV)
 
         raise Exception('Unknown chaos')
 

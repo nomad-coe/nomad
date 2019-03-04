@@ -72,7 +72,9 @@ linting:
     - python -m pylint --load-plugins=pylint_mongoengine nomad tests
     - python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests
   except:
-    - /^dev-.*$/
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
+      - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
 
 tests:
   stage: test
@@ -104,7 +106,9 @@ tests:
     - cd /app
     - python -m pytest --cov=nomad -sv tests
   except:
-    - /^dev-.*$/
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
+      - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
 
 # does currently not work, current GitLab CI runner does not network services with each other
 # integration-tests:
@@ -207,9 +211,12 @@ deploy:
     - export FILES_PATH="/scratch/nomad-fair/fs/nomad_v${NOMAD_VERSION}"
     - if [ ${DEPLOYS}  -eq 0 ]; then
         helm install --name=${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE}
+          --set api.disableReset="false"
           --set proxy.nodePort="300${NUMERIC_VERSION//./}"
           --set proxy.external.path=${EXTERNAL_PATH}
           --set dbname=${DBNAME}
+          --set worker.replicas=1
+          --set worker.memrequest=32
           --set volumes.files=${FILES_PATH};
       else
         helm upgrade ${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE} --recreate-pods;

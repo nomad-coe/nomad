@@ -1,0 +1,110 @@
+{
+    "section_run": [
+      {
+        "_name": "section_run",
+        "_gIndex": 0,
+        "program_name": "VASP",
+        "program_version": "4.6.35  3Apr08 complex  parallel LinuxIFC",
+        "program_basis_set_type": "plane waves",
+        "section_method": [
+          {
+            "_name": "section_method",
+            "_gIndex": 0,
+
+            "electronic_structure_method": "DFT",
+            "section_XC_functionals": [
+              {
+                "_name": "section_XC_functionals",
+                "_gIndex": 0,
+                "XC_functional_name": "GGA_X_PBE"
+              }
+            ]
+          }
+        ],
+        "section_system": [
+          {
+            "_name": "section_system",
+            "_gIndex": 0,
+            "simulation_cell": [
+              [
+                5.76372622e-10,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                5.76372622e-10,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                4.0755698899999997e-10
+              ]
+            ],
+            "configuration_periodic_dimensions": [
+              true,
+              true,
+              true
+            ],
+            "atom_positions": [
+              [
+                2.88186311e-10,
+                0.0,
+                2.0377849449999999e-10
+              ],
+              [
+                0.0,
+                2.88186311e-10,
+                2.0377849449999999e-10
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                2.88186311e-10,
+                2.88186311e-10,
+                0.0
+              ]
+            ],
+            "atom_labels": [
+              "Br",
+              "K",
+              "Si",
+              "Si"
+            ]
+          }
+        ],
+        "section_single_configuration_calculation": [
+          {
+            "_name": "section_single_configuration_calculation",
+            "_gIndex": 0,
+            "single_configuration_calculation_to_system_ref": 0,
+            "single_configuration_to_calculation_method_ref": 0,
+            "energy_free": -1.5936767191492225e-18,
+            "energy_total": -1.5935696296699573e-18,
+            "energy_total_T0": -3.2126683561907e-22
+          }
+        ],
+        "section_sampling_method": [
+          {
+            "_name": "section_sampling_method",
+            "_gIndex": 0,
+            "sampling_method": "geometry_optimization"
+          }
+        ],
+        "section_frame_sequence": [
+          {
+            "_name": "section_frame_sequence",
+            "_gIndex": 0,
+            "frame_sequence_to_sampling_ref": 0,
+            "frame_sequence_local_frames_ref": [
+              0
+            ]
+          }
+        ]
+      }
+    ]
+  }

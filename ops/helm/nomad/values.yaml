@@ -27,6 +27,8 @@ images:
 ## Everthing concerning the nomad api
 api:
   replicas: 1
+  ## Number of gunicorn worker. Recommendation is 2xnum_cores+1
+  worker: 21
   port: 8000
   console_loglevel: INFO
   logstash_loglevel: INFO
@@ -39,7 +41,10 @@ api:
 
 ## Everthing concerning the nomad worker
 worker:
-  replicas: 2
+  replicas: 1
+  # request and limit in GB
+  memrequest: 32
+  memlimit: 320
   console_loglevel: INFO
   logstash_loglevel: INFO
 
@@ -107,3 +112,4 @@ mail:
 ## Everything concerning the data that is used by the service
 volumes:
   files: /scratch/nomad-fair/fs
+  nomad: /nomad

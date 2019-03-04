@@ -30,10 +30,10 @@ FilesConfig = namedtuple(
     'FilesConfig', ['uploads_bucket', 'raw_bucket', 'archive_bucket', 'staging_bucket', 'public_bucket'])
 """ API independent configuration for the object storage. """
 
-CeleryConfig = namedtuple('Celery', ['broker_url'])
+CeleryConfig = namedtuple('Celery', ['broker_url', 'max_memory', 'timeout'])
 """ Used to configure the RabbitMQ for celery. """
 
-FSConfig = namedtuple('FSConfig', ['tmp', 'objects'])
+FSConfig = namedtuple('FSConfig', ['tmp', 'objects', 'nomad_tmp'])
 """ Used to configure file stystem access. """
 
 RepositoryDBConfig = namedtuple('RepositoryDBConfig', ['host', 'port', 'dbname', 'user', 'password'])
@@ -53,6 +53,9 @@ NomadServicesConfig = namedtuple('NomadServicesConfig', ['api_host', 'api_port',
 
 MailConfig = namedtuple('MailConfig', ['host', 'port', 'user', 'password', 'from_address'])
 """ Used to configure how nomad can send email """
+
+NormalizeConfig = namedtuple('NormalizeConfig', ['all_systems'])
+""" Used to configure the normalizers """
 
 files = FilesConfig(
     uploads_bucket='uploads',
@@ -81,12 +84,15 @@ def get_loglevel_from_env(key, default_level=logging.INFO):
 
 
 celery = CeleryConfig(
-    broker_url=rabbit_url
+    broker_url=rabbit_url,
+    max_memory=int(os.environ.get('NOMAD_CELERY_MAXMEMORY', 64e6)),  # 64 GB
+    timeout=int(os.environ.get('NOMAD_CELERY_TIMEOUT', 3 * 3600))  # 3h
 )
 
 fs = FSConfig(
     tmp=os.environ.get('NOMAD_FILES_TMP_DIR', '.volumes/fs/tmp'),
-    objects=os.environ.get('NOMAD_FILES_OBJECTS_DIR', '.volumes/fs/objects')
+    objects=os.environ.get('NOMAD_FILES_OBJECTS_DIR', '.volumes/fs/objects'),
+    nomad_tmp=os.environ.get('NOMAD_FILES_NOMAD_TMP_DIR', '/nomad/tmp')
 )
 elastic = ElasticConfig(
     host=os.environ.get('NOMAD_ELASTIC_HOST', 'localhost'),
@@ -134,7 +140,16 @@ mail = MailConfig(
     password=os.environ.get('NOMAD_SMTP_PASSWORD', None),
     from_address=os.environ.get('NOMAD_MAIL_FROM', 'webmaster@nomad-coe.eu')
 )
+normalize = NormalizeConfig(
+    all_systems=False
+)
 
 console_log_level = get_loglevel_from_env('NOMAD_CONSOLE_LOGLEVEL', default_level=logging.WARNING)
 service = os.environ.get('NOMAD_SERVICE', 'unknown nomad service')
 release = os.environ.get('NOMAD_RELEASE', 'devel')
+
+auxfile_cutoff = 30
+"""
+Number of max auxfiles. More auxfiles means no auxfiles, but probably a directory of many
+mainfiles.
+"""

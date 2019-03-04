@@ -35,19 +35,33 @@ almost readonly (beside metadata) storage.
                       /archive-public.hdf5.zip
                       /archive-restricted.hdf5.zip
 
+There is an implicit relationship between files, based on them being in the same
+directory. Each directory with at least one *mainfile* is a *calculation directory*
+and all the files are *aux* files to that *mainfile*. This is independent of the
+respective files actually contributing data or not. A *calculation directory* might
+contain multiple *mainfile*. E.g., user simulated multiple states of the same system, have
+one calculation based on the other, etc. In this case the other *mainfile* is an *aux*
+file to the original *mainfile* and vice versa.
+
+Published files are kept in pairs of public and restricted files. Here the multiple *mainfiles*
+per directory provides a dilemma. If on *mainfile* is restricted, all its *aux* files
+should be restricted too. But if one of the *aux* files is actually a *mainfile* it
+might be published!
+
+There are multiple ways to solve this. Due to the rarity of the case, we take the
+most simple solution: if one file is public, all files are made public, execpt those
+being other mainfiles. Therefore, the aux files of a restricted calc might become public!
 """
 
 from abc import ABCMeta
 from typing import IO, Generator, Dict, Iterator, Iterable, Callable
-import ujson
+import json
 import os.path
 import os
 import shutil
 from zipfile import ZipFile, BadZipFile, is_zipfile
 import tarfile
-from bagit import make_bag
 import hashlib
-import base64
 import io
 import gzip
 
@@ -62,8 +76,11 @@ class PathObject:
         object_id: The object id (i.e. directory path)
         os_path: Override the "object storage" path with the given path.
         prefix: Add a 3-digit prefix directory, e.g. foo/test/ -> foo/tes/test
+        create_prefix: Create the prefix right away
     """
-    def __init__(self, bucket: str, object_id: str, os_path: str = None, prefix: bool = False) -> None:
+    def __init__(
+            self, bucket: str, object_id: str, os_path: str = None,
+            prefix: bool = False, create_prefix: bool = False) -> None:
         if os_path:
             self.os_path = os_path
         else:
@@ -76,8 +93,23 @@ class PathObject:
             segments.append(last)
             self.os_path = os.path.join(*segments)
 
+            if create_prefix:
+                os.makedirs(os.path.dirname(self.os_path), exist_ok=True)
+
     def delete(self) -> None:
+        basename = os.path.basename(self.os_path)
+        parent_directory = os.path.dirname(self.os_path)
+        parent_name = os.path.basename(parent_directory)
+
         shutil.rmtree(self.os_path)
+
+        if len(parent_name) == 3 and basename.startswith(parent_name):
+            try:
+                if not os.listdir(parent_directory):
+                    os.rmdir(parent_directory)
+            except Exception as e:
+                utils.get_logger(__name__).error(
+                    'could not remove empty prefix dir', directory=parent_directory, exc_info=e)
 
     def exists(self) -> bool:
         return os.path.exists(self.os_path)
@@ -162,7 +194,7 @@ class StagingMetadata(Metadata):
         path = self._dir.join_file('%s.json' % id)
         assert not path.exists()
         with open(path.os_path, 'wt') as f:
-            ujson.dump(calc, f)
+            json.dump(calc, f, sort_keys=True, default=str)
 
     def update(self, calc_id: str, updates: dict) -> dict:
         """ Updating a calc, using calc_id as key and running dict update with the given data. """
@@ -170,13 +202,13 @@ class StagingMetadata(Metadata):
         metadata.update(updates)
         path = self._dir.join_file('%s.json' % calc_id)
         with open(path.os_path, 'wt') as f:
-            ujson.dump(metadata, f)
+            json.dump(metadata, f, sort_keys=True, default=str)
         return metadata
 
     def get(self, calc_id: str) -> dict:
         try:
             with open(self._dir.join_file('%s.json' % calc_id).os_path, 'rt') as f:
-                return ujson.load(f)
+                return json.load(f)
         except FileNotFoundError:
             raise KeyError()
 
@@ -184,7 +216,7 @@ class StagingMetadata(Metadata):
         for root, _, files in os.walk(self._dir.os_path):
             for file in files:
                 with open(os.path.join(root, file), 'rt') as f:
-                    yield ujson.load(f)
+                    yield json.load(f)
 
     def __len__(self) -> int:
         return len(os.listdir(self._dir.os_path))
@@ -206,14 +238,14 @@ class PublicMetadata(Metadata):
     def data(self):
         if self._data is None:
             with gzip.open(self._db_file, 'rt') as f:
-                self._data = ujson.load(f)
+                self._data = json.load(f)
         return self._data
 
     def _create(self, calcs: Iterable[dict]) -> None:
         assert not os.path.exists(self._db_file) and self._data is None
         self._data = {data['calc_id']: data for data in calcs}
         with gzip.open(self._db_file, 'wt') as f:
-            ujson.dump(self._data, f)
+            json.dump(self._data, f, sort_keys=True, default=str)
 
     def insert(self, calc: dict) -> None:
         assert self.data is not None, "Metadata is not open."
@@ -434,56 +466,61 @@ class StagingUploadFiles(UploadFiles):
         Arguments:
             bagit_metadata: Additional data added to the bagit metadata.
         """
+        self.logger.debug('started to pack upload')
+
         # freeze the upload
         assert not self.is_frozen, "Cannot pack an upload that is packed, or packing."
         with open(self._frozen_file.os_path, 'wt') as f:
             f.write('frozen')
 
-        # create tmp dirs for restricted and public raw data
-        restricted_dir = self.join_dir('.restricted', create=False)
-        public_dir = self.join_dir('.public', create=True)
-
-        # copy raw -> .restricted
-        shutil.copytree(self._raw_dir.os_path, restricted_dir.os_path)
-
-        # move public data .restricted -> .public
-        for calc in self.metadata:
-            if not calc.get('restricted', True):
-                mainfile: str = calc['mainfile']
-                assert mainfile is not None
-                for filepath in self.calc_files(mainfile):
-                    os.rename(
-                        restricted_dir.join_file(filepath).os_path,
-                        public_dir.join_file(filepath).os_path)
-
-        # create bags
-        make_bag(restricted_dir.os_path, bag_info=bagit_metadata, checksums=['sha512'])
-        make_bag(public_dir.os_path, bag_info=bagit_metadata, checksums=['sha512'])
-
-        # zip bags
-        def zip_dir(zip_filepath, path):
-            root_len = len(path)
-            with ZipFile(zip_filepath, 'w') as zf:
-                for root, _, files in os.walk(path):
-                    for file in files:
-                        filepath = os.path.join(root, file)
-                        zf.write(filepath, filepath[root_len:])
-
         packed_dir = self.join_dir('.packed', create=True)
 
-        zip_dir(packed_dir.join_file('raw-restricted.bagit.zip').os_path, restricted_dir.os_path)
-        zip_dir(packed_dir.join_file('raw-public.bagit.zip').os_path, public_dir.os_path)
-
-        # zip archives
-        def create_zipfile(prefix: str) -> ZipFile:
-            file = packed_dir.join_file('archive-%s.%s.zip' % (prefix, self._archive_ext))
+        def create_zipfile(kind: str, prefix: str, ext: str) -> ZipFile:
+            file = packed_dir.join_file('%s-%s.%s.zip' % (kind, prefix, ext))
             return ZipFile(file.os_path, mode='w')
 
-        archive_public_zip = create_zipfile('public')
-        archive_restricted_zip = create_zipfile('restricted')
+        # In prior versions we used bagit on raw files. There was not much purpose for
+        # it, so it was removed. Check 0.3.x for the implementation
+
+        # zip raw files
+        raw_public_zip = create_zipfile('raw', 'public', 'plain')
+        raw_restricted_zip = create_zipfile('raw', 'restricted', 'plain')
+
+        # 1. add all public raw files
+        # 1.1 collect all public mainfiles and aux files
+        public_files: Dict[str, str] = {}
+        for calc in self.metadata:
+            if not calc.get('with_embargo', False):
+                mainfile = calc['mainfile']
+                assert mainfile is not None
+                for filepath in self.calc_files(mainfile):
+                    public_files[filepath] = None
+        # 1.2 remove the non public mainfiles that have been added as auxfiles of public mainfiles
+        for calc in self.metadata:
+            if calc.get('with_embargo', False):
+                mainfile = calc['mainfile']
+                assert mainfile is not None
+                if mainfile in public_files:
+                    del(public_files[mainfile])
+        # 1.3 zip all remaining public
+        for filepath in public_files.keys():
+            raw_public_zip.write(self._raw_dir.join_file(filepath).os_path, filepath)
+
+        # 2. everything else becomes restricted
+        for filepath in self.raw_file_manifest():
+            if filepath not in public_files:
+                raw_restricted_zip.write(self._raw_dir.join_file(filepath).os_path, filepath)
+
+        raw_restricted_zip.close()
+        raw_public_zip.close()
+        self.logger.debug('zipped raw files')
+
+        # zip archives
+        archive_public_zip = create_zipfile('archive', 'public', self._archive_ext)
+        archive_restricted_zip = create_zipfile('archive', 'restricted', self._archive_ext)
 
         for calc in self.metadata:
-            archive_zip = archive_restricted_zip if calc.get('restricted', False) else archive_public_zip
+            archive_zip = archive_restricted_zip if calc.get('with_embargo', False) else archive_public_zip
 
             archive_filename = '%s.%s' % (calc['calc_id'], self._archive_ext)
             archive_zip.write(self._archive_dir.join_file(archive_filename).os_path, archive_filename)
@@ -495,15 +532,20 @@ class StagingUploadFiles(UploadFiles):
 
         archive_restricted_zip.close()
         archive_public_zip.close()
+        self.logger.debug('zipped archives')
 
         # pack metadata
         packed_metadata = PublicMetadata(packed_dir.os_path)
         packed_metadata._create(self._metadata)
+        self.logger.debug('packed metadata')
 
         # move to public bucket
-        target_dir = DirectoryObject(config.files.public_bucket, self.upload_id, create=False, prefix=True)
+        target_dir = DirectoryObject(
+            config.files.public_bucket, self.upload_id, create=False, prefix=True,
+            create_prefix=True)
         assert not target_dir.exists()
-        shutil.move(packed_dir.os_path, target_dir.os_path)
+        os.rename(packed_dir.os_path, target_dir.os_path)
+        self.logger.debug('moved to public bucket')
 
     def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
         upload_prefix_len = len(self._raw_dir.os_path) + 1
@@ -529,19 +571,21 @@ class StagingUploadFiles(UploadFiles):
         mainfile_basename = os.path.basename(mainfile)
         calc_dir = os.path.dirname(mainfile_object.os_path)
         calc_relative_dir = calc_dir[len(self._raw_dir.os_path) + 1:]
+
+        ls = os.listdir(calc_dir)
+        if len(ls) > config.auxfile_cutoff:
+            # If there are two many of them, its probably just a directory with lots of
+            # calculations. In this case it does not make any sense to provide thousands of
+            # aux files.
+            return [mainfile] if with_mainfile else []
+
         aux_files = sorted(
-            os.path.join(calc_relative_dir, path) for path in os.listdir(calc_dir)
+            os.path.join(calc_relative_dir, path) for path in ls
             if os.path.isfile(os.path.join(calc_dir, path)) and path != mainfile_basename)
         if with_mainfile:
             return [mainfile] + aux_files
         else:
             return aux_files
-
-    def _websave_hash(self, hash: bytes, length: int = 0) -> str:
-        if length > 0:
-            return base64.b64encode(hash, altchars=b'-_')[0:28].decode('utf-8')
-        else:
-            return base64.b64encode(hash, altchars=b'-_')[0:-2].decode('utf-8')
 
     def calc_id(self, mainfile: str) -> str:
         """
@@ -553,10 +597,7 @@ class StagingUploadFiles(UploadFiles):
         Raises:
             KeyError: If the mainfile does not exist.
         """
-        hash = hashlib.sha512()
-        hash.update(self.upload_id.encode('utf-8'))
-        hash.update(mainfile.encode('utf-8'))
-        return self._websave_hash(hash.digest(), utils.default_hash_len)
+        return utils.hash(self.upload_id, mainfile)
 
     def calc_hash(self, mainfile: str) -> str:
         """
@@ -574,7 +615,7 @@ class StagingUploadFiles(UploadFiles):
                 for data in iter(lambda: f.read(65536), b''):
                     hash.update(data)
 
-        return self._websave_hash(hash.digest(), utils.default_hash_len)
+        return utils.make_websave(hash)
 
 
 class ArchiveBasedStagingUploadFiles(StagingUploadFiles):
@@ -593,7 +634,8 @@ class ArchiveBasedStagingUploadFiles(StagingUploadFiles):
             *args, **kwargs) -> None:
         super().__init__(upload_id, *args, **kwargs)
         self._local_path = local_path
-        self._upload_file = self.join_file(file_name)
+        if self._local_path is None:
+            self._upload_file = self.join_file(file_name)
 
     @property
     def upload_file_os_path(self):
@@ -654,15 +696,14 @@ class PublicUploadFiles(UploadFiles):
         raise KeyError()
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
-        return self._file('raw', 'bagit', 'data/' + file_path, *args, *kwargs)
+        return self._file('raw', 'plain', file_path, *args, *kwargs)
 
     def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
         for access in ['public', 'restricted']:
             try:
-                zip_file = self.join_file('raw-%s.bagit.zip' % access)
+                zip_file = self.join_file('raw-%s.plain.zip' % access)
                 with ZipFile(zip_file.os_path) as zf:
-                    for full_path in zf.namelist():
-                        path = full_path[5:]  # remove data/
+                    for path in zf.namelist():
                         if path_prefix is None or path.startswith(path_prefix):
                             yield path
             except FileNotFoundError:
@@ -680,4 +721,4 @@ class PublicUploadFiles(UploadFiles):
         on current restricted information in the metadata. Should be used after updating
         the restrictions on calculations. This is potentially a long running operation.
         """
-        pass
+        raise NotImplementedError()

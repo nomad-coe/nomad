@@ -25,6 +25,18 @@ def test_timer(caplog):
     assert json.loads(caplog.record_tuples[0][2])['event'] == 'test measure'
 
 
+def test_sleep_timer():
+    sleep = utils.SleepTimeBackoff(start_time=0.1)
+    start = time.time()
+
+    for _ in range(0, 3):
+        sleep()
+
+    duration = time.time() - start
+    assert duration > 0.7
+    assert duration < 1
+
+
 def test_sanitize_logevent():
     assert utils.sanitize_logevent('numbers 2 and 45.2') == 'numbers X and X'
     assert utils.sanitize_logevent('list [2, 3.3, 10] and (273.9, .92)') == 'list L and L'

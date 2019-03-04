@@ -112,15 +112,18 @@ class CalcWithMetadata():
         self.system: str = None
         self.crystal_system: str = None
         self.spacegroup: str = None
+        self.spacegroup_symbol: str = None
         self.code_name: str = None
         self.code_version: str = None
+
+        self.backend = None
 
         self.update(**kwargs)
 
     def to_dict(self):
         return {
             key: value for key, value in self.__dict__.items()
-            if value is not None
+            if value is not None and key not in ['backend']
         }
 
     def update(self, **kwargs):

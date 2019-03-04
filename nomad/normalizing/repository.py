@@ -52,8 +52,8 @@ class RepositoryNormalizer(Normalizer):
         else:
             return match.group(0)
 
-    def get_optional_value(self, key, section):
-        # Section input param is section_system, section_symmetry, etc...
+    def get_optional_value(self, key, section, unavailable_value=None):
+        # Section is section_system, section_symmetry, etc...
         val = None  # Initialize to None, so we can compare section values.
         diff_flag = False  # Flag to store whether vals differ between sections.
         # Loop over the sections with the name section in the backend.
@@ -83,7 +83,7 @@ class RepositoryNormalizer(Normalizer):
         if val is None:
             self.logger.warning(
                 'The values for %s where not available in any %s' % (key, section))
-            return unavailable_label
+            return unavailable_value if unavailable_value is not None else unavailable_label
         else:
             return val
 
@@ -117,7 +117,10 @@ class RepositoryNormalizer(Normalizer):
             self.get_optional_value('crystal_system', 'section_symmetry'))
         b.addValue(
             'repository_spacegroup_nr',
-            self.get_optional_value('space_group_number', 'section_symmetry'))
+            self.get_optional_value('space_group_number', 'section_symmetry', 0))
+        b.addValue(
+            'repository_spacegroup_symbol',
+            self.get_optional_value('international_short_symbol', 'section_symmetry', 0))
         b.addValue(
             'repository_basis_set_type',
             self.get_optional_value('program_basis_set_type', 'section_run'))

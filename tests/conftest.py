@@ -58,23 +58,24 @@ def nomad_logging():
 @pytest.fixture(scope='session', autouse=True)
 def raw_files_infra(monkeysession):
     monkeysession.setattr('nomad.config.fs', config.FSConfig(
-        tmp='.volumes/test_fs/tmp', objects='.volumes/test_fs/objects'))
+        tmp='.volumes/test_fs/tmp', objects='.volumes/test_fs/objects', nomad_tmp='.volumes/test_fs/nomad_tmp'))
 
 
 @pytest.fixture(scope='function')
 def raw_files(raw_files_infra):
     """ Provides cleaned out files directory structure per function. Clears files after test. """
+    directories = [config.fs.objects, config.fs.tmp]
+    for directory in directories:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
     try:
         yield
     finally:
-        try:
-            shutil.rmtree(config.fs.objects)
-        except FileNotFoundError:
-            pass
-        try:
-            shutil.rmtree(config.fs.tmp)
-        except FileNotFoundError:
-            pass
+        for directory in directories:
+            try:
+                shutil.rmtree(directory)
+            except FileNotFoundError:
+                pass
 
 
 @pytest.fixture(scope='function')
@@ -94,6 +95,13 @@ def celery_includes():
 def celery_config():
     return {
         'broker_url': config.celery.broker_url
+    }
+
+
+@pytest.fixture(scope='session')
+def celery_worker_parameters():
+    return {
+        'queues': ('celery', 'uploads', 'calcs')
     }
 
 
@@ -131,9 +139,9 @@ def celery_inspect(purged_app):
 # It might be necessary to make this a function scoped fixture, if old tasks keep
 # 'bleeding' into successive tests.
 @pytest.fixture(scope='function')
-def worker(celery_session_worker, celery_inspect):
+def worker(mongo, celery_session_worker, celery_inspect):
     """ Provides a clean worker (no old tasks) per function. Waits for all tasks to be completed. """
-    pass
+    yield
 
     # wait until there no more active tasks, to leave clean worker and queues for the next
     # test run.
@@ -250,7 +258,7 @@ def postgres_infra(monkeysession):
 
 
 @pytest.fixture(scope='function')
-def proc_infra(postgres, elastic, mongo, worker):
+def proc_infra(worker, postgres, elastic, mongo, raw_files):
     """ Combines all fixtures necessary for processing (postgres, elastic, worker, files, mongo) """
     return dict(
         postgres=postgres,
@@ -269,8 +277,8 @@ def postgres(postgres_infra):
     """ Provides a clean coe repository db per function. Clears db before test. """
     # do not wonder, this will not setback the id counters
     postgres_infra.execute('TRUNCATE uploads CASCADE;')
-    postgres_infra.execute('DELETE FROM sessions WHERE user_id >= 4;')
-    postgres_infra.execute('DELETE FROM users WHERE user_id >= 4;')
+    postgres_infra.execute('DELETE FROM sessions WHERE user_id >= 3;')
+    postgres_infra.execute('DELETE FROM users WHERE user_id >= 3;')
     yield postgres_infra
 
 

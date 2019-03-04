@@ -17,10 +17,12 @@ import os
 import os.path
 from bravado.client import SwaggerClient
 import json
+import glob
+from io import StringIO
 
 from nomad import infrastructure, coe_repo
 
-from nomad.migration import NomadCOEMigration, SourceCalc
+from nomad.migration import NomadCOEMigration, SourceCalc, Package
 from nomad.infrastructure import repository_db_connection
 
 from tests.conftest import create_postgres_infra, create_auth_headers
@@ -69,22 +71,38 @@ def source_repo(monkeysession, postgres_infra):
 @pytest.fixture(scope='function')
 def target_repo(postgres):
     with create_postgres_infra(readonly=False, exists=False, dbname=test_target_db_name) as db:
-        db.execute('TRUNCATE users CASCADE;')
+        db.execute('DELETE FROM sessions WHERE user_id >= 3;')
+        db.execute('DELETE FROM users WHERE user_id >= 3;')
+        db.execute('DELETE FROM affiliations WHERE a_id >= 1;')
+        assert db.query(coe_repo.User).filter_by(email='admin').first() is not None
         yield db
         db.execute('TRUNCATE uploads CASCADE;')
 
 
 @pytest.fixture(scope='function')
 def migration(source_repo, target_repo):
-    migration = NomadCOEMigration(sites=['tests/data/migration'])
+    Package.objects().delete()  # the mongo fixture drops the db, but we still get old results, probably mongoengine caching
+    migration = NomadCOEMigration()
     yield migration
 
 
-def test_copy_users(migration, target_repo):
-    migration.copy_users(target_repo)
-    assert target_repo.query(coe_repo.User).count() == 3
-    assert target_repo.query(coe_repo.User).filter_by(user_id=1).first().email == 'one'
-    assert target_repo.query(coe_repo.User).filter_by(user_id=2).first().email == 'two'
+@pytest.fixture(scope='function')
+def source_package(mongo, migration):
+    migration.package(*glob.glob('tests/data/migration/*'))
+
+
+@pytest.mark.parametrize('n_packages, restriction, upload', [
+    (1, 36, 'baseline'), (2, 0, 'too_big'), (1, 24, 'restriction')])
+def test_package(mongo, migration, monkeypatch, n_packages, restriction, upload):
+    monkeypatch.setattr('nomad.migration.max_package_size', 3)
+    migration.package(*glob.glob(os.path.join('tests/data/migration/packaging', upload)))
+    packages = Package.objects()
+    for package in packages:
+        assert len(package.filenames) > 0
+        assert package.size > 0
+        assert package.restricted == restriction
+
+    assert packages.count() == n_packages
 
 
 def perform_index(migration, has_indexed, with_metadata, **kwargs):
@@ -102,7 +120,7 @@ def perform_index(migration, has_indexed, with_metadata, **kwargs):
     assert test_calc is not None
 
     if with_metadata:
-        assert test_calc.metadata['uploader']['id'] == 1
+        assert test_calc.metadata['uploader']['id'] == 3
         assert test_calc.metadata['comment'] == 'label1'
 
 
@@ -118,7 +136,7 @@ def test_update_index(migration, mongo, with_metadata: bool):
 
 
 @pytest.fixture(scope='function')
-def migrate_infra(migration, target_repo, proc_infra, client, monkeysession):
+def migrate_infra(migration, target_repo, proc_infra, client, monkeypatch):
     """
     Parameters to test
     - missing upload, extracted, archive, broken archive
@@ -135,9 +153,6 @@ def migrate_infra(migration, target_repo, proc_infra, client, monkeysession):
     # source repo is the infrastructure repo
     indexed = list(migration.index(drop=True, with_metadata=True))
     assert len(indexed) == 2
-    # source repo is the infrastructure repo
-    migration.copy_users(target_repo)
-    migration.set_new_pid_prefix(target_repo)
 
     # target repo is the infrastructure repo
     def create_client():
@@ -145,45 +160,70 @@ def migrate_infra(migration, target_repo, proc_infra, client, monkeysession):
         http_client = FlaskTestHttpClient(client, headers=create_auth_headers(admin))
         return SwaggerClient.from_url('/swagger.json', http_client=http_client)
 
-    old_repo = infrastructure.repository_db
-    monkeysession.setattr('nomad.infrastructure.repository_db', target_repo)
-    monkeysession.setattr('nomad.client.create_client', create_client)
+    def stream_upload_with_client(client, upload_f, name=None):
+        return client.uploads.upload(file=upload_f, name=name).response().result
+
+    monkeypatch.setattr('nomad.infrastructure.repository_db', target_repo)
+    monkeypatch.setattr('nomad.client.create_client', create_client)
+    monkeypatch.setattr('nomad.client.stream_upload_with_client', stream_upload_with_client)
+
+    # source repo is the still the original infrastructure repo
+    migration.copy_users()
 
     yield migration
 
-    monkeysession.setattr('nomad.infrastructure.repository_db', old_repo)
+
+def test_copy_users(migrate_infra, target_repo):
+    assert target_repo.query(coe_repo.User).filter_by(user_id=3).first().email == 'one'
+    assert target_repo.query(coe_repo.User).filter_by(user_id=4).first().email == 'two'
 
 
 mirgation_test_specs = [
-    ('baseline', dict(migrated=2, source=2)),
-    ('archive', dict(migrated=2, source=2)),
-    ('new_upload', dict(new=2)),
-    ('new_calc', dict(migrated=2, source=2, new=1)),
-    ('missing_calc', dict(migrated=1, source=2, missing=1)),
-    ('missmatch', dict(migrated=2, source=2, diffs=1)),
-    ('failed_calc', dict(migrated=1, source=2, diffs=0, missing=1, failed=1, errors=1)),
-    ('failed_upload', dict(migrated=0, source=2, missing=2, errors=1))
+    ('baseline', 'baseline', dict(migrated=2, source=2), {}),
+    ('local', 'baseline', dict(migrated=2, source=2), dict(local=True)),
+    # ('archive', dict(migrated=2, source=2)),
+    ('new_upload', 'new_upload', dict(new=2), {}),
+    ('new_calc', 'new_calc', dict(migrated=2, source=2, new=1), {}),
+    ('missing_calc', 'missing_calc', dict(migrated=1, source=2, missing=1), {}),
+    ('missmatch', 'missmatch', dict(migrated=2, source=2, diffs=1), {}),
+    ('failed_calc', 'failed_calc', dict(migrated=1, source=2, diffs=0, missing=1, failed=1), {}),
+    ('failed_upload', 'baseline', dict(migrated=0, source=2, missing=2, errors=1), {}),
+    ('failed_publish', 'baseline', dict(migrated=0, source=2, missing=2, failed=2, errors=1), {})
 ]
 
 
 @pytest.mark.filterwarnings("ignore:SAWarning")
-@pytest.mark.parametrize('test, assertions', mirgation_test_specs)
+@pytest.mark.parametrize('name, test_directory, assertions, kwargs', mirgation_test_specs)
 @pytest.mark.timeout(30)
-def test_migrate(migrate_infra, test, assertions, caplog):
-    uploads_path = os.path.join('tests', 'data', 'migration', test)
-    reports = list(migrate_infra.migrate(
-        *[os.path.join(uploads_path, dir) for dir in os.listdir(uploads_path)]))
+def test_migrate(migrate_infra, name, test_directory, assertions, kwargs, monkeypatch, caplog):
+    perform_migration_test(migrate_infra, name, test_directory, assertions, kwargs, monkeypatch, caplog)
 
-    assert len(reports) == 1
-    report = reports[0]
-    assert report['total_calcs'] == assertions.get('migrated', 0) + assertions.get('new', 0) + assertions.get('failed', 0)
+
+def perform_migration_test(migrate_infra, name, test_directory, assertions, kwargs, monkeypatch, caplog):
+    def with_error(*args, **kwargs):
+        return StringIO('hello, this is not a zip')
+
+    if name == 'failed_upload':
+        monkeypatch.setattr('nomad.migration.Package.open_package_upload_file', with_error)
+
+    if name == 'failed_publish':
+        monkeypatch.setattr('nomad.processing.data.Upload.to_upload_with_metadata', with_error)
+
+    upload_path = os.path.join('tests/data/migration', test_directory)
+    upload_path = os.path.join(upload_path, os.listdir(upload_path)[0])
+
+    pid_prefix = 10
+    migrate_infra.set_pid_prefix(pid_prefix)
+    report = migrate_infra.migrate(upload_path, create_packages=True, **kwargs)
+
+    assert report.total_calcs == assertions.get('migrated', 0) + assertions.get('new', 0) + assertions.get('failed', 0)
 
     # assert if new, diffing, migrated calcs where detected correctly
-    assert report['total_source_calcs'] == assertions.get('source', 0)
-    assert report['migrated_calcs'] == assertions.get('migrated', 0)
-    assert report['calcs_with_diffs'] == assertions.get('diffs', 0)
-    assert report['new_calcs'] == assertions.get('new', 0)
-    assert report['missing_calcs'] == assertions.get('missing', 0)
+    assert report.total_source_calcs == assertions.get('source', 0)
+    assert report.migrated_calcs == assertions.get('migrated', 0)
+    assert report.calcs_with_diffs == assertions.get('diffs', 0)
+    assert report.new_calcs == assertions.get('new', 0)
+    assert report.missing_calcs == assertions.get('missing', 0)
 
     # assert if migrated calcs have correct user metadata
     repo_db = infrastructure.repository_db
@@ -192,7 +232,7 @@ def test_migrate(migrate_infra, test, assertions, caplog):
         assert calc_1 is not None
         metadata = calc_1.to_calc_with_metadata()
         assert metadata.pid <= 2
-        assert metadata.uploader['id'] == 1
+        assert metadata.uploader['id'] == 3
         assert metadata.upload_time.isoformat() == '2019-01-01T12:00:00+00:00'
         assert len(metadata.datasets) == 1
         assert metadata.datasets[0]['id'] == 3
@@ -200,7 +240,7 @@ def test_migrate(migrate_infra, test, assertions, caplog):
         assert metadata.datasets[0]['doi']['value'] == 'internal_ref'
         assert metadata.comment == 'label1'
         assert len(metadata.coauthors) == 1
-        assert metadata.coauthors[0]['id'] == 2
+        assert metadata.coauthors[0]['id'] == 4
         assert len(metadata.references) == 1
         assert metadata.references[0]['value'] == 'external_ref'
 
@@ -209,11 +249,11 @@ def test_migrate(migrate_infra, test, assertions, caplog):
         assert calc_1 is not None
         metadata = calc_2.to_calc_with_metadata()
         assert len(metadata.shared_with) == 1
-        assert metadata.shared_with[0]['id'] == 1
+        assert metadata.shared_with[0]['id'] == 3
 
     # assert pid prefix of new calcs
     if assertions.get('new', 0) > 0:
-        assert repo_db.query(coe_repo.Calc).get(7000000) is not None
+        assert repo_db.query(coe_repo.Calc).get(pid_prefix) is not None
 
     errors = 0
     for record in caplog.get_records(when='call'):
@@ -223,3 +263,11 @@ def test_migrate(migrate_infra, test, assertions, caplog):
                 errors += 1
 
     assert errors == assertions.get('errors', 0)
+
+
+def test_skip_on_same_version(migrate_infra, monkeypatch, caplog):
+    assertions = dict(migrated=2, source=2)
+    perform_migration_test(migrate_infra, 'baseline', 'baseline', assertions, {}, monkeypatch, caplog)
+
+    assertions = dict(source=2)
+    perform_migration_test(migrate_infra, 'baseline', 'baseline', assertions, {}, monkeypatch, caplog)

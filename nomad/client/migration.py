@@ -15,8 +15,9 @@
 import click
 import time
 import datetime
+from ppworkflows import Workflow, GeneratorTask, StatusTask, SimpleTask
 
-from nomad import config, infrastructure
+from nomad import config, infrastructure, utils
 from nomad.migration import NomadCOEMigration
 
 from .main import cli
@@ -67,27 +68,64 @@ def index(drop, with_metadata, per_query):
     print('done')
 
 
+@migration.command(help='Add an upload folder to the package index.')
+@click.argument('upload-paths', nargs=-1)
+def package(upload_paths):
+    infrastructure.setup_logging()
+    infrastructure.setup_mongo()
+
+    migration = NomadCOEMigration()
+    migration.package(*upload_paths)
+
+
 @migration.command(help='Copy users from source into empty target db')
-@click.option('-h', '--host', default=config.repository_db.host, help='The migration repository target db host, default is "%s".' % config.repository_db.host)
-@click.option('-p', '--port', default=config.repository_db.port, help='The migration repository target db port, default is %d.' % config.repository_db.port)
-@click.option('-u', '--user', default=config.repository_db.user, help='The migration repository target db user, default is %s.' % config.repository_db.user)
-@click.option('-w', '--password', default=config.repository_db.password, help='The migration repository target db password.')
-@click.option('-db', '--dbname', default=config.repository_db.dbname, help='The migration repository target db name, default is %s.' % config.repository_db.dbname)
 def copy_users(**kwargs):
     _setup()
-    _, db = infrastructure.sqlalchemy_repository_db(readonly=False, **kwargs)
-    _migration.copy_users(db)
+    _migration.copy_users()
 
 
-@migration.command(help='Set the pid auto increment to the given prefix')
-@click.option('--prefix', default=7000000, help='The int to set the pid auto increment counter to')
-def prefix(prefix: int):
-    _setup()
-    _migration.set_new_pid_prefix(prefix)
+@migration.command(help='Set the repo db PID calc counter.')
+@click.argument('prefix', nargs=1, type=int, default=7000000)
+def pid_prefix(prefix: int):
+    infrastructure.setup_logging()
+    migration = NomadCOEMigration()
+    migration.set_pid_prefix(prefix=prefix)
 
 
 @migration.command(help='Upload the given upload locations. Uses the existing index to provide user metadata')
 @click.argument('paths', nargs=-1)
-def upload(paths: list):
-    _setup()
-    _migration.migrate(*paths)
+@click.option('--create-packages', help='Allow migration to create package entries on the fly.', is_flag=True)
+@click.option('--local', help='Create local upload files.', is_flag=True)
+@click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
+@click.option('--migration-version', default=0, type=int, help='The version number, only packages with lower or no number will be migrated.')
+def upload(paths: list, create_packages, local: bool, parallel: int, migration_version: int):
+
+    def producer():
+        for path in paths:
+            yield path
+
+    def work(task):
+        infrastructure.setup_logging()
+        infrastructure.setup_mongo()
+
+        logger = utils.get_logger(__name__)
+        migration = NomadCOEMigration(migration_version=migration_version)
+
+        while True:
+            path = task.get_one()
+            report = migration.migrate(path, create_packages=create_packages, local=local)
+            logger.info('migrated upload with result', upload_path=path, **report)
+
+            task.put([
+                ('uploads: {:5d}', 1),
+                ('migrated_calcs: {:7d}', report.migrated_calcs),
+                ('failed_calcs: {:7d}', report.failed_calcs),
+                ('calcs_with_diffs: {:7d}', report.calcs_with_diffs),
+                ('new_calcs: {:7d}', report.new_calcs),
+                ('missing_calcs: {:7d}', report.missing_calcs)])
+
+    workflow = Workflow()
+    workflow.add_task(GeneratorTask(producer), outputs=["paths"])
+    workflow.add_task(SimpleTask(work), input="paths", outputs=["sums"], runner_count=parallel)
+    workflow.add_task(StatusTask(), input="sums")
+    workflow.run()

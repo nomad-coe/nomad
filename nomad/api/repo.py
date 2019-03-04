@@ -22,7 +22,7 @@ from flask import request, g
 from elasticsearch_dsl import Q
 
 from nomad.files import UploadFiles, Restricted
-from nomad.search import Entry
+from nomad import search
 
 from .app import api
 from .auth import login_if_available, create_authorization_predicate
@@ -61,7 +61,12 @@ class RepoCalcResource(Resource):
 
 repo_calcs_model = api.model('RepoCalculations', {
     'pagination': fields.Nested(pagination_model),
-    'results': fields.List(fields.Raw)
+    'results': fields.List(fields.Raw, description=(
+        'A list of search results. Each result is a dict with quantitie names as key and '
+        'values as values')),
+    'aggregations': fields.Raw(description=(
+        'A dict with all aggregations. Each aggregation is dictionary with the amount as '
+        'value and quantity value as key.'))
 })
 
 repo_request_parser = pagination_request_parser.copy()
@@ -69,25 +74,39 @@ repo_request_parser.add_argument(
     'owner', type=str,
     help='Specify which calcs to return: ``all``, ``user``, ``staging``, default is ``all``')
 
+for search_quantity in search.search_quantities.keys():
+    _, _, description = search.search_quantities[search_quantity]
+    repo_request_parser.add_argument(search_quantity, type=str, help=description)
+
 
 @ns.route('/')
 class RepoCalcsResource(Resource):
-    @api.doc('get_calcs')
-    @api.response(400, 'Invalid requests, e.g. wrong owner type')
+    @api.doc('search')
+    @api.response(400, 'Invalid requests, e.g. wrong owner type or bad quantities')
     @api.expect(repo_request_parser, validate=True)
     @api.marshal_with(repo_calcs_model, skip_none=True, code=200, description='Metadata send')
     @login_if_available
     def get(self):
         """
-        Get *'all'* calculations in repository from, paginated.
+        Search for calculations in the repository from, paginated.
 
-        This is currently not implemented!
+        The ``owner`` parameter determines the overall entries to search through.
+        You can use the various quantities to search/filter for. For some of the
+        indexed quantities this endpoint returns aggregation information. This means
+        you will be given a list of all possible values and the number of entries
+        that have the certain value. You can also use these aggregations on an empty
+        search to determine the possible values.
         """
-        # return dict(pagination=dict(total=0, page=1, per_page=10), results=[]), 200
 
-        page = int(request.args.get('page', 1))
-        per_page = int(request.args.get('per_page', 10))
+        try:
+            page = int(request.args.get('page', 1))
+            per_page = int(request.args.get('per_page', 10))
+            order = int(request.args.get('order', -1))
+        except Exception:
+            abort(400, message='bad parameter types')
+
         owner = request.args.get('owner', 'all')
+        order_by = request.args.get('order_by', 'formula')
 
         try:
             assert page >= 1
@@ -95,30 +114,36 @@ class RepoCalcsResource(Resource):
         except AssertionError:
             abort(400, message='invalid pagination')
 
+        if order not in [-1, 1]:
+            abort(400, message='invalid pagination')
+
         if owner == 'all':
             if g.user is None:
                 q = Q('term', published=True)
             else:
-                q = Q('term', published=True) | Q('term', uploader__user_id=g.user.user_id)
+                q = Q('term', published=True) | Q('term', owners__user_id=g.user.user_id)
         elif owner == 'user':
             if g.user is None:
                 abort(401, message='Authentication required for owner value user.')
 
-            q = Q('term', uploader__user_id=g.user.user_id)
+            q = Q('term', owners__user_id=g.user.user_id)
         elif owner == 'staging':
             if g.user is None:
                 abort(401, message='Authentication required for owner value user.')
-            q = Q('term', published=False) & Q('term', uploader__user_id=g.user.user_id)
+            q = Q('term', published=False) & Q('term', owners__user_id=g.user.user_id)
         else:
             abort(400, message='Invalid owner value. Valid values are all|user|staging, default is all')
 
-        search = Entry.search().query(q)
-        search = search[(page - 1) * per_page: page * per_page]
-        return {
-            'pagination': {
-                'total': search.count(),
-                'page': page,
-                'per_page': per_page
-            },
-            'results': [hit.to_dict() for hit in search]
-        }, 200
+        data = dict(**request.args)
+        data.pop('owner', None)
+        data.update(per_page=per_page, page=page, order=order, order_by=order_by)
+
+        try:
+            total, results, aggregations = search.aggregate_search(q=q, **data)
+        except KeyError as e:
+            abort(400, str(e))
+
+        return dict(
+            pagination=dict(total=total, page=page, per_page=per_page),
+            results=results,
+            aggregations=aggregations), 200

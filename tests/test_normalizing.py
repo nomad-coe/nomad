@@ -53,7 +53,6 @@ def normalized_template_example(parsed_template_example) -> LocalBackend:
 
 def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
     run_normalize(parsed_template_example)
-    print(str(caplog.records))
 
 
 def assert_normalized(backend: LocalBackend):
@@ -76,11 +75,6 @@ def test_normalizer_faulty_matid(
         parsed_faulty_unknown_matid_example: LocalBackend, caplog):
     """ Runs normalizer on an example w/ bools for atom pos. Should force matid error."""
     run_normalize(parsed_faulty_unknown_matid_example)
-    unknown_class_error = (
-        'Matid classfication has given us an unexpected type')
 
-    wrong_class_for_no_sim_cell = (
-        'Matid classified more than 1D despite having no simulation_cell')
-
-    assert_log(caplog, 'ERROR', unknown_class_error)
-    assert_log(caplog, 'ERROR', wrong_class_for_no_sim_cell)
+    assert_log(caplog, 'ERROR', 'matid project system classification failed')
+    assert_log(caplog, 'ERROR', 'no lattice vectors but periodicity')

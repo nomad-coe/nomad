@@ -1,11 +1,8 @@
 import pytest
-from mongoengine import ReferenceField
-import time
 import json
 import random
-import time
 
-from nomad.processing.base import Proc, Chord, process, task, SUCCESS, FAILURE, RUNNING, PENDING
+from nomad.processing.base import Proc, process, task, SUCCESS, FAILURE, RUNNING, PENDING
 
 random.seed(0)
 
@@ -84,7 +81,7 @@ class SimpleProc(Proc):
         pass
 
 
-def test_simple_process(mongo, worker, no_warn):
+def test_simple_process(worker, mongo, no_warn):
     p = SimpleProc.create()
     p.process()
     p.block_until_complete()
@@ -99,7 +96,7 @@ class TaskInProc(Proc):
 
 
 @pytest.mark.timeout(5)
-def test_task_as_proc(mongo, worker, no_warn):
+def test_task_as_proc(worker, mongo, no_warn):
     p = TaskInProc.create()
     p.process()
     p.block_until_complete()
@@ -118,46 +115,8 @@ class ProcInProc(Proc):
         pass
 
 
-def test_fail_on_proc_in_proc(mongo, worker):
+def test_fail_on_proc_in_proc(worker, mongo):
     p = ProcInProc.create()
     p.one()
     p.block_until_complete()
     assert_proc(p, 'one', FAILURE, 1)
-
-
-class ParentProc(Chord):
-
-    @process
-    @task
-    def spawn_children(self):
-        count = 23
-        for _ in range(0, count):
-            ChildProc.create(parent=self).process()
-
-        self.spwaned_childred(count)
-
-    @task
-    def join(self):
-        pass
-
-
-class ChildProc(Proc):
-    parent = ReferenceField(ParentProc)
-
-    @process
-    @task
-    def process(self):
-        time.sleep(random.uniform(0, 0.1))
-        self.parent.completed_child()
-
-
-@pytest.mark.timeout(10)
-def test_counter(mongo, worker, no_warn):
-    p = ParentProc.create()
-    p.spawn_children()
-    p.block_until_complete()
-
-    p = ParentProc.get(p.id)
-    assert_proc(p, 'join')
-    # TODO there seems to be a bug, that makes this fail from time to time.
-    # assert p.joined

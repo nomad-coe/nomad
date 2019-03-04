@@ -47,8 +47,12 @@ parser_examples = [
     ('parsers/castep', 'tests/data/parsers/castep/BC2N-Pmm2-Raman.castep'),
     ('parsers/dl-poly', 'tests/data/parsers/dl-poly/OUTPUT'),
     ('parsers/lib-atoms', 'tests/data/parsers/lib-atoms/gp.xml'),
+<<<<<<< HEAD
     ('parsers/octopus', 'tests/data/parsers/octopus/stdout.txt')
 ]
+=======
+    ('parsers/octopus', 'tests/data/parsers/octopus/stdout.txt')]
+>>>>>>> 04728a259b25a898a44adae27cf2871d83eca714
 
 faulty_unknown_one_d_matid_example = [
     ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
@@ -72,16 +76,6 @@ class TestLocalBackend(object):
 
     def test_meta_info(self, meta_info, no_warn):
         assert 'section_topology' in meta_info
-
-    def test_metadata(self, backend, no_warn):
-        g_index = backend.openSection('section_calculation_info')
-        assert g_index == 0
-        backend.addValue('calc_id', 't0')
-        backend.closeSection('section_calculation_info', 0)
-        g_index = backend.openSection('section_repository_info')
-        backend.addValue('repository_calc_id', 1)
-        backend.closeSection('section_repository_info', 0)
-        assert json.dumps(backend.metadata()) is not None
 
     def test_section(self, backend, no_warn):
         g_index = backend.openSection('section_run')

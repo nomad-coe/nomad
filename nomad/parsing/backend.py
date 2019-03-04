@@ -342,7 +342,9 @@ class LocalBackend(LegacyParserBackend):
         if self._unknown_attributes.get(name) is None:
             self.logger.debug('Access of unexpected backend attribute/method', attribute=name)
             self._unknown_attributes[name] = name
-        return lambda *args, **kwargs: None
+
+        return getattr(self._delegate, name)
+        # return lambda *args, **kwargs: None
 
     def finishedParsingSession(self, parserStatus, parserErrors, *args, **kwargs):
         self._delegate.finishedParsingSession(parserStatus, parserErrors, *args, **kwargs)
@@ -546,11 +548,14 @@ class LocalBackend(LegacyParserBackend):
         target.system = calc_data['repository_system_type']
         target.atoms = calc_data['repository_atomic_elements']
         target.spacegroup = calc_data['repository_spacegroup_nr']
+        target.spacegroup_symbol = calc_data['repository_spacegroup_symbol']
         target.formula = calc_data['repository_chemical_formula']
         target.code_version = calc_data['repository_code_version']
         target.code_name = calc_data['repository_program_name']
         target.files = repo_data['section_repository_info'].get('repository_filepaths', [])
         target.mainfile = repo_data['section_calculation_info'].get('main_file', None)
+
+        target.backend = self
 
         return target
 
