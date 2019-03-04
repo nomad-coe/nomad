@@ -168,6 +168,36 @@
       ]
     },
     {
+      "name": "DL-Poly Normalizer",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/dl-poly-tests/data/parsers/dl-poly/OUTPUT]"
+      ]
+    },
+    {
+      "name": "Lib Atoms Normalizer",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/lib-atoms-tests/data/parsers/lib-atoms/gp.xml]"
+      ]
+    },
+    {
+      "name": "Octopus Normalizer",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/octopus-tests/data/parsers/octopus/stdout.txt]"
+      ]
+    },
+    {
       "name": "Python: Current File",
       "type": "python",
       "request": "launch",

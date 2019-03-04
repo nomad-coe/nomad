@@ -261,24 +261,39 @@ parsers = [
         parser_class_name='abinitparser.AbinitParser',
         mainfile_contents_re=(r'^\n\.Version\s*[0-9.]*\s*of ABINIT\s*')
     ),
-    # LegacyParser(
-    #     name='parsers/orca',
-    #     parser_class_name='orcaparser.OrcaParser',
-    #     mainfile_contents_re=(
-    #         r'\s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
-    #         r'\s+\* O   R   C   A \*\s*'
-    #         r'\s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
-    #         r'\s*'
-    #         r'\s*--- An Ab Initio, DFT and Semiempirical electronic structure package ---\s*')
-    # ),
+    LegacyParser(
+        name='parsers/orca',
+        parser_class_name='orcaparser.OrcaParser',
+        mainfile_contents_re=(
+            r'\s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
+            r'\s+\* O   R   C   A \*\s*'
+            r'\s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
+            r'\s*'
+            r'\s*--- An Ab Initio, DFT and Semiempirical electronic structure package ---\s*')
+    ),
     LegacyParser(
         name='parsers/castep',
         parser_class_name='castepparser.CastepParser',
         mainfile_contents_re=(r'\s\|\s*CCC\s*AA\s*SSS\s*TTTTT\s*EEEEE\s*PPPP\s*\|\s*')
+    ),
+    LegacyParser(
+        name='parsers/dl-poly',
+        parser_class_name='dlpolyparser.DlPolyParserWrapper',
+        mainfile_contents_re=(r'\*\* DL_POLY \*\*')
+    ),
+    LegacyParser(
+        name='parsers/lib-atoms',
+        parser_class_name='libatomsparser.LibAtomsParserWrapper',
+        mainfile_contents_re=(r'\s*<GAP_params\s')
+    ),
+    LegacyParser(
+        name='parsers/octopus',
+        parser_class_name='octopusparser.OctopusParserWrapper',
+        mainfile_contents_re=(r'\|0\) ~ \(0\) \|')
+        # We decided to use the octopus eyes instead of
+        # r'\*{32} Grid \*{32}Simulation Box:' since it was so far down in the file.
     )
 ]
-
-
 """ Instanciation and constructor based config of all parsers. """
 
 parser_dict = {parser.name: parser for parser in parsers}  # type: ignore

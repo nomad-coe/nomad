@@ -1,0 +1,291 @@
+{
+  "section_run": {
+    "_name": "section_run",
+    "_gIndex": 0,
+    "program_name": "Octopus",
+    "program_basis_set_type": "Real-space grid",
+    "x_octopus_input_Units": "ev_angstrom",
+    "x_octopus_input_PeriodicDimensions": "0",
+    "x_octopus_input_Output": "density + wfs + potential + forces",
+    "x_octopus_input_OutputFormat": "xcrysden",
+    "x_octopus_input_FromScratch": true,
+    "x_octopus_input_RestartWrite": false,
+    "x_octopus_input_stdout": "'stdout.txt'",
+    "x_octopus_input_SCFCalculateDipole": true,
+    "x_octopus_input_Coordinates": "[[\"'O'\", 0.0, 0.0, 0.119262], [\"'H'\", 0.0, 0.763239, -0.477047], [\"'H'\", 0.0, -0.763239, -0.477047]]",
+    "x_octopus_parserlog_ExperimentalFeatures": true,
+    "x_octopus_parserlog_Debug": "0",
+    "x_octopus_parserlog_ReportMemory": true,
+    "x_octopus_parserlog_CalculationMode": "1",
+    "x_octopus_parserlog_stdout": "\"stdout.txt\"",
+    "x_octopus_parserlog_stderr": "\"-\"",
+    "x_octopus_parserlog_WorkDir": "\".\"",
+    "x_octopus_parserlog_FlushMessages": true,
+    "x_octopus_parserlog_ProfilingMode": "0",
+    "x_octopus_parserlog_FFTOptimize": true,
+    "x_octopus_parserlog_FFTPreparePlan": "0",
+    "x_octopus_parserlog_Units": "1",
+    "x_octopus_parserlog_UnitsXYZFiles": "0",
+    "x_octopus_parserlog_DisableOpenCL": true,
+    "x_octopus_parserlog_Dimensions": "3",
+    "x_octopus_parserlog_PseudopotentialSet": "1",
+    "x_octopus_parserlog_SpinComponents": "1",
+    "x_octopus_parserlog_SpeciesProjectorSphereThreshold": 0.001,
+    "x_octopus_parserlog_Splines": "1",
+    "x_octopus_parserlog_SpeciesTimeDependent": true,
+    "x_octopus_parserlog_PeriodicDimensions": "0",
+    "x_octopus_parserlog_BoxShape": "3",
+    "x_octopus_parserlog_Radius": -0.529177,
+    "x_octopus_parserlog_SymmetriesCompute": true,
+    "x_octopus_parserlog_KPointsUseSymmetries": true,
+    "x_octopus_parserlog_KPointsUseTimeReversal": true,
+    "x_octopus_parserlog_ExcessCharge": 0.0,
+    "x_octopus_parserlog_CalcEigenvalues": true,
+    "x_octopus_parserlog_TotalStates": "0",
+    "x_octopus_parserlog_ExtraStates": "0",
+    "x_octopus_parserlog_StatesBlockSize": "4",
+    "x_octopus_parserlog_ComplexScaling": "0",
+    "x_octopus_parserlog_ComplexScalingRotateSpectrum": 0.0,
+    "x_octopus_parserlog_ComplexScalingPenalizationFactor": 2.0,
+    "x_octopus_parserlog_ComplexScalingLocalizedStates": "0",
+    "x_octopus_parserlog_ComplexScalingLocalizationThreshold": 1.0,
+    "x_octopus_parserlog_ComplexScalingAlpha": 0.0,
+    "x_octopus_parserlog_ComplexScalingAlphaLeft": 0.0,
+    "x_octopus_parserlog_ComplexScalingLocalizationRadius": 0.0,
+    "x_octopus_parserlog_OnlyUserDefinedInitialStates": true,
+    "x_octopus_parserlog_RestartFixedOccupations": true,
+    "x_octopus_parserlog_SmearingFunction": "1",
+    "x_octopus_parserlog_NParticleModelmb": "0",
+    "x_octopus_parserlog_SymmetrizeDensity": true,
+    "x_octopus_parserlog_UseFineMesh": true,
+    "x_octopus_parserlog_Spacing": -0.529177,
+    "x_octopus_parserlog_CurvMethod": "1",
+    "x_octopus_parserlog_DerivativesStencil": "1",
+    "x_octopus_parserlog_DerivativesOrder": "4",
+    "x_octopus_parserlog_ParallelizationOfDerivatives": "2",
+    "x_octopus_parserlog_DoubleGrid": true,
+    "x_octopus_parserlog_DoubleGridOrder": "9",
+    "x_octopus_parserlog_ParDomains": "-1",
+    "x_octopus_parserlog_ParStates": "0",
+    "x_octopus_parserlog_ParKPoints": "0",
+    "x_octopus_parserlog_ParOther": "0",
+    "x_octopus_parserlog_ParallelizationNumberSlaves": "0",
+    "x_octopus_parserlog_ScaLAPACKCompatible": true,
+    "x_octopus_parserlog_MeshOrder": "1",
+    "x_octopus_parserlog_MeshPartitionDir": "\"restart/partition\"",
+    "x_octopus_parserlog_MeshPartitionRead": true,
+    "x_octopus_parserlog_MeshPartitionVirtualSize": "4",
+    "x_octopus_parserlog_MeshPartitionPackage": "1",
+    "x_octopus_parserlog_MeshPartitionStencil": "1",
+    "x_octopus_parserlog_MeshPartition": "1",
+    "x_octopus_parserlog_MeshPartitionWrite": true,
+    "x_octopus_parserlog_MeshUseTopology": true,
+    "x_octopus_parserlog_PartitionPrint": true,
+    "x_octopus_parserlog_OperateDouble": "1",
+    "x_octopus_parserlog_OperateComplex": "1",
+    "x_octopus_parserlog_OperateSingle": "0",
+    "x_octopus_parserlog_OperateComplexSingle": "0",
+    "x_octopus_parserlog_NLOperatorCompactBoundaries": true,
+    "x_octopus_parserlog_Output": "262151",
+    "x_octopus_parserlog_OutputWfsNumber": "\"1-4\"",
+    "x_octopus_parserlog_OutputInterval": "50",
+    "x_octopus_parserlog_OutputDuringSCF": true,
+    "x_octopus_parserlog_OutputIterDir": "\"output_iter\"",
+    "x_octopus_parserlog_RestartWriteInterval": "50",
+    "x_octopus_parserlog_OutputFormat": "1024",
+    "x_octopus_parserlog_StatesPack": true,
+    "x_octopus_parserlog_StatesOrthogonalization": "1",
+    "x_octopus_parserlog_StatesCLDeviceMemory": -512.0,
+    "x_octopus_parserlog_ELFWithCurrentTerm": true,
+    "x_octopus_parserlog_ParallelizationPoissonAllNodes": true,
+    "x_octopus_parserlog_PoissonSolver": "8",
+    "x_octopus_parserlog_PoissonSolverNodes": "0",
+    "x_octopus_parserlog_XCFunctional": "10001",
+    "x_octopus_parserlog_XCKernel": "10001",
+    "x_octopus_parserlog_XCKernelLRCAlpha": 0.0,
+    "x_octopus_parserlog_XCDensityCorrection": "0",
+    "x_octopus_parserlog_XCParallel": true,
+    "x_octopus_parserlog_TheoryLevel": "4",
+    "x_octopus_parserlog_SICCorrection": "1",
+    "x_octopus_parserlog_CurrentDensity": "2",
+    "x_octopus_parserlog_VDWCorrection": "0",
+    "x_octopus_parserlog_ParticleMass": 1.0,
+    "x_octopus_parserlog_RashbaSpinOrbitCoupling": 0.0,
+    "x_octopus_parserlog_FilterPotentials": "2",
+    "x_octopus_parserlog_TDDeltaKickTime": 0.0,
+    "x_octopus_parserlog_TDDeltaStrength": 0.0,
+    "x_octopus_parserlog_GyromagneticRatio": 2.00232,
+    "x_octopus_parserlog_RelativisticCorrection": "0",
+    "x_octopus_parserlog_IgnoreExternalIons": true,
+    "x_octopus_parserlog_ForceTotalEnforce": true,
+    "x_octopus_parserlog_EwaldAlpha": 0.21,
+    "x_octopus_parserlog_CalculateSelfInducedMagneticField": true,
+    "x_octopus_parserlog_AbsorbingBoundaries": "0",
+    "x_octopus_parserlog_PCMCalculation": true,
+    "x_octopus_parserlog_SCDM_EXX": true,
+    "x_octopus_parserlog_TimeZero": true,
+    "x_octopus_parserlog_FromScratch": true,
+    "x_octopus_parserlog_ForceComplex": true,
+    "x_octopus_parserlog_MaximumIter": "200",
+    "x_octopus_parserlog_ConvEnergy": 0.0,
+    "x_octopus_parserlog_ConvAbsDens": 0.0,
+    "x_octopus_parserlog_ConvRelDens": 1e-05,
+    "x_octopus_parserlog_ConvAbsEv": 0.0,
+    "x_octopus_parserlog_ConvRelEv": 0.0,
+    "x_octopus_parserlog_ConvForce": 0.0,
+    "x_octopus_parserlog_ConvEigenError": true,
+    "x_octopus_parserlog_MixField": "1",
+    "x_octopus_parserlog_MixingScheme": "2",
+    "x_octopus_parserlog_Mixing": 0.3,
+    "x_octopus_parserlog_MixNumberSteps": "3",
+    "x_octopus_parserlog_Eigensolver": "5",
+    "x_octopus_parserlog_EigensolverTolerance": 1e-06,
+    "x_octopus_parserlog_EigensolverMaxIter": "25",
+    "x_octopus_parserlog_Preconditioner": "1",
+    "x_octopus_parserlog_PreconditionerFilterFactor": 0.5,
+    "x_octopus_parserlog_SubspaceDiagonalization": "1",
+    "x_octopus_parserlog_SCFinLCAO": true,
+    "x_octopus_parserlog_SCFCalculateForces": true,
+    "x_octopus_parserlog_SCFCalculateDipole": true,
+    "x_octopus_parserlog_SCFCalculatePartialCharges": true,
+    "x_octopus_parserlog_LocalMagneticMomentsSphereRadius": 0.484283,
+    "x_octopus_parserlog_LCAOStart": "3",
+    "x_octopus_parserlog_LCAOAlternative": true,
+    "x_octopus_parserlog_LCAOScaleFactor": 1.0,
+    "x_octopus_parserlog_LCAOMaximumOrbitalRadius": 10.5835,
+    "x_octopus_parserlog_LCAODimension": "0",
+    "x_octopus_parserlog_RestartWrite": true,
+    "program_version": "mimus",
+    "x_octopus_log_svn_revision": 15432,
+    "section_basis_set_cell_dependent": {
+      "_name": "section_basis_set_cell_dependent",
+      "_gIndex": 0,
+      "basis_set_cell_dependent_kind": "realspace_grids"
+    },
+    "section_system": {
+      "_name": "section_system",
+      "_gIndex": 0,
+      "configuration_periodic_dimensions": [
+        false, 
+        false, 
+        false
+      ],
+      "atom_labels": [
+        "O", 
+        "H", 
+        "H"
+      ],
+      "atom_positions": [
+        [
+          0.0, 
+          0.0, 
+          1.192620000239253e-11
+        ], 
+        [
+          0.0, 
+          7.632390001531143e-11, 
+          -4.77047000095701e-11
+        ], 
+        [
+          0.0, 
+          -7.632390001531143e-11, 
+          -4.77047000095701e-11
+        ]
+      ]
+    },
+    "section_single_configuration_calculation": {
+      "_name": "section_single_configuration_calculation",
+      "_gIndex": 0,
+      "single_configuration_calculation_to_system_ref": 0,
+      "single_configuration_to_calculation_method_ref": 0,
+      "atom_forces_free_raw": [
+        [
+          -0.0, 
+          0.0, 
+          1.6064126847453203e-19
+        ], 
+        [
+          -0.0, 
+          1.4491029821472702e-19, 
+          -1.35811377483204e-19
+        ], 
+        [
+          -0.0, 
+          -1.4491029821472702e-19, 
+          -1.35811377483204e-19
+        ]
+      ],
+      "section_eigenvalues": {
+        "_name": "section_eigenvalues",
+        "_gIndex": 0,
+        "eigenvalues_kind": "normal",
+        "number_of_eigenvalues_kpoints": 1,
+        "eigenvalues_kpoints": [
+          [
+            0.0, 
+            0.0, 
+            0.0
+          ]
+        ],
+        "eigenvalues_values": [
+          [
+            [
+              -4.093476759664522e-18, 
+              -2.109261075868369e-18, 
+              -1.5179821533485e-18, 
+              -1.172209226614815e-18
+            ]
+          ]
+        ],
+        "eigenvalues_occupation": [
+          [
+            [
+              2.0, 
+              2.0, 
+              2.0, 
+              2.0
+            ]
+          ]
+        ]
+      }
+    },
+    "section_method": {
+      "_name": "section_method",
+      "_gIndex": 0,
+      "smearing_kind": "empty",
+      "number_of_spin_channels": 1,
+      "total_charge": 0.0,
+      "electronic_structure_method": "DFT",
+      "section_method_basis_set": [
+        {
+          "_name": "section_method_basis_set",
+          "_gIndex": 0,
+          "method_basis_set_kind": "density",
+          "mapping_section_method_basis_set_cell_associated": 0
+        },
+        {
+          "_name": "section_method_basis_set",
+          "_gIndex": 1,
+          "method_basis_set_kind": "wavefunction",
+          "mapping_section_method_basis_set_cell_associated": 0
+        }
+      ],
+      "section_XC_functionals": [
+        {
+          "_name": "section_XC_functionals",
+          "_gIndex": 0,
+          "XC_functional_name": "LDA_X"
+        },
+        {
+          "_name": "section_XC_functionals",
+          "_gIndex": 1,
+          "XC_functional_name": "LDA_C_PZ_MOD"
+        }
+      ]
+    }
+  },
+  "section_calculation_info": [
+  ],
+  "section_repository_info": [
+  ]
+}

@@ -83,21 +83,23 @@ class SystemNormalizer(SystemBasedNormalizer):
         except Exception as e:
             self.logger.error(
                 'cannot build ase atoms from atom labels',
-                atom_labels=atom_labels, exc_info=e, error=str(e))
+                atom_labels=atom_labels[:10], exc_info=e, error=str(e))
             return
         chemical_symbols = list(atoms.get_chemical_symbols())
         if atom_labels != chemical_symbols:
-            self.logger.error('atom labels are ambiguous', atom_labels=atom_labels)
+            self.logger.error('atom labels are ambiguous', atom_labels=atom_labels[:10])
             return
 
         if atom_species is None:
             atom_species = atoms.get_atomic_numbers().tolist()
             set_value('atom_species', atom_species)
         else:
+            if not isinstance(atom_species, list):
+                atom_species = [atom_species]
             if atom_species != atoms.get_atomic_numbers().tolist():
                 self.logger.warning(
                     'atom species do not match labels',
-                    atom_labels=atom_labels, atom_species=atom_species)
+                    atom_labels=atom_labels[:10], atom_species=atom_species[:10])
                 atom_species = atoms.get_atomic_numbers().tolist()
             set_value('atom_species', atom_species)
 
