@@ -15,10 +15,10 @@
 from typing import Any
 import ase
 import numpy as np
-import matid
 import json
 
-from matid import SymmetryAnalyzer, Classifier
+from matid import SymmetryAnalyzer
+from matid.geometry import get_dimensionality
 
 from nomad import utils, config
 from nomad.normalizing.normalizer import SystemBasedNormalizer
@@ -83,7 +83,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         except Exception as e:
             self.logger.error(
                 'cannot build ase atoms from atom labels',
-                atom_labels=atom_labels, exc_info=e)
+                atom_labels=atom_labels, exc_info=e, error=str(e))
             return
         chemical_symbols = list(atoms.get_chemical_symbols())
         if atom_labels != chemical_symbols:
@@ -110,7 +110,8 @@ class SystemNormalizer(SystemBasedNormalizer):
         try:
             atoms.set_pbc(pbc)
         except Exception as e:
-            self.logger.error('cannot use pbc with ase atoms', exc_info=e, pbc=pbc)
+            self.logger.error(
+                'cannot use pbc with ase atoms', exc_info=e, pbc=pbc, error=str(e))
             return
 
         # formulas
@@ -131,7 +132,8 @@ class SystemNormalizer(SystemBasedNormalizer):
         try:
             atoms.set_positions(1e10 * atom_positions)
         except Exception as e:
-            self.logger.error('cannot use positions with ase atoms', exc_info=e)
+            self.logger.error(
+                'cannot use positions with ase atoms', exc_info=e, error=str(e))
             return
 
         # lattice vectors
@@ -147,7 +149,8 @@ class SystemNormalizer(SystemBasedNormalizer):
             try:
                 atoms.set_cell(1e10 * lattice_vectors)
             except Exception as e:
-                self.logger.error('cannot use lattice_vectors with ase atoms', exc_info=e)
+                self.logger.error(
+                    'cannot use lattice_vectors with ase atoms', exc_info=e, error=str(e))
                 return
 
         # configuration
@@ -164,15 +167,7 @@ class SystemNormalizer(SystemBasedNormalizer):
                     self.logger, 'system classification executed',
                     system_size=atoms.get_number_of_atoms()):
 
-                try:
-                    classifier = Classifier()
-                    system_type = classifier.classify(atoms)
-                except Exception as e:
-                    self.logger.error('matid project system classification failed', exc_info=e)
-                else:
-                    # Convert Matid classification to a Nomad classification.
-                    system_type = self.map_matid_to_nomad_system_types(atoms, system_type)
-                    set_value('system_type', system_type)
+                self.system_type_analysis(atoms)
 
         # symmetry analysis
         if atom_positions is not None and (lattice_vectors is not None or not any(pbc)):
@@ -181,6 +176,35 @@ class SystemNormalizer(SystemBasedNormalizer):
                     system_size=atoms.get_number_of_atoms()):
 
                 self.symmetry_analysis(atoms)
+
+    def system_type_analysis(self, atoms) -> None:
+        """
+        Determine the dimensioality and hence the system type of the system with
+        Matid. Write the system type to the backend.
+        """
+        system_type = 'unavailable'
+        try:
+            dimensionality = get_dimensionality(
+                atoms, cluster_threshold=3.1, return_clusters=False)
+
+            if dimensionality is None:
+                pass
+            elif dimensionality == 0:
+                if atoms.get_number_of_atoms() == 1:
+                    system_type = 'atom'
+                else:
+                    system_type = 'molecule / cluster'
+            elif dimensionality == 1:
+                system_type = '1D'
+            elif dimensionality == 2:
+                system_type = '2D / surface'
+            elif dimensionality == 3:
+                system_type = 'bulk'
+        except Exception as e:
+            self.logger.error(
+                'matid project system classification failed', exc_info=e, error=str(e))
+
+        self._backend.addValue('system_type', system_type)
 
     def symmetry_analysis(self, atoms) -> None:
         """Analyze the symmetry of the material being simulated.
@@ -278,47 +302,3 @@ class SystemNormalizer(SystemBasedNormalizer):
         self._backend.closeSection('section_original_system', origGid)
 
         self._backend.closeSection('section_symmetry', symGid)
-
-    # Create a class static dictionary for mapping Matid classifications
-    # to Nomad classifications.
-    translation_dict = {
-        matid.classifications.Class0D: 'Atom',
-        matid.classifications.Class1D: '1D',
-        matid.classifications.Material2D: '2D',
-        matid.classifications.Surface: 'Surface',
-        matid.classifications.Class2DWithCell: '2D',
-        matid.classifications.Class2D: '2D',
-        matid.classifications.Class3D: 'Bulk',
-        matid.classifications.Unknown: 'Unknown'
-    }
-
-    def map_matid_to_nomad_system_types(self, atoms, system_type):
-        """ We map the system type classification from matid to Nomad values.
-
-        Args:
-            system_type: Object of a matid class representing a
-                material classification.
-        Returns:
-            nomad_classification: String representing a material
-                classification that fits into Nomad's current way
-                of naming material classes.
-        """
-        nomad_classification = None
-
-        for matid_class in SystemNormalizer.translation_dict:
-            if isinstance(system_type, matid_class):
-                nomad_classification = SystemNormalizer.translation_dict[matid_class]
-                break
-        # Check to make sure a match was found in translating classes.
-        if nomad_classification is None:
-            # Then something unexpected has happened with our system_type.
-            self.logger.error(
-                'Matid classfication has given us an unexpected type: %s' % system_type)
-
-        if nomad_classification == 'Atom' and (atoms.get_number_of_atoms() > 1):
-            nomad_classification = 'Molecule / Cluster'
-
-        if nomad_classification == 'Unknown':
-            self.logger.warning('Could not determine system type.')
-
-        return nomad_classification

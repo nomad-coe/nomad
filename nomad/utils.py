@@ -46,6 +46,7 @@ import uuid
 import time
 import re
 from werkzeug.exceptions import HTTPException
+import hashlib
 
 from nomad import config
 
@@ -53,12 +54,21 @@ default_hash_len = 28
 """ Length of hashes and hash-based ids (e.g. calc, upload) in nomad. """
 
 
-def hash(hash: bytes, length: int = default_hash_len) -> str:
-    """ Creates a websave hash for the given bytes of the given length. """
+def hash(*args, length: int = default_hash_len) -> str:
+    """ Creates a websave hash of the given length based on the repr of the given arguments. """
+    hash = hashlib.sha512()
+    for arg in args:
+        hash.update(str(arg).encode('utf-8'))
+
+    return make_websave(hash, length=length)
+
+
+def make_websave(hash, length: int = default_hash_len) -> str:
+    """ Creates a websave string for a hashlib hash object. """
     if length > 0:
-        return base64.b64encode(hash, altchars=b'-_')[:length].decode('utf-8')
+        return base64.b64encode(hash.digest(), altchars=b'-_')[:length].decode('utf-8')
     else:
-        return base64.b64encode(hash, altchars=b'-_')[0:-2].decode('utf-8')
+        return base64.b64encode(hash.digest(), altchars=b'-_')[0:-2].decode('utf-8')
 
 
 def sanitize_logevent(event: str) -> str:

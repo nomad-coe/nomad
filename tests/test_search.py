@@ -55,8 +55,8 @@ def test_search(elastic, normalized: parsing.LocalBackend):
     total, hits, aggs = aggregate_search()
     assert total == 1
     assert hits[0]['calc_id'] == calc_with_metadata.calc_id
-    assert 'Bulk' in aggs['system']
-    assert aggs['system']['Bulk'] == 1
+    assert 'bulk' in aggs['system']
+    assert aggs['system']['bulk'] == 1
 
 
 def test_authors(elastic, normalized: parsing.LocalBackend, test_user: coe_repo.User, other_test_user: coe_repo.User):

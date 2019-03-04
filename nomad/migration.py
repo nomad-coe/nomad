@@ -28,6 +28,7 @@ import zipfile
 import math
 from mongoengine import Document, IntField, StringField, DictField, ListField
 import time
+import datetime
 from bravado.exception import HTTPNotFound, HTTPBadRequest, HTTPGatewayTimeout
 import glob
 import os
@@ -46,6 +47,9 @@ default_pid_prefix = 7000000
 max_package_size = 16 * 1024 * 1024 * 1024  # 16 GB
 """ The maximum size of a package that will be used as an upload on nomad@FAIRDI """
 use_stats_for_filestats_threshold = 1024
+
+default_comment = 'entry with unknown provernance'
+default_uploader = dict(id=1)
 
 
 def iterable_to_stream(iterable, buffer_size=io.DEFAULT_BUFFER_SIZE):
@@ -501,6 +505,21 @@ class NomadCOEMigration:
         logger.debug('identified packages for source upload', n_packages=package_query.count())
         return package_query, source_upload_id
 
+    def _surrogate_metadata(self, source: CalcWithMetadata):
+        """
+        Compute metadata from the given metadata that can be used for new calcs of the
+        same upload.
+        """
+        return CalcWithMetadata(
+            uploader=source.uploader,
+            with_embargo=source.with_embargo,
+            upload_time=source.upload_time,
+            coauthors=source.coauthors,
+            shared_with=source.shared_with,
+            comment=source.comment,
+            references=source.references,
+            datasets=source.datasets)
+
     def set_pid_prefix(self, prefix: int = default_pid_prefix):
         """
         Sets the repo db pid counter to the given values. Allows to create new calcs
@@ -668,6 +687,7 @@ class NomadCOEMigration:
 
         # grab source calcs
         source_calcs = dict()
+        surrogate_source_calc_with_metadata = None
         with utils.timer(logger, 'loaded source metadata'):
             for source_calc in SourceCalc.objects(
                     upload=source_upload_id, mainfile__in=calc_mainfiles):
@@ -676,6 +696,19 @@ class NomadCOEMigration:
                 source_calc_with_metadata.pid = source_calc.pid
                 source_calc_with_metadata.mainfile = source_calc.mainfile
                 source_calcs[source_calc.mainfile] = (source_calc, source_calc_with_metadata)
+
+                # establish a surrogate for new calcs
+                if surrogate_source_calc_with_metadata is None:
+                    surrogate_source_calc_with_metadata = \
+                        self._surrogate_metadata(source_calc_with_metadata)
+
+        # try to find a surrogate outside the package, if necessary
+        if surrogate_source_calc_with_metadata is None:
+            source_calc = SourceCalc.objects(upload=source_upload_id).first()
+            if source_calc is not None:
+                source_calc_with_metadata = CalcWithMetadata(**source_calc.metadata)
+                surrogate_source_calc_with_metadata = \
+                    self._surrogate_metadata(source_calc_with_metadata)
 
         # verify upload against source
         calcs_in_search = 0
@@ -699,6 +732,22 @@ class NomadCOEMigration:
                     else:
                         calc_logger.info('processed a calc that has no source')
                         report.new_calcs += 1
+                        # guessing the metadata from other calcs in upload/package
+                        if surrogate_source_calc_with_metadata is not None:
+                            new_calc_with_metadata = CalcWithMetadata(**surrogate_source_calc_with_metadata.to_dict())
+                            new_calc_with_metadata.mainfile = calc['mainfile']
+                        else:
+                            calc_logger.warning('could not determine any metadata for new calc')
+                            create_time_epoch = os.path.getctime(package.upload_path)
+                            new_calc_with_metadata = CalcWithMetadata(
+                                upload_time=datetime.datetime.fromtimestamp(create_time_epoch),
+                                with_embargo=package.restricted > 0,
+                                comment=default_comment,
+                                uploader=default_uploader,
+                                mainfile=calc['mainfile'])
+                            surrogate_source_calc_with_metadata = new_calc_with_metadata
+
+                        source_calcs[calc['mainfile']] = (None, new_calc_with_metadata)
 
             if len(calc_mainfiles) != calcs_in_search:
                 logger.error('missmatch between processed calcs and calcs found with search')

@@ -548,6 +548,7 @@ class LocalBackend(LegacyParserBackend):
         target.system = calc_data['repository_system_type']
         target.atoms = calc_data['repository_atomic_elements']
         target.spacegroup = calc_data['repository_spacegroup_nr']
+        target.spacegroup_symbol = calc_data['repository_spacegroup_symbol']
         target.formula = calc_data['repository_chemical_formula']
         target.code_version = calc_data['repository_code_version']
         target.code_name = calc_data['repository_program_name']

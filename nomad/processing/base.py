@@ -211,7 +211,9 @@ class Proc(Document, metaclass=ProcMetaclass):
         for error in errors:
             if isinstance(error, Exception):
                 failed_with_exception = True
-                Proc.log(logger, log_level, 'task failed with exception', exc_info=error)
+                Proc.log(
+                    logger, log_level, 'task failed with exception',
+                    exc_info=error, error=str(error))
 
         self.errors = [str(error) for error in errors]
         self.complete_time = datetime.now()

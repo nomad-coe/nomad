@@ -22,7 +22,7 @@ from elasticsearch_dsl import Document, InnerDoc, Keyword, Text, Date, \
 import elasticsearch.helpers
 import ase.data
 
-from nomad import config, datamodel, infrastructure, datamodel, coe_repo, parsing
+from nomad import config, datamodel, infrastructure, datamodel, coe_repo, parsing, utils
 
 path_analyzer = analyzer(
     'path_analyzer',
@@ -93,8 +93,16 @@ class Entry(Document):
     system = Keyword()
     crystal_system = Keyword()
     spacegroup = Keyword()
+    spacegroup_symbol = Keyword()
     code_name = Keyword()
     code_version = Keyword()
+
+    group_hash = Keyword()
+    """
+    A hash that is used to collapse results in search results. Its based on:
+    formula, spacegroup, basis_set, xc_functional, code_name, code_version,
+    with_embargo, commet, references, authors
+    """
 
     n_total_energies = Integer()
     n_geometries = Integer()
@@ -142,8 +150,21 @@ class Entry(Document):
         self.system = source.system
         self.crystal_system = source.crystal_system
         self.spacegroup = source.spacegroup
+        self.spacegroup_symbol = source.spacegroup_symbol
         self.code_name = source.code_name
         self.code_version = source.code_version
+
+        self.group_hash = utils.hash(
+            self.formula,
+            self.spacegroup,
+            self.basis_set,
+            self.xc_functional,
+            self.code_name,
+            self.code_version,
+            self.with_embargo,
+            self.comment,
+            self.references,
+            self.authors)
 
         if source.backend is not None:
             quantities = set()
@@ -202,6 +223,7 @@ aggregations = {
 search_quantities = {
     'formula': ('term', 'formula', 'The full reduced formula.'),
     'spacegroup': ('term', 'spacegroup', 'The spacegroup as int.'),
+    'spacegroup_symbol': ('term', 'spacegroup', 'The spacegroup as international short symbol.'),
     'basis_set': ('term', 'basis_set', 'The basis set type.'),
     'atoms': ('term', 'atoms', (
         'Search the given atom. This quantity can be used multiple times to search for '

@@ -147,5 +147,5 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
             except Exception as e:
                 self.logger.error(
                     'Unexpected error during normalizing', normalizer=self.__class__.__name__,
-                    section='section_system', g_index=g_index, exc_info=e)
+                    section='section_system', g_index=g_index, exc_info=e, error=str(e))
                 raise e

@@ -613,10 +613,7 @@ class StagingUploadFiles(UploadFiles):
         Raises:
             KeyError: If the mainfile does not exist.
         """
-        hash = hashlib.sha512()
-        hash.update(self.upload_id.encode('utf-8'))
-        hash.update(mainfile.encode('utf-8'))
-        return utils.hash(hash.digest())
+        return utils.hash(self.upload_id, mainfile)
 
     def calc_hash(self, mainfile: str) -> str:
         """
@@ -634,7 +631,7 @@ class StagingUploadFiles(UploadFiles):
                 for data in iter(lambda: f.read(65536), b''):
                     hash.update(data)
 
-        return utils.hash(hash.digest())
+        return utils.make_websave(hash)
 
 
 class ArchiveBasedStagingUploadFiles(StagingUploadFiles):

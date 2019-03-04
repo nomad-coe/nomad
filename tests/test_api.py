@@ -597,8 +597,8 @@ class TestRepo(UploadFilesBasedTests):
                 assert key in results[0]
 
     @pytest.mark.parametrize('calcs, quantity, value', [
-        (2, 'system', 'Bulk'),
-        (0, 'system', 'Atom'),
+        (2, 'system', 'bulk'),
+        (0, 'system', 'atom'),
         (1, 'atoms', 'Br'),
         (1, 'atoms', 'Fe'),
         (0, 'atoms', ['Fe', 'Br']),

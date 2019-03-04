@@ -119,6 +119,9 @@ class RepositoryNormalizer(Normalizer):
             'repository_spacegroup_nr',
             self.get_optional_value('space_group_number', 'section_symmetry', 0))
         b.addValue(
+            'repository_spacegroup_symbol',
+            self.get_optional_value('international_short_symbol', 'section_symmetry', 0))
+        b.addValue(
             'repository_basis_set_type',
             self.get_optional_value('program_basis_set_type', 'section_run'))
         b.addValue(
