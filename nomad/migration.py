@@ -556,38 +556,26 @@ class NomadCOEMigration:
         packages, source_upload_id = self._packages(upload_path, create=create_packages)
         logger = self.logger.bind(source_upload_id=source_upload_id)
 
-        # initialize upload report
-        upload_report = utils.POPO()
-        upload_report.total_packages = 0
-        upload_report.failed_packages = 0
-        upload_report.total_source_calcs = 0
-        upload_report.total_calcs = 0
-        upload_report.failed_calcs = 0
-        upload_report.migrated_calcs = 0
-        upload_report.calcs_with_diffs = 0
-        upload_report.new_calcs = 0
-        upload_report.missing_calcs = 0
-
+        report = Report()
         for package in packages:
             if package.migration_version is not None and package.migration_version >= self.migration_version:
                 logger.info('package already migrated', package_id=package.package_id)
                 continue
 
-            package_report = self.migrate_package(package)
+            report.add(self.migrate_package(package))
 
-            if package_report is not None:
-                for key, value in package_report.items():
-                    upload_report[key] += value
-            else:
-                upload_report.failed_packages += 1
-            upload_report.total_packages += 1
+        total_source_calcs = SourceCalc.objects(upload=source_upload_id).count()
+        if total_source_calcs != report.total_source_calcs:
+            self.logger.warning(
+                'upload packages miss source calcs',
+                package_source_calcs=report.total_source_calcs,
+                upload_source_calcs=total_source_calcs)
 
-        upload_report.total_source_calcs = SourceCalc.objects(upload=source_upload_id).count()
-        upload_report.missing_calcs = SourceCalc.objects(
-            upload=source_upload_id, migration_version__ne=self.migration_version).count()
+            report.missing_calcs += total_source_calcs - report.total_source_calcs
+            report.total_source_calcs = total_source_calcs
 
-        self.logger.info('migrated upload', upload_path=upload_path, **upload_report)
-        return upload_report
+        self.logger.info('migrated upload', upload_path=upload_path, **report)
+        return report
 
     def nomad(self, operation: str, *args, **kwargs) -> Any:
         """
@@ -619,14 +607,8 @@ class NomadCOEMigration:
         logger = self.logger.bind(package_id=package_id, source_upload_id=source_upload_id)
         logger.debug('start to process package')
 
-        # initialize package report
-        report = utils.POPO()
-        report.total_calcs = 0
-        report.failed_calcs = 0
-        report.migrated_calcs = 0
-        report.calcs_with_diffs = 0
-        report.new_calcs = 0
-        report.missing_calcs = 0
+        report = Report()
+        report.total_packages += 1
 
         # upload and process the upload file
         from nomad.client import stream_upload_with_client
@@ -643,10 +625,37 @@ class NomadCOEMigration:
                     upload = stream_upload_with_client(self.client, upload_f, name=package_id)
             except Exception as e:
                 self.logger.error('could not upload package', exc_info=e)
-                return None
+                report.failed_packages += 1
+                return report
 
         logger = logger.bind(
             source_upload_id=source_upload_id, upload_id=upload.upload_id)
+
+        # grab source calcs, while waiting for upload
+        source_calcs = dict()
+        surrogate_source_calc_with_metadata = None
+        with utils.timer(logger, 'loaded source metadata'):
+            for filenames_chunk in utils.chunks(package.filenames, 1000):
+                for source_calc in SourceCalc.objects(
+                        upload=source_upload_id, mainfile__in=filenames_chunk):
+
+                    source_calc_with_metadata = CalcWithMetadata(**source_calc.metadata)
+                    source_calc_with_metadata.pid = source_calc.pid
+                    source_calc_with_metadata.mainfile = source_calc.mainfile
+                    source_calcs[source_calc.mainfile] = (source_calc, source_calc_with_metadata)
+
+                    # establish a surrogate for new calcs
+                    if surrogate_source_calc_with_metadata is None:
+                        surrogate_source_calc_with_metadata = \
+                            self._surrogate_metadata(source_calc_with_metadata)
+            report.total_source_calcs = len(source_calcs)
+        # try to find a surrogate outside the package, if necessary
+        if surrogate_source_calc_with_metadata is None:
+            source_calc = SourceCalc.objects(upload=source_upload_id).first()
+            if source_calc is not None:
+                source_calc_with_metadata = CalcWithMetadata(**source_calc.metadata)
+                surrogate_source_calc_with_metadata = \
+                    self._surrogate_metadata(source_calc_with_metadata)
 
         # wait for complete upload
         with utils.timer(logger, 'upload processing completed'):
@@ -657,7 +666,9 @@ class NomadCOEMigration:
 
         if upload.tasks_status == FAILURE:
             logger.error('failed to process upload', process_errors=upload.errors)
-            return None
+            report.failed_packages += 1
+            report.missing_calcs += report.total_source_calcs
+            return report
         else:
             report.total_calcs += upload.calcs.pagination.total
 
@@ -684,31 +695,6 @@ class NomadCOEMigration:
                         calc_logger.info(
                             'could not process a calc', process_errors=calc_proc.errors)
                         continue
-
-        # grab source calcs
-        source_calcs = dict()
-        surrogate_source_calc_with_metadata = None
-        with utils.timer(logger, 'loaded source metadata'):
-            for source_calc in SourceCalc.objects(
-                    upload=source_upload_id, mainfile__in=calc_mainfiles):
-
-                source_calc_with_metadata = CalcWithMetadata(**source_calc.metadata)
-                source_calc_with_metadata.pid = source_calc.pid
-                source_calc_with_metadata.mainfile = source_calc.mainfile
-                source_calcs[source_calc.mainfile] = (source_calc, source_calc_with_metadata)
-
-                # establish a surrogate for new calcs
-                if surrogate_source_calc_with_metadata is None:
-                    surrogate_source_calc_with_metadata = \
-                        self._surrogate_metadata(source_calc_with_metadata)
-
-        # try to find a surrogate outside the package, if necessary
-        if surrogate_source_calc_with_metadata is None:
-            source_calc = SourceCalc.objects(upload=source_upload_id).first()
-            if source_calc is not None:
-                source_calc_with_metadata = CalcWithMetadata(**source_calc.metadata)
-                surrogate_source_calc_with_metadata = \
-                    self._surrogate_metadata(source_calc_with_metadata)
 
         # verify upload against source
         calcs_in_search = 0
@@ -779,6 +765,7 @@ class NomadCOEMigration:
                     report.migrated_calcs = 0
                     report.calcs_with_diffs = 0
                     report.new_calcs = 0
+                    report.failed_packages += 1
                 else:
                     SourceCalc.objects(upload=source_upload_id, mainfile__in=calc_mainfiles) \
                         .update(migration_version=self.migration_version)
@@ -787,7 +774,7 @@ class NomadCOEMigration:
         else:
             logger.info('no successful calcs, skip publish')
 
-        report.missing_calcs = report.total_calcs - report.migrated_calcs
+        report.missing_calcs = report.total_source_calcs - report.migrated_calcs
         logger.info('migrated package', **report)
 
         return report
@@ -818,3 +805,22 @@ class NomadCOEMigration:
     def package(self, *args, **kwargs):
         """ see :func:`Package.add` """
         return Package.index(*args, **kwargs)
+
+
+class Report(utils.POPO):
+    def __init__(self):
+        super().__init__()
+
+        self.total_packages = 0
+        self.failed_packages = 0
+        self.total_calcs = 0  # the calcs that have been found by the target
+        self.total_source_calcs = 0  # the calcs in the source index
+        self.failed_calcs = 0  # the calcs found b the target that could not be processed/published
+        self.migrated_calcs = 0   # the calcs from the source, successfully added to the target
+        self.calcs_with_diffs = 0  # the calcs from the source, successfully added to the target with different metadata
+        self.new_calcs = 0  # the calcs successfully added to the target that were not found in the source
+        self.missing_calcs = 0  # the calcs in the source, that could not be added to the target due to failure or not founding the calc
+
+    def add(self, other: 'Report') -> None:
+        for key, value in other.items():
+            self[key] = self.get(key, 0) + value

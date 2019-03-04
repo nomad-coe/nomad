@@ -356,6 +356,12 @@ def to_tuple(self, *args):
     return tuple(self[arg] for arg in args)
 
 
+def chunks(list, n):
+    """ Chunks up the given list into parts of size n. """
+    for i in range(0, len(list), n):
+        yield list[i:i + n]
+
+
 class POPO(dict):
     """
     A dict subclass that uses attributes as key/value pairs.
