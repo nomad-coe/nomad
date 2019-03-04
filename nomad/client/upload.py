@@ -16,11 +16,29 @@ import os.path
 import os
 import time
 import click
+import urllib.parse
+import requests
 
 from nomad import utils
 from nomad.processing import FAILURE, SUCCESS
 
 from .main import cli, create_client
+from nomad.client import main
+
+
+def stream_upload_with_client(client, stream, name=None):
+    user = client.auth.get_user().response().result
+    token = user.token
+    url = main._nomad_url + '/uploads/'
+    if name is not None:
+        url += '?name=%s' % urllib.parse.quote(name)
+
+    response = requests.put(url, headers={'X-Token': token}, data=stream)
+    if response.status_code != 200:
+        raise Exception('nomad return status %d' % response.status_code)
+    upload_id = response.json()['upload_id']
+
+    return client.uploads.get_upload(upload_id=upload_id).response().result
 
 
 def upload_file(file_path: str, name: str = None, offline: bool = False, publish: bool = False, client=None):
@@ -39,14 +57,18 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, publish
         client = create_client()
     if offline:
         upload = client.uploads.upload(
-            local_path=os.path.abspath(file_path), name=name).reponse().result
+            local_path=os.path.abspath(file_path), name=name).response().result
         click.echo('process offline: %s' % file_path)
     else:
-        with open(file_path, 'rb') as f:
-            upload = client.uploads.upload(file=f, name=name).response().result
-        click.echo('process online: %s' % file_path)
+        # bravado does not seem to support streaming?
+        try:
+            with open(file_path, 'rb') as f:
+                upload = stream_upload_with_client(client, f, name=name)
+        except Exception as e:
+            click.echo('could not upload the file: %s' % str(e))
+            return
 
-    while upload.tasks_status not in [SUCCESS, FAILURE]:
+    while upload is not None and upload.tasks_status not in [SUCCESS, FAILURE]:
         upload = client.uploads.get_upload(upload_id=upload.upload_id).response().result
         calcs = upload.calcs.pagination
         if calcs is None:

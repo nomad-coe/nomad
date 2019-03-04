@@ -112,6 +112,7 @@ class CalcWithMetadata():
         self.system: str = None
         self.crystal_system: str = None
         self.spacegroup: str = None
+        self.spacegroup_symbol: str = None
         self.code_name: str = None
         self.code_version: str = None
 

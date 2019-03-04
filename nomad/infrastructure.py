@@ -35,7 +35,7 @@ from email.mime.text import MIMEText
 
 from nomad import config, utils
 
-logger = utils.get_logger(__name__)
+logger = None
 
 elastic_client = None
 """ The elastic search client. """
@@ -65,6 +65,10 @@ def setup():
 
 def setup_logging():
     utils.configure_logging()
+
+    global logger
+    logger = utils.get_logger(__name__)
+
     logger.info(
         'setup logging',
         logstash=config.logstash.enabled,
@@ -169,7 +173,7 @@ def sqlalchemy_repository_db(exists: bool = False, readonly: bool = True, **kwar
         with repository_db_connection(dbname=dbname) as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    "UPDATE public.users SET password='%s' WHERE user_id=1;" %
+                    "UPDATE public.users SET password='%s' WHERE user_id=0;" %
                     bcrypt.encrypt(config.services.admin_password, ident='2y'))
 
     def no_flush():
@@ -188,12 +192,26 @@ def sqlalchemy_repository_db(exists: bool = False, readonly: bool = True, **kwar
     return repository_db_conn, repository_db
 
 
-def reset():
+def set_pid_prefix(prefix=7000000, target_db=None):
+    if target_db is None:
+        target_db = repository_db
+
+    target_db.begin()
+    target_db.execute('ALTER SEQUENCE calculations_calc_id_seq RESTART WITH %d' % prefix)
+    target_db.commit()
+    logger.info('set pid prefix', pid_prefix=prefix)
+
+
+def reset(repo_content_only: bool = False):
     """
     Resets the databases mongo, elastic/calcs, repository db and all files. Be careful.
     In contrast to :func:`remove`, it will only remove the contents of dbs and indicies.
     This function just attempts to remove everything, there is no exception handling
     or any warranty it will succeed.
+
+    Arguments:
+        repo_content_only: True will only remove the calc/upload data from the repo db.
+            But still reset all other dbs.
     """
     try:
         if not mongo_client:
@@ -206,23 +224,26 @@ def reset():
     try:
         if not elastic_client:
             setup_elastic()
-            elastic_client.indices.delete(index=config.elastic.index_name)
-            from nomad.search import Entry
-            Entry.init(index=config.elastic.index_name)
-            logger.info('elastic index resetted')
+        elastic_client.indices.delete(index=config.elastic.index_name)
+        from nomad.search import Entry
+        Entry.init(index=config.elastic.index_name)
+        logger.info('elastic index resetted')
     except Exception as e:
         logger.error('exception resetting elastic', exc_info=e)
 
     try:
-        reset_repository_db()
+        if repo_content_only:
+            reset_repository_db_content()
+        else:
+            reset_repository_db()
         logger.info('repository db resetted')
     except Exception as e:
         logger.error('exception resetting repository db', exc_info=e)
 
-    logger.info('reset files')
     try:
         shutil.rmtree(config.fs.objects, ignore_errors=True)
         shutil.rmtree(config.fs.tmp, ignore_errors=True)
+        logger.info('files resetted')
     except Exception as e:
         logger.error('exception deleting files', exc_info=e)
 
@@ -333,7 +354,35 @@ def reset_repository_db_schema(**kwargs):
                 "GRANT ALL ON SCHEMA public TO public;")
             sql_file = os.path.join(os.path.dirname(__file__), 'empty_repository_db.sql')
             cur.execute(open(sql_file, 'r').read())
-            logger.info('(re-)created repository db postgres schema')
+    logger.info('(re-)created repository db postgres schema')
+
+
+def reset_repository_db_content():
+    tables = [
+        'metadata',
+        'codeversions',
+        'codefamilies',
+        'ownerships',
+        'coauthorships',
+        'shareships',
+        'metadata_citations',
+        'citations',
+        'spacegroups',
+        'struct_ratios',
+        'tags',
+        'topics',
+        'user_metadata',
+        'doi_mapping',
+        'calcsets',
+        'calculations',
+        'uploads'
+    ]
+    with repository_db_connection(with_trans=True) as conn:
+        with conn.cursor() as cur:
+            for table in tables:
+                cur.execute('DELETE FROM %s;' % table)
+
+    logger.info('removed repository db content')
 
 
 def send_mail(name: str, email: str, message: str, subject: str):

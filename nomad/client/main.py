@@ -19,33 +19,41 @@ import click
 import logging
 from bravado.requests_client import RequestsClient
 from bravado.client import SwaggerClient
+from urllib.parse import urlparse
 
-from nomad import config
+from nomad import config, utils, infrastructure
 
 
-api_base = 'http://%s:%d/%s' % (config.services.api_host, config.services.api_port, config.services.api_base_path)
-user = 'leonard.hofstadter@nomad-fairdi.tests.de'
-pw = 'password'
+_default_url = 'http://%s:%d/%s' % (config.services.api_host, config.services.api_port, config.services.api_base_path.strip('/'))
+_nomad_url = os.environ.get('NOMAD_URL', _default_url)
+_user = os.environ.get('NOMAD_USER', 'leonard.hofstadter@nomad-fairdi.tests.de')
+_pw = os.environ.get('NOMAD_PASSWORD', 'password')
+
+
+def get_nomad_url():
+    return _nomad_url
 
 
 def create_client():
     return _create_client()
 
 
-def _create_client(
-        host: str = config.services.api_host,
-        port: int = config.services.api_port,
-        base_path: str = config.services.api_base_path,
-        user: str = user, password: str = pw):
-    """ A factory method to create the client. """
+def _create_client(*args, **kwargs):
+    return __create_client(*args, **kwargs)
 
+
+def __create_client(user: str = _user, password: str = _pw):
+    """ A factory method to create the client. """
+    host = urlparse(_nomad_url).netloc.split(':')[0]
     http_client = RequestsClient()
     if user is not None:
-        http_client.set_basic_auth(host, user, pw)
+        http_client.set_basic_auth(host, user, password)
 
     client = SwaggerClient.from_url(
-        'http://%s:%d%s/swagger.json' % (host, port, base_path),
+        '%s/swagger.json' % _nomad_url,
         http_client=http_client)
+
+    utils.get_logger(__name__).info('created bravado client', user=user)
 
     return client
 
@@ -57,32 +65,42 @@ def handle_common_errors(func):
         except requests.exceptions.ConnectionError:
             click.echo(
                 '\nCould not connect to nomad at %s. '
-                'Check connection and host/port options.' % api_base)
+                'Check connection and url.' % _nomad_url)
             sys.exit(0)
     return wrapper
 
 
 @click.group()
-@click.option('-h', '--host', default=config.services.api_host, help='The host nomad runs on, default is "%s".' % config.services.api_host)
-@click.option('-p', '--port', default=config.services.api_port, help='the port nomad runs with, default is %d.' % config.services.api_port)
+@click.option('-n', '--url', default=_nomad_url, help='The URL where nomad is running "%s".' % _nomad_url)
 @click.option('-u', '--user', default=None, help='the user name to login, default no login.')
-@click.option('-w', '--password', default=None, help='the password use to login.')
-@click.option('-v', '--verbose', help='sets log level to debug', is_flag=True)
-def cli(host: str, port: int, verbose: bool, user: str, password: str):
-    if verbose:
+@click.option('-w', '--password', default=_pw, help='the password use to login.')
+@click.option('-v', '--verbose', help='sets log level to info', is_flag=True)
+@click.option('--debug', help='sets log level to debug', is_flag=True)
+def cli(url: str, verbose: bool, debug: bool, user: str, password: str):
+    if debug:
         config.console_log_level = logging.DEBUG
+    elif verbose:
+        config.console_log_level = logging.INFO
     else:
         config.console_log_level = logging.WARNING
 
     config.service = os.environ.get('NOMAD_SERVICE', 'client')
+    infrastructure.setup_logging()
 
-    global api_base
-    api_base = 'http://%s:%d/nomad/api' % (host, port)
+    logger = utils.get_logger(__name__)
 
-    global create_client
+    logger.info('Used nomad is %s' % url)
+    logger.info('Used user is %s' % user)
 
-    def create_client():  # pylint: disable=W0612
+    global _nomad_url
+    _nomad_url = url
+
+    global _create_client
+
+    def _create_client(*args, **kwargs):  # pylint: disable=W0612
         if user is not None:
-            return _create_client(host=host, port=port, user=user, password=password)
+            logger.info('create client', user=user)
+            return __create_client(user=user, password=password)
         else:
-            return _create_client(host=host, port=port)
+            logger.info('create anonymous client')
+            return __create_client()

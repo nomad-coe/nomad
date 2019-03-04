@@ -10,6 +10,7 @@ and infrastructure with a simplyfied architecture and consolidated code base.
    introduction
    setup
    dev_guidelines
+   api_tutorial
    api
    ops
    parser_tutorial

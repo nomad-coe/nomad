@@ -63,12 +63,12 @@ def integrationtests():
             client.archive.get_archive_logs(upload_id=upload.upload_id, calc_id=calc.calc_id).response()
 
         print('perform search on data')
-        search = client.repo.get_calcs(owner='staging', per_page=100).response().result
+        search = client.repo.search(owner='staging', per_page=100).response().result
         assert search.pagination.total >= total
         assert len(search.results) <= search.pagination.total
     finally:
         print('delete the upload again')
-        client.uploads.delete_upload(upload_id=upload.upload_id)
+        client.uploads.delete_upload(upload_id=upload.upload_id).response()
         while upload.process_running:
             upload = client.uploads.get_upload(upload_id=upload.upload_id).response().result
 

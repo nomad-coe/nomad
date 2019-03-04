@@ -25,6 +25,8 @@ spec:
         volumeMounts:
         - mountPath: /app/.volumes/fs
           name: files-volume
+        - mountPath: /nomad
+          name: nomad-volume
         env:
         - name: NOMAD_SERVICE
           value: "api"
@@ -70,7 +72,7 @@ spec:
           value: "{{ .Values.postgres.port }}"
         - name: NOMAD_COE_REPO_DB_NAME
           value: "{{ .Values.dbname }}"
-        command: ["python", "-m", "gunicorn.app.wsgiapp", "-b 0.0.0.0:8000", "nomad.api:app"]
+        command: ["python", "-m", "gunicorn.app.wsgiapp", "--timeout", "3600", "--log-config", "ops/gunicorn.log.conf", "-w", "{{ .Values.api.worker }}", "-b 0.0.0.0:8000", "nomad.api:app"]
         livenessProbe:
           httpGet:
             path: "{{ .Values.proxy.external.path }}/api/alive"
@@ -90,4 +92,8 @@ spec:
       - name: files-volume
         hostPath:
           path: {{ .Values.volumes.files }}
+          type: Directory
+      - name: nomad-volume
+        hostPath:
+          path: {{ .Values.volumes.nomad }}
           type: Directory

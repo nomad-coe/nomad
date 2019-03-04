@@ -30,6 +30,8 @@ spec:
         volumeMounts:
         - mountPath: /app/.volumes/fs
           name: files-volume
+        - mountPath: /nomad
+          name: nomad-volume
         env:
         - name: NOMAD_SERVICE
           value: "worker"
@@ -75,7 +77,7 @@ spec:
           value: "{{ .Values.mail.password }}"
         - name: NOMAD_MAIL_FROM
           value: "{{ .Values.mail.from }}"
-        command: ["python", "-m", "celery", "worker", "-l", "info", "-A", "nomad.processing"]
+        command: ["python", "-m", "celery", "worker", "-l", "info", "-A", "nomad.processing", "-Q", "celery,calcs,uploads"]
         livenessProbe:
           exec:
             command:
@@ -91,7 +93,7 @@ spec:
             - -c
             - NOMAD_LOGSTASH_LEVEL=30 python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
           initialDelaySeconds: 5
-          periodSeconds: 5
+          periodSeconds: 120
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
       imagePullPolicy: always
@@ -99,4 +101,8 @@ spec:
       - name: files-volume
         hostPath:
           path: {{ .Values.volumes.files }}
+          type: Directory
+      - name: nomad-volume
+        hostPath:
+          path: {{ .Values.volumes.nomad }}
           type: Directory

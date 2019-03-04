@@ -52,11 +52,40 @@ class RepositoryNormalizer(Normalizer):
         else:
             return match.group(0)
 
-    def get_optional_value(self, key):
-        try:
-            return self._backend.get_value(key, 0)
-        except KeyError:
-            return unavailable_label
+    def get_optional_value(self, key, section, unavailable_value=None):
+        # Section is section_system, section_symmetry, etc...
+        val = None  # Initialize to None, so we can compare section values.
+        diff_flag = False  # Flag to store whether vals differ between sections.
+        # Loop over the sections with the name section in the backend.
+        for section_index in self._backend.get_sections(section):
+            try:
+                new_val = self._backend.get_value(key, section_index)
+            except KeyError:
+                continue
+
+            # Compare values from iterations.
+            diff_bool = new_val != val
+
+            if type(diff_bool) is bool:
+                if diff_bool and val is not None:
+                    diff_flag = True
+            elif diff_bool.all() and (val is not None):
+                # Then we have an array, and diff bool has multiple values since
+                # each item in array has been compared item for item.
+                diff_flag = True
+
+            val = new_val
+
+        if diff_flag is True:
+            self.logger.warning(
+                'The values for %s differ between different %s' % (key, section))
+
+        if val is None:
+            self.logger.warning(
+                'The values for %s where not available in any %s' % (key, section))
+            return unavailable_value if unavailable_value is not None else unavailable_label
+        else:
+            return val
 
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
@@ -75,19 +104,36 @@ class RepositoryNormalizer(Normalizer):
             'repository_code_version',
             self.simplify_version(b.get_value('program_version', 0)))
         b.addValue('repository_parser_id', b.get_value('parser_name', 0))
-        b.addValue('repository_chemical_formula', b.get_value('chemical_composition_bulk_reduced', 0))
-        atom_labels = b.get_value('atom_labels', 0)
+        # We add these values as optional as some parser developers may create parsers
+        # where the first section contains only properties that are constant over
+        # several simulations and use the other sections to define simulation specific
+        # parameters. Ex. in first section_system CASTEP parsers defines # of elections
+        # and in subsequent sections it defines atom labels, positions, etc...
+        atom_labels = self.get_optional_value('atom_labels', 'section_system')
         b.addValue('repository_atomic_elements', list(set(atom_labels)))
         b.addValue('repository_atomic_elements_count', len(atom_labels))
-        b.addValue('repository_system_type', b.get_value('system_type', 0))
-
-        b.addValue('repository_crystal_system', self.get_optional_value('crystal_system'))
-        b.addValue('repository_spacegroup_nr', self.get_optional_value('space_group_number'))
-
-        b.addValue('repository_basis_set_type', self.get_optional_value('program_basis_set_type'))
+        b.addValue(
+            'repository_crystal_system',
+            self.get_optional_value('crystal_system', 'section_symmetry'))
+        b.addValue(
+            'repository_spacegroup_nr',
+            self.get_optional_value('space_group_number', 'section_symmetry', 0))
+        b.addValue(
+            'repository_spacegroup_symbol',
+            self.get_optional_value('international_short_symbol', 'section_symmetry', 0))
+        b.addValue(
+            'repository_basis_set_type',
+            self.get_optional_value('program_basis_set_type', 'section_run'))
+        b.addValue(
+            'repository_system_type',
+            self.get_optional_value('system_type', 'section_system'))
+        b.addValue(
+            'repository_chemical_formula',
+            self.get_optional_value('chemical_composition_bulk_reduced', 'section_system'))
         b.addValue(
             'repository_xc_treatment',
-            self.map_functional_name_to_xc_treatment(self.get_optional_value(('XC_functional_name'))))
+            self.map_functional_name_to_xc_treatment(
+                self.get_optional_value('XC_functional_name', 'section_method')))
 
         b.closeNonOverlappingSection('section_repository_parserdata')
         if repository_info_context is None:

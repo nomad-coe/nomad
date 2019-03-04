@@ -211,7 +211,9 @@ class Proc(Document, metaclass=ProcMetaclass):
         for error in errors:
             if isinstance(error, Exception):
                 failed_with_exception = True
-                Proc.log(logger, log_level, 'task failed with exception', exc_info=error)
+                Proc.log(
+                    logger, log_level, 'task failed with exception',
+                    exc_info=error, error=str(error))
 
         self.errors = [str(error) for error in errors]
         self.complete_time = datetime.now()
@@ -282,7 +284,7 @@ class Proc(Document, metaclass=ProcMetaclass):
         Reloads the process constantly until it sees a completed process. Should be
         used with care as it can block indefinitely. Just intended for testing purposes.
         """
-        while self.tasks_running:
+        while self.tasks_running or self.process_running:
             time.sleep(interval)
             self.reload()
 
@@ -467,9 +469,12 @@ def process(func):
         self_id = self.id.__str__()
         cls_name = self.__class__.__name__
 
-        logger = utils.get_logger(__name__, cls=cls_name, id=self_id, func=func.__name__)
+        queue = getattr(self.__class__, 'queue', None)
+
+        logger = utils.get_logger(
+            __name__, cls=cls_name, id=self_id, func=func.__name__, queue=queue)
         logger.debug('calling process function')
-        return proc_task.s(cls_name, self_id, func.__name__).delay()
+        return proc_task.apply_async(args=[cls_name, self_id, func.__name__], queue=queue)
 
     task = getattr(func, '__task_name', None)
     if task is not None:

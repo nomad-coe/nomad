@@ -46,11 +46,29 @@ import uuid
 import time
 import re
 from werkzeug.exceptions import HTTPException
+import hashlib
 
 from nomad import config
 
 default_hash_len = 28
 """ Length of hashes and hash-based ids (e.g. calc, upload) in nomad. """
+
+
+def hash(*args, length: int = default_hash_len) -> str:
+    """ Creates a websave hash of the given length based on the repr of the given arguments. """
+    hash = hashlib.sha512()
+    for arg in args:
+        hash.update(str(arg).encode('utf-8'))
+
+    return make_websave(hash, length=length)
+
+
+def make_websave(hash, length: int = default_hash_len) -> str:
+    """ Creates a websave string for a hashlib hash object. """
+    if length > 0:
+        return base64.b64encode(hash.digest(), altchars=b'-_')[:length].decode('utf-8')
+    else:
+        return base64.b64encode(hash.digest(), altchars=b'-_')[0:-2].decode('utf-8')
 
 
 def sanitize_logevent(event: str) -> str:
@@ -148,6 +166,8 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
 
                 message[key] = value
         else:
+            structlog['nomad.service'] = config.service
+            structlog['nomad.release'] = config.release
             message.update(structlog)
 
         # Add extra fields
@@ -236,6 +256,12 @@ def configure_logging():
 
     logger = get_logger(__name__)
     logger.info('structlog configured', with_logstash=config.logstash.enabled)
+
+    # configure log levels
+    for logger in [
+            'celery.app.trace', 'celery.worker.strategy', 'bagit', 'elasticsearch',
+            'urllib3.connectionpool', 'bravado', 'bravado_core', 'swagger_spec_validator']:
+        logging.getLogger(logger).setLevel(logging.WARNING)
 
 
 def create_uuid() -> str:
@@ -330,6 +356,12 @@ def to_tuple(self, *args):
     return tuple(self[arg] for arg in args)
 
 
+def chunks(list, n):
+    """ Chunks up the given list into parts of size n. """
+    for i in range(0, len(list), n):
+        yield list[i:i + n]
+
+
 class POPO(dict):
     """
     A dict subclass that uses attributes as key/value pairs.
@@ -351,3 +383,22 @@ class POPO(dict):
             del self[name]
         else:
             raise AttributeError("No such attribute: " + name)
+
+
+class SleepTimeBackoff:
+    """
+    Provides increasingly larger sleeps. Useful when
+    observing long running processes with unknown runtime.
+    """
+
+    def __init__(self, start_time: float = 0.1, max_time: float = 60):
+        self.current_time = start_time
+        self.max_time = max_time
+
+    def __call__(self):
+        self.sleep()
+
+    def sleep(self):
+        time.sleep(self.current_time)
+        self.current_time *= 2
+        self.current_time = min(self.max_time, self.current_time)

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABCMeta, abstractmethod
-from typing import List, Dict, Any
+from typing import List
 
 from nomad.parsing import AbstractParserBackend
 from nomad.utils import get_logger
@@ -72,52 +72,70 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         ]
 
     def _normalize_system(self, g_index):
-        input_data = dict(
-            uri='/section_run/0/section_system/%d' % g_index,
-            gIndex=g_index)
-        for quantity in self.quantities:
-            try:
-                input_data[quantity] = self._backend.get_value(quantity, g_index)
-            except KeyError:
-                # only fail when the normalizer actually uses the respecitive value
-                pass
+        context = '/section_run/0/section_system/%d' % g_index
 
-        context = input_data['uri']
         self._backend.openContext(context)
         try:
-            self.normalize_system(input_data)
+            self.normalize_system(g_index)
         finally:
             self._backend.closeContext(context)
 
     @abstractmethod
-    def normalize_system(self, section_system: Dict[str, Any]) -> None:
+    def normalize_system(self, section_system_index: int) -> None:
+        """ Normalize the given section. """
         pass
 
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
 
         if self._all_sections:
-            systems = self._backend.get_sections(s_system)
+            try:
+                systems = self._backend.get_sections(s_system)
+            except Exception:
+                systems = []
         else:
             # look for sccs in last frames
             sccs = []
-            for frame_seq in self._backend.get_sections(s_frame_sequence):
-                frames = self._backend.get_value(r_frame_sequence_local_frames, frame_seq)
+            try:
+                frame_seqs = self._backend.get_sections(s_frame_sequence)
+            except Exception:
+                frame_seqs = []
+
+            for frame_seq in frame_seqs:
+                try:
+                    frames = self._backend.get_value(r_frame_sequence_local_frames, frame_seq)
+                except Exception:
+                    frames = []
+
                 if len(frames) > 0:
                     sccs.append(frames[-1])
 
             # no sccs from frames -> consider all sccs
             if len(sccs) == 0:
-                sccs = self._backend.get_sections(s_scc)
+                try:
+                    sccs = self._backend.get_sections(s_scc)
+                except Exception:
+                    sccs = []
 
-            # no sccs -> consider all systems
-            systems = [self._backend.get_value(r_scc_to_system, scc) for scc in sccs]
+            try:
+                systems = [self._backend.get_value(r_scc_to_system, scc) for scc in sccs]
+            except Exception:
+                systems = []
 
             # only take the first, and last two systems
             if len(systems) == 0:
-                systems = self._backend.get_sections(s_system)
-                if len(systems) > 2:
-                    systems = [systems[0], systems[-2], systems[-1]]
+                try:
+                    systems = self._backend.get_sections(s_system)
+                except Exception:
+                    systems = []
+
+            if len(systems) > 2:
+                systems = [systems[0], systems[-2], systems[-1]]
+
+        if len(systems) == 0:
+            self.logger.error('no section system found')
+
+        self.logger.info('chose systems for normalization', number_of_systems=len(systems))
 
         for g_index in systems:
             try:
@@ -129,5 +147,5 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
             except Exception as e:
                 self.logger.error(
                     'Unexpected error during normalizing', normalizer=self.__class__.__name__,
-                    section='section_system', g_index=g_index, exc_info=e)
+                    section='section_system', g_index=g_index, exc_info=e, error=str(e))
                 raise e

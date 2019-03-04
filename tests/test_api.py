@@ -22,7 +22,7 @@ import inspect
 from passlib.hash import bcrypt
 from datetime import datetime
 
-from nomad import config, coe_repo, search, parsing
+from nomad import config, coe_repo, search, parsing, files
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
 
@@ -129,12 +129,20 @@ class TestAuth:
     def test_signature_token(self, test_user_signature_token, no_warn):
         assert test_user_signature_token is not None
 
-    def test_put_user(self, client, postgres, admin_user_auth):
+    @pytest.mark.parametrize('token, affiliation', [
+        ('test_token', dict(name='HU Berlin', address='Unter den Linden 6')),
+        (None, None)])
+    def test_put_user(self, client, postgres, admin_user_auth, token, affiliation):
+        data = dict(
+            email='test@email.com', last_name='Tester', first_name='Testi',
+            token=token, affiliation=affiliation,
+            password=bcrypt.encrypt('test_password', ident='2y'))
+
+        data = {key: value for key, value in data.items() if value is not None}
+
         rv = client.put(
             '/auth/user', headers=admin_user_auth,
-            content_type='application/json', data=json.dumps(dict(
-                email='test@email.com', last_name='Tester', first_name='Testi',
-                password=bcrypt.encrypt('test_password', ident='2y'))))
+            content_type='application/json', data=json.dumps(data))
 
         assert rv.status_code == 200
         self.assert_user(client, json.loads(rv.data))
@@ -244,6 +252,20 @@ class TestUploads:
         self.assert_upload_does_not_exist(client, upload_id, test_user_auth)
         assert_coe_upload(upload_id, user_metadata=metadata)
         assert_search_upload(upload_id, published=True)
+
+        upload_files = files.UploadFiles.get(upload_id=upload_id)
+        assert isinstance(upload_files, files.PublicUploadFiles)
+        for calc_metadata in upload_files.metadata:
+            assert calc_metadata.get('published', False)
+            assert 'with_embargo' in calc_metadata
+            assert calc_metadata['with_embargo'] == metadata.get('with_embargo', False)
+            try:
+                with upload_files.raw_file(calc_metadata['mainfile']) as f:
+                    assert f.read() is not None
+            except files.Restricted:
+                assert calc_metadata['with_embargo']
+            else:
+                assert not calc_metadata['with_embargo']
 
     def assert_upload_does_not_exist(self, client, upload_id: str, test_user_auth):
         # poll until publish/delete completed
@@ -449,7 +471,7 @@ class UploadFilesBasedTests:
         return wrapper
 
     @pytest.fixture(scope='function')
-    def test_data(self, request, postgres, mongo, no_warn, test_user, other_test_user):
+    def test_data(self, request, postgres, mongo, raw_files, no_warn, test_user, other_test_user):
         # delete potential old test files
         for _ in [0, 1]:
             upload_files = UploadFiles.get('test_upload')
@@ -537,6 +559,7 @@ class TestRepo(UploadFilesBasedTests):
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(calc_id='2', uploader=other_test_user.to_popo(), published=True)
+        calc_with_metadata.update(atoms=['Fe'], comment='this is a specific word', formula='AAA', basis_set='zzz')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(calc_id='3', uploader=other_test_user.to_popo(), published=False)
@@ -558,9 +581,9 @@ class TestRepo(UploadFilesBasedTests):
         (1, 'user', 'test_user'),
         (2, 'user', 'other_test_user'),
         (0, 'staging', 'test_user'),
-        (1, 'staging', 'other_test_user'),
+        (1, 'staging', 'other_test_user')
     ])
-    def test_search(self, client, example_elastic_calcs, no_warn, test_user_auth, other_test_user_auth, calcs, owner, auth):
+    def test_search_owner(self, client, example_elastic_calcs, no_warn, test_user_auth, other_test_user_auth, calcs, owner, auth):
         auth = dict(none=None, test_user=test_user_auth, other_test_user=other_test_user_auth).get(auth)
         rv = client.get('/repo/?owner=%s' % owner, headers=auth)
         assert rv.status_code == 200
@@ -573,14 +596,65 @@ class TestRepo(UploadFilesBasedTests):
             for key in ['uploader', 'calc_id', 'formula', 'upload_id']:
                 assert key in results[0]
 
-    def test_calcs_pagination(self, client, example_elastic_calcs, no_warn):
-        rv = client.get('/repo/?page=1&per_page=1')
+    @pytest.mark.parametrize('calcs, quantity, value', [
+        (2, 'system', 'bulk'),
+        (0, 'system', 'atom'),
+        (1, 'atoms', 'Br'),
+        (1, 'atoms', 'Fe'),
+        (0, 'atoms', ['Fe', 'Br']),
+        (1, 'comment', 'specific'),
+        (1, 'authors', 'Hofstadter, Leonard'),
+        (2, 'files', 'test/mainfile.txt'),
+        (2, 'paths', 'mainfile.txt'),
+        (2, 'paths', 'test'),
+        (2, 'quantities', ['wyckoff_letters_primitive', 'hall_number']),
+        (0, 'quantities', 'dos')
+    ])
+    def test_search_quantities(self, client, example_elastic_calcs, no_warn, test_user_auth, calcs, quantity, value):
+        if isinstance(value, list):
+            query_string = '&'.join('%s=%s' % (quantity, item) for item in value)
+        else:
+            query_string = '%s=%s' % (quantity, value)
+
+        rv = client.get('/repo/?%s' % query_string, headers=test_user_auth)
+
         assert rv.status_code == 200
         data = json.loads(rv.data)
+
         results = data.get('results', None)
         assert results is not None
         assert isinstance(results, list)
-        assert len(results) == 1
+        assert len(results) == calcs
+
+        aggregations = data.get('aggregations', None)
+        assert aggregations is not None
+        if quantity == 'system' and calcs != 0:
+            # for simplicity we only assert on aggregations for this case
+            assert 'system' in aggregations
+            assert len(aggregations['system']) == 1
+            assert value in aggregations['system']
+
+    @pytest.mark.parametrize('n_results, page, per_page', [(2, 1, 5), (1, 1, 1), (0, 2, 3)])
+    def test_search_pagination(self, client, example_elastic_calcs, no_warn, n_results, page, per_page):
+        rv = client.get('/repo/?page=%d&per_page=%d' % (page, per_page))
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        results = data.get('results', None)
+        assert data['pagination']['total'] == 2
+        assert results is not None
+        assert len(results) == n_results
+
+    @pytest.mark.parametrize('first, order_by, order', [
+        ('1', 'formula', -1), ('2', 'formula', 1),
+        ('2', 'basis_set', -1), ('1', 'basis_set', 1)])
+    def test_search_order(self, client, example_elastic_calcs, no_warn, first, order_by, order):
+        rv = client.get('/repo/?order_by=%s&order=%d' % (order_by, order))
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        results = data.get('results', None)
+        assert data['pagination']['total'] == 2
+        assert len(results) == 2
+        assert results[0]['calc_id'] == first
 
     def test_search_user_authrequired(self, client, example_elastic_calcs, no_warn):
         rv = client.get('/repo/?owner=user')

@@ -20,21 +20,225 @@ other/older nomad@FAIRDI instances to mass upload it to a new nomad@FAIRDI insta
 .. autoclass:: SourceCalc
 """
 
-from typing import Generator, Tuple, List, Iterable
+from typing import Generator, Tuple, List, Iterable, IO, Any
+import os
 import os.path
 import zipstream
 import zipfile
 import math
-from mongoengine import Document, IntField, StringField, DictField
-from passlib.hash import bcrypt
-from werkzeug.contrib.iterio import IterIO
+from mongoengine import Document, IntField, StringField, DictField, ListField
 import time
-from bravado.exception import HTTPNotFound
+import datetime
+from bravado.exception import HTTPNotFound, HTTPBadRequest, HTTPGatewayTimeout
+import glob
+import os
+import runstats
+import io
 
-from nomad import utils, config, infrastructure
-from nomad.coe_repo import User, Calc
+from nomad import utils, infrastructure, config
+from nomad.coe_repo import User, Calc, LoginException
 from nomad.datamodel import CalcWithMetadata
 from nomad.processing import FAILURE, SUCCESS
+
+
+default_pid_prefix = 7000000
+""" The default pid prefix for new non migrated calculations """
+
+max_package_size = 16 * 1024 * 1024 * 1024  # 16 GB
+""" The maximum size of a package that will be used as an upload on nomad@FAIRDI """
+use_stats_for_filestats_threshold = 1024
+
+default_comment = 'entry with unknown provernance'
+default_uploader = dict(id=1)
+
+
+def iterable_to_stream(iterable, buffer_size=io.DEFAULT_BUFFER_SIZE):
+    """
+    Lets you use an iterable (e.g. a generator) that yields bytestrings as a read-only
+    input stream.
+
+    The stream implements Python 3's newer I/O API (available in Python 2's io module).
+    For efficiency, the stream is buffered.
+    """
+    class IterStream(io.RawIOBase):
+        def __init__(self):
+            self.leftover = None
+            self.iterator = iter(iterable)
+
+        def readable(self):
+            return True
+
+        def readinto(self, b):
+            requested_len = len(b)  # We're supposed to return at most this much
+            while True:
+                try:
+                    chunk = next(self.iterator)
+                except StopIteration:
+                    if len(self.leftover) == 0:
+                        return 0  # indicate EOF
+                    chunk = self.leftover
+                output, self.leftover = chunk[:requested_len], chunk[requested_len:]
+                len_output = len(output)
+                if len_output == 0:
+                    continue  # do not prematurely indicate EOF
+                b[:len_output] = output
+                return len_output
+
+    return io.BufferedReader(IterStream(), buffer_size=buffer_size)
+
+
+class Package(Document):
+    """
+    A Package represents split origin NOMAD CoE uploads. We use packages as uploads
+    in nomad@FAIRDI. Some of the uploads in nomad are very big (alfow lib) and need
+    to be split down to yield practical (i.e. for mirrors) upload sizes. Therefore,
+    uploads are split over multiple packages if one upload gets to large. A package
+    always contains full directories of files to preserve *mainfile* *aux* file relations.
+    """
+
+    package_id = StringField(primary_key=True)
+    """ A random UUID for the package. Could serve later is target upload id."""
+    filenames = ListField(StringField(), default=[])
+    """ The files in the package relative to the upload path """
+    upload_path = StringField()
+    """ The absolute path of the source upload """
+    upload_id = StringField()
+    """ The source upload_id. There might be multiple packages per upload (this is the point). """
+    restricted = IntField()
+    """ The restricted in month, 0 for unrestricted """
+    size = IntField()
+    """ The sum of all file sizes """
+
+    migration_version = IntField()
+    report = DictField()
+
+    meta = dict(indexes=['upload_id', 'migration_version'])
+
+    def open_package_upload_file(self) -> IO:
+        """ Creates a streaming zip file from the files of this package. """
+        zip_file = zipstream.ZipFile(compression=zipstream.ZIP_STORED, allowZip64=True)
+        for filename in self.filenames:
+            filepath = os.path.join(self.upload_path, filename)
+            zip_file.write(filepath, filename)
+
+        return iterable_to_stream(zip_file)  # type: ignore
+
+    def create_package_upload_file(self) -> str:
+        """  Creates a zip file for the package in tmp and returns its path. """
+        upload_filepath = os.path.join(config.fs.nomad_tmp, '%s.zip' % self.package_id)
+        if not os.path.exists(os.path.dirname(upload_filepath)):
+            os.mkdir(os.path.dirname(upload_filepath))
+        if not os.path.isfile(upload_filepath):
+            with zipfile.ZipFile(
+                    upload_filepath, 'w',
+                    compression=zipfile.ZIP_STORED, allowZip64=True) as zip_file:
+                for filename in self.filenames:
+                    filepath = os.path.join(self.upload_path, filename)
+                    zip_file.write(filepath, filename)
+
+        return upload_filepath
+
+    @classmethod
+    def index(cls, *upload_paths):
+        """
+        Creates Package objects for the given uploads in nomad. The given uploads are
+        supposed to be path to the extracted upload directories. If the upload is already
+        in the db, the upload is skipped entirely.
+        """
+        logger = utils.get_logger(__name__)
+
+        for upload_path in upload_paths:
+            try:
+                stats = runstats.Statistics()
+                upload_path = os.path.abspath(upload_path)
+                upload_id = os.path.basename(upload_path)
+                if cls.objects(upload_id=upload_id).first() is not None:
+                    logger.info('upload already exists, skip', upload_id=upload_id)
+                    continue
+
+                restrict_files = glob.glob(os.path.join(upload_path, 'RESTRICTED_*'))
+                month = 0
+                for restrict_file in restrict_files:
+                    restrict_file = os.path.basename(restrict_file)
+                    try:
+                        new_month = int(restrict_file[len('RESTRICTED_'):])
+                        if new_month > month:
+                            month = new_month
+                    except Exception:
+                        month = 36
+                if month > 36:
+                    month = 36
+                restricted = month
+
+                def create_package():
+                    cls.timer = time.time()
+                    package = Package(
+                        package_id=utils.create_uuid(),
+                        upload_id=upload_id,
+                        upload_path=upload_path,
+                        restricted=restricted,
+                        size=0)
+                    return package
+
+                def save_package(package):
+                    if len(package.filenames) == 0:
+                        return
+
+                    if package.size > max_package_size:
+                        # a single directory seems to big for a package
+                        logger.error(
+                            'directory exceeds max package size', directory=upload_path, size=package.size)
+
+                    package.save()
+                    logger.info(
+                        'created package',
+                        size=package.size,
+                        files=len(package.filenames),
+                        package_id=package.package_id,
+                        exec_time=time.time() - cls.timer,
+                        upload_id=package.upload_id)
+
+                package = create_package()
+
+                for root, _, files in os.walk(upload_path):
+                    directory_filenames: List[str] = []
+                    directory_size = 0
+
+                    if len(files) == 0:
+                        continue
+
+                    for file in files:
+                        filepath = os.path.join(root, file)
+                        filename = filepath[len(upload_path) + 1:]
+                        directory_filenames.append(filename)
+                        # getting file stats is pretty expensive with gpfs
+                        # if an upload has more then 1000 files, its pretty likely that
+                        # size patterns repeat ... goood enough
+                        if len(stats) < use_stats_for_filestats_threshold:
+                            filesize = os.path.getsize(filepath)
+                            stats.push(filesize)
+                        else:
+                            filesize = stats.mean()
+                        directory_size += filesize
+
+                    if (package.size + directory_size) > max_package_size and package.size > 0:
+                        save_package(package)
+                        package = create_package()
+
+                    for filename in directory_filenames:
+                        package.filenames.append(filename)
+                    package.size += directory_size
+
+                    logger.debug('packaged directory', directory=root, size=directory_size)
+
+                save_package(package)
+
+                logger.info('completed upload', directory=upload_path, upload_id=upload_id)
+            except Exception as e:
+                logger.error(
+                    'could create package from upload',
+                    upload_path=upload_path, upload_id=upload_id, exc_info=e)
+                continue
 
 
 class SourceCalc(Document):
@@ -51,11 +255,13 @@ class SourceCalc(Document):
     upload = StringField()
     metadata = DictField()
 
+    migration_version = IntField()
+
     extracted_prefix = '$EXTRACTED/'
     sites = ['/data/nomad/extracted/', '/nomad/repository/extracted/']
     prefixes = [extracted_prefix] + sites
 
-    meta = dict(indexes=['upload'])
+    meta = dict(indexes=['upload', 'mainfile', 'migration_version'])
 
     _dataset_cache: dict = {}
 
@@ -133,17 +339,11 @@ class SourceCalc(Document):
 
 class NomadCOEMigration:
     """
-    Drives a migration from the NOMAD coe repository db to nomad@FAIRDI. It is assumed
-    that this class is never used on the worker or api service. It assumes the
-    default coe repo connection as a connection to the source repository db.
-
-    Attributes:
-        source: SQLAlchemy session for the source NOMAD coe repository db.
+    Drives a migration from the NOMAD coe repository db to nomad@FAIRDI.
 
     Arguments:
-        sites: Directories that might contain uploads to migrate. Use to override defaults.
-        pid_prefix: All PIDs for previously unknown calculations will get a PID higher
-            than that. Use to override default.
+        migration_version: The migration version. Only packages/calculations with
+            no migration version or a lower migration version are migrated.
     """
 
     default_sites = [
@@ -157,14 +357,11 @@ class NomadCOEMigration:
     archive_filename = 'archive.tar.gz'
     """ The standard name for tarred uploads in the CoE repository. """
 
-    def __init__(
-            self,
-            sites: List[str] = default_sites,
-            pid_prefix: int = default_pid_prefix) -> None:
-
-        self.sites, self.pid_prefix = sites, pid_prefix
-        self.logger = utils.get_logger(__name__)
+    def __init__(self, migration_version: int = 0) -> None:
+        self.logger = utils.get_logger(__name__, migration_version=migration_version)
+        self.migration_version = migration_version
         self._client = None
+
         self.source = infrastructure.repository_db
 
     @property
@@ -175,25 +372,38 @@ class NomadCOEMigration:
 
         return self._client
 
-    def copy_users(self, target_db):
-        """ Copy all users, keeping their ids, within a single transaction. """
-        target_db.begin()
+    def copy_users(self):
+        """ Copy all users. """
         for source_user in self.source.query(User).all():
-            self.source.expunge(source_user)  # removes user from the source session
-            target_db.merge(source_user)
+            if source_user.user_id <= 2:
+                # skip first two users to keep example users
+                # they probably are either already the example users, or [root, Evgeny]
+                continue
 
-        admin = target_db.query(User).filter_by(email='admin').first()
-        if admin is None:
-            admin = User(
-                user_id=0, email='admin', first_name='admin', last_name='admin',
-                password=bcrypt.encrypt(config.services.admin_password, ident='2y'))
-            target_db.add(admin)
-        target_db.commit()
+            create_user_payload = dict(
+                user_id=source_user.user_id,
+                email=source_user.email,
+                first_name=source_user.first_name,
+                last_name=source_user.last_name,
+                password=source_user.password,
+                created=source_user.created
+            )
 
-    def set_new_pid_prefix(self, target_db, prefix=7000000):
-        target_db.begin()
-        target_db.execute('ALTER SEQUENCE calculations_calc_id_seq RESTART WITH %d' % prefix)
-        target_db.commit()
+            try:
+                create_user_payload.update(token=source_user.token)
+            except LoginException:
+                pass
+
+            if source_user.affiliation is not None:
+                create_user_payload.update(affiliation=dict(
+                    name=source_user.affiliation.name,
+                    address=source_user.affiliation.address))
+
+            try:
+                self.client.auth.create_user(payload=create_user_payload).response()
+                self.logger.info('copied user', user_id=source_user.user_id)
+            except HTTPBadRequest as e:
+                self.logger.error('could not create user due to bad data', exc_info=e, user_id=source_user.user_id)
 
     def _to_comparable_list(self, list):
         for item in list:
@@ -204,7 +414,7 @@ class NomadCOEMigration:
             else:
                 yield item
 
-    def _validate(self, upload_id: str, calc_id: str, source_calc: CalcWithMetadata, logger) -> bool:
+    def _validate(self, repo_calc: dict, source_calc: CalcWithMetadata, logger) -> bool:
         """
         Validates the given processed calculation, assuming that the data in the given
         source_calc is correct.
@@ -212,32 +422,39 @@ class NomadCOEMigration:
         Returns:
             False, if the calculation differs from the source calc.
         """
-        repo_calc = self.client.repo.get_repo_calc(
-            upload_id=upload_id, calc_id=calc_id).response().result
+        keys_to_validate = [
+            'atoms', 'basis_set', 'xc_functional', 'system', 'crystal_system',
+            'spacegroup', 'code_name', 'code_version']
 
         is_valid = True
         for key, target_value in repo_calc.items():
-            if key in ['calc_id', 'upload_id', 'files', 'calc_hash']:
+            if key not in keys_to_validate:
                 continue
 
             source_value = getattr(source_calc, key, None)
 
-            def report_mismatch():
+            def check_mismatch() -> bool:
+                # some exceptions
+                if source_value == '3d' and target_value == 'bulk':
+                    return True
+
                 logger.info(
                     'source target missmatch', quantity=key,
-                    source_value=source_value, target_value=target_value)
+                    source_value=source_value, target_value=target_value,
+                    value_diff='%s->%s' % (str(source_value), str(target_value)))
+                return False
 
-            if (source_value is None or target_value is None) and source_value != target_value:
-                report_mismatch()
-                is_valid = False
+            if source_value is None and target_value is not None:
                 continue
+
+            if target_value is None and source_value is not None:
+                is_valid &= check_mismatch()
 
             if isinstance(target_value, list):
                 source_list = list(self._to_comparable_list(source_value))
                 target_list = list(self._to_comparable_list(target_value))
                 if len(set(source_list).intersection(target_list)) != len(target_list):
-                    report_mismatch()
-                    is_valid = False
+                    is_valid &= check_mismatch()
                 continue
 
             if isinstance(source_value, str):
@@ -245,198 +462,371 @@ class NomadCOEMigration:
                 target_value = str(target_value).lower()
 
             if source_value != target_value:
-                report_mismatch()
-                is_valid = False
+                is_valid &= check_mismatch()
 
         return is_valid
 
-    def migrate(self, *args):
+    def _packages(
+            self, source_upload_path: str,
+            create: bool = False) -> Tuple[Iterable[Package], str]:
+        """
+        Creates a iterator over packages for the given upload path. Packages are
+        taken from the :class:`Package` index.
+
+        Arguments:
+            source_upload_path: The path to the extracted upload.
+            create: If True, will index packages if they not exist.
+
+        Returns:
+            A tuple with the package iterable and the source_upload_id (last path segment)
+        """
+
+        source_upload_id = os.path.basename(source_upload_path)
+        logger = self.logger.bind(
+            source_upload_path=source_upload_path, source_upload_id=source_upload_id)
+
+        if os.path.isfile(source_upload_path):
+            # assume its a path to an archive files
+            logger.error('currently no support for migrating archive files')
+            return [], source_upload_id
+
+        package_query = Package.objects(upload_id=source_upload_id)
+
+        if package_query.count() == 0:
+            if create:
+                Package.index(source_upload_path)
+                package_query = Package.objects(upload_id=source_upload_id)
+                if package_query.count() == 0:
+                    logger.error('no package exists, even after indexing')
+                    return [], source_upload_id
+            else:
+                logger.error('no package exists for upload')
+                return [], source_upload_id
+
+        logger.debug('identified packages for source upload', n_packages=package_query.count())
+        return package_query, source_upload_id
+
+    def _surrogate_metadata(self, source: CalcWithMetadata):
+        """
+        Compute metadata from the given metadata that can be used for new calcs of the
+        same upload.
+        """
+        return CalcWithMetadata(
+            uploader=source.uploader,
+            with_embargo=source.with_embargo,
+            upload_time=source.upload_time,
+            coauthors=source.coauthors,
+            shared_with=source.shared_with,
+            comment=source.comment,
+            references=source.references,
+            datasets=source.datasets)
+
+    def set_pid_prefix(self, prefix: int = default_pid_prefix):
+        """
+        Sets the repo db pid counter to the given values. Allows to create new calcs
+        without interfering with migration calcs with already existing PIDs.
+        """
+        self.logger.info('set pid prefix', pid_prefix=prefix)
+        self.client.admin.exec_pidprefix_command(payload=dict(prefix=prefix)).response()
+
+    def migrate(self, upload_path, create_packages: bool = False, local: bool = False) -> utils.POPO:
         """
         Migrate the given uploads.
 
-        It takes upload 'id's as args. Alternatively takes absolute paths to uploads.
-        It tries to be as flexible as possible with those 'id's: looking at all
-        configured sites, dealing with extracted and tarred/zipped uploads, dealing
-        with paths to files and directories.
+        It takes paths to extracted uploads as arguments.
+
+        Requires :class:`Package` instances for the given upload paths. Those will
+        be created, if they do not already exists. The packages determine the uploads
+        for the target infrastructure.
 
         Requires a build :func:`index` to look for existing data in the source db. This
         will be used to add user (and other, PID, ...) metadata and validate calculations.
 
         Uses PIDs of identified old calculations. Will create new PIDs for previously
-        unknown uploads. New PIDs will be choosed from a `prefix++` range of ints.
+        unknown uploads. See :func:`set_pid_prefix` on how to avoid conflicts.
+
+        Arguments:
+            upload_path: A filepath to the upload directory.
+            create_packages: If True, will create non existing packages.
+                Will skip with errors otherwise.
+            local: Instead of streaming an upload, create a local file and use local_path on the upload.
 
         Returns: Yields a dictionary with status and statistics for each given upload.
         """
+        # get the packages
+        packages, source_upload_id = self._packages(upload_path, create=create_packages)
+        logger = self.logger.bind(source_upload_id=source_upload_id)
 
-        upload_specs = args
-        for upload_spec in upload_specs:
-            # identify upload
-            upload_path = None
-            abs_upload_path = os.path.abspath(upload_spec)
-            if os.path.exists(abs_upload_path):
-                upload_path = upload_spec
-            else:
-                for site in self.sites:
-                    potential_upload_path = os.path.join(site, upload_spec)
-                    if os.path.exists(potential_upload_path):
-                        upload_path = potential_upload_path
-                        break
-
-            if upload_path is None:
-                error = 'upload does not exist'
-                self.logger.error(error, upload_spec=upload_spec)
-                yield dict(status=FAILURE, error=error)
+        report = Report()
+        for package in packages:
+            if package.migration_version is not None and package.migration_version >= self.migration_version:
+                logger.info('package already migrated', package_id=package.package_id)
+                report.add(Report(**package.report))
+                report.skipped_packages += 1
                 continue
 
-            # prepare the upload by determining/creating an upload file, name, source upload id
-            if os.path.isfile(upload_path):
-                upload_archive_f = open(upload_path, 'rb')
-                source_upload_id = os.path.split(os.path.split(upload_path)[0])[1]
-                upload_name = os.path.basename(upload_path)
-            else:
-                potential_upload_archive = os.path.join(
-                    upload_path, NomadCOEMigration.archive_filename)
-                if os.path.isfile(potential_upload_archive):
-                    upload_archive_f = open(potential_upload_archive, 'rb')
-                    source_upload_id = os.path.split(os.path.split(potential_upload_archive)[0])[1]
-                    upload_name = os.path.basename(potential_upload_archive)
+            report.add(self.migrate_package(package))
+
+        total_source_calcs = SourceCalc.objects(upload=source_upload_id).count()
+        if total_source_calcs != report.total_source_calcs:
+            self.logger.warning(
+                'upload packages miss source calcs',
+                package_source_calcs=report.total_source_calcs,
+                upload_source_calcs=total_source_calcs)
+
+            report.missing_calcs += total_source_calcs - report.total_source_calcs
+            report.total_source_calcs = total_source_calcs
+
+        self.logger.info('migrated upload', upload_path=upload_path, **report)
+        return report
+
+    def nomad(self, operation: str, *args, **kwargs) -> Any:
+        """
+        Calls nomad via the bravado client. It deals with a very busy nomad and catches,
+        backsoff, and retries on gateway timouts.
+
+        Arguments:
+            operation: Comma separated string of api, endpoint, operation,
+                e.g. 'uploads.get_upload'.
+        """
+        op_path = operation.split('.')
+        op = self.client
+        for op_path_segment in op_path:
+            op = getattr(op, op_path_segment)
+
+        sleep = utils.SleepTimeBackoff()
+        while True:
+            try:
+                return op(*args, **kwargs).response().result
+            except HTTPGatewayTimeout:
+                sleep()
+            except Exception as e:
+                raise e
+
+    def migrate_package(self, package: Package, local: bool = False):
+        source_upload_id = package.upload_id
+        package_id = package.package_id
+
+        logger = self.logger.bind(package_id=package_id, source_upload_id=source_upload_id)
+        logger.debug('start to process package')
+
+        report = Report()
+        report.total_packages += 1
+
+        # upload and process the upload file
+        from nomad.client import stream_upload_with_client
+        with utils.timer(logger, 'upload completed'):
+            try:
+                if local:
+                    upload_filepath = package.create_package_upload_file()
+                    self.logger.debug('created package upload file')
+                    upload = self.nomad(
+                        'uploads.upload', name=package_id, local_path=upload_filepath)
                 else:
-                    source_upload_id = os.path.split(upload_path)[1]
-                    zip_file = zipstream.ZipFile()
-                    path_prefix = len(upload_path) + 1
-                    for root, _, files in os.walk(upload_path):
-                        for file in files:
-                            zip_file.write(
-                                os.path.join(root, file),
-                                os.path.join(root[path_prefix:], file),
-                                zipfile.ZIP_DEFLATED)
-                    zip_file.write(upload_path)
-                    upload_archive_f = IterIO(zip_file)
-                    upload_name = '%s.zip' % source_upload_id
+                    upload_f = package.open_package_upload_file()
+                    self.logger.debug('opened package upload file')
+                    upload = stream_upload_with_client(self.client, upload_f, name=package_id)
+            except Exception as e:
+                self.logger.error('could not upload package', exc_info=e)
+                report.failed_packages += 1
+                return report
 
-            # upload and process the upload file
-            upload = self.client.uploads.upload(
-                file=upload_archive_f, name=upload_name).response().result
-            upload_archive_f.close()
+        logger = logger.bind(
+            source_upload_id=source_upload_id, upload_id=upload.upload_id)
 
-            upload_logger = self.logger.bind(
-                source_upload_id=source_upload_id, upload_id=upload.upload_id)
+        # grab source calcs, while waiting for upload
+        source_calcs = dict()
+        surrogate_source_calc_with_metadata = None
+        with utils.timer(logger, 'loaded source metadata'):
+            for filenames_chunk in utils.chunks(package.filenames, 1000):
+                for source_calc in SourceCalc.objects(
+                        upload=source_upload_id, mainfile__in=filenames_chunk):
 
-            # grab source metadata
-            upload_metadata_calcs = list()
-            metadata_dict = dict()
-            upload_metadata = dict(calculations=upload_metadata_calcs)
-            for source_calc in SourceCalc.objects(upload=source_upload_id):
-                source_metadata = CalcWithMetadata(**source_calc.metadata)
-                source_metadata.upload_id = upload.upload_id
-                source_metadata.mainfile = source_calc.mainfile
-                source_metadata.pid = source_calc.pid
-                source_metadata.__migrated = False
-                upload_metadata_calcs.append(source_metadata)
-                metadata_dict[source_calc.mainfile] = source_metadata
+                    source_calc_with_metadata = CalcWithMetadata(**source_calc.metadata)
+                    source_calc_with_metadata.pid = source_calc.pid
+                    source_calc_with_metadata.mainfile = source_calc.mainfile
+                    source_calcs[source_calc.mainfile] = (source_calc, source_calc_with_metadata)
 
-            report = utils.POPO()
-            report.total_source_calcs = len(metadata_dict)
-            report.failed_calcs = 0
-            report.migrated_calcs = 0
-            report.calcs_with_diffs = 0
-            report.new_calcs = 0
-            report.missing_calcs = 0
+                    # establish a surrogate for new calcs
+                    if surrogate_source_calc_with_metadata is None:
+                        surrogate_source_calc_with_metadata = \
+                            self._surrogate_metadata(source_calc_with_metadata)
+            report.total_source_calcs = len(source_calcs)
+        # try to find a surrogate outside the package, if necessary
+        if surrogate_source_calc_with_metadata is None:
+            source_calc = SourceCalc.objects(upload=source_upload_id).first()
+            if source_calc is not None:
+                source_calc_with_metadata = CalcWithMetadata(**source_calc.metadata)
+                surrogate_source_calc_with_metadata = \
+                    self._surrogate_metadata(source_calc_with_metadata)
 
-            # wait for complete upload
+        # wait for complete upload
+        with utils.timer(logger, 'upload processing completed'):
+            sleep = utils.SleepTimeBackoff()
             while upload.tasks_running:
-                upload = self.client.uploads.get_upload(upload_id=upload.upload_id).response().result
-                time.sleep(0.1)
+                upload = self.nomad('uploads.get_upload', upload_id=upload.upload_id)
+                sleep()
 
-            if upload.tasks_status == FAILURE:
-                error = 'failed to process upload'
-                report.missing_calcs = report.total_source_calcs
-                report.total_calcs = 0
-                upload_logger.error(error, process_errors=upload.errors)
-                yield report
-                continue
-            else:
-                report.total_calcs = upload.calcs.pagination.total
+        if upload.tasks_status == FAILURE:
+            logger.error('failed to process upload', process_errors=upload.errors)
+            report.failed_packages += 1
+            report.missing_calcs += report.total_source_calcs
+            return report
+        else:
+            report.total_calcs += upload.calcs.pagination.total
 
-            # verify upload
-            for page in range(1, math.ceil(report.total_calcs / 100) + 1):
-                upload = self.client.uploads.get_upload(
-                    upload_id=upload.upload_id, per_page=100, page=page,
-                    order_by='mainfile').response().result
+        calc_mainfiles = []
+        upload_total_calcs = upload.calcs.pagination.total
+
+        # check for processing errors
+        with utils.timer(logger, 'checked upload processing'):
+            per_page = 200
+            for page in range(1, math.ceil(upload_total_calcs / per_page) + 1):
+                upload = self.nomad(
+                    'uploads.get_upload', upload_id=upload.upload_id, per_page=per_page,
+                    page=page, order_by='mainfile')
 
                 for calc_proc in upload.calcs.results:
-                    calc_logger = upload_logger.bind(
+                    calc_logger = logger.bind(
                         calc_id=calc_proc.calc_id,
                         mainfile=calc_proc.mainfile)
 
-                    source_calc = metadata_dict.get(calc_proc.mainfile, None)
                     if calc_proc.tasks_status == SUCCESS:
-                        if source_calc is None:
-                            calc_logger.info('processed a calc that has no source')
-                            report.new_calcs += 1
-                            continue
-                        else:
-                            source_calc.__migrated = True
-                            report.migrated_calcs += 1
-
-                        if not self._validate(
-                                upload.upload_id, calc_proc.calc_id, source_calc, calc_logger):
-                            report.calcs_with_diffs += 1
+                        calc_mainfiles.append(calc_proc.mainfile)
                     else:
                         report.failed_calcs += 1
-                        calc_logger.error(
+                        calc_logger.info(
                             'could not process a calc', process_errors=calc_proc.errors)
                         continue
 
-            for source_calc in upload_metadata_calcs:
-                if source_calc.__migrated is False:
-                    report.missing_calcs += 1
-                    upload_logger.info(
-                        'no match or processed calc for source calc',
-                        mainfile=source_calc.mainfile)
+        # verify upload against source
+        calcs_in_search = 0
+        with utils.timer(logger, 'varyfied upload against source calcs'):
+            for page in range(1, math.ceil(upload_total_calcs / per_page) + 1):
+                search = self.nomad(
+                    'repo.search', page=page, per_page=per_page, upload_id=upload.upload_id,
+                    order_by='mainfile')
 
-            # publish upload
-            upload_metadata['calculations'] = [
-                self._to_api_metadata(calc)
-                for calc in upload_metadata['calculations'] if calc.__migrated]
+                for calc in search.results:
+                    calcs_in_search += 1
+                    source_calc, source_calc_with_metadata = source_calcs.get(
+                        calc['mainfile'], (None, None))
 
-            if report.total_calcs > report.failed_calcs:
-                upload = self.client.uploads.exec_upload_operation(
-                    upload_id=upload.upload_id,
-                    payload=dict(operation='publish', metadata=upload_metadata)
-                ).response().result
+                    if source_calc is not None:
+                        report.migrated_calcs += 1
 
+                        calc_logger = logger.bind(calc_id=calc['calc_id'], mainfile=calc['mainfile'])
+                        if not self._validate(calc, source_calc_with_metadata, calc_logger):
+                            report.calcs_with_diffs += 1
+                    else:
+                        calc_logger.info('processed a calc that has no source')
+                        report.new_calcs += 1
+                        # guessing the metadata from other calcs in upload/package
+                        if surrogate_source_calc_with_metadata is not None:
+                            new_calc_with_metadata = CalcWithMetadata(**surrogate_source_calc_with_metadata.to_dict())
+                            new_calc_with_metadata.mainfile = calc['mainfile']
+                        else:
+                            calc_logger.warning('could not determine any metadata for new calc')
+                            create_time_epoch = os.path.getctime(package.upload_path)
+                            new_calc_with_metadata = CalcWithMetadata(
+                                upload_time=datetime.datetime.fromtimestamp(create_time_epoch),
+                                with_embargo=package.restricted > 0,
+                                comment=default_comment,
+                                uploader=default_uploader,
+                                mainfile=calc['mainfile'])
+                            surrogate_source_calc_with_metadata = new_calc_with_metadata
+
+                        source_calcs[calc['mainfile']] = (None, new_calc_with_metadata)
+
+            if len(calc_mainfiles) != calcs_in_search:
+                logger.error('missmatch between processed calcs and calcs found with search')
+
+        # publish upload
+        if len(calc_mainfiles) > 0:
+            with utils.timer(logger, 'upload published'):
+                upload_metadata = dict(with_embargo=(package.restricted > 0))
+                upload_metadata['calculations'] = [
+                    self._to_api_metadata(source_calc_with_metadata)
+                    for _, source_calc_with_metadata in source_calcs.values()]
+
+                upload = self.nomad(
+                    'uploads.exec_upload_operation', upload_id=upload.upload_id,
+                    payload=dict(operation='publish', metadata=upload_metadata))
+
+                sleep = utils.SleepTimeBackoff()
                 while upload.process_running:
                     try:
-                        upload = self.client.uploads.get_upload(
-                            upload_id=upload.upload_id).response().result
-                        time.sleep(0.1)
+                        upload = self.nomad('uploads.get_upload', upload_id=upload.upload_id)
+                        sleep()
                     except HTTPNotFound:
                         # the proc upload will be deleted by the publish operation
                         break
 
-            # report
-            upload_logger.info('migrated upload', **report)
-            yield report
+                if upload.tasks_status == FAILURE:
+                    logger.error('could not publish upload', process_errors=upload.errors)
+                    report.failed_calcs = report.total_calcs
+                    report.migrated_calcs = 0
+                    report.calcs_with_diffs = 0
+                    report.new_calcs = 0
+                    report.failed_packages += 1
+                else:
+                    SourceCalc.objects(upload=source_upload_id, mainfile__in=calc_mainfiles) \
+                        .update(migration_version=self.migration_version)
+                    package.migration_version = self.migration_version
+        else:
+            logger.info('no successful calcs, skip publish')
 
-    def _to_api_metadata(self, source: CalcWithMetadata) -> dict:
+        report.missing_calcs = report.total_source_calcs - report.migrated_calcs
+        package.report = report
+        package.save()
+
+        logger.info('migrated package', **report)
+
+        return report
+
+    def _to_api_metadata(self, calc_with_metadata: CalcWithMetadata) -> dict:
         """ Transforms to a dict that fullfils the API's uploade metadata model. """
+
         return dict(
-            _upload_time=source.upload_time,
-            _uploader=source.uploader['id'],
-            _pid=source.pid,
-            references=[ref['value'] for ref in source.references],
+            _upload_time=calc_with_metadata.upload_time,
+            _uploader=calc_with_metadata.uploader['id'],
+            _pid=calc_with_metadata.pid,
+            references=[ref['value'] for ref in calc_with_metadata.references],
             datasets=[dict(
                 id=ds['id'],
                 _doi=ds.get('doi', {'value': None})['value'],
-                _name=ds.get('name', None)) for ds in source.datasets],
-            mainfile=source.mainfile,
-            with_embargo=source.with_embargo,
-            comment=source.comment,
-            coauthors=list(user['id'] for user in source.coauthors),
-            shared_with=list(user['id'] for user in source.shared_with)
+                _name=ds.get('name', None)) for ds in calc_with_metadata.datasets],
+            mainfile=calc_with_metadata.mainfile,
+            with_embargo=calc_with_metadata.with_embargo,
+            comment=calc_with_metadata.comment,
+            coauthors=list(int(user['id']) for user in calc_with_metadata.coauthors),
+            shared_with=list(int(user['id']) for user in calc_with_metadata.shared_with)
         )
 
     def index(self, *args, **kwargs):
         """ see :func:`SourceCalc.index` """
         return SourceCalc.index(self.source, *args, **kwargs)
+
+    def package(self, *args, **kwargs):
+        """ see :func:`Package.add` """
+        return Package.index(*args, **kwargs)
+
+
+class Report(utils.POPO):
+    def __init__(self, *args, **kwargs):
+        self.total_packages = 0
+        self.failed_packages = 0
+        self.skipped_packages = 0
+        self.total_calcs = 0  # the calcs that have been found by the target
+        self.total_source_calcs = 0  # the calcs in the source index
+        self.failed_calcs = 0  # the calcs found b the target that could not be processed/published
+        self.migrated_calcs = 0   # the calcs from the source, successfully added to the target
+        self.calcs_with_diffs = 0  # the calcs from the source, successfully added to the target with different metadata
+        self.new_calcs = 0  # the calcs successfully added to the target that were not found in the source
+        self.missing_calcs = 0  # the calcs in the source, that could not be added to the target due to failure or not founding the calc
+
+        super().__init__(*args, **kwargs)
+
+    def add(self, other: 'Report') -> None:
+        for key, value in other.items():
+            self[key] = self.get(key, 0) + value

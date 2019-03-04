@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Dict
 from passlib.hash import bcrypt
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 import datetime
 import jwt
@@ -39,6 +40,14 @@ class LoginException(Exception):
     pass
 
 
+class Affiliation(Base):
+    __tablename__ = 'affiliations'
+    a_id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String)
+    address = Column(String)
+    email_domain = Column(String)
+
+
 class User(Base):  # type: ignore
     """
     SQLAlchemy model class that represents NOMAD-coe repository postgresdb *users*.
@@ -50,11 +59,13 @@ class User(Base):  # type: ignore
     __tablename__ = 'users'
 
     user_id = Column(Integer, primary_key=True)
+    affiliation_id = Column(Integer, ForeignKey('affiliations.a_id'), name='affiliation')
     email = Column(String)
     first_name = Column(String, name='firstname')
     last_name = Column(String, name='lastname')
-    affiliation = Column(String)
+    affiliation = relationship('Affiliation', lazy='joined')
     password = Column(String)
+    created = Column(DateTime)
 
     _token_chars = string.ascii_uppercase + string.ascii_lowercase + string.digits
 
@@ -62,16 +73,23 @@ class User(Base):  # type: ignore
         return '<User(email="%s")>' % self.email
 
     @staticmethod
-    def create_user(email: str, password: str, crypted: bool, **kwargs):
+    def create_user(
+            email: str, password: str, crypted: bool, user_id: int = None,
+            affiliation: Dict[str, str] = None, token: str = None, **kwargs):
         repo_db = infrastructure.repository_db
         repo_db.begin()
         try:
-            user = User(email=email, **kwargs)
+            if affiliation is not None:
+                affiliation = Affiliation(**affiliation)
+                repo_db.add(affiliation)
+
+            user = User(email=email, user_id=user_id, affiliation=affiliation, **kwargs)
             repo_db.add(user)
             user.set_password(password, crypted)
 
             # TODO this has to change, e.g. trade for JWTs
-            token = ''.join(random.choices(User._token_chars, k=64))
+            if token is None:
+                token = ''.join(random.choices(User._token_chars, k=64))
             repo_db.add(Session(token=token, user=user))
 
             repo_db.commit()
@@ -188,8 +206,8 @@ class User(Base):  # type: ignore
             user = repo_db.query(User).filter_by(email=decoded['user']).first()
             if user is None:
                 raise LoginException('Token signed for invalid user')
-            else:
-                return user
+
+            return user
         except KeyError:
             raise LoginException('Token with invalid/unexpected payload')
         except jwt.ExpiredSignatureError:
@@ -198,12 +216,17 @@ class User(Base):  # type: ignore
             raise LoginException('Invalid token')
 
     def to_popo(self) -> utils.POPO:
-        return utils.POPO(
+        popo = utils.POPO(
             id=self.user_id,
             first_name=self.first_name,
             last_name=self.last_name,
-            email=self.email,
-            affiliation=self.affiliation)
+            email=self.email)
+        if self.affiliation is not None:
+            popo.update(affiliation=dict(
+                name=self.affiliation.name,
+                address=self.affiliation.address))
+
+        return popo
 
 
 def ensure_test_user(email):
@@ -230,6 +253,6 @@ def admin_user():
     Its password is part of :mod:`nomad.config`.
     """
     repo_db = infrastructure.repository_db
-    admin = repo_db.query(User).filter_by(user_id=1).first()
+    admin = repo_db.query(User).filter_by(user_id=0).first()
     assert admin, 'Admin user does not exist.'
     return admin

@@ -1,0 +1,14 @@
+Units = ev_angstrom
+PeriodicDimensions = 0
+Output = density + wfs + potential + forces
+OutputFormat = xcrysden
+FromScratch = True
+RestartWrite = False
+stdout = 'stdout.txt'
+SCFCalculateDipole = True
+
+%Coordinates
+ 'O' | 0.0 | 0.0 | 0.11926200000000001
+ 'H' | 0.0 | 0.763239 | -0.477047
+ 'H' | 0.0 | -0.763239 | -0.477047
+%
