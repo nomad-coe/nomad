@@ -29,7 +29,7 @@ parser_examples = [
     ('parsers/template', 'tests/data/parsers/template.json'),
     ('parsers/exciting', 'tests/data/parsers/exciting/Ag/INFO.OUT'),
     ('parsers/exciting', 'tests/data/parsers/exciting/GW/INFO.OUT'),
-    ('parsers/vasp', 'tests/data/parsers/vasp/vasp.xml'),
+    # ('parsers/vasp', 'tests/data/parsers/vasp/vasp.xml'),
     ('parsers/vasp', 'tests/data/parsers/vasp_compressed/vasp.xml.gz'),
     ('parsers/vaspoutcar', 'tests/data/parsers/vasp_outcar/OUTCAR'),
     ('parsers/fhi-aims', 'tests/data/parsers/fhi-aims/aims.out'),
@@ -47,12 +47,7 @@ parser_examples = [
     ('parsers/castep', 'tests/data/parsers/castep/BC2N-Pmm2-Raman.castep'),
     ('parsers/dl-poly', 'tests/data/parsers/dl-poly/OUTPUT'),
     ('parsers/lib-atoms', 'tests/data/parsers/lib-atoms/gp.xml'),
-<<<<<<< HEAD
-    ('parsers/octopus', 'tests/data/parsers/octopus/stdout.txt')
-]
-=======
     ('parsers/octopus', 'tests/data/parsers/octopus/stdout.txt')]
->>>>>>> 04728a259b25a898a44adae27cf2871d83eca714
 
 faulty_unknown_one_d_matid_example = [
     ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
