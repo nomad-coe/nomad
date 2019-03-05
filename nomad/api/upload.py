@@ -198,7 +198,7 @@ class UploadListResource(Resource):
                             data = request.stream.read(io.DEFAULT_BUFFER_SIZE)
                             received_data += len(data)
                             received_last += len(data)
-                            if received_last > 1e6:
+                            if received_last > 1e9:
                                 received_last = 0
                                 # TODO remove this logging or reduce it to debug
                                 logger.info('received streaming data', size=received_data)
