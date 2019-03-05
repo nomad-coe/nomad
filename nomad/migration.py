@@ -501,7 +501,7 @@ class NomadCOEMigration:
         if os.path.isfile(source_upload_path):
             # assume its a path to an archive files
             raise ValueError('currently no support for migrating archive files')
-        elif not os.path.exists(source_upload_path):
+        if not os.path.exists(source_upload_path):
             raise ValueError('directory %s does not exist' % source_upload_path)
 
         package_query = Package.objects(upload_id=source_upload_id)
