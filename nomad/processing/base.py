@@ -42,6 +42,8 @@ if config.logstash.enabled:
 @worker_process_init.connect
 def setup(**kwargs):
     infrastructure.setup()
+    utils.get_logger(__name__).info(
+        'celery configured with acks_late=%s' % str(config.celery.acks_late))
 
 
 app = Celery('nomad.processing', broker=config.celery.broker_url)
