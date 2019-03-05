@@ -194,7 +194,7 @@ deploy:
     - mkdir -p /etc/deploy
     # kube_config is a CI/CD variable set in GitLab GUI
     - echo $CI_KUBE_CONFIG | base64 -d > /etc/deploy/config
-    - helm init --client-only
+    - helm init --upgrade
     - helm repo add stable https://kubernetes-charts.storage.googleapis.com/
     - helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com/
     - helm repo update
@@ -208,14 +208,14 @@ deploy:
     - export DEPLOYS=$(helm ls | grep $RELEASE_NAME | wc -l)
     - export EXTERNAL_PATH="/fairdi/nomad/v${NOMAD_VERSION}"
     - export DBNAME="fairdi_nomad_v${NOMAD_VERSION//./_}"
-    - export FILES_PATH="/scratch/nomad-fair/fs/nomad_v${NOMAD_VERSION}"
+    - export FILES_PATH="/nomad/fairdi/nomad_v${NOMAD_VERSION}/fs"
     - if [ ${DEPLOYS}  -eq 0 ]; then
         helm install --name=${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE}
           --set api.disableReset="false"
           --set proxy.nodePort="300${NUMERIC_VERSION//./}"
           --set proxy.external.path=${EXTERNAL_PATH}
           --set dbname=${DBNAME}
-          --set worker.replicas=1
+          --set worker.replicas=2
           --set worker.memrequest=32
           --set volumes.files=${FILES_PATH};
       else
