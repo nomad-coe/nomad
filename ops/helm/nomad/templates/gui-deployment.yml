@@ -75,6 +75,8 @@ spec:
             port: 8080
           initialDelaySeconds: 3
           periodSeconds: 3
+      nodeSelector:
+        nomadtype: public
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
       imagePullPolicy: always

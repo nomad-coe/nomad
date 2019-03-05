@@ -60,6 +60,8 @@ proxy:
   port: 80
   nodePort: 30003
   nodeIP: 130.183.207.116
+  timeout: 600
+  datatimeout: 3600
   external:
     host: "enc-staging-nomad.esc.rzg.mpg.de"
     port: 80
@@ -68,6 +70,8 @@ proxy:
 
 ## configuration of the chart dependency for rabbitmq
 rabbitmq:
+  nodeSelector:
+    nomadtype: public
   image.pullSecrets: nil
   rabbitmq:
     username: rabbitmq
@@ -111,5 +115,5 @@ mail:
 
 ## Everything concerning the data that is used by the service
 volumes:
-  files: /scratch/nomad-fair/fs
+  files: /nomad/fairdi/fs
   nomad: /nomad

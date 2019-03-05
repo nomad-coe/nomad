@@ -94,6 +94,8 @@ spec:
             - NOMAD_LOGSTASH_LEVEL=30 python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
           initialDelaySeconds: 5
           periodSeconds: 120
+      nodeSelector:
+        nomadtype: worker
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
       imagePullPolicy: always
