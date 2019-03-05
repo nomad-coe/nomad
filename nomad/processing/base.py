@@ -401,7 +401,9 @@ def unwarp_task(task, cls_name, self_id, *args, **kwargs):
     return self
 
 
-@app.task(bind=True, base=NomadCeleryTask, ignore_results=True, max_retries=3, acks_late=True)
+@app.task(
+    bind=True, base=NomadCeleryTask, ignore_results=True, max_retries=3,
+    acks_late=config.celery.acks_late)
 def proc_task(task, cls_name, self_id, func_attr):
     """
     The celery task that is used to execute async process functions.
