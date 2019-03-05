@@ -419,6 +419,13 @@ class NomadCOEMigration:
             else:
                 yield item
 
+    expected_differences = {
+        '0d': 'molecule / cluster',
+        '3d': 'bulk',
+        '2d': '2d / surface',
+        '+u': 'gga'
+    }
+
     def _validate(self, repo_calc: dict, source_calc: CalcWithMetadata, logger) -> bool:
         """
         Validates the given processed calculation, assuming that the data in the given
@@ -440,7 +447,8 @@ class NomadCOEMigration:
 
             def check_mismatch() -> bool:
                 # some exceptions
-                if source_value == '3d' and target_value == 'bulk':
+                if source_value in NomadCOEMigration.expected_differences and \
+                        target_value == NomadCOEMigration.expected_differences.get(source_value):
                     return True
 
                 logger.info(
@@ -492,8 +500,9 @@ class NomadCOEMigration:
 
         if os.path.isfile(source_upload_path):
             # assume its a path to an archive files
-            logger.error('currently no support for migrating archive files')
-            return [], source_upload_id
+            raise ValueError('currently no support for migrating archive files')
+        elif not os.path.exists(source_upload_path):
+            raise ValueError('directory %s does not exist' % source_upload_path)
 
         package_query = Package.objects(upload_id=source_upload_id)
 
@@ -503,10 +512,10 @@ class NomadCOEMigration:
                 package_query = Package.objects(upload_id=source_upload_id)
                 if package_query.count() == 0:
                     logger.error('no package exists, even after indexing')
-                    return [], source_upload_id
+                    return package_query, source_upload_id
             else:
                 logger.error('no package exists for upload')
-                return [], source_upload_id
+                return package_query, source_upload_id
 
         logger.debug('identified packages for source upload', n_packages=package_query.count())
         return package_query, source_upload_id
@@ -653,11 +662,20 @@ class NomadCOEMigration:
             op = getattr(op, op_path_segment)
 
         sleep = utils.SleepTimeBackoff()
+        retries_after_error = 0
         while True:
             try:
                 return op(*args, **kwargs).response().result
             except HTTPGatewayTimeout:
                 sleep()
+            except IndexError as e:
+                # this happens sometime in bravados swagger marshalling, lets also retry
+                # a couple of times
+                if retries_after_error < 3:
+                    retries_after_error += 1
+                    sleep()
+                else:
+                    raise e
             except Exception as e:
                 raise e
 
