@@ -17,12 +17,14 @@ All APIs are served by one Flask app (:py:mod:`nomad.api.app`) under different p
 """
 
 from flask import Flask, jsonify
-from flask_restplus import Api
+from flask_restplus import Api, fields
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 from werkzeug.wsgi import DispatcherMiddleware
 import os.path
 import inspect
+from datetime import datetime
+import pytz
 
 from nomad import config, utils
 
@@ -120,3 +122,12 @@ def with_logger(func):
 
     wrapper.__signature__ = wrapper_signature
     return wrapper
+
+
+class RFC3339DateTime(fields.DateTime):
+
+    def format(self, value):
+        if isinstance(value, datetime):
+            return super().format(value.replace(tzinfo=pytz.utc))
+        else:
+            str(value)
