@@ -222,6 +222,9 @@ def create_postgres_infra(monkeysession=None, **kwargs):
     connection, _ = infrastructure.sqlalchemy_repository_db(**db_args)
     assert connection is not None
 
+    # we use a transaction around the session to rollback anything that happens within
+    # test execution
+    trans = connection.begin()
     db = Session(bind=connection, autocommit=True)
 
     old_connection, old_db = None, None
@@ -238,6 +241,7 @@ def create_postgres_infra(monkeysession=None, **kwargs):
         monkeysession.setattr('nomad.infrastructure.repository_db', old_db)
         monkeysession.setattr('nomad.config.repository_db', old_config)
 
+    trans.rollback()
     db.expunge_all()
     db.invalidate()
     db.close_all()
