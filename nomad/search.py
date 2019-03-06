@@ -273,6 +273,7 @@ def aggregate_search(
     """
 
     search = Search(index=config.elastic.index_name)
+
     if q is not None:
         search = search.query(q)
 
@@ -303,6 +304,8 @@ def aggregate_search(
     if order_by not in search_quantities:
         raise KeyError('Unknown order quantity %s' % order_by)
     search = search.sort(order_by if order == 1 else '-%s' % order_by)
+
+    search = search.source(exclude=['quantities'])
 
     response = search[(page - 1) * per_page: page * per_page].execute()  # pylint: disable=E1101
 

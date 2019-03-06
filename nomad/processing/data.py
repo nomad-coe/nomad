@@ -400,41 +400,36 @@ class Upload(Proc):
             with utils.timer(
                     logger, 'upload added to repository', step='repo',
                     upload_size=self.upload_files.size):
-                upload_transaction_complete = coe_repo.Upload.publish(upload_with_metadata)
+                coe_repo.Upload.publish(upload_with_metadata)
 
-            try:
-                with utils.timer(
-                        logger, 'staged upload files packed', step='pack',
-                        upload_size=self.upload_files.size):
-                    coe_upload = coe_repo.Upload.from_upload_id(upload_with_metadata.upload_id)
-                    if coe_upload is not None:
-                        for coe_calc in coe_upload.calcs:
-                            calc_metadata = coe_calc.to_calc_with_metadata()
-                            calc_metadata.published = True
-                            self.upload_files.metadata.update(
-                                calc_id=calc_metadata.calc_id, updates=calc_metadata.to_dict())
-                        logger.info('metadata updated after publish to coe repo', step='publish')
+            with utils.timer(
+                    logger, 'staged upload files packed', step='pack',
+                    upload_size=self.upload_files.size):
+                coe_upload = coe_repo.Upload.from_upload_id(upload_with_metadata.upload_id)
+                if coe_upload is not None:
+                    for coe_calc in coe_upload.calcs:
+                        calc_metadata = coe_calc.to_calc_with_metadata()
+                        calc_metadata.published = True
+                        self.upload_files.metadata.update(
+                            calc_id=calc_metadata.calc_id, updates=calc_metadata.to_dict())
+                    logger.info('metadata updated after publish to coe repo', step='publish')
 
-                    self.upload_files.pack()
+                self.upload_files.pack()
 
-                with utils.timer(
-                        logger, 'index updated', step='index',
-                        upload_size=self.upload_files.size):
-                    coe_upload = coe_repo.Upload.from_upload_id(upload_with_metadata.upload_id)
-                    if coe_upload is not None:
-                        search.publish(
-                            [coe_calc.to_calc_with_metadata() for coe_calc in coe_upload.calcs])
+            with utils.timer(
+                    logger, 'index updated', step='index',
+                    upload_size=self.upload_files.size):
+                coe_upload = coe_repo.Upload.from_upload_id(upload_with_metadata.upload_id)
+                if coe_upload is not None:
+                    search.publish(
+                        [coe_calc.to_calc_with_metadata() for coe_calc in coe_upload.calcs])
 
-                with utils.timer(
-                        logger, 'staged upload deleted', step='delete staged',
-                        upload_size=self.upload_files.size):
-                    self.upload_files.delete()
-                    self.delete()
-            except Exception as e:
-                upload_transaction_complete(False)
-                raise e
+            with utils.timer(
+                    logger, 'staged upload deleted', step='delete staged',
+                    upload_size=self.upload_files.size):
+                self.upload_files.delete()
+                self.delete()
 
-        upload_transaction_complete(True)
         return True  # do not save the process status on the delete upload
 
     @process

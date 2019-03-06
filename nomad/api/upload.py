@@ -84,7 +84,8 @@ upload_model = api.inherit('UploadProcessing', proc_model, {
                     'using the name query parameter.'),
     'upload_id': fields.String(
         description='The unique id for the upload.'),
-    'metadata': fields.Nested(model=upload_metadata_model, description='Additional upload and calculation meta data.'),
+    # TODO just removed during migration, where this get particularily large
+    # 'metadata': fields.Nested(model=upload_metadata_model, description='Additional upload and calculation meta data.'),
     'local_path': fields.String,
     'upload_time': RFC3339DateTime(),
 })

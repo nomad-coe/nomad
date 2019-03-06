@@ -107,17 +107,7 @@ def test_add_normalized_calc_with_metadata(
 
 def test_add_upload(processed: processing.Upload):
     upload_with_metadata = processed.to_upload_with_metadata()
-    Upload.publish(upload_with_metadata)(True)
-    assert_coe_upload(processed.upload_id, upload_with_metadata)
-
-
-def test_rollback_upload(processed: processing.Upload, postgres):
-    assert Upload.from_upload_id(processed.upload_id) is None
-    upload_with_metadata = processed.to_upload_with_metadata()
-    assert Upload.publish(upload_with_metadata)(False) == -1
-    assert Upload.from_upload_id(processed.upload_id) is None
-
-    Upload.publish(upload_with_metadata)(True)
+    Upload.publish(upload_with_metadata)
     assert_coe_upload(processed.upload_id, upload_with_metadata)
 
 
@@ -142,14 +132,14 @@ def test_rollback_upload(processed: processing.Upload, postgres):
 #     import time
 #     start = time.time()
 #     upload_with_metadata.calcs = many_calcs()
-#     Upload.publish(upload_with_metadata)(True)
+#     Upload.publish(upload_with_metadata)
 #     print('########### %d' % (time.time() - start))
 
 
 def test_add_upload_with_metadata(processed, example_user_metadata):
     processed.metadata = example_user_metadata
     upload_with_metadata = processed.to_upload_with_metadata()
-    Upload.publish(upload_with_metadata)(True)
+    Upload.publish(upload_with_metadata)
     assert_coe_upload(
         processed.upload_id, upload_with_metadata)
 

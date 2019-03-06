@@ -46,8 +46,10 @@ from typing import Type, Callable, Tuple
 import datetime
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
+import filelock
+import os.path
 
-from nomad import utils, infrastructure
+from nomad import utils, infrastructure, config
 from nomad.datamodel import UploadWithMetadata
 
 from .calc import Calc, PublishContext
@@ -125,9 +127,23 @@ class Upload(Base):  # type: ignore
         assert upload.uploader is not None
 
         logger = utils.get_logger(__name__, upload_id=upload.upload_id)
-        repo_db = infrastructure.repository_db
 
-        def fill_publish_transaction() -> Tuple[Upload, bool]:
+        publish_filelock = filelock.FileLock(
+            os.path.join(config.fs.tmp, 'publish.lock'))
+        logger.info('waiting for filelock')
+        while True:
+            try:
+                publish_filelock.acquire(timeout=15 * 60, poll_intervall=1)
+                logger.info('acquired filelock')
+                break
+            except filelock.Timeout:
+                logger.warning('could not acquire publish lock after generous timeout')
+
+        repo_db = infrastructure.repository_db
+        repo_db.expunge_all()
+        repo_db.begin()
+
+        try:
             has_calcs = False
 
             # create upload
@@ -153,56 +169,52 @@ class Upload(Base):  # type: ignore
                 coe_calc.apply_calc_with_metadata(calc, context=context)
                 logger.debug('added calculation, not yet committed', calc_id=coe_calc.calc_id)
 
-            return coe_upload, has_calcs
+            logger.info('filled publish transaction')
 
-        repo_db.expunge_all()
-        repo_db.begin()
-        try:
-            coe_upload, has_calcs = fill_publish_transaction()
+            upload_id = -1
+            if has_calcs:
+                repo_db.commit()
+                logger.info('committed publish transaction')
+                upload_id = coe_upload.coe_upload_id
+            else:
+                # empty upload case
+                repo_db.rollback()
+                return -1
+
+            logger.info('added upload')
+            return upload_id
         except Exception as e:
             logger.error('Unexpected exception.', exc_info=e)
             repo_db.rollback()
             raise e
+        finally:
+            publish_filelock.release()
+            logger.info('released filelock')
 
         # commit
         def complete(commit: bool) -> int:
-            upload_to_commit = coe_upload
             try:
                 if commit:
                     if has_calcs:
-                        last_error = None
-                        repeat_count = 0
-                        while True:
-                            try:
-                                repo_db.commit()
-                                break
-                            except Exception as e:
-                                repo_db.rollback()
-                                error = str(e)
-                                if last_error != error:
-                                    last_error = error
-                                    logger.info(
-                                        'repeat publish transaction',
-                                        error=error, repeat_count=repeat_count)
-                                    repo_db.expunge_all()
-                                    repo_db.begin()
-                                    upload_to_commit, _ = fill_publish_transaction()
-                                    repeat_count += 1
-                                else:
-                                    raise e
-                        return upload_to_commit.coe_upload_id
+                        repo_db.commit()
+                        logger.info('committed publish transaction')
+                        release_lock()
+                        return coe_upload.coe_upload_id
                     else:
                         # empty upload case
                         repo_db.rollback()
+                        release_lock()
                         return -1
 
                     logger.info('added upload')
                 else:
                     repo_db.rollback()
                     repo_db.expunge_all()
+                    release_lock()
                     return -1
             except Exception as e:
                 logger.error('Unexpected exception.', exc_info=e)
+                release_lock()
                 raise e
 
         return complete
