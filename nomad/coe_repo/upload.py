@@ -42,7 +42,7 @@ This module also provides functionality to add parsed calculation data to the db
     :undoc-members:
 """
 
-from typing import Type, Callable, Tuple
+from typing import Type
 import datetime
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
@@ -111,7 +111,7 @@ class Upload(Base):  # type: ignore
         return self.created
 
     @staticmethod
-    def publish(upload: UploadWithMetadata) -> Callable[[bool], int]:
+    def publish(upload: UploadWithMetadata) -> int:
         """
         Add the upload to the NOMAD-coe repository db. It creates an
         uploads-entry, respective calculation and property entries. Everything in one
@@ -190,31 +190,3 @@ class Upload(Base):  # type: ignore
         finally:
             publish_filelock.release()
             logger.info('released filelock')
-
-        # commit
-        def complete(commit: bool) -> int:
-            try:
-                if commit:
-                    if has_calcs:
-                        repo_db.commit()
-                        logger.info('committed publish transaction')
-                        release_lock()
-                        return coe_upload.coe_upload_id
-                    else:
-                        # empty upload case
-                        repo_db.rollback()
-                        release_lock()
-                        return -1
-
-                    logger.info('added upload')
-                else:
-                    repo_db.rollback()
-                    repo_db.expunge_all()
-                    release_lock()
-                    return -1
-            except Exception as e:
-                logger.error('Unexpected exception.', exc_info=e)
-                release_lock()
-                raise e
-
-        return complete
