@@ -647,10 +647,13 @@ class NomadCOEMigration:
 
         return overall_report
 
+    _client_lock = threading.Lock()
+
     def nomad(self, operation: str, *args, **kwargs) -> Any:
         """
         Calls nomad via the bravado client. It deals with a very busy nomad and catches,
-        backsoff, and retries on gateway timouts.
+        backsoff, and retries on gateway timouts. It also circumvents bravados/jsonschemas
+        thread safety issues using a global lock on client usage.
 
         Arguments:
             operation: Comma separated string of api, endpoint, operation,
@@ -662,22 +665,16 @@ class NomadCOEMigration:
             op = getattr(op, op_path_segment)
 
         sleep = utils.SleepTimeBackoff()
-        retries_after_error = 0
         while True:
             try:
+                NomadCOEMigration._client_lock.acquire(blocking=True)
                 return op(*args, **kwargs).response().result
             except HTTPGatewayTimeout:
                 sleep()
-            except IndexError as e:
-                # this happens sometime in bravados swagger marshalling, lets also retry
-                # a couple of times
-                if retries_after_error < 3:
-                    retries_after_error += 1
-                    sleep()
-                else:
-                    raise e
             except Exception as e:
                 raise e
+            finally:
+                NomadCOEMigration._client_lock.release()
 
     def migrate_package(self, package: Package, local: bool = False):
         source_upload_id = package.upload_id
