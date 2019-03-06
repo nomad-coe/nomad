@@ -77,7 +77,9 @@ spec:
           value: "{{ .Values.mail.password }}"
         - name: NOMAD_MAIL_FROM
           value: "{{ .Values.mail.from }}"
-        command: ["python", "-m", "celery", "worker", "-l", "info", "-A", "nomad.processing", "-Q", "celery,calcs,uploads"]
+        - name: NOMAD_CONSOLE_LOGLEVEL
+          value: "ERROR"
+        command: ["python", "-m", "celery", "worker", "-A", "nomad.processing", "-Q", "celery,calcs,uploads"]
         livenessProbe:
           exec:
             command:
