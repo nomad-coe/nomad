@@ -139,13 +139,11 @@ class Upload(Base):  # type: ignore
             except filelock.Timeout:
                 logger.warning('could not acquire publish lock after generous timeout')
 
-        def release_lock():
-            publish_filelock.release()
-            logger.info('released filelock')
-
         repo_db = infrastructure.repository_db
+        repo_db.expunge_all()
+        repo_db.begin()
 
-        def fill_publish_transaction() -> Tuple[Upload, bool]:
+        try:
             has_calcs = False
 
             # create upload
@@ -172,17 +170,26 @@ class Upload(Base):  # type: ignore
                 logger.debug('added calculation, not yet committed', calc_id=coe_calc.calc_id)
 
             logger.info('filled publish transaction')
-            return coe_upload, has_calcs
 
-        repo_db.expunge_all()
-        repo_db.begin()
-        try:
-            coe_upload, has_calcs = fill_publish_transaction()
+            upload_id = -1
+            if has_calcs:
+                repo_db.commit()
+                logger.info('committed publish transaction')
+                upload_id = coe_upload.coe_upload_id
+            else:
+                # empty upload case
+                repo_db.rollback()
+                return -1
+
+            logger.info('added upload')
+            return upload_id
         except Exception as e:
             logger.error('Unexpected exception.', exc_info=e)
             repo_db.rollback()
-            release_lock()
             raise e
+        finally:
+            publish_filelock.release()
+            logger.info('released filelock')
 
         # commit
         def complete(commit: bool) -> int:
