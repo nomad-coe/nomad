@@ -9,8 +9,8 @@ import math
 from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor
 
-nomad_url = 'http://enc-staging-nomad.esc.rzg.mpg.de/fairdi/nomad/migration/api'
-# nomad_url = 'http://localhost:8000/nomad/api/'
+# nomad_url = 'http://enc-staging-nomad.esc.rzg.mpg.de/fairdi/nomad/migration/api'
+nomad_url = 'http://localhost:8000/nomad/api/'
 user = 'admin'
 password = 'password'
 
@@ -22,15 +22,7 @@ http_client = RequestsClient()
 http_client.set_basic_auth(host, user, password)
 client = SwaggerClient.from_url('%s/swagger.json' % nomad_url, http_client=http_client)
 
-# uploads = [upload.upload_id for upload in client.uploads.get_uploads().response().result]
-
-uploads = [
-    'SJSSLPKiR1mm6a_kSJAGZQ',
-    'nfMmrzGBTjmx77g9_C59fw',
-    'pglT7PYDQ0aB69FBbgIkRg',
-    'KXaaC5RASryl0wfuiEEUMA',
-    'xRSZ4xCnQ7uRL-uhtL3cSw'
-]
+uploads = [upload.upload_id for upload in client.uploads.get_uploads().response().result]
 
 executor = ThreadPoolExecutor(max_workers=10)
 
