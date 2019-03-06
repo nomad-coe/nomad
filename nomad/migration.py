@@ -753,7 +753,7 @@ class NomadCOEMigration:
 
         # check for processing errors
         with utils.timer(logger, 'checked upload processing'):
-            per_page = 200
+            per_page = 500
             for page in range(1, math.ceil(upload_total_calcs / per_page) + 1):
                 upload = self.nomad(
                     'uploads.get_upload', upload_id=upload.upload_id, per_page=per_page,
