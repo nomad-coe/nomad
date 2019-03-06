@@ -41,7 +41,7 @@ api:
 
 ## Everthing concerning the nomad worker
 worker:
-  replicas: 1
+  replicas: 2
   # request and limit in GB
   memrequest: 32
   memlimit: 320
