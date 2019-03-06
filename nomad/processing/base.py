@@ -244,6 +244,13 @@ class Proc(Document, metaclass=ProcMetaclass):
         assert task in tasks, 'task %s must be one of the classes tasks %s' % (task, str(tasks))  # pylint: disable=E1135
         if self.current_task is None:
             assert task == tasks[0], "process has to start with first task"  # pylint: disable=E1136
+        elif tasks.index(task) <= tasks.index(self.current_task):
+            # task is repeated, probably the celery task of the process was reschedule
+            # due to prior worker failure
+            self.current_task = task
+            self.get_logger().warning('task is re-run')
+            self.save()
+            return True
         else:
             assert tasks.index(task) == tasks.index(self.current_task) + 1, \
                 "tasks must be processed in the right order"
