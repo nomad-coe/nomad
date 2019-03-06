@@ -42,7 +42,7 @@ This module also provides functionality to add parsed calculation data to the db
     :undoc-members:
 """
 
-from typing import Type, Callable
+from typing import Type, Callable, Tuple
 import datetime
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
@@ -124,13 +124,12 @@ class Upload(Base):  # type: ignore
         """
         assert upload.uploader is not None
 
-        repo_db = infrastructure.repository_db
-        repo_db.begin()
-
         logger = utils.get_logger(__name__, upload_id=upload.upload_id)
+        repo_db = infrastructure.repository_db
 
-        has_calcs = False
-        try:
+        def fill_publish_transaction() -> Tuple[Upload, bool]:
+            has_calcs = False
+
             # create upload
             coe_upload = Upload(
                 upload_name=upload.upload_id,
@@ -154,14 +153,44 @@ class Upload(Base):  # type: ignore
                 coe_calc.apply_calc_with_metadata(calc, context=context)
                 logger.debug('added calculation, not yet committed', calc_id=coe_calc.calc_id)
 
-            # commit
-            def complete(commit: bool) -> int:
+            return coe_upload, has_calcs
+
+        repo_db.begin()
+        try:
+            coe_upload, has_calcs = fill_publish_transaction()
+        except Exception as e:
+            logger.error('Unexpected exception.', exc_info=e)
+            repo_db.rollback()
+            raise e
+
+        # commit
+        def complete(commit: bool) -> int:
+            upload_to_commit = coe_upload
+            try:
                 if commit:
                     if has_calcs:
-                        # empty upload case
-                        repo_db.commit()
-                        return coe_upload.coe_upload_id
+                        last_error = None
+                        repeat_count = 0
+                        while True:
+                            try:
+                                repo_db.commit()
+                                break
+                            except Exception as e:
+                                repo_db.rollback()
+                                error = str(e)
+                                if last_error != error:
+                                    last_error = error
+                                    logger.info(
+                                        'repeat publish transaction',
+                                        error=error, repeat_count=repeat_count)
+                                    repo_db.begin()
+                                    upload_to_commit, _ = fill_publish_transaction()
+                                    repeat_count += 1
+                                else:
+                                    raise e
+                        return upload_to_commit.coe_upload_id
                     else:
+                        # empty upload case
                         repo_db.rollback()
                         return -1
 
@@ -170,9 +199,9 @@ class Upload(Base):  # type: ignore
                     repo_db.rollback()
                     logger.info('rolled upload back')
                     return -1
+            except Exception as e:
+                logger.error('Unexpected exception.', exc_info=e)
+                raise e
 
-            return complete
-        except Exception as e:
-            logger.error('Unexpected exception.', exc_info=e)
-            repo_db.rollback()
-            raise e
+        return complete
+

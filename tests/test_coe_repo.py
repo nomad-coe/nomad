@@ -111,6 +111,12 @@ def test_add_upload(processed: processing.Upload):
     assert_coe_upload(processed.upload_id, upload_with_metadata)
 
 
+def test_rollback_upload(processed: processing.Upload):
+    upload_with_metadata = processed.to_upload_with_metadata()
+    Upload.publish(upload_with_metadata)(False)
+    assert Upload.from_upload_id(processed.upload_id) is None
+
+
 # def test_large_upload(processed: processing.Upload, example_user_metadata):
 #     processed.metadata = example_user_metadata
 #     upload_with_metadata = processed.to_upload_with_metadata()

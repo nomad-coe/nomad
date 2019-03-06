@@ -182,9 +182,12 @@ def sqlalchemy_repository_db(exists: bool = False, readonly: bool = True, **kwar
     params = config.repository_db._asdict()
     params.update(**kwargs)
     url = 'postgresql://%s:%s@%s:%d/%s' % utils.to_tuple(params, 'user', 'password', 'host', 'port', 'dbname')
-    # we set a very high isolation level, to prevent conflicts between transactions on the
+    # We tried to set a very high isolation level, to prevent conflicts between transactions on the
     # start-shaped schema, which usually involve read/writes to many tables at once.
-    engine = create_engine(url, echo=False, isolation_level="SERIALIZABLE")
+    # Unfortunately, this had week performance, and postgres wasn't even able to serialize on all
+    # occasions. We are now simply rollingback and retrying on conflicts.
+    # engine = create_engine(url, echo=False, isolation_level="SERIALIZABLE")
+    engine = create_engine(url, echo=False)
 
     repository_db_conn = engine.connect()
     repository_db = Session(bind=repository_db_conn, autocommit=True)
