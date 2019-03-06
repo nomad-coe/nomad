@@ -155,6 +155,7 @@ class Upload(Base):  # type: ignore
 
             return coe_upload, has_calcs
 
+        repo_db.expunge_all()
         repo_db.begin()
         try:
             coe_upload, has_calcs = fill_publish_transaction()
@@ -183,6 +184,7 @@ class Upload(Base):  # type: ignore
                                     logger.info(
                                         'repeat publish transaction',
                                         error=error, repeat_count=repeat_count)
+                                    repo_db.expunge_all()
                                     repo_db.begin()
                                     upload_to_commit, _ = fill_publish_transaction()
                                     repeat_count += 1
@@ -197,11 +199,10 @@ class Upload(Base):  # type: ignore
                     logger.info('added upload')
                 else:
                     repo_db.rollback()
-                    logger.info('rolled upload back')
+                    repo_db.expunge_all()
                     return -1
             except Exception as e:
                 logger.error('Unexpected exception.', exc_info=e)
                 raise e
 
         return complete
-
