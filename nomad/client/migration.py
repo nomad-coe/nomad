@@ -95,12 +95,16 @@ def pid_prefix(prefix: int):
 @click.argument('paths', nargs=-1)
 @click.option('--create-packages', help='Allow migration to create package entries on the fly.', is_flag=True)
 @click.option('--local', help='Create local upload files.', is_flag=True)
+@click.option('--delete-local', help='Delete created local upload files after upload.', is_flag=True)
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.option('--migration-version', default=0, type=int, help='The version number, only packages with lower or no number will be migrated.')
-def upload(paths: list, create_packages, local: bool, parallel: int, migration_version: int):
+def upload(
+        paths: list, create_packages, local: bool, delete_local: bool, parallel: int,
+        migration_version: int):
 
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
 
     migration = NomadCOEMigration(migration_version=migration_version, threads=parallel)
-    migration.migrate(*paths, local=local, create_packages=create_packages)
+    migration.migrate(
+        *paths, local=local, delete_local=delete_local, create_packages=create_packages)

@@ -124,8 +124,11 @@ class Package(Document):
 
         return iterable_to_stream(zip_file)  # type: ignore
 
-    def create_package_upload_file(self) -> str:
-        """  Creates a zip file for the package in tmp and returns its path. """
+    def create_package_upload_file(self) -> Tuple[str, bool]:
+        """
+        Creates a zip file for the package in tmp and returns its path and whether it
+        was created (``True``) or existed before (``False``).
+        """
         upload_filepath = os.path.join(config.fs.nomad_tmp, '%s.zip' % self.package_id)
         if not os.path.exists(os.path.dirname(upload_filepath)):
             os.mkdir(os.path.dirname(upload_filepath))
@@ -136,8 +139,11 @@ class Package(Document):
                 for filename in self.filenames:
                     filepath = os.path.join(self.upload_path, filename)
                     zip_file.write(filepath, filename)
+            created = True
+        else:
+            created = False
 
-        return upload_filepath
+        return upload_filepath, created
 
     @classmethod
     def index(cls, *upload_paths):
@@ -544,7 +550,8 @@ class NomadCOEMigration:
         self.client.admin.exec_pidprefix_command(payload=dict(prefix=prefix)).response()
 
     def migrate(
-            self, *args, create_packages: bool = True, local: bool = False) -> utils.POPO:
+            self, *args, create_packages: bool = True, local: bool = False,
+            delete_local: bool = False) -> utils.POPO:
         """
         Migrate the given uploads.
 
@@ -564,7 +571,9 @@ class NomadCOEMigration:
             upload_path: A filepath to the upload directory.
             create_packages: If True, will create non existing packages.
                 Will skip with errors otherwise.
-            local: Instead of streaming an upload, create a local file and use local_path on the upload.
+            local: Instead of streaming an upload, create a local file and use
+                local_path on the upload.
+            delete_local: Delete created local file upload files
 
         Returns: Dictionary with statistics on the migration.
         """
@@ -577,7 +586,7 @@ class NomadCOEMigration:
         def migrate_package(package: Package, of_packages: int):
             logger = self.logger.bind(package_id=package.package_id, source_upload_id=package.upload_id)
             try:
-                package_report = self.migrate_package(package, local=local)
+                package_report = self.migrate_package(package, local=local, delete_local=delete_local)
             except Exception as e:
                 logger.error(
                     'unexpected exception while migrating packages', exc_info=e)
@@ -676,7 +685,11 @@ class NomadCOEMigration:
             finally:
                 NomadCOEMigration._client_lock.release()
 
-    def migrate_package(self, package: Package, local: bool = False):
+    def migrate_package(
+            self, package: Package, local: bool = False,
+            delete_local: bool = False) -> 'Report':
+        """ Migrates the given package. For other params see :func:`migrate`. """
+
         source_upload_id = package.upload_id
         package_id = package.package_id
 
@@ -688,10 +701,13 @@ class NomadCOEMigration:
 
         # upload and process the upload file
         from nomad.client import stream_upload_with_client
+        created_tmp_package_upload_file = None
         with utils.timer(logger, 'upload completed'):
             try:
                 if local:
-                    upload_filepath = package.create_package_upload_file()
+                    upload_filepath, created = package.create_package_upload_file()
+                    if created:
+                        created_tmp_package_upload_file = upload_filepath
                     self.logger.debug('created package upload file')
                     upload = self.nomad(
                         'uploads.upload', name=package_id, local_path=upload_filepath)
@@ -854,6 +870,12 @@ class NomadCOEMigration:
         package.save()
 
         logger.info('migrated package', **report)
+
+        if created_tmp_package_upload_file is not None and delete_local:
+            try:
+                os.remove(created_tmp_package_upload_file)
+            except Exception as e:
+                logger.error('could not remove tmp package upload file', exc_info=e)
 
         return report
 
