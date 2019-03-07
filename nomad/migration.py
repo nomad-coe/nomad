@@ -810,7 +810,7 @@ class NomadCOEMigration:
                             if not self._validate(calc, source_calc_with_metadata, calc_logger):
                                 report.calcs_with_diffs += 1
                         except Exception as e:
-                            logger.warning('unexpected exception during validation', exc_info=e)
+                            calc_logger.warning('unexpected exception during validation', exc_info=e)
                             report.calcs_with_diffs += 1
                     else:
                         calc_logger.info('processed a calc that has no source')
