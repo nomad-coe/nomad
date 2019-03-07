@@ -42,12 +42,14 @@ This module also provides functionality to add parsed calculation data to the db
     :undoc-members:
 """
 
-from typing import Type, Callable
+from typing import Type
 import datetime
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
+import filelock
+import os.path
 
-from nomad import utils, infrastructure
+from nomad import utils, infrastructure, config
 from nomad.datamodel import UploadWithMetadata
 
 from .calc import Calc, PublishContext
@@ -109,7 +111,7 @@ class Upload(Base):  # type: ignore
         return self.created
 
     @staticmethod
-    def publish(upload: UploadWithMetadata) -> Callable[[bool], int]:
+    def publish(upload: UploadWithMetadata) -> int:
         """
         Add the upload to the NOMAD-coe repository db. It creates an
         uploads-entry, respective calculation and property entries. Everything in one
@@ -124,55 +126,75 @@ class Upload(Base):  # type: ignore
         """
         assert upload.uploader is not None
 
-        repo_db = infrastructure.repository_db
-        repo_db.begin()
-
         logger = utils.get_logger(__name__, upload_id=upload.upload_id)
 
-        has_calcs = False
-        try:
-            # create upload
-            coe_upload = Upload(
-                upload_name=upload.upload_id,
-                created=upload.upload_time,
-                user_id=upload.uploader.id,
-                is_processed=True)
-            repo_db.add(coe_upload)
+        last_error = None
 
-            # add calculations and metadata
-            # reuse the cache for the whole transaction to profit from repeating
-            # star schema entries for users, ds, topics, etc.
-            context = PublishContext(upload_id=upload.upload_id)
-            for calc in upload.calcs:
-                has_calcs = True
-                coe_calc = Calc(
-                    coe_calc_id=calc.pid,
-                    checksum=calc.calc_id,
-                    upload=coe_upload)
-                repo_db.add(coe_calc)
+        while True:
+            publish_filelock = filelock.FileLock(
+                os.path.join(config.fs.tmp, 'publish.lock'))
+            logger.info('waiting for filelock')
+            while True:
+                try:
+                    publish_filelock.acquire(timeout=15 * 60, poll_intervall=1)
+                    logger.info('acquired filelock')
+                    break
+                except filelock.Timeout:
+                    logger.warning('could not acquire publish lock after generous timeout')
 
-                coe_calc.apply_calc_with_metadata(calc, context=context)
-                logger.debug('added calculation, not yet committed', calc_id=coe_calc.calc_id)
+            repo_db = infrastructure.repository_db
+            repo_db.expunge_all()
+            repo_db.begin()
 
-            # commit
-            def complete(commit: bool) -> int:
-                if commit:
-                    if has_calcs:
-                        # empty upload case
-                        repo_db.commit()
-                        return coe_upload.coe_upload_id
-                    else:
-                        repo_db.rollback()
-                        return -1
+            try:
+                has_calcs = False
 
-                    logger.info('added upload')
+                # create upload
+                coe_upload = Upload(
+                    upload_name=upload.upload_id,
+                    created=upload.upload_time,
+                    user_id=upload.uploader.id,
+                    is_processed=True)
+                repo_db.add(coe_upload)
+
+                # add calculations and metadata
+                # reuse the cache for the whole transaction to profit from repeating
+                # star schema entries for users, ds, topics, etc.
+                context = PublishContext(upload_id=upload.upload_id)
+                for calc in upload.calcs:
+                    has_calcs = True
+                    coe_calc = Calc(
+                        coe_calc_id=calc.pid,
+                        checksum=calc.calc_id,
+                        upload=coe_upload)
+                    repo_db.add(coe_calc)
+
+                    coe_calc.apply_calc_with_metadata(calc, context=context)
+                    logger.debug(
+                        'added calculation, not yet committed', calc_id=coe_calc.calc_id)
+
+                logger.info('filled publish transaction')
+
+                upload_id = -1
+                if has_calcs:
+                    repo_db.commit()
+                    logger.info('committed publish transaction')
+                    upload_id = coe_upload.coe_upload_id
                 else:
+                    # empty upload case
                     repo_db.rollback()
-                    logger.info('rolled upload back')
                     return -1
 
-            return complete
-        except Exception as e:
-            logger.error('Unexpected exception.', exc_info=e)
-            repo_db.rollback()
-            raise e
+                logger.info('added upload')
+                return upload_id
+            except Exception as e:
+                repo_db.rollback()
+                if last_error != str(e):
+                    last_error = str(e)
+                    logger.error('Retry publish after unexpected execption.', exc_info=e)
+                else:
+                    logger.error('Unexpected exception.', exc_info=e)
+                    raise e
+            finally:
+                publish_filelock.release()
+                logger.info('released filelock')

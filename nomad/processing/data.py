@@ -254,17 +254,17 @@ class Calc(Proc):
         calc_with_metadata = self._parser_backend.to_calc_with_metadata()
 
         # persist the repository metadata
-        with utils.timer(logger, 'saved repo metadata', step='persist'):
+        with utils.timer(logger, 'saved repo metadata', step='metadata'):
             self.upload_files.metadata.insert(calc_with_metadata.to_dict())
 
         # index in search
-        with utils.timer(logger, 'indexed', step='persist'):
+        with utils.timer(logger, 'indexed', step='index'):
             calc_with_metadata.update(published=False, uploader=self.upload.uploader.to_popo())
             search.Entry.from_calc_with_metadata(calc_with_metadata).save()
 
         # persist the archive
         with utils.timer(
-                logger, 'archived', step='persist',
+                logger, 'archived', step='archive',
                 input_size=self.mainfile_file.size) as log_data:
             with self.upload_files.archive_file(self.calc_id, 'wt') as out:
                 self._parser_backend.write_json(out, pretty=True)
@@ -274,7 +274,7 @@ class Calc(Proc):
         # close loghandler
         if self._calc_proc_logwriter is not None:
             with utils.timer(
-                    logger, 'archived log', step='persist',
+                    logger, 'archived log', step='logs',
                     input_size=self.mainfile_file.size) as log_data:
                 self._calc_proc_logwriter_ctx.__exit__(None, None, None)  # pylint: disable=E1101
                 self._calc_proc_logwriter = None
@@ -371,12 +371,12 @@ class Upload(Proc):
 
         with utils.lnr(logger, 'staged upload delete failed'):
             with utils.timer(
-                    logger, 'upload deleted from index', step='delete',
+                    logger, 'upload deleted from index', step='index',
                     upload_size=self.upload_files.size):
                 search.delete_upload(self.upload_id)
 
             with utils.timer(
-                    logger, 'staged upload deleted', step='delete',
+                    logger, 'staged upload deleted', step='files',
                     upload_size=self.upload_files.size):
                 self.upload_files.delete()
                 self.delete()
@@ -398,43 +398,38 @@ class Upload(Proc):
             upload_with_metadata = self.to_upload_with_metadata()
 
             with utils.timer(
-                    logger, 'upload added to repository', step='publish',
+                    logger, 'upload added to repository', step='repo',
                     upload_size=self.upload_files.size):
-                upload_transaction_complete = coe_repo.Upload.publish(upload_with_metadata)
+                coe_repo.Upload.publish(upload_with_metadata)
 
-            try:
-                with utils.timer(
-                        logger, 'staged upload files packed', step='publish',
-                        upload_size=self.upload_files.size):
-                    coe_upload = coe_repo.Upload.from_upload_id(upload_with_metadata.upload_id)
-                    if coe_upload is not None:
-                        for coe_calc in coe_upload.calcs:
-                            calc_metadata = coe_calc.to_calc_with_metadata()
-                            calc_metadata.published = True
-                            self.upload_files.metadata.update(
-                                calc_id=calc_metadata.calc_id, updates=calc_metadata.to_dict())
-                        logger.info('metadata updated after publish to coe repo', step='publish')
+            with utils.timer(
+                    logger, 'staged upload files packed', step='pack',
+                    upload_size=self.upload_files.size):
+                coe_upload = coe_repo.Upload.from_upload_id(upload_with_metadata.upload_id)
+                if coe_upload is not None:
+                    for coe_calc in coe_upload.calcs:
+                        calc_metadata = coe_calc.to_calc_with_metadata()
+                        calc_metadata.published = True
+                        self.upload_files.metadata.update(
+                            calc_id=calc_metadata.calc_id, updates=calc_metadata.to_dict())
+                    logger.info('metadata updated after publish to coe repo', step='publish')
 
-                    self.upload_files.pack()
+                self.upload_files.pack()
 
-                with utils.timer(
-                        logger, 'index updated', step='publish',
-                        upload_size=self.upload_files.size):
-                    coe_upload = coe_repo.Upload.from_upload_id(upload_with_metadata.upload_id)
-                    if coe_upload is not None:
-                        search.publish(
-                            [coe_calc.to_calc_with_metadata() for coe_calc in coe_upload.calcs])
+            with utils.timer(
+                    logger, 'index updated', step='index',
+                    upload_size=self.upload_files.size):
+                coe_upload = coe_repo.Upload.from_upload_id(upload_with_metadata.upload_id)
+                if coe_upload is not None:
+                    search.publish(
+                        [coe_calc.to_calc_with_metadata() for coe_calc in coe_upload.calcs])
 
-                with utils.timer(
-                        logger, 'staged upload deleted', step='publish',
-                        upload_size=self.upload_files.size):
-                    self.upload_files.delete()
-                    self.delete()
-            except Exception as e:
-                upload_transaction_complete(False)
-                raise e
+            with utils.timer(
+                    logger, 'staged upload deleted', step='delete staged',
+                    upload_size=self.upload_files.size):
+                self.upload_files.delete()
+                self.delete()
 
-        upload_transaction_complete(True)
         return True  # do not save the process status on the delete upload
 
     @process
@@ -613,8 +608,8 @@ class Upload(Proc):
             calc_data = upload_files.metadata.get(calc.calc_id)
             calc_with_metadata = CalcWithMetadata(**calc_data)
 
-            calc_metadata = dict(calc_metadatas.get(calc.mainfile, {}))
-            calc_metadata.update(upload_metadata)
+            calc_metadata = dict(upload_metadata)
+            calc_metadata.update(calc_metadatas.get(calc.mainfile, {}))
             calc_with_metadata.apply_user_metadata(calc_metadata)
 
             logger.debug('prepared calc with metadata', calc_id=calc_with_metadata.calc_id)

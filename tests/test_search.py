@@ -57,6 +57,7 @@ def test_search(elastic, normalized: parsing.LocalBackend):
     assert hits[0]['calc_id'] == calc_with_metadata.calc_id
     assert 'bulk' in aggs['system']
     assert aggs['system']['bulk'] == 1
+    assert 'quantities' not in hits[0]
 
 
 def test_authors(elastic, normalized: parsing.LocalBackend, test_user: coe_repo.User, other_test_user: coe_repo.User):

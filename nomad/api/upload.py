@@ -29,7 +29,7 @@ from nomad.processing import Upload, FAILURE
 from nomad.processing import ProcessAlreadyRunning
 from nomad.files import ArchiveBasedStagingUploadFiles
 
-from .app import api, with_logger
+from .app import api, with_logger, RFC3339DateTime
 from .auth import login_really_required
 from .common import pagination_request_parser, pagination_model
 
@@ -46,8 +46,8 @@ proc_model = api.model('Processing', {
     'tasks_status': fields.String,
     'errors': fields.List(fields.String),
     'warnings': fields.List(fields.String),
-    'create_time': fields.DateTime(dt_format='iso8601'),
-    'complete_time': fields.DateTime(dt_format='iso8601'),
+    'create_time': RFC3339DateTime,
+    'complete_time': RFC3339DateTime,
     'current_process': fields.String,
     'process_running': fields.Boolean,
 })
@@ -64,7 +64,7 @@ metadata_model = api.model('MetaData', {
     'references': fields.List(fields.String, descriptions='References allow to link calculations to external source, e.g. URLs.'),
     'coauthors': fields.List(fields.Integer, description='A list of co-authors given by user_id.'),
     'shared_with': fields.List(fields.Integer, description='A list of users to share calculations with given by user_id.'),
-    '_upload_time': fields.DateTime(dt_format='iso8601', description='Overrride the upload time.'),
+    '_upload_time': RFC3339DateTime(description='Overrride the upload time.'),
     '_uploader': fields.Integer(description='Override the uploader with the given user id.'),
     'datasets': fields.List(fields.Nested(model=dataset_model), description='A list of datasets.')
 })
@@ -84,9 +84,10 @@ upload_model = api.inherit('UploadProcessing', proc_model, {
                     'using the name query parameter.'),
     'upload_id': fields.String(
         description='The unique id for the upload.'),
-    'metadata': fields.Nested(model=upload_metadata_model, description='Additional upload and calculation meta data.'),
+    # TODO just removed during migration, where this get particularily large
+    # 'metadata': fields.Nested(model=upload_metadata_model, description='Additional upload and calculation meta data.'),
     'local_path': fields.String,
-    'upload_time': fields.DateTime(dt_format='iso8601'),
+    'upload_time': RFC3339DateTime(),
 })
 
 calc_model = api.inherit('UploadCalculationProcessing', proc_model, {
@@ -198,7 +199,7 @@ class UploadListResource(Resource):
                             data = request.stream.read(io.DEFAULT_BUFFER_SIZE)
                             received_data += len(data)
                             received_last += len(data)
-                            if received_last > 1e6:
+                            if received_last > 1e9:
                                 received_last = 0
                                 # TODO remove this logging or reduce it to debug
                                 logger.info('received streaming data', size=received_data)

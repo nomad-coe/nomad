@@ -19,10 +19,36 @@ data:
       }
 
       location {{ .Values.proxy.external.path }}/api {
-        client_max_body_size 20g;
         proxy_set_header Host $host;
         proxy_pass_request_headers on;
         proxy_pass http://{{ include "nomad.fullname" . }}-api:{{ .Values.api.port }};
+        proxy_connect_timeout {{ .Values.proxy.timeout }};
+        proxy_send_timeout {{ .Values.proxy.timeout }};
+        proxy_read_timeout {{ .Values.proxy.timeout }};
+        send_timeout {{ .Values.proxy.timeout }};
+      }
+
+      location {{ .Values.proxy.external.path }}/api/uploads {
+        client_max_body_size 20g;
+        proxy_request_buffering off;
+        proxy_set_header Host $host;
+        proxy_pass_request_headers on;
+        proxy_pass http://{{ include "nomad.fullname" . }}-api:{{ .Values.api.port }};
+        proxy_connect_timeout {{ .Values.proxy.timeout }};
+        proxy_send_timeout {{ .Values.proxy.datatimeout }};
+        proxy_read_timeout {{ .Values.proxy.timeout }};
+        send_timeout {{ .Values.proxy.timeout }};
+      }
+
+      location {{ .Values.proxy.external.path }}/api/raw {
+        proxy_buffering off; 
+        proxy_set_header Host $host;
+        proxy_pass_request_headers on;
+        proxy_pass http://{{ include "nomad.fullname" . }}-api:{{ .Values.api.port }};
+        proxy_connect_timeout {{ .Values.proxy.timeout }};
+        proxy_send_timeout {{ .Values.proxy.timeout }};
+        proxy_read_timeout {{ .Values.proxy.datatimeout }};
+        send_timeout {{ .Values.proxy.timeout }};
       }
     }
 ---
@@ -58,6 +84,8 @@ spec:
           name: nginx-conf
         - mountPath: /var/log/nginx
           name: log
+      nodeSelector:
+        nomadtype: public
       volumes:
       - name: nginx-conf
         configMap:

@@ -30,7 +30,7 @@ FilesConfig = namedtuple(
     'FilesConfig', ['uploads_bucket', 'raw_bucket', 'archive_bucket', 'staging_bucket', 'public_bucket'])
 """ API independent configuration for the object storage. """
 
-CeleryConfig = namedtuple('Celery', ['broker_url', 'max_memory', 'timeout'])
+CeleryConfig = namedtuple('Celery', ['broker_url', 'max_memory', 'timeout', 'acks_late'])
 """ Used to configure the RabbitMQ for celery. """
 
 FSConfig = namedtuple('FSConfig', ['tmp', 'objects', 'nomad_tmp'])
@@ -86,7 +86,8 @@ def get_loglevel_from_env(key, default_level=logging.INFO):
 celery = CeleryConfig(
     broker_url=rabbit_url,
     max_memory=int(os.environ.get('NOMAD_CELERY_MAXMEMORY', 64e6)),  # 64 GB
-    timeout=int(os.environ.get('NOMAD_CELERY_TIMEOUT', 3 * 3600))  # 3h
+    timeout=int(os.environ.get('NOMAD_CELERY_TIMEOUT', 3 * 3600)),  # 3h
+    acks_late=bool(os.environ.get('NOMAD_CELERY_ACKS_LATE', True))
 )
 
 fs = FSConfig(

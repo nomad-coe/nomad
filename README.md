@@ -52,3 +52,10 @@ python -m http.server 8888
 ```
 Open [http://localhost:8888/html/setup.html](http://localhost:8888/html/setup.html) in
 your browser.
+
+## Change log
+
+### v0.4.2
+- bugfixes regarding the migration
+- better migration configurability and reproducibility
+- scales to multi node kubernetes deployment

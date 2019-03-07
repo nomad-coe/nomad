@@ -42,6 +42,8 @@ if config.logstash.enabled:
 @worker_process_init.connect
 def setup(**kwargs):
     infrastructure.setup()
+    utils.get_logger(__name__).info(
+        'celery configured with acks_late=%s' % str(config.celery.acks_late))
 
 
 app = Celery('nomad.processing', broker=config.celery.broker_url)
@@ -148,8 +150,8 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     def get_logger(self):
         return utils.get_logger(
-            'nomad.processing', current_task=self.current_task, proc=self.__class__.__name__,
-            current_process=self.current_process, process_status=self.process_status,
+            'nomad.processing', task=self.current_task, proc=self.__class__.__name__,
+            process=self.current_process, process_status=self.process_status,
             tasks_status=self.tasks_status)
 
     @classmethod
@@ -242,6 +244,13 @@ class Proc(Document, metaclass=ProcMetaclass):
         assert task in tasks, 'task %s must be one of the classes tasks %s' % (task, str(tasks))  # pylint: disable=E1135
         if self.current_task is None:
             assert task == tasks[0], "process has to start with first task"  # pylint: disable=E1136
+        elif tasks.index(task) <= tasks.index(self.current_task):
+            # task is repeated, probably the celery task of the process was reschedule
+            # due to prior worker failure
+            self.current_task = task
+            self.get_logger().warning('task is re-run')
+            self.save()
+            return True
         else:
             assert tasks.index(task) == tasks.index(self.current_task) + 1, \
                 "tasks must be processed in the right order"
@@ -401,7 +410,9 @@ def unwarp_task(task, cls_name, self_id, *args, **kwargs):
     return self
 
 
-@app.task(bind=True, base=NomadCeleryTask, ignore_results=True, max_retries=3, acks_late=True)
+@app.task(
+    bind=True, base=NomadCeleryTask, ignore_results=True, max_retries=3,
+    acks_late=config.celery.acks_late)
 def proc_task(task, cls_name, self_id, func_attr):
     """
     The celery task that is used to execute async process functions.
