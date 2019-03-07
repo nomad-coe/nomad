@@ -608,8 +608,8 @@ class Upload(Proc):
             calc_data = upload_files.metadata.get(calc.calc_id)
             calc_with_metadata = CalcWithMetadata(**calc_data)
 
-            calc_metadata = dict(calc_metadatas.get(calc.mainfile, {}))
-            calc_metadata.update(upload_metadata)
+            calc_metadata = dict(upload_metadata)
+            calc_metadata.update(calc_metadatas.get(calc.mainfile, {}))
             calc_with_metadata.apply_user_metadata(calc_metadata)
 
             logger.debug('prepared calc with metadata', calc_id=calc_with_metadata.calc_id)

@@ -245,6 +245,7 @@ search_quantities = {
     'quantities': ('term', 'quantities', 'Search for the existence of a certain meta-info quantity'),
     'upload_id': ('term', 'upload_id', 'Search for the upload_id.'),
     'calc_id': ('term', 'calc_id', 'Search for the calc_id.'),
+    'pid': ('term', 'pid', 'Search for the pid.'),
     'mainfile': ('term', 'mainfile', 'Search for the mainfile.')
 }
 """
