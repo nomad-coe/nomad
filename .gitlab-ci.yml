@@ -215,7 +215,7 @@ deploy:
           --set proxy.nodePort="300${NUMERIC_VERSION//./}"
           --set proxy.external.path=${EXTERNAL_PATH}
           --set dbname=${DBNAME}
-          --set worker.replicas=2
+          --set worker.replicas=1
           --set worker.memrequest=32
           --set volumes.files=${FILES_PATH};
       else
