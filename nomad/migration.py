@@ -588,6 +588,7 @@ class NomadCOEMigration:
             try:
                 package_report = self.migrate_package(package, local=local, delete_local=delete_local)
             except Exception as e:
+                package_report = Report()
                 logger.error(
                     'unexpected exception while migrating packages', exc_info=e)
 
@@ -805,7 +806,11 @@ class NomadCOEMigration:
                         report.migrated_calcs += 1
 
                         calc_logger = logger.bind(calc_id=calc['calc_id'], mainfile=calc['mainfile'])
-                        if not self._validate(calc, source_calc_with_metadata, calc_logger):
+                        try:
+                            if not self._validate(calc, source_calc_with_metadata, calc_logger):
+                                report.calcs_with_diffs += 1
+                        except Exception as e:
+                            logger.warning('unexpected exception during validation', exc_info=e)
                             report.calcs_with_diffs += 1
                     else:
                         calc_logger.info('processed a calc that has no source')
