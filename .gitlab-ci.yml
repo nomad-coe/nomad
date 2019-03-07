@@ -175,15 +175,11 @@ release_version:
   stage: release
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
-    - docker pull $TEST_IMAGE
-    - docker tag $TEST_IMAGE $LATEST_IMAGE
-    - docker push $LATEST_IMAGE
-    - docker tag $TEST_IMAGE $RELEASE_IMAGE
+    - docker pull $LATEST_IMAGE
+    - docker tag $LATEST_IMAGE $RELEASE_IMAGE
     - docker push $RELEASE_IMAGE
-    - docker pull $FRONTEND_TEST_IMAGE
-    - docker tag $FRONTEND_TEST_IMAGE $FRONTEND_LATEST_IMAGE
-    - docker push $FRONTEND_LATEST_IMAGE
-    - docker tag $FRONTEND_TEST_IMAGE $FRONTEND_RELEASE_IMAGE
+    - docker pull $FRONTEND_LATEST_IMAGE
+    - docker tag $FRONTEND_LATEST_IMAGE $FRONTEND_RELEASE_IMAGE
     - docker push $FRONTEND_RELEASE_IMAGE
   only:
     - tags
