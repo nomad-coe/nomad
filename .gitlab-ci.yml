@@ -17,10 +17,12 @@ stages:
   - deploy
 
 variables:
-  TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:${CI_COMMIT_REF_NAME}
-  RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
-  FRONTEND_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:${CI_COMMIT_REF_NAME}
-  FRONTEND_RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:latest
+  TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:test_${CI_COMMIT_REF_NAME}
+  RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:${CI_COMMIT_REF_NAME}
+  LATEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
+  FRONTEND_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:test_${CI_COMMIT_REF_NAME}
+  FRONTEND_RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:${CI_COMMIT_REF_NAME}
+  FRONTEND_LATEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:latest
   RAWAPI_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/rawapi:${CI_COMMIT_REF_NAME}
   RAWAPI_RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/rawapi:latest
 
@@ -154,14 +156,32 @@ release:
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
     - docker pull $TEST_IMAGE
-    - docker tag $TEST_IMAGE $RELEASE_IMAGE
-    - docker push $RELEASE_IMAGE
+    - docker tag $TEST_IMAGE $LATEST_IMAGE
+    - docker push $LATEST_IMAGE
     - docker pull $FRONTEND_TEST_IMAGE
-    - docker tag $FRONTEND_TEST_IMAGE $FRONTEND_RELEASE_IMAGE
-    - docker push $FRONTEND_RELEASE_IMAGE
+    - docker tag $FRONTEND_TEST_IMAGE $FRONTEND_LATEST_IMAGE
+    - docker push $FRONTEND_LATEST_IMAGE
   except:
     - /^dev-.*$/
   when: manual
+
+release_version:
+  stage: release
+  script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+    - docker pull $TEST_IMAGE
+    - docker tag $TEST_IMAGE $LATEST_IMAGE
+    - docker push $LATEST_IMAGE
+    - docker tag $TEST_IMAGE $RELEASE_IMAGE
+    - docker push $RELEASE_IMAGE
+    - docker pull $FRONTEND_TEST_IMAGE
+    - docker tag $FRONTEND_TEST_IMAGE $FRONTEND_LATEST_IMAGE
+    - docker push $FRONTEND_LATEST_IMAGE
+    - docker tag $FRONTEND_TEST_IMAGE $FRONTEND_RELEASE_IMAGE
+    - docker push $FRONTEND_RELEASE_IMAGE
+  only:
+    - tags
+    - /^v[0-9]+\.[0-9]+\.[0-9]+$/
 
 release_rawapi:
   stage: release
@@ -211,6 +231,8 @@ deploy:
     - export FILES_PATH="/nomad/fairdi/nomad_v${NOMAD_VERSION}/fs"
     - if [ ${DEPLOYS}  -eq 0 ]; then
         helm install --name=${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE}
+          --set images.nomad.tag=${CI_COMMIT_REF_NAME}
+          --set images.frontend.tag=${CI_COMMIT_REF_NAME}
           --set api.disableReset="false"
           --set proxy.nodePort="300${NUMERIC_VERSION//./}"
           --set proxy.external.path=${EXTERNAL_PATH}
@@ -219,8 +241,11 @@ deploy:
           --set worker.memrequest=32
           --set volumes.files=${FILES_PATH};
       else
-        helm upgrade ${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE} --recreate-pods;
+        helm upgrade ${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE}
+          --set images.nomad.tag=${CI_COMMIT_REF_NAME}
+          --set images.frontend.tag=${CI_COMMIT_REF_NAME}
+          --recreate-pods;
       fi
-  except:
-    - /^dev-.*$/
-  when: manual
+  only:
+    - tags
+    - /^v[0-9]+\.[0-9]+\.[0-9]+$/
