@@ -40,6 +40,7 @@ build:
     - docker push $TEST_IMAGE
   except:
     - /^dev-.*$/
+    - tags
 
 
 buildgui:
@@ -53,6 +54,7 @@ buildgui:
     - docker push $FRONTEND_TEST_IMAGE
   except:
     - /^dev-.*$/
+    - tags
 
 
 buildrawapi:
@@ -74,6 +76,7 @@ linting:
     - python -m pylint --load-plugins=pylint_mongoengine nomad tests
     - python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests
   except:
+    - tags
     variables:
       - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
       - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
@@ -108,6 +111,7 @@ tests:
     - cd /app
     - python -m pytest --cov=nomad -sv tests
   except:
+    - tags
     variables:
       - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
       - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
@@ -181,7 +185,6 @@ release_version:
     - docker push $FRONTEND_RELEASE_IMAGE
   only:
     - tags
-    - /^v[0-9]+\.[0-9]+\.[0-9]+$/
 
 release_rawapi:
   stage: release
@@ -248,4 +251,3 @@ deploy:
       fi
   only:
     - tags
-    - /^v[0-9]+\.[0-9]+\.[0-9]+$/
