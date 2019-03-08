@@ -656,6 +656,32 @@ class TestRepo(UploadFilesBasedTests):
         assert len(results) == 2
         assert results[0]['calc_id'] == first
 
+    @pytest.mark.parametrize('n_results, size', [(2, None), (2, 5), (1, 1)])
+    def test_search_scroll(self, client, example_elastic_calcs, no_warn, n_results, size):
+        if size is not None:
+            rv = client.get('/repo/?scroll=1,&per_page=%d' % size)
+        else:
+            rv = client.get('/repo/?scroll=1')
+
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        results = data.get('results', None)
+        assert data['pagination']['total'] == 2
+        assert results is not None
+        assert len(results) == n_results
+        scroll_id = data.get('scroll_id', None)
+        assert scroll_id is not None
+
+        has_another_page = False
+        while scroll_id is not None:
+            rv = client.get('/repo/?scroll=1&scroll_id=%s' % scroll_id)
+            data = json.loads(rv.data)
+            scroll_id = data.get('scroll_id', None)
+            has_another_page |= len(data.get('results')) > 0
+
+        if n_results < 2:
+            assert has_another_page
+
     def test_search_user_authrequired(self, client, example_elastic_calcs, no_warn):
         rv = client.get('/repo/?owner=user')
         assert rv.status_code == 401

@@ -32,6 +32,9 @@ path_analyzer = analyzer(
 class AlreadyExists(Exception): pass
 
 
+class ElasticSearchError(Exception): pass
+
+
 class User(InnerDoc):
 
     @classmethod
@@ -254,25 +257,7 @@ elastic field and description.
 """
 
 
-def aggregate_search(
-        page: int = 1, per_page: int = 10, order_by: str = 'formula', order: int = -1,
-        q: Q = None, **kwargs) -> Tuple[int, List[dict], Dict[str, Dict[str, int]]]:
-    """
-    Performs a search and returns paginated search results and aggregation bucket sizes
-    based on key quantities.
-
-    Arguments:
-        page: The page to return starting with page 1
-        per_page: Results per page
-        q: An *elasticsearch_dsl* query used to further filter the results (via `and`)
-        aggregations: A customized list of aggregations to perform. Keys are index fields,
-            and values the amount of buckets to return. Only works on *keyword* field.
-        **kwargs: Quantity, value pairs to search for.
-
-    Returns: A tuple with the total hits, an array with the results, an dictionary with
-        the aggregation data.
-    """
-
+def _construct_search(q: Q = None, **kwargs) -> Search:
     search = Search(index=config.elastic.index_name)
 
     if q is not None:
@@ -296,6 +281,82 @@ def aggregate_search(
             for item in items:
                 search = search.query(Q(query_type, **{field: item}))
 
+    search = search.source(exclude=['quantities'])
+
+    return search
+
+
+def scroll_search(
+        scroll_id: str = None, size: int = 1000, scroll: str = u'5m',
+        q: Q = None, **kwargs) -> Tuple[str, int, List[dict]]:
+    """
+    Alternative search based on ES scroll API. Can be used similar to
+    :func:`aggregate_search`, but pagination is replaced with scrolling, no ordering,
+    and no aggregation information is given.
+
+    Scrolling is done by calling this function again and again with the same ``scoll_id``.
+    Each time, this function will return the next batch of search results.
+
+    See see :func:`aggregate_search` for additional ``kwargs``
+
+    Arguments:
+        scroll_id: The scroll id to receive the next batch from. None will create a new
+            scroll.
+        size: The batch size in number of hits.
+        scroll: The time the scroll should be kept alive (i.e. the time between requests
+            to this method) in ES time units. Default is 5 minutes.
+    """
+    es = infrastructure.elastic_client
+
+    if scroll_id is None:
+        # initiate scroll
+        search = _construct_search(q, **kwargs)
+        resp = es.search(body=search.to_dict(), scroll=scroll, size=size)  # pylint: disable=E1123
+
+        scroll_id = resp.get('_scroll_id')
+        if scroll_id is None:
+            # no results for search query
+            return None, 0, []
+    else:
+        resp = es.scroll(scroll_id, scroll=scroll)  # pylint: disable=E1123
+
+    total = resp['hits']['total']
+    results = [hit['_source'] for hit in resp['hits']['hits']]
+
+    # since we are using the low level api here, we should check errors
+    if resp["_shards"]["successful"] < resp["_shards"]["total"]:
+        utils.get_logger(__name__).error('es operation was unsuccessful on at least one shard')
+        raise ElasticSearchError('es operation was unsuccessful on at least one shard')
+
+    if len(results) == 0:
+        es.clear_scroll(body={'scroll_id': [scroll_id]}, ignore=(404, ))  # pylint: disable=E1123
+        return None, total, []
+
+    return scroll_id, total, results
+
+
+def aggregate_search(
+        page: int = 1, per_page: int = 10, order_by: str = 'formula', order: int = -1,
+        q: Q = None, aggregations: Dict[str, int] = aggregations,
+        **kwargs) -> Tuple[int, List[dict], Dict[str, Dict[str, int]]]:
+    """
+    Performs a search and returns paginated search results and aggregation bucket sizes
+    based on key quantities.
+
+    Arguments:
+        page: The page to return starting with page 1
+        per_page: Results per page
+        q: An *elasticsearch_dsl* query used to further filter the results (via `and`)
+        aggregations: A customized list of aggregations to perform. Keys are index fields,
+            and values the amount of buckets to return. Only works on *keyword* field.
+        **kwargs: Quantity, value pairs to search for.
+
+    Returns: A tuple with the total hits, an array with the results, an dictionary with
+        the aggregation data.
+    """
+
+    search = _construct_search(q, **kwargs)
+
     for aggregation, size in aggregations.items():
         if aggregation == 'authors':
             search.aggs.bucket(aggregation, A('terms', field='authors.name_keyword', size=size))
@@ -305,8 +366,6 @@ def aggregate_search(
     if order_by not in search_quantities:
         raise KeyError('Unknown order quantity %s' % order_by)
     search = search.sort(order_by if order == 1 else '-%s' % order_by)
-
-    search = search.source(exclude=['quantities'])
 
     response = search[(page - 1) * per_page: page * per_page].execute()  # pylint: disable=E1101
 

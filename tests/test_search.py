@@ -15,7 +15,7 @@
 from elasticsearch_dsl import Q
 
 from nomad import datamodel, search, processing, parsing, infrastructure, config, coe_repo
-from nomad.search import Entry, aggregate_search, authors
+from nomad.search import Entry, aggregate_search, authors, scroll_search
 
 
 def test_init_mapping(elastic):
@@ -58,6 +58,22 @@ def test_search(elastic, normalized: parsing.LocalBackend):
     assert 'bulk' in aggs['system']
     assert aggs['system']['bulk'] == 1
     assert 'quantities' not in hits[0]
+
+
+def test_scroll(elastic, normalized: parsing.LocalBackend):
+    calc_with_metadata = normalized.to_calc_with_metadata()
+    create_entry(calc_with_metadata)
+    refresh_index()
+
+    scroll_id, total, hits = scroll_search()
+    assert total == 1
+    assert len(hits) == 1
+    assert scroll_id is not None
+
+    scroll_id, total, hits = scroll_search(scroll_id=scroll_id)
+    assert total == 1
+    assert scroll_id is None
+    assert len(hits) == 0
 
 
 def test_authors(elastic, normalized: parsing.LocalBackend, test_user: coe_repo.User, other_test_user: coe_repo.User):

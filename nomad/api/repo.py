@@ -64,6 +64,7 @@ repo_calcs_model = api.model('RepoCalculations', {
     'results': fields.List(fields.Raw, description=(
         'A list of search results. Each result is a dict with quantitie names as key and '
         'values as values')),
+    'scroll_id': fields.String(description='Id of the current scroll view in scroll based search.'),
     'aggregations': fields.Raw(description=(
         'A dict with all aggregations. Each aggregation is dictionary with the amount as '
         'value and quantity value as key.'))
@@ -73,6 +74,10 @@ repo_request_parser = pagination_request_parser.copy()
 repo_request_parser.add_argument(
     'owner', type=str,
     help='Specify which calcs to return: ``all``, ``user``, ``staging``, default is ``all``')
+repo_request_parser.add_argument(
+    'scroll', type=bool, help='Enable scrolling')
+repo_request_parser.add_argument(
+    'scroll_id', type=str, help='The id of the current scrolling window to use.')
 
 for search_quantity in search.search_quantities.keys():
     _, _, description = search.search_quantities[search_quantity]
@@ -96,11 +101,27 @@ class RepoCalcsResource(Resource):
         you will be given a list of all possible values and the number of entries
         that have the certain value. You can also use these aggregations on an empty
         search to determine the possible values.
+
+        The pagination parameters allows determine which page to return via the
+        ``page`` and ``per_page`` parameters. Pagination however, is limited to the first
+        100k (depending on ES configuration) hits. An alternative to pagination is to use
+        ``scroll`` and ``scroll_id``. With ``scroll`` you will get a ``scroll_id`` on
+        the first request. Each call with ``scroll`` and the respective ``scroll_id`` will
+        return the next ``per_page`` (here the default is 1000) results. Scroll however,
+        ignores ordering and does not return aggregations. The scroll view used in the
+        background will stay alive for 1 minute between requests.
+
+        The search will return aggregations on a predefined set of quantities. Aggregations
+        will tell you what quantity values exist and how many entries match those values.
+
+        Ordering is determined by ``order_by`` and ``order`` parameters.
         """
 
         try:
+            scroll = bool(request.args.get('scroll', False))
+            scroll_id = request.args.get('scroll_id', None)
             page = int(request.args.get('page', 1))
-            per_page = int(request.args.get('per_page', 10))
+            per_page = int(request.args.get('per_page', 10 if not scroll else 1000))
             order = int(request.args.get('order', -1))
         except Exception:
             abort(400, message='bad parameter types')
@@ -136,14 +157,31 @@ class RepoCalcsResource(Resource):
 
         data = dict(**request.args)
         data.pop('owner', None)
-        data.update(per_page=per_page, page=page, order=order, order_by=order_by)
+        data.pop('scroll', None)
+        data.pop('scroll_id', None)
+        data.pop('per_page', None)
+        data.pop('page', None)
+        data.pop('order', None)
+        data.pop('order_by', None)
+
+        if scroll:
+            data.update(scroll_id=scroll_id, size=per_page)
+        else:
+            data.update(per_page=per_page, page=page, order=order, order_by=order_by)
 
         try:
-            total, results, aggregations = search.aggregate_search(q=q, **data)
+            if scroll:
+                page = -1
+                scroll_id, total, results = search.scroll_search(q=q, **data)
+                aggregations = None
+            else:
+                scroll_id = None
+                total, results, aggregations = search.aggregate_search(q=q, **data)
         except KeyError as e:
             abort(400, str(e))
 
         return dict(
             pagination=dict(total=total, page=page, per_page=per_page),
             results=results,
+            scroll_id=scroll_id,
             aggregations=aggregations), 200

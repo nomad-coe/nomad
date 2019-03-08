@@ -792,10 +792,15 @@ class NomadCOEMigration:
         # verify upload against source
         calcs_in_search = 0
         with utils.timer(logger, 'varyfied upload against source calcs'):
-            for page in range(1, math.ceil(upload_total_calcs / per_page) + 1):
-                search = self.nomad(
-                    'repo.search', page=page, per_page=per_page, upload_id=upload.upload_id,
-                    order_by='mainfile')
+            scroll_id = 'first'
+            while scroll_id is not None:
+                scroll_args: Dict[str, Any] = dict(scroll=True)
+                if scroll_id != 'first':
+                    scroll_args['scroll_id'] = scroll_id
+
+                search = self.nomad('repo.search', upload_id=upload.upload_id, **scroll_args)
+
+                scroll_id = search.scroll_id
 
                 for calc in search.results:
                     calcs_in_search += 1
