@@ -583,6 +583,16 @@ class NomadCOEMigration:
         upload_reports: Dict[str, Report] = {}
         threads = []
 
+        def print_report():
+            if self._quiet:
+                print(
+                    'packages: {:,}, skipped: {:,}, source calcs: {:,}, migrated: {:,}, '
+                    'failed: {:,}, missing: {:,}, new: {:,}'.format(
+                        overall_report.total_packages, overall_report.skipped_packages,
+                        overall_report.total_source_calcs, overall_report.migrated_calcs,
+                        overall_report.failed_calcs, overall_report.missing_calcs,
+                        overall_report.new_calcs))
+
         def migrate_package(package: Package, of_packages: int):
             logger = self.logger.bind(package_id=package.package_id, source_upload_id=package.upload_id)
             try:
@@ -614,12 +624,7 @@ class NomadCOEMigration:
 
                         logger.info('migrated upload', **upload_report)
 
-                    if not self._quiet:
-                        print(
-                            'packages: %d, source calcs: %d, migrated: %d, failed: %d, missing: %d' % (
-                                overall_report.total_packages, overall_report.total_source_calcs,
-                                overall_report.migrated_calcs, overall_report.failed_calcs,
-                                overall_report.missing_calcs))
+                    print_report()
                 except Exception as e:
                     logger.error('unexpected exception while migrating packages', exc_info=e)
 
@@ -644,6 +649,7 @@ class NomadCOEMigration:
                         overall_report.add(package.report)
                         overall_report.skipped_packages += 1
 
+                        print_report()
                         continue
 
                     cv.wait_for(lambda: self._threads > 0)
