@@ -129,6 +129,7 @@ class Upload(Base):  # type: ignore
         logger = utils.get_logger(__name__, upload_id=upload.upload_id)
 
         last_error = None
+        retries = 0
 
         while True:
             publish_filelock = filelock.FileLock(
@@ -189,9 +190,12 @@ class Upload(Base):  # type: ignore
                 return upload_id
             except Exception as e:
                 repo_db.rollback()
-                if last_error != str(e):
+                if last_error != str(e) and retries < 3:
                     last_error = str(e)
-                    logger.error('Retry publish after unexpected execption.', exc_info=e)
+                    logger.error(
+                        'Retry publish after unexpected exception.', exc_info=e,
+                        error=last_error, retry=retries)
+                    retries += 1
                 else:
                     logger.error('Unexpected exception.', exc_info=e)
                     raise e
