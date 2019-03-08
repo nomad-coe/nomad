@@ -109,6 +109,10 @@ class CalcProcReproduction:
         self.logger.info('identified parser')
 
         parser_backend = parser.run(self.upload_files.raw_file_object(self.mainfile).os_path, logger=self.logger)
+
+        if not parser_backend.status[0] == 'ParseSuccess':
+            self.logger.error('parsing was not successful', status=parser_backend.status)
+
         parser_backend.openNonOverlappingSection('section_calculation_info')
         parser_backend.addValue('upload_id', self.upload_id)
         parser_backend.addValue('calc_id', self.calc_id)

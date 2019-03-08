@@ -102,9 +102,10 @@ def pid_prefix(prefix: int):
 @click.option('--delete-local', help='Delete created local upload files after upload.', is_flag=True)
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.option('--migration-version', default=0, type=int, help='The version number, only packages with lower or no number will be migrated.')
+@click.option('--delete-failed', default='', type=str, help='String from N, U, P to determine if empty (N), failed (U), or failed to publish (P) uploads should be deleted or kept for debugging.')
 def upload(
         paths: list, pattern: str, create_packages: bool, local: bool, delete_local: bool,
-        parallel: int, migration_version: int):
+        parallel: int, migration_version: int, delete_failed: str):
 
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
@@ -120,4 +121,5 @@ def upload(
 
     migration = NomadCOEMigration(migration_version=migration_version, threads=parallel)
     migration.migrate(
-        *paths, local=local, delete_local=delete_local, create_packages=create_packages)
+        *paths, local=local, delete_local=delete_local, create_packages=create_packages,
+        delete_failed=delete_failed)
