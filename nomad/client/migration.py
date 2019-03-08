@@ -15,6 +15,9 @@
 import click
 import time
 import datetime
+import os
+import os.path
+import re
 
 from nomad import config, infrastructure
 from nomad.migration import NomadCOEMigration
@@ -93,17 +96,27 @@ def pid_prefix(prefix: int):
 
 @migration.command(help='Upload the given upload locations. Uses the existing index to provide user metadata')
 @click.argument('paths', nargs=-1)
+@click.option('--pattern', default=None, type=str, help='Interpret the paths as directory and migrate those subdirectory that match the given regexp')
 @click.option('--create-packages', help='Allow migration to create package entries on the fly.', is_flag=True)
 @click.option('--local', help='Create local upload files.', is_flag=True)
 @click.option('--delete-local', help='Delete created local upload files after upload.', is_flag=True)
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.option('--migration-version', default=0, type=int, help='The version number, only packages with lower or no number will be migrated.')
 def upload(
-        paths: list, create_packages, local: bool, delete_local: bool, parallel: int,
-        migration_version: int):
+        paths: list, pattern: str, create_packages: bool, local: bool, delete_local: bool,
+        parallel: int, migration_version: int):
 
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
+
+    if pattern is not None:
+        assert len(paths) == 0
+        path = paths[0]
+        paths = []
+        compiled_pattern = re.compile(pattern)
+        for sub_directory in os.listdir(path):
+            if re.fullmatch(compiled_pattern, sub_directory):
+                paths.append(os.path.join(path, sub_directory))
 
     migration = NomadCOEMigration(migration_version=migration_version, threads=parallel)
     migration.migrate(
