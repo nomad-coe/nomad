@@ -185,6 +185,7 @@ class Calc(Base):
         if code_version_obj is None:
             code_version_obj = CodeVersion(content=source_code_version)
             repo_db.add(code_version_obj)
+            repo_db.flush()
 
         if calc.upload_time is not None:
             added_time = calc.upload_time
@@ -258,6 +259,7 @@ class Calc(Base):
                     added=self.upload.upload_time,
                     chemical_formula=dataset.name)
                 repo_db.add(metadata)
+                repo_db.flush()
 
                 if dataset.doi is not None:
                     self._add_citation(coe_dataset_calc, dataset.doi['value'], 'INTERNAL', context)
@@ -273,6 +275,8 @@ class Calc(Base):
         # references
         for reference in calc.references:
             self._add_citation(self, reference['value'], 'EXTERNAL', context)
+
+        repo_db.flush()
 
     def _add_citation(self, coe_calc: 'Calc', value: str, kind: str, context: PublishContext) -> None:
         if value is None or kind is None:
