@@ -110,7 +110,7 @@ def upload(
     infrastructure.setup_mongo()
 
     if pattern is not None:
-        assert len(paths) == 0
+        assert len(paths) == 1
         path = paths[0]
         paths = []
         compiled_pattern = re.compile(pattern)

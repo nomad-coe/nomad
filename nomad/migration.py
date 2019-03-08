@@ -584,7 +584,7 @@ class NomadCOEMigration:
         threads = []
 
         def print_report():
-            if self._quiet:
+            if not self._quiet:
                 print(
                     'packages: {:,}, skipped: {:,}, source calcs: {:,}, migrated: {:,}, '
                     'failed: {:,}, missing: {:,}, new: {:,}'.format(
