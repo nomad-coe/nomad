@@ -213,7 +213,7 @@ class Calc(Proc):
             else:
                 self._parser_backend.addValue('archive_processor_status', 'Success')
         else:
-            errors = self._parser_backend.tasks_status[1]
+            errors = self._parser_backend.status[1]
             self._parser_backend.addValue('archive_processor_error', str(errors))
 
         self._parser_backend.closeNonOverlappingSection('section_archive_processing_info')
