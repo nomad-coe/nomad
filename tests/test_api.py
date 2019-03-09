@@ -555,14 +555,17 @@ class TestRepo(UploadFilesBasedTests):
 
         calc_with_metadata = normalized.to_calc_with_metadata()
 
-        calc_with_metadata.update(calc_id='1', uploader=test_user.to_popo(), published=True)
+        calc_with_metadata.update(calc_id='1', uploader=test_user.to_popo(), published=True, with_embargo=False)
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
-        calc_with_metadata.update(calc_id='2', uploader=other_test_user.to_popo(), published=True)
+        calc_with_metadata.update(calc_id='2', uploader=other_test_user.to_popo(), published=True, with_embargo=False)
         calc_with_metadata.update(atoms=['Fe'], comment='this is a specific word', formula='AAA', basis_set='zzz')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
-        calc_with_metadata.update(calc_id='3', uploader=other_test_user.to_popo(), published=False)
+        calc_with_metadata.update(calc_id='3', uploader=other_test_user.to_popo(), published=False, with_embargo=False)
+        search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
+
+        calc_with_metadata.update(calc_id='4', uploader=other_test_user.to_popo(), published=True, with_embargo=True)
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
     @UploadFilesBasedTests.ignore_authorization
@@ -578,8 +581,9 @@ class TestRepo(UploadFilesBasedTests):
     @pytest.mark.parametrize('calcs, owner, auth', [
         (2, 'all', 'none'),
         (2, 'all', 'test_user'),
+        (4, 'all', 'other_test_user'),
         (1, 'user', 'test_user'),
-        (2, 'user', 'other_test_user'),
+        (3, 'user', 'other_test_user'),
         (0, 'staging', 'test_user'),
         (1, 'staging', 'other_test_user')
     ])

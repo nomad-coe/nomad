@@ -17,6 +17,7 @@ import random
 from essential_generators import DocumentGenerator
 import datetime
 from ase.data import chemical_symbols
+from ase.spacegroup import Spacegroup
 
 from nomad import datamodel, parsing, utils, files
 
@@ -89,7 +90,9 @@ def generate_calc(pid: int = 0, calc_id: str = None, upload_id: str = None) -> d
     self.xc_functional = random.choice(xc_functionals)
     self.system = random.choice(systems)
     self.crystal_system = random.choice(crystal_systems)
-    self.spacegroup = '1'
+    spacegroup = random.randint(1, 225)
+    self.spacegroup = str(spacegroup)
+    self.spacegroup_symbol = Spacegroup(spacegroup).symbol
     self.code_name = random.choice(codes)
     self.code_version = '1.0.0'
 

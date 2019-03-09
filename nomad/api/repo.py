@@ -139,10 +139,9 @@ class RepoCalcsResource(Resource):
             abort(400, message='invalid pagination')
 
         if owner == 'all':
-            if g.user is None:
-                q = Q('term', published=True)
-            else:
-                q = Q('term', published=True) | Q('term', owners__user_id=g.user.user_id)
+            q = Q('term', published=True) & Q('term', with_embargo=False)
+            if g.user is not None:
+                q = q | Q('term', owners__user_id=g.user.user_id)
         elif owner == 'user':
             if g.user is None:
                 abort(401, message='Authentication required for owner value user.')

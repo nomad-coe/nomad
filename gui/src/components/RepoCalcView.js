@@ -130,7 +130,7 @@ class RepoCalcView extends React.Component {
                   {calcData.crystal_system}
                 </CalcQuantity>
                 <CalcQuantity label='spacegroup' loading={loading}>
-                  {calcData.spacegroup}
+                  {calcData.spacegroup_symbol} ({calcData.spacegroup})
                 </CalcQuantity>
               </div>
               <div>
