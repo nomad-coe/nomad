@@ -144,7 +144,7 @@ class PeriodicTable extends React.Component {
       this.setState({selected: selected})
     }
 
-    this.props.onSelectionChanged(selected.map(element => element.symbol))
+    this.props.onSelectionChanged(selected)
   }
 
   unSelectedAggregations() {
@@ -173,8 +173,8 @@ class PeriodicTable extends React.Component {
                         count={aggregations ? aggregations[element.symbol] || 0 : 0}
                         heatmapScale={heatmapScale}
                         relativeCount={aggregations ? (aggregations[element.symbol] || 0) / max : 0}
-                        onClick={() => this.onElementClicked(element)}
-                        selected={this.state.selected.indexOf(element) >= 0}
+                        onClick={() => this.onElementClicked(element.symbol)}
+                        selected={this.state.selected.indexOf(element.symbol) >= 0}
                       /> : ''}
                   </td>
                 ))}
