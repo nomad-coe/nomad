@@ -130,6 +130,7 @@ if __name__ == '__main__':
     from elasticsearch.helpers import bulk
     import sys
     print('Generate index with random example calculation data. First arg is number of items')
+    infrastructure.setup_logging()
     infrastructure.setup_elastic()
     n = 100
     if len(sys.argv) > 1:
