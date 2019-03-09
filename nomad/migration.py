@@ -763,6 +763,10 @@ class NomadCOEMigration:
                         break
 
                 logger.info('deleted upload after migration failure')
+            else:
+                logger.warning(
+                    'will keep upload after migration failure for debugging',
+                    reason=reason, delete_failed=delete_failed)
 
         # grab source calcs, while waiting for upload
         source_calcs = dict()
