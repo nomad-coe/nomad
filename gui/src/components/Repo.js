@@ -18,6 +18,7 @@ import { withApi } from './api'
 import CalcDialog from './CalcDialog'
 import PeriodicTable from './PeriodicTable'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
+import QuantityHistogram from './QuantityHistogram'
 
 class Repo extends React.Component {
   static propTypes = {
@@ -232,6 +233,9 @@ class Repo extends React.Component {
               aggregations={aggregations ? aggregations.atoms : null}
               onSelectionChanged={(selection) => this.handleElementSelectionChanged(selection)}
             />
+            { aggregations
+              ? <QuantityHistogram width={500} height={300} data={aggregations.system} />
+              : ''}
           </ExpansionPanelDetails>
         </ExpansionPanel>
 
