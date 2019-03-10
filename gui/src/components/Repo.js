@@ -64,13 +64,41 @@ class Repo extends React.Component {
   })
 
   static rowConfig = {
-    formula: 'Formula',
-    code_name: 'Code',
-    basis_set: 'Basis set',
-    system: 'System',
-    crystal_system: 'Crystal system',
-    spacegroup: 'Spacegroup',
-    xc_functional: 'XT treatment'
+    formula: {
+      label: 'Formula'
+    },
+    code_name: {
+      label: 'Code'
+    },
+    basis_set: {
+      label: 'Basis set'
+    },
+    xc_functional: {
+      label: 'XT treatment'
+    },
+    system: {
+      label: 'System'
+    },
+    crystal_system: {
+      label: 'Crystal system'
+    },
+    spacegroup_symbol: {
+      label: 'Spacegroup'
+    },
+    authors: {
+      label: 'Authors',
+      render: (authors) => authors.map(author => author.name).join('; ')
+    },
+    references: {
+      label: 'References',
+      render: (references) => {
+        if (references) {
+          return references.map((reference, index) => <a key={index} href={reference}>{reference}</a>)
+        } else {
+          return <i>no references</i>
+        }
+      }
+    }
   }
 
   state = {
@@ -156,6 +184,15 @@ class Repo extends React.Component {
     this.update({atoms: selection})
   }
 
+  renderCell(key, rowConfig, calc) {
+    const value = calc[key]
+    if (rowConfig.render) {
+      return rowConfig.render(value)
+    } else {
+      return value
+    }
+  }
+
   render() {
     const { classes, user } = this.props
     const { data, aggregations, rowsPerPage, page, total, loading, sortedBy, sortOrder, openCalc } = this.state
@@ -229,7 +266,7 @@ class Repo extends React.Component {
                         direction={sortOrder}
                         onClick={() => this.handleSort(key)}
                       >
-                        {Repo.rowConfig[key]}
+                        {Repo.rowConfig[key].label}
                       </TableSortLabel>
                     </Tooltip>
                   </TableCell>
@@ -241,7 +278,7 @@ class Repo extends React.Component {
                 <TableRow hover tabIndex={-1} key={index} className={classes.clickableRow}>
                   {Object.keys(Repo.rowConfig).map((key, rowIndex) => (
                     <TableCell padding="dense" key={rowIndex} onClick={() => this.handleClickCalc(calc)} >
-                      {calc[key]}
+                      {this.renderCell(key, Repo.rowConfig[key], calc)}
                     </TableCell>
                   ))}
                 </TableRow>
