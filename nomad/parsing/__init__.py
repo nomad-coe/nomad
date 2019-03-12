@@ -298,6 +298,12 @@ parsers = [
         mainfile_contents_re=(r'\|0\) ~ \(0\) \|')
         # We decided to use the octopus eyes instead of
         # r'\*{32} Grid \*{32}Simulation Box:' since it was so far down in the file.
+    ),
+    LegacyParser(
+        name='parsers/gpaw',
+        parser_class_name='gpawparser.GpawParserWrapper',
+        mainfile_contents_re=r'',  # We can't read .gpw as txt - of UlmGPAW|AFFormatGPAW'
+        mainfile_name_re=(r'.gpw$')
     )
 ]
 

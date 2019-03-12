@@ -49,7 +49,8 @@ parser_examples = [
     ('parsers/lib-atoms', 'tests/data/parsers/lib-atoms/gp.xml'),
     ('parsers/octopus', 'tests/data/parsers/octopus/stdout.txt'),
     ('parsers/phonopy',
-        'tests/data/parsers/phonopy/control.in')]
+        'tests/data/parsers/phonopy/control.in'),
+    ('parsers/gpaw', 'tests/data/parsers/gpaw/Fe2.gpw')]
 
 faulty_unknown_one_d_matid_example = [
     ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
