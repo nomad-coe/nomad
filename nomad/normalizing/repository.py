@@ -64,8 +64,14 @@ class RepositoryNormalizer(Normalizer):
                 continue
 
             # Compare values from iterations.
-            diff_bool = new_val != val
 
+            # We can't compare numpy arrays of different lengths.
+            if val is None:  # We also can't check the length of none-type objects.
+                diff_bool = True
+            elif len(new_val) != len(val):
+                diff_bool = False
+            else:  # If the first value wasn't none and the lengths are the same.
+                diff_bool = new_val != val
             if type(diff_bool) is bool:
                 if diff_bool and val is not None:
                     diff_flag = True

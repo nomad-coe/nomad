@@ -292,7 +292,14 @@ parsers = [
         mainfile_contents_re=(r'\|0\) ~ \(0\) \|')
         # We decided to use the octopus eyes instead of
         # r'\*{32} Grid \*{32}Simulation Box:' since it was so far down in the file.
+    ),
+    LegacyParser(
+        name='parsers/phonopy',
+        parser_class_name='phonopyparser.PhonopyParserWrapper',
+        mainfile_contents_re=r'',  # Empty regex since this code calls other DFT codes.
+        mainfile_name_re=(r'.*/phonopy-FHI-aims-displacement-0*1/control\\.in$')
     )
+
 ]
 
 """ Instanciation and constructor based config of all parsers. """

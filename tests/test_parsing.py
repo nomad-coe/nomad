@@ -47,7 +47,9 @@ parser_examples = [
     ('parsers/castep', 'tests/data/parsers/castep/BC2N-Pmm2-Raman.castep'),
     ('parsers/dl-poly', 'tests/data/parsers/dl-poly/OUTPUT'),
     ('parsers/lib-atoms', 'tests/data/parsers/lib-atoms/gp.xml'),
-    ('parsers/octopus', 'tests/data/parsers/octopus/stdout.txt')]
+    ('parsers/octopus', 'tests/data/parsers/octopus/stdout.txt'),
+    ('parsers/phonopy',
+        'tests/data/parsers/phonopy/control.in')]
 
 faulty_unknown_one_d_matid_example = [
     ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')

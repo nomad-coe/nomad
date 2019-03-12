@@ -1,0 +1,9 @@
+-catch_rsh /var/spool/SGE6/aims125/active_jobs/449118.1/pe_hostfile /afs/ipp/.cs/intel/impi/4.0.0
+aims125
+aims398
+start_impi_sles11.sh: check for local mpd daemon (1 of 5)
+start_impi_sles11.sh: check for local mpd daemon (2 of 5)
+start_impi_sles11.sh: check for mpd daemons (1 of 5)
+start_impi_sles11.sh: check for mpd daemons (2 of 5)
+start_impi_sles11.sh: got all 2 of 2 nodes
+-catch_rsh /afs/ipp/.cs/intel/impi/4.0.0

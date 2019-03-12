@@ -73,3 +73,6 @@
 [submodule "dependencies/parsers/phonopy"]
 	path = dependencies/parsers/phonopy
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-phonopy
+[submodule "dependencies/parsers/phonopy-library"]
+	path = dependencies/parsers/phonopy-library
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/phonopy
