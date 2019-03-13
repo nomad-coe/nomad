@@ -88,6 +88,7 @@ class Calc(Proc):
     def upload(self) -> 'Upload':
         if not self._upload:
             self._upload = Upload.get(self.upload_id)
+            self._upload.worker_hostname = self.worker_hostname
         return self._upload
 
     @property

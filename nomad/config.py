@@ -91,7 +91,7 @@ celery = CeleryConfig(
     max_memory=int(os.environ.get('NOMAD_CELERY_MAXMEMORY', 64e6)),  # 64 GB
     timeout=int(os.environ.get('NOMAD_CELERY_TIMEOUT', 3 * 3600)),  # 3h
     acks_late=bool(os.environ.get('NOMAD_CELERY_ACKS_LATE', True)),
-    routing=os.environ.get('NOMAD_CELEREY_ROUTING', CELERY_QUEUE_ROUTING)
+    routing=os.environ.get('NOMAD_CELERY_ROUTING', CELERY_QUEUE_ROUTING)
 )
 fs = FSConfig(
     tmp=os.environ.get('NOMAD_FILES_TMP_DIR', '.volumes/fs/tmp'),
