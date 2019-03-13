@@ -18,6 +18,7 @@ import time
 from celery import Celery, Task
 from celery.worker.request import Request
 from celery.signals import after_setup_task_logger, after_setup_logger, worker_process_init
+from celery.utils import worker_direct
 from billiard.exceptions import WorkerLostError
 from mongoengine import Document, StringField, ListField, DateTimeField, ValidationError
 from mongoengine.connection import MongoEngineConnectionError
@@ -50,6 +51,8 @@ app = Celery('nomad.processing', broker=config.celery.broker_url)
 app.conf.update(worker_hijack_root_logger=False)
 app.conf.update(worker_max_memory_per_child=config.celery.max_memory)
 app.conf.update(task_time_limit=config.celery.timeout)
+if config.celery.routing == config.CELERY_WORKER_ROUTING:
+    app.conf.update(worker_direct=True)
 
 CREATED = 'CREATED'
 PENDING = 'PENDING'
@@ -136,7 +139,8 @@ class Proc(Document, metaclass=ProcMetaclass):
     current_process = StringField(default=None)
     process_status = StringField(default=None)
 
-    # _celery_task_id = StringField(default=None)
+    worker_hostname = StringField(default=None)
+    celery_task_id = StringField(default=None)
 
     @property
     def tasks_running(self) -> bool:
@@ -426,6 +430,9 @@ def proc_task(task, cls_name, self_id, func_attr):
     logger = self.get_logger()
     logger.debug('received process function call')
 
+    self.worker_hostname = task.request.hostname
+    self.celery_task_id = task.request.id
+
     # get the process function
     func = getattr(self, func_attr, None)
     if func is None:
@@ -466,7 +473,7 @@ def process(func):
     To transfer state, the instance will be saved to the database and loading on
     the celery task worker. Process methods can call other (process) functions/methods on
     other :class:`Proc` instances. Each :class:`Proc` instance can only run one
-    asny process at a time.
+    any process at a time.
     """
     def wrapper(self, *args, **kwargs):
         assert len(args) == 0 and len(kwargs) == 0, 'process functions must not have arguments'
@@ -481,10 +488,12 @@ def process(func):
         cls_name = self.__class__.__name__
 
         queue = getattr(self.__class__, 'queue', None)
+        if config.celery.routing == config.CELERY_WORKER_ROUTING and self.worker_hostname is not None:
+            queue = 'celery@%s' % worker_direct(self.worker_hostname).name
 
-        logger = utils.get_logger(
-            __name__, cls=cls_name, id=self_id, func=func.__name__, queue=queue)
-        logger.debug('calling process function')
+        logger = utils.get_logger(__name__, cls=cls_name, id=self_id, func=func.__name__)
+        logger.debug('calling process function', queue=queue)
+
         return proc_task.apply_async(args=[cls_name, self_id, func.__name__], queue=queue)
 
     task = getattr(func, '__task_name', None)

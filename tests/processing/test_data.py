@@ -12,16 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Generator
+from typing import Generator, Tuple
 import pytest
 from datetime import datetime
-import shutil
 import os.path
 import json
 import re
 
 from nomad import utils, infrastructure
-from nomad.files import ArchiveBasedStagingUploadFiles, UploadFiles, StagingUploadFiles
+from nomad.files import UploadFiles, StagingUploadFiles
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator, FAILURE, SUCCESS
 
@@ -39,17 +38,17 @@ def mongo_forall(mongo):
 
 
 @pytest.fixture
-def uploaded_id_with_warning(raw_files) -> Generator[str, None, None]:
+def uploaded_id_with_warning(raw_files) -> Generator[Tuple[str, str], None, None]:
     example_file = 'tests/data/proc/examples_with_warning_template.zip'
     example_upload_id = os.path.basename(example_file).replace('.zip', '')
-    upload_files = ArchiveBasedStagingUploadFiles(example_upload_id, create=True)
-    shutil.copyfile(example_file, upload_files.upload_file_os_path)
 
-    yield example_upload_id
+    yield example_upload_id, example_file
 
 
-def run_processing(uploaded_id: str, test_user) -> Upload:
-    upload = Upload.create(upload_id=uploaded_id, user=test_user)
+def run_processing(uploaded: Tuple[str, str], test_user) -> Upload:
+    uploaded_id, uploaded_path = uploaded
+    upload = Upload.create(
+        upload_id=uploaded_id, user=test_user, upload_path=uploaded_path)
     upload.upload_time = datetime.now()
 
     assert upload.tasks_status == 'RUNNING'
@@ -102,16 +101,14 @@ def test_processing(processed, no_warn, mails):
 def test_processing_with_warning(proc_infra, test_user, with_warn):
     example_file = 'tests/data/proc/examples_with_warning_template.zip'
     example_upload_id = os.path.basename(example_file).replace('.zip', '')
-    upload_files = ArchiveBasedStagingUploadFiles(example_upload_id, create=True)
-    shutil.copyfile(example_file, upload_files.upload_file_os_path)
 
-    upload = run_processing(example_upload_id, test_user)
+    upload = run_processing((example_upload_id, example_file), test_user)
     assert_processing(upload)
 
 
 @pytest.mark.timeout(10)
 def test_process_non_existing(proc_infra, test_user, with_error):
-    upload = run_processing('__does_not_exist', test_user)
+    upload = run_processing(('__does_not_exist', '__does_not_exist'), test_user)
 
     assert not upload.tasks_running
     assert upload.current_task == 'extracting'
@@ -164,10 +161,8 @@ def test_task_failure(monkeypatch, uploaded, task, proc_infra, test_user, with_e
 def test_malicious_parser_task_failure(proc_infra, failure, test_user):
     example_file = 'tests/data/proc/chaos_%s.zip' % failure
     example_upload_id = os.path.basename(example_file).replace('.zip', '')
-    upload_files = ArchiveBasedStagingUploadFiles(example_upload_id, create=True)
-    shutil.copyfile(example_file, upload_files.upload_file_os_path)
 
-    upload = run_processing(example_upload_id, test_user)
+    upload = run_processing((example_upload_id, example_file), test_user)
 
     assert not upload.tasks_running
     assert upload.current_task == 'cleanup'

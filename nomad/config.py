@@ -26,14 +26,25 @@ warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 
-FilesConfig = namedtuple(
-    'FilesConfig', ['uploads_bucket', 'raw_bucket', 'archive_bucket', 'staging_bucket', 'public_bucket'])
-""" API independent configuration for the object storage. """
+CELERY_WORKER_ROUTING = 'worker'
+CELERY_QUEUE_ROUTING = 'queue'
 
-CeleryConfig = namedtuple('Celery', ['broker_url', 'max_memory', 'timeout', 'acks_late'])
-""" Used to configure the RabbitMQ for celery. """
+CeleryConfig = namedtuple('Celery', ['broker_url', 'max_memory', 'timeout', 'acks_late', 'routing'])
+"""
+Used to configure the RabbitMQ for celery.
 
-FSConfig = namedtuple('FSConfig', ['tmp', 'objects', 'nomad_tmp'])
+Arguments:
+    broker_url: The rabbitmq broker URL
+    max_memory: Max worker memory
+    timeout: Task timeout
+    acks_late: Use celery acks_late if set
+    routing: Set to ``queue`` for routing via upload, calc queues. Processing tasks for one
+        upload might be routed to different worker and all staging files must be accessible
+        for all workers via distributed fs. Set to ``worker`` to route all tasks related
+        to the same upload to the same worker.
+"""
+
+FSConfig = namedtuple('FSConfig', ['tmp', 'staging', 'public'])
 """ Used to configure file stystem access. """
 
 RepositoryDBConfig = namedtuple('RepositoryDBConfig', ['host', 'port', 'dbname', 'user', 'password'])
@@ -57,14 +68,6 @@ MailConfig = namedtuple('MailConfig', ['host', 'port', 'user', 'password', 'from
 NormalizeConfig = namedtuple('NormalizeConfig', ['all_systems'])
 """ Used to configure the normalizers """
 
-files = FilesConfig(
-    uploads_bucket='uploads',
-    raw_bucket=os.environ.get('NOMAD_FILES_RAW_BUCKET', 'raw'),
-    archive_bucket='archive',
-    staging_bucket='staging',
-    public_bucket='public'
-)
-
 rabbit_host = os.environ.get('NOMAD_RABBITMQ_HOST', 'localhost')
 rabbit_port = os.environ.get('NOMAD_RABBITMQ_PORT', None)
 rabbit_user = 'rabbitmq'
@@ -87,13 +90,13 @@ celery = CeleryConfig(
     broker_url=rabbit_url,
     max_memory=int(os.environ.get('NOMAD_CELERY_MAXMEMORY', 64e6)),  # 64 GB
     timeout=int(os.environ.get('NOMAD_CELERY_TIMEOUT', 3 * 3600)),  # 3h
-    acks_late=bool(os.environ.get('NOMAD_CELERY_ACKS_LATE', True))
+    acks_late=bool(os.environ.get('NOMAD_CELERY_ACKS_LATE', True)),
+    routing=os.environ.get('NOMAD_CELEREY_ROUTING', CELERY_QUEUE_ROUTING)
 )
-
 fs = FSConfig(
     tmp=os.environ.get('NOMAD_FILES_TMP_DIR', '.volumes/fs/tmp'),
-    objects=os.environ.get('NOMAD_FILES_OBJECTS_DIR', '.volumes/fs/objects'),
-    nomad_tmp=os.environ.get('NOMAD_FILES_NOMAD_TMP_DIR', '/nomad/tmp')
+    staging=os.environ.get('NOMAD_FILES_STAGING_DIR', '.volumes/fs/staging'),
+    public=os.environ.get('NOMAD_FILES_PUBLIC_DIR', '.volumes/fs/public')
 )
 elastic = ElasticConfig(
     host=os.environ.get('NOMAD_ELASTIC_HOST', 'localhost'),

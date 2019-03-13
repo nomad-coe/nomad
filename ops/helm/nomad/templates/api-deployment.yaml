@@ -23,11 +23,13 @@ spec:
       - name: {{ include "nomad.name" . }}-api
         image: "{{ .Values.images.nomad.name }}:{{ .Values.images.nomad.tag }}"
         volumeMounts:
-        - mountPath: /app/.volumes/fs
+        - mountPath: /app/.volumes/fs/public
           name: files-volume
         - mountPath: /nomad
           name: nomad-volume
         env:
+        - name: NOMAD_FILES_TMP_DIR
+          value: "{{ .Values.volumes.tmp }}"
         - name: NOMAD_SERVICE
           value: "api"
         - name: NOMAD_RELEASE
@@ -72,6 +74,8 @@ spec:
           value: "{{ .Values.postgres.port }}"
         - name: NOMAD_COE_REPO_DB_NAME
           value: "{{ .Values.dbname }}"
+        - name: NOMAD_CELERY_ROUTING
+          value: "worker"
         command: ["python", "-m", "gunicorn.app.wsgiapp", "--timeout", "3600", "--log-config", "ops/gunicorn.log.conf", "-w", "{{ .Values.api.worker }}", "-b 0.0.0.0:8000", "nomad.api:app"]
         livenessProbe:
           httpGet:

@@ -50,11 +50,11 @@ class TestObjects:
 
     @pytest.fixture(scope='function')
     def test_bucket(self):
-        yield 'test_bucket'
+        yield config.fs.staging
 
-        bucket = os.path.join(config.fs.objects, 'test_bucket')
+        bucket = os.path.join(config.fs.staging)
         if os.path.exists(bucket):
-            shutil.rmtree(os.path.join(config.fs.objects, 'test_bucket'))
+            shutil.rmtree(os.path.join(config.fs.staging))
 
     def test_file_dir_existing(self, test_bucket):
         file = PathObject(test_bucket, 'sub/test_id')
@@ -243,12 +243,12 @@ class UploadFilesFixtures:
 
     @pytest.fixture(scope='function')
     def test_upload_id(self) -> Generator[str, None, None]:
-        for bucket in [config.files.staging_bucket, config.files.public_bucket]:
+        for bucket in [config.fs.staging, config.fs.public]:
             directory = DirectoryObject(bucket, 'test_upload', prefix=True)
             if directory.exists():
                 directory.delete()
         yield 'test_upload'
-        for bucket in [config.files.staging_bucket, config.files.public_bucket]:
+        for bucket in [config.fs.staging, config.fs.public]:
             directory = DirectoryObject(bucket, 'test_upload', prefix=True)
             if directory.exists():
                 directory.delete()
@@ -330,7 +330,8 @@ def create_staging_upload(upload_id: str, calc_specs: str) -> StagingUploadFiles
             directory = os.path.join(str(prefix), 'examples_template')
 
         calc, upload_file = generate_example_calc(
-            prefix, with_mainfile_prefix=is_multi, subdirectory=directory, with_embargo=calc_spec == 'r')
+            prefix, with_mainfile_prefix=is_multi, subdirectory=directory,
+            with_embargo=calc_spec == 'r')
         calc_id = calc['calc_id']
 
         upload.add_rawfiles(upload_file)
@@ -395,21 +396,17 @@ class TestStagingUploadFiles(UploadFilesContract):
 
 class TestArchiveBasedStagingUploadFiles(UploadFilesFixtures):
     def test_create(self, test_upload_id):
-        test_upload = ArchiveBasedStagingUploadFiles(test_upload_id, create=True)
-        shutil.copy(example_file, test_upload.upload_file_os_path)
+        test_upload = ArchiveBasedStagingUploadFiles(
+            test_upload_id, create=True, upload_path=example_file)
         test_upload.extract()
         assert sorted(list(test_upload.raw_file_manifest())) == sorted(example_file_contents)
-        assert os.path.exists(test_upload.upload_file_os_path)
-
-    def test_local_path(self, test_upload_id):
-        test_upload = ArchiveBasedStagingUploadFiles(test_upload_id, create=True, local_path=example_file)
-        test_upload.extract()
-        assert sorted(list(test_upload.raw_file_manifest())) == sorted(example_file_contents)
-        assert os.path.exists(test_upload.upload_file_os_path)
+        assert os.path.exists(test_upload.upload_path)
 
     def test_invalid(self, test_upload_id):
-        assert ArchiveBasedStagingUploadFiles(test_upload_id, create=True, local_path=example_file).is_valid
-        assert not ArchiveBasedStagingUploadFiles(test_upload_id, create=True).is_valid
+        assert ArchiveBasedStagingUploadFiles(
+            test_upload_id, create=True, upload_path=example_file).is_valid
+        assert not ArchiveBasedStagingUploadFiles(
+            test_upload_id, create=True, upload_path='does not exist').is_valid
 
 
 def create_public_upload(upload_id: str, calc_specs: str, **kwargs):

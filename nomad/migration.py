@@ -129,7 +129,7 @@ class Package(Document):
         Creates a zip file for the package in tmp and returns its path and whether it
         was created (``True``) or existed before (``False``).
         """
-        upload_filepath = os.path.join(config.fs.nomad_tmp, '%s.zip' % self.package_id)
+        upload_filepath = os.path.join(config.fs.tmp, '%s.zip' % self.package_id)
         if not os.path.exists(os.path.dirname(upload_filepath)):
             os.mkdir(os.path.dirname(upload_filepath))
         if not os.path.isfile(upload_filepath):

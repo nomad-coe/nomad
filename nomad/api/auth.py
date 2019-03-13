@@ -285,6 +285,9 @@ def create_authorization_predicate(upload_id, calc_id=None):
         if g.user is None:
             # guest users don't have authorized access to anything
             return False
+        elif g.user.user_id == 0:
+            # the admin user does have authorization to access everything
+            return True
 
         # look in repository
         upload = coe_repo.Upload.from_upload_id(upload_id)

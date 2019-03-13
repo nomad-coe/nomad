@@ -29,7 +29,7 @@ import datetime
 import base64
 from bravado.client import SwaggerClient
 
-from nomad import config, infrastructure, files, parsing, processing, coe_repo, api
+from nomad import config, infrastructure, parsing, processing, coe_repo, api
 
 from tests import test_parsing, test_normalizing
 from tests.processing import test_data as test_processing
@@ -58,13 +58,14 @@ def nomad_logging():
 @pytest.fixture(scope='session', autouse=True)
 def raw_files_infra(monkeysession):
     monkeysession.setattr('nomad.config.fs', config.FSConfig(
-        tmp='.volumes/test_fs/tmp', objects='.volumes/test_fs/objects', nomad_tmp='.volumes/test_fs/nomad_tmp'))
+        tmp='.volumes/test_fs/tmp', staging='.volumes/test_fs/staging',
+        public='.volumes/test_fs/public'))
 
 
 @pytest.fixture(scope='function')
 def raw_files(raw_files_infra):
     """ Provides cleaned out files directory structure per function. Clears files after test. """
-    directories = [config.fs.objects, config.fs.tmp]
+    directories = [config.fs.staging, config.fs.public, config.fs.tmp]
     for directory in directories:
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -510,21 +511,19 @@ def normalized(parsed: parsing.LocalBackend) -> parsing.LocalBackend:
 
 
 @pytest.fixture(scope='function')
-def uploaded(example_upload: str, raw_files) -> str:
+def uploaded(example_upload: str, raw_files) -> Tuple[str, str]:
     """
     Provides a uploaded with uploaded example file and gives the upload_id.
     Clears files after test.
     """
     example_upload_id = os.path.basename(example_upload).replace('.zip', '')
-    upload_files = files.ArchiveBasedStagingUploadFiles(example_upload_id, create=True)
-    shutil.copyfile(example_upload, upload_files.upload_file_os_path)
 
-    return example_upload_id
+    return example_upload_id, example_upload
 
 
 @pytest.mark.timeout(10)
 @pytest.fixture(scope='function')
-def processed(uploaded: str, test_user: coe_repo.User, proc_infra) -> processing.Upload:
+def processed(uploaded: Tuple[str, str], test_user: coe_repo.User, proc_infra) -> processing.Upload:
     """
     Provides a processed upload. Upload was uploaded with test_user.
     """

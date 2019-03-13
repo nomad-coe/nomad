@@ -328,7 +328,7 @@ class TestUploads:
 
         assert rv.status_code == 200
         if mode == 'local_path':
-            upload = self.assert_upload(rv.data, local_path=file, name=name)
+            upload = self.assert_upload(rv.data, upload_path=file, name=name)
         else:
             upload = self.assert_upload(rv.data, name=name)
         assert upload['tasks_running']
@@ -350,14 +350,6 @@ class TestUploads:
         monkeypatch.setattr('nomad.processing.data.Upload.cleanup', slow_cleanup)
         yield True
         monkeypatch.setattr('nomad.processing.data.Upload.cleanup', old_cleanup)
-
-    def test_delete_during_processing(self, client, test_user_auth, proc_infra, slow_processing, no_warn):
-        rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
-        upload = self.assert_upload(rv.data)
-        assert upload['tasks_running']
-        rv = client.delete('/uploads/%s' % upload['upload_id'], headers=test_user_auth)
-        assert rv.status_code == 400
-        self.assert_processing(client, test_user_auth, upload['upload_id'])
 
     def test_delete_unstaged(self, client, test_user_auth, proc_infra, no_warn):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)

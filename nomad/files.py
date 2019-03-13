@@ -27,13 +27,11 @@ almost readonly (beside metadata) storage.
                        /raw/**
                        /archive/<calc>.hdf5
                        /.frozen
-                       /.public
-                       /.restricted
     fs/public/<upload>/metadata.json.gz
-                      /raw-public.bagit.zip
-                      /raw-restricted.bagit.zip
-                      /archive-public.hdf5.zip
-                      /archive-restricted.hdf5.zip
+                      /raw-public.plain.zip
+                      /raw-restricted.plain.zip
+                      /archive-public.json.zip
+                      /archive-restricted.json.zip
 
 There is an implicit relationship between files, based on them being in the same
 directory. Each directory with at least one *mainfile* is a *calculation directory*
@@ -59,7 +57,7 @@ import json
 import os.path
 import os
 import shutil
-from zipfile import ZipFile, BadZipFile, is_zipfile
+from zipfile import ZipFile, BadZipFile
 import tarfile
 import hashlib
 import io
@@ -84,7 +82,7 @@ class PathObject:
         if os_path:
             self.os_path = os_path
         else:
-            self.os_path = os.path.join(config.fs.objects, bucket, object_id)
+            self.os_path = os.path.join(bucket, object_id)
 
         if prefix:
             segments = list(os.path.split(self.os_path))
@@ -292,9 +290,9 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
 
     @staticmethod
     def get(upload_id: str, *args, **kwargs) -> 'UploadFiles':
-        if DirectoryObject(config.files.staging_bucket, upload_id, prefix=True).exists():
+        if DirectoryObject(config.fs.staging, upload_id, prefix=True).exists():
             return StagingUploadFiles(upload_id, *args, **kwargs)
-        elif DirectoryObject(config.files.public_bucket, upload_id, prefix=True).exists():
+        elif DirectoryObject(config.fs.public, upload_id, prefix=True).exists():
             return PublicUploadFiles(upload_id, *args, **kwargs)
         else:
             return None
@@ -353,7 +351,7 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
 
 class StagingUploadFiles(UploadFiles):
     def __init__(self, *args, **kwargs) -> None:
-        super().__init__(config.files.staging_bucket, *args, **kwargs)
+        super().__init__(config.fs.staging, *args, **kwargs)
 
         self._raw_dir = self.join_dir('raw')
         self._archive_dir = self.join_dir('archive')
@@ -473,10 +471,14 @@ class StagingUploadFiles(UploadFiles):
         with open(self._frozen_file.os_path, 'wt') as f:
             f.write('frozen')
 
-        packed_dir = self.join_dir('.packed', create=True)
+        # create a target dir in the public bucket
+        target_dir = DirectoryObject(
+            config.fs.public, self.upload_id, create=True, prefix=True,
+            create_prefix=True)
+        assert target_dir.exists()
 
         def create_zipfile(kind: str, prefix: str, ext: str) -> ZipFile:
-            file = packed_dir.join_file('%s-%s.%s.zip' % (kind, prefix, ext))
+            file = target_dir.join_file('%s-%s.%s.zip' % (kind, prefix, ext))
             return ZipFile(file.os_path, mode='w')
 
         # In prior versions we used bagit on raw files. There was not much purpose for
@@ -513,7 +515,7 @@ class StagingUploadFiles(UploadFiles):
 
         raw_restricted_zip.close()
         raw_public_zip.close()
-        self.logger.debug('zipped raw files')
+        self.logger.debug('packed raw files')
 
         # zip archives
         archive_public_zip = create_zipfile('archive', 'public', self._archive_ext)
@@ -532,20 +534,14 @@ class StagingUploadFiles(UploadFiles):
 
         archive_restricted_zip.close()
         archive_public_zip.close()
-        self.logger.debug('zipped archives')
+        self.logger.debug('packed archives')
 
         # pack metadata
-        packed_metadata = PublicMetadata(packed_dir.os_path)
+        packed_metadata = PublicMetadata(target_dir.os_path)
         packed_metadata._create(self._metadata)
         self.logger.debug('packed metadata')
 
-        # move to public bucket
-        target_dir = DirectoryObject(
-            config.files.public_bucket, self.upload_id, create=False, prefix=True,
-            create_prefix=True)
-        assert not target_dir.exists()
-        os.rename(packed_dir.os_path, target_dir.os_path)
-        self.logger.debug('moved to public bucket')
+        self.logger.debug('packed upload')
 
     def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
         upload_prefix_len = len(self._raw_dir.os_path) + 1
@@ -623,39 +619,28 @@ class ArchiveBasedStagingUploadFiles(StagingUploadFiles):
     :class:`StagingUploadFiles` based on a single uploaded archive file (.zip)
 
     Arguments:
-        local_path: Optional override for the path used to store/access the uploaded file.
+        upload_path: The path to the uploaded file.
     """
 
-    formats = ['zip']
-    """ A human readable list of supported file formats. """
-
     def __init__(
-            self, upload_id: str, local_path: str = None, file_name: str = '.upload',
-            *args, **kwargs) -> None:
+            self, upload_id: str, upload_path: str, *args, **kwargs) -> None:
         super().__init__(upload_id, *args, **kwargs)
-        self._local_path = local_path
-        if self._local_path is None:
-            self._upload_file = self.join_file(file_name)
-
-    @property
-    def upload_file_os_path(self):
-        if self._local_path is not None:
-            return self._local_path
-        else:
-            return self._upload_file.os_path
+        self.upload_path = upload_path
 
     @property
     def is_valid(self) -> bool:
-        if not os.path.exists(self.upload_file_os_path):
+        if self.upload_path is None:
             return False
-        elif not os.path.isfile(self.upload_file_os_path):
+        if not os.path.exists(self.upload_path):
+            return False
+        elif not os.path.isfile(self.upload_path):
             return False
         else:
-            return is_zipfile(self.upload_file_os_path)
+            return True
 
     def extract(self) -> None:
         assert next(self.raw_file_manifest(), None) is None, 'can only extract once'
-        super().add_rawfiles(self.upload_file_os_path, force_archive=True)
+        super().add_rawfiles(self.upload_path, force_archive=True)
 
     def add_rawfiles(self, path: str, move: bool = False, prefix: str = None, force_archive: bool = False) -> None:
         assert False, 'do not add_rawfiles to a %s' % self.__class__.__name__
@@ -663,7 +648,7 @@ class ArchiveBasedStagingUploadFiles(StagingUploadFiles):
 
 class PublicUploadFiles(UploadFiles):
     def __init__(self, *args, **kwargs) -> None:
-        super().__init__(config.files.public_bucket, *args, **kwargs)
+        super().__init__(config.fs.public, *args, **kwargs)
 
         self._metadata = PublicMetadata(self.os_path)
 

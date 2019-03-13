@@ -28,11 +28,15 @@ spec:
           requests:
             memory: "{{ .Values.worker.memrequest }}Gi"
         volumeMounts:
-        - mountPath: /app/.volumes/fs
+        - mountPath: /app/.volumes/fs/public
           name: files-volume
+        - mountPath: /app/.volumes/fs/staging
+          name: staging-volume
         - mountPath: /nomad
           name: nomad-volume
         env:
+        - name: NOMAD_FILES_TMP_DIR
+          value: "{{ .Values.volumes.tmp }}"
         - name: NOMAD_SERVICE
           value: "worker"
         - name: NOMAD_RELEASE
@@ -79,6 +83,8 @@ spec:
           value: "{{ .Values.mail.from }}"
         - name: NOMAD_CONSOLE_LOGLEVEL
           value: "ERROR"
+        - name: NOMAD_CELERY_ROUTING
+          value: "worker"
         command: ["python", "-m", "celery", "worker", "-A", "nomad.processing", "-Q", "celery,calcs,uploads"]
         livenessProbe:
           exec:
@@ -110,3 +116,6 @@ spec:
         hostPath:
           path: {{ .Values.volumes.nomad }}
           type: Directory
+      - name: staging-volume
+        emptyDir:
+          medium: 'Memory'
