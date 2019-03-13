@@ -93,17 +93,13 @@ def match_parser(mainfile: str, upload_files: files.StagingUploadFiles) -> 'Pars
     """
     with upload_files.raw_file(mainfile, 'rb') as f:
         compression, open_compressed = _compressions.get(f.read(3), (None, open))
-
     mainfile_path = upload_files.raw_file_object(mainfile).os_path
     with open_compressed(mainfile_path, 'rb') as f:
         buffer = f.read(2048)
 
     mime_type = magic.from_buffer(buffer, mime=True)
-    if mime_type.startswith('application') and not mime_type.endswith('xml'):
-        return None
-
     for parser in parsers:
-        if parser.is_mainfile(mainfile_path, mime_type, buffer.decode('utf-8'), compression):
+        if parser.is_mainfile(mainfile_path, mime_type, buffer, compression):
             # TODO: deal with multiple possible parser specs
             return parser
 
@@ -117,7 +113,7 @@ parsers = [
     LegacyParser(
         name='parsers/phonopy',
         parser_class_name='phonopyparser.PhonopyParserWrapper',
-        mainfile_contents_re=r'',  # Empty regex since this code calls other DFT codes.
+        # mainfile_contents_re=r'',  # Empty regex since this code calls other DFT codes.
         mainfile_name_re=(r'.*/phonopy-FHI-aims-displacement-0*1/control.in$')
     ),
     LegacyParser(
@@ -153,7 +149,8 @@ parsers = [
         mainfile_contents_re=(
             r'^(.*\n)*'
             r'?\s*Invoking FHI-aims \.\.\.'
-            r'?\s*Version')
+            r'?\s*Version'),
+        mainfile_name_re= r'^.(?!.*phonopy-FHI-aims-displacement)'
     ),
     LegacyParser(
         name='parsers/cp2k',
@@ -247,13 +244,14 @@ parsers = [
     LegacyParser(
         name='parsers/gaussian',
         parser_class_name='gaussianparser.GaussianParser',
-        mainfile_contents_re=(
-            r'\s*Cite this work as:'
-            r'\s*Gaussian [0-9]+, Revision [A-Za-z0-9.]*,'
-            r'\s\*\*\*\*\*\*\*\*\*\*\*\**'
-            r'\s*Gaussian\s*([0-9]+):\s*([A-Za-z0-9-.]+)\s*([0-9][0-9]?\-[A-Z][a-z][a-z]\-[0-9]+)'
-            r'\s*([0-9][0-9]?\-[A-Z][a-z][a-z]\-[0-9]+)')
-    ),
+        mainfile_contents_re=
+            # This previous file matching string was too far down the line.
+            # r'\s*Cite this work as:'
+            # r'\s*Gaussian [0-9]+, Revision [A-Za-z0-9.]*,'
+            # r'\s\*\*\*\*\*\*\*\*\*\*\*\**'
+            # r'\s*Gaussian\s*([0-9]+):\s*([A-Za-z0-9-.]+)\s*([0-9][0-9]?\-[A-Z][a-z][a-z]\-[0-9]+)'
+            # r'\s*([0-9][0-9]?\-[A-Z][a-z][a-z]\-[0-9]+)')
+            r'Gaussian, Inc'),
     LegacyParser(
         name='parsers/quantumespresso',
         parser_class_name='quantumespressoparser.QuantumEspressoParserPWSCF',
@@ -301,9 +299,24 @@ parsers = [
     ),
     LegacyParser(
         name='parsers/gpaw',
-        parser_class_name='gpawparser.GpawParserWrapper',
-        mainfile_contents_re=r'',  # We can't read .gpw as txt - of UlmGPAW|AFFormatGPAW'
-        mainfile_name_re=(r'.gpw$')
+        parser_class_name='gpawparser.GPAWParserWrapper',
+        mainfile_name_re=(r'^.*\.gpw$'),
+        mainfile_mime_re=r'application/x-tar'
+    ),
+    LegacyParser(
+        name='parsers/gpaw2',
+        parser_class_name='gpawparser.GPAWParser2Wrapper',
+        # mainfile_contents_re=r'',  # We can't read .gpw2 to match AFFormatGPAW'
+        mainfile_name_re=(r'^.*\.gpw2$'),
+        mainfile_mime_re=r'application/x-tar'
+    ),
+    LegacyParser(
+        name='parsers/atk',
+        parser_class_name='atkparser.ATKParserWrapper',
+        # mainfile_contents_re=r'',  # We can't read .gpw as txt - of UlmGPAW|AFFormatGPAW'
+        mainfile_name_re=r'^.*\.nc',
+        # The previously used mime type r'application/x-netcdf' wasn't found by magic library.
+        mainfile_mime_re=r'application/octet-stream'
     )
 ]
 

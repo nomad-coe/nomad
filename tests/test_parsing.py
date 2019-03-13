@@ -50,14 +50,16 @@ parser_examples = [
     ('parsers/octopus', 'tests/data/parsers/octopus/stdout.txt'),
     ('parsers/phonopy',
         'tests/data/parsers/phonopy/control.in'),
-    ('parsers/gpaw', 'tests/data/parsers/gpaw/Fe2.gpw')]
+    ('parsers/gpaw', 'tests/data/parsers/gpaw/Fe2.gpw'),
+    ('parsers/gpaw2', 'tests/data/parsers/gpaw2/H2_lcao.gpw2'),
+    ('parsers/atk', 'tests/data/parsers/atk/Si2.nc')]
 
 faulty_unknown_one_d_matid_example = [
     ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
 ]
 
 # TODO @dts: Phonopy getting double counted. tmp.out in phonopy also.
-correct_num_output_files = 27
+correct_num_output_files = 30
 
 
 class TestLocalBackend(object):

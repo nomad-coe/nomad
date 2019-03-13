@@ -79,3 +79,6 @@
 [submodule "dependencies/parsers/gpaw"]
 	path = dependencies/parsers/gpaw
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gpaw
+[submodule "dependencies/parsers/atk"]
+	path = dependencies/parsers/atk
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-atk

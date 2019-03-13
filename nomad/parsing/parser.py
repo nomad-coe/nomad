@@ -79,7 +79,7 @@ class LegacyParser(Parser):
     """
     def __init__(
             self, name: str, parser_class_name: str,
-            mainfile_contents_re: str,
+            mainfile_contents_re: str = None,
             mainfile_mime_re: str = r'text/.*',
             mainfile_name_re: str = r'.*',
             supported_compressions: List[str] = []) -> None:
@@ -88,13 +88,23 @@ class LegacyParser(Parser):
         self.parser_class_name = parser_class_name
         self._mainfile_mime_re = re.compile(mainfile_mime_re)
         self._mainfile_name_re = re.compile(mainfile_name_re)
-        self._mainfile_contents_re = re.compile(mainfile_contents_re)
+        self._mainfile_contents_re = mainfile_contents_re
+        if self._mainfile_contents_re is not None:
+            self._mainfile_contents_re = re.compile(self._mainfile_contents_re)
         self._supported_compressions = supported_compressions
 
-    def is_mainfile(self, filename: str, mime: str, buffer: str, compression: str = None) -> bool:
-        return self._mainfile_name_re.match(filename) is not None and \
-            self._mainfile_mime_re.match(mime) is not None and \
-            self._mainfile_contents_re.search(buffer) is not None and \
+    def is_mainfile(self, filename: str, mime: str, buffer: bytes, compression: str = None) -> bool:
+
+        if self._mainfile_contents_re is not None:
+            try:  # Try to open the file as a string for regex matching.
+                buffer = buffer.decode('utf-8')
+            except UnicodeDecodeError:
+                return False  # We're looking for a string match in a file that can't be converted to string.
+            if self._mainfile_contents_re.search(buffer) is None:
+                return False
+
+        return self._mainfile_mime_re.match(mime) is not None and \
+            self._mainfile_name_re.match(filename) is not None and \
             (compression is None or compression in self._supported_compressions)
 
     def run(self, mainfile: str, logger=None) -> LocalBackend:
