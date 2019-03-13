@@ -217,8 +217,8 @@ aggregations = {
     'system': 10,
     'crystal_system': 10,
     'code_name': len(parsing.parsers),
-    'xc_functional': 10,
-    'authors': 10
+    'basis_set': 10,
+    'xc_functional': 10
 }
 """ The available aggregations in :func:`aggregate_search` and their maximum aggregation size """
 
