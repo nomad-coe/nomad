@@ -361,7 +361,7 @@ def aggregate_search(
         if aggregation == 'authors':
             search.aggs.bucket(aggregation, A('terms', field='authors.name_keyword', size=size))
         else:
-            search.aggs.bucket(aggregation, A('terms', field=aggregation, size=size))
+            search.aggs.bucket(aggregation, A('terms', field=aggregation, size=size, min_doc_count=0, order=dict(_key='asc')))
 
     if order_by not in search_quantities:
         raise KeyError('Unknown order quantity %s' % order_by)
