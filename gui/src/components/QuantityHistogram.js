@@ -2,7 +2,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, Typography } from '@material-ui/core'
 import * as d3 from 'd3'
-import { scaleBand, scaleLinear } from 'd3-scale'
+import { scaleBand, scalePow } from 'd3-scale'
 import chroma from 'chroma-js'
 import repoColor from '@material-ui/core/colors/deepPurple'
 
@@ -68,7 +68,7 @@ class QuantityHistogram extends React.Component {
     }))
 
     const y = scaleBand().rangeRound([0, height]).padding(0.1)
-    const x = scaleLinear().range([0, width])
+    const x = scalePow().range([0, width]).exponent(0.5)
     const heatmapScale = chroma.scale(['#ffcdd2', '#d50000'])
 
     x.domain([0, d3.max(data, d => d.value)])
