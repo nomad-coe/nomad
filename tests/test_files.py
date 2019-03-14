@@ -67,7 +67,7 @@ class TestObjects:
         directory = DirectoryObject(test_bucket, dirpath, create=create, prefix=prefix)
         assert directory.exists() == create
         assert os.path.isdir(directory.os_path) == create
-        assert directory.os_path.endswith(os.path.join('tes' if prefix else '', 'test'))
+        assert directory.os_path.endswith(os.path.join('te' if prefix else '', 'test'))
 
     @pytest.mark.parametrize('dirpath', ['test', os.path.join('sub', 'test')])
     @pytest.mark.parametrize('create', [True, False])
@@ -96,7 +96,7 @@ class TestObjects:
         dir_2.delete()
 
         prefix = os.path.dirname(dir_2.os_path)
-        assert len(os.path.basename(prefix)) == 3
+        assert len(os.path.basename(prefix)) == 2
         assert not os.path.exists(prefix)
 
 

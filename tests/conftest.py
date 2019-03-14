@@ -59,7 +59,7 @@ def nomad_logging():
 def raw_files_infra(monkeysession):
     monkeysession.setattr('nomad.config.fs', config.FSConfig(
         tmp='.volumes/test_fs/tmp', staging='.volumes/test_fs/staging',
-        public='.volumes/test_fs/public'))
+        public='.volumes/test_fs/public', prefix_size=2))
 
 
 @pytest.fixture(scope='function')

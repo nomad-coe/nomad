@@ -37,6 +37,12 @@ class RepositoryNormalizer(Normalizer):
     }
     """ https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/XC-functional """
 
+    basis_sets = {
+        'gaussians': 'gaussians',
+        'realspacegrid': 'real-space grid',
+        'planewaves': 'plane waves'
+    }
+
     version_re = re.compile(r'(\d+(\.\d+(\.\d+)?)?)')
 
     def map_functional_name_to_xc_treatment(self, name):
@@ -44,6 +50,10 @@ class RepositoryNormalizer(Normalizer):
             return name
 
         return RepositoryNormalizer.xc_treatments.get(name[:3].lower(), name)
+
+    def map_basis_set_to_basis_set_label(self, name):
+        key = name.replace('_', '').replace('-', '').replace(' ', '').lower()
+        return RepositoryNormalizer.basis_sets.get(key, name)
 
     def simplify_version(self, version):
         match = RepositoryNormalizer.version_re.search(version)
@@ -123,7 +133,8 @@ class RepositoryNormalizer(Normalizer):
             self.get_optional_value('international_short_symbol', 'section_symmetry', 0))
         b.addValue(
             'repository_basis_set_type',
-            self.get_optional_value('program_basis_set_type', 'section_run'))
+            self.map_basis_set_to_basis_set_label(
+                self.get_optional_value('program_basis_set_type', 'section_run')))
         b.addValue(
             'repository_system_type',
             self.get_optional_value('system_type', 'section_system'))
