@@ -59,7 +59,7 @@ class TemplateParser(ArtificalParser):
     """
     name = 'parsers/template'
 
-    def is_mainfile(self, filename: str, mime: str, buffer: str, compression: str = None) -> bool:
+    def is_mainfile(self, filename: str, mime: str, buffer: bytes, compression: str = None) -> bool:
         return filename.endswith('template.json')
 
     def transform_value(self, name, value):
@@ -127,7 +127,7 @@ class ChaosParser(ArtificalParser):
     """
     name = 'parsers/chaos'
 
-    def is_mainfile(self, filename: str, mime: str, buffer: str, compression: str = None) -> bool:
+    def is_mainfile(self, filename: str, mime: str, buffer: bytes, compression: str = None) -> bool:
         return filename.endswith('chaos.json')
 
     def run(self, mainfile: str, logger=None) -> LocalBackend:
@@ -189,7 +189,7 @@ class GenerateRandomParser(TemplateParser):
         self.template = json.load(open(template_file, 'r'))
         self.random = None
 
-    def is_mainfile(self, filename: str, mime: str, buffer: str, compression: str = None) -> bool:
+    def is_mainfile(self, filename: str, mime: str, buffer: bytes, compression: str = None) -> bool:
         return os.path.basename(filename).startswith('random_')
 
     def transform_section(self, name, section):

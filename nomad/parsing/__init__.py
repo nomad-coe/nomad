@@ -150,7 +150,7 @@ parsers = [
             r'^(.*\n)*'
             r'?\s*Invoking FHI-aims \.\.\.'
             r'?\s*Version'),
-        mainfile_name_re= r'^.(?!.*phonopy-FHI-aims-displacement)'
+        mainfile_name_re=r'^.(?!.*phonopy-FHI-aims-displacement)'
     ),
     LegacyParser(
         name='parsers/cp2k',
@@ -244,14 +244,13 @@ parsers = [
     LegacyParser(
         name='parsers/gaussian',
         parser_class_name='gaussianparser.GaussianParser',
-        mainfile_contents_re=
-            # This previous file matching string was too far down the line.
-            # r'\s*Cite this work as:'
-            # r'\s*Gaussian [0-9]+, Revision [A-Za-z0-9.]*,'
-            # r'\s\*\*\*\*\*\*\*\*\*\*\*\**'
-            # r'\s*Gaussian\s*([0-9]+):\s*([A-Za-z0-9-.]+)\s*([0-9][0-9]?\-[A-Z][a-z][a-z]\-[0-9]+)'
-            # r'\s*([0-9][0-9]?\-[A-Z][a-z][a-z]\-[0-9]+)')
-            r'Gaussian, Inc'),
+        # This previous file matching string was too far down the line.
+        # r'\s*Cite this work as:'
+        # r'\s*Gaussian [0-9]+, Revision [A-Za-z0-9.]*,'
+        # r'\s\*\*\*\*\*\*\*\*\*\*\*\**'
+        # r'\s*Gaussian\s*([0-9]+):\s*([A-Za-z0-9-.]+)\s*([0-9][0-9]?\-[A-Z][a-z][a-z]\-[0-9]+)'
+        # r'\s*([0-9][0-9]?\-[A-Z][a-z][a-z]\-[0-9]+)')
+        mainfile_contents_re=r'Gaussian, Inc'),
     LegacyParser(
         name='parsers/quantumespresso',
         parser_class_name='quantumespressoparser.QuantumEspressoParserPWSCF',
