@@ -89,7 +89,8 @@ def setup_elastic():
     """ Creates connection to elastic search. """
     global elastic_client
     elastic_client = connections.create_connection(
-        hosts=['%s:%d' % (config.elastic.host, config.elastic.port)])
+        hosts=['%s:%d' % (config.elastic.host, config.elastic.port)],
+        timeout=60, max_retries=10, retry_on_timeout=True)
     logger.info('setup elastic connection')
 
     try:
