@@ -1,10 +1,11 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Typography } from '@material-ui/core'
+import { withStyles, Typography, Select, MenuItem, Grid } from '@material-ui/core'
 import * as d3 from 'd3'
 import { scaleBand, scalePow } from 'd3-scale'
 import chroma from 'chroma-js'
 import repoColor from '@material-ui/core/colors/deepPurple'
+import { formatQuantity } from '../config.js'
 
 class QuantityHistogram extends React.Component {
   static propTypes = {
@@ -18,6 +19,9 @@ class QuantityHistogram extends React.Component {
   static styles = theme => ({
     root: {
 
+    },
+    title: {
+      fontWeight: 'bold'
     }
   })
 
@@ -28,7 +32,8 @@ class QuantityHistogram extends React.Component {
   }
 
   state = {
-    selected: undefined
+    selected: undefined,
+    scalePower: 0.25
   }
 
   componentDidMount() {
@@ -57,7 +62,7 @@ class QuantityHistogram extends React.Component {
       return
     }
 
-    const { selected } = this.state
+    const { selected, scalePower } = this.state
 
     const width = this.container.current.offsetWidth
     const height = Object.keys(this.props.data).length * 32
@@ -68,7 +73,7 @@ class QuantityHistogram extends React.Component {
     }))
 
     const y = scaleBand().rangeRound([0, height]).padding(0.1)
-    const x = scalePow().range([0, width]).exponent(0.5)
+    const x = scalePow().range([0, width]).exponent(scalePower)
     const heatmapScale = chroma.scale(['#ffcdd2', '#d50000'])
 
     x.domain([0, d3.max(data, d => d.value)])
@@ -120,7 +125,7 @@ class QuantityHistogram extends React.Component {
       .attr('x', d => x(d.value) - 4)
       .attr('text-anchor', 'end')
       .style('fill', textColor)
-      .text(d => '' + d.value)
+      .text(d => formatQuantity(d.value))
 
     item
       .style('cursor', 'pointer')
@@ -145,9 +150,9 @@ class QuantityHistogram extends React.Component {
 
     item
       .select('.value')
-      .text(d => '' + d.value)
+      .text(d => formatQuantity(d.value))
       .attr('y', d => y(d.name) - 4)
-      .attr('x', d => x(d.value) - 4)
+      .attr('x', width - 4)
       .style('fill', textColor)
   }
 
@@ -156,7 +161,24 @@ class QuantityHistogram extends React.Component {
 
     return (
       <div className={classes.root} ref={this.container}>
-        <Typography variant="body1">{title}</Typography>
+        <Grid container justify="space-between">
+          <Grid item>
+            <Typography variant="body1" className={classes.title}>{title}</Typography>
+          </Grid>
+          <Grid item>
+            <Select
+              value={this.state.scalePower}
+              onChange={(event) => this.setState({scalePower: event.target.value})}
+              displayEmpty
+              name="scale power"
+            >
+              <MenuItem value={1}>linear</MenuItem>
+              <MenuItem value={0.5}>1/2</MenuItem>
+              <MenuItem value={0.25}>1/4</MenuItem>
+              <MenuItem value={0.125}>1/8</MenuItem>
+            </Select>
+          </Grid>
+        </Grid>
         <svg ref={this.svgEl} />
       </div>
     )

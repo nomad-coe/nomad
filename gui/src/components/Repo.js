@@ -70,10 +70,17 @@ class Repo extends React.Component {
     },
     quantity: {
       marginTop: theme.spacing.unit * 2
+    },
+    defaultCell: {
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+      width: '100%',
+      maxWidth: 200
     }
   })
 
-  static rowConfig = {
+  rowConfig = {
     formula: {
       label: 'Formula'
     },
@@ -97,13 +104,23 @@ class Repo extends React.Component {
     },
     authors: {
       label: 'Authors',
-      render: (authors) => authors.map(author => author.name).join('; ')
+      render: (authors) => {
+        if (authors.length > 3) {
+          return authors.filter((_, index) => index < 2).map(author => author.name).join('; ') + 'et al'
+        } else {
+          return authors.map(author => author.name).join('; ')
+        }
+      }
     },
     references: {
       label: 'References',
       render: (references) => {
         if (references) {
-          return references.map((reference, index) => <a key={index} href={reference}>{reference}</a>)
+          return references.map((reference, index) => (
+            <div key={index} className={this.props.classes.defaultCell}>
+              <a href={reference}>{reference}</a>
+            </div>
+          ))
         } else {
           return <i>no references</i>
         }
@@ -164,7 +181,7 @@ class Repo extends React.Component {
   }
 
   handleChangePage = (event, page) => {
-    this.update({page: this.state.page + 1})
+    this.update({page: page + 1})
   }
 
   handleChangeRowsPerPage = event => {
@@ -210,7 +227,11 @@ class Repo extends React.Component {
     if (rowConfig.render) {
       return rowConfig.render(value)
     } else {
-      return value
+      return (
+        <div className={this.props.classes.defaultCell}>
+          {value}
+        </div>
+      )
     }
   }
 
@@ -296,7 +317,7 @@ class Repo extends React.Component {
           <Table>
             <TableHead>
               <TableRow>
-                {Object.keys(Repo.rowConfig).map(key => (
+                {Object.keys(this.rowConfig).map(key => (
                   <TableCell padding="dense" key={key}>
                     <Tooltip
                       title="Sort"
@@ -308,7 +329,7 @@ class Repo extends React.Component {
                         direction={sortOrder}
                         onClick={() => this.handleSort(key)}
                       >
-                        {Repo.rowConfig[key].label}
+                        {this.rowConfig[key].label}
                       </TableSortLabel>
                     </Tooltip>
                   </TableCell>
@@ -318,9 +339,9 @@ class Repo extends React.Component {
             <TableBody>
               {data.map((calc, index) => (
                 <TableRow hover tabIndex={-1} key={index} className={classes.clickableRow}>
-                  {Object.keys(Repo.rowConfig).map((key, rowIndex) => (
+                  {Object.keys(this.rowConfig).map((key, rowIndex) => (
                     <TableCell padding="dense" key={rowIndex} onClick={() => this.handleClickCalc(calc)} >
-                      {this.renderCell(key, Repo.rowConfig[key], calc)}
+                      {this.renderCell(key, this.rowConfig[key], calc)}
                     </TableCell>
                   ))}
                 </TableRow>

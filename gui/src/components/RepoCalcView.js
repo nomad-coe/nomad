@@ -148,7 +148,7 @@ class RepoCalcView extends React.Component {
                 </CalcQuantity>
               </div>
             </div>
-            <div className={classes.quantityColumn}>
+            <div className={classes.quantityColumn} style={{maxWidth: 250}}>
               <CalcQuantity label='PID' loading={loading}>
                 <b>{calcData.pid}</b>
               </CalcQuantity>
