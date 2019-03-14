@@ -21,7 +21,7 @@ import glob
 from io import StringIO
 import bravado.exception
 
-from nomad import infrastructure, coe_repo, utils
+from nomad import infrastructure, coe_repo, utils, files
 
 from nomad.migration import NomadCOEMigration, SourceCalc, Package
 from nomad.infrastructure import repository_db_connection
@@ -30,6 +30,8 @@ from tests.conftest import create_postgres_infra, create_auth_headers
 from tests.bravado_flask import FlaskTestHttpClient
 from tests.test_api import create_auth_headers
 import tests.utils as test_utils
+from tests.test_search import assert_search_upload
+from tests.test_files import assert_upload_files
 
 test_source_db_name = 'test_nomad_fairdi_migration_source'
 test_target_db_name = 'test_nomad_fairdi_migration_target'
@@ -305,6 +307,11 @@ def perform_migration_test(migrate_infra, name, test_directory, assertions, kwar
             upload_id=calc_1['upload_id'], calc_id=calc_1['calc_id']).response().result
         migrate_infra.two_client.raw.get(
             upload_id=calc_1['upload_id'], path=calc_1['mainfile']).response().result
+
+        assert_search_upload(
+            calc_1['upload_id'], 2, additional_keys=['with_embargo', 'pid'], published=True)
+        assert_upload_files(
+            calc_1['upload_id'], files.PublicUploadFiles, 2, additional_keys=['with_embargo', 'pid'], published=True)
 
 
 def test_skip_on_same_version(migrate_infra, monkeypatch, caplog):

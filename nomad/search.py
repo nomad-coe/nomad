@@ -202,7 +202,11 @@ def publish(calcs: Iterable[datamodel.CalcWithMetadata]) -> None:
         for calc in calcs:
             entry = Entry.from_calc_with_metadata(calc)
             entry.published = True
-            yield entry.to_dict(include_meta=True)
+            entry = entry.to_dict(include_meta=True)
+            source = entry.pop('_source')
+            entry['doc'] = source
+            entry['_op_type'] = 'update'
+            yield entry
 
     elasticsearch.helpers.bulk(infrastructure.elastic_client, elastic_updates())
     refresh()

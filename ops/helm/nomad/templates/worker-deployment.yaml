@@ -29,7 +29,7 @@ spec:
             memory: "{{ .Values.worker.memrequest }}Gi"
         volumeMounts:
         - mountPath: /app/.volumes/fs/public
-          name: files-volume
+          name: public-volume
         - mountPath: /app/.volumes/fs/staging
           name: staging-volume
         - mountPath: /nomad
@@ -84,7 +84,7 @@ spec:
         - name: NOMAD_CONSOLE_LOGLEVEL
           value: "ERROR"
         - name: NOMAD_CELERY_ROUTING
-          value: "worker"
+          value: "{{ .Values.worker.routing }}"
         command: ["python", "-m", "celery", "worker", "-A", "nomad.processing", "-Q", "celery,calcs,uploads"]
         livenessProbe:
           exec:
@@ -108,14 +108,20 @@ spec:
       - name: {{ .Values.images.secret }}
       imagePullPolicy: always
       volumes:
-      - name: files-volume
+      - name: public-volume
         hostPath:
-          path: {{ .Values.volumes.files }}
+          path: {{ .Values.volumes.public }}
           type: Directory
+      - name: staging-volume
+        {{ if eq( .Values.worker.routing "worker")}}
+        emptyDir:
+          medium: 'Memory'
+        {{ else }}
+        hostPath:
+          path: {{ .Vallues.volumes.staging}}
+          type: Directory
+        {{ end }}
       - name: nomad-volume
         hostPath:
           path: {{ .Values.volumes.nomad }}
           type: Directory
-      - name: staging-volume
-        emptyDir:
-          medium: 'Memory'

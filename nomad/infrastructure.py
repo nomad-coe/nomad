@@ -249,7 +249,16 @@ def reset(repo_content_only: bool = False):
     try:
         shutil.rmtree(config.fs.staging, ignore_errors=True)
         shutil.rmtree(config.fs.public, ignore_errors=True)
-        shutil.rmtree(config.fs.tmp, ignore_errors=True)
+        # delete tmp without the folder
+        for sub_path in os.listdir(config.fs.tmp):
+            path = os.path.join(config.fs.tmp, sub_path)
+            try:
+                if os.path.isfile(path):
+                    os.unlink(path)
+                elif os.path.isdir(path): shutil.rmtree(path, ignore_errors=True)
+            except Exception:
+                pass
+
         logger.info('files resetted')
     except Exception as e:
         logger.error('exception deleting files', exc_info=e)

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Generator, Any, Dict
+from typing import Generator, Any, Dict, List
 import os
 import os.path
 import shutil
@@ -429,3 +429,45 @@ class TestPublicUploadFiles(UploadFilesContract):
         staging_upload = create_staging_upload(test_upload_id, calc_specs=calc_specs)
         staging_upload.pack()
         return PublicUploadFiles(test_upload_id, is_authorized=lambda: not protected)
+
+
+def assert_upload_files(upload_id: str, cls, n_calcs: int, additional_keys: List[str] = [], **kwargs):
+    """
+    Asserts the files and search index aspect of uploaded data after processing
+    or publishing
+
+    Arguments:
+        upload_id: The id of the upload to assert
+        cls: The :class:`UploadFiles` subclass that this upload should have
+        n_calcs: The number of expected calcs in the upload
+        additional_keys: Keys that each calc metadata should have
+        **kwargs: Key, value pairs that each calc metadata should have
+    """
+    keys = ['calc_id', 'upload_id', 'mainfile', 'calc_hash']
+    upload_files = UploadFiles.get(upload_id, is_authorized=lambda: True)
+    assert upload_files is not None
+    assert isinstance(upload_files, cls)
+
+    upload_metadata = upload_files.metadata
+    assert len(upload_metadata) == n_calcs
+    for calc_metadata in upload_metadata:
+        assert 'calc_hash' in calc_metadata
+        for key in keys:
+            assert key in calc_metadata
+        for additional_key in additional_keys:
+            assert additional_key in calc_metadata
+        for key, value in kwargs.items():
+            assert calc_metadata[key] == value
+
+    upload_files = UploadFiles.get(upload_id)
+    for calc_metadata in upload_metadata:
+        try:
+            with upload_files.raw_file(calc_metadata['mainfile']) as f:
+                f.read()
+            with upload_files.archive_file(calc_metadata['calc_id']) as f:
+                f.read()
+            with upload_files.archive_log_file(calc_metadata['calc_id']) as f:
+                f.read()
+            assert not calc_metadata.get('with_embargo', False) and isinstance(upload_files, PublicUploadFiles)
+        except Restricted:
+            assert calc_metadata.get('with_embargo', False) or isinstance(upload_files, StagingUploadFiles)

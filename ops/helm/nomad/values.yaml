@@ -47,6 +47,7 @@ worker:
   memlimit: 420
   console_loglevel: INFO
   logstash_loglevel: INFO
+  routing: "queue"
 
 ## Everthing concerning the nomad gui
 gui:
@@ -115,6 +116,7 @@ mail:
 
 ## Everything concerning the data that is used by the service
 volumes:
-  files: /nomad/fairdi/fs/public
+  public: /nomad/fairdi/fs/public
+  staging: /nomad/fairdi/fs/staging
   tmp: /nomad/fairdi/fs/tmp
   nomad: /nomad

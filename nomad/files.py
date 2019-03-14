@@ -84,10 +84,10 @@ class PathObject:
         else:
             self.os_path = os.path.join(bucket, object_id)
 
-        if prefix:
+        if prefix and config.fs.prefix_size > 0:
             segments = list(os.path.split(self.os_path))
             last = segments[-1]
-            segments[-1] = last[:3]
+            segments[-1] = last[:config.fs.prefix_size]
             segments.append(last)
             self.os_path = os.path.join(*segments)
 
@@ -101,7 +101,7 @@ class PathObject:
 
         shutil.rmtree(self.os_path)
 
-        if len(parent_name) == 3 and basename.startswith(parent_name):
+        if len(parent_name) == config.fs.prefix_size and basename.startswith(parent_name):
             try:
                 if not os.listdir(parent_directory):
                     os.rmdir(parent_directory)

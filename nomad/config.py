@@ -44,7 +44,7 @@ Arguments:
         to the same upload to the same worker.
 """
 
-FSConfig = namedtuple('FSConfig', ['tmp', 'staging', 'public'])
+FSConfig = namedtuple('FSConfig', ['tmp', 'staging', 'public', 'prefix_size'])
 """ Used to configure file stystem access. """
 
 RepositoryDBConfig = namedtuple('RepositoryDBConfig', ['host', 'port', 'dbname', 'user', 'password'])
@@ -96,7 +96,8 @@ celery = CeleryConfig(
 fs = FSConfig(
     tmp=os.environ.get('NOMAD_FILES_TMP_DIR', '.volumes/fs/tmp'),
     staging=os.environ.get('NOMAD_FILES_STAGING_DIR', '.volumes/fs/staging'),
-    public=os.environ.get('NOMAD_FILES_PUBLIC_DIR', '.volumes/fs/public')
+    public=os.environ.get('NOMAD_FILES_PUBLIC_DIR', '.volumes/fs/public'),
+    prefix_size=int(os.environ.get('NOMAD_FILES_PREFIX_SIZE', 2))
 )
 elastic = ElasticConfig(
     host=os.environ.get('NOMAD_ELASTIC_HOST', 'localhost'),

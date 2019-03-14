@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List
 from elasticsearch_dsl import Q
 
 from nomad import datamodel, search, processing, parsing, infrastructure, config, coe_repo
@@ -111,15 +112,24 @@ def assert_entry(calc_id):
     assert results[0]['calc_id'] == calc_id
 
 
-def assert_search_upload(upload_id, published: bool = False):
+def assert_search_upload(upload_id, n_calcs: int, additional_keys: List[str] = [], **kwargs):
+    keys = ['calc_id', 'upload_id', 'mainfile', 'calc_hash']
     refresh_index()
     search = Entry.search().query('match_all')[0:10]
+    assert search.count() == n_calcs
     if search.count() > 0:
         for hit in search:
             hit = hit.to_dict()
-            if published:
-                assert int(hit.get('pid')) > 0
-                assert hit.get('published')
+            for key, value in kwargs.items():
+                if key == 'published':
+                    assert int(hit.get('pid')) > 0
+                assert hit.get(key, None) == value
+
+            for key in keys:
+                assert key in hit
+
+            for key in additional_keys:
+                assert key in hit
 
             for coauthor in hit.get('coauthors', []):
                 assert coauthor.get('name', None) is not None

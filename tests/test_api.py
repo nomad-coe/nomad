@@ -28,7 +28,7 @@ from nomad.processing import Upload, Calc, SUCCESS
 
 from tests.conftest import create_auth_headers, clear_elastic
 from tests.test_files import example_file, example_file_mainfile, example_file_contents
-from tests.test_files import create_staging_upload, create_public_upload
+from tests.test_files import create_staging_upload, create_public_upload, assert_upload_files
 from tests.test_coe_repo import assert_coe_upload
 from tests.test_search import assert_search_upload
 
@@ -220,9 +220,9 @@ class TestUploads:
         assert upload['tasks_status'] == SUCCESS
         assert upload['current_task'] == 'cleanup'
         assert not upload['process_running']
-        upload_files = UploadFiles.get(upload['upload_id'])
-        assert upload_files is not None
+
         calcs = upload['calcs']['results']
+        n_calcs = upload['calcs']['pagination']['total']
         for calc in calcs:
             assert calc['tasks_status'] == SUCCESS
             assert calc['current_task'] == 'archiving'
@@ -235,9 +235,13 @@ class TestUploads:
             upload = self.assert_upload(rv.data)
             assert len(upload['calcs']['results']) == 1
 
+        assert_upload_files(upload_id, files.StagingUploadFiles, n_calcs)
+        assert_search_upload(upload_id, n_calcs)
+
     def assert_unstage(self, client, test_user_auth, upload_id, proc_infra, metadata={}):
         rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
+        n_calcs = upload['calcs']['pagination']['total']
 
         rv = client.post(
             '/uploads/%s' % upload_id,
@@ -251,21 +255,8 @@ class TestUploads:
 
         self.assert_upload_does_not_exist(client, upload_id, test_user_auth)
         assert_coe_upload(upload_id, user_metadata=metadata)
-        assert_search_upload(upload_id, published=True)
-
-        upload_files = files.UploadFiles.get(upload_id=upload_id)
-        assert isinstance(upload_files, files.PublicUploadFiles)
-        for calc_metadata in upload_files.metadata:
-            assert calc_metadata.get('published', False)
-            assert 'with_embargo' in calc_metadata
-            assert calc_metadata['with_embargo'] == metadata.get('with_embargo', False)
-            try:
-                with upload_files.raw_file(calc_metadata['mainfile']) as f:
-                    assert f.read() is not None
-            except files.Restricted:
-                assert calc_metadata['with_embargo']
-            else:
-                assert not calc_metadata['with_embargo']
+        assert_upload_files(upload_id, files.PublicUploadFiles, n_calcs, additional_keys=['with_embargo', 'pid'], published=True)
+        assert_search_upload(upload_id, n_calcs, additional_keys=['with_embargo', 'pid'], published=True)
 
     def assert_upload_does_not_exist(self, client, upload_id: str, test_user_auth):
         # poll until publish/delete completed
