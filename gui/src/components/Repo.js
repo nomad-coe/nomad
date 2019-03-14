@@ -8,7 +8,7 @@ import TablePagination from '@material-ui/core/TablePagination'
 import TableRow from '@material-ui/core/TableRow'
 import Paper from '@material-ui/core/Paper'
 import { TableHead, LinearProgress, FormControl, FormControlLabel, Checkbox, FormGroup,
-  FormLabel, IconButton, MuiThemeProvider, Typography, Tooltip, TableSortLabel, ExpansionPanelDetails, ExpansionPanelSummary, ExpansionPanel } from '@material-ui/core'
+  FormLabel, IconButton, MuiThemeProvider, Typography, Tooltip, TableSortLabel, ExpansionPanelDetails, ExpansionPanelSummary, ExpansionPanel, Grid } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
 import AnalyticsIcon from '@material-ui/icons/Settings'
@@ -18,6 +18,7 @@ import { withApi } from './api'
 import CalcDialog from './CalcDialog'
 import PeriodicTable from './PeriodicTable'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
+import QuantityHistogram from './QuantityHistogram'
 
 class Repo extends React.Component {
   static propTypes = {
@@ -60,17 +61,54 @@ class Repo extends React.Component {
     },
     clickableRow: {
       cursor: 'pointer'
+    },
+    quantityGrid: {
+      minWidth: 524,
+      maxWidth: 924,
+      margin: 'auto',
+      width: '100%'
+    },
+    quantity: {
+      marginTop: theme.spacing.unit * 2
     }
   })
 
   static rowConfig = {
-    formula: 'Formula',
-    code_name: 'Code',
-    basis_set: 'Basis set',
-    system: 'System',
-    crystal_system: 'Crystal system',
-    spacegroup: 'Spacegroup',
-    xc_functional: 'XT treatment'
+    formula: {
+      label: 'Formula'
+    },
+    code_name: {
+      label: 'Code'
+    },
+    basis_set: {
+      label: 'Basis set'
+    },
+    xc_functional: {
+      label: 'XT treatment'
+    },
+    system: {
+      label: 'System'
+    },
+    crystal_system: {
+      label: 'Crystal system'
+    },
+    spacegroup_symbol: {
+      label: 'Spacegroup'
+    },
+    authors: {
+      label: 'Authors',
+      render: (authors) => authors.map(author => author.name).join('; ')
+    },
+    references: {
+      label: 'References',
+      render: (references) => {
+        if (references) {
+          return references.map((reference, index) => <a key={index} href={reference}>{reference}</a>)
+        } else {
+          return <i>no references</i>
+        }
+      }
+    }
   }
 
   state = {
@@ -88,7 +126,7 @@ class Repo extends React.Component {
 
   update(changes) {
     changes = changes || {}
-    const { page, rowsPerPage, owner, sortedBy, sortOrder, atoms } = {...this.state, ...changes}
+    const { page, rowsPerPage, owner, sortedBy, sortOrder, atoms, system, crystal_system, code_name, xc_functional, basis_set } = {...this.state, ...changes}
     this.setState({loading: true, ...changes})
 
     this.props.api.search({
@@ -97,7 +135,12 @@ class Repo extends React.Component {
       owner: owner || 'all',
       order_by: sortedBy,
       order: (sortOrder === 'asc') ? 1 : -1,
-      atoms: atoms
+      atoms: atoms,
+      system: system,
+      crystal_system: crystal_system,
+      code_name: code_name,
+      xc_functional: xc_functional,
+      basis_set: basis_set
     }).then(data => {
       const { pagination: { total, page, per_page }, results, aggregations } = data
       this.setState({
@@ -156,10 +199,32 @@ class Repo extends React.Component {
     this.update({atoms: selection})
   }
 
+  handleQuantitySelectionChanged(quantity, selection) {
+    const update = {}
+    update[quantity] = selection
+    this.update(update)
+  }
+
+  renderCell(key, rowConfig, calc) {
+    const value = calc[key]
+    if (rowConfig.render) {
+      return rowConfig.render(value)
+    } else {
+      return value
+    }
+  }
+
   render() {
     const { classes, user } = this.props
-    const { data, aggregations, rowsPerPage, page, total, loading, sortedBy, sortOrder, openCalc } = this.state
+    const { data, rowsPerPage, page, total, loading, sortedBy, sortOrder, openCalc } = this.state
     const emptyRows = rowsPerPage - Math.min(rowsPerPage, total - (page - 1) * rowsPerPage)
+
+    const aggregations = this.state.aggregations || {}
+
+    const quantity = (key, title) => (<QuantityHistogram
+      classes={{root: classes.quantity}} title={title || key} width={300}
+      data={aggregations[key]}
+      onSelectionChanged={(selection) => this.handleQuantitySelectionChanged(key, selection)}/>)
 
     const ownerLabel = {
       all: 'All calculations',
@@ -195,6 +260,20 @@ class Repo extends React.Component {
               aggregations={aggregations ? aggregations.atoms : null}
               onSelectionChanged={(selection) => this.handleElementSelectionChanged(selection)}
             />
+            <Grid container spacing={24} className={classes.quantityGrid}>
+
+              <Grid item xs={4}>
+                {quantity('system')}
+                {quantity('crystal_system', 'crystal system')}
+              </Grid>
+              <Grid item xs={4}>
+                {quantity('basis_set', 'basis set')}
+                {quantity('xc_functional', 'XC functionals')}
+              </Grid>
+              <Grid item xs={4}>
+                {quantity('code_name', 'code')}
+              </Grid>
+            </Grid>
           </ExpansionPanelDetails>
         </ExpansionPanel>
 
@@ -229,7 +308,7 @@ class Repo extends React.Component {
                         direction={sortOrder}
                         onClick={() => this.handleSort(key)}
                       >
-                        {Repo.rowConfig[key]}
+                        {Repo.rowConfig[key].label}
                       </TableSortLabel>
                     </Tooltip>
                   </TableCell>
@@ -241,7 +320,7 @@ class Repo extends React.Component {
                 <TableRow hover tabIndex={-1} key={index} className={classes.clickableRow}>
                   {Object.keys(Repo.rowConfig).map((key, rowIndex) => (
                     <TableCell padding="dense" key={rowIndex} onClick={() => this.handleClickCalc(calc)} >
-                      {calc[key]}
+                      {this.renderCell(key, Repo.rowConfig[key], calc)}
                     </TableCell>
                   ))}
                 </TableRow>

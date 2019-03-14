@@ -217,8 +217,8 @@ aggregations = {
     'system': 10,
     'crystal_system': 10,
     'code_name': len(parsing.parsers),
-    'xc_functional': 10,
-    'authors': 10
+    'basis_set': 10,
+    'xc_functional': 10
 }
 """ The available aggregations in :func:`aggregate_search` and their maximum aggregation size """
 
@@ -361,7 +361,7 @@ def aggregate_search(
         if aggregation == 'authors':
             search.aggs.bucket(aggregation, A('terms', field='authors.name_keyword', size=size))
         else:
-            search.aggs.bucket(aggregation, A('terms', field=aggregation, size=size))
+            search.aggs.bucket(aggregation, A('terms', field=aggregation, size=size, min_doc_count=0, order=dict(_key='asc')))
 
     if order_by not in search_quantities:
         raise KeyError('Unknown order quantity %s' % order_by)
