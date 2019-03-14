@@ -110,7 +110,8 @@ class PeriodicTable extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     aggregations: PropTypes.object,
-    onSelectionChanged: PropTypes.func.isRequired
+    values: PropTypes.array.isRequired,
+    onChanged: PropTypes.func.isRequired
   }
 
   static styles = theme => ({
@@ -127,36 +128,29 @@ class PeriodicTable extends React.Component {
     }
   })
 
-  state = {
-    selected: []
-  }
-
   onElementClicked(element) {
-    const index = this.state.selected.indexOf(element)
+    const index = this.props.values.indexOf(element)
     const isClicked = index >= 0
     let selected
     if (isClicked) {
-      selected = [...this.state.selected]
+      selected = [...this.props.values]
       selected.splice(index, 1)
-      this.setState({selected: selected})
     } else {
-      selected = [element, ...this.state.selected]
-      this.setState({selected: selected})
+      selected = [element, ...this.props.values]
     }
 
-    this.props.onSelectionChanged(selected)
+    this.props.onChanged(selected)
   }
 
   unSelectedAggregations() {
-    const { aggregations } = this.props
-    const { selected } = this.state
+    const { aggregations, values } = this.props
     return Object.keys(aggregations)
-      .filter(key => selected.indexOf(key) === -1)
+      .filter(key => values.indexOf(key) === -1)
       .map(key => aggregations[key])
   }
 
   render() {
-    const {classes, aggregations} = this.props
+    const {classes, aggregations, values} = this.props
     const max = aggregations ? Math.max(...this.unSelectedAggregations()) || 1 : 1
     const heatmapScale = chroma.scale(['#ffcdd2', '#d50000']).domain([1, max], 10, 'log')
     return (
@@ -174,7 +168,7 @@ class PeriodicTable extends React.Component {
                         heatmapScale={heatmapScale}
                         relativeCount={aggregations ? (aggregations[element.symbol] || 0) / max : 0}
                         onClick={() => this.onElementClicked(element.symbol)}
-                        selected={this.state.selected.indexOf(element.symbol) >= 0}
+                        selected={values.indexOf(element.symbol) >= 0}
                       /> : ''}
                   </td>
                 ))}

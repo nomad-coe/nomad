@@ -19,6 +19,7 @@ import CalcDialog from './CalcDialog'
 import PeriodicTable from './PeriodicTable'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import QuantityHistogram from './QuantityHistogram'
+import SearchBar from '../SearchBar'
 
 class Repo extends React.Component {
   static propTypes = {
@@ -77,6 +78,12 @@ class Repo extends React.Component {
       whiteSpace: 'nowrap',
       width: '100%',
       maxWidth: 200
+    },
+    searchBarContainer: {
+      width: '100%',
+      maxWidth: 900,
+      margin: 'auto',
+      marginBottom: theme.spacing.unit * 3
     }
   })
 
@@ -135,15 +142,15 @@ class Repo extends React.Component {
     total: 0,
     loading: true,
     owner: 'all',
-    atoms: undefined,
     sortedBy: 'formula',
     sortOrder: 'asc',
-    openCalc: null
+    openCalc: null,
+    searchValues: {}
   }
 
   update(changes) {
     changes = changes || {}
-    const { page, rowsPerPage, owner, sortedBy, sortOrder, atoms, system, crystal_system, code_name, xc_functional, basis_set } = {...this.state, ...changes}
+    const { page, rowsPerPage, owner, sortedBy, sortOrder, searchValues } = {...this.state, ...changes}
     this.setState({loading: true, ...changes})
 
     this.props.api.search({
@@ -152,12 +159,7 @@ class Repo extends React.Component {
       owner: owner || 'all',
       order_by: sortedBy,
       order: (sortOrder === 'asc') ? 1 : -1,
-      atoms: atoms,
-      system: system,
-      crystal_system: crystal_system,
-      code_name: code_name,
-      xc_functional: xc_functional,
-      basis_set: basis_set
+      ...searchValues
     }).then(data => {
       const { pagination: { total, page, per_page }, results, aggregations } = data
       this.setState({
@@ -209,17 +211,27 @@ class Repo extends React.Component {
     this.setState({openCalc: calc_id})
   }
 
-  handleElementSelectionChanged(selection) {
-    if (selection.length === 0) {
-      selection = undefined
+  handleAtomsChanged(atoms) {
+    const searchValues = {...this.state.searchValues}
+    searchValues.atoms = atoms
+    if (searchValues.atoms.length === 0) {
+      delete searchValues.atoms
     }
-    this.update({atoms: selection})
+    this.update({searchValues: searchValues})
   }
 
-  handleQuantitySelectionChanged(quantity, selection) {
-    const update = {}
-    update[quantity] = selection
-    this.update(update)
+  handleQuantityChanged(quantity, selection) {
+    const searchValues = {...this.state.searchValues}
+    if (selection) {
+      searchValues[quantity] = selection
+    } else {
+      delete searchValues[quantity]
+    }
+    this.update({searchValues: searchValues})
+  }
+
+  handleSearchChanged(searchValues) {
+    this.update({searchValues: searchValues})
   }
 
   renderCell(key, rowConfig, calc) {
@@ -237,7 +249,7 @@ class Repo extends React.Component {
 
   render() {
     const { classes, user } = this.props
-    const { data, rowsPerPage, page, total, loading, sortedBy, sortOrder, openCalc } = this.state
+    const { data, rowsPerPage, page, total, loading, sortedBy, sortOrder, openCalc, searchValues } = this.state
     const emptyRows = rowsPerPage - Math.min(rowsPerPage, total - (page - 1) * rowsPerPage)
 
     const aggregations = this.state.aggregations || {}
@@ -245,7 +257,8 @@ class Repo extends React.Component {
     const quantity = (key, title) => (<QuantityHistogram
       classes={{root: classes.quantity}} title={title || key} width={300}
       data={aggregations[key]}
-      onSelectionChanged={(selection) => this.handleQuantitySelectionChanged(key, selection)}/>)
+      value={searchValues[key]}
+      onChanged={(selection) => this.handleQuantityChanged(key, selection)}/>)
 
     const ownerLabel = {
       all: 'All calculations',
@@ -255,7 +268,7 @@ class Repo extends React.Component {
     return (
       <div className={classes.root}>
         { openCalc ? <CalcDialog calcId={openCalc.calc_id} uploadId={openCalc.upload_id} onClose={() => this.handleCalcClose()} /> : ''}
-        <Typography variant="h4" className={classes.title}>The Repository – Raw Code Data</Typography>
+
         { user
           ? <FormControl>
             <FormLabel>Filter calculations and only show: </FormLabel>
@@ -272,14 +285,23 @@ class Repo extends React.Component {
           </FormControl> : ''
         }
 
+        <div className={classes.searchBarContainer}>
+          <SearchBar
+            fullWidth fullWidthInput={false} label="search" placeholder="enter atoms or other quantities"
+            aggregations={aggregations} values={searchValues}
+            onChanged={values => this.handleSearchChanged(values)}
+          />
+        </div>
+
         <ExpansionPanel>
           <ExpansionPanelSummary expandIcon={<ExpandMoreIcon/>} className={classes.searchSummary}>
-            <Typography>Search</Typography>
+            <Typography variant="h6" style={{textAlign: 'center', width: '100%'}}>found {total} code runs</Typography>
           </ExpansionPanelSummary>
           <ExpansionPanelDetails className={classes.searchDetails}>
             <PeriodicTable
-              aggregations={aggregations ? aggregations.atoms : null}
-              onSelectionChanged={(selection) => this.handleElementSelectionChanged(selection)}
+              aggregations={aggregations.atoms}
+              values={searchValues.atoms || []}
+              onChanged={(selection) => this.handleAtomsChanged(selection)}
             />
             <Grid container spacing={24} className={classes.quantityGrid}>
 
@@ -303,7 +325,7 @@ class Repo extends React.Component {
 
           </FormLabel>
           <FormLabel classes={{root: classes.selectLabel}}>
-            Analyse {total} calculations in an analytics notebook
+            Analyse {total} code runs in an analytics notebook
           </FormLabel>
           <MuiThemeProvider theme={analyticsTheme}>
             <IconButton color="primary" component={Link} to={`/analytics`}>

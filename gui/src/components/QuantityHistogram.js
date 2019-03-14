@@ -13,7 +13,8 @@ class QuantityHistogram extends React.Component {
     title: PropTypes.string.isRequired,
     width: PropTypes.number.isRequired,
     data: PropTypes.object,
-    onSelectionChanged: PropTypes.func.isRequired
+    value: PropTypes.string,
+    onChanged: PropTypes.func.isRequired
   }
 
   static styles = theme => ({
@@ -32,7 +33,6 @@ class QuantityHistogram extends React.Component {
   }
 
   state = {
-    selected: undefined,
     scalePower: 0.25
   }
 
@@ -45,16 +45,11 @@ class QuantityHistogram extends React.Component {
   }
 
   handleItemClicked(item) {
-    const isSelected = this.state.selected === item.name
-    let selected
-    if (isSelected) {
-      selected = undefined
+    if (this.props.value === item.name) {
+      this.props.onChanged(null)
     } else {
-      selected = item.name
+      this.props.onChanged(item.name)
     }
-
-    this.setState({selected: selected})
-    this.props.onSelectionChanged(selected)
   }
 
   updateChart() {
@@ -62,7 +57,8 @@ class QuantityHistogram extends React.Component {
       return
     }
 
-    const { selected, scalePower } = this.state
+    const { scalePower } = this.state
+    const selected = this.props.value
 
     const width = this.container.current.offsetWidth
     const height = Object.keys(this.props.data).length * 32
