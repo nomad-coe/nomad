@@ -78,6 +78,8 @@ spec:
           value: "{{ .Values.dbname }}"
         - name: NOMAD_CELERY_ROUTING
           value: "{{ .Values.worker.routing }}"
+        - name: NOMAD_FILES_PREFIX_SIZE
+          value: "{{ .Values.volumes.prefixSize }}"
         command: ["python", "-m", "gunicorn.app.wsgiapp", "--timeout", "3600", "--log-config", "ops/gunicorn.log.conf", "-w", "{{ .Values.api.worker }}", "-b 0.0.0.0:8000", "nomad.api:app"]
         livenessProbe:
           httpGet:

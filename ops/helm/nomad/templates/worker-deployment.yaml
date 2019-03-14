@@ -85,6 +85,8 @@ spec:
           value: "ERROR"
         - name: NOMAD_CELERY_ROUTING
           value: "{{ .Values.worker.routing }}"
+        - name: NOMAD_FILES_PREFIX_SIZE
+          value: "{{ .Values.volumes.prefixSize }}"
         command: ["python", "-m", "celery", "worker", "-A", "nomad.processing", "-Q", "celery,calcs,uploads"]
         livenessProbe:
           exec:
