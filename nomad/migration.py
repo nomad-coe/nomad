@@ -115,6 +115,23 @@ class Package(Document):
 
     meta = dict(indexes=['upload_id', 'migration_version'])
 
+    @classmethod
+    def aggregate_reports(cls, migration_version: str = None) -> 'Report':
+        """
+        Returns an aggregated report over all package reports of the given migration version,
+        or all packages.
+        """
+        if migration_version is not None:
+            query = cls.objects(migration_version__gte=migration_version, report__exists=True)
+        else:
+            query = cls.objects(report__exists=True)
+
+        report = Report()
+        for package in query:
+            report.add(Report(package.report))
+
+        return report
+
     def open_package_upload_file(self) -> IO:
         """ Creates a streaming zip file from the files of this package. """
         zip_file = zipstream.ZipFile(compression=zipstream.ZIP_STORED, allowZip64=True)
@@ -388,6 +405,10 @@ class NomadCOEMigration:
 
         return self._client
 
+    def report(self):
+        """ returns an aggregated report over all prior migrated packages """
+        return Package.aggregate_reports(migration_version=self.migration_version)
+
     def copy_users(self):
         """ Copy all users. """
         for source_user in self.source.query(User).all():
@@ -593,13 +614,7 @@ class NomadCOEMigration:
 
         def print_report():
             if not self._quiet:
-                print(
-                    'packages: {:,}, skipped: {:,}, source calcs: {:,}, migrated: {:,}, '
-                    'failed: {:,}, missing: {:,}, new: {:,}'.format(
-                        overall_report.total_packages, overall_report.skipped_packages,
-                        overall_report.total_source_calcs, overall_report.migrated_calcs,
-                        overall_report.failed_calcs, overall_report.missing_calcs,
-                        overall_report.new_calcs))
+                print(overall_report)
 
         def migrate_package(package: Package, of_packages: int):
             logger = self.logger.bind(
@@ -983,3 +998,12 @@ class Report(utils.POPO):
     def add(self, other: 'Report') -> None:
         for key, value in other.items():
             self[key] = self.get(key, 0) + value
+
+    def __str__(self):
+        return (
+            'packages: {:,}, skipped: {:,}, source calcs: {:,}, migrated: {:,}, '
+            'failed: {:,}, missing: {:,}, new: {:,}'.format(
+                self.total_packages, self.skipped_packages,
+                self.total_source_calcs, self.migrated_calcs,
+                self.failed_calcs, self.missing_calcs,
+                self.new_calcs))
