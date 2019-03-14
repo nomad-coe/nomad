@@ -31,7 +31,7 @@ class RepositoryNormalizer(Normalizer):
         'hf_': 'HF',
         'oep': 'OEP',
         'hyb': 'hybrid',
-        'mgga': 'meta-GGA',
+        'mgg': 'meta-GGA',
         'vdw': 'vdW',
         'lda': 'LDA',
     }
