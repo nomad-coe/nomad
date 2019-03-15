@@ -13,6 +13,7 @@ class QuantityHistogram extends React.Component {
     title: PropTypes.string.isRequired,
     width: PropTypes.number.isRequired,
     data: PropTypes.object,
+    metric: PropTypes.string.isRequired,
     value: PropTypes.string,
     onChanged: PropTypes.func.isRequired
   }
@@ -65,7 +66,7 @@ class QuantityHistogram extends React.Component {
 
     const data = Object.keys(this.props.data).map(key => ({
       name: key,
-      value: this.props.data[key]
+      value: this.props.data[key][this.props.metric]
     }))
 
     const y = scaleBand().rangeRound([0, height]).padding(0.1)

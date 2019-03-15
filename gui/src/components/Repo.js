@@ -63,6 +63,12 @@ class Repo extends React.Component {
     clickableRow: {
       cursor: 'pointer'
     },
+    statistics: {
+      minWidth: 500,
+      maxWidth: 900,
+      margin: 'auto',
+      width: '100%'
+    },
     quantityGrid: {
       minWidth: 524,
       maxWidth: 924,
@@ -81,6 +87,7 @@ class Repo extends React.Component {
     },
     searchBarContainer: {
       width: '100%',
+      minWidth: 500,
       maxWidth: 900,
       margin: 'auto',
       marginBottom: theme.spacing.unit * 3
@@ -145,7 +152,10 @@ class Repo extends React.Component {
     sortedBy: 'formula',
     sortOrder: 'asc',
     openCalc: null,
-    searchValues: {}
+    searchValues: {},
+    aggregations: {},
+    metrics: {},
+    metric: 'code_runs'
   }
 
   update(changes) {
@@ -161,10 +171,11 @@ class Repo extends React.Component {
       order: (sortOrder === 'asc') ? 1 : -1,
       ...searchValues
     }).then(data => {
-      const { pagination: { total, page, per_page }, results, aggregations } = data
+      const { pagination: { total, page, per_page }, results, aggregations, metrics } = data
       this.setState({
         data: results,
         aggregations: aggregations,
+        metrics: metrics,
         page: page,
         rowsPerPage:
         per_page,
@@ -193,6 +204,10 @@ class Repo extends React.Component {
 
   handleOwnerChange(owner) {
     this.update({owner: owner})
+  }
+
+  handleMetricChange(metric) {
+    this.setState({metric: metric})
   }
 
   handleSort(columnKey) {
@@ -249,14 +264,12 @@ class Repo extends React.Component {
 
   render() {
     const { classes, user } = this.props
-    const { data, rowsPerPage, page, total, loading, sortedBy, sortOrder, openCalc, searchValues } = this.state
+    const { data, rowsPerPage, page, total, loading, sortedBy, sortOrder, openCalc, searchValues, aggregations, metrics, metric } = this.state
     const emptyRows = rowsPerPage - Math.min(rowsPerPage, total - (page - 1) * rowsPerPage)
-
-    const aggregations = this.state.aggregations || {}
 
     const quantity = (key, title) => (<QuantityHistogram
       classes={{root: classes.quantity}} title={title || key} width={300}
-      data={aggregations[key]}
+      data={aggregations[key]} metric={metric}
       value={searchValues[key]}
       onChanged={(selection) => this.handleQuantityChanged(key, selection)}/>)
 
@@ -264,6 +277,12 @@ class Repo extends React.Component {
       all: 'All calculations',
       user: 'Your calculations',
       staging: 'Only calculations from your staging area'
+    }
+
+    const metricsLabel = {
+      code_runs: 'Code runs',
+      total_energies: 'Total energy calculations',
+      geometries: 'Unique geometries'
     }
     return (
       <div className={classes.root}>
@@ -288,33 +307,52 @@ class Repo extends React.Component {
         <div className={classes.searchBarContainer}>
           <SearchBar
             fullWidth fullWidthInput={false} label="search" placeholder="enter atoms or other quantities"
-            aggregations={aggregations} values={searchValues}
+            aggregations={aggregations} values={searchValues} metric={metric}
             onChanged={values => this.handleSearchChanged(values)}
           />
         </div>
 
         <ExpansionPanel>
           <ExpansionPanelSummary expandIcon={<ExpandMoreIcon/>} className={classes.searchSummary}>
-            <Typography variant="h6" style={{textAlign: 'center', width: '100%'}}>found {total} code runs</Typography>
+            <Typography variant="h6" style={{textAlign: 'center', width: '100%', fontWeight: 'normal'}}>
+              Found <b>{metrics.total_energies}</b> total energy calculations in <b>{metrics.code_runs}</b> code runs that simulate <b>{metrics.geometries}</b> unique geometries; data curated in <b>{metrics.datasets}</b> datasets.
+            </Typography>
           </ExpansionPanelSummary>
           <ExpansionPanelDetails className={classes.searchDetails}>
+            <div className={classes.statistics}>
+              <FormControl>
+                <FormLabel>Metric used in statistics: </FormLabel>
+                <FormGroup row>
+                  {['code_runs', 'total_energies', 'geometries'].map(metric => (
+                    <FormControlLabel key={metric}
+                      control={
+                        <Checkbox checked={this.state.metric === metric} onChange={() => this.handleMetricChange(metric)} value={metric} />
+                      }
+                      label={metricsLabel[metric]}
+                    />
+                  ))}
+                </FormGroup>
+              </FormControl>
+            </div>
+
             <PeriodicTable
-              aggregations={aggregations.atoms}
+              aggregations={aggregations.atoms} metric={metric}
               values={searchValues.atoms || []}
               onChanged={(selection) => this.handleAtomsChanged(selection)}
             />
+
             <Grid container spacing={24} className={classes.quantityGrid}>
 
               <Grid item xs={4}>
-                {quantity('system')}
-                {quantity('crystal_system', 'crystal system')}
+                {quantity('system', 'System')}
+                {quantity('crystal_system', 'Crystal system')}
               </Grid>
               <Grid item xs={4}>
-                {quantity('basis_set', 'basis set')}
+                {quantity('basis_set', 'Basis set')}
                 {quantity('xc_functional', 'XC functionals')}
               </Grid>
               <Grid item xs={4}>
-                {quantity('code_name', 'code')}
+                {quantity('code_name', 'Code')}
               </Grid>
             </Grid>
           </ExpansionPanelDetails>

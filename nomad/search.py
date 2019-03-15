@@ -315,7 +315,7 @@ def scroll_search(
     if scroll_id is None:
         # initiate scroll
         search = _construct_search(q, **kwargs)
-        resp = es.search(body=search.to_dict(), scroll=scroll, size=size)  # pylint: disable=E1123
+        resp = es.search(body=search.to_dict(), scroll=scroll, size=size, index=config.elastic.index_name)  # pylint: disable=E1123
 
         scroll_id = resp.get('_scroll_id')
         if scroll_id is None:
@@ -342,10 +342,11 @@ def scroll_search(
 def aggregate_search(
         page: int = 1, per_page: int = 10, order_by: str = 'formula', order: int = -1,
         q: Q = None, aggregations: Dict[str, int] = aggregations,
-        **kwargs) -> Tuple[int, List[dict], Dict[str, Dict[str, int]]]:
+        **kwargs) -> Tuple[int, List[dict], Dict[str, Dict[str, Dict[str, int]]], Dict[str, int]]:
     """
-    Performs a search and returns paginated search results and aggregation bucket sizes
-    based on key quantities.
+    Performs a search and returns paginated search results and aggregations. The aggregations
+    contain overall and per quantity value sums of code runs (calcs), datasets, total energies,
+    and unique geometries.
 
     Arguments:
         page: The page to return starting with page 1
@@ -356,16 +357,27 @@ def aggregate_search(
         **kwargs: Quantity, value pairs to search for.
 
     Returns: A tuple with the total hits, an array with the results, an dictionary with
-        the aggregation data.
+        the aggregation data, and a dictionary with the overall metrics.
     """
 
     search = _construct_search(q, **kwargs)
 
+    def add_metrics(parent):
+        parent.metric('total_energies', A('sum', field='n_total_energies'))
+        parent.metric('geometries', A('cardinality', field='geometries'))
+        parent.metric('datasets', A('cardinality', field='datasets.id'))
+
     for aggregation, size in aggregations.items():
+
         if aggregation == 'authors':
-            search.aggs.bucket(aggregation, A('terms', field='authors.name_keyword', size=size))
+            a = A('terms', field='authors.name_keyword', size=size)
         else:
-            search.aggs.bucket(aggregation, A('terms', field=aggregation, size=size, min_doc_count=0, order=dict(_key='asc')))
+            a = A('terms', field=aggregation, size=size, min_doc_count=0, order=dict(_key='asc'))
+
+        buckets = search.aggs.bucket(aggregation, a)
+        add_metrics(buckets)
+
+    add_metrics(search.aggs)
 
     if order_by not in search_quantities:
         raise KeyError('Unknown order quantity %s' % order_by)
@@ -378,13 +390,26 @@ def aggregate_search(
 
     aggregation_results = {
         aggregation: {
-            bucket.key: bucket.doc_count
+            bucket.key: {
+                'code_runs': bucket.doc_count,
+                'total_energies': bucket.total_energies.value,
+                'geometries': bucket.geometries.value,
+                'datasets': bucket.datasets.value
+            }
             for bucket in getattr(response.aggregations, aggregation).buckets
         }
         for aggregation in aggregations.keys()
+        if aggregation not in ['total_energies', 'geometries', 'datasets']
     }
 
-    return total_results, search_results, aggregation_results
+    metrics = {
+        'code_runs': total_results,
+        'total_energies': response.aggregations.total_energies.value,
+        'geometries': response.aggregations.geometries.value,
+        'datasets': response.aggregations.datasets.value
+    }
+
+    return total_results, search_results, aggregation_results, metrics
 
 
 def authors(per_page: int = 10, after: str = None, prefix: str = None) -> Tuple[Dict[str, int], str]:

@@ -66,8 +66,12 @@ repo_calcs_model = api.model('RepoCalculations', {
         'values as values')),
     'scroll_id': fields.String(description='Id of the current scroll view in scroll based search.'),
     'aggregations': fields.Raw(description=(
-        'A dict with all aggregations. Each aggregation is dictionary with the amount as '
-        'value and quantity value as key.'))
+        'A dict with all aggregations. Each aggregation is dictionary with a metrics dict as '
+        'value and quantity value as key. The metrics are code runs(calcs), total energies, '
+        'geometries, and datasets')),
+    'metrics': fields.Raw(description=(
+        'A dict with the overall metrics. The metrics are code runs(calcs), total energies, '
+        'geometries, and datasets'))
 })
 
 repo_request_parser = pagination_request_parser.copy()
@@ -172,10 +176,11 @@ class RepoCalcsResource(Resource):
             if scroll:
                 page = -1
                 scroll_id, total, results = search.scroll_search(q=q, **data)
-                aggregations = None
+                aggregations = {}
+                metrics = {}
             else:
                 scroll_id = None
-                total, results, aggregations = search.aggregate_search(q=q, **data)
+                total, results, aggregations, metrics = search.aggregate_search(q=q, **data)
         except KeyError as e:
             abort(400, str(e))
 
@@ -183,4 +188,5 @@ class RepoCalcsResource(Resource):
             pagination=dict(total=total, page=page, per_page=per_page),
             results=results,
             scroll_id=scroll_id,
-            aggregations=aggregations), 200
+            aggregations=aggregations,
+            metrics=metrics), 200

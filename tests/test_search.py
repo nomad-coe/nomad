@@ -53,11 +53,22 @@ def test_search(elastic, normalized: parsing.LocalBackend):
     create_entry(calc_with_metadata)
     refresh_index()
 
-    total, hits, aggs = aggregate_search()
+    total, hits, aggs, metrics = aggregate_search()
     assert total == 1
     assert hits[0]['calc_id'] == calc_with_metadata.calc_id
     assert 'bulk' in aggs['system']
-    assert aggs['system']['bulk'] == 1
+
+    example_agg = aggs['system']['bulk']
+
+    def assert_metrics(container):
+        assert container['code_runs'] == 1
+        assert 'datasets' in container
+        assert 'geometries' in container
+        assert 'total_energies' in container
+
+    assert_metrics(example_agg)
+    assert_metrics(metrics)
+
     assert 'quantities' not in hits[0]
 
 

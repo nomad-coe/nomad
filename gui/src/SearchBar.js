@@ -100,6 +100,7 @@ class SearchBar extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     aggregations: PropTypes.object.isRequired,
+    metric: PropTypes.string.isRequired,
     values: PropTypes.object.isRequired,
     onChanged: PropTypes.func.isRequired
   }

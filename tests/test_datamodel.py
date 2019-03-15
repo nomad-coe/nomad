@@ -40,6 +40,8 @@ filepaths = ['/'.join(gen.url().split('/')[3:]) for _ in range(0, number_of)]
 low_numbers_for_atoms = [1, 1, 2, 2, 2, 2, 2, 3, 3, 4]
 low_numbers_for_files = [1, 2, 2, 3, 3, 3, 3, 3, 4, 4]
 low_numbers_for_refs_and_datasets = [0, 0, 0, 0, 1, 1, 1, 2]
+low_numbers_for_total_energies = [1, 2, 2, 2, 3, 4, 5, 6, 10, 100]
+low_numbers_for_geometries = [1, 2, 2, 3, 3, 4, 4]
 
 
 def _gen_user():
@@ -137,7 +139,12 @@ if __name__ == '__main__':
             with upload_files.archive_log_file(calc.calc_id, 'wt') as f:
                 f.write('this is a generated test file')
 
-            search_entries.append(search.Entry.from_calc_with_metadata(calc))
+            search_entry = search.Entry.from_calc_with_metadata(calc)
+            search_entry.n_total_energies = random.choice(low_numbers_for_total_energies)
+            search_entry.n_geometries = low_numbers_for_geometries
+            for _ in range(0, random.choice(search_entry.n_geometries)):
+                search_entry.geometries.append(utils.create_uuid())
+            search_entries.append(search_entry)
 
             pid += 1
 

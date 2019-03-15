@@ -110,6 +110,7 @@ class PeriodicTable extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     aggregations: PropTypes.object,
+    metric: PropTypes.string.isRequired,
     values: PropTypes.array.isRequired,
     onChanged: PropTypes.func.isRequired
   }
@@ -143,14 +144,14 @@ class PeriodicTable extends React.Component {
   }
 
   unSelectedAggregations() {
-    const { aggregations, values } = this.props
+    const { aggregations, metric, values } = this.props
     return Object.keys(aggregations)
       .filter(key => values.indexOf(key) === -1)
-      .map(key => aggregations[key])
+      .map(key => aggregations[key][metric])
   }
 
   render() {
-    const {classes, aggregations, values} = this.props
+    const {classes, aggregations, metric, values} = this.props
     const max = aggregations ? Math.max(...this.unSelectedAggregations()) || 1 : 1
     const heatmapScale = chroma.scale(['#ffcdd2', '#d50000']).domain([1, max], 10, 'log')
     return (
@@ -164,9 +165,9 @@ class PeriodicTable extends React.Component {
                     {element
                       ? <Element
                         element={element}
-                        count={aggregations ? aggregations[element.symbol] || 0 : 0}
+                        count={aggregations ? (aggregations[element.symbol] || {})[metric] || 0 : 0}
                         heatmapScale={heatmapScale}
-                        relativeCount={aggregations ? (aggregations[element.symbol] || 0) / max : 0}
+                        relativeCount={aggregations ? ((aggregations[element.symbol] || {})[metric] || 0) / max : 0}
                         onClick={() => this.onElementClicked(element.symbol)}
                         selected={values.indexOf(element.symbol) >= 0}
                       /> : ''}
