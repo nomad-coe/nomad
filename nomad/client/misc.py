@@ -18,7 +18,6 @@ import sys
 import click
 import asyncio
 from concurrent.futures import ProcessPoolExecutor
-from celery.task.control import revoke
 from mongoengine import Q
 
 from nomad import config, infrastructure, processing, utils
@@ -29,6 +28,7 @@ from .main import cli
 @cli.group(help='Processing related functions')
 def proc():
     pass
+
 
 @proc.command(help='List processing tasks')
 def ls():
@@ -43,6 +43,7 @@ def ls():
 
     ls(processing.Calc.objects(query))
     ls(processing.Upload.objects(query))
+
 
 @proc.command(help='Stop all running processing')
 @click.option('--calcs', is_flag=True, help='Only stop calculation processing')
@@ -66,14 +67,14 @@ def stop_all(calcs: bool, kill: bool):
             kwargs = {}
             if kill:
                 kwargs.update(signal='SIGKILL')
-            revoke(proc.celery_task_id, terminate=True, **kwargs)
+            processing.app.control.revoke(proc.celery_task_id, terminate=True, **kwargs)
             if kill:
                 logger.info(
                     'fail proc', celery_task_id=proc.celery_task_id, kill=kill,
                     **logger_kwargs)
 
                 proc.fail('process terminate via nomad cli')
-                proc.process_status=processing.PROCESS_COMPLETED
+                proc.process_status = processing.PROCESS_COMPLETED
                 proc.save()
 
     query = Q(process_status=processing.PROCESS_RUNNING) | Q(tasks_status=processing.RUNNING)
