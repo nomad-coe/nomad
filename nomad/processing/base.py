@@ -302,7 +302,7 @@ class Proc(Document, metaclass=ProcMetaclass):
             self.reload()
 
     def __str__(self):
-        return 'proc celery_task_id=%s worker_host=%s' % (self.celery_task_id, self.worker_host)
+        return 'proc celery_task_id=%s worker_hostname=%s' % (self.celery_task_id, self.worker_hostname)
 
 
 def task(func):

@@ -67,7 +67,12 @@ def stop_all(calcs: bool, kill: bool):
             kwargs = {}
             if kill:
                 kwargs.update(signal='SIGKILL')
-            processing.app.control.revoke(proc.celery_task_id, terminate=True, **kwargs)
+            try:
+                processing.app.control.revoke(proc.celery_task_id, terminate=True, **kwargs)
+            except Exception as e:
+                logger.warning(
+                    'could not revoke celery task', exc_info=e,
+                    celery_task_id=proc.celery_task_id, **logger_kwargs)
             if kill:
                 logger.info(
                     'fail proc', celery_task_id=proc.celery_task_id, kill=kill,
@@ -75,6 +80,7 @@ def stop_all(calcs: bool, kill: bool):
 
                 proc.fail('process terminate via nomad cli')
                 proc.process_status = processing.PROCESS_COMPLETED
+                proc.on_process_complete(None)
                 proc.save()
 
     query = Q(process_status=processing.PROCESS_RUNNING) | Q(tasks_status=processing.RUNNING)
