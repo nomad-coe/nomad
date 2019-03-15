@@ -290,6 +290,9 @@ class Calc(Proc):
 
                 log_data.update(log_size=self.upload_files.archive_log_file_object(self.calc_id).size)
 
+    def __str__(self):
+        return 'calc proc calc_id=%s upload_id%s' % (self.calc_id, self.upload_id)
+
 
 class Upload(Proc):
     """
@@ -641,3 +644,6 @@ class Upload(Proc):
         logger.info('prepared user metadata')
 
         return result
+
+    def __str__(self):
+        return 'upload proc upload_id%s' % self.upload_id
