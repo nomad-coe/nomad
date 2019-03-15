@@ -125,7 +125,9 @@ def upload(
         path = paths[0]
         paths = []
         compiled_pattern = re.compile(pattern)
-        for sub_directory in os.listdir(path):
+        directories = os.listdir(path)
+        directories.sort()
+        for sub_directory in directories:
             if re.fullmatch(compiled_pattern, sub_directory):
                 paths.append(os.path.join(path, sub_directory))
 
