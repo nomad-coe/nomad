@@ -29,6 +29,18 @@ from .main import cli
 def proc():
     pass
 
+@proc.command(help='List processing tasks')
+def ls():
+    infrastructure.setup_logging()
+    infrastructure.setup_mongo()
+
+    def ls(query):
+        for proc in query:
+            print(proc)
+
+
+    ls(processing.Calc.objects(process_status=processing.PROCESS_RUNNING))
+    ls(processing.Upload.objects(process_status=processing.PROCESS_RUNNING))
 
 @proc.command(help='Stop all running processing')
 @click.option('--calcs', is_flag=True, help='Only stop calculation processing')
