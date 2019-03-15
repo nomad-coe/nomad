@@ -767,16 +767,18 @@ class NomadCOEMigration:
             upload_to_delete = upload
 
             if delete:
+                upload_to_delete = self.nomad(
+                    'uploads.delete_upload', upload_id=upload_to_delete.upload_id)
+
                 sleep = utils.SleepTimeBackoff()
-                while upload.process_running:
+                while upload_to_delete.process_running:
                     try:
                         upload_to_delete = self.nomad(
-                            'uploads.delete_upload', upload_id=upload_to_delete.upload_id)
+                            'uploads.get_upload', upload_id=upload_to_delete.upload_id)
                         sleep()
                     except HTTPNotFound:
                         # the proc upload will be deleted by the delete operation
                         break
-
                 logger.info('deleted upload after migration failure')
             else:
                 logger.warning(
