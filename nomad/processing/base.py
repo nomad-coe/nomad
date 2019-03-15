@@ -19,6 +19,7 @@ from celery import Celery, Task
 from celery.worker.request import Request
 from celery.signals import after_setup_task_logger, after_setup_logger, worker_process_init
 from celery.utils import worker_direct
+from celery.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import WorkerLostError
 from mongoengine import Document, StringField, ListField, DateTimeField, ValidationError
 from mongoengine.connection import MongoEngineConnectionError
@@ -50,7 +51,6 @@ def setup(**kwargs):
 app = Celery('nomad.processing', broker=config.celery.broker_url)
 app.conf.update(worker_hijack_root_logger=False)
 app.conf.update(worker_max_memory_per_child=config.celery.max_memory)
-app.conf.update(task_time_limit=config.celery.timeout)
 if config.celery.routing == config.CELERY_WORKER_ROUTING:
     app.conf.update(worker_direct=True)
 
@@ -416,7 +416,8 @@ def unwarp_task(task, cls_name, self_id, *args, **kwargs):
 
 @app.task(
     bind=True, base=NomadCeleryTask, ignore_results=True, max_retries=3,
-    acks_late=config.celery.acks_late)
+    acks_late=config.celery.acks_late, soft_time_limit=config.celery.timeout,
+    time_limit=config.celery.timeout + 120)
 def proc_task(task, cls_name, self_id, func_attr):
     """
     The celery task that is used to execute async process functions.
@@ -457,6 +458,9 @@ def proc_task(task, cls_name, self_id, func_attr):
     try:
         self.process_status = PROCESS_RUNNING
         deleted = func(self)
+    except SoftTimeLimitExceeded as e:
+        logger.error('exceeded the celery task soft time limit')
+        self.fail(e)
     except Exception as e:
         self.fail(e)
     finally:

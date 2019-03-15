@@ -29,7 +29,8 @@ warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 CELERY_WORKER_ROUTING = 'worker'
 CELERY_QUEUE_ROUTING = 'queue'
 
-CeleryConfig = namedtuple('Celery', ['broker_url', 'max_memory', 'timeout', 'acks_late', 'routing'])
+CeleryConfig = namedtuple('Celery', [
+    'broker_url', 'max_memory', 'timeout', 'acks_late', 'routing'])
 """
 Used to configure the RabbitMQ for celery.
 
@@ -89,7 +90,7 @@ def get_loglevel_from_env(key, default_level=logging.INFO):
 celery = CeleryConfig(
     broker_url=rabbit_url,
     max_memory=int(os.environ.get('NOMAD_CELERY_MAXMEMORY', 64e6)),  # 64 GB
-    timeout=int(os.environ.get('NOMAD_CELERY_TIMEOUT', 3 * 3600)),  # 3h
+    timeout=int(os.environ.get('NOMAD_CELERY_TIMEOUT', 1800)),  # 1/2h
     acks_late=bool(os.environ.get('NOMAD_CELERY_ACKS_LATE', True)),
     routing=os.environ.get('NOMAD_CELERY_ROUTING', CELERY_QUEUE_ROUTING)
 )
