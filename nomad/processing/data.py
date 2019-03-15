@@ -291,7 +291,7 @@ class Calc(Proc):
                 log_data.update(log_size=self.upload_files.archive_log_file_object(self.calc_id).size)
 
     def __str__(self):
-        return 'calc proc calc_id=%s upload_id%s' % (self.calc_id, self.upload_id)
+        return 'calc %s calc_id=%s upload_id%s' % (super().__str__(), self.calc_id, self.upload_id)
 
 
 class Upload(Proc):
@@ -646,4 +646,4 @@ class Upload(Proc):
         return result
 
     def __str__(self):
-        return 'upload proc upload_id%s' % self.upload_id
+        return 'upload %s upload_id%s' % (super().__str__(), self.upload_id)

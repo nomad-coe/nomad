@@ -301,6 +301,9 @@ class Proc(Document, metaclass=ProcMetaclass):
             time.sleep(interval)
             self.reload()
 
+    def __str__(self):
+        return 'proc celery_task_id=%s worker_host=%s' % (self.celery_task_id, self.worker_host)
+
 
 def task(func):
     """
