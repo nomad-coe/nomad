@@ -115,12 +115,12 @@ spec:
           path: {{ .Values.volumes.public }}
           type: Directory
       - name: staging-volume
-        {{ if eq( .Values.worker.routing "worker")}}
+        {{ if (eq .Values.worker.routing "worker") }}
         emptyDir:
           medium: 'Memory'
         {{ else }}
         hostPath:
-          path: {{ .Vallues.volumes.staging}}
+          path: {{ .Values.volumes.staging}}
           type: Directory
         {{ end }}
       - name: nomad-volume
