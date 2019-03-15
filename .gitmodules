@@ -82,3 +82,15 @@
 [submodule "dependencies/parsers/atk"]
 	path = dependencies/parsers/atk
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-atk
+[submodule "dependencies/parsers/gulp"]
+	path = dependencies/parsers/gulp
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gulp
+[submodule "dependencies/parsers/siesta"]
+	path = dependencies/parsers/siesta
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-siesta
+[submodule "dependencies/parsers/elk"]
+	path = dependencies/parsers/elk
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-elk
+[submodule "dependencies/parsers/elastic"]
+	path = dependencies/parsers/elastic
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-elastic

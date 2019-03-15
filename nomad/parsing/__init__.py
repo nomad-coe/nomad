@@ -316,7 +316,35 @@ parsers = [
         mainfile_name_re=r'^.*\.nc',
         # The previously used mime type r'application/x-netcdf' wasn't found by magic library.
         mainfile_mime_re=r'application/octet-stream'
+    ),
+    LegacyParser(
+        name='parsers/gulp',
+        parser_class_name='gulpparser.GULPParser',
+        mainfile_contents_re=(
+            r'\s*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*'
+            r'\*\*\*\*\*\*\*\*\*\*\*\*\*\s*'
+            r'\s*\*\s*GENERAL UTILITY LATTICE PROGRAM\s*\*\s*')
+    ),
+    LegacyParser(
+        name='parsers/siesta',
+        parser_class_name='siestaparser.SiestaParser',
+        mainfile_contents_re=(
+            r'(Siesta Version: siesta-|SIESTA [0-9]\.[0-9]\.[0-9])')
+    ),
+    LegacyParser(
+        name='parsers/elk',
+        parser_class_name='elkparser.ElkParser',
+        mainfile_contents_re=(
+            r'\s*\+-----------+\+\s*'
+            r'\s*\| Elk version (P?<version>[0-9.a-zA-Z]+) started \|\s*'
+            r'\s*\+----------+\+\s*')
+    ),
+    LegacyParser(
+        name='parsers/elastic',
+        parser_class_name='elasticparser.ElasticParser',
+        mainfile_contents_re=r'\s*Order of elastic constants\s*=\s*[0-9]+\s*'
     )
+
 ]
 
 """ Instanciation and constructor based config of all parsers. """

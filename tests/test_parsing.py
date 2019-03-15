@@ -52,14 +52,18 @@ parser_examples = [
         'tests/data/parsers/phonopy/control.in'),
     ('parsers/gpaw', 'tests/data/parsers/gpaw/Fe2.gpw'),
     ('parsers/gpaw2', 'tests/data/parsers/gpaw2/H2_lcao.gpw2'),
-    ('parsers/atk', 'tests/data/parsers/atk/Si2.nc')]
+    ('parsers/atk', 'tests/data/parsers/atk/Si2.nc'),
+    # ('parsers/gulp', 'tests/data/parsers/gulp/example6.got'),  # Issue with section_method
+    # ('parsers/siesta', 'tests/data/parsers/siesta/Fe/out'),  # Issue with dir.
+    ('parsers/elk', 'tests/data/parsers/elk/Al/info.out')
+    # ('parsers/elastic', 'tests/data/parsers/elastic/2nd/INFO_ElaStic')  # 70Mb file 2big4git
+]
 
 faulty_unknown_one_d_matid_example = [
     ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
 ]
 
-# TODO @dts: Phonopy getting double counted. tmp.out in phonopy also.
-correct_num_output_files = 30
+correct_num_output_files = 32
 
 
 class TestLocalBackend(object):
@@ -302,5 +306,7 @@ def test_match(raw_files, no_warn):
         parser = match_parser(mainfile, upload_files)
         if parser is not None:
             count += 1
+        else:
+            print("filename not matched is %s" % mainfile)
 
     assert count == correct_num_output_files

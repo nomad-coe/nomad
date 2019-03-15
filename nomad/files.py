@@ -423,6 +423,7 @@ class StagingUploadFiles(UploadFiles):
             target_dir = target_dir.join_dir(prefix, create=True)
         ext = os.path.splitext(path)[1]
         if force_archive or ext == '.zip':
+            print("Here's a zip!")
             try:
                 with ZipFile(path) as zf:
                     zf.extractall(target_dir.os_path)

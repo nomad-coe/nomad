@@ -198,6 +198,16 @@
       ]
     },
     {
+      "name": "GULP Normalizer",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/gulp-tests/data/parsers/gulp/example6.got]"
+      ]
+    },
+    {
       "name": "Python: Current File",
       "type": "python",
       "request": "launch",

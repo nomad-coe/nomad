@@ -1,0 +1,36 @@
+
+! Ground state of aluminium. Try calculating the density of states by using
+! tasks=10
+
+tasks
+  0
+
+! You can add notes to the INFO.OUT file using the "notes" block
+notes
+ Simple calculation of the ground state of aluminium. Must check convergence
+ with respect to k-point set later.
+ Run by H. Golightly
+
+avec
+  1.0  1.0  0.0
+  1.0  0.0  1.0
+  0.0  1.0  1.0
+
+scale
+  3.8267
+
+! this is the relative path to the species files
+sppath
+  '../../../species/'
+
+atoms
+  1                                   : nspecies
+  'Al.in'                             : spfname
+  1                                   : natoms
+  0.0  0.0  0.0    0.0  0.0  0.0      : atposl, bfcmt
+
+ngridk
+  4  4  4
+
+vkloff
+  0.5  0.5  0.5
