@@ -82,6 +82,13 @@ class Calc(Base):
         secondaryjoin=calc_dataset_containment.c.parent_calc_id == coe_calc_id,
         backref='children', lazy='subquery', join_depth=1)
 
+    @staticmethod
+    def from_calc_id(calc_id: str) -> 'Calc':
+        repo_db = infrastructure.repository_db
+        calcs = repo_db.query(Calc).filter_by(checksum=calc_id)
+        assert calcs.count() <= 1, 'Calc id/checksum must be unique'
+        return calcs.first()
+
     @classmethod
     def load_from(cls, obj):
         repo_db = infrastructure.repository_db
@@ -247,8 +254,14 @@ class Calc(Base):
         add_users_to_relation(calc.shared_with, self.shared_with)
 
         # datasets
+        calcs_existing_datasets: List[int] = []
         for dataset in calc.datasets:
             dataset_id = dataset.id
+            if dataset_id in calcs_existing_datasets:
+                continue
+            else:
+                calcs_existing_datasets.append(dataset_id)
+
             coe_dataset_calc: Calc = context.cache(Calc, coe_calc_id=dataset_id)
             if coe_dataset_calc is None:
                 coe_dataset_calc = Calc(coe_calc_id=dataset_id)
