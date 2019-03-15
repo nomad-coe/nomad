@@ -108,24 +108,31 @@ class Calc(Proc):
             upload_id=self.upload_id, mainfile=self.mainfile, calc_id=self.calc_id, **kwargs)
 
         if self._calc_proc_logwriter_ctx is None:
-            self._calc_proc_logwriter_ctx = self.upload_files.archive_log_file(self.calc_id, 'wt')
-            self._calc_proc_logwriter = self._calc_proc_logwriter_ctx.__enter__()  # pylint: disable=E1101
+            try:
+                self._calc_proc_logwriter_ctx = self.upload_files.archive_log_file(self.calc_id, 'wt')
+                self._calc_proc_logwriter = self._calc_proc_logwriter_ctx.__enter__()  # pylint: disable=E1101
+            except KeyError:
+                # cannot open log file
+                pass
 
-        def save_to_calc_log(logger, method_name, event_dict):
-            if self._calc_proc_logwriter is not None:
-                program = event_dict.get('normalizer', 'parser')
-                event = event_dict.get('event', '')
-                entry = '[%s] %s: %s' % (method_name, program, event)
-                if len(entry) > 120:
-                    self._calc_proc_logwriter.write(entry[:120])
-                    self._calc_proc_logwriter.write('...')
-                else:
-                    self._calc_proc_logwriter.write(entry)
-                self._calc_proc_logwriter.write('\n')
+        if self._calc_proc_logwriter_ctx is None:
+            return logger
+        else:
+            def save_to_calc_log(logger, method_name, event_dict):
+                if self._calc_proc_logwriter is not None:
+                    program = event_dict.get('normalizer', 'parser')
+                    event = event_dict.get('event', '')
+                    entry = '[%s] %s: %s' % (method_name, program, event)
+                    if len(entry) > 120:
+                        self._calc_proc_logwriter.write(entry[:120])
+                        self._calc_proc_logwriter.write('...')
+                    else:
+                        self._calc_proc_logwriter.write(entry)
+                    self._calc_proc_logwriter.write('\n')
 
-            return event_dict
+                return event_dict
 
-        return wrap_logger(logger, processors=[save_to_calc_log])
+            return wrap_logger(logger, processors=[save_to_calc_log])
 
     @process
     def process_calc(self):
