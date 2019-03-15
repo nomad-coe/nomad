@@ -19,6 +19,7 @@ import click
 import asyncio
 from concurrent.futures import ProcessPoolExecutor
 from celery.task.control import revoke
+from mongoengine import Q
 
 from nomad import config, infrastructure, processing, utils
 
@@ -38,9 +39,10 @@ def ls():
         for proc in query:
             print(proc)
 
+    query = Q(process_status=processing.PROCESS_RUNNING) | Q(tasks_status=processing.RUNNING)
 
-    ls(processing.Calc.objects(process_status=processing.PROCESS_RUNNING))
-    ls(processing.Upload.objects(process_status=processing.PROCESS_RUNNING))
+    ls(processing.Calc.objects(query))
+    ls(processing.Upload.objects(query))
 
 @proc.command(help='Stop all running processing')
 @click.option('--calcs', is_flag=True, help='Only stop calculation processing')
@@ -71,10 +73,14 @@ def stop_all(calcs: bool, kill: bool):
                     **logger_kwargs)
 
                 proc.fail('process terminate via nomad cli')
+                proc.process_status=processing.PROCESS_COMPLETED
+                proc.save()
 
-    stop_all(processing.Calc.objects(process_status=processing.PROCESS_RUNNING))
+    query = Q(process_status=processing.PROCESS_RUNNING) | Q(tasks_status=processing.RUNNING)
+
+    stop_all(processing.Calc.objects(query))
     if not calcs:
-        stop_all(processing.Upload.objects(process_status=processing.PROCESS_RUNNING))
+        stop_all(processing.Upload.objects(query))
 
 
 @cli.command(help='Attempts to reset the nomad.')
