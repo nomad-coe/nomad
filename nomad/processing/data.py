@@ -384,6 +384,12 @@ class Upload(Proc):
         logger = self.get_logger()
 
         with utils.lnr(logger, 'staged upload delete failed'):
+
+            with utils.timer(
+                    logger, 'upload deleted from repo db', step='repo',
+                    upload_size=self.upload_files.size):
+                coe_repo.Upload.delete(self.upload_id)
+
             with utils.timer(
                     logger, 'upload deleted from index', step='index',
                     upload_size=self.upload_files.size):

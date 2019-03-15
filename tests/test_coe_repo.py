@@ -14,10 +14,19 @@
 
 import pytest
 from passlib.hash import bcrypt
+from datetime import datetime
 
 from nomad.coe_repo import User, Calc, Upload
 from nomad.coe_repo.calc import PublishContext
 from nomad import processing, parsing, datamodel
+
+
+@pytest.fixture(scope='module')
+def example_user_metadata_with_dataset(example_user_metadata) -> dict:
+    result = dict(**example_user_metadata)
+    result.update(datasets=[dict(
+        id=23, _doi='test_doi', _name='test_dataset')])
+    return result
 
 
 def assert_user(user, reference):
@@ -94,12 +103,18 @@ def test_add_normalized_calc(postgres, normalized: parsing.LocalBackend, test_us
 
 
 def test_add_normalized_calc_with_metadata(
-        postgres, normalized: parsing.LocalBackend, example_user_metadata: dict):
+        postgres, normalized: parsing.LocalBackend, example_user_metadata_with_dataset: dict):
 
     calc_with_metadata = normalized.to_calc_with_metadata()
     calc_with_metadata.files = [calc_with_metadata.mainfile, '1', '2', '3', '4']
-    calc_with_metadata.apply_user_metadata(example_user_metadata)
-    coe_calc = Calc(coe_calc_id=calc_with_metadata.pid)
+    calc_with_metadata.apply_user_metadata(example_user_metadata_with_dataset)
+
+    coe_upload = Upload(
+        upload_name='test_upload',
+        created=datetime.now(),
+        user_id=0,
+        is_processed=True)
+    coe_calc = Calc(coe_calc_id=calc_with_metadata.pid, upload=coe_upload)
     coe_calc.apply_calc_with_metadata(calc_with_metadata, PublishContext())
 
     assert_coe_calc(coe_calc, calc_with_metadata)
@@ -109,6 +124,23 @@ def test_add_upload(processed: processing.Upload):
     upload_with_metadata = processed.to_upload_with_metadata()
     Upload.publish(upload_with_metadata)
     assert_coe_upload(processed.upload_id, upload_with_metadata)
+
+
+def test_delete_upload(processed: processing.Upload, example_user_metadata_with_dataset, no_warn):
+    processed.metadata = example_user_metadata_with_dataset
+    upload_with_metadata = processed.to_upload_with_metadata()
+    Upload.publish(upload_with_metadata)
+    assert_coe_upload(processed.upload_id, upload_with_metadata)
+
+    for calc in upload_with_metadata.calcs:
+        assert Calc.from_calc_id(calc.calc_id) is not None
+
+    Upload.delete(processed.upload_id)
+    assert Upload.from_upload_id(processed.upload_id) is None
+    for calc in upload_with_metadata.calcs:
+        assert Calc.from_calc_id(calc.calc_id) is None
+
+    Upload.delete(processed.upload_id)
 
 
 # def test_large_upload(processed: processing.Upload, example_user_metadata):
@@ -136,8 +168,8 @@ def test_add_upload(processed: processing.Upload):
 #     print('########### %d' % (time.time() - start))
 
 
-def test_add_upload_with_metadata(processed, example_user_metadata):
-    processed.metadata = example_user_metadata
+def test_add_upload_with_metadata(processed, example_user_metadata_with_dataset):
+    processed.metadata = example_user_metadata_with_dataset
     upload_with_metadata = processed.to_upload_with_metadata()
     Upload.publish(upload_with_metadata)
     assert_coe_upload(

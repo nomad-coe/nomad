@@ -48,6 +48,8 @@ from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 import filelock
 import os.path
+import warnings
+from sqlalchemy import exc as sa_exc
 
 from nomad import utils, infrastructure, config
 from nomad.datamodel import UploadWithMetadata
@@ -89,7 +91,7 @@ class Upload(Base):  # type: ignore
     created = Column(DateTime)
 
     user = relationship('User')
-    calcs = relationship('Calc', lazy='subquery')
+    calcs = relationship('Calc', lazy='subquery', passive_deletes=True)
 
     @staticmethod
     def from_upload_id(upload_id: str) -> 'Upload':
@@ -109,6 +111,27 @@ class Upload(Base):  # type: ignore
     @property
     def upload_time(self) -> Type[datetime.datetime]:
         return self.created
+
+    @staticmethod
+    def delete(upload_id):
+        upload = Upload.from_upload_id(upload_id)
+        if upload is not None:
+            logger = utils.get_logger(__name__, upload_id=upload.upload_id)
+
+            # there is a warning related to SQLalchemy not knowing about the delete cascades
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=sa_exc.SAWarning)
+
+                repo_db = infrastructure.repository_db
+                repo_db.expunge_all()
+                repo_db.begin()
+                try:
+                    repo_db.delete(upload)
+                    repo_db.commit()
+                    logger.info('deleted repo upload')
+                except Exception as e:
+                    logger.error('could not delete repo upload', exc_info=e)
+                    repo_db.rollback()
 
     @staticmethod
     def publish(upload: UploadWithMetadata) -> int:
