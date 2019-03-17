@@ -621,6 +621,27 @@ class TestRepo(UploadFilesBasedTests):
             assert len(aggregations['system']) == 1
             assert value in aggregations['system']
 
+    @pytest.mark.parametrize('metrics', [[], ['total_energies'], ['geometries'], ['datasets'], ['total_energies', 'geometries', 'datasets']])
+    def test_search_total_metrics(self, client, example_elastic_calcs, no_warn, metrics):
+        rv = client.get('/repo/?total_metrics=%s' % ','.join(metrics))
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        metrics_result = data.get('metrics', None)
+        assert 'code_runs' in metrics_result
+        for metric in metrics:
+            assert metric in metrics_result
+
+    @pytest.mark.parametrize('metrics', [[], ['total_energies'], ['geometries'], ['datasets'], ['total_energies', 'geometries', 'datasets']])
+    def test_search_aggregation_metrics(self, client, example_elastic_calcs, no_warn, metrics):
+        rv = client.get('/repo/?aggregation_metrics=%s' % ','.join(metrics))
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        for aggregations in data.get('aggregations').values():
+            for metrics_result in aggregations.values():
+                assert 'code_runs' in metrics_result
+                for metric in metrics:
+                    assert metric in metrics_result
+
     @pytest.mark.parametrize('n_results, page, per_page', [(2, 1, 5), (1, 1, 1), (0, 2, 3)])
     def test_search_pagination(self, client, example_elastic_calcs, no_warn, n_results, page, per_page):
         rv = client.get('/repo/?page=%d&per_page=%d' % (page, per_page))

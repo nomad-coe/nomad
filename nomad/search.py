@@ -260,6 +260,12 @@ The available search quantities in :func:`aggregate_search` as tuples with *sear
 elastic field and description.
 """
 
+metrics = {
+    'total_energies': ('sum', 'n_total_energies'),
+    'geometries': ('cardinality', 'n_geometries'),
+    'datasets': ('cardinality', 'datasets.id'),
+}
+
 
 def _construct_search(q: Q = None, **kwargs) -> Search:
     search = Search(index=config.elastic.index_name)
@@ -342,6 +348,8 @@ def scroll_search(
 def aggregate_search(
         page: int = 1, per_page: int = 10, order_by: str = 'formula', order: int = -1,
         q: Q = None, aggregations: Dict[str, int] = aggregations,
+        aggregation_metrics: List[str] = ['total_energies', 'geometries', 'datasets'],
+        total_metrics: List[str] = ['total_energies', 'geometries', 'datasets'],
         **kwargs) -> Tuple[int, List[dict], Dict[str, Dict[str, Dict[str, int]]], Dict[str, int]]:
     """
     Performs a search and returns paginated search results and aggregations. The aggregations
@@ -354,6 +362,9 @@ def aggregate_search(
         q: An *elasticsearch_dsl* query used to further filter the results (via `and`)
         aggregations: A customized list of aggregations to perform. Keys are index fields,
             and values the amount of buckets to return. Only works on *keyword* field.
+        aggregation_metrics: The metrics used to aggregate over. Can be `total_energies``,
+            ``geometries``, or ``datasets``. ``code_runs`` is always given.
+        total_metrics: The metrics used to for total numbers.
         **kwargs: Quantity, value pairs to search for.
 
     Returns: A tuple with the total hits, an array with the results, an dictionary with
@@ -362,10 +373,10 @@ def aggregate_search(
 
     search = _construct_search(q, **kwargs)
 
-    def add_metrics(parent):
-        parent.metric('total_energies', A('sum', field='n_total_energies'))
-        parent.metric('geometries', A('cardinality', field='geometries'))
-        parent.metric('datasets', A('cardinality', field='datasets.id'))
+    def add_metrics(parent, metrics_to_add):
+        for metric in metrics_to_add:
+            metric_kind, field = metrics[metric]
+            parent.metric(metric, A(metric_kind, field=field))
 
     for aggregation, size in aggregations.items():
 
@@ -375,9 +386,9 @@ def aggregate_search(
             a = A('terms', field=aggregation, size=size, min_doc_count=0, order=dict(_key='asc'))
 
         buckets = search.aggs.bucket(aggregation, a)
-        add_metrics(buckets)
+        add_metrics(buckets, aggregation_metrics)
 
-    add_metrics(search.aggs)
+    add_metrics(search.aggs, total_metrics)
 
     if order_by not in search_quantities:
         raise KeyError('Unknown order quantity %s' % order_by)
@@ -388,28 +399,26 @@ def aggregate_search(
     total_results = response.hits.total
     search_results = [hit.to_dict() for hit in response.hits]
 
+    def get_metrics(bucket, metrics_to_get, code_runs):
+        result = {
+            metric: bucket[metric]['value']
+            for metric in metrics_to_get
+        }
+        result.update(code_runs=code_runs)
+        return result
+
     aggregation_results = {
         aggregation: {
-            bucket.key: {
-                'code_runs': bucket.doc_count,
-                'total_energies': bucket.total_energies.value,
-                'geometries': bucket.geometries.value,
-                'datasets': bucket.datasets.value
-            }
+            bucket.key: get_metrics(bucket, aggregation_metrics, bucket.doc_count)
             for bucket in getattr(response.aggregations, aggregation).buckets
         }
         for aggregation in aggregations.keys()
         if aggregation not in ['total_energies', 'geometries', 'datasets']
     }
 
-    metrics = {
-        'code_runs': total_results,
-        'total_energies': response.aggregations.total_energies.value,
-        'geometries': response.aggregations.geometries.value,
-        'datasets': response.aggregations.datasets.value
-    }
+    total_metrics_result = get_metrics(response.aggregations, total_metrics, total_results)
 
-    return total_results, search_results, aggregation_results, metrics
+    return total_results, search_results, aggregation_results, total_metrics_result
 
 
 def authors(per_page: int = 10, after: str = None, prefix: str = None) -> Tuple[Dict[str, int], str]:

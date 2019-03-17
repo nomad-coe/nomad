@@ -8,7 +8,7 @@ import TablePagination from '@material-ui/core/TablePagination'
 import TableRow from '@material-ui/core/TableRow'
 import Paper from '@material-ui/core/Paper'
 import { TableHead, LinearProgress, FormControl, FormControlLabel, Checkbox, FormGroup,
-  FormLabel, IconButton, MuiThemeProvider, Typography, Tooltip, TableSortLabel, ExpansionPanelDetails, ExpansionPanelSummary, ExpansionPanel, Grid } from '@material-ui/core'
+  FormLabel, IconButton, MuiThemeProvider, Typography, Tooltip, TableSortLabel, ExpansionPanelDetails, ExpansionPanelSummary, ExpansionPanel, Grid, CircularProgress } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
 import AnalyticsIcon from '@material-ui/icons/Settings'
@@ -160,8 +160,12 @@ class Repo extends React.Component {
 
   update(changes) {
     changes = changes || {}
-    const { page, rowsPerPage, owner, sortedBy, sortOrder, searchValues } = {...this.state, ...changes}
+    const { page, rowsPerPage, owner, sortedBy, sortOrder, searchValues, metric } = {...this.state, ...changes}
+    delete changes.metric
     this.setState({loading: true, ...changes})
+
+    // code_runs is returned anyways
+    const metrics_to_retrieve = metric === 'code_runs' ? [] : [metric]
 
     this.props.api.search({
       page: page,
@@ -169,6 +173,8 @@ class Repo extends React.Component {
       owner: owner || 'all',
       order_by: sortedBy,
       order: (sortOrder === 'asc') ? 1 : -1,
+      total_metrics: metrics_to_retrieve,
+      aggregation_metrics: metrics_to_retrieve,
       ...searchValues
     }).then(data => {
       const { pagination: { total, page, per_page }, results, aggregations, metrics } = data
@@ -181,7 +187,8 @@ class Repo extends React.Component {
         per_page,
         total: total,
         loading: false,
-        owner: owner
+        owner: owner,
+        metric: metric
       })
     }).catch(errors => {
       this.setState({data: [], total: 0, loading: false, owner: owner})
@@ -207,7 +214,7 @@ class Repo extends React.Component {
   }
 
   handleMetricChange(metric) {
-    this.setState({metric: metric})
+    this.update({metric: metric})
   }
 
   handleSort(columnKey) {
@@ -282,7 +289,8 @@ class Repo extends React.Component {
     const metricsLabel = {
       code_runs: 'Code runs',
       total_energies: 'Total energy calculations',
-      geometries: 'Unique geometries'
+      geometries: 'Unique geometries',
+      datasets: 'Datasets'
     }
     return (
       <div className={classes.root}>
@@ -315,7 +323,10 @@ class Repo extends React.Component {
         <ExpansionPanel>
           <ExpansionPanelSummary expandIcon={<ExpandMoreIcon/>} className={classes.searchSummary}>
             <Typography variant="h6" style={{textAlign: 'center', width: '100%', fontWeight: 'normal'}}>
-              Found <b>{metrics.total_energies}</b> total energy calculations in <b>{metrics.code_runs}</b> code runs that simulate <b>{metrics.geometries}</b> unique geometries; data curated in <b>{metrics.datasets}</b> datasets.
+              Found <b>{metrics.code_runs}</b> code runs
+              {metric === 'geometries' ? (<span> that simulate <b>{metrics.geometries}</b> unique geometries</span>) : ''}
+              {metric === 'total_energies' ? (<span> with <b>{metrics.total_energies}</b> total energy calculations</span>) : ''}
+              {metric === 'datasets' ? (<span> curated in <b>{metrics.datasets}</b> datasets</span>) : ''}.
             </Typography>
           </ExpansionPanelSummary>
           <ExpansionPanelDetails className={classes.searchDetails}>
@@ -323,7 +334,7 @@ class Repo extends React.Component {
               <FormControl>
                 <FormLabel>Metric used in statistics: </FormLabel>
                 <FormGroup row>
-                  {['code_runs', 'total_energies', 'geometries'].map(metric => (
+                  {['code_runs', 'total_energies', 'geometries', 'datasets'].map(metric => (
                     <FormControlLabel key={metric}
                       control={
                         <Checkbox checked={this.state.metric === metric} onChange={() => this.handleMetricChange(metric)} value={metric} />
