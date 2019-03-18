@@ -343,7 +343,16 @@ parsers = [
         name='parsers/elastic',
         parser_class_name='elasticparser.ElasticParser',
         mainfile_contents_re=r'\s*Order of elastic constants\s*=\s*[0-9]+\s*'
+    ),
+    LegacyParser(
+        name='parsers/gamess',
+        parser_class_name='gamessparser.GamessParser',
+        mainfile_contents_re=(
+            r'\s*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
+            r'\s*\*\s*GAMESS VERSION =\s*(.*)\*\s*'
+            r'\s*\*\s*FROM IOWA STATE UNIVERSITY\s*\*\s*')
     )
+
 
 ]
 

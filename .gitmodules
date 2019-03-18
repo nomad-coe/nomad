@@ -94,3 +94,6 @@
 [submodule "dependencies/parsers/elastic"]
 	path = dependencies/parsers/elastic
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-elastic
+[submodule "dependencies/parsers/gamess"]
+	path = dependencies/parsers/gamess
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gamess

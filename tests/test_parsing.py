@@ -55,8 +55,9 @@ parser_examples = [
     ('parsers/atk', 'tests/data/parsers/atk/Si2.nc'),
     # ('parsers/gulp', 'tests/data/parsers/gulp/example6.got'),  # Issue with section_method
     # ('parsers/siesta', 'tests/data/parsers/siesta/Fe/out'),  # Issue with dir.
-    ('parsers/elk', 'tests/data/parsers/elk/Al/info.out')
+    ('parsers/elk', 'tests/data/parsers/elk/Al/info.out'),
     # ('parsers/elastic', 'tests/data/parsers/elastic/2nd/INFO_ElaStic')  # 70Mb file 2big4git
+    ('parsers/gamess', 'tests/data/parsers/gamess/exam01.out')
 ]
 
 faulty_unknown_one_d_matid_example = [
