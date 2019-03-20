@@ -194,6 +194,8 @@ def apply(config, key, value) -> None:
             if current_value is None:
                 if len(path) == 0:
                     raise KeyError
+
+                continue
             if isinstance(current_value, NomadConfig):
                 child_config = current_value
                 child_segment = None
