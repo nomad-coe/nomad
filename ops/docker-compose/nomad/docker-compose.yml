@@ -19,8 +19,6 @@ x-common-variables: &nomad_backend_env
     NOMAD_LOGSTASH_HOST: elk
     NOMAD_ELASTIC_HOST: elastic
     NOMAD_MONGO_HOST: mongo
-    NOMAD_SMTP_HOST: ''
-    NOMAD_UPLOAD_URL: ''
 
 services:
     # postgres for NOMAD-coe repository API and GUI
@@ -92,11 +90,11 @@ services:
         container_name: nomad_api
         environment:
             <<: *nomad_backend_env
-            NOMAD_API_BASE_PATH: /nomad/api
-            NOMAD_API_HOST: ${EXTERNAL_HOST}
-            NOMAD_API_PORT: ${EXTERNAL_PORT}
+            NOMAD_SERVICES_API_BASE_PATH: /nomad/api
+            NOMAD_SERVICES_API_HOST: ${EXTERNAL_HOST}
+            NOMAD_SERVICES_API_PORT: ${EXTERNAL_PORT}
+            NOMAD_SERVICES_API_SECRET: ${API_SECRET}
             NOMAD_SERVICE: nomad_api
-            NOMAD_API_SECRET: ${API_SECRET}
         links:
             - postgres
             - rabbitmq

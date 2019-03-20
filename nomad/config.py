@@ -12,68 +12,132 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-This module is used to store all configuration values. It makes use of
-*namedtuples* to create key sensitive configuration objects.
-"""
-
-import os
 import logging
-from collections import namedtuple
+import os
+import os.path
+import yaml
 import warnings
+
+from nomad import utils
 
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 
+class NomadConfig(utils.POPO):
+    pass
+
+
+# class ConfigProperty:
+#     def __init__(
+#             self, name: str, default_value: Union[int, str, bool], help: str = None,
+#             env_var: str = None) -> None:
+#         self.name = name
+#         self.default_value = default_value,
+#         self.help = help
+#         self.env_var = env_var
+
 CELERY_WORKER_ROUTING = 'worker'
 CELERY_QUEUE_ROUTING = 'queue'
 
-CeleryConfig = namedtuple('Celery', [
-    'broker_url', 'max_memory', 'timeout', 'acks_late', 'routing'])
-"""
-Used to configure the RabbitMQ for celery.
+rabbitmq = NomadConfig(
+    host='localhost',
+    user='rabbitmq',
+    password='rabbitmq'
+)
 
-Arguments:
-    broker_url: The rabbitmq broker URL
-    max_memory: Max worker memory
-    timeout: Task timeout
-    acks_late: Use celery acks_late if set
-    routing: Set to ``queue`` for routing via upload, calc queues. Processing tasks for one
-        upload might be routed to different worker and all staging files must be accessible
-        for all workers via distributed fs. Set to ``worker`` to route all tasks related
-        to the same upload to the same worker.
-"""
 
-FSConfig = namedtuple('FSConfig', ['tmp', 'staging', 'public', 'prefix_size'])
-""" Used to configure file stystem access. """
+def rabbitmq_url():
+    return 'pyamqp://%s:%s@%s//' % (rabbitmq.user, rabbitmq.password, rabbitmq.host)
 
-RepositoryDBConfig = namedtuple('RepositoryDBConfig', ['host', 'port', 'dbname', 'user', 'password'])
-""" Used to configure access to NOMAD-coe repository db. """
 
-ElasticConfig = namedtuple('ElasticConfig', ['host', 'port', 'index_name'])
-""" Used to configure elastic search. """
+celery = NomadConfig(
+    max_memory=64e6,  # 64 GB
+    timeout=1800,  # 1/2 h
+    acks_late=True,
+    routing=CELERY_QUEUE_ROUTING
+)
 
-MongoConfig = namedtuple('MongoConfig', ['host', 'port', 'db_name'])
-""" Used to configure mongo db. """
+fs = NomadConfig(
+    tmp='.volumes/fs/tmp',
+    staging='.volumes/fs/staging',
+    public='.volumes/fs/public',
+    prefix_size=2
+)
 
-LogstashConfig = namedtuple('LogstashConfig', ['enabled', 'host', 'tcp_port', 'level'])
-""" Used to configure and enable/disable the ELK based centralized logging. """
+elastic = NomadConfig(
+    host='localhost',
+    port=9200,
+    index_name='nomad_fairdi_calcs'
+)
 
-NomadServicesConfig = namedtuple('NomadServicesConfig', ['api_host', 'api_port', 'api_base_path', 'api_secret', 'admin_password', 'upload_url', 'disable_reset'])
-""" Used to configure nomad services: worker, handler, api """
+repository_db = NomadConfig(
+    host='localhost',
+    port=5432,
+    dbname='nomad_fairdi_repo_db',
+    user='postgres',
+    password='nomad'
+)
 
-MailConfig = namedtuple('MailConfig', ['host', 'port', 'user', 'password', 'from_address'])
-""" Used to configure how nomad can send email """
+mongo = NomadConfig(
+    host='localhost',
+    port=27017,
+    db_name='nomad_fairdi'
+)
 
-NormalizeConfig = namedtuple('NormalizeConfig', ['all_systems'])
-""" Used to configure the normalizers """
+logstash = NomadConfig(
+    enabled=True,
+    host='localhost',
+    tcp_port='5000',
+    level=logging.DEBUG
+)
 
-rabbit_host = os.environ.get('NOMAD_RABBITMQ_HOST', 'localhost')
-rabbit_port = os.environ.get('NOMAD_RABBITMQ_PORT', None)
-rabbit_user = 'rabbitmq'
-rabbit_password = 'rabbitmq'
-rabbit_url = 'pyamqp://%s:%s@%s//' % (rabbit_user, rabbit_password, rabbit_host)
+services = NomadConfig(
+    api_host='localhost',
+    api_port=8000,
+    api_base_path='/nomad/api',
+    api_secret='defaultApiSecret',
+    admin_password='password',
+    disable_reset=True
+)
+
+
+def upload_url():
+    return 'http://%s:%s/%s/uploads' % (services.api_host, services.api_port, services.api_base_path[:-3])
+
+
+migration_source_db = NomadConfig(
+    host='db-repository.nomad.esc',
+    port=5432,
+    dbname='nomad_prod',
+    user='nomadlab',
+    password='*'
+)
+
+mail = NomadConfig(
+    enabled=False,
+    with_login=False,
+    host='',
+    port=8995,
+    user='',
+    password='',
+    from_address='webmaster@nomad-coe.eu'
+)
+
+normalize = NomadConfig(
+    all_systems=False
+)
+
+client = NomadConfig(
+    user='leonard.hofstadter@nomad-fairdi.tests.de',
+    password='password',
+    url='http://localhost:8000/nomad/api'
+)
+
+console_log_level = logging.WARNING
+service = 'unknown nomad service'
+release = 'devel'
+auxfile_cutoff = 30
 
 
 def get_loglevel_from_env(key, default_level=logging.INFO):
@@ -84,78 +148,113 @@ def get_loglevel_from_env(key, default_level=logging.INFO):
         try:
             return int(plain_value)
         except ValueError:
-            return getattr(logging, plain_value, default_level)
+            return getattr(logging, plain_value)
 
 
-celery = CeleryConfig(
-    broker_url=rabbit_url,
-    max_memory=int(os.environ.get('NOMAD_CELERY_MAXMEMORY', 64e6)),  # 64 GB
-    timeout=int(os.environ.get('NOMAD_CELERY_TIMEOUT', 1800)),  # 1/2h
-    acks_late=bool(os.environ.get('NOMAD_CELERY_ACKS_LATE', True)),
-    routing=os.environ.get('NOMAD_CELERY_ROUTING', CELERY_QUEUE_ROUTING)
-)
-fs = FSConfig(
-    tmp=os.environ.get('NOMAD_FILES_TMP_DIR', '.volumes/fs/tmp'),
-    staging=os.environ.get('NOMAD_FILES_STAGING_DIR', '.volumes/fs/staging'),
-    public=os.environ.get('NOMAD_FILES_PUBLIC_DIR', '.volumes/fs/public'),
-    prefix_size=int(os.environ.get('NOMAD_FILES_PREFIX_SIZE', 2))
-)
-elastic = ElasticConfig(
-    host=os.environ.get('NOMAD_ELASTIC_HOST', 'localhost'),
-    port=int(os.environ.get('NOMAD_ELASTIC_PORT', 9200)),
-    index_name=os.environ.get('NOMAD_ELASTIC_INDEX_NAME', 'nomad_fairdi_calcs')
-)
-repository_db = RepositoryDBConfig(
-    host=os.environ.get('NOMAD_COE_REPO_DB_HOST', 'localhost'),
-    port=int(os.environ.get('NOMAD_COE_REPO_DB_PORT', 5432)),
-    dbname=os.environ.get('NOMAD_COE_REPO_DB_NAME', 'nomad_fairdi_repo_db'),
-    user=os.environ.get('NOMAD_COE_REPO_DB_USER', 'postgres'),
-    password=os.environ.get('NOMAD_COE_REPO_PASSWORD', 'nomad')
-)
-mongo = MongoConfig(
-    host=os.environ.get('NOMAD_MONGO_HOST', 'localhost'),
-    port=int(os.environ.get('NOMAD_MONGO_PORT', 27017)),
-    db_name=os.environ.get('NOMAD_MONGO_DB_NAME', 'nomad_fairdi')
-)
-logstash = LogstashConfig(
-    enabled=True,
-    host=os.environ.get('NOMAD_LOGSTASH_HOST', 'localhost'),
-    tcp_port=int(os.environ.get('NOMAD_LOGSTASH_TCPPORT', '5000')),
-    level=get_loglevel_from_env('NOMAD_LOGSTASH_LEVEL', default_level=logging.DEBUG)
-)
-services = NomadServicesConfig(
-    api_host=os.environ.get('NOMAD_API_HOST', 'localhost'),
-    api_port=int(os.environ.get('NOMAD_API_PORT', 8000)),
-    api_base_path=os.environ.get('NOMAD_API_BASE_PATH', '/nomad/api'),
-    api_secret=os.environ.get('NOMAD_API_SECRET', 'defaultApiSecret'),
-    admin_password=os.environ.get('NOMAD_API_ADMIN_PASSWORD', 'password'),
-    upload_url=os.environ.get('NOMAD_UPLOAD_URL', 'http://localhost/nomad/uploads'),
-    disable_reset=os.environ.get('NOMAD_API_DISABLE_RESET', 'false') == 'true'
-)
-migration_source_db = RepositoryDBConfig(
-    host=os.environ.get('NOMAD_MIGRATION_SOURCE_DB_HOST', 'db-repository.nomad.esc'),
-    port=int(os.environ.get('NOMAD_MIGRATION_SOURCE_DB_PORT', 5432)),
-    dbname=os.environ.get('NOMAD_MIGRATION_SOURCE_DB_NAME', 'nomad_prod'),
-    user=os.environ.get('NOMAD_MIGRATION_SOURCE_USER', 'nomadlab'),
-    password=os.environ.get('NOMAD_MIGRATION_SOURCE_PASSWORD', '*')
-)
-mail = MailConfig(
-    host=os.environ.get('NOMAD_SMTP_HOST', ''),  # empty or None host disables email
-    port=int(os.environ.get('NOMAD_SMTP_PORT', 8995)),
-    user=os.environ.get('NOMAD_SMTP_USER', None),
-    password=os.environ.get('NOMAD_SMTP_PASSWORD', None),
-    from_address=os.environ.get('NOMAD_MAIL_FROM', 'webmaster@nomad-coe.eu')
-)
-normalize = NormalizeConfig(
-    all_systems=False
-)
+transformations = {
+    'console_log_level': get_loglevel_from_env,
+    'logstash_level': get_loglevel_from_env
+}
 
-console_log_level = get_loglevel_from_env('NOMAD_CONSOLE_LOGLEVEL', default_level=logging.WARNING)
-service = os.environ.get('NOMAD_SERVICE', 'unknown nomad service')
-release = os.environ.get('NOMAD_RELEASE', 'devel')
 
-auxfile_cutoff = 30
-"""
-Number of max auxfiles. More auxfiles means no auxfiles, but probably a directory of many
-mainfiles.
-"""
+# use std python logger, since logging is not configured while loading configuration
+logger = logging.getLogger(__name__)
+
+
+def apply(config, key, value) -> None:
+    """
+    Changes the config according to given key and value. The keys are interpreted as paths
+    to config values with ``_`` as a separator. E.g. ``fs_staging`` leading to
+    ``config.fs.staging``
+    """
+
+    path = list(reversed(key.split('_')))
+    child_segment = None
+    current_value = None
+    child_config = config
+    child_key = None
+
+    try:
+        while len(path) > 0:
+            if child_segment is None:
+                child_segment = path.pop()
+            else:
+                child_segment += '_' + path.pop()
+
+            if child_segment in child_config:
+                current_value = child_config[child_segment]
+
+            if current_value is None:
+                if len(path) == 0:
+                    raise KeyError
+            if isinstance(current_value, NomadConfig):
+                child_config = current_value
+                child_segment = None
+            else:
+                if len(path) > 0:
+                    raise KeyError()
+                else:
+                    child_key = child_segment
+                    break
+
+        if child_key is None or current_value is None:
+            raise KeyError()
+    except KeyError:
+        logger.error('config key %s does not exist' % key)
+
+    if not isinstance(value, type(current_value)):
+        try:
+            value = transformations.get(key, type(current_value))(value)
+        except Exception as e:
+            logger.error(
+                'config key %s value %s has wrong type: %s' % (key, str(value), str(e)))
+
+    child_config[child_key] = value
+
+
+def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yml')) -> None:
+    # load yml and override defaults
+    if os.path.exists(config_file):
+        with open(config_file, 'r') as stream:
+            try:
+                config_data = yaml.load(stream)
+            except yaml.YAMLError as e:
+                logger.error('cannot read nomad config', exc_info=e)
+
+        def adapt(config, new_config, child_key=None):
+            for key, value in new_config.items():
+                if key in config:
+                    if child_key is None:
+                        qualified_key = key
+                    else:
+                        qualified_key = '%s_%s' % (child_key, key)
+
+                    current_value = config[key]
+                    if isinstance(value, dict) and isinstance(current_value, NomadConfig):
+                        adapt(current_value, value, qualified_key)
+                    else:
+                        if not isinstance(value, type(current_value)):
+                            try:
+                                value = transformations.get(qualified_key, type(current_value))(value)
+                            except Exception as e:
+                                logger.error(
+                                    'config key %s value %s has wrong type: %s' % (key, str(value), str(e)))
+                        else:
+                            config[key] = value
+                else:
+                    logger.error('config key %s does not exist' % key)
+
+        adapt(globals(), config_data)
+
+    # load env and override yml and defaults
+    kwargs = {
+        key[len('NOMAD_'):].lower(): value
+        for key, value in os.environ.items()
+        if key.startswith('NOMAD_')
+    }
+    config = globals()
+    for key, value in kwargs.items():
+        apply(config, key, value)
+
+
+load_config()

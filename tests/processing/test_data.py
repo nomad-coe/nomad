@@ -25,7 +25,8 @@ from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator, FAILURE, SUCCESS
 
 
-def test_send_mail(mails):
+def test_send_mail(mails, monkeypatch):
+    monkeypatch.setattr('nomad.config.mail.enabled', True)
     infrastructure.send_mail('test name', 'test@email.de', 'test message', 'subjct')
 
     for message in mails.messages:
@@ -90,7 +91,7 @@ def assert_processing(upload: Upload):
         assert upload_files.metadata.get(calc.calc_id) is not None
 
 
-def test_processing(processed, no_warn, mails):
+def test_processing(processed, no_warn, mails, monkeypatch):
     assert_processing(processed)
 
     assert len(mails.messages) == 1

@@ -28,6 +28,8 @@ spec:
           requests:
             memory: "{{ .Values.worker.memrequest }}Gi"
         volumeMounts:
+        - mountPath: /app
+          name: nomad-conf
         - mountPath: /app/.volumes/fs/public
           name: public-volume
         - mountPath: /app/.volumes/fs/staging
@@ -35,58 +37,12 @@ spec:
         - mountPath: /nomad
           name: nomad-volume
         env:
-        - name: NOMAD_FILES_TMP_DIR
-          value: "{{ .Values.volumes.tmp }}"
         - name: NOMAD_SERVICE
           value: "worker"
-        - name: NOMAD_RELEASE
-          value: "{{ .Release.Name }}"
-        - name: NOMAD_LOGSTASH_HOST
-          value: "{{ .Values.logstash.host }}"
-        - name: NOMAD_LOGSTASH_TCPPORT
-          value: "{{ .Values.logstash.port }}"
         - name: NOMAD_CONSOLE_LOGLEVEL
           value: "{{ .Values.worker.console_loglevel }}"
         - name: NOMAD_LOGSTASH_LEVEL
           value: "{{ .Values.worker.logstash_loglevel }}"
-        - name: NOMAD_RABBITMQ_HOST
-          value: "{{ .Release.Name }}-rabbitmq"
-        - name: NOMAD_ELASTIC_HOST
-          value: "{{ .Values.elastic.host }}"
-        - name: NOMAD_ELASTIC_PORT
-          value: "{{ .Values.elastic.port }}"
-        - name: NOMAD_ELASTIC_INDEX_NAME
-          value: "{{ .Values.dbname }}"
-        - name: NOMAD_MONGO_HOST
-          value: "{{ .Values.mongo.host }}"
-        - name: NOMAD_MONGO_PORT
-          value: "{{ .Values.mongo.port }}"
-        - name: NOMAD_MONGO_DB_NAME
-          value: "{{ .Values.dbname }}"
-        - name: NOMAD_COE_REPO_DB_HOST
-          value: "{{ .Values.postgres.host }}"
-        - name: NOMAD_COE_REPO_DB_PORT
-          value: "{{ .Values.postgres.port }}"
-        - name: NOMAD_COE_REPO_DB_NAME
-          value: "{{ .Values.dbname }}"
-        - name: NOMAD_UPLOAD_URL
-          value: "{{ .Values.uploadurl }}"
-        - name: NOMAD_SMTP_HOST
-          value: "{{ .Values.mail.host }}"
-        - name: NOMAD_SMTP_PORT
-          value: "{{ .Values.mail.port }}"
-        - name: NOMAD_SMTP_USER
-          value: "{{ .Values.mail.user }}"
-        - name: NOMAD_SMTP_PASSWORD
-          value: "{{ .Values.mail.password }}"
-        - name: NOMAD_MAIL_FROM
-          value: "{{ .Values.mail.from }}"
-        - name: NOMAD_CONSOLE_LOGLEVEL
-          value: "ERROR"
-        - name: NOMAD_CELERY_ROUTING
-          value: "{{ .Values.worker.routing }}"
-        - name: NOMAD_FILES_PREFIX_SIZE
-          value: "{{ .Values.volumes.prefixSize }}"
         command: ["python", "-m", "celery", "worker", "-A", "nomad.processing", "-Q", "celery,calcs,uploads"]
         livenessProbe:
           exec:
@@ -110,6 +66,12 @@ spec:
       - name: {{ .Values.images.secret }}
       imagePullPolicy: always
       volumes:
+      - name: nomad-conf
+        configMap:
+          name: {{ include "nomad.fullname" . }}-configmap
+          items:
+          - key: nomad.yml
+            path: nomad.yml
       - name: public-volume
         hostPath:
           path: {{ .Values.volumes.public }}

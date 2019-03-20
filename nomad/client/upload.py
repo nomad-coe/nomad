@@ -19,17 +19,16 @@ import click
 import urllib.parse
 import requests
 
-from nomad import utils
+from nomad import utils, config
 from nomad.processing import FAILURE, SUCCESS
 
 from .main import cli, create_client
-from nomad.client import main
 
 
 def stream_upload_with_client(client, stream, name=None):
     user = client.auth.get_user().response().result
     token = user.token
-    url = main._nomad_url + '/uploads/'
+    url = config.client.url + '/uploads/'
     if name is not None:
         url += '?name=%s' % urllib.parse.quote(name)
 

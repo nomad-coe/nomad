@@ -23,63 +23,21 @@ spec:
       - name: {{ include "nomad.name" . }}-api
         image: "{{ .Values.images.nomad.name }}:{{ .Values.images.nomad.tag }}"
         volumeMounts:
+        - mountPath: /app
+          name: nomad-conf
         - mountPath: /app/.volumes/fs/public
           name: public-volume
         - mountPath: /app/.volumes/fs/staging
           name: staging-volume
         - mountPath: /nomad
           name: nomad-volume
-        env:
-        - name: NOMAD_FILES_TMP_DIR
-          value: "{{ .Values.volumes.tmp }}"
+      env:
         - name: NOMAD_SERVICE
           value: "api"
-        - name: NOMAD_RELEASE
-          value: "{{ .Release.Name }}"
-        - name: NOMAD_LOGSTASH_HOST
-          value: "{{ .Values.logstash.host }}"
-        - name: NOMAD_LOGSTASH_TCPPORT
-          value: "{{ .Values.logstash.port }}"
         - name: NOMAD_CONSOLE_LOGLEVEL
           value: "{{ .Values.api.console_loglevel }}"
         - name: NOMAD_LOGSTASH_LEVEL
           value: "{{ .Values.api.logstash_loglevel }}"
-        - name: NOMAD_API_HOST
-          value: "{{ .Values.proxy.external.host }}"
-        - name: NOMAD_API_PORT
-          value: "{{ .Values.proxy.external.port }}"
-        - name: NOMAD_API_BASE_PATH
-          value: "{{ .Values.proxy.external.path }}/api"
-        - name: NOMAD_API_SECRET
-          value: "{{ .Values.api.secret }}"
-        - name: NOMAD_API_ADMIN_PASSWORD
-          value: "{{ .Values.api.adminPassword }}"
-        - name: NOMAD_API_DISABLE_RESET
-          value: "{{ .Values.api.disableReset }}"
-        - name: NOMAD_RABBITMQ_HOST
-          value: "{{ .Release.Name }}-rabbitmq"
-        - name: NOMAD_ELASTIC_HOST
-          value: "{{ .Values.elastic.host }}"
-        - name: NOMAD_ELASTIC_PORT
-          value: "{{ .Values.elastic.port }}"
-        - name: NOMAD_ELASTIC_INDEX_NAME
-          value: "{{ .Values.dbname }}"
-        - name: NOMAD_MONGO_HOST
-          value: "{{ .Values.mongo.host }}"
-        - name: NOMAD_MONGO_PORT
-          value: "{{ .Values.mongo.port }}"
-        - name: NOMAD_MONGO_DB_NAME
-          value: "{{ .Values.dbname }}"
-        - name: NOMAD_COE_REPO_DB_HOST
-          value: "{{ .Values.postgres.host }}"
-        - name: NOMAD_COE_REPO_DB_PORT
-          value: "{{ .Values.postgres.port }}"
-        - name: NOMAD_COE_REPO_DB_NAME
-          value: "{{ .Values.dbname }}"
-        - name: NOMAD_CELERY_ROUTING
-          value: "{{ .Values.worker.routing }}"
-        - name: NOMAD_FILES_PREFIX_SIZE
-          value: "{{ .Values.volumes.prefixSize }}"
         command: ["python", "-m", "gunicorn.app.wsgiapp", "--timeout", "3600", "--log-config", "ops/gunicorn.log.conf", "-w", "{{ .Values.api.worker }}", "-b 0.0.0.0:8000", "nomad.api:app"]
         livenessProbe:
           httpGet:
@@ -99,6 +57,12 @@ spec:
       - name: {{ .Values.images.secret }}
       imagePullPolicy: always
       volumes:
+      - name: nomad-conf
+        configMap:
+          name: {{ include "nomad.fullname" . }}-configmap
+          items:
+          - key: nomad.yml
+            path: nomad.yml
       - name: public-volume
         hostPath:
           path: {{ .Values.volumes.public }}

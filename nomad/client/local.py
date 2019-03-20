@@ -26,7 +26,7 @@ from nomad.files import ArchiveBasedStagingUploadFiles
 from nomad.parsing import parser_dict, LocalBackend, match_parser
 from nomad.normalizing import normalizers
 
-from .main import cli, get_nomad_url
+from .main import cli
 
 
 class CalcProcReproduction:
@@ -67,7 +67,7 @@ class CalcProcReproduction:
             # TODO currently only downloads mainfile
             self.logger.info('Downloading calc.', mainfile=self.mainfile)
             token = client.auth.get_user().response().result.token
-            req = requests.get('%s/raw/%s/%s' % (get_nomad_url(), self.upload_id, os.path.dirname(self.mainfile)) + '/*', stream=True, headers={'X-Token': token})
+            req = requests.get('%s/raw/%s/%s' % (config.client.url, self.upload_id, os.path.dirname(self.mainfile)) + '/*', stream=True, headers={'X-Token': token})
             with open(local_path, 'wb') as f:
                 for chunk in req.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
                     f.write(chunk)
@@ -166,7 +166,7 @@ class CalcProcReproduction:
 def local(archive_id, show_backend=False, show_metadata=False, **kwargs):
     print(kwargs)
     utils.configure_logging()
-    utils.get_logger(__name__).info('Using %s' % get_nomad_url())
+    utils.get_logger(__name__).info('Using %s' % config.client.url)
     with CalcProcReproduction(archive_id, **kwargs) as local:
         backend = local.parse()
         local.normalize_all(parser_backend=backend)

@@ -22,7 +22,7 @@ import inspect
 from passlib.hash import bcrypt
 from datetime import datetime
 
-from nomad import config, coe_repo, search, parsing, files
+from nomad import coe_repo, search, parsing, files
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
 
@@ -48,12 +48,14 @@ def test_user_signature_token(client, test_user_auth):
 class TestAdmin:
 
     @pytest.mark.timeout(10)
-    def test_reset(self, client, admin_user_auth, expandable_postgres):
+    def test_reset(self, client, admin_user_auth, expandable_postgres, monkeypatch):
+        monkeypatch.setattr('nomad.config.services.disable_reset', False)
         rv = client.post('/admin/reset', headers=admin_user_auth)
         assert rv.status_code == 200
 
     @pytest.mark.timeout(10)
-    def test_remove(self, client, admin_user_auth, expandable_postgres):
+    def test_remove(self, client, admin_user_auth, expandable_postgres, monkeypatch):
+        monkeypatch.setattr('nomad.config.services.disable_reset', False)
         rv = client.post('/admin/remove', headers=admin_user_auth)
         assert rv.status_code == 200
 
@@ -65,22 +67,7 @@ class TestAdmin:
         rv = client.post('/admin/reset', headers=test_user_auth)
         assert rv.status_code == 401
 
-    @pytest.fixture(scope='function')
-    def disable_reset(self, monkeypatch):
-        old_config = config.services
-        new_config = config.NomadServicesConfig(
-            config.services.api_host,
-            config.services.api_port,
-            config.services.api_base_path,
-            config.services.api_secret,
-            config.services.admin_password,
-            config.services.upload_url,
-            True)
-        monkeypatch.setattr(config, 'services', new_config)
-        yield None
-        monkeypatch.setattr(config, 'services', old_config)
-
-    def test_disabled(self, client, admin_user_auth, disable_reset, postgres):
+    def test_disabled(self, client, admin_user_auth, postgres):
         rv = client.post('/admin/reset', headers=admin_user_auth)
         assert rv.status_code == 400
 

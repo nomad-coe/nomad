@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nomad.fullname" . }}-configmap
+  labels:
+    app.kubernetes.io/name: {{ include "nomad.name" . }}-configmap
+    helm.sh/chart: {{ include "nomad.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+data:
+  nomad.yml: /
+    service: api
+      api_host:
+    release: "{{ .Release.Name }}"
+    fs:
+      tmp: "{{ .Values.volumes.tmp }}"
+      prefix_size: {{ .Values.volumes.prefixSize }}
+    logstash:
+      enabled: true
+      host: "{{ .Values.logstash.host }}"
+      tcpport: "{{ .Values.logstash.port }}"
+      level: info
+    console_log_level: debug
+    services:
+      api_host: "{{ .Values.proxy.external.host }}"
+      api_port: "{{ .Values.proxy.external.port }}"
+      api_base_path: "{{ .Values.proxy.external.path }}/api"
+      api_secret: "{{ .Values.api.secret }}"
+      admin_password: "{{ .Values.api.adminPassword }}"
+      disable_reset: {{ .Values.api.disableReset }}
+    rabbitmq:
+      host: "{{ .Release.Name }}-rabbitmq"
+    elastic:
+      host: "{{ .Values.elastic.host }}"
+      port: {{ .Values.elastic.port }}
+      index_name: "{{ .Values.dbname }}"
+    mongo:
+      host: "{{ .Values.mongo.host }}"
+      port: {{ .Values.mongo.port }}
+      db_name: "{{ .Values.dbname }}"
+    repository_db:
+      host: "{{ .Values.postgres.host }}"
+      port: {{ .Values.postgres.port }}
+      dbname: "{{ .Values.dbname }}"
+    mail:
+      host: "{{ .Values.mail.host }}"
+      port: {{ .Values.mail.port }}
+      user: "{{ .Values.mail.user }}"
+      password: "{{ .Values.mail.password }}"
+      from_address: "{{ .Values.mail.from }}"
+    celery_routing: "{{ .Values.worker.routing }}"

@@ -48,7 +48,7 @@ def setup(**kwargs):
         'celery configured with acks_late=%s' % str(config.celery.acks_late))
 
 
-app = Celery('nomad.processing', broker=config.celery.broker_url)
+app = Celery('nomad.processing', broker=config.rabbitmq_url())
 app.conf.update(worker_hijack_root_logger=False)
 app.conf.update(worker_max_memory_per_child=config.celery.max_memory)
 if config.celery.routing == config.CELERY_WORKER_ROUTING:
