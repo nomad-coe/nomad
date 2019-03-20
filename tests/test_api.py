@@ -225,7 +225,7 @@ class TestUploads:
         assert_upload_files(upload_id, files.StagingUploadFiles, n_calcs)
         assert_search_upload(upload_id, n_calcs)
 
-    def assert_unstage(self, client, test_user_auth, upload_id, proc_infra, metadata={}):
+    def assert_published(self, client, test_user_auth, upload_id, proc_infra, with_pid=True, metadata={}):
         rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         n_calcs = upload['calcs']['pagination']['total']
@@ -240,10 +240,13 @@ class TestUploads:
         assert upload['current_process'] == 'publish_upload'
         assert upload['process_running']
 
+        additional_keys = ['with_embargo']
+        if with_pid:
+            additional_keys.append('pid')
         self.assert_upload_does_not_exist(client, upload_id, test_user_auth)
         assert_coe_upload(upload_id, user_metadata=metadata)
-        assert_upload_files(upload_id, files.PublicUploadFiles, n_calcs, additional_keys=['with_embargo', 'pid'], published=True)
-        assert_search_upload(upload_id, n_calcs, additional_keys=['with_embargo', 'pid'], published=True)
+        assert_upload_files(upload_id, files.PublicUploadFiles, n_calcs, additional_keys=additional_keys, published=True)
+        assert_search_upload(upload_id, n_calcs, additional_keys=additional_keys, published=True)
 
     def assert_upload_does_not_exist(self, client, upload_id: str, test_user_auth):
         # poll until publish/delete completed
@@ -329,11 +332,11 @@ class TestUploads:
         yield True
         monkeypatch.setattr('nomad.processing.data.Upload.cleanup', old_cleanup)
 
-    def test_delete_unstaged(self, client, test_user_auth, proc_infra, no_warn):
+    def test_delete_published(self, client, test_user_auth, proc_infra, no_warn, with_publish_to_coe_repo):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
-        self.assert_unstage(client, test_user_auth, upload['upload_id'], proc_infra)
+        self.assert_published(client, test_user_auth, upload['upload_id'], proc_infra, with_pid=with_publish_to_coe_repo)
         rv = client.delete('/uploads/%s' % upload['upload_id'], headers=test_user_auth)
         assert rv.status_code == 404
 
@@ -345,11 +348,11 @@ class TestUploads:
         assert rv.status_code == 200
         self.assert_upload_does_not_exist(client, upload['upload_id'], test_user_auth)
 
-    def test_post(self, client, test_user_auth, example_upload, proc_infra, no_warn):
+    def test_post(self, client, test_user_auth, example_upload, proc_infra, no_warn, with_publish_to_coe_repo):
         rv = client.put('/uploads/?local_path=%s' % example_upload, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
-        self.assert_unstage(client, test_user_auth, upload['upload_id'], proc_infra)
+        self.assert_published(client, test_user_auth, upload['upload_id'], proc_infra, with_pid=with_publish_to_coe_repo)
 
     def test_post_metadata(
             self, client, proc_infra, admin_user_auth, test_user_auth, test_user,
@@ -359,7 +362,7 @@ class TestUploads:
         self.assert_processing(client, test_user_auth, upload['upload_id'])
         metadata = dict(**example_user_metadata)
         metadata['_upload_time'] = datetime.now().isoformat()
-        self.assert_unstage(client, admin_user_auth, upload['upload_id'], proc_infra, metadata)
+        self.assert_published(client, admin_user_auth, upload['upload_id'], proc_infra, metadata)
 
     def test_post_metadata_forbidden(self, client, proc_infra, test_user_auth, no_warn):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)

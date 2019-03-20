@@ -132,9 +132,10 @@ def assert_search_upload(upload_id, n_calcs: int, additional_keys: List[str] = [
         for hit in search:
             hit = hit.to_dict()
             for key, value in kwargs.items():
-                if key == 'published':
-                    assert int(hit.get('pid')) > 0
                 assert hit.get(key, None) == value
+
+            if 'pid' in hit:
+                assert int(hit.get('pid')) > 0
 
             for key in keys:
                 assert key in hit

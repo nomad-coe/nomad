@@ -412,37 +412,43 @@ class Upload(Proc):
         processing state db.
         """
         logger = self.get_logger()
-        logger.info('started to publish', step='publish')
+        logger.info('started to publish')
 
         with utils.lnr(logger, 'publish failed'):
             upload_with_metadata = self.to_upload_with_metadata()
 
+            if config.repository_db.publish_enabled:
+                with utils.timer(
+                        logger, 'upload added to repository', step='repo',
+                        upload_size=self.upload_files.size):
+                    coe_repo.Upload.publish(upload_with_metadata)
+
+            if config.repository_db.publish_enabled:
+                coe_upload = coe_repo.Upload.from_upload_id(upload_with_metadata.upload_id)
+                if coe_upload is not None:
+                    calcs = [coe_calc.to_calc_with_metadata() for coe_calc in coe_upload.calcs]
+                else:
+                    calcs = []
+            else:
+                calcs = upload_with_metadata.calcs
+
             with utils.timer(
-                    logger, 'upload added to repository', step='repo',
+                    logger, 'upload metadata updated', step='metadata',
                     upload_size=self.upload_files.size):
-                coe_repo.Upload.publish(upload_with_metadata)
+                for calc in calcs:
+                    calc.published = True
+                    self.upload_files.metadata.update(
+                        calc_id=calc.calc_id, updates=calc.to_dict())
 
             with utils.timer(
                     logger, 'staged upload files packed', step='pack',
                     upload_size=self.upload_files.size):
-                coe_upload = coe_repo.Upload.from_upload_id(upload_with_metadata.upload_id)
-                if coe_upload is not None:
-                    for coe_calc in coe_upload.calcs:
-                        calc_metadata = coe_calc.to_calc_with_metadata()
-                        calc_metadata.published = True
-                        self.upload_files.metadata.update(
-                            calc_id=calc_metadata.calc_id, updates=calc_metadata.to_dict())
-                    logger.info('metadata updated after publish to coe repo', step='publish')
-
                 self.upload_files.pack()
 
             with utils.timer(
                     logger, 'index updated', step='index',
                     upload_size=self.upload_files.size):
-                coe_upload = coe_repo.Upload.from_upload_id(upload_with_metadata.upload_id)
-                if coe_upload is not None:
-                    search.publish(
-                        [coe_calc.to_calc_with_metadata() for coe_calc in coe_upload.calcs])
+                search.publish(calcs)
 
             with utils.timer(
                     logger, 'staged upload deleted', step='delete staged',
@@ -572,7 +578,7 @@ class Upload(Proc):
             '',
             'your data %suploaded %s has completed processing.' % (
                 self.name if self.name else '', self.upload_time.isoformat()),
-            'You can review your data on your upload page: %s' % config.services.upload_url
+            'You can review your data on your upload page: %s' % config.upload_url()
         ])
         try:
             infrastructure.send_mail(

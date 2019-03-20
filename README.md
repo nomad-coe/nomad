@@ -55,6 +55,13 @@ your browser.
 
 ## Change log
 
+### v0.4.3
+- more flexible celery routing
+- config via nomad.yml
+- repo_db can be disabled
+- publishing of calculations with failed processing
+- cli for managing running processing tasks
+
 ### v0.4.2
 - bugfixes regarding the migration
 - better migration configurability and reproducibility

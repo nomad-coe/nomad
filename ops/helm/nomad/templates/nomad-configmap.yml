@@ -42,6 +42,8 @@ data:
       host: "{{ .Values.postgres.host }}"
       port: {{ .Values.postgres.port }}
       dbname: "{{ .Values.dbname }}"
+      sequential_public: {{ .Values.postgres.sequential_publish }}
+      publish_enabled: {{ .Values.postgres.publish_enabled }}
     mail:
       host: "{{ .Values.mail.host }}"
       port: {{ .Values.mail.port }}

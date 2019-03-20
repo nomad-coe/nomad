@@ -96,6 +96,8 @@ elastic:
   port: 19200
 
 postgres:
+  sequential_publish: false
+  publish_enabled: true
   host: enc-preprocessing-nomad.esc
   port: 5432
 

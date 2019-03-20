@@ -43,7 +43,7 @@ spec:
           value: "{{ .Values.worker.console_loglevel }}"
         - name: NOMAD_LOGSTASH_LEVEL
           value: "{{ .Values.worker.logstash_loglevel }}"
-        command: ["python", "-m", "celery", "worker", "-A", "nomad.processing", "-Q", "celery,calcs,uploads"]
+        command: ["python", "-m", "celery", "worker", "-A", "nomad.processing", "-Q", "calcs,uploads"]
         livenessProbe:
           exec:
             command:

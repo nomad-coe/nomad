@@ -20,9 +20,13 @@ import json
 import re
 
 from nomad import utils, infrastructure
-from nomad.files import UploadFiles, StagingUploadFiles
+from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator, FAILURE, SUCCESS
+
+from tests.test_search import assert_search_upload
+from tests.test_files import assert_upload_files
+from tests.test_coe_repo import assert_coe_upload
 
 
 def test_send_mail(mails, monkeypatch):
@@ -96,6 +100,28 @@ def test_processing(processed, no_warn, mails, monkeypatch):
 
     assert len(mails.messages) == 1
     assert re.search(r'Processing completed', mails.messages[0].data.decode('utf-8')) is not None
+
+
+def test_publish(processed: Upload, no_warn, example_user_metadata, monkeypatch, with_publish_to_coe_repo):
+    processed.metadata = example_user_metadata
+
+    n_calcs = processed.total_calcs
+    additional_keys = ['with_embargo']
+    if with_publish_to_coe_repo:
+        additional_keys.append('pid')
+
+    processed.publish_upload()
+    try:
+        processed.block_until_complete(interval=.01)
+    except Exception:
+        pass
+
+    assert_coe_upload(processed.upload_id, user_metadata=example_user_metadata)
+
+    assert_upload_files(
+        processed.upload_id, PublicUploadFiles, n_calcs, additional_keys, published=True)
+
+    assert_search_upload(processed.upload_id, n_calcs, additional_keys, published=True)
 
 
 @pytest.mark.timeout(10)

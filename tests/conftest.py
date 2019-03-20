@@ -96,7 +96,8 @@ def celery_includes():
 @pytest.fixture(scope='session')
 def celery_config():
     return {
-        'broker_url': config.rabbitmq_url()
+        'broker_url': config.rabbitmq_url(),
+        'task_queues': config.celery.task_queues
     }
 
 
@@ -517,3 +518,9 @@ def processed(uploaded: Tuple[str, str], test_user: coe_repo.User, proc_infra) -
     Provides a processed upload. Upload was uploaded with test_user.
     """
     return test_processing.run_processing(uploaded, test_user)
+
+
+@pytest.fixture(scope='function', params=[False, True])
+def with_publish_to_coe_repo(monkeypatch, request):
+    monkeypatch.setattr('nomad.config.repository_db.publish_enabled', request.param)
+    return request.param

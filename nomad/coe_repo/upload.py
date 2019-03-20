@@ -155,16 +155,17 @@ class Upload(Base):  # type: ignore
         retries = 0
 
         while True:
-            publish_filelock = filelock.FileLock(
-                os.path.join(config.fs.tmp, 'publish.lock'))
-            logger.info('waiting for filelock')
-            while True:
-                try:
-                    publish_filelock.acquire(timeout=15 * 60, poll_intervall=1)
-                    logger.info('acquired filelock')
-                    break
-                except filelock.Timeout:
-                    logger.warning('could not acquire publish lock after generous timeout')
+            if config.repository_db.sequential_publish:
+                publish_filelock = filelock.FileLock(
+                    os.path.join(config.fs.tmp, 'publish.lock'))
+                logger.info('waiting for filelock')
+                while True:
+                    try:
+                        publish_filelock.acquire(timeout=15 * 60, poll_intervall=1)
+                        logger.info('acquired filelock')
+                        break
+                    except filelock.Timeout:
+                        logger.warning('could not acquire publish lock after generous timeout')
 
             repo_db = infrastructure.repository_db
             repo_db.expunge_all()
@@ -223,5 +224,6 @@ class Upload(Base):  # type: ignore
                     logger.error('Unexpected exception.', exc_info=e)
                     raise e
             finally:
-                publish_filelock.release()
-                logger.info('released filelock')
+                if config.repository_db.sequential_publish:
+                    publish_filelock.release()
+                    logger.info('released filelock')

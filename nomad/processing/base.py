@@ -54,6 +54,8 @@ app.conf.update(worker_max_memory_per_child=config.celery.max_memory)
 if config.celery.routing == config.CELERY_WORKER_ROUTING:
     app.conf.update(worker_direct=True)
 
+app.conf.task_queues = config.celery.task_queues
+
 CREATED = 'CREATED'
 PENDING = 'PENDING'
 RUNNING = 'RUNNING'

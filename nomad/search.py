@@ -123,7 +123,7 @@ class Entry(Document):
         self.upload_time = source.upload_time
         self.calc_id = source.calc_id
         self.calc_hash = source.calc_hash
-        self.pid = str(source.pid)
+        self.pid = None if source.pid is None else str(source.pid)
 
         self.mainfile = source.mainfile
         if source.files is None:

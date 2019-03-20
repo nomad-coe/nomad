@@ -17,6 +17,7 @@ import os
 import os.path
 import yaml
 import warnings
+from kombu import Queue
 
 from nomad import utils
 
@@ -55,7 +56,11 @@ celery = NomadConfig(
     max_memory=64e6,  # 64 GB
     timeout=1800,  # 1/2 h
     acks_late=True,
-    routing=CELERY_QUEUE_ROUTING
+    routing=CELERY_QUEUE_ROUTING,
+    task_queues=[
+        Queue('calcs', routing_key='calcs', queue_arguments={'x-max-priority': 10}),
+        Queue('uploads', routing_key='uploads', queue_arguments={'x-max-priority': 100})
+    ]
 )
 
 fs = NomadConfig(
@@ -72,6 +77,8 @@ elastic = NomadConfig(
 )
 
 repository_db = NomadConfig(
+    sequential_publish=False,
+    publish_enabled=True,
     host='localhost',
     port=5432,
     dbname='nomad_fairdi_repo_db',
