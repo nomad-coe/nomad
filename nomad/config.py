@@ -200,9 +200,9 @@ def apply(config, key, value) -> None:
             else:
                 if len(path) > 0:
                     raise KeyError()
-                else:
-                    child_key = child_segment
-                    break
+
+                child_key = child_segment
+                break
 
         if child_key is None or current_value is None:
             raise KeyError()
