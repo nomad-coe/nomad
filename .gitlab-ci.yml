@@ -104,7 +104,7 @@ tests:
     RABBITMQ_DEFAULT_USER: rabbitmq
     RABBITMQ_DEFAULT_PASS: rabbitmq
     RABBITMQ_DEFAULT_VHOST: /
-    NOMAD_COE_REPO_DB_HOST: postgres
+    NOMAD_REPOSITORY_DB_HOST: postgres
     NOMAD_RABBITMQ_HOST: rabbitmq
     NOMAD_ELASTIC_HOST: elastic
     NOMAD_MONGO_HOST: mongo
@@ -147,7 +147,7 @@ tests:
 #     RABBITMQ_DEFAULT_USER: rabbitmq
 #     RABBITMQ_DEFAULT_PASS: rabbitmq
 #     RABBITMQ_DEFAULT_VHOST: /
-#     NOMAD_COE_REPO_DB_HOST: postgres
+#     NOMAD_REPOSITORY_DB_HOST: postgres
 #     NOMAD_RABBITMQ_HOST: rabbitmq
 #     NOMAD_ELASTIC_HOST: elastic
 #     NOMAD_MONGO_HOST: mongo
