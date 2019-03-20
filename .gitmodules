@@ -97,3 +97,6 @@
 [submodule "dependencies/parsers/gamess"]
 	path = dependencies/parsers/gamess
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gamess
+[submodule "dependencies/parsers/turbomole"]
+	path = dependencies/parsers/turbomole
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-turbomole

@@ -351,9 +351,14 @@ parsers = [
             r'\s*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
             r'\s*\*\s*GAMESS VERSION =\s*(.*)\*\s*'
             r'\s*\*\s*FROM IOWA STATE UNIVERSITY\s*\*\s*')
+    ),
+    LegacyParser(
+        name='parsers/turbomole',
+        parser_class_name='turbomoleparser.TurbomoleParser',
+        mainfile_contents_re=(
+            r'\s*(P?<progr>[a-zA-z0-9_]+)\s*(?:\([^()]+\))\s*:\s*TURBOMOLE\s*(P?<version>.*)'
+            r'\s*Copyright \(C\) [0-9]+ TURBOMOLE GmbH, Karlsruhe')
     )
-
-
 ]
 
 """ Instanciation and constructor based config of all parsers. """

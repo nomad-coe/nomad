@@ -208,6 +208,16 @@
       ]
     },
     {
+      "name": "Turbomole Normalizer",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/turbomole-tests/data/parsers/turbomole/acrolein.out]"
+      ]
+    },
+    {
       "name": "Python: Current File",
       "type": "python",
       "request": "launch",

@@ -57,6 +57,7 @@ parser_examples = [
     # ('parsers/siesta', 'tests/data/parsers/siesta/Fe/out'),  # Issue with dir.
     ('parsers/elk', 'tests/data/parsers/elk/Al/info.out'),
     # ('parsers/elastic', 'tests/data/parsers/elastic/2nd/INFO_ElaStic')  # 70Mb file 2big4git
+    # ('parsers/turbomole', 'tests/data/parsers/turbomole/acrolein.out')  # Issue with backend
     ('parsers/gamess', 'tests/data/parsers/gamess/exam01.out')
 ]
 
@@ -64,7 +65,7 @@ faulty_unknown_one_d_matid_example = [
     ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
 ]
 
-correct_num_output_files = 32
+correct_num_output_files = 33
 
 
 class TestLocalBackend(object):
@@ -307,7 +308,5 @@ def test_match(raw_files, no_warn):
         parser = match_parser(mainfile, upload_files)
         if parser is not None:
             count += 1
-        else:
-            print("filename not matched is %s" % mainfile)
 
     assert count == correct_num_output_files
