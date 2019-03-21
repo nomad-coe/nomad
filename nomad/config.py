@@ -145,6 +145,7 @@ console_log_level = logging.WARNING
 service = 'unknown nomad service'
 release = 'devel'
 auxfile_cutoff = 30
+version = '4.3'  # TODO replace with git hash?
 
 
 def get_loglevel_from_env(key, default_level=logging.INFO):

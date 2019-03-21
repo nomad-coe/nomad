@@ -25,6 +25,7 @@ from datetime import datetime
 from nomad import coe_repo, search, parsing, files
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
+from nomad.datamodel import UploadWithMetadata, CalcWithMetadata
 
 from tests.conftest import create_auth_headers, clear_elastic
 from tests.test_files import example_file, example_file_mainfile, example_file_contents
@@ -43,6 +44,14 @@ def test_user_signature_token(client, test_user_auth):
     rv = client.get('/auth/token', headers=test_user_auth)
     assert rv.status_code == 200
     return json.loads(rv.data)['token']
+
+
+def get_upload_with_metadata(upload: dict) -> UploadWithMetadata:
+    """ Create a :class:`UploadWithMetadata` from a API upload json record. """
+    return UploadWithMetadata(
+        upload_id=upload['upload_id'], calcs=[
+            CalcWithMetadata(calc_id=calc['calc_id'], mainfile=calc['mainfile'])
+            for calc in upload['calcs']['results']])
 
 
 class TestAdmin:
@@ -194,14 +203,7 @@ class TestUploads:
         upload_endpoint = '/uploads/%s' % upload_id
 
         # poll until completed
-        while True:
-            time.sleep(0.1)
-            rv = client.get(upload_endpoint, headers=test_user_auth)
-            assert rv.status_code == 200
-            upload = self.assert_upload(rv.data)
-            assert 'upload_time' in upload
-            if not upload['tasks_running']:
-                break
+        upload = self.block_until_completed(client, upload_id, test_user_auth)
 
         assert len(upload['tasks']) == 4
         assert upload['tasks_status'] == SUCCESS
@@ -209,7 +211,6 @@ class TestUploads:
         assert not upload['process_running']
 
         calcs = upload['calcs']['results']
-        n_calcs = upload['calcs']['pagination']['total']
         for calc in calcs:
             assert calc['tasks_status'] == SUCCESS
             assert calc['current_task'] == 'archiving'
@@ -222,13 +223,15 @@ class TestUploads:
             upload = self.assert_upload(rv.data)
             assert len(upload['calcs']['results']) == 1
 
-        assert_upload_files(upload_id, files.StagingUploadFiles, n_calcs)
-        assert_search_upload(upload_id, n_calcs)
+        upload_with_metadata = get_upload_with_metadata(upload)
+        assert_upload_files(upload_with_metadata, files.StagingUploadFiles)
+        assert_search_upload(upload_with_metadata)
 
-    def assert_published(self, client, test_user_auth, upload_id, proc_infra, with_pid=True, metadata={}):
+    def assert_published(self, client, test_user_auth, upload_id, proc_infra, with_coe_repo=True, metadata={}):
         rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
-        n_calcs = upload['calcs']['pagination']['total']
+
+        upload_with_metadata = get_upload_with_metadata(upload)
 
         rv = client.post(
             '/uploads/%s' % upload_id,
@@ -241,25 +244,32 @@ class TestUploads:
         assert upload['process_running']
 
         additional_keys = ['with_embargo']
-        if with_pid:
+        if with_coe_repo:
             additional_keys.append('pid')
-        self.assert_upload_does_not_exist(client, upload_id, test_user_auth)
-        assert_coe_upload(upload_id, user_metadata=metadata)
-        assert_upload_files(upload_id, files.PublicUploadFiles, n_calcs, additional_keys=additional_keys, published=True)
-        assert_search_upload(upload_id, n_calcs, additional_keys=additional_keys, published=True)
 
-    def assert_upload_does_not_exist(self, client, upload_id: str, test_user_auth):
-        # poll until publish/delete completed
+        self.block_until_completed(client, upload_id, test_user_auth)
+        upload_proc = Upload.objects(upload_id=upload_id).first()
+        assert upload_proc is not None
+        assert upload_proc.published is True
+
+        if with_coe_repo:
+            assert_coe_upload(upload_with_metadata.upload_id, user_metadata=metadata)
+        assert_upload_files(upload_with_metadata, files.PublicUploadFiles, additional_keys=additional_keys, published=True)
+        assert_search_upload(upload_with_metadata, additional_keys=additional_keys, published=True)
+
+    def block_until_completed(self, client, upload_id: str, test_user_auth):
         while True:
             time.sleep(0.1)
             rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
             if rv.status_code == 200:
                 upload = self.assert_upload(rv.data)
-                assert upload['process_running']
+                if not upload['process_running'] and not upload['tasks_running']:
+                    return upload
             elif rv.status_code == 404:
-                break
-            else:
-                assert False
+                return None
+
+    def assert_upload_does_not_exist(self, client, upload_id: str, test_user_auth):
+        self.block_until_completed(client, upload_id, test_user_auth)
 
         rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
         assert rv.status_code == 404
@@ -336,7 +346,7 @@ class TestUploads:
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
-        self.assert_published(client, test_user_auth, upload['upload_id'], proc_infra, with_pid=with_publish_to_coe_repo)
+        self.assert_published(client, test_user_auth, upload['upload_id'], proc_infra, with_coe_repo=with_publish_to_coe_repo)
         rv = client.delete('/uploads/%s' % upload['upload_id'], headers=test_user_auth)
         assert rv.status_code == 404
 
@@ -348,11 +358,23 @@ class TestUploads:
         assert rv.status_code == 200
         self.assert_upload_does_not_exist(client, upload['upload_id'], test_user_auth)
 
-    def test_post(self, client, test_user_auth, example_upload, proc_infra, no_warn, with_publish_to_coe_repo):
-        rv = client.put('/uploads/?local_path=%s' % example_upload, headers=test_user_auth)
+    def test_post_empty(self, client, test_user_auth, empty_upload, proc_infra, no_warn):
+        rv = client.put('/uploads/?local_path=%s' % empty_upload, headers=test_user_auth)
+        assert rv.status_code == 200
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
-        self.assert_published(client, test_user_auth, upload['upload_id'], proc_infra, with_pid=with_publish_to_coe_repo)
+        rv = client.post(
+            '/uploads/%s' % upload['upload_id'], headers=test_user_auth,
+            data=json.dumps(dict(operation='publish')),
+            content_type='application/json')
+        assert rv.status_code == 400
+
+    def test_post(self, client, test_user_auth, non_empty_example_upload, proc_infra, no_warn, with_publish_to_coe_repo):
+        rv = client.put('/uploads/?local_path=%s' % non_empty_example_upload, headers=test_user_auth)
+        assert rv.status_code == 200
+        upload = self.assert_upload(rv.data)
+        self.assert_processing(client, test_user_auth, upload['upload_id'])
+        self.assert_published(client, test_user_auth, upload['upload_id'], proc_infra, with_coe_repo=with_publish_to_coe_repo)
 
     def test_post_metadata(
             self, client, proc_infra, admin_user_auth, test_user_auth, test_user,
@@ -468,9 +490,9 @@ class UploadFilesBasedTests:
         calc_specs = 'r' if restricted else 'p'
         if in_staging:
             Upload.create(user=test_user, upload_id='test_upload')
-            upload_files = create_staging_upload('test_upload', calc_specs=calc_specs)
+            _, upload_files = create_staging_upload('test_upload', calc_specs=calc_specs)
         else:
-            upload_files = create_public_upload('test_upload', calc_specs=calc_specs)
+            _, upload_files = create_public_upload('test_upload', calc_specs=calc_specs)
             postgres.begin()
             coe_upload = coe_repo.Upload(
                 upload_name='test_upload',
@@ -518,12 +540,11 @@ class TestArchive(UploadFilesBasedTests):
         assert rv.status_code == 200
 
 
-class TestRepo(UploadFilesBasedTests):
+class TestRepo():
     @pytest.fixture(scope='class')
     def example_elastic_calcs(
             self, elastic_infra, normalized: parsing.LocalBackend,
             test_user: coe_repo.User, other_test_user: coe_repo.User):
-
         clear_elastic(elastic_infra)
 
         calc_with_metadata = normalized.to_calc_with_metadata()
@@ -541,14 +562,24 @@ class TestRepo(UploadFilesBasedTests):
         calc_with_metadata.update(calc_id='4', uploader=other_test_user.to_popo(), published=True, with_embargo=True)
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
-    @UploadFilesBasedTests.ignore_authorization
-    def test_calc(self, client, upload, auth_headers):
-        rv = client.get('/repo/%s/0' % upload, headers=auth_headers)
+    def test_own_calc(self, client, example_elastic_calcs, no_warn, test_user_auth):
+        rv = client.get('/repo/0/1', headers=test_user_auth)
         assert rv.status_code == 200
 
-    @UploadFilesBasedTests.ignore_authorization
-    def test_non_existing_calcs(self, client, upload, auth_headers):
-        rv = client.get('/repo/doesnt/exist', headers=auth_headers)
+    def test_public_calc(self, client, example_elastic_calcs, no_warn, other_test_user_auth):
+        rv = client.get('/repo/0/1', headers=other_test_user_auth)
+        assert rv.status_code == 200
+
+    def test_embargo_calc(self, client, example_elastic_calcs, no_warn, test_user_auth):
+        rv = client.get('/repo/0/4', headers=test_user_auth)
+        assert rv.status_code == 401
+
+    def test_staging_calc(self, client, example_elastic_calcs, no_warn, test_user_auth):
+        rv = client.get('/repo/0/3', headers=test_user_auth)
+        assert rv.status_code == 401
+
+    def test_non_existing_calcs(self, client, example_elastic_calcs, test_user_auth):
+        rv = client.get('/repo/0/10', headers=test_user_auth)
         assert rv.status_code == 404
 
     @pytest.mark.parametrize('calcs, owner, auth', [

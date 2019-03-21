@@ -45,7 +45,7 @@ def test_password_authorize(test_user):
     assert_user(user, test_user)
 
 
-def assert_coe_upload(upload_id, upload: datamodel.UploadWithMetadata = None, user_metadata: dict = None):
+def assert_coe_upload(upload_id: str, upload: datamodel.UploadWithMetadata = None, user_metadata: dict = None):
     coe_upload = Upload.from_upload_id(upload_id)
 
     if upload is not None:
@@ -123,14 +123,14 @@ def test_add_normalized_calc_with_metadata(
 def test_add_upload(processed: processing.Upload):
     upload_with_metadata = processed.to_upload_with_metadata()
     Upload.publish(upload_with_metadata)
-    assert_coe_upload(processed.upload_id, upload_with_metadata)
+    assert_coe_upload(upload_with_metadata.upload_id, upload_with_metadata)
 
 
 def test_delete_upload(processed: processing.Upload, example_user_metadata_with_dataset, no_warn):
     processed.metadata = example_user_metadata_with_dataset
     upload_with_metadata = processed.to_upload_with_metadata()
     Upload.publish(upload_with_metadata)
-    assert_coe_upload(processed.upload_id, upload_with_metadata)
+    assert_coe_upload(upload_with_metadata.upload_id, upload_with_metadata)
 
     for calc in upload_with_metadata.calcs:
         assert Calc.from_calc_id(calc.calc_id) is not None
@@ -172,8 +172,7 @@ def test_add_upload_with_metadata(processed, example_user_metadata_with_dataset)
     processed.metadata = example_user_metadata_with_dataset
     upload_with_metadata = processed.to_upload_with_metadata()
     Upload.publish(upload_with_metadata)
-    assert_coe_upload(
-        processed.upload_id, upload_with_metadata)
+    assert_coe_upload(upload_with_metadata.upload_id, upload_with_metadata)
 
 
 @pytest.mark.parametrize('crypted', [True, False])

@@ -120,16 +120,17 @@ if __name__ == '__main__':
 
     for calcs_per_upload in utils.chunks(range(0, n_calcs), int(n_calcs / n_uploads)):
         upload_id = utils.create_uuid()
+        upload = datamodel.UploadWithMetadata(upload_id=upload_id)
         upload_files = files.StagingUploadFiles(
             upload_id=upload_id, create=True, is_authorized=lambda: True)
 
         search_entries = []
+        calcs = []
         for _ in calcs_per_upload:
             calc = generate_calc(pid, upload_id=upload_id)
             assert calc.upload_id == upload_id
             calc.published = True
 
-            upload_files.metadata.insert(calc.to_dict())
             for filepath in calc.files:
                 if len(filepath) > 0:
                     with upload_files.raw_file(filepath, 'wt') as f:
@@ -147,9 +148,13 @@ if __name__ == '__main__':
             search_entries.append(search_entry)
 
             pid += 1
+            calcs.append(calc)
+
+        upload.calcs = calcs
 
         bulk(
             infrastructure.elastic_client,
             [entry.to_dict(include_meta=True) for entry in search_entries])
-        upload_files.pack()
+
+        upload_files.pack(upload)
         upload_files.delete()

@@ -92,7 +92,7 @@ def assert_processing(upload: Upload):
         with upload_files.raw_file(calc.mainfile) as f:
             f.read()
 
-        assert upload_files.metadata.get(calc.calc_id) is not None
+        assert upload.get_calc(calc.calc_id).metadata is not None
 
 
 def test_processing(processed, no_warn, mails, monkeypatch):
@@ -102,10 +102,10 @@ def test_processing(processed, no_warn, mails, monkeypatch):
     assert re.search(r'Processing completed', mails.messages[0].data.decode('utf-8')) is not None
 
 
-def test_publish(processed: Upload, no_warn, example_user_metadata, monkeypatch, with_publish_to_coe_repo):
+def test_publish(non_empty_processed: Upload, no_warn, example_user_metadata, monkeypatch, with_publish_to_coe_repo):
+    processed = non_empty_processed
     processed.metadata = example_user_metadata
 
-    n_calcs = processed.total_calcs
     additional_keys = ['with_embargo']
     if with_publish_to_coe_repo:
         additional_keys.append('pid')
@@ -116,12 +116,12 @@ def test_publish(processed: Upload, no_warn, example_user_metadata, monkeypatch,
     except Exception:
         pass
 
-    assert_coe_upload(processed.upload_id, user_metadata=example_user_metadata)
+    upload = processed.to_upload_with_metadata()
+    if with_publish_to_coe_repo:
+        assert_coe_upload(upload.upload_id, user_metadata=example_user_metadata)
 
-    assert_upload_files(
-        processed.upload_id, PublicUploadFiles, n_calcs, additional_keys, published=True)
-
-    assert_search_upload(processed.upload_id, n_calcs, additional_keys, published=True)
+    assert_upload_files(upload, PublicUploadFiles, additional_keys, published=True)
+    assert_search_upload(upload, additional_keys, published=True)
 
 
 @pytest.mark.timeout(10)

@@ -366,6 +366,8 @@ class UploadResource(Resource):
                 abort(400, message='The upload is not processed yet')
             if upload.tasks_status == FAILURE:
                 abort(400, message='Cannot publish an upload that failed processing')
+            if upload.processed_calcs == 0:
+                abort(400, message='Cannot publish an upload without calculations')
             try:
                 upload.metadata = metadata
                 upload.publish_upload()

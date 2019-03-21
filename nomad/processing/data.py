@@ -24,17 +24,19 @@ calculations, and files
     :members:
 """
 
-from typing import List, Any, ContextManager, Tuple, Generator, Dict
+from typing import List, Any, ContextManager, Tuple, Generator, Dict, cast
 from mongoengine import StringField, DateTimeField, DictField, BooleanField
 import logging
 from structlog import wrap_logger
 from contextlib import contextmanager
 import os.path
+from datetime import datetime
+from pymongo import UpdateOne
 
 from nomad import utils, coe_repo, config, infrastructure, search
-from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles
+from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles, PublicUploadFiles
 from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
-from nomad.parsing import parser_dict, match_parser
+from nomad.parsing import parser_dict, match_parser, LocalBackend
 from nomad.normalizing import normalizers
 from nomad.datamodel import UploadWithMetadata, CalcWithMetadata
 
@@ -54,11 +56,15 @@ class Calc(Proc):
         parser: the name of the parser used to process this calc
         upload_id: the id of the upload used to create this calculation
         mainfile: the mainfile (including path in upload) that was used to create this calc
+
+        metadata: the metadata record wit calc and user metadata, see :class:`CalcWithMetadata`
     """
     calc_id = StringField(primary_key=True)
     upload_id = StringField()
     mainfile = StringField()
     parser = StringField()
+
+    metadata = DictField()
 
     queue = 'calcs'
 
@@ -70,7 +76,7 @@ class Calc(Proc):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._parser_backend = None
+        self._parser_backend: LocalBackend = None
         self._upload: Upload = None
         self._upload_files: ArchiveBasedStagingUploadFiles = None
         self._calc_proc_logwriter = None
@@ -261,14 +267,19 @@ class Calc(Proc):
         logger = self.get_logger()
 
         calc_with_metadata = self._parser_backend.to_calc_with_metadata()
+        calc_with_metadata.published = False
+        calc_with_metadata.uploader = self.upload.uploader.to_popo()
+        calc_with_metadata.processed = True
+        calc_with_metadata.last_processing = datetime.now()
+        calc_with_metadata.nomad_version = config.version
 
         # persist the repository metadata
         with utils.timer(logger, 'saved repo metadata', step='metadata'):
-            self.upload_files.metadata.insert(calc_with_metadata.to_dict())
+            self.metadata = calc_with_metadata.to_dict()
+            self.save()
 
         # index in search
         with utils.timer(logger, 'indexed', step='index'):
-            calc_with_metadata.update(published=False, uploader=self.upload.uploader.to_popo())
             search.Entry.from_calc_with_metadata(calc_with_metadata).save()
 
         # persist the archive
@@ -318,6 +329,8 @@ class Upload(Proc):
     metadata = DictField(default=None)
     upload_time = DateTimeField()
     user_id = StringField(required=True)
+    published = BooleanField(default=False)
+    publish_time = DateTimeField()
 
     queue = 'uploads'
 
@@ -332,13 +345,18 @@ class Upload(Proc):
         self._upload_files: ArchiveBasedStagingUploadFiles = None
 
     @classmethod
-    def get(cls, id):
-        return cls.get_by_id(id, 'upload_id')
+    def get(cls, id: str, include_published: bool = False) -> 'Upload':
+        upload = cls.get_by_id(id, 'upload_id')
+        # TODO published uploads should not be hidden by this and API
+        if upload is not None and (not upload.published or include_published):
+            return upload
+
+        raise KeyError()
 
     @classmethod
     def user_uploads(cls, user: coe_repo.User) -> List['Upload']:
         """ Returns all uploads for the given user. Currently returns all uploads. """
-        return cls.objects(user_id=str(user.user_id))
+        return cls.objects(user_id=str(user.user_id), published=False)
 
     @property
     def uploader(self):
@@ -411,6 +429,8 @@ class Upload(Proc):
         coe repository db and remove this instance and its calculation from the
         processing state db.
         """
+        assert self.processed_calcs > 0
+
         logger = self.get_logger()
         logger.info('started to publish')
 
@@ -435,15 +455,19 @@ class Upload(Proc):
             with utils.timer(
                     logger, 'upload metadata updated', step='metadata',
                     upload_size=self.upload_files.size):
-                for calc in calcs:
+
+                def create_update(calc):
                     calc.published = True
-                    self.upload_files.metadata.update(
-                        calc_id=calc.calc_id, updates=calc.to_dict())
+                    return UpdateOne(
+                        {'_id': calc.calc_id},
+                        {'$set': {'metadata': calc.to_dict()}})
+
+                Calc._get_collection().bulk_write([create_update(calc) for calc in calcs])
 
             with utils.timer(
                     logger, 'staged upload files packed', step='pack',
                     upload_size=self.upload_files.size):
-                self.upload_files.pack()
+                self.upload_files.pack(upload_with_metadata)
 
             with utils.timer(
                     logger, 'index updated', step='index',
@@ -454,9 +478,9 @@ class Upload(Proc):
                     logger, 'staged upload deleted', step='delete staged',
                     upload_size=self.upload_files.size):
                 self.upload_files.delete()
-                self.delete()
-
-        return True  # do not save the process status on the delete upload
+                self.published = True
+                self.publish_time = datetime.now()
+                self.save()
 
     @process
     def process_upload(self):
@@ -468,11 +492,19 @@ class Upload(Proc):
         pass
 
     @property
-    def upload_files(self) -> ArchiveBasedStagingUploadFiles:
-        if not self._upload_files:
-            self._upload_files = ArchiveBasedStagingUploadFiles(
+    def upload_files(self) -> UploadFiles:
+        upload_files_class = ArchiveBasedStagingUploadFiles if not self.published else PublicUploadFiles
+
+        if not self._upload_files or not isinstance(self._upload_files, upload_files_class):
+            self._upload_files = upload_files_class(
                 self.upload_id, is_authorized=lambda: True, upload_path=self.upload_path)
+
         return self._upload_files
+
+    @property
+    def staging_upload_files(self) -> ArchiveBasedStagingUploadFiles:
+        assert not self.published
+        return cast(ArchiveBasedStagingUploadFiles, self.upload_files)
 
     @task
     def extracting(self):
@@ -512,9 +544,10 @@ class Upload(Proc):
             Tuples of mainfile, filename, and parsers
         """
         directories_with_match: Dict[str, str] = dict()
-        for filename in self.upload_files.raw_file_manifest():
+        upload_files = self.staging_upload_files
+        for filename in upload_files.raw_file_manifest():
             try:
-                parser = match_parser(filename, self.upload_files)
+                parser = match_parser(filename, upload_files)
                 if parser is not None:
                     directory = os.path.dirname(filename)
                     if directory in directories_with_match:
@@ -588,6 +621,9 @@ class Upload(Proc):
             # don't fail or present this error to clients
             self.logger.error('could not send after processing email', exc_info=e)
 
+    def get_calc(self, calc_id) -> Calc:
+        return Calc.objects(upload_id=self.upload_id, calc_id=calc_id).first()
+
     @property
     def processed_calcs(self):
         return Calc.objects(upload_id=self.upload_id, tasks_status__in=[SUCCESS, FAILURE]).count()
@@ -612,12 +648,7 @@ class Upload(Proc):
         return Calc.objects(upload_id=self.upload_id, tasks_status=SUCCESS)
 
     def to_upload_with_metadata(self) -> UploadWithMetadata:
-        # TODO remove the very verbose metadata after debugging and optimizing
-
-        logger = self.get_logger(step='publish')
-
         # prepare user metadata per upload and per calc
-        logger.info('prepare user metadata per upload and per calc')
         calc_metadatas: Dict[str, Any] = dict()
         upload_metadata: Dict[str, Any] = dict()
 
@@ -635,25 +666,19 @@ class Upload(Proc):
             uploader=utils.POPO(id=int(self.user_id)),
             upload_time=self.upload_time if user_upload_time is None else user_upload_time)
 
-        logger.info('read calc data from files and apply user metadata')
-        upload_files = UploadFiles.get(self.upload_id, is_authorized=lambda: True)
-        if self.upload_files is None:
-            raise KeyError
-
         def apply_metadata(calc):
-            calc_data = upload_files.metadata.get(calc.calc_id)
+            calc_data = calc.metadata
             calc_with_metadata = CalcWithMetadata(**calc_data)
 
             calc_metadata = dict(upload_metadata)
             calc_metadata.update(calc_metadatas.get(calc.mainfile, {}))
             calc_with_metadata.apply_user_metadata(calc_metadata)
 
-            logger.debug('prepared calc with metadata', calc_id=calc_with_metadata.calc_id)
             return calc_with_metadata
 
+        # TODO publish failed calcs
+        # result.calcs = [apply_metadata(calc) for calc in Calc.objects(upload_id=self.upload_id)]
         result.calcs = [apply_metadata(calc) for calc in self.calcs]
-
-        logger.info('prepared user metadata')
 
         return result
 

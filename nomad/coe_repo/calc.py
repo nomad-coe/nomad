@@ -237,7 +237,7 @@ class Calc(Base):
         # user relations
         def add_users_to_relation(source_users, relation):
             for source_user in source_users:
-                coe_user = context.cache(User, user_id=source_user.id)
+                coe_user = context.cache(User, user_id=int(source_user.id))
                 if coe_user is None:
                     raise IllegalCalcMetadata(
                         'User with user_id %s does not exist.' % source_user.id)

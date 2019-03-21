@@ -123,11 +123,11 @@ def assert_entry(calc_id):
     assert results[0]['calc_id'] == calc_id
 
 
-def assert_search_upload(upload_id, n_calcs: int, additional_keys: List[str] = [], **kwargs):
+def assert_search_upload(upload: datamodel.UploadWithMetadata, additional_keys: List[str] = [], **kwargs):
     keys = ['calc_id', 'upload_id', 'mainfile', 'calc_hash']
     refresh_index()
     search = Entry.search().query('match_all')[0:10]
-    assert search.count() == n_calcs
+    assert search.count() == len(list(upload.calcs))
     if search.count() > 0:
         for hit in search:
             hit = hit.to_dict()

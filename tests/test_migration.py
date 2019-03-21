@@ -21,7 +21,7 @@ import glob
 from io import StringIO
 import bravado.exception
 
-from nomad import infrastructure, coe_repo, utils, files
+from nomad import infrastructure, coe_repo, utils, files, processing
 
 from nomad.migration import NomadCOEMigration, SourceCalc, Package
 from nomad.infrastructure import repository_db_connection
@@ -308,10 +308,12 @@ def perform_migration_test(migrate_infra, name, test_directory, assertions, kwar
         migrate_infra.two_client.raw.get(
             upload_id=calc_1['upload_id'], path=calc_1['mainfile']).response().result
 
+        upload_proc = processing.Upload.get(calc_1['upload_id'], include_published=True)
+        upload_with_metadata = upload_proc.to_upload_with_metadata()
         assert_search_upload(
-            calc_1['upload_id'], 2, additional_keys=['with_embargo', 'pid'], published=True)
+            upload_with_metadata, additional_keys=['with_embargo', 'pid'], published=True)
         assert_upload_files(
-            calc_1['upload_id'], files.PublicUploadFiles, 2, additional_keys=['with_embargo', 'pid'], published=True)
+            upload_with_metadata, files.PublicUploadFiles, additional_keys=['with_embargo', 'pid'], published=True)
 
 
 def test_skip_on_same_version(migrate_infra, monkeypatch, caplog):

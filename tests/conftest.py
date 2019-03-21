@@ -474,6 +474,16 @@ def example_upload(request) -> str:
     return request.param
 
 
+@pytest.fixture(scope='session')
+def non_empty_example_upload():
+    return example_file
+
+
+@pytest.fixture(scope='session')
+def empty_upload():
+    return empty_file
+
+
 @pytest.fixture(scope='module')
 def example_user_metadata(other_test_user, test_user) -> dict:
     return {
@@ -507,8 +517,13 @@ def uploaded(example_upload: str, raw_files) -> Tuple[str, str]:
     Clears files after test.
     """
     example_upload_id = os.path.basename(example_upload).replace('.zip', '')
-
     return example_upload_id, example_upload
+
+
+@pytest.fixture(scope='function')
+def non_empty_uploaded(non_empty_example_upload: str, raw_files) -> Tuple[str, str]:
+    example_upload_id = os.path.basename(non_empty_example_upload).replace('.zip', '')
+    return example_upload_id, non_empty_example_upload
 
 
 @pytest.mark.timeout(10)
@@ -518,6 +533,15 @@ def processed(uploaded: Tuple[str, str], test_user: coe_repo.User, proc_infra) -
     Provides a processed upload. Upload was uploaded with test_user.
     """
     return test_processing.run_processing(uploaded, test_user)
+
+
+@pytest.mark.timeout(10)
+@pytest.fixture(scope='function')
+def non_empty_processed(non_empty_uploaded: Tuple[str, str], test_user: coe_repo.User, proc_infra) -> processing.Upload:
+    """
+    Provides a processed upload. Upload was uploaded with test_user.
+    """
+    return test_processing.run_processing(non_empty_uploaded, test_user)
 
 
 @pytest.fixture(scope='function', params=[False, True])

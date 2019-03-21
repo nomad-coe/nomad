@@ -52,8 +52,7 @@ being other mainfiles. Therefore, the aux files of a restricted calc might becom
 """
 
 from abc import ABCMeta
-from typing import IO, Generator, Dict, Iterator, Iterable, Callable
-import json
+from typing import IO, Generator, Dict, Iterable, Callable
 import os.path
 import os
 import shutil
@@ -61,9 +60,9 @@ from zipfile import ZipFile, BadZipFile
 import tarfile
 import hashlib
 import io
-import gzip
 
 from nomad import config, utils
+from nomad.datamodel import UploadWithMetadata
 
 
 class PathObject:
@@ -155,117 +154,6 @@ class ExtractError(Exception):
     pass
 
 
-class Metadata(metaclass=ABCMeta):
-    """
-    An ABC for upload metadata classes that encapsulates access to a set of calc metadata.
-    """
-    def get(self, calc_id: str) -> dict:
-        """ Retrive the calc metadata for a given calc. """
-        raise NotImplementedError()
-
-    def __iter__(self) -> Iterator[dict]:
-        raise NotImplementedError()
-
-    def __len__(self) -> int:
-        raise NotImplementedError()
-
-
-class StagingMetadata(Metadata):
-    """
-    A Metadata implementation based on individual .json files per calc stored in a given
-    directory.
-    Arguments:
-        directory: The DirectoryObject for the directory to store the metadata in.
-    """
-    def __init__(self, directory: DirectoryObject) -> None:
-        self._dir = directory
-
-    def remove(self, calc: dict) -> None:
-        id = calc['calc_id']
-        path = self._dir.join_file('%s.json' % id)
-        assert path.exists()
-        os.remove(path.os_path)
-
-    def insert(self, calc: dict) -> None:
-        """ Insert a calc, using calc_id as key. """
-        id = calc['calc_id']
-        path = self._dir.join_file('%s.json' % id)
-        assert not path.exists()
-        with open(path.os_path, 'wt') as f:
-            json.dump(calc, f, sort_keys=True, default=str)
-
-    def update(self, calc_id: str, updates: dict) -> dict:
-        """ Updating a calc, using calc_id as key and running dict update with the given data. """
-        metadata = self.get(calc_id)
-        metadata.update(updates)
-        path = self._dir.join_file('%s.json' % calc_id)
-        with open(path.os_path, 'wt') as f:
-            json.dump(metadata, f, sort_keys=True, default=str)
-        return metadata
-
-    def get(self, calc_id: str) -> dict:
-        try:
-            with open(self._dir.join_file('%s.json' % calc_id).os_path, 'rt') as f:
-                return json.load(f)
-        except FileNotFoundError:
-            raise KeyError()
-
-    def __iter__(self) -> Iterator[dict]:
-        for root, _, files in os.walk(self._dir.os_path):
-            for file in files:
-                with open(os.path.join(root, file), 'rt') as f:
-                    yield json.load(f)
-
-    def __len__(self) -> int:
-        return len(os.listdir(self._dir.os_path))
-
-
-class PublicMetadata(Metadata):
-    """
-    A Metadata implementation based on a single .json file.
-
-    Arguments:
-        path: The parent directory for the metadata and lock file.
-    """
-    def __init__(self, path: str, lock_timeout=1) -> None:
-        self._db_file = os.path.join(path, 'metadata.json.gz')
-        self._modified = False
-        self._data: Dict[str, dict] = None
-
-    @property
-    def data(self):
-        if self._data is None:
-            with gzip.open(self._db_file, 'rt') as f:
-                self._data = json.load(f)
-        return self._data
-
-    def _create(self, calcs: Iterable[dict]) -> None:
-        assert not os.path.exists(self._db_file) and self._data is None
-        self._data = {data['calc_id']: data for data in calcs}
-        with gzip.open(self._db_file, 'wt') as f:
-            json.dump(self._data, f, sort_keys=True, default=str)
-
-    def insert(self, calc: dict) -> None:
-        assert self.data is not None, "Metadata is not open."
-
-        id = calc['calc_id']
-        assert id not in self.data
-        self.data[id] = calc
-        self._modified = True
-
-    def update(self, calc_id: str, updates: dict) -> dict:
-        raise NotImplementedError
-
-    def get(self, calc_id: str) -> dict:
-        return self.data[calc_id]
-
-    def __iter__(self) -> Iterator[dict]:
-        return self.data.values().__iter__()
-
-    def __len__(self) -> int:
-        return len(self.data)
-
-
 class Restricted(Exception):
     pass
 
@@ -296,11 +184,6 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
             return PublicUploadFiles(upload_id, *args, **kwargs)
         else:
             return None
-
-    @property
-    def metadata(self) -> Metadata:
-        """ The calc metadata for this upload. """
-        raise NotImplementedError
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
         """
@@ -357,20 +240,11 @@ class StagingUploadFiles(UploadFiles):
         self._archive_dir = self.join_dir('archive')
         self._frozen_file = self.join_file('.frozen')
 
-        metadata_dir = self.join_dir('metadata')
-        self._metadata = StagingMetadata(metadata_dir)
-
         self._size = 0
 
     @property
     def size(self) -> int:
         return self._size
-
-    @property
-    def metadata(self) -> StagingMetadata:
-        if not self._is_authorized():
-            raise Restricted
-        return self._metadata
 
     def _file(self, path_object: PathObject, *args, **kwargs) -> IO:
         try:
@@ -456,13 +330,14 @@ class StagingUploadFiles(UploadFiles):
         """ Returns True if this upload is already *bagged*. """
         return self._frozen_file.exists()
 
-    def pack(self, bagit_metadata: dict = None) -> None:
+    def pack(self, upload: UploadWithMetadata) -> None:
         """
         Replaces the staging upload data with a public upload record by packing all
         data into files. It is only available if upload *is_bag*.
         This is potentially a long running operation.
         Arguments:
-            bagit_metadata: Additional data added to the bagit metadata.
+            calcs: The calculation metadata of the upload used to determine what files to
+                pack and what the embargo situation is.
         """
         self.logger.debug('started to pack upload')
 
@@ -491,16 +366,16 @@ class StagingUploadFiles(UploadFiles):
         # 1. add all public raw files
         # 1.1 collect all public mainfiles and aux files
         public_files: Dict[str, str] = {}
-        for calc in self.metadata:
-            if not calc.get('with_embargo', False):
-                mainfile = calc['mainfile']
+        for calc in upload.calcs:
+            if not calc.with_embargo:
+                mainfile = calc.mainfile
                 assert mainfile is not None
                 for filepath in self.calc_files(mainfile):
                     public_files[filepath] = None
         # 1.2 remove the non public mainfiles that have been added as auxfiles of public mainfiles
-        for calc in self.metadata:
-            if calc.get('with_embargo', False):
-                mainfile = calc['mainfile']
+        for calc in upload.calcs:
+            if calc.with_embargo:
+                mainfile = calc.mainfile
                 assert mainfile is not None
                 if mainfile in public_files:
                     del(public_files[mainfile])
@@ -521,13 +396,13 @@ class StagingUploadFiles(UploadFiles):
         archive_public_zip = create_zipfile('archive', 'public', self._archive_ext)
         archive_restricted_zip = create_zipfile('archive', 'restricted', self._archive_ext)
 
-        for calc in self.metadata:
-            archive_zip = archive_restricted_zip if calc.get('with_embargo', False) else archive_public_zip
+        for calc in upload.calcs:
+            archive_zip = archive_restricted_zip if calc.with_embargo else archive_public_zip
 
-            archive_filename = '%s.%s' % (calc['calc_id'], self._archive_ext)
+            archive_filename = '%s.%s' % (calc.calc_id, self._archive_ext)
             archive_zip.write(self._archive_dir.join_file(archive_filename).os_path, archive_filename)
 
-            archive_log_filename = '%s.%s' % (calc['calc_id'], 'log')
+            archive_log_filename = '%s.%s' % (calc.calc_id, 'log')
             log_file = self._archive_dir.join_file(archive_log_filename)
             if log_file.exists():
                 archive_zip.write(log_file.os_path, archive_log_filename)
@@ -535,11 +410,6 @@ class StagingUploadFiles(UploadFiles):
         archive_restricted_zip.close()
         archive_public_zip.close()
         self.logger.debug('packed archives')
-
-        # pack metadata
-        packed_metadata = PublicMetadata(target_dir.os_path)
-        packed_metadata._create(self._metadata)
-        self.logger.debug('packed metadata')
 
         self.logger.debug('packed upload')
 
@@ -649,12 +519,6 @@ class ArchiveBasedStagingUploadFiles(StagingUploadFiles):
 class PublicUploadFiles(UploadFiles):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(config.fs.public, *args, **kwargs)
-
-        self._metadata = PublicMetadata(self.os_path)
-
-    @property
-    def metadata(self) -> Metadata:
-        return self._metadata
 
     def _file(self, prefix: str, ext: str, path: str, *args, **kwargs) -> IO:
         mode = kwargs.get('mode') if len(args) == 0 else args[0]

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Generator, Any, Dict, List
+from typing import Generator, Any, Dict, List, Tuple
 import os
 import os.path
 import shutil
@@ -23,11 +23,16 @@ import zipfile
 import re
 
 from nomad import config
+from nomad.datamodel import UploadWithMetadata, CalcWithMetadata
 from nomad.files import DirectoryObject, PathObject
-from nomad.files import Metadata, PublicMetadata, StagingMetadata
 from nomad.files import StagingUploadFiles, PublicUploadFiles, UploadFiles, Restricted, \
     ArchiveBasedStagingUploadFiles
 
+
+CalcWithFiles = Tuple[CalcWithMetadata, str]
+UploadWithFiles = Tuple[UploadWithMetadata, UploadFiles]
+StagingUploadWithFiles = Tuple[UploadWithMetadata, StagingUploadFiles]
+PublicUploadWithFiles = Tuple[UploadWithMetadata, PublicUploadFiles]
 
 # example_file uses an artificial parser for faster test execution, can also be
 # changed to examples_vasp.zip for using vasp parser
@@ -44,6 +49,12 @@ empty_file = 'tests/data/proc/empty.zip'
 
 example_bucket = 'test_bucket'
 example_data = dict(test_key='test_value')
+
+
+@pytest.fixture(scope='function', autouse=True)
+def raw_files_on_all_tests(raw_files):
+    """ Autouse fixture to apply raw_files to all tests. """
+    pass
 
 
 class TestObjects:
@@ -108,8 +119,13 @@ example_calc: Dict[str, Any] = {
 example_calc_id = example_calc['calc_id']
 
 
-def generate_example_calc(calc_id: int, with_mainfile_prefix: bool, subdirectory: str = None, **kwargs):
-    example_calc = dict(calc_id=str(calc_id), data='value')
+def generate_example_calc(
+        calc_id: int, with_mainfile_prefix: bool, subdirectory: str = None,
+        **kwargs) -> CalcWithFiles:
+    """ Generate an example calc with :class:`CalcWithMetadata` and rawfile. """
+
+    example_calc = CalcWithMetadata(calc_id=str(calc_id))
+
     if with_mainfile_prefix:
         mainfile = '%d.template.json' % calc_id
     else:
@@ -118,7 +134,7 @@ def generate_example_calc(calc_id: int, with_mainfile_prefix: bool, subdirectory
     if subdirectory is not None:
         mainfile = os.path.join(subdirectory, mainfile)
 
-    example_calc['mainfile'] = mainfile
+    example_calc.mainfile = mainfile
     example_calc.update(**kwargs)
 
     example_file = os.path.join(config.fs.tmp, 'example.zip')
@@ -159,86 +175,6 @@ def assert_example_calc(calc):
     assert calc['data'] == example_calc['data']
 
 
-class MetadataContract:
-    @pytest.fixture(scope='function')
-    def test_dir(self):
-        path = os.path.join(config.fs.tmp, 'test_dir')
-        os.makedirs(path)
-        yield path
-        shutil.rmtree(path)
-
-    @pytest.fixture(scope='function')
-    def md(self, test_dir):
-        raise NotImplementedError()
-
-    def test_get(self, md: Metadata):
-        assert_example_calc(md.get(example_calc_id))
-
-    def test_get_fail(self, md: Metadata):
-        failed = False
-        try:
-            md.get('unknown')
-        except KeyError:
-            failed = True
-        assert failed
-
-
-class TestStagingMetadata(MetadataContract):
-    @pytest.fixture(scope='function')
-    def md(self, test_dir):
-        md = StagingMetadata(DirectoryObject(None, None, os_path=test_dir))
-        md.insert(example_calc)
-        return md
-
-    def test_remove(self, md: StagingMetadata):
-        md.remove(example_calc)
-        failed = False
-        try:
-            assert md.get(example_calc['calc_id'])
-        except KeyError:
-            failed = True
-        assert failed
-
-    def test_insert(self, md: StagingMetadata):
-        md.remove(example_calc)
-        md.insert(example_calc)
-        assert len(md) == 1
-        assert_example_calc(md.get(example_calc_id))
-
-    def test_insert_fail(self, md: StagingMetadata):
-        failed = False
-        try:
-            md.insert(example_calc)
-        except Exception:
-            failed = True
-
-        assert failed
-        assert len(md) == 1
-
-    def test_update(self, md: StagingMetadata):
-        md.update(example_calc_id, dict(data='updated'))
-        assert len(md) == 1
-        assert md.get(example_calc_id)['data'] == 'updated'
-
-    def test_update_fail(self, md: StagingMetadata):
-        failed = False
-        try:
-            md.update('unknown', dict(data='updated'))
-        except KeyError:
-            failed = True
-        assert failed
-        assert len(md) == 1
-
-
-class TestPublicMetadata(MetadataContract):
-
-    @pytest.fixture(scope='function')
-    def md(self, test_dir):
-        md = PublicMetadata(test_dir)
-        md._create([example_calc])
-        return md
-
-
 class UploadFilesFixtures:
 
     @pytest.fixture(scope='function')
@@ -257,54 +193,54 @@ class UploadFilesFixtures:
 class UploadFilesContract(UploadFilesFixtures):
 
     @pytest.fixture(scope='function', params=['r'])
-    def test_upload(self, request, test_upload_id) -> UploadFiles:
+    def test_upload(self, request, test_upload_id) -> UploadWithFiles:
         raise NotImplementedError()
 
     @pytest.fixture(scope='function')
-    def empty_test_upload(self, test_upload_id) -> Generator[UploadFiles, None, None]:
+    def empty_test_upload(self, test_upload_id) -> UploadFiles:
         raise NotImplementedError()
 
     def test_create(self, empty_test_upload):
         assert UploadFiles.get(empty_test_upload.upload_id).__class__ == empty_test_upload.__class__
 
-    def test_rawfile(self, test_upload):
-        assert len(test_upload.metadata) > 0
-        for calc in test_upload.metadata:
+    def test_rawfile(self, test_upload: UploadWithFiles):
+        upload, upload_files = test_upload
+        for calc in upload.calcs:
             try:
-                with test_upload.raw_file(calc['mainfile']) as f:
+                with upload_files.raw_file(calc.mainfile) as f:
                     assert len(f.read()) > 0
-                if not test_upload._is_authorized():
-                    assert not test_upload.metadata.get(calc['calc_id']).get('with_embargo', False)
+                if not upload_files._is_authorized():
+                    assert not calc.with_embargo
             except Restricted:
-                assert not test_upload._is_authorized()
-                assert test_upload.metadata.get(calc['calc_id']).get('with_embargo', False)
+                assert not upload_files._is_authorized()
+                assert calc.with_embargo
 
     @pytest.mark.parametrize('prefix', [None, 'examples'])
-    def test_raw_file_manifest(self, test_upload: StagingUploadFiles, prefix: str):
-        raw_files = list(test_upload.raw_file_manifest(path_prefix=prefix))
+    def test_raw_file_manifest(self, test_upload: UploadWithFiles, prefix: str):
+        _, upload_files = test_upload
+        raw_files = list(upload_files.raw_file_manifest(path_prefix=prefix))
         assert_example_files(raw_files)
 
     @pytest.mark.parametrize('test_logs', [True, False])
-    def test_archive(self, test_upload, test_logs: bool):
+    def test_archive(self, test_upload: UploadWithFiles, test_logs: bool):
+        upload, upload_files = test_upload
+        calcs = upload.calcs_dict
         try:
             if test_logs:
-                with test_upload.archive_log_file(example_calc_id, 'rt') as f:
+                with upload_files.archive_log_file(example_calc_id, 'rt') as f:
                     assert f.read() == 'archive'
             else:
-                f = test_upload.archive_file(example_calc_id, 'rt')
+                f = upload_files.archive_file(example_calc_id, 'rt')
                 assert json.load(f) == 'archive'
 
-            if not test_upload._is_authorized():
-                assert not test_upload.metadata.get(example_calc_id).get('with_embargo', False)
+            if not upload_files._is_authorized():
+                assert not calcs.get(example_calc_id).with_embargo
         except Restricted:
-            assert not test_upload._is_authorized()
-            assert test_upload.metadata.get(example_calc_id).get('with_embargo', False)
-
-    def test_metadata(self, test_upload):
-        assert_example_calc(test_upload.metadata.get(example_calc_id))
+            assert not upload_files._is_authorized()
+            assert calcs.get(example_calc_id).with_embargo
 
 
-def create_staging_upload(upload_id: str, calc_specs: str) -> StagingUploadFiles:
+def create_staging_upload(upload_id: str, calc_specs: str) -> StagingUploadWithFiles:
     """
     Create an upload according to given spec. Additional arguments are given to
     the StagingUploadFiles contstructor.
@@ -317,7 +253,9 @@ def create_staging_upload(upload_id: str, calc_specs: str) -> StagingUploadFiles
             First calc is at top level, following calcs will be put under 1/, 2/, etc.
             All calcs with capital `P`/`R` will be put in the same directory under multi/.
     """
-    upload = StagingUploadFiles(upload_id, create=True, is_authorized=lambda: True)
+    upload_files = StagingUploadFiles(upload_id, create=True, is_authorized=lambda: True)
+    upload = UploadWithMetadata(upload_id=upload_id)
+    calcs = []
 
     prefix = 0
     for calc_spec in calc_specs:
@@ -329,34 +267,34 @@ def create_staging_upload(upload_id: str, calc_specs: str) -> StagingUploadFiles
         else:
             directory = os.path.join(str(prefix), 'examples_template')
 
-        calc, upload_file = generate_example_calc(
+        calc, calc_file = generate_example_calc(
             prefix, with_mainfile_prefix=is_multi, subdirectory=directory,
             with_embargo=calc_spec == 'r')
-        calc_id = calc['calc_id']
 
-        upload.add_rawfiles(upload_file)
+        upload_files.add_rawfiles(calc_file)
 
-        with upload.archive_file(calc_id, 'wt') as f:
+        with upload_files.archive_file(calc.calc_id, 'wt') as f:
             f.write('"archive"')
-        with upload.archive_log_file(calc_id, 'wt') as f:
+        with upload_files.archive_log_file(calc.calc_id, 'wt') as f:
             f.write('archive')
 
-        upload.metadata.insert(calc)
+        calcs.append(calc)
         prefix += 1
 
-    assert len(upload.metadata) == len(calc_specs)
-    return upload
+    assert len(calcs) == len(calc_specs)
+    upload.calcs = calcs
+    return upload, upload_files
 
 
 class TestStagingUploadFiles(UploadFilesContract):
 
     @pytest.fixture(scope='function', params=['r', 'rr', 'pr', 'rp', 'p', 'pp', 'RP', 'RR', 'PP'])
-    def test_upload(self, request, test_upload_id: str) -> StagingUploadFiles:
+    def test_upload(self, request, test_upload_id: str) -> StagingUploadWithFiles:
         return create_staging_upload(test_upload_id, calc_specs=request.param)
 
     @pytest.fixture(scope='function')
-    def empty_test_upload(self, test_upload_id) -> Generator[UploadFiles, None, None]:
-        yield StagingUploadFiles(test_upload_id, create=True, is_authorized=lambda: True)
+    def empty_test_upload(self, test_upload_id) -> UploadFiles:
+        return StagingUploadFiles(test_upload_id, create=True, is_authorized=lambda: True)
 
     @pytest.mark.parametrize('prefix', [None, 'prefix'])
     def test_add_rawfiles_zip(self, test_upload_id, prefix):
@@ -369,29 +307,30 @@ class TestStagingUploadFiles(UploadFilesContract):
                 if filepath == example_file_mainfile:
                     assert len(content) > 0
 
-    def test_write_archive(self, test_upload):
-        assert json.load(test_upload.archive_file(example_calc_id, 'rt')) == 'archive'
+    def test_write_archive(self, test_upload: StagingUploadWithFiles):
+        _, upload_files = test_upload
+        assert json.load(upload_files.archive_file(example_calc_id, 'rt')) == 'archive'
 
-    def test_calc_id(self, test_upload):
-        assert test_upload.calc_id(example_file_mainfile) is not None
+    def test_calc_id(self, test_upload: StagingUploadWithFiles):
+        _, upload_files = test_upload
+        assert upload_files.calc_id(example_file_mainfile) is not None
 
-    def test_pack(self, test_upload):
-        test_upload.pack()
+    def test_pack(self, test_upload: StagingUploadWithFiles):
+        upload, upload_files = test_upload
+        upload_files.pack(upload)
 
     @pytest.mark.parametrize('with_mainfile', [True, False])
-    def test_calc_files(self, test_upload: StagingUploadFiles, with_mainfile):
-        for calc in test_upload.metadata:
-            mainfile = calc['mainfile']
-            calc_files = test_upload.calc_files(mainfile, with_mainfile=with_mainfile)
+    def test_calc_files(self, test_upload: StagingUploadWithFiles, with_mainfile):
+        upload, upload_files = test_upload
+        for calc in upload.calcs:
+            mainfile = calc.mainfile
+            calc_files = upload_files.calc_files(mainfile, with_mainfile=with_mainfile)
             assert_example_files(calc_files, with_mainfile=with_mainfile)
 
-    def test_delete(self, test_upload: StagingUploadFiles):
-        test_upload.delete()
-        assert not test_upload.exists()
-
-    def test_update_metadata(self, test_upload):
-        test_upload.metadata.update(example_calc_id, dict(data='updated'))
-        test_upload.metadata.get(example_calc_id)['data'] == 'updated'
+    def test_delete(self, test_upload: StagingUploadWithFiles):
+        _, upload_files = test_upload
+        upload_files.delete()
+        assert not upload_files.exists()
 
 
 class TestArchiveBasedStagingUploadFiles(UploadFilesFixtures):
@@ -409,32 +348,37 @@ class TestArchiveBasedStagingUploadFiles(UploadFilesFixtures):
             test_upload_id, create=True, upload_path='does not exist').is_valid
 
 
-def create_public_upload(upload_id: str, calc_specs: str, **kwargs):
-    staging_upload = create_staging_upload(upload_id, calc_specs)
-    staging_upload.pack()
-    staging_upload.delete()
-    return PublicUploadFiles(upload_id, **kwargs)
+def create_public_upload(
+        upload_id: str, calc_specs: str, **kwargs) -> PublicUploadWithFiles:
+
+    upload, upload_files = create_staging_upload(upload_id, calc_specs)
+    upload_files.pack(upload)
+    upload_files.delete()
+    return upload, PublicUploadFiles(upload_id, **kwargs)
 
 
 class TestPublicUploadFiles(UploadFilesContract):
 
     @pytest.fixture(scope='function')
-    def empty_test_upload(self, test_upload_id: str) -> Generator[UploadFiles, None, None]:
-        yield create_public_upload(test_upload_id, calc_specs='', is_authorized=lambda: True)
+    def empty_test_upload(self, test_upload_id: str) -> UploadFiles:
+        _, upload_files = create_public_upload(
+            test_upload_id, calc_specs='', is_authorized=lambda: True)
+
+        return upload_files
 
     @pytest.fixture(scope='function', params=itertools.product(
         ['r', 'rr', 'pr', 'rp', 'p', 'pp', 'RP', 'RR', 'PP'], [True, False]))
-    def test_upload(self, request, test_upload_id: str) -> PublicUploadFiles:
+    def test_upload(self, request, test_upload_id: str) -> PublicUploadWithFiles:
         calc_specs, protected = request.param
-        staging_upload = create_staging_upload(test_upload_id, calc_specs=calc_specs)
-        staging_upload.pack()
-        return PublicUploadFiles(test_upload_id, is_authorized=lambda: not protected)
+        upload, upload_files = create_staging_upload(test_upload_id, calc_specs=calc_specs)
+        upload_files.pack(upload)
+        return upload, PublicUploadFiles(test_upload_id, is_authorized=lambda: not protected)
 
 
-def assert_upload_files(upload_id: str, cls, n_calcs: int, additional_keys: List[str] = [], **kwargs):
+def assert_upload_files(
+        upload: UploadWithMetadata, cls, additional_keys: List[str] = [], **kwargs):
     """
-    Asserts the files and search index aspect of uploaded data after processing
-    or publishing
+    Asserts the files aspect of uploaded data after processing or publishing
 
     Arguments:
         upload_id: The id of the upload to assert
@@ -443,31 +387,19 @@ def assert_upload_files(upload_id: str, cls, n_calcs: int, additional_keys: List
         additional_keys: Keys that each calc metadata should have
         **kwargs: Key, value pairs that each calc metadata should have
     """
-    keys = ['calc_id', 'upload_id', 'mainfile', 'calc_hash']
-    upload_files = UploadFiles.get(upload_id, is_authorized=lambda: True)
+    upload_files = UploadFiles.get(upload.upload_id, is_authorized=lambda: True)
     assert upload_files is not None
     assert isinstance(upload_files, cls)
 
-    upload_metadata = upload_files.metadata
-    assert len(upload_metadata) == n_calcs
-    for calc_metadata in upload_metadata:
-        assert 'calc_hash' in calc_metadata
-        for key in keys:
-            assert key in calc_metadata
-        for additional_key in additional_keys:
-            assert additional_key in calc_metadata
-        for key, value in kwargs.items():
-            assert calc_metadata[key] == value
-
-    upload_files = UploadFiles.get(upload_id)
-    for calc_metadata in upload_metadata:
+    upload_files = UploadFiles.get(upload.upload_id)
+    for calc in upload.calcs:
         try:
-            with upload_files.raw_file(calc_metadata['mainfile']) as f:
+            with upload_files.raw_file(calc.mainfile) as f:
                 f.read()
-            with upload_files.archive_file(calc_metadata['calc_id']) as f:
+            with upload_files.archive_file(calc.calc_id) as f:
                 f.read()
-            with upload_files.archive_log_file(calc_metadata['calc_id']) as f:
+            with upload_files.archive_log_file(calc.calc_id) as f:
                 f.read()
-            assert not calc_metadata.get('with_embargo', False) and isinstance(upload_files, PublicUploadFiles)
+            assert not calc.with_embargo and isinstance(upload_files, PublicUploadFiles)
         except Restricted:
-            assert calc_metadata.get('with_embargo', False) or isinstance(upload_files, StagingUploadFiles)
+            assert calc.with_embargo or isinstance(upload_files, StagingUploadFiles)

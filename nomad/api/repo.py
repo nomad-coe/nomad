@@ -20,12 +20,12 @@ meta-data.
 from flask_restplus import Resource, abort, fields
 from flask import request, g
 from elasticsearch_dsl import Q
+from elasticsearch.exceptions import NotFoundError
 
-from nomad.files import UploadFiles, Restricted
 from nomad import search
 
 from .app import api
-from .auth import login_if_available, create_authorization_predicate
+from .auth import login_if_available
 from .common import pagination_model, pagination_request_parser, calc_route
 
 ns = api.namespace('repo', description='Access repository metadata.')
@@ -42,21 +42,28 @@ class RepoCalcResource(Resource):
         """
         Get calculation metadata in repository form.
 
-        Repository metadata only entails the quanties shown in the repository.
+        Repository metadata only entails the quantities shown in the repository.
         Calcs are references via *upload_id*, *calc_id* pairs.
         """
-        # TODO use elastic search instead of the files
-        # TODO add missing user metadata (from elastic or repo db)
-        upload_files = UploadFiles.get(upload_id, create_authorization_predicate(upload_id, calc_id))
-        if upload_files is None:
-            abort(404, message='There is no upload %s' % upload_id)
-
         try:
-            return upload_files.metadata.get(calc_id), 200
-        except Restricted:
-            abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
-        except KeyError:
-            abort(404, message='There is no calculation for %s/%s' % (upload_id, calc_id))
+            calc = search.Entry.get(calc_id)
+        except NotFoundError:
+            abort(404, message='There is no calculation %s/%s' % (upload_id, calc_id))
+
+        if calc.with_embargo or not calc.published:
+            if g.user is None:
+                abort(401, message='Not logged in to access %s/%s.' % (upload_id, calc_id))
+
+            is_owner = g.user.user_id == 0
+            if not is_owner:
+                for owner in calc.owners:
+                    if owner.user_id == str(g.user.user_id):
+                        is_owner = True
+                        break
+            if not is_owner:
+                abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
+
+        return calc.to_dict(), 200
 
 
 repo_calcs_model = api.model('RepoCalculations', {
