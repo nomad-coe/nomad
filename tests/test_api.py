@@ -76,7 +76,8 @@ class TestAdmin:
         rv = client.post('/admin/reset', headers=test_user_auth)
         assert rv.status_code == 401
 
-    def test_disabled(self, client, admin_user_auth, postgres):
+    def test_disabled(self, client, admin_user_auth, expandable_postgres, monkeypatch):
+        monkeypatch.setattr('nomad.config.services.disable_reset', True)
         rv = client.post('/admin/reset', headers=admin_user_auth)
         assert rv.status_code == 400
 

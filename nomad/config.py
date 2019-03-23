@@ -170,17 +170,16 @@ transformations = {
 logger = logging.getLogger(__name__)
 
 
-def apply(config, key, value) -> None:
+def apply(key, value) -> None:
     """
     Changes the config according to given key and value. The keys are interpreted as paths
     to config values with ``_`` as a separator. E.g. ``fs_staging`` leading to
     ``config.fs.staging``
     """
-
     path = list(reversed(key.split('_')))
     child_segment = None
     current_value = None
-    child_config = config
+    child_config = globals()
     child_key = None
 
     try:
@@ -200,6 +199,7 @@ def apply(config, key, value) -> None:
                 continue
             if isinstance(current_value, NomadConfig):
                 child_config = current_value
+                current_value = None
                 child_segment = None
             else:
                 if len(path) > 0:
@@ -263,9 +263,9 @@ def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yaml'))
         for key, value in os.environ.items()
         if key.startswith('NOMAD_')
     }
-    config = globals()
+
     for key, value in kwargs.items():
-        apply(config, key, value)
+        apply(key, value)
 
 
 load_config()
