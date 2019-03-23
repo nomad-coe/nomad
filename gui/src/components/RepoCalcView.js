@@ -9,12 +9,12 @@ import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { withErrors } from './errors'
 
 function CalcQuantity(props) {
-  const {children, label, typography, loading, placeholder} = props
+  const {children, label, typography, loading, placeholder, noWrap} = props
   const content = (!children || children.length === 0) ? null : children
   return (
     <div style={{margin: '0px 24px 8px 0'}}>
       <Typography variant="caption">{label}</Typography>
-      <Typography variant={typography || 'body1'}>{content || <i>{loading ? 'loading...' : placeholder || 'unavailable'}</i>}</Typography>
+      <Typography noWrap={noWrap} variant={typography || 'body1'}>{content || <i>{loading ? 'loading...' : placeholder || 'unavailable'}</i>}</Typography>
     </div>
   )
 }
@@ -25,7 +25,8 @@ CalcQuantity.propTypes = {
   label: PropTypes.string,
   typography: PropTypes.string,
   loading: PropTypes.bool,
-  placeholder: PropTypes.string
+  placeholder: PropTypes.string,
+  noWrap: PropTypes.bool
 }
 
 class RepoCalcView extends React.Component {
@@ -87,7 +88,9 @@ class RepoCalcView extends React.Component {
     const mainfile = calcData.mainfile
     const calcPath = mainfile ? mainfile.substring(0, mainfile.lastIndexOf('/')) : null
 
-    const authors = loading ? null : [calcData.uploader, ...calcData.coauthors]
+    console.log(calcData)
+
+    const authors = loading ? null : calcData.authors
 
     return (
       <div className={classes.root}>
@@ -141,27 +144,27 @@ class RepoCalcView extends React.Component {
                   {calcData.references ? calcData.references.map(ref => (<a key={ref.id} href={ref.value}>{ref.value}</a>)) : null}
                 </CalcQuantity>
                 <CalcQuantity label='authors' loading={loading}>
-                  {authors ? authors.map(author => `${author.first_name} ${author.last_name}`).join(', ') : null}
+                  {authors ? authors.map(author => author.name) : null}
                 </CalcQuantity>
                 <CalcQuantity label='datasets' loading={loading} placeholder='no datasets'>
                   {calcData.datasets ? calcData.datasets.map(ds => ds.name).join(', ') : null}
                 </CalcQuantity>
               </div>
             </div>
-            <div className={classes.quantityColumn} style={{maxWidth: 250}}>
-              <CalcQuantity label='PID' loading={loading}>
+            <div className={classes.quantityColumn} style={{maxWidth: 350}}>
+              <CalcQuantity label='PID' loading={loading} noWrap>
                 <b>{calcData.pid}</b>
               </CalcQuantity>
-              <CalcQuantity label='upload id'>
+              <CalcQuantity label='upload id' noWrap>
                 {calcData.upload_id}
               </CalcQuantity>
-              <CalcQuantity label='calculation id'>
+              <CalcQuantity label='calculation id' noWrap>
                 {calcData.calc_id}
               </CalcQuantity>
-              <CalcQuantity label='mainfile' loading={loading}>
+              <CalcQuantity label='mainfile' loading={loading} noWrap>
                 {mainfile}
               </CalcQuantity>
-              <CalcQuantity label='calculation hash' loading={loading}>
+              <CalcQuantity label='calculation hash' loading={loading} noWrap>
                 {calcData.calc_hash}
               </CalcQuantity>
             </div>
