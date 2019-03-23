@@ -41,7 +41,9 @@ def _setup():
 @click.option('-db', '--dbname', default=config.migration_source_db.dbname, help='The migration repository source db name, default is %s.' % config.migration_source_db.dbname)
 @click.option('--migration-version', default=0, type=int, help='The version number, only packages with lower or no number will be migrated.')
 @click.option('--package-directory', default=config.fs.migration_packages, help='The directory used as bucket for upload packages, default is %s.' % config.fs.migration_packages)
-def migration(host, port, user, password, dbname, migration_version, package_directory):
+@click.option('--compress-packages', is_flag=True, help='Turn on compression for creating migration packages')
+def migration(
+        host, port, user, password, dbname, migration_version, package_directory, compress_packages):
     global _setup
 
     def _setup():
@@ -53,7 +55,9 @@ def migration(host, port, user, password, dbname, migration_version, package_dir
     global _Migration
 
     def _Migration(**kwargs):
-        return NomadCOEMigration(migration_version=migration_version, package_directory=package_directory, **kwargs)
+        return NomadCOEMigration(
+            migration_version=migration_version, package_directory=package_directory,
+            compress_packages=compress_packages, **kwargs)
 
 
 @migration.command(help='Create/update the coe repository db migration index')
@@ -76,6 +80,7 @@ def index(drop, with_metadata, per_query):
 
 
 @migration.command(help='Add an upload folder to the package index.')
+@click.option('--compress-packages', is_flag=True, help='Turn on compression for creating migration packages')
 @click.argument('upload-paths', nargs=-1)
 def package(upload_paths):
     infrastructure.setup_logging()

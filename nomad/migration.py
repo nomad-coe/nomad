@@ -141,7 +141,9 @@ class Package(Document):
         return report
 
     @classmethod
-    def create_packages(cls, upload_path: str, target_dir: str) -> Iterable['Package']:
+    def create_packages(
+            cls, upload_path: str, target_dir: str,
+            compress: bool = False) -> Iterable['Package']:
         """
         Will create packages for the given upload_path. Creates the package zip files and
         package index entries. Either will only be created if it does not already exist.
@@ -160,7 +162,9 @@ class Package(Document):
 
         if package_query.count() == 0:
             def open_package_zip(package_entry: 'Package'):
-                return zipfile.ZipFile(package_entry.package_path, 'w')
+                return zipfile.ZipFile(
+                    package_entry.package_path, 'w',
+                    compression=zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED)
 
             def create_package_entry():
                 package_id = utils.create_uuid()
@@ -420,6 +424,7 @@ class NomadCOEMigration:
         migration_version: The migration version. Only packages/calculations with
             no migration version or a lower migration version are migrated.
         package_directory: The directory that packages are/get stored in.
+        compress_packages: True to use compression on package creation.
         threads: Number of threads to run migration in parallel.
         quiet: Prints stats if not quiet
     """
@@ -439,11 +444,13 @@ class NomadCOEMigration:
             self,
             migration_version: int = 0,
             package_directory: str = None,
+            compress_packages: bool = False,
             threads: int = 1, quiet: bool = False) -> None:
         self.logger = utils.get_logger(__name__, migration_version=migration_version)
 
         self.migration_version = migration_version
         self.package_directory = package_directory if package_directory is not None else config.fs.migration_packages
+        self.compress_packages = compress_packages
         self._client = None
         self._threads = threads
         self._quiet = quiet
@@ -698,7 +705,9 @@ class NomadCOEMigration:
                 cv.notify()
 
         for arg in args:
-            for package in Package.create_packages(arg, self.package_directory):
+            for package in Package.create_packages(
+                    arg, self.package_directory, compress=self.compress_packages):
+
                 with cv:
                     cv.wait_for(lambda: self._threads > 0)
                     self._threads -= 1
@@ -957,7 +966,10 @@ class NomadCOEMigration:
 
         for upload_path in upload_paths:
             try:
-                for package_entry in Package.create_packages(upload_path, self.package_directory):
+                for package_entry in Package.create_packages(
+                        upload_path, self.package_directory,
+                        compress=self.compress_packages):
+
                     logger.info(
                         'package in index',
                         source_upload_path=upload_path,
