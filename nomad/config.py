@@ -223,8 +223,8 @@ def apply(config, key, value) -> None:
     child_config[child_key] = value
 
 
-def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yml')) -> None:
-    # load yml and override defaults
+def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yaml')) -> None:
+    # load yaml and override defaults
     if os.path.exists(config_file):
         with open(config_file, 'r') as stream:
             try:
@@ -257,7 +257,7 @@ def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yml')) 
 
         adapt(globals(), config_data)
 
-    # load env and override yml and defaults
+    # load env and override yaml and defaults
     kwargs = {
         key[len('NOMAD_'):].lower(): value
         for key, value in os.environ.items()

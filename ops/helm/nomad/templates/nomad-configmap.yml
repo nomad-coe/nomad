@@ -8,9 +8,7 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 data:
-  nomad.yml: /
-    service: api
-      api_host:
+  nomad.yaml: |
     release: "{{ .Release.Name }}"
     fs:
       tmp: "{{ .Values.volumes.tmp }}"
@@ -19,8 +17,6 @@ data:
       enabled: true
       host: "{{ .Values.logstash.host }}"
       tcpport: "{{ .Values.logstash.port }}"
-      level: info
-    console_log_level: debug
     services:
       api_host: "{{ .Values.proxy.external.host }}"
       api_port: "{{ .Values.proxy.external.port }}"

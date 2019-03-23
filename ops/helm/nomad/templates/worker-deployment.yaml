@@ -28,8 +28,9 @@ spec:
           requests:
             memory: "{{ .Values.worker.memrequest }}Gi"
         volumeMounts:
-        - mountPath: /app
+        - mountPath: /app/nomad.yaml
           name: nomad-conf
+          subPath: nomad.yaml
         - mountPath: /app/.volumes/fs/public
           name: public-volume
         - mountPath: /app/.volumes/fs/staging
@@ -69,9 +70,6 @@ spec:
       - name: nomad-conf
         configMap:
           name: {{ include "nomad.fullname" . }}-configmap
-          items:
-          - key: nomad.yml
-            path: nomad.yml
       - name: public-volume
         hostPath:
           path: {{ .Values.volumes.public }}
