@@ -26,7 +26,7 @@ from .main import cli
 
 
 def _Migration(**kwargs) -> NomadCOEMigration:
-    return NomadCOEMigration()
+    return NomadCOEMigration(**kwargs)
 
 
 def _setup():
@@ -40,7 +40,8 @@ def _setup():
 @click.option('-w', '--password', default=config.migration_source_db.password, help='The migration repository source db password.')
 @click.option('-db', '--dbname', default=config.migration_source_db.dbname, help='The migration repository source db name, default is %s.' % config.migration_source_db.dbname)
 @click.option('--migration-version', default=0, type=int, help='The version number, only packages with lower or no number will be migrated.')
-def migration(host, port, user, password, dbname, migration_version):
+@click.option('--package-directory', default=config.fs.migration_packages, help='The directory used as bucket for upload packages, default is %s.' % config.fs.migration_packages)
+def migration(host, port, user, password, dbname, migration_version, package_directory):
     global _setup
 
     def _setup():
@@ -52,7 +53,7 @@ def migration(host, port, user, password, dbname, migration_version):
     global _Migration
 
     def _Migration(**kwargs):
-        return NomadCOEMigration(migration_version=migration_version, **kwargs)
+        return NomadCOEMigration(migration_version=migration_version, package_directory=package_directory, **kwargs)
 
 
 @migration.command(help='Create/update the coe repository db migration index')
@@ -64,7 +65,7 @@ def index(drop, with_metadata, per_query):
     start = time.time()
     indexed_total = 0
     indexed_calcs = 0
-    for calc, total in _Migration().index(drop=drop, with_metadata=with_metadata, per_query=int(per_query)):
+    for calc, total in _Migration().source_calc_index(drop=drop, with_metadata=with_metadata, per_query=int(per_query)):
         indexed_total += 1
         indexed_calcs += 1 if calc is not None else 0
         eta = total * ((time.time() - start) / indexed_total)
@@ -80,7 +81,7 @@ def package(upload_paths):
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
 
-    _Migration().package(*upload_paths)
+    _Migration().package_index(*upload_paths)
 
 
 @migration.command(help='Get an report over all migrated packages.')
@@ -108,14 +109,9 @@ def pid_prefix(prefix: int):
 @migration.command(help='Upload the given upload locations. Uses the existing index to provide user metadata')
 @click.argument('paths', nargs=-1)
 @click.option('--pattern', default=None, type=str, help='Interpret the paths as directory and migrate those subdirectory that match the given regexp')
-@click.option('--create-packages', help='Allow migration to create package entries on the fly.', is_flag=True)
-@click.option('--local', help='Create local upload files.', is_flag=True)
-@click.option('--delete-local', help='Delete created local upload files after upload.', is_flag=True)
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.option('--delete-failed', default='', type=str, help='String from N, U, P to determine if empty (N), failed (U), or failed to publish (P) uploads should be deleted or kept for debugging.')
-def upload(
-        paths: list, pattern: str, create_packages: bool, local: bool, delete_local: bool,
-        parallel: int, delete_failed: str):
+def upload(paths: list, pattern: str, parallel: int, delete_failed: str):
 
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
@@ -131,6 +127,4 @@ def upload(
             if re.fullmatch(compiled_pattern, sub_directory):
                 paths.append(os.path.join(path, sub_directory))
 
-    _Migration(threads=parallel).migrate(
-        *paths, local=local, delete_local=delete_local, create_packages=create_packages,
-        delete_failed=delete_failed)
+    _Migration(threads=parallel).migrate(*paths, delete_failed=delete_failed)

@@ -51,7 +51,7 @@ repository_db_conn = None
 
 def setup():
     """
-    Uses the current configuration (nomad/config.py and environemnt) to setup all the
+    Uses the current configuration (nomad/config.py and environment) to setup all the
     infrastructure services (repository db, mongo, elastic search) and logging.
     Will create client instances for the databases and has to be called before they
     can be used.

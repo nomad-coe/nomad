@@ -72,7 +72,7 @@ class PathObject:
         bucket: The bucket to store this object in
         object_id: The object id (i.e. directory path)
         os_path: Override the "object storage" path with the given path.
-        prefix: Add a 3-digit prefix directory, e.g. foo/test/ -> foo/tes/test
+        prefix: Add a x-digit prefix directory, e.g. foo/test/ -> foo/tes/test
         create_prefix: Create the prefix right away
     """
     def __init__(

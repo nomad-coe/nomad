@@ -67,6 +67,7 @@ fs = NomadConfig(
     tmp='.volumes/fs/tmp',
     staging='.volumes/fs/staging',
     public='.volumes/fs/public',
+    migration_packages='.volumes/fs/migration_packages',
     prefix_size=2
 )
 
