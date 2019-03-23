@@ -149,6 +149,11 @@ class Package(Document):
         """
         upload_id = os.path.basename(upload_path)
         logger = utils.get_logger(__name__, source_upload_path=upload_path, source_upload_id=upload_id)
+
+        if not os.path.isdir(upload_path):
+            logger.error('upload path is not a directory')
+            return []
+
         package_query = cls.objects(upload_id=upload_id)
         upload_directory = files.DirectoryObject(target_dir, upload_id, create=True, prefix=True)
         restricted = 0
