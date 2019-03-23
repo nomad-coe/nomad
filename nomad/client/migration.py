@@ -18,9 +18,10 @@ import datetime
 import os
 import os.path
 import re
+import shutil
 
 from nomad import config, infrastructure
-from nomad.migration import NomadCOEMigration
+from nomad.migration import NomadCOEMigration, SourceCalc, Package
 
 from .main import cli
 
@@ -79,8 +80,22 @@ def index(drop, with_metadata, per_query):
     print('done')
 
 
+@migration.command(help='Reset migration version to start a new migration.')
+@click.option('--delete-packages', is_flag=True, help='Also remove all packages.')
+def reset(delete_packages: bool):
+    infrastructure.setup_logging()
+    infrastructure.setup_mongo()
+
+    SourceCalc.objects(migration_version__ne=-1).update(migration_version=-1)
+    if delete_packages:
+        for subdir in os.listdir(config.fs.migration_packages):
+            shutil.rmtree(os.path.join(config.fs.migration_packages, subdir))
+        Package.objects().delete()
+    else:
+        Package.objects(migration_version__ne=-1).update(migration_version=-1)
+
+
 @migration.command(help='Add an upload folder to the package index.')
-@click.option('--compress-packages', is_flag=True, help='Turn on compression for creating migration packages')
 @click.argument('upload-paths', nargs=-1)
 def package(upload_paths):
     infrastructure.setup_logging()
