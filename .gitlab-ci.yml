@@ -240,7 +240,9 @@ deploy:
           --set dbname=${DBNAME}
           --set worker.replicas=1
           --set worker.memrequest=32
-          --set volumes.files=${FILES_PATH};
+          --set volumes.public=${FILES_PATH}/public
+          --set volumes.staging=${FILES_PATH}/staging
+          --set volumes.tmp=${FILES_PATH}/tmp;
       else
         helm upgrade ${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE}
           --set images.nomad.tag=${CI_COMMIT_REF_NAME}

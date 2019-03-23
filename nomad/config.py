@@ -211,7 +211,7 @@ def apply(config, key, value) -> None:
         if child_key is None or current_value is None:
             raise KeyError()
     except KeyError:
-        logger.error('config key %s does not exist' % key)
+        return
 
     if not isinstance(value, type(current_value)):
         try:

@@ -118,7 +118,7 @@ mail:
 
 ## Everything concerning the data that is used by the service
 volumes:
-  prefixSize: 3
+  prefixSize: 2
   public: /nomad/fairdi/fs/public
   staging: /nomad/fairdi/fs/staging
   tmp: /nomad/fairdi/fs/tmp
