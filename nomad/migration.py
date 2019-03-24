@@ -937,7 +937,10 @@ class NomadCOEMigration:
         """
         logger = utils.get_logger(__name__)
 
-        for upload_path in upload_paths:
+        cv = threading.Condition()
+        threads = []
+
+        def package_upload(upload_path):
             try:
                 for package_entry in Package.create_packages(
                         upload_path, self.package_directory,
@@ -952,7 +955,21 @@ class NomadCOEMigration:
                 logger.error(
                     'could create package from upload',
                     upload_path=upload_path, exc_info=e)
-                continue
+            finally:
+                with cv:
+                    self._threads += 1
+                    cv.notify()
+
+        for upload_path in upload_paths:
+            with cv:
+                cv.wait_for(lambda: self._threads > 0)
+            self._threads -= 1
+            thread = threading.Thread(target=lambda: package_upload(upload_path))
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join()
 
 
 class Report(utils.POPO):
