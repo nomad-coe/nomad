@@ -115,6 +115,8 @@ class Package(Document):
     """ The sum of all file sizes. """
     files = IntField()
     """ The number of files. """
+    packages = IntField(default=-1)
+    """ The number of packages in the same upload. """
 
     migration_version = IntField(default=-1)
     """ The version of the last successful migration of this package """
@@ -156,11 +158,17 @@ class Package(Document):
             logger.error('upload path is not a directory')
             return []
 
-        package_query = cls.objects(upload_id=upload_id)
         upload_directory = files.DirectoryObject(target_dir, upload_id, create=True, prefix=True)
         restricted = 0
 
-        if package_query.count() == 0:
+        # The packages number is written after all packages of an upload have been created.
+        # this should allow to abort mid upload packaging and continue later by removing
+        # all started packages first.
+        complete = cls.objects(upload_id=upload_id, packages__ne=-1).count() != 0
+
+        if not complete:
+            cls.objects(upload_id=upload_id).delete()
+
             def open_package_zip(package_entry: 'Package'):
                 return zipfile.ZipFile(
                     package_entry.package_path, 'w',
@@ -216,14 +224,14 @@ class Package(Document):
                     close_package(package_size, package_files)
 
             package_query = cls.objects(upload_id=upload_id)
-            package_query.update(restricted=restricted)
+            package_query.update(restricted=restricted, packages=package_query.count())
             logger.debug(
                 'packaged upload', source_upload_id=upload_id, source_upload_path=upload_path,
                 restricted=restricted)
 
             return package_query
         else:
-            return package_query
+            return cls.objects(upload_id=upload_id)
 
     @classmethod
     @contextmanager
