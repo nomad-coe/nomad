@@ -5,3 +5,4 @@ export NOMAD_FS_MIGRATION_PACKAGES=/nomad/fairdi/migration/fs/migration_packages
 export NOMAD_FS_STAGING=/nomad/fairdi/migration/fs/staging
 export NOMAD_FS_PUBLIC=/nomad/fairdi/migration/fs/public
 export NOMAD_FS_TMP=/nomad/fairdi/migration/fs/tmp
+export NOMAD_FS_LOCAL_TMP=/scratch/fairdi/tmp
