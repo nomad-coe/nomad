@@ -290,6 +290,7 @@ class Package(Document):
 
         with tarfile.TarFile.open(archive_path) as tar_file:
             tar_file.extractall(tmp_directory)
+        os.system('chmod -R 0755 %s/*' % tmp_directory)
 
         yield tmp_directory
 
@@ -961,7 +962,7 @@ class NomadCOEMigration:
                         package_id=package_entry.package_id)
             except Exception as e:
                 logger.error(
-                    'could create package from upload',
+                    'could not create package from upload',
                     upload_path=upload_path, exc_info=e)
             finally:
                 with cv:
