@@ -70,3 +70,33 @@
 [submodule "dependencies/parsers/octopus"]
 	path = dependencies/parsers/octopus
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-octopus
+[submodule "dependencies/parsers/phonopy"]
+	path = dependencies/parsers/phonopy
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-phonopy
+[submodule "dependencies/parsers/phonopy-library"]
+	path = dependencies/parsers/phonopy-library
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/phonopy
+[submodule "dependencies/parsers/gpaw"]
+	path = dependencies/parsers/gpaw
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gpaw
+[submodule "dependencies/parsers/atk"]
+	path = dependencies/parsers/atk
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-atk
+[submodule "dependencies/parsers/gulp"]
+	path = dependencies/parsers/gulp
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gulp
+[submodule "dependencies/parsers/siesta"]
+	path = dependencies/parsers/siesta
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-siesta
+[submodule "dependencies/parsers/elk"]
+	path = dependencies/parsers/elk
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-elk
+[submodule "dependencies/parsers/elastic"]
+	path = dependencies/parsers/elastic
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-elastic
+[submodule "dependencies/parsers/gamess"]
+	path = dependencies/parsers/gamess
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gamess
+[submodule "dependencies/parsers/turbomole"]
+	path = dependencies/parsers/turbomole
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-turbomole

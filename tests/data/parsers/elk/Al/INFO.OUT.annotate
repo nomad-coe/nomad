@@ -1,0 +1,993 @@
+# this file contains ANSI colors; use 'less -R' to view it
+       parser_elk.py:0161    root matcher      no|+----------------------------+
+       parser_elk.py:0161          header p_start|[7m| Elk version [31m4.0.15[39;49m started [27m|[0m
+       parser_elk.py:0161          header      no|+----------------------------+
+       parser_elk.py:0161          header      no|
+       parser_elk.py:0161          header      no|Date (YYYY-MM-DD) : 2016-08-03
+       parser_elk.py:0161          header      no|Time (hh:mm:ss)   : 10:33:05
+       parser_elk.py:0161          header      no|
+       parser_elk.py:0161          header      no|Notes :
+       parser_elk.py:0161          header      no| Simple calculation of the ground state of aluminium. Must check convergence    
+       parser_elk.py:0161          header      no| with respect to k-point set later.                                             
+       parser_elk.py:0161          header      no| Run by H. Golightly                                                            
+       parser_elk.py:0161          header      no|
+       parser_elk.py:0161          header      no|All units are atomic (Hartree, Bohr, etc.)
+       parser_elk.py:0161          header      no|
+       parser_elk.py:0161          header      no|+-------------------------------------------------+
+       parser_elk.py:0103           input   start|[7m| Ground-state run starting from atomic densities |
+[27m       parser_elk.py:0103           input      no|+-------------------------------------------------+
+       parser_elk.py:0103           input      no|
+       parser_elk.py:0063         UNNAMED p_start|[7mLattice vectors :[27m[0m
+       parser_elk.py:0063         UNNAMED p_start|[7m   [31m3.826700000[39;49m       [31m3.826700000[39;49m       [31m0.000000000[39;49m[27m    [0m
+       parser_elk.py:0063         UNNAMED p_start|[7m   [31m3.826700000[39;49m       [31m0.000000000[39;49m       [31m3.826700000[39;49m[27m    [0m
+       parser_elk.py:0063         UNNAMED p_start|[7m   [31m0.000000000[39;49m       [31m3.826700000[39;49m       [31m3.826700000[39;49m[27m    [0m
+       parser_elk.py:0063         UNNAMED      no|
+       parser_elk.py:0069         UNNAMED p_start|[7mReciprocal lattice vectors :[27m[0m
+       parser_elk.py:0069         UNNAMED p_start|[7m  [31m0.8209665387[39;49m      [31m0.8209665387[39;49m     [31m-0.8209665387[39;49m[27m    [0m
+       parser_elk.py:0069         UNNAMED p_start|[7m  [31m0.8209665387[39;49m     [31m-0.8209665387[39;49m      [31m0.8209665387[39;49m[27m    [0m
+       parser_elk.py:0069         UNNAMED p_start|[7m [31m-0.8209665387[39;49m      [31m0.8209665387[39;49m      [31m0.8209665387[39;49m[27m    [0m
+       parser_elk.py:0069         UNNAMED      no|
+       parser_elk.py:0071         UNNAMED p_start|[7mUnit cell volume      :    [31m112.0735800[39;49m[27m    [0m
+       parser_elk.py:0072         UNNAMED p_start|[7mBrillouin zone volume :    [31m2.213280003[39;49m[27m    [0m
+       parser_elk.py:0072         UNNAMED      no|
+       parser_elk.py:0079         UNNAMED p_start|[7mSpecies :    1 ([31mAl[39;49m)[27m[0m
+       parser_elk.py:0079         UNNAMED      no| parameters loaded from : Al.in
+       parser_elk.py:0079         UNNAMED      no| name : aluminium
+       parser_elk.py:0079         UNNAMED      no| nuclear charge    :   -13.00000000    
+       parser_elk.py:0079         UNNAMED      no| electronic charge :    13.00000000    
+       parser_elk.py:0079         UNNAMED      no| atomic mass :    49184.33492    
+       parser_elk.py:0075         UNNAMED p_start|[7m muffin-tin radius :    [31m2.200000000[39;49m[27m    [0m
+       parser_elk.py:0076         UNNAMED p_start|[7m number of radial points in muffin-tin :    [31m397[39;49m[27m[0m
+       parser_elk.py:0076         UNNAMED      no| number on inner part of muffin-tin    :    273
+       parser_elk.py:0079         UNNAMED   start|[7m atomic positions (lattice), magnetic fields (Cartesian) :
+[27m       parser_elk.py:0079         UNNAMED p_start|[7m   [31m1[39;49m :   [31m0.00000000[39;49m  [31m0.00000000[39;49m  [31m0.00000000[39;49m[27m    0.00000000  0.00000000  0.00000000[0m
+       parser_elk.py:0079         UNNAMED      no|
+       parser_elk.py:0079         UNNAMED      no|Total number of atoms per unit cell :    1
+       parser_elk.py:0079         UNNAMED      no|
+       parser_elk.py:0079         UNNAMED      no|Spin treatment :
+       parser_elk.py:0079         UNNAMED      no| spin-unpolarised
+       parser_elk.py:0079         UNNAMED      no|
+       parser_elk.py:0079         UNNAMED      no|Number of Bravais lattice symmetries :   48
+       parser_elk.py:0079         UNNAMED      no|Number of crystal symmetries         :   48
+       parser_elk.py:0079         UNNAMED      no|Crystal has inversion symmetry
+       parser_elk.py:0079         UNNAMED      no|Real symmetric eigensolver will be used
+       parser_elk.py:0079         UNNAMED      no|
+       parser_elk.py:0082         UNNAMED p_start|[7mk-point grid :      [31m4[39;49m     [31m4[39;49m     [31m4[39;49m[27m[0m
+       parser_elk.py:0083         UNNAMED p_start|[7mk-point offset :   [31m0.5000000000[39;49m      [31m0.5000000000[39;49m      [31m0.5000000000[39;49m[27m    [0m
+       parser_elk.py:0083         UNNAMED      no|k-point set is reduced with full crystal symmetry group
+       parser_elk.py:0084         UNNAMED p_start|[7mTotal number of k-points :       [31m10[39;49m[27m[0m
+       parser_elk.py:0084         UNNAMED      no|
+       parser_elk.py:0085         UNNAMED p_start|[7mMuffin-tin radius times maximum |G+k| :    [31m7.000000000[39;49m[27m    [0m
+       parser_elk.py:0085         UNNAMED      no| using average radius
+       parser_elk.py:0086         UNNAMED p_start|[7mMaximum |G+k| for APW functions       :    [31m3.181818182[39;49m[27m    [0m
+       parser_elk.py:0086         UNNAMED      no|Maximum (1/2)|G+k|^2                  :    5.061983471    
+       parser_elk.py:0087         UNNAMED p_start|[7mMaximum |G| for potential and density :    [31m12.00000000[39;49m[27m    [0m
+       parser_elk.py:0087         UNNAMED      no|Constant for pseudocharge density :    7
+       parser_elk.py:0087         UNNAMED      no|Radial integration step length :    4
+       parser_elk.py:0087         UNNAMED      no|
+       parser_elk.py:0088         UNNAMED p_start|[7mG-vector grid sizes :     [31m24[39;49m    [31m24[39;49m    [31m24[39;49m[27m[0m
+       parser_elk.py:0089         UNNAMED p_start|[7mNumber of G-vectors :     [31m3287[39;49m[27m[0m
+       parser_elk.py:0089         UNNAMED      no|
+       parser_elk.py:0092         UNNAMED   start|[7mMaximum angular momentum used for
+[27m       parser_elk.py:0092         UNNAMED p_start|[7m APW functions                      :    [31m8[39;49m[27m[0m
+       parser_elk.py:0092         UNNAMED      no| H and O matrix elements outer loop :    7
+       parser_elk.py:0092         UNNAMED      no| outer part of muffin-tin           :    7
+       parser_elk.py:0092         UNNAMED      no| inner part of muffin-tin           :    3
+       parser_elk.py:0092         UNNAMED      no|
+       parser_elk.py:0094         UNNAMED p_start|[7mTotal nuclear charge    :   [31m-13.00000000[39;49m[27m    [0m
+       parser_elk.py:0095         UNNAMED p_start|[7mTotal core charge       :    [31m4.000000000[39;49m[27m    [0m
+       parser_elk.py:0096         UNNAMED p_start|[7mTotal valence charge    :    [31m9.000000000[39;49m[27m    [0m
+       parser_elk.py:0096         UNNAMED      no|Total excess charge     :    0.000000000    
+       parser_elk.py:0097         UNNAMED p_start|[7mTotal electronic charge :    [31m13.00000000[39;49m[27m    [0m
+       parser_elk.py:0097         UNNAMED      no|
+       parser_elk.py:0098         UNNAMED p_start|[7mEffective Wigner radius, r_s :    [31m1.272009713[39;49m[27m    [0m
+       parser_elk.py:0098         UNNAMED      no|
+       parser_elk.py:0099         UNNAMED p_start|[7mNumber of empty states         :    [31m4[39;49m[27m[0m
+       parser_elk.py:0100         UNNAMED p_start|[7mTotal number of valence states :    [31m9[39;49m[27m[0m
+       parser_elk.py:0101         UNNAMED p_start|[7mTotal number of core states    :    [31m4[39;49m[27m[0m
+       parser_elk.py:0101         UNNAMED      no|
+       parser_elk.py:0102         UNNAMED p_start|[7mTotal number of local-orbitals :    [31m7[39;49m[27m[0m
+       parser_elk.py:0102         UNNAMED      no|
+       parser_elk.py:0102         UNNAMED      no|Exchange-correlation functional :      3     0     0
+       parser_elk.py:0102         UNNAMED      no| Perdew-Wang/Ceperley-Alder, Phys. Rev. B 45, 13244 (1992)
+       parser_elk.py:0102         UNNAMED      no| Local density approximation (LDA)
+       parser_elk.py:0102         UNNAMED      no|
+       parser_elk.py:0102         UNNAMED      no|Smearing type :    3
+       parser_elk.py:0102         UNNAMED      no| Fermi-Dirac
+       parser_elk.py:0103         UNNAMED p_start|[7mSmearing width :   [31m0.1000000000[39;49m[27mE-02[0m
+       parser_elk.py:0103         UNNAMED      no|Effective electronic temperature (K) :    315.7750425    
+       parser_elk.py:0103         UNNAMED      no|
+       parser_elk.py:0103         UNNAMED      no|Mixing type :    1
+       parser_elk.py:0103         UNNAMED      no| Adaptive linear mixing
+       parser_elk.py:0103         UNNAMED      no|
+       parser_elk.py:0103         UNNAMED      no|Density and potential initialised from atomic data
+       parser_elk.py:0103         UNNAMED      no|
+       parser_elk.py:0103         UNNAMED      no|+------------------------------+
+       parser_elk.py:0161 ation iteration p_start|[7m| Self-consistent loop started |[27m[0m
+       parser_elk.py:0161 ation iteration      no|+------------------------------+
+       parser_elk.py:0161 ation iteration      no|
+       parser_elk.py:0161 ation iteration      no|+--------------------+
+       parser_elk.py:0135       scfi totE p_start|[7m| Loop number :[27m    1 |[0m
+       parser_elk.py:0135       scfi totE      no|+--------------------+
+       parser_elk.py:0135       scfi totE      no|
+       parser_elk.py:0135       scfi totE      no|Energies :
+       parser_elk.py:0115         UNNAMED p_start|[7m Fermi                       :     [31m0.215413493034[39;49m[27m    [0m
+       parser_elk.py:0116         UNNAMED p_start|[7m sum of eigenvalues          :     [31m-129.458254279[39;49m[27m    [0m
+       parser_elk.py:0117         UNNAMED p_start|[7m electron kinetic            :      [31m241.701644717[39;49m[27m    [0m
+       parser_elk.py:0118         UNNAMED p_start|[7m core electron kinetic       :      [31m179.611645457[39;49m[27m    [0m
+       parser_elk.py:0119         UNNAMED p_start|[7m Coulomb                     :     [31m-466.138141516[39;49m[27m    [0m
+       parser_elk.py:0120         UNNAMED p_start|[7m Coulomb potential           :     [31m-347.809442717[39;49m[27m    [0m
+       parser_elk.py:0121         UNNAMED p_start|[7m nuclear-nuclear             :     [31m-42.2830580138[39;49m[27m    [0m
+       parser_elk.py:0122         UNNAMED p_start|[7m electron-nuclear            :     [31m-499.900724288[39;49m[27m    [0m
+       parser_elk.py:0123         UNNAMED p_start|[7m Hartree                     :      [31m76.0456407855[39;49m[27m    [0m
+       parser_elk.py:0124         UNNAMED p_start|[7m Madelung                    :     [31m-292.233420158[39;49m[27m    [0m
+       parser_elk.py:0125         UNNAMED p_start|[7m xc potential                :     [31m-23.3504562794[39;49m[27m    [0m
+       parser_elk.py:0126         UNNAMED p_start|[7m exchange                    :     [31m-16.6911650609[39;49m[27m    [0m
+       parser_elk.py:0127         UNNAMED p_start|[7m correlation                 :    [31m-0.988204423318[39;49m[27m    [0m
+       parser_elk.py:0128         UNNAMED p_start|[7m electron entropic           :    [31m-0.260340444522[39;49m[27mE-03[0m
+       parser_elk.py:0129         UNNAMED p_start|[7m total energy                :     [31m-242.116126624[39;49m[27m    [0m
+       parser_elk.py:0129         UNNAMED      no|
+       parser_elk.py:0130         UNNAMED p_start|[7mDensity of states at Fermi energy :    [31m93.79381046[39;49m[27m    [0m
+       parser_elk.py:0130         UNNAMED      no| (states/Hartree/unit cell)
+       parser_elk.py:0130         UNNAMED      no|
+       parser_elk.py:0131         UNNAMED p_start|[7mEstimated indirect band gap :   [31m0.3679077322[39;49m[27mE-01[0m
+       parser_elk.py:0131         UNNAMED      no| from k-point      9 to k-point      7
+       parser_elk.py:0132         UNNAMED p_start|[7mEstimated direct band gap   :   [31m0.8695883208[39;49m[27mE-01[0m
+       parser_elk.py:0132         UNNAMED      no| at k-point      6
+       parser_elk.py:0132         UNNAMED      no|
+       parser_elk.py:0132         UNNAMED      no|Charges :
+       parser_elk.py:0133         UNNAMED p_start|[7m core                        :    [31m4.000000000[39;49m[27m    [0m
+       parser_elk.py:0134         UNNAMED p_start|[7m valence                     :    [31m9.000000000[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED p_start|[7m interstitial                :    [31m1.787254820[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED      no| muffin-tins (core leakage)
+       parser_elk.py:0135         UNNAMED      no|  species :    1 (Al)
+       parser_elk.py:0135         UNNAMED      no|   atom    1                 :    11.21274518     (  0.5217320705E-03)
+       parser_elk.py:0135         UNNAMED      no| total in muffin-tins        :    11.21274518    
+       parser_elk.py:0135         UNNAMED      no| total calculated charge     :    12.99035933    
+       parser_elk.py:0135         UNNAMED      no| total charge                :    13.00000000    
+       parser_elk.py:0135         UNNAMED      no| error                       :   0.9640672526E-02
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|Time (CPU seconds) :         0.39
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|+--------------------+
+       parser_elk.py:0135       scfi totE p_start|[7m| Loop number :[27m    2 |[0m
+       parser_elk.py:0135       scfi totE      no|+--------------------+
+       parser_elk.py:0135       scfi totE      no|
+       parser_elk.py:0135       scfi totE      no|Energies :
+       parser_elk.py:0115         UNNAMED p_start|[7m Fermi                       :     [31m0.220533363087[39;49m[27m    [0m
+       parser_elk.py:0116         UNNAMED p_start|[7m sum of eigenvalues          :     [31m-129.438329032[39;49m[27m    [0m
+       parser_elk.py:0117         UNNAMED p_start|[7m electron kinetic            :      [31m241.733476828[39;49m[27m    [0m
+       parser_elk.py:0118         UNNAMED p_start|[7m core electron kinetic       :      [31m179.617408085[39;49m[27m    [0m
+       parser_elk.py:0119         UNNAMED p_start|[7m Coulomb                     :     [31m-466.168724793[39;49m[27m    [0m
+       parser_elk.py:0120         UNNAMED p_start|[7m Coulomb potential           :     [31m-347.818104100[39;49m[27m    [0m
+       parser_elk.py:0121         UNNAMED p_start|[7m nuclear-nuclear             :     [31m-42.2830580138[39;49m[27m    [0m
+       parser_elk.py:0122         UNNAMED p_start|[7m electron-nuclear            :     [31m-499.953229457[39;49m[27m    [0m
+       parser_elk.py:0123         UNNAMED p_start|[7m Hartree                     :      [31m76.0675626783[39;49m[27m    [0m
+       parser_elk.py:0124         UNNAMED p_start|[7m Madelung                    :     [31m-292.259672742[39;49m[27m    [0m
+       parser_elk.py:0125         UNNAMED p_start|[7m xc potential                :     [31m-23.3537017594[39;49m[27m    [0m
+       parser_elk.py:0126         UNNAMED p_start|[7m exchange                    :     [31m-16.6935508140[39;49m[27m    [0m
+       parser_elk.py:0127         UNNAMED p_start|[7m correlation                 :    [31m-0.988266279303[39;49m[27m    [0m
+       parser_elk.py:0128         UNNAMED p_start|[7m electron entropic           :    [31m-0.260334804942[39;49m[27mE-03[0m
+       parser_elk.py:0129         UNNAMED p_start|[7m total energy                :     [31m-242.117325393[39;49m[27m    [0m
+       parser_elk.py:0129         UNNAMED      no|
+       parser_elk.py:0130         UNNAMED p_start|[7mDensity of states at Fermi energy :    [31m93.79313701[39;49m[27m    [0m
+       parser_elk.py:0130         UNNAMED      no| (states/Hartree/unit cell)
+       parser_elk.py:0130         UNNAMED      no|
+       parser_elk.py:0131         UNNAMED p_start|[7mEstimated indirect band gap :   [31m0.3680449606[39;49m[27mE-01[0m
+       parser_elk.py:0131         UNNAMED      no| from k-point      9 to k-point      7
+       parser_elk.py:0132         UNNAMED p_start|[7mEstimated direct band gap   :   [31m0.8695520291[39;49m[27mE-01[0m
+       parser_elk.py:0132         UNNAMED      no| at k-point      6
+       parser_elk.py:0132         UNNAMED      no|
+       parser_elk.py:0132         UNNAMED      no|Charges :
+       parser_elk.py:0133         UNNAMED p_start|[7m core                        :    [31m4.000000000[39;49m[27m    [0m
+       parser_elk.py:0134         UNNAMED p_start|[7m valence                     :    [31m9.000000000[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED p_start|[7m interstitial                :    [31m1.785934033[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED      no| muffin-tins (core leakage)
+       parser_elk.py:0135         UNNAMED      no|  species :    1 (Al)
+       parser_elk.py:0135         UNNAMED      no|   atom    1                 :    11.21406597     (  0.5185852206E-03)
+       parser_elk.py:0135         UNNAMED      no| total in muffin-tins        :    11.21406597    
+       parser_elk.py:0135         UNNAMED      no| total calculated charge     :    12.99036070    
+       parser_elk.py:0135         UNNAMED      no| total charge                :    13.00000000    
+       parser_elk.py:0135         UNNAMED      no| error                       :   0.9639295173E-02
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|RMS change in Kohn-Sham potential (target) :   0.1498680606     (  0.1000000000E-05)
+       parser_elk.py:0135         UNNAMED      no|Absolute change in total energy (target)   :   0.1198769544E-02 (  0.1000000000E-03)
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|Time (CPU seconds) :         0.47
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|+--------------------+
+       parser_elk.py:0135       scfi totE p_start|[7m| Loop number :[27m    3 |[0m
+       parser_elk.py:0135       scfi totE      no|+--------------------+
+       parser_elk.py:0135       scfi totE      no|
+       parser_elk.py:0135       scfi totE      no|Energies :
+       parser_elk.py:0115         UNNAMED p_start|[7m Fermi                       :     [31m0.227461996191[39;49m[27m    [0m
+       parser_elk.py:0116         UNNAMED p_start|[7m sum of eigenvalues          :     [31m-129.408444359[39;49m[27m    [0m
+       parser_elk.py:0117         UNNAMED p_start|[7m electron kinetic            :      [31m241.777914729[39;49m[27m    [0m
+       parser_elk.py:0118         UNNAMED p_start|[7m core electron kinetic       :      [31m179.623945696[39;49m[27m    [0m
+       parser_elk.py:0119         UNNAMED p_start|[7m Coulomb                     :     [31m-466.206976186[39;49m[27m    [0m
+       parser_elk.py:0120         UNNAMED p_start|[7m Coulomb potential           :     [31m-347.828563939[39;49m[27m    [0m
+       parser_elk.py:0121         UNNAMED p_start|[7m nuclear-nuclear             :     [31m-42.2830580138[39;49m[27m    [0m
+       parser_elk.py:0122         UNNAMED p_start|[7m electron-nuclear            :     [31m-500.019272406[39;49m[27m    [0m
+       parser_elk.py:0123         UNNAMED p_start|[7m Hartree                     :      [31m76.0953542335[39;49m[27m    [0m
+       parser_elk.py:0124         UNNAMED p_start|[7m Madelung                    :     [31m-292.292694217[39;49m[27m    [0m
+       parser_elk.py:0125         UNNAMED p_start|[7m xc potential                :     [31m-23.3577951488[39;49m[27m    [0m
+       parser_elk.py:0126         UNNAMED p_start|[7m exchange                    :     [31m-16.6965594216[39;49m[27m    [0m
+       parser_elk.py:0127         UNNAMED p_start|[7m correlation                 :    [31m-0.988344850478[39;49m[27m    [0m
+       parser_elk.py:0128         UNNAMED p_start|[7m electron entropic           :    [31m-0.260327947344[39;49m[27mE-03[0m
+       parser_elk.py:0129         UNNAMED p_start|[7m total energy                :     [31m-242.114226057[39;49m[27m    [0m
+       parser_elk.py:0129         UNNAMED      no|
+       parser_elk.py:0130         UNNAMED p_start|[7mDensity of states at Fermi energy :    [31m93.79231979[39;49m[27m    [0m
+       parser_elk.py:0130         UNNAMED      no| (states/Hartree/unit cell)
+       parser_elk.py:0130         UNNAMED      no|
+       parser_elk.py:0131         UNNAMED p_start|[7mEstimated indirect band gap :   [31m0.3682288009[39;49m[27mE-01[0m
+       parser_elk.py:0131         UNNAMED      no| from k-point      9 to k-point      7
+       parser_elk.py:0132         UNNAMED p_start|[7mEstimated direct band gap   :   [31m0.8695035160[39;49m[27mE-01[0m
+       parser_elk.py:0132         UNNAMED      no| at k-point      6
+       parser_elk.py:0132         UNNAMED      no|
+       parser_elk.py:0132         UNNAMED      no|Charges :
+       parser_elk.py:0133         UNNAMED p_start|[7m core                        :    [31m4.000000000[39;49m[27m    [0m
+       parser_elk.py:0134         UNNAMED p_start|[7m valence                     :    [31m9.000000000[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED p_start|[7m interstitial                :    [31m1.784199860[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED      no| muffin-tins (core leakage)
+       parser_elk.py:0135         UNNAMED      no|  species :    1 (Al)
+       parser_elk.py:0135         UNNAMED      no|   atom    1                 :    11.21580014     (  0.5145179352E-03)
+       parser_elk.py:0135         UNNAMED      no| total in muffin-tins        :    11.21580014    
+       parser_elk.py:0135         UNNAMED      no| total calculated charge     :    12.99036341    
+       parser_elk.py:0135         UNNAMED      no| total charge                :    13.00000000    
+       parser_elk.py:0135         UNNAMED      no| error                       :   0.9636590521E-02
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|RMS change in Kohn-Sham potential (target) :   0.1274020150     (  0.1000000000E-05)
+       parser_elk.py:0135         UNNAMED      no|Absolute change in total energy (target)   :   0.2799643479E-02 (  0.1000000000E-03)
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|Time (CPU seconds) :         0.57
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|+--------------------+
+       parser_elk.py:0135       scfi totE p_start|[7m| Loop number :[27m    4 |[0m
+       parser_elk.py:0135       scfi totE      no|+--------------------+
+       parser_elk.py:0135       scfi totE      no|
+       parser_elk.py:0135       scfi totE      no|Energies :
+       parser_elk.py:0115         UNNAMED p_start|[7m Fermi                       :     [31m0.235343100742[39;49m[27m    [0m
+       parser_elk.py:0116         UNNAMED p_start|[7m sum of eigenvalues          :     [31m-129.369866489[39;49m[27m    [0m
+       parser_elk.py:0117         UNNAMED p_start|[7m electron kinetic            :      [31m241.830537299[39;49m[27m    [0m
+       parser_elk.py:0118         UNNAMED p_start|[7m core electron kinetic       :      [31m179.629828165[39;49m[27m    [0m
+       parser_elk.py:0119         UNNAMED p_start|[7m Coulomb                     :     [31m-466.245397261[39;49m[27m    [0m
+       parser_elk.py:0120         UNNAMED p_start|[7m Coulomb potential           :     [31m-347.838438974[39;49m[27m    [0m
+       parser_elk.py:0121         UNNAMED p_start|[7m nuclear-nuclear             :     [31m-42.2830580138[39;49m[27m    [0m
+       parser_elk.py:0122         UNNAMED p_start|[7m electron-nuclear            :     [31m-500.086239520[39;49m[27m    [0m
+       parser_elk.py:0123         UNNAMED p_start|[7m Hartree                     :      [31m76.1239002733[39;49m[27m    [0m
+       parser_elk.py:0124         UNNAMED p_start|[7m Madelung                    :     [31m-292.326177774[39;49m[27m    [0m
+       parser_elk.py:0125         UNNAMED p_start|[7m xc potential                :     [31m-23.3619648139[39;49m[27m    [0m
+       parser_elk.py:0126         UNNAMED p_start|[7m exchange                    :     [31m-16.6996233655[39;49m[27m    [0m
+       parser_elk.py:0127         UNNAMED p_start|[7m correlation                 :    [31m-0.988425792769[39;49m[27m    [0m
+       parser_elk.py:0128         UNNAMED p_start|[7m electron entropic           :    [31m-0.260321157853[39;49m[27mE-03[0m
+       parser_elk.py:0129         UNNAMED p_start|[7m total energy                :     [31m-242.103169442[39;49m[27m    [0m
+       parser_elk.py:0129         UNNAMED      no|
+       parser_elk.py:0130         UNNAMED p_start|[7mDensity of states at Fermi energy :    [31m93.79151253[39;49m[27m    [0m
+       parser_elk.py:0130         UNNAMED      no| (states/Hartree/unit cell)
+       parser_elk.py:0130         UNNAMED      no|
+       parser_elk.py:0131         UNNAMED p_start|[7mEstimated indirect band gap :   [31m0.3684345581[39;49m[27mE-01[0m
+       parser_elk.py:0131         UNNAMED      no| from k-point      9 to k-point      7
+       parser_elk.py:0132         UNNAMED p_start|[7mEstimated direct band gap   :   [31m0.8694537864[39;49m[27mE-01[0m
+       parser_elk.py:0132         UNNAMED      no| at k-point      6
+       parser_elk.py:0132         UNNAMED      no|
+       parser_elk.py:0132         UNNAMED      no|Charges :
+       parser_elk.py:0133         UNNAMED p_start|[7m core                        :    [31m4.000000000[39;49m[27m    [0m
+       parser_elk.py:0134         UNNAMED p_start|[7m valence                     :    [31m9.000000000[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED p_start|[7m interstitial                :    [31m1.782320973[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED      no| muffin-tins (core leakage)
+       parser_elk.py:0135         UNNAMED      no|  species :    1 (Al)
+       parser_elk.py:0135         UNNAMED      no|   atom    1                 :    11.21767903     (  0.5101984586E-03)
+       parser_elk.py:0135         UNNAMED      no| total in muffin-tins        :    11.21767903    
+       parser_elk.py:0135         UNNAMED      no| total calculated charge     :    12.99036786    
+       parser_elk.py:0135         UNNAMED      no| total charge                :    13.00000000    
+       parser_elk.py:0135         UNNAMED      no| error                       :   0.9632136640E-02
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|RMS change in Kohn-Sham potential (target) :   0.1019800730     (  0.1000000000E-05)
+       parser_elk.py:0135         UNNAMED      no|Absolute change in total energy (target)   :   0.1175652643E-01 (  0.1000000000E-03)
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|Time (CPU seconds) :         0.66
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|+--------------------+
+       parser_elk.py:0135       scfi totE p_start|[7m| Loop number :[27m    5 |[0m
+       parser_elk.py:0135       scfi totE      no|+--------------------+
+       parser_elk.py:0135       scfi totE      no|
+       parser_elk.py:0135       scfi totE      no|Energies :
+       parser_elk.py:0115         UNNAMED p_start|[7m Fermi                       :     [31m0.243262785694[39;49m[27m    [0m
+       parser_elk.py:0116         UNNAMED p_start|[7m sum of eigenvalues          :     [31m-129.325201151[39;49m[27m    [0m
+       parser_elk.py:0117         UNNAMED p_start|[7m electron kinetic            :      [31m241.886467846[39;49m[27m    [0m
+       parser_elk.py:0118         UNNAMED p_start|[7m core electron kinetic       :      [31m179.634598851[39;49m[27m    [0m
+       parser_elk.py:0119         UNNAMED p_start|[7m Coulomb                     :     [31m-466.277670476[39;49m[27m    [0m
+       parser_elk.py:0120         UNNAMED p_start|[7m Coulomb potential           :     [31m-347.846158160[39;49m[27m    [0m
+       parser_elk.py:0121         UNNAMED p_start|[7m nuclear-nuclear             :     [31m-42.2830580138[39;49m[27m    [0m
+       parser_elk.py:0122         UNNAMED p_start|[7m electron-nuclear            :     [31m-500.143066764[39;49m[27m    [0m
+       parser_elk.py:0123         UNNAMED p_start|[7m Hartree                     :      [31m76.1484543019[39;49m[27m    [0m
+       parser_elk.py:0124         UNNAMED p_start|[7m Madelung                    :     [31m-292.354591396[39;49m[27m    [0m
+       parser_elk.py:0125         UNNAMED p_start|[7m xc potential                :     [31m-23.3655108366[39;49m[27m    [0m
+       parser_elk.py:0126         UNNAMED p_start|[7m exchange                    :     [31m-16.7022280784[39;49m[27m    [0m
+       parser_elk.py:0127         UNNAMED p_start|[7m correlation                 :    [31m-0.988495834769[39;49m[27m    [0m
+       parser_elk.py:0128         UNNAMED p_start|[7m electron entropic           :    [31m-0.260315432869[39;49m[27mE-03[0m
+       parser_elk.py:0129         UNNAMED p_start|[7m total energy                :     [31m-242.082186859[39;49m[27m    [0m
+       parser_elk.py:0129         UNNAMED      no|
+       parser_elk.py:0130         UNNAMED p_start|[7mDensity of states at Fermi energy :    [31m93.79083328[39;49m[27m    [0m
+       parser_elk.py:0130         UNNAMED      no| (states/Hartree/unit cell)
+       parser_elk.py:0130         UNNAMED      no|
+       parser_elk.py:0131         UNNAMED p_start|[7mEstimated indirect band gap :   [31m0.3686382351[39;49m[27mE-01[0m
+       parser_elk.py:0131         UNNAMED      no| from k-point      9 to k-point      7
+       parser_elk.py:0132         UNNAMED p_start|[7mEstimated direct band gap   :   [31m0.8694136537[39;49m[27mE-01[0m
+       parser_elk.py:0132         UNNAMED      no| at k-point      6
+       parser_elk.py:0132         UNNAMED      no|
+       parser_elk.py:0132         UNNAMED      no|Charges :
+       parser_elk.py:0133         UNNAMED p_start|[7m core                        :    [31m4.000000000[39;49m[27m    [0m
+       parser_elk.py:0134         UNNAMED p_start|[7m valence                     :    [31m9.000000000[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED p_start|[7m interstitial                :    [31m1.780559669[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED      no| muffin-tins (core leakage)
+       parser_elk.py:0135         UNNAMED      no|  species :    1 (Al)
+       parser_elk.py:0135         UNNAMED      no|   atom    1                 :    11.21944033     (  0.5062331018E-03)
+       parser_elk.py:0135         UNNAMED      no| total in muffin-tins        :    11.21944033    
+       parser_elk.py:0135         UNNAMED      no| total calculated charge     :    12.99037422    
+       parser_elk.py:0135         UNNAMED      no| total charge                :    13.00000000    
+       parser_elk.py:0135         UNNAMED      no| error                       :   0.9625779616E-02
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|RMS change in Kohn-Sham potential (target) :   0.7658690802E-01 (  0.1000000000E-05)
+       parser_elk.py:0135         UNNAMED      no|Absolute change in total energy (target)   :   0.2392171444E-01 (  0.1000000000E-03)
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|Time (CPU seconds) :         0.75
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|+--------------------+
+       parser_elk.py:0135       scfi totE p_start|[7m| Loop number :[27m    6 |[0m
+       parser_elk.py:0135       scfi totE      no|+--------------------+
+       parser_elk.py:0135       scfi totE      no|
+       parser_elk.py:0135       scfi totE      no|Energies :
+       parser_elk.py:0115         UNNAMED p_start|[7m Fermi                       :     [31m0.250433003052[39;49m[27m    [0m
+       parser_elk.py:0116         UNNAMED p_start|[7m sum of eigenvalues          :     [31m-129.278218804[39;49m[27m    [0m
+       parser_elk.py:0117         UNNAMED p_start|[7m electron kinetic            :      [31m241.940457286[39;49m[27m    [0m
+       parser_elk.py:0118         UNNAMED p_start|[7m core electron kinetic       :      [31m179.638306129[39;49m[27m    [0m
+       parser_elk.py:0119         UNNAMED p_start|[7m Coulomb                     :     [31m-466.299902224[39;49m[27m    [0m
+       parser_elk.py:0120         UNNAMED p_start|[7m Coulomb potential           :     [31m-347.850656294[39;49m[27m    [0m
+       parser_elk.py:0121         UNNAMED p_start|[7m nuclear-nuclear             :     [31m-42.2830580138[39;49m[27m    [0m
+       parser_elk.py:0122         UNNAMED p_start|[7m electron-nuclear            :     [31m-500.183032125[39;49m[27m    [0m
+       parser_elk.py:0123         UNNAMED p_start|[7m Hartree                     :      [31m76.1661879155[39;49m[27m    [0m
+       parser_elk.py:0124         UNNAMED p_start|[7m Madelung                    :     [31m-292.374574076[39;49m[27m    [0m
+       parser_elk.py:0125         UNNAMED p_start|[7m xc potential                :     [31m-23.3680197952[39;49m[27m    [0m
+       parser_elk.py:0126         UNNAMED p_start|[7m exchange                    :     [31m-16.7040697111[39;49m[27m    [0m
+       parser_elk.py:0127         UNNAMED p_start|[7m correlation                 :    [31m-0.988547026652[39;49m[27m    [0m
+       parser_elk.py:0128         UNNAMED p_start|[7m electron entropic           :    [31m-0.260311187604[39;49m[27mE-03[0m
+       parser_elk.py:0129         UNNAMED p_start|[7m total energy                :     [31m-242.052321987[39;49m[27m    [0m
+       parser_elk.py:0129         UNNAMED      no|
+       parser_elk.py:0130         UNNAMED p_start|[7mDensity of states at Fermi energy :    [31m93.79033045[39;49m[27m    [0m
+       parser_elk.py:0130         UNNAMED      no| (states/Hartree/unit cell)
+       parser_elk.py:0130         UNNAMED      no|
+       parser_elk.py:0131         UNNAMED p_start|[7mEstimated indirect band gap :   [31m0.3688198307[39;49m[27mE-01[0m
+       parser_elk.py:0131         UNNAMED      no| from k-point      9 to k-point      7
+       parser_elk.py:0132         UNNAMED p_start|[7mEstimated direct band gap   :   [31m0.8693915259[39;49m[27mE-01[0m
+       parser_elk.py:0132         UNNAMED      no| at k-point      6
+       parser_elk.py:0132         UNNAMED      no|
+       parser_elk.py:0132         UNNAMED      no|Charges :
+       parser_elk.py:0133         UNNAMED p_start|[7m core                        :    [31m4.000000000[39;49m[27m    [0m
+       parser_elk.py:0134         UNNAMED p_start|[7m valence                     :    [31m9.000000000[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED p_start|[7m interstitial                :    [31m1.779105233[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED      no| muffin-tins (core leakage)
+       parser_elk.py:0135         UNNAMED      no|  species :    1 (Al)
+       parser_elk.py:0135         UNNAMED      no|   atom    1                 :    11.22089477     (  0.5030235057E-03)
+       parser_elk.py:0135         UNNAMED      no| total in muffin-tins        :    11.22089477    
+       parser_elk.py:0135         UNNAMED      no| total calculated charge     :    12.99038200    
+       parser_elk.py:0135         UNNAMED      no| total charge                :    13.00000000    
+       parser_elk.py:0135         UNNAMED      no| error                       :   0.9617999762E-02
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|RMS change in Kohn-Sham potential (target) :   0.5374104026E-01 (  0.1000000000E-05)
+       parser_elk.py:0135         UNNAMED      no|Absolute change in total energy (target)   :   0.3584530053E-01 (  0.1000000000E-03)
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|Time (CPU seconds) :         0.84
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|+--------------------+
+       parser_elk.py:0135       scfi totE p_start|[7m| Loop number :[27m    7 |[0m
+       parser_elk.py:0135       scfi totE      no|+--------------------+
+       parser_elk.py:0135       scfi totE      no|
+       parser_elk.py:0135       scfi totE      no|Energies :
+       parser_elk.py:0115         UNNAMED p_start|[7m Fermi                       :     [31m0.256327953199[39;49m[27m    [0m
+       parser_elk.py:0116         UNNAMED p_start|[7m sum of eigenvalues          :     [31m-129.233592122[39;49m[27m    [0m
+       parser_elk.py:0117         UNNAMED p_start|[7m electron kinetic            :      [31m241.987810094[39;49m[27m    [0m
+       parser_elk.py:0118         UNNAMED p_start|[7m core electron kinetic       :      [31m179.641276158[39;49m[27m    [0m
+       parser_elk.py:0119         UNNAMED p_start|[7m Coulomb                     :     [31m-466.311772689[39;49m[27m    [0m
+       parser_elk.py:0120         UNNAMED p_start|[7m Coulomb potential           :     [31m-347.851945403[39;49m[27m    [0m
+       parser_elk.py:0121         UNNAMED p_start|[7m nuclear-nuclear             :     [31m-42.2830580138[39;49m[27m    [0m
+       parser_elk.py:0122         UNNAMED p_start|[7m electron-nuclear            :     [31m-500.205483947[39;49m[27m    [0m
+       parser_elk.py:0123         UNNAMED p_start|[7m Hartree                     :      [31m76.1767692721[39;49m[27m    [0m
+       parser_elk.py:0124         UNNAMED p_start|[7m Madelung                    :     [31m-292.385799987[39;49m[27m    [0m
+       parser_elk.py:0125         UNNAMED p_start|[7m xc potential                :     [31m-23.3694568132[39;49m[27m    [0m
+       parser_elk.py:0126         UNNAMED p_start|[7m exchange                    :     [31m-16.7051229493[39;49m[27m    [0m
+       parser_elk.py:0127         UNNAMED p_start|[7m correlation                 :    [31m-0.988578302001[39;49m[27m    [0m
+       parser_elk.py:0128         UNNAMED p_start|[7m electron entropic           :    [31m-0.260308379960[39;49m[27mE-03[0m
+       parser_elk.py:0129         UNNAMED p_start|[7m total energy                :     [31m-242.017924155[39;49m[27m    [0m
+       parser_elk.py:0129         UNNAMED      no|
+       parser_elk.py:0130         UNNAMED p_start|[7mDensity of states at Fermi energy :    [31m93.78999830[39;49m[27m    [0m
+       parser_elk.py:0130         UNNAMED      no| (states/Hartree/unit cell)
+       parser_elk.py:0130         UNNAMED      no|
+       parser_elk.py:0131         UNNAMED p_start|[7mEstimated indirect band gap :   [31m0.3689669567[39;49m[27mE-01[0m
+       parser_elk.py:0131         UNNAMED      no| from k-point      9 to k-point      7
+       parser_elk.py:0132         UNNAMED p_start|[7mEstimated direct band gap   :   [31m0.8693886753[39;49m[27mE-01[0m
+       parser_elk.py:0132         UNNAMED      no| at k-point      6
+       parser_elk.py:0132         UNNAMED      no|
+       parser_elk.py:0132         UNNAMED      no|Charges :
+       parser_elk.py:0133         UNNAMED p_start|[7m core                        :    [31m4.000000000[39;49m[27m    [0m
+       parser_elk.py:0134         UNNAMED p_start|[7m valence                     :    [31m9.000000000[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED p_start|[7m interstitial                :    [31m1.778038149[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED      no| muffin-tins (core leakage)
+       parser_elk.py:0135         UNNAMED      no|  species :    1 (Al)
+       parser_elk.py:0135         UNNAMED      no|   atom    1                 :    11.22196185     (  0.5007057386E-03)
+       parser_elk.py:0135         UNNAMED      no| total in muffin-tins        :    11.22196185    
+       parser_elk.py:0135         UNNAMED      no| total calculated charge     :    12.99039016    
+       parser_elk.py:0135         UNNAMED      no| total charge                :    13.00000000    
+       parser_elk.py:0135         UNNAMED      no| error                       :   0.9609837378E-02
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|RMS change in Kohn-Sham potential (target) :   0.3506275469E-01 (  0.1000000000E-05)
+       parser_elk.py:0135         UNNAMED      no|Absolute change in total energy (target)   :   0.4335915746E-01 (  0.1000000000E-03)
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|Time (CPU seconds) :         0.94
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|+--------------------+
+       parser_elk.py:0135       scfi totE p_start|[7m| Loop number :[27m    8 |[0m
+       parser_elk.py:0135       scfi totE      no|+--------------------+
+       parser_elk.py:0135       scfi totE      no|
+       parser_elk.py:0135       scfi totE      no|Energies :
+       parser_elk.py:0115         UNNAMED p_start|[7m Fermi                       :     [31m0.260737951022[39;49m[27m    [0m
+       parser_elk.py:0116         UNNAMED p_start|[7m sum of eigenvalues          :     [31m-129.195645050[39;49m[27m    [0m
+       parser_elk.py:0117         UNNAMED p_start|[7m electron kinetic            :      [31m242.025442370[39;49m[27m    [0m
+       parser_elk.py:0118         UNNAMED p_start|[7m core electron kinetic       :      [31m179.643825162[39;49m[27m    [0m
+       parser_elk.py:0119         UNNAMED p_start|[7m Coulomb                     :     [31m-466.315837562[39;49m[27m    [0m
+       parser_elk.py:0120         UNNAMED p_start|[7m Coulomb potential           :     [31m-347.851013207[39;49m[27m    [0m
+       parser_elk.py:0121         UNNAMED p_start|[7m nuclear-nuclear             :     [31m-42.2830580138[39;49m[27m    [0m
+       parser_elk.py:0122         UNNAMED p_start|[7m electron-nuclear            :     [31m-500.214545891[39;49m[27m    [0m
+       parser_elk.py:0123         UNNAMED p_start|[7m Hartree                     :      [31m76.1817663420[39;49m[27m    [0m
+       parser_elk.py:0124         UNNAMED p_start|[7m Madelung                    :     [31m-292.390330959[39;49m[27m    [0m
+       parser_elk.py:0125         UNNAMED p_start|[7m xc potential                :     [31m-23.3700742143[39;49m[27m    [0m
+       parser_elk.py:0126         UNNAMED p_start|[7m exchange                    :     [31m-16.7055737771[39;49m[27m    [0m
+       parser_elk.py:0127         UNNAMED p_start|[7m correlation                 :    [31m-0.988593845529[39;49m[27m    [0m
+       parser_elk.py:0128         UNNAMED p_start|[7m electron entropic           :    [31m-0.260306726224[39;49m[27mE-03[0m
+       parser_elk.py:0129         UNNAMED p_start|[7m total energy                :     [31m-241.984823121[39;49m[27m    [0m
+       parser_elk.py:0129         UNNAMED      no|
+       parser_elk.py:0130         UNNAMED p_start|[7mDensity of states at Fermi energy :    [31m93.78980281[39;49m[27m    [0m
+       parser_elk.py:0130         UNNAMED      no| (states/Hartree/unit cell)
+       parser_elk.py:0130         UNNAMED      no|
+       parser_elk.py:0131         UNNAMED p_start|[7mEstimated indirect band gap :   [31m0.3690757046[39;49m[27mE-01[0m
+       parser_elk.py:0131         UNNAMED      no| from k-point      9 to k-point      7
+       parser_elk.py:0132         UNNAMED p_start|[7mEstimated direct band gap   :   [31m0.8693993451[39;49m[27mE-01[0m
+       parser_elk.py:0132         UNNAMED      no| at k-point      6
+       parser_elk.py:0132         UNNAMED      no|
+       parser_elk.py:0132         UNNAMED      no|Charges :
+       parser_elk.py:0133         UNNAMED p_start|[7m core                        :    [31m4.000000000[39;49m[27m    [0m
+       parser_elk.py:0134         UNNAMED p_start|[7m valence                     :    [31m9.000000000[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED p_start|[7m interstitial                :    [31m1.777338919[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED      no| muffin-tins (core leakage)
+       parser_elk.py:0135         UNNAMED      no|  species :    1 (Al)
+       parser_elk.py:0135         UNNAMED      no|   atom    1                 :    11.22266108     (  0.4991973807E-03)
+       parser_elk.py:0135         UNNAMED      no| total in muffin-tins        :    11.22266108    
+       parser_elk.py:0135         UNNAMED      no| total calculated charge     :    12.99039752    
+       parser_elk.py:0135         UNNAMED      no| total charge                :    13.00000000    
+       parser_elk.py:0135         UNNAMED      no| error                       :   0.9602478257E-02
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|RMS change in Kohn-Sham potential (target) :   0.2114504095E-01 (  0.1000000000E-05)
+       parser_elk.py:0135         UNNAMED      no|Absolute change in total energy (target)   :   0.4394082265E-01 (  0.1000000000E-03)
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|Time (CPU seconds) :         1.03
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|+--------------------+
+       parser_elk.py:0135       scfi totE p_start|[7m| Loop number :[27m    9 |[0m
+       parser_elk.py:0135       scfi totE      no|+--------------------+
+       parser_elk.py:0135       scfi totE      no|
+       parser_elk.py:0135       scfi totE      no|Energies :
+       parser_elk.py:0115         UNNAMED p_start|[7m Fermi                       :     [31m0.263735621085[39;49m[27m    [0m
+       parser_elk.py:0116         UNNAMED p_start|[7m sum of eigenvalues          :     [31m-129.166960757[39;49m[27m    [0m
+       parser_elk.py:0117         UNNAMED p_start|[7m electron kinetic            :      [31m242.052408382[39;49m[27m    [0m
+       parser_elk.py:0118         UNNAMED p_start|[7m core electron kinetic       :      [31m179.646039257[39;49m[27m    [0m
+       parser_elk.py:0119         UNNAMED p_start|[7m Coulomb                     :     [31m-466.315632908[39;49m[27m    [0m
+       parser_elk.py:0120         UNNAMED p_start|[7m Coulomb potential           :     [31m-347.849147693[39;49m[27m    [0m
+       parser_elk.py:0121         UNNAMED p_start|[7m nuclear-nuclear             :     [31m-42.2830580138[39;49m[27m    [0m
+       parser_elk.py:0122         UNNAMED p_start|[7m electron-nuclear            :     [31m-500.216002095[39;49m[27m    [0m
+       parser_elk.py:0123         UNNAMED p_start|[7m Hartree                     :      [31m76.1834272011[39;49m[27m    [0m
+       parser_elk.py:0124         UNNAMED p_start|[7m Madelung                    :     [31m-292.391059062[39;49m[27m    [0m
+       parser_elk.py:0125         UNNAMED p_start|[7m xc potential                :     [31m-23.3702214458[39;49m[27m    [0m
+       parser_elk.py:0126         UNNAMED p_start|[7m exchange                    :     [31m-16.7056795123[39;49m[27m    [0m
+       parser_elk.py:0127         UNNAMED p_start|[7m correlation                 :    [31m-0.988599768890[39;49m[27m    [0m
+       parser_elk.py:0128         UNNAMED p_start|[7m electron entropic           :    [31m-0.260305874084[39;49m[27mE-03[0m
+       parser_elk.py:0129         UNNAMED p_start|[7m total energy                :     [31m-241.957764113[39;49m[27m    [0m
+       parser_elk.py:0129         UNNAMED      no|
+       parser_elk.py:0130         UNNAMED p_start|[7mDensity of states at Fermi energy :    [31m93.78970213[39;49m[27m    [0m
+       parser_elk.py:0130         UNNAMED      no| (states/Hartree/unit cell)
+       parser_elk.py:0130         UNNAMED      no|
+       parser_elk.py:0131         UNNAMED p_start|[7mEstimated indirect band gap :   [31m0.3691490571[39;49m[27mE-01[0m
+       parser_elk.py:0131         UNNAMED      no| from k-point      9 to k-point      7
+       parser_elk.py:0132         UNNAMED p_start|[7mEstimated direct band gap   :   [31m0.8694150917[39;49m[27mE-01[0m
+       parser_elk.py:0132         UNNAMED      no| at k-point      6
+       parser_elk.py:0132         UNNAMED      no|
+       parser_elk.py:0132         UNNAMED      no|Charges :
+       parser_elk.py:0133         UNNAMED p_start|[7m core                        :    [31m4.000000000[39;49m[27m    [0m
+       parser_elk.py:0134         UNNAMED p_start|[7m valence                     :    [31m9.000000000[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED p_start|[7m interstitial                :    [31m1.776928011[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED      no| muffin-tins (core leakage)
+       parser_elk.py:0135         UNNAMED      no|  species :    1 (Al)
+       parser_elk.py:0135         UNNAMED      no|   atom    1                 :    11.22307199     (  0.4983024910E-03)
+       parser_elk.py:0135         UNNAMED      no| total in muffin-tins        :    11.22307199    
+       parser_elk.py:0135         UNNAMED      no| total calculated charge     :    12.99040323    
+       parser_elk.py:0135         UNNAMED      no| total charge                :    13.00000000    
+       parser_elk.py:0135         UNNAMED      no| error                       :   0.9596767528E-02
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|RMS change in Kohn-Sham potential (target) :   0.1170351762E-01 (  0.1000000000E-05)
+       parser_elk.py:0135         UNNAMED      no|Absolute change in total energy (target)   :   0.3804421405E-01 (  0.1000000000E-03)
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|Time (CPU seconds) :         1.12
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|+--------------------+
+       parser_elk.py:0135       scfi totE p_start|[7m| Loop number :[27m   10 |[0m
+       parser_elk.py:0135       scfi totE      no|+--------------------+
+       parser_elk.py:0135       scfi totE      no|
+       parser_elk.py:0135       scfi totE      no|Energies :
+       parser_elk.py:0115         UNNAMED p_start|[7m Fermi                       :     [31m0.265579911211[39;49m[27m    [0m
+       parser_elk.py:0116         UNNAMED p_start|[7m sum of eigenvalues          :     [31m-129.147784360[39;49m[27m    [0m
+       parser_elk.py:0117         UNNAMED p_start|[7m electron kinetic            :      [31m242.069734152[39;49m[27m    [0m
+       parser_elk.py:0118         UNNAMED p_start|[7m core electron kinetic       :      [31m179.647828451[39;49m[27m    [0m
+       parser_elk.py:0119         UNNAMED p_start|[7m Coulomb                     :     [31m-466.314020069[39;49m[27m    [0m
+       parser_elk.py:0120         UNNAMED p_start|[7m Coulomb potential           :     [31m-347.847335602[39;49m[27m    [0m
+       parser_elk.py:0121         UNNAMED p_start|[7m nuclear-nuclear             :     [31m-42.2830580138[39;49m[27m    [0m
+       parser_elk.py:0122         UNNAMED p_start|[7m electron-nuclear            :     [31m-500.214588508[39;49m[27m    [0m
+       parser_elk.py:0123         UNNAMED p_start|[7m Hartree                     :      [31m76.1836264531[39;49m[27m    [0m
+       parser_elk.py:0124         UNNAMED p_start|[7m Madelung                    :     [31m-292.390352268[39;49m[27m    [0m
+       parser_elk.py:0125         UNNAMED p_start|[7m xc potential                :     [31m-23.3701829102[39;49m[27m    [0m
+       parser_elk.py:0126         UNNAMED p_start|[7m exchange                    :     [31m-16.7056494252[39;49m[27m    [0m
+       parser_elk.py:0127         UNNAMED p_start|[7m correlation                 :    [31m-0.988601234660[39;49m[27m    [0m
+       parser_elk.py:0128         UNNAMED p_start|[7m electron entropic           :    [31m-0.260305504718[39;49m[27mE-03[0m
+       parser_elk.py:0129         UNNAMED p_start|[7m total energy                :     [31m-241.938796882[39;49m[27m    [0m
+       parser_elk.py:0129         UNNAMED      no|
+       parser_elk.py:0130         UNNAMED p_start|[7mDensity of states at Fermi energy :    [31m93.78965849[39;49m[27m    [0m
+       parser_elk.py:0130         UNNAMED      no| (states/Hartree/unit cell)
+       parser_elk.py:0130         UNNAMED      no|
+       parser_elk.py:0131         UNNAMED p_start|[7mEstimated indirect band gap :   [31m0.3691940785[39;49m[27mE-01[0m
+       parser_elk.py:0131         UNNAMED      no| from k-point      9 to k-point      7
+       parser_elk.py:0132         UNNAMED p_start|[7mEstimated direct band gap   :   [31m0.8694293801[39;49m[27mE-01[0m
+       parser_elk.py:0132         UNNAMED      no| at k-point      6
+       parser_elk.py:0132         UNNAMED      no|
+       parser_elk.py:0132         UNNAMED      no|Charges :
+       parser_elk.py:0133         UNNAMED p_start|[7m core                        :    [31m4.000000000[39;49m[27m    [0m
+       parser_elk.py:0134         UNNAMED p_start|[7m valence                     :    [31m9.000000000[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED p_start|[7m interstitial                :    [31m1.776710844[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED      no| muffin-tins (core leakage)
+       parser_elk.py:0135         UNNAMED      no|  species :    1 (Al)
+       parser_elk.py:0135         UNNAMED      no|   atom    1                 :    11.22328916     (  0.4978125167E-03)
+       parser_elk.py:0135         UNNAMED      no| total in muffin-tins        :    11.22328916    
+       parser_elk.py:0135         UNNAMED      no| total calculated charge     :    12.99040705    
+       parser_elk.py:0135         UNNAMED      no| total charge                :    13.00000000    
+       parser_elk.py:0135         UNNAMED      no| error                       :   0.9592951561E-02
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|RMS change in Kohn-Sham potential (target) :   0.5895713568E-02 (  0.1000000000E-05)
+       parser_elk.py:0135         UNNAMED      no|Absolute change in total energy (target)   :   0.2847828394E-01 (  0.1000000000E-03)
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|Time (CPU seconds) :         1.21
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|+--------------------+
+       parser_elk.py:0135       scfi totE p_start|[7m| Loop number :[27m   11 |[0m
+       parser_elk.py:0135       scfi totE      no|+--------------------+
+       parser_elk.py:0135       scfi totE      no|
+       parser_elk.py:0135       scfi totE      no|Energies :
+       parser_elk.py:0115         UNNAMED p_start|[7m Fermi                       :     [31m0.266600835897[39;49m[27m    [0m
+       parser_elk.py:0116         UNNAMED p_start|[7m sum of eigenvalues          :     [31m-129.136484966[39;49m[27m    [0m
+       parser_elk.py:0117         UNNAMED p_start|[7m electron kinetic            :      [31m242.079659217[39;49m[27m    [0m
+       parser_elk.py:0118         UNNAMED p_start|[7m core electron kinetic       :      [31m179.649103915[39;49m[27m    [0m
+       parser_elk.py:0119         UNNAMED p_start|[7m Coulomb                     :     [31m-466.312525435[39;49m[27m    [0m
+       parser_elk.py:0120         UNNAMED p_start|[7m Coulomb potential           :     [31m-347.846029477[39;49m[27m    [0m
+       parser_elk.py:0121         UNNAMED p_start|[7m nuclear-nuclear             :     [31m-42.2830580138[39;49m[27m    [0m
+       parser_elk.py:0122         UNNAMED p_start|[7m electron-nuclear            :     [31m-500.212905366[39;49m[27m    [0m
+       parser_elk.py:0123         UNNAMED p_start|[7m Hartree                     :      [31m76.1834379447[39;49m[27m    [0m
+       parser_elk.py:0124         UNNAMED p_start|[7m Madelung                    :     [31m-292.389510697[39;49m[27m    [0m
+       parser_elk.py:0125         UNNAMED p_start|[7m xc potential                :     [31m-23.3701147065[39;49m[27m    [0m
+       parser_elk.py:0126         UNNAMED p_start|[7m exchange                    :     [31m-16.7055982216[39;49m[27m    [0m
+       parser_elk.py:0127         UNNAMED p_start|[7m correlation                 :    [31m-0.988601270089[39;49m[27m    [0m
+       parser_elk.py:0128         UNNAMED p_start|[7m electron entropic           :    [31m-0.260305381738[39;49m[27mE-03[0m
+       parser_elk.py:0129         UNNAMED p_start|[7m total energy                :     [31m-241.927326015[39;49m[27m    [0m
+       parser_elk.py:0129         UNNAMED      no|
+       parser_elk.py:0130         UNNAMED p_start|[7mDensity of states at Fermi energy :    [31m93.78964396[39;49m[27m    [0m
+       parser_elk.py:0130         UNNAMED      no| (states/Hartree/unit cell)
+       parser_elk.py:0130         UNNAMED      no|
+       parser_elk.py:0131         UNNAMED p_start|[7mEstimated indirect band gap :   [31m0.3692190717[39;49m[27mE-01[0m
+       parser_elk.py:0131         UNNAMED      no| from k-point      9 to k-point      7
+       parser_elk.py:0132         UNNAMED p_start|[7mEstimated direct band gap   :   [31m0.8694394044[39;49m[27mE-01[0m
+       parser_elk.py:0132         UNNAMED      no| at k-point      6
+       parser_elk.py:0132         UNNAMED      no|
+       parser_elk.py:0132         UNNAMED      no|Charges :
+       parser_elk.py:0133         UNNAMED p_start|[7m core                        :    [31m4.000000000[39;49m[27m    [0m
+       parser_elk.py:0134         UNNAMED p_start|[7m valence                     :    [31m9.000000000[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED p_start|[7m interstitial                :    [31m1.776607767[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED      no| muffin-tins (core leakage)
+       parser_elk.py:0135         UNNAMED      no|  species :    1 (Al)
+       parser_elk.py:0135         UNNAMED      no|   atom    1                 :    11.22339223     (  0.4975629894E-03)
+       parser_elk.py:0135         UNNAMED      no| total in muffin-tins        :    11.22339223    
+       parser_elk.py:0135         UNNAMED      no| total calculated charge     :    12.99040924    
+       parser_elk.py:0135         UNNAMED      no| total charge                :    13.00000000    
+       parser_elk.py:0135         UNNAMED      no| error                       :   0.9590756673E-02
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|RMS change in Kohn-Sham potential (target) :   0.2676748551E-02 (  0.1000000000E-05)
+       parser_elk.py:0135         UNNAMED      no|Absolute change in total energy (target)   :   0.1859043836E-01 (  0.1000000000E-03)
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|Time (CPU seconds) :         1.30
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|+--------------------+
+       parser_elk.py:0135       scfi totE p_start|[7m| Loop number :[27m   12 |[0m
+       parser_elk.py:0135       scfi totE      no|+--------------------+
+       parser_elk.py:0135       scfi totE      no|
+       parser_elk.py:0135       scfi totE      no|Energies :
+       parser_elk.py:0115         UNNAMED p_start|[7m Fermi                       :     [31m0.267105249827[39;49m[27m    [0m
+       parser_elk.py:0116         UNNAMED p_start|[7m sum of eigenvalues          :     [31m-129.130630265[39;49m[27m    [0m
+       parser_elk.py:0117         UNNAMED p_start|[7m electron kinetic            :      [31m242.084698168[39;49m[27m    [0m
+       parser_elk.py:0118         UNNAMED p_start|[7m core electron kinetic       :      [31m179.649888291[39;49m[27m    [0m
+       parser_elk.py:0119         UNNAMED p_start|[7m Coulomb                     :     [31m-466.311583666[39;49m[27m    [0m
+       parser_elk.py:0120         UNNAMED p_start|[7m Coulomb potential           :     [31m-347.845259801[39;49m[27m    [0m
+       parser_elk.py:0121         UNNAMED p_start|[7m nuclear-nuclear             :     [31m-42.2830580138[39;49m[27m    [0m
+       parser_elk.py:0122         UNNAMED p_start|[7m electron-nuclear            :     [31m-500.211791504[39;49m[27m    [0m
+       parser_elk.py:0123         UNNAMED p_start|[7m Hartree                     :      [31m76.1832658518[39;49m[27m    [0m
+       parser_elk.py:0124         UNNAMED p_start|[7m Madelung                    :     [31m-292.388953766[39;49m[27m    [0m
+       parser_elk.py:0125         UNNAMED p_start|[7m xc potential                :     [31m-23.3700686322[39;49m[27m    [0m
+       parser_elk.py:0126         UNNAMED p_start|[7m exchange                    :     [31m-16.7055637926[39;49m[27m    [0m
+       parser_elk.py:0127         UNNAMED p_start|[7m correlation                 :    [31m-0.988601093205[39;49m[27m    [0m
+       parser_elk.py:0128         UNNAMED p_start|[7m electron entropic           :    [31m-0.260305359678[39;49m[27mE-03[0m
+       parser_elk.py:0129         UNNAMED p_start|[7m total energy                :     [31m-241.921310689[39;49m[27m    [0m
+       parser_elk.py:0129         UNNAMED      no|
+       parser_elk.py:0130         UNNAMED p_start|[7mDensity of states at Fermi energy :    [31m93.78964136[39;49m[27m    [0m
+       parser_elk.py:0130         UNNAMED      no| (states/Hartree/unit cell)
+       parser_elk.py:0130         UNNAMED      no|
+       parser_elk.py:0131         UNNAMED p_start|[7mEstimated indirect band gap :   [31m0.3692315045[39;49m[27mE-01[0m
+       parser_elk.py:0131         UNNAMED      no| from k-point      9 to k-point      7
+       parser_elk.py:0132         UNNAMED p_start|[7mEstimated direct band gap   :   [31m0.8694452531[39;49m[27mE-01[0m
+       parser_elk.py:0132         UNNAMED      no| at k-point      6
+       parser_elk.py:0132         UNNAMED      no|
+       parser_elk.py:0132         UNNAMED      no|Charges :
+       parser_elk.py:0133         UNNAMED p_start|[7m core                        :    [31m4.000000000[39;49m[27m    [0m
+       parser_elk.py:0134         UNNAMED p_start|[7m valence                     :    [31m9.000000000[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED p_start|[7m interstitial                :    [31m1.776564303[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED      no| muffin-tins (core leakage)
+       parser_elk.py:0135         UNNAMED      no|  species :    1 (Al)
+       parser_elk.py:0135         UNNAMED      no|   atom    1                 :    11.22343570     (  0.4974453523E-03)
+       parser_elk.py:0135         UNNAMED      no| total in muffin-tins        :    11.22343570    
+       parser_elk.py:0135         UNNAMED      no| total calculated charge     :    12.99041033    
+       parser_elk.py:0135         UNNAMED      no| total charge                :    13.00000000    
+       parser_elk.py:0135         UNNAMED      no| error                       :   0.9589670219E-02
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|RMS change in Kohn-Sham potential (target) :   0.1082598809E-02 (  0.1000000000E-05)
+       parser_elk.py:0135         UNNAMED      no|Absolute change in total energy (target)   :   0.1066293543E-01 (  0.1000000000E-03)
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|Time (CPU seconds) :         1.39
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|+--------------------+
+       parser_elk.py:0135       scfi totE p_start|[7m| Loop number :[27m   13 |[0m
+       parser_elk.py:0135       scfi totE      no|+--------------------+
+       parser_elk.py:0135       scfi totE      no|
+       parser_elk.py:0135       scfi totE      no|Energies :
+       parser_elk.py:0115         UNNAMED p_start|[7m Fermi                       :     [31m0.267325344349[39;49m[27m    [0m
+       parser_elk.py:0116         UNNAMED p_start|[7m sum of eigenvalues          :     [31m-129.127970001[39;49m[27m    [0m
+       parser_elk.py:0117         UNNAMED p_start|[7m electron kinetic            :      [31m242.086948466[39;49m[27m    [0m
+       parser_elk.py:0118         UNNAMED p_start|[7m core electron kinetic       :      [31m179.650301430[39;49m[27m    [0m
+       parser_elk.py:0119         UNNAMED p_start|[7m Coulomb                     :     [31m-466.311106098[39;49m[27m    [0m
+       parser_elk.py:0120         UNNAMED p_start|[7m Coulomb potential           :     [31m-347.844872347[39;49m[27m    [0m
+       parser_elk.py:0121         UNNAMED p_start|[7m nuclear-nuclear             :     [31m-42.2830580138[39;49m[27m    [0m
+       parser_elk.py:0122         UNNAMED p_start|[7m electron-nuclear            :     [31m-500.211223822[39;49m[27m    [0m
+       parser_elk.py:0123         UNNAMED p_start|[7m Hartree                     :      [31m76.1831757377[39;49m[27m    [0m
+       parser_elk.py:0124         UNNAMED p_start|[7m Madelung                    :     [31m-292.388669925[39;49m[27m    [0m
+       parser_elk.py:0125         UNNAMED p_start|[7m xc potential                :     [31m-23.3700461208[39;49m[27m    [0m
+       parser_elk.py:0126         UNNAMED p_start|[7m exchange                    :     [31m-16.7055469886[39;49m[27m    [0m
+       parser_elk.py:0127         UNNAMED p_start|[7m correlation                 :    [31m-0.988600985083[39;49m[27m    [0m
+       parser_elk.py:0128         UNNAMED p_start|[7m electron entropic           :    [31m-0.260305366202[39;49m[27mE-03[0m
+       parser_elk.py:0129         UNNAMED p_start|[7m total energy                :     [31m-241.918565911[39;49m[27m    [0m
+       parser_elk.py:0129         UNNAMED      no|
+       parser_elk.py:0130         UNNAMED p_start|[7mDensity of states at Fermi energy :    [31m93.78964213[39;49m[27m    [0m
+       parser_elk.py:0130         UNNAMED      no| (states/Hartree/unit cell)
+       parser_elk.py:0130         UNNAMED      no|
+       parser_elk.py:0131         UNNAMED p_start|[7mEstimated indirect band gap :   [31m0.3692369751[39;49m[27mE-01[0m
+       parser_elk.py:0131         UNNAMED      no| from k-point      9 to k-point      7
+       parser_elk.py:0132         UNNAMED p_start|[7mEstimated direct band gap   :   [31m0.8694481952[39;49m[27mE-01[0m
+       parser_elk.py:0132         UNNAMED      no| at k-point      6
+       parser_elk.py:0132         UNNAMED      no|
+       parser_elk.py:0132         UNNAMED      no|Charges :
+       parser_elk.py:0133         UNNAMED p_start|[7m core                        :    [31m4.000000000[39;49m[27m    [0m
+       parser_elk.py:0134         UNNAMED p_start|[7m valence                     :    [31m9.000000000[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED p_start|[7m interstitial                :    [31m1.776548436[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED      no| muffin-tins (core leakage)
+       parser_elk.py:0135         UNNAMED      no|  species :    1 (Al)
+       parser_elk.py:0135         UNNAMED      no|   atom    1                 :    11.22345156     (  0.4973953083E-03)
+       parser_elk.py:0135         UNNAMED      no| total in muffin-tins        :    11.22345156    
+       parser_elk.py:0135         UNNAMED      no| total calculated charge     :    12.99041079    
+       parser_elk.py:0135         UNNAMED      no| total charge                :    13.00000000    
+       parser_elk.py:0135         UNNAMED      no| error                       :   0.9589208341E-02
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|RMS change in Kohn-Sham potential (target) :   0.3845109757E-03 (  0.1000000000E-05)
+       parser_elk.py:0135         UNNAMED      no|Absolute change in total energy (target)   :   0.5410512229E-02 (  0.1000000000E-03)
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|Time (CPU seconds) :         1.48
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|+--------------------+
+       parser_elk.py:0135       scfi totE p_start|[7m| Loop number :[27m   14 |[0m
+       parser_elk.py:0135       scfi totE      no|+--------------------+
+       parser_elk.py:0135       scfi totE      no|
+       parser_elk.py:0135       scfi totE      no|Energies :
+       parser_elk.py:0115         UNNAMED p_start|[7m Fermi                       :     [31m0.267408969961[39;49m[27m    [0m
+       parser_elk.py:0116         UNNAMED p_start|[7m sum of eigenvalues          :     [31m-129.126916577[39;49m[27m    [0m
+       parser_elk.py:0117         UNNAMED p_start|[7m electron kinetic            :      [31m242.087822376[39;49m[27m    [0m
+       parser_elk.py:0118         UNNAMED p_start|[7m core electron kinetic       :      [31m179.650486917[39;49m[27m    [0m
+       parser_elk.py:0119         UNNAMED p_start|[7m Coulomb                     :     [31m-466.310898141[39;49m[27m    [0m
+       parser_elk.py:0120         UNNAMED p_start|[7m Coulomb potential           :     [31m-347.844701965[39;49m[27m    [0m
+       parser_elk.py:0121         UNNAMED p_start|[7m nuclear-nuclear             :     [31m-42.2830580138[39;49m[27m    [0m
+       parser_elk.py:0122         UNNAMED p_start|[7m electron-nuclear            :     [31m-500.210978288[39;49m[27m    [0m
+       parser_elk.py:0123         UNNAMED p_start|[7m Hartree                     :      [31m76.1831381614[39;49m[27m    [0m
+       parser_elk.py:0124         UNNAMED p_start|[7m Madelung                    :     [31m-292.388547158[39;49m[27m    [0m
+       parser_elk.py:0125         UNNAMED p_start|[7m xc potential                :     [31m-23.3700369875[39;49m[27m    [0m
+       parser_elk.py:0126         UNNAMED p_start|[7m exchange                    :     [31m-16.7055401723[39;49m[27m    [0m
+       parser_elk.py:0127         UNNAMED p_start|[7m correlation                 :    [31m-0.988600939657[39;49m[27m    [0m
+       parser_elk.py:0128         UNNAMED p_start|[7m electron entropic           :    [31m-0.260305374467[39;49m[27mE-03[0m
+       parser_elk.py:0129         UNNAMED p_start|[7m total energy                :     [31m-241.917477182[39;49m[27m    [0m
+       parser_elk.py:0129         UNNAMED      no|
+       parser_elk.py:0130         UNNAMED p_start|[7mDensity of states at Fermi energy :    [31m93.78964311[39;49m[27m    [0m
+       parser_elk.py:0130         UNNAMED      no| (states/Hartree/unit cell)
+       parser_elk.py:0130         UNNAMED      no|
+       parser_elk.py:0131         UNNAMED p_start|[7mEstimated indirect band gap :   [31m0.3692390694[39;49m[27mE-01[0m
+       parser_elk.py:0131         UNNAMED      no| from k-point      9 to k-point      7
+       parser_elk.py:0132         UNNAMED p_start|[7mEstimated direct band gap   :   [31m0.8694494876[39;49m[27mE-01[0m
+       parser_elk.py:0132         UNNAMED      no| at k-point      6
+       parser_elk.py:0132         UNNAMED      no|
+       parser_elk.py:0132         UNNAMED      no|Charges :
+       parser_elk.py:0133         UNNAMED p_start|[7m core                        :    [31m4.000000000[39;49m[27m    [0m
+       parser_elk.py:0134         UNNAMED p_start|[7m valence                     :    [31m9.000000000[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED p_start|[7m interstitial                :    [31m1.776543643[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED      no| muffin-tins (core leakage)
+       parser_elk.py:0135         UNNAMED      no|  species :    1 (Al)
+       parser_elk.py:0135         UNNAMED      no|   atom    1                 :    11.22345636     (  0.4973765256E-03)
+       parser_elk.py:0135         UNNAMED      no| total in muffin-tins        :    11.22345636    
+       parser_elk.py:0135         UNNAMED      no| total calculated charge     :    12.99041096    
+       parser_elk.py:0135         UNNAMED      no| total charge                :    13.00000000    
+       parser_elk.py:0135         UNNAMED      no| error                       :   0.9589040414E-02
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|RMS change in Kohn-Sham potential (target) :   0.1177645087E-03 (  0.1000000000E-05)
+       parser_elk.py:0135         UNNAMED      no|Absolute change in total energy (target)   :   0.2441357323E-02 (  0.1000000000E-03)
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|Time (CPU seconds) :         1.58
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|+--------------------+
+       parser_elk.py:0135       scfi totE p_start|[7m| Loop number :[27m   15 |[0m
+       parser_elk.py:0135       scfi totE      no|+--------------------+
+       parser_elk.py:0135       scfi totE      no|
+       parser_elk.py:0135       scfi totE      no|Energies :
+       parser_elk.py:0115         UNNAMED p_start|[7m Fermi                       :     [31m0.267436112180[39;49m[27m    [0m
+       parser_elk.py:0116         UNNAMED p_start|[7m sum of eigenvalues          :     [31m-129.126558016[39;49m[27m    [0m
+       parser_elk.py:0117         UNNAMED p_start|[7m electron kinetic            :      [31m242.088112056[39;49m[27m    [0m
+       parser_elk.py:0118         UNNAMED p_start|[7m core electron kinetic       :      [31m179.650557012[39;49m[27m    [0m
+       parser_elk.py:0119         UNNAMED p_start|[7m Coulomb                     :     [31m-466.310818879[39;49m[27m    [0m
+       parser_elk.py:0120         UNNAMED p_start|[7m Coulomb potential           :     [31m-347.844636328[39;49m[27m    [0m
+       parser_elk.py:0121         UNNAMED p_start|[7m nuclear-nuclear             :     [31m-42.2830580138[39;49m[27m    [0m
+       parser_elk.py:0122         UNNAMED p_start|[7m electron-nuclear            :     [31m-500.210885402[39;49m[27m    [0m
+       parser_elk.py:0123         UNNAMED p_start|[7m Hartree                     :      [31m76.1831245370[39;49m[27m    [0m
+       parser_elk.py:0124         UNNAMED p_start|[7m Madelung                    :     [31m-292.388500715[39;49m[27m    [0m
+       parser_elk.py:0125         UNNAMED p_start|[7m xc potential                :     [31m-23.3700337436[39;49m[27m    [0m
+       parser_elk.py:0126         UNNAMED p_start|[7m exchange                    :     [31m-16.7055377519[39;49m[27m    [0m
+       parser_elk.py:0127         UNNAMED p_start|[7m correlation                 :    [31m-0.988600922903[39;49m[27m    [0m
+       parser_elk.py:0128         UNNAMED p_start|[7m electron entropic           :    [31m-0.260305378927[39;49m[27mE-03[0m
+       parser_elk.py:0129         UNNAMED p_start|[7m total energy                :     [31m-241.917105803[39;49m[27m    [0m
+       parser_elk.py:0129         UNNAMED      no|
+       parser_elk.py:0130         UNNAMED p_start|[7mDensity of states at Fermi energy :    [31m93.78964363[39;49m[27m    [0m
+       parser_elk.py:0130         UNNAMED      no| (states/Hartree/unit cell)
+       parser_elk.py:0130         UNNAMED      no|
+       parser_elk.py:0131         UNNAMED p_start|[7mEstimated indirect band gap :   [31m0.3692397525[39;49m[27mE-01[0m
+       parser_elk.py:0131         UNNAMED      no| from k-point      9 to k-point      7
+       parser_elk.py:0132         UNNAMED p_start|[7mEstimated direct band gap   :   [31m0.8694499768[39;49m[27mE-01[0m
+       parser_elk.py:0132         UNNAMED      no| at k-point      6
+       parser_elk.py:0132         UNNAMED      no|
+       parser_elk.py:0132         UNNAMED      no|Charges :
+       parser_elk.py:0133         UNNAMED p_start|[7m core                        :    [31m4.000000000[39;49m[27m    [0m
+       parser_elk.py:0134         UNNAMED p_start|[7m valence                     :    [31m9.000000000[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED p_start|[7m interstitial                :    [31m1.776542531[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED      no| muffin-tins (core leakage)
+       parser_elk.py:0135         UNNAMED      no|  species :    1 (Al)
+       parser_elk.py:0135         UNNAMED      no|   atom    1                 :    11.22345747     (  0.4973705460E-03)
+       parser_elk.py:0135         UNNAMED      no| total in muffin-tins        :    11.22345747    
+       parser_elk.py:0135         UNNAMED      no| total calculated charge     :    12.99041101    
+       parser_elk.py:0135         UNNAMED      no| total charge                :    13.00000000    
+       parser_elk.py:0135         UNNAMED      no| error                       :   0.9588989295E-02
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|RMS change in Kohn-Sham potential (target) :   0.3036376550E-04 (  0.1000000000E-05)
+       parser_elk.py:0135         UNNAMED      no|Absolute change in total energy (target)   :   0.9817180543E-03 (  0.1000000000E-03)
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|Time (CPU seconds) :         1.67
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|+--------------------+
+       parser_elk.py:0135       scfi totE p_start|[7m| Loop number :[27m   16 |[0m
+       parser_elk.py:0135       scfi totE      no|+--------------------+
+       parser_elk.py:0135       scfi totE      no|
+       parser_elk.py:0135       scfi totE      no|Energies :
+       parser_elk.py:0115         UNNAMED p_start|[7m Fermi                       :     [31m0.267443437990[39;49m[27m    [0m
+       parser_elk.py:0116         UNNAMED p_start|[7m sum of eigenvalues          :     [31m-129.126455642[39;49m[27m    [0m
+       parser_elk.py:0117         UNNAMED p_start|[7m electron kinetic            :      [31m242.088191638[39;49m[27m    [0m
+       parser_elk.py:0118         UNNAMED p_start|[7m core electron kinetic       :      [31m179.650578706[39;49m[27m    [0m
+       parser_elk.py:0119         UNNAMED p_start|[7m Coulomb                     :     [31m-466.310792776[39;49m[27m    [0m
+       parser_elk.py:0120         UNNAMED p_start|[7m Coulomb potential           :     [31m-347.844614536[39;49m[27m    [0m
+       parser_elk.py:0121         UNNAMED p_start|[7m nuclear-nuclear             :     [31m-42.2830580138[39;49m[27m    [0m
+       parser_elk.py:0122         UNNAMED p_start|[7m electron-nuclear            :     [31m-500.210854989[39;49m[27m    [0m
+       parser_elk.py:0123         UNNAMED p_start|[7m Hartree                     :      [31m76.1831202260[39;49m[27m    [0m
+       parser_elk.py:0124         UNNAMED p_start|[7m Madelung                    :     [31m-292.388485508[39;49m[27m    [0m
+       parser_elk.py:0125         UNNAMED p_start|[7m xc potential                :     [31m-23.3700327438[39;49m[27m    [0m
+       parser_elk.py:0126         UNNAMED p_start|[7m exchange                    :     [31m-16.7055370061[39;49m[27m    [0m
+       parser_elk.py:0127         UNNAMED p_start|[7m correlation                 :    [31m-0.988600917455[39;49m[27m    [0m
+       parser_elk.py:0128         UNNAMED p_start|[7m electron entropic           :    [31m-0.260305380648[39;49m[27mE-03[0m
+       parser_elk.py:0129         UNNAMED p_start|[7m total energy                :     [31m-241.916999367[39;49m[27m    [0m
+       parser_elk.py:0129         UNNAMED      no|
+       parser_elk.py:0130         UNNAMED p_start|[7mDensity of states at Fermi energy :    [31m93.78964384[39;49m[27m    [0m
+       parser_elk.py:0130         UNNAMED      no| (states/Hartree/unit cell)
+       parser_elk.py:0130         UNNAMED      no|
+       parser_elk.py:0131         UNNAMED p_start|[7mEstimated indirect band gap :   [31m0.3692399374[39;49m[27mE-01[0m
+       parser_elk.py:0131         UNNAMED      no| from k-point      9 to k-point      7
+       parser_elk.py:0132         UNNAMED p_start|[7mEstimated direct band gap   :   [31m0.8694501295[39;49m[27mE-01[0m
+       parser_elk.py:0132         UNNAMED      no| at k-point      6
+       parser_elk.py:0132         UNNAMED      no|
+       parser_elk.py:0132         UNNAMED      no|Charges :
+       parser_elk.py:0133         UNNAMED p_start|[7m core                        :    [31m4.000000000[39;49m[27m    [0m
+       parser_elk.py:0134         UNNAMED p_start|[7m valence                     :    [31m9.000000000[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED p_start|[7m interstitial                :    [31m1.776542363[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED      no| muffin-tins (core leakage)
+       parser_elk.py:0135         UNNAMED      no|  species :    1 (Al)
+       parser_elk.py:0135         UNNAMED      no|   atom    1                 :    11.22345764     (  0.4973689179E-03)
+       parser_elk.py:0135         UNNAMED      no| total in muffin-tins        :    11.22345764    
+       parser_elk.py:0135         UNNAMED      no| total calculated charge     :    12.99041102    
+       parser_elk.py:0135         UNNAMED      no| total charge                :    13.00000000    
+       parser_elk.py:0135         UNNAMED      no| error                       :   0.9588976663E-02
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|RMS change in Kohn-Sham potential (target) :   0.6391586028E-05 (  0.1000000000E-05)
+       parser_elk.py:0135         UNNAMED      no|Absolute change in total energy (target)   :   0.3518649715E-03 (  0.1000000000E-03)
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|Time (CPU seconds) :         1.76
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|+--------------------+
+       parser_elk.py:0135       scfi totE p_start|[7m| Loop number :[27m   17 |[0m
+       parser_elk.py:0135       scfi totE      no|+--------------------+
+       parser_elk.py:0135       scfi totE      no|
+       parser_elk.py:0135       scfi totE      no|Energies :
+       parser_elk.py:0115         UNNAMED p_start|[7m Fermi                       :     [31m0.267445019100[39;49m[27m    [0m
+       parser_elk.py:0116         UNNAMED p_start|[7m sum of eigenvalues          :     [31m-129.126431989[39;49m[27m    [0m
+       parser_elk.py:0117         UNNAMED p_start|[7m electron kinetic            :      [31m242.088208927[39;49m[27m    [0m
+       parser_elk.py:0118         UNNAMED p_start|[7m core electron kinetic       :      [31m179.650583941[39;49m[27m    [0m
+       parser_elk.py:0119         UNNAMED p_start|[7m Coulomb                     :     [31m-466.310785562[39;49m[27m    [0m
+       parser_elk.py:0120         UNNAMED p_start|[7m Coulomb potential           :     [31m-347.844608437[39;49m[27m    [0m
+       parser_elk.py:0121         UNNAMED p_start|[7m nuclear-nuclear             :     [31m-42.2830580138[39;49m[27m    [0m
+       parser_elk.py:0122         UNNAMED p_start|[7m electron-nuclear            :     [31m-500.210846659[39;49m[27m    [0m
+       parser_elk.py:0123         UNNAMED p_start|[7m Hartree                     :      [31m76.1831191110[39;49m[27m    [0m
+       parser_elk.py:0124         UNNAMED p_start|[7m Madelung                    :     [31m-292.388481343[39;49m[27m    [0m
+       parser_elk.py:0125         UNNAMED p_start|[7m xc potential                :     [31m-23.3700324786[39;49m[27m    [0m
+       parser_elk.py:0126         UNNAMED p_start|[7m exchange                    :     [31m-16.7055368084[39;49m[27m    [0m
+       parser_elk.py:0127         UNNAMED p_start|[7m correlation                 :    [31m-0.988600915877[39;49m[27m    [0m
+       parser_elk.py:0128         UNNAMED p_start|[7m electron entropic           :    [31m-0.260305381211[39;49m[27mE-03[0m
+       parser_elk.py:0129         UNNAMED p_start|[7m total energy                :     [31m-241.916974665[39;49m[27m    [0m
+       parser_elk.py:0129         UNNAMED      no|
+       parser_elk.py:0130         UNNAMED p_start|[7mDensity of states at Fermi energy :    [31m93.78964390[39;49m[27m    [0m
+       parser_elk.py:0130         UNNAMED      no| (states/Hartree/unit cell)
+       parser_elk.py:0130         UNNAMED      no|
+       parser_elk.py:0131         UNNAMED p_start|[7mEstimated indirect band gap :   [31m0.3692399776[39;49m[27mE-01[0m
+       parser_elk.py:0131         UNNAMED      no| from k-point      9 to k-point      7
+       parser_elk.py:0132         UNNAMED p_start|[7mEstimated direct band gap   :   [31m0.8694501655[39;49m[27mE-01[0m
+       parser_elk.py:0132         UNNAMED      no| at k-point      6
+       parser_elk.py:0132         UNNAMED      no|
+       parser_elk.py:0132         UNNAMED      no|Charges :
+       parser_elk.py:0133         UNNAMED p_start|[7m core                        :    [31m4.000000000[39;49m[27m    [0m
+       parser_elk.py:0134         UNNAMED p_start|[7m valence                     :    [31m9.000000000[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED p_start|[7m interstitial                :    [31m1.776542358[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED      no| muffin-tins (core leakage)
+       parser_elk.py:0135         UNNAMED      no|  species :    1 (Al)
+       parser_elk.py:0135         UNNAMED      no|   atom    1                 :    11.22345764     (  0.4973686452E-03)
+       parser_elk.py:0135         UNNAMED      no| total in muffin-tins        :    11.22345764    
+       parser_elk.py:0135         UNNAMED      no| total calculated charge     :    12.99041103    
+       parser_elk.py:0135         UNNAMED      no| total charge                :    13.00000000    
+       parser_elk.py:0135         UNNAMED      no| error                       :   0.9588974360E-02
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|RMS change in Kohn-Sham potential (target) :   0.1081295156E-05 (  0.1000000000E-05)
+       parser_elk.py:0135         UNNAMED      no|Absolute change in total energy (target)   :   0.1126689946E-03 (  0.1000000000E-03)
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|Time (CPU seconds) :         1.86
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|+--------------------+
+       parser_elk.py:0135       scfi totE p_start|[7m| Loop number :[27m   18 |[0m
+       parser_elk.py:0135       scfi totE      no|+--------------------+
+       parser_elk.py:0135       scfi totE      no|
+       parser_elk.py:0135       scfi totE      no|Energies :
+       parser_elk.py:0115         UNNAMED p_start|[7m Fermi                       :     [31m0.267445275570[39;49m[27m    [0m
+       parser_elk.py:0116         UNNAMED p_start|[7m sum of eigenvalues          :     [31m-129.126427826[39;49m[27m    [0m
+       parser_elk.py:0117         UNNAMED p_start|[7m electron kinetic            :      [31m242.088211658[39;49m[27m    [0m
+       parser_elk.py:0118         UNNAMED p_start|[7m core electron kinetic       :      [31m179.650584835[39;49m[27m    [0m
+       parser_elk.py:0119         UNNAMED p_start|[7m Coulomb                     :     [31m-466.310783930[39;49m[27m    [0m
+       parser_elk.py:0120         UNNAMED p_start|[7m Coulomb potential           :     [31m-347.844607063[39;49m[27m    [0m
+       parser_elk.py:0121         UNNAMED p_start|[7m nuclear-nuclear             :     [31m-42.2830580138[39;49m[27m    [0m
+       parser_elk.py:0122         UNNAMED p_start|[7m electron-nuclear            :     [31m-500.210844770[39;49m[27m    [0m
+       parser_elk.py:0123         UNNAMED p_start|[7m Hartree                     :      [31m76.1831188537[39;49m[27m    [0m
+       parser_elk.py:0124         UNNAMED p_start|[7m Madelung                    :     [31m-292.388480399[39;49m[27m    [0m
+       parser_elk.py:0125         UNNAMED p_start|[7m xc potential                :     [31m-23.3700324219[39;49m[27m    [0m
+       parser_elk.py:0126         UNNAMED p_start|[7m exchange                    :     [31m-16.7055367661[39;49m[27m    [0m
+       parser_elk.py:0127         UNNAMED p_start|[7m correlation                 :    [31m-0.988600915517[39;49m[27m    [0m
+       parser_elk.py:0128         UNNAMED p_start|[7m electron entropic           :    [31m-0.260305381403[39;49m[27mE-03[0m
+       parser_elk.py:0129         UNNAMED p_start|[7m total energy                :     [31m-241.916970259[39;49m[27m    [0m
+       parser_elk.py:0129         UNNAMED      no|
+       parser_elk.py:0130         UNNAMED p_start|[7mDensity of states at Fermi energy :    [31m93.78964393[39;49m[27m    [0m
+       parser_elk.py:0130         UNNAMED      no| (states/Hartree/unit cell)
+       parser_elk.py:0130         UNNAMED      no|
+       parser_elk.py:0131         UNNAMED p_start|[7mEstimated indirect band gap :   [31m0.3692399843[39;49m[27mE-01[0m
+       parser_elk.py:0131         UNNAMED      no| from k-point      9 to k-point      7
+       parser_elk.py:0132         UNNAMED p_start|[7mEstimated direct band gap   :   [31m0.8694501701[39;49m[27mE-01[0m
+       parser_elk.py:0132         UNNAMED      no| at k-point      6
+       parser_elk.py:0132         UNNAMED      no|
+       parser_elk.py:0132         UNNAMED      no|Charges :
+       parser_elk.py:0133         UNNAMED p_start|[7m core                        :    [31m4.000000000[39;49m[27m    [0m
+       parser_elk.py:0134         UNNAMED p_start|[7m valence                     :    [31m9.000000000[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED p_start|[7m interstitial                :    [31m1.776542362[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED      no| muffin-tins (core leakage)
+       parser_elk.py:0135         UNNAMED      no|  species :    1 (Al)
+       parser_elk.py:0135         UNNAMED      no|   atom    1                 :    11.22345764     (  0.4973684917E-03)
+       parser_elk.py:0135         UNNAMED      no| total in muffin-tins        :    11.22345764    
+       parser_elk.py:0135         UNNAMED      no| total calculated charge     :    12.99041103    
+       parser_elk.py:0135         UNNAMED      no| total charge                :    13.00000000    
+       parser_elk.py:0135         UNNAMED      no| error                       :   0.9588973969E-02
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|RMS change in Kohn-Sham potential (target) :   0.1979730763E-06 (  0.1000000000E-05)
+       parser_elk.py:0135         UNNAMED      no|Absolute change in total energy (target)   :   0.3257301847E-04 (  0.1000000000E-03)
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|Convergence targets achieved
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|Time (CPU seconds) :         1.94
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|+--------------------+
+       parser_elk.py:0135       scfi totE p_start|[7m| Loop number :[27m   19 |[0m
+       parser_elk.py:0135       scfi totE      no|+--------------------+
+       parser_elk.py:0135       scfi totE      no|
+       parser_elk.py:0135       scfi totE      no|Energies :
+       parser_elk.py:0115         UNNAMED p_start|[7m Fermi                       :     [31m0.267445303377[39;49m[27m    [0m
+       parser_elk.py:0116         UNNAMED p_start|[7m sum of eigenvalues          :     [31m-129.126427348[39;49m[27m    [0m
+       parser_elk.py:0117         UNNAMED p_start|[7m electron kinetic            :      [31m242.088211932[39;49m[27m    [0m
+       parser_elk.py:0118         UNNAMED p_start|[7m core electron kinetic       :      [31m179.650584913[39;49m[27m    [0m
+       parser_elk.py:0119         UNNAMED p_start|[7m Coulomb                     :     [31m-466.310783732[39;49m[27m    [0m
+       parser_elk.py:0120         UNNAMED p_start|[7m Coulomb potential           :     [31m-347.844606860[39;49m[27m    [0m
+       parser_elk.py:0121         UNNAMED p_start|[7m nuclear-nuclear             :     [31m-42.2830580138[39;49m[27m    [0m
+       parser_elk.py:0122         UNNAMED p_start|[7m electron-nuclear            :     [31m-500.210844576[39;49m[27m    [0m
+       parser_elk.py:0123         UNNAMED p_start|[7m Hartree                     :      [31m76.1831188582[39;49m[27m    [0m
+       parser_elk.py:0124         UNNAMED p_start|[7m Madelung                    :     [31m-292.388480302[39;49m[27m    [0m
+       parser_elk.py:0125         UNNAMED p_start|[7m xc potential                :     [31m-23.3700324195[39;49m[27m    [0m
+       parser_elk.py:0126         UNNAMED p_start|[7m exchange                    :     [31m-16.7055367643[39;49m[27m    [0m
+       parser_elk.py:0127         UNNAMED p_start|[7m correlation                 :    [31m-0.988600915564[39;49m[27m    [0m
+       parser_elk.py:0128         UNNAMED p_start|[7m electron entropic           :    [31m-0.260305381475[39;49m[27mE-03[0m
+       parser_elk.py:0129         UNNAMED p_start|[7m total energy                :     [31m-241.916969785[39;49m[27m    [0m
+       parser_elk.py:0129         UNNAMED      no|
+       parser_elk.py:0130         UNNAMED p_start|[7mDensity of states at Fermi energy :    [31m93.78964393[39;49m[27m    [0m
+       parser_elk.py:0130         UNNAMED      no| (states/Hartree/unit cell)
+       parser_elk.py:0130         UNNAMED      no|
+       parser_elk.py:0131         UNNAMED p_start|[7mEstimated indirect band gap :   [31m0.3692399852[39;49m[27mE-01[0m
+       parser_elk.py:0131         UNNAMED      no| from k-point      9 to k-point      7
+       parser_elk.py:0132         UNNAMED p_start|[7mEstimated direct band gap   :   [31m0.8694501693[39;49m[27mE-01[0m
+       parser_elk.py:0132         UNNAMED      no| at k-point      6
+       parser_elk.py:0132         UNNAMED      no|
+       parser_elk.py:0132         UNNAMED      no|Charges :
+       parser_elk.py:0133         UNNAMED p_start|[7m core                        :    [31m4.000000000[39;49m[27m    [0m
+       parser_elk.py:0134         UNNAMED p_start|[7m valence                     :    [31m9.000000000[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED p_start|[7m interstitial                :    [31m1.776542363[39;49m[27m    [0m
+       parser_elk.py:0135         UNNAMED      no| muffin-tins (core leakage)
+       parser_elk.py:0135         UNNAMED      no|  species :    1 (Al)
+       parser_elk.py:0135         UNNAMED      no|   atom    1                 :    11.22345764     (  0.4973685276E-03)
+       parser_elk.py:0135         UNNAMED      no| total in muffin-tins        :    11.22345764    
+       parser_elk.py:0135         UNNAMED      no| total calculated charge     :    12.99041103    
+       parser_elk.py:0135         UNNAMED      no| total charge                :    13.00000000    
+       parser_elk.py:0135         UNNAMED      no| error                       :   0.9588974028E-02
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|+------------------------------+
+       parser_elk.py:0135         UNNAMED      no|| Self-consistent loop stopped |
+       parser_elk.py:0135         UNNAMED      no|+------------------------------+
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|Wrote STATE.OUT
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|Timings (CPU seconds) :
+       parser_elk.py:0135         UNNAMED      no| initialisation                        :         0.27
+       parser_elk.py:0135         UNNAMED      no| Hamiltonian and overlap matrix set up :         0.37
+       parser_elk.py:0135         UNNAMED      no| first-variational eigenvalue equation :         0.15
+       parser_elk.py:0135         UNNAMED      no| charge density calculation            :         0.69
+       parser_elk.py:0135         UNNAMED      no| potential calculation                 :         0.56
+       parser_elk.py:0135         UNNAMED      no| total                                 :         2.03
+       parser_elk.py:0135         UNNAMED      no|
+       parser_elk.py:0135         UNNAMED      no|+----------------------------+
+       parser_elk.py:0135         UNNAMED      no|| Elk version 4.0.15 stopped |
+       parser_elk.py:0135         UNNAMED      no|+----------------------------+

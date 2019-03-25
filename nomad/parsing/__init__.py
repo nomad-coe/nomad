@@ -93,17 +93,13 @@ def match_parser(mainfile: str, upload_files: files.StagingUploadFiles) -> 'Pars
     """
     with upload_files.raw_file(mainfile, 'rb') as f:
         compression, open_compressed = _compressions.get(f.read(3), (None, open))
-
     mainfile_path = upload_files.raw_file_object(mainfile).os_path
     with open_compressed(mainfile_path, 'rb') as f:
         buffer = f.read(2048)
 
     mime_type = magic.from_buffer(buffer, mime=True)
-    if mime_type.startswith('application') and not mime_type.endswith('xml'):
-        return None
-
     for parser in parsers:
-        if parser.is_mainfile(mainfile_path, mime_type, buffer.decode('utf-8'), compression):
+        if parser.is_mainfile(mainfile_path, mime_type, buffer, compression):
             # TODO: deal with multiple possible parser specs
             return parser
 
@@ -114,6 +110,12 @@ parsers = [
     GenerateRandomParser(),
     TemplateParser(),
     ChaosParser(),
+    LegacyParser(
+        name='parsers/phonopy',
+        parser_class_name='phonopyparser.PhonopyParserWrapper',
+        # mainfile_contents_re=r'',  # Empty regex since this code calls other DFT codes.
+        mainfile_name_re=(r'.*/phonopy-FHI-aims-displacement-0*1/control.in$')
+    ),
     LegacyParser(
         name='parsers/vasp',
         parser_class_name='vaspparser.VASPRunParserInterface',
@@ -147,7 +149,8 @@ parsers = [
         mainfile_contents_re=(
             r'^(.*\n)*'
             r'?\s*Invoking FHI-aims \.\.\.'
-            r'?\s*Version')
+            r'?\s*Version'),
+        mainfile_name_re=r'^.(?!.*phonopy-FHI-aims-displacement)'
     ),
     LegacyParser(
         name='parsers/cp2k',
@@ -241,13 +244,13 @@ parsers = [
     LegacyParser(
         name='parsers/gaussian',
         parser_class_name='gaussianparser.GaussianParser',
-        mainfile_contents_re=(
-            r'\s*Cite this work as:'
-            r'\s*Gaussian [0-9]+, Revision [A-Za-z0-9.]*,'
-            r'\s\*\*\*\*\*\*\*\*\*\*\*\**'
-            r'\s*Gaussian\s*([0-9]+):\s*([A-Za-z0-9-.]+)\s*([0-9][0-9]?\-[A-Z][a-z][a-z]\-[0-9]+)'
-            r'\s*([0-9][0-9]?\-[A-Z][a-z][a-z]\-[0-9]+)')
-    ),
+        # This previous file matching string was too far down the line.
+        # r'\s*Cite this work as:'
+        # r'\s*Gaussian [0-9]+, Revision [A-Za-z0-9.]*,'
+        # r'\s\*\*\*\*\*\*\*\*\*\*\*\**'
+        # r'\s*Gaussian\s*([0-9]+):\s*([A-Za-z0-9-.]+)\s*([0-9][0-9]?\-[A-Z][a-z][a-z]\-[0-9]+)'
+        # r'\s*([0-9][0-9]?\-[A-Z][a-z][a-z]\-[0-9]+)')
+        mainfile_contents_re=r'Gaussian, Inc'),
     LegacyParser(
         name='parsers/quantumespresso',
         parser_class_name='quantumespressoparser.QuantumEspressoParserPWSCF',
@@ -292,8 +295,72 @@ parsers = [
         mainfile_contents_re=(r'\|0\) ~ \(0\) \|')
         # We decided to use the octopus eyes instead of
         # r'\*{32} Grid \*{32}Simulation Box:' since it was so far down in the file.
+    ),
+    LegacyParser(
+        name='parsers/gpaw',
+        parser_class_name='gpawparser.GPAWParserWrapper',
+        mainfile_name_re=(r'^.*\.gpw$'),
+        mainfile_mime_re=r'application/x-tar'
+    ),
+    LegacyParser(
+        name='parsers/gpaw2',
+        parser_class_name='gpawparser.GPAWParser2Wrapper',
+        # mainfile_contents_re=r'',  # We can't read .gpw2 to match AFFormatGPAW'
+        mainfile_name_re=(r'^.*\.gpw2$'),
+        mainfile_mime_re=r'application/x-tar'
+    ),
+    LegacyParser(
+        name='parsers/atk',
+        parser_class_name='atkparser.ATKParserWrapper',
+        # mainfile_contents_re=r'',  # We can't read .gpw as txt - of UlmGPAW|AFFormatGPAW'
+        mainfile_name_re=r'^.*\.nc',
+        # The previously used mime type r'application/x-netcdf' wasn't found by magic library.
+        mainfile_mime_re=r'application/octet-stream'
+    ),
+    LegacyParser(
+        name='parsers/gulp',
+        parser_class_name='gulpparser.GULPParser',
+        mainfile_contents_re=(
+            r'\s*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*'
+            r'\*\*\*\*\*\*\*\*\*\*\*\*\*\s*'
+            r'\s*\*\s*GENERAL UTILITY LATTICE PROGRAM\s*\*\s*')
+    ),
+    LegacyParser(
+        name='parsers/siesta',
+        parser_class_name='siestaparser.SiestaParser',
+        mainfile_contents_re=(
+            r'(Siesta Version: siesta-|SIESTA [0-9]\.[0-9]\.[0-9])')
+    ),
+    LegacyParser(
+        name='parsers/elk',
+        parser_class_name='elkparser.ElkParser',
+        mainfile_contents_re=(
+            r'\s*\+-----------+\+\s*'
+            r'\s*\| Elk version (P?<version>[0-9.a-zA-Z]+) started \|\s*'
+            r'\s*\+----------+\+\s*')
+    ),
+    LegacyParser(
+        name='parsers/elastic',
+        parser_class_name='elasticparser.ElasticParser',
+        mainfile_contents_re=r'\s*Order of elastic constants\s*=\s*[0-9]+\s*'
+    ),
+    LegacyParser(
+        name='parsers/gamess',
+        parser_class_name='gamessparser.GamessParser',
+        mainfile_contents_re=(
+            r'\s*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
+            r'\s*\*\s*GAMESS VERSION =\s*(.*)\*\s*'
+            r'\s*\*\s*FROM IOWA STATE UNIVERSITY\s*\*\s*')
+    ),
+    LegacyParser(
+        name='parsers/turbomole',
+        parser_class_name='turbomoleparser.TurbomoleParser',
+        mainfile_contents_re=(
+            r'\s*(P?<progr>[a-zA-z0-9_]+)\s*(?:\([^()]+\))\s*:\s*TURBOMOLE\s*(P?<version>.*)'
+            r'\s*Copyright \(C\) [0-9]+ TURBOMOLE GmbH, Karlsruhe')
     )
 ]
+
 """ Instanciation and constructor based config of all parsers. """
 
 parser_dict = {parser.name: parser for parser in parsers}  # type: ignore

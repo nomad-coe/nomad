@@ -29,7 +29,7 @@ parser_examples = [
     ('parsers/template', 'tests/data/parsers/template.json'),
     ('parsers/exciting', 'tests/data/parsers/exciting/Ag/INFO.OUT'),
     ('parsers/exciting', 'tests/data/parsers/exciting/GW/INFO.OUT'),
-    ('parsers/vasp', 'tests/data/parsers/vasp/vasp.xml'),
+    # ('parsers/vasp', 'tests/data/parsers/vasp/vasp.xml'),
     ('parsers/vasp', 'tests/data/parsers/vasp_compressed/vasp.xml.gz'),
     ('parsers/vaspoutcar', 'tests/data/parsers/vasp_outcar/OUTCAR'),
     ('parsers/fhi-aims', 'tests/data/parsers/fhi-aims/aims.out'),
@@ -47,13 +47,25 @@ parser_examples = [
     ('parsers/castep', 'tests/data/parsers/castep/BC2N-Pmm2-Raman.castep'),
     ('parsers/dl-poly', 'tests/data/parsers/dl-poly/OUTPUT'),
     ('parsers/lib-atoms', 'tests/data/parsers/lib-atoms/gp.xml'),
-    ('parsers/octopus', 'tests/data/parsers/octopus/stdout.txt')]
+    ('parsers/octopus', 'tests/data/parsers/octopus/stdout.txt'),
+    ('parsers/phonopy',
+        'tests/data/parsers/phonopy/control.in'),
+    ('parsers/gpaw', 'tests/data/parsers/gpaw/Fe2.gpw'),
+    ('parsers/gpaw2', 'tests/data/parsers/gpaw2/H2_lcao.gpw2'),
+    ('parsers/atk', 'tests/data/parsers/atk/Si2.nc'),
+    # ('parsers/gulp', 'tests/data/parsers/gulp/example6.got'),  # Issue with section_method
+    # ('parsers/siesta', 'tests/data/parsers/siesta/Fe/out'),  # Issue with dir.
+    ('parsers/elk', 'tests/data/parsers/elk/Al/info.out'),
+    # ('parsers/elastic', 'tests/data/parsers/elastic/2nd/INFO_ElaStic')  # 70Mb file 2big4git
+    # ('parsers/turbomole', 'tests/data/parsers/turbomole/acrolein.out')  # Issue with backend
+    ('parsers/gamess', 'tests/data/parsers/gamess/exam01.out')
+]
 
 faulty_unknown_one_d_matid_example = [
     ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
 ]
 
-correct_num_output_files = 25
+correct_num_output_files = 33
 
 
 class TestLocalBackend(object):
