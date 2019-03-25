@@ -68,8 +68,10 @@ class RepositoryNormalizer(Normalizer):
             # We can't compare numpy arrays of different lengths.
             if val is None:  # We also can't check the length of none-type objects.
                 diff_bool = True
-            elif len(new_val) != len(val):
-                diff_bool = False
+
+            elif type(new_val) != int:  # Type int doesn't have a len() operator.
+                if len(new_val) != len(val):
+                    diff_bool = False
             else:  # If the first value wasn't none and the lengths are the same.
                 diff_bool = new_val != val
             if type(diff_bool) is bool:
