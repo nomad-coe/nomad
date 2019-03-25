@@ -30,8 +30,7 @@ from tests.test_coe_repo import assert_coe_upload
 
 
 def test_send_mail(mails, monkeypatch):
-    monkeypatch.setattr('nomad.config.mail.enabled', True)
-    infrastructure.send_mail('test name', 'test@email.de', 'test message', 'subjct')
+    infrastructure.send_mail('test name', 'test@email.de', 'test message', 'subject')
 
     for message in mails.messages:
         assert re.search(r'test message', message.data.decode('utf-8')) is not None
@@ -124,6 +123,33 @@ def test_publish(non_empty_processed: Upload, no_warn, example_user_metadata, mo
     assert_search_upload(upload, additional_keys, published=True)
 
 
+def test_publish_failed(
+        non_empty_uploaded: Tuple[str, str], example_user_metadata, test_user,
+        monkeypatch, proc_infra, with_publish_to_coe_repo):
+
+    mock_failure(Calc, 'parsing', monkeypatch)
+
+    processed = run_processing(non_empty_uploaded, test_user)
+    processed.metadata = example_user_metadata
+
+    additional_keys = ['with_embargo']
+    if with_publish_to_coe_repo:
+        additional_keys.append('pid')
+
+    processed.publish_upload()
+    try:
+        processed.block_until_complete(interval=.01)
+    except Exception:
+        pass
+
+    upload = processed.to_upload_with_metadata()
+    if with_publish_to_coe_repo:
+        assert_coe_upload(upload.upload_id, user_metadata=example_user_metadata)
+
+    assert_upload_files(upload, PublicUploadFiles, additional_keys, published=True)
+    assert_search_upload(upload, additional_keys, published=True, processed=False)
+
+
 @pytest.mark.timeout(10)
 def test_processing_with_warning(proc_infra, test_user, with_warn):
     example_file = 'tests/data/proc/examples_with_warning_template.zip'
@@ -143,6 +169,16 @@ def test_process_non_existing(proc_infra, test_user, with_error):
     assert len(upload.errors) > 0
 
 
+def mock_failure(cls, task, monkeypatch):
+    def mock(self):
+        raise Exception('fail for test')
+
+    mock.__name__ = task
+    mock = task_decorator(mock)
+
+    monkeypatch.setattr('nomad.processing.data.%s.%s' % (cls.__name__, task), mock)
+
+
 @pytest.mark.parametrize('task', ['extracting', 'parse_all', 'cleanup', 'parsing'])
 @pytest.mark.timeout(10)
 def test_task_failure(monkeypatch, uploaded, task, proc_infra, test_user, with_error):
@@ -154,12 +190,7 @@ def test_task_failure(monkeypatch, uploaded, task, proc_infra, test_user, with_e
     else:
         assert False
 
-    def mock(self):
-        raise Exception('fail for test')
-    mock.__name__ = task
-    mock = task_decorator(mock)
-
-    monkeypatch.setattr('nomad.processing.data.%s.%s' % (cls.__name__, task), mock)
+    mock_failure(cls, task, monkeypatch)
 
     # run the test
     upload = run_processing(uploaded, test_user)

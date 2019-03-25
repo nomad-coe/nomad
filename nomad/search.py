@@ -82,6 +82,7 @@ class Entry(Document):
 
     with_embargo = Boolean()
     published = Boolean()
+    processed = Boolean()
 
     authors = Object(User, multi=True)
     owners = Object(User, multi=True)
@@ -124,6 +125,7 @@ class Entry(Document):
         self.calc_id = source.calc_id
         self.calc_hash = source.calc_hash
         self.pid = None if source.pid is None else str(source.pid)
+        self.processed = source.processed
 
         self.mainfile = source.mainfile
         if source.files is None:

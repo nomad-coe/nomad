@@ -222,7 +222,10 @@ class Calc(Base):
             permission=(1 if calc.with_embargo else 0))
         repo_db.add(user_metadata)
 
-        spacegroup = Spacegroup(calc=self, n=calc.spacegroup)
+        if isinstance(calc.spacegroup, int) or calc.spacegroup.isdigit():
+            spacegroup = Spacegroup(calc=self, n=calc.spacegroup)
+        else:
+            spacegroup = Spacegroup(calc=self, n='0')
         repo_db.add(spacegroup)
 
         # topic based properties

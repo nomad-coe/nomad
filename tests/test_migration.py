@@ -213,9 +213,9 @@ mirgation_test_specs = [
     ('new_calc', 'new_calc', dict(migrated=2, source=2, new=1)),
     ('missing_calc', 'missing_calc', dict(migrated=1, source=2, missing=1)),
     ('missmatch', 'missmatch', dict(migrated=2, source=2, diffs=1)),
-    ('failed_calc', 'failed_calc', dict(migrated=1, source=2, diffs=0, missing=1, failed=1)),
+    ('failed_calc', 'failed_calc', dict(migrated=2, source=2, diffs=0, missing=0, failed=1)),
     ('failed_upload', 'baseline', dict(migrated=0, source=2, missing=2, errors=1)),
-    ('failed_publish', 'baseline', dict(migrated=0, source=2, missing=2, failed=2, errors=1))
+    ('failed_publish', 'baseline', dict(migrated=0, source=2, missing=2, errors=1, not_migrated=2))
 ]
 
 
@@ -244,7 +244,7 @@ def perform_migration_test(migrate_infra, name, test_directory, assertions, monk
     migrate_infra.migration.set_pid_prefix(pid_prefix)
     report = migrate_infra.migration.migrate(upload_path)
 
-    assert report.total_calcs == assertions.get('migrated', 0) + assertions.get('new', 0) + assertions.get('failed', 0)
+    assert report.total_calcs == assertions.get('migrated', 0) + assertions.get('new', 0) + assertions.get('not_migrated', 0)
 
     # assert if new, diffing, migrated calcs where detected correctly
     assert report.total_source_calcs == assertions.get('source', 0)

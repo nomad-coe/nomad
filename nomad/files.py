@@ -400,7 +400,9 @@ class StagingUploadFiles(UploadFiles):
             archive_zip = archive_restricted_zip if calc.with_embargo else archive_public_zip
 
             archive_filename = '%s.%s' % (calc.calc_id, self._archive_ext)
-            archive_zip.write(self._archive_dir.join_file(archive_filename).os_path, archive_filename)
+            archive_file = self._archive_dir.join_file(archive_filename)
+            if archive_file.exists():
+                archive_zip.write(archive_file.os_path, archive_filename)
 
             archive_log_filename = '%s.%s' % (calc.calc_id, 'log')
             log_file = self._archive_dir.join_file(archive_log_filename)

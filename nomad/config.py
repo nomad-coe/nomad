@@ -107,7 +107,8 @@ services = NomadConfig(
     api_base_path='/nomad/api',
     api_secret='defaultApiSecret',
     admin_password='password',
-    disable_reset=True
+    disable_reset=True,
+    not_processed_value='not processed'
 )
 
 

@@ -39,7 +39,7 @@ import shutil
 from nomad import utils, infrastructure, files, config
 from nomad.coe_repo import User, Calc, LoginException
 from nomad.datamodel import CalcWithMetadata
-from nomad.processing import FAILURE, SUCCESS
+from nomad.processing import FAILURE
 
 
 default_pid_prefix = 7000000
@@ -814,9 +814,9 @@ class NomadCOEMigration:
                         calc_id=calc_proc.calc_id,
                         mainfile=calc_proc.mainfile)
 
-                    if calc_proc.tasks_status == SUCCESS:
-                        calc_mainfiles.append(calc_proc.mainfile)
-                    else:
+                    calc_mainfiles.append(calc_proc.mainfile)
+
+                    if calc_proc.tasks_status == FAILURE:
                         report.failed_calcs += 1
                         calc_logger.info(
                             'could not process a calc', process_errors=calc_proc.errors)
@@ -844,12 +844,15 @@ class NomadCOEMigration:
                         report.migrated_calcs += 1
 
                         calc_logger = logger.bind(calc_id=calc['calc_id'], mainfile=calc['mainfile'])
-                        try:
-                            if not self.validate(calc, source_calc_with_metadata, calc_logger):
+                        if calc.get('processed', False):
+                            try:
+                                if not self.validate(
+                                        calc, source_calc_with_metadata, calc_logger):
+                                    report.calcs_with_diffs += 1
+                            except Exception as e:
+                                calc_logger.warning(
+                                    'unexpected exception during validation', exc_info=e)
                                 report.calcs_with_diffs += 1
-                        except Exception as e:
-                            calc_logger.warning('unexpected exception during validation', exc_info=e)
-                            report.calcs_with_diffs += 1
                     else:
                         calc_logger.info('processed a calc that has no source')
                         report.new_calcs += 1
@@ -988,7 +991,7 @@ class Report(utils.POPO):
         self.skipped_packages = 0
         self.total_calcs = 0  # the calcs that have been found by the target
         self.total_source_calcs = 0  # the calcs in the source index
-        self.failed_calcs = 0  # the calcs found b the target that could not be processed/published
+        self.failed_calcs = 0  # calcs that have been migrated with failed processing
         self.migrated_calcs = 0   # the calcs from the source, successfully added to the target
         self.calcs_with_diffs = 0  # the calcs from the source, successfully added to the target with different metadata
         self.new_calcs = 0  # the calcs successfully added to the target that were not found in the source

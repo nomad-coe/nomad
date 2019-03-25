@@ -451,7 +451,10 @@ class SMTPServerFixture:
 
 
 @pytest.fixture(scope='session')
-def smtpd(request):
+def smtpd(request, monkeysession):
+    # on some local machines resolving the local machine takes quit a while and
+    # is irrelevant for testing
+    monkeysession.setattr('socket.getfqdn', lambda *args, **kwargs: 'local.server')
     fixture = SMTPServerFixture()
     request.addfinalizer(fixture.close)
     return fixture

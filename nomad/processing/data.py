@@ -70,7 +70,7 @@ class Calc(Proc):
 
     meta: Any = {
         'indexes': [
-            'upload_id', 'mainfile', 'parser', 'tasks_status'
+            'upload_id', 'mainfile', 'parser', 'tasks_status', 'process_status'
         ]
     }
 
@@ -147,6 +147,20 @@ class Calc(Proc):
             logger.error('calculation upload does not exist')
 
         try:
+            # save preliminary minimum calc metadata in case processing fails
+            # successful processing will replace it with the actual metadata
+            calc_with_metadata = CalcWithMetadata(
+                upload_id=self.upload_id,
+                calc_id=self.calc_id,
+                calc_hash=self.upload_files.calc_hash(self.mainfile),
+                mainfile=self.mainfile)
+            calc_with_metadata.published = False
+            calc_with_metadata.uploader = self.upload.uploader.to_popo()
+            calc_with_metadata.nomad_version = config.version
+            calc_with_metadata.last_processing = datetime.now()
+            calc_with_metadata.files = self.upload_files.calc_files(self.mainfile)
+            self.metadata = calc_with_metadata.to_dict()
+
             self.parsing()
             self.normalizing()
             self.archiving()
@@ -158,6 +172,28 @@ class Calc(Proc):
                     self._calc_proc_logwriter = None
             except Exception as e:
                 logger.error('could not close calculation proc log', exc_info=e)
+
+    def fail(self, *errors, log_level=logging.ERROR, **kwargs):
+        # in case of failure, index a minimum set of metadata and mark
+        # processing failure
+        try:
+            calc_with_metadata = CalcWithMetadata(**self.metadata)
+            calc_with_metadata.formula = config.services.not_processed_value
+            calc_with_metadata.basis_set = config.services.not_processed_value
+            calc_with_metadata.xc_functional = config.services.not_processed_value
+            calc_with_metadata.system = config.services.not_processed_value
+            calc_with_metadata.crystal_system = config.services.not_processed_value
+            calc_with_metadata.spacegroup = config.services.not_processed_value
+            calc_with_metadata.spacegroup_symbol = config.services.not_processed_value
+            calc_with_metadata.code_name = config.services.not_processed_value
+            calc_with_metadata.code_version = config.services.not_processed_value
+            calc_with_metadata.processed = False
+            self.metadata = calc_with_metadata.to_dict()
+            search.Entry.from_calc_with_metadata(calc_with_metadata).save()
+        except Exception as e:
+            self.get_logger().error('could not index after processing failure', exc_info=e)
+
+        super().fail(*errors, log_level=log_level, **kwargs)
 
     def on_process_complete(self, process_name):
         # the save might be necessary to correctly read the join condition from the db
@@ -183,10 +219,12 @@ class Calc(Proc):
                     exc_info=e, error=str(e), **context)
                 return
 
+        # add the non code specific calc metadata to the backend
+        # all other quantities have been determined by parsers/normalizers
         self._parser_backend.openNonOverlappingSection('section_calculation_info')
         self._parser_backend.addValue('upload_id', self.upload_id)
         self._parser_backend.addValue('calc_id', self.calc_id)
-        self._parser_backend.addValue('calc_hash', self.upload_files.calc_hash(self.mainfile))
+        self._parser_backend.addValue('calc_hash', self.metadata['calc_hash'])
         self._parser_backend.addValue('main_file', self.mainfile)
         self._parser_backend.addValue('parser_name', self.parser)
 
@@ -202,8 +240,7 @@ class Calc(Proc):
 
         self._parser_backend.openNonOverlappingSection('section_repository_info')
         self._parser_backend.addValue('repository_archive_gid', '%s/%s' % (self.upload_id, self.calc_id))
-        self._parser_backend.addValue(
-            'repository_filepaths', self.upload_files.calc_files(self.mainfile))
+        self._parser_backend.addValue('repository_filepaths', self.metadata['files'])
         self._parser_backend.closeNonOverlappingSection('section_repository_info')
 
         self.add_processor_info(self.parser)
@@ -267,16 +304,12 @@ class Calc(Proc):
         logger = self.get_logger()
 
         calc_with_metadata = self._parser_backend.to_calc_with_metadata()
-        calc_with_metadata.published = False
-        calc_with_metadata.uploader = self.upload.uploader.to_popo()
+        calc_with_metadata.update(**self.metadata)
         calc_with_metadata.processed = True
-        calc_with_metadata.last_processing = datetime.now()
-        calc_with_metadata.nomad_version = config.version
 
-        # persist the repository metadata
-        with utils.timer(logger, 'saved repo metadata', step='metadata'):
+        # persist the calc metadata
+        with utils.timer(logger, 'saved calc metadata', step='metadata'):
             self.metadata = calc_with_metadata.to_dict()
-            self.save()
 
         # index in search
         with utils.timer(logger, 'indexed', step='index'):
@@ -336,7 +369,7 @@ class Upload(Proc):
 
     meta: Any = {
         'indexes': [
-            'user_id', 'tasks_status'
+            'user_id', 'tasks_status', 'process_status', 'published'
         ]
     }
 
@@ -528,6 +561,7 @@ class Upload(Proc):
             if self.temporary:
                 os.remove(self.upload_path)
                 self.upload_path = None
+
         except KeyError:
             self.fail('processing requested for non existing upload', log_level=logging.ERROR)
             return
@@ -666,19 +700,20 @@ class Upload(Proc):
             uploader=utils.POPO(id=int(self.user_id)),
             upload_time=self.upload_time if user_upload_time is None else user_upload_time)
 
-        def apply_metadata(calc):
+        def get_metadata(calc: Calc):
+            """
+            Assemble metadata from calc's processed calc metadata and the uploads
+            user metadata.
+            """
             calc_data = calc.metadata
             calc_with_metadata = CalcWithMetadata(**calc_data)
-
             calc_metadata = dict(upload_metadata)
             calc_metadata.update(calc_metadatas.get(calc.mainfile, {}))
             calc_with_metadata.apply_user_metadata(calc_metadata)
 
             return calc_with_metadata
 
-        # TODO publish failed calcs
-        # result.calcs = [apply_metadata(calc) for calc in Calc.objects(upload_id=self.upload_id)]
-        result.calcs = [apply_metadata(calc) for calc in self.calcs]
+        result.calcs = [get_metadata(calc) for calc in Calc.objects(upload_id=self.upload_id)]
 
         return result
 
