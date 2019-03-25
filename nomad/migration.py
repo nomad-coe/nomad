@@ -941,7 +941,7 @@ class NomadCOEMigration:
         """ see :func:`SourceCalc.index` """
         return SourceCalc.index(self.source, *args, **kwargs)
 
-    def package_index(self, *upload_paths) -> None:
+    def package_index(self, upload_path) -> None:
         """
         Creates Package objects and respective package zip files for the given uploads.
         The given uploads are supposed to be path to the extracted upload directories.
@@ -949,39 +949,20 @@ class NomadCOEMigration:
         """
         logger = utils.get_logger(__name__)
 
-        cv = threading.Condition()
-        threads = []
+        try:
+            for package_entry in Package.create_packages(
+                    upload_path, self.package_directory,
+                    compress=self.compress_packages):
 
-        def package_upload(upload_path):
-            try:
-                for package_entry in Package.create_packages(
-                        upload_path, self.package_directory,
-                        compress=self.compress_packages):
-
-                    logger.info(
-                        'package in index',
-                        source_upload_path=upload_path,
-                        source_upload_id=package_entry.upload_id,
-                        package_id=package_entry.package_id)
-            except Exception as e:
-                logger.error(
-                    'could not create package from upload',
-                    upload_path=upload_path, exc_info=e)
-            finally:
-                with cv:
-                    self._threads += 1
-                    cv.notify()
-
-        for upload_path in upload_paths:
-            with cv:
-                cv.wait_for(lambda: self._threads > 0)
-            self._threads -= 1
-            thread = threading.Thread(target=lambda: package_upload(upload_path))
-            threads.append(thread)
-            thread.start()
-
-        for thread in threads:
-            thread.join()
+                logger.info(
+                    'package in index',
+                    source_upload_path=upload_path,
+                    source_upload_id=package_entry.upload_id,
+                    package_id=package_entry.package_id)
+        except Exception as e:
+            logger.error(
+                'could not create package from upload',
+                upload_path=upload_path, exc_info=e)
 
 
 class Report(utils.POPO):
