@@ -99,15 +99,18 @@ def reset(delete_packages: bool):
 
 def determine_upload_paths(paths, pattern=None):
     if pattern is not None:
-        assert len(paths) == 1
+        assert len(paths) == 1, "Can only apply pattern on a single directory."
         path = paths[0]
-        paths = []
-        compiled_pattern = re.compile(pattern)
-        directories = os.listdir(path)
-        directories.sort()
-        for sub_directory in directories:
-            if re.fullmatch(compiled_pattern, sub_directory):
-                paths.append(os.path.join(path, sub_directory))
+        if pattern == "ALL":
+            paths = [os.path.join(path, directory) for directory in os.listdir(path)]
+        else:
+            paths = []
+            compiled_pattern = re.compile(pattern)
+            directories = os.listdir(path)
+            directories.sort()
+            for sub_directory in directories:
+                if re.fullmatch(compiled_pattern, sub_directory):
+                    paths.append(os.path.join(path, sub_directory))
 
     return paths
 
