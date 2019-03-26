@@ -273,7 +273,13 @@ class Package(Document):
                 # if an upload has more then 1000 files, its pretty likely that
                 # size patterns repeat ... goood enough
                 if len(stats) < use_stats_for_filestats_threshold:
-                    filesize = os.path.getsize(filepath)
+                    try:
+                        filesize = os.path.getsize(filepath)
+                    except Exception:
+                        # if there are individual files that cannot be accessed, we fully ignore them
+                        # they are most likely just broken links
+                        pass
+
                     stats.push(filesize)
                 else:
                     filesize = stats.mean()
