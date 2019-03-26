@@ -22,7 +22,7 @@ import inspect
 from passlib.hash import bcrypt
 from datetime import datetime
 
-from nomad import coe_repo, search, parsing, files
+from nomad import coe_repo, search, parsing, files, config
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
 from nomad.datamodel import UploadWithMetadata, CalcWithMetadata
@@ -56,13 +56,13 @@ def get_upload_with_metadata(upload: dict) -> UploadWithMetadata:
 
 class TestAdmin:
 
-    @pytest.mark.timeout(10)
+    @pytest.mark.timeout(config.tests.default_timeout)
     def test_reset(self, client, admin_user_auth, expandable_postgres, monkeypatch):
         monkeypatch.setattr('nomad.config.services.disable_reset', False)
         rv = client.post('/admin/reset', headers=admin_user_auth)
         assert rv.status_code == 200
 
-    @pytest.mark.timeout(10)
+    @pytest.mark.timeout(config.tests.default_timeout)
     def test_remove(self, client, admin_user_auth, expandable_postgres, monkeypatch):
         monkeypatch.setattr('nomad.config.services.disable_reset', False)
         rv = client.post('/admin/remove', headers=admin_user_auth)

@@ -143,13 +143,13 @@ class Package(Document):
         return report
 
     @classmethod
-    def create_packages(
-            cls, upload_path: str, target_dir: str,
+    def get_packages(
+            cls, upload_path: str, target_dir: str, create: bool = False,
             compress: bool = False) -> Iterable['Package']:
         """
-        Will create packages for the given upload_path. Creates the package zip files and
-        package index entries. Either will only be created if it does not already exist.
-        Yields the Package objects.
+        Will get packages for the given upload_path. Creates the package zip files and
+        package index entries if ``create`` is True. But, either will only be created if
+        it does not already exist. Yields the Package objects.
         """
         upload_id = os.path.basename(upload_path)
         logger = utils.get_logger(__name__, source_upload_path=upload_path, source_upload_id=upload_id)
@@ -164,9 +164,12 @@ class Package(Document):
         # The packages number is written after all packages of an upload have been created.
         # this should allow to abort mid upload packaging and continue later by removing
         # all started packages first.
-        complete = cls.objects(upload_id=upload_id, packages__ne=-1).count() != 0
+        is_packaged = cls.objects(upload_id=upload_id, packages__ne=-1).count() != 0
 
-        if not complete:
+        if not is_packaged:
+            if not create:
+                return None
+
             cls.objects(upload_id=upload_id).delete()
 
             def open_package_zip(package_entry: 'Package'):
@@ -270,7 +273,13 @@ class Package(Document):
                 # if an upload has more then 1000 files, its pretty likely that
                 # size patterns repeat ... goood enough
                 if len(stats) < use_stats_for_filestats_threshold:
-                    filesize = os.path.getsize(filepath)
+                    try:
+                        filesize = os.path.getsize(filepath)
+                    except Exception:
+                        # if there are individual files that cannot be accessed, we fully ignore them
+                        # they are most likely just broken links
+                        pass
+
                     stats.push(filesize)
                 else:
                     filesize = stats.mean()
@@ -290,7 +299,8 @@ class Package(Document):
 
         with tarfile.TarFile.open(archive_path) as tar_file:
             tar_file.extractall(tmp_directory)
-        os.system('chmod -R 0755 %s/*' % tmp_directory)
+        # try to fix permissions, do not care if command fails
+        os.system('chmod -Rf 0755 %s/*' % tmp_directory)
 
         yield tmp_directory
 
@@ -603,7 +613,7 @@ class NomadCOEMigration:
             finally:
                 NomadCOEMigration._client_lock.release()
 
-    def migrate(self, *args, delete_failed: str = '') -> utils.POPO:
+    def migrate(self, *args, delete_failed: str = '', create_packages: bool = False) -> utils.POPO:
         """
         Migrate the given uploads.
 
@@ -624,6 +634,8 @@ class NomadCOEMigration:
             delete_failed: String from ``N``, ``U``, ``P`` to determine that uploads with
                 no processed calcs (N), failed upload processing (U), or failed publish
                 operation (P) should be deleted after the migration attempt.
+            create_packages: If True, it will attempt to create upload packages if they
+                do not exists.
 
         Returns: Dictionary with statistics on the migration.
         """
@@ -687,9 +699,15 @@ class NomadCOEMigration:
                 cv.notify()
 
         for arg in args:
-            for package in Package.create_packages(
-                    arg, self.package_directory, compress=self.compress_packages):
+            packages = Package.get_packages(
+                arg, self.package_directory, create=create_packages,
+                compress=self.compress_packages)
 
+            if packages is None:
+                self.logger.error('there are no packages for upload', upload_source_path=arg)
+                continue
+
+            for package in packages:
                 with cv:
                     cv.wait_for(lambda: self._threads > 0)
                     self._threads -= 1
@@ -950,8 +968,8 @@ class NomadCOEMigration:
         logger = utils.get_logger(__name__)
 
         try:
-            for package_entry in Package.create_packages(
-                    upload_path, self.package_directory,
+            for package_entry in Package.get_packages(
+                    upload_path, self.package_directory, create=True,
                     compress=self.compress_packages):
 
                 logger.info(

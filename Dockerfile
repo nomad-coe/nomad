@@ -25,14 +25,28 @@ FROM python:3.6-slim as final
 
 # First, build everything in a build image
 FROM python:3.6-stretch as build
+RUN mkdir /install
+
+# Install some specific dependencies to make use of docker layer caching
+RUN pip install --upgrade pip
+RUN pip install numpy
+RUN pip install cython>=0.19
+RUN pip install pandas
+RUN pip install h5py
+RUN pip install hjson
+RUN pip install scipy
+RUN pip install ase==3.15.0
+RUN pip install Pint==0.7.2
+RUN pip install matid
+RUN pip install mdtraj==1.9.1
+RUN pip install mdanalysis==0.16.2
+
 # Make will be necessary to build the docs with sphynx
 RUN apt-get update && apt-get install -y make
-RUN mkdir /install
-WORKDIR /install
 
 # We also install the -dev dependencies, to use this image for test and qa
-RUN pip install --upgrade pip
-COPY requirements.txt requirements.txt
+COPY requirements.txt /install/requirements.txt
+WORKDIR /install
 RUN pip install -r requirements.txt
 
 # Use docker build --build-args CACHEBUST=2 to not cache this (e.g. when you know deps have changed)
