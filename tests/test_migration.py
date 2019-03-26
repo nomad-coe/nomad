@@ -242,7 +242,7 @@ def perform_migration_test(migrate_infra, name, test_directory, assertions, monk
 
     pid_prefix = 10
     migrate_infra.migration.set_pid_prefix(pid_prefix)
-    report = migrate_infra.migration.migrate(upload_path)
+    report = migrate_infra.migration.migrate(upload_path, create_packages=True)
 
     assert report.total_calcs == assertions.get('migrated', 0) + assertions.get('new', 0) + assertions.get('not_migrated', 0)
 
