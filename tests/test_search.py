@@ -30,7 +30,8 @@ def test_index_skeleton_calc(elastic):
 
 
 def test_index_normalized_calc(elastic, normalized: parsing.LocalBackend):
-    calc_with_metadata = normalized.to_calc_with_metadata()
+    calc_with_metadata = datamodel.CalcWithMetadata()
+    calc_with_metadata.apply_domain_metadata(normalized)
 
     create_entry(calc_with_metadata)
 
@@ -38,7 +39,8 @@ def test_index_normalized_calc(elastic, normalized: parsing.LocalBackend):
 def test_index_normalized_calc_with_metadata(
         elastic, normalized: parsing.LocalBackend, example_user_metadata: dict):
 
-    calc_with_metadata = normalized.to_calc_with_metadata()
+    calc_with_metadata = datamodel.CalcWithMetadata()
+    calc_with_metadata.apply_domain_metadata(normalized)
     calc_with_metadata.apply_user_metadata(example_user_metadata)
 
     create_entry(calc_with_metadata)
@@ -49,7 +51,8 @@ def test_index_upload(elastic, processed: processing.Upload):
 
 
 def test_search(elastic, normalized: parsing.LocalBackend):
-    calc_with_metadata = normalized.to_calc_with_metadata()
+    calc_with_metadata = datamodel.CalcWithMetadata()
+    calc_with_metadata.apply_domain_metadata(normalized)
     create_entry(calc_with_metadata)
     refresh_index()
 
@@ -73,7 +76,8 @@ def test_search(elastic, normalized: parsing.LocalBackend):
 
 
 def test_scroll(elastic, normalized: parsing.LocalBackend):
-    calc_with_metadata = normalized.to_calc_with_metadata()
+    calc_with_metadata = datamodel.CalcWithMetadata()
+    calc_with_metadata.apply_domain_metadata(normalized)
     create_entry(calc_with_metadata)
     refresh_index()
 
@@ -89,7 +93,8 @@ def test_scroll(elastic, normalized: parsing.LocalBackend):
 
 
 def test_authors(elastic, normalized: parsing.LocalBackend, test_user: coe_repo.User, other_test_user: coe_repo.User):
-    calc_with_metadata = normalized.to_calc_with_metadata()
+    calc_with_metadata = datamodel.CalcWithMetadata()
+    calc_with_metadata.apply_domain_metadata(normalized)
     calc_with_metadata.uploader = test_user.to_popo()
     create_entry(calc_with_metadata)
     calc_with_metadata.calc_id = 'other test calc'

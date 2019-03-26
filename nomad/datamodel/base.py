@@ -12,29 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-This module contains classes that allow to represent the core
-nomad data entities :class:`Upload` and :class:`Calc` on a high level of abstraction
-independent from their representation in the different modules
-:py:mod:`nomad.processing`, :py:mod:`nomad.coe_repo`, :py:mod:`nomad.parsing`,
-:py:mod:`nomad.search`, :py:mod:`nomad.api`, :py:mod:`nomad.migration`.
-
-It is not about representing every detail, but those parts that are directly involved in
-api, processing, migration, mirroring, or other 'infrastructure' operations.
-
-Transformations between different implementations of the same entity can be build
-and used. To ease the number of necessary transformations the classes
-:class:`UploadWithMetadata` and :class:`CalcWithMetadata` can act as intermediate
-representations. Therefore, implement only transformation from and to these
-classes. These are the implemented transformations:
-
-.. image:: datamodel_transformations.png
-"""
-
-from typing import Iterable, List, Dict
+from typing import Iterable, List, Dict, Type
 import datetime
+from elasticsearch_dsl import Keyword
 
-from nomad import utils
+from nomad import utils, config
 
 
 class UploadWithMetadata():
@@ -60,7 +42,7 @@ class UploadWithMetadata():
 class CalcWithMetadata():
     """
     A dict/POPO class that can be used for mapping calc representations with calc metadata.
-    We have many representations of calcs and their calc metadata. To avoid implement
+    We have multi representations of calcs and their calc metadata. To avoid implement
     mappings between all combinations, just implement mappings with the class and use
     mapping transitivity. E.g. instead of A -> B, A -> this -> B.
 
@@ -87,16 +69,6 @@ class CalcWithMetadata():
         references: Objects describing user provided references, keys are ``id`` and ``value``.
         datasets: Objects describing the datasets, keys are ``id``, ``name``, ``doi``.
             DOI is optional, is an object with key ``id``, ``value``.
-
-        formula: The chemical formula
-        atoms: A list of all atoms, as labels. All atoms means the whole composition, with atom labels repeated.
-        basis_set: The basis set type of this calculation.
-        xc_functional: The class of functional used.
-        system: The system type, e.g. Atom/Molecule, 2D, Bulk(3D)
-        crystal_system: The symmetry describing crystal_system type.
-        spacegroup: The spacegroup, as spacegroup number.
-        code_name: The name of the used code.
-        code_version: The version of the used code.
     """
     def __init__(self, **kwargs):
         # id relevant metadata
@@ -122,18 +94,6 @@ class CalcWithMetadata():
         self.comment: str = None
         self.references: List[utils.POPO] = []
         self.datasets: List[utils.POPO] = []
-
-        # DFT specific calc metadata, derived from raw data through successful processing
-        self.formula: str = None
-        self.atoms: List[str] = []
-        self.basis_set: str = None
-        self.xc_functional: str = None
-        self.system: str = None
-        self.crystal_system: str = None
-        self.spacegroup: str = None
-        self.spacegroup_symbol: str = None
-        self.code_name: str = None
-        self.code_version: str = None
 
         # temporary reference to the backend after successful processing
         self.backend = None
@@ -175,3 +135,56 @@ class CalcWithMetadata():
         self.datasets = [
             utils.POPO(id=int(ds['id']), doi=utils.POPO(value=ds.get('_doi')), name=ds.get('_name'))
             for ds in metadata.get('datasets', [])]
+
+    def apply_domain_metadata(self, backend):
+        raise NotImplementedError()
+
+
+class DomainQuantity:
+
+    def __init__(
+            self, description: str = None, multi: bool = False, aggregate: bool = False,
+            elastic_mapping=None):
+
+        self.name: str = None
+        self.description = description
+        self.multi = multi
+        self.aggregate = aggregate
+        self.elastic_mapping = elastic_mapping
+
+        if self.elastic_mapping is None:
+            self.elastic_mapping = Keyword(multi=self.multi)
+
+
+class Domain:
+    domain_class: Type[CalcWithMetadata] = None
+    quantities: List[DomainQuantity] = []
+
+    @classmethod
+    def register_domain(cls, domain_class: type, domain_name: str, quantities: Dict[str, DomainQuantity]):
+        assert cls.domain_class is None, 'you can only define one domain.'
+
+        if not domain_name == config.domain:
+            return
+
+        cls.domain_class = domain_class
+
+        reference_domain_calc = domain_class()
+        reference_general_calc = CalcWithMetadata()
+
+        for name, value in reference_domain_calc.__dict__.items():
+            if not hasattr(reference_general_calc, name):
+                quantity = quantities.get(name, None)
+                if quantity is None:
+                    quantity = DomainQuantity()
+                    quantities[name] = quantity
+                quantity.name = name
+                quantity.multi = isinstance(value, list)
+                cls.quantities.append(quantity)
+
+        for name in quantities.keys():
+            assert hasattr(reference_domain_calc, name) and not hasattr(reference_general_calc, name), \
+                'quantity does not exist or overrides general non domain quantity'
+
+        # utils.get_logger(__name__).info(
+        #     'configured domain', domain=domain_name, domain_quantities=len(cls.quantities))

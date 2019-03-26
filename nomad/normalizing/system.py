@@ -149,7 +149,7 @@ class SystemNormalizer(SystemBasedNormalizer):
                 self.logger.error('no lattice vectors but periodicity', pbc=pbc)
         else:
             try:
-                atoms.set_cell(1e10 * lattice_vectors)
+                atoms.set_cell(1e10 * np.array(lattice_vectors))
             except Exception as e:
                 self.logger.error(
                     'cannot use lattice_vectors with ase atoms', exc_info=e, error=str(e))

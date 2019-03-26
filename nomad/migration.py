@@ -531,7 +531,8 @@ class NomadCOEMigration:
 
             def check_mismatch() -> bool:
                 # some exceptions
-                if source_value in NomadCOEMigration.expected_differences and \
+                if isinstance(source_value, str) and \
+                        source_value in NomadCOEMigration.expected_differences and \
                         target_value == NomadCOEMigration.expected_differences.get(source_value):
                     return True
 
@@ -550,7 +551,9 @@ class NomadCOEMigration:
             if isinstance(target_value, list):
                 source_list = list(to_comparable_list(source_value))
                 target_list = list(to_comparable_list(target_value))
-                if len(set(source_list).intersection(target_list)) != len(target_list):
+                if len(source_list) != len(target_list):
+                    is_valid &= check_mismatch()
+                elif any(a != b for a, b in zip(source_list, target_list)):
                     is_valid &= check_mismatch()
                 continue
 

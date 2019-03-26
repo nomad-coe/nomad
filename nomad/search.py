@@ -18,7 +18,8 @@ This module represents calculations in elastic search.
 
 from typing import Iterable, Dict, Tuple, List
 from elasticsearch_dsl import Document, InnerDoc, Keyword, Text, Date, \
-    Object, Boolean, Search, Integer, Q, A, analyzer, tokenizer
+    Object, Boolean, Search, Q, A, analyzer, tokenizer
+from elasticsearch_dsl.document import IndexMeta
 import elasticsearch.helpers
 import ase.data
 
@@ -67,7 +68,16 @@ class Dataset(InnerDoc):
     name = Keyword()
 
 
-class Entry(Document):
+class WithDomain(IndexMeta):
+    """ Override elasticsearch_dsl metaclass to sneak in domain specific mappings """
+    def __new__(cls, name, bases, attrs):
+        for quantity in datamodel.Domain.quantities:
+            attrs[quantity.name] = quantity.elastic_mapping
+        return super(WithDomain, cls).__new__(cls, name, bases, attrs)
+
+
+class Entry(Document, metaclass=WithDomain):
+
     class Index:
         name = config.elastic.index_name
 
@@ -89,29 +99,6 @@ class Entry(Document):
     comment = Text()
     references = Keyword()
     datasets = Object(Dataset)
-
-    formula = Keyword()
-    atoms = Keyword(multi=True)
-    basis_set = Keyword()
-    xc_functional = Keyword()
-    system = Keyword()
-    crystal_system = Keyword()
-    spacegroup = Keyword()
-    spacegroup_symbol = Keyword()
-    code_name = Keyword()
-    code_version = Keyword()
-
-    group_hash = Keyword()
-    """
-    A hash that is used to collapse results in search results. Its based on:
-    formula, spacegroup, basis_set, xc_functional, code_name, code_version,
-    with_embargo, commet, references, authors
-    """
-
-    n_total_energies = Integer()
-    n_geometries = Integer()
-    geometries = Keyword(multi=True)
-    quantities = Keyword(multi=True)
 
     @classmethod
     def from_calc_with_metadata(cls, source: datamodel.CalcWithMetadata) -> 'Entry':
@@ -148,48 +135,8 @@ class Entry(Document):
         self.references = [ref.value for ref in source.references]
         self.datasets = [Dataset.from_dataset_popo(ds) for ds in source.datasets]
 
-        self.formula = source.formula
-        self.atoms = list(set(source.atoms))
-        self.basis_set = source.basis_set
-        self.xc_functional = source.xc_functional
-        self.system = source.system
-        self.crystal_system = source.crystal_system
-        self.spacegroup = source.spacegroup
-        self.spacegroup_symbol = source.spacegroup_symbol
-        self.code_name = source.code_name
-        self.code_version = source.code_version
-
-        self.group_hash = utils.hash(
-            self.formula,
-            self.spacegroup,
-            self.basis_set,
-            self.xc_functional,
-            self.code_name,
-            self.code_version,
-            self.with_embargo,
-            self.comment,
-            self.references,
-            self.authors)
-
-        if source.backend is not None:
-            quantities = set()
-            geometries = set()
-            n_total_energies = 0
-            n_geometries = 0
-
-            for meta_info, _, value in source.backend._delegate.results.traverse():
-                quantities.add(meta_info)
-                if meta_info == 'energy_total':
-                    n_total_energies += 1
-                if meta_info == 'section_system':
-                    n_geometries += 1
-                if meta_info == 'configuration_raw_gid':
-                    geometries.add(value)
-
-            self.geometries = list(geometries)
-            self.quantities = list(quantities)
-            self.n_total_energies = n_total_energies
-            self.n_geometries = n_geometries
+        for quantity in datamodel.Domain.quantities:
+            setattr(self, quantity.name, getattr(source, quantity.name))
 
 
 def delete_upload(upload_id):

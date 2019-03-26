@@ -42,7 +42,7 @@ This module also provides functionality to add parsed calculation data to the db
     :undoc-members:
 """
 
-from typing import Type
+from typing import Type, cast
 import datetime
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
@@ -52,7 +52,7 @@ import warnings
 from sqlalchemy import exc as sa_exc
 
 from nomad import utils, infrastructure, config
-from nomad.datamodel import UploadWithMetadata
+from nomad.datamodel import UploadWithMetadata, DFTCalcWithMetadata
 
 from .calc import Calc, PublishContext
 from .base import Base
@@ -194,7 +194,8 @@ class Upload(Base):  # type: ignore
                         upload=coe_upload)
                     repo_db.add(coe_calc)
 
-                    coe_calc.apply_calc_with_metadata(calc, context=context)
+                    coe_calc.apply_calc_with_metadata(
+                        cast(DFTCalcWithMetadata, calc), context=context)
                     logger.debug(
                         'added calculation, not yet committed', calc_id=coe_calc.calc_id)
 

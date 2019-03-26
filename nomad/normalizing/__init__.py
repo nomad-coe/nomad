@@ -36,11 +36,9 @@ from typing import List, Any
 from .normalizer import Normalizer
 from .system import SystemNormalizer
 from .fhiaims import FhiAimsBaseNormalizer
-from .repository import RepositoryNormalizer
 
 
 normalizers: List[Any] = [
     SystemNormalizer,
-    FhiAimsBaseNormalizer,
-    RepositoryNormalizer
+    FhiAimsBaseNormalizer
 ]

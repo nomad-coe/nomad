@@ -62,7 +62,7 @@ def _gen_ref():
 def generate_calc(pid: int = 0, calc_id: str = None, upload_id: str = None) -> datamodel.CalcWithMetadata:
     random.seed(pid)
 
-    self = datamodel.CalcWithMetadata()
+    self = datamodel.DFTCalcWithMetadata()
 
     self.upload_id = upload_id if upload_id is not None else utils.create_uuid()
     self.calc_id = calc_id if calc_id is not None else utils.create_uuid()

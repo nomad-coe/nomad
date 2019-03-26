@@ -108,7 +108,8 @@ services = NomadConfig(
     api_secret='defaultApiSecret',
     admin_password='password',
     disable_reset=True,
-    not_processed_value='not processed'
+    not_processed_value='not processed',
+    unavailable_value='unavailable'
 )
 
 tests = NomadConfig(
@@ -148,11 +149,12 @@ client = NomadConfig(
     url='http://localhost:8000/nomad/api'
 )
 
-console_log_level = logging.WARNING
-service = 'unknown nomad service'
-release = 'devel'
-auxfile_cutoff = 30
 version = '4.3'  # TODO replace with git hash?
+release = 'devel'
+domain = 'DFT'
+service = 'unknown nomad service'
+auxfile_cutoff = 30
+console_log_level = logging.WARNING
 
 
 def get_loglevel_from_env(key, default_level=logging.INFO):

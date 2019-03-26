@@ -14,6 +14,7 @@
 
 import pytest
 
+from nomad import datamodel, config
 from nomad.parsing import LocalBackend
 from nomad.normalizing import normalizers
 
@@ -56,7 +57,8 @@ def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
 
 
 def assert_normalized(backend: LocalBackend):
-    metadata = backend.to_calc_with_metadata()
+    metadata = datamodel.DFTCalcWithMetadata()
+    metadata.apply_domain_metadata(backend)
     assert metadata.code_name is not None
     assert metadata.code_version is not None
     assert metadata.basis_set is not None
@@ -66,8 +68,15 @@ def assert_normalized(backend: LocalBackend):
     assert len(metadata.atoms) > 0
     assert metadata.spacegroup is not None
 
+    assert metadata.code_name is not config.services.unavailable_label
+    assert metadata.code_version is not config.services.unavailable_label
+    assert metadata.basis_set is not config.services.unavailable_label
+    assert metadata.xc_functional is not config.services.unavailable_label
+    assert metadata.system is not config.services.unavailable_label
+    # TODO check symmetry where we know it should be there
 
-def test_normalizer(normalized_example: LocalBackend, no_warn):
+
+def test_normalizer(normalized_example: LocalBackend):
     assert_normalized(normalized_example)
 
 
