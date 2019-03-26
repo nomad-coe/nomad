@@ -19,7 +19,7 @@ import os.path
 import json
 import re
 
-from nomad import utils, infrastructure
+from nomad import utils, infrastructure, config
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator, FAILURE, SUCCESS
@@ -150,7 +150,7 @@ def test_publish_failed(
     assert_search_upload(upload, additional_keys, published=True, processed=False)
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(config.tests.default_timeout)
 def test_processing_with_warning(proc_infra, test_user, with_warn):
     example_file = 'tests/data/proc/examples_with_warning_template.zip'
     example_upload_id = os.path.basename(example_file).replace('.zip', '')
@@ -159,7 +159,7 @@ def test_processing_with_warning(proc_infra, test_user, with_warn):
     assert_processing(upload)
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(config.tests.default_timeout)
 def test_process_non_existing(proc_infra, test_user, with_error):
     upload = run_processing(('__does_not_exist', '__does_not_exist'), test_user)
 
@@ -180,7 +180,7 @@ def mock_failure(cls, task, monkeypatch):
 
 
 @pytest.mark.parametrize('task', ['extracting', 'parse_all', 'cleanup', 'parsing'])
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(config.tests.default_timeout)
 def test_task_failure(monkeypatch, uploaded, task, proc_infra, test_user, with_error):
     # mock the task method to through exceptions
     if hasattr(Upload, task):

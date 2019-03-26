@@ -111,6 +111,10 @@ services = NomadConfig(
     not_processed_value='not processed'
 )
 
+tests = NomadConfig(
+    default_timeout=30
+)
+
 
 def upload_url():
     return 'http://%s:%s/%s/uploads' % (services.api_host, services.api_port, services.api_base_path[:-3])

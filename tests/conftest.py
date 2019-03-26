@@ -530,7 +530,7 @@ def non_empty_uploaded(non_empty_example_upload: str, raw_files) -> Tuple[str, s
     return example_upload_id, non_empty_example_upload
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(config.tests.default_timeout)
 @pytest.fixture(scope='function')
 def processed(uploaded: Tuple[str, str], test_user: coe_repo.User, proc_infra) -> processing.Upload:
     """
@@ -539,7 +539,7 @@ def processed(uploaded: Tuple[str, str], test_user: coe_repo.User, proc_infra) -
     return test_processing.run_processing(uploaded, test_user)
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(config.tests.default_timeout)
 @pytest.fixture(scope='function')
 def non_empty_processed(non_empty_uploaded: Tuple[str, str], test_user: coe_repo.User, proc_infra) -> processing.Upload:
     """

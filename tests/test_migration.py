@@ -21,7 +21,7 @@ import glob
 import bravado.exception
 import zipfile
 
-from nomad import infrastructure, coe_repo, utils, files, processing
+from nomad import infrastructure, coe_repo, utils, files, processing, config
 
 from nomad.migration import NomadCOEMigration, SourceCalc, Package
 from nomad.infrastructure import repository_db_connection
@@ -221,7 +221,7 @@ mirgation_test_specs = [
 
 @pytest.mark.filterwarnings("ignore:SAWarning")
 @pytest.mark.parametrize('name, test_directory, assertions', mirgation_test_specs)
-@pytest.mark.timeout(30)
+@pytest.mark.timeout(config.tests.default_timeout)
 def test_migrate(migrate_infra, name, test_directory, assertions, monkeypatch, caplog):
     perform_migration_test(migrate_infra, name, test_directory, assertions, monkeypatch, caplog)
 
