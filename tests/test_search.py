@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List
 from elasticsearch_dsl import Q
 
 from nomad import datamodel, search, processing, parsing, infrastructure, config, coe_repo
-from nomad.search import Entry, aggregate_search, authors
+from nomad.search import Entry, aggregate_search, authors, scroll_search
 
 
 def test_init_mapping(elastic):
@@ -52,12 +53,39 @@ def test_search(elastic, normalized: parsing.LocalBackend):
     create_entry(calc_with_metadata)
     refresh_index()
 
-    total, hits, aggs = aggregate_search()
+    total, hits, aggs, metrics = aggregate_search()
     assert total == 1
     assert hits[0]['calc_id'] == calc_with_metadata.calc_id
     assert 'bulk' in aggs['system']
-    assert aggs['system']['bulk'] == 1
+
+    example_agg = aggs['system']['bulk']
+
+    def assert_metrics(container):
+        assert container['code_runs'] == 1
+        assert 'datasets' in container
+        assert 'geometries' in container
+        assert 'total_energies' in container
+
+    assert_metrics(example_agg)
+    assert_metrics(metrics)
+
     assert 'quantities' not in hits[0]
+
+
+def test_scroll(elastic, normalized: parsing.LocalBackend):
+    calc_with_metadata = normalized.to_calc_with_metadata()
+    create_entry(calc_with_metadata)
+    refresh_index()
+
+    scroll_id, total, hits = scroll_search()
+    assert total == 1
+    assert len(hits) == 1
+    assert scroll_id is not None
+
+    scroll_id, total, hits = scroll_search(scroll_id=scroll_id)
+    assert total == 1
+    assert scroll_id is None
+    assert len(hits) == 0
 
 
 def test_authors(elastic, normalized: parsing.LocalBackend, test_user: coe_repo.User, other_test_user: coe_repo.User):
@@ -95,15 +123,25 @@ def assert_entry(calc_id):
     assert results[0]['calc_id'] == calc_id
 
 
-def assert_search_upload(upload_id, published: bool = False):
+def assert_search_upload(upload: datamodel.UploadWithMetadata, additional_keys: List[str] = [], **kwargs):
+    keys = ['calc_id', 'upload_id', 'mainfile', 'calc_hash']
     refresh_index()
     search = Entry.search().query('match_all')[0:10]
+    assert search.count() == len(list(upload.calcs))
     if search.count() > 0:
         for hit in search:
             hit = hit.to_dict()
-            if published:
+            for key, value in kwargs.items():
+                assert hit.get(key, None) == value
+
+            if 'pid' in hit:
                 assert int(hit.get('pid')) > 0
-                assert hit.get('published')
+
+            for key in keys:
+                assert key in hit
+
+            for key in additional_keys:
+                assert key in hit
 
             for coauthor in hit.get('coauthors', []):
                 assert coauthor.get('name', None) is not None
@@ -114,6 +152,7 @@ if __name__ == '__main__':
     from elasticsearch.helpers import bulk
     import sys
     print('Generate index with random example calculation data. First arg is number of items')
+    infrastructure.setup_logging()
     infrastructure.setup_elastic()
     n = 100
     if len(sys.argv) > 1:

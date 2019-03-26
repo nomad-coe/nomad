@@ -12,12 +12,12 @@ import ListItemIcon from '@material-ui/core/ListItemIcon'
 import ListItemText from '@material-ui/core/ListItemText'
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
-import AccountIcon from '@material-ui/icons/AccountCircle'
+// import AccountIcon from '@material-ui/icons/AccountCircle'
 import DocumentationIcon from '@material-ui/icons/Help'
 import HomeIcon from '@material-ui/icons/Home'
-import ArchiveIcon from '@material-ui/icons/Storage'
-import EncIcon from '@material-ui/icons/Assessment'
-import AnalyticsIcon from '@material-ui/icons/Settings'
+// import ArchiveIcon from '@material-ui/icons/Storage'
+// import EncIcon from '@material-ui/icons/Assessment'
+// import AnalyticsIcon from '@material-ui/icons/Settings'
 import DevelIcon from '@material-ui/icons/ReportProblem'
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft'
 import MenuIcon from '@material-ui/icons/Menu'
@@ -33,7 +33,7 @@ const drawerWidth = 200
 
 const toolbarTitles = {
   '/': 'Welcome',
-  '/repo': 'Raw Code Outputs',
+  '/repo': 'Search',
   '/upload': 'Upload Your Own Data',
   '/profile': 'Your Profile',
   '/docs': 'Documentation',
@@ -210,7 +210,7 @@ class Navigation extends React.Component {
             <ListItemIcon>
               <SearchIcon style={{fill: repoTheme.palette.primary.main}}/>
             </ListItemIcon>
-            <ListItemText inset primary="Repository"/>
+            <ListItemText inset primary="Search"/>
           </MenuItem>
           <MenuItem className={classes.menuItem} component={Link} to="/upload" selected={ pathname === '/upload' }>
             <ListItemIcon>
@@ -218,7 +218,7 @@ class Navigation extends React.Component {
             </ListItemIcon>
             <ListItemText inset primary="Upload"/>
           </MenuItem>
-          <MenuItem className={classes.menuItem} component={Link} to="/archive" selected={ pathname.startsWith('/archive') }>
+          {/* <MenuItem className={classes.menuItem} component={Link} to="/archive" selected={ pathname.startsWith('/archive') }>
             <ListItemIcon>
               <ArchiveIcon style={{fill: archiveTheme.palette.primary.main}}/>
             </ListItemIcon>
@@ -235,16 +235,16 @@ class Navigation extends React.Component {
               <AnalyticsIcon style={{fill: analyticsTheme.palette.primary.main}}/>
             </ListItemIcon>
             <ListItemText inset primary="Analytics"/>
-          </MenuItem>
+          </MenuItem> */}
         </MenuList>
         <Divider/>
         <MenuList>
-          <MenuItem className={classes.menuItem} component={Link} to="/profile" selected={ pathname === '/profile' }>
+          {/* <MenuItem className={classes.menuItem} component={Link} to="/profile" selected={ pathname === '/profile' }>
             <ListItemIcon>
               <AccountIcon />
             </ListItemIcon>
             <ListItemText inset primary="Profil"/>
-          </MenuItem>
+          </MenuItem> */}
           <MenuItem className={classes.menuItem} component={Link} to="/docs" selected={ pathname === '/docs' }>
             <ListItemIcon>
               <DocumentationIcon />

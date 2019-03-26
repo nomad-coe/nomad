@@ -30,11 +30,7 @@ from nomad import config
 # changing them afterwards does not change anything anymore.
 
 # For convinience we test the api without path prefix.
-services_config = config.services._asdict()
-services_config.update(api_base_path='')
-config.services = config.NomadServicesConfig(**services_config)
+config.services.api_base_path = ''
 
 # We use a mocked in memory mongo version.
-mongo_config = config.mongo._asdict()
-mongo_config.update(host='mongomock://localhost')
-config.mongo = config.MongoConfig(**mongo_config)
+config.mongo.host = 'mongomock://localhost'

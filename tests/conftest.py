@@ -29,7 +29,7 @@ import datetime
 import base64
 from bravado.client import SwaggerClient
 
-from nomad import config, infrastructure, files, parsing, processing, coe_repo, api
+from nomad import config, infrastructure, parsing, processing, coe_repo, api
 
 from tests import test_parsing, test_normalizing
 from tests.processing import test_data as test_processing
@@ -50,21 +50,24 @@ def monkeysession(request):
 
 @pytest.fixture(scope='session', autouse=True)
 def nomad_logging():
-    config.logstash = config.logstash._replace(enabled=False)
+    config.logstash.enabled = False
     config.console_log_level = test_log_level
     infrastructure.setup_logging()
 
 
 @pytest.fixture(scope='session', autouse=True)
-def raw_files_infra(monkeysession):
-    monkeysession.setattr('nomad.config.fs', config.FSConfig(
-        tmp='.volumes/test_fs/tmp', objects='.volumes/test_fs/objects', nomad_tmp='.volumes/test_fs/nomad_tmp'))
+def raw_files_infra():
+    config.fs.tmp = '.volumes/test_fs/tmp'
+    config.fs.staging = '.volumes/test_fs/staging'
+    config.fs.public = '.volumes/test_fs/public'
+    config.fs.migration_packages = '.volumes/test_fs/migration_packages'
+    config.fs.prefix_size = 2
 
 
 @pytest.fixture(scope='function')
 def raw_files(raw_files_infra):
     """ Provides cleaned out files directory structure per function. Clears files after test. """
-    directories = [config.fs.objects, config.fs.tmp]
+    directories = [config.fs.staging, config.fs.public, config.fs.migration_packages, config.fs.tmp]
     for directory in directories:
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -79,7 +82,7 @@ def raw_files(raw_files_infra):
 
 
 @pytest.fixture(scope='function')
-def client(monkeysession, mongo):
+def client(mongo):
     api.app.config['TESTING'] = True
     client = api.app.test_client()
 
@@ -94,7 +97,8 @@ def celery_includes():
 @pytest.fixture(scope='session')
 def celery_config():
     return {
-        'broker_url': config.celery.broker_url
+        'broker_url': config.rabbitmq_url(),
+        'task_queues': config.celery.task_queues
     }
 
 
@@ -154,7 +158,7 @@ def worker(mongo, celery_session_worker, celery_inspect):
 
 
 @pytest.fixture(scope='session')
-def mongo_infra(monkeysession):
+def mongo_infra():
     return infrastructure.setup_mongo()
 
 
@@ -166,9 +170,9 @@ def mongo(mongo_infra):
 
 
 @pytest.fixture(scope='session')
-def elastic_infra(monkeysession):
+def elastic_infra():
     """ Provides elastic infrastructure to the session """
-    monkeysession.setattr('nomad.config.elastic', config.elastic._replace(index_name='test_nomad_fairdi_calcs'))
+    config.elastic.index_name = 'test_nomad_fairdi_calcs'
     try:
         return infrastructure.setup_elastic()
     except Exception:
@@ -200,7 +204,7 @@ def elastic(elastic_infra):
 
 
 @contextmanager
-def create_postgres_infra(monkeysession=None, **kwargs):
+def create_postgres_infra(patch=None, **kwargs):
     """
     A generator that sets up and tears down a test db and monkeypatches it to the
     respective global infrastructure variables.
@@ -209,15 +213,11 @@ def create_postgres_infra(monkeysession=None, **kwargs):
     db_args.update(**kwargs)
 
     old_config = config.repository_db
-    new_config = config.RepositoryDBConfig(
-        old_config.host,
-        old_config.port,
-        db_args.get('dbname'),
-        old_config.user,
-        old_config.password)
+    new_config = config.NomadConfig(**config.repository_db)
+    new_config.update(**db_args)
 
-    if monkeysession is not None:
-        monkeysession.setattr('nomad.config.repository_db', new_config)
+    if patch is not None:
+        patch.setattr('nomad.config.repository_db', new_config)
 
     connection, _ = infrastructure.sqlalchemy_repository_db(**db_args)
     assert connection is not None
@@ -228,18 +228,18 @@ def create_postgres_infra(monkeysession=None, **kwargs):
     db = Session(bind=connection, autocommit=True)
 
     old_connection, old_db = None, None
-    if monkeysession is not None:
+    if patch is not None:
         from nomad.infrastructure import repository_db_conn, repository_db
         old_connection, old_db = repository_db_conn, repository_db
-        monkeysession.setattr('nomad.infrastructure.repository_db_conn', connection)
-        monkeysession.setattr('nomad.infrastructure.repository_db', db)
+        patch.setattr('nomad.infrastructure.repository_db_conn', connection)
+        patch.setattr('nomad.infrastructure.repository_db', db)
 
     yield db
 
-    if monkeysession is not None:
-        monkeysession.setattr('nomad.infrastructure.repository_db_conn', old_connection)
-        monkeysession.setattr('nomad.infrastructure.repository_db', old_db)
-        monkeysession.setattr('nomad.config.repository_db', old_config)
+    if patch is not None:
+        patch.setattr('nomad.infrastructure.repository_db_conn', old_connection)
+        patch.setattr('nomad.infrastructure.repository_db', old_db)
+        patch.setattr('nomad.config.repository_db', old_config)
 
     trans.rollback()
     db.expunge_all()
@@ -451,7 +451,10 @@ class SMTPServerFixture:
 
 
 @pytest.fixture(scope='session')
-def smtpd(request):
+def smtpd(request, monkeysession):
+    # on some local machines resolving the local machine takes quit a while and
+    # is irrelevant for testing
+    monkeysession.setattr('socket.getfqdn', lambda *args, **kwargs: 'local.server')
     fixture = SMTPServerFixture()
     request.addfinalizer(fixture.close)
     return fixture
@@ -460,16 +463,8 @@ def smtpd(request):
 @pytest.fixture(scope='function', autouse=True)
 def mails(smtpd, monkeypatch):
     smtpd.clear()
-
-    old_config = config.mail
-    new_config = config.MailConfig(
-        'localhost',
-        old_config.port,
-        old_config.user,
-        old_config.password,
-        old_config.from_address)
-
-    monkeypatch.setattr('nomad.config.mail', new_config)
+    monkeypatch.setattr('nomad.config.mail.enabled', True)
+    monkeypatch.setattr('nomad.config.mail.host', 'localhost')
     yield smtpd
 
 
@@ -481,6 +476,16 @@ def example_mainfile() -> Tuple[str, str]:
 @pytest.fixture(scope='session', params=example_files)
 def example_upload(request) -> str:
     return request.param
+
+
+@pytest.fixture(scope='session')
+def non_empty_example_upload():
+    return example_file
+
+
+@pytest.fixture(scope='session')
+def empty_upload():
+    return empty_file
 
 
 @pytest.fixture(scope='module')
@@ -510,22 +515,40 @@ def normalized(parsed: parsing.LocalBackend) -> parsing.LocalBackend:
 
 
 @pytest.fixture(scope='function')
-def uploaded(example_upload: str, raw_files) -> str:
+def uploaded(example_upload: str, raw_files) -> Tuple[str, str]:
     """
     Provides a uploaded with uploaded example file and gives the upload_id.
     Clears files after test.
     """
     example_upload_id = os.path.basename(example_upload).replace('.zip', '')
-    upload_files = files.ArchiveBasedStagingUploadFiles(example_upload_id, create=True)
-    shutil.copyfile(example_upload, upload_files.upload_file_os_path)
+    return example_upload_id, example_upload
 
-    return example_upload_id
+
+@pytest.fixture(scope='function')
+def non_empty_uploaded(non_empty_example_upload: str, raw_files) -> Tuple[str, str]:
+    example_upload_id = os.path.basename(non_empty_example_upload).replace('.zip', '')
+    return example_upload_id, non_empty_example_upload
 
 
 @pytest.mark.timeout(10)
 @pytest.fixture(scope='function')
-def processed(uploaded: str, test_user: coe_repo.User, proc_infra) -> processing.Upload:
+def processed(uploaded: Tuple[str, str], test_user: coe_repo.User, proc_infra) -> processing.Upload:
     """
     Provides a processed upload. Upload was uploaded with test_user.
     """
     return test_processing.run_processing(uploaded, test_user)
+
+
+@pytest.mark.timeout(10)
+@pytest.fixture(scope='function')
+def non_empty_processed(non_empty_uploaded: Tuple[str, str], test_user: coe_repo.User, proc_infra) -> processing.Upload:
+    """
+    Provides a processed upload. Upload was uploaded with test_user.
+    """
+    return test_processing.run_processing(non_empty_uploaded, test_user)
+
+
+@pytest.fixture(scope='function', params=[False, True])
+def with_publish_to_coe_repo(monkeypatch, request):
+    monkeypatch.setattr('nomad.config.repository_db.publish_enabled', request.param)
+    return request.param

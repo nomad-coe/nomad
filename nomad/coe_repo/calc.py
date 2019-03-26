@@ -82,6 +82,13 @@ class Calc(Base):
         secondaryjoin=calc_dataset_containment.c.parent_calc_id == coe_calc_id,
         backref='children', lazy='subquery', join_depth=1)
 
+    @staticmethod
+    def from_calc_id(calc_id: str) -> 'Calc':
+        repo_db = infrastructure.repository_db
+        calcs = repo_db.query(Calc).filter_by(checksum=calc_id)
+        assert calcs.count() <= 1, 'Calc id/checksum must be unique'
+        return calcs.first()
+
     @classmethod
     def load_from(cls, obj):
         repo_db = infrastructure.repository_db
@@ -185,6 +192,7 @@ class Calc(Base):
         if code_version_obj is None:
             code_version_obj = CodeVersion(content=source_code_version)
             repo_db.add(code_version_obj)
+            repo_db.flush()
 
         if calc.upload_time is not None:
             added_time = calc.upload_time
@@ -214,7 +222,10 @@ class Calc(Base):
             permission=(1 if calc.with_embargo else 0))
         repo_db.add(user_metadata)
 
-        spacegroup = Spacegroup(calc=self, n=calc.spacegroup)
+        if isinstance(calc.spacegroup, int) or calc.spacegroup.isdigit():
+            spacegroup = Spacegroup(calc=self, n=calc.spacegroup)
+        else:
+            spacegroup = Spacegroup(calc=self, n='0')
         repo_db.add(spacegroup)
 
         # topic based properties
@@ -229,7 +240,7 @@ class Calc(Base):
         # user relations
         def add_users_to_relation(source_users, relation):
             for source_user in source_users:
-                coe_user = context.cache(User, user_id=source_user.id)
+                coe_user = context.cache(User, user_id=int(source_user.id))
                 if coe_user is None:
                     raise IllegalCalcMetadata(
                         'User with user_id %s does not exist.' % source_user.id)
@@ -246,8 +257,14 @@ class Calc(Base):
         add_users_to_relation(calc.shared_with, self.shared_with)
 
         # datasets
+        calcs_existing_datasets: List[int] = []
         for dataset in calc.datasets:
             dataset_id = dataset.id
+            if dataset_id in calcs_existing_datasets:
+                continue
+            else:
+                calcs_existing_datasets.append(dataset_id)
+
             coe_dataset_calc: Calc = context.cache(Calc, coe_calc_id=dataset_id)
             if coe_dataset_calc is None:
                 coe_dataset_calc = Calc(coe_calc_id=dataset_id)
@@ -258,6 +275,7 @@ class Calc(Base):
                     added=self.upload.upload_time,
                     chemical_formula=dataset.name)
                 repo_db.add(metadata)
+                repo_db.flush()
 
                 if dataset.doi is not None:
                     self._add_citation(coe_dataset_calc, dataset.doi['value'], 'INTERNAL', context)
@@ -273,6 +291,8 @@ class Calc(Base):
         # references
         for reference in calc.references:
             self._add_citation(self, reference['value'], 'EXTERNAL', context)
+
+        repo_db.flush()
 
     def _add_citation(self, coe_calc: 'Calc', value: str, kind: str, context: PublishContext) -> None:
         if value is None or kind is None:

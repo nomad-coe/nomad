@@ -1,0 +1,36 @@
+! EXAM01.
+!    1-A-1 CH2    RHF geometry optimization using GAMESS.
+!
+!    Although internal coordinates are used (COORD=ZMAT),
+!    the optimization is done in Cartesian space (NZVAR=0).
+!    This run uses a criterion (OPTTOL) on the gradient
+!    which is tighter than default, but very safe.
+!
+!    This job tests the sp integral module, the RHF module,
+!    and the geometry optimization module.
+!
+!    Using the default search METHOD=STANDARD,
+!    FINAL E= -37.2322678015, 8 iters, RMS grad= .0264308
+!    FINAL E= -37.2351919062, 7 iters, RMS grad= .0202617
+!    FINAL E= -37.2380037239, 7 iters, RMS grad= .0013100
+!    FINAL E= -37.2380352917, 8 iters, RMS grad= .0007519
+!    FINAL E= -37.2380396312, 5 iters, RMS grad= .0001615
+!    FINAL E= -37.2380397693, 5 iters, RMS grad= .0000067
+!    FINAL E= -37.2380397698, 3 iters, RMS grad= .0000004
+!
+ $CONTRL SCFTYP=RHF RUNTYP=OPTIMIZE COORD=ZMT NZVAR=0 $END
+ $SYSTEM TIMLIM=1 $END
+ $STATPT OPTTOL=1.0E-5  $END
+ $BASIS  GBASIS=STO NGAUSS=2 $END
+ $GUESS  GUESS=HUCKEL $END
+ $DATA
+Methylene...1-A-1 state...RHF/STO-2G
+Cnv  2
+
+C
+H  1 rCH
+H  1 rCH  2 aHCH
+
+rCH=1.09
+aHCH=110.0
+ $END

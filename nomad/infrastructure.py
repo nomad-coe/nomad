@@ -51,7 +51,7 @@ repository_db_conn = None
 
 def setup():
     """
-    Uses the current configuration (nomad/config.py and environemnt) to setup all the
+    Uses the current configuration (nomad/config.py and environment) to setup all the
     infrastructure services (repository db, mongo, elastic search) and logging.
     Will create client instances for the databases and has to be called before they
     can be used.
@@ -89,7 +89,8 @@ def setup_elastic():
     """ Creates connection to elastic search. """
     global elastic_client
     elastic_client = connections.create_connection(
-        hosts=['%s:%d' % (config.elastic.host, config.elastic.port)])
+        hosts=['%s:%d' % (config.elastic.host, config.elastic.port)],
+        timeout=60, max_retries=10, retry_on_timeout=True)
     logger.info('setup elastic connection')
 
     try:
@@ -179,7 +180,7 @@ def sqlalchemy_repository_db(exists: bool = False, readonly: bool = True, **kwar
     def no_flush():
         pass
 
-    params = config.repository_db._asdict()
+    params = dict(**config.repository_db)
     params.update(**kwargs)
     url = 'postgresql://%s:%s@%s:%d/%s' % utils.to_tuple(params, 'user', 'password', 'host', 'port', 'dbname')
     # We tried to set a very high isolation level, to prevent conflicts between transactions on the
@@ -246,8 +247,18 @@ def reset(repo_content_only: bool = False):
         logger.error('exception resetting repository db', exc_info=e)
 
     try:
-        shutil.rmtree(config.fs.objects, ignore_errors=True)
-        shutil.rmtree(config.fs.tmp, ignore_errors=True)
+        shutil.rmtree(config.fs.staging, ignore_errors=True)
+        shutil.rmtree(config.fs.public, ignore_errors=True)
+        # delete tmp without the folder
+        for sub_path in os.listdir(config.fs.tmp):
+            path = os.path.join(config.fs.tmp, sub_path)
+            try:
+                if os.path.isfile(path):
+                    os.unlink(path)
+                elif os.path.isdir(path): shutil.rmtree(path, ignore_errors=True)
+            except Exception:
+                pass
+
         logger.info('files resetted')
     except Exception as e:
         logger.error('exception deleting files', exc_info=e)
@@ -290,7 +301,8 @@ def remove():
 
     logger.info('reset files')
     try:
-        shutil.rmtree(config.fs.objects, ignore_errors=True)
+        shutil.rmtree(config.fs.staging, ignore_errors=True)
+        shutil.rmtree(config.fs.public, ignore_errors=True)
         shutil.rmtree(config.fs.tmp, ignore_errors=True)
     except Exception as e:
         logger.error('exception deleting files', exc_info=e)
@@ -299,15 +311,12 @@ def remove():
 @contextmanager
 def repository_db_connection(dbname=None, with_trans=True):
     """ Contextmanager for a psycopg2 session for the NOMAD-coe repository postgresdb """
-    repository_db_dict = config.repository_db._asdict()
-    if dbname is not None:
-        repository_db_dict.update(dbname=dbname)
     conn_str = "host='%s' port=%d dbname='%s' user='%s' password='%s'" % (
-        repository_db_dict['host'],
-        repository_db_dict['port'],
-        repository_db_dict['dbname'],
-        repository_db_dict['user'],
-        repository_db_dict['password'])
+        config.repository_db.host,
+        config.repository_db.port,
+        config.repository_db.dbname if dbname is None else dbname,
+        config.repository_db.user,
+        config.repository_db.password)
 
     conn = psycopg2.connect(conn_str)
     if not with_trans:
@@ -391,7 +400,7 @@ def reset_repository_db_content():
 
 
 def send_mail(name: str, email: str, message: str, subject: str):
-    if config.mail.host is None or config.mail.host.strip() == '':
+    if not config.mail.enabled:
         return
 
     logger = utils.get_logger(__name__)
@@ -403,15 +412,15 @@ def send_mail(name: str, email: str, message: str, subject: str):
         except Exception as e:
             logger.warning('Could use TTS', exc_info=e)
 
-    if config.mail.user is not None:
+    if config.mail.with_login:
         try:
-            server.login("youremailusername", "password")
+            server.login(config.mail.user, config.mail.password)
         except Exception as e:
             logger.warning('Could not log into mail server', exc_info=e)
 
     msg = MIMEText(message)
     msg['Subject'] = subject
-    msg['From'] = 'nomad@fairdi webmaster'
+    msg['From'] = config.mail.from_address
     msg['To'] = name
 
     try:

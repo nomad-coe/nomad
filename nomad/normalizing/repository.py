@@ -31,11 +31,17 @@ class RepositoryNormalizer(Normalizer):
         'hf_': 'HF',
         'oep': 'OEP',
         'hyb': 'hybrid',
-        'mgga': 'meta-GGA',
+        'mgg': 'meta-GGA',
         'vdw': 'vdW',
         'lda': 'LDA',
     }
     """ https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/XC-functional """
+
+    basis_sets = {
+        'gaussians': 'gaussians',
+        'realspacegrid': 'real-space grid',
+        'planewaves': 'plane waves'
+    }
 
     version_re = re.compile(r'(\d+(\.\d+(\.\d+)?)?)')
 
@@ -44,6 +50,10 @@ class RepositoryNormalizer(Normalizer):
             return name
 
         return RepositoryNormalizer.xc_treatments.get(name[:3].lower(), name)
+
+    def map_basis_set_to_basis_set_label(self, name):
+        key = name.replace('_', '').replace('-', '').replace(' ', '').lower()
+        return RepositoryNormalizer.basis_sets.get(key, name)
 
     def simplify_version(self, version):
         match = RepositoryNormalizer.version_re.search(version)
@@ -64,8 +74,16 @@ class RepositoryNormalizer(Normalizer):
                 continue
 
             # Compare values from iterations.
-            diff_bool = new_val != val
 
+            # We can't compare numpy arrays of different lengths.
+            if val is None:  # We also can't check the length of none-type objects.
+                diff_bool = True
+
+            elif type(new_val) != int:  # Type int doesn't have a len() operator.
+                if len(new_val) != len(val):
+                    diff_bool = False
+            else:  # If the first value wasn't none and the lengths are the same.
+                diff_bool = new_val != val
             if type(diff_bool) is bool:
                 if diff_bool and val is not None:
                     diff_flag = True
@@ -123,7 +141,8 @@ class RepositoryNormalizer(Normalizer):
             self.get_optional_value('international_short_symbol', 'section_symmetry', 0))
         b.addValue(
             'repository_basis_set_type',
-            self.get_optional_value('program_basis_set_type', 'section_run'))
+            self.map_basis_set_to_basis_set_label(
+                self.get_optional_value('program_basis_set_type', 'section_run')))
         b.addValue(
             'repository_system_type',
             self.get_optional_value('system_type', 'section_system'))

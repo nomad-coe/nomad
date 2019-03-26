@@ -1,0 +1,19 @@
+proxy:
+  nodePort: 30001
+  external:
+    host: "enc-staging-nomad.esc.rzg.mpg.de"
+    path: "/fairdi/nomad/migration"
+
+worker:
+  replicas: 2
+
+dbname: fairdi_nomad_migration
+
+uploadurl: 'http://enc-staging-nomad.esc.rzg.mpg.de/fairdi/nomad/migration/upload'
+
+volumes:
+  prefixSize: 2
+  public: /nomad/fairdi/migration/fs/public
+  staging: /nomad/fairdi/migration/fs/staging
+  tmp: /nomad/fairdi/migration/fs/tmp
+  nomad: /nomad

@@ -43,10 +43,11 @@ api:
 worker:
   replicas: 2
   # request and limit in GB
-  memrequest: 32
-  memlimit: 320
+  memrequest: 64
+  memlimit: 420
   console_loglevel: INFO
   logstash_loglevel: INFO
+  routing: "queue"
 
 ## Everthing concerning the nomad gui
 gui:
@@ -95,6 +96,8 @@ elastic:
   port: 19200
 
 postgres:
+  sequential_publish: false
+  publish_enabled: true
   host: enc-preprocessing-nomad.esc
   port: 5432
 
@@ -115,5 +118,8 @@ mail:
 
 ## Everything concerning the data that is used by the service
 volumes:
-  files: /nomad/fairdi/fs
+  prefixSize: 2
+  public: /nomad/fairdi/fs/public
+  staging: /nomad/fairdi/fs/staging
+  tmp: /nomad/fairdi/fs/tmp
   nomad: /nomad

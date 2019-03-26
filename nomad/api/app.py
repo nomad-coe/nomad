@@ -45,7 +45,7 @@ app.config.SWAGGER_UI_REQUEST_DURATION = True  # type: ignore
 
 
 def api_base_path_response(env, resp):
-    resp(b'200 OK', [(b'Content-Type', b'text/plain')])
+    resp('200 OK', [('Content-Type', 'text/plain')])
     return [
         ('Development nomad api server. Api is served under %s/.' %
             config.services.api_base_path).encode('utf-8')]

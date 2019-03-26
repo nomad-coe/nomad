@@ -312,27 +312,25 @@ export class ApiProviderComponent extends React.Component {
                 try {
                   this.handleApiError(error)
                 } catch (e) {
-                  this.setState({isLoggingIn: false, user: null})
+                  this.setState({isLoggingIn: false})
                   this.props.raiseError(error)
                 }
-              } else {
-                this.setState({isLoggingIn: false})
               }
             })
             .then(response => {
               if (response) {
                 const user = response.body
-                this.setState({api: new Api(user), user: user})
+                this.setState({api: new Api(user), isLoggingIn: false, user: user})
                 this.props.cookies.set('token', user.token)
                 successCallback(true)
               } else {
+                this.setState({isLoggingIn: false})
                 successCallback(false)
               }
-              this.setState({isLoggingIn: false})
             })
         })
         .catch(error => {
-          this.setState({isLoggingIn: false, user: null})
+          this.setState({isLoggingIn: false})
           this.props.raiseError(error)
         })
     },
@@ -370,18 +368,15 @@ class LoginRequiredUnstyled extends React.Component {
 
   render() {
     const {classes, isLoggingIn} = this.props
-    if (!isLoggingIn) {
-      return (
-        <div className={classes.root}>
-          <Typography>
-            To upload data, you must have a nomad account and you must be logged in.
-          </Typography>
-          <LoginLogout variant="outlined" color="primary"/>
-        </div>
-      )
-    } else {
-      return <LinearProgress />
-    }
+    return (
+      <div className={classes.root}>
+        <Typography>
+          To upload data, you must have a nomad account and you must be logged in.
+        </Typography>
+        <LoginLogout variant="outlined" color="primary" isLoggingIn={isLoggingIn}/>
+        { isLoggingIn ? <LinearProgress/> : '' }
+      </div>
+    )
   }
 }
 
@@ -398,7 +393,7 @@ export function withApi(loginRequired) {
             (apiContext.user || !loginRequired)
               ? <Component
                 {...props} {...apiContext} />
-              : <LoginRequired {...apiContext} />
+              : <LoginRequired isLoggingIn={apiContext.isLoggingIn} />
           )}
         </ApiContext.Consumer>
       )

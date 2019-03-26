@@ -32,6 +32,9 @@ path_analyzer = analyzer(
 class AlreadyExists(Exception): pass
 
 
+class ElasticSearchError(Exception): pass
+
+
 class User(InnerDoc):
 
     @classmethod
@@ -79,6 +82,7 @@ class Entry(Document):
 
     with_embargo = Boolean()
     published = Boolean()
+    processed = Boolean()
 
     authors = Object(User, multi=True)
     owners = Object(User, multi=True)
@@ -120,7 +124,8 @@ class Entry(Document):
         self.upload_time = source.upload_time
         self.calc_id = source.calc_id
         self.calc_hash = source.calc_hash
-        self.pid = str(source.pid)
+        self.pid = None if source.pid is None else str(source.pid)
+        self.processed = source.processed
 
         self.mainfile = source.mainfile
         if source.files is None:
@@ -199,7 +204,11 @@ def publish(calcs: Iterable[datamodel.CalcWithMetadata]) -> None:
         for calc in calcs:
             entry = Entry.from_calc_with_metadata(calc)
             entry.published = True
-            yield entry.to_dict(include_meta=True)
+            entry = entry.to_dict(include_meta=True)
+            source = entry.pop('_source')
+            entry['doc'] = source
+            entry['_op_type'] = 'update'
+            yield entry
 
     elasticsearch.helpers.bulk(infrastructure.elastic_client, elastic_updates())
     refresh()
@@ -214,8 +223,8 @@ aggregations = {
     'system': 10,
     'crystal_system': 10,
     'code_name': len(parsing.parsers),
-    'xc_functional': 10,
-    'authors': 10
+    'basis_set': 10,
+    'xc_functional': 10
 }
 """ The available aggregations in :func:`aggregate_search` and their maximum aggregation size """
 
@@ -253,26 +262,14 @@ The available search quantities in :func:`aggregate_search` as tuples with *sear
 elastic field and description.
 """
 
+metrics = {
+    'total_energies': ('sum', 'n_total_energies'),
+    'geometries': ('cardinality', 'n_geometries'),
+    'datasets': ('cardinality', 'datasets.id'),
+}
 
-def aggregate_search(
-        page: int = 1, per_page: int = 10, order_by: str = 'formula', order: int = -1,
-        q: Q = None, **kwargs) -> Tuple[int, List[dict], Dict[str, Dict[str, int]]]:
-    """
-    Performs a search and returns paginated search results and aggregation bucket sizes
-    based on key quantities.
 
-    Arguments:
-        page: The page to return starting with page 1
-        per_page: Results per page
-        q: An *elasticsearch_dsl* query used to further filter the results (via `and`)
-        aggregations: A customized list of aggregations to perform. Keys are index fields,
-            and values the amount of buckets to return. Only works on *keyword* field.
-        **kwargs: Quantity, value pairs to search for.
-
-    Returns: A tuple with the total hits, an array with the results, an dictionary with
-        the aggregation data.
-    """
-
+def _construct_search(q: Q = None, **kwargs) -> Search:
     search = Search(index=config.elastic.index_name)
 
     if q is not None:
@@ -296,32 +293,134 @@ def aggregate_search(
             for item in items:
                 search = search.query(Q(query_type, **{field: item}))
 
+    search = search.source(exclude=['quantities'])
+
+    return search
+
+
+def scroll_search(
+        scroll_id: str = None, size: int = 1000, scroll: str = u'5m',
+        q: Q = None, **kwargs) -> Tuple[str, int, List[dict]]:
+    """
+    Alternative search based on ES scroll API. Can be used similar to
+    :func:`aggregate_search`, but pagination is replaced with scrolling, no ordering,
+    and no aggregation information is given.
+
+    Scrolling is done by calling this function again and again with the same ``scoll_id``.
+    Each time, this function will return the next batch of search results.
+
+    See see :func:`aggregate_search` for additional ``kwargs``
+
+    Arguments:
+        scroll_id: The scroll id to receive the next batch from. None will create a new
+            scroll.
+        size: The batch size in number of hits.
+        scroll: The time the scroll should be kept alive (i.e. the time between requests
+            to this method) in ES time units. Default is 5 minutes.
+    """
+    es = infrastructure.elastic_client
+
+    if scroll_id is None:
+        # initiate scroll
+        search = _construct_search(q, **kwargs)
+        resp = es.search(body=search.to_dict(), scroll=scroll, size=size, index=config.elastic.index_name)  # pylint: disable=E1123
+
+        scroll_id = resp.get('_scroll_id')
+        if scroll_id is None:
+            # no results for search query
+            return None, 0, []
+    else:
+        resp = es.scroll(scroll_id, scroll=scroll)  # pylint: disable=E1123
+
+    total = resp['hits']['total']
+    results = [hit['_source'] for hit in resp['hits']['hits']]
+
+    # since we are using the low level api here, we should check errors
+    if resp["_shards"]["successful"] < resp["_shards"]["total"]:
+        utils.get_logger(__name__).error('es operation was unsuccessful on at least one shard')
+        raise ElasticSearchError('es operation was unsuccessful on at least one shard')
+
+    if len(results) == 0:
+        es.clear_scroll(body={'scroll_id': [scroll_id]}, ignore=(404, ))  # pylint: disable=E1123
+        return None, total, []
+
+    return scroll_id, total, results
+
+
+def aggregate_search(
+        page: int = 1, per_page: int = 10, order_by: str = 'formula', order: int = -1,
+        q: Q = None, aggregations: Dict[str, int] = aggregations,
+        aggregation_metrics: List[str] = ['total_energies', 'geometries', 'datasets'],
+        total_metrics: List[str] = ['total_energies', 'geometries', 'datasets'],
+        **kwargs) -> Tuple[int, List[dict], Dict[str, Dict[str, Dict[str, int]]], Dict[str, int]]:
+    """
+    Performs a search and returns paginated search results and aggregations. The aggregations
+    contain overall and per quantity value sums of code runs (calcs), datasets, total energies,
+    and unique geometries.
+
+    Arguments:
+        page: The page to return starting with page 1
+        per_page: Results per page
+        q: An *elasticsearch_dsl* query used to further filter the results (via `and`)
+        aggregations: A customized list of aggregations to perform. Keys are index fields,
+            and values the amount of buckets to return. Only works on *keyword* field.
+        aggregation_metrics: The metrics used to aggregate over. Can be `total_energies``,
+            ``geometries``, or ``datasets``. ``code_runs`` is always given.
+        total_metrics: The metrics used to for total numbers.
+        **kwargs: Quantity, value pairs to search for.
+
+    Returns: A tuple with the total hits, an array with the results, an dictionary with
+        the aggregation data, and a dictionary with the overall metrics.
+    """
+
+    search = _construct_search(q, **kwargs)
+
+    def add_metrics(parent, metrics_to_add):
+        for metric in metrics_to_add:
+            metric_kind, field = metrics[metric]
+            parent.metric(metric, A(metric_kind, field=field))
+
     for aggregation, size in aggregations.items():
+
         if aggregation == 'authors':
-            search.aggs.bucket(aggregation, A('terms', field='authors.name_keyword', size=size))
+            a = A('terms', field='authors.name_keyword', size=size)
         else:
-            search.aggs.bucket(aggregation, A('terms', field=aggregation, size=size))
+            a = A('terms', field=aggregation, size=size, min_doc_count=0, order=dict(_key='asc'))
+
+        buckets = search.aggs.bucket(aggregation, a)
+        add_metrics(buckets, aggregation_metrics)
+
+    add_metrics(search.aggs, total_metrics)
 
     if order_by not in search_quantities:
         raise KeyError('Unknown order quantity %s' % order_by)
     search = search.sort(order_by if order == 1 else '-%s' % order_by)
-
-    search = search.source(exclude=['quantities'])
 
     response = search[(page - 1) * per_page: page * per_page].execute()  # pylint: disable=E1101
 
     total_results = response.hits.total
     search_results = [hit.to_dict() for hit in response.hits]
 
+    def get_metrics(bucket, metrics_to_get, code_runs):
+        result = {
+            metric: bucket[metric]['value']
+            for metric in metrics_to_get
+        }
+        result.update(code_runs=code_runs)
+        return result
+
     aggregation_results = {
         aggregation: {
-            bucket.key: bucket.doc_count
+            bucket.key: get_metrics(bucket, aggregation_metrics, bucket.doc_count)
             for bucket in getattr(response.aggregations, aggregation).buckets
         }
         for aggregation in aggregations.keys()
+        if aggregation not in ['total_energies', 'geometries', 'datasets']
     }
 
-    return total_results, search_results, aggregation_results
+    total_metrics_result = get_metrics(response.aggregations, total_metrics, total_results)
+
+    return total_results, search_results, aggregation_results, total_metrics_result
 
 
 def authors(per_page: int = 10, after: str = None, prefix: str = None) -> Tuple[Dict[str, int], str]:

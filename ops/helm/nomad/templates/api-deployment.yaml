@@ -1,3 +1,57 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nomad.fullname" . }}-api-gunicorn-log-config
+  labels:
+    app.kubernetes.io/name: {{ include "nomad.name" . }}-api-gunicorn-log-config
+    helm.sh/chart: {{ include "nomad.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+data:
+  gunicorn.log.conf: |
+    [loggers]
+    keys=root, gunicorn.error, gunicorn.access
+    
+    [handlers]
+    keys=console, access, error
+    
+    [formatters]
+    keys=generic
+    
+    [logger_root]
+    level=INFO
+    handlers=console
+    
+    [logger_gunicorn.error]
+    level=INFO
+    handlers=error
+    qualname=gunicorn.error
+    
+    [logger_gunicorn.access]
+    level=INFO
+    handlers=access
+    qualname=gunicorn.access
+    
+    [handler_console]
+    class=StreamHandler
+    formatter=generic
+    args=(sys.stdout, )
+    
+    [handler_access]
+    class=StreamHandler
+    formatter=generic
+    args=(sys.stdout, )
+    
+    [handler_error]
+    class=StreamHandler
+    formatter=generic
+    args=(sys.stdout, )
+    
+    [formatter_generic]
+    format=%(asctime)s [%(process)d] [%(levelname)s] %(message)s
+    datefmt=%Y-%m-%d %H:%M:%S
+    class=logging.Formatter
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -23,56 +77,26 @@ spec:
       - name: {{ include "nomad.name" . }}-api
         image: "{{ .Values.images.nomad.name }}:{{ .Values.images.nomad.tag }}"
         volumeMounts:
-        - mountPath: /app/.volumes/fs
-          name: files-volume
+        - mountPath: /app/nomad.yaml
+          name: nomad-conf
+          subPath: nomad.yaml
+        - mountPath: /app/gunicorn.log.conf
+          name: gunicorn-log-conf
+          subPath: gunicorn.log.conf
+        - mountPath: /app/.volumes/fs/public
+          name: public-volume
+        - mountPath: /app/.volumes/fs/staging
+          name: staging-volume
         - mountPath: /nomad
           name: nomad-volume
         env:
         - name: NOMAD_SERVICE
           value: "api"
-        - name: NOMAD_RELEASE
-          value: "{{ .Release.Name }}"
-        - name: NOMAD_LOGSTASH_HOST
-          value: "{{ .Values.logstash.host }}"
-        - name: NOMAD_LOGSTASH_TCPPORT
-          value: "{{ .Values.logstash.port }}"
         - name: NOMAD_CONSOLE_LOGLEVEL
           value: "{{ .Values.api.console_loglevel }}"
         - name: NOMAD_LOGSTASH_LEVEL
           value: "{{ .Values.api.logstash_loglevel }}"
-        - name: NOMAD_API_HOST
-          value: "{{ .Values.proxy.external.host }}"
-        - name: NOMAD_API_PORT
-          value: "{{ .Values.proxy.external.port }}"
-        - name: NOMAD_API_BASE_PATH
-          value: "{{ .Values.proxy.external.path }}/api"
-        - name: NOMAD_API_SECRET
-          value: "{{ .Values.api.secret }}"
-        - name: NOMAD_API_ADMIN_PASSWORD
-          value: "{{ .Values.api.adminPassword }}"
-        - name: NOMAD_API_DISABLE_RESET
-          value: "{{ .Values.api.disableReset }}"
-        - name: NOMAD_RABBITMQ_HOST
-          value: "{{ .Release.Name }}-rabbitmq"
-        - name: NOMAD_ELASTIC_HOST
-          value: "{{ .Values.elastic.host }}"
-        - name: NOMAD_ELASTIC_PORT
-          value: "{{ .Values.elastic.port }}"
-        - name: NOMAD_ELASTIC_INDEX_NAME
-          value: "{{ .Values.dbname }}"
-        - name: NOMAD_MONGO_HOST
-          value: "{{ .Values.mongo.host }}"
-        - name: NOMAD_MONGO_PORT
-          value: "{{ .Values.mongo.port }}"
-        - name: NOMAD_MONGO_DB_NAME
-          value: "{{ .Values.dbname }}"
-        - name: NOMAD_COE_REPO_DB_HOST
-          value: "{{ .Values.postgres.host }}"
-        - name: NOMAD_COE_REPO_DB_PORT
-          value: "{{ .Values.postgres.port }}"
-        - name: NOMAD_COE_REPO_DB_NAME
-          value: "{{ .Values.dbname }}"
-        command: ["python", "-m", "gunicorn.app.wsgiapp", "--timeout", "3600", "--log-config", "ops/gunicorn.log.conf", "-w", "{{ .Values.api.worker }}", "-b 0.0.0.0:8000", "nomad.api:app"]
+        command: ["python", "-m", "gunicorn.app.wsgiapp", "--timeout", "3600", "--log-config", "gunicorn.log.conf", "-w", "{{ .Values.api.worker }}", "-b 0.0.0.0:8000", "nomad.api:app"]
         livenessProbe:
           httpGet:
             path: "{{ .Values.proxy.external.path }}/api/alive"
@@ -91,10 +115,25 @@ spec:
       - name: {{ .Values.images.secret }}
       imagePullPolicy: always
       volumes:
-      - name: files-volume
+      - name: gunicorn-log-conf
+        configMap:
+          name: {{ include "nomad.fullname" . }}-api-gunicorn-log-config
+      - name: nomad-conf
+        configMap:
+          name: {{ include "nomad.fullname" . }}-configmap
+      - name: public-volume
         hostPath:
-          path: {{ .Values.volumes.files }}
+          path: {{ .Values.volumes.public }}
           type: Directory
+      - name: staging-volume
+        {{ if (eq .Values.worker.routing "worker") }}
+        emptyDir:
+          medium: 'Memory'
+        {{ else }}
+        hostPath:
+          path: {{ .Values.volumes.staging}}
+          type: Directory
+        {{ end }}
       - name: nomad-volume
         hostPath:
           path: {{ .Values.volumes.nomad }}

@@ -1,5 +1,5 @@
-DELETE FROM citations;
 DELETE FROM metadata_citations;
+DELETE FROM citations;
 DELETE FROM coauthorships;
 DELETE FROM ownerships;
 DELETE FROM shareships;

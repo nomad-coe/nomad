@@ -1,0 +1,20 @@
+
+Species :    1 (Al), atom :    1
+ APW functions :
+  l =  0, energy derivative =  0 :   0.1500000000    
+  l =  1, energy derivative =  0 :   0.1500000000    
+  l =  2, energy derivative =  0 :   0.1500000000    
+  l =  3, energy derivative =  0 :   0.1500000000    
+  l =  4, energy derivative =  0 :   0.1500000000    
+  l =  5, energy derivative =  0 :   0.1500000000    
+  l =  6, energy derivative =  0 :   0.1500000000    
+  l =  7, energy derivative =  0 :   0.1500000000    
+  l =  8, energy derivative =  0 :   0.1500000000    
+ local-orbital functions :
+  l.o. =  1, l =  0, energy derivative =  0 :   0.1500000000    
+  l.o. =  1, l =  0, energy derivative =  1 :   0.1500000000    
+  l.o. =  2, l =  1, energy derivative =  0 :   0.1500000000    
+  l.o. =  2, l =  1, energy derivative =  1 :   0.1500000000    
+  l.o. =  3, l =  1, energy derivative =  0 :   0.1500000000    
+  l.o. =  3, l =  1, energy derivative =  1 :   0.1500000000    
+  l.o. =  3, l =  1, energy derivative =  0 :   -2.122674640    

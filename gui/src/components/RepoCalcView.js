@@ -9,11 +9,12 @@ import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { withErrors } from './errors'
 
 function CalcQuantity(props) {
-  const {children, label, typography} = props
+  const {children, label, typography, loading, placeholder, noWrap} = props
+  const content = (!children || children.length === 0) ? null : children
   return (
     <div style={{margin: '0px 24px 8px 0'}}>
       <Typography variant="caption">{label}</Typography>
-      <Typography variant={typography || 'body1'}>{children || 'loading...'}</Typography>
+      <Typography noWrap={noWrap} variant={typography || 'body1'}>{content || <i>{loading ? 'loading...' : placeholder || 'unavailable'}</i>}</Typography>
     </div>
   )
 }
@@ -22,7 +23,10 @@ CalcQuantity.propTypes = {
   classes: PropTypes.object,
   children: PropTypes.node,
   label: PropTypes.string,
-  typography: PropTypes.string
+  typography: PropTypes.string,
+  loading: PropTypes.bool,
+  placeholder: PropTypes.string,
+  noWrap: PropTypes.bool
 }
 
 class RepoCalcView extends React.Component {
@@ -30,6 +34,13 @@ class RepoCalcView extends React.Component {
     root: {},
     content: {
       marginTop: theme.spacing.unit * 3
+    },
+    quantityContainer: {
+      display: 'flex'
+    },
+    quantityColumn: {
+      display: 'flex',
+      flexDirection: 'column'
     },
     quantityRow: {
       display: 'flex',
@@ -70,11 +81,16 @@ class RepoCalcView extends React.Component {
   render() {
     const { classes, ...calcProps } = this.props
     const { uploadId, calcId } = calcProps
-    const calcData = this.state.calcData || {}
+    const calcData = this.state.calcData || calcProps
+    const loading = !this.state.calcData
 
     const filePaths = calcData.files || []
     const mainfile = calcData.mainfile
     const calcPath = mainfile ? mainfile.substring(0, mainfile.lastIndexOf('/')) : null
+
+    console.log(calcData)
+
+    const authors = loading ? null : calcData.authors
 
     return (
       <div className={classes.root}>
@@ -88,51 +104,70 @@ class RepoCalcView extends React.Component {
           >
             <DownloadIcon />
           </Download>
-          <div className={classes.quantityRow}>
-            <CalcQuantity label="chemical formula" typography="h4">
-              {calcData.formula}
-            </CalcQuantity>
-          </div>
-          <div className={classes.quantityRow}>
-            <CalcQuantity label='dft code'>
-              {calcData.code_name}
-            </CalcQuantity>
-            <CalcQuantity label='dft code version'>
-              {calcData.code_version}
-            </CalcQuantity>
-          </div>
-          <div className={classes.quantityRow}>
-            <CalcQuantity label='basis set'>
-              {calcData.basis_set}
-            </CalcQuantity>
-            <CalcQuantity label='xc functional'>
-              {calcData.xc_functional}
-            </CalcQuantity>
-          </div>
-          <div className={classes.quantityRow}>
-            <CalcQuantity label='system type'>
-              {calcData.system}
-            </CalcQuantity>
-            <CalcQuantity label='crystal system'>
-              {calcData.crystal_system}
-            </CalcQuantity>
-            <CalcQuantity label='spacegroup'>
-              {calcData.spacegroup}
-            </CalcQuantity>
-          </div>
-          <div className={classes.quantityRow}>
-            <CalcQuantity label='upload id'>
-              {calcData.upload_id}
-            </CalcQuantity>
-            <CalcQuantity label='calculation id'>
-              {calcData.calc_id}
-            </CalcQuantity>
-            <CalcQuantity label='mainfile'>
-              {mainfile}
-            </CalcQuantity>
-            <CalcQuantity label='calculation hash'>
-              {calcData.calc_hash}
-            </CalcQuantity>
+          <CalcQuantity label="chemical formula" typography="h4" loading={loading}>
+            {calcData.formula}
+          </CalcQuantity>
+          <div className={classes.quantityContainer}>
+            <div className={classes.quantityColumn} style={{flexGrow: 1}}>
+              <div className={classes.quantityRow}>
+                <CalcQuantity label='dft code' loading={loading}>
+                  {calcData.code_name}
+                </CalcQuantity>
+                <CalcQuantity label='dft code version' loading={loading}>
+                  {calcData.code_version}
+                </CalcQuantity>
+              </div>
+              <div className={classes.quantityRow}>
+                <CalcQuantity label='basis set' loading={loading}>
+                  {calcData.basis_set}
+                </CalcQuantity>
+                <CalcQuantity label='xc functional' loading={loading}>
+                  {calcData.xc_functional}
+                </CalcQuantity>
+              </div>
+              <div className={classes.quantityRow}>
+                <CalcQuantity label='system type' loading={loading}>
+                  {calcData.system}
+                </CalcQuantity>
+                <CalcQuantity label='crystal system' loading={loading}>
+                  {calcData.crystal_system}
+                </CalcQuantity>
+                <CalcQuantity label='spacegroup' loading={loading}>
+                  {calcData.spacegroup_symbol} ({calcData.spacegroup})
+                </CalcQuantity>
+              </div>
+              <div>
+                <CalcQuantity label='comment' loading={loading} placeholder='no comment'>
+                  {calcData.comment}
+                </CalcQuantity>
+                <CalcQuantity label='references' loading={loading} placeholder='no references'>
+                  {calcData.references ? calcData.references.map(ref => (<a key={ref.id} href={ref.value}>{ref.value}</a>)) : null}
+                </CalcQuantity>
+                <CalcQuantity label='authors' loading={loading}>
+                  {authors ? authors.map(author => author.name) : null}
+                </CalcQuantity>
+                <CalcQuantity label='datasets' loading={loading} placeholder='no datasets'>
+                  {calcData.datasets ? calcData.datasets.map(ds => ds.name).join(', ') : null}
+                </CalcQuantity>
+              </div>
+            </div>
+            <div className={classes.quantityColumn} style={{maxWidth: 350}}>
+              <CalcQuantity label='PID' loading={loading} noWrap>
+                <b>{calcData.pid}</b>
+              </CalcQuantity>
+              <CalcQuantity label='upload id' noWrap>
+                {calcData.upload_id}
+              </CalcQuantity>
+              <CalcQuantity label='calculation id' noWrap>
+                {calcData.calc_id}
+              </CalcQuantity>
+              <CalcQuantity label='mainfile' loading={loading} noWrap>
+                {mainfile}
+              </CalcQuantity>
+              <CalcQuantity label='calculation hash' loading={loading} noWrap>
+                {calcData.calc_hash}
+              </CalcQuantity>
+            </div>
           </div>
           <Divider />
           <RawFiles {...calcProps} files={filePaths} />

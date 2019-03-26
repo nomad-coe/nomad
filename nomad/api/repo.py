@@ -20,12 +20,12 @@ meta-data.
 from flask_restplus import Resource, abort, fields
 from flask import request, g
 from elasticsearch_dsl import Q
+from elasticsearch.exceptions import NotFoundError
 
-from nomad.files import UploadFiles, Restricted
 from nomad import search
 
 from .app import api
-from .auth import login_if_available, create_authorization_predicate
+from .auth import login_if_available
 from .common import pagination_model, pagination_request_parser, calc_route
 
 ns = api.namespace('repo', description='Access repository metadata.')
@@ -42,21 +42,28 @@ class RepoCalcResource(Resource):
         """
         Get calculation metadata in repository form.
 
-        Repository metadata only entails the quanties shown in the repository.
+        Repository metadata only entails the quantities shown in the repository.
         Calcs are references via *upload_id*, *calc_id* pairs.
         """
-        # TODO use elastic search instead of the files
-        # TODO add missing user metadata (from elastic or repo db)
-        upload_files = UploadFiles.get(upload_id, create_authorization_predicate(upload_id, calc_id))
-        if upload_files is None:
-            abort(404, message='There is no upload %s' % upload_id)
-
         try:
-            return upload_files.metadata.get(calc_id), 200
-        except Restricted:
-            abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
-        except KeyError:
-            abort(404, message='There is no calculation for %s/%s' % (upload_id, calc_id))
+            calc = search.Entry.get(calc_id)
+        except NotFoundError:
+            abort(404, message='There is no calculation %s/%s' % (upload_id, calc_id))
+
+        if calc.with_embargo or not calc.published:
+            if g.user is None:
+                abort(401, message='Not logged in to access %s/%s.' % (upload_id, calc_id))
+
+            is_owner = g.user.user_id == 0
+            if not is_owner:
+                for owner in calc.owners:
+                    if owner.user_id == str(g.user.user_id):
+                        is_owner = True
+                        break
+            if not is_owner:
+                abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
+
+        return calc.to_dict(), 200
 
 
 repo_calcs_model = api.model('RepoCalculations', {
@@ -64,15 +71,32 @@ repo_calcs_model = api.model('RepoCalculations', {
     'results': fields.List(fields.Raw, description=(
         'A list of search results. Each result is a dict with quantitie names as key and '
         'values as values')),
+    'scroll_id': fields.String(description='Id of the current scroll view in scroll based search.'),
     'aggregations': fields.Raw(description=(
-        'A dict with all aggregations. Each aggregation is dictionary with the amount as '
-        'value and quantity value as key.'))
+        'A dict with all aggregations. Each aggregation is dictionary with a metrics dict as '
+        'value and quantity value as key. The metrics are code runs(calcs), total energies, '
+        'geometries, and datasets')),
+    'metrics': fields.Raw(description=(
+        'A dict with the overall metrics. The metrics are code runs(calcs), total energies, '
+        'geometries, and datasets'))
 })
 
 repo_request_parser = pagination_request_parser.copy()
 repo_request_parser.add_argument(
     'owner', type=str,
     help='Specify which calcs to return: ``all``, ``user``, ``staging``, default is ``all``')
+repo_request_parser.add_argument(
+    'scroll', type=bool, help='Enable scrolling')
+repo_request_parser.add_argument(
+    'scroll_id', type=str, help='The id of the current scrolling window to use.')
+repo_request_parser.add_argument(
+    'total_metrics', type=str, help=(
+        'Metrics to aggregate all search results over.'
+        'Possible values are total_energies, geometries, and datasets.'))
+repo_request_parser.add_argument(
+    'aggregation_metrics', type=str, help=(
+        'Metrics to aggregate all aggregation buckets over as comma separated list. '
+        'Possible values are total_energies, geometries, and datasets.'))
 
 for search_quantity in search.search_quantities.keys():
     _, _, description = search.search_quantities[search_quantity]
@@ -96,12 +120,37 @@ class RepoCalcsResource(Resource):
         you will be given a list of all possible values and the number of entries
         that have the certain value. You can also use these aggregations on an empty
         search to determine the possible values.
+
+        The pagination parameters allows determine which page to return via the
+        ``page`` and ``per_page`` parameters. Pagination however, is limited to the first
+        100k (depending on ES configuration) hits. An alternative to pagination is to use
+        ``scroll`` and ``scroll_id``. With ``scroll`` you will get a ``scroll_id`` on
+        the first request. Each call with ``scroll`` and the respective ``scroll_id`` will
+        return the next ``per_page`` (here the default is 1000) results. Scroll however,
+        ignores ordering and does not return aggregations. The scroll view used in the
+        background will stay alive for 1 minute between requests.
+
+        The search will return aggregations on a predefined set of quantities. Aggregations
+        will tell you what quantity values exist and how many entries match those values.
+
+        Ordering is determined by ``order_by`` and ``order`` parameters.
         """
 
         try:
+            scroll = bool(request.args.get('scroll', False))
+            scroll_id = request.args.get('scroll_id', None)
             page = int(request.args.get('page', 1))
-            per_page = int(request.args.get('per_page', 10))
+            per_page = int(request.args.get('per_page', 10 if not scroll else 1000))
             order = int(request.args.get('order', -1))
+            total_metrics_str = request.args.get('total_metrics', '')
+            aggregation_metrics_str = request.args.get('aggregation_metrics', '')
+
+            total_metrics = [
+                metric for metric in total_metrics_str.split(',')
+                if metric in ['total_energies', 'geometries', 'datasets']]
+            aggregation_metrics = [
+                metric for metric in aggregation_metrics_str.split(',')
+                if metric in ['total_energies', 'geometries', 'datasets']]
         except Exception:
             abort(400, message='bad parameter types')
 
@@ -118,10 +167,9 @@ class RepoCalcsResource(Resource):
             abort(400, message='invalid pagination')
 
         if owner == 'all':
-            if g.user is None:
-                q = Q('term', published=True)
-            else:
-                q = Q('term', published=True) | Q('term', owners__user_id=g.user.user_id)
+            q = Q('term', published=True) & Q('term', with_embargo=False)
+            if g.user is not None:
+                q = q | Q('term', owners__user_id=g.user.user_id)
         elif owner == 'user':
             if g.user is None:
                 abort(401, message='Authentication required for owner value user.')
@@ -136,14 +184,37 @@ class RepoCalcsResource(Resource):
 
         data = dict(**request.args)
         data.pop('owner', None)
-        data.update(per_page=per_page, page=page, order=order, order_by=order_by)
+        data.pop('scroll', None)
+        data.pop('scroll_id', None)
+        data.pop('per_page', None)
+        data.pop('page', None)
+        data.pop('order', None)
+        data.pop('order_by', None)
+        data.pop('total_metrics', None)
+        data.pop('aggregation_metrics', None)
+
+        if scroll:
+            data.update(scroll_id=scroll_id, size=per_page)
+        else:
+            data.update(
+                per_page=per_page, page=page, order=order, order_by=order_by,
+                total_metrics=total_metrics, aggregation_metrics=aggregation_metrics)
 
         try:
-            total, results, aggregations = search.aggregate_search(q=q, **data)
+            if scroll:
+                page = -1
+                scroll_id, total, results = search.scroll_search(q=q, **data)
+                aggregations = {}
+                metrics = {}
+            else:
+                scroll_id = None
+                total, results, aggregations, metrics = search.aggregate_search(q=q, **data)
         except KeyError as e:
             abort(400, str(e))
 
         return dict(
             pagination=dict(total=total, page=page, per_page=per_page),
             results=results,
-            aggregations=aggregations), 200
+            scroll_id=scroll_id,
+            aggregations=aggregations,
+            metrics=metrics), 200
