@@ -127,7 +127,6 @@ def package(upload_paths, pattern, parallel):
 
     for upload_path in upload_paths:
         upload_path_queue.put(upload_path)
-    upload_path_queue.close()
 
     def package_paths():
         infrastructure.setup_logging()
@@ -150,6 +149,7 @@ def package(upload_paths, pattern, parallel):
 
     for process in processes:
         process.join()
+    upload_path_queue.close()
 
 
 @migration.command(help='Get an report over all migrated packages.')
