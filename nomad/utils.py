@@ -153,11 +153,8 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
             for key, value in structlog.items():
                 if key in ('event', 'stack_info', 'id', 'timestamp'):
                     continue
-                elif key in ['exception']:
-                    digest_value = str(value)
-                    if len(digest_value) > 256:
-                        digest_value = digest_value[:256]
-                    message['exception.digest'] = digest_value
+                elif key == 'exception':
+                    message['exception.digest'] = str(value)[-256:]
                 elif key in (
                         'upload_id', 'calc_id', 'mainfile',
                         'service', 'release'):
