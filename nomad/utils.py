@@ -154,7 +154,7 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
                 if key in ('event', 'stack_info', 'id', 'timestamp'):
                     continue
                 elif key == 'exception':
-                    message['exception.digest'] = str(value)[-256:]
+                    message['digest'] = str(value)[-256:]
                 elif key in (
                         'upload_id', 'calc_id', 'mainfile',
                         'service', 'release'):
@@ -189,7 +189,7 @@ class ConsoleFormatter(LogstashFormatter):
         level = message_dict.pop('level', None)
         exception = message_dict.pop('exception', None)
         time = message_dict.pop('@timestamp', None)
-        for key in ['type', 'tags', 'stack_info', 'path', 'message', 'host', '@version']:
+        for key in ['type', 'tags', 'stack_info', 'path', 'message', 'host', '@version', 'digest']:
             message_dict.pop(key)
         keys = list(message_dict.keys())
         keys.sort()
