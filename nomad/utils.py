@@ -154,7 +154,10 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
                 if key in ('event', 'stack_info', 'id', 'timestamp'):
                     continue
                 elif key in ['exception']:
-                    pass
+                    digest_value = str(value)
+                    if len(digest_value) > 256:
+                        digest_value = digest_value[:256]
+                    message['exception.digest'] = digest_value
                 elif key in (
                         'upload_id', 'calc_id', 'mainfile',
                         'service', 'release'):
