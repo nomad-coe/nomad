@@ -40,7 +40,7 @@ spec:
         env:
         - name: NOMAD_SERVICE
           value: "worker"
-        - name: NOMAD_CONSOLE_LOGLEVEL
+        - name: NOMAD_CONSOLE_LOG_LEVEL
           value: "{{ .Values.worker.console_loglevel }}"
         - name: NOMAD_LOGSTASH_LEVEL
           value: "{{ .Values.worker.logstash_loglevel }}"
@@ -50,7 +50,7 @@ spec:
             command:
             - bash
             - -c
-            - NOMAD_LOGSTASH_LEVEL=30 python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
+            - NOMAD_LOGSTASH_LEVEL=WARNING python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
           initialDelaySeconds: 30
           periodSeconds: 30
         readinessProbe:
@@ -58,7 +58,7 @@ spec:
             command:
             - bash
             - -c
-            - NOMAD_LOGSTASH_LEVEL=30 python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
+            - NOMAD_LOGSTASH_LEVEL=WARNING python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
           initialDelaySeconds: 5
           periodSeconds: 120
       nodeSelector:

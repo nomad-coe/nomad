@@ -45,3 +45,6 @@ systemctl daemon-reload
 systemctl restart kubelet
 
 echo "Still have to use kubeadm init/join"
+echo "Run on master:"
+echo "kubeadm token create --print-join-command"
+echo "Run output here"

@@ -27,6 +27,36 @@ DELETE http://localhost:9200/calcs HTTP/1.1
 
 
 ###
+# Get errors from ELK
+GET http://localhost:29200/logstash-2019.03.27/_search HTTP/1.1
+content-type: application/json
+
+{
+    "size": 0,
+    "query": {
+        "match": {
+            "level.keyword": "ERROR"
+        }
+    },
+    "aggs": {
+        "event": {
+            "terms": {
+                "field": "digest.keyword",
+                "size": 100
+            },
+            "aggs": {
+                "upload_path": {
+                    "terms": {
+                        "field": "nomad.migration.upload_path.keyword",
+                        "size": 100
+                    }
+                }
+            }
+        }
+    }
+}
+
+###
 
 POST http://localhost:9200/calcs/_update_by_query HTTP/1.1
 content-type: application/json

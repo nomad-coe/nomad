@@ -392,10 +392,7 @@ class UploadCommandResource(Resource):
     @login_really_required
     def get(self):
         """ Get url and example command for shell based uploads. """
-        upload_url = 'http://%s:%s%s/uploads/' % (
-            config.services.api_host,
-            config.services.api_port,
-            config.services.api_base_path)
+        upload_url = '%s/uploads' % config.api_url()
 
         upload_command = 'curl -X PUT -H "X-Token: %s" "%s" -F file=@<local_file>' % (
             g.user.get_auth_token().decode('utf-8'), upload_url)

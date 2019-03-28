@@ -1,15 +1,15 @@
 proxy:
-  nodePort: 30001
+  nodePort: 30002
   external:
-    host: "enc-staging-nomad.esc.rzg.mpg.de"
+    host: "labdev-nomad.esc.rzg.mpg.de"
     path: "/fairdi/nomad/migration"
 
 worker:
-  replicas: 2
+  replicas: 3
 
 dbname: fairdi_nomad_migration
 
-uploadurl: 'http://enc-staging-nomad.esc.rzg.mpg.de/fairdi/nomad/migration/upload'
+uploadurl: 'https://labdev-nomad.rzg.mpg.de/fairdi/nomad/migration/upload'
 
 volumes:
   prefixSize: 2
