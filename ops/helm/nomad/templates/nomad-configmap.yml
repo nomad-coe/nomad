@@ -24,7 +24,7 @@ data:
       api_secret: "{{ .Values.api.secret }}"
       admin_password: "{{ .Values.api.adminPassword }}"
       disable_reset: {{ .Values.api.disableReset }}
-      https: {{ .Values.api.https }}
+      https: {{ .Values.api.https }}
     rabbitmq:
       host: "{{ .Release.Name }}-rabbitmq"
     elastic:

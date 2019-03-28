@@ -8,8 +8,6 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 data:
-  gunicorn.conf: |
-    secure_scheme_headers = {'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}
   gunicorn.log.conf: |
     [loggers]
     keys=root, gunicorn.error, gunicorn.access
@@ -53,6 +51,19 @@ data:
     format=%(asctime)s [%(process)d] [%(levelname)s] %(message)s
     datefmt=%Y-%m-%d %H:%M:%S
     class=logging.Formatter
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nomad.fullname" . }}-api-gunicorn-config
+  labels:
+    app.kubernetes.io/name: {{ include "nomad.name" . }}-api-gunicorn-config
+    helm.sh/chart: {{ include "nomad.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+data:
+  gunicorn.conf: |
+    secure_scheme_headers = {'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}
 ---
 apiVersion: apps/v1
 kind: Deployment
