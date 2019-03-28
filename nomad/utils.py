@@ -190,7 +190,7 @@ class ConsoleFormatter(LogstashFormatter):
         exception = message_dict.pop('exception', None)
         time = message_dict.pop('@timestamp', None)
         for key in ['type', 'tags', 'stack_info', 'path', 'message', 'host', '@version', 'digest']:
-            message_dict.pop(key)
+            message_dict.pop(key, None)
         keys = list(message_dict.keys())
         keys.sort()
 
