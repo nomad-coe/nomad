@@ -68,11 +68,11 @@ def assert_normalized(backend: LocalBackend):
     assert len(metadata.atoms) > 0
     assert metadata.spacegroup is not None
 
-    assert metadata.code_name is not config.services.unavailable_label
-    assert metadata.code_version is not config.services.unavailable_label
-    assert metadata.basis_set is not config.services.unavailable_label
-    assert metadata.xc_functional is not config.services.unavailable_label
-    assert metadata.system is not config.services.unavailable_label
+    assert metadata.code_name != config.services.unavailable_value
+    assert metadata.code_version != config.services.unavailable_value
+    assert metadata.basis_set != config.services.unavailable_value
+    assert metadata.xc_functional != config.services.unavailable_value
+    assert metadata.system != config.services.unavailable_value
     # TODO check symmetry where we know it should be there
 
 

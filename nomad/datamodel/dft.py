@@ -46,7 +46,7 @@ version_re = re.compile(r'(\d+(\.\d+(\.\d+)?)?)')
 
 
 def map_functional_name_to_xc_treatment(name):
-    if name == config.services.unavailable_label:
+    if name == config.services.unavailable_value:
         return name
 
     return xc_treatments.get(name[:3].lower(), name)
@@ -114,7 +114,7 @@ class DFTCalcWithMetadata(CalcWithMetadata):
             if val is None:
                 logger.warning(
                     'The values for %s where not available in any %s' % (key, section))
-                return unavailable_value if unavailable_value is not None else config.services.unavailable_label
+                return unavailable_value if unavailable_value is not None else config.services.unavailable_value
             else:
                 return val
 

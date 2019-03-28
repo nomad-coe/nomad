@@ -184,7 +184,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         Determine the dimensioality and hence the system type of the system with
         Matid. Write the system type to the backend.
         """
-        system_type = 'unavailable'
+        system_type = config.services.unavailable_value
         try:
             dimensionality = get_dimensionality(
                 atoms, cluster_threshold=3.1, return_clusters=False)
