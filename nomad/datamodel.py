@@ -148,7 +148,13 @@ class CalcWithMetadata():
 
     def update(self, **kwargs):
         for key, value in kwargs.items():
+            if value is None:
+                continue
+
             if isinstance(value, list):
+                if len(value) == 0:
+                    continue
+
                 if len(value) > 0 and isinstance(value[0], dict) and not isinstance(value[0], utils.POPO):
                     value = list(utils.POPO(**item) for item in value)
             if isinstance(value, dict) and not isinstance(value, utils.POPO):

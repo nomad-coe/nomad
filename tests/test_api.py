@@ -226,7 +226,7 @@ class TestUploads:
 
         upload_with_metadata = get_upload_with_metadata(upload)
         assert_upload_files(upload_with_metadata, files.StagingUploadFiles)
-        assert_search_upload(upload_with_metadata)
+        assert_search_upload(upload_with_metadata, additional_keys=['atoms', 'system'])
 
     def assert_published(self, client, test_user_auth, upload_id, proc_infra, with_coe_repo=True, metadata={}):
         rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
