@@ -28,11 +28,11 @@ DELETE http://localhost:9200/calcs HTTP/1.1
 
 ###
 # Get errors from ELK
-GET http://localhost:29200/logstash-2019.03.27,logstash-2019.03.26/_search HTTP/1.1
+GET http://localhost:29200/logstash-2019.03.27/_search HTTP/1.1
 content-type: application/json
 
 {
-    "size": 10,
+    "size": 0,
     "query": {
         "match": {
             "level.keyword": "ERROR"
@@ -41,7 +41,7 @@ content-type: application/json
     "aggs": {
         "event": {
             "terms": {
-                "field": "event.keyword",
+                "field": "digest.keyword",
                 "size": 100
             },
             "aggs": {
