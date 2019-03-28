@@ -29,7 +29,6 @@ services:
         environment:
             POSTGRES_PASSWORD: 'nomad'
             POSTGRES_USER: 'postgres'
-            POSTGRES_DB: 'nomad'
         volumes:
             - nomad_postgres:/var/lib/postgresql/data
 

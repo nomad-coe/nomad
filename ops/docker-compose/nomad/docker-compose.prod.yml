@@ -15,15 +15,25 @@
 version: '3.4'
 
 services:
+
+    postgres:
+        ports:
+            - 5432:5432
+        volumes:
+            - /nomad/fairdi/db/postgres:/var/lib/postgresql/data
     # the search engine
     elastic:
         ports:
-            - 19200:9200
+            - 9200:9200
+        volumes:
+            - /nomad/fairdi/db/elastic:/usr/share/elasticsearch/data
 
     # the user data db
     mongo:
         ports:
-            - 37017:27017
+            - 27017:27017
+        volumes:
+            - /nomad/fairdi/db/mongo:/data/db
 
     # used for centralized logging
     elk:
@@ -34,11 +44,11 @@ services:
         expose:
             - 5000 # logstash beats
         volumes:
-            - nomad_elk:/var/lib/elasticsearch
+            - /nomad/fairdi/db/elk:/var/lib/elasticsearch
         ports:
-            - 15601:5601  # kibana web
-            - 15000:5000
-            - 29200:9200  # allows metricbeat config to access es
+            - 5601:5601  # kibana web
+            - 5000:5000
+            - 9201:9200  # allows metricbeat config to access es
 
     api:
         environment:
@@ -58,4 +68,4 @@ services:
 
     proxy:
         ports:
-            - 10080:80
+            - 8080:80

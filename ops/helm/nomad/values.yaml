@@ -28,7 +28,7 @@ images:
 api:
   replicas: 1
   ## Number of gunicorn worker. Recommendation is 2xnum_cores+1
-  worker: 21
+  worker: 10
   port: 8000
   console_loglevel: INFO
   logstash_loglevel: INFO
@@ -41,7 +41,7 @@ api:
 
 ## Everthing concerning the nomad worker
 worker:
-  replicas: 2
+  replicas: 1
   # request and limit in GB
   memrequest: 64
   memlimit: 420
@@ -59,14 +59,14 @@ gui:
 #  It is run via NodePort service
 proxy:
   port: 80
-  nodePort: 30003
-  nodeIP: 130.183.207.116
+  nodePort: 30001
+  nodeIP: 130.183.207.104
   timeout: 600
   datatimeout: 3600
   external:
-    host: "enc-staging-nomad.esc.rzg.mpg.de"
+    host: "labdev-nomad.esc.rzg.mpg.de"
     port: 80
-    path: "/fairdi/nomad"
+    path: "/fairdi/nomad/latest"
     kibanaPath: "/fairdi/kibana"
 
 ## configuration of the chart dependency for rabbitmq
@@ -80,34 +80,34 @@ rabbitmq:
     erlangCookie: SWQOKODSQALRPCLNMEQG
 
 ## A common name/prefix for all dbs and indices.
-dbname: fairdi_nomad
+dbname: fairdi_nomad_latest
 
 ## The url for the upload page, used in emails to forward the user
-uploadurl: 'http://nomad.fairdi.eu/uploads'
+uploadurl: 'https://labdev-nomad.esc.mpg.rzg.de/fairdi/nomad/latest/uploads'
 
 ## Databases that are not run within the cluster.
 #  To run databases in the cluster, use the nomad-full helm chart.
 mongo:
-  host: enc-preprocessing-nomad.esc
-  port: 37017
+  host: nomad-flink-01.esc
+  port: 27017
 
 elastic:
-  host: enc-preprocessing-nomad.esc
-  port: 19200
+  host: nomad-flink-01.esc
+  port: 9200
 
 postgres:
   sequential_publish: false
   publish_enabled: true
-  host: enc-preprocessing-nomad.esc
+  host: nomad-flink-01.esc
   port: 5432
 
 logstash:
-  port: 15000
-  host: enc-preprocessing-nomad.esc
+  port: 5000
+  host: nomad-flink-01.esc
 
 kibana:
-  port: 15601
-  host: enc-preprocessing-nomad.esc
+  port: 5601
+  host: nomad-flink-01.esc
 
 mail:
   host: ''
@@ -119,7 +119,7 @@ mail:
 ## Everything concerning the data that is used by the service
 volumes:
   prefixSize: 2
-  public: /nomad/fairdi/fs/public
-  staging: /nomad/fairdi/fs/staging
-  tmp: /nomad/fairdi/fs/tmp
+  public: /nomad/fairdi/latest/fs/public
+  staging: /nomad/fairdi/latest/fs/staging
+  tmp: /nomad/fairdi/latest/fs/tmp
   nomad: /nomad
