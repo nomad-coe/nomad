@@ -27,9 +27,11 @@ images:
 ## Everthing concerning the nomad api
 api:
   replicas: 1
+  https: true
   ## Number of gunicorn worker. Recommendation is 2xnum_cores+1
   worker: 10
-  port: 8000
+  ## The external port to connect to the api
+  port: 80
   console_loglevel: INFO
   logstash_loglevel: INFO
   ## Secret used as cryptographic seed

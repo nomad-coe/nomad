@@ -31,6 +31,21 @@ from nomad import config, utils
 base_path = config.services.api_base_path
 """ Provides the root path of the nomad APIs. """
 
+
+@property
+def specs_url(self):
+    """
+    Fixes issue where swagger-ui makes a call to swagger.json over HTTP.
+    This can ONLY be used on servers that actually use HTTPS.  On servers that use HTTP,
+    this code should not be used at all.
+    """
+    return flask.url_for(self.endpoint('specs'), _external=True, _scheme='https')
+
+
+if config.services.https:
+    Api.specs_url = specs_url
+
+
 app = Flask(
     __name__,
     static_url_path='/docs',
