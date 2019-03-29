@@ -21,9 +21,8 @@ from elasticsearch_dsl import Document, InnerDoc, Keyword, Text, Date, \
     Object, Boolean, Search, Q, A, analyzer, tokenizer
 from elasticsearch_dsl.document import IndexMeta
 import elasticsearch.helpers
-import ase.data
 
-from nomad import config, datamodel, infrastructure, datamodel, coe_repo, parsing, utils
+from nomad import config, datamodel, infrastructure, datamodel, coe_repo, utils
 
 path_analyzer = analyzer(
     'path_analyzer',
@@ -165,31 +164,15 @@ def refresh():
     infrastructure.elastic_client.indices.refresh(config.elastic.index_name)
 
 
-aggregations = {
-    'atoms': len(ase.data.chemical_symbols),
-    'system': 10,
-    'crystal_system': 10,
-    'code_name': len(parsing.parsers),
-    'basis_set': 10,
-    'xc_functional': 10
-}
+aggregations: Dict[str, int] = {}
 """ The available aggregations in :func:`aggregate_search` and their maximum aggregation size """
+
+for quantity in datamodel.Domain.quantities:
+    if quantity.aggregations > 0:
+        aggregations[quantity.name] = quantity.aggregations
 
 
 search_quantities = {
-    'formula': ('term', 'formula', 'The full reduced formula.'),
-    'spacegroup': ('term', 'spacegroup', 'The spacegroup as int.'),
-    'spacegroup_symbol': ('term', 'spacegroup', 'The spacegroup as international short symbol.'),
-    'basis_set': ('term', 'basis_set', 'The basis set type.'),
-    'atoms': ('term', 'atoms', (
-        'Search the given atom. This quantity can be used multiple times to search for '
-        'results with all the given atoms. The atoms are given by their case sensitive '
-        'symbol, e.g. Fe.')),
-
-    'system': ('term', 'system', 'Search for the given system type.'),
-    'crystal_system': ('term', 'crystal_system', 'Search for the given crystal system.'),
-    'code_name': ('term', 'code_name', 'Search for the given code name.'),
-    'xc_functional': ('term', 'xc_functional', 'Search for the given xc functional treatment'),
     'authors': ('term', 'authors.name.keyword', (
         'Search for the given author. Exact keyword matches in the form "Lastname, Firstname".')),
 
@@ -209,11 +192,30 @@ The available search quantities in :func:`aggregate_search` as tuples with *sear
 elastic field and description.
 """
 
+for quantity in datamodel.Domain.quantities:
+    search_spec = ('term', quantity.name, quantity.description)
+    search_quantities[quantity.name] = search_spec
+
+
 metrics = {
-    'total_energies': ('sum', 'n_total_energies'),
-    'geometries': ('cardinality', 'n_geometries'),
     'datasets': ('cardinality', 'datasets.id'),
 }
+"""
+The available search metrics. Metrics are integer values given for each entry that can
+be used in aggregations, e.g. the sum of all total energy calculations or cardinality of
+all unique geometries.
+"""
+
+for quantity in datamodel.Domain.quantities:
+    if quantity.metric is not None:
+        metric, aggregation = quantity.metric
+        metrics[metric] = (aggregation, quantity.name)
+
+
+order_default_quantity = None
+for quantity in datamodel.Domain.quantities:
+    if quantity.order_default:
+        order_default_quantity = quantity.name
 
 
 def _construct_search(q: Q = None, **kwargs) -> Search:
@@ -295,10 +297,10 @@ def scroll_search(
 
 
 def aggregate_search(
-        page: int = 1, per_page: int = 10, order_by: str = 'formula', order: int = -1,
+        page: int = 1, per_page: int = 10, order_by: str = order_default_quantity, order: int = -1,
         q: Q = None, aggregations: Dict[str, int] = aggregations,
-        aggregation_metrics: List[str] = ['total_energies', 'geometries', 'datasets'],
-        total_metrics: List[str] = ['total_energies', 'geometries', 'datasets'],
+        aggregation_metrics: List[str] = [],
+        total_metrics: List[str] = [],
         **kwargs) -> Tuple[int, List[dict], Dict[str, Dict[str, Dict[str, int]]], Dict[str, int]]:
     """
     Performs a search and returns paginated search results and aggregations. The aggregations
@@ -311,9 +313,9 @@ def aggregate_search(
         q: An *elasticsearch_dsl* query used to further filter the results (via `and`)
         aggregations: A customized list of aggregations to perform. Keys are index fields,
             and values the amount of buckets to return. Only works on *keyword* field.
-        aggregation_metrics: The metrics used to aggregate over. Can be `total_energies``,
-            ``geometries``, or ``datasets``. ``code_runs`` is always given.
-        total_metrics: The metrics used to for total numbers.
+        aggregation_metrics: The metrics used to aggregate over. Can be ``datasets``,
+            other domain specific metrics. The basic doc_count metric ``code_runs`` is always given.
+        total_metrics: The metrics used to for total numbers (see ``aggregation_metrics``).
         **kwargs: Quantity, value pairs to search for.
 
     Returns: A tuple with the total hits, an array with the results, an dictionary with

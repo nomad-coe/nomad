@@ -29,6 +29,20 @@ representations. Therefore, implement only transformation from and to these
 classes. These are the implemented transformations:
 
 .. image:: datamodel_transformations.png
+
+.. autoclass:: nomad.datamodel.UploadWithMetadata
+    :members:
+.. autoclass:: nomad.datamodel.CalcWithMetadata
+    :members:
+
+The class :class:`CalcWithMetadata` only defines non domain specific metadata quantities
+about ids, user metadata, etc. To define domain specific quantities the classes
+:class:`Domain` and :class:`DomainQuantity` must be used.
+
+.. autoclass:: nomad.datamodel.Domain
+    :members:
+.. autoclass:: nomad.datamodel.DomainQuantity
+    :members:
 """
 
 import sys

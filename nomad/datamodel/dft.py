@@ -19,6 +19,7 @@ DFT specific metadata
 from typing import List
 import re
 from elasticsearch_dsl import Integer
+import ase.data
 
 from nomad import utils, config
 
@@ -179,9 +180,30 @@ class DFTCalcWithMetadata(CalcWithMetadata):
 
 
 Domain.register_domain(DFTCalcWithMetadata, 'DFT', quantities=dict(
-    formula=DomainQuantity('The chemical (hill) formula of the simulated system.'),
-    atoms=DomainQuantity('The atom labels of all atoms in the simulated system.'),
-    basis_set=DomainQuantity('The used basis set functions.'),
-    n_total_energies=DomainQuantity('Number of total energy calculations', elastic_mapping=Integer()),
-    n_geometries=DomainQuantity('Number of unique geometries', elastic_mapping=Integer()),
+    formula=DomainQuantity(
+        'The chemical (hill) formula of the simulated system.',
+        order_default=True),
+    atoms=DomainQuantity(
+        'The atom labels of all atoms in the simulated system.',
+        aggregations=len(ase.data.chemical_symbols)),
+    basis_set=DomainQuantity(
+        'The used basis set functions.', aggregations=10),
+    xc_functional=DomainQuantity(
+        'The xc functional type used for the simulation.', aggregations=10),
+    system=DomainQuantity(
+        'The system type of the simulated system.', aggregations=10),
+    crystal_system=DomainQuantity(
+        'The crystal system type of the simulated system.', aggregations=10),
+    code_name=DomainQuantity(
+        'The code name.', aggregations=10),
+    spacegroup=DomainQuantity('The spacegroup of the simulated system as number'),
+    spacegroup_symbol=DomainQuantity('The spacegroup as international short symbol'),
+    n_total_energies=DomainQuantity(
+        'Number of total energy calculations',
+        metric=('total_energies', 'sum'),
+        elastic_mapping=Integer()),
+    n_geometries=DomainQuantity(
+        'Number of unique geometries',
+        metric=('geometries', 'cardinality'),
+        elastic_mapping=Integer()),
     n_atoms=DomainQuantity('Number of atoms in the simulated system', elastic_mapping=Integer())))
