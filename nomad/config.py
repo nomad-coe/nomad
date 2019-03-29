@@ -17,7 +17,6 @@ import os
 import os.path
 import yaml
 import warnings
-from kombu import Queue
 
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
