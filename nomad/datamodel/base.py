@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Iterable, List, Dict, Type
+from typing import Iterable, List, Dict, Type, Tuple
 import datetime
 from elasticsearch_dsl import Keyword
 
@@ -95,9 +95,7 @@ class CalcWithMetadata():
         self.references: List[utils.POPO] = []
         self.datasets: List[utils.POPO] = []
 
-        # temporary reference to the backend after successful processing
-        self.backend = None
-
+        # parser related general (not domain specific) metadata
         self.parser_name = None
 
         self.update(**kwargs)
@@ -110,7 +108,13 @@ class CalcWithMetadata():
 
     def update(self, **kwargs):
         for key, value in kwargs.items():
+            if value is None:
+                continue
+
             if isinstance(value, list):
+                if len(value) == 0:
+                    continue
+
                 if len(value) > 0 and isinstance(value[0], dict) and not isinstance(value[0], utils.POPO):
                     value = list(utils.POPO(**item) for item in value)
             if isinstance(value, dict) and not isinstance(value, utils.POPO):
@@ -143,15 +147,36 @@ class CalcWithMetadata():
 
 
 class DomainQuantity:
+    """
+    This class can be used to define further details about a domain specific metadata
+    quantity.
+
+    Attributes:
+        name: The name of the quantity, also the key used to store values in
+            :class:`CalcWithMetadata`
+        description: A human friendly description. The description is used to define
+            the swagger documentation on the relevant API endpoints.
+        multi: Indicates a list of values. This is important for the elastic mapping.
+        order_default: Indicates that this metric should be used for the default order of
+            search results.
+        aggregations: Indicates that search aggregations (and how many) should be provided.
+            0 (the default) means no aggregations.
+        metric: Indicates that this quantity should be used as search metric. Values need
+            to be tuples with metric name and elastic aggregation (e.g. sum, cardinality)
+        elastic_mapping: An optional elasticsearch_dsl mapping. Default is ``Keyword``.
+    """
 
     def __init__(
-            self, description: str = None, multi: bool = False, aggregate: bool = False,
+            self, description: str = None, multi: bool = False, aggregations: int = 0,
+            order_default: bool = False, metric: Tuple[str, str] = None,
             elastic_mapping=None):
 
         self.name: str = None
         self.description = description
         self.multi = multi
-        self.aggregate = aggregate
+        self.order_default = order_default
+        self.aggregations = aggregations
+        self.metric = metric
         self.elastic_mapping = elastic_mapping
 
         if self.elastic_mapping is None:
@@ -159,6 +184,21 @@ class DomainQuantity:
 
 
 class Domain:
+    """
+    A domain defines all metadata quantities that are specific to a certain scientific
+    domain, e.g. DFT calculations, or experimental material science.
+
+    For each domain there needs to define a subclass of :class:`CalcWithMetadata`. This
+    class has to define the necessary domain specific metadata quantities and how these
+    are filled from parser results (usually an instance of :class:LocalBackend).
+
+    Furthermore, the class method :func:`register_domain` of this ``Domain`` class has
+    to be used to register a domain with ``domain_nam``. This also allows to provide
+    further descriptions on each domain specific quantity via instance of :class:`DomainQuantity`.
+
+    While there can be multiple domains registered. Currently, only one domain can be
+    active. This active domain is define in the configuration using the ``domain_name``.
+    """
     domain_class: Type[CalcWithMetadata] = None
     quantities: List[DomainQuantity] = []
 
@@ -188,5 +228,5 @@ class Domain:
             assert hasattr(reference_domain_calc, name) and not hasattr(reference_general_calc, name), \
                 'quantity does not exist or overrides general non domain quantity'
 
-        # utils.get_logger(__name__).info(
-        #     'configured domain', domain=domain_name, domain_quantities=len(cls.quantities))
+        assert any(quantity.order_default for quantity in Domain.quantities), \
+            'you need to define a order default quantity'

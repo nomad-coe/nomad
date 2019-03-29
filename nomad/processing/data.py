@@ -646,7 +646,7 @@ class Upload(Proc):
             '',
             'your data %suploaded %s has completed processing.' % (
                 self.name if self.name else '', self.upload_time.isoformat()),
-            'You can review your data on your upload page: %s' % config.upload_url()
+            'You can review your data on your upload page: %s/uploads' % config.api_url()[:-3]
         ])
         try:
             infrastructure.send_mail(

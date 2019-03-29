@@ -110,7 +110,8 @@ services = NomadConfig(
     admin_password='password',
     disable_reset=True,
     not_processed_value='not processed',
-    unavailable_value='unavailable'
+    unavailable_value='unavailable',
+    https=False
 )
 
 tests = NomadConfig(
@@ -118,8 +119,12 @@ tests = NomadConfig(
 )
 
 
-def upload_url():
-    return 'http://%s:%s/%s/uploads' % (services.api_host, services.api_port, services.api_base_path[:-3])
+def api_url():
+    return '%s://%s%s/%s' % (
+        'https' if services.https else 'http',
+        services.api_host,
+        ':%s' % services.api_port if services.api_port != 80 else '',
+        services.api_base_path)
 
 
 migration_source_db = NomadConfig(

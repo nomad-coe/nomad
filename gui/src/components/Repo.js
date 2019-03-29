@@ -8,7 +8,7 @@ import TablePagination from '@material-ui/core/TablePagination'
 import TableRow from '@material-ui/core/TableRow'
 import Paper from '@material-ui/core/Paper'
 import { TableHead, LinearProgress, FormControl, FormControlLabel, Checkbox, FormGroup,
-  FormLabel, IconButton, MuiThemeProvider, Typography, Tooltip, TableSortLabel, ExpansionPanelDetails, ExpansionPanelSummary, ExpansionPanel, Grid, CircularProgress } from '@material-ui/core'
+  FormLabel, IconButton, MuiThemeProvider, Typography, Tooltip, TableSortLabel, ExpansionPanelDetails, ExpansionPanelSummary, ExpansionPanel, Grid } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
 import AnalyticsIcon from '@material-ui/icons/Settings'
