@@ -198,12 +198,15 @@ Domain.register_domain(DFTCalcWithMetadata, 'DFT', quantities=dict(
         'The code name.', aggregations=10),
     spacegroup=DomainQuantity('The spacegroup of the simulated system as number'),
     spacegroup_symbol=DomainQuantity('The spacegroup as international short symbol'),
+    geometries=DomainQuantity(
+        'Hashes that describe unique geometries simulated by this code run.',
+        metric=('geometries', 'cardinality')
+    ),
     n_total_energies=DomainQuantity(
         'Number of total energy calculations',
         metric=('total_energies', 'sum'),
         elastic_mapping=Integer()),
     n_geometries=DomainQuantity(
         'Number of unique geometries',
-        metric=('geometries', 'cardinality'),
         elastic_mapping=Integer()),
     n_atoms=DomainQuantity('Number of atoms in the simulated system', elastic_mapping=Integer())))
