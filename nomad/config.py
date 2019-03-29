@@ -171,8 +171,8 @@ auxfile_cutoff = 30
 console_log_level = logging.WARNING
 
 
-def get_loglevel_from_env(key, default_level=logging.INFO):
-    plain_value = os.environ.get(key, None)
+def normalize_loglevel(value, default_level=logging.INFO):
+    plain_value = value
     if plain_value is None:
         return default_level
     else:
@@ -183,8 +183,8 @@ def get_loglevel_from_env(key, default_level=logging.INFO):
 
 
 transformations = {
-    'console_log_level': get_loglevel_from_env,
-    'logstash_level': get_loglevel_from_env
+    'console_log_level': normalize_loglevel,
+    'logstash_level': normalize_loglevel
 }
 
 

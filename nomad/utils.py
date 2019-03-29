@@ -48,6 +48,8 @@ import re
 from werkzeug.exceptions import HTTPException
 import hashlib
 
+from nomad import config
+
 default_hash_len = 28
 """ Length of hashes and hash-based ids (e.g. calc, upload) in nomad. """
 
@@ -164,7 +166,6 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
 
                 message[key] = value
         else:
-            from nomad import config
             structlog['nomad.service'] = config.service
             structlog['nomad.release'] = config.release
             message.update(structlog)
@@ -212,7 +213,6 @@ def add_logstash_handler(logger):
         if isinstance(handler, LogstashHandler)), None)
 
     if logstash_handler is None:
-        from nomad import config
         logstash_handler = LogstashHandler(
             config.logstash.host,
             config.logstash.tcp_port, version=1)
@@ -222,8 +222,6 @@ def add_logstash_handler(logger):
 
 
 def configure_logging():
-    from nomad import config
-
     # configure structlog
     log_processors = [
         StackInfoRenderer(),
@@ -277,8 +275,6 @@ def get_logger(name, **kwargs):
     Returns a structlog logger that is already attached with a logstash handler.
     Use additional *kwargs* to pre-bind some values to all events.
     """
-    from nomad import config
-
     if name.startswith('nomad.'):
         name = '.'.join(name.split('.')[:2])
 
