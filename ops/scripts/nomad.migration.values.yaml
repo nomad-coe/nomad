@@ -6,6 +6,7 @@ proxy:
 
 worker:
   replicas: 3
+  routing: "worker"
 
 dbname: fairdi_nomad_migration
 

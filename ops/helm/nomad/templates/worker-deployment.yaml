@@ -44,13 +44,17 @@ spec:
           value: "{{ .Values.worker.console_loglevel }}"
         - name: NOMAD_LOGSTASH_LEVEL
           value: "{{ .Values.worker.logstash_loglevel }}"
-        command: ["python", "-m", "celery", "worker", "-A", "nomad.processing", "-Q", "calcs,uploads"]
+        - name: NOMAD_CELERY_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        command: ["python", "-m", "celery", "worker", "-A", "nomad.processing", "-n", "${NOMAD_CELERY_NODE_NAME}", "-Q", "calcs,uploads"]
         livenessProbe:
           exec:
             command:
             - bash
             - -c
-            - NOMAD_LOGSTASH_LEVEL=WARNING python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
+            - NOMAD_LOGSTASH_LEVEL=WARNING python -m celery -A nomad.processing status | grep "${NOMAD_CELERY_NODE_NAME}:.*OK"
           initialDelaySeconds: 30
           periodSeconds: 30
         readinessProbe:
@@ -58,7 +62,7 @@ spec:
             command:
             - bash
             - -c
-            - NOMAD_LOGSTASH_LEVEL=WARNING python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
+            - NOMAD_LOGSTASH_LEVEL=WARNING python -m celery -A nomad.processing status | grep "${NOMAD_CELERY_NODE_NAME}:.*OK"
           initialDelaySeconds: 5
           periodSeconds: 120
       nodeSelector:
