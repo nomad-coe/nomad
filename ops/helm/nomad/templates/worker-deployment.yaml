@@ -20,12 +20,12 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       affinity:
-        podAntiAffinity:                                 
+        podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
           - topologyKey: kubernetes.io/hostname
-            labelSelector:                               
-              matchLabels:                               
-                app.kubernetes.io/name: {{ include "nomad.name" . }}-worker      
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: {{ include "nomad.name" . }}-worker
                 app.kubernetes.io/instance: {{ .Release.Name }}
       containers:
       - name: {{ include "nomad.name" . }}-worker
@@ -56,7 +56,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
-        command: ["python", "-m", "celery", "worker", "-A", "nomad.processing", "-n", "$(NOMAD_CELERY_NODE_NAME)", "-Q", "calcs,uploads"]
+        command: ["python", "-m", "celery", "worker", "-A", "nomad.processing", "-n", "$(NOMAD_CELERY_NODE_NAME)"]
         livenessProbe:
           exec:
             command:

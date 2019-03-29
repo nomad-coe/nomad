@@ -54,7 +54,7 @@ app.conf.update(worker_max_memory_per_child=config.celery.max_memory)
 if config.celery.routing == config.CELERY_WORKER_ROUTING:
     app.conf.update(worker_direct=True)
 
-app.conf.task_queues = config.celery.task_queues
+app.conf.task_queue_max_priority = 10
 
 CREATED = 'CREATED'
 PENDING = 'PENDING'
@@ -496,14 +496,18 @@ def process(func):
         self_id = self.id.__str__()
         cls_name = self.__class__.__name__
 
-        queue = getattr(self.__class__, 'queue', None)
+        queue = None
         if config.celery.routing == config.CELERY_WORKER_ROUTING and self.worker_hostname is not None:
             queue = 'celery@%s' % worker_direct(self.worker_hostname).name
 
-        logger = utils.get_logger(__name__, cls=cls_name, id=self_id, func=func.__name__)
-        logger.debug('calling process function', queue=queue)
+        priority = config.celery.priorities.get('%s.%s' % (cls_name, func.__name__), 1)
 
-        return proc_task.apply_async(args=[cls_name, self_id, func.__name__], queue=queue)
+        logger = utils.get_logger(__name__, cls=cls_name, id=self_id, func=func.__name__)
+        logger.debug('calling process function', queue=queue, priority=priority)
+
+        return proc_task.apply_async(
+            args=[cls_name, self_id, func.__name__],
+            queue=queue, priority=priority)
 
     task = getattr(func, '__task_name', None)
     if task is not None:

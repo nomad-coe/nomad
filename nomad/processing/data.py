@@ -66,8 +66,6 @@ class Calc(Proc):
 
     metadata = DictField()
 
-    queue = 'calcs'
-
     meta: Any = {
         'indexes': [
             'upload_id', 'mainfile', 'parser', 'tasks_status', 'process_status'
@@ -365,8 +363,6 @@ class Upload(Proc):
     user_id = StringField(required=True)
     published = BooleanField(default=False)
     publish_time = DateTimeField()
-
-    queue = 'uploads'
 
     meta: Any = {
         'indexes': [

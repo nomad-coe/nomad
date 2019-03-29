@@ -65,10 +65,11 @@ celery = NomadConfig(
     timeout=1800,  # 1/2 h
     acks_late=True,
     routing=CELERY_QUEUE_ROUTING,
-    task_queues=[
-        Queue('calcs', routing_key='calcs', queue_arguments={'x-max-priority': 10}),
-        Queue('uploads', routing_key='uploads', queue_arguments={'x-max-priority': 100})
-    ]
+    priorities={
+        'Upload.process_upload': 5,
+        'Upload.delete_upload': 9,
+        'Upload.publish_upload': 10
+    }
 )
 
 fs = NomadConfig(
