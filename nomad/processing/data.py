@@ -305,6 +305,7 @@ class Calc(Proc):
 
         calc_with_metadata = CalcWithMetadata(**self.metadata)
         calc_with_metadata.apply_domain_metadata(self._parser_backend)
+        calc_with_metadata.parser_name = self.parser
         calc_with_metadata.processed = True
 
         # persist the calc metadata

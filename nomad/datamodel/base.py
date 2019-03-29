@@ -98,6 +98,8 @@ class CalcWithMetadata():
         # temporary reference to the backend after successful processing
         self.backend = None
 
+        self.parser_name = None
+
         self.update(**kwargs)
 
     def to_dict(self):

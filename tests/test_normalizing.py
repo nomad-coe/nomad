@@ -25,6 +25,29 @@ from tests.test_parsing import parsed_faulty_unknown_matid_example  # pylint: di
 from tests.utils import assert_log
 
 
+symmetry_keys = ['spacegroup', 'spacegroup_symbol', 'crystal_system']
+calc_metadata_keys = [
+    'code_name', 'code_version', 'basis_set', 'xc_functional', 'system'] + symmetry_keys
+
+parser_exceptions = {
+    'parsers/wien2k': ['xc_functional'],
+    'parsers/nwchem': symmetry_keys,
+    'parsers/bigdft': symmetry_keys,
+    'parsers/gaussian': symmetry_keys,
+    'parsers/abinit': ['system'] + symmetry_keys,
+    'parsers/dl-poly': ['basis_set', 'xc_functional', 'system'] + symmetry_keys,
+    'parsers/lib-atoms': ['basis_set', 'xc_functional'],
+    'parsers/orca': symmetry_keys,
+    'parsers/octopus': symmetry_keys,
+    'parsers/phonopy': ['basis_set', 'xc_functional'],
+    'parsers/gpaw2': symmetry_keys,
+    'parsers/gamess': ['system'] + symmetry_keys,
+    'parsers/gulp': ['xc_functional', 'system'] + symmetry_keys,
+    'parsers/turbomole': symmetry_keys,
+    'parsers/elastic': ['basis_set', 'xc_functional', 'system'] + symmetry_keys
+}
+
+
 def run_normalize(backend: LocalBackend) -> LocalBackend:
     status, _ = backend.status
 
@@ -68,12 +91,11 @@ def assert_normalized(backend: LocalBackend):
     assert len(metadata.atoms) > 0
     assert metadata.spacegroup is not None
 
-    assert metadata.code_name != config.services.unavailable_value
-    assert metadata.code_version != config.services.unavailable_value
-    assert metadata.basis_set != config.services.unavailable_value
-    assert metadata.xc_functional != config.services.unavailable_value
-    assert metadata.system != config.services.unavailable_value
-    # TODO check symmetry where we know it should be there
+    exceptions = parser_exceptions.get(backend.get_value('parser_name'), [])
+
+    for key in calc_metadata_keys:
+        if key not in exceptions:
+            assert getattr(metadata, key) != config.services.unavailable_value
 
 
 def test_normalizer(normalized_example: LocalBackend):

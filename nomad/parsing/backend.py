@@ -108,6 +108,14 @@ class AbstractParserBackend(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def setSectionInfo(self, metaName, gIndex, references):
+        """
+        Sets info values of an open section references should be a dictionary with the
+        gIndexes of the root sections this section refers to.
+        """
+        pass
+
+    @abstractmethod
     def closeNonOverlappingSection(self, metaName):
         """
         Closes the current non overlapping section for the given meta name. After
