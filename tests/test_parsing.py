@@ -62,10 +62,11 @@ parser_examples = [
 
 # We need to remove some cases with external mainfiles, which might not exist
 # in all testing environments (e.g. in the nomad docker image)
+fixed_parser_examples = []
 for parser, mainfile in parser_examples:
-    fixed_parser_examples = []
     if os.path.exists(mainfile) or mainfile.startswith('tests'):
         fixed_parser_examples.append((parser, mainfile))
+parser_examples = fixed_parser_examples
 
 faulty_unknown_one_d_matid_example = [
     ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
