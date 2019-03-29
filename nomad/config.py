@@ -19,24 +19,32 @@ import yaml
 import warnings
 from kombu import Queue
 
-from nomad import utils
-
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 
-class NomadConfig(utils.POPO):
-    pass
+class NomadConfig(dict):
+    """
+    A dict subclass that uses attributes as key/value pairs.
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
+    def __getattr__(self, name):
+        if name in self:
+            return self[name]
+        else:
+            raise AttributeError("No such attribute: " + name)
 
-# class ConfigProperty:
-#     def __init__(
-#             self, name: str, default_value: Union[int, str, bool], help: str = None,
-#             env_var: str = None) -> None:
-#         self.name = name
-#         self.default_value = default_value,
-#         self.help = help
-#         self.env_var = env_var
+    def __setattr__(self, name, value):
+        self[name] = value
+
+    def __delattr__(self, name):
+        if name in self:
+            del self[name]
+        else:
+            raise AttributeError("No such attribute: " + name)
+
 
 CELERY_WORKER_ROUTING = 'worker'
 CELERY_QUEUE_ROUTING = 'queue'
