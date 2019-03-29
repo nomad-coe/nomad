@@ -4,6 +4,9 @@ proxy:
     host: "labdev-nomad.esc.rzg.mpg.de"
     path: "/fairdi/nomad/migration"
 
+api:
+  disableReset: false
+
 worker:
   replicas: 3
   routing: "worker"
@@ -15,6 +18,6 @@ uploadurl: 'https://labdev-nomad.rzg.mpg.de/fairdi/nomad/migration/upload'
 volumes:
   prefixSize: 2
   public: /nomad/fairdi/migration/fs/public
-  staging: /nomad/fairdi/migration/fs/staging
+  staging: /scratch/fairdi/migration/fs/staging
   tmp: /nomad/fairdi/migration/fs/tmp
   nomad: /nomad

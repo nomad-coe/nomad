@@ -79,7 +79,7 @@ spec:
           path: {{ .Values.volumes.public }}
           type: Directory
       - name: staging-volume
-        {{ if (eq .Values.worker.routing "worker") }}
+        {{ if (eq .Values.worker.storage "memory") }}
         emptyDir:
           medium: 'Memory'
         {{ else }}

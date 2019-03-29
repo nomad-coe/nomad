@@ -49,6 +49,7 @@ worker:
   console_loglevel: INFO
   logstash_loglevel: INFO
   routing: "queue"
+  storage: "disk"
 
 ## Everthing concerning the nomad gui
 gui:
