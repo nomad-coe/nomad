@@ -17,7 +17,8 @@ import logging
 import time
 from celery import Celery, Task
 from celery.worker.request import Request
-from celery.signals import after_setup_task_logger, after_setup_logger, worker_process_init
+from celery.signals import after_setup_task_logger, after_setup_logger, worker_process_init, \
+    celeryd_after_setup
 from celery.utils import worker_direct
 from celery.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import WorkerLostError
@@ -46,6 +47,15 @@ def setup(**kwargs):
     infrastructure.setup()
     utils.get_logger(__name__).info(
         'celery configured with acks_late=%s' % str(config.celery.acks_late))
+
+
+worker_hostname = None
+
+
+@celeryd_after_setup.connect
+def capture_worker_name(sender, instance, **kwargs):
+    global worker_hostname
+    worker_hostname = sender
 
 
 app = Celery('nomad.processing', broker=config.rabbitmq_url())
@@ -436,7 +446,7 @@ def proc_task(task, cls_name, self_id, func_attr):
     logger = self.get_logger()
     logger.debug('received process function call')
 
-    self.worker_hostname = task.request.hostname
+    self.worker_hostname = worker_hostname
     self.celery_task_id = task.request.id
 
     # get the process function
@@ -498,7 +508,7 @@ def process(func):
 
         queue = None
         if config.celery.routing == config.CELERY_WORKER_ROUTING and self.worker_hostname is not None:
-            queue = 'celery@%s' % worker_direct(self.worker_hostname).name
+            queue = worker_direct(self.worker_hostname).name
 
         priority = config.celery.priorities.get('%s.%s' % (cls_name, func.__name__), 1)
 
