@@ -69,7 +69,8 @@ fs = NomadConfig(
     public='.volumes/fs/public',
     migration_packages='.volumes/fs/migration_packages',
     local_tmp='/tmp',
-    prefix_size=2
+    prefix_size=2,
+    working_directory=os.getcwd()
 )
 
 elastic = NomadConfig(
