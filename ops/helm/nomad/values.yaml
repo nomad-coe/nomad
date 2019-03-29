@@ -46,9 +46,10 @@ worker:
   # request and limit in GB
   memrequest: 64
   memlimit: 420
-  console_loglevel: INFO
+  console_loglevel: ERROR
   logstash_loglevel: INFO
   routing: "queue"
+  storage: "disk"
 
 ## Everthing concerning the nomad gui
 gui:
