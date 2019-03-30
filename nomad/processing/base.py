@@ -17,7 +17,8 @@ import logging
 import time
 from celery import Celery, Task
 from celery.worker.request import Request
-from celery.signals import after_setup_task_logger, after_setup_logger, worker_process_init
+from celery.signals import after_setup_task_logger, after_setup_logger, worker_process_init, \
+    celeryd_after_setup
 from celery.utils import worker_direct
 from celery.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import WorkerLostError
@@ -48,13 +49,22 @@ def setup(**kwargs):
         'celery configured with acks_late=%s' % str(config.celery.acks_late))
 
 
+worker_hostname = None
+
+
+@celeryd_after_setup.connect
+def capture_worker_name(sender, instance, **kwargs):
+    global worker_hostname
+    worker_hostname = sender
+
+
 app = Celery('nomad.processing', broker=config.rabbitmq_url())
 app.conf.update(worker_hijack_root_logger=False)
 app.conf.update(worker_max_memory_per_child=config.celery.max_memory)
 if config.celery.routing == config.CELERY_WORKER_ROUTING:
     app.conf.update(worker_direct=True)
 
-app.conf.task_queues = config.celery.task_queues
+app.conf.task_queue_max_priority = 10
 
 CREATED = 'CREATED'
 PENDING = 'PENDING'
@@ -436,7 +446,7 @@ def proc_task(task, cls_name, self_id, func_attr):
     logger = self.get_logger()
     logger.debug('received process function call')
 
-    self.worker_hostname = task.request.hostname
+    self.worker_hostname = worker_hostname
     self.celery_task_id = task.request.id
 
     # get the process function
@@ -496,14 +506,18 @@ def process(func):
         self_id = self.id.__str__()
         cls_name = self.__class__.__name__
 
-        queue = getattr(self.__class__, 'queue', None)
+        queue = None
         if config.celery.routing == config.CELERY_WORKER_ROUTING and self.worker_hostname is not None:
-            queue = 'celery@%s' % worker_direct(self.worker_hostname).name
+            queue = worker_direct(self.worker_hostname).name
+
+        priority = config.celery.priorities.get('%s.%s' % (cls_name, func.__name__), 1)
 
         logger = utils.get_logger(__name__, cls=cls_name, id=self_id, func=func.__name__)
-        logger.debug('calling process function', queue=queue)
+        logger.debug('calling process function', queue=queue, priority=priority)
 
-        return proc_task.apply_async(args=[cls_name, self_id, func.__name__], queue=queue)
+        return proc_task.apply_async(
+            args=[cls_name, self_id, func.__name__],
+            queue=queue, priority=priority)
 
     task = getattr(func, '__task_name', None)
     if task is not None:

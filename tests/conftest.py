@@ -98,14 +98,7 @@ def celery_includes():
 def celery_config():
     return {
         'broker_url': config.rabbitmq_url(),
-        'task_queues': config.celery.task_queues
-    }
-
-
-@pytest.fixture(scope='session')
-def celery_worker_parameters():
-    return {
-        'queues': ('celery', 'uploads', 'calcs')
+        'task_queue_max_priority': 10
     }
 
 

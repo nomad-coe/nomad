@@ -66,8 +66,6 @@ class Calc(Proc):
 
     metadata = DictField()
 
-    queue = 'calcs'
-
     meta: Any = {
         'indexes': [
             'upload_id', 'mainfile', 'parser', 'tasks_status', 'process_status'
@@ -303,8 +301,9 @@ class Calc(Proc):
     def archiving(self):
         logger = self.get_logger()
 
-        calc_with_metadata = self._parser_backend.to_calc_with_metadata()
-        calc_with_metadata.update(**self.metadata)
+        calc_with_metadata = CalcWithMetadata(**self.metadata)
+        calc_with_metadata.apply_domain_metadata(self._parser_backend)
+        calc_with_metadata.parser_name = self.parser
         calc_with_metadata.processed = True
 
         # persist the calc metadata
@@ -364,8 +363,6 @@ class Upload(Proc):
     user_id = StringField(required=True)
     published = BooleanField(default=False)
     publish_time = DateTimeField()
-
-    queue = 'uploads'
 
     meta: Any = {
         'indexes': [

@@ -25,6 +25,7 @@ from nomad import config, utils
 from nomad.files import ArchiveBasedStagingUploadFiles
 from nomad.parsing import parser_dict, LocalBackend, match_parser
 from nomad.normalizing import normalizers
+from nomad.datamodel import CalcWithMetadata
 
 from .main import cli
 
@@ -173,5 +174,6 @@ def local(archive_id, show_backend=False, show_metadata=False, **kwargs):
         if show_backend:
             backend.write_json(sys.stdout, pretty=True)
         if show_metadata:
-            metadata = backend.to_calc_with_metadata()
+            metadata = CalcWithMetadata()
+            metadata.apply_domain_metadata(backend)
             ujson.dump(metadata.to_dict(), sys.stdout, indent=4)

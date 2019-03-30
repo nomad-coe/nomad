@@ -548,7 +548,8 @@ class TestRepo():
             test_user: coe_repo.User, other_test_user: coe_repo.User):
         clear_elastic(elastic_infra)
 
-        calc_with_metadata = normalized.to_calc_with_metadata()
+        calc_with_metadata = CalcWithMetadata(upload_id=0, calc_id=0)
+        calc_with_metadata.apply_domain_metadata(normalized)
 
         calc_with_metadata.update(calc_id='1', uploader=test_user.to_popo(), published=True, with_embargo=False)
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)

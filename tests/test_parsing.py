@@ -52,13 +52,21 @@ parser_examples = [
     ('parsers/gpaw', 'tests/data/parsers/gpaw/Fe2.gpw'),
     ('parsers/gpaw2', 'tests/data/parsers/gpaw2/H2_lcao.gpw2'),
     ('parsers/atk', 'tests/data/parsers/atk/Si2.nc'),
-    # ('parsers/gulp', 'tests/data/parsers/gulp/example6.got'),  # Issue with section_method
-    # ('parsers/siesta', 'tests/data/parsers/siesta/Fe/out'),  # Issue with dir.
+    ('parsers/gulp', 'tests/data/parsers/gulp/example6.got'),
+    ('parsers/siesta', 'tests/data/parsers/siesta/Fe/out'),
     ('parsers/elk', 'tests/data/parsers/elk/Al/INFO.OUT'),
-    # ('parsers/elastic', 'tests/data/parsers/elastic/2nd/INFO_ElaStic')  # 70Mb file 2big4git
-    # ('parsers/turbomole', 'tests/data/parsers/turbomole/acrolein.out')  # Issue with backend
+    ('parsers/elastic', 'dependencies/parsers/elastic/test/examples/2nd/INFO_ElaStic'),  # 70Mb file 2big4git
+    ('parsers/turbomole', 'tests/data/parsers/turbomole/acrolein.out'),
     ('parsers/gamess', 'tests/data/parsers/gamess/exam01.out')
 ]
+
+# We need to remove some cases with external mainfiles, which might not exist
+# in all testing environments (e.g. in the nomad docker image)
+fixed_parser_examples = []
+for parser, mainfile in parser_examples:
+    if os.path.exists(mainfile) or mainfile.startswith('tests'):
+        fixed_parser_examples.append((parser, mainfile))
+parser_examples = fixed_parser_examples
 
 faulty_unknown_one_d_matid_example = [
     ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
@@ -251,7 +259,7 @@ def assert_parser_result(backend):
 def run_parser(parser_name, mainfile):
     parser = parser_dict[parser_name]
     result = parser.run(mainfile, logger=utils.get_logger(__name__))
-    return add_calculation_info(result)
+    return add_calculation_info(result, parser_name=parser_name)
 
 
 @pytest.fixture
@@ -280,13 +288,14 @@ def parsed_example(request) -> LocalBackend:
     return result
 
 
-def add_calculation_info(backend: LocalBackend) -> LocalBackend:
+def add_calculation_info(backend: LocalBackend, **kwargs) -> LocalBackend:
     backend.openNonOverlappingSection('section_calculation_info')
     backend.addValue('upload_id', 'test_upload_id')
     backend.addValue('calc_id', 'test_calc_id')
     backend.addValue('calc_hash', 'test_calc_hash')
     backend.addValue('main_file', 'test/mainfile.txt')
-    backend.addValue('parser_name', 'testParser')
+    for key, value in kwargs.items():
+        backend.addValue(key, value)
     backend.closeNonOverlappingSection('section_calculation_info')
     return backend
 

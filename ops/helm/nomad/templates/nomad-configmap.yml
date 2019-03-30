@@ -47,4 +47,7 @@ data:
       user: "{{ .Values.mail.user }}"
       password: "{{ .Values.mail.password }}"
       from_address: "{{ .Values.mail.from }}"
-    celery_routing: "{{ .Values.worker.routing }}"
+    celery:
+      routing: "{{ .Values.worker.routing }}"
+      timeout: 7200
+

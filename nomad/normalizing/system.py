@@ -149,7 +149,7 @@ class SystemNormalizer(SystemBasedNormalizer):
                 self.logger.error('no lattice vectors but periodicity', pbc=pbc)
         else:
             try:
-                atoms.set_cell(1e10 * lattice_vectors)
+                atoms.set_cell(1e10 * np.array(lattice_vectors))
             except Exception as e:
                 self.logger.error(
                     'cannot use lattice_vectors with ase atoms', exc_info=e, error=str(e))
@@ -184,7 +184,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         Determine the dimensioality and hence the system type of the system with
         Matid. Write the system type to the backend.
         """
-        system_type = 'unavailable'
+        system_type = config.services.unavailable_value
         try:
             dimensionality = get_dimensionality(
                 atoms, cluster_threshold=3.1, return_clusters=False)

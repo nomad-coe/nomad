@@ -14,6 +14,7 @@
 
 import pytest
 
+from nomad import datamodel, config
 from nomad.parsing import LocalBackend
 from nomad.normalizing import normalizers
 
@@ -22,6 +23,33 @@ from tests.test_parsing import parsed_template_example  # pylint: disable=unused
 from tests.test_parsing import parsed_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_faulty_unknown_matid_example  # pylint: disable=unused-import
 from tests.utils import assert_log
+
+
+symmetry_keys = ['spacegroup', 'spacegroup_symbol', 'crystal_system']
+calc_metadata_keys = [
+    'code_name', 'code_version', 'basis_set', 'xc_functional', 'system', 'formula'] + symmetry_keys
+
+parser_exceptions = {
+    'parsers/wien2k': ['xc_functional'],
+    'parsers/nwchem': symmetry_keys,
+    'parsers/bigdft': symmetry_keys,
+    'parsers/gaussian': symmetry_keys,
+    'parsers/abinit': ['formula', 'system'] + symmetry_keys,
+    'parsers/dl-poly': ['formula', 'basis_set', 'xc_functional', 'system'] + symmetry_keys,
+    'parsers/lib-atoms': ['basis_set', 'xc_functional'],
+    'parsers/orca': symmetry_keys,
+    'parsers/octopus': symmetry_keys,
+    'parsers/phonopy': ['basis_set', 'xc_functional'],
+    'parsers/gpaw2': symmetry_keys,
+    'parsers/gamess': ['formula', 'system'] + symmetry_keys,
+    'parsers/gulp': ['formula', 'xc_functional', 'system'] + symmetry_keys,
+    'parsers/turbomole': symmetry_keys,
+    'parsers/elastic': ['basis_set', 'xc_functional', 'system'] + symmetry_keys
+}
+"""
+Keys that the normalizer for certain parsers might not produce. In an ideal world this
+map could be empty.
+"""
 
 
 def run_normalize(backend: LocalBackend) -> LocalBackend:
@@ -56,7 +84,9 @@ def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
 
 
 def assert_normalized(backend: LocalBackend):
-    metadata = backend.to_calc_with_metadata()
+    metadata = datamodel.DFTCalcWithMetadata()
+    metadata.apply_domain_metadata(backend)
+    assert metadata.formula is not None
     assert metadata.code_name is not None
     assert metadata.code_version is not None
     assert metadata.basis_set is not None
@@ -66,8 +96,14 @@ def assert_normalized(backend: LocalBackend):
     assert len(metadata.atoms) > 0
     assert metadata.spacegroup is not None
 
+    exceptions = parser_exceptions.get(backend.get_value('parser_name'), [])
 
-def test_normalizer(normalized_example: LocalBackend, no_warn):
+    for key in calc_metadata_keys:
+        if key not in exceptions:
+            assert getattr(metadata, key) != config.services.unavailable_value
+
+
+def test_normalizer(normalized_example: LocalBackend):
     assert_normalized(normalized_example)
 
 

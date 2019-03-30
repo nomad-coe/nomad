@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import pytest
+from typing import cast
 from passlib.hash import bcrypt
 from datetime import datetime
 
@@ -64,13 +65,13 @@ def assert_coe_upload(upload_id: str, upload: datamodel.UploadWithMetadata = Non
             if user_metadata is not None:
                 calc.apply_user_metadata(user_metadata)
 
-            assert_coe_calc(coe_calc, calc)
+            assert_coe_calc(coe_calc, cast(datamodel.DFTCalcWithMetadata, calc))
 
         if upload is not None and upload.upload_time is not None:
             assert coe_upload.created.isoformat()[:26] == upload.upload_time.isoformat()
 
 
-def assert_coe_calc(coe_calc: Calc, calc: datamodel.CalcWithMetadata):
+def assert_coe_calc(coe_calc: Calc, calc: datamodel.DFTCalcWithMetadata):
     if calc.pid is not None:
         assert coe_calc.pid == calc.pid
 
@@ -93,7 +94,8 @@ def assert_coe_calc(coe_calc: Calc, calc: datamodel.CalcWithMetadata):
 
 
 def test_add_normalized_calc(postgres, normalized: parsing.LocalBackend, test_user):
-    calc_with_metadata = normalized.to_calc_with_metadata()
+    calc_with_metadata = datamodel.DFTCalcWithMetadata()
+    calc_with_metadata.apply_domain_metadata(normalized)
     calc_with_metadata.uploader = test_user.to_popo()
     calc_with_metadata.files = [calc_with_metadata.mainfile, '1', '2', '3', '4']
     coe_calc = Calc()
@@ -105,7 +107,8 @@ def test_add_normalized_calc(postgres, normalized: parsing.LocalBackend, test_us
 def test_add_normalized_calc_with_metadata(
         postgres, normalized: parsing.LocalBackend, example_user_metadata_with_dataset: dict):
 
-    calc_with_metadata = normalized.to_calc_with_metadata()
+    calc_with_metadata = datamodel.DFTCalcWithMetadata()
+    calc_with_metadata.apply_domain_metadata(normalized)
     calc_with_metadata.files = [calc_with_metadata.mainfile, '1', '2', '3', '4']
     calc_with_metadata.apply_user_metadata(example_user_metadata_with_dataset)
 

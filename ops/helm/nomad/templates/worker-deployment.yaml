@@ -19,6 +19,14 @@ spec:
         app.kubernetes.io/name: {{ include "nomad.name" . }}-worker
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: {{ include "nomad.name" . }}-worker
+                app.kubernetes.io/instance: {{ .Release.Name }}
       containers:
       - name: {{ include "nomad.name" . }}-worker
         image: "{{ .Values.images.nomad.name }}:{{ .Values.images.nomad.tag }}"
@@ -44,13 +52,17 @@ spec:
           value: "{{ .Values.worker.console_loglevel }}"
         - name: NOMAD_LOGSTASH_LEVEL
           value: "{{ .Values.worker.logstash_loglevel }}"
-        command: ["python", "-m", "celery", "worker", "-A", "nomad.processing", "-Q", "calcs,uploads"]
+        - name: NOMAD_CELERY_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        command: ["python", "-m", "celery", "worker", "-A", "nomad.processing", "-n", "$(NOMAD_CELERY_NODE_NAME)"]
         livenessProbe:
           exec:
             command:
             - bash
             - -c
-            - NOMAD_LOGSTASH_LEVEL=WARNING python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
+            - NOMAD_LOGSTASH_LEVEL=WARNING python -m celery -A nomad.processing status | grep "$(NOMAD_CELERY_NODE_NAME):.*OK"
           initialDelaySeconds: 30
           periodSeconds: 30
         readinessProbe:
@@ -58,7 +70,7 @@ spec:
             command:
             - bash
             - -c
-            - NOMAD_LOGSTASH_LEVEL=WARNING python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
+            - NOMAD_LOGSTASH_LEVEL=WARNING python -m celery -A nomad.processing status | grep "${NOMAD_CELERY_NODE_NAME}:.*OK"
           initialDelaySeconds: 5
           periodSeconds: 120
       nodeSelector:
@@ -75,7 +87,7 @@ spec:
           path: {{ .Values.volumes.public }}
           type: Directory
       - name: staging-volume
-        {{ if (eq .Values.worker.routing "worker") }}
+        {{ if (eq .Values.worker.storage "memory") }}
         emptyDir:
           medium: 'Memory'
         {{ else }}

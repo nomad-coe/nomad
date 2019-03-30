@@ -20,7 +20,7 @@ from sqlalchemy.sql.expression import literal
 from datetime import datetime
 
 from nomad import infrastructure, utils
-from nomad.datamodel import CalcWithMetadata
+from nomad.datamodel import DFTCalcWithMetadata
 
 from . import base
 from .user import User
@@ -180,7 +180,7 @@ class Calc(Base):
 
     _dataset_cache: dict = {}
 
-    def apply_calc_with_metadata(self, calc: CalcWithMetadata, context: PublishContext) -> None:
+    def apply_calc_with_metadata(self, calc: DFTCalcWithMetadata, context: PublishContext) -> None:
         """
         Applies the data from ``source`` to this coe Calc object.
         """
@@ -309,14 +309,14 @@ class Calc(Base):
 
         coe_calc.citations.append(citation)
 
-    def to_calc_with_metadata(self) -> CalcWithMetadata:
+    def to_calc_with_metadata(self) -> DFTCalcWithMetadata:
         """
-        Creates a :class:`CalcWithMetadata` instance with UCPM ids, and all UMD/CMD.
+        Creates a :class:`DFTCalcWithMetadata` instance with UCPM ids, and all UMD/CMD.
         Be aware that ``upload_id`` and ``calc_id``, might be old coe repository
         ``upload_name`` and calculation ``checksum`` depending on the context, i.e. used
         database.
         """
-        result = CalcWithMetadata(
+        result = DFTCalcWithMetadata(
             upload_id=self.upload.upload_id if self.upload else None,
             calc_id=self.checksum)
 

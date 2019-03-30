@@ -17,26 +17,33 @@ import os
 import os.path
 import yaml
 import warnings
-from kombu import Queue
-
-from nomad import utils
 
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 
-class NomadConfig(utils.POPO):
-    pass
+class NomadConfig(dict):
+    """
+    A dict subclass that uses attributes as key/value pairs.
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
+    def __getattr__(self, name):
+        if name in self:
+            return self[name]
+        else:
+            raise AttributeError("No such attribute: " + name)
 
-# class ConfigProperty:
-#     def __init__(
-#             self, name: str, default_value: Union[int, str, bool], help: str = None,
-#             env_var: str = None) -> None:
-#         self.name = name
-#         self.default_value = default_value,
-#         self.help = help
-#         self.env_var = env_var
+    def __setattr__(self, name, value):
+        self[name] = value
+
+    def __delattr__(self, name):
+        if name in self:
+            del self[name]
+        else:
+            raise AttributeError("No such attribute: " + name)
+
 
 CELERY_WORKER_ROUTING = 'worker'
 CELERY_QUEUE_ROUTING = 'queue'
@@ -57,10 +64,11 @@ celery = NomadConfig(
     timeout=1800,  # 1/2 h
     acks_late=True,
     routing=CELERY_QUEUE_ROUTING,
-    task_queues=[
-        Queue('calcs', routing_key='calcs', queue_arguments={'x-max-priority': 10}),
-        Queue('uploads', routing_key='uploads', queue_arguments={'x-max-priority': 100})
-    ]
+    priorities={
+        'Upload.process_upload': 5,
+        'Upload.delete_upload': 9,
+        'Upload.publish_upload': 10
+    }
 )
 
 fs = NomadConfig(
@@ -69,7 +77,8 @@ fs = NomadConfig(
     public='.volumes/fs/public',
     migration_packages='.volumes/fs/migration_packages',
     local_tmp='/tmp',
-    prefix_size=2
+    prefix_size=2,
+    working_directory=os.getcwd()
 )
 
 elastic = NomadConfig(
@@ -109,6 +118,7 @@ services = NomadConfig(
     admin_password='password',
     disable_reset=True,
     not_processed_value='not processed',
+    unavailable_value='unavailable',
     https=False
 )
 
@@ -153,15 +163,16 @@ client = NomadConfig(
     url='http://localhost:8000/nomad/api'
 )
 
-console_log_level = logging.WARNING
-service = 'unknown nomad service'
-release = 'devel'
-auxfile_cutoff = 30
 version = '4.3'  # TODO replace with git hash?
+release = 'devel'
+domain = 'DFT'
+service = 'unknown nomad service'
+auxfile_cutoff = 30
+console_log_level = logging.WARNING
 
 
-def get_loglevel_from_env(key, default_level=logging.INFO):
-    plain_value = os.environ.get(key, None)
+def normalize_loglevel(value, default_level=logging.INFO):
+    plain_value = value
     if plain_value is None:
         return default_level
     else:
@@ -172,8 +183,8 @@ def get_loglevel_from_env(key, default_level=logging.INFO):
 
 
 transformations = {
-    'console_log_level': get_loglevel_from_env,
-    'logstash_level': get_loglevel_from_env
+    'console_log_level': normalize_loglevel,
+    'logstash_level': normalize_loglevel
 }
 
 

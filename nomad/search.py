@@ -18,11 +18,11 @@ This module represents calculations in elastic search.
 
 from typing import Iterable, Dict, Tuple, List
 from elasticsearch_dsl import Document, InnerDoc, Keyword, Text, Date, \
-    Object, Boolean, Search, Integer, Q, A, analyzer, tokenizer
+    Object, Boolean, Search, Q, A, analyzer, tokenizer
+from elasticsearch_dsl.document import IndexMeta
 import elasticsearch.helpers
-import ase.data
 
-from nomad import config, datamodel, infrastructure, datamodel, coe_repo, parsing, utils
+from nomad import config, datamodel, infrastructure, datamodel, coe_repo, utils
 
 path_analyzer = analyzer(
     'path_analyzer',
@@ -67,7 +67,16 @@ class Dataset(InnerDoc):
     name = Keyword()
 
 
-class Entry(Document):
+class WithDomain(IndexMeta):
+    """ Override elasticsearch_dsl metaclass to sneak in domain specific mappings """
+    def __new__(cls, name, bases, attrs):
+        for quantity in datamodel.Domain.quantities:
+            attrs[quantity.name] = quantity.elastic_mapping
+        return super(WithDomain, cls).__new__(cls, name, bases, attrs)
+
+
+class Entry(Document, metaclass=WithDomain):
+
     class Index:
         name = config.elastic.index_name
 
@@ -89,29 +98,6 @@ class Entry(Document):
     comment = Text()
     references = Keyword()
     datasets = Object(Dataset)
-
-    formula = Keyword()
-    atoms = Keyword(multi=True)
-    basis_set = Keyword()
-    xc_functional = Keyword()
-    system = Keyword()
-    crystal_system = Keyword()
-    spacegroup = Keyword()
-    spacegroup_symbol = Keyword()
-    code_name = Keyword()
-    code_version = Keyword()
-
-    group_hash = Keyword()
-    """
-    A hash that is used to collapse results in search results. Its based on:
-    formula, spacegroup, basis_set, xc_functional, code_name, code_version,
-    with_embargo, commet, references, authors
-    """
-
-    n_total_energies = Integer()
-    n_geometries = Integer()
-    geometries = Keyword(multi=True)
-    quantities = Keyword(multi=True)
 
     @classmethod
     def from_calc_with_metadata(cls, source: datamodel.CalcWithMetadata) -> 'Entry':
@@ -148,48 +134,8 @@ class Entry(Document):
         self.references = [ref.value for ref in source.references]
         self.datasets = [Dataset.from_dataset_popo(ds) for ds in source.datasets]
 
-        self.formula = source.formula
-        self.atoms = list(set(source.atoms))
-        self.basis_set = source.basis_set
-        self.xc_functional = source.xc_functional
-        self.system = source.system
-        self.crystal_system = source.crystal_system
-        self.spacegroup = source.spacegroup
-        self.spacegroup_symbol = source.spacegroup_symbol
-        self.code_name = source.code_name
-        self.code_version = source.code_version
-
-        self.group_hash = utils.hash(
-            self.formula,
-            self.spacegroup,
-            self.basis_set,
-            self.xc_functional,
-            self.code_name,
-            self.code_version,
-            self.with_embargo,
-            self.comment,
-            self.references,
-            self.authors)
-
-        if source.backend is not None:
-            quantities = set()
-            geometries = set()
-            n_total_energies = 0
-            n_geometries = 0
-
-            for meta_info, _, value in source.backend._delegate.results.traverse():
-                quantities.add(meta_info)
-                if meta_info == 'energy_total':
-                    n_total_energies += 1
-                if meta_info == 'section_system':
-                    n_geometries += 1
-                if meta_info == 'configuration_raw_gid':
-                    geometries.add(value)
-
-            self.geometries = list(geometries)
-            self.quantities = list(quantities)
-            self.n_total_energies = n_total_energies
-            self.n_geometries = n_geometries
+        for quantity in datamodel.Domain.quantities:
+            setattr(self, quantity.name, getattr(source, quantity.name))
 
 
 def delete_upload(upload_id):
@@ -218,31 +164,15 @@ def refresh():
     infrastructure.elastic_client.indices.refresh(config.elastic.index_name)
 
 
-aggregations = {
-    'atoms': len(ase.data.chemical_symbols),
-    'system': 10,
-    'crystal_system': 10,
-    'code_name': len(parsing.parsers),
-    'basis_set': 10,
-    'xc_functional': 10
-}
+aggregations: Dict[str, int] = {}
 """ The available aggregations in :func:`aggregate_search` and their maximum aggregation size """
+
+for quantity in datamodel.Domain.quantities:
+    if quantity.aggregations > 0:
+        aggregations[quantity.name] = quantity.aggregations
 
 
 search_quantities = {
-    'formula': ('term', 'formula', 'The full reduced formula.'),
-    'spacegroup': ('term', 'spacegroup', 'The spacegroup as int.'),
-    'spacegroup_symbol': ('term', 'spacegroup', 'The spacegroup as international short symbol.'),
-    'basis_set': ('term', 'basis_set', 'The basis set type.'),
-    'atoms': ('term', 'atoms', (
-        'Search the given atom. This quantity can be used multiple times to search for '
-        'results with all the given atoms. The atoms are given by their case sensitive '
-        'symbol, e.g. Fe.')),
-
-    'system': ('term', 'system', 'Search for the given system type.'),
-    'crystal_system': ('term', 'crystal_system', 'Search for the given crystal system.'),
-    'code_name': ('term', 'code_name', 'Search for the given code name.'),
-    'xc_functional': ('term', 'xc_functional', 'Search for the given xc functional treatment'),
     'authors': ('term', 'authors.name.keyword', (
         'Search for the given author. Exact keyword matches in the form "Lastname, Firstname".')),
 
@@ -262,11 +192,30 @@ The available search quantities in :func:`aggregate_search` as tuples with *sear
 elastic field and description.
 """
 
+for quantity in datamodel.Domain.quantities:
+    search_spec = ('term', quantity.name, quantity.description)
+    search_quantities[quantity.name] = search_spec
+
+
 metrics = {
-    'total_energies': ('sum', 'n_total_energies'),
-    'geometries': ('cardinality', 'n_geometries'),
     'datasets': ('cardinality', 'datasets.id'),
 }
+"""
+The available search metrics. Metrics are integer values given for each entry that can
+be used in aggregations, e.g. the sum of all total energy calculations or cardinality of
+all unique geometries.
+"""
+
+for quantity in datamodel.Domain.quantities:
+    if quantity.metric is not None:
+        metric, aggregation = quantity.metric
+        metrics[metric] = (aggregation, quantity.name)
+
+
+order_default_quantity = None
+for quantity in datamodel.Domain.quantities:
+    if quantity.order_default:
+        order_default_quantity = quantity.name
 
 
 def _construct_search(q: Q = None, **kwargs) -> Search:
@@ -348,10 +297,10 @@ def scroll_search(
 
 
 def aggregate_search(
-        page: int = 1, per_page: int = 10, order_by: str = 'formula', order: int = -1,
+        page: int = 1, per_page: int = 10, order_by: str = order_default_quantity, order: int = -1,
         q: Q = None, aggregations: Dict[str, int] = aggregations,
-        aggregation_metrics: List[str] = ['total_energies', 'geometries', 'datasets'],
-        total_metrics: List[str] = ['total_energies', 'geometries', 'datasets'],
+        aggregation_metrics: List[str] = [],
+        total_metrics: List[str] = [],
         **kwargs) -> Tuple[int, List[dict], Dict[str, Dict[str, Dict[str, int]]], Dict[str, int]]:
     """
     Performs a search and returns paginated search results and aggregations. The aggregations
@@ -364,9 +313,9 @@ def aggregate_search(
         q: An *elasticsearch_dsl* query used to further filter the results (via `and`)
         aggregations: A customized list of aggregations to perform. Keys are index fields,
             and values the amount of buckets to return. Only works on *keyword* field.
-        aggregation_metrics: The metrics used to aggregate over. Can be `total_energies``,
-            ``geometries``, or ``datasets``. ``code_runs`` is always given.
-        total_metrics: The metrics used to for total numbers.
+        aggregation_metrics: The metrics used to aggregate over. Can be ``datasets``,
+            other domain specific metrics. The basic doc_count metric ``code_runs`` is always given.
+        total_metrics: The metrics used to for total numbers (see ``aggregation_metrics``).
         **kwargs: Quantity, value pairs to search for.
 
     Returns: A tuple with the total hits, an array with the results, an dictionary with
