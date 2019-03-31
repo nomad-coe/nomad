@@ -179,7 +179,7 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.n_geometries = n_geometries
 
 
-Domain.register_domain(DFTCalcWithMetadata, 'DFT', quantities=dict(
+Domain('DFT', DFTCalcWithMetadata, quantities=dict(
     formula=DomainQuantity(
         'The chemical (hill) formula of the simulated system.',
         order_default=True),
@@ -195,7 +195,7 @@ Domain.register_domain(DFTCalcWithMetadata, 'DFT', quantities=dict(
     crystal_system=DomainQuantity(
         'The crystal system type of the simulated system.', aggregations=10),
     code_name=DomainQuantity(
-        'The code name.', aggregations=10),
+        'The code name.', aggregations=40),
     spacegroup=DomainQuantity('The spacegroup of the simulated system as number'),
     spacegroup_symbol=DomainQuantity('The spacegroup as international short symbol'),
     geometries=DomainQuantity(

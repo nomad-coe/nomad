@@ -46,6 +46,10 @@ class CalcWithMetadata():
     mappings between all combinations, just implement mappings with the class and use
     mapping transitivity. E.g. instead of A -> B, A -> this -> B.
 
+    This is basically an abstract class and it has to be subclassed for each :class:`Domain`.
+    Subclasses can define additional attributes and have to implement :func:`apply_domain_metadata`
+    to fill these attributes from processed entries, i.e. instance of :class:`nomad.parsing.LocalBackend`.
+
     Attributes:
         upload_id: The ``upload_id`` of the calculations upload (random UUID).
         calc_id: The unique mainfile based calculation id.
@@ -188,7 +192,7 @@ class Domain:
     A domain defines all metadata quantities that are specific to a certain scientific
     domain, e.g. DFT calculations, or experimental material science.
 
-    For each domain there needs to define a subclass of :class:`CalcWithMetadata`. This
+    Each domain needs to define a subclass of :class:`CalcWithMetadata`. This
     class has to define the necessary domain specific metadata quantities and how these
     are filled from parser results (usually an instance of :class:LocalBackend).
 
@@ -198,20 +202,30 @@ class Domain:
 
     While there can be multiple domains registered. Currently, only one domain can be
     active. This active domain is define in the configuration using the ``domain_name``.
+
+    Arguments:
+        name: A name for the domain. This is used as key in the configuration ``config.domain``.
+        domain_entry_class: A subclass of :class:`CalcWithMetadata` that adds the
+            domain specific quantities.
+        quantities: Additional specifications for the quantities in ``domain_entry_class`` as
+            instances of :class:`DomainQuantity`.
     """
-    domain_class: Type[CalcWithMetadata] = None
-    quantities: List[DomainQuantity] = []
+    instance: 'Domain' = None
 
-    @classmethod
-    def register_domain(cls, domain_class: type, domain_name: str, quantities: Dict[str, DomainQuantity]):
-        assert cls.domain_class is None, 'you can only define one domain.'
+    def __init__(
+            self, name: str, domain_entry_class: Type[CalcWithMetadata],
+            quantities: Dict[str, DomainQuantity]) -> None:
 
-        if not domain_name == config.domain:
-            return
+        assert Domain.instance is None, 'you can only define one domain.'
 
-        cls.domain_class = domain_class
+        if name == config.domain:
+            Domain.instance = self
 
-        reference_domain_calc = domain_class()
+        self.name = name
+        self.domain_entry_class = domain_entry_class
+        self.quantities: List[DomainQuantity] = []
+
+        reference_domain_calc = domain_entry_class()
         reference_general_calc = CalcWithMetadata()
 
         for name, value in reference_domain_calc.__dict__.items():
@@ -222,11 +236,39 @@ class Domain:
                     quantities[name] = quantity
                 quantity.name = name
                 quantity.multi = isinstance(value, list)
-                cls.quantities.append(quantity)
+                self.quantities.append(quantity)
 
         for name in quantities.keys():
             assert hasattr(reference_domain_calc, name) and not hasattr(reference_general_calc, name), \
                 'quantity does not exist or overrides general non domain quantity'
 
-        assert any(quantity.order_default for quantity in Domain.quantities), \
+        assert any(quantity.order_default for quantity in Domain.instance.quantities), \
             'you need to define a order default quantity'
+
+    @property
+    def metrics(self) -> Dict[str, Tuple[str, str]]:
+        """
+        The metrics specification used for search aggregations. See :func:`nomad.search.metrics`.
+        """
+        return {
+            quantity.metric[0]: (quantity.metric[1], quantity.name)
+            for quantity in self.quantities
+            if quantity.metric is not None
+        }
+
+    @property
+    def metrics_names(self) -> Iterable[str]:
+        """ Just the names of all metrics. """
+        return self.metrics.keys()
+
+    @property
+    def aggregations(self) -> Dict[str, int]:
+        """
+        The search aggregations and the maximum number of calculated buckets. See also
+        :func:`nomad.search.aggregations`.
+        """
+        return {
+            quantity.name: quantity.aggregations
+            for quantity in self.quantities
+            if quantity.aggregations > 0
+        }

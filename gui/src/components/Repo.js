@@ -290,7 +290,8 @@ class Repo extends React.Component {
       code_runs: 'Code runs',
       total_energies: 'Total energy calculations',
       geometries: 'Unique geometries',
-      datasets: 'Datasets'
+      datasets: 'Datasets',
+      unique_code_runs: 'Unique code runs'
     }
     return (
       <div className={classes.root}>
@@ -323,7 +324,7 @@ class Repo extends React.Component {
         <ExpansionPanel>
           <ExpansionPanelSummary expandIcon={<ExpandMoreIcon/>} className={classes.searchSummary}>
             <Typography variant="h6" style={{textAlign: 'center', width: '100%', fontWeight: 'normal'}}>
-              Found <b>{metrics.code_runs}</b> code runs
+              Found <b>{metrics.code_runs}</b>{metric === 'unique_code_runs' ? (<span>(<b>{metrics.unique_code_runs}</b> unique)</span>) : ''} code runs
               {metric === 'geometries' ? (<span> that simulate <b>{metrics.geometries}</b> unique geometries</span>) : ''}
               {metric === 'total_energies' ? (<span> with <b>{metrics.total_energies}</b> total energy calculations</span>) : ''}
               {metric === 'datasets' ? (<span> curated in <b>{metrics.datasets}</b> datasets</span>) : ''}.
@@ -334,7 +335,7 @@ class Repo extends React.Component {
               <FormControl>
                 <FormLabel>Metric used in statistics: </FormLabel>
                 <FormGroup row>
-                  {['code_runs', 'total_energies', 'geometries', 'datasets'].map(metric => (
+                  {['code_runs', 'unique_code_runs', 'total_energies', 'geometries', 'datasets'].map(metric => (
                     <FormControlLabel key={metric}
                       control={
                         <Checkbox checked={this.state.metric === metric} onChange={() => this.handleMetricChange(metric)} value={metric} />

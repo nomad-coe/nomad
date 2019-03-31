@@ -51,4 +51,4 @@ from nomad.datamodel.base import UploadWithMetadata, CalcWithMetadata, Domain
 from nomad.datamodel.dft import DFTCalcWithMetadata
 
 # Override the CalcWithMetadata with the domain specific decendant
-setattr(sys.modules['nomad.datamodel'], 'CalcWithMetadata', Domain.domain_class)
+setattr(sys.modules['nomad.datamodel'], 'CalcWithMetadata', Domain.instance.domain_entry_class)

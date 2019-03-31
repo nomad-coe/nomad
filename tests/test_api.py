@@ -644,7 +644,9 @@ class TestRepo():
             assert len(aggregations['system']) == 1
             assert value in aggregations['system']
 
-    @pytest.mark.parametrize('metrics', [[], ['total_energies'], ['geometries'], ['datasets'], ['total_energies', 'geometries', 'datasets']])
+    metrics_permutations = [[], search.metrics_names] + [[metric] for metric in search.metrics_names]
+
+    @pytest.mark.parametrize('metrics', metrics_permutations)
     def test_search_total_metrics(self, client, example_elastic_calcs, no_warn, metrics):
         rv = client.get('/repo/?total_metrics=%s' % ','.join(metrics))
         assert rv.status_code == 200
@@ -654,7 +656,7 @@ class TestRepo():
         for metric in metrics:
             assert metric in metrics_result
 
-    @pytest.mark.parametrize('metrics', [[], ['total_energies'], ['geometries'], ['datasets'], ['total_energies', 'geometries', 'datasets']])
+    @pytest.mark.parametrize('metrics', metrics_permutations)
     def test_search_aggregation_metrics(self, client, example_elastic_calcs, no_warn, metrics):
         rv = client.get('/repo/?aggregation_metrics=%s' % ','.join(metrics))
         assert rv.status_code == 200

@@ -74,11 +74,11 @@ repo_calcs_model = api.model('RepoCalculations', {
     'scroll_id': fields.String(description='Id of the current scroll view in scroll based search.'),
     'aggregations': fields.Raw(description=(
         'A dict with all aggregations. Each aggregation is dictionary with a metrics dict as '
-        'value and quantity value as key. The metrics are code runs(calcs), total energies, '
-        'geometries, and datasets')),
+        'value and quantity value as key. The metrics are code runs(calcs), %s. ' %
+        ', '.join(search.metrics_names))),
     'metrics': fields.Raw(description=(
-        'A dict with the overall metrics. The metrics are code runs(calcs), total energies, '
-        'geometries, and datasets'))
+        'A dict with the overall metrics. The metrics are code runs(calcs), %s.' %
+        ', '.join(search.metrics_names)))
 })
 
 repo_request_parser = pagination_request_parser.copy()
@@ -92,11 +92,11 @@ repo_request_parser.add_argument(
 repo_request_parser.add_argument(
     'total_metrics', type=str, help=(
         'Metrics to aggregate all search results over.'
-        'Possible values are total_energies, geometries, and datasets.'))
+        'Possible values are %s.' % ', '.join(search.metrics_names)))
 repo_request_parser.add_argument(
     'aggregation_metrics', type=str, help=(
         'Metrics to aggregate all aggregation buckets over as comma separated list. '
-        'Possible values are total_energies, geometries, and datasets.'))
+        'Possible values are %s.' % ', '.join(search.metrics_names)))
 
 for search_quantity in search.search_quantities.keys():
     _, _, description = search.search_quantities[search_quantity]
@@ -147,10 +147,10 @@ class RepoCalcsResource(Resource):
 
             total_metrics = [
                 metric for metric in total_metrics_str.split(',')
-                if metric in ['total_energies', 'geometries', 'datasets']]
+                if metric in search.metrics_names]
             aggregation_metrics = [
                 metric for metric in aggregation_metrics_str.split(',')
-                if metric in ['total_energies', 'geometries', 'datasets']]
+                if metric in search.metrics_names]
         except Exception:
             abort(400, message='bad parameter types')
 

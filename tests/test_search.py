@@ -56,7 +56,7 @@ def test_search(elastic, normalized: parsing.LocalBackend):
     create_entry(calc_with_metadata)
     refresh_index()
 
-    use_metrics = ['datasets', 'geometries', 'total_energies']
+    use_metrics = search.metrics_names
 
     total, hits, aggs, metrics = aggregate_search(
         aggregation_metrics=use_metrics,
@@ -68,14 +68,13 @@ def test_search(elastic, normalized: parsing.LocalBackend):
 
     example_agg = aggs['system']['bulk']
 
-    def assert_metrics(container):
+    def assert_metrics(container, metrics_names):
         assert container['code_runs'] == 1
-        assert 'datasets' in container
-        assert 'geometries' in container
-        assert 'total_energies' in container
+        for metric in metrics_names:
+            assert metric in container
 
-    assert_metrics(example_agg)
-    assert_metrics(metrics)
+    assert_metrics(example_agg, use_metrics)
+    assert_metrics(metrics, use_metrics)
 
     assert 'quantities' not in hits[0]
 

@@ -70,7 +70,7 @@ class Dataset(InnerDoc):
 class WithDomain(IndexMeta):
     """ Override elasticsearch_dsl metaclass to sneak in domain specific mappings """
     def __new__(cls, name, bases, attrs):
-        for quantity in datamodel.Domain.quantities:
+        for quantity in datamodel.Domain.instance.quantities:
             attrs[quantity.name] = quantity.elastic_mapping
         return super(WithDomain, cls).__new__(cls, name, bases, attrs)
 
@@ -134,7 +134,7 @@ class Entry(Document, metaclass=WithDomain):
         self.references = [ref.value for ref in source.references]
         self.datasets = [Dataset.from_dataset_popo(ds) for ds in source.datasets]
 
-        for quantity in datamodel.Domain.quantities:
+        for quantity in datamodel.Domain.instance.quantities:
             setattr(self, quantity.name, getattr(source, quantity.name))
 
 
@@ -164,13 +164,8 @@ def refresh():
     infrastructure.elastic_client.indices.refresh(config.elastic.index_name)
 
 
-aggregations: Dict[str, int] = {}
+aggregations = datamodel.Domain.instance.aggregations
 """ The available aggregations in :func:`aggregate_search` and their maximum aggregation size """
-
-for quantity in datamodel.Domain.quantities:
-    if quantity.aggregations > 0:
-        aggregations[quantity.name] = quantity.aggregations
-
 
 search_quantities = {
     'authors': ('term', 'authors.name.keyword', (
@@ -192,13 +187,14 @@ The available search quantities in :func:`aggregate_search` as tuples with *sear
 elastic field and description.
 """
 
-for quantity in datamodel.Domain.quantities:
+for quantity in datamodel.Domain.instance.quantities:
     search_spec = ('term', quantity.name, quantity.description)
     search_quantities[quantity.name] = search_spec
 
 
 metrics = {
     'datasets': ('cardinality', 'datasets.id'),
+    'unique_code_runs': ('cardinality', 'calc_hash')
 }
 """
 The available search metrics. Metrics are integer values given for each entry that can
@@ -206,14 +202,14 @@ be used in aggregations, e.g. the sum of all total energy calculations or cardin
 all unique geometries.
 """
 
-for quantity in datamodel.Domain.quantities:
-    if quantity.metric is not None:
-        metric, aggregation = quantity.metric
-        metrics[metric] = (aggregation, quantity.name)
+for key, value in datamodel.Domain.instance.metrics.items():
+    metrics[key] = value
+
+metrics_names = list(metric for metric in metrics.keys())
 
 
 order_default_quantity = None
-for quantity in datamodel.Domain.quantities:
+for quantity in datamodel.Domain.instance.quantities:
     if quantity.order_default:
         order_default_quantity = quantity.name
 
@@ -304,8 +300,9 @@ def aggregate_search(
         **kwargs) -> Tuple[int, List[dict], Dict[str, Dict[str, Dict[str, int]]], Dict[str, int]]:
     """
     Performs a search and returns paginated search results and aggregations. The aggregations
-    contain overall and per quantity value sums of code runs (calcs), datasets, total energies,
-    and unique geometries.
+    contain overall and per quantity value sums of code runs (calcs), unique code runs, datasets,
+    and additional domain specific metrics (e.g. total energies, and unique geometries for DFT
+    calculations).
 
     Arguments:
         page: The page to return starting with page 1
@@ -313,7 +310,7 @@ def aggregate_search(
         q: An *elasticsearch_dsl* query used to further filter the results (via `and`)
         aggregations: A customized list of aggregations to perform. Keys are index fields,
             and values the amount of buckets to return. Only works on *keyword* field.
-        aggregation_metrics: The metrics used to aggregate over. Can be ``datasets``,
+        aggregation_metrics: The metrics used to aggregate over. Can be ``unique_code_runs``, ``datasets``,
             other domain specific metrics. The basic doc_count metric ``code_runs`` is always given.
         total_metrics: The metrics used to for total numbers (see ``aggregation_metrics``).
         **kwargs: Quantity, value pairs to search for.
@@ -364,7 +361,7 @@ def aggregate_search(
             for bucket in getattr(response.aggregations, aggregation).buckets
         }
         for aggregation in aggregations.keys()
-        if aggregation not in ['total_energies', 'geometries', 'datasets']
+        if aggregation not in metrics_names
     }
 
     total_metrics_result = get_metrics(response.aggregations, total_metrics, total_results)
