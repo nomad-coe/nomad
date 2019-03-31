@@ -54,8 +54,13 @@ def get_upload_with_metadata(upload: dict) -> UploadWithMetadata:
             for calc in upload['calcs']['results']])
 
 
-class TestAdmin:
+class TestInfo:
+    def test_info(self, client):
+        rv = client.get('/info/')
+        assert rv.status_code == 200
 
+
+class TestAdmin:
     @pytest.mark.timeout(config.tests.default_timeout)
     def test_reset(self, client, admin_user_auth, expandable_postgres, monkeypatch):
         monkeypatch.setattr('nomad.config.services.disable_reset', False)

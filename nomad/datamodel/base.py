@@ -259,7 +259,7 @@ class Domain:
     @property
     def metrics_names(self) -> Iterable[str]:
         """ Just the names of all metrics. """
-        return self.metrics.keys()
+        return list(self.metrics.keys())
 
     @property
     def aggregations(self) -> Dict[str, int]:
@@ -272,3 +272,8 @@ class Domain:
             for quantity in self.quantities
             if quantity.aggregations > 0
         }
+
+    @property
+    def aggregations_names(self) -> Iterable[str]:
+        """ Just the names of all metrics. """
+        return list(self.aggregations.keys())
