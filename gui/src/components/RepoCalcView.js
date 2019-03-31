@@ -88,8 +88,6 @@ class RepoCalcView extends React.Component {
     const mainfile = calcData.mainfile
     const calcPath = mainfile ? mainfile.substring(0, mainfile.lastIndexOf('/')) : null
 
-    console.log(calcData)
-
     const authors = loading ? null : calcData.authors
 
     return (

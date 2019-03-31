@@ -10,7 +10,6 @@
 /build
 
 # generated
-src/gitinfo.json
 public/metainfo/
 
 # misc

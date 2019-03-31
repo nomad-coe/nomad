@@ -16,3 +16,4 @@ target/
 *.swp
 *.vscode
 nomad.yaml
+nomad/gitinfo.py

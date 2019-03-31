@@ -55,6 +55,10 @@ your browser.
 
 ## Change log
 
+### v0.4.4
+- support for multiple domains
+- info API endpoint
+
 ### v0.4.3
 - more flexible celery routing
 - config via nomad.yml

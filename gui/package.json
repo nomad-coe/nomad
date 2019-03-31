@@ -1,6 +1,6 @@
 {
   "name": "nomad-fair-gui",
-  "version": "0.1.0",
+  "version": "0.4.4",
   "private": true,
   "dependencies": {
     "@material-ui/core": "^3.9.0",
@@ -33,7 +33,6 @@
     "url-parse": "^1.4.3"
   },
   "scripts": {
-    "gitinfo": "echo \"{ \\\"log\\\": \\\"$(git log -1 --oneline)\\\", \\\"ref\\\": \\\"$(git describe --all)\\\", \\\"version\\\": \\\"$(git describe)\\\" }\"  > src/gitinfo.json",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",

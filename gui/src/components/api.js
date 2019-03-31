@@ -271,6 +271,22 @@ class Api {
     }
   }
 
+  _cachedInfo = null
+
+  async getInfo() {
+    if (!this._cachedInfo) {
+      const loadInfo = async() => {
+        const client = await this.swaggerPromise
+        return client.apis.info.get_info()
+          .catch(this.handleApiError)
+          .then(response => response.body)
+      }
+
+      this._cachedInfo = await loadInfo()
+    }
+    return this._cachedInfo
+  }
+
   async getUploadCommand() {
     const client = await this.swaggerPromise
     return client.apis.uploads.get_upload_command()

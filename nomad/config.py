@@ -163,7 +163,7 @@ client = NomadConfig(
     url='http://localhost:8000/nomad/api'
 )
 
-version = '4.3'  # TODO replace with git hash?
+version = '0.4.4'
 release = 'devel'
 domain = 'DFT'
 service = 'unknown nomad service'

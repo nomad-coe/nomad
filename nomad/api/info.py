@@ -18,7 +18,7 @@ API endpoint that deliver backend configuration details.
 
 from flask_restplus import Resource, fields
 
-from nomad import parsing, normalizing, datamodel
+from nomad import config, parsing, normalizing, datamodel, gitinfo
 
 from .app import api
 
@@ -39,10 +39,19 @@ domain_model = api.model('Domain', {
     'metrics_names': fields.List(fields.String)
 })
 
+git_info_model = api.model('GitInfo', {
+    'ref': fields.String,
+    'version': fields.String,
+    'log': fields.String
+})
+
 info_model = api.model('Info', {
     'parsers': fields.List(fields.String),
     'normalizers': fields.List(fields.String),
-    'domain': fields.Nested(model=domain_model)
+    'domain': fields.Nested(model=domain_model),
+    'version': fields.String,
+    'release': fields.String,
+    'git': fields.Nested(model=git_info_model)
 })
 
 
@@ -53,7 +62,19 @@ class InfoResource(Resource):
     def get(self):
         """ Return information about the nomad backend and its configuration. """
         return {
-            'parsers': [key for key in parsing.parser_dict.keys()],
+            'parsers': [key[8:] for key in parsing.parser_dict.keys()],
             'normalizers': [normalizer.__name__ for normalizer in normalizing.normalizers],
-            'domain': datamodel.Domain.instance
+            'domain': {
+                'name': datamodel.Domain.instance.name,
+                'quantities': datamodel.Domain.instance.quantities,
+                'metrics_names': datamodel.Domain.instance.metrics_names,
+                'aggregations_names': datamodel.Domain.instance.aggregations_names
+            },
+            'version': config.version,
+            'release': config.release,
+            'git': {
+                'ref': gitinfo.ref,
+                'version': gitinfo.version,
+                'log': gitinfo.log
+            }
         }, 200
