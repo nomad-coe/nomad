@@ -1,2 +1,2 @@
 #!/bin/sh
-echo log: str = \'$(git log -1 --oneline)\'\\nref: str = \'$(git describe --all)\'\\nversion: str = \'$(git describe)\' > nomad/gitinfo.py
+echo log, ref, version, commit = \'$(git log -1 --oneline)\', \'$(git describe --all)\', \'$(git describe)\', \'$(git rev-parse --verify HEAD)\' > nomad/gitinfo.py

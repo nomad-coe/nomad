@@ -118,12 +118,13 @@ def determine_upload_paths(paths, pattern=None):
 @migration.command(help='Add an upload folder to the package index.')
 @click.argument('upload-paths', nargs=-1)
 @click.option('--pattern', default=None, type=str, help='Interpret the paths as directory and migrate those subdirectory that match the given regexp')
-@click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
-def package(upload_paths, pattern, parallel):
+@click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes to process uploads. Default is 1.')
+@click.option('--parallel-zip', default=1, type=int, help='Use the given amount of parallel processes to pack packages. Default is 1.')
+def package(upload_paths, pattern, parallel, parallel_zip):
     upload_paths = determine_upload_paths(upload_paths, pattern)
     upload_path_queue = multiprocessing.Queue(len(upload_paths))
 
-    print('Package %d uploads with %d processes.' % (len(upload_paths), parallel))
+    print('Package %d uploads with %d/%d processes.' % (len(upload_paths), parallel, parallel_zip))
 
     for upload_path in upload_paths:
         upload_path_queue.put(upload_path)
@@ -137,7 +138,7 @@ def package(upload_paths, pattern, parallel):
         try:
             while True:
                 upload_path = upload_path_queue.get()
-                migration.package_index(upload_path)
+                migration.package_index(upload_path, parallel=parallel_zip)
         except queue.Empty:
             pass
 

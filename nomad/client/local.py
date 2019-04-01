@@ -20,6 +20,7 @@ import click
 from typing import Union, Callable, cast
 import sys
 import ujson
+import bravado.exception
 
 from nomad import config, utils
 from nomad.files import ArchiveBasedStagingUploadFiles
@@ -41,22 +42,37 @@ class CalcProcReproduction:
     in your development environment.
 
     Arguments:
-        archive_id: The archive_id of the calculation to locally process.
+        calc_id: The calc_id of the calculation to locally process.
         override: Set to true to override any existing local calculation data.
     """
     def __init__(self, archive_id: str, override: bool = False, mainfile: str = None) -> None:
-        self.calc_id = utils.archive.calc_id(archive_id)
-        self.upload_id = utils.archive.upload_id(archive_id)
+        if '/' in archive_id:
+            self.calc_id = utils.archive.calc_id(archive_id)
+            self.upload_id = utils.archive.upload_id(archive_id)
+        else:
+            self.calc_id = archive_id
+            self.upload_id = 'unknown'
+
+        self.logger = utils.get_logger(__name__, upload_id=self.upload_id, calc_id=self.calc_id)
+
         self.mainfile = mainfile
         self.parser = None
-        self.logger = utils.get_logger(__name__, archive_id=archive_id)
 
         from .main import create_client
         client = create_client()
         if self.mainfile is None:
-            calc = client.repo.get_repo_calc(upload_id=self.upload_id, calc_id=self.calc_id).response().result
+            try:
+                calc = client.repo.get_repo_calc(
+                    upload_id=self.upload_id, calc_id=self.calc_id).response().result
+            except bravado.exception.HTTPNotFound:
+                self.logger.error(
+                    'could not find calculation, maybe it was deleted or the ids are wrong')
+                sys.exit(1)
             self.mainfile = calc['mainfile']
+            self.upload_id = calc['upload_id']
+            self.logger = self.logger.bind(upload_id=self.upload_id, mainfile=self.mainfile)
         else:
+            self.logger = self.logger.bind(mainfile=self.mainfile)
             self.logger.info('Using provided mainfile', mainfile=self.mainfile)
 
         local_path = os.path.join(config.fs.tmp, 'repro_%s.zip' % archive_id)
@@ -67,11 +83,19 @@ class CalcProcReproduction:
             # download with request, since bravado does not support streaming
             # TODO currently only downloads mainfile
             self.logger.info('Downloading calc.', mainfile=self.mainfile)
-            token = client.auth.get_user().response().result.token
-            req = requests.get('%s/raw/%s/%s' % (config.client.url, self.upload_id, os.path.dirname(self.mainfile)) + '/*', stream=True, headers={'X-Token': token})
-            with open(local_path, 'wb') as f:
-                for chunk in req.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
-                    f.write(chunk)
+            try:
+                token = client.auth.get_user().response().result.token
+                req = requests.get('%s/raw/%s/%s' % (config.client.url, self.upload_id, os.path.dirname(self.mainfile)) + '/*', stream=True, headers={'X-Token': token})
+                with open(local_path, 'wb') as f:
+                    for chunk in req.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
+                        f.write(chunk)
+            except bravado.exception.HTTPNotFound:
+                self.logger.error(
+                    'could not find calculation, maybe it was deleted or the ids are wrong')
+                sys.exit(1)
+            except Exception as e:
+                self.logger.error('could not download calculation', exc_info=e)
+                sys.exit(1)
         else:
             self.logger.info('Calc already downloaded.')
 
@@ -159,13 +183,12 @@ class CalcProcReproduction:
 
 
 @cli.command(help='Run processing locally.')
-@click.argument('ARCHIVE_ID', nargs=1, required=True, type=str)
+@click.argument('CALC_ID', nargs=1, required=True, type=str)
 @click.option('--override', is_flag=True, default=False, help='Override existing local calculation data.')
 @click.option('--show-backend', is_flag=True, default=False, help='Print the backend data.')
 @click.option('--show-metadata', is_flag=True, default=False, help='Print the extracted repo metadata.')
 @click.option('--mainfile', default=None, type=str, help='Use this mainfile (in case mainfile cannot be retrived via API.')
 def local(archive_id, show_backend=False, show_metadata=False, **kwargs):
-    print(kwargs)
     utils.configure_logging()
     utils.get_logger(__name__).info('Using %s' % config.client.url)
     with CalcProcReproduction(archive_id, **kwargs) as local:
