@@ -58,7 +58,8 @@ parser_examples = [
     ('parsers/elk', 'tests/data/parsers/elk/Al/info.out'),
     # ('parsers/elastic', 'tests/data/parsers/elastic/2nd/INFO_ElaStic')  # 70Mb file 2big4git
     # ('parsers/turbomole', 'tests/data/parsers/turbomole/acrolein.out')  # Issue with backend
-    ('parsers/gamess', 'tests/data/parsers/gamess/exam01.out')
+    ('parsers/gamess', 'tests/data/parsers/gamess/exam01.out'),
+    ('parsers/vasp', 'tests/data/parsers/vasp/GeZnNa2_Test/vasprun.xml.relax1')  # Test for Zn.
 ]
 
 faulty_unknown_one_d_matid_example = [
@@ -249,6 +250,11 @@ def assert_parser_result(backend):
     assert errors is None or len(errors) == 0
 
 
+def assert_parser_dir_unchanged(previous_wd, current_wd):
+    """Assert working directory has not been changed from parser."""
+    assert previous_wd == current_wd
+
+
 def run_parser(parser_name, mainfile):
     parser = parser_dict[parser_name]
     result = parser.run(mainfile, logger=utils.get_logger(__name__))
@@ -294,8 +300,11 @@ def add_calculation_info(backend: LocalBackend) -> LocalBackend:
 
 @pytest.mark.parametrize('parser_name, mainfile', parser_examples)
 def test_parser(parser_name, mainfile):
+    previous_wd = os.getcwd()  # Get Working directory before parsing.
     parsed_example = run_parser(parser_name, mainfile)
     assert_parser_result(parsed_example)
+    # Check that cwd has not changed.
+    assert_parser_dir_unchanged(previous_wd, current_wd=os.getcwd())
 
 
 def test_match(raw_files, no_warn):
