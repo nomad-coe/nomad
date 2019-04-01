@@ -47,7 +47,7 @@ from nomad.processing import FAILURE
 default_pid_prefix = 7000000
 """ The default pid prefix for new non migrated calculations """
 
-max_package_size = 32 * 1024 * 1024 * 1024  # 16 GB
+max_package_size = 32 * 1024 * 1024 * 1024  # 32 GB
 """ The maximum size of a package that will be used as an upload on nomad@FAIRDI """
 use_stats_for_filestats_threshold = 1024
 
