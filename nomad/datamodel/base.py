@@ -89,6 +89,7 @@ class CalcWithMetadata():
         self.processed: bool = False
         self.last_processing: datetime.datetime = None
         self.nomad_version: str = None
+        self.nomad_commit: str = None
 
         # user metadata, i.e. quantities given and editable by the user
         self.with_embargo: bool = None

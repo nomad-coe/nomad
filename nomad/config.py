@@ -21,6 +21,8 @@ import warnings
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
+from nomad import gitinfo
+
 
 class NomadConfig(dict):
     """
@@ -164,6 +166,7 @@ client = NomadConfig(
 )
 
 version = '0.4.4'
+commit = gitinfo.commit
 release = 'devel'
 domain = 'DFT'
 service = 'unknown nomad service'
