@@ -21,6 +21,8 @@ other/older nomad@FAIRDI instances to mass upload it to a new nomad@FAIRDI insta
 """
 
 from typing import Generator, Tuple, List, Iterable, Any, Dict
+import multiprocessing
+import time
 import os
 import os.path
 import zipfile
@@ -91,6 +93,28 @@ def iterable_to_stream(iterable, buffer_size=io.DEFAULT_BUFFER_SIZE):
 Directory = Tuple[List[str], str, int]
 
 
+def create_package_zip(
+        upload_id: str, upload_path: str, package_id: str, package_path: str, compress: bool,
+        package_filepaths: Iterable[str]) -> None:
+    logger = utils.get_logger(
+        __name__, source_upload_id=upload_id,
+        source_upload_path=upload_path, package_id=package_id)
+
+    package_zip = zipfile.ZipFile(
+        package_path, 'w',
+        compression=zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED)
+
+    try:
+        for filepath in package_filepaths:
+            package_zip.write(filepath, filepath[len(upload_path):])
+    except Exception as e:
+        logger.error('could not write file to zip', filepath=filepath, exc_info=e)
+    finally:
+        package_zip.close()
+
+    logger.info('package zip created')
+
+
 class Package(Document):
     """
     A Package represents split origin NOMAD CoE uploads. We use packages as uploads
@@ -145,7 +169,7 @@ class Package(Document):
     @classmethod
     def get_packages(
             cls, upload_path: str, target_dir: str, create: bool = False,
-            compress: bool = False) -> Iterable['Package']:
+            compress: bool = False, parallel: int = 1) -> Iterable['Package']:
         """
         Will get packages for the given upload_path. Creates the package zip files and
         package index entries if ``create`` is True. But, either will only be created if
@@ -166,16 +190,15 @@ class Package(Document):
         # all started packages first.
         is_packaged = cls.objects(upload_id=upload_id, packages__ne=-1).count() != 0
 
+        async_results = []
+        pool = multiprocessing.Pool(parallel)
+        pool.__enter__()
+
         if not is_packaged:
             if not create:
                 return None
 
             cls.objects(upload_id=upload_id).delete()
-
-            def open_package_zip(package_entry: 'Package'):
-                return zipfile.ZipFile(
-                    package_entry.package_path, 'w',
-                    compression=zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED)
 
             def create_package_entry():
                 package_id = utils.create_uuid()
@@ -185,20 +208,44 @@ class Package(Document):
                     upload_id=upload_id,
                     package_path=upload_directory.join_file('%s.zip' % package_id).os_path)
 
-            def close_package(package_size: int, package_files: int):
-                package_zip.close()
-                package_entry.size = package_size
-                package_entry.files = package_files
-                package_entry.save()
+            def close_package(package_size: int, package_filepaths: List[str]):
+                package_entry_to_close = package_entry
 
-                logger.debug('created package', package_id=package_entry.package_id, size=package_size)
+                def save_package_entry(*args) -> None:
+                    package_entry_to_close.size = package_size
+                    package_entry_to_close.files = len(package_filepaths)
+                    package_entry_to_close.save()
+
+                    logger.debug(
+                        'created package',
+                        package_id=package_entry.package_id, size=package_size)
+
+                def handle_package_error(*args) -> None:
+                    logger.error(
+                        'could not create package zip due to unexpected exception',
+                        exc_info=args[0])
+
+                async_result = pool.apply_async(
+                    create_package_zip,
+                    args=(
+                        upload_id, upload_path, package_entry.package_id,
+                        package_entry.package_path, compress, package_filepaths),
+                    callback=save_package_entry, error_callback=handle_package_error)
+
+                async_results.append(async_result)
+                while not any(async_result.ready() for async_result in async_results) \
+                        or len(async_results) < parallel:
+                    time.sleep(0.1)
+
+                async_results[:] = [
+                    async_result for async_result in async_results
+                    if not async_result.ready()]
 
             package_entry = create_package_entry()
             package_size = 0
-            package_files = 0
-            package_zip = open_package_zip(package_entry)
+            package_filepaths = []
             with cls.upload_iterator(upload_path) as directory:
-                for filepaths, parent_diretory, size in directory:
+                for filepaths, parent_directory, size in directory:
                     for filepath in filepaths:
                         basepath = os.path.basename(filepath)
                         if basepath.startswith('RESTRICTED'):
@@ -208,8 +255,7 @@ class Package(Document):
                             except Exception:
                                 pass
 
-                        package_zip.write(os.path.join(parent_diretory, filepath), filepath)
-                        package_files += 1
+                        package_filepaths.append(os.path.join(parent_directory, filepath))
 
                     if size > max_package_size:
                         logger.warn(
@@ -218,13 +264,16 @@ class Package(Document):
 
                     package_size += size
                     if package_size > max_package_size:
-                        close_package(package_size, package_files)
-                        package_size, package_files = 0, 0
+                        close_package(package_size, package_filepaths)
+                        package_size, package_filepaths = 0, []
                         package_entry = create_package_entry()
-                        package_zip = open_package_zip(package_entry)
 
-                if package_files > 0:
-                    close_package(package_size, package_files)
+                if len(package_filepaths) > 0:
+                    close_package(package_size, package_filepaths)
+
+            # wait for all zip processes to complete
+            while not all(async_result.ready() for async_result in async_results):
+                time.sleep(0.1)
 
             package_query = cls.objects(upload_id=upload_id)
             package_query.update(restricted=restricted, packages=package_query.count())
@@ -962,7 +1011,7 @@ class NomadCOEMigration:
         """ see :func:`SourceCalc.index` """
         return SourceCalc.index(self.source, *args, **kwargs)
 
-    def package_index(self, upload_path) -> None:
+    def package_index(self, upload_path, **kwargs) -> None:
         """
         Creates Package objects and respective package zip files for the given uploads.
         The given uploads are supposed to be path to the extracted upload directories.
@@ -973,7 +1022,7 @@ class NomadCOEMigration:
         try:
             for package_entry in Package.get_packages(
                     upload_path, self.package_directory, create=True,
-                    compress=self.compress_packages):
+                    compress=self.compress_packages, **kwargs):
 
                 logger.info(
                     'package in index',

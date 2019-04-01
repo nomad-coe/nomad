@@ -137,7 +137,7 @@ def package(upload_paths, pattern, parallel):
         try:
             while True:
                 upload_path = upload_path_queue.get()
-                migration.package_index(upload_path)
+                migration.package_index(upload_path, parallel=parallel)
         except queue.Empty:
             pass
 
