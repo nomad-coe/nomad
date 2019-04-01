@@ -18,10 +18,11 @@ import os.path
 import yaml
 import warnings
 
+from nomad import gitinfo
+
+
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
-
-from nomad import gitinfo
 
 
 class NomadConfig(dict):
