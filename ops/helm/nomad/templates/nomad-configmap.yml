@@ -13,6 +13,7 @@ data:
     fs:
       tmp: "{{ .Values.volumes.tmp }}"
       prefix_size: {{ .Values.volumes.prefixSize }}
+      working_directory: /app
     logstash:
       enabled: true
       host: "{{ .Values.logstash.host }}"

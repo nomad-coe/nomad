@@ -15,6 +15,7 @@
 from typing import List, Any
 import logging
 import time
+import os
 from celery import Celery, Task
 from celery.worker.request import Request
 from celery.signals import after_setup_task_logger, after_setup_logger, worker_process_init, \
@@ -472,6 +473,7 @@ def proc_task(task, cls_name, self_id, func_attr):
     deleted = False
     try:
         self.process_status = PROCESS_RUNNING
+        os.chdir(config.fs.working_directory)
         deleted = func(self)
     except SoftTimeLimitExceeded as e:
         logger.error('exceeded the celery task soft time limit')
