@@ -8,7 +8,9 @@ class Home extends React.Component {
     classes: PropTypes.object.isRequired
   }
   static styles = theme => ({
-    root: {}
+    root: {
+      padding: theme.spacing.unit * 3
+    }
   });
 
   render() {

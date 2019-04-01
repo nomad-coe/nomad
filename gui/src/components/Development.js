@@ -14,7 +14,9 @@ class Development extends React.Component {
   }
 
   static styles = theme => ({
-    root: {}
+    root: {
+      padding: theme.spacing.unit * 3
+    }
   })
 
   state = {

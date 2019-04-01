@@ -11,8 +11,67 @@ import Home from './Home'
 import { HelpProvider } from './help'
 import { ApiProvider } from './api'
 import { ErrorSnacks } from './errors'
+import Calc from './Calc'
 
 export default class App extends React.Component {
+  constructor(props) {
+    super(props)
+    this.renderChildren.bind(this)
+  }
+
+  routes = {
+    'home': {
+      exact: true,
+      path: '/',
+      render: props => <Home {...props} />
+    },
+    'repo': {
+      exact: true,
+      path: '/repo',
+      render: props => <Repo {...props} />
+    },
+    'repoCalc': {
+      path: '/repo/:uploadId/:calcId',
+      render: props => {
+        const { match, ...rest } = props
+        if (match && match.params.uploadId && match.params.calcId) {
+          return (<Calc {...rest} uploadId={match.params.uploadId} calcId={match.params.calcId} />)
+        } else {
+          return ''
+        }
+      }
+    },
+    'uploads': {
+      exact: true,
+      path: '/upload',
+      render: props => <Uploads {...props} />
+    },
+    'docs': {
+      exact: true,
+      path: '/docs',
+      render: props => <Documentation {...props} />
+    },
+    'dev': {
+      exact: true,
+      path: '/dev',
+      render: props => <Development {...props} />
+    }
+  }
+
+  renderChildren(routeKey, props) {
+    // const { match, ...rest } = props
+
+    return (
+      <div>
+        {Object.keys(this.routes).map(route => (
+          <div key={route} style={{display: routeKey === route ? 'block' : 'none'}}>
+            {this.routes[route].render(props)}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   render() {
     return (
       <MuiThemeProvider theme={genTheme}>
@@ -22,18 +81,14 @@ export default class App extends React.Component {
               <ApiProvider>
                 <Navigation>
                   <Switch>
-                    <Route exact path="/" component={Home} />
-                    <Route exact path="/repo" component={Repo} />
-                    {/* <Route path="/repo/:uploadId/:calcId" component={RepoCalc} /> */}
-                    <Route path="/upload" component={Uploads} />
-                    <Route exact path="/archive" render={() => <div>Archive</div>} />
-                    {/* <Route path="/archive/:uploadId/:calcId" component={ArchiveCalc} /> */}
-                    <Route path="/enc" render={() => <div>{'In the future, you\'ll see charts\'n\'stuff for your calculations and materials.'}</div>} />
-                    <Route path="/analytics" render={() => <div>{'In the future, you\'ll see analytics notebooks here.'}</div>} />
-                    <Route path="/profile" render={() => <div>Profile</div>} />
-                    <Route path="/docs" component={Documentation} />
-                    <Route path="/dev" component={Development} />
-                    <Route render={() => <div>Not found</div>} />
+                    {Object.keys(this.routes).map(route => (
+                      // eslint-disable-next-line react/jsx-key
+                      <Route key={'nop'}
+                        // eslint-disable-next-line react/no-children-prop
+                        children={props => this.renderChildren(route, props)}
+                        exact={this.routes[route].exact}
+                        path={this.routes[route].path} />
+                    ))}
                   </Switch>
                 </Navigation>
               </ApiProvider>

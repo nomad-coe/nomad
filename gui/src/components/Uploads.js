@@ -25,6 +25,7 @@ class Uploads extends React.Component {
 
   static styles = theme => ({
     root: {
+      padding: theme.spacing.unit * 3,
       width: '100%'
     },
     dropzoneContainer: {

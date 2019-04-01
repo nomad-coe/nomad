@@ -1,17 +1,17 @@
 import React, { Component } from 'react'
 import PropTypes from 'prop-types'
-import { withStyles } from '@material-ui/core';
-import { apiBase } from '../config';
-
+import { withStyles } from '@material-ui/core'
+import { apiBase } from '../config'
 
 class Documentation extends Component {
   static propTypes = {
-    classes: PropTypes.object.isRequired,
+    classes: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
     root: {
       position: 'relative',
+      margin: theme.spacing.unit * 3
     },
     content: {
       position: 'absolute',

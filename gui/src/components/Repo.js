@@ -15,22 +15,25 @@ import AnalyticsIcon from '@material-ui/icons/Settings'
 import { analyticsTheme } from '../config'
 import Link from 'react-router-dom/Link'
 import { withApi } from './api'
-import CalcDialog from './CalcDialog'
 import PeriodicTable from './PeriodicTable'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import QuantityHistogram from './QuantityHistogram'
 import SearchBar from '../SearchBar'
+import { withRouter } from 'react-router'
 
 class Repo extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
     user: PropTypes.object,
-    raiseError: PropTypes.func.isRequired
+    raiseError: PropTypes.func.isRequired,
+    history: PropTypes.any.isRequired
   }
 
   static styles = theme => ({
-    root: {},
+    root: {
+      padding: theme.spacing.unit * 3
+    },
     searchDetails: {
       padding: 0,
       paddingBottom: theme.spacing.unit * 2,
@@ -151,7 +154,6 @@ class Repo extends React.Component {
     owner: 'all',
     sortedBy: 'formula',
     sortOrder: 'asc',
-    openCalc: null,
     searchValues: {},
     aggregations: {},
     metrics: {},
@@ -225,12 +227,8 @@ class Repo extends React.Component {
     }
   }
 
-  handleCalcClose() {
-    this.setState({openCalc: null})
-  }
-
-  handleClickCalc(calc_id) {
-    this.setState({openCalc: calc_id})
+  handleClickCalc(calc) {
+    this.props.history.push(`/repo/${calc.upload_id}/${calc.calc_id}`)
   }
 
   handleAtomsChanged(atoms) {
@@ -271,7 +269,7 @@ class Repo extends React.Component {
 
   render() {
     const { classes, user } = this.props
-    const { data, rowsPerPage, page, total, loading, sortedBy, sortOrder, openCalc, searchValues, aggregations, metrics, metric } = this.state
+    const { data, rowsPerPage, page, total, loading, sortedBy, sortOrder, searchValues, aggregations, metrics, metric } = this.state
     const emptyRows = rowsPerPage - Math.min(rowsPerPage, total - (page - 1) * rowsPerPage)
 
     const quantity = (key, title) => (<QuantityHistogram
@@ -295,8 +293,6 @@ class Repo extends React.Component {
     }
     return (
       <div className={classes.root}>
-        { openCalc ? <CalcDialog calcId={openCalc.calc_id} uploadId={openCalc.upload_id} onClose={() => this.handleCalcClose()} /> : ''}
-
         { user
           ? <FormControl>
             <FormLabel>Filter calculations and only show: </FormLabel>
@@ -446,4 +442,4 @@ class Repo extends React.Component {
   }
 }
 
-export default compose(withApi(false), withErrors, withStyles(Repo.styles))(Repo)
+export default compose(withRouter, withApi(false), withErrors, withStyles(Repo.styles))(Repo)
