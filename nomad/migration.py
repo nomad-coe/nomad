@@ -22,6 +22,7 @@ other/older nomad@FAIRDI instances to mass upload it to a new nomad@FAIRDI insta
 
 from typing import Generator, Tuple, List, Iterable, Any, Dict
 import multiprocessing
+import multiprocessing.pool
 import time
 import os
 import os.path
@@ -190,7 +191,7 @@ class Package(Document):
         # all started packages first.
         is_packaged = cls.objects(upload_id=upload_id, packages__ne=-1).count() != 0
 
-        async_results = []
+        async_results: List[multiprocessing.pool.AsyncResult] = []
         pool = multiprocessing.Pool(parallel)
         pool.__enter__()
 
@@ -225,6 +226,12 @@ class Package(Document):
                         'could not create package zip due to unexpected exception',
                         exc_info=args[0])
 
+                while len(async_results) > parallel:
+                    async_results[:] = [
+                        async_result for async_result in async_results
+                        if not async_result.ready()]
+                    time.sleep(0.1)
+
                 async_result = pool.apply_async(
                     create_package_zip,
                     args=(
@@ -233,13 +240,6 @@ class Package(Document):
                     callback=save_package_entry, error_callback=handle_package_error)
 
                 async_results.append(async_result)
-                while not any(async_result.ready() for async_result in async_results) \
-                        or len(async_results) < parallel:
-                    time.sleep(0.1)
-
-                async_results[:] = [
-                    async_result for async_result in async_results
-                    if not async_result.ready()]
 
             package_entry = create_package_entry()
             package_size = 0
@@ -274,6 +274,8 @@ class Package(Document):
             # wait for all zip processes to complete
             while not all(async_result.ready() for async_result in async_results):
                 time.sleep(0.1)
+
+            pool.__exit__(None, None, None)
 
             package_query = cls.objects(upload_id=upload_id)
             package_query.update(restricted=restricted, packages=package_query.count())
