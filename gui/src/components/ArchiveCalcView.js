@@ -3,7 +3,6 @@ import PropTypes from 'prop-types'
 import { withStyles, Fab, Card, CardContent } from '@material-ui/core'
 import ReactJson from 'react-json-view'
 import { compose } from 'recompose'
-import { withErrors } from './errors'
 import Markdown from './Markdown'
 import { withApi } from './api'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
@@ -45,9 +44,24 @@ class ArchiveCalcView extends React.Component {
       metaInfo: null,
       showMetaInfo: false
     }
+    this.unmounted = false
+  }
+
+  componentWillUnmount() {
+    this.unmounted = true
   }
 
   componentDidMount() {
+    this.update()
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.api !== this.props.api) {
+      this.update()
+    }
+  }
+
+  update() {
     const {uploadId, calcId, api} = this.props
     api.archive(uploadId, calcId).then(data => {
       this.setState({data: data})
@@ -57,7 +71,9 @@ class ArchiveCalcView extends React.Component {
     })
 
     api.getMetaInfo().then(metaInfo => {
-      this.setState({metaInfo: metaInfo})
+      if (!this.unmounted) {
+        this.setState({metaInfo: metaInfo})
+      }
     }).catch(error => {
       this.props.raiseError(error)
     })
@@ -114,4 +130,4 @@ class ArchiveCalcView extends React.Component {
   }
 }
 
-export default compose(withApi(false), withErrors, withStyles(ArchiveCalcView.styles))(ArchiveCalcView)
+export default compose(withApi(false, true), withStyles(ArchiveCalcView.styles))(ArchiveCalcView)

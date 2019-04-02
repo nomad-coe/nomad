@@ -304,4 +304,4 @@ class Uploads extends React.Component {
   }
 }
 
-export default compose(withApi(true), withCookies, withStyles(Uploads.styles))(Uploads)
+export default compose(withApi(true, false, 'To upload data, you must have a nomad account and you must be logged in.'), withCookies, withStyles(Uploads.styles))(Uploads)

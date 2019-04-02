@@ -4,7 +4,7 @@ import { withErrors } from './errors'
 import { UploadRequest } from '@navjobs/upload'
 import Swagger from 'swagger-client'
 import { apiBase } from '../config'
-import { Typography, withStyles, LinearProgress } from '@material-ui/core'
+import { Typography, withStyles } from '@material-ui/core'
 import LoginLogout from './LoginLogout'
 import { Cookies, withCookies } from 'react-cookie'
 import { compose } from 'recompose'
@@ -15,6 +15,13 @@ export class DoesNotExist extends Error {
   constructor(msg) {
     super(msg)
     this.name = 'DoesNotExist'
+  }
+}
+
+export class NotAuthorized extends Error {
+  constructor(msg) {
+    super(msg)
+    this.name = 'NotAuthorized'
   }
 }
 
@@ -126,13 +133,13 @@ class Api {
     this.onStartLoading = () => null
     this.onFinishLoading = () => null
 
+    this.handleApiError = this.handleApiError.bind(this)
+
     user = user || {}
     this.auth_headers = {
       'X-Token': user.token
     }
     this.swaggerPromise = Api.createSwaggerClient(user.token)
-
-    this.handleApiError = this.handleApiError.bind(this)
   }
 
   handleApiError(e) {
@@ -141,6 +148,8 @@ class Api {
       const message = (body && body.message) ? body.message : e.response.statusText
       if (e.response.status === 404) {
         throw new DoesNotExist(message)
+      } else if (e.response.status === 401) {
+        throw new NotAuthorized(message)
       } else {
         throw Error(`API error (${e.response.status}): ${message}`)
       }
@@ -330,10 +339,12 @@ export class ApiProviderComponent extends React.Component {
     raiseError: PropTypes.func.isRequired
   }
 
-  componentDidMount() {
+  componentDidMount(props) {
     const token = this.props.cookies.get('token')
-    if (token) {
+    if (token && token !== 'undefined') {
       this.state.login(token)
+    } else {
+      this.setState({api: this.createApi()})
     }
   }
 
@@ -345,7 +356,7 @@ export class ApiProviderComponent extends React.Component {
   }
 
   state = {
-    api: this.createApi(),
+    api: null,
     user: null,
     isLoggingIn: false,
     loading: 0,
@@ -353,15 +364,18 @@ export class ApiProviderComponent extends React.Component {
       this.setState({isLoggingIn: true})
       successCallback = successCallback || (() => true)
       Api.createSwaggerClient(userNameToken, password)
-        .catch(this.state.api.handleApiError)
+        .catch((error) => {
+          this.setState({api: this.createApi(), isLoggingIn: false, user: null})
+          this.props.raiseError(error)
+        })
         .then(client => {
           client.apis.auth.get_user()
             .catch(error => {
               if (error.response.status !== 401) {
                 try {
-                  this.handleApiError(error)
+                  this.props.raiseError(error)
                 } catch (e) {
-                  this.setState({isLoggingIn: false})
+                  this.setState({api: this.createApi(), isLoggingIn: false, user: null})
                   this.props.raiseError(error)
                 }
               }
@@ -373,13 +387,13 @@ export class ApiProviderComponent extends React.Component {
                 this.props.cookies.set('token', user.token)
                 successCallback(true)
               } else {
-                this.setState({isLoggingIn: false})
+                this.setState({api: this.createApi(), isLoggingIn: false, user: null})
                 successCallback(false)
               }
             })
         })
         .catch(error => {
-          this.setState({isLoggingIn: false})
+          this.setState({api: this.createApi(), isLoggingIn: false, user: null})
           this.props.raiseError(error)
         })
     },
@@ -402,7 +416,9 @@ export class ApiProviderComponent extends React.Component {
 class LoginRequiredUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    isLoggingIn: PropTypes.bool
+    message: PropTypes.string,
+    isLoggingIn: PropTypes.bool,
+    onLoggedIn: PropTypes.func
   }
 
   static styles = theme => ({
@@ -417,14 +433,13 @@ class LoginRequiredUnstyled extends React.Component {
   })
 
   render() {
-    const {classes, isLoggingIn} = this.props
+    const {classes, isLoggingIn, onLoggedIn} = this.props
     return (
       <div className={classes.root}>
         <Typography>
-          To upload data, you must have a nomad account and you must be logged in.
+          {this.props.message || ''}
         </Typography>
-        <LoginLogout variant="outlined" color="primary" isLoggingIn={isLoggingIn}/>
-        { isLoggingIn ? <LinearProgress/> : '' }
+        <LoginLogout onLoggedIn={onLoggedIn} variant="outlined" color="primary" isLoggingIn={isLoggingIn}/>
       </div>
     )
   }
@@ -449,29 +464,100 @@ export const ApiProvider = compose(withCookies, withErrors)(ApiProviderComponent
 
 const LoginRequired = withStyles(LoginRequiredUnstyled.styles)(LoginRequiredUnstyled)
 
-export function withApi(loginRequired) {
-  return function(Component) {
-    function WithApiComponent(props) {
-      const { raiseError, ...rest } = props
+class WithApiComponent extends React.Component {
+  static propTypes = {
+    raiseError: PropTypes.func.isRequired,
+    loginRequired: PropTypes.bool,
+    showErrorPage: PropTypes.bool,
+    loginMessage: PropTypes.string,
+    Component: PropTypes.any
+  }
 
-      const withApiRaiseError = (error) => {
-        console.log('Hello World')
+  state = {
+    notAuthorized: false,
+    notFound: false
+  }
+
+  constructor(props) {
+    super(props)
+    this.raiseError = this.raiseError.bind(this)
+  }
+
+  raiseError(error) {
+    const { raiseError, showErrorPage } = this.props
+
+    if (!showErrorPage) {
+      raiseError(error)
+    } else {
+      if (error.name === 'NotAuthorized') {
+        this.setState({notAuthorized: true})
+      } else if (error.name === 'DoesNotExist') {
+        this.setState({notFound: true})
+      } else {
         raiseError(error)
       }
+    }
+  }
 
+  render() {
+    const { raiseError, loginRequired, loginMessage, Component, ...rest } = this.props
+    const { notAuthorized, notFound } = this.state
+    if (notAuthorized) {
       return (
         <ApiContext.Consumer>
           {apiContext => (
-            (apiContext.user || !loginRequired)
-              ? <Component {...rest} {...apiContext} raiseError={withApiRaiseError} />
-              : <LoginRequired isLoggingIn={apiContext.isLoggingIn} />
+            apiContext.user ? (
+              <div style={{padding: 16}}>
+                <Typography variant="h6">Not Authorized</Typography>
+                <Typography>
+                  You are not authorized to access this information. If someone send
+                  you this link, ask him to make his data publically available or share
+                  it with you.
+                </Typography>
+              </div>
+            ) : (
+              <LoginRequired
+                message="You need to be logged in to access this information."
+                isLoggingIn={apiContext.isLoggingIn}
+                onLoggedIn={() => this.setState({notAuthorized: false})}
+              />
+            )
+          )}
+        </ApiContext.Consumer>
+      )
+    } else if (notFound) {
+      return <div style={{padding: 16}}>
+        <Typography variant="h6">Not Found</Typography>
+        <Typography>
+        The information that you are trying to access does not exists.
+        </Typography>
+      </div>
+    } else {
+      return (
+        <ApiContext.Consumer>
+          {apiContext => (
+            (apiContext.api)
+              ? (apiContext.user || !loginRequired)
+                ? <Component {...rest} {...apiContext} raiseError={this.raiseError} />
+                : <LoginRequired message={loginMessage} isLoggingIn={apiContext.isLoggingIn} />
+              : ''
           )}
         </ApiContext.Consumer>
       )
     }
-    WithApiComponent.propTypes = {
-      raiseError: PropTypes.func.isRequired
-    }
-    return withErrors(WithApiComponent)
+  }
+}
+
+export function withApi(loginRequired, showErrorPage, loginMessage) {
+  return function(Component) {
+    return withErrors(props => (
+      <WithApiComponent
+        loginRequired={loginRequired}
+        loginMessage={loginMessage}
+        showErrorPage={showErrorPage}
+        Component={Component}
+        {...props}
+      />
+    ))
   }
 }

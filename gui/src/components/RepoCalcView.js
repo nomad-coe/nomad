@@ -4,7 +4,6 @@ import { withStyles, Typography, Divider, Card, CardContent, Grid, CardHeader, F
 import { withApi } from './api'
 import { compose } from 'recompose'
 import RawFiles from './RawFiles'
-import { withErrors } from './errors'
 import Download from './Download'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 
@@ -75,6 +74,16 @@ class RepoCalcView extends React.Component {
   }
 
   componentDidMount() {
+    this.update()
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.api !== this.props.api) {
+      this.update()
+    }
+  }
+
+  update() {
     const {uploadId, calcId} = this.props
     this.props.api.repo(uploadId, calcId).then(data => {
       this.setState({calcData: data})
@@ -213,4 +222,4 @@ class RepoCalcView extends React.Component {
   }
 }
 
-export default compose(withApi(false), withErrors, withStyles(RepoCalcView.styles))(RepoCalcView)
+export default compose(withApi(false, true), withStyles(RepoCalcView.styles))(RepoCalcView)

@@ -201,6 +201,12 @@ class Repo extends React.Component {
     this.update()
   }
 
+  componentDidUpdate(prevProps) {
+    if (prevProps.api !== this.props.api) {
+      this.update()
+    }
+  }
+
   handleChangePage = (event, page) => {
     this.update({page: page + 1})
   }

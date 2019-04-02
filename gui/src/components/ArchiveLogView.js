@@ -2,7 +2,6 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, Fab } from '@material-ui/core'
 import { compose } from 'recompose'
-import { withErrors } from './errors'
 import { withApi } from './api'
 import Download from './Download'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
@@ -38,6 +37,16 @@ class ArchiveLogView extends React.Component {
   }
 
   componentDidMount() {
+    this.update()
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.api !== this.props.api) {
+      this.update()
+    }
+  }
+
+  update() {
     const {uploadId, calcId, api, raiseError} = this.props
     api.calcProcLog(uploadId, calcId).then(data => {
       this.setState({data: data})
@@ -67,4 +76,4 @@ class ArchiveLogView extends React.Component {
   }
 }
 
-export default compose(withApi(false), withErrors, withStyles(ArchiveLogView.styles))(ArchiveLogView)
+export default compose(withApi(false, true), withStyles(ArchiveLogView.styles))(ArchiveLogView)
