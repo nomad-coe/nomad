@@ -452,15 +452,25 @@ const LoginRequired = withStyles(LoginRequiredUnstyled.styles)(LoginRequiredUnst
 export function withApi(loginRequired) {
   return function(Component) {
     function WithApiComponent(props) {
+      const { raiseError, ...rest } = props
+
+      const withApiRaiseError = (error) => {
+        console.log('Hello World')
+        raiseError(error)
+      }
+
       return (
         <ApiContext.Consumer>
           {apiContext => (
             (apiContext.user || !loginRequired)
-              ? <Component {...props} {...apiContext} />
+              ? <Component {...rest} {...apiContext} raiseError={withApiRaiseError} />
               : <LoginRequired isLoggingIn={apiContext.isLoggingIn} />
           )}
         </ApiContext.Consumer>
       )
+    }
+    WithApiComponent.propTypes = {
+      raiseError: PropTypes.func.isRequired
     }
     return withErrors(WithApiComponent)
   }
