@@ -11,8 +11,7 @@ import ReactJson from 'react-json-view'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
 import { debug } from '../config'
-import CalcDialog from './CalcDialog'
-import ArchiveLogDialog from './ArchiveLogDialog'
+import { withRouter } from 'react-router'
 
 class Upload extends React.Component {
   static propTypes = {
@@ -21,7 +20,8 @@ class Upload extends React.Component {
     upload: PropTypes.object.isRequired,
     checked: PropTypes.bool,
     onCheckboxChanged: PropTypes.func,
-    onDoesNotExist: PropTypes.func
+    onDoesNotExist: PropTypes.func,
+    history: PropTypes.any.isRequired
   }
 
   static styles = theme => ({
@@ -89,8 +89,7 @@ class Upload extends React.Component {
     },
     archiveLogs: null, // { uploadId, calcId } ids of archive to show logs for
     loading: true, // its loading data from the server and the user should know about it
-    updating: true, // it is still not complete and continieusly looking for updates
-    openCalc: null // it is the select calc with open details dialog
+    updating: true // it is still not complete and continieusly looking for updates
   }
 
   _unmounted = false
@@ -349,12 +348,12 @@ class Upload extends React.Component {
     }
 
     const renderRow = (calc, index) => {
-      const { mainfile, calc_id, upload_id, parser, tasks, current_task, tasks_status, errors } = calc
+      const { mainfile, upload_id, calc_id, parser, tasks, current_task, tasks_status, errors } = calc
       const color = tasks_status === 'FAILURE' ? 'error' : 'default'
       const processed = tasks_status === 'FAILURE' || tasks_status === 'SUCCESS'
       const row = (
         <TableRow key={index} hover={processed}
-          onClick={() => this.setState({openCalc: processed ? calc : null})}
+          onClick={() => this.props.history.push(`/repo/${upload_id}/${calc_id}`)}
           className={processed ? classes.clickableRow : null} >
 
           <TableCell>
@@ -457,21 +456,6 @@ class Upload extends React.Component {
     )
   }
 
-  renderOpenCalc() {
-    const { openCalc } = this.state
-    if (openCalc) {
-      if (openCalc.errors && openCalc.errors.length > 0) {
-        return <ArchiveLogDialog calcId={openCalc.calc_id} uploadId={openCalc.upload_id}
-          onClose={() => this.setState({openCalc: null})} />
-      } else {
-        return <CalcDialog calcId={openCalc.calc_id} uploadId={openCalc.upload_id}
-          onClose={() => this.setState({openCalc: null})} />
-      }
-    }
-
-    return ''
-  }
-
   render() {
     const { classes } = this.props
     const { upload } = this.state
@@ -480,8 +464,6 @@ class Upload extends React.Component {
     if (this.state.upload) {
       return (
         <div className={classes.root}>
-          { this.renderOpenCalc() }
-
           <ExpansionPanel>
             <ExpansionPanelSummary
               expandIcon={<ExpandMoreIcon/>} classes={{root: classes.summary}}>
@@ -522,4 +504,4 @@ class Upload extends React.Component {
   }
 }
 
-export default compose(withErrors, withStyles(Upload.styles))(Upload)
+export default compose(withRouter, withErrors, withStyles(Upload.styles))(Upload)

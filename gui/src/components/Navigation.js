@@ -144,7 +144,6 @@ class Navigation extends React.Component {
     content: {
       flexGrow: 1,
       backgroundColor: theme.palette.background.default,
-      padding: theme.spacing.unit * 3,
       width: '100%',
       overflow: 'scroll'
     },
