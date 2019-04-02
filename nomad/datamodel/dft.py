@@ -19,7 +19,6 @@ DFT specific metadata
 from typing import List
 import re
 from elasticsearch_dsl import Integer
-import ase.data
 
 from nomad import utils, config
 
