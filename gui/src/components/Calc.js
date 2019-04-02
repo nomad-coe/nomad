@@ -1,7 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, Tab, Tabs } from '@material-ui/core'
-import SwipeableViews from 'react-swipeable-views'
 import ArchiveCalcView from './ArchiveCalcView'
 import ArchiveLogView from './ArchiveLogView'
 import RepoCalcView from './RepoCalcView'
@@ -47,9 +46,15 @@ class Calc extends React.Component {
         </Tabs>
 
         <div className={classes.content}>
-          {viewIndex === 0 && <RepoCalcView {...calcProps} />}
-          {viewIndex === 1 && <ArchiveCalcView {...calcProps} />}
-          {viewIndex === 2 && <ArchiveLogView {...calcProps} />}
+          <div style={viewIndex !== 0 ? {display: 'none'} : {}} >
+            <RepoCalcView {...calcProps} />
+          </div>
+          <div style={viewIndex !== 1 ? {display: 'none'} : {}} >
+            <ArchiveCalcView {...calcProps} />
+          </div>
+          <div style={viewIndex !== 2 ? {display: 'none'} : {}} >
+            <ArchiveLogView {...calcProps} />
+          </div>
         </div>
       </div>
     )

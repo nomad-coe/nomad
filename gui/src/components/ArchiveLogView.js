@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, LinearProgress, Fab } from '@material-ui/core'
+import { withStyles, Fab } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
 import { withApi } from './api'
@@ -23,10 +23,10 @@ class ArchiveLogView extends React.Component {
       }
     },
     downloadFab: {
-      position: 'absolute',
       zIndex: 1,
-      top: theme.spacing.unit,
-      right: theme.spacing.unit * 3
+      right: 32,
+      bottom: 32,
+      position: 'fixed !important'
     }
   });
 
@@ -53,6 +53,8 @@ class ArchiveLogView extends React.Component {
 
     return (
       <div className={classes.root}>
+        <pre>{data || 'empty log'}</pre>
+
         <Download
           classes={{root: classes.downloadFab}} tooltip="download logfile"
           component={Fab} className={classes.downloadFab} color="primary" size="medium"
@@ -60,11 +62,6 @@ class ArchiveLogView extends React.Component {
         >
           <DownloadIcon />
         </Download>
-        {
-          data !== null
-            ? <pre>{data || 'empty log'}</pre>
-            : <LinearProgress variant="query" />
-        }
       </div>
     )
   }

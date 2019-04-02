@@ -4,7 +4,6 @@ import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography,
   ExpansionPanelDetails, Stepper, Step, StepLabel, Table, TableRow, TableCell, TableBody,
   Checkbox, FormControlLabel, TablePagination, TableHead, Tooltip,
   CircularProgress,
-  LinearProgress,
   TableSortLabel} from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
@@ -87,8 +86,6 @@ class Upload extends React.Component {
       orderBy: 'tasks_status',
       order: 'asc'
     },
-    archiveLogs: null, // { uploadId, calcId } ids of archive to show logs for
-    loading: true, // its loading data from the server and the user should know about it
     updating: true // it is still not complete and continieusly looking for updates
   }
 
@@ -100,25 +97,22 @@ class Upload extends React.Component {
     }
 
     const {page, perPage, orderBy, order} = params
-    this.setState({loading: true})
     this.state.upload.get(page, perPage, orderBy, order === 'asc' ? 1 : -1)
       .then(upload => {
         const {tasks_running, process_running, current_task} = upload
         if (!this._unmounted) {
           const continueUpdating = tasks_running || process_running || current_task === 'uploading'
-          this.setState({upload: upload, loading: false, params: params, updating: continueUpdating})
+          this.setState({upload: upload, params: params, updating: continueUpdating})
           if (continueUpdating) {
             window.setTimeout(() => {
-              if (!this.state.loading) {
-                this.update(this.state.params)
-              }
+              this.update(this.state.params)
             }, 500)
           }
         }
       })
       .catch(error => {
         if (!this._unmounted) {
-          this.setState({loading: false, ...params})
+          this.setState({...params})
           if (error.name === 'DoesNotExist') {
             this.props.onDoesNotExist()
           } else {
@@ -493,7 +487,6 @@ class Upload extends React.Component {
                 ? <div className={classes.detailsContent}>
                   <ReactJson src={upload} enableClipboard={false} collapsed={0} />
                 </div> : ''}
-              {this.state.loading && !this.state.updating ? <LinearProgress/> : ''}
             </ExpansionPanelDetails>
           </ExpansionPanel>
         </div>

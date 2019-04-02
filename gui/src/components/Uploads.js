@@ -1,8 +1,7 @@
 import React from 'react'
 import PropTypes, { instanceOf } from 'prop-types'
 import Markdown from './Markdown'
-import { withStyles, Paper, IconButton, FormGroup, Checkbox, FormControlLabel, FormLabel,
-  LinearProgress, Tooltip} from '@material-ui/core'
+import { withStyles, Paper, IconButton, FormGroup, Checkbox, FormControlLabel, FormLabel, Tooltip } from '@material-ui/core'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import Dropzone from 'react-dropzone'
 import Upload from './Upload'
@@ -25,8 +24,7 @@ class Uploads extends React.Component {
 
   static styles = theme => ({
     root: {
-      padding: theme.spacing.unit * 3,
-      width: '100%'
+      padding: theme.spacing.unit * 3
     },
     dropzoneContainer: {
       height: 192,
@@ -73,7 +71,6 @@ class Uploads extends React.Component {
     uploads: null,
     uploadCommand: 'loading ...',
     selectedUploads: [],
-    loading: true,
     showPublish: false
   }
 
@@ -87,20 +84,18 @@ class Uploads extends React.Component {
   }
 
   update() {
-    this.setState({loading: true})
     this.props.api.getUploads()
       .then(uploads => {
         const filteredUploads = uploads.filter(upload => !upload.is_state)
-        this.setState({uploads: filteredUploads, selectedUploads: [], loading: false})
+        this.setState({uploads: filteredUploads, selectedUploads: []})
       })
       .catch(error => {
-        this.setState({uploads: [], selectedUploads: [], loading: false})
+        this.setState({uploads: [], selectedUploads: []})
         this.props.raiseError(error)
       })
   }
 
   onDeleteClicked() {
-    this.setState({loading: true})
     Promise.all(this.state.selectedUploads.map(upload => this.props.api.deleteUpload(upload.upload_id)))
       .then(() => this.update())
       .catch(error => {
@@ -114,7 +109,6 @@ class Uploads extends React.Component {
   }
 
   onPublish(withEmbargo) {
-    this.setState({loading: true})
     Promise.all(this.state.selectedUploads
       .map(upload => this.props.api.publishUpload(upload.upload_id, withEmbargo)))
       .then(() => {
@@ -304,7 +298,6 @@ class Uploads extends React.Component {
           `}</Markdown>
 
           {this.renderUploads()}
-          {this.state.loading ? <LinearProgress/> : ''}
         </Agree>
       </div>
     )

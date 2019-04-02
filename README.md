@@ -56,6 +56,7 @@ your browser.
 ## Change log
 
 ### v0.4.4
+- improved GUI navigation
 - support for multiple domains
 - info API endpoint
 

@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, LinearProgress, Fab } from '@material-ui/core'
+import { withStyles, Fab, Card, CardContent } from '@material-ui/core'
 import ReactJson from 'react-json-view'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
@@ -19,23 +19,22 @@ class ArchiveCalcView extends React.Component {
   }
 
   static styles = theme => ({
-    root: {
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100%'
-    },
+    root: {},
     metaInfo: {
-      flex: '0 0 auto',
-      overflowY: 'auto'
+      height: '20vh',
+      overflowY: 'auto',
+      marginTop: theme.spacing.unit * 3,
+      marginBottom: theme.spacing.unit * 3
     },
     data: {
-      flex: '1 1'
+      height: '60vh',
+      overflowY: 'auto'
     },
     downloadFab: {
-      position: 'absolute',
       zIndex: 1,
-      top: theme.spacing.unit,
-      right: theme.spacing.unit * 3
+      right: 32,
+      bottom: 32,
+      position: 'fixed !important'
     }
   });
 
@@ -79,6 +78,30 @@ class ArchiveCalcView extends React.Component {
 
     return (
       <div className={classes.root}>
+        <Card className={classes.metaInfo}>
+          <CardContent>{
+            showMetaInfo && metaInfo
+              ? metaInfoData
+                ? <Markdown>{`**${metaInfoData.name}**: ${metaInfoData.description}`}</Markdown>
+                : <Markdown>This value has **no** *meta-info* attached to it.</Markdown>
+              : <Markdown>Click a value to show its *meta-info*!</Markdown>
+          }</CardContent>
+        </Card>
+        <Card className={classes.data}>
+          <CardContent>
+            {
+              data
+                ? <ReactJson
+                  src={this.state.data}
+                  enableClipboard={false}
+                  collapsed={2}
+                  displayObjectSize={false}
+                  onSelect={this.handleShowMetaInfo.bind(this)} />
+                : ''
+            }
+          </CardContent>
+        </Card>
+
         <Download
           classes={{root: classes.downloadFab}} tooltip="download calculation archive"
           component={Fab} className={classes.downloadFab} color="primary" size="medium"
@@ -86,24 +109,6 @@ class ArchiveCalcView extends React.Component {
         >
           <DownloadIcon />
         </Download>
-        <div className={classes.data}>{
-          data
-            ? <ReactJson
-              src={this.state.data}
-              enableClipboard={false}
-              collapsed={4}
-              displayObjectSize={false}
-              onSelect={this.handleShowMetaInfo.bind(this)} />
-            : <LinearProgress variant="query" />
-        }</div>
-        <div className={classes.metaInfo}>{
-          showMetaInfo && metaInfo
-            ? metaInfoData
-              ? <Markdown>{`**${metaInfoData.name}**: ${metaInfoData.description}`}</Markdown>
-              : <Markdown>This value has **no** *meta-info* attached to it.</Markdown>
-            : <Markdown>Click a value to show its *meta-info*!</Markdown>
-        }
-        </div>
       </div>
     )
   }

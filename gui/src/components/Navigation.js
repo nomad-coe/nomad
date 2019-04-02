@@ -23,11 +23,12 @@ import ChevronLeftIcon from '@material-ui/icons/ChevronLeft'
 import MenuIcon from '@material-ui/icons/Menu'
 import { Link, withRouter } from 'react-router-dom'
 import { compose } from 'recompose'
-import { MuiThemeProvider, IconButton, Checkbox, FormLabel } from '@material-ui/core'
+import { MuiThemeProvider, IconButton, Checkbox, FormLabel, LinearProgress } from '@material-ui/core'
 import { genTheme, repoTheme, archiveTheme, encTheme, analyticsTheme } from '../config'
 import classNames from 'classnames'
 import { HelpContext } from './help'
 import LoginLogout from './LoginLogout'
+import { withApi } from './api'
 
 const drawerWidth = 200
 
@@ -59,7 +60,8 @@ class Navigation extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     children: PropTypes.any,
-    location: PropTypes.object.isRequired
+    location: PropTypes.object.isRequired,
+    loading: PropTypes.number.isRequired
   }
 
   static styles = theme => ({
@@ -262,7 +264,7 @@ class Navigation extends React.Component {
   }
 
   render() {
-    const { classes, children, location: { pathname } } = this.props
+    const { classes, children, location: { pathname }, loading } = this.props
 
     const drawer = (
       <Drawer variant="permanent"
@@ -324,6 +326,7 @@ class Navigation extends React.Component {
                   }</HelpContext.Consumer>
                 </div>
               </Toolbar>
+              {loading ? <LinearProgress color="secondary" /> : ''}
             </AppBar>
           </MuiThemeProvider>
           {drawer}
@@ -339,4 +342,4 @@ class Navigation extends React.Component {
   }
 }
 
-export default compose(withRouter, withStyles(Navigation.styles))(Navigation)
+export default compose(withRouter, withApi(false), withStyles(Navigation.styles))(Navigation)

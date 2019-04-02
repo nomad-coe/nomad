@@ -123,6 +123,9 @@ class Api {
   }
 
   constructor(user) {
+    this.onStartLoading = () => null
+    this.onFinishLoading = () => null
+
     user = user || {}
     this.auth_headers = {
       'X-Token': user.token
@@ -157,6 +160,7 @@ class Api {
   }
 
   async getUploads() {
+    this.onStartLoading()
     const client = await this.swaggerPromise
     return client.apis.uploads.get_uploads()
       .catch(this.handleApiError)
@@ -165,9 +169,11 @@ class Api {
         upload.uploading = 100
         return upload
       }))
+      .finally(this.onFinishLoading)
   }
 
   async archive(uploadId, calcId) {
+    this.onStartLoading()
     const client = await this.swaggerPromise
     return client.apis.archive.get_archive_calc({
       upload_id: uploadId,
@@ -175,9 +181,11 @@ class Api {
     })
       .catch(this.handleApiError)
       .then(response => response.body)
+      .finally(this.onFinishLoading)
   }
 
   async calcProcLog(uploadId, calcId) {
+    this.onStartLoading()
     const client = await this.swaggerPromise
     return client.apis.archive.get_archive_logs({
       upload_id: uploadId,
@@ -185,9 +193,11 @@ class Api {
     })
       .catch(this.handleApiError)
       .then(response => response.text)
+      .finally(this.onFinishLoading)
   }
 
   async repo(uploadId, calcId) {
+    this.onStartLoading()
     const client = await this.swaggerPromise
     return client.apis.repo.get_repo_calc({
       upload_id: uploadId,
@@ -195,23 +205,29 @@ class Api {
     })
       .catch(this.handleApiError)
       .then(response => response.body)
+      .finally(this.onFinishLoading)
   }
 
   async search(search) {
+    this.onStartLoading()
     const client = await this.swaggerPromise
     return client.apis.repo.search(search)
       .catch(this.handleApiError)
       .then(response => response.body)
+      .finally(this.onFinishLoading)
   }
 
   async deleteUpload(uploadId) {
+    this.onStartLoading()
     const client = await this.swaggerPromise
     return client.apis.uploads.delete_upload({upload_id: uploadId})
       .catch(this.handleApiError)
       .then(response => response.body)
+      .finally(this.onFinishLoading)
   }
 
   async publishUpload(uploadId, withEmbargo) {
+    this.onStartLoading()
     const client = await this.swaggerPromise
     return client.apis.uploads.exec_upload_operation({
       upload_id: uploadId,
@@ -224,13 +240,16 @@ class Api {
     })
       .catch(this.handleApiError)
       .then(response => response.body)
+      .finally(this.onFinishLoading)
   }
 
   async getSignatureToken() {
+    this.onStartLoading()
     const client = await this.swaggerPromise
     return client.apis.auth.get_token()
       .catch(this.handleApiError)
       .then(response => response.body)
+      .finally(this.onFinishLoading)
   }
 
   _cachedMetaInfo = null
@@ -239,6 +258,7 @@ class Api {
     if (this._cachedMetaInfo) {
       return this._cachedMetaInfo
     } else {
+      this.onStartLoading()
       const loadMetaInfo = async(path) => {
         const client = await this.swaggerPromise
         return client.apis.archive.get_metainfo({metainfo_path: path})
@@ -267,6 +287,7 @@ class Api {
           })
       }
       await loadMetaInfo('all.nomadmetainfo.json')
+      this.onFinishLoading()
       return this._cachedMetaInfo
     }
   }
@@ -275,6 +296,7 @@ class Api {
 
   async getInfo() {
     if (!this._cachedInfo) {
+      this.onStartLoading()
       const loadInfo = async() => {
         const client = await this.swaggerPromise
         return client.apis.info.get_info()
@@ -283,15 +305,18 @@ class Api {
       }
 
       this._cachedInfo = await loadInfo()
+      this.onFinishLoading()
     }
     return this._cachedInfo
   }
 
   async getUploadCommand() {
+    this.onStartLoading()
     const client = await this.swaggerPromise
     return client.apis.uploads.get_upload_command()
       .catch(this.handleApiError)
       .then(response => response.body.upload_command)
+      .finally(this.onFinishLoading)
   }
 }
 
@@ -312,10 +337,18 @@ export class ApiProviderComponent extends React.Component {
     }
   }
 
+  createApi(user) {
+    const api = new Api(user)
+    api.onStartLoading = () => this.setState({loading: this.state.loading + 1})
+    api.onFinishLoading = () => this.setState({loading: Math.max(0, this.state.loading - 1)})
+    return api
+  }
+
   state = {
-    api: new Api(),
+    api: this.createApi(),
     user: null,
     isLoggingIn: false,
+    loading: 0,
     login: (userNameToken, password, successCallback) => {
       this.setState({isLoggingIn: true})
       successCallback = successCallback || (() => true)
@@ -336,7 +369,7 @@ export class ApiProviderComponent extends React.Component {
             .then(response => {
               if (response) {
                 const user = response.body
-                this.setState({api: new Api(user), isLoggingIn: false, user: user})
+                this.setState({api: this.createApi(user), isLoggingIn: false, user: user})
                 this.props.cookies.set('token', user.token)
                 successCallback(true)
               } else {
@@ -351,7 +384,7 @@ export class ApiProviderComponent extends React.Component {
         })
     },
     logout: () => {
-      this.setState({api: new Api(), user: null})
+      this.setState({api: this.createApi(), user: null})
       this.props.cookies.set('token', undefined)
     }
   }
@@ -376,6 +409,7 @@ class LoginRequiredUnstyled extends React.Component {
     root: {
       display: 'flex',
       alignItems: 'center',
+      padding: theme.spacing.unit * 2,
       '& p': {
         marginRight: theme.spacing.unit * 2
       }
@@ -396,6 +430,21 @@ class LoginRequiredUnstyled extends React.Component {
   }
 }
 
+export function DisableOnLoading(props) {
+  return (
+    <ApiContext.Consumer>
+      {apiContext => (
+        <div style={apiContext.loading ? { pointerEvents: 'none', userSelects: 'none' } : {}}>
+          {props.children}
+        </div>
+      )}
+    </ApiContext.Consumer>
+  )
+}
+DisableOnLoading.propTypes = {
+  children: PropTypes.any.isRequired
+}
+
 export const ApiProvider = compose(withCookies, withErrors)(ApiProviderComponent)
 
 const LoginRequired = withStyles(LoginRequiredUnstyled.styles)(LoginRequiredUnstyled)
@@ -407,8 +456,7 @@ export function withApi(loginRequired) {
         <ApiContext.Consumer>
           {apiContext => (
             (apiContext.user || !loginRequired)
-              ? <Component
-                {...props} {...apiContext} />
+              ? <Component {...props} {...apiContext} />
               : <LoginRequired isLoggingIn={apiContext.isLoggingIn} />
           )}
         </ApiContext.Consumer>

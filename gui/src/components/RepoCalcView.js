@@ -1,10 +1,12 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Typography, Divider, LinearProgress, Card, CardContent, Grid, CardHeader } from '@material-ui/core'
+import { withStyles, Typography, Divider, Card, CardContent, Grid, CardHeader, Fab } from '@material-ui/core'
 import { withApi } from './api'
 import { compose } from 'recompose'
 import RawFiles from './RawFiles'
 import { withErrors } from './errors'
+import Download from './Download'
+import DownloadIcon from '@material-ui/icons/CloudDownload'
 
 function CalcQuantity(props) {
   const {children, label, typography, loading, placeholder, noWrap} = props
@@ -50,10 +52,10 @@ class RepoCalcView extends React.Component {
       marginBottom: theme.spacing.unit
     },
     downloadFab: {
-      position: 'absolute',
       zIndex: 1,
-      top: theme.spacing.unit,
-      right: theme.spacing.unit * 3
+      right: 32,
+      bottom: 32,
+      position: 'fixed !important'
     },
     cardContent: {
       paddingTop: 0
@@ -86,17 +88,16 @@ class RepoCalcView extends React.Component {
     const { classes, ...calcProps } = this.props
     const calcData = this.state.calcData || calcProps
     const loading = !this.state.calcData
+    const { uploadId, calcId } = calcProps
 
     const filePaths = calcData.files || []
     const mainfile = calcData.mainfile
+    const calcPath = mainfile ? mainfile.substring(0, mainfile.lastIndexOf('/')) : null
 
     const authors = loading ? null : calcData.authors
 
     return (
       <div className={classes.root}>
-
-        {!this.state.calcData ? <LinearProgress /> : ''}
-
         <div className={classes.content}>
 
           <div className={classes.title}>
@@ -196,6 +197,15 @@ class RepoCalcView extends React.Component {
               </Card>
             </Grid>
           </Grid>
+
+          <Download
+            disabled={!mainfile} tooltip="download all raw files for calculation"
+            classes={{root: classes.downloadFab}}
+            component={Fab} className={classes.downloadFab} color="primary" size="medium"
+            url={`raw/${uploadId}/${calcPath}/*`} fileName={`${calcId}.zip`}
+          >
+            <DownloadIcon />
+          </Download>
 
         </div>
       </div>
