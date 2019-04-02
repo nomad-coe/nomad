@@ -84,7 +84,7 @@ repo_calcs_model = api.model('RepoCalculations', {
 repo_request_parser = pagination_request_parser.copy()
 repo_request_parser.add_argument(
     'owner', type=str,
-    help='Specify which calcs to return: ``all``, ``user``, ``staging``, default is ``all``')
+    help='Specify which calcs to return: ``all``, ``public``, ``user``, ``staging``, default is ``all``')
 repo_request_parser.add_argument(
     'scroll', type=bool, help='Enable scrolling')
 repo_request_parser.add_argument(
@@ -115,6 +115,10 @@ class RepoCalcsResource(Resource):
         Search for calculations in the repository from, paginated.
 
         The ``owner`` parameter determines the overall entries to search through.
+        Possible values are: ``all`` (show all entries visible to the current user), ``public``
+        (show all publically visible entries), ``user`` (show all user entries, requires login),
+        ``staging`` (show all user entries in staging area, requires login).
+
         You can use the various quantities to search/filter for. For some of the
         indexed quantities this endpoint returns aggregation information. This means
         you will be given a list of all possible values and the number of entries
@@ -170,6 +174,8 @@ class RepoCalcsResource(Resource):
             q = Q('term', published=True) & Q('term', with_embargo=False)
             if g.user is not None:
                 q = q | Q('term', owners__user_id=g.user.user_id)
+        elif owner == 'public':
+            q = Q('term', published=True) & Q('term', with_embargo=False)
         elif owner == 'user':
             if g.user is None:
                 abort(401, message='Authentication required for owner value user.')
@@ -211,6 +217,9 @@ class RepoCalcsResource(Resource):
                 total, results, aggregations, metrics = search.aggregate_search(q=q, **data)
         except KeyError as e:
             abort(400, str(e))
+
+        import time
+        time.sleep(1)
 
         return dict(
             pagination=dict(total=total, page=page, per_page=per_page),
