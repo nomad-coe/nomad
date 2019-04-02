@@ -43,8 +43,19 @@ export default class App extends React.Component {
     },
     'uploads': {
       exact: true,
-      path: '/upload',
+      path: '/uploads',
       render: props => <Uploads {...props} />
+    },
+    'uploadsCalc': {
+      path: '/uploads/:uploadId/:calcId',
+      render: props => {
+        const { match, ...rest } = props
+        if (match && match.params.uploadId && match.params.calcId) {
+          return (<Calc {...rest} uploadId={match.params.uploadId} calcId={match.params.calcId} />)
+        } else {
+          return ''
+        }
+      }
     },
     'docs': {
       exact: true,

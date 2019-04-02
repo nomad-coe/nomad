@@ -218,9 +218,6 @@ class RepoCalcsResource(Resource):
         except KeyError as e:
             abort(400, str(e))
 
-        import time
-        time.sleep(1)
-
         return dict(
             pagination=dict(total=total, page=page, per_page=per_page),
             results=results,

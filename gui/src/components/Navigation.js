@@ -35,7 +35,7 @@ const drawerWidth = 200
 const toolbarTitles = {
   '/': 'Welcome',
   '/repo': 'Search',
-  '/upload': 'Upload Your Own Data',
+  '/uploads': 'Upload Your Own Data',
   '/profile': 'Your Profile',
   '/docs': 'Documentation',
   '/archive': 'Code Independent Data',
@@ -47,7 +47,7 @@ const toolbarTitles = {
 const toolbarThemes = {
   '/': genTheme,
   '/repo': repoTheme,
-  '/upload': repoTheme,
+  '/uploads': repoTheme,
   '/profile': genTheme,
   '/docs': genTheme,
   '/archive': archiveTheme,
@@ -213,7 +213,7 @@ class Navigation extends React.Component {
             </ListItemIcon>
             <ListItemText inset primary="Search"/>
           </MenuItem>
-          <MenuItem className={classes.menuItem} component={Link} to="/upload" selected={ pathname === '/upload' }>
+          <MenuItem className={classes.menuItem} component={Link} to="/uploads" selected={ pathname === '/uploads' }>
             <ListItemIcon>
               <BackupIcon style={{fill: repoTheme.palette.primary.main}}/>
             </ListItemIcon>
