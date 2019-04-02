@@ -470,6 +470,9 @@ class WithApiComponent extends React.Component {
     loginRequired: PropTypes.bool,
     showErrorPage: PropTypes.bool,
     loginMessage: PropTypes.string,
+    api: PropTypes.object,
+    user: PropTypes.object,
+    isLoggingIn: PropTypes.bool,
     Component: PropTypes.any
   }
 
@@ -481,6 +484,12 @@ class WithApiComponent extends React.Component {
   constructor(props) {
     super(props)
     this.raiseError = this.raiseError.bind(this)
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.api !== this.props.api) {
+      this.setState({notAuthorized: false})
+    }
   }
 
   raiseError(error) {
@@ -501,30 +510,29 @@ class WithApiComponent extends React.Component {
 
   render() {
     const { raiseError, loginRequired, loginMessage, Component, ...rest } = this.props
+    const { api, user, isLoggingIn } = rest
     const { notAuthorized, notFound } = this.state
     if (notAuthorized) {
-      return (
-        <ApiContext.Consumer>
-          {apiContext => (
-            apiContext.user ? (
-              <div style={{padding: 16}}>
-                <Typography variant="h6">Not Authorized</Typography>
-                <Typography>
-                  You are not authorized to access this information. If someone send
-                  you this link, ask him to make his data publically available or share
-                  it with you.
-                </Typography>
-              </div>
-            ) : (
-              <LoginRequired
-                message="You need to be logged in to access this information."
-                isLoggingIn={apiContext.isLoggingIn}
-                onLoggedIn={() => this.setState({notAuthorized: false})}
-              />
-            )
-          )}
-        </ApiContext.Consumer>
-      )
+      if (user) {
+        return (
+          <div style={{padding: 16}}>
+            <Typography variant="h6">Not Authorized</Typography>
+            <Typography>
+              You are not authorized to access this information. If someone send
+              you this link, ask him to make his data publicly available or share
+              it with you.
+            </Typography>
+          </div>
+        )
+      } else {
+        return (
+          <LoginRequired
+            message="You need to be logged in to access this information."
+            isLoggingIn={isLoggingIn}
+            onLoggedIn={() => this.setState({notAuthorized: false})}
+          />
+        )
+      }
     } else if (notFound) {
       return <div style={{padding: 16}}>
         <Typography variant="h6">Not Found</Typography>
@@ -533,17 +541,15 @@ class WithApiComponent extends React.Component {
         </Typography>
       </div>
     } else {
-      return (
-        <ApiContext.Consumer>
-          {apiContext => (
-            (apiContext.api)
-              ? (apiContext.user || !loginRequired)
-                ? <Component {...rest} {...apiContext} raiseError={this.raiseError} />
-                : <LoginRequired message={loginMessage} isLoggingIn={apiContext.isLoggingIn} />
-              : ''
-          )}
-        </ApiContext.Consumer>
-      )
+      if (api) {
+        if (user || !loginRequired) {
+          return <Component {...rest} raiseError={this.raiseError} />
+        } else {
+          return <LoginRequired message={loginMessage} isLoggingIn={isLoggingIn} />
+        }
+      } else {
+        return ''
+      }
     }
   }
 }
@@ -551,13 +557,17 @@ class WithApiComponent extends React.Component {
 export function withApi(loginRequired, showErrorPage, loginMessage) {
   return function(Component) {
     return withErrors(props => (
-      <WithApiComponent
-        loginRequired={loginRequired}
-        loginMessage={loginMessage}
-        showErrorPage={showErrorPage}
-        Component={Component}
-        {...props}
-      />
+      <ApiContext.Consumer>
+        {apiContext => (
+          <WithApiComponent
+            loginRequired={loginRequired}
+            loginMessage={loginMessage}
+            showErrorPage={showErrorPage}
+            Component={Component}
+            {...props} {...apiContext}
+          />
+        )}
+      </ApiContext.Consumer>
     ))
   }
 }
