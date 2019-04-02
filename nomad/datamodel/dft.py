@@ -185,7 +185,8 @@ Domain('DFT', DFTCalcWithMetadata, quantities=dict(
         order_default=True),
     atoms=DomainQuantity(
         'The atom labels of all atoms in the simulated system.',
-        aggregations=len(ase.data.chemical_symbols)),
+        # aggregations=len(ase.data.chemical_symbols)),
+        aggregations=200),  # quickfix for bad atom labels
     basis_set=DomainQuantity(
         'The used basis set functions.', aggregations=10),
     xc_functional=DomainQuantity(
