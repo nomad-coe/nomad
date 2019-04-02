@@ -79,7 +79,7 @@ class LegacyParser(Parser):
         supported_compressions: A list of [gz, bz2], if the parser supports compressed files
     """
     def __init__(
-            self, name: str, parser_class_name: str,
+            self, name: str, code_name: str, parser_class_name: str,
             mainfile_contents_re: str = None,
             mainfile_mime_re: str = r'text/.*',
             mainfile_name_re: str = r'.*',

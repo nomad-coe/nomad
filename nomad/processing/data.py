@@ -184,8 +184,14 @@ class Calc(Proc):
             calc_with_metadata.crystal_system = config.services.not_processed_value
             calc_with_metadata.spacegroup = config.services.not_processed_value
             calc_with_metadata.spacegroup_symbol = config.services.not_processed_value
-            calc_with_metadata.code_name = config.services.not_processed_value
             calc_with_metadata.code_version = config.services.not_processed_value
+
+            calc_with_metadata.code_name = config.services.not_processed_value
+            if self.parser is not None:
+                parser = parser_dict[self.parser]
+                if hasattr(parser, 'code_name'):
+                    calc_with_metadata.code_name = parser.code_name
+
             calc_with_metadata.processed = False
             self.metadata = calc_with_metadata.to_dict()
             search.Entry.from_calc_with_metadata(calc_with_metadata).save()
