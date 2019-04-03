@@ -7,6 +7,9 @@ import chroma from 'chroma-js'
 import repoColor from '@material-ui/core/colors/deepPurple'
 import { formatQuantity } from '../config.js'
 
+const unprocessed_label = 'not processed'
+const unavailable_label = 'unavailable'
+
 class QuantityHistogram extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
@@ -68,6 +71,29 @@ class QuantityHistogram extends React.Component {
       name: key,
       value: this.props.data[key][this.props.metric]
     }))
+
+    data.sort((a, b) => {
+      const nameA = a.name
+      const nameB = b.name
+
+      if (nameA === nameB) {
+        return 0
+      }
+
+      if (nameA === unprocessed_label) {
+        return 1
+      }
+      if (nameB === unprocessed_label) {
+        return -1
+      }
+      if (nameA === unavailable_label) {
+        return 1
+      }
+      if (nameB === unavailable_label) {
+        return -1
+      }
+      return nameA.localeCompare(nameB)
+    })
 
     const y = scaleBand().rangeRound([0, height]).padding(0.1)
     const x = scalePow().range([0, width]).exponent(scalePower)
