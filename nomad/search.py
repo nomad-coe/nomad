@@ -21,6 +21,7 @@ from elasticsearch_dsl import Document, InnerDoc, Keyword, Text, Date, \
     Object, Boolean, Search, Q, A, analyzer, tokenizer
 from elasticsearch_dsl.document import IndexMeta
 import elasticsearch.helpers
+from datetime import datetime
 
 from nomad import config, datamodel, infrastructure, datamodel, coe_repo, utils
 
@@ -214,11 +215,14 @@ for quantity in datamodel.Domain.instance.quantities:
         order_default_quantity = quantity.name
 
 
-def _construct_search(q: Q = None, **kwargs) -> Search:
+def _construct_search(q: Q = None, time_range: Tuple[datetime, datetime] = None, **kwargs) -> Search:
     search = Search(index=config.elastic.index_name)
 
     if q is not None:
         search = search.query(q)
+
+    if time_range is not None:
+        search = search.query('range', upload_time=dict(gte=time_range[0], lte=time_range[1]))
 
     for key, value in kwargs.items():
         query_type, field, _ = search_quantities.get(key, (None, None, None))
@@ -294,7 +298,9 @@ def scroll_search(
 
 def aggregate_search(
         page: int = 1, per_page: int = 10, order_by: str = order_default_quantity, order: int = -1,
-        q: Q = None, aggregations: Dict[str, int] = aggregations,
+        q: Q = None,
+        time_range: Tuple[datetime, datetime] = None,
+        aggregations: Dict[str, int] = aggregations,
         aggregation_metrics: List[str] = [],
         total_metrics: List[str] = [],
         **kwargs) -> Tuple[int, List[dict], Dict[str, Dict[str, Dict[str, int]]], Dict[str, int]]:
@@ -307,7 +313,8 @@ def aggregate_search(
     Arguments:
         page: The page to return starting with page 1
         per_page: Results per page
-        q: An *elasticsearch_dsl* query used to further filter the results (via `and`)
+        q: An *elasticsearch_dsl* query used to further filter the results (via ``and``)
+        time_range: A tuple to filter for uploads within with start, end ``upload_time``.
         aggregations: A customized list of aggregations to perform. Keys are index fields,
             and values the amount of buckets to return. Only works on *keyword* field.
         aggregation_metrics: The metrics used to aggregate over. Can be ``unique_code_runs``, ``datasets``,
@@ -319,7 +326,7 @@ def aggregate_search(
         the aggregation data, and a dictionary with the overall metrics.
     """
 
-    search = _construct_search(q, **kwargs)
+    search = _construct_search(q, time_range, **kwargs)
 
     def add_metrics(parent, metrics_to_add):
         for metric in metrics_to_add:
