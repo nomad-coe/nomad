@@ -34,6 +34,9 @@ class Parser(metaclass=ABCMeta):
     and extracted files. Further, allows to run the parser on those 'main files'.
     """
 
+    def __init__(self):
+        self.domain = 'DFT'
+
     @abstractmethod
     def is_mainfile(self, filename: str, mime: str, buffer: bytes, compression: str = None) -> bool:
         """
@@ -76,6 +79,7 @@ class LegacyParser(Parser):
         mainfile_contents_re: A regexp that is used to match the first 1024 bytes of a
             potential mainfile.
         mainfile_name_re: A regexp that is used to match the paths of potential mainfiles
+        domain: The domain that this parser should be used for. Default is 'DFT'.
         supported_compressions: A list of [gz, bz2], if the parser supports compressed files
     """
     def __init__(
@@ -83,10 +87,14 @@ class LegacyParser(Parser):
             mainfile_contents_re: str = None,
             mainfile_mime_re: str = r'text/.*',
             mainfile_name_re: str = r'.*',
+            domain='DFT',
             supported_compressions: List[str] = []) -> None:
+
+        super().__init__()
 
         self.name = name
         self.parser_class_name = parser_class_name
+        self.domain = domain
         self._mainfile_mime_re = re.compile(mainfile_mime_re)
         self._mainfile_name_re = re.compile(mainfile_name_re)
         # Assign private variable this way to avoid static check issue.

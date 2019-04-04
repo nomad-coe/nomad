@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+A generator for random test calculations.
+"""
+
 import names
 import random
 from essential_generators import DocumentGenerator

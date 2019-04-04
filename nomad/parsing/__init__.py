@@ -99,9 +99,10 @@ def match_parser(mainfile: str, upload_files: files.StagingUploadFiles) -> 'Pars
 
     mime_type = magic.from_buffer(buffer, mime=True)
     for parser in parsers:
-        if parser.is_mainfile(mainfile_path, mime_type, buffer, compression):
-            # TODO: deal with multiple possible parser specs
-            return parser
+        if parser.domain == config.domain:
+            if parser.is_mainfile(mainfile_path, mime_type, buffer, compression):
+                # TODO: deal with multiple possible parser specs
+                return parser
 
     return None
 
@@ -358,6 +359,12 @@ parsers = [
         mainfile_contents_re=(
             r'\s*(P?<progr>[a-zA-z0-9_]+)\s*(?:\([^()]+\))\s*:\s*TURBOMOLE\s*(P?<version>.*)'
             r'\s*Copyright \(C\) [0-9]+ TURBOMOLE GmbH, Karlsruhe')
+    ),
+    LegacyParser(
+        name='parsers/skeleton', code_name='skeleton', domain='EMS',
+        parser_class_name='skeletonparser.SkeletonParserInterface',
+        mainfile_mime_re=r'(application/json)|(text/.*)',
+        mainfile_contents_re=(r'skeleton experimental metadata format')
     )
 ]
 

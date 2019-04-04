@@ -38,7 +38,7 @@ from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagi
 from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parser_dict, match_parser, LocalBackend
 from nomad.normalizing import normalizers
-from nomad.datamodel import UploadWithMetadata, CalcWithMetadata
+from nomad.datamodel import UploadWithMetadata, CalcWithMetadata, Domain
 
 
 class Calc(Proc):
@@ -213,6 +213,7 @@ class Calc(Proc):
         context = dict(parser=self.parser, step=self.parser)
         logger = self.get_logger(**context)
         parser = parser_dict[self.parser]
+        self.metadata['parser_name'] = self.parser
 
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
             try:
@@ -226,29 +227,29 @@ class Calc(Proc):
 
         # add the non code specific calc metadata to the backend
         # all other quantities have been determined by parsers/normalizers
-        self._parser_backend.openNonOverlappingSection('section_calculation_info')
+        self._parser_backend.openNonOverlappingSection('section_entry_info')
         self._parser_backend.addValue('upload_id', self.upload_id)
         self._parser_backend.addValue('calc_id', self.calc_id)
         self._parser_backend.addValue('calc_hash', self.metadata['calc_hash'])
-        self._parser_backend.addValue('main_file', self.mainfile)
+        self._parser_backend.addValue('mainfile', self.mainfile)
         self._parser_backend.addValue('parser_name', self.parser)
+        filepaths = self.metadata['files']
+        self._parser_backend.addValue('number_of_files', len(filepaths))
+        self._parser_backend.addValue('filepaths', filepaths)
+        uploader = self.upload.uploader
+        self._parser_backend.addValue(
+            'entry_uploader_name', '%s, %s' % (uploader.first_name, uploader.last_name))
+        self._parser_backend.addValue(
+            'entry_uploader_id', str(uploader.user_id))
+        self._parser_backend.addValue('entry_upload_time', int(self.upload.upload_time.timestamp()))
+        self._parser_backend.closeNonOverlappingSection('section_entry_info')
+
+        self.add_processor_info(self.parser)
 
         if self._parser_backend.status[0] != 'ParseSuccess':
             logger.error(self._parser_backend.status[1])
             error = self._parser_backend.status[1]
-            self._parser_backend.addValue('parse_status', 'ParseFailure')
             self.fail(error, level=logging.INFO, **context)
-        else:
-            self._parser_backend.addValue('parse_status', 'ParseSuccess')
-
-        self._parser_backend.closeNonOverlappingSection('section_calculation_info')
-
-        self._parser_backend.openNonOverlappingSection('section_repository_info')
-        self._parser_backend.addValue('repository_archive_gid', '%s/%s' % (self.upload_id, self.calc_id))
-        self._parser_backend.addValue('repository_filepaths', self.metadata['files'])
-        self._parser_backend.closeNonOverlappingSection('section_repository_info')
-
-        self.add_processor_info(self.parser)
 
     @contextmanager
     def use_parser_backend(self, processor_name):
@@ -257,7 +258,7 @@ class Calc(Proc):
         self.add_processor_info(processor_name)
 
     def add_processor_info(self, processor_name: str) -> None:
-        self._parser_backend.openContext('/section_calculation_info/0')
+        self._parser_backend.openContext('/section_entry_info/0')
         self._parser_backend.openNonOverlappingSection('section_archive_processing_info')
         self._parser_backend.addValue('archive_processor_name', processor_name)
 
@@ -265,7 +266,7 @@ class Calc(Proc):
             warnings = getattr(self._parser_backend, '_warnings', [])
             if len(warnings) > 0:
                 self._parser_backend.addValue('archive_processor_status', 'WithWarnings')
-                self._parser_backend.addValue('archive_processor_warning_number', len(warnings))
+                self._parser_backend.addValue('number_of_archive_processor_warnings', len(warnings))
                 self._parser_backend.addArrayValues('archive_processor_warnings', [str(warning) for warning in warnings])
             else:
                 self._parser_backend.addValue('archive_processor_status', 'Success')
@@ -274,11 +275,14 @@ class Calc(Proc):
             self._parser_backend.addValue('archive_processor_error', str(errors))
 
         self._parser_backend.closeNonOverlappingSection('section_archive_processing_info')
-        self._parser_backend.closeContext('/section_calculation_info/0')
+        self._parser_backend.closeContext('/section_entry_info/0')
 
     @task
     def normalizing(self):
         for normalizer in normalizers:
+            if normalizer.domain != config.domain:
+                continue
+
             normalizer_name = normalizer.__name__
             context = dict(normalizer=normalizer_name, step=normalizer_name)
             logger = self.get_logger(**context)
@@ -310,7 +314,6 @@ class Calc(Proc):
 
         calc_with_metadata = CalcWithMetadata(**self.metadata)
         calc_with_metadata.apply_domain_metadata(self._parser_backend)
-        calc_with_metadata.parser_name = self.parser
         calc_with_metadata.processed = True
 
         # persist the calc metadata
@@ -326,7 +329,7 @@ class Calc(Proc):
                 logger, 'archived', step='archive',
                 input_size=self.mainfile_file.size) as log_data:
             with self.upload_files.archive_file(self.calc_id, 'wt') as out:
-                self._parser_backend.write_json(out, pretty=True)
+                self._parser_backend.write_json(out, pretty=True, root_sections=Domain.instance.root_sections)
 
             log_data.update(archive_size=self.upload_files.archive_file_object(self.calc_id).size)
 

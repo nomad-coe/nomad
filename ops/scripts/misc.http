@@ -29,7 +29,7 @@ Content-Type: application/json
 {
     "query": {
         "match": {
-            "published": true
+            "published": false
         }
     }
 }

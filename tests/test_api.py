@@ -554,6 +554,7 @@ class TestRepo():
         clear_elastic(elastic_infra)
 
         calc_with_metadata = CalcWithMetadata(upload_id=0, calc_id=0)
+        calc_with_metadata.files = ['test/mainfile.txt']
         calc_with_metadata.apply_domain_metadata(normalized)
 
         calc_with_metadata.update(calc_id='1', uploader=test_user.to_popo(), published=True, with_embargo=False)

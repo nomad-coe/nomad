@@ -31,10 +31,13 @@ class Normalizer(metaclass=ABCMeta):
     for read and write. Normalizer instances are reused.
 
     Arguments:
-        backend: the backend used to read and write data from and to
+        backend: The backend used to read and write data from and to.
     """
-    def __init__(self, backend: AbstractParserBackend) -> None:
 
+    domain = 'DFT'
+    """ The domain this normalizer should be used in. Default for all normalizer is 'DFT'. """
+
+    def __init__(self, backend: AbstractParserBackend) -> None:
         self._backend = backend
         self.logger = get_logger(__name__)
 

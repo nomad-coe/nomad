@@ -48,7 +48,9 @@ about ids, user metadata, etc. To define domain specific quantities the classes
 import sys
 
 from nomad.datamodel.base import UploadWithMetadata, CalcWithMetadata, Domain
+from nomad.datamodel import ems, dft
 from nomad.datamodel.dft import DFTCalcWithMetadata
+from nomad.datamodel.ems import EMSEntryWithMetadata
 
 # Override the CalcWithMetadata with the domain specific decendant
 setattr(sys.modules['nomad.datamodel'], 'CalcWithMetadata', Domain.instance.domain_entry_class)
