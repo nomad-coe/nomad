@@ -178,11 +178,11 @@ class RepoCalcView extends React.Component {
 
             <Grid item xs={5}>
               <Card>
-                <CardHeader title="Id / Processing" />
+                <CardHeader title="Ids / processing" />
                 <CardContent classes={{root: classes.cardContent}}>
                   <div className={classes.quantityColumn} style={{maxWidth: 350}}>
                     <CalcQuantity label='PID' loading={loading} noWrap>
-                      <b>{calcData.pid}</b>
+                      {calcData.pid ? <b>{calcData.pid}</b> : <i>not yet assigned</i>}
                     </CalcQuantity>
                     <CalcQuantity label='upload id' noWrap>
                       {calcData.upload_id}
