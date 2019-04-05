@@ -92,7 +92,11 @@ class Entry(Document, metaclass=WithDomain):
 
     with_embargo = Boolean()
     published = Boolean()
+
     processed = Boolean()
+    last_processing = Date()
+    nomad_version = Keyword()
+    nomad_commit = Keyword()
 
     authors = Object(User, multi=True)
     owners = Object(User, multi=True)
@@ -112,7 +116,11 @@ class Entry(Document, metaclass=WithDomain):
         self.calc_id = source.calc_id
         self.calc_hash = source.calc_hash
         self.pid = None if source.pid is None else str(source.pid)
+
         self.processed = source.processed
+        self.last_processing = source.last_processing
+        self.nomad_version = source.nomad_version
+        self.nomad_commit = source.nomad_commit
 
         self.mainfile = source.mainfile
         if source.files is None:

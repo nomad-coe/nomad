@@ -154,6 +154,7 @@ class Calc(Proc):
                 mainfile=self.mainfile)
             calc_with_metadata.published = False
             calc_with_metadata.uploader = self.upload.uploader.to_popo()
+            calc_with_metadata.upload_time = self.upload.upload_time
             calc_with_metadata.nomad_version = config.version
             calc_with_metadata.nomad_commit = config.commit
             calc_with_metadata.last_processing = datetime.now()

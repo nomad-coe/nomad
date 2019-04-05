@@ -6,6 +6,7 @@ import { compose } from 'recompose'
 import RawFiles from './RawFiles'
 import Download from './Download'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
+import ApiDialogButton from './ApiDialogButton'
 
 function CalcQuantity(props) {
   const {children, label, typography, loading, placeholder, noWrap} = props
@@ -118,7 +119,10 @@ class RepoCalcView extends React.Component {
           <Grid container spacing={24}>
             <Grid item xs={7}>
               <Card>
-                <CardHeader title="Metadata" />
+                <CardHeader
+                  title="Metadata"
+                  action={<ApiDialogButton title="Repository JSON" data={calcData} />}
+                />
                 <CardContent classes={{root: classes.cardContent}}>
                   <div className={classes.quantityColumn}>
                     <div className={classes.quantityRow}>
@@ -164,7 +168,7 @@ class RepoCalcView extends React.Component {
                         {authors ? authors.map(author => author.name) : null}
                       </CalcQuantity>
                       <CalcQuantity label='datasets' loading={loading} placeholder='no datasets'>
-                        {calcData.datasets ? calcData.datasets.map(ds => ds.name).join(', ') : null}
+                        {calcData.datasets ? calcData.datasets.map(ds => `${ds.name}${ds.doi ? ` (${ds.doi})` : ''}`).join(', ') : null}
                       </CalcQuantity>
                     </div>
                   </div>
@@ -174,7 +178,7 @@ class RepoCalcView extends React.Component {
 
             <Grid item xs={5}>
               <Card>
-                <CardHeader title="Identification" />
+                <CardHeader title="Id / Processing" />
                 <CardContent classes={{root: classes.cardContent}}>
                   <div className={classes.quantityColumn} style={{maxWidth: 350}}>
                     <CalcQuantity label='PID' loading={loading} noWrap>
@@ -182,6 +186,9 @@ class RepoCalcView extends React.Component {
                     </CalcQuantity>
                     <CalcQuantity label='upload id' noWrap>
                       {calcData.upload_id}
+                    </CalcQuantity>
+                    <CalcQuantity label='upload time' noWrap>
+                      {new Date(calcData.upload_time * 1000).toLocaleString()}
                     </CalcQuantity>
                     <CalcQuantity label='calculation id' noWrap>
                       {calcData.calc_id}
@@ -191,6 +198,12 @@ class RepoCalcView extends React.Component {
                     </CalcQuantity>
                     <CalcQuantity label='calculation hash' loading={loading} noWrap>
                       {calcData.calc_hash}
+                    </CalcQuantity>
+                    <CalcQuantity label='last processing' loading={loading} noWrap>
+                      {calcData.last_processing ? new Date(calcData.last_processing * 1000).toLocaleString() : <i>not processed</i>}
+                    </CalcQuantity>
+                    <CalcQuantity label='processing version' loading={loading} noWrap>
+                      {calcData.last_processing ? `${calcData.nomad_version}/${calcData.nomad_commit}` : <i>not processed</i>}
                     </CalcQuantity>
                   </div>
                 </CardContent>
