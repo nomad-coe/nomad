@@ -268,7 +268,7 @@ Sometime a code uses a unit that is not fixed, but might be defined in the input
 other part. In this case you can use
 
 ```python
-    nomadcore.unit_conversion.unit_conversion.register_userdefined_quantity(quantity, units, value=1)
+nomadcore.unit_conversion.unit_conversion.register_userdefined_quantity(quantity, units, value=1)
 ```
 
 from python-common. With it you can (for example in the adHoc callback of a SimpleMatcher)
@@ -276,7 +276,7 @@ define the usint usrMyCodeLength (user defined units should always start with "u
 just letters) to be angstrom with
 
 ```python
-    register_userdefined_quantity("usrMyCodeLength", "angstrom")
+register_userdefined_quantity("usrMyCodeLength", "angstrom")
 ```
 
 this call *needs* to be done before any use of that unit. The unit can then be used just
@@ -300,8 +300,8 @@ The simplest way to achieve this is to define methods called onClose and then th
 For example
 
 ```python
-    def onClose_section_scf_iteration(self, backend, gIndex, section):
-        logging.getLogger("nomadcore.parsing").info("YYYY bla gIndex %d %s", gIndex, section.simpleValues)
+def onClose_section_scf_iteration(self, backend, gIndex, section):
+   logging.getLogger("nomadcore.parsing").info("YYYY bla gIndex %d %s", gIndex, section.simpleValues)
 ```
 
 defines a trigger called every time an scf iteration section is closed.

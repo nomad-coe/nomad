@@ -7,6 +7,9 @@ The original NOMAD software, developed by the
 calculations in a single central infrastructure instances that offers a variety
 of services (*repository*, *archive*, *encyclopedia*, *analytics*, *visualization*).
 
+.. figure:: nomad.png
+   :alt: nomad's overall structure
+
 This is the documentation of **nomad@FAIRDI**, the Open-Source continuation of the
 original NOMAD-coe software that reconciles the original code base,
 integrate it's services, allows 3rd parties to run individual and federated instance of
@@ -169,14 +172,18 @@ belong to one *material* based on the simulated system.
 - The `uploader` is the user that provided the upload. There is always one immutable `uploader`
 - Currently, uploads can be provided as `.zip` or `.tar.gz` files.
 
-### Calculations
-- A calculation has a unique `calc_id` that is based on the upload's id and the `mainfile`
+### Entries (Calculations, Code runs)
+- There are confusing names. Internally, in the nomad source code, the term `calc` is used.
+An entry represents a single set of input/output used and produces by an individual run of a
+DFT code. If nomad is applied to other domains, i.e. experimental material science, entries might represent
+experiments or other entities.
+- An entry (calculation) has a unique `calc_id` that is based on the upload's id and the `mainfile`
 - The `mainfile` is a upload relative path to the main output file.
 - Each calculation, when published, gets a unique `pid`. Pids are ascending intergers. For
 each `pid` a shorter `handle` is created. Handles can be registered with a handle system,
 e.g. the central nomad installation at MPCDF is registered at a MPCDF/GWDW handle system.
 - The `calc_hash` is computed from the main and other parsed raw files.
-- Calculation data comprises *user metadata* (comments, references, datasets, coauthors),
+- Entry data comprises *user metadata* (comments, references, datasets, coauthors),
 *calculation metadata* (code, version, system and symmetry, used DFT method, etc.),
 the *archive data* (a hierarchy of all parsed quantities), and the uploaded *raw files*.
 
@@ -192,23 +199,27 @@ the *archive data* (a hierarchy of all parsed quantities), and the uploaded *raw
 ### Data
 We distinguish various forms of calculation data:
 - raw data: The raw files provided by nomad users
+- (repository) metadata: All data necessary to search and inspect nomad entries.
 - archive data: The data extracted from raw files by nomad parsers and normalizers.
 This data is represented in the *meta-info* format.
 - materials data: Aggregated information about calculations that simulated the *same* material.
+
+.. figure:: datamodel_dataflow.png
+   :alt: nomad's data flow
 
 ### Metadata
 Metadata refers to those pieces of data, those quantities/attributes that we use
 to represent, identify, and index uploads and calculations in the API, search, GUI, etc.
 There are three catergories of metadata:
-- ids: attributes that are necessary to uniquely identify entities. See also :ref:`id-reference-label`.
-- user metadata: attributes provided by the user, e.g. comments, references, coauthors, datasets, etc.
-- calculation metadata: metadata parsed from raw files that describe calculations on a high level, e.g. code name, basis set, system type, etc.
+- entry metadata: attributes that are necessary to uniquely identify entities (see also :ref:`id-reference-label`), that describe the upload, processing, etc. This data is derived by the nomad infrastructure.
+- user metadata: attributes provided by the user, e.g. comments, references, coauthors, datasets, etc. This data is provided by the user.
+- domain metadata: metadata parsed from raw files that describe calculations on a high level, e.g. code name, basis set, system type, etc. This data is derived from the uploaded data.
 
 Those sets of metadata along with the actual raw and archive data are often transformed,
 passed, stored, etc. by the various nomad modules.
 
-.. figure:: datamodel_dataflow.png
-   :alt: nomad's data flow
+.. figure:: datamodel_metadataflow.png
+   :alt: nomad's metadata flow
 
 ### Implementation
 The different entities have often multiple implementations for different storage systems.

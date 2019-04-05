@@ -24,7 +24,7 @@ import MenuIcon from '@material-ui/icons/Menu'
 import { Link, withRouter } from 'react-router-dom'
 import { compose } from 'recompose'
 import { MuiThemeProvider, IconButton, Checkbox, FormLabel, LinearProgress } from '@material-ui/core'
-import { genTheme, repoTheme, archiveTheme, encTheme, analyticsTheme } from '../config'
+import { genTheme, repoTheme, archiveTheme, encTheme, analyticsTheme, apiBase } from '../config'
 import classNames from 'classnames'
 import { HelpContext } from './help'
 import LoginLogout from './LoginLogout'
@@ -246,7 +246,7 @@ class Navigation extends React.Component {
             </ListItemIcon>
             <ListItemText inset primary="Profil"/>
           </MenuItem> */}
-          <MenuItem className={classes.menuItem} component={Link} to="/docs" selected={ pathname === '/docs' }>
+          <MenuItem className={classes.menuItem} target="docs" component={'a'} href={`${apiBase}/docs/index.html`} selected={ pathname === '/docs' }>
             <ListItemIcon>
               <DocumentationIcon />
             </ListItemIcon>
