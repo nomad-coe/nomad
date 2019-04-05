@@ -4,7 +4,7 @@ import { genTheme, appBase } from '../config'
 import Navigation from './Navigation'
 import { BrowserRouter, Switch, Route } from 'react-router-dom'
 import Uploads from './Uploads'
-import Repo from './Repo'
+import SearchPage from './search/SearchPage'
 import Documentation from './Documentation'
 import Development from './Development'
 import Home from './Home'
@@ -25,13 +25,13 @@ export default class App extends React.Component {
       path: '/',
       render: props => <Home {...props} />
     },
-    'repo': {
+    'search': {
       exact: true,
-      path: '/repo',
-      render: props => <Repo {...props} />
+      path: '/search',
+      render: props => <SearchPage {...props} />
     },
-    'repoCalc': {
-      path: '/repo/:uploadId/:calcId',
+    'searchEntry': {
+      path: '/search/:uploadId/:calcId',
       render: props => {
         const { match, ...rest } = props
         if (match && match.params.uploadId && match.params.calcId) {
@@ -46,7 +46,7 @@ export default class App extends React.Component {
       path: '/uploads',
       render: props => <Uploads {...props} />
     },
-    'uploadsCalc': {
+    'uploadedEntry': {
       path: '/uploads/:uploadId/:calcId',
       render: props => {
         const { match, ...rest } = props

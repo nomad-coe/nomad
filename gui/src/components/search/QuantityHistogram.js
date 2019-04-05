@@ -5,7 +5,7 @@ import * as d3 from 'd3'
 import { scaleBand, scalePow } from 'd3-scale'
 import chroma from 'chroma-js'
 import repoColor from '@material-ui/core/colors/deepPurple'
-import { formatQuantity } from '../config.js'
+import { formatQuantity } from '../../config.js'
 
 const unprocessed_label = 'not processed'
 const unavailable_label = 'unavailable'

@@ -66,10 +66,20 @@ function getSuggestionValue(suggestion) {
 }
 
 class SearchBar extends React.Component {
+  static propTypes = {
+    classes: PropTypes.object.isRequired,
+    data: PropTypes.object.isRequired,
+    searchValues: PropTypes.object.isRequired,
+    onChanged: PropTypes.func.isRequired
+  }
+
   static styles = theme => ({
     root: {
-      height: 250,
-      flexGrow: 1
+      width: '100%',
+      minWidth: 500,
+      maxWidth: 900,
+      margin: 'auto',
+      marginBottom: theme.spacing.unit * 3
     },
     container: {
       position: 'relative'
@@ -97,14 +107,6 @@ class SearchBar extends React.Component {
     }
   })
 
-  static propTypes = {
-    classes: PropTypes.object.isRequired,
-    aggregations: PropTypes.object.isRequired,
-    metric: PropTypes.string.isRequired,
-    values: PropTypes.object.isRequired,
-    onChanged: PropTypes.func.isRequired
-  }
-
   state = {
     suggestions: [],
     textFieldInput: ''
@@ -113,7 +115,7 @@ class SearchBar extends React.Component {
   getSuggestions(value) {
     value = value.toLowerCase()
 
-    const { aggregations } = this.props
+    const { data: { aggregations } } = this.props
     const suggestions = []
 
     Object.keys(aggregations).forEach(aggKey => {
@@ -146,10 +148,10 @@ class SearchBar extends React.Component {
     this.setState({
       textFieldInput: newValue
     })
-  };
+  }
 
   handleAddChip(chip) {
-    const values = {...this.props.values}
+    const values = {...this.props.searchValues}
 
     let key, value
     if (chip.includes('=')) {
@@ -191,13 +193,13 @@ class SearchBar extends React.Component {
     const parts = chip.split('=')
     const key = parts[0]
 
-    const values = {...this.props.values}
+    const values = {...this.props.searchValues}
     delete values[key]
     this.props.onChanged(values)
   }
 
   getChips() {
-    const values = {...this.props.values}
+    const values = {...this.props.searchValues}
     return Object.keys(values).filter(key => values[key]).map(key => {
       if (key === 'atoms') {
         return `atoms=[${values[key].join(',')}]`
@@ -208,36 +210,38 @@ class SearchBar extends React.Component {
   }
 
   render() {
-    const { classes, values, onChanged, ...rest } = this.props
+    const { classes, searchValues, onChanged, ...rest } = this.props
 
     return (
-      <Autosuggest
-        theme={{
-          container: classes.container,
-          suggestionsContainerOpen: classes.suggestionsContainerOpen,
-          suggestionsList: classes.suggestionsList,
-          suggestion: classes.suggestion
-        }}
-        renderInputComponent={renderInput}
-        suggestions={this.state.suggestions}
-        onSuggestionsFetchRequested={this.handleSuggestionsFetchRequested}
-        onSuggestionsClearRequested={this.handleSuggestionsClearRequested}
-        renderSuggestionsContainer={renderSuggestionsContainer}
-        getSuggestionValue={getSuggestionValue}
-        renderSuggestion={renderSuggestion}
-        onSuggestionSelected={(e, { suggestionValue }) => { this.handleAddChip(suggestionValue); e.preventDefault() }}
-        focusInputOnSuggestionClick={false}
-        inputProps={{
-          classes,
-          chips: this.getChips(),
-          onChange: this.handleTextFieldInputChange,
-          value: this.state.textFieldInput,
-          onAdd: (chip) => this.handleAddChip(chip),
-          onBeforeAdd: (chip) => this.handleBeforeAddChip(chip),
-          onDelete: (chip, index) => this.handleDeleteChip(chip, index),
-          ...rest
-        }}
-      />
+      <div className={classes.root} >
+        <Autosuggest
+          theme={{
+            container: classes.container,
+            suggestionsContainerOpen: classes.suggestionsContainerOpen,
+            suggestionsList: classes.suggestionsList,
+            suggestion: classes.suggestion
+          }}
+          renderInputComponent={renderInput}
+          suggestions={this.state.suggestions}
+          onSuggestionsFetchRequested={this.handleSuggestionsFetchRequested}
+          onSuggestionsClearRequested={this.handleSuggestionsClearRequested}
+          renderSuggestionsContainer={renderSuggestionsContainer}
+          getSuggestionValue={getSuggestionValue}
+          renderSuggestion={renderSuggestion}
+          onSuggestionSelected={(e, { suggestionValue }) => { this.handleAddChip(suggestionValue); e.preventDefault() }}
+          focusInputOnSuggestionClick={false}
+          inputProps={{
+            classes,
+            chips: this.getChips(),
+            onChange: this.handleTextFieldInputChange,
+            value: this.state.textFieldInput,
+            onAdd: (chip) => this.handleAddChip(chip),
+            onBeforeAdd: (chip) => this.handleBeforeAddChip(chip),
+            onDelete: (chip, index) => this.handleDeleteChip(chip, index),
+            ...rest
+          }}
+        />
+      </div>
     )
   }
 }
