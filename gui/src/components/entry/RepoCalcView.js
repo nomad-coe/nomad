@@ -1,12 +1,12 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, Typography, Divider, Card, CardContent, Grid, CardHeader, Fab } from '@material-ui/core'
-import { withApi } from './api'
+import { withApi } from '../api'
 import { compose } from 'recompose'
 import RawFiles from './RawFiles'
 import Download from './Download'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
-import ApiDialogButton from './ApiDialogButton'
+import ApiDialogButton from '../ApiDialogButton'
 
 function CalcQuantity(props) {
   const {children, label, typography, loading, placeholder, noWrap} = props

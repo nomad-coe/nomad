@@ -2,7 +2,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, Fab } from '@material-ui/core'
 import { compose } from 'recompose'
-import { withApi } from './api'
+import { withApi } from '../api'
 import Download from './Download'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 

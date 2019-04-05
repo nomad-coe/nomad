@@ -1,10 +1,10 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import FileSaver from 'file-saver'
-import { withApi } from './api'
+import { withApi } from '../api'
 import { compose } from 'recompose'
-import { withErrors } from './errors'
-import { apiBase } from '../config'
+import { withErrors } from '../errors'
+import { apiBase } from '../../config'
 import { withStyles, Tooltip } from '@material-ui/core'
 
 class Download extends React.Component {

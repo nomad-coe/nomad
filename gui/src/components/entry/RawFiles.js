@@ -2,7 +2,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, FormGroup, FormControlLabel, Checkbox, FormLabel, IconButton, Divider } from '@material-ui/core'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
-import { withApi } from './api'
+import { withApi } from '../api'
 import { compose } from 'recompose'
 import Download from './Download'
 

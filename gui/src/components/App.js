@@ -5,13 +5,12 @@ import Navigation from './Navigation'
 import { BrowserRouter, Switch, Route } from 'react-router-dom'
 import Uploads from './Uploads'
 import SearchPage from './search/SearchPage'
-import Documentation from './Documentation'
 import Development from './Development'
 import Home from './Home'
 import { HelpProvider } from './help'
 import { ApiProvider } from './api'
 import { ErrorSnacks } from './errors'
-import Calc from './Calc'
+import Calc from './entry/Calc'
 
 export default class App extends React.Component {
   constructor(props) {
@@ -56,11 +55,6 @@ export default class App extends React.Component {
           return ''
         }
       }
-    },
-    'docs': {
-      exact: true,
-      path: '/docs',
-      render: props => <Documentation {...props} />
     },
     'dev': {
       exact: true,
