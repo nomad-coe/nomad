@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes, { instanceOf } from 'prop-types'
-import Markdown from './Markdown'
+import Markdown from '../Markdown'
 import { withStyles, Paper, IconButton, FormGroup, Checkbox, FormControlLabel, FormLabel, Tooltip } from '@material-ui/core'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import Dropzone from 'react-dropzone'
@@ -10,8 +10,8 @@ import DeleteIcon from '@material-ui/icons/Delete'
 import ReloadIcon from '@material-ui/icons/Cached'
 import CheckIcon from '@material-ui/icons/Check'
 import ConfirmDialog from './ConfirmDialog'
-import { Help, Agree } from './help'
-import { withApi } from './api'
+import { Help, Agree } from '../help'
+import { withApi } from '../api'
 import { withCookies, Cookies } from 'react-cookie'
 
 class Uploads extends React.Component {

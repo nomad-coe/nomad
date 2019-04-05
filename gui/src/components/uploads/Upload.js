@@ -8,8 +8,8 @@ import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography,
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
 import { compose } from 'recompose'
-import { withErrors } from './errors'
-import { debug } from '../config'
+import { withErrors } from '../errors'
+import { debug } from '../../config'
 import { withRouter } from 'react-router'
 
 class Upload extends React.Component {
