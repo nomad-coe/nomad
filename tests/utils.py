@@ -14,7 +14,9 @@
 
 """ Methods to help with testing of nomad@FAIRDI."""
 
+from typing import Type
 import json
+from contextlib import contextmanager
 
 
 def assert_log(caplog, level, event_part):
@@ -41,3 +43,18 @@ def assert_log(caplog, level, event_part):
                 # No need to look for more matches since we aren't counting matches.
                 break
     assert(record_receieved)
+
+
+@contextmanager
+def assert_exception(exception_cls: Type = Exception):
+    """
+    A context manager that can be used to assert that the given exception is thrown
+    within the respective ``with``clause.
+    """
+    has_exception = False
+    try:
+        yield
+    except exception_cls:
+        has_exception = True
+
+    assert has_exception

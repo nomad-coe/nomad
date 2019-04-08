@@ -1,17 +1,36 @@
 [
   {
+    "_id": "c496d810-3eba-11e9-b932-c72cc7fb9c05",
+    "_type": "dashboard",
+    "_source": {
+      "title": "Migration [migration]",
+      "hits": 0,
+      "description": "",
+      "panelsJSON": "[{\"panelIndex\":\"1\",\"gridData\":{\"x\":24,\"y\":8,\"w\":24,\"h\":20,\"i\":\"1\"},\"embeddableConfig\":{},\"id\":\"40acf760-3eb9-11e9-b932-c72cc7fb9c05\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"2\",\"gridData\":{\"x\":0,\"y\":0,\"w\":48,\"h\":8,\"i\":\"2\"},\"embeddableConfig\":{},\"id\":\"6e4b0440-3eba-11e9-b932-c72cc7fb9c05\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"3\",\"gridData\":{\"x\":0,\"y\":8,\"w\":24,\"h\":15,\"i\":\"3\"},\"embeddableConfig\":{},\"id\":\"a471abc0-3c1a-11e9-b932-c72cc7fb9c05\",\"type\":\"visualization\",\"version\":\"6.3.2\"}]",
+      "optionsJSON": "{\"darkTheme\":false,\"hidePanelTitles\":false,\"useMargins\":true}",
+      "version": 1,
+      "timeRestore": false,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"query\":{\"language\":\"lucene\",\"query\":\"\"},\"filter\":[],\"highlightAll\":true,\"version\":true}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
     "_id": "572efb40-c7cd-11e8-af80-b5004896a534",
     "_type": "dashboard",
     "_source": {
       "title": "Processing statistics [nomad]",
       "hits": 0,
       "description": "",
-      "panelsJSON": "[{\"panelIndex\":\"1\",\"gridData\":{\"x\":0,\"y\":7,\"w\":24,\"h\":15,\"i\":\"1\"},\"version\":\"6.3.2\",\"type\":\"visualization\",\"id\":\"8568ba90-c61b-11e8-af80-b5004896a534\",\"embeddableConfig\":{}},{\"panelIndex\":\"3\",\"gridData\":{\"x\":24,\"y\":7,\"w\":24,\"h\":15,\"i\":\"3\"},\"version\":\"6.3.2\",\"type\":\"visualization\",\"id\":\"7a71d990-c7c0-11e8-af80-b5004896a534\",\"embeddableConfig\":{}},{\"panelIndex\":\"4\",\"gridData\":{\"x\":19,\"y\":22,\"w\":14,\"h\":15,\"i\":\"4\"},\"version\":\"6.3.2\",\"type\":\"visualization\",\"id\":\"a2e3f4e0-c7b0-11e8-af80-b5004896a534\",\"embeddableConfig\":{}},{\"panelIndex\":\"5\",\"gridData\":{\"x\":0,\"y\":22,\"w\":19,\"h\":15,\"i\":\"5\"},\"version\":\"6.3.2\",\"type\":\"visualization\",\"id\":\"50c32d20-c7b0-11e8-af80-b5004896a534\",\"embeddableConfig\":{}},{\"panelIndex\":\"6\",\"gridData\":{\"x\":0,\"y\":0,\"w\":10,\"h\":7,\"i\":\"6\"},\"version\":\"6.3.2\",\"type\":\"visualization\",\"id\":\"b06a49b0-c2f2-11e8-b9e8-d74f7e7408ed\",\"embeddableConfig\":{}},{\"panelIndex\":\"7\",\"gridData\":{\"x\":10,\"y\":0,\"w\":10,\"h\":7,\"i\":\"7\"},\"version\":\"6.3.2\",\"type\":\"visualization\",\"id\":\"1103dc60-c2f2-11e8-b9e8-d74f7e7408ed\",\"embeddableConfig\":{}},{\"panelIndex\":\"8\",\"gridData\":{\"x\":20,\"y\":0,\"w\":9,\"h\":7,\"i\":\"8\"},\"version\":\"6.3.2\",\"type\":\"visualization\",\"id\":\"fd77bd00-c67b-11e8-af80-b5004896a534\",\"embeddableConfig\":{}},{\"panelIndex\":\"9\",\"gridData\":{\"x\":33,\"y\":22,\"w\":15,\"h\":15,\"i\":\"9\"},\"version\":\"6.3.2\",\"type\":\"visualization\",\"id\":\"d99f6c10-c7b2-11e8-af80-b5004896a534\",\"embeddableConfig\":{}}]",
-      "optionsJSON": "{\"darkTheme\":false,\"useMargins\":true,\"hidePanelTitles\":false}",
+      "panelsJSON": "[{\"panelIndex\":\"1\",\"gridData\":{\"x\":0,\"y\":7,\"w\":29,\"h\":15,\"i\":\"1\"},\"embeddableConfig\":{},\"id\":\"8568ba90-c61b-11e8-af80-b5004896a534\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"3\",\"gridData\":{\"x\":0,\"y\":37,\"w\":29,\"h\":15,\"i\":\"3\"},\"embeddableConfig\":{},\"id\":\"7a71d990-c7c0-11e8-af80-b5004896a534\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"4\",\"gridData\":{\"x\":29,\"y\":30,\"w\":19,\"h\":15,\"i\":\"4\"},\"embeddableConfig\":{},\"id\":\"a2e3f4e0-c7b0-11e8-af80-b5004896a534\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"5\",\"gridData\":{\"x\":29,\"y\":15,\"w\":19,\"h\":15,\"i\":\"5\"},\"embeddableConfig\":{},\"id\":\"50c32d20-c7b0-11e8-af80-b5004896a534\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"7\",\"gridData\":{\"x\":0,\"y\":0,\"w\":20,\"h\":7,\"i\":\"7\"},\"embeddableConfig\":{},\"id\":\"1103dc60-c2f2-11e8-b9e8-d74f7e7408ed\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"8\",\"gridData\":{\"x\":20,\"y\":0,\"w\":9,\"h\":7,\"i\":\"8\"},\"embeddableConfig\":{},\"id\":\"fd77bd00-c67b-11e8-af80-b5004896a534\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"9\",\"gridData\":{\"x\":29,\"y\":0,\"w\":19,\"h\":15,\"i\":\"9\"},\"embeddableConfig\":{},\"id\":\"d99f6c10-c7b2-11e8-af80-b5004896a534\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"10\",\"gridData\":{\"x\":0,\"y\":22,\"w\":29,\"h\":15,\"i\":\"10\"},\"embeddableConfig\":{},\"id\":\"7fbc0e50-3ebe-11e9-b932-c72cc7fb9c05\",\"type\":\"visualization\",\"version\":\"6.3.2\"}]",
+      "optionsJSON": "{\"darkTheme\":false,\"hidePanelTitles\":false,\"useMargins\":true}",
       "version": 1,
       "timeRestore": false,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"query\":{\"query\":\"\",\"language\":\"lucene\"},\"filter\":[],\"highlightAll\":true,\"version\":true}"
+        "searchSourceJSON": "{\"query\":{\"language\":\"lucene\",\"query\":\"\"},\"filter\":[],\"highlightAll\":true,\"version\":true}"
       }
     },
     "_meta": {
@@ -25,7 +44,7 @@
       "title": "Processing errors [nomad]",
       "hits": 0,
       "description": "",
-      "panelsJSON": "[{\"panelIndex\":\"1\",\"gridData\":{\"x\":0,\"y\":0,\"w\":24,\"h\":14,\"i\":\"1\"},\"embeddableConfig\":{\"vis\":{\"legendOpen\":false}},\"id\":\"b16c30b0-c2ef-11e8-b9e8-d74f7e7408ed\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"3\",\"gridData\":{\"x\":37,\"y\":14,\"w\":11,\"h\":7,\"i\":\"3\"},\"embeddableConfig\":{\"spy\":null},\"id\":\"1103dc60-c2f2-11e8-b9e8-d74f7e7408ed\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"7\",\"gridData\":{\"x\":37,\"y\":21,\"w\":11,\"h\":7,\"i\":\"7\"},\"embeddableConfig\":{},\"id\":\"fd77bd00-c67b-11e8-af80-b5004896a534\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"12\",\"gridData\":{\"x\":0,\"y\":14,\"w\":37,\"h\":21,\"i\":\"12\"},\"embeddableConfig\":{},\"id\":\"18785d30-c7cb-11e8-af80-b5004896a534\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"13\",\"gridData\":{\"x\":37,\"y\":28,\"w\":11,\"h\":7,\"i\":\"13\"},\"embeddableConfig\":{},\"id\":\"b06a49b0-c2f2-11e8-b9e8-d74f7e7408ed\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"14\",\"gridData\":{\"x\":24,\"y\":0,\"w\":24,\"h\":14,\"i\":\"14\"},\"embeddableConfig\":{\"vis\":{\"legendOpen\":false}},\"id\":\"8bcaf100-c7d3-11e8-af80-b5004896a534\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"15\",\"gridData\":{\"x\":0,\"y\":35,\"w\":24,\"h\":15,\"i\":\"15\"},\"version\":\"6.3.2\",\"type\":\"visualization\",\"id\":\"b73d0810-c7d2-11e8-af80-b5004896a534\",\"embeddableConfig\":{}}]",
+      "panelsJSON": "[{\"panelIndex\":\"1\",\"gridData\":{\"x\":0,\"y\":0,\"w\":24,\"h\":14,\"i\":\"1\"},\"embeddableConfig\":{\"vis\":{\"legendOpen\":false}},\"id\":\"b16c30b0-c2ef-11e8-b9e8-d74f7e7408ed\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"3\",\"gridData\":{\"x\":37,\"y\":14,\"w\":11,\"h\":14,\"i\":\"3\"},\"embeddableConfig\":{\"spy\":null},\"id\":\"1103dc60-c2f2-11e8-b9e8-d74f7e7408ed\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"7\",\"gridData\":{\"x\":37,\"y\":28,\"w\":11,\"h\":7,\"i\":\"7\"},\"embeddableConfig\":{},\"id\":\"fd77bd00-c67b-11e8-af80-b5004896a534\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"12\",\"gridData\":{\"x\":0,\"y\":14,\"w\":37,\"h\":21,\"i\":\"12\"},\"embeddableConfig\":{},\"id\":\"18785d30-c7cb-11e8-af80-b5004896a534\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"14\",\"gridData\":{\"x\":24,\"y\":0,\"w\":24,\"h\":14,\"i\":\"14\"},\"embeddableConfig\":{\"vis\":{\"legendOpen\":false}},\"id\":\"8bcaf100-c7d3-11e8-af80-b5004896a534\",\"type\":\"visualization\",\"version\":\"6.3.2\"},{\"panelIndex\":\"15\",\"gridData\":{\"x\":0,\"y\":35,\"w\":24,\"h\":15,\"i\":\"15\"},\"version\":\"6.3.2\",\"type\":\"visualization\",\"id\":\"b73d0810-c7d2-11e8-af80-b5004896a534\",\"embeddableConfig\":{}}]",
       "optionsJSON": "{\"darkTheme\":false,\"hidePanelTitles\":false,\"useMargins\":true}",
       "version": 1,
       "timeRestore": false,
@@ -58,6 +77,30 @@
       "version": 1,
       "kibanaSavedObjectMeta": {
         "searchSourceJSON": "{\"index\":\"f02ffa10-02ab-11e9-8c88-c573528f3b8d\",\"highlightAll\":true,\"version\":true,\"query\":{\"query\":\"\",\"language\":\"lucene\"},\"filter\":[{\"meta\":{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"type\":\"phrases\",\"key\":\"nomad.service.keyword\",\"value\":\"nomad_worker, nomad_api\",\"params\":[\"nomad_worker\",\"nomad_api\"],\"negate\":false,\"disabled\":false,\"alias\":null},\"query\":{\"bool\":{\"should\":[{\"match_phrase\":{\"nomad.service.keyword\":\"nomad_worker\"}},{\"match_phrase\":{\"nomad.service.keyword\":\"nomad_api\"}}],\"minimum_should_match\":1}},\"$state\":{\"store\":\"appState\"}}]}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "f2332c60-3dac-11e9-b932-c72cc7fb9c05",
+    "_type": "search",
+    "_source": {
+      "title": "nomad.client errors",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "event",
+        "logger_name"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"f02ffa10-02ab-11e9-8c88-c573528f3b8d\",\"highlightAll\":true,\"version\":true,\"query\":{\"language\":\"lucene\",\"query\":\"\"},\"filter\":[{\"meta\":{\"index\":\"f02ffa10-02ab-11e9-8c88-c573528f3b8d\",\"negate\":false,\"disabled\":false,\"alias\":null,\"type\":\"phrase\",\"key\":\"nomad.service.keyword\",\"value\":\"client\",\"params\":{\"query\":\"client\",\"type\":\"phrase\"}},\"query\":{\"match\":{\"nomad.service.keyword\":{\"query\":\"client\",\"type\":\"phrase\"}}},\"$state\":{\"store\":\"appState\"}},{\"meta\":{\"index\":\"f02ffa10-02ab-11e9-8c88-c573528f3b8d\",\"negate\":false,\"disabled\":false,\"alias\":null,\"type\":\"phrase\",\"key\":\"level.keyword\",\"value\":\"ERROR\",\"params\":{\"query\":\"ERROR\",\"type\":\"phrase\"}},\"query\":{\"match\":{\"level.keyword\":{\"query\":\"ERROR\",\"type\":\"phrase\"}}},\"$state\":{\"store\":\"appState\"}}]}"
       }
     },
     "_meta": {
@@ -167,23 +210,6 @@
     }
   },
   {
-    "_id": "8568ba90-c61b-11e8-af80-b5004896a534",
-    "_type": "visualization",
-    "_source": {
-      "title": "Acc exec times [nomad]",
-      "visState": "{\"title\":\"Acc exec times [nomad]\",\"type\":\"histogram\",\"params\":{\"addLegend\":true,\"addTimeMarker\":false,\"addTooltip\":true,\"categoryAxes\":[{\"id\":\"CategoryAxis-1\",\"labels\":{\"show\":true,\"truncate\":0,\"filter\":false,\"rotate\":0},\"position\":\"left\",\"scale\":{\"type\":\"linear\"},\"show\":true,\"style\":{},\"title\":{},\"type\":\"category\"}],\"grid\":{\"categoryLines\":false,\"style\":{\"color\":\"#eee\"},\"valueAxis\":\"ValueAxis-1\"},\"legendPosition\":\"right\",\"seriesParams\":[{\"data\":{\"id\":\"1\",\"label\":\"sum of exec times in s\"},\"drawLinesBetweenPoints\":true,\"mode\":\"stacked\",\"show\":\"true\",\"showCircles\":true,\"type\":\"histogram\",\"valueAxis\":\"ValueAxis-1\"}],\"times\":[],\"type\":\"histogram\",\"valueAxes\":[{\"id\":\"ValueAxis-1\",\"labels\":{\"filter\":false,\"rotate\":0,\"show\":true,\"truncate\":100},\"name\":\"BottomAxis-1\",\"position\":\"bottom\",\"scale\":{\"mode\":\"normal\",\"type\":\"linear\"},\"show\":true,\"style\":{},\"title\":{\"text\":\"Sum of exec times in s\"},\"type\":\"value\"}]},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.processing.exec_time\",\"customLabel\":\"sum of exec times in s\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"segment\",\"params\":{\"field\":\"nomad.processing.current_task.keyword\",\"otherBucket\":true,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"step/program\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"group\",\"params\":{\"field\":\"nomad.processing.step.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"proc task\"}}]}",
-      "uiStateJSON": "{\"vis\":{\"legendOpen\":false}}",
-      "description": "",
-      "version": 1,
-      "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"f02ffa10-02ab-11e9-8c88-c573528f3b8d\",\"filter\":[],\"query\":{\"language\":\"lucene\",\"query\":\"\"}}"
-      }
-    },
-    "_meta": {
-      "savedObjectVersion": 2
-    }
-  },
-  {
     "_id": "b73d0810-c7d2-11e8-af80-b5004896a534",
     "_type": "visualization",
     "_source": {
@@ -218,33 +244,16 @@
     }
   },
   {
-    "_id": "1103dc60-c2f2-11e8-b9e8-d74f7e7408ed",
+    "_id": "18785d30-c7cb-11e8-af80-b5004896a534",
     "_type": "visualization",
     "_source": {
-      "title": "Calculations [nomad]",
-      "visState": "{\"title\":\"Calculations [nomad]\",\"type\":\"metric\",\"params\":{\"addTooltip\":true,\"addLegend\":false,\"type\":\"metric\",\"metric\":{\"percentageMode\":false,\"useRanges\":false,\"colorSchema\":\"Green to Red\",\"metricColorMode\":\"None\",\"colorsRange\":[{\"from\":0,\"to\":10000}],\"labels\":{\"show\":true},\"invertColors\":false,\"style\":{\"bgFill\":\"#000\",\"bgColor\":false,\"labelColor\":false,\"subText\":\"\",\"fontSize\":60}}},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"cardinality\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.calc_id.keyword\",\"customLabel\":\"Calculations\"}}]}",
-      "uiStateJSON": "{}",
+      "title": "Top errors [nomad]",
+      "visState": "{\"title\":\"Top errors [nomad]\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showPartialRows\":false,\"showMeticsAtAllLevels\":false,\"sort\":{\"columnIndex\":4,\"direction\":\"desc\"},\"showTotal\":false,\"totalFunc\":\"sum\"},\"aggs\":[{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"event.keyword\",\"otherBucket\":true,\"otherBucketLabel\":\"Others\",\"missingBucket\":true,\"missingBucketLabel\":\"<unknown>\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Message\"}},{\"id\":\"4\",\"enabled\":true,\"type\":\"top_hits\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.calc_id\",\"aggregate\":\"concat\",\"size\":1,\"sortField\":\"@timestamp\",\"sortOrder\":\"desc\",\"customLabel\":\"calc_id\"}},{\"id\":\"5\",\"enabled\":true,\"type\":\"top_hits\",\"schema\":\"metric\",\"params\":{\"field\":\"event\",\"aggregate\":\"concat\",\"size\":1,\"sortField\":\"@timestamp\",\"sortOrder\":\"desc\",\"customLabel\":\"Full message\"}},{\"id\":\"1\",\"enabled\":true,\"type\":\"count\",\"schema\":\"metric\",\"params\":{}}]}",
+      "uiStateJSON": "{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":4,\"direction\":\"desc\"}}}}",
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"f02ffa10-02ab-11e9-8c88-c573528f3b8d\",\"filter\":[],\"query\":{\"language\":\"lucene\",\"query\":\"\"}}"
-      }
-    },
-    "_meta": {
-      "savedObjectVersion": 2
-    }
-  },
-  {
-    "_id": "fd77bd00-c67b-11e8-af80-b5004896a534",
-    "_type": "visualization",
-    "_source": {
-      "title": "Calcs with errors [nomad]",
-      "visState": "{\"title\":\"Calcs with errors [nomad]\",\"type\":\"metric\",\"params\":{\"addTooltip\":true,\"addLegend\":false,\"type\":\"metric\",\"metric\":{\"percentageMode\":false,\"useRanges\":false,\"colorSchema\":\"Green to Red\",\"metricColorMode\":\"None\",\"colorsRange\":[{\"from\":0,\"to\":10000}],\"labels\":{\"show\":true},\"invertColors\":false,\"style\":{\"bgFill\":\"#000\",\"bgColor\":false,\"labelColor\":false,\"subText\":\"\",\"fontSize\":60}}},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"cardinality\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.calc_id.keyword\",\"customLabel\":\"Errors\"}}]}",
-      "uiStateJSON": "{}",
-      "description": "",
-      "version": 1,
-      "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"f02ffa10-02ab-11e9-8c88-c573528f3b8d\",\"filter\":[{\"meta\":{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"type\":\"phrases\",\"key\":\"level.keyword\",\"value\":\"CRITICAL, ERROR\",\"params\":[\"CRITICAL\",\"ERROR\"],\"negate\":false,\"disabled\":false,\"alias\":null},\"query\":{\"bool\":{\"should\":[{\"match_phrase\":{\"level.keyword\":\"CRITICAL\"}},{\"match_phrase\":{\"level.keyword\":\"ERROR\"}}],\"minimum_should_match\":1}},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+        "searchSourceJSON": "{\"index\":\"f02ffa10-02ab-11e9-8c88-c573528f3b8d\",\"filter\":[{\"meta\":{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"type\":\"phrases\",\"key\":\"level.keyword\",\"value\":\"ERROR, CRITICAL\",\"params\":[\"ERROR\",\"CRITICAL\"],\"negate\":false,\"disabled\":false,\"alias\":null},\"query\":{\"bool\":{\"should\":[{\"match_phrase\":{\"level.keyword\":\"ERROR\"}},{\"match_phrase\":{\"level.keyword\":\"CRITICAL\"}}],\"minimum_should_match\":1}},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
       }
     },
     "_meta": {
@@ -269,16 +278,16 @@
     }
   },
   {
-    "_id": "18785d30-c7cb-11e8-af80-b5004896a534",
+    "_id": "fd77bd00-c67b-11e8-af80-b5004896a534",
     "_type": "visualization",
     "_source": {
-      "title": "Top errors [nomad]",
-      "visState": "{\"title\":\"Top errors [nomad]\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showPartialRows\":false,\"showMeticsAtAllLevels\":false,\"sort\":{\"columnIndex\":4,\"direction\":\"desc\"},\"showTotal\":false,\"totalFunc\":\"sum\"},\"aggs\":[{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"event.keyword\",\"otherBucket\":true,\"otherBucketLabel\":\"Others\",\"missingBucket\":true,\"missingBucketLabel\":\"<unknown>\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Message\"}},{\"id\":\"4\",\"enabled\":true,\"type\":\"top_hits\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.calc_id\",\"aggregate\":\"concat\",\"size\":1,\"sortField\":\"@timestamp\",\"sortOrder\":\"desc\",\"customLabel\":\"calc_id\"}},{\"id\":\"5\",\"enabled\":true,\"type\":\"top_hits\",\"schema\":\"metric\",\"params\":{\"field\":\"event\",\"aggregate\":\"concat\",\"size\":1,\"sortField\":\"@timestamp\",\"sortOrder\":\"desc\",\"customLabel\":\"Full message\"}},{\"id\":\"1\",\"enabled\":true,\"type\":\"count\",\"schema\":\"metric\",\"params\":{}}]}",
-      "uiStateJSON": "{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":4,\"direction\":\"desc\"}}}}",
+      "title": "Calcs with errors [nomad]",
+      "visState": "{\"title\":\"Calcs with errors [nomad]\",\"type\":\"metric\",\"params\":{\"addTooltip\":true,\"addLegend\":false,\"type\":\"metric\",\"metric\":{\"percentageMode\":false,\"useRanges\":false,\"colorSchema\":\"Green to Red\",\"metricColorMode\":\"None\",\"colorsRange\":[{\"from\":0,\"to\":10000}],\"labels\":{\"show\":true},\"invertColors\":false,\"style\":{\"bgFill\":\"#000\",\"bgColor\":false,\"labelColor\":false,\"subText\":\"\",\"fontSize\":60}}},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"cardinality\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.calc_id.keyword\",\"customLabel\":\"Errors\"}}]}",
+      "uiStateJSON": "{}",
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"f02ffa10-02ab-11e9-8c88-c573528f3b8d\",\"filter\":[{\"meta\":{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"type\":\"phrases\",\"key\":\"level.keyword\",\"value\":\"ERROR, CRITICAL\",\"params\":[\"ERROR\",\"CRITICAL\"],\"negate\":false,\"disabled\":false,\"alias\":null},\"query\":{\"bool\":{\"should\":[{\"match_phrase\":{\"level.keyword\":\"ERROR\"}},{\"match_phrase\":{\"level.keyword\":\"CRITICAL\"}}],\"minimum_should_match\":1}},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+        "searchSourceJSON": "{\"index\":\"f02ffa10-02ab-11e9-8c88-c573528f3b8d\",\"filter\":[{\"meta\":{\"index\":\"e8ef6780-c03a-11e8-b9e8-d74f7e7408ed\",\"type\":\"phrases\",\"key\":\"level.keyword\",\"value\":\"CRITICAL, ERROR\",\"params\":[\"CRITICAL\",\"ERROR\"],\"negate\":false,\"disabled\":false,\"alias\":null},\"query\":{\"bool\":{\"should\":[{\"match_phrase\":{\"level.keyword\":\"CRITICAL\"}},{\"match_phrase\":{\"level.keyword\":\"ERROR\"}}],\"minimum_should_match\":1}},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
       }
     },
     "_meta": {
@@ -286,16 +295,101 @@
     }
   },
   {
-    "_id": "b06a49b0-c2f2-11e8-b9e8-d74f7e7408ed",
+    "_id": "8568ba90-c61b-11e8-af80-b5004896a534",
     "_type": "visualization",
     "_source": {
-      "title": "Uploads [nomad]",
-      "visState": "{\"title\":\"Uploads [nomad]\",\"type\":\"metric\",\"params\":{\"addTooltip\":true,\"addLegend\":false,\"type\":\"metric\",\"metric\":{\"percentageMode\":false,\"useRanges\":false,\"colorSchema\":\"Green to Red\",\"metricColorMode\":\"None\",\"colorsRange\":[{\"from\":0,\"to\":10000}],\"labels\":{\"show\":true},\"invertColors\":false,\"style\":{\"bgFill\":\"#000\",\"bgColor\":false,\"labelColor\":false,\"subText\":\"\",\"fontSize\":60}}},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"cardinality\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.upload_id.keyword\",\"customLabel\":\"Uploads\"}}]}",
+      "title": "Task exec times [nomad]",
+      "visState": "{\"title\":\"Task exec times [nomad]\",\"type\":\"histogram\",\"params\":{\"addLegend\":true,\"addTimeMarker\":false,\"addTooltip\":true,\"categoryAxes\":[{\"id\":\"CategoryAxis-1\",\"labels\":{\"show\":true,\"truncate\":0,\"filter\":false,\"rotate\":0},\"position\":\"left\",\"scale\":{\"type\":\"linear\"},\"show\":true,\"style\":{},\"title\":{},\"type\":\"category\"}],\"grid\":{\"categoryLines\":false,\"style\":{\"color\":\"#eee\"},\"valueAxis\":\"ValueAxis-1\"},\"legendPosition\":\"right\",\"seriesParams\":[{\"data\":{\"id\":\"1\",\"label\":\"sum of exec times in s\"},\"drawLinesBetweenPoints\":true,\"mode\":\"stacked\",\"show\":\"true\",\"showCircles\":true,\"type\":\"histogram\",\"valueAxis\":\"ValueAxis-1\"}],\"times\":[],\"type\":\"histogram\",\"valueAxes\":[{\"id\":\"ValueAxis-1\",\"labels\":{\"filter\":false,\"rotate\":0,\"show\":true,\"truncate\":100},\"name\":\"BottomAxis-1\",\"position\":\"bottom\",\"scale\":{\"mode\":\"normal\",\"type\":\"linear\"},\"show\":true,\"style\":{},\"title\":{\"text\":\"sum of exec times in s\"},\"type\":\"value\"}]},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.processing.exec_time\",\"customLabel\":\"sum of exec times in s\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"segment\",\"params\":{\"field\":\"nomad.processing.current_task.keyword\",\"otherBucket\":true,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"step/program\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"group\",\"params\":{\"field\":\"nomad.processing.step.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"proc task\"}}]}",
+      "uiStateJSON": "{\"vis\":{\"legendOpen\":false}}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"f02ffa10-02ab-11e9-8c88-c573528f3b8d\",\"filter\":[],\"query\":{\"language\":\"lucene\",\"query\":\"\"}}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "7fbc0e50-3ebe-11e9-b932-c72cc7fb9c05",
+    "_type": "visualization",
+    "_source": {
+      "title": "Process exec times [nomad]",
+      "visState": "{\"title\":\"Process exec times [nomad]\",\"type\":\"histogram\",\"params\":{\"addLegend\":true,\"addTimeMarker\":false,\"addTooltip\":true,\"categoryAxes\":[{\"id\":\"CategoryAxis-1\",\"labels\":{\"show\":true,\"truncate\":0,\"filter\":false,\"rotate\":0},\"position\":\"left\",\"scale\":{\"type\":\"linear\"},\"show\":true,\"style\":{},\"title\":{},\"type\":\"category\"}],\"grid\":{\"categoryLines\":false,\"style\":{\"color\":\"#eee\"},\"valueAxis\":\"ValueAxis-1\"},\"legendPosition\":\"right\",\"seriesParams\":[{\"data\":{\"id\":\"1\",\"label\":\"sum of exec times in s\"},\"drawLinesBetweenPoints\":true,\"mode\":\"stacked\",\"show\":\"true\",\"showCircles\":true,\"type\":\"histogram\",\"valueAxis\":\"ValueAxis-1\"}],\"times\":[],\"type\":\"histogram\",\"valueAxes\":[{\"id\":\"ValueAxis-1\",\"labels\":{\"filter\":false,\"rotate\":0,\"show\":true,\"truncate\":100},\"name\":\"BottomAxis-1\",\"position\":\"bottom\",\"scale\":{\"mode\":\"normal\",\"type\":\"linear\"},\"show\":true,\"style\":{},\"title\":{\"text\":\"sum of exec times in s\"},\"type\":\"value\"}]},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.processing.exec_time\",\"customLabel\":\"sum of exec times in s\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"segment\",\"params\":{\"field\":\"nomad.processing.current_process.keyword\",\"otherBucket\":true,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"process\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"group\",\"params\":{\"field\":\"nomad.processing.step.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"proc task\"}}]}",
+      "uiStateJSON": "{\"vis\":{\"legendOpen\":false}}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"f02ffa10-02ab-11e9-8c88-c573528f3b8d\",\"filter\":[],\"query\":{\"language\":\"lucene\",\"query\":\"\"}}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "a471abc0-3c1a-11e9-b932-c72cc7fb9c05",
+    "_type": "visualization",
+    "_source": {
+      "title": "Migration differences by quantity and value [migration]",
+      "visState": "{\"aggs\":[{\"enabled\":true,\"id\":\"1\",\"params\":{\"customLabel\":\"number of repo calcs\"},\"schema\":\"metric\",\"type\":\"count\"},{\"enabled\":true,\"id\":\"2\",\"params\":{\"customLabel\":\"differing quantity\",\"field\":\"nomad.migration.quantity.keyword\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"order\":\"desc\",\"orderBy\":\"1\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"size\":5},\"schema\":\"segment\",\"type\":\"terms\"},{\"enabled\":true,\"id\":\"3\",\"params\":{\"customLabel\":\"new value\",\"field\":\"nomad.migration.value_diff.keyword\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"order\":\"desc\",\"orderBy\":\"1\",\"otherBucket\":true,\"otherBucketLabel\":\"Other\",\"size\":10},\"schema\":\"group\",\"type\":\"terms\"}],\"params\":{\"addLegend\":true,\"addTimeMarker\":false,\"addTooltip\":true,\"categoryAxes\":[{\"id\":\"CategoryAxis-1\",\"labels\":{\"filter\":false,\"rotate\":0,\"show\":true,\"truncate\":200},\"position\":\"left\",\"scale\":{\"type\":\"linear\"},\"show\":true,\"style\":{},\"title\":{},\"type\":\"category\"}],\"grid\":{\"categoryLines\":false,\"style\":{\"color\":\"#eee\"}},\"legendPosition\":\"right\",\"seriesParams\":[{\"data\":{\"id\":\"1\",\"label\":\"number of repo calcs\"},\"drawLinesBetweenPoints\":true,\"mode\":\"stacked\",\"show\":true,\"showCircles\":true,\"type\":\"histogram\",\"valueAxis\":\"ValueAxis-1\"}],\"times\":[],\"type\":\"histogram\",\"valueAxes\":[{\"id\":\"ValueAxis-1\",\"labels\":{\"filter\":true,\"rotate\":75,\"show\":true,\"truncate\":100},\"name\":\"LeftAxis-1\",\"position\":\"bottom\",\"scale\":{\"mode\":\"normal\",\"type\":\"linear\"},\"show\":true,\"style\":{},\"title\":{\"text\":\"number of repo calcs\"},\"type\":\"value\"}]},\"title\":\"Migration differences by quantity and value [migration]\",\"type\":\"horizontal_bar\"}",
       "uiStateJSON": "{}",
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"f02ffa10-02ab-11e9-8c88-c573528f3b8d\",\"filter\":[],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+        "searchSourceJSON": "{\"index\":\"f02ffa10-02ab-11e9-8c88-c573528f3b8d\",\"filter\":[],\"query\":{\"language\":\"lucene\",\"query\":\"\"}}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "40acf760-3eb9-11e9-b932-c72cc7fb9c05",
+    "_type": "visualization",
+    "_source": {
+      "title": "Migration numbers [migration]",
+      "visState": "{\"title\":\"Migration numbers [migration]\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showPartialRows\":false,\"showMeticsAtAllLevels\":false,\"sort\":{\"columnIndex\":6,\"direction\":null},\"showTotal\":false,\"totalFunc\":\"sum\"},\"aggs\":[{\"id\":\"2\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.migration.migrated_calcs\",\"customLabel\":\"migrated\"}},{\"id\":\"4\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.migration.missing_calcs\",\"customLabel\":\"missing\"}},{\"id\":\"1\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.client.failed_calcs\",\"customLabel\":\"failed\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.migration.new_calcs\",\"customLabel\":\"new\"}},{\"id\":\"5\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.migration.calcs_with_diffs\",\"customLabel\":\"diffs\"}},{\"id\":\"7\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"nomad.migration.source_upload_id.keyword\",\"otherBucket\":true,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"4\",\"customLabel\":\"upload\"}},{\"id\":\"6\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"nomad.migration.package_id.keyword\",\"otherBucket\":true,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"4\",\"customLabel\":\"package\"}}]}",
+      "uiStateJSON": "{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":6,\"direction\":null}}}}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"f02ffa10-02ab-11e9-8c88-c573528f3b8d\",\"filter\":[{\"meta\":{\"index\":\"f02ffa10-02ab-11e9-8c88-c573528f3b8d\",\"negate\":false,\"disabled\":false,\"alias\":null,\"type\":\"phrase\",\"key\":\"event.keyword\",\"value\":\"migrated package\",\"params\":{\"query\":\"migrated package\",\"type\":\"phrase\"}},\"query\":{\"match\":{\"event.keyword\":{\"query\":\"migrated package\",\"type\":\"phrase\"}}},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "6e4b0440-3eba-11e9-b932-c72cc7fb9c05",
+    "_type": "visualization",
+    "_source": {
+      "title": "Migration summary [migration]",
+      "visState": "{\"title\":\"Migration summary [migration]\",\"type\":\"metric\",\"params\":{\"addTooltip\":true,\"addLegend\":false,\"type\":\"metric\",\"metric\":{\"percentageMode\":false,\"useRanges\":false,\"colorSchema\":\"Green to Red\",\"metricColorMode\":\"None\",\"colorsRange\":[{\"from\":0,\"to\":10000}],\"labels\":{\"show\":true},\"invertColors\":false,\"style\":{\"bgFill\":\"#000\",\"bgColor\":false,\"labelColor\":false,\"subText\":\"\",\"fontSize\":60}}},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.migration.total_source_calcs\",\"customLabel\":\"source calcs\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.migration.migrated_calcs\",\"customLabel\":\"migrated\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.migration.missing_calcs\",\"customLabel\":\"missing\"}},{\"id\":\"4\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.migration.failed_calcs\",\"customLabel\":\"failed\"}},{\"id\":\"5\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.migration.new_calcs\",\"customLabel\":\"new\"}},{\"id\":\"6\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.migration.calcs_with_diffs\",\"customLabel\":\"diffs\"}}]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"f02ffa10-02ab-11e9-8c88-c573528f3b8d\",\"filter\":[{\"meta\":{\"index\":\"f02ffa10-02ab-11e9-8c88-c573528f3b8d\",\"negate\":false,\"disabled\":false,\"alias\":null,\"type\":\"phrase\",\"key\":\"event.keyword\",\"value\":\"migrated package\",\"params\":{\"query\":\"migrated package\",\"type\":\"phrase\"}},\"query\":{\"match\":{\"event.keyword\":{\"query\":\"migrated package\",\"type\":\"phrase\"}}},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "1103dc60-c2f2-11e8-b9e8-d74f7e7408ed",
+    "_type": "visualization",
+    "_source": {
+      "title": "Uploads/calculations [nomad]",
+      "visState": "{\"title\":\"Uploads/calculations [nomad]\",\"type\":\"metric\",\"params\":{\"addTooltip\":true,\"addLegend\":false,\"type\":\"metric\",\"metric\":{\"percentageMode\":false,\"useRanges\":false,\"colorSchema\":\"Green to Red\",\"metricColorMode\":\"None\",\"colorsRange\":[{\"from\":0,\"to\":10000}],\"labels\":{\"show\":true},\"invertColors\":false,\"style\":{\"bgFill\":\"#000\",\"bgColor\":false,\"labelColor\":false,\"subText\":\"\",\"fontSize\":60}}},\"aggs\":[{\"id\":\"2\",\"enabled\":true,\"type\":\"cardinality\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.upload_id.keyword\",\"customLabel\":\"uploads\"}},{\"id\":\"1\",\"enabled\":true,\"type\":\"cardinality\",\"schema\":\"metric\",\"params\":{\"field\":\"nomad.calc_id.keyword\",\"customLabel\":\"Calculations\"}}]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"f02ffa10-02ab-11e9-8c88-c573528f3b8d\",\"filter\":[],\"query\":{\"language\":\"lucene\",\"query\":\"\"}}"
       }
     },
     "_meta": {

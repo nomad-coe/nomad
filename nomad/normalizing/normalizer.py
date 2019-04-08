@@ -34,7 +34,6 @@ class Normalizer(metaclass=ABCMeta):
         backend: the backend used to read and write data from and to
     """
     def __init__(self, backend: AbstractParserBackend) -> None:
-
         self._backend = backend
         self.logger = get_logger(__name__)
 

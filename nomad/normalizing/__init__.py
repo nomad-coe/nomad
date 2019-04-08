@@ -31,16 +31,14 @@ There is one ABC for all normalizer:
     :members:
 """
 
-from typing import List, Any
+from typing import List, Any, Iterable, Type
 
 from .normalizer import Normalizer
 from .system import SystemNormalizer
 from .fhiaims import FhiAimsBaseNormalizer
-from .repository import RepositoryNormalizer
 
 
-normalizers: List[Any] = [
+normalizers: Iterable[Type[Normalizer]] = [
     SystemNormalizer,
-    FhiAimsBaseNormalizer,
-    RepositoryNormalizer
+    FhiAimsBaseNormalizer
 ]

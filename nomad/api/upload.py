@@ -22,14 +22,14 @@ from flask_restplus import Resource, fields, abort
 from datetime import datetime
 from werkzeug.datastructures import FileStorage
 import os.path
+import os
 import io
 
-from nomad import config
+from nomad import config, utils, files
 from nomad.processing import Upload, FAILURE
 from nomad.processing import ProcessAlreadyRunning
-from nomad.files import ArchiveBasedStagingUploadFiles
 
-from .app import api, with_logger
+from .app import api, with_logger, RFC3339DateTime
 from .auth import login_really_required
 from .common import pagination_request_parser, pagination_model
 
@@ -46,8 +46,8 @@ proc_model = api.model('Processing', {
     'tasks_status': fields.String,
     'errors': fields.List(fields.String),
     'warnings': fields.List(fields.String),
-    'create_time': fields.DateTime(dt_format='iso8601'),
-    'complete_time': fields.DateTime(dt_format='iso8601'),
+    'create_time': RFC3339DateTime,
+    'complete_time': RFC3339DateTime,
     'current_process': fields.String,
     'process_running': fields.Boolean,
 })
@@ -64,7 +64,7 @@ metadata_model = api.model('MetaData', {
     'references': fields.List(fields.String, descriptions='References allow to link calculations to external source, e.g. URLs.'),
     'coauthors': fields.List(fields.Integer, description='A list of co-authors given by user_id.'),
     'shared_with': fields.List(fields.Integer, description='A list of users to share calculations with given by user_id.'),
-    '_upload_time': fields.DateTime(dt_format='iso8601', description='Overrride the upload time.'),
+    '_upload_time': RFC3339DateTime(description='Overrride the upload time.'),
     '_uploader': fields.Integer(description='Override the uploader with the given user id.'),
     'datasets': fields.List(fields.Nested(model=dataset_model), description='A list of datasets.')
 })
@@ -84,9 +84,10 @@ upload_model = api.inherit('UploadProcessing', proc_model, {
                     'using the name query parameter.'),
     'upload_id': fields.String(
         description='The unique id for the upload.'),
-    'metadata': fields.Nested(model=upload_metadata_model, description='Additional upload and calculation meta data.'),
-    'local_path': fields.String,
-    'upload_time': fields.DateTime(dt_format='iso8601'),
+    # TODO just removed during migration, where this get particularily large
+    # 'metadata': fields.Nested(model=upload_metadata_model, description='Additional upload and calculation meta data.'),
+    'upload_path': fields.String(description='The uploaded file on the server'),
+    'upload_time': RFC3339DateTime(),
 })
 
 calc_model = api.inherit('UploadCalculationProcessing', proc_model, {
@@ -158,20 +159,15 @@ class UploadListResource(Resource):
                 abort(404, message='The given local_path was not found.')
 
         upload_name = request.args.get('name')
-        # create upload
-        upload = Upload.create(
-            user=g.user,
-            name=upload_name,
-            local_path=local_path)
+        upload_id = utils.create_uuid()
 
-        logger = logger.bind(upload_id=upload.upload_id, upload_name=upload_name)
+        logger = logger.bind(upload_id=upload_id, upload_name=upload_name)
         logger.info('upload created', )
 
         try:
             if local_path:
                 # file is already there and does not to be received
-                upload_files = ArchiveBasedStagingUploadFiles(
-                    upload.upload_id, create=True, local_path=local_path)
+                upload_path = local_path
             elif request.mimetype == 'application/multipart-formdata':
                 logger.info('receive upload as multipart formdata')
                 # multipart formdata, e.g. with curl -X put "url" -F file=@local_file
@@ -179,26 +175,25 @@ class UploadListResource(Resource):
                 if 'file' in request.files:
                     abort(400, message='Bad multipart-formdata, there is no file part.')
                 file = request.files['file']
-                if upload.name is None or upload.name is '':
-                    upload.name = file.filename
+                if upload_name is None or upload_name is '':
+                    upload_name = file.filename
 
-                upload_files = ArchiveBasedStagingUploadFiles(upload.upload_id, create=True)
-
-                file.save(upload_files.upload_file_os_path)
+                upload_path = files.PathObject(config.fs.tmp, upload_id).os_path
+                file.save(upload_path)
             else:
                 # simple streaming data in HTTP body, e.g. with curl "url" -T local_file
                 logger.info('started to receive upload streaming data')
-                upload_files = ArchiveBasedStagingUploadFiles(upload.upload_id, create=True)
+                upload_path = files.PathObject(config.fs.tmp, upload_id).os_path
 
                 try:
-                    with open(upload_files.upload_file_os_path, 'wb') as f:
+                    with open(upload_path, 'wb') as f:
                         received_data = 0
                         received_last = 0
                         while not request.stream.is_exhausted:
                             data = request.stream.read(io.DEFAULT_BUFFER_SIZE)
                             received_data += len(data)
                             received_last += len(data)
-                            if received_last > 1e6:
+                            if received_last > 1e9:
                                 received_last = 0
                                 # TODO remove this logging or reduce it to debug
                                 logger.info('received streaming data', size=received_data)
@@ -208,13 +203,21 @@ class UploadListResource(Resource):
                     logger.warning('Error on streaming upload', exc_info=e)
                     abort(400, message='Some IO went wrong, download probably aborted/disrupted.')
         except Exception as e:
-            upload_files.delete()
-            upload.delete()
+            if not local_path and os.path.isfile(upload_path):
+                os.remove(upload_path)
             logger.info('Invalid or aborted upload')
             raise e
 
         logger.info('received uploaded file')
-        upload.upload_time = datetime.now()
+
+        upload = Upload.create(
+            upload_id=upload_id,
+            user=g.user,
+            name=upload_name,
+            upload_time=datetime.now(),
+            upload_path=upload_path,
+            temporary=local_path != upload_path)
+
         upload.process_upload()
         logger.info('initiated processing')
 
@@ -363,6 +366,8 @@ class UploadResource(Resource):
                 abort(400, message='The upload is not processed yet')
             if upload.tasks_status == FAILURE:
                 abort(400, message='Cannot publish an upload that failed processing')
+            if upload.processed_calcs == 0:
+                abort(400, message='Cannot publish an upload without calculations')
             try:
                 upload.metadata = metadata
                 upload.publish_upload()
@@ -387,10 +392,7 @@ class UploadCommandResource(Resource):
     @login_really_required
     def get(self):
         """ Get url and example command for shell based uploads. """
-        upload_url = 'http://%s:%s%s/uploads/' % (
-            config.services.api_host,
-            config.services.api_port,
-            config.services.api_base_path)
+        upload_url = '%s/uploads' % config.api_url()
 
         upload_command = 'curl -X PUT -H "X-Token: %s" "%s" -F file=@<local_file>' % (
             g.user.get_auth_token().decode('utf-8'), upload_url)

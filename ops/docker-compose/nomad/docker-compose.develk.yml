@@ -52,7 +52,7 @@ services:
         image: nomad/backend
         environment:
             NOMAD_LOGSTASH_LEVEL: DEBUG
-            NOMAD_CONSOLE_LOGLEVEL: INFO
+            NOMAD_CONSOLE_LOG_LEVEL: INFO
         links:
             - elk
 
@@ -62,7 +62,7 @@ services:
         image: nomad/backend
         environment:
             NOMAD_LOGSTASH_LEVEL: DEBUG
-            NOMAD_CONSOLE_LOGLEVEL: INFO
+            NOMAD_CONSOLE_LOG_LEVEL: INFO
         depends_on:
             - worker
         ports:

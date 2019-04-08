@@ -18,11 +18,11 @@ This module represents calculations in elastic search.
 
 from typing import Iterable, Dict, Tuple, List
 from elasticsearch_dsl import Document, InnerDoc, Keyword, Text, Date, \
-    Object, Boolean, Search, Integer, Q, A, analyzer, tokenizer
+    Object, Boolean, Search, Q, A, analyzer, tokenizer
+from elasticsearch_dsl.document import IndexMeta
 import elasticsearch.helpers
-import ase.data
 
-from nomad import config, datamodel, infrastructure, datamodel, coe_repo, parsing, utils
+from nomad import config, datamodel, infrastructure, datamodel, coe_repo, utils
 
 path_analyzer = analyzer(
     'path_analyzer',
@@ -30,6 +30,9 @@ path_analyzer = analyzer(
 
 
 class AlreadyExists(Exception): pass
+
+
+class ElasticSearchError(Exception): pass
 
 
 class User(InnerDoc):
@@ -64,7 +67,16 @@ class Dataset(InnerDoc):
     name = Keyword()
 
 
-class Entry(Document):
+class WithDomain(IndexMeta):
+    """ Override elasticsearch_dsl metaclass to sneak in domain specific mappings """
+    def __new__(cls, name, bases, attrs):
+        for quantity in datamodel.Domain.instance.quantities:
+            attrs[quantity.name] = quantity.elastic_mapping
+        return super(WithDomain, cls).__new__(cls, name, bases, attrs)
+
+
+class Entry(Document, metaclass=WithDomain):
+
     class Index:
         name = config.elastic.index_name
 
@@ -79,35 +91,13 @@ class Entry(Document):
 
     with_embargo = Boolean()
     published = Boolean()
+    processed = Boolean()
 
     authors = Object(User, multi=True)
     owners = Object(User, multi=True)
     comment = Text()
     references = Keyword()
     datasets = Object(Dataset)
-
-    formula = Keyword()
-    atoms = Keyword(multi=True)
-    basis_set = Keyword()
-    xc_functional = Keyword()
-    system = Keyword()
-    crystal_system = Keyword()
-    spacegroup = Keyword()
-    spacegroup_symbol = Keyword()
-    code_name = Keyword()
-    code_version = Keyword()
-
-    group_hash = Keyword()
-    """
-    A hash that is used to collapse results in search results. Its based on:
-    formula, spacegroup, basis_set, xc_functional, code_name, code_version,
-    with_embargo, commet, references, authors
-    """
-
-    n_total_energies = Integer()
-    n_geometries = Integer()
-    geometries = Keyword(multi=True)
-    quantities = Keyword(multi=True)
 
     @classmethod
     def from_calc_with_metadata(cls, source: datamodel.CalcWithMetadata) -> 'Entry':
@@ -120,7 +110,8 @@ class Entry(Document):
         self.upload_time = source.upload_time
         self.calc_id = source.calc_id
         self.calc_hash = source.calc_hash
-        self.pid = str(source.pid)
+        self.pid = None if source.pid is None else str(source.pid)
+        self.processed = source.processed
 
         self.mainfile = source.mainfile
         if source.files is None:
@@ -143,48 +134,8 @@ class Entry(Document):
         self.references = [ref.value for ref in source.references]
         self.datasets = [Dataset.from_dataset_popo(ds) for ds in source.datasets]
 
-        self.formula = source.formula
-        self.atoms = list(set(source.atoms))
-        self.basis_set = source.basis_set
-        self.xc_functional = source.xc_functional
-        self.system = source.system
-        self.crystal_system = source.crystal_system
-        self.spacegroup = source.spacegroup
-        self.spacegroup_symbol = source.spacegroup_symbol
-        self.code_name = source.code_name
-        self.code_version = source.code_version
-
-        self.group_hash = utils.hash(
-            self.formula,
-            self.spacegroup,
-            self.basis_set,
-            self.xc_functional,
-            self.code_name,
-            self.code_version,
-            self.with_embargo,
-            self.comment,
-            self.references,
-            self.authors)
-
-        if source.backend is not None:
-            quantities = set()
-            geometries = set()
-            n_total_energies = 0
-            n_geometries = 0
-
-            for meta_info, _, value in source.backend._delegate.results.traverse():
-                quantities.add(meta_info)
-                if meta_info == 'energy_total':
-                    n_total_energies += 1
-                if meta_info == 'section_system':
-                    n_geometries += 1
-                if meta_info == 'configuration_raw_gid':
-                    geometries.add(value)
-
-            self.geometries = list(geometries)
-            self.quantities = list(quantities)
-            self.n_total_energies = n_total_energies
-            self.n_geometries = n_geometries
+        for quantity in datamodel.Domain.instance.quantities:
+            setattr(self, quantity.name, getattr(source, quantity.name))
 
 
 def delete_upload(upload_id):
@@ -199,7 +150,11 @@ def publish(calcs: Iterable[datamodel.CalcWithMetadata]) -> None:
         for calc in calcs:
             entry = Entry.from_calc_with_metadata(calc)
             entry.published = True
-            yield entry.to_dict(include_meta=True)
+            entry = entry.to_dict(include_meta=True)
+            source = entry.pop('_source')
+            entry['doc'] = source
+            entry['_op_type'] = 'update'
+            yield entry
 
     elasticsearch.helpers.bulk(infrastructure.elastic_client, elastic_updates())
     refresh()
@@ -209,31 +164,10 @@ def refresh():
     infrastructure.elastic_client.indices.refresh(config.elastic.index_name)
 
 
-aggregations = {
-    'atoms': len(ase.data.chemical_symbols),
-    'system': 10,
-    'crystal_system': 10,
-    'code_name': len(parsing.parsers),
-    'xc_functional': 10,
-    'authors': 10
-}
+aggregations = datamodel.Domain.instance.aggregations
 """ The available aggregations in :func:`aggregate_search` and their maximum aggregation size """
 
-
 search_quantities = {
-    'formula': ('term', 'formula', 'The full reduced formula.'),
-    'spacegroup': ('term', 'spacegroup', 'The spacegroup as int.'),
-    'spacegroup_symbol': ('term', 'spacegroup', 'The spacegroup as international short symbol.'),
-    'basis_set': ('term', 'basis_set', 'The basis set type.'),
-    'atoms': ('term', 'atoms', (
-        'Search the given atom. This quantity can be used multiple times to search for '
-        'results with all the given atoms. The atoms are given by their case sensitive '
-        'symbol, e.g. Fe.')),
-
-    'system': ('term', 'system', 'Search for the given system type.'),
-    'crystal_system': ('term', 'crystal_system', 'Search for the given crystal system.'),
-    'code_name': ('term', 'code_name', 'Search for the given code name.'),
-    'xc_functional': ('term', 'xc_functional', 'Search for the given xc functional treatment'),
     'authors': ('term', 'authors.name.keyword', (
         'Search for the given author. Exact keyword matches in the form "Lastname, Firstname".')),
 
@@ -245,6 +179,7 @@ search_quantities = {
     'quantities': ('term', 'quantities', 'Search for the existence of a certain meta-info quantity'),
     'upload_id': ('term', 'upload_id', 'Search for the upload_id.'),
     'calc_id': ('term', 'calc_id', 'Search for the calc_id.'),
+    'pid': ('term', 'pid', 'Search for the pid.'),
     'mainfile': ('term', 'mainfile', 'Search for the mainfile.')
 }
 """
@@ -252,27 +187,36 @@ The available search quantities in :func:`aggregate_search` as tuples with *sear
 elastic field and description.
 """
 
+for quantity in datamodel.Domain.instance.quantities:
+    search_spec = ('term', quantity.name, quantity.description)
+    search_quantities[quantity.name] = search_spec
 
-def aggregate_search(
-        page: int = 1, per_page: int = 10, order_by: str = 'formula', order: int = -1,
-        q: Q = None, **kwargs) -> Tuple[int, List[dict], Dict[str, Dict[str, int]]]:
-    """
-    Performs a search and returns paginated search results and aggregation bucket sizes
-    based on key quantities.
 
-    Arguments:
-        page: The page to return starting with page 1
-        per_page: Results per page
-        q: An *elasticsearch_dsl* query used to further filter the results (via `and`)
-        aggregations: A customized list of aggregations to perform. Keys are index fields,
-            and values the amount of buckets to return. Only works on *keyword* field.
-        **kwargs: Quantity, value pairs to search for.
+metrics = {
+    'datasets': ('cardinality', 'datasets.id'),
+    'unique_code_runs': ('cardinality', 'calc_hash')
+}
+"""
+The available search metrics. Metrics are integer values given for each entry that can
+be used in aggregations, e.g. the sum of all total energy calculations or cardinality of
+all unique geometries.
+"""
 
-    Returns: A tuple with the total hits, an array with the results, an dictionary with
-        the aggregation data.
-    """
+for key, value in datamodel.Domain.instance.metrics.items():
+    metrics[key] = value
 
+metrics_names = list(metric for metric in metrics.keys())
+
+
+order_default_quantity = None
+for quantity in datamodel.Domain.instance.quantities:
+    if quantity.order_default:
+        order_default_quantity = quantity.name
+
+
+def _construct_search(q: Q = None, **kwargs) -> Search:
     search = Search(index=config.elastic.index_name)
+
     if q is not None:
         search = search.query(q)
 
@@ -294,11 +238,105 @@ def aggregate_search(
             for item in items:
                 search = search.query(Q(query_type, **{field: item}))
 
+    search = search.source(exclude=['quantities'])
+
+    return search
+
+
+def scroll_search(
+        scroll_id: str = None, size: int = 1000, scroll: str = u'5m',
+        q: Q = None, **kwargs) -> Tuple[str, int, List[dict]]:
+    """
+    Alternative search based on ES scroll API. Can be used similar to
+    :func:`aggregate_search`, but pagination is replaced with scrolling, no ordering,
+    and no aggregation information is given.
+
+    Scrolling is done by calling this function again and again with the same ``scoll_id``.
+    Each time, this function will return the next batch of search results.
+
+    See see :func:`aggregate_search` for additional ``kwargs``
+
+    Arguments:
+        scroll_id: The scroll id to receive the next batch from. None will create a new
+            scroll.
+        size: The batch size in number of hits.
+        scroll: The time the scroll should be kept alive (i.e. the time between requests
+            to this method) in ES time units. Default is 5 minutes.
+    """
+    es = infrastructure.elastic_client
+
+    if scroll_id is None:
+        # initiate scroll
+        search = _construct_search(q, **kwargs)
+        resp = es.search(body=search.to_dict(), scroll=scroll, size=size, index=config.elastic.index_name)  # pylint: disable=E1123
+
+        scroll_id = resp.get('_scroll_id')
+        if scroll_id is None:
+            # no results for search query
+            return None, 0, []
+    else:
+        resp = es.scroll(scroll_id, scroll=scroll)  # pylint: disable=E1123
+
+    total = resp['hits']['total']
+    results = [hit['_source'] for hit in resp['hits']['hits']]
+
+    # since we are using the low level api here, we should check errors
+    if resp["_shards"]["successful"] < resp["_shards"]["total"]:
+        utils.get_logger(__name__).error('es operation was unsuccessful on at least one shard')
+        raise ElasticSearchError('es operation was unsuccessful on at least one shard')
+
+    if len(results) == 0:
+        es.clear_scroll(body={'scroll_id': [scroll_id]}, ignore=(404, ))  # pylint: disable=E1123
+        return None, total, []
+
+    return scroll_id, total, results
+
+
+def aggregate_search(
+        page: int = 1, per_page: int = 10, order_by: str = order_default_quantity, order: int = -1,
+        q: Q = None, aggregations: Dict[str, int] = aggregations,
+        aggregation_metrics: List[str] = [],
+        total_metrics: List[str] = [],
+        **kwargs) -> Tuple[int, List[dict], Dict[str, Dict[str, Dict[str, int]]], Dict[str, int]]:
+    """
+    Performs a search and returns paginated search results and aggregations. The aggregations
+    contain overall and per quantity value sums of code runs (calcs), unique code runs, datasets,
+    and additional domain specific metrics (e.g. total energies, and unique geometries for DFT
+    calculations).
+
+    Arguments:
+        page: The page to return starting with page 1
+        per_page: Results per page
+        q: An *elasticsearch_dsl* query used to further filter the results (via `and`)
+        aggregations: A customized list of aggregations to perform. Keys are index fields,
+            and values the amount of buckets to return. Only works on *keyword* field.
+        aggregation_metrics: The metrics used to aggregate over. Can be ``unique_code_runs``, ``datasets``,
+            other domain specific metrics. The basic doc_count metric ``code_runs`` is always given.
+        total_metrics: The metrics used to for total numbers (see ``aggregation_metrics``).
+        **kwargs: Quantity, value pairs to search for.
+
+    Returns: A tuple with the total hits, an array with the results, an dictionary with
+        the aggregation data, and a dictionary with the overall metrics.
+    """
+
+    search = _construct_search(q, **kwargs)
+
+    def add_metrics(parent, metrics_to_add):
+        for metric in metrics_to_add:
+            metric_kind, field = metrics[metric]
+            parent.metric(metric, A(metric_kind, field=field))
+
     for aggregation, size in aggregations.items():
+
         if aggregation == 'authors':
-            search.aggs.bucket(aggregation, A('terms', field='authors.name_keyword', size=size))
+            a = A('terms', field='authors.name_keyword', size=size)
         else:
-            search.aggs.bucket(aggregation, A('terms', field=aggregation, size=size))
+            a = A('terms', field=aggregation, size=size, min_doc_count=0, order=dict(_key='asc'))
+
+        buckets = search.aggs.bucket(aggregation, a)
+        add_metrics(buckets, aggregation_metrics)
+
+    add_metrics(search.aggs, total_metrics)
 
     if order_by not in search_quantities:
         raise KeyError('Unknown order quantity %s' % order_by)
@@ -309,15 +347,26 @@ def aggregate_search(
     total_results = response.hits.total
     search_results = [hit.to_dict() for hit in response.hits]
 
+    def get_metrics(bucket, metrics_to_get, code_runs):
+        result = {
+            metric: bucket[metric]['value']
+            for metric in metrics_to_get
+        }
+        result.update(code_runs=code_runs)
+        return result
+
     aggregation_results = {
         aggregation: {
-            bucket.key: bucket.doc_count
+            bucket.key: get_metrics(bucket, aggregation_metrics, bucket.doc_count)
             for bucket in getattr(response.aggregations, aggregation).buckets
         }
         for aggregation in aggregations.keys()
+        if aggregation not in metrics_names
     }
 
-    return total_results, search_results, aggregation_results
+    total_metrics_result = get_metrics(response.aggregations, total_metrics, total_results)
+
+    return total_results, search_results, aggregation_results, total_metrics_result
 
 
 def authors(per_page: int = 10, after: str = None, prefix: str = None) -> Tuple[Dict[str, int], str]:

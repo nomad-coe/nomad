@@ -84,15 +84,17 @@ class SystemNormalizer(SystemBasedNormalizer):
             self.logger.error(
                 'cannot build ase atoms from atom labels',
                 atom_labels=atom_labels[:10], exc_info=e, error=str(e))
-            return
+            raise e
         chemical_symbols = list(atoms.get_chemical_symbols())
         if atom_labels != chemical_symbols:
             self.logger.error('atom labels are ambiguous', atom_labels=atom_labels[:10])
-            return
+        atom_labels = chemical_symbols
+        # Write labels. Rewrite if labels exist in backend already from parser.
+        self._backend.addArrayValues('atom_labels', atom_labels)
 
         if atom_species is None:
             atom_species = atoms.get_atomic_numbers().tolist()
-            set_value('atom_species', atom_species)
+            self._backend.addArrayValues('atom_species', atom_species)
         else:
             if not isinstance(atom_species, list):
                 atom_species = [atom_species]
@@ -149,7 +151,7 @@ class SystemNormalizer(SystemBasedNormalizer):
                 self.logger.error('no lattice vectors but periodicity', pbc=pbc)
         else:
             try:
-                atoms.set_cell(1e10 * lattice_vectors)
+                atoms.set_cell(1e10 * np.array(lattice_vectors))
             except Exception as e:
                 self.logger.error(
                     'cannot use lattice_vectors with ase atoms', exc_info=e, error=str(e))
@@ -184,7 +186,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         Determine the dimensioality and hence the system type of the system with
         Matid. Write the system type to the backend.
         """
-        system_type = 'unavailable'
+        system_type = config.services.unavailable_value
         try:
             dimensionality = get_dimensionality(
                 atoms, cluster_threshold=3.1, return_clusters=False)

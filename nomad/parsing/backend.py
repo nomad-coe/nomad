@@ -23,7 +23,6 @@ from nomadcore.local_backend import LocalBackend as LegacyLocalBackend
 from nomadcore.local_backend import Section, Results
 
 from nomad.utils import get_logger
-from nomad.datamodel import CalcWithMetadata
 
 logger = get_logger(__name__)
 
@@ -109,6 +108,14 @@ class AbstractParserBackend(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def setSectionInfo(self, metaName, gIndex, references):
+        """
+        Sets info values of an open section references should be a dictionary with the
+        gIndexes of the root sections this section refers to.
+        """
+        pass
+
+    @abstractmethod
     def closeNonOverlappingSection(self, metaName):
         """
         Closes the current non overlapping section for the given meta name. After
@@ -154,10 +161,11 @@ class AbstractParserBackend(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def addArrayValues(self, metaName, values, gIndex=-1):
+    def addArrayValues(self, metaName, values, gIndex=-1, override: bool = False):
         """
         Adds an array with the given numpy array values for the given metaName and
-        parent section gIndex.
+        parent section gIndex. Override determines whether to rewrite exisiting values
+        in the backend.
         """
         pass
 
@@ -528,36 +536,6 @@ class LocalBackend(LegacyParserBackend):
         self._status = 'ParseSuccess'
         self._errors = None
         self._warnings: List[str] = []
-
-    def to_calc_with_metadata(self) -> CalcWithMetadata:
-        repo_data = dict(calc_id=self.get_value('calc_id'))
-        for section in ['section_calculation_info', 'section_repository_info']:
-            repo_data[section] = self._obj(
-                self._delegate.results[section],
-                lambda name, value: value if name != 'archive_processor_warnings' else None)
-
-        calc_data = repo_data['section_repository_info']['section_repository_parserdata']
-
-        target = CalcWithMetadata()
-        target.upload_id = repo_data['section_calculation_info']['upload_id']
-        target.calc_id = repo_data['section_calculation_info']['calc_id']
-        target.calc_hash = calc_data['repository_checksum']
-        target.basis_set = calc_data['repository_basis_set_type']
-        target.crystal_system = calc_data['repository_crystal_system']
-        target.xc_functional = calc_data['repository_xc_treatment']
-        target.system = calc_data['repository_system_type']
-        target.atoms = calc_data['repository_atomic_elements']
-        target.spacegroup = calc_data['repository_spacegroup_nr']
-        target.spacegroup_symbol = calc_data['repository_spacegroup_symbol']
-        target.formula = calc_data['repository_chemical_formula']
-        target.code_version = calc_data['repository_code_version']
-        target.code_name = calc_data['repository_program_name']
-        target.files = repo_data['section_repository_info'].get('repository_filepaths', [])
-        target.mainfile = repo_data['section_calculation_info'].get('main_file', None)
-
-        target.backend = self
-
-        return target
 
     def write_json(self, out: TextIO, pretty=True, filter: Callable[[str, Any], Any] = None):
         """

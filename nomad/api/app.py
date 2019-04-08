@@ -16,18 +16,35 @@
 All APIs are served by one Flask app (:py:mod:`nomad.api.app`) under different paths.
 """
 
-from flask import Flask, jsonify
-from flask_restplus import Api
+from flask import Flask, jsonify, url_for
+from flask_restplus import Api, fields
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 from werkzeug.wsgi import DispatcherMiddleware
 import os.path
 import inspect
+from datetime import datetime
+import pytz
 
 from nomad import config, utils
 
 base_path = config.services.api_base_path
 """ Provides the root path of the nomad APIs. """
+
+
+@property  # type: ignore
+def specs_url(self):
+    """
+    Fixes issue where swagger-ui makes a call to swagger.json over HTTP.
+    This can ONLY be used on servers that actually use HTTPS.  On servers that use HTTP,
+    this code should not be used at all.
+    """
+    return url_for(self.endpoint('specs'), _external=True, _scheme='https')
+
+
+if config.services.https:
+    Api.specs_url = specs_url
+
 
 app = Flask(
     __name__,
@@ -43,7 +60,7 @@ app.config.SWAGGER_UI_REQUEST_DURATION = True  # type: ignore
 
 
 def api_base_path_response(env, resp):
-    resp(b'200 OK', [(b'Content-Type', b'text/plain')])
+    resp('200 OK', [('Content-Type', 'text/plain')])
     return [
         ('Development nomad api server. Api is served under %s/.' %
             config.services.api_base_path).encode('utf-8')]
@@ -120,3 +137,12 @@ def with_logger(func):
 
     wrapper.__signature__ = wrapper_signature
     return wrapper
+
+
+class RFC3339DateTime(fields.DateTime):
+
+    def format(self, value):
+        if isinstance(value, datetime):
+            return super().format(value.replace(tzinfo=pytz.utc))
+        else:
+            str(value)

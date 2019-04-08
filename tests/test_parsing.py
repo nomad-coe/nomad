@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from io import StringIO
 import json
+import numpy as np
 import pytest
+import os
 
 from nomadcore.local_meta_info import loadJsonFile
 import nomad_meta_info
@@ -29,7 +30,7 @@ parser_examples = [
     ('parsers/template', 'tests/data/parsers/template.json'),
     ('parsers/exciting', 'tests/data/parsers/exciting/Ag/INFO.OUT'),
     ('parsers/exciting', 'tests/data/parsers/exciting/GW/INFO.OUT'),
-    # ('parsers/vasp', 'tests/data/parsers/vasp/vasp.xml'),
+    ('parsers/vasp', 'tests/data/parsers/vasp/vasp.xml'),
     ('parsers/vasp', 'tests/data/parsers/vasp_compressed/vasp.xml.gz'),
     ('parsers/vaspoutcar', 'tests/data/parsers/vasp_outcar/OUTCAR'),
     ('parsers/fhi-aims', 'tests/data/parsers/fhi-aims/aims.out'),
@@ -48,19 +49,25 @@ parser_examples = [
     ('parsers/dl-poly', 'tests/data/parsers/dl-poly/OUTPUT'),
     ('parsers/lib-atoms', 'tests/data/parsers/lib-atoms/gp.xml'),
     ('parsers/octopus', 'tests/data/parsers/octopus/stdout.txt'),
-    ('parsers/phonopy',
-        'tests/data/parsers/phonopy/control.in'),
+    ('parsers/phonopy', 'tests/data/parsers/phonopy/control.in'),
     ('parsers/gpaw', 'tests/data/parsers/gpaw/Fe2.gpw'),
     ('parsers/gpaw2', 'tests/data/parsers/gpaw2/H2_lcao.gpw2'),
     ('parsers/atk', 'tests/data/parsers/atk/Si2.nc'),
-    # ('parsers/gulp', 'tests/data/parsers/gulp/example6.got'),  # Issue with section_method
-    # ('parsers/siesta', 'tests/data/parsers/siesta/Fe/out'),  # Issue with dir.
-    ('parsers/elk', 'tests/data/parsers/elk/Al/info.out'),
-    # ('parsers/elastic', 'tests/data/parsers/elastic/2nd/INFO_ElaStic')  # 70Mb file 2big4git
-    # ('parsers/turbomole', 'tests/data/parsers/turbomole/acrolein.out')  # Issue with backend
-    ('parsers/gamess', 'tests/data/parsers/gamess/exam01.out'),
-    ('parsers/vasp', 'tests/data/parsers/vasp/GeZnNa2_Test/vasprun.xml.relax1')  # Test for Zn.
+    ('parsers/gulp', 'tests/data/parsers/gulp/example6.got'),
+    ('parsers/siesta', 'tests/data/parsers/siesta/Fe/out'),
+    ('parsers/elk', 'tests/data/parsers/elk/Al/INFO.OUT'),
+    ('parsers/elastic', 'dependencies/parsers/elastic/test/examples/2nd/INFO_ElaStic'),  # 70Mb file 2big4git
+    ('parsers/turbomole', 'tests/data/parsers/turbomole/acrolein.out'),
+    ('parsers/gamess', 'tests/data/parsers/gamess/exam01.out')
 ]
+
+# We need to remove some cases with external mainfiles, which might not exist
+# in all testing environments (e.g. in the nomad docker image)
+fixed_parser_examples = []
+for parser, mainfile in parser_examples:
+    if os.path.exists(mainfile) or mainfile.startswith('tests'):
+        fixed_parser_examples.append((parser, mainfile))
+parser_examples = fixed_parser_examples
 
 faulty_unknown_one_d_matid_example = [
     ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
@@ -106,6 +113,20 @@ class TestLocalBackend(object):
         assert backend.get_sections('section_run') == [0, 1, 2]
         for i in range(0, 3):
             assert backend.get_value('program_name', i) == 't%d' % i
+
+    def test_section_override(self, backend, no_warn):
+        """ Test whether we can overwrite values already in the backend."""
+        expected_value = ['Cl', 'Zn']
+        backend.openSection('section_run')
+        backend.openSection('section_system')
+        backend.addArrayValues('atom_labels', np.array(['Al', 'Zn']))
+        backend.addArrayValues('atom_labels', np.array(expected_value), override=True)
+        backend.closeSection('section_system', 0)
+
+        backend.closeSection('section_run', 0)
+        output = StringIO()
+        backend.write_json(output)
+        assert backend.get_value('atom_labels').tolist() == expected_value
 
     def test_two_sections(self, backend, no_warn):
         g_index = backend.openSection('section_run')
@@ -258,7 +279,7 @@ def assert_parser_dir_unchanged(previous_wd, current_wd):
 def run_parser(parser_name, mainfile):
     parser = parser_dict[parser_name]
     result = parser.run(mainfile, logger=utils.get_logger(__name__))
-    return add_calculation_info(result)
+    return add_calculation_info(result, parser_name=parser_name)
 
 
 @pytest.fixture
@@ -287,13 +308,14 @@ def parsed_example(request) -> LocalBackend:
     return result
 
 
-def add_calculation_info(backend: LocalBackend) -> LocalBackend:
+def add_calculation_info(backend: LocalBackend, **kwargs) -> LocalBackend:
     backend.openNonOverlappingSection('section_calculation_info')
     backend.addValue('upload_id', 'test_upload_id')
     backend.addValue('calc_id', 'test_calc_id')
     backend.addValue('calc_hash', 'test_calc_hash')
     backend.addValue('main_file', 'test/mainfile.txt')
-    backend.addValue('parser_name', 'testParser')
+    for key, value in kwargs.items():
+        backend.addValue(key, value)
     backend.closeNonOverlappingSection('section_calculation_info')
     return backend
 

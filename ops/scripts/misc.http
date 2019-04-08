@@ -1,0 +1,66 @@
+###
+# Disable threshold based trigger for turning elastic indices read only due to low disc space
+
+PUT http://localhost:9200/_cluster/settings HTTP/1.1
+content-type: application/json
+
+{
+    "transient" : {
+        "cluster.routing.allocation.disk.threshold_enabled" : false
+    }
+}
+
+###
+# Make calcs index writeable after accedental getting read only
+
+PUT http://localhost:9200/calcs/_settings HTTP/1.1
+content-type: application/json
+
+{
+    "index.blocks.read_only_allow_delete": null
+}
+
+###
+# Delete unpublished calcs
+
+POST http://localhost:19200/fairdi_nomad_migration/_delete_by_query HTTP/1.1
+Content-Type: application/json
+
+{
+    "query": {
+        "match": {
+            "published": true
+        }
+    }
+}
+
+
+###
+# Get errors from ELK
+GET http://localhost:29200/logstash-2019.03.27/_search HTTP/1.1
+content-type: application/json
+
+{
+    "size": 0,
+    "query": {
+        "match": {
+            "level.keyword": "ERROR"
+        }
+    },
+    "aggs": {
+        "event": {
+            "terms": {
+                "field": "digest.keyword",
+                "size": 100
+            },
+            "aggs": {
+                "upload_path": {
+                    "terms": {
+                        "field": "nomad.migration.upload_path.keyword",
+                        "size": 100
+                    }
+                }
+            }
+        }
+    }
+}

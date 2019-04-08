@@ -18,9 +18,10 @@ import os.path
 from bravado.client import SwaggerClient
 import json
 import glob
-from io import StringIO
+import bravado.exception
+import zipfile
 
-from nomad import infrastructure, coe_repo
+from nomad import infrastructure, coe_repo, utils, files, processing, config
 
 from nomad.migration import NomadCOEMigration, SourceCalc, Package
 from nomad.infrastructure import repository_db_connection
@@ -28,6 +29,9 @@ from nomad.infrastructure import repository_db_connection
 from tests.conftest import create_postgres_infra, create_auth_headers
 from tests.bravado_flask import FlaskTestHttpClient
 from tests.test_api import create_auth_headers
+import tests.utils as test_utils
+from tests.test_search import assert_search_upload
+from tests.test_files import assert_upload_files
 
 test_source_db_name = 'test_nomad_fairdi_migration_source'
 test_target_db_name = 'test_nomad_fairdi_migration_target'
@@ -80,9 +84,9 @@ def target_repo(postgres):
 
 
 @pytest.fixture(scope='function')
-def migration(source_repo, target_repo):
+def migration(source_repo, target_repo, raw_files):
     Package.objects().delete()  # the mongo fixture drops the db, but we still get old results, probably mongoengine caching
-    migration = NomadCOEMigration()
+    migration = NomadCOEMigration(quiet=True)
     yield migration
 
 
@@ -91,16 +95,25 @@ def source_package(mongo, migration):
     migration.package(*glob.glob('tests/data/migration/*'))
 
 
-@pytest.mark.parametrize('n_packages, restriction, upload', [
-    (1, 36, 'baseline'), (2, 0, 'too_big'), (1, 24, 'restriction')])
-def test_package(mongo, migration, monkeypatch, n_packages, restriction, upload):
+@pytest.mark.parametrize('archived', [False, True])
+@pytest.mark.parametrize('n_packages, restriction, upload', [(1, 36, 'baseline'), (2, 0, 'too_big'), (1, 24, 'restriction')])
+def test_package(
+        mongo, migration: NomadCOEMigration, monkeypatch, n_packages, restriction, upload, archived):
     monkeypatch.setattr('nomad.migration.max_package_size', 3)
-    migration.package(*glob.glob(os.path.join('tests/data/migration/packaging', upload)))
+    if archived:
+        upload = os.path.join('tests/data/migration/packaging_archived', upload)
+    else:
+        upload = os.path.join('tests/data/migration/packaging', upload)
+
+    migration.package_index(upload)
     packages = Package.objects()
     for package in packages:
-        assert len(package.filenames) > 0
+        assert os.path.exists(package.package_path)
         assert package.size > 0
+        assert package.files > 0
         assert package.restricted == restriction
+        with zipfile.ZipFile(package.package_path, 'r') as zf:
+            len(zf.filelist) == package.files
 
     assert packages.count() == n_packages
 
@@ -151,26 +164,41 @@ def migrate_infra(migration, target_repo, proc_infra, client, monkeypatch):
     All with two calcs, two users (for coauthors)
     """
     # source repo is the infrastructure repo
-    indexed = list(migration.index(drop=True, with_metadata=True))
+    indexed = list(migration.source_calc_index(drop=True, with_metadata=True))
     assert len(indexed) == 2
 
     # target repo is the infrastructure repo
-    def create_client():
-        admin = target_repo.query(coe_repo.User).filter_by(email='admin').first()
-        http_client = FlaskTestHttpClient(client, headers=create_auth_headers(admin))
+    monkeypatch.setattr('nomad.infrastructure.repository_db', target_repo)
+
+    infra = utils.POPO()
+
+    infra.admin_auth = create_auth_headers(coe_repo.User.from_user_id(0))
+
+    def create_client_for_user(auth):
+        http_client = FlaskTestHttpClient(client, headers=auth)
         return SwaggerClient.from_url('/swagger.json', http_client=http_client)
+
+    def create_client():
+        return create_client_for_user(infra.admin_auth)
+
+    monkeypatch.setattr('nomad.client.create_client', create_client)
 
     def stream_upload_with_client(client, upload_f, name=None):
         return client.uploads.upload(file=upload_f, name=name).response().result
 
-    monkeypatch.setattr('nomad.infrastructure.repository_db', target_repo)
-    monkeypatch.setattr('nomad.client.create_client', create_client)
     monkeypatch.setattr('nomad.client.stream_upload_with_client', stream_upload_with_client)
 
     # source repo is the still the original infrastructure repo
     migration.copy_users()
+    infra.one_auth = create_auth_headers(coe_repo.User.from_user_id(3))
+    infra.two_auth = create_auth_headers(coe_repo.User.from_user_id(4))
 
-    yield migration
+    infra.migration = migration
+    infra.flask = client
+    infra.one_client = create_client_for_user(infra.one_auth)
+    infra.two_client = create_client_for_user(infra.one_auth)
+
+    yield infra
 
 
 def test_copy_users(migrate_infra, target_repo):
@@ -179,32 +207,32 @@ def test_copy_users(migrate_infra, target_repo):
 
 
 mirgation_test_specs = [
-    ('baseline', 'baseline', dict(migrated=2, source=2), {}),
-    ('local', 'baseline', dict(migrated=2, source=2), dict(local=True)),
-    # ('archive', dict(migrated=2, source=2)),
-    ('new_upload', 'new_upload', dict(new=2), {}),
-    ('new_calc', 'new_calc', dict(migrated=2, source=2, new=1), {}),
-    ('missing_calc', 'missing_calc', dict(migrated=1, source=2, missing=1), {}),
-    ('missmatch', 'missmatch', dict(migrated=2, source=2, diffs=1), {}),
-    ('failed_calc', 'failed_calc', dict(migrated=1, source=2, diffs=0, missing=1, failed=1), {}),
-    ('failed_upload', 'baseline', dict(migrated=0, source=2, missing=2, errors=1), {}),
-    ('failed_publish', 'baseline', dict(migrated=0, source=2, missing=2, failed=2, errors=1), {})
+    ('baseline', 'baseline', dict(migrated=2, source=2)),
+    ('archive', 'baseline', dict(migrated=2, source=2)),
+    ('new_upload', 'new_upload', dict(new=2)),
+    ('new_calc', 'new_calc', dict(migrated=2, source=2, new=1)),
+    ('missing_calc', 'missing_calc', dict(migrated=1, source=2, missing=1)),
+    ('missmatch', 'missmatch', dict(migrated=2, source=2, diffs=1)),
+    ('failed_calc', 'failed_calc', dict(migrated=2, source=2, diffs=0, missing=0, failed=1)),
+    ('failed_upload', 'baseline', dict(migrated=0, source=2, missing=2, errors=1)),
+    ('failed_publish', 'baseline', dict(migrated=0, source=2, missing=2, errors=1, not_migrated=2))
 ]
 
 
 @pytest.mark.filterwarnings("ignore:SAWarning")
-@pytest.mark.parametrize('name, test_directory, assertions, kwargs', mirgation_test_specs)
-@pytest.mark.timeout(30)
-def test_migrate(migrate_infra, name, test_directory, assertions, kwargs, monkeypatch, caplog):
-    perform_migration_test(migrate_infra, name, test_directory, assertions, kwargs, monkeypatch, caplog)
+@pytest.mark.parametrize('name, test_directory, assertions', mirgation_test_specs)
+@pytest.mark.timeout(config.tests.default_timeout)
+def test_migrate(migrate_infra, name, test_directory, assertions, monkeypatch, caplog):
+    perform_migration_test(migrate_infra, name, test_directory, assertions, monkeypatch, caplog)
 
 
-def perform_migration_test(migrate_infra, name, test_directory, assertions, kwargs, monkeypatch, caplog):
+def perform_migration_test(migrate_infra, name, test_directory, assertions, monkeypatch, caplog):
+
     def with_error(*args, **kwargs):
-        return StringIO('hello, this is not a zip')
+        raise Exception('test error')
 
     if name == 'failed_upload':
-        monkeypatch.setattr('nomad.migration.Package.open_package_upload_file', with_error)
+        monkeypatch.setattr('nomad.files.ArchiveBasedStagingUploadFiles.extract', with_error)
 
     if name == 'failed_publish':
         monkeypatch.setattr('nomad.processing.data.Upload.to_upload_with_metadata', with_error)
@@ -213,10 +241,10 @@ def perform_migration_test(migrate_infra, name, test_directory, assertions, kwar
     upload_path = os.path.join(upload_path, os.listdir(upload_path)[0])
 
     pid_prefix = 10
-    migrate_infra.set_pid_prefix(pid_prefix)
-    report = migrate_infra.migrate(upload_path, create_packages=True, **kwargs)
+    migrate_infra.migration.set_pid_prefix(pid_prefix)
+    report = migrate_infra.migration.migrate(upload_path, create_packages=True)
 
-    assert report.total_calcs == assertions.get('migrated', 0) + assertions.get('new', 0) + assertions.get('failed', 0)
+    assert report.total_calcs == assertions.get('migrated', 0) + assertions.get('new', 0) + assertions.get('not_migrated', 0)
 
     # assert if new, diffing, migrated calcs where detected correctly
     assert report.total_source_calcs == assertions.get('source', 0)
@@ -264,10 +292,42 @@ def perform_migration_test(migrate_infra, name, test_directory, assertions, kwar
 
     assert errors == assertions.get('errors', 0)
 
+    if name == 'baseline':
+        result = migrate_infra.two_client.repo.search(per_page=2, order=1, order_by='pid').response().result
+        assert result.pagination.total == 2
+        calc_1 = result.results[0]
+        assert calc_1['pid'] == '1'
+        assert calc_1['with_embargo'] is False
+
+        calc_2 = result.results[1]
+        assert calc_2['pid'] == '2'
+        assert calc_2['with_embargo'] is True
+
+        # assert if with_embargo is passed through to files
+        with test_utils.assert_exception(bravado.exception.HTTPUnauthorized):
+            migrate_infra.one_client.archive.get_archive_calc(
+                upload_id=calc_2['upload_id'], calc_id=calc_2['calc_id']).response().result
+
+        with test_utils.assert_exception(bravado.exception.HTTPUnauthorized):
+            migrate_infra.one_client.raw.get(
+                upload_id=calc_2['upload_id'], path=calc_2['mainfile']).response().result
+
+        migrate_infra.two_client.archive.get_archive_calc(
+            upload_id=calc_1['upload_id'], calc_id=calc_1['calc_id']).response().result
+        migrate_infra.two_client.raw.get(
+            upload_id=calc_1['upload_id'], path=calc_1['mainfile']).response().result
+
+        upload_proc = processing.Upload.get(calc_1['upload_id'], include_published=True)
+        upload_with_metadata = upload_proc.to_upload_with_metadata()
+        assert_search_upload(
+            upload_with_metadata, additional_keys=['with_embargo', 'pid'], published=True)
+        assert_upload_files(
+            upload_with_metadata, files.PublicUploadFiles, additional_keys=['with_embargo', 'pid'], published=True)
+
 
 def test_skip_on_same_version(migrate_infra, monkeypatch, caplog):
-    assertions = dict(migrated=2, source=2)
-    perform_migration_test(migrate_infra, 'baseline', 'baseline', assertions, {}, monkeypatch, caplog)
+    assertions = dict(migrated=2, source=2, skipped_packages=0)
+    perform_migration_test(migrate_infra, 'baseline', 'baseline', assertions, monkeypatch, caplog)
 
-    assertions = dict(source=2)
-    perform_migration_test(migrate_infra, 'baseline', 'baseline', assertions, {}, monkeypatch, caplog)
+    assertions = dict(migrated=2, source=2, skipped_packages=1)
+    perform_migration_test(migrate_infra, 'baseline', 'baseline', assertions, monkeypatch, caplog)

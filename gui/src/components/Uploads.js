@@ -2,9 +2,7 @@ import React from 'react'
 import PropTypes, { instanceOf } from 'prop-types'
 import Markdown from './Markdown'
 import { withStyles, Paper, IconButton, FormGroup, Checkbox, FormControlLabel, FormLabel,
-  LinearProgress,
-  Typography,
-  Tooltip} from '@material-ui/core'
+  LinearProgress, Tooltip} from '@material-ui/core'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import Dropzone from 'react-dropzone'
 import Upload from './Upload'
@@ -261,7 +259,6 @@ class Uploads extends React.Component {
 
     return (
       <div className={classes.root}>
-        <Typography variant="h4">Upload your own data</Typography>
         <Agree message={agreement} cookie="agreedToUploadTerms">
           <Help cookie="uploadHelp" component={Markdown}>{`
             To upload your own data, please put all relevant files in a

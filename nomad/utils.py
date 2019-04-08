@@ -155,8 +155,8 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
             for key, value in structlog.items():
                 if key in ('event', 'stack_info', 'id', 'timestamp'):
                     continue
-                elif key in ['exception']:
-                    pass
+                elif key == 'exception':
+                    message['digest'] = str(value)[-256:]
                 elif key in (
                         'upload_id', 'calc_id', 'mainfile',
                         'service', 'release'):
@@ -190,8 +190,8 @@ class ConsoleFormatter(LogstashFormatter):
         level = message_dict.pop('level', None)
         exception = message_dict.pop('exception', None)
         time = message_dict.pop('@timestamp', None)
-        for key in ['type', 'tags', 'stack_info', 'path', 'message', 'host', '@version']:
-            message_dict.pop(key)
+        for key in ['type', 'tags', 'stack_info', 'path', 'message', 'host', '@version', 'digest']:
+            message_dict.pop(key, None)
         keys = list(message_dict.keys())
         keys.sort()
 
@@ -259,7 +259,8 @@ def configure_logging():
 
     # configure log levels
     for logger in [
-            'celery.app.trace', 'celery.worker.strategy', 'bagit', 'elasticsearch',
+            'elasticsearch',
+            # 'celery.app.trace', 'celery.worker.strategy',
             'urllib3.connectionpool', 'bravado', 'bravado_core', 'swagger_spec_validator']:
         logging.getLogger(logger).setLevel(logging.WARNING)
 
@@ -354,6 +355,12 @@ class archive:
 
 def to_tuple(self, *args):
     return tuple(self[arg] for arg in args)
+
+
+def chunks(list, n):
+    """ Chunks up the given list into parts of size n. """
+    for i in range(0, len(list), n):
+        yield list[i:i + n]
 
 
 class POPO(dict):

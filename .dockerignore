@@ -12,3 +12,6 @@ __pycache__/
 *.pyc
 NOMAD.egg-info/
 .coverage
+examples/
+local/
+target/

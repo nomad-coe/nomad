@@ -12,21 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
-
-from nomad.client import create_client, upload_file
-
-from tests.test_files import example_file
+from nomad import config
 
 
-@pytest.fixture(scope='session')
-def client():
-    return create_client()
-
-
-def test_client(client):
-    client.repo.get_calcs().response()
-
-
-def test_upload(client):
-    upload_file(example_file, client=client)
+def test_apply():
+    config.apply('fs_migration_packages', 'test_value')
+    assert config.fs.migration_packages == 'test_value'

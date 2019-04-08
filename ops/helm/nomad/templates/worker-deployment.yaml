@@ -19,6 +19,14 @@ spec:
         app.kubernetes.io/name: {{ include "nomad.name" . }}-worker
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: {{ include "nomad.name" . }}-worker
+                app.kubernetes.io/instance: {{ .Release.Name }}
       containers:
       - name: {{ include "nomad.name" . }}-worker
         image: "{{ .Values.images.nomad.name }}:{{ .Values.images.nomad.tag }}"
@@ -28,62 +36,33 @@ spec:
           requests:
             memory: "{{ .Values.worker.memrequest }}Gi"
         volumeMounts:
-        - mountPath: /app/.volumes/fs
-          name: files-volume
+        - mountPath: /app/nomad.yaml
+          name: nomad-conf
+          subPath: nomad.yaml
+        - mountPath: /app/.volumes/fs/public
+          name: public-volume
+        - mountPath: /app/.volumes/fs/staging
+          name: staging-volume
         - mountPath: /nomad
           name: nomad-volume
         env:
         - name: NOMAD_SERVICE
           value: "worker"
-        - name: NOMAD_RELEASE
-          value: "{{ .Release.Name }}"
-        - name: NOMAD_LOGSTASH_HOST
-          value: "{{ .Values.logstash.host }}"
-        - name: NOMAD_LOGSTASH_TCPPORT
-          value: "{{ .Values.logstash.port }}"
-        - name: NOMAD_CONSOLE_LOGLEVEL
+        - name: NOMAD_CONSOLE_LOG_LEVEL
           value: "{{ .Values.worker.console_loglevel }}"
         - name: NOMAD_LOGSTASH_LEVEL
           value: "{{ .Values.worker.logstash_loglevel }}"
-        - name: NOMAD_RABBITMQ_HOST
-          value: "{{ .Release.Name }}-rabbitmq"
-        - name: NOMAD_ELASTIC_HOST
-          value: "{{ .Values.elastic.host }}"
-        - name: NOMAD_ELASTIC_PORT
-          value: "{{ .Values.elastic.port }}"
-        - name: NOMAD_ELASTIC_INDEX_NAME
-          value: "{{ .Values.dbname }}"
-        - name: NOMAD_MONGO_HOST
-          value: "{{ .Values.mongo.host }}"
-        - name: NOMAD_MONGO_PORT
-          value: "{{ .Values.mongo.port }}"
-        - name: NOMAD_MONGO_DB_NAME
-          value: "{{ .Values.dbname }}"
-        - name: NOMAD_COE_REPO_DB_HOST
-          value: "{{ .Values.postgres.host }}"
-        - name: NOMAD_COE_REPO_DB_PORT
-          value: "{{ .Values.postgres.port }}"
-        - name: NOMAD_COE_REPO_DB_NAME
-          value: "{{ .Values.dbname }}"
-        - name: NOMAD_UPLOAD_URL
-          value: "{{ .Values.uploadurl }}"
-        - name: NOMAD_SMTP_HOST
-          value: "{{ .Values.mail.host }}"
-        - name: NOMAD_SMTP_PORT
-          value: "{{ .Values.mail.port }}"
-        - name: NOMAD_SMTP_USER
-          value: "{{ .Values.mail.user }}"
-        - name: NOMAD_SMTP_PASSWORD
-          value: "{{ .Values.mail.password }}"
-        - name: NOMAD_MAIL_FROM
-          value: "{{ .Values.mail.from }}"
-        command: ["python", "-m", "celery", "worker", "-l", "info", "-A", "nomad.processing", "-Q", "celery,calcs,uploads"]
+        - name: NOMAD_CELERY_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        command: ["python", "-m", "celery", "worker", "-A", "nomad.processing", "-n", "$(NOMAD_CELERY_NODE_NAME)"]
         livenessProbe:
           exec:
             command:
             - bash
             - -c
-            - NOMAD_LOGSTASH_LEVEL=30 python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
+            - NOMAD_LOGSTASH_LEVEL=WARNING python -m celery -A nomad.processing status | grep "$(NOMAD_CELERY_NODE_NAME):.*OK"
           initialDelaySeconds: 30
           periodSeconds: 30
         readinessProbe:
@@ -91,17 +70,31 @@ spec:
             command:
             - bash
             - -c
-            - NOMAD_LOGSTASH_LEVEL=30 python -m celery -A nomad.processing status | grep "${HOSTNAME}:.*OK"
+            - NOMAD_LOGSTASH_LEVEL=WARNING python -m celery -A nomad.processing status | grep "${NOMAD_CELERY_NODE_NAME}:.*OK"
           initialDelaySeconds: 5
           periodSeconds: 120
+      nodeSelector:
+        nomadtype: worker
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
       imagePullPolicy: always
       volumes:
-      - name: files-volume
+      - name: nomad-conf
+        configMap:
+          name: {{ include "nomad.fullname" . }}-configmap
+      - name: public-volume
         hostPath:
-          path: {{ .Values.volumes.files }}
+          path: {{ .Values.volumes.public }}
           type: Directory
+      - name: staging-volume
+        {{ if (eq .Values.worker.storage "memory") }}
+        emptyDir:
+          medium: 'Memory'
+        {{ else }}
+        hostPath:
+          path: {{ .Values.volumes.staging}}
+          type: Directory
+        {{ end }}
       - name: nomad-volume
         hostPath:
           path: {{ .Values.volumes.nomad }}

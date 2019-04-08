@@ -20,31 +20,34 @@ other/older nomad@FAIRDI instances to mass upload it to a new nomad@FAIRDI insta
 .. autoclass:: SourceCalc
 """
 
-from typing import Generator, Tuple, List, Iterable, IO, Any
+from typing import Generator, Tuple, List, Iterable, Any, Dict
+import multiprocessing
+import time
 import os
 import os.path
-import zipstream
 import zipfile
+import tarfile
 import math
-from mongoengine import Document, IntField, StringField, DictField, ListField
-import time
+from mongoengine import Document, IntField, StringField, DictField
 import datetime
 from bravado.exception import HTTPNotFound, HTTPBadRequest, HTTPGatewayTimeout
-import glob
 import os
 import runstats
 import io
+import threading
+from contextlib import contextmanager
+import shutil
 
-from nomad import utils, infrastructure, config
+from nomad import utils, infrastructure, files, config
 from nomad.coe_repo import User, Calc, LoginException
 from nomad.datamodel import CalcWithMetadata
-from nomad.processing import FAILURE, SUCCESS
+from nomad.processing import FAILURE
 
 
 default_pid_prefix = 7000000
 """ The default pid prefix for new non migrated calculations """
 
-max_package_size = 16 * 1024 * 1024 * 1024  # 16 GB
+max_package_size = 32 * 1024 * 1024 * 1024  # 32 GB
 """ The maximum size of a package that will be used as an upload on nomad@FAIRDI """
 use_stats_for_filestats_threshold = 1024
 
@@ -87,6 +90,31 @@ def iterable_to_stream(iterable, buffer_size=io.DEFAULT_BUFFER_SIZE):
     return io.BufferedReader(IterStream(), buffer_size=buffer_size)
 
 
+Directory = Tuple[List[str], str, int]
+
+
+def create_package_zip(
+        upload_id: str, upload_path: str, package_id: str, package_path: str, compress: bool,
+        package_filepaths: Iterable[str]) -> None:
+    logger = utils.get_logger(
+        __name__, source_upload_id=upload_id,
+        source_upload_path=upload_path, package_id=package_id)
+
+    package_zip = zipfile.ZipFile(
+        package_path, 'w',
+        compression=zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED)
+
+    try:
+        for filepath in package_filepaths:
+            package_zip.write(filepath, filepath[len(upload_path):])
+    except Exception as e:
+        logger.error('could not write file to zip', filepath=filepath, exc_info=e)
+    finally:
+        package_zip.close()
+
+    logger.info('package zip created')
+
+
 class Package(Document):
     """
     A Package represents split origin NOMAD CoE uploads. We use packages as uploads
@@ -94,150 +122,238 @@ class Package(Document):
     to be split down to yield practical (i.e. for mirrors) upload sizes. Therefore,
     uploads are split over multiple packages if one upload gets to large. A package
     always contains full directories of files to preserve *mainfile* *aux* file relations.
+    Package have a package entry in mongo and a .zip file with the raw data.
     """
 
     package_id = StringField(primary_key=True)
-    """ A random UUID for the package. Could serve later is target upload id."""
-    filenames = ListField(StringField(), default=[])
-    """ The files in the package relative to the upload path """
-    upload_path = StringField()
+    """ A random UUID for the package. Could serve later its target upload id."""
+    package_path = StringField(required=True)
+    """ The path to the package .zip file. """
+    upload_path = StringField(required=True)
     """ The absolute path of the source upload """
-    upload_id = StringField()
+    upload_id = StringField(required=True)
     """ The source upload_id. There might be multiple packages per upload (this is the point). """
-    restricted = IntField()
-    """ The restricted in month, 0 for unrestricted """
+    restricted = IntField(default=0)
+    """ The restricted in month, 0 for unrestricted. """
     size = IntField()
-    """ The sum of all file sizes """
+    """ The sum of all file sizes. """
+    files = IntField()
+    """ The number of files. """
+    packages = IntField(default=-1)
+    """ The number of packages in the same upload. """
 
-    migration_version = IntField()
+    migration_version = IntField(default=-1)
+    """ The version of the last successful migration of this package """
+    report = DictField()
+    """ The report of the last successful migration of this package """
 
     meta = dict(indexes=['upload_id', 'migration_version'])
 
-    def open_package_upload_file(self) -> IO:
-        """ Creates a streaming zip file from the files of this package. """
-        zip_file = zipstream.ZipFile(compression=zipstream.ZIP_STORED, allowZip64=True)
-        for filename in self.filenames:
-            filepath = os.path.join(self.upload_path, filename)
-            zip_file.write(filepath, filename)
+    @classmethod
+    def aggregate_reports(cls, migration_version: str = None) -> 'Report':
+        """
+        Returns an aggregated report over all package reports of the given migration version,
+        or all packages.
+        """
+        if migration_version is not None:
+            query = cls.objects(migration_version__gte=migration_version, report__exists=True)
+        else:
+            query = cls.objects(report__exists=True)
 
-        return iterable_to_stream(zip_file)  # type: ignore
+        report = Report()
+        for package in query:
+            report.add(Report(package.report))
 
-    def create_package_upload_file(self) -> str:
-        """  Creates a zip file for the package in tmp and returns its path. """
-        upload_filepath = os.path.join(config.fs.nomad_tmp, '%s.zip' % self.package_id)
-        if not os.path.exists(os.path.dirname(upload_filepath)):
-            os.mkdir(os.path.dirname(upload_filepath))
-        if not os.path.isfile(upload_filepath):
-            with zipfile.ZipFile(
-                    upload_filepath, 'w',
-                    compression=zipfile.ZIP_STORED, allowZip64=True) as zip_file:
-                for filename in self.filenames:
-                    filepath = os.path.join(self.upload_path, filename)
-                    zip_file.write(filepath, filename)
-
-        return upload_filepath
+        return report
 
     @classmethod
-    def index(cls, *upload_paths):
+    def get_packages(
+            cls, upload_path: str, target_dir: str, create: bool = False,
+            compress: bool = False, parallel: int = 1) -> Iterable['Package']:
         """
-        Creates Package objects for the given uploads in nomad. The given uploads are
-        supposed to be path to the extracted upload directories. If the upload is already
-        in the db, the upload is skipped entirely.
+        Will get packages for the given upload_path. Creates the package zip files and
+        package index entries if ``create`` is True. But, either will only be created if
+        it does not already exist. Yields the Package objects.
         """
-        logger = utils.get_logger(__name__)
+        upload_id = os.path.basename(upload_path)
+        logger = utils.get_logger(__name__, source_upload_path=upload_path, source_upload_id=upload_id)
 
-        for upload_path in upload_paths:
-            try:
-                stats = runstats.Statistics()
-                upload_path = os.path.abspath(upload_path)
-                upload_id = os.path.basename(upload_path)
-                if cls.objects(upload_id=upload_id).first() is not None:
-                    logger.info('upload already exists, skip', upload_id=upload_id)
-                    continue
+        if not os.path.isdir(upload_path):
+            logger.error('upload path is not a directory')
+            return []
 
-                restrict_files = glob.glob(os.path.join(upload_path, 'RESTRICTED_*'))
-                month = 0
-                for restrict_file in restrict_files:
-                    restrict_file = os.path.basename(restrict_file)
-                    try:
-                        new_month = int(restrict_file[len('RESTRICTED_'):])
-                        if new_month > month:
-                            month = new_month
-                    except Exception:
-                        month = 36
-                if month > 36:
-                    month = 36
-                restricted = month
+        upload_directory = files.DirectoryObject(target_dir, upload_id, create=True, prefix=True)
+        restricted = 0
 
-                def create_package():
-                    cls.timer = time.time()
-                    package = Package(
-                        package_id=utils.create_uuid(),
-                        upload_id=upload_id,
-                        upload_path=upload_path,
-                        restricted=restricted,
-                        size=0)
-                    return package
+        # The packages number is written after all packages of an upload have been created.
+        # this should allow to abort mid upload packaging and continue later by removing
+        # all started packages first.
+        is_packaged = cls.objects(upload_id=upload_id, packages__ne=-1).count() != 0
 
-                def save_package(package):
-                    if len(package.filenames) == 0:
-                        return
+        async_results = []
+        pool = multiprocessing.Pool(parallel)
+        pool.__enter__()
 
-                    if package.size > max_package_size:
-                        # a single directory seems to big for a package
-                        logger.error(
-                            'directory exceeds max package size', directory=upload_path, size=package.size)
+        if not is_packaged:
+            if not create:
+                return None
 
-                    package.save()
-                    logger.info(
+            cls.objects(upload_id=upload_id).delete()
+
+            def create_package_entry():
+                package_id = utils.create_uuid()
+                return Package(
+                    package_id=package_id,
+                    upload_path=upload_path,
+                    upload_id=upload_id,
+                    package_path=upload_directory.join_file('%s.zip' % package_id).os_path)
+
+            def close_package(package_size: int, package_filepaths: List[str]):
+                package_entry_to_close = package_entry
+
+                def save_package_entry(*args) -> None:
+                    package_entry_to_close.size = package_size
+                    package_entry_to_close.files = len(package_filepaths)
+                    package_entry_to_close.save()
+
+                    logger.debug(
                         'created package',
-                        size=package.size,
-                        files=len(package.filenames),
-                        package_id=package.package_id,
-                        exec_time=time.time() - cls.timer,
-                        upload_id=package.upload_id)
+                        package_id=package_entry.package_id, size=package_size)
 
-                package = create_package()
+                def handle_package_error(*args) -> None:
+                    logger.error(
+                        'could not create package zip due to unexpected exception',
+                        exc_info=args[0])
 
-                for root, _, files in os.walk(upload_path):
-                    directory_filenames: List[str] = []
-                    directory_size = 0
+                async_result = pool.apply_async(
+                    create_package_zip,
+                    args=(
+                        upload_id, upload_path, package_entry.package_id,
+                        package_entry.package_path, compress, package_filepaths),
+                    callback=save_package_entry, error_callback=handle_package_error)
 
-                    if len(files) == 0:
-                        continue
+                async_results.append(async_result)
+                while not any(async_result.ready() for async_result in async_results) \
+                        or len(async_results) < parallel:
+                    time.sleep(0.1)
 
-                    for file in files:
-                        filepath = os.path.join(root, file)
-                        filename = filepath[len(upload_path) + 1:]
-                        directory_filenames.append(filename)
-                        # getting file stats is pretty expensive with gpfs
-                        # if an upload has more then 1000 files, its pretty likely that
-                        # size patterns repeat ... goood enough
-                        if len(stats) < use_stats_for_filestats_threshold:
-                            filesize = os.path.getsize(filepath)
-                            stats.push(filesize)
-                        else:
-                            filesize = stats.mean()
-                        directory_size += filesize
+                async_results[:] = [
+                    async_result for async_result in async_results
+                    if not async_result.ready()]
 
-                    if (package.size + directory_size) > max_package_size and package.size > 0:
-                        save_package(package)
-                        package = create_package()
+            package_entry = create_package_entry()
+            package_size = 0
+            package_filepaths = []
+            with cls.upload_iterator(upload_path) as directory:
+                for filepaths, parent_directory, size in directory:
+                    for filepath in filepaths:
+                        basepath = os.path.basename(filepath)
+                        if basepath.startswith('RESTRICTED'):
+                            restricted = 36
+                            try:
+                                restricted = min(36, int(basepath[len('RESTRICTED_'):]))
+                            except Exception:
+                                pass
 
-                    for filename in directory_filenames:
-                        package.filenames.append(filename)
-                    package.size += directory_size
+                        package_filepaths.append(os.path.join(parent_directory, filepath))
 
-                    logger.debug('packaged directory', directory=root, size=directory_size)
+                    if size > max_package_size:
+                        logger.warn(
+                            'directory exceeds max package size',
+                            package_id=package_entry.package_id, size=package_size)
 
-                save_package(package)
+                    package_size += size
+                    if package_size > max_package_size:
+                        close_package(package_size, package_filepaths)
+                        package_size, package_filepaths = 0, []
+                        package_entry = create_package_entry()
 
-                logger.info('completed upload', directory=upload_path, upload_id=upload_id)
-            except Exception as e:
-                logger.error(
-                    'could create package from upload',
-                    upload_path=upload_path, upload_id=upload_id, exc_info=e)
+                if len(package_filepaths) > 0:
+                    close_package(package_size, package_filepaths)
+
+            # wait for all zip processes to complete
+            while not all(async_result.ready() for async_result in async_results):
+                time.sleep(0.1)
+
+            package_query = cls.objects(upload_id=upload_id)
+            package_query.update(restricted=restricted, packages=package_query.count())
+            logger.debug(
+                'packaged upload', source_upload_id=upload_id, source_upload_path=upload_path,
+                restricted=restricted)
+
+            return package_query
+        else:
+            return cls.objects(upload_id=upload_id)
+
+    @classmethod
+    @contextmanager
+    def upload_iterator(cls, upload_path: str) -> Generator[Generator[Directory, None, None], None, None]:
+        """
+        A contextmanager that opens the given upload and provides a generator for
+        directories. Directories are tuple of an iterable of upload relative filepaths
+        and the directory size.
+        """
+        potential_archive_path = os.path.join(upload_path, 'archive.tar.gz')
+        if os.path.isfile(potential_archive_path):
+            with cls.extracted_archive(potential_archive_path) as extracted_archive:
+                yield cls.iterate_upload_directory(extracted_archive)
+        else:
+            yield cls.iterate_upload_directory(upload_path)
+
+    @classmethod
+    def iterate_upload_directory(cls, upload_path) -> Generator[Directory, None, None]:
+        """
+        Interprets the given upload path as a directory. Files path are given as upload
+        path relative paths.
+        """
+        stats = runstats.Statistics()
+        for root, _, files in os.walk(upload_path):
+            directory_filepaths: List[str] = []
+            directory_size = 0
+
+            if len(files) == 0:
                 continue
+
+            for file in files:
+                filepath = os.path.join(root, file)
+                filename = filepath[len(upload_path) + 1:]
+                directory_filepaths.append(filename)
+                # getting file stats is pretty expensive with gpfs
+                # if an upload has more then 1000 files, its pretty likely that
+                # size patterns repeat ... goood enough
+                if len(stats) < use_stats_for_filestats_threshold:
+                    try:
+                        filesize = os.path.getsize(filepath)
+                    except Exception:
+                        # if there are individual files that cannot be accessed, we fully ignore them
+                        # they are most likely just broken links
+                        pass
+
+                    stats.push(filesize)
+                else:
+                    filesize = stats.mean()
+                directory_size += filesize
+
+            yield directory_filepaths, upload_path, directory_size
+
+    @classmethod
+    @contextmanager
+    def extracted_archive(cls, archive_path: str) -> Generator[str, None, None]:
+        """
+        Temporarily extracts the given archive and returns directory with the extracted
+        data.
+        """
+        tmp_directory = os.path.join(config.fs.local_tmp, utils.create_uuid())
+        os.mkdir(tmp_directory)
+
+        with tarfile.TarFile.open(archive_path) as tar_file:
+            tar_file.extractall(tmp_directory)
+        # try to fix permissions, do not care if command fails
+        os.system('chmod -Rf 0755 %s/*' % tmp_directory)
+
+        yield tmp_directory
+
+        shutil.rmtree(tmp_directory)
 
 
 class SourceCalc(Document):
@@ -254,7 +370,7 @@ class SourceCalc(Document):
     upload = StringField()
     metadata = DictField()
 
-    migration_version = IntField()
+    migration_version = IntField(default=-1)
 
     extracted_prefix = '$EXTRACTED/'
     sites = ['/data/nomad/extracted/', '/nomad/repository/extracted/']
@@ -336,6 +452,11 @@ class SourceCalc(Document):
                     SourceCalc.objects.insert(source_calcs)
 
 
+NO_PROCESSED_CALCS = 0
+FAILED_PROCESSING = 1
+FAILED_PUBLISH = 2
+
+
 class NomadCOEMigration:
     """
     Drives a migration from the NOMAD coe repository db to nomad@FAIRDI.
@@ -343,6 +464,10 @@ class NomadCOEMigration:
     Arguments:
         migration_version: The migration version. Only packages/calculations with
             no migration version or a lower migration version are migrated.
+        package_directory: The directory that packages are/get stored in.
+        compress_packages: True to use compression on package creation.
+        threads: Number of threads to run migration in parallel.
+        quiet: Prints stats if not quiet
     """
 
     default_sites = [
@@ -356,10 +481,20 @@ class NomadCOEMigration:
     archive_filename = 'archive.tar.gz'
     """ The standard name for tarred uploads in the CoE repository. """
 
-    def __init__(self, migration_version: int = 0) -> None:
+    def __init__(
+            self,
+            migration_version: int = 0,
+            package_directory: str = None,
+            compress_packages: bool = False,
+            threads: int = 1, quiet: bool = False) -> None:
         self.logger = utils.get_logger(__name__, migration_version=migration_version)
+
         self.migration_version = migration_version
+        self.package_directory = package_directory if package_directory is not None else config.fs.migration_packages
+        self.compress_packages = compress_packages
         self._client = None
+        self._threads = threads
+        self._quiet = quiet
 
         self.source = infrastructure.repository_db
 
@@ -370,6 +505,10 @@ class NomadCOEMigration:
             self._client = create_client()
 
         return self._client
+
+    def report(self):
+        """ returns an aggregated report over all prior migrated packages """
+        return Package.aggregate_reports(migration_version=self.migration_version)
 
     def copy_users(self):
         """ Copy all users. """
@@ -404,16 +543,14 @@ class NomadCOEMigration:
             except HTTPBadRequest as e:
                 self.logger.error('could not create user due to bad data', exc_info=e, user_id=source_user.user_id)
 
-    def _to_comparable_list(self, list):
-        for item in list:
-            if isinstance(item, dict):
-                for key in item.keys():
-                    if key.endswith('id'):
-                        yield item.get(key)
-            else:
-                yield item
+    expected_differences = {
+        '0d': 'molecule / cluster',
+        '3d': 'bulk',
+        '2d': '2d / surface',
+        '+u': 'gga'
+    }
 
-    def _validate(self, repo_calc: dict, source_calc: CalcWithMetadata, logger) -> bool:
+    def validate(self, repo_calc: dict, source_calc: CalcWithMetadata, logger) -> bool:
         """
         Validates the given processed calculation, assuming that the data in the given
         source_calc is correct.
@@ -425,6 +562,15 @@ class NomadCOEMigration:
             'atoms', 'basis_set', 'xc_functional', 'system', 'crystal_system',
             'spacegroup', 'code_name', 'code_version']
 
+        def to_comparable_list(list):
+            for item in list:
+                if isinstance(item, dict):
+                    for key in item.keys():
+                        if key.endswith('id'):
+                            yield item.get(key)
+                else:
+                    yield item
+
         is_valid = True
         for key, target_value in repo_calc.items():
             if key not in keys_to_validate:
@@ -434,7 +580,9 @@ class NomadCOEMigration:
 
             def check_mismatch() -> bool:
                 # some exceptions
-                if source_value == '3d' and target_value == 'bulk':
+                if isinstance(source_value, str) and \
+                        source_value in NomadCOEMigration.expected_differences and \
+                        target_value == NomadCOEMigration.expected_differences.get(source_value):
                     return True
 
                 logger.info(
@@ -450,9 +598,11 @@ class NomadCOEMigration:
                 is_valid &= check_mismatch()
 
             if isinstance(target_value, list):
-                source_list = list(self._to_comparable_list(source_value))
-                target_list = list(self._to_comparable_list(target_value))
-                if len(set(source_list).intersection(target_list)) != len(target_list):
+                source_list = list(to_comparable_list(source_value))
+                target_list = list(to_comparable_list(target_value))
+                if len(source_list) != len(target_list):
+                    is_valid &= check_mismatch()
+                elif any(a != b for a, b in zip(source_list, target_list)):
                     is_valid &= check_mismatch()
                 continue
 
@@ -465,47 +615,7 @@ class NomadCOEMigration:
 
         return is_valid
 
-    def _packages(
-            self, source_upload_path: str,
-            create: bool = False) -> Tuple[Iterable[Package], str]:
-        """
-        Creates a iterator over packages for the given upload path. Packages are
-        taken from the :class:`Package` index.
-
-        Arguments:
-            source_upload_path: The path to the extracted upload.
-            create: If True, will index packages if they not exist.
-
-        Returns:
-            A tuple with the package iterable and the source_upload_id (last path segment)
-        """
-
-        source_upload_id = os.path.basename(source_upload_path)
-        logger = self.logger.bind(
-            source_upload_path=source_upload_path, source_upload_id=source_upload_id)
-
-        if os.path.isfile(source_upload_path):
-            # assume its a path to an archive files
-            logger.error('currently no support for migrating archive files')
-            return [], source_upload_id
-
-        package_query = Package.objects(upload_id=source_upload_id)
-
-        if package_query.count() == 0:
-            if create:
-                Package.index(source_upload_path)
-                package_query = Package.objects(upload_id=source_upload_id)
-                if package_query.count() == 0:
-                    logger.error('no package exists, even after indexing')
-                    return [], source_upload_id
-            else:
-                logger.error('no package exists for upload')
-                return [], source_upload_id
-
-        logger.debug('identified packages for source upload', n_packages=package_query.count())
-        return package_query, source_upload_id
-
-    def _surrogate_metadata(self, source: CalcWithMetadata):
+    def surrogate_metadata(self, source: CalcWithMetadata):
         """
         Compute metadata from the given metadata that can be used for new calcs of the
         same upload.
@@ -528,7 +638,34 @@ class NomadCOEMigration:
         self.logger.info('set pid prefix', pid_prefix=prefix)
         self.client.admin.exec_pidprefix_command(payload=dict(prefix=prefix)).response()
 
-    def migrate(self, upload_path, create_packages: bool = False, local: bool = False) -> utils.POPO:
+    def call_api(self, operation: str, *args, **kwargs) -> Any:
+        """
+        Calls nomad via the bravado client. It deals with a very busy nomad and catches,
+        backsoff, and retries on gateway timouts. It also circumvents bravados/jsonschemas
+        thread safety issues using a global lock on client usage.
+
+        Arguments:
+            operation: Comma separated string of api, endpoint, operation,
+                e.g. 'uploads.get_upload'.
+        """
+        op_path = operation.split('.')
+        op = self.client
+        for op_path_segment in op_path:
+            op = getattr(op, op_path_segment)
+
+        sleep = utils.SleepTimeBackoff()
+        while True:
+            try:
+                NomadCOEMigration._client_lock.acquire(blocking=True)
+                return op(*args, **kwargs).response().result
+            except HTTPGatewayTimeout:
+                sleep()
+            except Exception as e:
+                raise e
+            finally:
+                NomadCOEMigration._client_lock.release()
+
+    def migrate(self, *args, delete_failed: str = '', create_packages: bool = False) -> utils.POPO:
         """
         Migrate the given uploads.
 
@@ -546,118 +683,188 @@ class NomadCOEMigration:
 
         Arguments:
             upload_path: A filepath to the upload directory.
-            create_packages: If True, will create non existing packages.
-                Will skip with errors otherwise.
-            local: Instead of streaming an upload, create a local file and use local_path on the upload.
+            delete_failed: String from ``N``, ``U``, ``P`` to determine that uploads with
+                no processed calcs (N), failed upload processing (U), or failed publish
+                operation (P) should be deleted after the migration attempt.
+            create_packages: If True, it will attempt to create upload packages if they
+                do not exists.
 
-        Returns: Yields a dictionary with status and statistics for each given upload.
+        Returns: Dictionary with statistics on the migration.
         """
-        # get the packages
-        packages, source_upload_id = self._packages(upload_path, create=create_packages)
-        logger = self.logger.bind(source_upload_id=source_upload_id)
 
-        # initialize upload report
-        upload_report = utils.POPO()
-        upload_report.total_packages = 0
-        upload_report.failed_packages = 0
-        upload_report.total_source_calcs = 0
-        upload_report.total_calcs = 0
-        upload_report.failed_calcs = 0
-        upload_report.migrated_calcs = 0
-        upload_report.calcs_with_diffs = 0
-        upload_report.new_calcs = 0
-        upload_report.missing_calcs = 0
+        cv = threading.Condition()
+        overall_report = Report()
+        threads = []
 
-        for package in packages:
+        def print_report():
+            if not self._quiet:
+                print(overall_report)
+
+        def migrate_package(package: Package):
+            logger = self.logger.bind(
+                package_id=package.package_id, source_upload_id=package.upload_id)
+
             if package.migration_version is not None and package.migration_version >= self.migration_version:
-                logger.info('package already migrated', package_id=package.package_id)
+                self.logger.info(
+                    'package already migrated, skip it',
+                    package_id=package.package_id, source_upload_id=package.upload_id)
+
+                package_report = package.report
+                overall_report.skipped_packages += 1
+            else:
+                try:
+                    package_report = self.migrate_package(package, delete_failed=delete_failed)
+
+                except Exception as e:
+                    package_report = Report()
+                    package_report.failed_packages = 1
+                    logger.error(
+                        'unexpected exception while migrating packages', exc_info=e)
+                finally:
+                    package.report = package_report
+                    package.migration_version = self.migration_version
+                    package.save()
+
+            with cv:
+                try:
+                    overall_report.add(package_report)
+
+                    migrated_all_packages = all(
+                        p.migration_version == self.migration_version
+                        for p in Package.objects(upload_id=package.upload_id))
+
+                    if migrated_all_packages:
+                        missing_calcs = SourceCalc.objects(
+                            upload=package.upload_id, migration_version__ne=self.migration_version).count()
+                        total_source_calcs = SourceCalc.objects(upload=package.upload_id).count()
+
+                        overall_report.missing_calcs += missing_calcs
+                        overall_report.total_source_calcs += total_source_calcs
+
+                        logger.info('migrated upload')
+
+                    print_report()
+                except Exception as e:
+                    logger.error('unexpected exception while migrating packages', exc_info=e)
+
+                self._threads += 1
+                cv.notify()
+
+        for arg in args:
+            packages = Package.get_packages(
+                arg, self.package_directory, create=create_packages,
+                compress=self.compress_packages)
+
+            if packages is None:
+                self.logger.error('there are no packages for upload', upload_source_path=arg)
                 continue
 
-            package_report = self.migrate_package(package)
+            for package in packages:
+                with cv:
+                    cv.wait_for(lambda: self._threads > 0)
+                    self._threads -= 1
+                    thread = threading.Thread(target=lambda: migrate_package(package))
+                    threads.append(thread)
+                    thread.start()
 
-            if package_report is not None:
-                for key, value in package_report.items():
-                    upload_report[key] += value
-            else:
-                upload_report.failed_packages += 1
-            upload_report.total_packages += 1
+        for thread in threads:
+            thread.join()
 
-        upload_report.total_source_calcs = SourceCalc.objects(upload=source_upload_id).count()
-        upload_report.missing_calcs = SourceCalc.objects(
-            upload=source_upload_id, migration_version__ne=self.migration_version).count()
+        return overall_report
 
-        self.logger.info('migrated upload', upload_path=upload_path, **upload_report)
-        return upload_report
+    _client_lock = threading.Lock()
 
-    def nomad(self, operation: str, *args, **kwargs) -> Any:
-        """
-        Calls nomad via the bravado client. It deals with a very busy nomad and catches,
-        backsoff, and retries on gateway timouts.
+    def migrate_package(self, package: Package, delete_failed: str = '') -> 'Report':
+        """ Migrates the given package. For other params see :func:`migrate`. """
 
-        Arguments:
-            operation: Comma separated string of api, endpoint, operation,
-                e.g. 'uploads.get_upload'.
-        """
-        op_path = operation.split('.')
-        op = self.client
-        for op_path_segment in op_path:
-            op = getattr(op, op_path_segment)
-
-        sleep = utils.SleepTimeBackoff()
-        while True:
-            try:
-                return op(*args, **kwargs).response().result
-            except HTTPGatewayTimeout:
-                sleep()
-            except Exception as e:
-                raise e
-
-    def migrate_package(self, package: Package, local: bool = False):
         source_upload_id = package.upload_id
         package_id = package.package_id
 
         logger = self.logger.bind(package_id=package_id, source_upload_id=source_upload_id)
         logger.debug('start to process package')
 
-        # initialize package report
-        report = utils.POPO()
-        report.total_calcs = 0
-        report.failed_calcs = 0
-        report.migrated_calcs = 0
-        report.calcs_with_diffs = 0
-        report.new_calcs = 0
-        report.missing_calcs = 0
+        report = Report()
+        report.total_packages += 1
 
         # upload and process the upload file
-        from nomad.client import stream_upload_with_client
         with utils.timer(logger, 'upload completed'):
             try:
-                if local:
-                    upload_filepath = package.create_package_upload_file()
-                    self.logger.debug('created package upload file')
-                    upload = self.nomad(
-                        'uploads.upload', name=package_id, local_path=upload_filepath)
-                else:
-                    upload_f = package.open_package_upload_file()
-                    self.logger.debug('opened package upload file')
-                    upload = stream_upload_with_client(self.client, upload_f, name=package_id)
+                upload = self.call_api(
+                    'uploads.upload', name=package_id, local_path=package.package_path)
             except Exception as e:
                 self.logger.error('could not upload package', exc_info=e)
-                return None
+                report.failed_packages += 1
+                return report
 
         logger = logger.bind(
             source_upload_id=source_upload_id, upload_id=upload.upload_id)
+
+        def delete_upload(reason: int):
+            delete = \
+                (reason == NO_PROCESSED_CALCS and 'N' in delete_failed) or \
+                (reason == FAILED_PROCESSING and 'U' in delete_failed) or \
+                (reason == FAILED_PUBLISH and 'P' in delete_failed)
+
+            upload_to_delete = upload
+
+            if delete:
+                upload_to_delete = self.call_api(
+                    'uploads.delete_upload', upload_id=upload_to_delete.upload_id)
+
+                sleep = utils.SleepTimeBackoff()
+                while upload_to_delete.process_running:
+                    try:
+                        upload_to_delete = self.call_api(
+                            'uploads.get_upload', upload_id=upload_to_delete.upload_id)
+                        sleep()
+                    except HTTPNotFound:
+                        # the proc upload will be deleted by the delete operation
+                        break
+                logger.info('deleted upload after migration failure')
+            else:
+                logger.warning(
+                    'will keep upload after migration failure for debugging',
+                    reason=reason, delete_failed=delete_failed)
+
+        # grab source calcs, while waiting for upload
+        source_calcs = dict()
+        surrogate_source_calc_with_metadata = None
+        with utils.timer(logger, 'loaded source metadata'):
+            with zipfile.ZipFile(package.package_path) as zf:
+                for filenames_chunk in utils.chunks(zf.namelist(), 1000):
+                    for source_calc in SourceCalc.objects(
+                            upload=source_upload_id, mainfile__in=filenames_chunk):
+
+                        source_calc_with_metadata = CalcWithMetadata(**source_calc.metadata)
+                        source_calc_with_metadata.pid = source_calc.pid
+                        source_calc_with_metadata.mainfile = source_calc.mainfile
+                        source_calcs[source_calc.mainfile] = (source_calc, source_calc_with_metadata)
+
+                        # establish a surrogate for new calcs
+                        if surrogate_source_calc_with_metadata is None:
+                            surrogate_source_calc_with_metadata = \
+                                self.surrogate_metadata(source_calc_with_metadata)
+
+        # try to find a surrogate outside the package, if necessary
+        if surrogate_source_calc_with_metadata is None:
+            source_calc = SourceCalc.objects(upload=source_upload_id).first()
+            if source_calc is not None:
+                source_calc_with_metadata = CalcWithMetadata(**source_calc.metadata)
+                surrogate_source_calc_with_metadata = \
+                    self.surrogate_metadata(source_calc_with_metadata)
 
         # wait for complete upload
         with utils.timer(logger, 'upload processing completed'):
             sleep = utils.SleepTimeBackoff()
             while upload.tasks_running:
-                upload = self.nomad('uploads.get_upload', upload_id=upload.upload_id)
+                upload = self.call_api('uploads.get_upload', upload_id=upload.upload_id)
                 sleep()
 
         if upload.tasks_status == FAILURE:
             logger.error('failed to process upload', process_errors=upload.errors)
-            return None
+            report.failed_packages += 1
+            delete_upload(FAILED_PROCESSING)
+            return report
         else:
             report.total_calcs += upload.calcs.pagination.total
 
@@ -666,9 +873,9 @@ class NomadCOEMigration:
 
         # check for processing errors
         with utils.timer(logger, 'checked upload processing'):
-            per_page = 200
+            per_page = 500
             for page in range(1, math.ceil(upload_total_calcs / per_page) + 1):
-                upload = self.nomad(
+                upload = self.call_api(
                     'uploads.get_upload', upload_id=upload.upload_id, per_page=per_page,
                     page=page, order_by='mainfile')
 
@@ -677,46 +884,26 @@ class NomadCOEMigration:
                         calc_id=calc_proc.calc_id,
                         mainfile=calc_proc.mainfile)
 
-                    if calc_proc.tasks_status == SUCCESS:
-                        calc_mainfiles.append(calc_proc.mainfile)
-                    else:
+                    calc_mainfiles.append(calc_proc.mainfile)
+
+                    if calc_proc.tasks_status == FAILURE:
                         report.failed_calcs += 1
                         calc_logger.info(
                             'could not process a calc', process_errors=calc_proc.errors)
                         continue
 
-        # grab source calcs
-        source_calcs = dict()
-        surrogate_source_calc_with_metadata = None
-        with utils.timer(logger, 'loaded source metadata'):
-            for source_calc in SourceCalc.objects(
-                    upload=source_upload_id, mainfile__in=calc_mainfiles):
-
-                source_calc_with_metadata = CalcWithMetadata(**source_calc.metadata)
-                source_calc_with_metadata.pid = source_calc.pid
-                source_calc_with_metadata.mainfile = source_calc.mainfile
-                source_calcs[source_calc.mainfile] = (source_calc, source_calc_with_metadata)
-
-                # establish a surrogate for new calcs
-                if surrogate_source_calc_with_metadata is None:
-                    surrogate_source_calc_with_metadata = \
-                        self._surrogate_metadata(source_calc_with_metadata)
-
-        # try to find a surrogate outside the package, if necessary
-        if surrogate_source_calc_with_metadata is None:
-            source_calc = SourceCalc.objects(upload=source_upload_id).first()
-            if source_calc is not None:
-                source_calc_with_metadata = CalcWithMetadata(**source_calc.metadata)
-                surrogate_source_calc_with_metadata = \
-                    self._surrogate_metadata(source_calc_with_metadata)
-
         # verify upload against source
         calcs_in_search = 0
-        with utils.timer(logger, 'varyfied upload against source calcs'):
-            for page in range(1, math.ceil(upload_total_calcs / per_page) + 1):
-                search = self.nomad(
-                    'repo.search', page=page, per_page=per_page, upload_id=upload.upload_id,
-                    order_by='mainfile')
+        with utils.timer(logger, 'verified upload against source calcs'):
+            scroll_id = 'first'
+            while scroll_id is not None:
+                scroll_args: Dict[str, Any] = dict(scroll=True)
+                if scroll_id != 'first':
+                    scroll_args['scroll_id'] = scroll_id
+
+                search = self.call_api('repo.search', upload_id=upload.upload_id, **scroll_args)
+
+                scroll_id = search.scroll_id
 
                 for calc in search.results:
                     calcs_in_search += 1
@@ -727,8 +914,15 @@ class NomadCOEMigration:
                         report.migrated_calcs += 1
 
                         calc_logger = logger.bind(calc_id=calc['calc_id'], mainfile=calc['mainfile'])
-                        if not self._validate(calc, source_calc_with_metadata, calc_logger):
-                            report.calcs_with_diffs += 1
+                        if calc.get('processed', False):
+                            try:
+                                if not self.validate(
+                                        calc, source_calc_with_metadata, calc_logger):
+                                    report.calcs_with_diffs += 1
+                            except Exception as e:
+                                calc_logger.warning(
+                                    'unexpected exception during validation', exc_info=e)
+                                report.calcs_with_diffs += 1
                     else:
                         calc_logger.info('processed a calc that has no source')
                         report.new_calcs += 1
@@ -760,14 +954,14 @@ class NomadCOEMigration:
                     self._to_api_metadata(source_calc_with_metadata)
                     for _, source_calc_with_metadata in source_calcs.values()]
 
-                upload = self.nomad(
+                upload = self.call_api(
                     'uploads.exec_upload_operation', upload_id=upload.upload_id,
                     payload=dict(operation='publish', metadata=upload_metadata))
 
                 sleep = utils.SleepTimeBackoff()
                 while upload.process_running:
                     try:
-                        upload = self.nomad('uploads.get_upload', upload_id=upload.upload_id)
+                        upload = self.call_api('uploads.get_upload', upload_id=upload.upload_id)
                         sleep()
                     except HTTPNotFound:
                         # the proc upload will be deleted by the publish operation
@@ -779,17 +973,19 @@ class NomadCOEMigration:
                     report.migrated_calcs = 0
                     report.calcs_with_diffs = 0
                     report.new_calcs = 0
+                    report.failed_packages += 1
+
+                    delete_upload(FAILED_PUBLISH)
+                    SourceCalc.objects(upload=source_upload_id, mainfile__in=calc_mainfiles) \
+                        .update(migration_version=-1)
                 else:
                     SourceCalc.objects(upload=source_upload_id, mainfile__in=calc_mainfiles) \
                         .update(migration_version=self.migration_version)
-                    package.migration_version = self.migration_version
-                    package.save()
         else:
+            delete_upload(NO_PROCESSED_CALCS)
             logger.info('no successful calcs, skip publish')
 
-        report.missing_calcs = report.total_calcs - report.migrated_calcs
         logger.info('migrated package', **report)
-
         return report
 
     def _to_api_metadata(self, calc_with_metadata: CalcWithMetadata) -> dict:
@@ -811,10 +1007,58 @@ class NomadCOEMigration:
             shared_with=list(int(user['id']) for user in calc_with_metadata.shared_with)
         )
 
-    def index(self, *args, **kwargs):
+    def source_calc_index(self, *args, **kwargs):
         """ see :func:`SourceCalc.index` """
         return SourceCalc.index(self.source, *args, **kwargs)
 
-    def package(self, *args, **kwargs):
-        """ see :func:`Package.add` """
-        return Package.index(*args, **kwargs)
+    def package_index(self, upload_path, **kwargs) -> None:
+        """
+        Creates Package objects and respective package zip files for the given uploads.
+        The given uploads are supposed to be path to the extracted upload directories.
+        If the upload is already in the index, it is not recreated.
+        """
+        logger = utils.get_logger(__name__)
+
+        try:
+            for package_entry in Package.get_packages(
+                    upload_path, self.package_directory, create=True,
+                    compress=self.compress_packages, **kwargs):
+
+                logger.info(
+                    'package in index',
+                    source_upload_path=upload_path,
+                    source_upload_id=package_entry.upload_id,
+                    package_id=package_entry.package_id)
+        except Exception as e:
+            logger.error(
+                'could not create package from upload',
+                upload_path=upload_path, exc_info=e)
+
+
+class Report(utils.POPO):
+    def __init__(self, *args, **kwargs):
+        self.total_packages = 0
+        self.failed_packages = 0
+        self.skipped_packages = 0
+        self.total_calcs = 0  # the calcs that have been found by the target
+        self.total_source_calcs = 0  # the calcs in the source index
+        self.failed_calcs = 0  # calcs that have been migrated with failed processing
+        self.migrated_calcs = 0   # the calcs from the source, successfully added to the target
+        self.calcs_with_diffs = 0  # the calcs from the source, successfully added to the target with different metadata
+        self.new_calcs = 0  # the calcs successfully added to the target that were not found in the source
+        self.missing_calcs = 0  # the calcs in the source, that could not be added to the target due to failure or not founding the calc
+
+        super().__init__(*args, **kwargs)
+
+    def add(self, other: 'Report') -> None:
+        for key, value in other.items():
+            self[key] = self.get(key, 0) + value
+
+    def __str__(self):
+        return (
+            'packages: {:,}, skipped: {:,}, source calcs: {:,}, migrated: {:,}, '
+            'failed: {:,}, missing: {:,}, new: {:,}'.format(
+                self.total_packages, self.skipped_packages,
+                self.total_source_calcs, self.migrated_calcs,
+                self.failed_calcs, self.missing_calcs,
+                self.new_calcs))

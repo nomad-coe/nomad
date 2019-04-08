@@ -2,28 +2,47 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
 import Markdown from './Markdown'
-import gitInfo from '../gitinfo'
 import { kibanaBase, apiBase } from '../config'
+import { compose } from 'recompose'
+import { withApi } from './api'
 
 class Development extends React.Component {
   static propTypes = {
-    classes: PropTypes.object.isRequired
+    classes: PropTypes.object.isRequired,
+    api: PropTypes.object.isRequired,
+    raiseError: PropTypes.func.isRequired
   }
 
   static styles = theme => ({
     root: {}
   })
 
+  state = {
+    info: null
+  }
+
+  componentDidMount() {
+    this.props.api.getInfo()
+      .then(info => this.setState({info: info}))
+      .catch(error => {
+        this.props.raiseError(error)
+      })
+  }
+
   render() {
     const { classes } = this.props
+    const { info } = this.state
 
     return (
       <div className={classes.root}>
         <Markdown>{`
-          ### Build info
-          - version: \`${gitInfo.version}\`
-          - ref: \`${gitInfo.ref}\`
-          - last commit message: *${gitInfo.log}*
+          ### Nomad
+          - version: \`${info ? info.version : 'loading'}/${info ? info.release : 'loading'}\`
+          - domain: ${info ? info.domain.name : 'loading'}
+          - git: \`${info ? info.git.ref : 'loading'}; ${info ? info.git.version : 'loading'}\`
+          - last commit message: *${info ? info.git.log : 'loading'}*
+          - parsers: ${info ? info.parsers.join(', ') : 'loading'}
+          - normalizers: ${info ? info.normalizers.join(', ') : 'loading'}
 
           ### ReST API
           Nomad services can also be accessed programatically via nomad's
@@ -51,4 +70,4 @@ class Development extends React.Component {
   }
 }
 
-export default withStyles(Development.styles)(Development)
+export default compose(withApi(), withStyles(Development.styles))(Development)

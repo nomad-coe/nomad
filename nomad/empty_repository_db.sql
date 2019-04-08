@@ -1655,7 +1655,7 @@ ALTER TABLE ONLY public.atoms
 --
 
 ALTER TABLE ONLY public.basis_sets
-    ADD CONSTRAINT basis_sets_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id);
+    ADD CONSTRAINT basis_sets_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1663,7 +1663,7 @@ ALTER TABLE ONLY public.basis_sets
 --
 
 ALTER TABLE ONLY public.calcsets
-    ADD CONSTRAINT calcsets_children_calc_id_fkey FOREIGN KEY (children_calc_id) REFERENCES public.calculations(calc_id);
+    ADD CONSTRAINT calcsets_children_calc_id_fkey FOREIGN KEY (children_calc_id) REFERENCES public.calculations(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1671,7 +1671,7 @@ ALTER TABLE ONLY public.calcsets
 --
 
 ALTER TABLE ONLY public.calcsets
-    ADD CONSTRAINT calcsets_parent_calc_id_fkey FOREIGN KEY (parent_calc_id) REFERENCES public.calculations(calc_id);
+    ADD CONSTRAINT calcsets_parent_calc_id_fkey FOREIGN KEY (parent_calc_id) REFERENCES public.calculations(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1679,7 +1679,7 @@ ALTER TABLE ONLY public.calcsets
 --
 
 ALTER TABLE ONLY public.calculations
-    ADD CONSTRAINT calculations_origin_id_fkey FOREIGN KEY (origin_id) REFERENCES public.uploads(upload_id);
+    ADD CONSTRAINT calculations_origin_id_fkey FOREIGN KEY (origin_id) REFERENCES public.uploads(upload_id) ON DELETE CASCADE;
 
 
 --
@@ -1695,7 +1695,7 @@ ALTER TABLE ONLY public.calculations
 --
 
 ALTER TABLE ONLY public.charges
-    ADD CONSTRAINT charges_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id);
+    ADD CONSTRAINT charges_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1703,7 +1703,7 @@ ALTER TABLE ONLY public.charges
 --
 
 ALTER TABLE ONLY public.coauthorships
-    ADD CONSTRAINT coauthorships_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id);
+    ADD CONSTRAINT coauthorships_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1727,7 +1727,7 @@ ALTER TABLE ONLY public.codeversions
 --
 
 ALTER TABLE ONLY public.eigenvalues
-    ADD CONSTRAINT eigenvalues_electrons_calc_id_fkey FOREIGN KEY (electrons_calc_id) REFERENCES public.electrons(calc_id);
+    ADD CONSTRAINT eigenvalues_electrons_calc_id_fkey FOREIGN KEY (electrons_calc_id) REFERENCES public.electrons(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1735,7 +1735,7 @@ ALTER TABLE ONLY public.eigenvalues
 --
 
 ALTER TABLE ONLY public.eigenvalues
-    ADD CONSTRAINT eigenvalues_phonons_calc_id_fkey FOREIGN KEY (phonons_calc_id) REFERENCES public.phonons(calc_id);
+    ADD CONSTRAINT eigenvalues_phonons_calc_id_fkey FOREIGN KEY (phonons_calc_id) REFERENCES public.phonons(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1743,7 +1743,7 @@ ALTER TABLE ONLY public.eigenvalues
 --
 
 ALTER TABLE ONLY public.electrons
-    ADD CONSTRAINT electrons_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id);
+    ADD CONSTRAINT electrons_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1751,7 +1751,7 @@ ALTER TABLE ONLY public.electrons
 --
 
 ALTER TABLE ONLY public.energies
-    ADD CONSTRAINT energies_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id);
+    ADD CONSTRAINT energies_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1759,7 +1759,7 @@ ALTER TABLE ONLY public.energies
 --
 
 ALTER TABLE ONLY public.forces
-    ADD CONSTRAINT forces_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id);
+    ADD CONSTRAINT forces_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1767,7 +1767,7 @@ ALTER TABLE ONLY public.forces
 --
 
 ALTER TABLE ONLY public.grid
-    ADD CONSTRAINT grid_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id);
+    ADD CONSTRAINT grid_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1791,7 +1791,7 @@ ALTER TABLE ONLY public.login_tokens
 --
 
 ALTER TABLE ONLY public.metadata
-    ADD CONSTRAINT metadata_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id);
+    ADD CONSTRAINT metadata_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1799,7 +1799,7 @@ ALTER TABLE ONLY public.metadata
 --
 
 ALTER TABLE ONLY public.metadata_citations
-    ADD CONSTRAINT metadata_citations_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id);
+    ADD CONSTRAINT metadata_citations_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1823,7 +1823,7 @@ ALTER TABLE ONLY public.metadata
 --
 
 ALTER TABLE ONLY public.ownerships
-    ADD CONSTRAINT ownerships_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id);
+    ADD CONSTRAINT ownerships_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1839,7 +1839,7 @@ ALTER TABLE ONLY public.ownerships
 --
 
 ALTER TABLE ONLY public.phonons
-    ADD CONSTRAINT phonons_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id);
+    ADD CONSTRAINT phonons_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1847,7 +1847,7 @@ ALTER TABLE ONLY public.phonons
 --
 
 ALTER TABLE ONLY public.recipintegs
-    ADD CONSTRAINT recipintegs_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id);
+    ADD CONSTRAINT recipintegs_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1863,7 +1863,7 @@ ALTER TABLE ONLY public.sessions
 --
 
 ALTER TABLE ONLY public.shareships
-    ADD CONSTRAINT shareships_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id);
+    ADD CONSTRAINT shareships_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1879,7 +1879,7 @@ ALTER TABLE ONLY public.shareships
 --
 
 ALTER TABLE ONLY public.spacegroups
-    ADD CONSTRAINT spacegroups_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id);
+    ADD CONSTRAINT spacegroups_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1887,7 +1887,7 @@ ALTER TABLE ONLY public.spacegroups
 --
 
 ALTER TABLE ONLY public.struct_optimisation
-    ADD CONSTRAINT struct_optimisation_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id);
+    ADD CONSTRAINT struct_optimisation_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1895,7 +1895,7 @@ ALTER TABLE ONLY public.struct_optimisation
 --
 
 ALTER TABLE ONLY public.struct_ratios
-    ADD CONSTRAINT struct_ratios_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id);
+    ADD CONSTRAINT struct_ratios_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1903,7 +1903,7 @@ ALTER TABLE ONLY public.struct_ratios
 --
 
 ALTER TABLE ONLY public.structures
-    ADD CONSTRAINT structures_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id);
+    ADD CONSTRAINT structures_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1911,7 +1911,7 @@ ALTER TABLE ONLY public.structures
 --
 
 ALTER TABLE ONLY public.tags
-    ADD CONSTRAINT tags_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id);
+    ADD CONSTRAINT tags_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id) ON DELETE CASCADE;
 
 
 --
@@ -1935,7 +1935,7 @@ ALTER TABLE ONLY public.uploads
 --
 
 ALTER TABLE ONLY public.user_metadata
-    ADD CONSTRAINT user_metadata_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id);
+    ADD CONSTRAINT user_metadata_calc_id_fkey FOREIGN KEY (calc_id) REFERENCES public.calculations(calc_id) ON DELETE CASCADE;
 
 
 --

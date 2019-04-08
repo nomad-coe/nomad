@@ -20,13 +20,15 @@ import click
 from typing import Union, Callable, cast
 import sys
 import ujson
+import bravado.exception
 
 from nomad import config, utils
 from nomad.files import ArchiveBasedStagingUploadFiles
 from nomad.parsing import parser_dict, LocalBackend, match_parser
 from nomad.normalizing import normalizers
+from nomad.datamodel import CalcWithMetadata
 
-from .main import cli, get_nomad_url
+from .main import cli
 
 
 class CalcProcReproduction:
@@ -40,22 +42,37 @@ class CalcProcReproduction:
     in your development environment.
 
     Arguments:
-        archive_id: The archive_id of the calculation to locally process.
+        calc_id: The calc_id of the calculation to locally process.
         override: Set to true to override any existing local calculation data.
     """
     def __init__(self, archive_id: str, override: bool = False, mainfile: str = None) -> None:
-        self.calc_id = utils.archive.calc_id(archive_id)
-        self.upload_id = utils.archive.upload_id(archive_id)
+        if '/' in archive_id:
+            self.calc_id = utils.archive.calc_id(archive_id)
+            self.upload_id = utils.archive.upload_id(archive_id)
+        else:
+            self.calc_id = archive_id
+            self.upload_id = 'unknown'
+
+        self.logger = utils.get_logger(__name__, upload_id=self.upload_id, calc_id=self.calc_id)
+
         self.mainfile = mainfile
         self.parser = None
-        self.logger = utils.get_logger(__name__, archive_id=archive_id)
 
         from .main import create_client
         client = create_client()
         if self.mainfile is None:
-            calc = client.repo.get_repo_calc(upload_id=self.upload_id, calc_id=self.calc_id).response().result
+            try:
+                calc = client.repo.get_repo_calc(
+                    upload_id=self.upload_id, calc_id=self.calc_id).response().result
+            except bravado.exception.HTTPNotFound:
+                self.logger.error(
+                    'could not find calculation, maybe it was deleted or the ids are wrong')
+                sys.exit(1)
             self.mainfile = calc['mainfile']
+            self.upload_id = calc['upload_id']
+            self.logger = self.logger.bind(upload_id=self.upload_id, mainfile=self.mainfile)
         else:
+            self.logger = self.logger.bind(mainfile=self.mainfile)
             self.logger.info('Using provided mainfile', mainfile=self.mainfile)
 
         local_path = os.path.join(config.fs.tmp, 'repro_%s.zip' % archive_id)
@@ -66,15 +83,25 @@ class CalcProcReproduction:
             # download with request, since bravado does not support streaming
             # TODO currently only downloads mainfile
             self.logger.info('Downloading calc.', mainfile=self.mainfile)
-            token = client.auth.get_user().response().result.token
-            req = requests.get('%s/raw/%s/%s' % (get_nomad_url(), self.upload_id, os.path.dirname(self.mainfile)) + '/*', stream=True, headers={'X-Token': token})
-            with open(local_path, 'wb') as f:
-                for chunk in req.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
-                    f.write(chunk)
+            try:
+                token = client.auth.get_user().response().result.token
+                req = requests.get('%s/raw/%s/%s' % (config.client.url, self.upload_id, os.path.dirname(self.mainfile)) + '/*', stream=True, headers={'X-Token': token})
+                with open(local_path, 'wb') as f:
+                    for chunk in req.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
+                        f.write(chunk)
+            except bravado.exception.HTTPNotFound:
+                self.logger.error(
+                    'could not find calculation, maybe it was deleted or the ids are wrong')
+                sys.exit(1)
+            except Exception as e:
+                self.logger.error('could not download calculation', exc_info=e)
+                sys.exit(1)
         else:
             self.logger.info('Calc already downloaded.')
 
-        self.upload_files = ArchiveBasedStagingUploadFiles(upload_id='tmp_%s' % archive_id, local_path=local_path, create=True, is_authorized=lambda: True)
+        self.upload_files = ArchiveBasedStagingUploadFiles(
+            upload_id='tmp_%s' % archive_id, upload_path=local_path, create=True,
+            is_authorized=lambda: True)
 
     def __enter__(self):
         # open/extract upload file
@@ -109,6 +136,10 @@ class CalcProcReproduction:
         self.logger.info('identified parser')
 
         parser_backend = parser.run(self.upload_files.raw_file_object(self.mainfile).os_path, logger=self.logger)
+
+        if not parser_backend.status[0] == 'ParseSuccess':
+            self.logger.error('parsing was not successful', status=parser_backend.status)
+
         parser_backend.openNonOverlappingSection('section_calculation_info')
         parser_backend.addValue('upload_id', self.upload_id)
         parser_backend.addValue('calc_id', self.calc_id)
@@ -152,20 +183,20 @@ class CalcProcReproduction:
 
 
 @cli.command(help='Run processing locally.')
-@click.argument('ARCHIVE_ID', nargs=1, required=True, type=str)
+@click.argument('CALC_ID', nargs=1, required=True, type=str)
 @click.option('--override', is_flag=True, default=False, help='Override existing local calculation data.')
 @click.option('--show-backend', is_flag=True, default=False, help='Print the backend data.')
 @click.option('--show-metadata', is_flag=True, default=False, help='Print the extracted repo metadata.')
 @click.option('--mainfile', default=None, type=str, help='Use this mainfile (in case mainfile cannot be retrived via API.')
-def local(archive_id, show_backend=False, show_metadata=False, **kwargs):
-    print(kwargs)
+def local(calc_id, show_backend=False, show_metadata=False, **kwargs):
     utils.configure_logging()
-    utils.get_logger(__name__).info('Using %s' % get_nomad_url())
-    with CalcProcReproduction(archive_id, **kwargs) as local:
+    utils.get_logger(__name__).info('Using %s' % config.client.url)
+    with CalcProcReproduction(calc_id, **kwargs) as local:
         backend = local.parse()
         local.normalize_all(parser_backend=backend)
         if show_backend:
             backend.write_json(sys.stdout, pretty=True)
         if show_metadata:
-            metadata = backend.to_calc_with_metadata()
+            metadata = CalcWithMetadata()
+            metadata.apply_domain_metadata(backend)
             ujson.dump(metadata.to_dict(), sys.stdout, indent=4)

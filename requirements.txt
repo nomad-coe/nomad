@@ -43,7 +43,7 @@ PyJWT
 jsonschema[format]
 python-magic
 runstats
-ppworkflows
+pyyaml
 
 # dev/ops related
 setuptools

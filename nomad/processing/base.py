@@ -15,9 +15,13 @@
 from typing import List, Any
 import logging
 import time
+import os
 from celery import Celery, Task
 from celery.worker.request import Request
-from celery.signals import after_setup_task_logger, after_setup_logger, worker_process_init
+from celery.signals import after_setup_task_logger, after_setup_logger, worker_process_init, \
+    celeryd_after_setup
+from celery.utils import worker_direct
+from celery.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import WorkerLostError
 from mongoengine import Document, StringField, ListField, DateTimeField, ValidationError
 from mongoengine.connection import MongoEngineConnectionError
@@ -42,12 +46,26 @@ if config.logstash.enabled:
 @worker_process_init.connect
 def setup(**kwargs):
     infrastructure.setup()
+    utils.get_logger(__name__).info(
+        'celery configured with acks_late=%s' % str(config.celery.acks_late))
 
 
-app = Celery('nomad.processing', broker=config.celery.broker_url)
+worker_hostname = None
+
+
+@celeryd_after_setup.connect
+def capture_worker_name(sender, instance, **kwargs):
+    global worker_hostname
+    worker_hostname = sender
+
+
+app = Celery('nomad.processing', broker=config.rabbitmq_url())
 app.conf.update(worker_hijack_root_logger=False)
 app.conf.update(worker_max_memory_per_child=config.celery.max_memory)
-app.conf.update(task_time_limit=config.celery.timeout)
+if config.celery.routing == config.CELERY_WORKER_ROUTING:
+    app.conf.update(worker_direct=True)
+
+app.conf.task_queue_max_priority = 10
 
 CREATED = 'CREATED'
 PENDING = 'PENDING'
@@ -134,7 +152,8 @@ class Proc(Document, metaclass=ProcMetaclass):
     current_process = StringField(default=None)
     process_status = StringField(default=None)
 
-    # _celery_task_id = StringField(default=None)
+    worker_hostname = StringField(default=None)
+    celery_task_id = StringField(default=None)
 
     @property
     def tasks_running(self) -> bool:
@@ -148,8 +167,8 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     def get_logger(self):
         return utils.get_logger(
-            'nomad.processing', current_task=self.current_task, proc=self.__class__.__name__,
-            current_process=self.current_process, process_status=self.process_status,
+            'nomad.processing', task=self.current_task, proc=self.__class__.__name__,
+            process=self.current_process, process_status=self.process_status,
             tasks_status=self.tasks_status)
 
     @classmethod
@@ -242,6 +261,13 @@ class Proc(Document, metaclass=ProcMetaclass):
         assert task in tasks, 'task %s must be one of the classes tasks %s' % (task, str(tasks))  # pylint: disable=E1135
         if self.current_task is None:
             assert task == tasks[0], "process has to start with first task"  # pylint: disable=E1136
+        elif tasks.index(task) <= tasks.index(self.current_task):
+            # task is repeated, probably the celery task of the process was reschedule
+            # due to prior worker failure
+            self.current_task = task
+            self.get_logger().warning('task is re-run')
+            self.save()
+            return True
         else:
             assert tasks.index(task) == tasks.index(self.current_task) + 1, \
                 "tasks must be processed in the right order"
@@ -287,6 +313,9 @@ class Proc(Document, metaclass=ProcMetaclass):
         while self.tasks_running or self.process_running:
             time.sleep(interval)
             self.reload()
+
+    def __str__(self):
+        return 'proc celery_task_id=%s worker_hostname=%s' % (self.celery_task_id, self.worker_hostname)
 
 
 def task(func):
@@ -401,7 +430,10 @@ def unwarp_task(task, cls_name, self_id, *args, **kwargs):
     return self
 
 
-@app.task(bind=True, base=NomadCeleryTask, ignore_results=True, max_retries=3, acks_late=True)
+@app.task(
+    bind=True, base=NomadCeleryTask, ignore_results=True, max_retries=3,
+    acks_late=config.celery.acks_late, soft_time_limit=config.celery.timeout,
+    time_limit=config.celery.timeout + 120)
 def proc_task(task, cls_name, self_id, func_attr):
     """
     The celery task that is used to execute async process functions.
@@ -414,6 +446,9 @@ def proc_task(task, cls_name, self_id, func_attr):
 
     logger = self.get_logger()
     logger.debug('received process function call')
+
+    self.worker_hostname = worker_hostname
+    self.celery_task_id = task.request.id
 
     # get the process function
     func = getattr(self, func_attr, None)
@@ -438,7 +473,11 @@ def proc_task(task, cls_name, self_id, func_attr):
     deleted = False
     try:
         self.process_status = PROCESS_RUNNING
+        os.chdir(config.fs.working_directory)
         deleted = func(self)
+    except SoftTimeLimitExceeded as e:
+        logger.error('exceeded the celery task soft time limit')
+        self.fail(e)
     except Exception as e:
         self.fail(e)
     finally:
@@ -455,7 +494,7 @@ def process(func):
     To transfer state, the instance will be saved to the database and loading on
     the celery task worker. Process methods can call other (process) functions/methods on
     other :class:`Proc` instances. Each :class:`Proc` instance can only run one
-    asny process at a time.
+    any process at a time.
     """
     def wrapper(self, *args, **kwargs):
         assert len(args) == 0 and len(kwargs) == 0, 'process functions must not have arguments'
@@ -469,12 +508,18 @@ def process(func):
         self_id = self.id.__str__()
         cls_name = self.__class__.__name__
 
-        queue = getattr(self.__class__, 'queue', None)
+        queue = None
+        if config.celery.routing == config.CELERY_WORKER_ROUTING and self.worker_hostname is not None:
+            queue = worker_direct(self.worker_hostname).name
 
-        logger = utils.get_logger(
-            __name__, cls=cls_name, id=self_id, func=func.__name__, queue=queue)
-        logger.debug('calling process function')
-        return proc_task.apply_async(args=[cls_name, self_id, func.__name__], queue=queue)
+        priority = config.celery.priorities.get('%s.%s' % (cls_name, func.__name__), 1)
+
+        logger = utils.get_logger(__name__, cls=cls_name, id=self_id, func=func.__name__)
+        logger.debug('calling process function', queue=queue, priority=priority)
+
+        return proc_task.apply_async(
+            args=[cls_name, self_id, func.__name__],
+            queue=queue, priority=priority)
 
     task = getattr(func, '__task_name', None)
     if task is not None:

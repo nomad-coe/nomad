@@ -41,7 +41,7 @@ from datetime import datetime
 from nomad import config, processing, files, utils, coe_repo
 from nomad.coe_repo import User, LoginException
 
-from .app import app, api
+from .app import app, api, RFC3339DateTime
 
 app.config['SECRET_KEY'] = config.services.api_secret
 auth = HTTPBasicAuth()
@@ -145,7 +145,7 @@ user_model = api.model('User', {
     'token': fields.String(
         description='The access token that authenticates the user with the API. '
         'User the HTTP header "X-Token" to provide it in API requests.'),
-    'created': fields.DateTime(dt_format='iso8601', description='The create date for the user.')
+    'created': RFC3339DateTime(description='The create date for the user.')
 })
 
 
@@ -229,7 +229,7 @@ class UserResource(Resource):
 token_model = api.model('Token', {
     'user': fields.Nested(user_model),
     'token': fields.String(description='The short term token to sign URLs'),
-    'experies_at': fields.DateTime(desription='The time when the token expires')
+    'expiries_at': RFC3339DateTime(desription='The time when the token expires')
 })
 
 
@@ -285,6 +285,9 @@ def create_authorization_predicate(upload_id, calc_id=None):
         if g.user is None:
             # guest users don't have authorized access to anything
             return False
+        elif g.user.user_id == 0:
+            # the admin user does have authorization to access everything
+            return True
 
         # look in repository
         upload = coe_repo.Upload.from_upload_id(upload_id)

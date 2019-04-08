@@ -21,9 +21,10 @@ import inspect
 from unittest.mock import patch
 import logging
 import os.path
+import os
 import glob
 
-from nomad import utils
+from nomad import utils, config
 from nomad.parsing.backend import LocalBackend
 
 
@@ -132,6 +133,7 @@ class LegacyParser(Parser):
 
             with patch.object(sys, 'argv', []):
                 backend = self.parser.parse(mainfile)
+                os.chdir(config.fs.working_directory)
 
             if backend is None or not hasattr(backend, 'status'):
                 backend = self.parser.parser_context.super_backend
