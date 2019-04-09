@@ -23,12 +23,9 @@ almost readonly (beside metadata) storage.
 
 .. code-block:: sh
 
-    fs/staging/<upload>/metadata/<calc>.json
-                       /raw/**
-                       /archive/<calc>.hdf5
-                       /.frozen
-    fs/public/<upload>/metadata.json.gz
-                      /raw-public.plain.zip
+    fs/staging/<upload>/raw/**
+                       /archive/<calc>.json
+    fs/public/<upload>/raw-public.plain.zip
                       /raw-restricted.plain.zip
                       /archive-public.json.zip
                       /archive-restricted.json.zip

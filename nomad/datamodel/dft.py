@@ -19,11 +19,10 @@ DFT specific metadata
 from typing import List
 import re
 from elasticsearch_dsl import Integer
-import ase.data
 
 from nomad import utils, config
 
-from .base import CalcWithMetadata, DomainQuantity, Domain
+from .base import CalcWithMetadata, DomainQuantity, Domain, get_optional_backend_value
 
 
 xc_treatments = {
@@ -93,58 +92,30 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         logger = utils.get_logger(__name__).bind(
             upload_id=self.upload_id, calc_id=self.calc_id, mainfile=self.mainfile)
 
-        def get_optional_value(key, section, unavailable_value=None):
-            # Section is section_system, section_symmetry, etc...
-            val = None  # Initialize to None, so we can compare section values.
-            # Loop over the sections with the name section in the backend.
-            for section_index in backend.get_sections(section):
-                try:
-                    new_val = backend.get_value(key, section_index)
-                except KeyError:
-                    new_val = None
-
-                # Compare values from iterations.
-                if val is not None and new_val is not None:
-                    if val.__repr__() != new_val.__repr__():
-                        logger.warning(
-                            'The values for %s differ between different %s: %s vs %s' %
-                            (key, section, str(val), str(new_val)))
-
-                val = new_val if new_val is not None else val
-
-            if val is None:
-                logger.warning(
-                    'The values for %s where not available in any %s' % (key, section))
-                return unavailable_value if unavailable_value is not None else config.services.unavailable_value
-            else:
-                return val
-
-        if self.calc_id is None:
-            self.calc_id = backend.get_value('calc_id')
-        if self.upload_id is None:
-            self.upload_id = backend.get_value('upload_id')
-        if self.mainfile is None:
-            self.mainfile = backend.get_value('main_file')
-
         self.code_name = backend.get_value('program_name', 0)
         self.code_version = simplify_version(backend.get_value('program_version', 0))
 
-        self.atoms = get_optional_value('atom_labels', 'section_system')
+        self.atoms = get_optional_backend_value(backend, 'atom_labels', 'section_system', logger=logger)
         if hasattr(self.atoms, 'tolist'):
             self.atoms = self.atoms.tolist()
         self.n_atoms = len(self.atoms)
         self.atoms = list(set(self.atoms))
         self.atoms.sort()
 
-        self.crystal_system = get_optional_value('crystal_system', 'section_symmetry')
-        self.spacegroup = get_optional_value('space_group_number', 'section_symmetry', 0)
-        self.spacegroup_symbol = get_optional_value('international_short_symbol', 'section_symmetry', 0)
+        self.crystal_system = get_optional_backend_value(
+            backend, 'crystal_system', 'section_symmetry', logger=logger)
+        self.spacegroup = get_optional_backend_value(
+            backend, 'space_group_number', 'section_symmetry', 0, logger=logger)
+        self.spacegroup_symbol = get_optional_backend_value(
+            backend, 'international_short_symbol', 'section_symmetry', 0, logger=logger)
         self.basis_set = map_basis_set_to_basis_set_label(
-            get_optional_value('program_basis_set_type', 'section_run'))
-        self.system = get_optional_value('system_type', 'section_system')
-        self.formula = get_optional_value('chemical_composition_bulk_reduced', 'section_system')
+            get_optional_backend_value(backend, 'program_basis_set_type', 'section_run', logger=logger))
+        self.system = get_optional_backend_value(
+            backend, 'system_type', 'section_system', logger=logger)
+        self.formula = get_optional_backend_value(
+            backend, 'chemical_composition_bulk_reduced', 'section_system', logger=logger)
         self.xc_functional = map_functional_name_to_xc_treatment(
-            get_optional_value('XC_functional_name', 'section_method'))
+            get_optional_backend_value(backend, 'XC_functional_name', 'section_method', logger=logger))
 
         self.group_hash = utils.hash(
             self.formula,
@@ -179,13 +150,14 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.n_geometries = n_geometries
 
 
-Domain.register_domain(DFTCalcWithMetadata, 'DFT', quantities=dict(
+Domain('DFT', DFTCalcWithMetadata, quantities=dict(
     formula=DomainQuantity(
         'The chemical (hill) formula of the simulated system.',
         order_default=True),
     atoms=DomainQuantity(
         'The atom labels of all atoms in the simulated system.',
-        aggregations=len(ase.data.chemical_symbols)),
+        # aggregations=len(ase.data.chemical_symbols)),
+        aggregations=200),  # quickfix for bad atom labels
     basis_set=DomainQuantity(
         'The used basis set functions.', aggregations=10),
     xc_functional=DomainQuantity(
@@ -195,12 +167,16 @@ Domain.register_domain(DFTCalcWithMetadata, 'DFT', quantities=dict(
     crystal_system=DomainQuantity(
         'The crystal system type of the simulated system.', aggregations=10),
     code_name=DomainQuantity(
-        'The code name.', aggregations=10),
+        'The code name.', aggregations=40),
     spacegroup=DomainQuantity('The spacegroup of the simulated system as number'),
     spacegroup_symbol=DomainQuantity('The spacegroup as international short symbol'),
     geometries=DomainQuantity(
         'Hashes that describe unique geometries simulated by this code run.',
         metric=('geometries', 'cardinality')
+    ),
+    quantities=DomainQuantity(
+        'All quantities that are used by this calculation',
+        metric=('quantities', 'value_count')
     ),
     n_total_energies=DomainQuantity(
         'Number of total energy calculations',

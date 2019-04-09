@@ -145,11 +145,12 @@ class GotItUnstyled extends React.Component {
       border: `1px solid ${theme.palette.error.main}`
     },
     content: {
-      paddingLeft: theme.spacing.unit * 2,
+      padding: theme.spacing.unit * 2,
       flex: '1 1 auto'
     },
     actions: {
       padding: theme.spacing.unit,
+      paddingLef: 0,
       flex: '0 0 auto'
     }
   })

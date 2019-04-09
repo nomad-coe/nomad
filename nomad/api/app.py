@@ -145,4 +145,7 @@ class RFC3339DateTime(fields.DateTime):
         if isinstance(value, datetime):
             return super().format(value.replace(tzinfo=pytz.utc))
         else:
-            str(value)
+            return str(value)
+
+
+rfc3339DateTime = RFC3339DateTime()

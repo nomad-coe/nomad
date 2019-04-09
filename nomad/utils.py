@@ -392,7 +392,7 @@ class SleepTimeBackoff:
     observing long running processes with unknown runtime.
     """
 
-    def __init__(self, start_time: float = 0.1, max_time: float = 60):
+    def __init__(self, start_time: float = 0.1, max_time: float = 5):
         self.current_time = start_time
         self.max_time = max_time
 

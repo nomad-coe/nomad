@@ -1,8 +1,7 @@
 import React from 'react'
 import PropTypes, { instanceOf } from 'prop-types'
-import Markdown from './Markdown'
-import { withStyles, Paper, IconButton, FormGroup, Checkbox, FormControlLabel, FormLabel,
-  LinearProgress, Tooltip} from '@material-ui/core'
+import Markdown from '../Markdown'
+import { withStyles, Paper, IconButton, FormGroup, Checkbox, FormControlLabel, FormLabel, Tooltip } from '@material-ui/core'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import Dropzone from 'react-dropzone'
 import Upload from './Upload'
@@ -11,8 +10,8 @@ import DeleteIcon from '@material-ui/icons/Delete'
 import ReloadIcon from '@material-ui/icons/Cached'
 import CheckIcon from '@material-ui/icons/Check'
 import ConfirmDialog from './ConfirmDialog'
-import { Help, Agree } from './help'
-import { withApi } from './api'
+import { Help, Agree } from '../help'
+import { withApi } from '../api'
 import { withCookies, Cookies } from 'react-cookie'
 
 class Uploads extends React.Component {
@@ -25,7 +24,7 @@ class Uploads extends React.Component {
 
   static styles = theme => ({
     root: {
-      width: '100%'
+      padding: theme.spacing.unit * 3
     },
     dropzoneContainer: {
       height: 192,
@@ -72,7 +71,6 @@ class Uploads extends React.Component {
     uploads: null,
     uploadCommand: 'loading ...',
     selectedUploads: [],
-    loading: true,
     showPublish: false
   }
 
@@ -86,20 +84,18 @@ class Uploads extends React.Component {
   }
 
   update() {
-    this.setState({loading: true})
     this.props.api.getUploads()
       .then(uploads => {
         const filteredUploads = uploads.filter(upload => !upload.is_state)
-        this.setState({uploads: filteredUploads, selectedUploads: [], loading: false})
+        this.setState({uploads: filteredUploads, selectedUploads: []})
       })
       .catch(error => {
-        this.setState({uploads: [], selectedUploads: [], loading: false})
+        this.setState({uploads: [], selectedUploads: []})
         this.props.raiseError(error)
       })
   }
 
   onDeleteClicked() {
-    this.setState({loading: true})
     Promise.all(this.state.selectedUploads.map(upload => this.props.api.deleteUpload(upload.upload_id)))
       .then(() => this.update())
       .catch(error => {
@@ -113,7 +109,6 @@ class Uploads extends React.Component {
   }
 
   onPublish(withEmbargo) {
-    this.setState({loading: true})
     Promise.all(this.state.selectedUploads
       .map(upload => this.props.api.publishUpload(upload.upload_id, withEmbargo)))
       .then(() => {
@@ -303,11 +298,10 @@ class Uploads extends React.Component {
           `}</Markdown>
 
           {this.renderUploads()}
-          {this.state.loading ? <LinearProgress/> : ''}
         </Agree>
       </div>
     )
   }
 }
 
-export default compose(withApi(true), withCookies, withStyles(Uploads.styles))(Uploads)
+export default compose(withApi(true, false, 'To upload data, you must have a nomad account and you must be logged in.'), withCookies, withStyles(Uploads.styles))(Uploads)

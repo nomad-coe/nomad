@@ -1,0 +1,195 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Launch Chrome against localhost",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/gui"
+    },
+    {
+      "name": "Python: API Flask (0.11.x or later)",
+      "type": "python",
+      "request": "launch",
+      "module": "flask",
+      "env": {
+          "FLASK_APP": "nomad/api.py"
+      },
+      "args": [
+          "run",
+          "--port", "8000",
+          "--no-debugger",
+          "--no-reload"
+      ]
+    },
+    {
+      "name": "Photoemission Parser",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/dependencies/parsers/photoemission",
+      "program": "${workspaceFolder}/.pyenv/bin/python",
+      "args": [
+        "-m", "photoemissionparser", "test.json"
+      ]
+    },
+    {
+      "name": "Python: some test",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_api.py::TestRepo::test_search[2-user-other_test_user]"
+      ]
+    },
+    {
+      "name": "Python: crystal normalizer test",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/crystal-tests/data/parsers/crystal/si.out]"
+      ]
+    },
+    {
+      "name": "Python: cp2k normalizer test",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/cp2k-tests/data/parsers/cp2k/si_bulk8.out]"
+      ]
+    },
+    {
+      "name": "Python: cpmd normalizer test",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/cpmd-tests/data/parsers/cpmd/geo_output.out]"
+      ]
+    },
+    {
+      "name": "Python: wien2k normalizer test",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/wien2k-tests/data/parsers/wien2k/AlN/AlN_ZB.scf]"
+      ]
+    },
+    {
+      "name": "Python: gaussian normalizer test",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/gaussian-tests/data/parsers/gaussian/Al.out]"
+      ]
+    },
+    {
+      "name": "Python: aniline gaussian normalizer  test",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/gaussian-tests/data/parsers/gaussian/al-1.out]"
+      ]
+    },
+    {
+      "name": "Python: test_parsing match test",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_parsing.py::test_match"
+      ]
+    },
+    {
+      "name": "Python: nwchem normalizer test h2o sp test",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/nwchem-tests/data/parsers/nwchem/sp_output.out]"
+      ]
+    },
+    {
+      "name": "Python: Vasp XML test",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/vasp-tests/data/parsers/vasp/vasp.xml]"
+      ]
+    },
+    {
+      "name": "Quantum Espresso Normalizer",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/quantumespresso-tests/data/parsers/quantum-espresso/W.out]"
+      ]
+    },
+    {
+      "name": "Abinit Normalizer",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/abinit-tests/data/parsers/abinit/Fe.out]"
+      ]
+    },
+    {
+      "name": "Castep Normalizer",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv", "tests/test_normalizing.py::test_normalizer[parsers/castep-tests/data/parsers/castep/BC2N-Pmm2-Raman.castep]"
+      ]
+    },
+    {
+      "name": "Python: Skeleton",
+      "type": "python",
+      "request": "launch",
+      "args": ["setup.py"],
+      "cwd": "${workspaceFolder}",
+      "program": "dependencies/parsers/skeleton/skeletonparser/__main__.py"
+    },
+    {
+      "name": "Python: Current File",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}"
+    },
+    {
+      "name": "Python: Attach",
+      "type": "python",
+      "request": "attach",
+      "localRoot": "${workspaceFolder}",
+      "remoteRoot": "${workspaceFolder}",
+      "port": 3000,
+      "secret": "my_secret",
+      "host": "localhost"
+    }
+  ]
+}

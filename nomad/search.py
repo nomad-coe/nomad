@@ -21,6 +21,7 @@ from elasticsearch_dsl import Document, InnerDoc, Keyword, Text, Date, \
     Object, Boolean, Search, Q, A, analyzer, tokenizer
 from elasticsearch_dsl.document import IndexMeta
 import elasticsearch.helpers
+from datetime import datetime
 
 from nomad import config, datamodel, infrastructure, datamodel, coe_repo, utils
 
@@ -70,7 +71,7 @@ class Dataset(InnerDoc):
 class WithDomain(IndexMeta):
     """ Override elasticsearch_dsl metaclass to sneak in domain specific mappings """
     def __new__(cls, name, bases, attrs):
-        for quantity in datamodel.Domain.quantities:
+        for quantity in datamodel.Domain.instance.quantities:
             attrs[quantity.name] = quantity.elastic_mapping
         return super(WithDomain, cls).__new__(cls, name, bases, attrs)
 
@@ -91,7 +92,11 @@ class Entry(Document, metaclass=WithDomain):
 
     with_embargo = Boolean()
     published = Boolean()
+
     processed = Boolean()
+    last_processing = Date()
+    nomad_version = Keyword()
+    nomad_commit = Keyword()
 
     authors = Object(User, multi=True)
     owners = Object(User, multi=True)
@@ -111,7 +116,11 @@ class Entry(Document, metaclass=WithDomain):
         self.calc_id = source.calc_id
         self.calc_hash = source.calc_hash
         self.pid = None if source.pid is None else str(source.pid)
+
         self.processed = source.processed
+        self.last_processing = source.last_processing
+        self.nomad_version = source.nomad_version
+        self.nomad_commit = source.nomad_commit
 
         self.mainfile = source.mainfile
         if source.files is None:
@@ -134,7 +143,7 @@ class Entry(Document, metaclass=WithDomain):
         self.references = [ref.value for ref in source.references]
         self.datasets = [Dataset.from_dataset_popo(ds) for ds in source.datasets]
 
-        for quantity in datamodel.Domain.quantities:
+        for quantity in datamodel.Domain.instance.quantities:
             setattr(self, quantity.name, getattr(source, quantity.name))
 
 
@@ -164,13 +173,8 @@ def refresh():
     infrastructure.elastic_client.indices.refresh(config.elastic.index_name)
 
 
-aggregations: Dict[str, int] = {}
+aggregations = datamodel.Domain.instance.aggregations
 """ The available aggregations in :func:`aggregate_search` and their maximum aggregation size """
-
-for quantity in datamodel.Domain.quantities:
-    if quantity.aggregations > 0:
-        aggregations[quantity.name] = quantity.aggregations
-
 
 search_quantities = {
     'authors': ('term', 'authors.name.keyword', (
@@ -192,13 +196,14 @@ The available search quantities in :func:`aggregate_search` as tuples with *sear
 elastic field and description.
 """
 
-for quantity in datamodel.Domain.quantities:
+for quantity in datamodel.Domain.instance.quantities:
     search_spec = ('term', quantity.name, quantity.description)
     search_quantities[quantity.name] = search_spec
 
 
 metrics = {
     'datasets': ('cardinality', 'datasets.id'),
+    'unique_code_runs': ('cardinality', 'calc_hash')
 }
 """
 The available search metrics. Metrics are integer values given for each entry that can
@@ -206,23 +211,26 @@ be used in aggregations, e.g. the sum of all total energy calculations or cardin
 all unique geometries.
 """
 
-for quantity in datamodel.Domain.quantities:
-    if quantity.metric is not None:
-        metric, aggregation = quantity.metric
-        metrics[metric] = (aggregation, quantity.name)
+for key, value in datamodel.Domain.instance.metrics.items():
+    metrics[key] = value
+
+metrics_names = list(metric for metric in metrics.keys())
 
 
 order_default_quantity = None
-for quantity in datamodel.Domain.quantities:
+for quantity in datamodel.Domain.instance.quantities:
     if quantity.order_default:
         order_default_quantity = quantity.name
 
 
-def _construct_search(q: Q = None, **kwargs) -> Search:
+def _construct_search(q: Q = None, time_range: Tuple[datetime, datetime] = None, **kwargs) -> Search:
     search = Search(index=config.elastic.index_name)
 
     if q is not None:
         search = search.query(q)
+
+    if time_range is not None:
+        search = search.query('range', upload_time=dict(gte=time_range[0], lte=time_range[1]))
 
     for key, value in kwargs.items():
         query_type, field, _ = search_quantities.get(key, (None, None, None))
@@ -298,22 +306,26 @@ def scroll_search(
 
 def aggregate_search(
         page: int = 1, per_page: int = 10, order_by: str = order_default_quantity, order: int = -1,
-        q: Q = None, aggregations: Dict[str, int] = aggregations,
+        q: Q = None,
+        time_range: Tuple[datetime, datetime] = None,
+        aggregations: Dict[str, int] = aggregations,
         aggregation_metrics: List[str] = [],
         total_metrics: List[str] = [],
         **kwargs) -> Tuple[int, List[dict], Dict[str, Dict[str, Dict[str, int]]], Dict[str, int]]:
     """
     Performs a search and returns paginated search results and aggregations. The aggregations
-    contain overall and per quantity value sums of code runs (calcs), datasets, total energies,
-    and unique geometries.
+    contain overall and per quantity value sums of code runs (calcs), unique code runs, datasets,
+    and additional domain specific metrics (e.g. total energies, and unique geometries for DFT
+    calculations).
 
     Arguments:
         page: The page to return starting with page 1
         per_page: Results per page
-        q: An *elasticsearch_dsl* query used to further filter the results (via `and`)
+        q: An *elasticsearch_dsl* query used to further filter the results (via ``and``)
+        time_range: A tuple to filter for uploads within with start, end ``upload_time``.
         aggregations: A customized list of aggregations to perform. Keys are index fields,
             and values the amount of buckets to return. Only works on *keyword* field.
-        aggregation_metrics: The metrics used to aggregate over. Can be ``datasets``,
+        aggregation_metrics: The metrics used to aggregate over. Can be ``unique_code_runs``, ``datasets``,
             other domain specific metrics. The basic doc_count metric ``code_runs`` is always given.
         total_metrics: The metrics used to for total numbers (see ``aggregation_metrics``).
         **kwargs: Quantity, value pairs to search for.
@@ -322,7 +334,7 @@ def aggregate_search(
         the aggregation data, and a dictionary with the overall metrics.
     """
 
-    search = _construct_search(q, **kwargs)
+    search = _construct_search(q, time_range, **kwargs)
 
     def add_metrics(parent, metrics_to_add):
         for metric in metrics_to_add:
@@ -364,7 +376,7 @@ def aggregate_search(
             for bucket in getattr(response.aggregations, aggregation).buckets
         }
         for aggregation in aggregations.keys()
-        if aggregation not in ['total_energies', 'geometries', 'datasets']
+        if aggregation not in metrics_names
     }
 
     total_metrics_result = get_metrics(response.aggregations, total_metrics, total_results)

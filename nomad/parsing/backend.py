@@ -342,11 +342,12 @@ class LocalBackend(LegacyParserBackend):
 
         # things that have no real purpos, but are required by some legacy code
         self._unknown_attributes = {}
+        self._known_attributes = ['results']
         self.fileOut = io.StringIO()
 
     def __getattr__(self, name):
         """ Support for unimplemented and unexpected methods. """
-        if self._unknown_attributes.get(name) is None:
+        if name not in self._known_attributes and self._unknown_attributes.get(name) is None:
             self.logger.debug('Access of unexpected backend attribute/method', attribute=name)
             self._unknown_attributes[name] = name
 
@@ -536,7 +537,9 @@ class LocalBackend(LegacyParserBackend):
         self._errors = None
         self._warnings: List[str] = []
 
-    def write_json(self, out: TextIO, pretty=True, filter: Callable[[str, Any], Any] = None):
+    def write_json(
+            self, out: TextIO, pretty=True, filter: Callable[[str, Any], Any] = None,
+            root_sections: List[str] = ['section_run', 'section_entry_info']):
         """
         Writes the results stored in the backend after parsing in an 'archive'.json
         style format.
@@ -550,7 +553,7 @@ class LocalBackend(LegacyParserBackend):
         json_writer.open_object()
 
         # TODO the root sections should be determined programatically
-        for root_section in ['section_run', 'section_calculation_info', 'section_repository_info']:
+        for root_section in root_sections:
             json_writer.key(root_section)
             self._write(json_writer, self._delegate.results[root_section], filter=filter)
 

@@ -4,7 +4,7 @@ import { withStyles } from '@material-ui/core/styles'
 import Typography from '@material-ui/core/Typography'
 import { compose } from 'recompose'
 import { Button, DialogTitle, DialogContent, DialogContentText, TextField, DialogActions,
-  Dialog, FormGroup, LinearProgress } from '@material-ui/core'
+  Dialog, FormGroup } from '@material-ui/core'
 import { withApi } from './api'
 
 class LoginLogout extends React.Component {
@@ -16,7 +16,9 @@ class LoginLogout extends React.Component {
     login: PropTypes.func.isRequired,
     logout: PropTypes.func.isRequired,
     variant: PropTypes.string,
-    color: PropTypes.string
+    color: PropTypes.string,
+    onLoggedIn: PropTypes.func,
+    onLoggedOut: PropTypes.func
   }
 
   static styles = theme => ({
@@ -59,6 +61,10 @@ class LoginLogout extends React.Component {
   handleLoginDialogClosed(withLogin) {
     if (withLogin) {
       this.props.login(this.state.userName, this.state.password, (success) => {
+        if (success && this.props.onLoggedIn) {
+          this.props.onLoggedIn()
+        }
+
         if (this._ismounted) {
           if (success) {
             this.setState({loginDialogOpen: false, failure: false})
@@ -82,6 +88,9 @@ class LoginLogout extends React.Component {
 
   handleLogout() {
     this.props.logout()
+    if (this.props.onLoggedOut) {
+      this.props.onLoggedOut()
+    }
   }
 
   render() {
@@ -118,7 +127,6 @@ class LoginLogout extends React.Component {
                 do not have an account, please go to the nomad repository and
                 create one.
               </DialogContentText>
-              {isLoggingIn ? <LinearProgress/> : ''}
               {failure ? <DialogContentText className={classes.errorText} color="error">Wrong username or password!</DialogContentText> : ''}
               <form>
                 <FormGroup>

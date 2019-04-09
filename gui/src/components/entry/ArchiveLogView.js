@@ -1,9 +1,8 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, LinearProgress, Fab } from '@material-ui/core'
+import { withStyles, Fab } from '@material-ui/core'
 import { compose } from 'recompose'
-import { withErrors } from './errors'
-import { withApi } from './api'
+import { withApi } from '../api'
 import Download from './Download'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 
@@ -23,10 +22,10 @@ class ArchiveLogView extends React.Component {
       }
     },
     downloadFab: {
-      position: 'absolute',
       zIndex: 1,
-      top: theme.spacing.unit,
-      right: theme.spacing.unit * 3
+      right: 32,
+      bottom: 32,
+      position: 'fixed !important'
     }
   });
 
@@ -38,6 +37,16 @@ class ArchiveLogView extends React.Component {
   }
 
   componentDidMount() {
+    this.update()
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.api !== this.props.api) {
+      this.update()
+    }
+  }
+
+  update() {
     const {uploadId, calcId, api, raiseError} = this.props
     api.calcProcLog(uploadId, calcId).then(data => {
       this.setState({data: data})
@@ -53,6 +62,8 @@ class ArchiveLogView extends React.Component {
 
     return (
       <div className={classes.root}>
+        <pre>{data || 'empty log'}</pre>
+
         <Download
           classes={{root: classes.downloadFab}} tooltip="download logfile"
           component={Fab} className={classes.downloadFab} color="primary" size="medium"
@@ -60,14 +71,9 @@ class ArchiveLogView extends React.Component {
         >
           <DownloadIcon />
         </Download>
-        {
-          data !== null
-            ? <pre>{data || 'empty log'}</pre>
-            : <LinearProgress variant="query" />
-        }
       </div>
     )
   }
 }
 
-export default compose(withApi(false), withErrors, withStyles(ArchiveLogView.styles))(ArchiveLogView)
+export default compose(withApi(false, true), withStyles(ArchiveLogView.styles))(ArchiveLogView)

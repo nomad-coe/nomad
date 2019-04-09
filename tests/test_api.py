@@ -20,8 +20,9 @@ import zipfile
 import io
 import inspect
 from passlib.hash import bcrypt
-from datetime import datetime
+import datetime
 
+from nomad.api.app import rfc3339DateTime
 from nomad import coe_repo, search, parsing, files, config
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
@@ -54,8 +55,13 @@ def get_upload_with_metadata(upload: dict) -> UploadWithMetadata:
             for calc in upload['calcs']['results']])
 
 
-class TestAdmin:
+class TestInfo:
+    def test_info(self, client):
+        rv = client.get('/info/')
+        assert rv.status_code == 200
 
+
+class TestAdmin:
     @pytest.mark.timeout(config.tests.default_timeout)
     def test_reset(self, client, admin_user_auth, expandable_postgres, monkeypatch):
         monkeypatch.setattr('nomad.config.services.disable_reset', False)
@@ -384,7 +390,7 @@ class TestUploads:
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
         metadata = dict(**example_user_metadata)
-        metadata['_upload_time'] = datetime.now().isoformat()
+        metadata['_upload_time'] = datetime.datetime.now().isoformat()
         self.assert_published(client, admin_user_auth, upload['upload_id'], proc_infra, metadata)
 
     def test_post_metadata_forbidden(self, client, proc_infra, test_user_auth, no_warn):
@@ -548,20 +554,27 @@ class TestRepo():
             test_user: coe_repo.User, other_test_user: coe_repo.User):
         clear_elastic(elastic_infra)
 
-        calc_with_metadata = CalcWithMetadata(upload_id=0, calc_id=0)
+        calc_with_metadata = CalcWithMetadata(upload_id=0, calc_id=0, upload_time=datetime.date.today())
+        calc_with_metadata.files = ['test/mainfile.txt']
         calc_with_metadata.apply_domain_metadata(normalized)
 
-        calc_with_metadata.update(calc_id='1', uploader=test_user.to_popo(), published=True, with_embargo=False)
+        calc_with_metadata.update(
+            calc_id='1', uploader=test_user.to_popo(), published=True, with_embargo=False)
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
-        calc_with_metadata.update(calc_id='2', uploader=other_test_user.to_popo(), published=True, with_embargo=False)
-        calc_with_metadata.update(atoms=['Fe'], comment='this is a specific word', formula='AAA', basis_set='zzz')
+        calc_with_metadata.update(
+            calc_id='2', uploader=other_test_user.to_popo(), published=True, with_embargo=False,
+            upload_time=datetime.date.today() - datetime.timedelta(days=5))
+        calc_with_metadata.update(
+            atoms=['Fe'], comment='this is a specific word', formula='AAA', basis_set='zzz')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
-        calc_with_metadata.update(calc_id='3', uploader=other_test_user.to_popo(), published=False, with_embargo=False)
+        calc_with_metadata.update(
+            calc_id='3', uploader=other_test_user.to_popo(), published=False, with_embargo=False)
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
-        calc_with_metadata.update(calc_id='4', uploader=other_test_user.to_popo(), published=True, with_embargo=True)
+        calc_with_metadata.update(
+            calc_id='4', uploader=other_test_user.to_popo(), published=True, with_embargo=True)
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
     def test_own_calc(self, client, example_elastic_calcs, no_warn, test_user_auth):
@@ -606,6 +619,37 @@ class TestRepo():
             for key in ['uploader', 'calc_id', 'formula', 'upload_id']:
                 assert key in results[0]
 
+    @pytest.mark.parametrize('calcs, start, end', [
+        (2, datetime.date.today() - datetime.timedelta(days=6), datetime.date.today()),
+        (2, datetime.date.today() - datetime.timedelta(days=5), datetime.date.today()),
+        (1, datetime.date.today() - datetime.timedelta(days=4), datetime.date.today()),
+        (1, datetime.date.today(), datetime.date.today()),
+        (1, datetime.date.today() - datetime.timedelta(days=6), datetime.date.today() - datetime.timedelta(days=5)),
+        (0, datetime.date.today() - datetime.timedelta(days=7), datetime.date.today() - datetime.timedelta(days=6)),
+        (2, None, None),
+        (1, datetime.date.today(), None),
+        (2, None, datetime.date.today())
+    ])
+    def test_search_time(self, client, example_elastic_calcs, no_warn, calcs, start, end):
+        query_string = ''
+        if start is not None:
+            query_string = 'from_time=%s' % rfc3339DateTime.format(start)
+        if end is not None:
+            if query_string != '':
+                query_string += '&'
+            query_string += 'until_time=%s' % rfc3339DateTime.format(end)
+        if query_string != '':
+            query_string = '?%s' % query_string
+
+        rv = client.get('/repo/%s' % query_string)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+
+        results = data.get('results', None)
+        assert results is not None
+        assert isinstance(results, list)
+        assert len(results) == calcs
+
     @pytest.mark.parametrize('calcs, quantity, value', [
         (2, 'system', 'bulk'),
         (0, 'system', 'atom'),
@@ -644,7 +688,9 @@ class TestRepo():
             assert len(aggregations['system']) == 1
             assert value in aggregations['system']
 
-    @pytest.mark.parametrize('metrics', [[], ['total_energies'], ['geometries'], ['datasets'], ['total_energies', 'geometries', 'datasets']])
+    metrics_permutations = [[], search.metrics_names] + [[metric] for metric in search.metrics_names]
+
+    @pytest.mark.parametrize('metrics', metrics_permutations)
     def test_search_total_metrics(self, client, example_elastic_calcs, no_warn, metrics):
         rv = client.get('/repo/?total_metrics=%s' % ','.join(metrics))
         assert rv.status_code == 200
@@ -654,7 +700,7 @@ class TestRepo():
         for metric in metrics:
             assert metric in metrics_result
 
-    @pytest.mark.parametrize('metrics', [[], ['total_energies'], ['geometries'], ['datasets'], ['total_energies', 'geometries', 'datasets']])
+    @pytest.mark.parametrize('metrics', metrics_permutations)
     def test_search_aggregation_metrics(self, client, example_elastic_calcs, no_warn, metrics):
         rv = client.get('/repo/?aggregation_metrics=%s' % ','.join(metrics))
         assert rv.status_code == 200

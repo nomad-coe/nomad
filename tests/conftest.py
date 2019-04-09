@@ -142,12 +142,15 @@ def worker(mongo, celery_session_worker, celery_inspect):
 
     # wait until there no more active tasks, to leave clean worker and queues for the next
     # test run.
-    while True:
-        empty = True
-        for value in celery_inspect.active().values():
-            empty = empty and len(value) == 0
-        if empty:
-            break
+    try:
+        while True:
+            empty = True
+            for value in celery_inspect.active().values():
+                empty = empty and len(value) == 0
+            if empty:
+                break
+    except Exception:
+        pass
 
 
 @pytest.fixture(scope='session')

@@ -42,6 +42,12 @@ var styles = theme => ({
       fontSize: 14,
       lineHeight: 1.6
     },
+    '& p:first-child': {
+      marginTop: 0
+    },
+    '& p:last-child': {
+      marginBottom: 0
+    },
     '& h1': (0, extend)({}, theme.typography.h3, {
       color: theme.palette.text.primary,
       margin: '32px 0 16px'

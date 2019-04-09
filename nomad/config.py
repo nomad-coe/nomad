@@ -18,6 +18,9 @@ import os.path
 import yaml
 import warnings
 
+from nomad import gitinfo
+
+
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
@@ -113,7 +116,7 @@ logstash = NomadConfig(
 services = NomadConfig(
     api_host='localhost',
     api_port=8000,
-    api_base_path='/nomad/api',
+    api_base_path='/fairdi/nomad/latest/api',
     api_secret='defaultApiSecret',
     admin_password='password',
     disable_reset=True,
@@ -128,10 +131,10 @@ tests = NomadConfig(
 
 
 def api_url():
-    return '%s://%s%s/%s' % (
+    return '%s://%s%s%s' % (
         'https' if services.https else 'http',
         services.api_host,
-        ':%s' % services.api_port if services.api_port != 80 else '',
+        ':%s' % services.api_port if int(services.api_port) != 80 else '',
         services.api_base_path)
 
 
@@ -163,7 +166,8 @@ client = NomadConfig(
     url='http://localhost:8000/nomad/api'
 )
 
-version = '4.3'  # TODO replace with git hash?
+version = '0.4.4'
+commit = gitinfo.commit
 release = 'devel'
 domain = 'DFT'
 service = 'unknown nomad service'
