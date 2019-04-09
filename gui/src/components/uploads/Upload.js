@@ -9,7 +9,6 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
 import { compose } from 'recompose'
 import { withErrors } from '../errors'
-import { debug } from '../../config'
 import { withRouter } from 'react-router'
 
 class Upload extends React.Component {
@@ -483,10 +482,10 @@ class Upload extends React.Component {
                 </Typography> : ''
               }
               {upload.calcs ? this.renderCalcTable() : ''}
-              {debug
-                ? <div className={classes.detailsContent}>
-                  <ReactJson src={upload} enableClipboard={false} collapsed={0} />
-                </div> : ''}
+
+              <div className={classes.detailsContent}>
+                <ReactJson src={upload} enableClipboard={false} collapsed={0} />
+              </div>
             </ExpansionPanelDetails>
           </ExpansionPanel>
         </div>

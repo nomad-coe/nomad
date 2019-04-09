@@ -28,6 +28,8 @@ COPY yarn.lock /nomad/app/yarn.lock
 RUN yarn
 COPY . /nomad/app
 
+ARG public_url
+ENV PUBLIC_URL=$public_url
 RUN yarn run build
 
 # production environment

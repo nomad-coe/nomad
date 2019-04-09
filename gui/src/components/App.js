@@ -81,7 +81,7 @@ export default class App extends React.Component {
     return (
       <MuiThemeProvider theme={genTheme}>
         <ErrorSnacks>
-          <BrowserRouter basename={appBase}>
+          <BrowserRouter basename={process.env.PUBLIC_URL}>
             <HelpProvider>
               <ApiProvider>
                 <Navigation>
