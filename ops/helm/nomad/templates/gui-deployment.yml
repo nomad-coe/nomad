@@ -48,7 +48,7 @@ spec:
       containers:
       - name: {{ include "nomad.name" . }}-gui
         image: "{{ .Values.images.frontend.name }}:{{ .Values.images.frontend.tag }}"
-        command: ["run.sh {{ .Values.proxy.external.path }}"]
+        command: ["./run.sh",  "{{ .Values.proxy.external.path }}"]
         ports:
         - containerPort: 8080
         volumeMounts:
@@ -63,13 +63,13 @@ spec:
           name: log
         livenessProbe:
           httpGet:
-            path: "{{ .Values.proxy.external.path }}/index.html"
+            path: "{{ .Values.proxy.external.path }}/gui/index.html"
             port: 8080
           initialDelaySeconds: 15
           periodSeconds: 15
         readinessProbe:
           httpGet:
-            path: "{{ .Values.proxy.external.path }}/index.html"
+            path: "{{ .Values.proxy.external.path }}/gui/index.html"
             port: 8080
           initialDelaySeconds: 3
           periodSeconds: 3

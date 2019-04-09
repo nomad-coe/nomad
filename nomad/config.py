@@ -131,10 +131,10 @@ tests = NomadConfig(
 
 
 def api_url():
-    return '%s://%s%s/%s' % (
+    return '%s://%s%s%s' % (
         'https' if services.https else 'http',
         services.api_host,
-        ':%s' % services.api_port if services.api_port != 80 else '',
+        ':%s' % services.api_port if int(services.api_port) != 80 else '',
         services.api_base_path)
 
 
