@@ -37,7 +37,7 @@ COPY ./gui.conf /etc/nginx/conf.d/default.conf
 
 WORKDIR /app/nomad
 COPY ./run.sh run.sh
-RUN chmod a+r run.sh
+RUN chmod a+rx run.sh
 CMD nginx -g "daemon off;"
 
 VOLUME /etc/nginx/conf.d
