@@ -1,6 +1,6 @@
 import React from 'react'
 import { MuiThemeProvider } from '@material-ui/core/styles'
-import { genTheme, appBase } from '../config'
+import { genTheme } from '../config'
 import Navigation from './Navigation'
 import { BrowserRouter, Switch, Route } from 'react-router-dom'
 import Uploads from './uploads/Uploads'
