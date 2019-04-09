@@ -52,7 +52,7 @@ buildgui:
   script:
     - cd gui
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
-    - docker build --build-arg public_url=$(case $CI_COMMIT_REF_NAME in "migration") echo "/fairdi/nomad/migration/gui" ;; *) echo "/fairdi/nomad/latest/gui" ;; esac) -t $FRONTEND_TEST_IMAGE .
+    - docker build -t $FRONTEND_TEST_IMAGE .
     - docker push $FRONTEND_TEST_IMAGE
   except:
     - /^dev-.*$/
