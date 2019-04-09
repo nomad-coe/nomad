@@ -248,9 +248,9 @@ class NavigationUnstyled extends React.Component {
   }
 }
 
-export const Navigation = compose(withRouter, withApi(false), withStyles(NavigationUnstyled.styles))(NavigationUnstyled)
+const Navigation = compose(withRouter, withApi(false), withStyles(NavigationUnstyled.styles))(NavigationUnstyled)
 
-export class App extends React.Component {
+export default class App extends React.Component {
   constructor(props) {
     super(props)
     this.renderChildren.bind(this)
