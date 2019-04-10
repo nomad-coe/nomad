@@ -3,8 +3,9 @@ import PropTypes from 'prop-types'
 import { withStyles, Paper, Table, TableHead, TableRow, TableCell, Tooltip, TableSortLabel, TableBody, TablePagination } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withRouter } from 'react-router'
+import { withDomain } from '../domains'
 
-class SearchResultList extends React.Component {
+class SearchResultListUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     data: PropTypes.object.isRequired,
@@ -14,7 +15,8 @@ class SearchResultList extends React.Component {
     order_by: PropTypes.string.isRequired,
     order: PropTypes.string.isRequired,
     page: PropTypes.number.isRequired,
-    per_page: PropTypes.number.isRequired
+    per_page: PropTypes.number.isRequired,
+    domain: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
@@ -27,35 +29,7 @@ class SearchResultList extends React.Component {
     }
   })
 
-  static defaultState = {
-    order_by: 'formula',
-    order: '1',
-    page: 1,
-    per_page: 10
-  }
-
-  rowConfig = {
-    formula: {
-      label: 'Formula'
-    },
-    code_name: {
-      label: 'Code'
-    },
-    basis_set: {
-      label: 'Basis set'
-    },
-    xc_functional: {
-      label: 'XT treatment'
-    },
-    system: {
-      label: 'System'
-    },
-    crystal_system: {
-      label: 'Crystal system'
-    },
-    spacegroup_symbol: {
-      label: 'Spacegroup'
-    },
+  defaultRowConfig = {
     authors: {
       label: 'Authors',
       render: (authors) => {
@@ -110,8 +84,13 @@ class SearchResultList extends React.Component {
   }
 
   render() {
-    const { classes, data, order, order_by, page, per_page } = this.props
+    const { classes, data, order, order_by, page, per_page, domain } = this.props
     const { results, pagination: { total } } = data
+
+    const rowConfig = {
+      ...domain.searchResultColumns,
+      ...this.defaultRowConfig
+    }
 
     const renderCell = (key, rowConfig, calc) => {
       const value = calc[key]
@@ -133,7 +112,7 @@ class SearchResultList extends React.Component {
         <Table>
           <TableHead>
             <TableRow>
-              {Object.keys(this.rowConfig).map(key => (
+              {Object.keys(rowConfig).map(key => (
                 <TableCell padding="dense" key={key}>
                   <Tooltip
                     title="Sort"
@@ -145,7 +124,7 @@ class SearchResultList extends React.Component {
                       direction={order === 1 ? 'dsc' : 'asc'}
                       onClick={() => this.handleSort(key)}
                     >
-                      {this.rowConfig[key].label}
+                      {rowConfig[key].label}
                     </TableSortLabel>
                   </Tooltip>
                 </TableCell>
@@ -155,9 +134,9 @@ class SearchResultList extends React.Component {
           <TableBody>
             {results.map((calc, index) => (
               <TableRow hover tabIndex={-1} key={index} className={classes.clickableRow}>
-                {Object.keys(this.rowConfig).map((key, rowIndex) => (
+                {Object.keys(rowConfig).map((key, rowIndex) => (
                   <TableCell padding="dense" key={rowIndex} onClick={() => this.handleClickCalc(calc)} >
-                    {renderCell(key, this.rowConfig[key], calc)}
+                    {renderCell(key, rowConfig[key], calc)}
                   </TableCell>
                 ))}
               </TableRow>
@@ -189,4 +168,14 @@ class SearchResultList extends React.Component {
   }
 }
 
-export default compose(withRouter, withStyles(SearchResultList.styles))(SearchResultList)
+const SearchResultList = compose(withRouter, withDomain, withStyles(SearchResultListUnstyled.styles))(SearchResultListUnstyled)
+Object.assign(SearchResultList, {
+  defaultState: {
+    order_by: 'formula',
+    order: '1',
+    page: 1,
+    per_page: 10
+  }
+})
+
+export default SearchResultList

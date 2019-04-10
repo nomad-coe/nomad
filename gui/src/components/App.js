@@ -21,6 +21,7 @@ import Calc from './entry/Calc'
 import About from './About'
 import LoginLogout from './LoginLogout'
 import { genTheme, repoTheme } from '../config'
+import { DomainProvider } from './domains'
 
 const drawerWidth = 200
 
@@ -317,18 +318,20 @@ export default class App extends React.Component {
           <BrowserRouter basename={process.env.PUBLIC_URL}>
             <HelpProvider>
               <ApiProvider>
-                <Navigation>
-                  <Switch>
-                    {Object.keys(this.routes).map(route => (
-                    // eslint-disable-next-line react/jsx-key
-                      <Route key={'nop'}
-                      // eslint-disable-next-line react/no-children-prop
-                        children={props => this.renderChildren(route, props)}
-                        exact={this.routes[route].exact}
-                        path={this.routes[route].path} />
-                    ))}
-                  </Switch>
-                </Navigation>
+                <DomainProvider>
+                  <Navigation>
+                    <Switch>
+                      {Object.keys(this.routes).map(route => (
+                      // eslint-disable-next-line react/jsx-key
+                        <Route key={'nop'}
+                        // eslint-disable-next-line react/no-children-prop
+                          children={props => this.renderChildren(route, props)}
+                          exact={this.routes[route].exact}
+                          path={this.routes[route].path} />
+                      ))}
+                    </Switch>
+                  </Navigation>
+                </DomainProvider>
               </ApiProvider>
             </HelpProvider>
           </BrowserRouter>

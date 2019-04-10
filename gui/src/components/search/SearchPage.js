@@ -11,7 +11,7 @@ import Link from 'react-router-dom/Link'
 import { withApi, DisableOnLoading } from '../api'
 import SearchBar from './SearchBar'
 import SearchResultList from './SearchResultList'
-import SearchStatistics from './SearchStatistics'
+import SearchAggregations from './SearchAggregations'
 
 class SearchPage extends React.Component {
   static propTypes = {
@@ -44,7 +44,7 @@ class SearchPage extends React.Component {
     },
     owner: 'all',
     searchState: {
-      ...SearchStatistics.defaultState
+      ...SearchAggregations.defaultState
     },
     searchResultListState: {
       ...SearchResultList.defaultState
@@ -145,7 +145,7 @@ class SearchPage extends React.Component {
             onChanged={values => this.updateSearch({searchValues: values})}
           />
 
-          <SearchStatistics data={data} {...searchState} onChange={this.updateSearch} />
+          <SearchAggregations data={data} {...searchState} onChange={this.updateSearch} />
 
           <FormGroup className={classes.selectFormGroup} row>
             <FormLabel classes={{root: classes.selectLabel}} style={{flexGrow: 1}}>
