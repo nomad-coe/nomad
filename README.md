@@ -36,6 +36,8 @@ source .pyenv/bin/activate
 Third, install the development dependencies, including the documentation system
 [sphinx](http://www.sphinx-doc.org/en/master/index.html):
 ```
+pip install --upgrade pip
+pip install --upgrade setuptools
 pip install -r requirements.txt
 ```
 
