@@ -242,7 +242,7 @@ def test_ems_data(proc_infra, test_user, monkeypatch):
 
     upload = run_processing(('test_ems_upload', 'tests/data/proc/example_ems.zip'), test_user)
 
-    additional_keys = ['method', 'location', 'experiment_time', 'formula', 'chemical']
+    additional_keys = ['method', 'experiment_location', 'experiment_time', 'formula', 'chemical']
     assert upload.total_calcs == 1
     assert len(upload.calcs) == 1
 
