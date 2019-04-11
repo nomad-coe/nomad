@@ -7,6 +7,8 @@ import match from 'autosuggest-highlight/match'
 import parse from 'autosuggest-highlight/parse'
 import Paper from '@material-ui/core/Paper'
 import MenuItem from '@material-ui/core/MenuItem'
+import { Chip } from '@material-ui/core'
+import { repoPrimaryColor } from '../../config'
 
 function renderInput(inputProps) {
   const { classes, autoFocus, value, onChange, onAdd, onDelete, chips, ref, ...other } = inputProps
@@ -19,6 +21,22 @@ function renderInput(inputProps) {
       onDelete={onDelete}
       value={chips}
       inputRef={ref}
+      chipRenderer={
+        ({ value, text, isFocused, isDisabled, handleClick, handleDelete, className }, key) => (
+          <Chip
+            key={key}
+            className={className}
+            style={{
+              pointerEvents: isDisabled ? 'none' : undefined,
+              backgroundColor: isFocused ? repoPrimaryColor[500] : undefined,
+              color: isFocused ? 'white' : 'black'
+            }}
+            onClick={handleClick}
+            onDelete={handleDelete}
+            label={text}
+          />
+        )
+      }
       {...other}
     />
   )
@@ -74,14 +92,8 @@ class SearchBar extends React.Component {
   }
 
   static styles = theme => ({
-    root: {
-      width: '100%',
-      minWidth: 500,
-      maxWidth: 900,
-      margin: 'auto',
-      marginBottom: theme.spacing.unit * 3
-    },
-    container: {
+    root: {},
+    autosuggestRoot: {
       position: 'relative'
     },
     suggestionsContainerOpen: {
@@ -98,9 +110,6 @@ class SearchBar extends React.Component {
       margin: 0,
       padding: 0,
       listStyleType: 'none'
-    },
-    divider: {
-      height: theme.spacing.unit * 2
     },
     textField: {
       width: '100%'
@@ -213,35 +222,33 @@ class SearchBar extends React.Component {
     const { classes, searchValues, onChanged, ...rest } = this.props
 
     return (
-      <div className={classes.root} >
-        <Autosuggest
-          theme={{
-            container: classes.container,
-            suggestionsContainerOpen: classes.suggestionsContainerOpen,
-            suggestionsList: classes.suggestionsList,
-            suggestion: classes.suggestion
-          }}
-          renderInputComponent={renderInput}
-          suggestions={this.state.suggestions}
-          onSuggestionsFetchRequested={this.handleSuggestionsFetchRequested}
-          onSuggestionsClearRequested={this.handleSuggestionsClearRequested}
-          renderSuggestionsContainer={renderSuggestionsContainer}
-          getSuggestionValue={getSuggestionValue}
-          renderSuggestion={renderSuggestion}
-          onSuggestionSelected={(e, { suggestionValue }) => { this.handleAddChip(suggestionValue); e.preventDefault() }}
-          focusInputOnSuggestionClick={false}
-          inputProps={{
-            classes,
-            chips: this.getChips(),
-            onChange: this.handleTextFieldInputChange,
-            value: this.state.textFieldInput,
-            onAdd: (chip) => this.handleAddChip(chip),
-            onBeforeAdd: (chip) => this.handleBeforeAddChip(chip),
-            onDelete: (chip, index) => this.handleDeleteChip(chip, index),
-            ...rest
-          }}
-        />
-      </div>
+      <Autosuggest
+        theme={{
+          container: classes.autosuggestRoot,
+          suggestionsContainerOpen: classes.suggestionsContainerOpen,
+          suggestionsList: classes.suggestionsList,
+          suggestion: classes.suggestion
+        }}
+        renderInputComponent={renderInput}
+        suggestions={this.state.suggestions}
+        onSuggestionsFetchRequested={this.handleSuggestionsFetchRequested}
+        onSuggestionsClearRequested={this.handleSuggestionsClearRequested}
+        renderSuggestionsContainer={renderSuggestionsContainer}
+        getSuggestionValue={getSuggestionValue}
+        renderSuggestion={renderSuggestion}
+        onSuggestionSelected={(e, { suggestionValue }) => { this.handleAddChip(suggestionValue); e.preventDefault() }}
+        focusInputOnSuggestionClick={false}
+        inputProps={{
+          classes,
+          chips: this.getChips(),
+          onChange: this.handleTextFieldInputChange,
+          value: this.state.textFieldInput,
+          onAdd: (chip) => this.handleAddChip(chip),
+          onBeforeAdd: (chip) => this.handleBeforeAddChip(chip),
+          onDelete: (chip, index) => this.handleDeleteChip(chip, index),
+          ...rest
+        }}
+      />
     )
   }
 }

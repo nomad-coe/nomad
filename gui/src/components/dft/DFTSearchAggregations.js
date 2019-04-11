@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Grid } from '@material-ui/core'
+import { withStyles, Grid, Card, CardContent } from '@material-ui/core'
 import PeriodicTable from '../search/PeriodicTable'
 import QuantityHistogram from '../search/QuantityHistogram'
 
@@ -15,14 +15,11 @@ class DFTSearchAggregations extends React.Component {
 
   static styles = theme => ({
     root: {},
-    quantityGrid: {
-      minWidth: 524,
-      maxWidth: 924,
-      margin: 'auto',
-      width: '100%'
-    },
     quantity: {
       marginTop: theme.spacing.unit * 2
+    },
+    quantityGrid: {
+      marginBottom: theme.spacing.unit * 2
     }
   })
 
@@ -56,24 +53,27 @@ class DFTSearchAggregations extends React.Component {
 
     return (
       <div className={classes.root}>
-        <PeriodicTable
-          aggregations={aggregations.atoms} metric={metric}
-          values={searchValues.atoms || []}
-          onChanged={(selection) => this.handleAtomsChanged(selection)}
-        />
+        <Card>
+          <CardContent>
+            <PeriodicTable
+              aggregations={aggregations.atoms} metric={metric}
+              values={searchValues.atoms || []}
+              onChanged={(selection) => this.handleAtomsChanged(selection)}
+            />
+          </CardContent>
+        </Card>
 
         <Grid container spacing={24} className={classes.quantityGrid}>
-
           <Grid item xs={4}>
-            {quantity('system', 'System')}
+            {quantity('code_name', 'Code')}
+          </Grid>
+          <Grid item xs={4}>
+            {quantity('system', 'System type')}
             {quantity('crystal_system', 'Crystal system')}
           </Grid>
           <Grid item xs={4}>
             {quantity('basis_set', 'Basis set')}
             {quantity('xc_functional', 'XC functionals')}
-          </Grid>
-          <Grid item xs={4}>
-            {quantity('code_name', 'Code')}
           </Grid>
         </Grid>
       </div>

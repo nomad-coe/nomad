@@ -29,6 +29,14 @@ export class DomainProvider extends React.Component {
      * the overall amount in search results).
      */
     searchMetrics: {
+      code_runs: {
+        label: 'Entries',
+        renderResultString: count => (<span><b>{count}</b> entries</span>)
+      },
+      unique_code_runs: {
+        label: 'Unique entries',
+        renderResultString: count => (<span> and <b>{count}</b> unique entries</span>)
+      },
       total_energies: {
         label: 'Total energy calculations',
         renderResultString: count => (<span> with <b>{count}</b> total energy calculations</span>)
@@ -36,6 +44,10 @@ export class DomainProvider extends React.Component {
       geometries: {
         label: 'Unique geometries',
         renderResultString: count => (<span> that simulate <b>{count}</b> unique geometries</span>)
+      },
+      datasets: {
+        label: 'Datasets',
+        renderResultString: count => (<span> curated in <b>{count}</b> datasets</span>)
       }
     },
     /**
