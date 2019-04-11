@@ -589,9 +589,17 @@ class TestRepo():
         rv = client.get('/repo/0/4', headers=test_user_auth)
         assert rv.status_code == 401
 
+    def test_own_embargo_calc(self, client, example_elastic_calcs, no_warn, other_test_user_auth):
+        rv = client.get('/repo/0/4', headers=other_test_user_auth)
+        assert rv.status_code == 200
+
     def test_staging_calc(self, client, example_elastic_calcs, no_warn, test_user_auth):
         rv = client.get('/repo/0/3', headers=test_user_auth)
         assert rv.status_code == 401
+
+    def test_own_staging_calc(self, client, example_elastic_calcs, no_warn, other_test_user_auth):
+        rv = client.get('/repo/0/3', headers=other_test_user_auth)
+        assert rv.status_code == 200
 
     def test_non_existing_calcs(self, client, example_elastic_calcs, test_user_auth):
         rv = client.get('/repo/0/10', headers=test_user_auth)

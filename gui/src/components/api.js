@@ -515,7 +515,7 @@ class WithApiComponent extends React.Component {
     if (notAuthorized) {
       if (user) {
         return (
-          <div style={{padding: 16}}>
+          <div>
             <Typography variant="h6">Not Authorized</Typography>
             <Typography>
               You are not authorized to access this information. If someone send
@@ -534,7 +534,7 @@ class WithApiComponent extends React.Component {
         )
       }
     } else if (notFound) {
-      return <div style={{padding: 16}}>
+      return <div>
         <Typography variant="h6">Not Found</Typography>
         <Typography>
         The information that you are trying to access does not exists.
