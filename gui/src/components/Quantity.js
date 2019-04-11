@@ -10,25 +10,69 @@ class Quantity extends React.Component {
     typography: PropTypes.string,
     loading: PropTypes.bool,
     placeholder: PropTypes.string,
-    noWrap: PropTypes.bool
+    noWrap: PropTypes.bool,
+    row: PropTypes.bool,
+    column: PropTypes.bool,
+    data: PropTypes.object,
+    quantity: PropTypes.string
   }
 
   static styles = theme => ({
-    root: {
-      margin: '8px 24px 0px 0'
+    root: {},
+    row: {
+      display: 'flex',
+      flexDirection: 'row',
+      '& > :not(:first-child)': {
+        marginLeft: theme.spacing.unit * 3
+      }
+    },
+    column: {
+      display: 'flex',
+      flexDirection: 'column',
+      '& > :not(:first-child)': {
+        marginTop: theme.spacing.unit * 1
+      }
     }
   })
 
   render() {
-    const {classes, children, label, typography, loading, placeholder, noWrap} = this.props
-    const content = (!children || children.length === 0) ? null : children
+    const {classes, children, label, typography, loading, placeholder, noWrap, row, column, quantity, data} = this.props
+    let content = null
+    if (!loading) {
+      if (!(data && quantity && !data[quantity])) {
+        if (!children || children.length === 0) {
+          const value = data && quantity ? data[quantity] : null
+          if (value) {
+            content = <Typography noWrap={noWrap} variant={typography}>
+              {value}
+            </Typography>
+          } else {
+            content = <Typography noWrap={noWrap} variant={typography}>
+              <i>{placeholder || 'unavailable'}</i>
+            </Typography>
+          }
+        } else {
+          content = children
+        }
+      } else {
+        content = <Typography noWrap={noWrap} variant={typography}>
+          <i>{placeholder || 'unavailable'}</i>
+        </Typography>
+      }
+    }
 
-    return (
-      <div className={classes.root}>
-        <Typography variant="caption">{label}</Typography>
-        <Typography noWrap={noWrap} variant={typography || 'body1'}>{content || <i>{loading ? 'loading...' : placeholder || 'unavailable'}</i>}</Typography>
-      </div>
-    )
+    if (row || column) {
+      return <div className={row ? classes.row : classes.column}>{children}</div>
+    } else {
+      return (
+        <div className={classes.root}>
+          <Typography noWrap variant="caption">{label || quantity}</Typography>
+          {loading ? <Typography noWrap={noWrap} variant={typography}>
+            <i>loading ...</i>
+          </Typography> : content}
+        </div>
+      )
+    }
   }
 }
 

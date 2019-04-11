@@ -322,7 +322,7 @@ def perform_migration_test(migrate_infra, name, test_directory, assertions, monk
         assert_search_upload(
             upload_with_metadata, additional_keys=['with_embargo', 'pid'], published=True)
         assert_upload_files(
-            upload_with_metadata, files.PublicUploadFiles, additional_keys=['with_embargo', 'pid'], published=True)
+            upload_with_metadata, files.PublicUploadFiles, published=True)
 
 
 def test_skip_on_same_version(migrate_infra, monkeypatch, caplog):

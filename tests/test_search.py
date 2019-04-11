@@ -151,6 +151,8 @@ def assert_search_upload(upload: datamodel.UploadWithMetadata, additional_keys: 
 
             for key in additional_keys:
                 assert key in hit
+                print('%s: %s' % (key, str(hit[key])))
+                assert hit[key] != config.services.unavailable_value
 
             for coauthor in hit.get('coauthors', []):
                 assert coauthor.get('name', None) is not None

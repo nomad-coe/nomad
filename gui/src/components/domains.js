@@ -3,6 +3,9 @@ import PropTypes from 'prop-types'
 import DFTSearchAggregations from './dft/DFTSearchAggregations'
 import DFTEntryOverview from './dft/DFTEntryOverview'
 import DFTEntryCards from './dft/DFTEntryCards'
+import EMSSearchAggregations from './ems/EMSSearchAggregations'
+import EMSEntryOverview from './ems/EMSEntryOverview'
+import EMSEntryCards from './ems/EMSEntryCards'
 
 const DomainContext = React.createContext()
 
@@ -15,7 +18,7 @@ export class DomainProvider extends React.Component {
   }
 
   dft = {
-    name: 'dft',
+    name: 'DFT',
     /**
      * A component that is used to render the search aggregations. The components needs
      * to work with props: aggregations (the aggregation data from the api),
@@ -89,6 +92,63 @@ export class DomainProvider extends React.Component {
      * loading (a bool with api loading status).
      */
     EntryCards: DFTEntryCards
+  }
+
+  ems = {
+    name: 'EMS',
+    /**
+     * A component that is used to render the search aggregations. The components needs
+     * to work with props: aggregations (the aggregation data from the api),
+     * searchValues (currently selected search values), metric (the metric key to use),
+     * onChange (callback to propagate searchValue changes).
+     */
+    SearchAggregations: EMSSearchAggregations,
+    /**
+     * Metrics are used to show values for aggregations. Each metric has a key (used
+     * for API calls), a label (used in the select form), and result string (to show
+     * the overall amount in search results).
+     */
+    searchMetrics: {
+      code_runs: {
+        label: 'Entries',
+        renderResultString: count => (<span><b>{count}</b> entries</span>)
+      },
+      datasets: {
+        label: 'Datasets',
+        renderResultString: count => (<span> curated in <b>{count}</b> datasets</span>)
+      }
+    },
+    /**
+     * An dict where each object represents a column. Possible keys are label, render.
+     * Default render
+     */
+    searchResultColumns: {
+      formula: {
+        label: 'Formula'
+      },
+      method: {
+        label: 'Method'
+      },
+      experiment_location: {
+        label: 'Location'
+      },
+      experiment_time: {
+        label: 'Date/Time',
+        render: time => new Date(time * 1000).toLocaleString()
+      }
+    },
+    /**
+     * A component to render the domain specific quantities in the metadata card of
+     * the entry view. Needs to work with props: data (the entry data from the API),
+     * loading (a bool with api loading status).
+     */
+    EntryOverview: EMSEntryOverview,
+    /**
+     * A component to render additional domain specific cards in the
+     * the entry view. Needs to work with props: data (the entry data from the API),
+     * loading (a bool with api loading status).
+     */
+    EntryCards: EMSEntryCards
   }
 
   state = {

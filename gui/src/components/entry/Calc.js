@@ -10,7 +10,7 @@ class Calc extends React.Component {
     root: {
     },
     content: {
-      padding: 0,
+      padding: `0 ${theme.spacing.unit * 3}px`,
       maxWidth: 1024,
       margin: 'auto'
     }

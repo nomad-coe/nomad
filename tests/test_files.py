@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Generator, Any, Dict, List, Tuple
+from typing import Generator, Any, Dict, Tuple
 import os
 import os.path
 import shutil
@@ -376,7 +376,7 @@ class TestPublicUploadFiles(UploadFilesContract):
 
 
 def assert_upload_files(
-        upload: UploadWithMetadata, cls, additional_keys: List[str] = [], **kwargs):
+        upload: UploadWithMetadata, cls, **kwargs):
     """
     Asserts the files aspect of uploaded data after processing or publishing
 
@@ -384,7 +384,6 @@ def assert_upload_files(
         upload_id: The id of the upload to assert
         cls: The :class:`UploadFiles` subclass that this upload should have
         n_calcs: The number of expected calcs in the upload
-        additional_keys: Keys that each calc metadata should have
         **kwargs: Key, value pairs that each calc metadata should have
     """
     upload_files = UploadFiles.get(upload.upload_id, is_authorized=lambda: True)

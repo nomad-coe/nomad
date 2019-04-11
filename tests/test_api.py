@@ -261,7 +261,7 @@ class TestUploads:
 
         if with_coe_repo:
             assert_coe_upload(upload_with_metadata.upload_id, user_metadata=metadata)
-        assert_upload_files(upload_with_metadata, files.PublicUploadFiles, additional_keys=additional_keys, published=True)
+        assert_upload_files(upload_with_metadata, files.PublicUploadFiles, published=True)
         assert_search_upload(upload_with_metadata, additional_keys=additional_keys, published=True)
 
     def block_until_completed(self, client, upload_id: str, test_user_auth):

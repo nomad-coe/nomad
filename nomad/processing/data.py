@@ -33,12 +33,12 @@ import os.path
 from datetime import datetime
 from pymongo import UpdateOne
 
-from nomad import utils, coe_repo, config, infrastructure, search
+from nomad import utils, coe_repo, config, infrastructure, search, datamodel
 from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles, PublicUploadFiles
 from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parser_dict, match_parser, LocalBackend
 from nomad.normalizing import normalizers
-from nomad.datamodel import UploadWithMetadata, CalcWithMetadata, Domain
+from nomad.datamodel import UploadWithMetadata, Domain
 
 
 class Calc(Proc):
@@ -57,7 +57,7 @@ class Calc(Proc):
         upload_id: the id of the upload used to create this calculation
         mainfile: the mainfile (including path in upload) that was used to create this calc
 
-        metadata: the metadata record wit calc and user metadata, see :class:`CalcWithMetadata`
+        metadata: the metadata record wit calc and user metadata, see :class:`datamodel.CalcWithMetadata`
     """
     calc_id = StringField(primary_key=True)
     upload_id = StringField()
@@ -147,7 +147,7 @@ class Calc(Proc):
         try:
             # save preliminary minimum calc metadata in case processing fails
             # successful processing will replace it with the actual metadata
-            calc_with_metadata = CalcWithMetadata(
+            calc_with_metadata = datamodel.CalcWithMetadata(
                 upload_id=self.upload_id,
                 calc_id=self.calc_id,
                 calc_hash=self.upload_files.calc_hash(self.mainfile),
@@ -177,7 +177,7 @@ class Calc(Proc):
         # in case of failure, index a minimum set of metadata and mark
         # processing failure
         try:
-            calc_with_metadata = CalcWithMetadata(**self.metadata)
+            calc_with_metadata = datamodel.CalcWithMetadata(**self.metadata)
             calc_with_metadata.formula = config.services.not_processed_value
             calc_with_metadata.basis_set = config.services.not_processed_value
             calc_with_metadata.xc_functional = config.services.not_processed_value
@@ -313,7 +313,8 @@ class Calc(Proc):
     def archiving(self):
         logger = self.get_logger()
 
-        calc_with_metadata = CalcWithMetadata(**self.metadata)
+        calc_with_metadata = datamodel.CalcWithMetadata(**self.metadata)
+        print(calc_with_metadata.__class__.__name__)
         calc_with_metadata.apply_domain_metadata(self._parser_backend)
         calc_with_metadata.processed = True
 
@@ -714,7 +715,7 @@ class Upload(Proc):
             user metadata.
             """
             calc_data = calc.metadata
-            calc_with_metadata = CalcWithMetadata(**calc_data)
+            calc_with_metadata = datamodel.CalcWithMetadata(**calc_data)
             calc_metadata = dict(upload_metadata)
             calc_metadata.update(calc_metadatas.get(calc.mainfile, {}))
             calc_with_metadata.apply_user_metadata(calc_metadata)

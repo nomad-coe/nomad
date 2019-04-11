@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Divider, Card, CardContent, Grid, CardHeader, Fab } from '@material-ui/core'
+import { withStyles, Divider, Card, CardContent, Grid, CardHeader, Fab, Typography } from '@material-ui/core'
 import { withApi } from '../api'
 import { compose } from 'recompose'
 import Download from './Download'
@@ -17,19 +17,6 @@ class RepoEntryView extends React.Component {
     },
     content: {
       marginTop: theme.spacing.unit * 3
-    },
-    quantityContainer: {
-      display: 'flex'
-    },
-    quantityColumn: {
-      display: 'flex',
-      flexDirection: 'column'
-    },
-    quantityRow: {
-      display: 'flex',
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginBottom: theme.spacing.unit
     },
     downloadFab: {
       zIndex: 1,
@@ -83,6 +70,7 @@ class RepoEntryView extends React.Component {
     const calcData = this.state.calcData || calcProps
     const loading = !this.state.calcData
     const { uploadId, calcId } = calcProps
+    const quantityProps = {data: calcData, loading: loading}
 
     const mainfile = calcData.mainfile
     const calcPath = mainfile ? mainfile.substring(0, mainfile.lastIndexOf('/')) : null
@@ -92,13 +80,6 @@ class RepoEntryView extends React.Component {
     return (
       <div className={classes.root}>
         <div className={classes.content}>
-
-          <div className={classes.title}>
-            <Quantity label="chemical formula" typography="h3" loading={loading}>
-              {calcData.formula}
-            </Quantity>
-          </div>
-
           <Grid container spacing={24}>
             <Grid item xs={7}>
               <Card>
@@ -110,23 +91,25 @@ class RepoEntryView extends React.Component {
                   <domain.EntryOverview data={calcData} loading={loading} />
                 </CardContent>
                 <Divider />
-                <CardContent classes={{root: classes.cardContent}}>
-                  <div className={classes.quantityColumn}>
-                    <div className={classes.quantityColumn}>
-                      <Quantity label='comment' loading={loading} placeholder='no comment'>
-                        {calcData.comment}
-                      </Quantity>
-                      <Quantity label='references' loading={loading} placeholder='no references'>
-                        {calcData.references ? calcData.references.map(ref => (<a key={ref.id} href={ref.value}>{ref.value}</a>)) : null}
-                      </Quantity>
-                      <Quantity label='authors' loading={loading}>
-                        {authors ? authors.map(author => author.name) : null}
-                      </Quantity>
-                      <Quantity label='datasets' loading={loading} placeholder='no datasets'>
-                        {calcData.datasets ? calcData.datasets.map(ds => `${ds.name}${ds.doi ? ` (${ds.doi})` : ''}`).join(', ') : null}
-                      </Quantity>
-                    </div>
-                  </div>
+                <CardContent>
+                  <Quantity column>
+                    <Quantity quantity='comment' placeholder='no comment' {...quantityProps} />
+                    <Quantity quantity='references' placeholder='no references' {...quantityProps}>
+                      {(calcData.references || []).map(ref => <Typography key={ref} noWrap>
+                        <a key={ref.id} href={ref.value}>{ref.value}</a>
+                      </Typography>)}
+                    </Quantity>
+                    <Quantity quantity='authors' {...quantityProps}>
+                      <Typography>
+                        {(authors || []).map(author => author.name).join('; ')}
+                      </Typography>
+                    </Quantity>
+                    <Quantity quantity='datasets' placeholder='no datasets' {...quantityProps}>
+                      <Typography>
+                        {(calcData.datasets || []).map(ds => `${ds.name}${ds.doi ? ` (${ds.doi})` : ''}`).join(', ')}
+                      </Typography>
+                    </Quantity>
+                  </Quantity>
                 </CardContent>
               </Card>
             </Grid>
@@ -135,32 +118,28 @@ class RepoEntryView extends React.Component {
               <Card>
                 <CardHeader title="Ids / processing" />
                 <CardContent classes={{root: classes.cardContent}}>
-                  <div className={classes.quantityColumn} style={{maxWidth: 350}}>
-                    <Quantity label='PID' loading={loading} noWrap>
-                      {calcData.pid ? <b>{calcData.pid}</b> : <i>not yet assigned</i>}
+                  <Quantity column style={{maxWidth: 350}}>
+                    <Quantity quantity="pid" label='PID' loading={loading} placeholder="not yet assigned" noWrap {...quantityProps} />
+                    <Quantity quantity="upload_id" label='upload id' {...quantityProps} noWrap />
+                    <Quantity quantity="upload_time" label='upload time' noWrap {...quantityProps} >
+                      <Typography noWrap>
+                        {new Date(calcData.upload_time * 1000).toLocaleString()}
+                      </Typography>
                     </Quantity>
-                    <Quantity label='upload id' noWrap>
-                      {calcData.upload_id}
+                    <Quantity quantity="calc_id" label='calculation id' noWrap {...quantityProps} />
+                    <Quantity quantity='mainfile' loading={loading} noWrap {...quantityProps} />
+                    <Quantity quantity="calc_hash" label='calculation hash' loading={loading} noWrap {...quantityProps} />
+                    <Quantity quantity="last_processing" label='last processing' loading={loading} placeholder="not processed" noWrap {...quantityProps}>
+                      <Typography noWrap>
+                        {new Date(calcData.last_processing * 1000).toLocaleString()}
+                      </Typography>
                     </Quantity>
-                    <Quantity label='upload time' noWrap>
-                      {new Date(calcData.upload_time * 1000).toLocaleString()}
+                    <Quantity quantity="last_processing" label='processing version' loading={loading} noWrap placeholder="not processed" {...quantityProps}>
+                      <Typography noWrap>
+                        {calcData.nomad_version}/{calcData.nomad_commit}
+                      </Typography>
                     </Quantity>
-                    <Quantity label='calculation id' noWrap>
-                      {calcData.calc_id}
-                    </Quantity>
-                    <Quantity label='mainfile' loading={loading} noWrap>
-                      {mainfile}
-                    </Quantity>
-                    <Quantity label='calculation hash' loading={loading} noWrap>
-                      {calcData.calc_hash}
-                    </Quantity>
-                    <Quantity label='last processing' loading={loading} noWrap>
-                      {calcData.last_processing ? new Date(calcData.last_processing * 1000).toLocaleString() : <i>not processed</i>}
-                    </Quantity>
-                    <Quantity label='processing version' loading={loading} noWrap>
-                      {calcData.last_processing ? `${calcData.nomad_version}/${calcData.nomad_commit}` : <i>not processed</i>}
-                    </Quantity>
-                  </div>
+                  </Quantity>
                 </CardContent>
               </Card>
             </Grid>

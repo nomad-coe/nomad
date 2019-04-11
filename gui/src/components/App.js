@@ -260,16 +260,19 @@ export default class App extends React.Component {
   routes = {
     'about': {
       exact: true,
+      singleton: true,
       path: '/',
       render: props => <About {...props} />
     },
     'search': {
       exact: true,
+      singleton: true,
       path: '/search',
       render: props => <SearchPage {...props} />
     },
     'searchEntry': {
       path: '/search/:uploadId/:calcId',
+      key: (props) => `searchEntry/${props.match.params.uploadId}/${props.match.params.uploadId}`,
       render: props => {
         const { match, ...rest } = props
         if (match && match.params.uploadId && match.params.calcId) {
@@ -281,11 +284,13 @@ export default class App extends React.Component {
     },
     'uploads': {
       exact: true,
+      singleton: true,
       path: '/uploads',
       render: props => <Uploads {...props} />
     },
     'uploadedEntry': {
       path: '/uploads/:uploadId/:calcId',
+      key: (props) => `uploadedEntry/${props.match.params.uploadId}/${props.match.params.uploadId}`,
       render: props => {
         const { match, ...rest } = props
         if (match && match.params.uploadId && match.params.calcId) {
@@ -302,11 +307,16 @@ export default class App extends React.Component {
 
     return (
       <div>
-        {Object.keys(this.routes).map(route => (
-          <div key={route} style={{display: routeKey === route ? 'block' : 'none'}}>
-            {this.routes[route].render(props)}
-          </div>
-        ))}
+        {Object.keys(this.routes)
+          .filter(route => this.routes[route].singleton || route === routeKey)
+          .map(route => (
+            <div
+              key={route.key ? route.key(props) : route}
+              style={{display: routeKey === route ? 'block' : 'none'}}
+            >
+              {this.routes[route].render(props)}
+            </div>
+          ))}
       </div>
     )
   }

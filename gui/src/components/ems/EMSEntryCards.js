@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import { withStyles, Card, CardHeader, CardContent } from '@material-ui/core'
 import RawFiles from '../entry/RawFiles'
 
-class DFTEntryCards extends React.Component {
+class EMSEntryCards extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     data: PropTypes.object.isRequired,
@@ -28,4 +28,4 @@ class DFTEntryCards extends React.Component {
   }
 }
 
-export default withStyles(DFTEntryCards.styles)(DFTEntryCards)
+export default withStyles(EMSEntryCards.styles)(EMSEntryCards)

@@ -1,63 +1,37 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles } from '@material-ui/core'
+import { Typography } from '@material-ui/core'
 import Quantity from '../Quantity'
 
-class DFTEntryOverview extends React.Component {
+export default class DFTEntryOverview extends React.Component {
   static propTypes = {
-    classes: PropTypes.object.isRequired,
     data: PropTypes.object.isRequired,
     loading: PropTypes.bool
   }
 
-  static styles = theme => ({
-    quantityColumn: {
-      display: 'flex',
-      flexDirection: 'column'
-    },
-    quantityRow: {
-      display: 'flex',
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginBottom: theme.spacing.unit
-    }
-  })
-
   render() {
-    const { classes, data, loading } = this.props
+    const { data } = this.props
 
     return (
-      <div className={classes.quantityColumn}>
-        <div className={classes.quantityRow}>
-          <Quantity label='dft code' loading={loading}>
-            {data.code_name}
+      <Quantity column>
+        <Quantity row>
+          <Quantity quantity="code_name" label='dft code' noWrap {...this.props} />
+          <Quantity quantity="code_version" label='dft code version' noWrap {...this.props} />
+        </Quantity>
+        <Quantity row>
+          <Quantity quantity="basis_set" label='basis set' noWrap {...this.props} />
+          <Quantity quantity="xc_functional" label='xc functional' noWrap {...this.props} />
+        </Quantity>
+        <Quantity row>
+          <Quantity quantity="system_type" label='system type' noWrap {...this.props} />
+          <Quantity quantity="crystal_system" label='crystal system' noWrap {...this.props} />
+          <Quantity quantity='spacegroup_symbol' label="spacegroup" noWrap {...this.props}>
+            <Typography noWrap>
+              {data.spacegroup_symbol} ({data.spacegroup})
+            </Typography>
           </Quantity>
-          <Quantity label='dft code version' loading={loading}>
-            {data.code_version}
-          </Quantity>
-        </div>
-        <div className={classes.quantityRow}>
-          <Quantity label='basis set' loading={loading}>
-            {data.basis_set}
-          </Quantity>
-          <Quantity label='xc functional' loading={loading}>
-            {data.xc_functional}
-          </Quantity>
-        </div>
-        <div className={classes.quantityRow}>
-          <Quantity label='system type' loading={loading}>
-            {data.system}
-          </Quantity>
-          <Quantity label='crystal system' loading={loading}>
-            {data.crystal_system}
-          </Quantity>
-          <Quantity label='spacegroup' loading={loading}>
-            {data.spacegroup_symbol} ({data.spacegroup})
-          </Quantity>
-        </div>
-      </div>
+        </Quantity>
+      </Quantity>
     )
   }
 }
-
-export default withStyles(DFTEntryOverview.styles)(DFTEntryOverview)

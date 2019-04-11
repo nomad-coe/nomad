@@ -154,7 +154,7 @@ class SearchPage extends React.Component {
     const helperText = <span>
       There are {Object.keys(domain.searchMetrics).map(key => {
         return (key === useMetric || key === 'code_runs') ? <span key={key}>
-          {domain.searchMetrics[key].renderResultString(!loading && metrics[key] ? metrics[key] : '...')}
+          {domain.searchMetrics[key].renderResultString(!loading && metrics[key] !== undefined ? metrics[key] : '...')}
         </span> : ''
       })}{Object.keys(searchValues).length ? ' left' : ''}.
     </span>
