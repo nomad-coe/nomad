@@ -13,6 +13,9 @@ worker:
 
 dbname: fairdi_nomad_migration
 
+postgres:
+  publish_enabled: false
+
 uploadurl: 'https://labdev-nomad.rzg.mpg.de/fairdi/nomad/migration/upload'
 
 volumes:
