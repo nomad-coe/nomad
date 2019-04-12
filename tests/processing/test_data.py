@@ -119,7 +119,7 @@ def test_publish(non_empty_processed: Upload, no_warn, example_user_metadata, mo
     if with_publish_to_coe_repo:
         assert_coe_upload(upload.upload_id, user_metadata=example_user_metadata)
 
-    assert_upload_files(upload, PublicUploadFiles, additional_keys, published=True)
+    assert_upload_files(upload, PublicUploadFiles, published=True)
     assert_search_upload(upload, additional_keys, published=True)
 
 
@@ -146,7 +146,7 @@ def test_publish_failed(
     if with_publish_to_coe_repo:
         assert_coe_upload(upload.upload_id, user_metadata=example_user_metadata)
 
-    assert_upload_files(upload, PublicUploadFiles, additional_keys, published=True)
+    assert_upload_files(upload, PublicUploadFiles, published=True)
     assert_search_upload(upload, additional_keys, published=True, processed=False)
 
 
@@ -242,8 +242,10 @@ def test_ems_data(proc_infra, test_user, monkeypatch):
 
     upload = run_processing(('test_ems_upload', 'tests/data/proc/example_ems.zip'), test_user)
 
-    additional_keys = ['method', 'location', 'experiment_date']
+    additional_keys = ['method', 'experiment_location', 'experiment_time', 'formula', 'chemical']
     assert upload.total_calcs == 1
+    assert len(upload.calcs) == 1
 
-    assert_upload_files(upload, StagingUploadFiles, additional_keys, published=False)
-    assert_search_upload(upload, additional_keys, published=False)
+    upload_with_metadata = upload.to_upload_with_metadata()
+    assert_upload_files(upload_with_metadata, StagingUploadFiles, published=False)
+    assert_search_upload(upload_with_metadata, additional_keys, published=False)

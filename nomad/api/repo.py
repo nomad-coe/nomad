@@ -58,7 +58,9 @@ class RepoCalcResource(Resource):
             is_owner = g.user.user_id == 0
             if not is_owner:
                 for owner in calc.owners:
-                    if owner.user_id == str(g.user.user_id):
+                    # At somepoint ids will be emails (strings) anyways.
+                    # Right now it is hard to make sure that both are either str or int.
+                    if str(owner.user_id) == str(g.user.user_id):
                         is_owner = True
                         break
             if not is_owner:

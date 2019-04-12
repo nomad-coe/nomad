@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Typography, Select, MenuItem, Grid } from '@material-ui/core'
+import { withStyles, Select, MenuItem, Card, CardContent, CardHeader } from '@material-ui/core'
 import * as d3 from 'd3'
 import { scaleBand, scalePow } from 'd3-scale'
 import chroma from 'chroma-js'
@@ -22,11 +22,9 @@ class QuantityHistogram extends React.Component {
   }
 
   static styles = theme => ({
-    root: {
-
-    },
-    title: {
-      fontWeight: 'bold'
+    root: {},
+    content: {
+      paddingTop: 0
     }
   })
 
@@ -183,12 +181,11 @@ class QuantityHistogram extends React.Component {
     const { classes, title } = this.props
 
     return (
-      <div className={classes.root} ref={this.container}>
-        <Grid container justify="space-between">
-          <Grid item>
-            <Typography variant="body1" className={classes.title}>{title}</Typography>
-          </Grid>
-          <Grid item>
+      <Card classes={{root: classes.root}}>
+        <CardHeader
+          title={title}
+          titleTypographyProps={{variant: 'body1'}}
+          action={(
             <Select
               value={this.state.scalePower}
               onChange={(event) => this.setState({scalePower: event.target.value})}
@@ -200,10 +197,14 @@ class QuantityHistogram extends React.Component {
               <MenuItem value={0.25}>1/4</MenuItem>
               <MenuItem value={0.125}>1/8</MenuItem>
             </Select>
-          </Grid>
-        </Grid>
-        <svg ref={this.svgEl} />
-      </div>
+          )}
+        />
+        <CardContent classes={{root: classes.content}}>
+          <div ref={this.container}>
+            <svg ref={this.svgEl} />
+          </div>
+        </CardContent>
+      </Card>
     )
   }
 }

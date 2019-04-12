@@ -1,0 +1,9 @@
+elastic:
+    index_name: fairdi_nomad_ems
+repository_db:
+    publish_enabled: false
+mongo:
+    db_name: fairdi_nomad_ems
+services:
+    disable_reset: false
+domain: EMS

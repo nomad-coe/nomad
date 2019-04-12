@@ -163,7 +163,7 @@ normalize = NomadConfig(
 client = NomadConfig(
     user='leonard.hofstadter@nomad-fairdi.tests.de',
     password='password',
-    url='http://localhost:8000/nomad/api'
+    url='http://localhost:8000/fairdi/nomad/latest/api'
 )
 
 version = '0.4.4'
@@ -278,6 +278,7 @@ def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yaml'))
                                     'config key %s value %s has wrong type: %s' % (key, str(value), str(e)))
                         else:
                             config[key] = value
+                            logger.info('override config key %s with value %s' % (key, str(value)))
                 else:
                     logger.error('config key %s does not exist' % key)
 

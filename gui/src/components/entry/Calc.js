@@ -1,16 +1,16 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, Tab, Tabs } from '@material-ui/core'
-import ArchiveCalcView from './ArchiveCalcView'
+import ArchiveEntryView from './ArchiveEntryView'
 import ArchiveLogView from './ArchiveLogView'
-import RepoCalcView from './RepoCalcView'
+import RepoEntryView from './RepoEntryView'
 
 class Calc extends React.Component {
   static styles = theme => ({
     root: {
     },
     content: {
-      padding: 0,
+      padding: `0 ${theme.spacing.unit * 3}px`,
       maxWidth: 1024,
       margin: 'auto'
     }
@@ -47,10 +47,10 @@ class Calc extends React.Component {
 
         <div className={classes.content}>
           <div style={viewIndex !== 0 ? {display: 'none'} : {}} >
-            <RepoCalcView {...calcProps} />
+            <RepoEntryView {...calcProps} />
           </div>
           <div style={viewIndex !== 1 ? {display: 'none'} : {}} >
-            <ArchiveCalcView {...calcProps} />
+            <ArchiveEntryView {...calcProps} />
           </div>
           <div style={viewIndex !== 2 ? {display: 'none'} : {}} >
             <ArchiveLogView {...calcProps} />

@@ -8,7 +8,7 @@ import { withApi } from '../api'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import Download from './Download'
 
-class ArchiveCalcView extends React.Component {
+class ArchiveEntryView extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
@@ -130,4 +130,4 @@ class ArchiveCalcView extends React.Component {
   }
 }
 
-export default compose(withApi(false, true), withStyles(ArchiveCalcView.styles))(ArchiveCalcView)
+export default compose(withApi(false, true), withStyles(ArchiveEntryView.styles))(ArchiveEntryView)

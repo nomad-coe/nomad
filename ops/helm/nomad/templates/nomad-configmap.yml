@@ -17,10 +17,10 @@ data:
     logstash:
       enabled: true
       host: "{{ .Values.logstash.host }}"
-      tcpport: "{{ .Values.logstash.port }}"
+      tcpport: {{ .Values.logstash.port }}
     services:
       api_host: "{{ .Values.proxy.external.host }}"
-      api_port: "{{ .Values.proxy.external.port }}"
+      api_port: {{ .Values.proxy.external.port }}
       api_base_path: "{{ .Values.proxy.external.path }}/api"
       api_secret: "{{ .Values.api.secret }}"
       admin_password: "{{ .Values.api.adminPassword }}"

@@ -9,11 +9,10 @@ import Download from './Download'
 class RawFiles extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    uploadId: PropTypes.string.isRequired,
-    calcId: PropTypes.string.isRequired,
-    files: PropTypes.arrayOf(PropTypes.string).isRequired,
+    data: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
-    user: PropTypes.object
+    user: PropTypes.object,
+    loading: PropTypes.number.isRequired
   }
 
   static styles = theme => ({
@@ -43,10 +42,11 @@ class RawFiles extends React.Component {
   }
 
   render() {
-    const {classes, files, uploadId, calcId} = this.props
+    const {classes, data: {files, upload_id, calc_id}, loading} = this.props
+    const availableFiles = files || []
     const {selectedFiles} = this.state
     const someSelected = selectedFiles.length > 0
-    const allSelected = files.length === selectedFiles.length && someSelected
+    const allSelected = availableFiles.length === selectedFiles.length && someSelected
 
     return (
       <div className={classes.root}>
@@ -56,27 +56,28 @@ class RawFiles extends React.Component {
             control={
               <Checkbox value="select_all" checked={allSelected}
                 indeterminate={!allSelected && someSelected}
-                onChange={() => this.setState({selectedFiles: allSelected ? [] : files.slice()})}
+                onChange={() => this.setState({selectedFiles: allSelected ? [] : availableFiles.slice()})}
               />
             }
           />
           <FormLabel className={classes.formLabel}>
-            {selectedFiles.length}/{files.length} files selected
+            {selectedFiles.length}/{availableFiles.length} files selected
           </FormLabel>
           <Download component={IconButton} disabled={selectedFiles.length === 0}
             tooltip="download selected files"
-            url={(selectedFiles.length === 1) ? `raw/${uploadId}/${selectedFiles[0]}` : `raw/${uploadId}?files=${encodeURIComponent(selectedFiles.join(','))}`}
-            fileName={selectedFiles.length === 1 ? this.label(selectedFiles[0]) : `${calcId}.zip`}
+            url={(selectedFiles.length === 1) ? `raw/${upload_id}/${selectedFiles[0]}` : `raw/${calc_id}?files=${encodeURIComponent(selectedFiles.join(','))}`}
+            fileName={selectedFiles.length === 1 ? this.label(selectedFiles[0]) : `${calc_id}.zip`}
           >
             <DownloadIcon />
           </Download>
         </FormGroup>
         <Divider />
         <FormGroup row>
-          {files.map((file, index) => (
+          {availableFiles.map((file, index) => (
             <FormControlLabel key={index} label={this.label(file)}
               control={
                 <Checkbox
+                  disabled={loading > 0}
                   checked={selectedFiles.indexOf(file) !== -1}
                   onChange={() => this.onSelectFile(file)} value={file}
                 />

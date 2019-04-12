@@ -15,7 +15,7 @@ data:
       location {{ .Values.proxy.external.path }}/gui {
         root      /app/;
         rewrite ^{{ .Values.proxy.external.path }}/gui/(.*)$ /nomad/$1 break;
-        try_files $uri $uri/ {{ .Values.proxy.external.path }}/gui/index.html;
+        try_files $uri {{ .Values.proxy.external.path }}/gui/index.html;
       }
     }
   env.js: |
