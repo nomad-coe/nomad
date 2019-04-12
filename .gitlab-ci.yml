@@ -17,6 +17,8 @@ stages:
   - deploy
 
 variables:
+  # necessary worarround for dind with kubernetes gitlab-runner
+  DOCKER_HOST: tcp://localhost:2375
   TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:test_${CI_COMMIT_REF_NAME}
   RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:${CI_COMMIT_REF_NAME}
   LATEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
