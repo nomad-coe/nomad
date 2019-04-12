@@ -12,6 +12,9 @@ data:
     server {
       listen        80;
       server_name   www.example.com;
+      location {{ .Values.proxy.external.path }} {
+        return 301 {{ .Values.proxy.external.path }}/gui;
+      }
       location {{ .Values.proxy.external.path }}/gui {
         proxy_pass http://{{ include "nomad.fullname" . }}-gui:{{ .Values.gui.port }};
         proxy_set_header Host $host;

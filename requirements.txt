@@ -54,7 +54,6 @@ gitpython
 mypy
 pylint
 pylint_plugin_utils
-astroid==2.0.4  # bug in pylint_mongoengine with latest version
 pylint_mongoengine
 pycodestyle
 pytest==3.10.0  # celery fixtures not compatible with 4.x
