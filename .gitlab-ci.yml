@@ -1,13 +1,13 @@
 # default installed image for docker executor is: python:3.6
 # using an image that can do git, docker, docker-compose
-image: docker:dind
+image: youpy/docker-compose-git
 
 # Uncomment the next lines, to run each pipline/job in its own docker environment.
 # Otherwise, it will use the docker of the gitlab runner host (e.g. enc-preprocessing...).
 # This will give it access to a persitent layer cache, which will not be available
 # with the docker service.
-services:
-  - docker:dind
+# services:
+#   - docker:dind
 
 stages:
   - build
@@ -17,8 +17,6 @@ stages:
   - deploy
 
 variables:
-  # necessary worarround for dind with kubernetes gitlab-runner
-  DOCKER_HOST: tcp://localhost:2375
   TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:test_${CI_COMMIT_REF_NAME}
   RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:${CI_COMMIT_REF_NAME}
   LATEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
