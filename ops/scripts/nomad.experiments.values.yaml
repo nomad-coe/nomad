@@ -10,7 +10,7 @@ api:
 worker:
   replicas: 1
 
-dbname: fairdi_nomad_migration
+dbname: fairdi_nomad_experiments
 
 postgres:
   publish_enabled: false
@@ -20,6 +20,8 @@ uploadurl: 'https://labdev-nomad.rzg.mpg.de/fairdi/nomad/experiments/upload'
 volumes:
   prefixSize: 2
   public: /nomad/fairdi/experiments/fs/public
-  staging: /scratch/fairdi/experiments/fs/staging
+  staging: /nomad/fairdi/experiments/fs/staging
   tmp: /nomad/fairdi/experiments/fs/tmp
   nomad: /nomad
+
+domain: EMS
