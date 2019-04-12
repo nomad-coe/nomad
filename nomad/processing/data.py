@@ -24,7 +24,7 @@ calculations, and files
     :members:
 """
 
-from typing import List, Any, ContextManager, Tuple, Generator, Dict, cast
+from typing import cast, List, Any, ContextManager, Tuple, Generator, Dict, cast
 from mongoengine import StringField, DateTimeField, DictField, BooleanField
 import logging
 from structlog import wrap_logger
@@ -653,7 +653,7 @@ class Upload(Proc):
             'Dear %s,' % name,
             '',
             'your data %suploaded %s has completed processing.' % (
-                self.name if self.name else '', self.upload_time.isoformat()),
+                self.name if self.name else '', self.upload_time.isoformat()),  # pylint: disable=no-member
             'You can review your data on your upload page: %s/uploads' % config.api_url()[:-3]
         ])
         try:
@@ -700,7 +700,7 @@ class Upload(Proc):
             if 'calculations' in upload_metadata:
                 del(upload_metadata['calculations'])
 
-            for calc in self.metadata.get('calculations', []):
+            for calc in self.metadata.get('calculations', []):  # pylint: disable=no-member
                 calc_metadatas[calc['mainfile']] = calc
 
         user_upload_time = upload_metadata.get('_upload_time', None)
