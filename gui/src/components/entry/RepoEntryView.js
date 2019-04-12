@@ -96,7 +96,7 @@ class RepoEntryView extends React.Component {
                     <Quantity quantity='comment' placeholder='no comment' {...quantityProps} />
                     <Quantity quantity='references' placeholder='no references' {...quantityProps}>
                       {(calcData.references || []).map(ref => <Typography key={ref} noWrap>
-                        <a key={ref.id} href={ref.value}>{ref.value}</a>
+                        <a href={ref}>{ref}</a>
                       </Typography>)}
                     </Quantity>
                     <Quantity quantity='authors' {...quantityProps}>
