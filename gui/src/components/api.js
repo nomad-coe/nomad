@@ -306,15 +306,15 @@ class Api {
   async getInfo() {
     if (!this._cachedInfo) {
       this.onStartLoading()
-      const loadInfo = async() => {
-        const client = await this.swaggerPromise
-        return client.apis.info.get_info()
-          .catch(this.handleApiError)
-          .then(response => response.body)
-      }
-
-      this._cachedInfo = await loadInfo()
-      this.onFinishLoading()
+      this._cachedInfo = this.swaggerPromise
+        .then(client => {
+          return client.apis.info.get_info()
+            .catch(this.handleApiError)
+            .then(response => {
+              this.onFinishLoading()
+              return response.body
+            })
+        })
     }
     return this._cachedInfo
   }
