@@ -545,6 +545,13 @@ class TestArchive(UploadFilesBasedTests):
     def test_get_metainfo(self, client):
         rv = client.get('/archive/metainfo/all.nomadmetainfo.json')
         assert rv.status_code == 200
+        metainfo = json.loads((rv.data))
+        names = {}
+        for item in metainfo:
+            name = item['name']
+            assert name not in names
+            names[name] = item
+        assert len(metainfo) > 0
 
 
 class TestRepo():

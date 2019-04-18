@@ -90,7 +90,7 @@ class ArchiveEntryView extends React.Component {
   render() {
     const { classes, uploadId, calcId } = this.props
     const { data, showMetaInfo, metaInfo } = this.state
-    const metaInfoData = metaInfo ? metaInfo[showMetaInfo] : null
+    const metaInfoData = metaInfo ? metaInfo.get(showMetaInfo) : null
 
     return (
       <div className={classes.root}>

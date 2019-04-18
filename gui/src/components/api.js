@@ -8,6 +8,7 @@ import { Typography, withStyles } from '@material-ui/core'
 import LoginLogout from './LoginLogout'
 import { Cookies, withCookies } from 'react-cookie'
 import { compose } from 'recompose'
+import MetaInfoRepository from './MetaInfoRepository'
 
 const ApiContext = React.createContext()
 
@@ -261,11 +262,11 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
-  _cachedMetaInfo = null
+  _metaInfoRepository = null
 
   async getMetaInfo() {
-    if (this._cachedMetaInfo) {
-      return this._cachedMetaInfo
+    if (this._metaInfoRepository) {
+      return this._metaInfoRepository
     } else {
       this.onStartLoading()
       const loadMetaInfo = async(path) => {
@@ -273,31 +274,11 @@ class Api {
         return client.apis.archive.get_metainfo({metainfo_path: path})
           .catch(this.handleApiError)
           .then(response => response.body)
-          .then(data => {
-            if (!this._cachedMetaInfo) {
-              this._cachedMetaInfo = {
-                loadedDependencies: {}
-              }
-            }
-            this._cachedMetaInfo.loadedDependencies[path] = true
-            if (data.metaInfos) {
-              data.metaInfos.forEach(info => {
-                this._cachedMetaInfo[info.name] = info
-                info.relativePath = path
-              })
-            }
-            if (data.dependencies) {
-              data.dependencies
-                .filter(dep => this._cachedMetaInfo.loadedDependencies[dep.relativePath] !== true)
-                .forEach(dep => {
-                  loadMetaInfo(dep.relativePath)
-                })
-            }
-          })
       }
-      await loadMetaInfo('all.nomadmetainfo.json')
+      const metaInfos = await loadMetaInfo('all.nomadmetainfo.json')
+      this._metaInfoRepository = new MetaInfoRepository({'all.nomadmetainfo.json': metaInfos})
       this.onFinishLoading()
-      return this._cachedMetaInfo
+      return this._metaInfoRepository
     }
   }
 
@@ -494,6 +475,8 @@ class WithApiComponent extends React.Component {
 
   raiseError(error) {
     const { raiseError, showErrorPage } = this.props
+
+    console.error(error)
 
     if (!showErrorPage) {
       raiseError(error)

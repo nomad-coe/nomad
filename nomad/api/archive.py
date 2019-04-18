@@ -23,6 +23,7 @@ from flask import send_file
 from flask_restplus import abort, Resource
 
 import nomad_meta_info
+from nomadcore.local_meta_info import load_metainfo
 
 from nomad.files import UploadFiles, Restricted
 
@@ -124,12 +125,7 @@ class MetainfoResource(Resource):
             file_dir = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
             metainfo_file = os.path.normpath(os.path.join(file_dir, metainfo_path.strip()))
 
-            rv = send_file(
-                metainfo_file,
-                mimetype='application/json',
-                as_attachment=True,
-                attachment_filename=os.path.basename(metainfo_file))
-
-            return rv
+            meta_info, _ = load_metainfo(metainfo_file)
+            return meta_info.toJsonList(False), 200
         except FileNotFoundError:
             abort(404, message='The metainfo %s does not exist.' % metainfo_path)
