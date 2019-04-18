@@ -314,7 +314,6 @@ class Calc(Proc):
         logger = self.get_logger()
 
         calc_with_metadata = datamodel.CalcWithMetadata(**self.metadata)
-        print(calc_with_metadata.__class__.__name__)
         calc_with_metadata.apply_domain_metadata(self._parser_backend)
         calc_with_metadata.processed = True
 

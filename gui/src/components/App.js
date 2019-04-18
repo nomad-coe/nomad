@@ -4,11 +4,12 @@ import { compose } from 'recompose'
 import classNames from 'classnames'
 import { MuiThemeProvider, withStyles } from '@material-ui/core/styles'
 import { IconButton, Checkbox, FormLabel, LinearProgress, ListItemIcon, ListItemText,
-  MenuList, MenuItem, Typography, Drawer, AppBar, Toolbar } from '@material-ui/core'
+  MenuList, MenuItem, Typography, Drawer, AppBar, Toolbar, Divider } from '@material-ui/core'
 import { BrowserRouter, Switch, Route, Link, withRouter } from 'react-router-dom'
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
 import AboutIcon from '@material-ui/icons/Home'
+import MetainfoIcon from '@material-ui/icons/Info'
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft'
 import MenuIcon from '@material-ui/icons/Menu'
 
@@ -20,8 +21,9 @@ import { ErrorSnacks } from './errors'
 import Calc from './entry/Calc'
 import About from './About'
 import LoginLogout from './LoginLogout'
-import { genTheme, repoTheme } from '../config'
+import { genTheme, repoTheme, archiveTheme } from '../config'
 import { DomainProvider } from './domains'
+import MetaInfoBrowser from './metaInfoBrowser/MetaInfoBrowser'
 
 const drawerWidth = 200
 
@@ -34,7 +36,8 @@ const toolbarTitles = {
 const toolbarThemes = {
   '/': genTheme,
   '/search': repoTheme,
-  '/uploads': repoTheme
+  '/uploads': repoTheme,
+  '/metainfo': archiveTheme
 }
 
 class NavigationUnstyled extends React.Component {
@@ -201,7 +204,7 @@ class NavigationUnstyled extends React.Component {
                   }</HelpContext.Consumer>
                 </div>
               </Toolbar>
-              {loading ? <LinearProgress color="secondary" /> : ''}
+              {loading ? <LinearProgress color="primary" /> : ''}
             </AppBar>
 
             <Drawer variant="permanent"
@@ -222,6 +225,7 @@ class NavigationUnstyled extends React.Component {
                   </ListItemIcon>
                   <ListItemText inset primary="About"/>
                 </MenuItem>
+                <Divider />
                 <MenuItem className={classes.menuItem} component={Link} to="/search" selected={ pathname.startsWith('/repo') }>
                   <ListItemIcon>
                     <SearchIcon style={{fill: repoTheme.palette.primary.main}}/>
@@ -233,6 +237,13 @@ class NavigationUnstyled extends React.Component {
                     <BackupIcon style={{fill: repoTheme.palette.primary.main}}/>
                   </ListItemIcon>
                   <ListItemText inset primary="Upload"/>
+                </MenuItem>
+                <Divider />
+                <MenuItem className={classes.menuItem} component={Link} to="/metainfo" selected={ pathname === '/metainfo' }>
+                  <ListItemIcon>
+                    <MetainfoIcon style={{fill: archiveTheme.palette.primary.main}}/>
+                  </ListItemIcon>
+                  <ListItemText inset primary="Meta Info"/>
                 </MenuItem>
               </MenuList>
             </Drawer>
@@ -299,6 +310,16 @@ export default class App extends React.Component {
           return ''
         }
       }
+    },
+    'metainfo': {
+      exact: true,
+      path: '/metainfo',
+      render: props => <MetaInfoBrowser {...props} />
+    },
+    'metainfoEntry': {
+      path: '/metainfo/:metainfo',
+      key: props => `metainfo/${props.match.params.metainfo}`,
+      render: props => <MetaInfoBrowser metainfo={props.match.params.metainfo} {...props} />
     }
   }
 
