@@ -1,7 +1,8 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
-import { Paper, Typography, Link } from '@material-ui/core'
+import { Paper, Typography } from '@material-ui/core'
+import { Link } from 'react-router-dom'
 import { schema } from '../MetaInfoRepository'
 import ReactJson from 'react-json-view'
 import { Card, CardButton, CardCompartment, PopoverCardButton } from './util/cards'
@@ -93,8 +94,9 @@ class DefinitionCardUnstyled extends React.Component {
               onClick={() => toggleDefinition(definition.parent, !parentIsVisible)}/>
             : ''
           }
-          <CardButton position="center" size="tiny" icon="launch" component={Link}
-            to={`/metainfo/${definition.name}`} />
+          <CardButton position="center" size="tiny" icon="launch"
+            component={props => <Link to={`/metainfo/${definition.name}`} {...props} />}
+          />
           <PopoverCardButton position="center" icon="code" classes={{content: classes.source}} size="tiny">
             <ReactJson src={definition.miJson} />
           </PopoverCardButton>
@@ -123,20 +125,9 @@ class DefinitionCardUnstyled extends React.Component {
   }
 
   renderDescription(description) {
-    // const {classes} = this.props
     description = description.replace(/(([A-Za-z0-9]+_)+[A-Za-z0-9]+)/g, '`$1`')
-    // const paragraph = (props) => (
-    //   <Typography classes={{root: classes.descriptionParagraph}}>{props.children}</Typography>
-    // )
-    // // apply mono space to definition names and add invisible zero space to each _ to allow line breaks
-    // const inlineCode = (props) => (
-    //   <a href={`/${props.children}`} style={{fontFamily: 'RobotoMono, monospace', fontWeight: 'bold'}}>
-    //     {props.children.replace(/_/g, `\u200B_`)}
-    //   </a>
-    // )
     return (
       <Markdown>{description}</Markdown>
-      // <ReactMarkdown source={description} className={classes.description} renderers={{paragraph: paragraph, inlineCode: inlineCode}}/>
     )
   }
 }

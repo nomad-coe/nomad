@@ -2,7 +2,6 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
 import grey from '@material-ui/core/colors/grey'
-import blue from '@material-ui/core/colors/blue'
 import { AfterRender } from './util/after-render'
 import { Definitions } from './Definition'
 import { updateList } from './util/data'
@@ -12,17 +11,11 @@ class ViewerUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     rootElement: PropTypes.object.isRequired,
-    packages: PropTypes.arrayOf(PropTypes.object).isRequired,
-    visiblePackages: PropTypes.arrayOf(PropTypes.string).isRequired
+    packages: PropTypes.arrayOf(PropTypes.object).isRequired
   }
 
   static styles = (theme) => ({
-    root: {
-
-    },
-    packages: {
-      padding: theme.spacing.unit
-    },
+    root: {},
     container: {
       position: 'relative'
     },
@@ -32,7 +25,7 @@ class ViewerUnstyled extends React.Component {
       flexWrap: 'nowrap',
       justifyContent: 'flex-start',
       alignItems: 'center',
-      padding: theme.spacing.unit,
+      padding: theme.spacing.unit * 2,
       zIndex: 1
     },
     sankey: {
@@ -43,11 +36,11 @@ class ViewerUnstyled extends React.Component {
       zIndex: 0
     },
     references: {
-      fill: blue[200],
+      fill: theme.palette.primary[200],
       fillOpacity: 0.8
     },
     containments: {
-      fill: grey[200],
+      fill: grey[300],
       fillOpacity: 0.8
     }
   })
@@ -60,10 +53,6 @@ class ViewerUnstyled extends React.Component {
     this.isVisible = this.isVisible.bind(this)
 
     this.state = {
-      packages: this.props.packages.map(pkg => ({
-        name: pkg.name,
-        visible: this.props.visiblePackages.find(name => pkg.name === name) !== undefined
-      })),
       definitions: [{
         definition: this.props.rootElement,
         state: []
@@ -219,11 +208,6 @@ class ViewerUnstyled extends React.Component {
     const {classes} = this.props
     return (
       <div className={classes.root}>
-        {/* <div className={classes.packages}>
-          {this.state.packages.map(({name, visible}, index) => (
-            <CheckChip key={index} label={name} checked={visible}/>
-          ))}
-        </div> */}
         <div ref={this.canvasRef} className={classes.container}>
           <AfterRender classes={{content: classes.canvas, afterRender: classes.sankey}} afterRender={this.renderSankey}>
             <Definitions current={this.props.rootElement}

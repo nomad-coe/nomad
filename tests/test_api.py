@@ -546,11 +546,6 @@ class TestArchive(UploadFilesBasedTests):
         rv = client.get('/archive/metainfo/all.nomadmetainfo.json')
         assert rv.status_code == 200
         metainfo = json.loads((rv.data))
-        names = {}
-        for item in metainfo:
-            name = item['name']
-            assert name not in names
-            names[name] = item
         assert len(metainfo) > 0
 
 

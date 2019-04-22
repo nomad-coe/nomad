@@ -14,7 +14,7 @@ class SectionFeature extends React.Component {
     },
     visible: {
       extends: 'root',
-      backgroundColor: grey[200]
+      backgroundColor: grey[300]
     },
     gutters: {
       paddingLeft: theme.spacing.unit,

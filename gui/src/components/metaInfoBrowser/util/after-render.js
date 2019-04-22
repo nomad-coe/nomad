@@ -221,13 +221,11 @@ class AfterRenderTestUnstyled extends React.Component {
   render() {
     const {classes} = this.props
     return (
-      <div style={{padding: 10}}>
-        <AfterRender afterRender={this.afterRender} classes={{afterRender: classes.afterRender}}>
-          <AfterRenderMeasure measureId={1}>Hello</AfterRenderMeasure>
-          <AfterRenderMeasure measureId={2}>Hello World</AfterRenderMeasure>
-          <Button>click</Button>
-        </AfterRender>
-      </div>
+      <AfterRender afterRender={this.afterRender} classes={{afterRender: classes.afterRender}}>
+        <AfterRenderMeasure measureId={1}>Hello</AfterRenderMeasure>
+        <AfterRenderMeasure measureId={2}>Hello World</AfterRenderMeasure>
+        <Button>click</Button>
+      </AfterRender>
     )
   }
 }

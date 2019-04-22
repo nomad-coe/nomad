@@ -17,13 +17,13 @@ The archive API of the nomad@FAIRDI APIs. This API is about serving processed
 (parsed and normalized) calculation data in nomad's *meta-info* format.
 """
 
+from typing import Dict, Any
 import os.path
-
 from flask import send_file
 from flask_restplus import abort, Resource
+import json
 
 import nomad_meta_info
-from nomadcore.local_meta_info import load_metainfo
 
 from nomad.files import UploadFiles, Restricted
 
@@ -111,21 +111,64 @@ class ArchiveCalcResource(Resource):
             abort(404, message='Calculation %s does not exist.' % archive_id)
 
 
-@ns.route('/metainfo/<string:metainfo_path>')
-@api.doc(params=dict(nomad_metainfo_path='A path or metainfo definition file name.'))
+@ns.route('/metainfo/<string:metainfo_package_name>')
+@api.doc(params=dict(metainfo_package_name='The name of the metainfo package.'))
 class MetainfoResource(Resource):
     @api.doc('get_metainfo')
     @api.response(404, 'The metainfo does not exist')
     @api.response(200, 'Metainfo data send')
-    def get(self, metainfo_path):
+    def get(self, metainfo_package_name):
         """
         Get a metainfo definition file.
         """
         try:
-            file_dir = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
-            metainfo_file = os.path.normpath(os.path.join(file_dir, metainfo_path.strip()))
-
-            meta_info, _ = load_metainfo(metainfo_file)
-            return meta_info.toJsonList(False), 200
+            return load_metainfo(metainfo_package_name), 200
         except FileNotFoundError:
-            abort(404, message='The metainfo %s does not exist.' % metainfo_path)
+            abort(404, message='The metainfo %s does not exist.' % metainfo_package_name)
+
+
+metainfo_main_path = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
+
+
+def load_metainfo(package_name: str, is_path: bool = False, loaded_packages: Dict[str, Any] = None) -> Dict[str, Any]:
+    """
+    Loads the given metainfo package and all its dependencies. Returns a dict with
+    all loaded package_names and respective packages.
+
+    Arguments:
+        package_name: The name of the package, or a path to .nomadmetainfo.json file.
+        is_path: True will interpret package_name as (relative) path.
+        loaded_packages: Give a dict and the function will added freshly loaded packages
+            to it and return it.
+    """
+    if loaded_packages is None:
+        loaded_packages = {}
+
+    if is_path:
+        metainfo_path = package_name
+    else:
+        metainfo_path = os.path.join(metainfo_main_path, package_name)
+
+    package_name = os.path.basename(package_name)
+
+    if package_name in loaded_packages:
+        return loaded_packages
+
+    with open(metainfo_path, 'rt') as f:
+        metainfo_json = json.load(f)
+
+    loaded_packages[package_name] = metainfo_json
+
+    for dependency in metainfo_json.get('dependencies', []):
+        if 'relativePath' in dependency:
+            dependency_path = os.path.join(
+                os.path.dirname(metainfo_path), dependency['relativePath'])
+        elif 'metainfoPath' in dependency:
+            dependency_path = os.path.join(metainfo_main_path, dependency['metainfoPath'])
+        else:
+            raise Exception(
+                'Invalid dependency type in metainfo package %s' % metainfo_path)
+
+        load_metainfo(dependency_path, is_path=True, loaded_packages=loaded_packages)
+
+    return loaded_packages

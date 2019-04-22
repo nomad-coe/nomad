@@ -242,13 +242,12 @@ export default class MetaInfoRepository {
       return definition
     }
 
-    const metaInfos = json || []
+    const metaInfos = json.metaInfos || []
     const pkg = {
       mType: schema.pkg,
       name: name,
-      definitions: metaInfos
-        .filter(metaInfo => !metaInfo.name.startsWith('x_'))
-        .map(transformMetaInfo)
+      description: json.description,
+      definitions: metaInfos.map(transformMetaInfo)
     }
 
     this.addName(pkg)

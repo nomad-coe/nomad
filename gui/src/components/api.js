@@ -262,23 +262,28 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
-  _metaInfoRepository = null
+  _metaInfoRepositories = {}
 
-  async getMetaInfo() {
-    if (this._metaInfoRepository) {
-      return this._metaInfoRepository
+  async getMetaInfo(pkg) {
+    pkg = pkg || 'all.nomadmetainfo.json'
+
+    const metaInfoRepository = this._metaInfoRepositories[pkg]
+
+    if (metaInfoRepository) {
+      return metaInfoRepository
     } else {
       this.onStartLoading()
       const loadMetaInfo = async(path) => {
         const client = await this.swaggerPromise
-        return client.apis.archive.get_metainfo({metainfo_path: path})
+        return client.apis.archive.get_metainfo({metainfo_package_name: path})
           .catch(this.handleApiError)
           .then(response => response.body)
       }
-      const metaInfos = await loadMetaInfo('all.nomadmetainfo.json')
-      this._metaInfoRepository = new MetaInfoRepository({'all.nomadmetainfo.json': metaInfos})
+      const metaInfo = await loadMetaInfo(pkg)
+      const metaInfoRepository = new MetaInfoRepository(metaInfo)
+      this._metaInfoRepositories[pkg] = metaInfoRepository
       this.onFinishLoading()
-      return this._metaInfoRepository
+      return metaInfoRepository
     }
   }
 
