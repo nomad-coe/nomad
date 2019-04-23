@@ -243,10 +243,12 @@ def _construct_search(q: Q = None, time_range: Tuple[datetime, datetime] = None,
             values = [value]
 
         for item in values:
-            if datamodel.Domain.instance.quantities[key].multi:
+            quantity = datamodel.Domain.instance.quantities.get(key)
+            if quantity is not None and quantity.multi:
                 items = item.split(',')
             else:
                 items = [item]
+
             for item in items:
                 search = search.query(Q(query_type, **{field: item}))
 
