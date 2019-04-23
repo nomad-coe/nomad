@@ -127,7 +127,7 @@ class MetainfoResource(Resource):
             parser_prefix = metainfo_package_name[:-len('.nomadmetainfo.json')]
             alternative_path = os.path.join(
                 metainfo_main_path,
-                '../../../parsers/{0}/{0}parser/{0}.nomadmetainfo.json'.format(parser_prefix))
+                '../{0}parser/{0}.nomadmetainfo.json'.format(parser_prefix))
             try:
                 return load_metainfo(alternative_path, is_path=True), 200
             except FileNotFoundError:
