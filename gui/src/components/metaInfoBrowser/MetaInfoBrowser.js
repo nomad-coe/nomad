@@ -3,12 +3,12 @@ import React, { Component } from 'react'
 import { withRouter } from 'react-router-dom'
 import Viewer from './Viewer'
 import PropTypes from 'prop-types'
-import { link } from 'fs'
 import { withApi } from '../api'
 import { Help } from '../help'
 import MetainfoSearch from './MetainfoSearch'
-import { FormControl, withStyles, Select, Input, MenuItem, ListItemText, InputLabel, FormGroup } from '@material-ui/core'
+import { FormControl, withStyles, Select, Input, MenuItem, ListItemText, InputLabel } from '@material-ui/core'
 import { compose } from 'recompose'
+import { schema } from '../MetaInfoRepository'
 
 const ITEM_HEIGHT = 48
 const ITEM_PADDING_TOP = 8
@@ -45,6 +45,7 @@ class MetaInfoBrowser extends Component {
   })
 
   initialState = {
+    domainRootSection: null,
     metainfos: null,
     allMetainfos: null,
     selectedPackage: null,
@@ -60,25 +61,36 @@ class MetaInfoBrowser extends Component {
   }
 
   update(pkg) {
-    this.props.api.getMetaInfo(pkg).then(metainfos => {
-      const metainfoName = this.props.metainfo || 'section_run'
-      const definition = metainfos.get(metainfoName)
-      if (!definition) {
-        this.props.history.push('/metainfo/section_run')
-      } else {
-        this.setState({loadedPackage: pkg, metainfos: metainfos})
-      }
+    this.props.api.getInfo().then(info => {
+      this.props.api.getMetaInfo(pkg || info.domain.metainfo.all_package).then(metainfos => {
+        const metainfoName = this.props.metainfo || info.domain.metainfo.root_sections[0]
+        const definition = metainfos.get(metainfoName)
+        if (!definition) {
+          this.props.history.push(`/metainfo/${info.domain.metainfo.root_sections[0]}`)
+        } else {
+          this.setState({loadedPackage: pkg, metainfos: metainfos})
+        }
+      }).catch(error => {
+        this.props.raiseError(error)
+      })
     }).catch(error => {
       this.props.raiseError(error)
     })
   }
 
   init() {
-    this.props.api.getMetaInfo('all.nomadmetainfo.json').then(metainfos => {
-      const metainfoName = this.props.metainfo || 'section_run'
-      const definition = metainfos.get(metainfoName)
-      this.setState({allMetainfos: metainfos, selectedPackage: definition.package.name})
-      this.update(definition.package.name)
+    this.props.api.getInfo().then(info => {
+      this.props.api.getMetaInfo(info.domain.metainfo.all_package).then(metainfos => {
+        const metainfoName = this.props.metainfo || info.domain.metainfo.root_sections[0]
+        const definition = metainfos.get(metainfoName)
+        this.setState({
+          domainRootSection: info.domain.metainfo.root_sections[0],
+          allMetainfos: metainfos,
+          selectedPackage: definition.package.name})
+        this.update(definition.package.name)
+      }).catch(error => {
+        this.props.raiseError(error)
+      })
     }).catch(error => {
       this.props.raiseError(error)
     })
@@ -108,13 +120,13 @@ class MetaInfoBrowser extends Component {
 
   render() {
     const { classes, loading } = this.props
-    const { metainfos, selectedPackage, allMetainfos, loadedPackage } = this.state
+    const { metainfos, selectedPackage, allMetainfos, loadedPackage, domainRootSection } = this.state
 
     if (!metainfos || !allMetainfos) {
       return <div />
     }
 
-    const metainfoName = this.props.metainfo || 'section_run'
+    const metainfoName = this.props.metainfo || domainRootSection || 'section_run'
     const metainfo = metainfos.resolve(metainfos.createProxy(metainfoName))
 
     return <div>
@@ -168,7 +180,7 @@ class MetaInfoBrowser extends Component {
             </Select>
           </FormControl>
           <MetainfoSearch classes={{root: classes.search}}
-            suggestions={Object.values(metainfos.names)}
+            suggestions={Object.values(metainfos.names).filter(metainfo => !schema.isPackage(metainfo))}
             onChange={this.handleSearch}
           />
         </form>

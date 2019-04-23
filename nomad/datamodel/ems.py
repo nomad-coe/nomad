@@ -99,6 +99,7 @@ class EMSEntryWithMetadata(CalcWithMetadata):
 Domain(
     'EMS', EMSEntryWithMetadata,
     root_sections=['section_experiment', 'section_entry_info'],
+    metainfo_all_package='all.experimental.nomadmetainfo.json',
     quantities=dict(
         formula=DomainQuantity(
             'The chemical (hill) formula of the simulated system.',

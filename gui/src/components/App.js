@@ -30,7 +30,8 @@ const drawerWidth = 200
 const toolbarTitles = {
   '/': 'About nomad@FAIRDI',
   '/search': 'Search',
-  '/uploads': 'Upload Your Own Data'
+  '/uploads': 'Upload Your Own Data',
+  '/metainfo': 'The Nomad Meta Info'
 }
 
 const toolbarThemes = {

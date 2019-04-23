@@ -57,15 +57,17 @@ class SearchPage extends React.Component {
     searchResults: {}
   })
 
-  state = {
-    data: {
-      results: [],
-      pagination: {
-        total: 0
-      },
-      aggregations: {},
-      metrics: {}
+  static emptySearchData = {
+    results: [],
+    pagination: {
+      total: 0
     },
+    aggregations: {},
+    metrics: {}
+  }
+
+  state = {
+    data: SearchPage.emptySearchData,
     owner: 'all',
     searchState: {
       ...SearchAggregations.defaultState
@@ -111,10 +113,10 @@ class SearchPage extends React.Component {
       ...searchStateRest
     }).then(data => {
       this.setState({
-        data: data
+        data: data || SearchPage.emptySearchData
       })
     }).catch(errors => {
-      this.setState({data: [], total: 0, owner: owner})
+      this.setState({data: SearchPage.emptySearchData, owner: owner})
       this.props.raiseError(errors)
     })
   }

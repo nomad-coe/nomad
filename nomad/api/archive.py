@@ -124,7 +124,14 @@ class MetainfoResource(Resource):
         try:
             return load_metainfo(metainfo_package_name), 200
         except FileNotFoundError:
-            abort(404, message='The metainfo %s does not exist.' % metainfo_package_name)
+            parser_prefix = metainfo_package_name[:-len('.nomadmetainfo.json')]
+            alternative_path = os.path.join(
+                metainfo_main_path,
+                '../../../parsers/{0}/{0}parser/{0}.nomadmetainfo.json'.format(parser_prefix))
+            try:
+                return load_metainfo(alternative_path, is_path=True), 200
+            except FileNotFoundError:
+                abort(404, message='The metainfo %s does not exist.' % metainfo_package_name)
 
 
 metainfo_main_path = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))

@@ -17,8 +17,8 @@ class Schema {
   isValue = (element) => element.mType === this.value
   isProperty = (element) => this.isValue(element) || this.isReference(element)
   isDefinition = (element) => this.isCategory(element) || this.isFeature(element)
-  isPakage = (element) => element.mType === this.pkg
-  isElement = (element) => this.isPakage(element) || this.isDefinition(element)
+  isPackage = (element) => element.mType === this.pkg
+  isElement = (element) => this.isPackage(element) || this.isDefinition(element)
 
   type = (type) => {
     if (type === 'C') {
@@ -44,7 +44,7 @@ class Schema {
   }
 
   allContents = (element, func) => {
-    if (this.isPakage(element)) {
+    if (this.isPackage(element)) {
       (element.definitions || []).forEach(element => this.allContents(element, func))
     }
     func(element)
@@ -162,7 +162,7 @@ export default class MetaInfoRepository {
         definition.parent.features = definition.parent.features || []
         definition.parent.features.push(definition)
       }
-      if (schema.isPakage(definition)) {
+      if (schema.isPackage(definition)) {
         definition.definitions.forEach(feature => {
           feature.package = definition
         })
@@ -195,8 +195,10 @@ export default class MetaInfoRepository {
     const {name} = namedElement
     if (this.names[name]) {
       this.errors.push(new BadNomadMIError(`Element with name ${namedElement.name} does already exist.`))
+      return false
     } else {
       this.names[name] = namedElement
+      return true
     }
   }
 
@@ -219,6 +221,9 @@ export default class MetaInfoRepository {
         _superNames: superNames.map(ref => this.createProxy(ref))
       }
 
+      // normalisation
+      definition.miJson.shape = definition.miJson.shape || []
+
       if (isSection) {
         definition.mType = schema.section
       } else if (isCategory) {
@@ -238,8 +243,11 @@ export default class MetaInfoRepository {
         this.errors.push(new BadNomadMIError(`Cannot determine mType ${metaInfo.kindStr} of feature ${name}:${metaInfo.name}`))
       }
 
-      this.addName(definition)
-      return definition
+      if (this.addName(definition)) {
+        return definition
+      } else {
+        return null
+      }
     }
 
     const metaInfos = json.metaInfos || []
@@ -247,7 +255,7 @@ export default class MetaInfoRepository {
       mType: schema.pkg,
       name: name,
       description: json.description,
-      definitions: metaInfos.map(transformMetaInfo)
+      definitions: metaInfos.map(transformMetaInfo).filter(definition => definition !== null)
     }
 
     this.addName(pkg)

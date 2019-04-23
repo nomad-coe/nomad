@@ -210,13 +210,17 @@ class Domain:
             domain specific quantities.
         quantities: Additional specifications for the quantities in ``domain_entry_class`` as
             instances of :class:`DomainQuantity`.
+        root_sections: The name of the possible root sections for this domain.
+        metainfo_all_package: The name of the full metainfo package for this domain.
     """
     instance: 'Domain' = None
     instances: Dict[str, 'Domain'] = {}
 
     def __init__(
             self, name: str, domain_entry_class: Type[CalcWithMetadata],
-            quantities: Dict[str, DomainQuantity], root_sections=['section_run', 'section_entry_info']) -> None:
+            quantities: Dict[str, DomainQuantity],
+            root_sections=['section_run', 'section_entry_info'],
+            metainfo_all_package='all.nomadmetainfo.json') -> None:
         if name == config.domain:
             assert Domain.instance is None, 'you can only define one domain.'
             Domain.instance = self
@@ -227,6 +231,7 @@ class Domain:
         self.domain_entry_class = domain_entry_class
         self.quantities: Dict[str, DomainQuantity] = {}
         self.root_sections = root_sections
+        self.metainfo_all_package = metainfo_all_package
 
         reference_domain_calc = domain_entry_class()
         reference_general_calc = CalcWithMetadata()
