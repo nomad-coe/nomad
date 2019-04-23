@@ -44,7 +44,7 @@ Parsers are reused for multiple caclulations.
 
 Parsers and calculation files are matched via regular expressions.
 
-.. autofunc:: nomad.parsing.match_parser
+.. autofunction:: nomad.parsing.match_parser
 
 Parsers in NOMAD-coe use a *backend* to create output. There are different NOMAD-coe
 basends. In nomad@FAIRDI, we only currently only use a single backed. A version of
