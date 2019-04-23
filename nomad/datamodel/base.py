@@ -225,7 +225,7 @@ class Domain:
 
         self.name = name
         self.domain_entry_class = domain_entry_class
-        self.quantities: List[DomainQuantity] = []
+        self.quantities: Dict[str, DomainQuantity] = {}
         self.root_sections = root_sections
 
         reference_domain_calc = domain_entry_class()
@@ -239,13 +239,13 @@ class Domain:
                     quantities[quantity_name] = quantity
                 quantity.name = quantity_name
                 quantity.multi = isinstance(value, list)
-                self.quantities.append(quantity)
+                self.quantities[quantity.name] = quantity
 
         for quantity_name in quantities.keys():
             assert hasattr(reference_domain_calc, quantity_name) and not hasattr(reference_general_calc, quantity_name), \
                 'quantity does not exist or overrides general non domain quantity'
 
-        assert any(quantity.order_default for quantity in Domain.instances[name].quantities), \
+        assert any(quantity.order_default for quantity in Domain.instances[name].quantities.values()), \
             'you need to define a order default quantity'
 
     @property
@@ -255,7 +255,7 @@ class Domain:
         """
         return {
             quantity.metric[0]: (quantity.metric[1], quantity.name)
-            for quantity in self.quantities
+            for quantity in self.quantities.values()
             if quantity.metric is not None
         }
 
@@ -272,7 +272,7 @@ class Domain:
         """
         return {
             quantity.name: quantity.aggregations
-            for quantity in self.quantities
+            for quantity in self.quantities.values()
             if quantity.aggregations > 0
         }
 

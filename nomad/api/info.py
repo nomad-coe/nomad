@@ -66,7 +66,7 @@ class InfoResource(Resource):
             'normalizers': [normalizer.__name__ for normalizer in normalizing.normalizers],
             'domain': {
                 'name': datamodel.Domain.instance.name,
-                'quantities': datamodel.Domain.instance.quantities,
+                'quantities': [quantity for quantity in datamodel.Domain.instance.quantities.values()],
                 'metrics_names': datamodel.Domain.instance.metrics_names,
                 'aggregations_names': datamodel.Domain.instance.aggregations_names
             },
