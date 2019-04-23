@@ -1,5 +1,5 @@
 import React from 'react'
-import PropTypes from 'prop-types'
+import PropTypes, { func } from 'prop-types'
 import DFTSearchAggregations from './dft/DFTSearchAggregations'
 import DFTEntryOverview from './dft/DFTEntryOverview'
 import DFTEntryCards from './dft/DFTEntryCards'
@@ -16,7 +16,8 @@ class DomainProviderBase extends React.Component {
       PropTypes.arrayOf(PropTypes.node),
       PropTypes.node
     ]).isRequired,
-    api: PropTypes.object.isRequired
+    api: PropTypes.object.isRequired,
+    raiseError: PropTypes.func.isRequired
   }
 
   domains = {
@@ -161,6 +162,8 @@ class DomainProviderBase extends React.Component {
   componentDidMount() {
     this.props.api.getInfo().then(info => {
       this.setState({domain: this.domains[info.domain.name] || this.domains.DFT})
+    }).catch(error => {
+      this.props.raiseError(error)
     })
   }
 
