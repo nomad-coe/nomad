@@ -58,11 +58,10 @@ function getSuggestionValue(suggestion) {
 
 const styles = theme => ({
   root: {
-    height: 250,
-    flexGrow: 1
   },
   container: {
-    position: 'relative'
+    position: 'relative',
+    marginLeft: theme.spacing.unit * 2
   },
   suggestionsContainerOpen: {
     position: 'absolute',
@@ -81,6 +80,9 @@ const styles = theme => ({
   },
   divider: {
     height: theme.spacing.unit * 2
+  },
+  input: {
+    height: 24
   }
 })
 
@@ -100,7 +102,7 @@ class MetainfoSearch extends React.Component {
       ? []
       : this.props.suggestions.filter(suggestion => {
         const keep =
-            count < 5 && suggestion.name.slice(0, inputLength).toLowerCase() === inputValue
+            count < 10 && suggestion.name.slice(0, inputLength).toLowerCase() === inputValue
 
         if (keep) {
           count += 1

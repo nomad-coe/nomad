@@ -3,6 +3,7 @@ import React, { Component } from 'react'
 import { withRouter } from 'react-router-dom'
 import Viewer from './Viewer'
 import PropTypes from 'prop-types'
+import { link } from 'fs'
 import { withApi } from '../api'
 import { Help } from '../help'
 import MetainfoSearch from './MetainfoSearch'
@@ -43,12 +44,14 @@ class MetaInfoBrowser extends Component {
     }
   })
 
-  state = {
+  initialState = {
     metainfos: null,
     allMetainfos: null,
     selectedPackage: null,
     loadedPackage: null
   }
+
+  state = this.initialState
 
   constructor(props) {
     super(props)
@@ -83,6 +86,7 @@ class MetaInfoBrowser extends Component {
 
   componentDidUpdate(prevProps) {
     if (this.props.metainfo !== prevProps.metainfo) {
+      this.setState(this.initialState)
       this.init()
     }
   }
@@ -116,8 +120,11 @@ class MetaInfoBrowser extends Component {
     return <div>
       <div className={classes.forms}>
         <Help cookie="uploadList">{`
-          The nomad *metainfo* is the schema that nomad uses to define the quantities that
-          comprise all nomad data. The nomad metainfo is consist of definitions for:
+          The nomad *metainfo* defines all quantities used to represent archive data in
+          nomad. You could say it is the archive *schema*. You can browse this schema and
+          all its definitions here.
+
+          The nomad metainfo knows three different *kinds* of definitions:
 
           - **sections**: A section are nested groups of quantities that allow a hierarchical data structure
           - **values**: Actual quantities that contain data
@@ -126,12 +133,25 @@ class MetaInfoBrowser extends Component {
           All definitions have a name that you can search for. Furthermore, all definitions
           are organized in packages. There is a *common* package with definitions that are
           used by all codes and there are packages for each code with code specific definitions.
+          You can select the package to browse below.
+
+          Depending on the selected package, there are quiet a large number of definitions.
+          You can use the *definition* field to search based on definition names.
+
+          All definitions are represented as *cards* below. Click on the various card items
+          to expand sub-sections, open values or references, hide and show compartments, or
+          collapse cards again. The highlighted *main* card cannot be collapsed. The
+          shapes in the background represent section containment (grey) and
+          reference (blue) relations.
+
+          If you bookmark this page, you can save the definition represented by the highlighted
+          *main* card.
         `}</Help>
         <form style={{ display: 'flex' }}>
           <FormControl disabled={loading > 0}>
             <InputLabel htmlFor="select-multiple-checkbox">Package</InputLabel>
             <Select
-              className={classes.packageSelect}
+              classes={{root: classes.packageSelect}}
               value={selectedPackage}
               onChange={this.handleSelectedPackageChanged}
               input={<Input id="select-multiple-checkbox" />}
