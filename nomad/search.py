@@ -244,6 +244,7 @@ def _construct_search(q: Q = None, time_range: Tuple[datetime, datetime] = None,
 
         for item in values:
             if key == 'atoms':
+                # TODO This should be configurable and not specific to atoms
                 items = item.split(',')
             else:
                 items = [item]
@@ -263,7 +264,7 @@ def scroll_search(
     :func:`aggregate_search`, but pagination is replaced with scrolling, no ordering,
     and no aggregation information is given.
 
-    Scrolling is done by calling this function again and again with the same ``scoll_id``.
+    Scrolling is done by calling this function again and again with the same ``scroll_id``.
     Each time, this function will return the next batch of search results.
 
     See see :func:`aggregate_search` for additional ``kwargs``

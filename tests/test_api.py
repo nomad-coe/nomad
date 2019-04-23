@@ -675,11 +675,7 @@ class TestRepo():
         (0, 'quantities', 'dos')
     ])
     def test_search_quantities(self, client, example_elastic_calcs, no_warn, test_user_auth, calcs, quantity, value):
-        if isinstance(value, list):
-            query_string = '&'.join('%s=%s' % (quantity, item) for item in value)
-        else:
-            query_string = '%s=%s' % (quantity, value)
-
+        query_string = '%s=%s' % (quantity, ','.join(value) if isinstance(value, list) else value)
         rv = client.get('/repo/?%s' % query_string, headers=test_user_auth)
 
         assert rv.status_code == 200
