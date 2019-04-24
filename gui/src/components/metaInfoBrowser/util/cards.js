@@ -1,9 +1,10 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
-import { Typography, IconButton, Icon, Popover } from '@material-ui/core'
+import { Typography, IconButton, Icon } from '@material-ui/core'
 import grey from '@material-ui/core/colors/grey'
 import { updateListState } from './data'
+import { ApiDialog } from '../../ApiDialogButton'
 
 const ToggleCardCompartmentContext = React.createContext()
 
@@ -246,7 +247,7 @@ export const CardCompartment = withStyles(CardCompartmentUnstyled.styles)(CardCo
 class PopoverCardButtonUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    children: PropTypes.object,
+    data: PropTypes.object,
     label: PropTypes.string,
     icon: PropTypes.string,
     size: PropTypes.string
@@ -281,28 +282,13 @@ class PopoverCardButtonUnstyled extends React.Component {
   };
 
   render() {
-    const { classes, size } = this.props
+    const { classes, size, data, label } = this.props
     const { anchorEl } = this.state
 
     return (
       <div className={classes.root}>
         <CardButton {...this.props} variant={'contained'} onClick={this.handleClick} classes={{[size || 'small']: classes.iconButton}}/>
-        <Popover
-          classes={{paper: classes.content}}
-          open={Boolean(anchorEl)}
-          anchorEl={anchorEl}
-          onClose={this.handleClose}
-          anchorOrigin={{
-            vertical: 'bottom',
-            horizontal: 'center'
-          }}
-          transformOrigin={{
-            vertical: 'top',
-            horizontal: 'center'
-          }}
-        >
-          {this.props.children}
-        </Popover>
+        <ApiDialog open={Boolean(anchorEl)} onClose={this.handleClose} data={data} title={label} />
       </div>
     )
   }

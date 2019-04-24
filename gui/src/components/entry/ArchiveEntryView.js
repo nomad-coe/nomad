@@ -1,12 +1,14 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Fab, Card, CardContent } from '@material-ui/core'
+import { withStyles, Fab, Card, CardContent, CardActions, Button } from '@material-ui/core'
+import { Link } from 'react-router-dom'
 import ReactJson from 'react-json-view'
 import { compose } from 'recompose'
 import Markdown from '../Markdown'
 import { withApi } from '../api'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import Download from './Download'
+import { ValueAttributes, MetaAttribute } from '../metaInfoBrowser/ValueCard'
 
 class ArchiveEntryView extends React.Component {
   static propTypes = {
@@ -23,7 +25,18 @@ class ArchiveEntryView extends React.Component {
       height: '20vh',
       overflowY: 'auto',
       marginTop: theme.spacing.unit * 3,
-      marginBottom: theme.spacing.unit * 3
+      marginBottom: theme.spacing.unit * 3,
+      display: 'flex',
+      flexDirection: 'column'
+    },
+    metaInfoContent: {
+      flex: 1
+    },
+    metaInfoActions: {
+      flexDirection: 'row-reverse'
+    },
+    metaInfoDescription: {
+      margin: `${theme.spacing.unit}px 0`
     },
     data: {
       height: '60vh',
@@ -95,13 +108,26 @@ class ArchiveEntryView extends React.Component {
     return (
       <div className={classes.root}>
         <Card className={classes.metaInfo}>
-          <CardContent>{
+          <CardContent className={classes.metaInfoContent}>{
             showMetaInfo && metaInfo
               ? metaInfoData
-                ? <Markdown>{`**${metaInfoData.name}**: ${metaInfoData.description}`}</Markdown>
+                ? <div>
+                  <MetaAttribute label={'metainfo name'} value={metaInfoData.name} />
+                  <Markdown classes={{root: classes.metaInfoDescription}}>{metaInfoData.description}</Markdown>
+                  <ValueAttributes definition={metaInfoData} />
+                </div>
                 : <Markdown>This value has **no** *meta-info* attached to it.</Markdown>
               : <Markdown>Click a value to show its *meta-info*!</Markdown>
           }</CardContent>
+          <CardActions className={classes.metaInfoActions}>
+            { (showMetaInfo && metaInfo && metaInfoData)
+              ? <Button color="primary" component={props => <Link to={`/metainfo/${metaInfoData.name}`} {...props} />}>
+                Goto Metainfo
+              </Button>
+              : <Button color="primary" disabled>
+                Goto Metainfo
+              </Button>}
+          </CardActions>
         </Card>
         <Card className={classes.data}>
           <CardContent>

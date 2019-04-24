@@ -7,7 +7,7 @@ import { DefinitionCard, renderName } from './DefinitionCard'
 import { schema } from '../MetaInfoRepository'
 import { CardCompartment, CardButton } from './util/cards'
 
-const MetaAttribute = (props) => {
+export const MetaAttribute = (props) => {
   return (
     <Typography component={'p'} variant={'body1'}>
       <span>{props.label}</span>: <span style={{fontWeight: 'bold'}}>{props.value}</span>
@@ -18,6 +18,20 @@ const MetaAttribute = (props) => {
 MetaAttribute.propTypes = {
   label: PropTypes.string.isRequired,
   value: PropTypes.any
+}
+
+export const ValueAttributes = props => {
+  const { definition } = props
+  return <div>
+    <MetaAttribute label={'repeats'} value={'' + (!!definition.miJson.repeats)}/>
+    <MetaAttribute label={'shape'} value={`[${definition.miJson.shape.join(', ')}]`}/>
+    <MetaAttribute label={'type'} value={definition.type}/>
+    {definition.miJson.units ? <MetaAttribute label={'units'} value={definition.miJson.units}/> : ''}
+  </div>
+}
+
+ValueAttributes.propTypes = {
+  definition: PropTypes.object.isRequired
 }
 
 class ValueUnstyled extends React.Component {
@@ -40,10 +54,7 @@ class ValueUnstyled extends React.Component {
         <AfterRenderMeasure measureId={`property.${definition.name}`} measureData={definition}>
           <DefinitionCard {...inherited}>
             <CardCompartment compId="type_info" padded label={'type info'} foldable>
-              <MetaAttribute label={'repeats'} value={'' + (!!definition.miJson.repeats)}/>
-              <MetaAttribute label={'shape'} value={`[${definition.miJson.shape.join(', ')}]`}/>
-              <MetaAttribute label={'type'} value={definition.type}/>
-              {definition.miJson.units ? <MetaAttribute label={'units'} value={definition.miJson.units}/> : ''}
+              <ValueAttributes definition={definition} />
               {schema.isReference(definition) && definition.referencedSection
                 ? <MetaAttribute label={'referenced'} value={<span>
                   {renderName(definition.referencedSection)} <CardButton size="tiny" icon="arrow_right_alt"

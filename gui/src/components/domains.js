@@ -1,5 +1,5 @@
 import React from 'react'
-import PropTypes, { func } from 'prop-types'
+import PropTypes from 'prop-types'
 import DFTSearchAggregations from './dft/DFTSearchAggregations'
 import DFTEntryOverview from './dft/DFTEntryOverview'
 import DFTEntryCards from './dft/DFTEntryCards'

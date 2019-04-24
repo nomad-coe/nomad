@@ -4,7 +4,6 @@ import { withStyles } from '@material-ui/core/styles'
 import { Paper, Typography } from '@material-ui/core'
 import { Link } from 'react-router-dom'
 import { schema } from '../MetaInfoRepository'
-import ReactJson from 'react-json-view'
 import { Card, CardButton, CardCompartment, PopoverCardButton } from './util/cards'
 import Markdown from '../Markdown'
 
@@ -97,14 +96,17 @@ class DefinitionCardUnstyled extends React.Component {
           <CardButton position="center" size="tiny" icon="launch"
             component={props => <Link to={`/metainfo/${definition.name}`} {...props} />}
           />
-          <PopoverCardButton position="center" icon="code" classes={{content: classes.source}} size="tiny">
-            <ReactJson src={definition.miJson} />
-          </PopoverCardButton>
+          <PopoverCardButton
+            position="center" icon="code" classes={{content: classes.source}}
+            size="tiny" data={definition.miJson}
+            label="Definition JSON"
+          />
           {definition.problems.length > 0
-            ? <PopoverCardButton position="center" icon="report_problem" color='secondary' size="tiny"
-              classes={{content: classes.source}}>
-              <ReactJson src={definition.problems} />
-            </PopoverCardButton> : ''
+            ? <PopoverCardButton
+              position="center" icon="report_problem" color='secondary' size="tiny"
+              classes={{content: classes.source}}
+              data={definition.problems} label="Definition Errors"
+            /> : ''
           }
           {this.isClosable() ? <CardButton position="right" icon="cancel" onClick={() => toggleDefinition(definition, false)} /> : ''}
           <CardCompartment padded compId="title">
