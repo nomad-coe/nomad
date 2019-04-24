@@ -307,7 +307,7 @@ class Api {
 
   async getUploadCommand() {
     this.onStartLoading()
-    this.swaggerPromise
+    return this.swaggerPromise
       .then(client => client.apis.uploads.get_upload_command())
       .catch(this.handleApiError)
       .then(response => response.body.upload_command)
