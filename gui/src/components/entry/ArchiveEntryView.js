@@ -10,6 +10,7 @@ import DownloadIcon from '@material-ui/icons/CloudDownload'
 import Download from './Download'
 import { ValueAttributes, MetaAttribute } from '../metaInfoBrowser/ValueCard'
 import ApiDialogButton from '../ApiDialogButton'
+import { Help } from '../help'
 
 class ArchiveEntryView extends React.Component {
   static propTypes = {
@@ -108,6 +109,15 @@ class ArchiveEntryView extends React.Component {
 
     return (
       <div className={classes.root}>
+        <Help cookie="archiveView">{`
+          The nomad **archive** provides data and meta-data in a common hierarchical format based on
+          well-defined quantity definitions that we call *metainfo*. This representation
+          is independent from the raw data format and provides a homogenous data stock.
+
+          You can click the various quantity values to see the quantity definition. Similarly,
+          you can click section names to get more information. Browse the *metainfo* to
+          learn more about nomad's archive format [here](/metainfo).
+        `}</Help>
         <Card className={classes.metaInfo}>
           <CardContent className={classes.metaInfoContent}>{
             showMetaInfo && metaInfo
