@@ -369,7 +369,6 @@ class Upload(Proc):
     temporary = BooleanField(default=False)
 
     name = StringField(default=None)
-    metadata = DictField(default=None)
     upload_time = DateTimeField()
     user_id = StringField(required=True)
     published = BooleanField(default=False)
@@ -384,6 +383,14 @@ class Upload(Proc):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._upload_files: ArchiveBasedStagingUploadFiles = None
+
+    @property
+    def metadata(self) -> dict:
+        return self.upload_files.user_metadata
+
+    @metadata.setter
+    def metadata(self, data: dict) -> None:
+        self.upload_files.user_metadata = data
 
     @classmethod
     def get(cls, id: str, include_published: bool = False) -> 'Upload':
@@ -535,10 +542,11 @@ class Upload(Proc):
     @property
     def upload_files(self) -> UploadFiles:
         upload_files_class = ArchiveBasedStagingUploadFiles if not self.published else PublicUploadFiles
+        kwargs = dict(upload_path=self.upload_path) if not self.published else {}
 
         if not self._upload_files or not isinstance(self._upload_files, upload_files_class):
             self._upload_files = upload_files_class(
-                self.upload_id, is_authorized=lambda: True, upload_path=self.upload_path)
+                self.upload_id, is_authorized=lambda: True, **kwargs)
 
         return self._upload_files
 

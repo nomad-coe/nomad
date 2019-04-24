@@ -57,9 +57,13 @@ from zipfile import ZipFile, BadZipFile
 import tarfile
 import hashlib
 import io
+import pickle
 
 from nomad import config, utils
 from nomad.datamodel import UploadWithMetadata
+
+
+user_metadata_filename = 'user_metadata.pickle'
 
 
 class PathObject:
@@ -172,6 +176,20 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
 
         self.upload_id = upload_id
         self._is_authorized = is_authorized
+        self._user_metadata_file = self.join_file('user_metadata.pickle')
+
+    @property
+    def user_metadata(self) -> dict:
+        if self._user_metadata_file.exists():
+            with open(self._user_metadata_file.os_path, 'rb') as f:
+                return pickle.load(f)
+        else:
+            return {}
+
+    @user_metadata.setter
+    def user_metadata(self, data: dict) -> None:
+        with open(self._user_metadata_file.os_path, 'wb') as f:
+            pickle.dump(data, f)
 
     @staticmethod
     def get(upload_id: str, *args, **kwargs) -> 'UploadFiles':
@@ -348,6 +366,12 @@ class StagingUploadFiles(UploadFiles):
             config.fs.public, self.upload_id, create=True, prefix=True,
             create_prefix=True)
         assert target_dir.exists()
+
+        # copy user metadata
+        if self._user_metadata_file.exists():
+            shutil.copyfile(
+                self._user_metadata_file.os_path,
+                target_dir.join_file(user_metadata_filename).os_path)
 
         def create_zipfile(kind: str, prefix: str, ext: str) -> ZipFile:
             file = target_dir.join_file('%s-%s.%s.zip' % (kind, prefix, ext))

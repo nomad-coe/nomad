@@ -95,15 +95,12 @@ def source_package(mongo, migration):
     migration.package(*glob.glob('tests/data/migration/*'))
 
 
-@pytest.mark.parametrize('archived', [False, True])
+@pytest.mark.parametrize('variant', ['', '_archived', '_oqmd'])
 @pytest.mark.parametrize('n_packages, restriction, upload', [(1, 36, 'baseline'), (2, 0, 'too_big'), (1, 24, 'restriction')])
 def test_package(
-        mongo, migration: NomadCOEMigration, monkeypatch, n_packages, restriction, upload, archived):
+        mongo, migration: NomadCOEMigration, monkeypatch, n_packages, restriction, upload, variant):
     monkeypatch.setattr('nomad.migration.max_package_size', 3)
-    if archived:
-        upload = os.path.join('tests/data/migration/packaging_archived', upload)
-    else:
-        upload = os.path.join('tests/data/migration/packaging', upload)
+    upload = os.path.join('tests/data/migration/packaging%s' % variant, upload)
 
     migration.package_index(upload)
     packages = Package.objects()

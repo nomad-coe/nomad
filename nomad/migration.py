@@ -38,6 +38,7 @@ import io
 import threading
 from contextlib import contextmanager
 import shutil
+import json
 
 from nomad import utils, infrastructure, files, config
 from nomad.coe_repo import User, Calc, LoginException
@@ -316,6 +317,16 @@ class Package(Document):
             if len(files) == 0:
                 continue
 
+            if len(files) < 20 and any(file.endswith('.tar.gz') for file in files):
+                # TODO the OQMD case, files are managed as bunch of .tar.gz files
+                for file in files:
+                    archive_path = os.path.join(root, file)
+                    prefix = os.path.dirname(archive_path)[len(upload_path) + 1:]
+                    with cls.extracted_archive(archive_path) as extracted_archive:
+                        for paths, _, size in cls.iterate_upload_directory(extracted_archive):
+                            yield [os.path.join(prefix, path) for path in paths], upload_path, size
+                continue
+
             for file in files:
                 filepath = os.path.join(root, file)
                 filename = filepath[len(upload_path) + 1:]
@@ -381,6 +392,60 @@ class SourceCalc(Document):
     meta = dict(indexes=['upload', 'mainfile', 'migration_version'])
 
     _dataset_cache: dict = {}
+
+    @staticmethod
+    def missing():
+        """
+        Produces data about non migrated calcs
+        """
+        tmp_data_path = '/tmp/nomad_migration_missing.json'
+        if os.path.exists(tmp_data_path):
+            with open(tmp_data_path, 'rt') as f:
+                data = utils.POPO(**json.load(f))
+        else:
+            data = utils.POPO(step=0)
+
+        try:
+            # get source_uploads that have non migrated calcs
+            if data.step < 1:
+                import re
+                data.source_uploads = SourceCalc._get_collection() \
+                    .find({'migration_version': {'$lt': 0}, 'mainfile': {'$not': re.compile(r'^aflowlib_data.*')}}) \
+                    .distinct('upload')
+                data.step = 1
+
+            if data.step < 2:
+                source_uploads = []
+                data.packages = utils.POPO()
+                data.uploads_with_no_package = []
+                for source_upload in data.source_uploads:
+                    package = Package.objects(upload_id=source_upload).first()
+                    if package is None:
+                        data.uploads_with_no_package.append(source_upload)
+                    else:
+                        source_uploads.append(source_upload)
+                data.source_uploads = source_uploads
+                data.step = 2
+
+            if data.step < 3:
+                source_uploads = []
+                for source_upload in data.source_uploads:
+                    count = SourceCalc.objects(upload=source_upload).count()
+                    source_uploads.append(utils.POPO(id=source_upload, calcs=count))
+                data.source_uploads = sorted(source_uploads, key=lambda k: k['calcs'])
+                data.step = 3
+
+            if data.step < 4:
+                source_uploads = []
+                for source_upload in data.source_uploads:
+                    count = Package.objects(upload_id=source_upload.get('id')).count()
+                    source_upload['packages'] = count
+                data.step = 4
+        finally:
+            with open(tmp_data_path, 'wt') as f:
+                json.dump(data, f)
+
+        return data
 
     @staticmethod
     def index(source, drop: bool = False, with_metadata: bool = True, per_query: int = 100) \

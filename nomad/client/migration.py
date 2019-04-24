@@ -21,6 +21,7 @@ import re
 import shutil
 import multiprocessing
 import queue
+import json
 
 from nomad import config, infrastructure
 from nomad.migration import NomadCOEMigration, SourceCalc, Package
@@ -191,3 +192,12 @@ def upload(
     _Migration(threads=parallel).migrate(
         *determine_upload_paths(upload_paths, pattern), delete_failed=delete_failed,
         create_packages=create_packages)
+
+
+@migration.command(help='Get an report about not migrated calcs.')
+def missing():
+    infrastructure.setup_logging()
+    infrastructure.setup_mongo()
+
+    report = SourceCalc.missing()
+    print(json.dumps(report, indent=2))
