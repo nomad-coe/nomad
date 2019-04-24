@@ -423,24 +423,14 @@ class SourceCalc(Document):
                     if package is None:
                         data.uploads_with_no_package.append(source_upload)
                     else:
-                        source_uploads.append(source_upload)
+                        calcs = SourceCalc.objects(upload=source_upload).count()
+                        packages = Package.objects(upload_id=source_upload).count()
+                        source_uploads.append(dict(
+                            id=source_upload, packages=packages, calcs=calcs,
+                            path=package.upload_path))
+                        source_uploads = sorted(source_uploads, key=lambda k: k['calcs'])
                 data.source_uploads = source_uploads
                 data.step = 2
-
-            if data.step < 3:
-                source_uploads = []
-                for source_upload in data.source_uploads:
-                    count = SourceCalc.objects(upload=source_upload).count()
-                    source_uploads.append(utils.POPO(id=source_upload, calcs=count))
-                data.source_uploads = sorted(source_uploads, key=lambda k: k['calcs'])
-                data.step = 3
-
-            if data.step < 4:
-                source_uploads = []
-                for source_upload in data.source_uploads:
-                    count = Package.objects(upload_id=source_upload.get('id')).count()
-                    source_upload['packages'] = count
-                data.step = 4
         finally:
             with open(tmp_data_path, 'wt') as f:
                 json.dump(data, f)
