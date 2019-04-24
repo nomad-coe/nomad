@@ -74,7 +74,8 @@ class ApiDialogButtonUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     data: PropTypes.any.isRequired,
-    title: PropTypes.string
+    title: PropTypes.string,
+    component: PropTypes.func
   }
 
   static styles = theme => ({
@@ -85,15 +86,25 @@ class ApiDialogButtonUnstyled extends React.Component {
     showDialog: false
   }
 
+  constructor(props) {
+    super(props)
+    this.handleShowDialog = this.handleShowDialog.bind(this)
+  }
+
+  handleShowDialog() {
+    this.setState({showDialog: !this.state.showDialog})
+  }
+
   render() {
-    const { classes, ...dialogProps } = this.props
+    const { classes, component, ...dialogProps } = this.props
     const { showDialog } = this.state
 
     return (
       <div className={classes.root}>
-        <IconButton onClick={() => this.setState({showDialog: true})}>
+        {component ? component({onClick: this.handleShowDialog}) : <IconButton onClick={this.handleShowDialog}>
           <CodeIcon />
         </IconButton>
+        }
         <ApiDialog
           {...dialogProps} open={showDialog}
           onClose={() => this.setState({showDialog: false})}

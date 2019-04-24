@@ -9,6 +9,7 @@ import { withApi } from '../api'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import Download from './Download'
 import { ValueAttributes, MetaAttribute } from '../metaInfoBrowser/ValueCard'
+import ApiDialogButton from '../ApiDialogButton'
 
 class ArchiveEntryView extends React.Component {
   static propTypes = {
@@ -122,11 +123,19 @@ class ArchiveEntryView extends React.Component {
           <CardActions className={classes.metaInfoActions}>
             { (showMetaInfo && metaInfo && metaInfoData)
               ? <Button color="primary" component={props => <Link to={`/metainfo/${metaInfoData.name}`} {...props} />}>
-                Goto Metainfo
+                Goto Metainfo Browser
               </Button>
               : <Button color="primary" disabled>
-                Goto Metainfo
+                Goto Metainfo Browser
               </Button>}
+            <ApiDialogButton
+              component={props => (
+                <Button color="primary" disabled={!(showMetaInfo && metaInfo && metaInfoData)} {...props}>
+                  Metainfo JSON
+                </Button>
+              )}
+              data={metaInfoData ? metaInfoData.miJson : {}} title="Metainfo JSON"
+            />
           </CardActions>
         </Card>
         <Card className={classes.data}>
