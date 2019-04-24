@@ -333,11 +333,11 @@ class UploadResource(Resource):
         """
         Execute an upload operation. Available operations: ``publish``
 
-        Unstage accepts further meta data that allows to provide coauthors, comments,
+        Publish accepts further meta data that allows to provide coauthors, comments,
         external references, etc. See the model for details. The fields that start with
         ``_underscore`` are only available for users with administrative privileges.
 
-        Unstage changes the visibility of the upload. Clients can specify the visibility
+        Publish changes the visibility of the upload. Clients can specify the visibility
         via meta data.
         """
         try:
@@ -369,7 +369,7 @@ class UploadResource(Resource):
             if upload.processed_calcs == 0:
                 abort(400, message='Cannot publish an upload without calculations')
             try:
-                upload.metadata = metadata
+                upload.compress_and_set_metadata(metadata)
                 upload.publish_upload()
             except ProcessAlreadyRunning:
                 abort(400, message='The upload is still/already processed')

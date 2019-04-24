@@ -725,5 +725,35 @@ class Upload(Proc):
 
         return result
 
+    def compress_and_set_metadata(self, metadata: Dict[str, Any]) -> None:
+        """
+        Stores the given user metadata in the upload document. This is the metadata
+        adhering to the API model (``UploadMetaData``). Most quantities can be stored
+        for the upload and for each calculation. This method will try to move same values
+        from the calculation to the upload to "compress" the data.
+        """
+        compressed = {
+            key: value for key, value in metadata.items() if key != 'calculations'}
+        calculations: List[Dict[str, Any]] = []
+        compressed['calculations'] = calculations
+
+        for calc in metadata.get('calculations', []):
+            compressed_calc: Dict[str, Any] = {}
+            calculations.append(compressed_calc)
+            for key, value in calc.items():
+                if key in ['_pid', 'mainfile']:
+                    # these quantities are explicitly calc specific and have to stay with
+                    # the calc
+                    compressed_calc[key] = value
+                else:
+                    if key not in compressed:
+                        compressed[key] = value
+                    elif compressed[key].__repr__ != value.__repr__:
+                        compressed_calc[key] = value
+                    else:
+                        compressed[key] = value
+
+        self.metadata = compressed
+
     def __str__(self):
         return 'upload %s upload_id%s' % (super().__str__(), self.upload_id)
