@@ -68,7 +68,11 @@ class Calc(Proc):
 
     meta: Any = {
         'indexes': [
-            'upload_id', 'mainfile', 'parser', 'tasks_status', 'process_status'
+            'upload_id',
+            ('upload_id', 'mainfile'),
+            ('upload_id', 'parser'),
+            ('upload_id', 'tasks_status'),
+            ('upload_id', 'process_status')
         ]
     }
 
@@ -697,8 +701,9 @@ class Upload(Proc):
     def pending_calcs(self):
         return Calc.objects(upload_id=self.upload_id, tasks_status=PENDING).count()
 
-    def all_calcs(self, start, end, order_by='mainfile'):
-        return Calc.objects(upload_id=self.upload_id)[start:end].order_by(order_by)
+    def all_calcs(self, start, end, order_by=None):
+        query = Calc.objects(upload_id=self.upload_id)[start:end]
+        return query.order_by(order_by) if order_by is not None else query
 
     @property
     def calcs(self):
