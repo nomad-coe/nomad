@@ -423,24 +423,14 @@ class SourceCalc(Document):
                     if package is None:
                         data.uploads_with_no_package.append(source_upload)
                     else:
-                        source_uploads.append(source_upload)
+                        calcs = SourceCalc.objects(upload=source_upload).count()
+                        packages = Package.objects(upload_id=source_upload).count()
+                        source_uploads.append(dict(
+                            id=source_upload, packages=packages, calcs=calcs,
+                            path=package.upload_path))
+                        source_uploads = sorted(source_uploads, key=lambda k: k['calcs'])
                 data.source_uploads = source_uploads
                 data.step = 2
-
-            if data.step < 3:
-                source_uploads = []
-                for source_upload in data.source_uploads:
-                    count = SourceCalc.objects(upload=source_upload).count()
-                    source_uploads.append(utils.POPO(id=source_upload, calcs=count))
-                data.source_uploads = sorted(source_uploads, key=lambda k: k['calcs'])
-                data.step = 3
-
-            if data.step < 4:
-                source_uploads = []
-                for source_upload in data.source_uploads:
-                    count = Package.objects(upload_id=source_upload.get('id')).count()
-                    source_upload['packages'] = count
-                data.step = 4
         finally:
             with open(tmp_data_path, 'wt') as f:
                 json.dump(data, f)
@@ -853,15 +843,31 @@ class NomadCOEMigration:
         report = Report()
         report.total_packages += 1
 
+        # check if the package is already uploaded
+        upload = None
+        try:
+            uploads = self.call_api('uploads.get_uploads')
+            for a_upload in uploads:
+                if a_upload.name == package_id and len(a_upload.errors) == 0:
+                    assert upload is None, 'duplicate upload name'
+                    upload = a_upload
+        except Exception as e:
+            self.logger.error('could verify if upload already exists', exc_info=e)
+            report.failed_packages += 1
+            return report
+
         # upload and process the upload file
-        with utils.timer(logger, 'upload completed'):
-            try:
-                upload = self.call_api(
-                    'uploads.upload', name=package_id, local_path=package.package_path)
-            except Exception as e:
-                self.logger.error('could not upload package', exc_info=e)
-                report.failed_packages += 1
-                return report
+        if upload is None:
+            with utils.timer(logger, 'upload completed'):
+                try:
+                    upload = self.call_api(
+                        'uploads.upload', name=package_id, local_path=package.package_path)
+                except Exception as e:
+                    self.logger.error('could not upload package', exc_info=e)
+                    report.failed_packages += 1
+                    return report
+        else:
+            self.logger.info('package was already uploaded')
 
         logger = logger.bind(
             source_upload_id=source_upload_id, upload_id=upload.upload_id)
