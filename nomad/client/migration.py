@@ -23,7 +23,7 @@ import multiprocessing
 import queue
 import json
 
-from nomad import config, infrastructure
+from nomad import config, infrastructure, utils
 from nomad.migration import NomadCOEMigration, SourceCalc, Package
 
 from .main import cli
@@ -99,7 +99,39 @@ def reset(delete_packages: bool):
 
 
 def determine_upload_paths(paths, pattern=None):
-    if pattern is not None:
+    if len(paths) == 1 and paths[0].endswith('.json'):
+        with open(paths[0], 'rt') as f:
+            data = json.load(f)
+
+        if isinstance(data, list):
+            items = data
+        else:
+            if pattern is not None:
+                key = pattern
+            else:
+                key = 'uploads_with_no_package'
+
+            items = []
+            for item in data[key]:
+                if isinstance(item, str):
+                    items.append(item)
+                else:
+                    items.append(item['id'])
+
+        paths = []
+        for upload_id in items:
+            exists = False
+            for prefix in ['/nomad/repository/data/extracted', '/nomad/repository/data/uploads']:
+                path = os.path.join(prefix, upload_id)
+                if os.path.exists(path):
+                    exists = True
+                    paths.append(path)
+
+            if not exists:
+                utils.get_logger(__name__).error(
+                    'source upload does not exist', source_upload_id=upload_id)
+
+    elif pattern is not None:
         assert len(paths) == 1, "Can only apply pattern on a single directory."
         path = paths[0]
         if pattern == "ALL":
@@ -195,9 +227,10 @@ def upload(
 
 
 @migration.command(help='Get an report about not migrated calcs.')
-def missing():
+@click.option('--use-cache', is_flag=True, help='Skip processing steps and take results from prior runs')
+def missing(use_cache):
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
 
-    report = SourceCalc.missing()
+    report = SourceCalc.missing(use_cache=use_cache)
     print(json.dumps(report, indent=2))

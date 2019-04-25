@@ -149,6 +149,9 @@ class Package(Document):
     report = DictField()
     """ The report of the last successful migration of this package """
 
+    migration_failure = StringField()
+    """ String that describe the cause for last failed migration attempt """
+
     meta = dict(indexes=['upload_id', 'migration_version'])
 
     @classmethod
@@ -394,12 +397,12 @@ class SourceCalc(Document):
     _dataset_cache: dict = {}
 
     @staticmethod
-    def missing():
+    def missing(use_cache=False):
         """
         Produces data about non migrated calcs
         """
         tmp_data_path = '/tmp/nomad_migration_missing.json'
-        if os.path.exists(tmp_data_path):
+        if os.path.exists(tmp_data_path) and use_cache:
             with open(tmp_data_path, 'rt') as f:
                 data = utils.POPO(**json.load(f))
         else:
@@ -407,14 +410,14 @@ class SourceCalc(Document):
 
         try:
             # get source_uploads that have non migrated calcs
-            if data.step < 1:
+            if data.step < 1 or not use_cache:
                 import re
                 data.source_uploads = SourceCalc._get_collection() \
                     .find({'migration_version': {'$lt': 0}, 'mainfile': {'$not': re.compile(r'^aflowlib_data.*')}}) \
                     .distinct('upload')
                 data.step = 1
 
-            if data.step < 2:
+            if data.step < 2 or not use_cache:
                 source_uploads = []
                 data.packages = utils.POPO()
                 data.uploads_with_no_package = []
@@ -426,9 +429,10 @@ class SourceCalc(Document):
                         calcs = SourceCalc.objects(upload=source_upload).count()
                         packages = Package.objects(upload_id=source_upload).count()
                         source_uploads.append(dict(
-                            id=source_upload, packages=packages, calcs=calcs,
+                            id=source_upload, package_count=packages,
+                            packages=package.packages, calcs=calcs,
                             path=package.upload_path))
-                        source_uploads = sorted(source_uploads, key=lambda k: k['calcs'])
+                        source_uploads = sorted(source_uploads, key=lambda k: k['calcs'], reverse=True)
                 data.source_uploads = source_uploads
                 data.step = 2
         finally:
@@ -775,8 +779,9 @@ class NomadCOEMigration:
                 except Exception as e:
                     package_report = Report()
                     package_report.failed_packages = 1
-                    logger.error(
-                        'unexpected exception while migrating packages', exc_info=e)
+                    event = 'unexpected exception while migrating packages'
+                    package.migration_failure = event + ': ' + str(e)
+                    logger.error(event, exc_info=e)
                 finally:
                     package.report = package_report
                     package.migration_version = self.migration_version
@@ -852,7 +857,9 @@ class NomadCOEMigration:
                     assert upload is None, 'duplicate upload name'
                     upload = a_upload
         except Exception as e:
-            self.logger.error('could verify if upload already exists', exc_info=e)
+            event = 'could verify if upload already exists'
+            self.logger.error(event, exc_info=e)
+            package.migration_failure(event)
             report.failed_packages += 1
             return report
 
@@ -863,7 +870,9 @@ class NomadCOEMigration:
                     upload = self.call_api(
                         'uploads.upload', name=package_id, local_path=package.package_path)
                 except Exception as e:
-                    self.logger.error('could not upload package', exc_info=e)
+                    event = 'could not upload package'
+                    self.logger.error(event, exc_info=e)
+                    package.migration_failure = event + ': ' + str(e)
                     report.failed_packages += 1
                     return report
         else:
@@ -936,7 +945,9 @@ class NomadCOEMigration:
                 sleep()
 
         if upload.tasks_status == FAILURE:
-            logger.error('failed to process upload', process_errors=upload.errors)
+            event = 'failed to process upload'
+            logger.error(event, process_errors=upload.errors)
+            package.migration_failure = event + ': ' + str(upload.errors)
             report.failed_packages += 1
             delete_upload(FAILED_PROCESSING)
             return report
@@ -948,7 +959,7 @@ class NomadCOEMigration:
 
         # check for processing errors
         with utils.timer(logger, 'checked upload processing'):
-            per_page = 500
+            per_page = 10000
             for page in range(1, math.ceil(upload_total_calcs / per_page) + 1):
                 upload = self.call_api(
                     'uploads.get_upload', upload_id=upload.upload_id, per_page=per_page,
@@ -1043,12 +1054,14 @@ class NomadCOEMigration:
                         break
 
                 if upload.tasks_status == FAILURE:
-                    logger.error('could not publish upload', process_errors=upload.errors)
+                    event = 'could not publish upload'
+                    logger.error(event, process_errors=upload.errors)
                     report.failed_calcs = report.total_calcs
                     report.migrated_calcs = 0
                     report.calcs_with_diffs = 0
                     report.new_calcs = 0
                     report.failed_packages += 1
+                    package.migration_failure = event + ': ' + str(upload.errors)
 
                     delete_upload(FAILED_PUBLISH)
                     SourceCalc.objects(upload=source_upload_id, mainfile__in=calc_mainfiles) \

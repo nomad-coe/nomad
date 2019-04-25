@@ -386,11 +386,18 @@ class Upload(Proc):
 
     @property
     def metadata(self) -> dict:
-        return self.upload_files.user_metadata
+        # TODO user_metadata needs to be stored in the public bucket, since staging data might not be shared
+        try:
+            upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True)
+        except KeyError:
+            return None
+        return upload_files.user_metadata
 
     @metadata.setter
     def metadata(self, data: dict) -> None:
-        self.upload_files.user_metadata = data
+        # TODO user_metadata needs to be stored in the public bucket, since staging data might not be shared
+        upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True, create=True)
+        upload_files.user_metadata = data
 
     @classmethod
     def get(cls, id: str, include_published: bool = False) -> 'Upload':
