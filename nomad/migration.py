@@ -868,6 +868,8 @@ class NomadCOEMigration:
                     return report
         else:
             self.logger.info('package was already uploaded')
+            # get more details than the get_uploads call provided
+            upload = self.call_api('uploads.get_upload', upload_id=upload.upload_id)
 
         logger = logger.bind(
             source_upload_id=source_upload_id, upload_id=upload.upload_id)
