@@ -114,7 +114,7 @@ class PathObject:
 
     @property
     def size(self) -> int:
-        """ Returns the os determined file size. """
+        """ The os determined file size. """
         return os.stat(self.os_path).st_size
 
     def __repr__(self) -> str:
@@ -176,7 +176,10 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
 
         self.upload_id = upload_id
         self._is_authorized = is_authorized
-        self._user_metadata_file = self.join_file('user_metadata.pickle')
+
+    @property
+    def _user_metadata_file(self):
+        return self.join_file('user_metadata.pickle')
 
     @property
     def user_metadata(self) -> dict:
@@ -248,14 +251,21 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
 
 
 class StagingUploadFiles(UploadFiles):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(config.fs.staging, *args, **kwargs)
+    def __init__(
+            self, upload_id: str, is_authorized: Callable[[], bool] = lambda: False,
+            create: bool = False) -> None:
+        super().__init__(config.fs.staging, upload_id, is_authorized, create)
 
         self._raw_dir = self.join_dir('raw')
         self._archive_dir = self.join_dir('archive')
         self._frozen_file = self.join_file('.frozen')
 
         self._size = 0
+        self._shared = DirectoryObject(config.fs.public, upload_id, create=create)
+
+    @property
+    def _user_metadata_file(self):
+        return self._shared.join_file('user_metadata.pickle')
 
     @property
     def size(self) -> int:
@@ -368,10 +378,11 @@ class StagingUploadFiles(UploadFiles):
         assert target_dir.exists()
 
         # copy user metadata
-        if self._user_metadata_file.exists():
+        target_metadata_file = target_dir.join_file(user_metadata_filename)
+        if self._user_metadata_file.exists() and not target_metadata_file.exists():
             shutil.copyfile(
                 self._user_metadata_file.os_path,
-                target_dir.join_file(user_metadata_filename).os_path)
+                target_metadata_file.os_path)
 
         def create_zipfile(kind: str, prefix: str, ext: str) -> ZipFile:
             file = target_dir.join_file('%s-%s.%s.zip' % (kind, prefix, ext))
@@ -505,6 +516,11 @@ class StagingUploadFiles(UploadFiles):
                     hash.update(data)
 
         return utils.make_websave(hash)
+
+    def delete(self) -> None:
+        super().delete()
+        if self._shared.exists():
+            self._shared.delete()
 
 
 class ArchiveBasedStagingUploadFiles(StagingUploadFiles):

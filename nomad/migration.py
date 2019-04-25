@@ -843,15 +843,31 @@ class NomadCOEMigration:
         report = Report()
         report.total_packages += 1
 
+        # check if the package is already uploaded
+        upload = None
+        try:
+            uploads = self.call_api('uploads.get_uploads')
+            for a_upload in uploads:
+                if a_upload.name == package_id and len(a_upload.errors) == 0:
+                    assert upload is None, 'duplicate upload name'
+                    upload = a_upload
+        except Exception as e:
+            self.logger.error('could verify if upload already exists', exc_info=e)
+            report.failed_packages += 1
+            return report
+
         # upload and process the upload file
-        with utils.timer(logger, 'upload completed'):
-            try:
-                upload = self.call_api(
-                    'uploads.upload', name=package_id, local_path=package.package_path)
-            except Exception as e:
-                self.logger.error('could not upload package', exc_info=e)
-                report.failed_packages += 1
-                return report
+        if upload is None:
+            with utils.timer(logger, 'upload completed'):
+                try:
+                    upload = self.call_api(
+                        'uploads.upload', name=package_id, local_path=package.package_path)
+                except Exception as e:
+                    self.logger.error('could not upload package', exc_info=e)
+                    report.failed_packages += 1
+                    return report
+        else:
+            self.logger.info('package was already uploaded')
 
         logger = logger.bind(
             source_upload_id=source_upload_id, upload_id=upload.upload_id)
