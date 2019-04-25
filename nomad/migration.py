@@ -961,7 +961,7 @@ class NomadCOEMigration:
             for page in range(1, math.ceil(upload_total_calcs / per_page) + 1):
                 upload = self.call_api(
                     'uploads.get_upload', upload_id=upload.upload_id, per_page=per_page,
-                    page=page, order_by='mainfile')
+                    page=page)
 
                 for calc_proc in upload.calcs.results:
                     calc_logger = logger.bind(

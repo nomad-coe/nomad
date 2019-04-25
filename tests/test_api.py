@@ -274,6 +274,10 @@ class TestUploads:
                     return upload
             elif rv.status_code == 404:
                 return None
+            else:
+                raise Exception(
+                    'unexpected status code while blocking for upload processing: %s' %
+                    str(rv.status_code))
 
     def assert_upload_does_not_exist(self, client, upload_id: str, test_user_auth):
         self.block_until_completed(client, upload_id, test_user_auth)

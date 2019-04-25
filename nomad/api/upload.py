@@ -260,7 +260,7 @@ class UploadResource(Resource):
         try:
             page = int(request.args.get('page', 1))
             per_page = int(request.args.get('per_page', 10))
-            order_by = str(request.args.get('order_by', 'mainfile'))
+            order_by = request.args.get('order_by', None)
             order = int(str(request.args.get('order', -1)))
         except Exception:
             abort(400, message='invalid pagination or ordering')
@@ -271,12 +271,14 @@ class UploadResource(Resource):
         except AssertionError:
             abort(400, message='invalid pagination')
 
-        if order_by not in ['mainfile', 'tasks_status', 'parser']:
-            abort(400, message='invalid order_by field %s' % order_by)
+        if order_by is not None:
+            order_by = str(order_by)
+            if order_by not in ['mainfile', 'tasks_status', 'parser']:
+                abort(400, message='invalid order_by field %s' % order_by)
 
-        order_by = ('-%s' if order == -1 else '+%s') % order_by
+            order_by = ('-%s' if order == -1 else '+%s') % order_by
 
-        calcs = upload.all_calcs((page - 1) * per_page, page * per_page, order_by)
+        calcs = upload.all_calcs((page - 1) * per_page, page * per_page, order_by=order_by)
         failed_calcs = upload.failed_calcs
         result = ProxyUpload(upload, {
             'pagination': dict(
