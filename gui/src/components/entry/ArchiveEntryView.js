@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Fab, Card, CardContent, CardActions, Button } from '@material-ui/core'
+import { withStyles, Fab, Card, CardContent, CardActions, Button, Typography } from '@material-ui/core'
 import { Link } from 'react-router-dom'
 import ReactJson from 'react-json-view'
 import { compose } from 'recompose'
@@ -151,14 +151,21 @@ class ArchiveEntryView extends React.Component {
         <Card className={classes.data}>
           <CardContent>
             {
-              data
+              data && typeof data !== 'string'
                 ? <ReactJson
                   src={this.state.data}
                   enableClipboard={false}
                   collapsed={2}
                   displayObjectSize={false}
                   onSelect={this.handleShowMetaInfo.bind(this)} />
-                : ''
+                : <div>{
+                  data
+                    ? <div>
+                      <Typography>Archive data is not valid JSON. Displaying plain text instead.</Typography>
+                      <pre>{data || ''}</pre>
+                    </div>
+                    : <Typography>loading ...</Typography>
+                }</div>
             }
           </CardContent>
         </Card>

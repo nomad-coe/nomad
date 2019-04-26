@@ -190,7 +190,19 @@ class Api {
         calc_id: calcId
       }))
       .catch(this.handleApiError)
-      .then(response => response.body)
+      .then(response => {
+        console.log(response)
+        const result = response.body || response.text || response.data
+        if (typeof result === 'string') {
+          try {
+            return JSON.parse(result)
+          } catch (e) {
+            return result
+          }
+        } else {
+          return result
+        }
+      })
       .finally(this.onFinishLoading)
   }
 

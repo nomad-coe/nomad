@@ -481,6 +481,20 @@ class Upload(Proc):
         return True  # do not save the process status on the delete upload
 
     @process
+    def enforce_consistency(self):
+        """
+        Takes the proc data of this upload as truth and updates coe repository db and
+        ES index accordingly. It takes userdata from coe repository db, if exists as truth.
+        """
+        # retrive data from coe repository
+
+        # diff coe repository data with proc data
+
+        # update coe repository data with diffs
+
+        # update the elastic search index (with diffs?)
+
+    @process
     def publish_upload(self):
         """
         Moves the upload out of staging to add it to the coe repository. It will
