@@ -34,7 +34,7 @@ from datetime import datetime
 from pymongo import UpdateOne
 
 from nomad import utils, coe_repo, config, infrastructure, search, datamodel
-from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles, PublicUploadFiles
+from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles, PublicUploadFiles, StagingUploadFiles
 from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parser_dict, match_parser, LocalBackend
 from nomad.normalizing import normalizers
@@ -377,6 +377,7 @@ class Upload(Proc):
     user_id = StringField(required=True)
     published = BooleanField(default=False)
     publish_time = DateTimeField()
+    last_update = DateTimeField()
 
     meta: Any = {
         'indexes': [
@@ -404,18 +405,17 @@ class Upload(Proc):
         upload_files.user_metadata = data
 
     @classmethod
-    def get(cls, id: str, include_published: bool = False) -> 'Upload':
+    def get(cls, id: str, include_published: bool = True) -> 'Upload':
         upload = cls.get_by_id(id, 'upload_id')
-        # TODO published uploads should not be hidden by this and API
-        if upload is not None and (not upload.published or include_published):
+        if upload is not None:
             return upload
 
         raise KeyError()
 
     @classmethod
-    def user_uploads(cls, user: coe_repo.User) -> List['Upload']:
-        """ Returns all uploads for the given user. Currently returns all uploads. """
-        return cls.objects(user_id=str(user.user_id), published=False)
+    def user_uploads(cls, user: coe_repo.User, **kwargs) -> List['Upload']:
+        """ Returns all uploads for the given user. Kwargs are passed to mongo query. """
+        return cls.objects(user_id=str(user.user_id), **kwargs)
 
     @property
     def uploader(self):
@@ -481,47 +481,38 @@ class Upload(Proc):
         return True  # do not save the process status on the delete upload
 
     @process
-    def enforce_consistency(self):
-        """
-        Takes the proc data of this upload as truth and updates coe repository db and
-        ES index accordingly. It takes userdata from coe repository db, if exists as truth.
-        """
-        # retrive data from coe repository
-
-        # diff coe repository data with proc data
-
-        # update coe repository data with diffs
-
-        # update the elastic search index (with diffs?)
-
-    @process
     def publish_upload(self):
         """
         Moves the upload out of staging to add it to the coe repository. It will
         pack the staging upload files in to public upload files, add entries to the
         coe repository db and remove this instance and its calculation from the
         processing state db.
+
+        If the upload is already published (i.e. re-publish), it will update user metadata from
+        repository db, publish to repository db if not exists, update the search index.
         """
         assert self.processed_calcs > 0
 
         logger = self.get_logger()
         logger.info('started to publish')
 
-        with utils.lnr(logger, 'publish failed'):
-            upload_with_metadata = self.to_upload_with_metadata()
-
-            if config.repository_db.publish_enabled:
-                with utils.timer(
-                        logger, 'upload added to repository', step='repo',
-                        upload_size=self.upload_files.size):
-                    coe_repo.Upload.publish(upload_with_metadata)
+        with utils.lnr(logger, '(re-)publish failed'):
+            upload_with_metadata = self.to_upload_with_metadata(self.metadata)
 
             if config.repository_db.publish_enabled:
                 coe_upload = coe_repo.Upload.from_upload_id(upload_with_metadata.upload_id)
-                if coe_upload is not None:
-                    calcs = [coe_calc.to_calc_with_metadata() for coe_calc in coe_upload.calcs]
-                else:
-                    calcs = []
+                if coe_upload is None:
+                    with utils.timer(
+                            logger, 'upload added to repository', step='repo',
+                            upload_size=self.upload_files.size):
+                        coe_upload = coe_repo.Upload.publish(upload_with_metadata)
+
+                with utils.timer(
+                        logger, 'upload read from repository', step='repo',
+                        upload_size=self.upload_files.size):
+                    calcs = [
+                        coe_calc.to_calc_with_metadata()
+                        for coe_calc in coe_upload.calcs]
             else:
                 calcs = upload_with_metadata.calcs
 
@@ -537,22 +528,28 @@ class Upload(Proc):
 
                 Calc._get_collection().bulk_write([create_update(calc) for calc in calcs])
 
-            with utils.timer(
-                    logger, 'staged upload files packed', step='pack',
-                    upload_size=self.upload_files.size):
-                self.upload_files.pack(upload_with_metadata)
+            if isinstance(self.upload_files, StagingUploadFiles):
+                with utils.timer(
+                        logger, 'staged upload files packed', step='pack',
+                        upload_size=self.upload_files.size):
+                    self.upload_files.pack(upload_with_metadata)
 
             with utils.timer(
                     logger, 'index updated', step='index',
                     upload_size=self.upload_files.size):
                 search.publish(calcs)
 
-            with utils.timer(
-                    logger, 'staged upload deleted', step='delete staged',
-                    upload_size=self.upload_files.size):
-                self.upload_files.delete()
-                self.published = True
-                self.publish_time = datetime.now()
+            if isinstance(self.upload_files, StagingUploadFiles):
+                with utils.timer(
+                        logger, 'staged upload deleted', step='delete staged',
+                        upload_size=self.upload_files.size):
+                    self.upload_files.delete()
+                    self.published = True
+                    self.publish_time = datetime.now()
+                    self.last_update = datetime.now()
+                    self.save()
+            else:
+                self.last_update = datetime.now()
                 self.save()
 
     @process
@@ -723,37 +720,43 @@ class Upload(Proc):
     def calcs(self):
         return Calc.objects(upload_id=self.upload_id, tasks_status=SUCCESS)
 
-    def to_upload_with_metadata(self) -> UploadWithMetadata:
+    def to_upload_with_metadata(self, user_metadata: dict = None) -> UploadWithMetadata:
         # prepare user metadata per upload and per calc
-        calc_metadatas: Dict[str, Any] = dict()
-        upload_metadata: Dict[str, Any] = dict()
+        if user_metadata is not None:
+            calc_metadatas: Dict[str, Any] = dict()
+            upload_metadata: Dict[str, Any] = dict()
 
-        if self.metadata is not None:
-            upload_metadata.update(self.metadata)
+            upload_metadata.update(user_metadata)
             if 'calculations' in upload_metadata:
                 del(upload_metadata['calculations'])
 
-            for calc in self.metadata.get('calculations', []):  # pylint: disable=no-member
+            for calc in user_metadata.get('calculations', []):  # pylint: disable=no-member
                 calc_metadatas[calc['mainfile']] = calc
 
-        user_upload_time = upload_metadata.get('_upload_time', None)
+            user_upload_time = upload_metadata.get('_upload_time', None)
+
+            def get_metadata(calc: Calc):
+                """
+                Assemble metadata from calc's processed calc metadata and the uploads
+                user metadata.
+                """
+                calc_data = calc.metadata
+                calc_with_metadata = datamodel.CalcWithMetadata(**calc_data)
+                calc_metadata = dict(upload_metadata)
+                calc_metadata.update(calc_metadatas.get(calc.mainfile, {}))
+                calc_with_metadata.apply_user_metadata(calc_metadata)
+
+                return calc_with_metadata
+        else:
+            user_upload_time = None
+
+            def get_metadata(calc: Calc):
+                return datamodel.CalcWithMetadata(**calc.metadata)
+
         result = UploadWithMetadata(
             upload_id=self.upload_id,
             uploader=utils.POPO(id=int(self.user_id)),
             upload_time=self.upload_time if user_upload_time is None else user_upload_time)
-
-        def get_metadata(calc: Calc):
-            """
-            Assemble metadata from calc's processed calc metadata and the uploads
-            user metadata.
-            """
-            calc_data = calc.metadata
-            calc_with_metadata = datamodel.CalcWithMetadata(**calc_data)
-            calc_metadata = dict(upload_metadata)
-            calc_metadata.update(calc_metadatas.get(calc.mainfile, {}))
-            calc_with_metadata.apply_user_metadata(calc_metadata)
-
-            return calc_with_metadata
 
         result.calcs = [get_metadata(calc) for calc in Calc.objects(upload_id=self.upload_id)]
 

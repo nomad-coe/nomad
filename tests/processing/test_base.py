@@ -88,6 +88,21 @@ def test_simple_process(worker, mongo, no_warn):
     assert_proc(p, 'two')
 
 
+class ProcTwice(Proc):
+    @process
+    def process(self):
+        pass
+
+
+def test_process_twice(worker, mongo, no_warn):
+    p = ProcTwice.create()
+    p.process()
+    p.block_until_complete()
+    p.process()
+    p.block_until_complete()
+    assert_proc(p, None)
+
+
 class TaskInProc(Proc):
     @process
     @task

@@ -122,15 +122,27 @@ upload_metadata_parser.add_argument('name', type=str, help='An optional name for
 upload_metadata_parser.add_argument('local_path', type=str, help='Use a local file on the server.', location='args')
 upload_metadata_parser.add_argument('file', type=FileStorage, help='The file to upload.', location='files')
 
+upload_list_parser = api.parser()
+upload_list_parser.add_argument('all', type=bool, help='List all uploads, including published.', location='args')
+upload_list_parser.add_argument('name', type=str, help='Filter for uploads with the given name.', location='args')
+
 
 @ns.route('/')
 class UploadListResource(Resource):
     @api.doc('get_uploads')
     @api.marshal_list_with(upload_model, skip_none=True, code=200, description='Uploads send')
+    @api.expect(upload_list_parser)
     @login_really_required
     def get(self):
         """ Get the list of all uploads from the authenticated user. """
-        return [upload for upload in Upload.user_uploads(g.user)], 200
+        all = bool(request.args.get('all', False))
+        name = request.args.get('name', None)
+        query_kwargs = {}
+        if not all:
+            query_kwargs.update(published=False)
+        if name is not None:
+            query_kwargs.update(name=name)
+        return [upload for upload in Upload.user_uploads(g.user, **query_kwargs)], 200
 
     @api.doc('upload')
     @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload received')
@@ -300,7 +312,7 @@ class UploadResource(Resource):
         """
         Delete an existing upload.
 
-        Only uploads that are sill in staging, not already delete, not still uploaded, and
+        Only uploads that are sill in staging, not already deleted, not still uploaded, and
         not currently processed, can be deleted.
         """
         try:
@@ -310,6 +322,9 @@ class UploadResource(Resource):
 
         if upload.user_id != str(g.user.user_id) and not g.user.is_admin:
             abort(401, message='Upload with id %s does not belong to you.' % upload_id)
+
+        if upload.published:
+            abort(400, message='The upload is already published')
 
         if upload.tasks_running:
             abort(400, message='The upload is not processed yet')

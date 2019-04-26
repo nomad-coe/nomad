@@ -726,7 +726,9 @@ class NomadCOEMigration:
             finally:
                 NomadCOEMigration._client_lock.release()
 
-    def migrate(self, *args, delete_failed: str = '', create_packages: bool = False) -> utils.POPO:
+    def migrate(
+            self, *args, delete_failed: str = '',
+            create_packages: bool = False, only_republish: bool = False) -> utils.POPO:
         """
         Migrate the given uploads.
 
@@ -749,6 +751,8 @@ class NomadCOEMigration:
                 operation (P) should be deleted after the migration attempt.
             create_packages: If True, it will attempt to create upload packages if they
                 do not exists.
+            only_republish: If the package exists and is published, it will be republished.
+                Nothing else. Useful to reindex/recreate coe repo, etc.
 
         Returns: Dictionary with statistics on the migration.
         """
@@ -766,9 +770,12 @@ class NomadCOEMigration:
                 package_id=package.package_id, source_upload_id=package.upload_id)
 
             if package.migration_version is not None and package.migration_version >= self.migration_version:
-                self.logger.info(
-                    'package already migrated, skip it',
-                    package_id=package.package_id, source_upload_id=package.upload_id)
+                if only_republish:
+                    self.republish_package(package)
+                else:
+                    self.logger.info(
+                        'package already migrated, skip it',
+                        package_id=package.package_id, source_upload_id=package.upload_id)
 
                 package_report = package.report
                 overall_report.skipped_packages += 1
@@ -836,6 +843,40 @@ class NomadCOEMigration:
 
     _client_lock = threading.Lock()
 
+    def republish_package(self, package: Package) -> None:
+
+        source_upload_id = package.upload_id
+        package_id = package.package_id
+
+        logger = self.logger.bind(package_id=package_id, source_upload_id=source_upload_id)
+
+        uploads = self.call_api('uploads.get_uploads', name=package_id)
+        if len(uploads) > 1:
+            self.logger.warning('upload name is not unique')
+        if len(uploads) == 0:
+            self.logger.info('upload does not exist')
+            return
+
+        for upload in uploads:
+            if not upload.published:
+                self.logger.info('upload is not published, therefore cannot re-publish')
+                continue
+
+            upload = self.call_api(
+                'uploads.exec_upload_operation', upload_id=upload.upload_id,
+                payload=dict(operation='publish'))
+
+            sleep = utils.SleepTimeBackoff()
+            while upload.process_running:
+                upload = self.call_api('uploads.get_upload', upload_id=upload.upload_id)
+                sleep()
+
+            if upload.tasks_status == FAILURE:
+                event = 'could not re publish upload'
+                logger.error(event, process_errors=upload.errors)
+            else:
+                logger.info('republished upload')
+
     def migrate_package(self, package: Package, delete_failed: str = '') -> 'Report':
         """ Migrates the given package. For other params see :func:`migrate`. """
 
@@ -851,14 +892,18 @@ class NomadCOEMigration:
         # check if the package is already uploaded
         upload = None
         try:
-            uploads = self.call_api('uploads.get_uploads')
-            for a_upload in uploads:
-                if a_upload.name == package_id and len(a_upload.errors) == 0:
-                    assert upload is None, 'duplicate upload name'
-                    upload = a_upload
+            uploads = self.call_api('uploads.get_uploads', name=package_id)
+            if len(uploads) > 1:
+                event = 'duplicate upload name'
+                package.migration_failure(event)
+                report.failed_packages += 1
+                return report
+            elif len(uploads) == 1:
+                upload = uploads[0]
+
         except Exception as e:
-            event = 'could verify if upload already exists'
-            self.logger.error(event, exc_info=e)
+            event = 'could not verify if upload already exists'
+            logger.error(event, exc_info=e)
             package.migration_failure(event)
             report.failed_packages += 1
             return report
@@ -871,12 +916,12 @@ class NomadCOEMigration:
                         'uploads.upload', name=package_id, local_path=package.package_path)
                 except Exception as e:
                     event = 'could not upload package'
-                    self.logger.error(event, exc_info=e)
+                    logger.error(event, exc_info=e)
                     package.migration_failure = event + ': ' + str(e)
                     report.failed_packages += 1
                     return report
         else:
-            self.logger.info('package was already uploaded')
+            logger.info('package was already uploaded')
 
         logger = logger.bind(
             source_upload_id=source_upload_id, upload_id=upload.upload_id)
@@ -1044,12 +1089,8 @@ class NomadCOEMigration:
 
                 sleep = utils.SleepTimeBackoff()
                 while upload.process_running:
-                    try:
-                        upload = self.call_api('uploads.get_upload', upload_id=upload.upload_id)
-                        sleep()
-                    except HTTPNotFound:
-                        # the proc upload will be deleted by the publish operation
-                        break
+                    upload = self.call_api('uploads.get_upload', upload_id=upload.upload_id)
+                    sleep()
 
                 if upload.tasks_status == FAILURE:
                     event = 'could not publish upload'
