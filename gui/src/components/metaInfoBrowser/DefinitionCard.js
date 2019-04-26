@@ -114,7 +114,7 @@ class DefinitionCardUnstyled extends React.Component {
               {renderName(this.props.definition)}
             </Typography>
             <Typography className={classes.type} color="textSecondary">
-              {definition.mType}
+              {definition.mType === 'value' ? 'quantity' : definition.mType}
             </Typography>
           </CardCompartment>
           <CardCompartment label="description" compId="description" padded foldable folded>
