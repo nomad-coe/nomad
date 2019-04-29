@@ -218,14 +218,14 @@ def pid_prefix(prefix: int):
 @click.option('--wait', default=0, type=int, help='Wait for a random (upto given) number of seconds before each upload to scatter io and compute heavy processing tasks.')
 def upload(
         upload_paths: list, pattern: str, parallel: int, delete_failed: str,
-        create_packages: bool, republish: bool):
+        create_packages: bool, republish: bool, wait: int):
 
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
 
     _Migration(threads=parallel).migrate(
         *determine_upload_paths(upload_paths, pattern), delete_failed=delete_failed,
-        create_packages=create_packages, only_republish=republish)
+        create_packages=create_packages, only_republish=republish, wait=wait)
 
 
 @migration.command(help='Get an report about not migrated calcs.')
