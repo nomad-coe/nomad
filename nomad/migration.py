@@ -773,9 +773,6 @@ class NomadCOEMigration:
             logger = self.logger.bind(
                 package_id=package.package_id, source_upload_id=package.upload_id)
 
-            if wait > 0:
-                self.logger.info('wait for a random amount of time')
-                time.sleep(random.randint(0, wait))
 
             if package.migration_version is not None and package.migration_version >= self.migration_version:
                 if only_republish:
@@ -789,6 +786,10 @@ class NomadCOEMigration:
                 overall_report.skipped_packages += 1
             else:
                 try:
+                    if wait > 0:
+                        self.logger.info('wait for a random amount of time')
+                        time.sleep(random.randint(0, wait))
+
                     package_report = self.migrate_package(package, delete_failed=delete_failed)
 
                 except Exception as e:

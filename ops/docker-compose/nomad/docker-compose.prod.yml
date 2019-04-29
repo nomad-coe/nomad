@@ -26,14 +26,14 @@ services:
         ports:
             - 9200:9200
         volumes:
-            - /nomad/fairdi/db/elastic:/usr/share/elasticsearch/data
+            - /scratch/fairdi/db/elastic:/usr/share/elasticsearch/data
 
     # the user data db
     mongo:
         ports:
             - 27017:27017
         volumes:
-            - /nomad/fairdi/db/mongo:/data/db
+            - /scratch/fairdi/db/mongo:/data/db
 
     # used for centralized logging
     elk:
