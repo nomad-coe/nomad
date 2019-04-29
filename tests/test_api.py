@@ -234,7 +234,7 @@ class TestUploads:
         assert_upload_files(upload_with_metadata, files.StagingUploadFiles)
         assert_search_upload(upload_with_metadata, additional_keys=['atoms', 'system'])
 
-    def assert_published(self, client, test_user_auth, upload_id, proc_infra, with_coe_repo=True, metadata={}):
+    def assert_published(self, client, test_user_auth, upload_id, proc_infra, with_coe_repo=True, metadata={}, publish_with_metadata: bool = True):
         rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
 
@@ -243,7 +243,7 @@ class TestUploads:
         rv = client.post(
             '/uploads/%s' % upload_id,
             headers=test_user_auth,
-            data=json.dumps(dict(operation='publish', metadata=metadata)),
+            data=json.dumps(dict(operation='publish', metadata=metadata if publish_with_metadata else {})),
             content_type='application/json')
         assert rv.status_code == 200
         upload = self.assert_upload(rv.data)
@@ -359,7 +359,7 @@ class TestUploads:
         self.assert_processing(client, test_user_auth, upload['upload_id'])
         self.assert_published(client, test_user_auth, upload['upload_id'], proc_infra, with_coe_repo=with_publish_to_coe_repo)
         rv = client.delete('/uploads/%s' % upload['upload_id'], headers=test_user_auth)
-        assert rv.status_code == 404
+        assert rv.status_code == 400
 
     def test_delete(self, client, test_user_auth, proc_infra, no_warn):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
@@ -387,6 +387,20 @@ class TestUploads:
         self.assert_processing(client, test_user_auth, upload['upload_id'])
         self.assert_published(client, test_user_auth, upload['upload_id'], proc_infra, with_coe_repo=with_publish_to_coe_repo)
 
+        # still visible
+        assert client.get('/uploads/%s' % upload['upload_id'], headers=test_user_auth).status_code == 200
+        # still listed with all=True
+        rv = client.get('/uploads/?all=True', headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert len(data) > 0
+        assert any(item['upload_id'] == upload['upload_id'] for item in data)
+        # not listed with all=False
+        rv = client.get('/uploads/', headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert not any(item['upload_id'] == upload['upload_id'] for item in data)
+
     def test_post_metadata(
             self, client, proc_infra, admin_user_auth, test_user_auth, test_user,
             other_test_user, no_warn, example_user_metadata):
@@ -407,6 +421,17 @@ class TestUploads:
             data=json.dumps(dict(operation='publish', metadata=dict(_pid=256))),
             content_type='application/json')
         assert rv.status_code == 401
+
+    def test_post_metadata_and_republish(
+            self, client, proc_infra, admin_user_auth, test_user_auth, test_user,
+            other_test_user, no_warn, example_user_metadata):
+        rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
+        upload = self.assert_upload(rv.data)
+        self.assert_processing(client, test_user_auth, upload['upload_id'])
+        metadata = dict(**example_user_metadata)
+        metadata['_upload_time'] = datetime.datetime.now().isoformat()
+        self.assert_published(client, admin_user_auth, upload['upload_id'], proc_infra, metadata)
+        self.assert_published(client, admin_user_auth, upload['upload_id'], proc_infra, metadata, publish_with_metadata=False)
 
     # TODO validate metadata (or all input models in API for that matter)
     # def test_post_bad_metadata(self, client, proc_infra, test_user_auth, postgres):

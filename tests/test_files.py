@@ -376,7 +376,7 @@ class TestPublicUploadFiles(UploadFilesContract):
 
 
 def assert_upload_files(
-        upload: UploadWithMetadata, cls, **kwargs):
+        upload: UploadWithMetadata, cls, no_archive: bool = False, **kwargs):
     """
     Asserts the files aspect of uploaded data after processing or publishing
 
@@ -395,10 +395,15 @@ def assert_upload_files(
         try:
             with upload_files.raw_file(calc.mainfile) as f:
                 f.read()
-            with upload_files.archive_file(calc.calc_id) as f:
-                f.read()
-            with upload_files.archive_log_file(calc.calc_id) as f:
-                f.read()
+
+            try:
+                with upload_files.archive_file(calc.calc_id) as f:
+                    f.read()
+                with upload_files.archive_log_file(calc.calc_id) as f:
+                    f.read()
+            except KeyError:
+                assert no_archive
+
             assert not calc.with_embargo and isinstance(upload_files, PublicUploadFiles)
         except Restricted:
             assert calc.with_embargo or isinstance(upload_files, StagingUploadFiles)

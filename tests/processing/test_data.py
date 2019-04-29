@@ -103,7 +103,7 @@ def test_processing(processed, no_warn, mails, monkeypatch):
 
 def test_publish(non_empty_processed: Upload, no_warn, example_user_metadata, monkeypatch, with_publish_to_coe_repo):
     processed = non_empty_processed
-    processed.metadata = example_user_metadata
+    processed.compress_and_set_metadata(example_user_metadata)
 
     additional_keys = ['with_embargo']
     if with_publish_to_coe_repo:
@@ -115,10 +115,59 @@ def test_publish(non_empty_processed: Upload, no_warn, example_user_metadata, mo
     except Exception:
         pass
 
-    upload = processed.to_upload_with_metadata()
+    upload = processed.to_upload_with_metadata(example_user_metadata)
     if with_publish_to_coe_repo:
         assert_coe_upload(upload.upload_id, user_metadata=example_user_metadata)
 
+    assert_upload_files(upload, PublicUploadFiles, published=True)
+    assert_search_upload(upload, additional_keys, published=True)
+
+
+def test_republish(non_empty_processed: Upload, no_warn, example_user_metadata, monkeypatch, with_publish_to_coe_repo):
+    processed = non_empty_processed
+    processed.compress_and_set_metadata(example_user_metadata)
+
+    additional_keys = ['with_embargo']
+    if with_publish_to_coe_repo:
+        additional_keys.append('pid')
+
+    processed.publish_upload()
+    processed.block_until_complete(interval=.01)
+    assert Upload.get('examples_template') is not None
+
+    processed.publish_upload()
+    processed.block_until_complete(interval=.01)
+
+    upload = processed.to_upload_with_metadata(example_user_metadata)
+    if with_publish_to_coe_repo:
+        assert_coe_upload(upload.upload_id, user_metadata=example_user_metadata)
+
+    assert_upload_files(upload, PublicUploadFiles, published=True)
+    assert_search_upload(upload, additional_keys, published=True)
+
+
+def test_republish_to_coe(non_empty_processed: Upload, no_warn, example_user_metadata, monkeypatch):
+    """
+    Test the following scenario: initial processing + publish without coe repo, then
+    republishing with coe repo.
+    """
+    monkeypatch.setattr('nomad.config.repository_db.publish_enabled', False)
+
+    processed = non_empty_processed
+    processed.compress_and_set_metadata(example_user_metadata)
+
+    processed.publish_upload()
+    processed.block_until_complete(interval=.01)
+    assert Upload.get('examples_template') is not None
+
+    monkeypatch.setattr('nomad.config.repository_db.publish_enabled', True)
+
+    processed.publish_upload()
+    processed.block_until_complete(interval=.01)
+
+    upload = processed.to_upload_with_metadata(example_user_metadata)
+    additional_keys = ['with_embargo', 'pid']
+    assert_coe_upload(upload.upload_id, user_metadata=example_user_metadata)
     assert_upload_files(upload, PublicUploadFiles, published=True)
     assert_search_upload(upload, additional_keys, published=True)
 
@@ -130,7 +179,7 @@ def test_publish_failed(
     mock_failure(Calc, 'parsing', monkeypatch)
 
     processed = run_processing(non_empty_uploaded, test_user)
-    processed.metadata = example_user_metadata
+    processed.compress_and_set_metadata(example_user_metadata)
 
     additional_keys = ['with_embargo']
     if with_publish_to_coe_repo:
@@ -142,11 +191,11 @@ def test_publish_failed(
     except Exception:
         pass
 
-    upload = processed.to_upload_with_metadata()
+    upload = processed.to_upload_with_metadata(example_user_metadata)
     if with_publish_to_coe_repo:
         assert_coe_upload(upload.upload_id, user_metadata=example_user_metadata)
 
-    assert_upload_files(upload, PublicUploadFiles, published=True)
+    assert_upload_files(upload, PublicUploadFiles, published=True, no_archive=True)
     assert_search_upload(upload, additional_keys, published=True, processed=False)
 
 

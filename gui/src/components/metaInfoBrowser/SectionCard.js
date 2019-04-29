@@ -138,7 +138,7 @@ class SectionCardUnstyled extends React.Component {
           }
           {section.features.find(schema.isProperty)
             ? <AfterRenderMeasure measureId={`properties.${section.name}`}>
-              <CardCompartment label={'features'} foldable compId="features">
+              <CardCompartment label={'quantities'} foldable compId="features">
                 <div className={classes.categories}>
                   <CheckChip label={`ALL (${section.features.filter(schema.isProperty).length})`} checked={this.allCategoriesSelected()}
                     onChange={(value) => this.onToggleAllCategories(value)}/>

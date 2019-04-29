@@ -328,3 +328,13 @@ def test_skip_on_same_version(migrate_infra, monkeypatch, caplog):
 
     assertions = dict(migrated=2, source=2, skipped_packages=1)
     perform_migration_test(migrate_infra, 'baseline', 'baseline', assertions, monkeypatch, caplog)
+
+
+def test_republish(migrate_infra, monkeypatch, caplog):
+    assertions = dict(migrated=2, source=2, skipped_packages=0)
+    perform_migration_test(migrate_infra, 'baseline', 'baseline', assertions, monkeypatch, caplog)
+
+    upload_path = os.path.join('tests/data/migration', 'baseline')
+    upload_path = os.path.join(upload_path, os.listdir(upload_path)[0])
+
+    migrate_infra.migration.migrate(upload_path, only_republish=True)

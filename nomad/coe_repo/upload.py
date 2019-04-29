@@ -201,18 +201,18 @@ class Upload(Base):  # type: ignore
 
                 logger.info('filled publish transaction')
 
-                upload_id = -1
+                result = None
                 if has_calcs:
                     repo_db.commit()
                     logger.info('committed publish transaction')
-                    upload_id = coe_upload.coe_upload_id
+                    result = coe_upload
                 else:
                     # empty upload case
                     repo_db.rollback()
-                    return -1
+                    return None
 
                 logger.info('added upload')
-                return upload_id
+                return result
             except Exception as e:
                 repo_db.rollback()
                 if last_error != str(e) and retries < 3:
