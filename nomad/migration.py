@@ -39,6 +39,7 @@ import threading
 from contextlib import contextmanager
 import shutil
 import json
+import random
 
 from nomad import utils, infrastructure, files, config
 from nomad.coe_repo import User, Calc, LoginException
@@ -728,7 +729,8 @@ class NomadCOEMigration:
 
     def migrate(
             self, *args, delete_failed: str = '',
-            create_packages: bool = False, only_republish: bool = False) -> utils.POPO:
+            create_packages: bool = False, only_republish: bool = False,
+            wait: int = 0) -> utils.POPO:
         """
         Migrate the given uploads.
 
@@ -753,6 +755,8 @@ class NomadCOEMigration:
                 do not exists.
             only_republish: If the package exists and is published, it will be republished.
                 Nothing else. Useful to reindex/recreate coe repo, etc.
+            offset: Will add a random sleep before migrating each package between 0 and
+                ``wait`` seconds.
 
         Returns: Dictionary with statistics on the migration.
         """
@@ -768,6 +772,10 @@ class NomadCOEMigration:
         def migrate_package(package: Package):
             logger = self.logger.bind(
                 package_id=package.package_id, source_upload_id=package.upload_id)
+
+            if wait > 0:
+                self.logger.info('wait for a random amount of time')
+                time.sleep(random.randint(0, wait))
 
             if package.migration_version is not None and package.migration_version >= self.migration_version:
                 if only_republish:

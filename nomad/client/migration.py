@@ -215,6 +215,7 @@ def pid_prefix(prefix: int):
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.option('--create-packages', is_flag=True, help='Indicate that packages should be created, if they do not already exist.')
 @click.option('--republish', is_flag=True, help='Will only republish already published packages.')
+@click.option('--wait', default=0, type=int, help='Wait for a random (upto given) number of seconds before each upload to scatter io and compute heavy processing tasks.')
 def upload(
         upload_paths: list, pattern: str, parallel: int, delete_failed: str,
         create_packages: bool, republish: bool):
