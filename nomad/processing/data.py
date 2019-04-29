@@ -238,8 +238,8 @@ class Calc(Proc):
                         dump==1 { print }
                         /END of PSCTR/ { dump=0 }'
                     ''' % (
-                    self.upload_files.raw_file_object(path).os_path,
-                    self.upload_files.raw_file_object(stripped_path).os_path))
+                        self.upload_files.raw_file_object(path).os_path,
+                        self.upload_files.raw_file_object(stripped_path).os_path))
 
                 filepaths.append(stripped_path)
 
