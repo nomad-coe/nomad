@@ -22,6 +22,8 @@ from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-imp
 from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_faulty_unknown_matid_example  # pylint: disable=unused-import
+from tests.test_parsing import parsed_single_string_atom_labels_test # pylint: disable=unused-import
+from tests.test_parsing import parsed_unknown_atom_label_test # pyling: disable=unused-import
 from tests.utils import assert_log
 
 
@@ -48,7 +50,7 @@ parser_exceptions = {
 }
 """
 Keys that the normalizer for certain parsers might not produce. In an ideal world this
-map could be empty.
+map would be empty.
 """
 
 
@@ -113,3 +115,17 @@ def test_normalizer_faulty_matid(
 
     assert_log(caplog, 'ERROR', 'matid project system classification failed')
     assert_log(caplog, 'ERROR', 'no lattice vectors but periodicity')
+
+
+def test_normalizer_single_string_atom_labels(
+        parsed_single_string_atom_labels_test: LocalBackend, caplog):
+    """ Runs normalizer on ['Br1SiSiK'] expects error that it is formatted wrong."""
+    run_normalize(parsed_single_string_atom_labels_test)
+    assert_log(caplog, 'ERROR', 'Atom labels cannot be recognized.')
+
+
+def test_normalizer_unknown_atom_label(
+        parsed_unknown_atom_label_test: LocalBackend, caplog):
+    """ Runs normalizer on ['Br','Si','Si','Za'], expects Za throws an error"""
+    run_normalize(parsed_unknown_atom_label_test)
+    assert_log(caplog, 'ERROR', 'Atom labels cannot be recognized.')

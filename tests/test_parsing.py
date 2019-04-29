@@ -46,7 +46,7 @@ parser_examples = [
     ('parsers/quantumespresso', 'tests/data/parsers/quantum-espresso/benchmark.out'),
     ('parsers/orca', 'tests/data/parsers/orca/orca3dot2706823.out'),
     ('parsers/castep', 'tests/data/parsers/castep/BC2N-Pmm2-Raman.castep'),
-    ('parsers/dl-poly', 'tests/data/parsers/dl-poly/OUTPUT'),
+    # ('parsers/dl-poly', 'tests/data/parsers/dl-poly/OUTPUT'), # timeout on ASE Atoms
     ('parsers/lib-atoms', 'tests/data/parsers/lib-atoms/gp.xml'),
     ('parsers/octopus', 'tests/data/parsers/octopus/stdout.txt'),
     ('parsers/phonopy', 'tests/data/parsers/phonopy/control.in'),
@@ -72,6 +72,13 @@ parser_examples = fixed_parser_examples
 faulty_unknown_one_d_matid_example = [
     ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
 ]
+single_string_atom_labels_test = [
+    ('parsers/template', 'tests/data/normalizers/single_string_atom_labels.json')
+]
+unknown_atom_label_test = [
+    ('parsers/template', 'tests/data/normalizers/unknown_atom_label_test.json')
+]
+
 
 correct_num_output_files = 33
 
@@ -300,6 +307,17 @@ def parsed_faulty_unknown_matid_example(caplog, request) -> LocalBackend:
     parser_name, mainfile = request.param
     return run_parser(parser_name, mainfile)
 
+@pytest.fixture(
+    params=single_string_atom_labels_test, ids=lambda spec: '%s-%s' % spec)
+def parsed_single_string_atom_labels_test(caplog, request) -> LocalBackend:
+    parser_name, mainfile = request.param
+    return run_parser(parser_name, mainfile)
+
+@pytest.fixture(
+    params=unknown_atom_label_test, ids=lambda spec: '%s-%s' % spec)
+def parsed_unknown_atom_label_test(caplog, request) -> LocalBackend:
+    parser_name, mainfile = request.param
+    return run_parser(parser_name, mainfile)
 
 @pytest.fixture(params=parser_examples, ids=lambda spec: '%s-%s' % spec)
 def parsed_example(request) -> LocalBackend:

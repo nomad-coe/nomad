@@ -16,6 +16,7 @@ from typing import Any
 import ase
 import numpy as np
 import json
+import sys
 
 from matid import SymmetryAnalyzer
 from matid.geometry import get_dimensionality
@@ -70,25 +71,30 @@ class SystemNormalizer(SystemBasedNormalizer):
         if atom_labels is None and atom_species is None:
             self.logger.error('calculation has neither atom species nor labels')
             return
-
+        # If there are no atom labels we create them from atom species data.
         if atom_labels is None:
             atom_labels = list(ase.data.chemical_symbols[species] for species in atom_species)
-        else:
-            atom_labels = atom_labels
-
-        symbols = ''.join(atom_labels)
-        symbols = symbols.replace('1', '')
+        # If atom labels are present, check that each atom label in the atom labels list
+        # is a true atom label by checking if it is in the ASE list of atom labels.
+        elif not all(label in ase.data.chemical_symbols for label in atom_labels):
+            # Throw an error that the atom labels are poorly formated or there are
+            # unknown labels. Save first ten elemenets in logged error.
+            self.logger.error(
+                'Atom labels cannot be recognized.',
+                atom_labels=atom_labels[:10])
+            return
         try:
-            atoms = ase.Atoms(symbols=symbols)
+            atoms = ase.Atoms(symbols=atom_labels)
+            chemical_symbols = list(atoms.get_chemical_symbols())
+            if atom_labels != chemical_symbols:
+                self.logger.error('atom labels are ambiguous', atom_labels=atom_labels[:10])
+            atom_labels = chemical_symbols
         except Exception as e:
+            print('Error in building atoms module')
             self.logger.error(
                 'cannot build ase atoms from atom labels',
                 atom_labels=atom_labels[:10], exc_info=e, error=str(e))
             raise e
-        chemical_symbols = list(atoms.get_chemical_symbols())
-        if atom_labels != chemical_symbols:
-            self.logger.error('atom labels are ambiguous', atom_labels=atom_labels[:10])
-        atom_labels = chemical_symbols
         # Write labels. Rewrite if labels exist in backend already from parser.
         self._backend.addArrayValues('atom_labels', atom_labels)
 
