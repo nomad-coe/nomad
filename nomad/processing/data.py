@@ -32,6 +32,7 @@ from contextlib import contextmanager
 import os.path
 from datetime import datetime
 from pymongo import UpdateOne
+import hashlib
 
 from nomad import utils, coe_repo, config, infrastructure, search, datamodel
 from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles, PublicUploadFiles, StagingUploadFiles
@@ -163,6 +164,7 @@ class Calc(Proc):
             calc_with_metadata.nomad_commit = config.commit
             calc_with_metadata.last_processing = datetime.now()
             calc_with_metadata.files = self.upload_files.calc_files(self.mainfile)
+            self.preprocess_files(calc_with_metadata.files)
             self.metadata = calc_with_metadata.to_dict()
 
             self.parsing()
@@ -212,6 +214,36 @@ class Calc(Proc):
         if process_name == 'process_calc' or process_name is None:
             self.upload.reload()
             self.upload.check_join()
+
+    def preprocess_files(self, filepaths):
+        for path in filepaths:
+            if os.path.basename(path) == 'POTCAR':
+                # create checksum
+                hash = hashlib.sha224()
+                with open(self.upload_files.raw_file_object(path).os_path, 'rb') as f:
+                    for line in f.readlines():
+                        hash.update(line)
+
+                checksum = hash.hexdigest()
+
+                # created stripped POTCAR
+                stripped_path = path + '.stripped'
+                with open(self.upload_files.raw_file_object(stripped_path).os_path, 'wt') as f:
+                    f.write('Stripped POTCAR file. Checksum of original file (sha224): %s\n' % checksum)
+                os.system(
+                    '''
+                        awk < %s >> %s '
+                        BEGIN { dump=1 }
+                        /End of Dataset/ { dump=1 }
+                        dump==1 { print }
+                        /END of PSCTR/ { dump=0 }'
+                    ''' % (
+                    self.upload_files.raw_file_object(path).os_path,
+                    self.upload_files.raw_file_object(stripped_path).os_path))
+
+                filepaths.append(stripped_path)
+
+        return filepaths
 
     @task
     def parsing(self):

@@ -445,6 +445,21 @@ class TestUploads:
     #         content_type='application/json')
     #     assert rv.status_code == 400
 
+    def test_potcar(self, client, proc_infra, test_user_auth):
+        example_file = 'tests/data/proc/examples_potcar.zip'
+        rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
+
+        upload = self.assert_upload(rv.data)
+        upload_id = upload['upload_id']
+        self.assert_processing(client, test_user_auth, upload_id)
+        self.assert_published(client, test_user_auth, upload_id, proc_infra, with_coe_repo=True)
+        rv = client.get('/raw/%s/examples_potcar/POTCAR' % upload_id)
+        assert rv.status_code == 401
+        rv = client.get('/raw/%s/examples_potcar/POTCAR' % upload_id, headers=test_user_auth)
+        assert rv.status_code == 200
+        rv = client.get('/raw/%s/examples_potcar/POTCAR.stripped' % upload_id)
+        assert rv.status_code == 200
+
 
 class UploadFilesBasedTests:
 

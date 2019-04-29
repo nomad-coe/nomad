@@ -498,6 +498,16 @@ class SourceCalc(Document):
                     source_calc = SourceCalc(pid=calc.pid)
                     source_calc.upload = segments[0]
                     source_calc.mainfile = os.path.join(*segments[1:])
+
+                    # this is taken from metadata.location and has inconsistent directory prefix,
+                    # but is more accurate than taking the first file as mainfile, which
+                    # also is sometimes not the actual mainfile.
+                    if calc.mainfile is not None:
+                        calc_mainfile = os.path.basename(calc.mainfile)
+                        if calc_mainfile != os.path.basename(source_calc.mainfile):
+                            source_calc.mainfile = os.path.join(
+                                os.path.dirname(source_calc.mainfile), calc_mainfile)
+
                     if with_metadata:
                         source_calc.metadata = calc.to_calc_with_metadata().__dict__
                     source_calcs.append(source_calc)
@@ -772,7 +782,6 @@ class NomadCOEMigration:
         def migrate_package(package: Package):
             logger = self.logger.bind(
                 package_id=package.package_id, source_upload_id=package.upload_id)
-
 
             if package.migration_version is not None and package.migration_version >= self.migration_version:
                 if only_republish:

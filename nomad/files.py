@@ -66,6 +66,15 @@ from nomad.datamodel import UploadWithMetadata
 user_metadata_filename = 'user_metadata.pickle'
 
 
+def always_restricted(path: str):
+    """
+    Used to put general restrictions on files, e.g. due to licensing issues. Will be
+    called during packing and while accessing public files.
+    """
+    if os.path.basename(path) == 'POTCAR':
+        return True
+
+
 class PathObject:
     """
     Object storage-like abstraction for paths in general.
@@ -403,7 +412,8 @@ class StagingUploadFiles(UploadFiles):
                 mainfile = calc.mainfile
                 assert mainfile is not None
                 for filepath in self.calc_files(mainfile):
-                    public_files[filepath] = None
+                    if not always_restricted(filepath):
+                        public_files[filepath] = None
         # 1.2 remove the non public mainfiles that have been added as auxfiles of public mainfiles
         for calc in upload.calcs:
             if calc.with_embargo:
@@ -569,9 +579,9 @@ class PublicUploadFiles(UploadFiles):
             try:
                 zip_file = self.join_file('%s-%s.%s.zip' % (prefix, access, ext))
                 with ZipFile(zip_file.os_path) as zf:
-                    f = zf.open(path, 'r', **kwargs)
-                    if access == 'restricted' and not self._is_authorized():
+                    if (access == 'restricted' or always_restricted(path)) and not self._is_authorized():
                         raise Restricted
+                    f = zf.open(path, 'r', **kwargs)
                     if 't' in mode:
                         return io.TextIOWrapper(f)
                     else:
