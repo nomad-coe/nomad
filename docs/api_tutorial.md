@@ -44,7 +44,8 @@ upload_file = 'example.zip'
 
 ### Nomad
 We need to know the nomad installation to use and its respective API URL. To upload
-data you also need an account (email, password):
+data you also need an account (email, password). The toy account used here, should be
+available on most nomad installations:
 
 ```python
 nomad_url = 'https://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/latest/api'
@@ -115,7 +116,7 @@ if upload.tasks_status != 'SUCCESS':
 ```
 
 Of course, you can also visit the nomad GUI
-([https://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/latest/upload](https://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/latest/upload))
+([https://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/latest/gui/uploads](https://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/latest/gui/uploads))
 to inspect your uploads. (You might click reload, if you had the page already open.)
 
 
