@@ -488,7 +488,7 @@ class SourceCalc(Document):
                         continue  # dataset case
 
                     filename = filenames[0]
-                    if len(filenames) == 1 and (filename.endswith('.tgz') or filename.endswith('.zip')):
+                    if len(filenames) == 1 and (filename.endswith('.tgz') or filename.endswith('.tar.gz') or filename.endswith('.zip')):
                         continue  # also a dataset, some datasets have a downloadable archive
 
                     for prefix in SourceCalc.prefixes:

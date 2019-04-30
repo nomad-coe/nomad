@@ -348,7 +348,8 @@ class Calc(Base):
 
         result.code_version = self.calc_metadata.version.content
         result.formula = self.calc_metadata.chemical_formula
-        result.spacegroup = self.spacegroup.n
+        if self.spacegroup is not None:
+            result.spacegroup = self.spacegroup.n
         result.atoms.sort()
 
         datasets: List[DataSet] = []
