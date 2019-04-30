@@ -579,9 +579,9 @@ class PublicUploadFiles(UploadFiles):
             try:
                 zip_file = self.join_file('%s-%s.%s.zip' % (prefix, access, ext))
                 with ZipFile(zip_file.os_path) as zf:
+                    f = zf.open(path, 'r', **kwargs)
                     if (access == 'restricted' or always_restricted(path)) and not self._is_authorized():
                         raise Restricted
-                    f = zf.open(path, 'r', **kwargs)
                     if 't' in mode:
                         return io.TextIOWrapper(f)
                     else:
