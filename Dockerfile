@@ -73,12 +73,16 @@ COPY . /app
 WORKDIR /app
 # transfer installed packages from dependency stage
 COPY --from=build /usr/local/lib/python3.6/site-packages /usr/local/lib/python3.6/site-packages
+RUN echo "copy 1"
 # copy the meta-info, since it files are loaded via relative paths. TODO that should change.
 COPY --from=build /install/dependencies/nomad-meta-info /app/dependencies/nomad-meta-info
+RUN echo "copy 2"
 # copy the documentation, its files will be served by the API
 COPY --from=build /install/docs/.build /app/docs/.build
+RUN echo "copy 3"
 # copy the nomad command
 COPY --from=build /usr/local/bin/nomad /usr/local/bin/nomad
+RUN echo "copy 4"
 
 RUN mkdir -p /app/.volumes/fs
 RUN useradd -ms /bin/bash nomad
