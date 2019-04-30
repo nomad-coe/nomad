@@ -59,7 +59,7 @@ class Calc(Base):
 
     coe_calc_id = Column('calc_id', Integer, primary_key=True, autoincrement=True)
     origin_id = Column(Integer, ForeignKey('uploads.upload_id'))
-    upload = relationship('Upload')
+    upload = relationship('Upload', lazy='joined')
     checksum = Column(String)
 
     calc_metadata = relationship('CalcMetaData', uselist=False, lazy='joined')
