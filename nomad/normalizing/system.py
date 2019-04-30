@@ -16,7 +16,6 @@ from typing import Any
 import ase
 import numpy as np
 import json
-import sys
 
 from matid import SymmetryAnalyzer
 from matid.geometry import get_dimensionality
@@ -77,11 +76,9 @@ class SystemNormalizer(SystemBasedNormalizer):
         # If atom labels are present, check that each atom label in the atom labels list
         # is a true atom label by checking if it is in the ASE list of atom labels.
         elif not all(label in ase.data.chemical_symbols for label in atom_labels):
-            # Throw an error that the atom labels are poorly formated or there are
-            # unknown labels. Save first ten elemenets in logged error.
-            self.logger.error(
-                'Atom labels cannot be recognized.',
-                atom_labels=atom_labels[:10])
+            # Throw an error that the atom labels are poorly formated or there are unknown
+            # labels. Save first ten elemenets in logged error.
+            self.logger.error('Atom labels cannot be recognized.', atom_labels=atom_labels[:10])
             return
         try:
             atoms = ase.Atoms(symbols=atom_labels)
@@ -128,7 +125,6 @@ class SystemNormalizer(SystemBasedNormalizer):
         set_value('chemical_composition', atoms.get_chemical_formula(mode='all'))
         set_value('chemical_composition_reduced', atoms.get_chemical_formula(mode='reduce'))
         set_value('chemical_composition_bulk_reduced', atoms.get_chemical_formula(mode='hill'))
-
         # positions
         atom_positions = get_value('atom_positions', None)
         if atom_positions is None:
@@ -178,7 +174,6 @@ class SystemNormalizer(SystemBasedNormalizer):
                     system_size=atoms.get_number_of_atoms()):
 
                 self.system_type_analysis(atoms)
-
         # symmetry analysis
         if atom_positions is not None and (lattice_vectors is not None or not any(pbc)):
             with utils.timer(

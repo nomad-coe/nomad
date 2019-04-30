@@ -22,8 +22,8 @@ from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-imp
 from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_faulty_unknown_matid_example  # pylint: disable=unused-import
-from tests.test_parsing import parsed_single_string_atom_labels_test # pylint: disable=unused-import
-from tests.test_parsing import parsed_unknown_atom_label_test # pyling: disable=unused-import
+from tests.test_parsing import parsed_single_string_atom_labels_test  # pylint: disable=unused-import
+from tests.test_parsing import parsed_unknown_atom_label_test  # pylint: disable=unused-import
 from tests.utils import assert_log
 
 

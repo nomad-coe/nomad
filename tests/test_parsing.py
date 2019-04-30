@@ -46,7 +46,7 @@ parser_examples = [
     ('parsers/quantumespresso', 'tests/data/parsers/quantum-espresso/benchmark.out'),
     ('parsers/orca', 'tests/data/parsers/orca/orca3dot2706823.out'),
     ('parsers/castep', 'tests/data/parsers/castep/BC2N-Pmm2-Raman.castep'),
-    # ('parsers/dl-poly', 'tests/data/parsers/dl-poly/OUTPUT'), # timeout on ASE Atoms
+    # ('parsers/dl-poly', 'tests/data/parsers/dl-poly/OUTPUT'), # timeout on Matid System Classification
     ('parsers/lib-atoms', 'tests/data/parsers/lib-atoms/gp.xml'),
     ('parsers/octopus', 'tests/data/parsers/octopus/stdout.txt'),
     ('parsers/phonopy', 'tests/data/parsers/phonopy/control.in'),
@@ -80,7 +80,7 @@ unknown_atom_label_test = [
 ]
 
 
-correct_num_output_files = 33
+correct_num_output_files = 34
 
 
 class TestLocalBackend(object):
@@ -318,6 +318,7 @@ def parsed_single_string_atom_labels_test(caplog, request) -> LocalBackend:
 def parsed_unknown_atom_label_test(caplog, request) -> LocalBackend:
     parser_name, mainfile = request.param
     return run_parser(parser_name, mainfile)
+
 
 @pytest.fixture(params=parser_examples, ids=lambda spec: '%s-%s' % spec)
 def parsed_example(request) -> LocalBackend:
