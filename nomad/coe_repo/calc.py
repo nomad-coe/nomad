@@ -325,6 +325,9 @@ class Calc(Base):
         result.files = self.files
 
         for topic in [tag.topic for tag in self.tags]:
+            if topic is None:
+                continue
+
             if topic.cid == base.topic_code:
                 result.code_name = topic.topic
             elif topic.cid == base.topic_basis_set_type:
