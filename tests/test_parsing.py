@@ -69,16 +69,6 @@ for parser, mainfile in parser_examples:
         fixed_parser_examples.append((parser, mainfile))
 parser_examples = fixed_parser_examples
 
-faulty_unknown_one_d_matid_example = [
-    ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
-]
-single_string_atom_labels_test = [
-    ('parsers/template', 'tests/data/normalizers/single_string_atom_labels.json')
-]
-unknown_atom_label_test = [
-    ('parsers/template', 'tests/data/normalizers/unknown_atom_label_test.json')
-]
-
 
 correct_num_output_files = 34
 
@@ -303,22 +293,9 @@ def parsed_template_example() -> LocalBackend:
         'parsers/template', 'tests/data/parsers/template.json')
 
 
-@pytest.fixture(
-    params=faulty_unknown_one_d_matid_example, ids=lambda spec: '%s-%s' % spec)
-def parsed_faulty_unknown_matid_example(caplog, request) -> LocalBackend:
-    parser_name, mainfile = request.param
-    return run_parser(parser_name, mainfile)
-
-@pytest.fixture(
-    params=single_string_atom_labels_test, ids=lambda spec: '%s-%s' % spec)
-def parsed_single_string_atom_labels_test(caplog, request) -> LocalBackend:
-    parser_name, mainfile = request.param
-    return run_parser(parser_name, mainfile)
-
-@pytest.fixture(
-    params=unknown_atom_label_test, ids=lambda spec: '%s-%s' % spec)
-def parsed_unknown_atom_label_test(caplog, request) -> LocalBackend:
-    parser_name, mainfile = request.param
+# Function used by normalizer tests.
+def parse_file(parser_name_and_mainfile) -> LocalBackend:
+    parser_name, mainfile = parser_name_and_mainfile
     return run_parser(parser_name, mainfile)
 
 
