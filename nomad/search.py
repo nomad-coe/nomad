@@ -21,6 +21,7 @@ from elasticsearch_dsl import Document, InnerDoc, Keyword, Text, Date, \
     Object, Boolean, Search, Q, A, analyzer, tokenizer
 from elasticsearch_dsl.document import IndexMeta
 import elasticsearch.helpers
+from datetime import datetime
 
 from nomad import config, datamodel, infrastructure, datamodel, coe_repo, utils
 
@@ -70,7 +71,7 @@ class Dataset(InnerDoc):
 class WithDomain(IndexMeta):
     """ Override elasticsearch_dsl metaclass to sneak in domain specific mappings """
     def __new__(cls, name, bases, attrs):
-        for quantity in datamodel.Domain.instance.quantities:
+        for quantity in datamodel.Domain.instance.quantities.values():
             attrs[quantity.name] = quantity.elastic_mapping
         return super(WithDomain, cls).__new__(cls, name, bases, attrs)
 
@@ -91,7 +92,11 @@ class Entry(Document, metaclass=WithDomain):
 
     with_embargo = Boolean()
     published = Boolean()
+
     processed = Boolean()
+    last_processing = Date()
+    nomad_version = Keyword()
+    nomad_commit = Keyword()
 
     authors = Object(User, multi=True)
     owners = Object(User, multi=True)
@@ -111,7 +116,11 @@ class Entry(Document, metaclass=WithDomain):
         self.calc_id = source.calc_id
         self.calc_hash = source.calc_hash
         self.pid = None if source.pid is None else str(source.pid)
+
         self.processed = source.processed
+        self.last_processing = source.last_processing
+        self.nomad_version = source.nomad_version
+        self.nomad_commit = source.nomad_commit
 
         self.mainfile = source.mainfile
         if source.files is None:
@@ -134,8 +143,8 @@ class Entry(Document, metaclass=WithDomain):
         self.references = [ref.value for ref in source.references]
         self.datasets = [Dataset.from_dataset_popo(ds) for ds in source.datasets]
 
-        for quantity in datamodel.Domain.instance.quantities:
-            setattr(self, quantity.name, getattr(source, quantity.name))
+        for quantity in datamodel.Domain.instance.quantities.keys():
+            setattr(self, quantity, getattr(source, quantity))
 
 
 def delete_upload(upload_id):
@@ -187,7 +196,7 @@ The available search quantities in :func:`aggregate_search` as tuples with *sear
 elastic field and description.
 """
 
-for quantity in datamodel.Domain.instance.quantities:
+for quantity in datamodel.Domain.instance.quantities.values():
     search_spec = ('term', quantity.name, quantity.description)
     search_quantities[quantity.name] = search_spec
 
@@ -209,16 +218,19 @@ metrics_names = list(metric for metric in metrics.keys())
 
 
 order_default_quantity = None
-for quantity in datamodel.Domain.instance.quantities:
+for quantity in datamodel.Domain.instance.quantities.values():
     if quantity.order_default:
         order_default_quantity = quantity.name
 
 
-def _construct_search(q: Q = None, **kwargs) -> Search:
+def _construct_search(q: Q = None, time_range: Tuple[datetime, datetime] = None, **kwargs) -> Search:
     search = Search(index=config.elastic.index_name)
 
     if q is not None:
         search = search.query(q)
+
+    if time_range is not None:
+        search = search.query('range', upload_time=dict(gte=time_range[0], lte=time_range[1]))
 
     for key, value in kwargs.items():
         query_type, field, _ = search_quantities.get(key, (None, None, None))
@@ -231,10 +243,12 @@ def _construct_search(q: Q = None, **kwargs) -> Search:
             values = [value]
 
         for item in values:
-            if key == 'atoms':
+            quantity = datamodel.Domain.instance.quantities.get(key)
+            if quantity is not None and quantity.multi:
                 items = item.split(',')
             else:
                 items = [item]
+
             for item in items:
                 search = search.query(Q(query_type, **{field: item}))
 
@@ -251,7 +265,7 @@ def scroll_search(
     :func:`aggregate_search`, but pagination is replaced with scrolling, no ordering,
     and no aggregation information is given.
 
-    Scrolling is done by calling this function again and again with the same ``scoll_id``.
+    Scrolling is done by calling this function again and again with the same ``scroll_id``.
     Each time, this function will return the next batch of search results.
 
     See see :func:`aggregate_search` for additional ``kwargs``
@@ -294,7 +308,9 @@ def scroll_search(
 
 def aggregate_search(
         page: int = 1, per_page: int = 10, order_by: str = order_default_quantity, order: int = -1,
-        q: Q = None, aggregations: Dict[str, int] = aggregations,
+        q: Q = None,
+        time_range: Tuple[datetime, datetime] = None,
+        aggregations: Dict[str, int] = aggregations,
         aggregation_metrics: List[str] = [],
         total_metrics: List[str] = [],
         **kwargs) -> Tuple[int, List[dict], Dict[str, Dict[str, Dict[str, int]]], Dict[str, int]]:
@@ -307,7 +323,8 @@ def aggregate_search(
     Arguments:
         page: The page to return starting with page 1
         per_page: Results per page
-        q: An *elasticsearch_dsl* query used to further filter the results (via `and`)
+        q: An *elasticsearch_dsl* query used to further filter the results (via ``and``)
+        time_range: A tuple to filter for uploads within with start, end ``upload_time``.
         aggregations: A customized list of aggregations to perform. Keys are index fields,
             and values the amount of buckets to return. Only works on *keyword* field.
         aggregation_metrics: The metrics used to aggregate over. Can be ``unique_code_runs``, ``datasets``,
@@ -319,7 +336,7 @@ def aggregate_search(
         the aggregation data, and a dictionary with the overall metrics.
     """
 
-    search = _construct_search(q, **kwargs)
+    search = _construct_search(q, time_range, **kwargs)
 
     def add_metrics(parent, metrics_to_add):
         for metric in metrics_to_add:

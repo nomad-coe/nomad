@@ -36,8 +36,10 @@ classes. These are the implemented transformations:
     :members:
 
 The class :class:`CalcWithMetadata` only defines non domain specific metadata quantities
-about ids, user metadata, etc. To define domain specific quantities the classes
-:class:`Domain` and :class:`DomainQuantity` must be used.
+about ids, user metadata, etc. To define domain specific quantities :class:`CalcWithMetadata`
+must be subclassed. The classes
+:class:`Domain` and :class:`DomainQuantity` can be used to further define domain specific
+quantities.
 
 .. autoclass:: nomad.datamodel.Domain
     :members:
@@ -47,8 +49,10 @@ about ids, user metadata, etc. To define domain specific quantities the classes
 
 import sys
 
-from nomad.datamodel.base import UploadWithMetadata, CalcWithMetadata, Domain
+from nomad.datamodel.base import UploadWithMetadata, CalcWithMetadata, Domain, DomainQuantity
+from nomad.datamodel import ems, dft
 from nomad.datamodel.dft import DFTCalcWithMetadata
+from nomad.datamodel.ems import EMSEntryWithMetadata
 
 # Override the CalcWithMetadata with the domain specific decendant
 setattr(sys.modules['nomad.datamodel'], 'CalcWithMetadata', Domain.instance.domain_entry_class)

@@ -140,13 +140,13 @@ class CalcProcReproduction:
         if not parser_backend.status[0] == 'ParseSuccess':
             self.logger.error('parsing was not successful', status=parser_backend.status)
 
-        parser_backend.openNonOverlappingSection('section_calculation_info')
+        parser_backend.openNonOverlappingSection('section_entry_info')
         parser_backend.addValue('upload_id', self.upload_id)
         parser_backend.addValue('calc_id', self.calc_id)
         parser_backend.addValue('calc_hash', "no hash")
-        parser_backend.addValue('main_file', self.mainfile)
+        parser_backend.addValue('mainfile', self.mainfile)
         parser_backend.addValue('parser_name', parser.__class__.__name__)
-        parser_backend.closeNonOverlappingSection('section_calculation_info')
+        parser_backend.closeNonOverlappingSection('section_entry_info')
 
         self.logger.info('ran parser')
         return parser_backend

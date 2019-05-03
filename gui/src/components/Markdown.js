@@ -13,7 +13,7 @@ import extend from '@babel/runtime/helpers/extends'
 var styles = theme => ({
   root: {
     fontFamily: theme.typography.fontFamily,
-    fontSize: theme.typography.fontSize,
+    fontSize: 16,
     color: theme.palette.text.primary,
     '& .anchor-link': {
       marginTop: -96,
@@ -41,6 +41,12 @@ var styles = theme => ({
     '& p code, & ul code, & pre code': {
       fontSize: 14,
       lineHeight: 1.6
+    },
+    '& p:first-child': {
+      marginTop: 0
+    },
+    '& p:last-child': {
+      marginBottom: 0
     },
     '& h1': (0, extend)({}, theme.typography.h3, {
       color: theme.palette.text.primary,

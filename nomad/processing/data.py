@@ -24,7 +24,7 @@ calculations, and files
     :members:
 """
 
-from typing import List, Any, ContextManager, Tuple, Generator, Dict, cast
+from typing import cast, List, Any, ContextManager, Tuple, Generator, Dict, cast
 from mongoengine import StringField, DateTimeField, DictField, BooleanField
 import logging
 from structlog import wrap_logger
@@ -32,13 +32,14 @@ from contextlib import contextmanager
 import os.path
 from datetime import datetime
 from pymongo import UpdateOne
+import hashlib
 
-from nomad import utils, coe_repo, config, infrastructure, search
-from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles, PublicUploadFiles
+from nomad import utils, coe_repo, config, infrastructure, search, datamodel
+from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles, PublicUploadFiles, StagingUploadFiles
 from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parser_dict, match_parser, LocalBackend
 from nomad.normalizing import normalizers
-from nomad.datamodel import UploadWithMetadata, CalcWithMetadata
+from nomad.datamodel import UploadWithMetadata, Domain
 
 
 class Calc(Proc):
@@ -57,7 +58,7 @@ class Calc(Proc):
         upload_id: the id of the upload used to create this calculation
         mainfile: the mainfile (including path in upload) that was used to create this calc
 
-        metadata: the metadata record wit calc and user metadata, see :class:`CalcWithMetadata`
+        metadata: the metadata record wit calc and user metadata, see :class:`datamodel.CalcWithMetadata`
     """
     calc_id = StringField(primary_key=True)
     upload_id = StringField()
@@ -68,7 +69,11 @@ class Calc(Proc):
 
     meta: Any = {
         'indexes': [
-            'upload_id', 'mainfile', 'parser', 'tasks_status', 'process_status'
+            'upload_id',
+            ('upload_id', 'mainfile'),
+            ('upload_id', 'parser'),
+            ('upload_id', 'tasks_status'),
+            ('upload_id', 'process_status')
         ]
     }
 
@@ -147,17 +152,19 @@ class Calc(Proc):
         try:
             # save preliminary minimum calc metadata in case processing fails
             # successful processing will replace it with the actual metadata
-            calc_with_metadata = CalcWithMetadata(
+            calc_with_metadata = datamodel.CalcWithMetadata(
                 upload_id=self.upload_id,
                 calc_id=self.calc_id,
                 calc_hash=self.upload_files.calc_hash(self.mainfile),
                 mainfile=self.mainfile)
             calc_with_metadata.published = False
             calc_with_metadata.uploader = self.upload.uploader.to_popo()
+            calc_with_metadata.upload_time = self.upload.upload_time
             calc_with_metadata.nomad_version = config.version
             calc_with_metadata.nomad_commit = config.commit
             calc_with_metadata.last_processing = datetime.now()
             calc_with_metadata.files = self.upload_files.calc_files(self.mainfile)
+            self.preprocess_files(calc_with_metadata.files)
             self.metadata = calc_with_metadata.to_dict()
 
             self.parsing()
@@ -176,7 +183,7 @@ class Calc(Proc):
         # in case of failure, index a minimum set of metadata and mark
         # processing failure
         try:
-            calc_with_metadata = CalcWithMetadata(**self.metadata)
+            calc_with_metadata = datamodel.CalcWithMetadata(**self.metadata)
             calc_with_metadata.formula = config.services.not_processed_value
             calc_with_metadata.basis_set = config.services.not_processed_value
             calc_with_metadata.xc_functional = config.services.not_processed_value
@@ -184,8 +191,14 @@ class Calc(Proc):
             calc_with_metadata.crystal_system = config.services.not_processed_value
             calc_with_metadata.spacegroup = config.services.not_processed_value
             calc_with_metadata.spacegroup_symbol = config.services.not_processed_value
-            calc_with_metadata.code_name = config.services.not_processed_value
             calc_with_metadata.code_version = config.services.not_processed_value
+
+            calc_with_metadata.code_name = config.services.not_processed_value
+            if self.parser is not None:
+                parser = parser_dict[self.parser]
+                if hasattr(parser, 'code_name'):
+                    calc_with_metadata.code_name = parser.code_name
+
             calc_with_metadata.processed = False
             self.metadata = calc_with_metadata.to_dict()
             search.Entry.from_calc_with_metadata(calc_with_metadata).save()
@@ -202,11 +215,42 @@ class Calc(Proc):
             self.upload.reload()
             self.upload.check_join()
 
+    def preprocess_files(self, filepaths):
+        for path in filepaths:
+            if os.path.basename(path) == 'POTCAR':
+                # create checksum
+                hash = hashlib.sha224()
+                with open(self.upload_files.raw_file_object(path).os_path, 'rb') as f:
+                    for line in f.readlines():
+                        hash.update(line)
+
+                checksum = hash.hexdigest()
+
+                # created stripped POTCAR
+                stripped_path = path + '.stripped'
+                with open(self.upload_files.raw_file_object(stripped_path).os_path, 'wt') as f:
+                    f.write('Stripped POTCAR file. Checksum of original file (sha224): %s\n' % checksum)
+                os.system(
+                    '''
+                        awk < %s >> %s '
+                        BEGIN { dump=1 }
+                        /End of Dataset/ { dump=1 }
+                        dump==1 { print }
+                        /END of PSCTR/ { dump=0 }'
+                    ''' % (
+                        self.upload_files.raw_file_object(path).os_path,
+                        self.upload_files.raw_file_object(stripped_path).os_path))
+
+                filepaths.append(stripped_path)
+
+        return filepaths
+
     @task
     def parsing(self):
         context = dict(parser=self.parser, step=self.parser)
         logger = self.get_logger(**context)
         parser = parser_dict[self.parser]
+        self.metadata['parser_name'] = self.parser
 
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
             try:
@@ -220,29 +264,29 @@ class Calc(Proc):
 
         # add the non code specific calc metadata to the backend
         # all other quantities have been determined by parsers/normalizers
-        self._parser_backend.openNonOverlappingSection('section_calculation_info')
+        self._parser_backend.openNonOverlappingSection('section_entry_info')
         self._parser_backend.addValue('upload_id', self.upload_id)
         self._parser_backend.addValue('calc_id', self.calc_id)
         self._parser_backend.addValue('calc_hash', self.metadata['calc_hash'])
-        self._parser_backend.addValue('main_file', self.mainfile)
+        self._parser_backend.addValue('mainfile', self.mainfile)
         self._parser_backend.addValue('parser_name', self.parser)
+        filepaths = self.metadata['files']
+        self._parser_backend.addValue('number_of_files', len(filepaths))
+        self._parser_backend.addValue('filepaths', filepaths)
+        uploader = self.upload.uploader
+        self._parser_backend.addValue(
+            'entry_uploader_name', '%s, %s' % (uploader.first_name, uploader.last_name))
+        self._parser_backend.addValue(
+            'entry_uploader_id', str(uploader.user_id))
+        self._parser_backend.addValue('entry_upload_time', int(self.upload.upload_time.timestamp()))
+        self._parser_backend.closeNonOverlappingSection('section_entry_info')
+
+        self.add_processor_info(self.parser)
 
         if self._parser_backend.status[0] != 'ParseSuccess':
             logger.error(self._parser_backend.status[1])
             error = self._parser_backend.status[1]
-            self._parser_backend.addValue('parse_status', 'ParseFailure')
             self.fail(error, level=logging.INFO, **context)
-        else:
-            self._parser_backend.addValue('parse_status', 'ParseSuccess')
-
-        self._parser_backend.closeNonOverlappingSection('section_calculation_info')
-
-        self._parser_backend.openNonOverlappingSection('section_repository_info')
-        self._parser_backend.addValue('repository_archive_gid', '%s/%s' % (self.upload_id, self.calc_id))
-        self._parser_backend.addValue('repository_filepaths', self.metadata['files'])
-        self._parser_backend.closeNonOverlappingSection('section_repository_info')
-
-        self.add_processor_info(self.parser)
 
     @contextmanager
     def use_parser_backend(self, processor_name):
@@ -251,7 +295,7 @@ class Calc(Proc):
         self.add_processor_info(processor_name)
 
     def add_processor_info(self, processor_name: str) -> None:
-        self._parser_backend.openContext('/section_calculation_info/0')
+        self._parser_backend.openContext('/section_entry_info/0')
         self._parser_backend.openNonOverlappingSection('section_archive_processing_info')
         self._parser_backend.addValue('archive_processor_name', processor_name)
 
@@ -259,7 +303,7 @@ class Calc(Proc):
             warnings = getattr(self._parser_backend, '_warnings', [])
             if len(warnings) > 0:
                 self._parser_backend.addValue('archive_processor_status', 'WithWarnings')
-                self._parser_backend.addValue('archive_processor_warning_number', len(warnings))
+                self._parser_backend.addValue('number_of_archive_processor_warnings', len(warnings))
                 self._parser_backend.addArrayValues('archive_processor_warnings', [str(warning) for warning in warnings])
             else:
                 self._parser_backend.addValue('archive_processor_status', 'Success')
@@ -268,11 +312,14 @@ class Calc(Proc):
             self._parser_backend.addValue('archive_processor_error', str(errors))
 
         self._parser_backend.closeNonOverlappingSection('section_archive_processing_info')
-        self._parser_backend.closeContext('/section_calculation_info/0')
+        self._parser_backend.closeContext('/section_entry_info/0')
 
     @task
     def normalizing(self):
         for normalizer in normalizers:
+            if normalizer.domain != config.domain:
+                continue
+
             normalizer_name = normalizer.__name__
             context = dict(normalizer=normalizer_name, step=normalizer_name)
             logger = self.get_logger(**context)
@@ -302,9 +349,8 @@ class Calc(Proc):
     def archiving(self):
         logger = self.get_logger()
 
-        calc_with_metadata = CalcWithMetadata(**self.metadata)
+        calc_with_metadata = datamodel.CalcWithMetadata(**self.metadata)
         calc_with_metadata.apply_domain_metadata(self._parser_backend)
-        calc_with_metadata.parser_name = self.parser
         calc_with_metadata.processed = True
 
         # persist the calc metadata
@@ -320,7 +366,7 @@ class Calc(Proc):
                 logger, 'archived', step='archive',
                 input_size=self.mainfile_file.size) as log_data:
             with self.upload_files.archive_file(self.calc_id, 'wt') as out:
-                self._parser_backend.write_json(out, pretty=True)
+                self._parser_backend.write_json(out, pretty=True, root_sections=Domain.instance.root_sections)
 
             log_data.update(archive_size=self.upload_files.archive_file_object(self.calc_id).size)
 
@@ -359,11 +405,11 @@ class Upload(Proc):
     temporary = BooleanField(default=False)
 
     name = StringField(default=None)
-    metadata = DictField(default=None)
     upload_time = DateTimeField()
     user_id = StringField(required=True)
     published = BooleanField(default=False)
     publish_time = DateTimeField()
+    last_update = DateTimeField()
 
     meta: Any = {
         'indexes': [
@@ -375,19 +421,33 @@ class Upload(Proc):
         super().__init__(**kwargs)
         self._upload_files: ArchiveBasedStagingUploadFiles = None
 
+    @property
+    def metadata(self) -> dict:
+        # TODO user_metadata needs to be stored in the public bucket, since staging data might not be shared
+        try:
+            upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True)
+        except KeyError:
+            return None
+        return upload_files.user_metadata
+
+    @metadata.setter
+    def metadata(self, data: dict) -> None:
+        # TODO user_metadata needs to be stored in the public bucket, since staging data might not be shared
+        upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True, create=True)
+        upload_files.user_metadata = data
+
     @classmethod
-    def get(cls, id: str, include_published: bool = False) -> 'Upload':
+    def get(cls, id: str, include_published: bool = True) -> 'Upload':
         upload = cls.get_by_id(id, 'upload_id')
-        # TODO published uploads should not be hidden by this and API
-        if upload is not None and (not upload.published or include_published):
+        if upload is not None:
             return upload
 
         raise KeyError()
 
     @classmethod
-    def user_uploads(cls, user: coe_repo.User) -> List['Upload']:
-        """ Returns all uploads for the given user. Currently returns all uploads. """
-        return cls.objects(user_id=str(user.user_id), published=False)
+    def user_uploads(cls, user: coe_repo.User, **kwargs) -> List['Upload']:
+        """ Returns all uploads for the given user. Kwargs are passed to mongo query. """
+        return cls.objects(user_id=str(user.user_id), **kwargs)
 
     @property
     def uploader(self):
@@ -459,27 +519,32 @@ class Upload(Proc):
         pack the staging upload files in to public upload files, add entries to the
         coe repository db and remove this instance and its calculation from the
         processing state db.
+
+        If the upload is already published (i.e. re-publish), it will update user metadata from
+        repository db, publish to repository db if not exists, update the search index.
         """
         assert self.processed_calcs > 0
 
         logger = self.get_logger()
         logger.info('started to publish')
 
-        with utils.lnr(logger, 'publish failed'):
-            upload_with_metadata = self.to_upload_with_metadata()
-
-            if config.repository_db.publish_enabled:
-                with utils.timer(
-                        logger, 'upload added to repository', step='repo',
-                        upload_size=self.upload_files.size):
-                    coe_repo.Upload.publish(upload_with_metadata)
+        with utils.lnr(logger, '(re-)publish failed'):
+            upload_with_metadata = self.to_upload_with_metadata(self.metadata)
 
             if config.repository_db.publish_enabled:
                 coe_upload = coe_repo.Upload.from_upload_id(upload_with_metadata.upload_id)
-                if coe_upload is not None:
-                    calcs = [coe_calc.to_calc_with_metadata() for coe_calc in coe_upload.calcs]
-                else:
-                    calcs = []
+                if coe_upload is None:
+                    with utils.timer(
+                            logger, 'upload added to repository', step='repo',
+                            upload_size=self.upload_files.size):
+                        coe_upload = coe_repo.Upload.publish(upload_with_metadata)
+
+                with utils.timer(
+                        logger, 'upload read from repository', step='repo',
+                        upload_size=self.upload_files.size):
+                    calcs = [
+                        coe_calc.to_calc_with_metadata()
+                        for coe_calc in coe_upload.calcs]
             else:
                 calcs = upload_with_metadata.calcs
 
@@ -495,22 +560,28 @@ class Upload(Proc):
 
                 Calc._get_collection().bulk_write([create_update(calc) for calc in calcs])
 
-            with utils.timer(
-                    logger, 'staged upload files packed', step='pack',
-                    upload_size=self.upload_files.size):
-                self.upload_files.pack(upload_with_metadata)
+            if isinstance(self.upload_files, StagingUploadFiles):
+                with utils.timer(
+                        logger, 'staged upload files packed', step='pack',
+                        upload_size=self.upload_files.size):
+                    self.upload_files.pack(upload_with_metadata)
 
             with utils.timer(
                     logger, 'index updated', step='index',
                     upload_size=self.upload_files.size):
                 search.publish(calcs)
 
-            with utils.timer(
-                    logger, 'staged upload deleted', step='delete staged',
-                    upload_size=self.upload_files.size):
-                self.upload_files.delete()
-                self.published = True
-                self.publish_time = datetime.now()
+            if isinstance(self.upload_files, StagingUploadFiles):
+                with utils.timer(
+                        logger, 'staged upload deleted', step='delete staged',
+                        upload_size=self.upload_files.size):
+                    self.upload_files.delete()
+                    self.published = True
+                    self.publish_time = datetime.now()
+                    self.last_update = datetime.now()
+                    self.save()
+            else:
+                self.last_update = datetime.now()
                 self.save()
 
     @process
@@ -525,10 +596,11 @@ class Upload(Proc):
     @property
     def upload_files(self) -> UploadFiles:
         upload_files_class = ArchiveBasedStagingUploadFiles if not self.published else PublicUploadFiles
+        kwargs = dict(upload_path=self.upload_path) if not self.published else {}
 
         if not self._upload_files or not isinstance(self._upload_files, upload_files_class):
             self._upload_files = upload_files_class(
-                self.upload_id, is_authorized=lambda: True, upload_path=self.upload_path)
+                self.upload_id, is_authorized=lambda: True, **kwargs)
 
         return self._upload_files
 
@@ -642,7 +714,7 @@ class Upload(Proc):
             'Dear %s,' % name,
             '',
             'your data %suploaded %s has completed processing.' % (
-                self.name if self.name else '', self.upload_time.isoformat()),
+                self.name if self.name else '', self.upload_time.isoformat()),  # pylint: disable=no-member
             'You can review your data on your upload page: %s/uploads' % config.api_url()[:-3]
         ])
         try:
@@ -672,48 +744,85 @@ class Upload(Proc):
     def pending_calcs(self):
         return Calc.objects(upload_id=self.upload_id, tasks_status=PENDING).count()
 
-    def all_calcs(self, start, end, order_by='mainfile'):
-        return Calc.objects(upload_id=self.upload_id)[start:end].order_by(order_by)
+    def all_calcs(self, start, end, order_by=None):
+        query = Calc.objects(upload_id=self.upload_id)[start:end]
+        return query.order_by(order_by) if order_by is not None else query
 
     @property
     def calcs(self):
         return Calc.objects(upload_id=self.upload_id, tasks_status=SUCCESS)
 
-    def to_upload_with_metadata(self) -> UploadWithMetadata:
+    def to_upload_with_metadata(self, user_metadata: dict = None) -> UploadWithMetadata:
         # prepare user metadata per upload and per calc
-        calc_metadatas: Dict[str, Any] = dict()
-        upload_metadata: Dict[str, Any] = dict()
+        if user_metadata is not None:
+            calc_metadatas: Dict[str, Any] = dict()
+            upload_metadata: Dict[str, Any] = dict()
 
-        if self.metadata is not None:
-            upload_metadata.update(self.metadata)
+            upload_metadata.update(user_metadata)
             if 'calculations' in upload_metadata:
                 del(upload_metadata['calculations'])
 
-            for calc in self.metadata.get('calculations', []):
+            for calc in user_metadata.get('calculations', []):  # pylint: disable=no-member
                 calc_metadatas[calc['mainfile']] = calc
 
-        user_upload_time = upload_metadata.get('_upload_time', None)
+            user_upload_time = upload_metadata.get('_upload_time', None)
+
+            def get_metadata(calc: Calc):
+                """
+                Assemble metadata from calc's processed calc metadata and the uploads
+                user metadata.
+                """
+                calc_data = calc.metadata
+                calc_with_metadata = datamodel.CalcWithMetadata(**calc_data)
+                calc_metadata = dict(upload_metadata)
+                calc_metadata.update(calc_metadatas.get(calc.mainfile, {}))
+                calc_with_metadata.apply_user_metadata(calc_metadata)
+
+                return calc_with_metadata
+        else:
+            user_upload_time = None
+
+            def get_metadata(calc: Calc):
+                return datamodel.CalcWithMetadata(**calc.metadata)
+
         result = UploadWithMetadata(
             upload_id=self.upload_id,
             uploader=utils.POPO(id=int(self.user_id)),
             upload_time=self.upload_time if user_upload_time is None else user_upload_time)
 
-        def get_metadata(calc: Calc):
-            """
-            Assemble metadata from calc's processed calc metadata and the uploads
-            user metadata.
-            """
-            calc_data = calc.metadata
-            calc_with_metadata = CalcWithMetadata(**calc_data)
-            calc_metadata = dict(upload_metadata)
-            calc_metadata.update(calc_metadatas.get(calc.mainfile, {}))
-            calc_with_metadata.apply_user_metadata(calc_metadata)
-
-            return calc_with_metadata
-
         result.calcs = [get_metadata(calc) for calc in Calc.objects(upload_id=self.upload_id)]
 
         return result
+
+    def compress_and_set_metadata(self, metadata: Dict[str, Any]) -> None:
+        """
+        Stores the given user metadata in the upload document. This is the metadata
+        adhering to the API model (``UploadMetaData``). Most quantities can be stored
+        for the upload and for each calculation. This method will try to move same values
+        from the calculation to the upload to "compress" the data.
+        """
+        compressed = {
+            key: value for key, value in metadata.items() if key != 'calculations'}
+        calculations: List[Dict[str, Any]] = []
+        compressed['calculations'] = calculations
+
+        for calc in metadata.get('calculations', []):
+            compressed_calc: Dict[str, Any] = {}
+            calculations.append(compressed_calc)
+            for key, value in calc.items():
+                if key in ['_pid', 'mainfile']:
+                    # these quantities are explicitly calc specific and have to stay with
+                    # the calc
+                    compressed_calc[key] = value
+                else:
+                    if key not in compressed:
+                        compressed[key] = value
+                    elif compressed[key].__repr__ != value.__repr__:
+                        compressed_calc[key] = value
+                    else:
+                        compressed[key] = value
+
+        self.metadata = compressed
 
     def __str__(self):
         return 'upload %s upload_id%s' % (super().__str__(), self.upload_id)

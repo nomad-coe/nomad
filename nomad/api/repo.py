@@ -21,10 +21,11 @@ from flask_restplus import Resource, abort, fields
 from flask import request, g
 from elasticsearch_dsl import Q
 from elasticsearch.exceptions import NotFoundError
+import datetime
 
 from nomad import search
 
-from .app import api
+from .app import api, rfc3339DateTime
 from .auth import login_if_available
 from .common import pagination_model, pagination_request_parser, calc_route
 
@@ -57,7 +58,9 @@ class RepoCalcResource(Resource):
             is_owner = g.user.user_id == 0
             if not is_owner:
                 for owner in calc.owners:
-                    if owner.user_id == str(g.user.user_id):
+                    # At somepoint ids will be emails (strings) anyways.
+                    # Right now it is hard to make sure that both are either str or int.
+                    if str(owner.user_id) == str(g.user.user_id):
                         is_owner = True
                         break
             if not is_owner:
@@ -84,7 +87,13 @@ repo_calcs_model = api.model('RepoCalculations', {
 repo_request_parser = pagination_request_parser.copy()
 repo_request_parser.add_argument(
     'owner', type=str,
-    help='Specify which calcs to return: ``all``, ``user``, ``staging``, default is ``all``')
+    help='Specify which calcs to return: ``all``, ``public``, ``user``, ``staging``, default is ``all``')
+repo_request_parser.add_argument(
+    'from_time', type=lambda x: rfc3339DateTime.parse(x),
+    help='A yyyy-MM-ddTHH:mm:ss (RFC3339) minimum entry time (e.g. upload time)')
+repo_request_parser.add_argument(
+    'until_time', type=lambda x: rfc3339DateTime.parse(x),
+    help='A yyyy-MM-ddTHH:mm:ss (RFC3339) maximum entry time (e.g. upload time)')
 repo_request_parser.add_argument(
     'scroll', type=bool, help='Enable scrolling')
 repo_request_parser.add_argument(
@@ -115,6 +124,10 @@ class RepoCalcsResource(Resource):
         Search for calculations in the repository from, paginated.
 
         The ``owner`` parameter determines the overall entries to search through.
+        Possible values are: ``all`` (show all entries visible to the current user), ``public``
+        (show all publically visible entries), ``user`` (show all user entries, requires login),
+        ``staging`` (show all user entries in staging area, requires login).
+
         You can use the various quantities to search/filter for. For some of the
         indexed quantities this endpoint returns aggregation information. This means
         you will be given a list of all possible values and the number of entries
@@ -145,6 +158,11 @@ class RepoCalcsResource(Resource):
             total_metrics_str = request.args.get('total_metrics', '')
             aggregation_metrics_str = request.args.get('aggregation_metrics', '')
 
+            from_time = rfc3339DateTime.parse(request.args.get('from_time', '2000-01-01'))
+            until_time_str = request.args.get('until_time', None)
+            until_time = rfc3339DateTime.parse(until_time_str) if until_time_str is not None else datetime.datetime.now()
+            time_range = (from_time, until_time)
+
             total_metrics = [
                 metric for metric in total_metrics_str.split(',')
                 if metric in search.metrics_names]
@@ -170,6 +188,8 @@ class RepoCalcsResource(Resource):
             q = Q('term', published=True) & Q('term', with_embargo=False)
             if g.user is not None:
                 q = q | Q('term', owners__user_id=g.user.user_id)
+        elif owner == 'public':
+            q = Q('term', published=True) & Q('term', with_embargo=False)
         elif owner == 'user':
             if g.user is None:
                 abort(401, message='Authentication required for owner value user.')
@@ -192,12 +212,14 @@ class RepoCalcsResource(Resource):
         data.pop('order_by', None)
         data.pop('total_metrics', None)
         data.pop('aggregation_metrics', None)
+        data.pop('from_time', None)
+        data.pop('until_time', None)
 
         if scroll:
             data.update(scroll_id=scroll_id, size=per_page)
         else:
             data.update(
-                per_page=per_page, page=page, order=order, order_by=order_by,
+                per_page=per_page, page=page, order=order, order_by=order_by, time_range=time_range,
                 total_metrics=total_metrics, aggregation_metrics=aggregation_metrics)
 
         try:

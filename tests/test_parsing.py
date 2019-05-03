@@ -133,19 +133,19 @@ class TestLocalBackend(object):
         backend.addValue('program_name', 't0')
         backend.closeSection('section_run', 0)
 
-        g_index = backend.openSection('section_calculation_info')
+        g_index = backend.openSection('section_entry_info')
         assert g_index == 0
         backend.addValue('parser_name', 'p0')
-        backend.closeSection('section_calculation_info', 0)
+        backend.closeSection('section_entry_info', 0)
 
         assert backend.get_sections('section_run') == [0]
-        assert backend.get_sections('section_calculation_info') == [0]
+        assert backend.get_sections('section_entry_info') == [0]
 
         output = StringIO()
         backend.write_json(output)
         archive = json.loads(output.getvalue())
         assert 'section_run' in archive
-        assert 'section_calculation_info' in archive
+        assert 'section_entry_info' in archive
 
     def test_subsection(self, backend: LocalBackend, no_warn):
         backend.openSection('section_run')
@@ -307,14 +307,14 @@ def parsed_example(request) -> LocalBackend:
 
 
 def add_calculation_info(backend: LocalBackend, **kwargs) -> LocalBackend:
-    backend.openNonOverlappingSection('section_calculation_info')
+    backend.openNonOverlappingSection('section_entry_info')
     backend.addValue('upload_id', 'test_upload_id')
     backend.addValue('calc_id', 'test_calc_id')
     backend.addValue('calc_hash', 'test_calc_hash')
-    backend.addValue('main_file', 'test/mainfile.txt')
+    backend.addValue('mainfile', 'test/mainfile.txt')
     for key, value in kwargs.items():
         backend.addValue(key, value)
-    backend.closeNonOverlappingSection('section_calculation_info')
+    backend.closeNonOverlappingSection('section_entry_info')
     return backend
 
 

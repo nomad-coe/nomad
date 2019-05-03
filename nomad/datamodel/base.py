@@ -210,40 +210,47 @@ class Domain:
             domain specific quantities.
         quantities: Additional specifications for the quantities in ``domain_entry_class`` as
             instances of :class:`DomainQuantity`.
+        root_sections: The name of the possible root sections for this domain.
+        metainfo_all_package: The name of the full metainfo package for this domain.
     """
     instance: 'Domain' = None
+    instances: Dict[str, 'Domain'] = {}
 
     def __init__(
             self, name: str, domain_entry_class: Type[CalcWithMetadata],
-            quantities: Dict[str, DomainQuantity]) -> None:
-
-        assert Domain.instance is None, 'you can only define one domain.'
-
+            quantities: Dict[str, DomainQuantity],
+            root_sections=['section_run', 'section_entry_info'],
+            metainfo_all_package='all.nomadmetainfo.json') -> None:
         if name == config.domain:
+            assert Domain.instance is None, 'you can only define one domain.'
             Domain.instance = self
+
+        Domain.instances[name] = self
 
         self.name = name
         self.domain_entry_class = domain_entry_class
-        self.quantities: List[DomainQuantity] = []
+        self.quantities: Dict[str, DomainQuantity] = {}
+        self.root_sections = root_sections
+        self.metainfo_all_package = metainfo_all_package
 
         reference_domain_calc = domain_entry_class()
         reference_general_calc = CalcWithMetadata()
 
-        for name, value in reference_domain_calc.__dict__.items():
-            if not hasattr(reference_general_calc, name):
-                quantity = quantities.get(name, None)
+        for quantity_name, value in reference_domain_calc.__dict__.items():
+            if not hasattr(reference_general_calc, quantity_name):
+                quantity = quantities.get(quantity_name, None)
                 if quantity is None:
                     quantity = DomainQuantity()
-                    quantities[name] = quantity
-                quantity.name = name
+                    quantities[quantity_name] = quantity
+                quantity.name = quantity_name
                 quantity.multi = isinstance(value, list)
-                self.quantities.append(quantity)
+                self.quantities[quantity.name] = quantity
 
-        for name in quantities.keys():
-            assert hasattr(reference_domain_calc, name) and not hasattr(reference_general_calc, name), \
+        for quantity_name in quantities.keys():
+            assert hasattr(reference_domain_calc, quantity_name) and not hasattr(reference_general_calc, quantity_name), \
                 'quantity does not exist or overrides general non domain quantity'
 
-        assert any(quantity.order_default for quantity in Domain.instance.quantities), \
+        assert any(quantity.order_default for quantity in Domain.instances[name].quantities.values()), \
             'you need to define a order default quantity'
 
     @property
@@ -253,7 +260,7 @@ class Domain:
         """
         return {
             quantity.metric[0]: (quantity.metric[1], quantity.name)
-            for quantity in self.quantities
+            for quantity in self.quantities.values()
             if quantity.metric is not None
         }
 
@@ -270,7 +277,7 @@ class Domain:
         """
         return {
             quantity.name: quantity.aggregations
-            for quantity in self.quantities
+            for quantity in self.quantities.values()
             if quantity.aggregations > 0
         }
 
@@ -278,3 +285,30 @@ class Domain:
     def aggregations_names(self) -> Iterable[str]:
         """ Just the names of all metrics. """
         return list(self.aggregations.keys())
+
+
+def get_optional_backend_value(backend, key, section, unavailable_value=None, logger=None):
+    # Section is section_system, section_symmetry, etc...
+    val = None  # Initialize to None, so we can compare section values.
+    # Loop over the sections with the name section in the backend.
+    for section_index in backend.get_sections(section):
+        try:
+            new_val = backend.get_value(key, section_index)
+        except KeyError:
+            new_val = None
+
+        # Compare values from iterations.
+        if val is not None and new_val is not None:
+            if val.__repr__() != new_val.__repr__() and logger:
+                logger.warning(
+                    'The values for %s differ between different %s: %s vs %s' %
+                    (key, section, str(val), str(new_val)))
+
+        val = new_val if new_val is not None else val
+
+    if val is None and logger:
+        logger.warning(
+            'The values for %s where not available in any %s' % (key, section))
+        return unavailable_value if unavailable_value is not None else config.services.unavailable_value
+    else:
+        return val

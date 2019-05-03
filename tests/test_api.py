@@ -20,8 +20,9 @@ import zipfile
 import io
 import inspect
 from passlib.hash import bcrypt
-from datetime import datetime
+import datetime
 
+from nomad.api.app import rfc3339DateTime
 from nomad import coe_repo, search, parsing, files, config
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
@@ -233,7 +234,7 @@ class TestUploads:
         assert_upload_files(upload_with_metadata, files.StagingUploadFiles)
         assert_search_upload(upload_with_metadata, additional_keys=['atoms', 'system'])
 
-    def assert_published(self, client, test_user_auth, upload_id, proc_infra, with_coe_repo=True, metadata={}):
+    def assert_published(self, client, test_user_auth, upload_id, proc_infra, with_coe_repo=True, metadata={}, publish_with_metadata: bool = True):
         rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
 
@@ -242,7 +243,7 @@ class TestUploads:
         rv = client.post(
             '/uploads/%s' % upload_id,
             headers=test_user_auth,
-            data=json.dumps(dict(operation='publish', metadata=metadata)),
+            data=json.dumps(dict(operation='publish', metadata=metadata if publish_with_metadata else {})),
             content_type='application/json')
         assert rv.status_code == 200
         upload = self.assert_upload(rv.data)
@@ -260,7 +261,7 @@ class TestUploads:
 
         if with_coe_repo:
             assert_coe_upload(upload_with_metadata.upload_id, user_metadata=metadata)
-        assert_upload_files(upload_with_metadata, files.PublicUploadFiles, additional_keys=additional_keys, published=True)
+        assert_upload_files(upload_with_metadata, files.PublicUploadFiles, published=True)
         assert_search_upload(upload_with_metadata, additional_keys=additional_keys, published=True)
 
     def block_until_completed(self, client, upload_id: str, test_user_auth):
@@ -273,6 +274,10 @@ class TestUploads:
                     return upload
             elif rv.status_code == 404:
                 return None
+            else:
+                raise Exception(
+                    'unexpected status code while blocking for upload processing: %s' %
+                    str(rv.status_code))
 
     def assert_upload_does_not_exist(self, client, upload_id: str, test_user_auth):
         self.block_until_completed(client, upload_id, test_user_auth)
@@ -354,7 +359,7 @@ class TestUploads:
         self.assert_processing(client, test_user_auth, upload['upload_id'])
         self.assert_published(client, test_user_auth, upload['upload_id'], proc_infra, with_coe_repo=with_publish_to_coe_repo)
         rv = client.delete('/uploads/%s' % upload['upload_id'], headers=test_user_auth)
-        assert rv.status_code == 404
+        assert rv.status_code == 400
 
     def test_delete(self, client, test_user_auth, proc_infra, no_warn):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
@@ -382,6 +387,20 @@ class TestUploads:
         self.assert_processing(client, test_user_auth, upload['upload_id'])
         self.assert_published(client, test_user_auth, upload['upload_id'], proc_infra, with_coe_repo=with_publish_to_coe_repo)
 
+        # still visible
+        assert client.get('/uploads/%s' % upload['upload_id'], headers=test_user_auth).status_code == 200
+        # still listed with all=True
+        rv = client.get('/uploads/?all=True', headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert len(data) > 0
+        assert any(item['upload_id'] == upload['upload_id'] for item in data)
+        # not listed with all=False
+        rv = client.get('/uploads/', headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert not any(item['upload_id'] == upload['upload_id'] for item in data)
+
     def test_post_metadata(
             self, client, proc_infra, admin_user_auth, test_user_auth, test_user,
             other_test_user, no_warn, example_user_metadata):
@@ -389,7 +408,7 @@ class TestUploads:
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
         metadata = dict(**example_user_metadata)
-        metadata['_upload_time'] = datetime.now().isoformat()
+        metadata['_upload_time'] = datetime.datetime.now().isoformat()
         self.assert_published(client, admin_user_auth, upload['upload_id'], proc_infra, metadata)
 
     def test_post_metadata_forbidden(self, client, proc_infra, test_user_auth, no_warn):
@@ -403,6 +422,17 @@ class TestUploads:
             content_type='application/json')
         assert rv.status_code == 401
 
+    def test_post_metadata_and_republish(
+            self, client, proc_infra, admin_user_auth, test_user_auth, test_user,
+            other_test_user, no_warn, example_user_metadata):
+        rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
+        upload = self.assert_upload(rv.data)
+        self.assert_processing(client, test_user_auth, upload['upload_id'])
+        metadata = dict(**example_user_metadata)
+        metadata['_upload_time'] = datetime.datetime.now().isoformat()
+        self.assert_published(client, admin_user_auth, upload['upload_id'], proc_infra, metadata)
+        self.assert_published(client, admin_user_auth, upload['upload_id'], proc_infra, metadata, publish_with_metadata=False)
+
     # TODO validate metadata (or all input models in API for that matter)
     # def test_post_bad_metadata(self, client, proc_infra, test_user_auth, postgres):
     #     rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
@@ -414,6 +444,21 @@ class TestUploads:
     #         data=json.dumps(dict(operation='publish', metadata=dict(doesnotexist='hi'))),
     #         content_type='application/json')
     #     assert rv.status_code == 400
+
+    def test_potcar(self, client, proc_infra, test_user_auth):
+        example_file = 'tests/data/proc/examples_potcar.zip'
+        rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
+
+        upload = self.assert_upload(rv.data)
+        upload_id = upload['upload_id']
+        self.assert_processing(client, test_user_auth, upload_id)
+        self.assert_published(client, test_user_auth, upload_id, proc_infra, with_coe_repo=True)
+        rv = client.get('/raw/%s/examples_potcar/POTCAR' % upload_id)
+        assert rv.status_code == 401
+        rv = client.get('/raw/%s/examples_potcar/POTCAR' % upload_id, headers=test_user_auth)
+        assert rv.status_code == 200
+        rv = client.get('/raw/%s/examples_potcar/POTCAR.stripped' % upload_id)
+        assert rv.status_code == 200
 
 
 class UploadFilesBasedTests:
@@ -544,6 +589,8 @@ class TestArchive(UploadFilesBasedTests):
     def test_get_metainfo(self, client):
         rv = client.get('/archive/metainfo/all.nomadmetainfo.json')
         assert rv.status_code == 200
+        metainfo = json.loads((rv.data))
+        assert len(metainfo) > 0
 
 
 class TestRepo():
@@ -553,20 +600,27 @@ class TestRepo():
             test_user: coe_repo.User, other_test_user: coe_repo.User):
         clear_elastic(elastic_infra)
 
-        calc_with_metadata = CalcWithMetadata(upload_id=0, calc_id=0)
+        calc_with_metadata = CalcWithMetadata(upload_id=0, calc_id=0, upload_time=datetime.date.today())
+        calc_with_metadata.files = ['test/mainfile.txt']
         calc_with_metadata.apply_domain_metadata(normalized)
 
-        calc_with_metadata.update(calc_id='1', uploader=test_user.to_popo(), published=True, with_embargo=False)
+        calc_with_metadata.update(
+            calc_id='1', uploader=test_user.to_popo(), published=True, with_embargo=False)
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
-        calc_with_metadata.update(calc_id='2', uploader=other_test_user.to_popo(), published=True, with_embargo=False)
-        calc_with_metadata.update(atoms=['Fe'], comment='this is a specific word', formula='AAA', basis_set='zzz')
+        calc_with_metadata.update(
+            calc_id='2', uploader=other_test_user.to_popo(), published=True, with_embargo=False,
+            upload_time=datetime.date.today() - datetime.timedelta(days=5))
+        calc_with_metadata.update(
+            atoms=['Fe'], comment='this is a specific word', formula='AAA', basis_set='zzz')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
-        calc_with_metadata.update(calc_id='3', uploader=other_test_user.to_popo(), published=False, with_embargo=False)
+        calc_with_metadata.update(
+            calc_id='3', uploader=other_test_user.to_popo(), published=False, with_embargo=False)
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
-        calc_with_metadata.update(calc_id='4', uploader=other_test_user.to_popo(), published=True, with_embargo=True)
+        calc_with_metadata.update(
+            calc_id='4', uploader=other_test_user.to_popo(), published=True, with_embargo=True)
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
     def test_own_calc(self, client, example_elastic_calcs, no_warn, test_user_auth):
@@ -581,9 +635,17 @@ class TestRepo():
         rv = client.get('/repo/0/4', headers=test_user_auth)
         assert rv.status_code == 401
 
+    def test_own_embargo_calc(self, client, example_elastic_calcs, no_warn, other_test_user_auth):
+        rv = client.get('/repo/0/4', headers=other_test_user_auth)
+        assert rv.status_code == 200
+
     def test_staging_calc(self, client, example_elastic_calcs, no_warn, test_user_auth):
         rv = client.get('/repo/0/3', headers=test_user_auth)
         assert rv.status_code == 401
+
+    def test_own_staging_calc(self, client, example_elastic_calcs, no_warn, other_test_user_auth):
+        rv = client.get('/repo/0/3', headers=other_test_user_auth)
+        assert rv.status_code == 200
 
     def test_non_existing_calcs(self, client, example_elastic_calcs, test_user_auth):
         rv = client.get('/repo/0/10', headers=test_user_auth)
@@ -611,6 +673,37 @@ class TestRepo():
             for key in ['uploader', 'calc_id', 'formula', 'upload_id']:
                 assert key in results[0]
 
+    @pytest.mark.parametrize('calcs, start, end', [
+        (2, datetime.date.today() - datetime.timedelta(days=6), datetime.date.today()),
+        (2, datetime.date.today() - datetime.timedelta(days=5), datetime.date.today()),
+        (1, datetime.date.today() - datetime.timedelta(days=4), datetime.date.today()),
+        (1, datetime.date.today(), datetime.date.today()),
+        (1, datetime.date.today() - datetime.timedelta(days=6), datetime.date.today() - datetime.timedelta(days=5)),
+        (0, datetime.date.today() - datetime.timedelta(days=7), datetime.date.today() - datetime.timedelta(days=6)),
+        (2, None, None),
+        (1, datetime.date.today(), None),
+        (2, None, datetime.date.today())
+    ])
+    def test_search_time(self, client, example_elastic_calcs, no_warn, calcs, start, end):
+        query_string = ''
+        if start is not None:
+            query_string = 'from_time=%s' % rfc3339DateTime.format(start)
+        if end is not None:
+            if query_string != '':
+                query_string += '&'
+            query_string += 'until_time=%s' % rfc3339DateTime.format(end)
+        if query_string != '':
+            query_string = '?%s' % query_string
+
+        rv = client.get('/repo/%s' % query_string)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+
+        results = data.get('results', None)
+        assert results is not None
+        assert isinstance(results, list)
+        assert len(results) == calcs
+
     @pytest.mark.parametrize('calcs, quantity, value', [
         (2, 'system', 'bulk'),
         (0, 'system', 'atom'),
@@ -626,11 +719,7 @@ class TestRepo():
         (0, 'quantities', 'dos')
     ])
     def test_search_quantities(self, client, example_elastic_calcs, no_warn, test_user_auth, calcs, quantity, value):
-        if isinstance(value, list):
-            query_string = '&'.join('%s=%s' % (quantity, item) for item in value)
-        else:
-            query_string = '%s=%s' % (quantity, value)
-
+        query_string = '%s=%s' % (quantity, ','.join(value) if isinstance(value, list) else value)
         rv = client.get('/repo/?%s' % query_string, headers=test_user_auth)
 
         assert rv.status_code == 200

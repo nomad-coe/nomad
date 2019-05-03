@@ -130,8 +130,7 @@ def test_add_upload(processed: processing.Upload):
 
 
 def test_delete_upload(processed: processing.Upload, example_user_metadata_with_dataset, no_warn):
-    processed.metadata = example_user_metadata_with_dataset
-    upload_with_metadata = processed.to_upload_with_metadata()
+    upload_with_metadata = processed.to_upload_with_metadata(example_user_metadata_with_dataset)
     Upload.publish(upload_with_metadata)
     assert_coe_upload(upload_with_metadata.upload_id, upload_with_metadata)
 
@@ -172,8 +171,7 @@ def test_delete_upload(processed: processing.Upload, example_user_metadata_with_
 
 
 def test_add_upload_with_metadata(processed, example_user_metadata_with_dataset):
-    processed.metadata = example_user_metadata_with_dataset
-    upload_with_metadata = processed.to_upload_with_metadata()
+    upload_with_metadata = processed.to_upload_with_metadata(example_user_metadata_with_dataset)
     Upload.publish(upload_with_metadata)
     assert_coe_upload(upload_with_metadata.upload_id, upload_with_metadata)
 

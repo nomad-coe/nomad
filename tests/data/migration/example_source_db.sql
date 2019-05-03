@@ -40,8 +40,8 @@ INSERT INTO public.tags VALUES(2, 7);
 INSERT INTO public.tags VALUES(1, 8);
 INSERT INTO public.tags VALUES(2, 8);
 
-INSERT INTO public.metadata VALUES (1, NULL, NULL, NULL, NULL, 'BrKSi2', '2019-01-01 12:00:00', NULL, decode('["$EXTRACTED/upload/1/template.json"]', 'escape'), 1, NULL);
-INSERT INTO public.metadata VALUES (1, NULL, NULL, NULL, NULL, 'BrKSi2', '2015-01-01 13:00:00', NULL, decode('["$EXTRACTED/upload/2/template.json"]', 'escape'), 2, NULL);
+INSERT INTO public.metadata VALUES (1, 'different/prefix/template.json', NULL, NULL, NULL, 'BrKSi2', '2019-01-01 12:00:00', NULL, decode('["$EXTRACTED/upload/1/template.json"]', 'escape'), 1, NULL);
+INSERT INTO public.metadata VALUES (1, 'different/prefix/template.json', NULL, NULL, NULL, 'BrKSi2', '2015-01-01 13:00:00', NULL, decode('["$EXTRACTED/upload/2/wrong_mainfile"]', 'escape'), 2, NULL);
 INSERT INTO public.spacegroups VALUES (1, 123);
 INSERT INTO public.spacegroups VALUES (2, 123);
 INSERT INTO public.user_metadata VALUES (1, 0, 'label1');

@@ -73,6 +73,8 @@ proxy:
 
 ## configuration of the chart dependency for rabbitmq
 rabbitmq:
+  persistence:
+    enabled: false
   nodeSelector:
     nomadtype: public
   image.pullSecrets: nil
@@ -125,3 +127,7 @@ volumes:
   staging: /nomad/fairdi/latest/fs/staging
   tmp: /nomad/fairdi/latest/fs/tmp
   nomad: /nomad
+
+## Everything else
+# The domain configuration, currently there is DFT and EMS
+domain: DFT

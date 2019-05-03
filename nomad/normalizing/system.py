@@ -87,7 +87,6 @@ class SystemNormalizer(SystemBasedNormalizer):
                 self.logger.error('atom labels are ambiguous', atom_labels=atom_labels[:10])
             atom_labels = chemical_symbols
         except Exception as e:
-            print('Error in building atoms module')
             self.logger.error(
                 'cannot build ase atoms from atom labels',
                 atom_labels=atom_labels[:10], exc_info=e, error=str(e))

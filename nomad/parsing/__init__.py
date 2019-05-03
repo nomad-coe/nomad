@@ -44,7 +44,7 @@ Parsers are reused for multiple caclulations.
 
 Parsers and calculation files are matched via regular expressions.
 
-.. autofunc:: nomad.parsing.match_parser
+.. autofunction:: nomad.parsing.match_parser
 
 Parsers in NOMAD-coe use a *backend* to create output. There are different NOMAD-coe
 basends. In nomad@FAIRDI, we only currently only use a single backed. A version of
@@ -63,7 +63,7 @@ import magic
 import gzip
 import bz2
 
-from nomad import files
+from nomad import files, config
 
 from nomad.parsing.backend import AbstractParserBackend, LocalBackend, LegacyLocalBackend, JSONStreamWriter, BadContextURI, WrongContextState
 from nomad.parsing.parser import Parser, LegacyParser, VaspOutcarParser
@@ -99,9 +99,10 @@ def match_parser(mainfile: str, upload_files: files.StagingUploadFiles) -> 'Pars
 
     mime_type = magic.from_buffer(buffer, mime=True)
     for parser in parsers:
-        if parser.is_mainfile(mainfile_path, mime_type, buffer, compression):
-            # TODO: deal with multiple possible parser specs
-            return parser
+        if parser.domain == config.domain:
+            if parser.is_mainfile(mainfile_path, mime_type, buffer, compression):
+                # TODO: deal with multiple possible parser specs
+                return parser
 
     return None
 
@@ -111,13 +112,13 @@ parsers = [
     TemplateParser(),
     ChaosParser(),
     LegacyParser(
-        name='parsers/phonopy',
+        name='parsers/phonopy', code_name='Phonopy',
         parser_class_name='phonopyparser.PhonopyParserWrapper',
         # mainfile_contents_re=r'',  # Empty regex since this code calls other DFT codes.
         mainfile_name_re=(r'.*/phonopy-FHI-aims-displacement-0*1/control.in$')
     ),
     LegacyParser(
-        name='parsers/vasp',
+        name='parsers/vasp', code_name='VASP',
         parser_class_name='vaspparser.VASPRunParserInterface',
         mainfile_mime_re=r'(application/xml)|(text/.*)',
         mainfile_contents_re=(
@@ -129,13 +130,13 @@ parsers = [
         supported_compressions=['gz', 'bz2']
     ),
     VaspOutcarParser(
-        name='parsers/vasp',
+        name='parsers/vasp-outcar', code_name='VASP',
         parser_class_name='vaspparser.VaspOutcarParser',
         mainfile_name_re=r'(.*/)?OUTCAR(\.[^\.]*)?',
         mainfile_contents_re=(r'^\svasp\.')
     ),
     LegacyParser(
-        name='parsers/exciting',
+        name='parsers/exciting', code_name='exciting',
         parser_class_name='excitingparser.ExcitingParser',
         mainfile_name_re=r'^.*/INFO\.OUT?',
         mainfile_contents_re=(
@@ -144,7 +145,7 @@ parsers = [
             r'\s*\|\s*version hash id:\s*\S*\s*=')
     ),
     LegacyParser(
-        name='parsers/fhi-aims',
+        name='parsers/fhi-aims', code_name='FHI-aims',
         parser_class_name='fhiaimsparser.FHIaimsParser',
         mainfile_contents_re=(
             r'^(.*\n)*'
@@ -153,7 +154,7 @@ parsers = [
         mainfile_name_re=r'^.(?!.*phonopy-FHI-aims-displacement)'
     ),
     LegacyParser(
-        name='parsers/cp2k',
+        name='parsers/cp2k', code_name='CP2K',
         parser_class_name='cp2kparser.CP2KParser',
         mainfile_contents_re=(
             r'\*\*\*\* \*\*\*\* \*\*\*\*\*\*  \*\*  PROGRAM STARTED AT\s.*\n'
@@ -164,7 +165,7 @@ parsers = [
         )
     ),
     LegacyParser(
-        name='parsers/crystal',
+        name='parsers/crystal', code_name='Crystal',
         parser_class_name='crystalparser.CrystalParser',
         mainfile_contents_re=(
             r'\s*[\*]{22,}'  # Looks for '*' 22 times or more in a row.
@@ -177,7 +178,7 @@ parsers = [
     # when searching through the first 500 bytes of main files. We decided
     # to use only a portion of the regex to avoid that issue.
     LegacyParser(
-        name='parsers/cpmd',
+        name='parsers/cpmd', code_name='CPMD',
         parser_class_name='cpmdparser.CPMDParser',
         mainfile_contents_re=(
             # r'\s+\*\*\*\*\*\*  \*\*\*\*\*\*    \*\*\*\*  \*\*\*\*  \*\*\*\*\*\*\s*'
@@ -191,7 +192,7 @@ parsers = [
         )
     ),
     LegacyParser(
-        name='parsers/nwchem',
+        name='parsers/nwchem', code_name='NWChem',
         parser_class_name='nwchemparser.NWChemParser',
         mainfile_contents_re=(
             r'\s+Northwest Computational Chemistry Package \(NWChem\) \d+\.\d+'
@@ -202,7 +203,7 @@ parsers = [
         )
     ),
     LegacyParser(
-        name='parsers/bigdft',
+        name='parsers/bigdft', code_name='BigDFT',
         parser_class_name='bigdftparser.BigDFTParser',
         mainfile_contents_re=(
             # r'__________________________________ A fast and precise DFT wavelet code\s*'
@@ -233,16 +234,16 @@ parsers = [
         )
     ),
     LegacyParser(
-        name='parsers/wien2k',
+        name='parsers/wien2k', code_name='WIEN2k',
         parser_class_name='wien2kparser.Wien2kParser',
         mainfile_contents_re=r':LABEL\d+: using WIEN2k_\d+\.\d+'
     ),
     LegacyParser(
-        name='parsers/band',
+        name='parsers/band', code_name=config.services.not_processed_value,
         parser_class_name='bandparser.BANDParser',
         mainfile_contents_re=r' +\* +Amsterdam Density Functional +\(ADF\)'),
     LegacyParser(
-        name='parsers/gaussian',
+        name='parsers/gaussian', code_name='Gaussian',
         parser_class_name='gaussianparser.GaussianParser',
         # This previous file matching string was too far down the line.
         # r'\s*Cite this work as:'
@@ -252,7 +253,7 @@ parsers = [
         # r'\s*([0-9][0-9]?\-[A-Z][a-z][a-z]\-[0-9]+)')
         mainfile_contents_re=r'Gaussian, Inc'),
     LegacyParser(
-        name='parsers/quantumespresso',
+        name='parsers/quantumespresso', code_name='Quantum Espresso',
         parser_class_name='quantumespressoparser.QuantumEspressoParserPWSCF',
         mainfile_contents_re=(
             r'^\s*Program (\S+)\s+v\.(\S+)(?:\s+\(svn\s+rev\.\s+'
@@ -260,12 +261,12 @@ parsers = [
             r'(?:\s*\n?)*This program is part of the open-source Quantum')
     ),
     LegacyParser(
-        name='parsers/abinit',
+        name='parsers/abinit', code_name='ABINIT',
         parser_class_name='abinitparser.AbinitParser',
         mainfile_contents_re=(r'^\n\.Version\s*[0-9.]*\s*of ABINIT\s*')
     ),
     LegacyParser(
-        name='parsers/orca',
+        name='parsers/orca', code_name='ORCA',
         parser_class_name='orcaparser.OrcaParser',
         mainfile_contents_re=(
             r'\s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
@@ -275,42 +276,42 @@ parsers = [
             r'\s*--- An Ab Initio, DFT and Semiempirical electronic structure package ---\s*')
     ),
     LegacyParser(
-        name='parsers/castep',
+        name='parsers/castep', code_name='CASTEP',
         parser_class_name='castepparser.CastepParser',
         mainfile_contents_re=(r'\s\|\s*CCC\s*AA\s*SSS\s*TTTTT\s*EEEEE\s*PPPP\s*\|\s*')
     ),
     LegacyParser(
-        name='parsers/dl-poly',
+        name='parsers/dl-poly', code_name='DL_POLY',
         parser_class_name='dlpolyparser.DlPolyParserWrapper',
         mainfile_contents_re=(r'\*\* DL_POLY \*\*')
     ),
     LegacyParser(
-        name='parsers/lib-atoms',
+        name='parsers/lib-atoms', code_name='libAtoms',
         parser_class_name='libatomsparser.LibAtomsParserWrapper',
         mainfile_contents_re=(r'\s*<GAP_params\s')
     ),
     LegacyParser(
-        name='parsers/octopus',
+        name='parsers/octopus', code_name='Octopus',
         parser_class_name='octopusparser.OctopusParserWrapper',
         mainfile_contents_re=(r'\|0\) ~ \(0\) \|')
         # We decided to use the octopus eyes instead of
         # r'\*{32} Grid \*{32}Simulation Box:' since it was so far down in the file.
     ),
     LegacyParser(
-        name='parsers/gpaw',
+        name='parsers/gpaw', code_name='GPAW',
         parser_class_name='gpawparser.GPAWParserWrapper',
         mainfile_name_re=(r'^.*\.gpw$'),
         mainfile_mime_re=r'application/x-tar'
     ),
     LegacyParser(
-        name='parsers/gpaw2',
+        name='parsers/gpaw2', code_name='GPAW',
         parser_class_name='gpawparser.GPAWParser2Wrapper',
         # mainfile_contents_re=r'',  # We can't read .gpw2 to match AFFormatGPAW'
         mainfile_name_re=(r'^.*\.gpw2$'),
         mainfile_mime_re=r'application/x-tar'
     ),
     LegacyParser(
-        name='parsers/atk',
+        name='parsers/atk', code_name='ATK',
         parser_class_name='atkparser.ATKParserWrapper',
         # mainfile_contents_re=r'',  # We can't read .gpw as txt - of UlmGPAW|AFFormatGPAW'
         mainfile_name_re=r'^.*\.nc',
@@ -318,7 +319,7 @@ parsers = [
         mainfile_mime_re=r'application/octet-stream'
     ),
     LegacyParser(
-        name='parsers/gulp',
+        name='parsers/gulp', code_name='gulp',
         parser_class_name='gulpparser.GULPParser',
         mainfile_contents_re=(
             r'\s*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*'
@@ -326,13 +327,13 @@ parsers = [
             r'\s*\*\s*GENERAL UTILITY LATTICE PROGRAM\s*\*\s*')
     ),
     LegacyParser(
-        name='parsers/siesta',
+        name='parsers/siesta', code_name='Siesta',
         parser_class_name='siestaparser.SiestaParser',
         mainfile_contents_re=(
             r'(Siesta Version: siesta-|SIESTA [0-9]\.[0-9]\.[0-9])')
     ),
     LegacyParser(
-        name='parsers/elk',
+        name='parsers/elk', code_name='elk',
         parser_class_name='elkparser.ElkParser',
         mainfile_contents_re=(
             r'\s*\+-----------+\+\s*'
@@ -340,12 +341,12 @@ parsers = [
             r'\s*\+----------+\+\s*')
     ),
     LegacyParser(
-        name='parsers/elastic',
+        name='parsers/elastic', code_name='elastic',
         parser_class_name='elasticparser.ElasticParser',
         mainfile_contents_re=r'\s*Order of elastic constants\s*=\s*[0-9]+\s*'
     ),
     LegacyParser(
-        name='parsers/gamess',
+        name='parsers/gamess', code_name='GAMESS',
         parser_class_name='gamessparser.GamessParser',
         mainfile_contents_re=(
             r'\s*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
@@ -353,15 +354,21 @@ parsers = [
             r'\s*\*\s*FROM IOWA STATE UNIVERSITY\s*\*\s*')
     ),
     LegacyParser(
-        name='parsers/turbomole',
+        name='parsers/turbomole', code_name='turbomole',
         parser_class_name='turbomoleparser.TurbomoleParser',
         mainfile_contents_re=(
             r'\s*(P?<progr>[a-zA-z0-9_]+)\s*(?:\([^()]+\))\s*:\s*TURBOMOLE\s*(P?<version>.*)'
             r'\s*Copyright \(C\) [0-9]+ TURBOMOLE GmbH, Karlsruhe')
+    ),
+    LegacyParser(
+        name='parsers/skeleton', code_name='skeleton', domain='EMS',
+        parser_class_name='skeletonparser.SkeletonParserInterface',
+        mainfile_mime_re=r'(application/json)|(text/.*)',
+        mainfile_contents_re=(r'skeleton experimental metadata format')
     )
 ]
 
-""" Instanciation and constructor based config of all parsers. """
+""" Instantiation and constructor based config of all parsers. """
 
 parser_dict = {parser.name: parser for parser in parsers}  # type: ignore
 """ A dict to access parsers by name. Usually 'parsers/<...>', e.g. 'parsers/vasp'. """

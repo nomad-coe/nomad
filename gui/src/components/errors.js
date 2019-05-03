@@ -41,7 +41,10 @@ class ErrorSnacksUnstyled extends React.Component {
   }
 
   onError(error) {
-    this.setState({errors: [error, ...this.state.errors]})
+    const errorStr = '' + error
+    if (this.state.errors.indexOf(errorStr) === -1) {
+      this.setState({errors: [errorStr, ...this.state.errors]})
+    }
   }
 
   onClose() {

@@ -29,7 +29,7 @@ Content-Type: application/json
 {
     "query": {
         "match": {
-            "published": true
+            "published": false
         }
     }
 }
@@ -60,6 +60,25 @@ content-type: application/json
                         "size": 100
                     }
                 }
+            }
+        }
+    }
+}
+
+###
+# Search migration unpublished calcs
+
+GET http://localhost:19200/fairdi_nomad_migration/_search HTTP/1.1
+Content-Type: application/json
+
+{
+    "size": 0,
+    "aggs": {
+        "timeline": {
+            "date_histogram" : {
+                "field" : "upload_time",
+                "interval": "1M",
+                "format" : "yyyy-MM-dd"
             }
         }
     }

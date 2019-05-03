@@ -116,7 +116,7 @@ logstash = NomadConfig(
 services = NomadConfig(
     api_host='localhost',
     api_port=8000,
-    api_base_path='/nomad/api',
+    api_base_path='/fairdi/nomad/latest/api',
     api_secret='defaultApiSecret',
     admin_password='password',
     disable_reset=True,
@@ -131,10 +131,10 @@ tests = NomadConfig(
 
 
 def api_url():
-    return '%s://%s%s/%s' % (
+    return '%s://%s%s%s' % (
         'https' if services.https else 'http',
         services.api_host,
-        ':%s' % services.api_port if services.api_port != 80 else '',
+        ':%s' % services.api_port if int(services.api_port) != 80 else '',
         services.api_base_path)
 
 
@@ -163,7 +163,7 @@ normalize = NomadConfig(
 client = NomadConfig(
     user='leonard.hofstadter@nomad-fairdi.tests.de',
     password='password',
-    url='http://localhost:8000/nomad/api'
+    url='http://localhost:8000/fairdi/nomad/latest/api'
 )
 
 version = '0.4.4'
@@ -278,6 +278,7 @@ def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yaml'))
                                     'config key %s value %s has wrong type: %s' % (key, str(value), str(e)))
                         else:
                             config[key] = value
+                            logger.info('override config key %s with value %s' % (key, str(value)))
                 else:
                     logger.error('config key %s does not exist' % key)
 

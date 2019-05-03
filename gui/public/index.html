@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <script>
+      window.paceOptions = {
+        restartOnPushState: true
+      }
+    </script>
+    <script src="https://unpkg.com/pace-js@1.0.2/pace.min.js"></script>
+    <link href="%PUBLIC_URL%/pace.css" rel="stylesheet" />
+
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="theme-color" content="#000000">
@@ -23,13 +31,15 @@
     <!-- fonts needed by material-ui -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Mono:400,500">
+    <!-- icon fonts for the meta-info browser -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <title>nomad@FAIR</title>
   </head>
   <body>
     <noscript>
       You need to enable JavaScript to run this app.
     </noscript>
-    <script src="%PUBLIC_URL%/config/env.js"></script>
+    <script src="%PUBLIC_URL%/env.js"></script>
     <div id="root"></div>
     <!--
       This HTML file is a template.

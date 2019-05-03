@@ -95,15 +95,12 @@ def source_package(mongo, migration):
     migration.package(*glob.glob('tests/data/migration/*'))
 
 
-@pytest.mark.parametrize('archived', [False, True])
+@pytest.mark.parametrize('variant', ['', '_archived', '_oqmd'])
 @pytest.mark.parametrize('n_packages, restriction, upload', [(1, 36, 'baseline'), (2, 0, 'too_big'), (1, 24, 'restriction')])
 def test_package(
-        mongo, migration: NomadCOEMigration, monkeypatch, n_packages, restriction, upload, archived):
+        mongo, migration: NomadCOEMigration, monkeypatch, n_packages, restriction, upload, variant):
     monkeypatch.setattr('nomad.migration.max_package_size', 3)
-    if archived:
-        upload = os.path.join('tests/data/migration/packaging_archived', upload)
-    else:
-        upload = os.path.join('tests/data/migration/packaging', upload)
+    upload = os.path.join('tests/data/migration/packaging%s' % variant, upload)
 
     migration.package_index(upload)
     packages = Package.objects()
@@ -322,7 +319,7 @@ def perform_migration_test(migrate_infra, name, test_directory, assertions, monk
         assert_search_upload(
             upload_with_metadata, additional_keys=['with_embargo', 'pid'], published=True)
         assert_upload_files(
-            upload_with_metadata, files.PublicUploadFiles, additional_keys=['with_embargo', 'pid'], published=True)
+            upload_with_metadata, files.PublicUploadFiles, published=True)
 
 
 def test_skip_on_same_version(migrate_infra, monkeypatch, caplog):
@@ -331,3 +328,13 @@ def test_skip_on_same_version(migrate_infra, monkeypatch, caplog):
 
     assertions = dict(migrated=2, source=2, skipped_packages=1)
     perform_migration_test(migrate_infra, 'baseline', 'baseline', assertions, monkeypatch, caplog)
+
+
+def test_republish(migrate_infra, monkeypatch, caplog):
+    assertions = dict(migrated=2, source=2, skipped_packages=0)
+    perform_migration_test(migrate_infra, 'baseline', 'baseline', assertions, monkeypatch, caplog)
+
+    upload_path = os.path.join('tests/data/migration', 'baseline')
+    upload_path = os.path.join(upload_path, os.listdir(upload_path)[0])
+
+    migrate_infra.migration.migrate(upload_path, only_republish=True)

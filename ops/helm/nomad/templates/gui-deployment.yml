@@ -12,19 +12,16 @@ data:
     server {
       listen        8080;
       server_name   www.example.com;
-      location {{ .Values.proxy.external.path }} {
+      location {{ .Values.proxy.external.path }}/gui {
         root      /app/;
-        rewrite ^{{ .Values.proxy.external.path }}/(.*)$ /nomad/$1 break;
-        try_files $uri {{ .Values.proxy.external.path }}/index.html;
+        rewrite ^{{ .Values.proxy.external.path }}/gui/(.*)$ /nomad/$1 break;
+        try_files $uri {{ .Values.proxy.external.path }}/gui/index.html;
       }
     }
   env.js: |
     window.nomadEnv = {
       "apiBase": "{{ .Values.proxy.external.path }}/api",
-      "appBase": "{{ .Values.proxy.external.path }}",
-      "appStaticBase": "{{ .Values.proxy.external.path }}",
-      "kibanaBase": "{{ .Values.proxy.external.kibanaPath }}",
-      "appDebug": false
+      "kibanaBase": "{{ .Values.proxy.external.kibanaPath }}"
     };
 ---
 apiVersion: apps/v1
@@ -51,27 +48,28 @@ spec:
       containers:
       - name: {{ include "nomad.name" . }}-gui
         image: "{{ .Values.images.frontend.name }}:{{ .Values.images.frontend.tag }}"
-        command: ["nginx", "-g", "daemon off;"]
+        command: ["./run.sh",  "{{ .Values.proxy.external.path }}"]
         ports:
         - containerPort: 8080
         volumeMounts:
         - mountPath: /etc/nginx/conf.d
           readOnly: true
           name: nginx-conf
-        - mountPath: /app/nomad/config
+        - mountPath: /app/nomad/env.js
           readOnly: true
+          subPath: env.js
           name: nomad-app
         - mountPath: /var/log/nginx
           name: log
         livenessProbe:
           httpGet:
-            path: "{{ .Values.proxy.external.path }}/index.html"
+            path: "{{ .Values.proxy.external.path }}/gui/index.html"
             port: 8080
           initialDelaySeconds: 15
           periodSeconds: 15
         readinessProbe:
           httpGet:
-            path: "{{ .Values.proxy.external.path }}/index.html"
+            path: "{{ .Values.proxy.external.path }}/gui/index.html"
             port: 8080
           initialDelaySeconds: 3
           periodSeconds: 3

@@ -122,15 +122,27 @@ upload_metadata_parser.add_argument('name', type=str, help='An optional name for
 upload_metadata_parser.add_argument('local_path', type=str, help='Use a local file on the server.', location='args')
 upload_metadata_parser.add_argument('file', type=FileStorage, help='The file to upload.', location='files')
 
+upload_list_parser = api.parser()
+upload_list_parser.add_argument('all', type=bool, help='List all uploads, including published.', location='args')
+upload_list_parser.add_argument('name', type=str, help='Filter for uploads with the given name.', location='args')
+
 
 @ns.route('/')
 class UploadListResource(Resource):
     @api.doc('get_uploads')
     @api.marshal_list_with(upload_model, skip_none=True, code=200, description='Uploads send')
+    @api.expect(upload_list_parser)
     @login_really_required
     def get(self):
         """ Get the list of all uploads from the authenticated user. """
-        return [upload for upload in Upload.user_uploads(g.user)], 200
+        all = bool(request.args.get('all', False))
+        name = request.args.get('name', None)
+        query_kwargs = {}
+        if not all:
+            query_kwargs.update(published=False)
+        if name is not None:
+            query_kwargs.update(name=name)
+        return [upload for upload in Upload.user_uploads(g.user, **query_kwargs)], 200
 
     @api.doc('upload')
     @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload received')
@@ -260,7 +272,7 @@ class UploadResource(Resource):
         try:
             page = int(request.args.get('page', 1))
             per_page = int(request.args.get('per_page', 10))
-            order_by = str(request.args.get('order_by', 'mainfile'))
+            order_by = request.args.get('order_by', None)
             order = int(str(request.args.get('order', -1)))
         except Exception:
             abort(400, message='invalid pagination or ordering')
@@ -271,12 +283,14 @@ class UploadResource(Resource):
         except AssertionError:
             abort(400, message='invalid pagination')
 
-        if order_by not in ['mainfile', 'tasks_status', 'parser']:
-            abort(400, message='invalid order_by field %s' % order_by)
+        if order_by is not None:
+            order_by = str(order_by)
+            if order_by not in ['mainfile', 'tasks_status', 'parser']:
+                abort(400, message='invalid order_by field %s' % order_by)
 
-        order_by = ('-%s' if order == -1 else '+%s') % order_by
+            order_by = ('-%s' if order == -1 else '+%s') % order_by
 
-        calcs = upload.all_calcs((page - 1) * per_page, page * per_page, order_by)
+        calcs = upload.all_calcs((page - 1) * per_page, page * per_page, order_by=order_by)
         failed_calcs = upload.failed_calcs
         result = ProxyUpload(upload, {
             'pagination': dict(
@@ -298,7 +312,7 @@ class UploadResource(Resource):
         """
         Delete an existing upload.
 
-        Only uploads that are sill in staging, not already delete, not still uploaded, and
+        Only uploads that are sill in staging, not already deleted, not still uploaded, and
         not currently processed, can be deleted.
         """
         try:
@@ -308,6 +322,9 @@ class UploadResource(Resource):
 
         if upload.user_id != str(g.user.user_id) and not g.user.is_admin:
             abort(401, message='Upload with id %s does not belong to you.' % upload_id)
+
+        if upload.published:
+            abort(400, message='The upload is already published')
 
         if upload.tasks_running:
             abort(400, message='The upload is not processed yet')
@@ -333,11 +350,11 @@ class UploadResource(Resource):
         """
         Execute an upload operation. Available operations: ``publish``
 
-        Unstage accepts further meta data that allows to provide coauthors, comments,
+        Publish accepts further meta data that allows to provide coauthors, comments,
         external references, etc. See the model for details. The fields that start with
         ``_underscore`` are only available for users with administrative privileges.
 
-        Unstage changes the visibility of the upload. Clients can specify the visibility
+        Publish changes the visibility of the upload. Clients can specify the visibility
         via meta data.
         """
         try:
@@ -369,7 +386,7 @@ class UploadResource(Resource):
             if upload.processed_calcs == 0:
                 abort(400, message='Cannot publish an upload without calculations')
             try:
-                upload.metadata = metadata
+                upload.compress_and_set_metadata(metadata)
                 upload.publish_upload()
             except ProcessAlreadyRunning:
                 abort(400, message='The upload is still/already processed')

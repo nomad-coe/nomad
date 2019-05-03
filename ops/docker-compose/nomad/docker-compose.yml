@@ -89,7 +89,7 @@ services:
         container_name: nomad_api
         environment:
             <<: *nomad_backend_env
-            NOMAD_SERVICES_API_BASE_PATH: /nomad/api
+            NOMAD_SERVICES_API_BASE_PATH: /fairdi/nomad/latest/api
             NOMAD_SERVICES_API_HOST: ${EXTERNAL_HOST}
             NOMAD_SERVICES_API_PORT: ${EXTERNAL_PORT}
             NOMAD_SERVICES_API_SECRET: ${API_SECRET}

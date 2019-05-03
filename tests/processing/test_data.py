@@ -19,7 +19,7 @@ import os.path
 import json
 import re
 
-from nomad import utils, infrastructure, config
+from nomad import utils, infrastructure, config, datamodel
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator, FAILURE, SUCCESS
@@ -82,7 +82,7 @@ def assert_processing(upload: Upload):
         with upload_files.archive_file(calc.calc_id) as archive_json:
             archive = json.load(archive_json)
         assert 'section_run' in archive
-        assert 'section_calculation_info' in archive
+        assert 'section_entry_info' in archive
 
         with upload_files.archive_log_file(calc.calc_id) as f:
             assert 'a test' in f.read()
@@ -103,7 +103,7 @@ def test_processing(processed, no_warn, mails, monkeypatch):
 
 def test_publish(non_empty_processed: Upload, no_warn, example_user_metadata, monkeypatch, with_publish_to_coe_repo):
     processed = non_empty_processed
-    processed.metadata = example_user_metadata
+    processed.compress_and_set_metadata(example_user_metadata)
 
     additional_keys = ['with_embargo']
     if with_publish_to_coe_repo:
@@ -115,11 +115,60 @@ def test_publish(non_empty_processed: Upload, no_warn, example_user_metadata, mo
     except Exception:
         pass
 
-    upload = processed.to_upload_with_metadata()
+    upload = processed.to_upload_with_metadata(example_user_metadata)
     if with_publish_to_coe_repo:
         assert_coe_upload(upload.upload_id, user_metadata=example_user_metadata)
 
-    assert_upload_files(upload, PublicUploadFiles, additional_keys, published=True)
+    assert_upload_files(upload, PublicUploadFiles, published=True)
+    assert_search_upload(upload, additional_keys, published=True)
+
+
+def test_republish(non_empty_processed: Upload, no_warn, example_user_metadata, monkeypatch, with_publish_to_coe_repo):
+    processed = non_empty_processed
+    processed.compress_and_set_metadata(example_user_metadata)
+
+    additional_keys = ['with_embargo']
+    if with_publish_to_coe_repo:
+        additional_keys.append('pid')
+
+    processed.publish_upload()
+    processed.block_until_complete(interval=.01)
+    assert Upload.get('examples_template') is not None
+
+    processed.publish_upload()
+    processed.block_until_complete(interval=.01)
+
+    upload = processed.to_upload_with_metadata(example_user_metadata)
+    if with_publish_to_coe_repo:
+        assert_coe_upload(upload.upload_id, user_metadata=example_user_metadata)
+
+    assert_upload_files(upload, PublicUploadFiles, published=True)
+    assert_search_upload(upload, additional_keys, published=True)
+
+
+def test_republish_to_coe(non_empty_processed: Upload, no_warn, example_user_metadata, monkeypatch):
+    """
+    Test the following scenario: initial processing + publish without coe repo, then
+    republishing with coe repo.
+    """
+    monkeypatch.setattr('nomad.config.repository_db.publish_enabled', False)
+
+    processed = non_empty_processed
+    processed.compress_and_set_metadata(example_user_metadata)
+
+    processed.publish_upload()
+    processed.block_until_complete(interval=.01)
+    assert Upload.get('examples_template') is not None
+
+    monkeypatch.setattr('nomad.config.repository_db.publish_enabled', True)
+
+    processed.publish_upload()
+    processed.block_until_complete(interval=.01)
+
+    upload = processed.to_upload_with_metadata(example_user_metadata)
+    additional_keys = ['with_embargo', 'pid']
+    assert_coe_upload(upload.upload_id, user_metadata=example_user_metadata)
+    assert_upload_files(upload, PublicUploadFiles, published=True)
     assert_search_upload(upload, additional_keys, published=True)
 
 
@@ -130,7 +179,7 @@ def test_publish_failed(
     mock_failure(Calc, 'parsing', monkeypatch)
 
     processed = run_processing(non_empty_uploaded, test_user)
-    processed.metadata = example_user_metadata
+    processed.compress_and_set_metadata(example_user_metadata)
 
     additional_keys = ['with_embargo']
     if with_publish_to_coe_repo:
@@ -142,11 +191,11 @@ def test_publish_failed(
     except Exception:
         pass
 
-    upload = processed.to_upload_with_metadata()
+    upload = processed.to_upload_with_metadata(example_user_metadata)
     if with_publish_to_coe_repo:
         assert_coe_upload(upload.upload_id, user_metadata=example_user_metadata)
 
-    assert_upload_files(upload, PublicUploadFiles, additional_keys, published=True)
+    assert_upload_files(upload, PublicUploadFiles, published=True, no_archive=True)
     assert_search_upload(upload, additional_keys, published=True, processed=False)
 
 
@@ -233,3 +282,19 @@ def test_malicious_parser_task_failure(proc_infra, failure, test_user):
     assert not calc.tasks_running
     assert calc.tasks_status == FAILURE
     assert len(calc.errors) == 1
+
+
+def test_ems_data(proc_infra, test_user, monkeypatch):
+    monkeypatch.setattr('nomad.config.domain', 'EMS')
+    monkeypatch.setattr('nomad.datamodel.Domain.instance', datamodel.Domain.instances['EMS'])
+    monkeypatch.setattr('nomad.datamodel.CalcWithMetadata', datamodel.Domain.instance.domain_entry_class)
+
+    upload = run_processing(('test_ems_upload', 'tests/data/proc/example_ems.zip'), test_user)
+
+    additional_keys = ['method', 'experiment_location', 'experiment_time', 'formula', 'chemical']
+    assert upload.total_calcs == 1
+    assert len(upload.calcs) == 1
+
+    upload_with_metadata = upload.to_upload_with_metadata()
+    assert_upload_files(upload_with_metadata, StagingUploadFiles, published=False)
+    assert_search_upload(upload_with_metadata, additional_keys, published=False)

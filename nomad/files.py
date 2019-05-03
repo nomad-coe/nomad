@@ -23,12 +23,9 @@ almost readonly (beside metadata) storage.
 
 .. code-block:: sh
 
-    fs/staging/<upload>/metadata/<calc>.json
-                       /raw/**
-                       /archive/<calc>.hdf5
-                       /.frozen
-    fs/public/<upload>/metadata.json.gz
-                      /raw-public.plain.zip
+    fs/staging/<upload>/raw/**
+                       /archive/<calc>.json
+    fs/public/<upload>/raw-public.plain.zip
                       /raw-restricted.plain.zip
                       /archive-public.json.zip
                       /archive-restricted.json.zip
@@ -60,9 +57,22 @@ from zipfile import ZipFile, BadZipFile
 import tarfile
 import hashlib
 import io
+import pickle
 
 from nomad import config, utils
 from nomad.datamodel import UploadWithMetadata
+
+
+user_metadata_filename = 'user_metadata.pickle'
+
+
+def always_restricted(path: str):
+    """
+    Used to put general restrictions on files, e.g. due to licensing issues. Will be
+    called during packing and while accessing public files.
+    """
+    if os.path.basename(path) == 'POTCAR':
+        return True
 
 
 class PathObject:
@@ -113,7 +123,7 @@ class PathObject:
 
     @property
     def size(self) -> int:
-        """ Returns the os determined file size. """
+        """ The os determined file size. """
         return os.stat(self.os_path).st_size
 
     def __repr__(self) -> str:
@@ -176,6 +186,23 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         self.upload_id = upload_id
         self._is_authorized = is_authorized
 
+    @property
+    def _user_metadata_file(self):
+        return self.join_file('user_metadata.pickle')
+
+    @property
+    def user_metadata(self) -> dict:
+        if self._user_metadata_file.exists():
+            with open(self._user_metadata_file.os_path, 'rb') as f:
+                return pickle.load(f)
+        else:
+            return {}
+
+    @user_metadata.setter
+    def user_metadata(self, data: dict) -> None:
+        with open(self._user_metadata_file.os_path, 'wb') as f:
+            pickle.dump(data, f)
+
     @staticmethod
     def get(upload_id: str, *args, **kwargs) -> 'UploadFiles':
         if DirectoryObject(config.fs.staging, upload_id, prefix=True).exists():
@@ -233,14 +260,21 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
 
 
 class StagingUploadFiles(UploadFiles):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(config.fs.staging, *args, **kwargs)
+    def __init__(
+            self, upload_id: str, is_authorized: Callable[[], bool] = lambda: False,
+            create: bool = False) -> None:
+        super().__init__(config.fs.staging, upload_id, is_authorized, create)
 
         self._raw_dir = self.join_dir('raw')
         self._archive_dir = self.join_dir('archive')
         self._frozen_file = self.join_file('.frozen')
 
         self._size = 0
+        self._shared = DirectoryObject(config.fs.public, upload_id, create=create)
+
+    @property
+    def _user_metadata_file(self):
+        return self._shared.join_file('user_metadata.pickle')
 
     @property
     def size(self) -> int:
@@ -352,6 +386,13 @@ class StagingUploadFiles(UploadFiles):
             create_prefix=True)
         assert target_dir.exists()
 
+        # copy user metadata
+        target_metadata_file = target_dir.join_file(user_metadata_filename)
+        if self._user_metadata_file.exists() and not target_metadata_file.exists():
+            shutil.copyfile(
+                self._user_metadata_file.os_path,
+                target_metadata_file.os_path)
+
         def create_zipfile(kind: str, prefix: str, ext: str) -> ZipFile:
             file = target_dir.join_file('%s-%s.%s.zip' % (kind, prefix, ext))
             return ZipFile(file.os_path, mode='w')
@@ -371,7 +412,8 @@ class StagingUploadFiles(UploadFiles):
                 mainfile = calc.mainfile
                 assert mainfile is not None
                 for filepath in self.calc_files(mainfile):
-                    public_files[filepath] = None
+                    if not always_restricted(filepath):
+                        public_files[filepath] = None
         # 1.2 remove the non public mainfiles that have been added as auxfiles of public mainfiles
         for calc in upload.calcs:
             if calc.with_embargo:
@@ -485,6 +527,11 @@ class StagingUploadFiles(UploadFiles):
 
         return utils.make_websave(hash)
 
+    def delete(self) -> None:
+        super().delete()
+        if self._shared.exists():
+            self._shared.delete()
+
 
 class ArchiveBasedStagingUploadFiles(StagingUploadFiles):
     """
@@ -533,7 +580,7 @@ class PublicUploadFiles(UploadFiles):
                 zip_file = self.join_file('%s-%s.%s.zip' % (prefix, access, ext))
                 with ZipFile(zip_file.os_path) as zf:
                     f = zf.open(path, 'r', **kwargs)
-                    if access == 'restricted' and not self._is_authorized():
+                    if (access == 'restricted' or always_restricted(path)) and not self._is_authorized():
                         raise Restricted
                     if 't' in mode:
                         return io.TextIOWrapper(f)
