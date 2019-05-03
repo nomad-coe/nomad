@@ -174,14 +174,15 @@ class Proc(Document, metaclass=ProcMetaclass):
     @classmethod
     def create(cls, **kwargs):
         """ Factory method that must be used instead of regular constructor. """
-        assert cls.tasks is not None and len(cls.tasks) > 0, \
-            """ the class attribute tasks must be overwritten with an actual list """
         assert 'tasks_status' not in kwargs, \
             """ do not set the status manually, its managed """
 
         kwargs.setdefault('create_time', datetime.now())
         self = cls(**kwargs)
-        self.tasks_status = PENDING if self.current_task is None else RUNNING
+        if len(cls.tasks) == 0:
+            self.tasks_status = SUCCESS
+        else:
+            self.tasks_status = PENDING if self.current_task is None else RUNNING
         self.save()
 
         return self
@@ -424,7 +425,7 @@ def unwarp_task(task, cls_name, self_id, *args, **kwargs):
             logger.warning('called object is missing')
             raise task.retry(exc=e, countdown=3)
     except KeyError:
-        logger.critical('called object is missing, retries exeeded')
+        logger.critical('called object is missing, retries exeeded', proc_id=self_id)
         raise ProcObjectDoesNotExist()
 
     return self

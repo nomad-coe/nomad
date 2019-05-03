@@ -59,7 +59,7 @@ class Calc(Base):
 
     coe_calc_id = Column('calc_id', Integer, primary_key=True, autoincrement=True)
     origin_id = Column(Integer, ForeignKey('uploads.upload_id'))
-    upload = relationship('Upload')
+    upload = relationship('Upload', lazy='joined')
     checksum = Column(String)
 
     calc_metadata = relationship('CalcMetaData', uselist=False, lazy='joined')
@@ -325,6 +325,9 @@ class Calc(Base):
         result.files = self.files
 
         for topic in [tag.topic for tag in self.tags]:
+            if topic is None:
+                continue
+
             if topic.cid == base.topic_code:
                 result.code_name = topic.topic
             elif topic.cid == base.topic_basis_set_type:
@@ -345,7 +348,8 @@ class Calc(Base):
 
         result.code_version = self.calc_metadata.version.content
         result.formula = self.calc_metadata.chemical_formula
-        result.spacegroup = self.spacegroup.n
+        if self.spacegroup is not None:
+            result.spacegroup = self.spacegroup.n
         result.atoms.sort()
 
         datasets: List[DataSet] = []

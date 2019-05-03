@@ -12,6 +12,7 @@ import SearchAggregations from './SearchAggregations'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ExpandLessIcon from '@material-ui/icons/ExpandLess'
 import { withDomain } from '../domains'
+import { Help } from '../help'
 
 class SearchPage extends React.Component {
   static propTypes = {
@@ -57,15 +58,17 @@ class SearchPage extends React.Component {
     searchResults: {}
   })
 
-  state = {
-    data: {
-      results: [],
-      pagination: {
-        total: 0
-      },
-      aggregations: {},
-      metrics: {}
+  static emptySearchData = {
+    results: [],
+    pagination: {
+      total: 0
     },
+    aggregations: {},
+    metrics: {}
+  }
+
+  state = {
+    data: SearchPage.emptySearchData,
     owner: 'all',
     searchState: {
       ...SearchAggregations.defaultState
@@ -111,10 +114,10 @@ class SearchPage extends React.Component {
       ...searchStateRest
     }).then(data => {
       this.setState({
-        data: data
+        data: data || SearchPage.emptySearchData
       })
     }).catch(errors => {
-      this.setState({data: [], total: 0, owner: owner})
+      this.setState({data: SearchPage.emptySearchData, owner: owner})
       this.props.raiseError(errors)
     })
   }
@@ -161,6 +164,35 @@ class SearchPage extends React.Component {
 
     return (
       <div className={classes.root}>
+        <Help cookie="searchPage">{`
+          This page allows you to **search** in nomad's data. The upper part of this page
+          gives you various options to enter and configure your search. The lower half
+          show the search results.
+
+          ### Search Options
+
+          Nomad's *domain-aware* search allows you to screen data by filtering based on
+          desired properties. This is different from basic *text-search* that traditional
+          search engines offer
+
+          You can specify if you want to search among all data, publicly available data,
+          your own data, or just unpublished data in your [staging area](/uploads/).
+
+          The search bar allows you to specify various quantity values that you want to
+          see in your results. This includes *atom labels*, *code name*, *system type*,
+          *crystal system*, *basis set types*, and *XC functionals*. Alternatively, you can
+          click the periodic table and statistic bars to filter for respective quantities.
+
+          The periodic table and bar-charts show metrics for all data that fit your search.
+          You can choose between *entries* (e.g. code runs), *unique entries*, and *dataset*.
+          Other more specific metrics might be available.
+
+          ### Search Results
+
+          The results table gives you a quick overview of all entries that fit your search.
+          You can click entries to see more details, download data, see the archive, etc.
+        `}</Help>
+
         <DisableOnLoading>
           { user
             ? <div className={classes.searchEntry}>

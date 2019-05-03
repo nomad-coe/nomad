@@ -71,7 +71,7 @@ class Dataset(InnerDoc):
 class WithDomain(IndexMeta):
     """ Override elasticsearch_dsl metaclass to sneak in domain specific mappings """
     def __new__(cls, name, bases, attrs):
-        for quantity in datamodel.Domain.instance.quantities:
+        for quantity in datamodel.Domain.instance.quantities.values():
             attrs[quantity.name] = quantity.elastic_mapping
         return super(WithDomain, cls).__new__(cls, name, bases, attrs)
 
@@ -143,8 +143,8 @@ class Entry(Document, metaclass=WithDomain):
         self.references = [ref.value for ref in source.references]
         self.datasets = [Dataset.from_dataset_popo(ds) for ds in source.datasets]
 
-        for quantity in datamodel.Domain.instance.quantities:
-            setattr(self, quantity.name, getattr(source, quantity.name))
+        for quantity in datamodel.Domain.instance.quantities.keys():
+            setattr(self, quantity, getattr(source, quantity))
 
 
 def delete_upload(upload_id):
@@ -196,7 +196,7 @@ The available search quantities in :func:`aggregate_search` as tuples with *sear
 elastic field and description.
 """
 
-for quantity in datamodel.Domain.instance.quantities:
+for quantity in datamodel.Domain.instance.quantities.values():
     search_spec = ('term', quantity.name, quantity.description)
     search_quantities[quantity.name] = search_spec
 
@@ -218,7 +218,7 @@ metrics_names = list(metric for metric in metrics.keys())
 
 
 order_default_quantity = None
-for quantity in datamodel.Domain.instance.quantities:
+for quantity in datamodel.Domain.instance.quantities.values():
     if quantity.order_default:
         order_default_quantity = quantity.name
 
@@ -243,10 +243,12 @@ def _construct_search(q: Q = None, time_range: Tuple[datetime, datetime] = None,
             values = [value]
 
         for item in values:
-            if key == 'atoms':
+            quantity = datamodel.Domain.instance.quantities.get(key)
+            if quantity is not None and quantity.multi:
                 items = item.split(',')
             else:
                 items = [item]
+
             for item in items:
                 search = search.query(Q(query_type, **{field: item}))
 
@@ -263,7 +265,7 @@ def scroll_search(
     :func:`aggregate_search`, but pagination is replaced with scrolling, no ordering,
     and no aggregation information is given.
 
-    Scrolling is done by calling this function again and again with the same ``scoll_id``.
+    Scrolling is done by calling this function again and again with the same ``scroll_id``.
     Each time, this function will return the next batch of search results.
 
     See see :func:`aggregate_search` for additional ``kwargs``

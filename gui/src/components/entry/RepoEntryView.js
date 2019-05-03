@@ -8,6 +8,7 @@ import DownloadIcon from '@material-ui/icons/CloudDownload'
 import ApiDialogButton from '../ApiDialogButton'
 import Quantity from '../Quantity'
 import { withDomain } from '../domains'
+import { Help } from '../help'
 
 class RepoEntryView extends React.Component {
   static styles = theme => ({
@@ -79,6 +80,10 @@ class RepoEntryView extends React.Component {
 
     return (
       <div className={classes.root}>
+        <Help cookie="repoView">{`
+          This page gives you a brief overview about the selected entry. It shows basic
+          metadata and allows you to download the raw data.
+        `}</Help>
         <div className={classes.content}>
           <Grid container spacing={24}>
             <Grid item xs={7}>
@@ -96,7 +101,7 @@ class RepoEntryView extends React.Component {
                     <Quantity quantity='comment' placeholder='no comment' {...quantityProps} />
                     <Quantity quantity='references' placeholder='no references' {...quantityProps}>
                       {(calcData.references || []).map(ref => <Typography key={ref} noWrap>
-                        <a key={ref.id} href={ref.value}>{ref.value}</a>
+                        <a href={ref}>{ref}</a>
                       </Typography>)}
                     </Quantity>
                     <Quantity quantity='authors' {...quantityProps}>

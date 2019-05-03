@@ -16,7 +16,8 @@ class DomainProviderBase extends React.Component {
       PropTypes.arrayOf(PropTypes.node),
       PropTypes.node
     ]).isRequired,
-    api: PropTypes.object.isRequired
+    api: PropTypes.object.isRequired,
+    raiseError: PropTypes.func.isRequired
   }
 
   domains = {
@@ -161,6 +162,8 @@ class DomainProviderBase extends React.Component {
   componentDidMount() {
     this.props.api.getInfo().then(info => {
       this.setState({domain: this.domains[info.domain.name] || this.domains.DFT})
+    }).catch(error => {
+      this.props.raiseError(error)
     })
   }
 

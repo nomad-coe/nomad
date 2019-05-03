@@ -210,13 +210,17 @@ class Domain:
             domain specific quantities.
         quantities: Additional specifications for the quantities in ``domain_entry_class`` as
             instances of :class:`DomainQuantity`.
+        root_sections: The name of the possible root sections for this domain.
+        metainfo_all_package: The name of the full metainfo package for this domain.
     """
     instance: 'Domain' = None
     instances: Dict[str, 'Domain'] = {}
 
     def __init__(
             self, name: str, domain_entry_class: Type[CalcWithMetadata],
-            quantities: Dict[str, DomainQuantity], root_sections=['section_run', 'section_entry_info']) -> None:
+            quantities: Dict[str, DomainQuantity],
+            root_sections=['section_run', 'section_entry_info'],
+            metainfo_all_package='all.nomadmetainfo.json') -> None:
         if name == config.domain:
             assert Domain.instance is None, 'you can only define one domain.'
             Domain.instance = self
@@ -225,8 +229,9 @@ class Domain:
 
         self.name = name
         self.domain_entry_class = domain_entry_class
-        self.quantities: List[DomainQuantity] = []
+        self.quantities: Dict[str, DomainQuantity] = {}
         self.root_sections = root_sections
+        self.metainfo_all_package = metainfo_all_package
 
         reference_domain_calc = domain_entry_class()
         reference_general_calc = CalcWithMetadata()
@@ -239,13 +244,13 @@ class Domain:
                     quantities[quantity_name] = quantity
                 quantity.name = quantity_name
                 quantity.multi = isinstance(value, list)
-                self.quantities.append(quantity)
+                self.quantities[quantity.name] = quantity
 
         for quantity_name in quantities.keys():
             assert hasattr(reference_domain_calc, quantity_name) and not hasattr(reference_general_calc, quantity_name), \
                 'quantity does not exist or overrides general non domain quantity'
 
-        assert any(quantity.order_default for quantity in Domain.instances[name].quantities), \
+        assert any(quantity.order_default for quantity in Domain.instances[name].quantities.values()), \
             'you need to define a order default quantity'
 
     @property
@@ -255,7 +260,7 @@ class Domain:
         """
         return {
             quantity.metric[0]: (quantity.metric[1], quantity.name)
-            for quantity in self.quantities
+            for quantity in self.quantities.values()
             if quantity.metric is not None
         }
 
@@ -272,7 +277,7 @@ class Domain:
         """
         return {
             quantity.name: quantity.aggregations
-            for quantity in self.quantities
+            for quantity in self.quantities.values()
             if quantity.aggregations > 0
         }
 

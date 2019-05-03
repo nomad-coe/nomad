@@ -8,6 +8,7 @@ import { Typography, withStyles } from '@material-ui/core'
 import LoginLogout from './LoginLogout'
 import { Cookies, withCookies } from 'react-cookie'
 import { compose } from 'recompose'
+import MetaInfoRepository from './MetaInfoRepository'
 
 const ApiContext = React.createContext()
 
@@ -139,7 +140,7 @@ class Api {
     this.auth_headers = {
       'X-Token': user.token
     }
-    this.swaggerPromise = Api.createSwaggerClient(user.token)
+    this.swaggerPromise = Api.createSwaggerClient(user.token).catch(this.handleApiError)
   }
 
   handleApiError(e) {
@@ -170,8 +171,8 @@ class Api {
 
   async getUploads() {
     this.onStartLoading()
-    const client = await this.swaggerPromise
-    return client.apis.uploads.get_uploads()
+    return this.swaggerPromise
+      .then(client => client.apis.uploads.get_uploads())
       .catch(this.handleApiError)
       .then(response => response.body.map(uploadJson => {
         const upload = new Upload(uploadJson, this)
@@ -183,23 +184,35 @@ class Api {
 
   async archive(uploadId, calcId) {
     this.onStartLoading()
-    const client = await this.swaggerPromise
-    return client.apis.archive.get_archive_calc({
-      upload_id: uploadId,
-      calc_id: calcId
-    })
+    return this.swaggerPromise
+      .then(client => client.apis.archive.get_archive_calc({
+        upload_id: uploadId,
+        calc_id: calcId
+      }))
       .catch(this.handleApiError)
-      .then(response => response.body)
+      .then(response => {
+        console.log(response)
+        const result = response.body || response.text || response.data
+        if (typeof result === 'string') {
+          try {
+            return JSON.parse(result)
+          } catch (e) {
+            return result
+          }
+        } else {
+          return result
+        }
+      })
       .finally(this.onFinishLoading)
   }
 
   async calcProcLog(uploadId, calcId) {
     this.onStartLoading()
-    const client = await this.swaggerPromise
-    return client.apis.archive.get_archive_logs({
-      upload_id: uploadId,
-      calc_id: calcId
-    })
+    return this.swaggerPromise
+      .then(client => client.apis.archive.get_archive_logs({
+        upload_id: uploadId,
+        calc_id: calcId
+      }))
       .catch(this.handleApiError)
       .then(response => response.text)
       .finally(this.onFinishLoading)
@@ -207,11 +220,11 @@ class Api {
 
   async repo(uploadId, calcId) {
     this.onStartLoading()
-    const client = await this.swaggerPromise
-    return client.apis.repo.get_repo_calc({
-      upload_id: uploadId,
-      calc_id: calcId
-    })
+    return this.swaggerPromise
+      .then(client => client.apis.repo.get_repo_calc({
+        upload_id: uploadId,
+        calc_id: calcId
+      }))
       .catch(this.handleApiError)
       .then(response => response.body)
       .finally(this.onFinishLoading)
@@ -219,8 +232,8 @@ class Api {
 
   async search(search) {
     this.onStartLoading()
-    const client = await this.swaggerPromise
-    return client.apis.repo.search(search)
+    return this.swaggerPromise
+      .then(client => client.apis.repo.search(search))
       .catch(this.handleApiError)
       .then(response => response.body)
       .finally(this.onFinishLoading)
@@ -228,8 +241,8 @@ class Api {
 
   async deleteUpload(uploadId) {
     this.onStartLoading()
-    const client = await this.swaggerPromise
-    return client.apis.uploads.delete_upload({upload_id: uploadId})
+    return this.swaggerPromise
+      .then(client => client.apis.uploads.delete_upload({upload_id: uploadId}))
       .catch(this.handleApiError)
       .then(response => response.body)
       .finally(this.onFinishLoading)
@@ -237,16 +250,16 @@ class Api {
 
   async publishUpload(uploadId, withEmbargo) {
     this.onStartLoading()
-    const client = await this.swaggerPromise
-    return client.apis.uploads.exec_upload_operation({
-      upload_id: uploadId,
-      payload: {
-        operation: 'publish',
-        metadata: {
-          with_embargo: withEmbargo
+    return this.swaggerPromise
+      .then(client => client.apis.uploads.exec_upload_operation({
+        upload_id: uploadId,
+        payload: {
+          operation: 'publish',
+          metadata: {
+            with_embargo: withEmbargo
+          }
         }
-      }
-    })
+      }))
       .catch(this.handleApiError)
       .then(response => response.body)
       .finally(this.onFinishLoading)
@@ -254,50 +267,35 @@ class Api {
 
   async getSignatureToken() {
     this.onStartLoading()
-    const client = await this.swaggerPromise
-    return client.apis.auth.get_token()
+    return this.swaggerPromise
+      .then(client => client.apis.auth.get_token())
       .catch(this.handleApiError)
       .then(response => response.body)
       .finally(this.onFinishLoading)
   }
 
-  _cachedMetaInfo = null
+  _metaInfoRepositories = {}
 
-  async getMetaInfo() {
-    if (this._cachedMetaInfo) {
-      return this._cachedMetaInfo
+  async getMetaInfo(pkg) {
+    pkg = pkg || 'all.nomadmetainfo.json'
+
+    const metaInfoRepository = this._metaInfoRepositories[pkg]
+
+    if (metaInfoRepository) {
+      return metaInfoRepository
     } else {
       this.onStartLoading()
       const loadMetaInfo = async(path) => {
-        const client = await this.swaggerPromise
-        return client.apis.archive.get_metainfo({metainfo_path: path})
+        return this.swaggerPromise
+          .then(client => client.apis.archive.get_metainfo({metainfo_package_name: path}))
           .catch(this.handleApiError)
           .then(response => response.body)
-          .then(data => {
-            if (!this._cachedMetaInfo) {
-              this._cachedMetaInfo = {
-                loadedDependencies: {}
-              }
-            }
-            this._cachedMetaInfo.loadedDependencies[path] = true
-            if (data.metaInfos) {
-              data.metaInfos.forEach(info => {
-                this._cachedMetaInfo[info.name] = info
-                info.relativePath = path
-              })
-            }
-            if (data.dependencies) {
-              data.dependencies
-                .filter(dep => this._cachedMetaInfo.loadedDependencies[dep.relativePath] !== true)
-                .forEach(dep => {
-                  loadMetaInfo(dep.relativePath)
-                })
-            }
-          })
       }
-      await loadMetaInfo('all.nomadmetainfo.json')
+      const metaInfo = await loadMetaInfo(pkg)
+      const metaInfoRepository = new MetaInfoRepository(metaInfo)
+      this._metaInfoRepositories[pkg] = metaInfoRepository
       this.onFinishLoading()
-      return this._cachedMetaInfo
+      return metaInfoRepository
     }
   }
 
@@ -321,8 +319,8 @@ class Api {
 
   async getUploadCommand() {
     this.onStartLoading()
-    const client = await this.swaggerPromise
-    return client.apis.uploads.get_upload_command()
+    return this.swaggerPromise
+      .then(client => client.apis.uploads.get_upload_command())
       .catch(this.handleApiError)
       .then(response => response.body.upload_command)
       .finally(this.onFinishLoading)
@@ -494,6 +492,8 @@ class WithApiComponent extends React.Component {
 
   raiseError(error) {
     const { raiseError, showErrorPage } = this.props
+
+    console.error(error)
 
     if (!showErrorPage) {
       raiseError(error)

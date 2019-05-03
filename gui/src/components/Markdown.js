@@ -13,7 +13,7 @@ import extend from '@babel/runtime/helpers/extends'
 var styles = theme => ({
   root: {
     fontFamily: theme.typography.fontFamily,
-    fontSize: theme.typography.fontSize,
+    fontSize: 16,
     color: theme.palette.text.primary,
     '& .anchor-link': {
       marginTop: -96,

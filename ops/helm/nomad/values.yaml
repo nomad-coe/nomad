@@ -127,3 +127,7 @@ volumes:
   staging: /nomad/fairdi/latest/fs/staging
   tmp: /nomad/fairdi/latest/fs/tmp
   nomad: /nomad
+
+## Everything else
+# The domain configuration, currently there is DFT and EMS
+domain: DFT

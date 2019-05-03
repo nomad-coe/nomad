@@ -21,9 +21,24 @@ from nomad.normalizing import normalizers
 from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_example  # pylint: disable=unused-import
-from tests.test_parsing import parsed_faulty_unknown_matid_example  # pylint: disable=unused-import
+from tests.test_parsing import parse_file
 from tests.utils import assert_log
 
+
+boolean_positions = (
+    'parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
+
+single_string_atom_labels = (
+    'parsers/template', 'tests/data/normalizers/single_string_atom_labels.json')
+
+unknown_atom_label = (
+    'parsers/template', 'tests/data/normalizers/unknown_atom_label_test.json')
+
+fcc_symmetry = (
+    'parsers/template', 'tests/data/normalizers/fcc_crystal_structure.json')
+
+glucose_atom_labels = (
+    'parsers/template', 'tests/data/normalizers/glucose_atom_labels.json')
 
 symmetry_keys = ['spacegroup', 'spacegroup_symbol', 'crystal_system']
 calc_metadata_keys = [
@@ -48,7 +63,7 @@ parser_exceptions = {
 }
 """
 Keys that the normalizer for certain parsers might not produce. In an ideal world this
-map could be empty.
+map would be empty.
 """
 
 
@@ -60,7 +75,6 @@ def run_normalize(backend: LocalBackend) -> LocalBackend:
     for normalizer_class in normalizers:
         normalizer = normalizer_class(backend)
         normalizer.normalize()
-
     return backend
 
 
@@ -107,10 +121,63 @@ def test_normalizer(normalized_example: LocalBackend):
     assert_normalized(normalized_example)
 
 
-def test_normalizer_faulty_matid(
-        parsed_faulty_unknown_matid_example: LocalBackend, caplog):
+def test_normalizer_faulty_matid(caplog):
     """ Runs normalizer on an example w/ bools for atom pos. Should force matid error."""
-    run_normalize(parsed_faulty_unknown_matid_example)
-
+    # assert isinstance(backend, LocalBackend)
+    backend = parse_file(boolean_positions)
+    run_normalize(backend)
     assert_log(caplog, 'ERROR', 'matid project system classification failed')
     assert_log(caplog, 'ERROR', 'no lattice vectors but periodicity')
+
+
+def test_normalizer_single_string_atom_labels(caplog):
+    """ Runs normalizer on ['Br1SiSiK'] expects error that it is formatted wrong."""
+    backend = parse_file(single_string_atom_labels)
+    run_normalize(backend)
+    assert_log(caplog, 'ERROR', 'Atom labels cannot be recognized.')
+
+
+def test_normalizer_unknown_atom_label(caplog):
+    """ Runs normalizer on ['Br','Si','Si','Za'], expects Za throws an error"""
+    backend = parse_file(unknown_atom_label)
+    run_normalize(backend)
+    assert_log(caplog, 'ERROR', 'Atom labels cannot be recognized.')
+
+
+def test_symmetry_classification_fcc():
+    """Runs normalizer where lattice vectors should give fcc symmetry."""
+    backend = parse_file(fcc_symmetry)
+    backend = run_normalize(backend)
+    expected_crystal_system = 'cubic'
+    expected_bravais_lattice = 'cF'
+    expected_point_group = 'm-3m'
+    expected_origin_shift = [0, 0, 0]
+    cyrstal_system = backend.get_value('crystal_system')
+    assert cyrstal_system == expected_crystal_system
+    bravais_lattice = backend.get_value('bravais_lattice')
+    assert bravais_lattice == expected_bravais_lattice
+    point_group = backend.get_value('point_group')
+    assert point_group == expected_point_group
+    origin_shift = backend.get_value('origin_shift')
+    assert all(origin_shift == expected_origin_shift)
+
+
+def test_system_classification():
+    "Ensure the classification of fcc Na is atom"
+    # TODO: @dts - This is a bit strange that a system with only
+    # one atom is automatically classified as atom. It could be
+    # an elemental solid.
+    backend = parse_file(fcc_symmetry)
+    backend = run_normalize(backend)
+    expected_system_type = 'atom'
+    system_type = backend.get_value('system_type')
+    assert expected_system_type == system_type
+
+
+def test_reduced_chemical_formula():
+    "Ensure we get the right reduced chemical formula for glucose atom labels"
+    backend = parse_file(glucose_atom_labels)
+    backend = run_normalize(backend)
+    expected_red_chem_formula = 'C6H12O6'
+    reduced_chemical_formula = backend.get_value('chemical_composition_bulk_reduced')
+    assert expected_red_chem_formula == reduced_chemical_formula

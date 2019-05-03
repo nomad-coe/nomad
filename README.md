@@ -61,6 +61,8 @@ your browser.
 - improved GUI navigation
 - support for multiple domains
 - info API endpoint
+- metainfo browser
+- bugfixes in system normalization
 
 ### v0.4.3
 - more flexible celery routing

@@ -10,6 +10,7 @@ metadata:
 data:
   nomad.yaml: |
     release: "{{ .Release.Name }}"
+    domain: "{{ .Values.domain }}"
     fs:
       tmp: "{{ .Values.volumes.tmp }}"
       prefix_size: {{ .Values.volumes.prefixSize }}
@@ -17,7 +18,7 @@ data:
     logstash:
       enabled: true
       host: "{{ .Values.logstash.host }}"
-      tcpport: {{ .Values.logstash.port }}
+      tcp_port: {{ .Values.logstash.port }}
     services:
       api_host: "{{ .Values.proxy.external.host }}"
       api_port: {{ .Values.proxy.external.port }}
@@ -40,7 +41,7 @@ data:
       host: "{{ .Values.postgres.host }}"
       port: {{ .Values.postgres.port }}
       dbname: "{{ .Values.dbname }}"
-      sequential_public: {{ .Values.postgres.sequential_publish }}
+      sequential_publish: {{ .Values.postgres.sequential_publish }}
       publish_enabled: {{ .Values.postgres.publish_enabled }}
     mail:
       host: "{{ .Values.mail.host }}"

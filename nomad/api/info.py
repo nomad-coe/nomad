@@ -32,11 +32,17 @@ domain_quantity_model = api.model('DomainQuantity', {
     'order_default': fields.Boolean
 })
 
+metainfo_model = api.model('Metainfo', {
+    'all_package': fields.String(description='Name of the metainfo package that references all available packages, i.e. the complete metainfo.'),
+    'root_sections': fields.List(fields.String, description='Name of the topmost section, e.g. section_run for computational material science data.')
+})
+
 domain_model = api.model('Domain', {
     'name': fields.String,
     'quantities': fields.List(fields.Nested(model=domain_quantity_model)),
     'aggregations_names': fields.List(fields.String),
-    'metrics_names': fields.List(fields.String)
+    'metrics_names': fields.List(fields.String),
+    'metainfo': fields.Nested(model=metainfo_model)
 })
 
 git_info_model = api.model('GitInfo', {
@@ -66,9 +72,13 @@ class InfoResource(Resource):
             'normalizers': [normalizer.__name__ for normalizer in normalizing.normalizers],
             'domain': {
                 'name': datamodel.Domain.instance.name,
-                'quantities': datamodel.Domain.instance.quantities,
+                'quantities': [quantity for quantity in datamodel.Domain.instance.quantities.values()],
                 'metrics_names': datamodel.Domain.instance.metrics_names,
-                'aggregations_names': datamodel.Domain.instance.aggregations_names
+                'aggregations_names': datamodel.Domain.instance.aggregations_names,
+                'metainfo': {
+                    'all_package': datamodel.Domain.instance.metainfo_all_package,
+                    'root_sections': datamodel.Domain.instance.root_sections
+                }
             },
             'version': config.version,
             'release': config.release,

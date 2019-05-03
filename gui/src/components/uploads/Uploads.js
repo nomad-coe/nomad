@@ -77,7 +77,9 @@ class Uploads extends React.Component {
   componentDidMount() {
     this.update()
     this.props.api.getUploadCommand()
-      .then(command => this.setState({uploadCommand: command}))
+      .then(command => {
+        this.setState({uploadCommand: command})
+      })
       .catch(error => {
         this.props.raiseError(error)
       })

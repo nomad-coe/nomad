@@ -21,8 +21,9 @@ import re
 import shutil
 import multiprocessing
 import queue
+import json
 
-from nomad import config, infrastructure
+from nomad import config, infrastructure, utils
 from nomad.migration import NomadCOEMigration, SourceCalc, Package
 
 from .main import cli
@@ -98,7 +99,39 @@ def reset(delete_packages: bool):
 
 
 def determine_upload_paths(paths, pattern=None):
-    if pattern is not None:
+    if len(paths) == 1 and paths[0].endswith('.json'):
+        with open(paths[0], 'rt') as f:
+            data = json.load(f)
+
+        if isinstance(data, list):
+            items = data
+        else:
+            if pattern is not None:
+                key = pattern
+            else:
+                key = 'uploads_with_no_package'
+
+            items = []
+            for item in data[key]:
+                if isinstance(item, str):
+                    items.append(item)
+                else:
+                    items.append(item['id'])
+
+        paths = []
+        for upload_id in items:
+            exists = False
+            for prefix in ['/nomad/repository/data/extracted', '/nomad/repository/data/uploads']:
+                path = os.path.join(prefix, upload_id)
+                if os.path.exists(path):
+                    exists = True
+                    paths.append(path)
+
+            if not exists:
+                utils.get_logger(__name__).error(
+                    'source upload does not exist', source_upload_id=upload_id)
+
+    elif pattern is not None:
         assert len(paths) == 1, "Can only apply pattern on a single directory."
         path = paths[0]
         if pattern == "ALL":
@@ -113,6 +146,36 @@ def determine_upload_paths(paths, pattern=None):
                     paths.append(os.path.join(path, sub_directory))
 
     return paths
+
+
+@migration.command(help='Delete extracted files for given packages.')
+@click.argument('upload-paths', nargs=-1)
+@click.option('--pattern', default=None, type=str, help='Interpret the paths as directory and migrate those subdirectory that match the given regexp')
+@click.option('--extracted', default='/nomad/repository/data/extracted', type=str, help='The parent directory with all extracted uploads')
+@click.option('--uploads', default='/nomad/repository/data/uploads', type=str, help='The parent directory with all "uploaded" uploads')
+def delete(upload_paths, pattern, extracted, uploads):
+    infrastructure.setup_logging()
+    infrastructure.setup_mongo()
+    migration = _Migration()
+    upload_paths = determine_upload_paths(upload_paths, pattern)
+    for upload_path in upload_paths:
+        packages = list(Package.get_packages(upload_path, migration.package_directory))
+        if len(packages) == 0:
+            continue
+
+        if any(not os.path.exists(package.package_path) for package in packages):
+            migration.logger.error('package without packaged file', source_upload_id=package.upload_id)
+            continue
+
+        package = packages[0]
+        for package in Package.get_packages(upload_path, migration.package_directory):
+            deleted, cause = package.delete_files(extracted, uploads)
+            if deleted:
+                migration.logger.info('deleted extracted files', source_upload_id=package.upload_id)
+            else:
+                migration.logger.warn('delete conditions not satisfied', source_upload_id=package.upload_id, cause=cause)
+            # doing this for one of the uploaded packages is enough
+            break
 
 
 @migration.command(help='Add an upload folder to the package index.')
@@ -181,13 +244,25 @@ def pid_prefix(prefix: int):
 @click.option('--delete-failed', default='', type=str, help='String from N, U, P to determine if empty (N), failed (U), or failed to publish (P) uploads should be deleted or kept for debugging.')
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.option('--create-packages', is_flag=True, help='Indicate that packages should be created, if they do not already exist.')
+@click.option('--republish', is_flag=True, help='Will only republish already published packages.')
+@click.option('--wait', default=0, type=int, help='Wait for a random (upto given) number of seconds before each upload to scatter io and compute heavy processing tasks.')
 def upload(
         upload_paths: list, pattern: str, parallel: int, delete_failed: str,
-        create_packages: bool):
+        create_packages: bool, republish: bool, wait: int):
 
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
 
     _Migration(threads=parallel).migrate(
         *determine_upload_paths(upload_paths, pattern), delete_failed=delete_failed,
-        create_packages=create_packages)
+        create_packages=create_packages, only_republish=republish, wait=wait)
+
+
+@migration.command(help='Get an report about not migrated calcs.')
+@click.option('--use-cache', is_flag=True, help='Skip processing steps and take results from prior runs')
+def missing(use_cache):
+    infrastructure.setup_logging()
+    infrastructure.setup_mongo()
+
+    report = SourceCalc.missing(use_cache=use_cache)
+    print(json.dumps(report, indent=2))

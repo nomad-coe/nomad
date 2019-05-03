@@ -38,6 +38,8 @@ import io
 import threading
 from contextlib import contextmanager
 import shutil
+import json
+import random
 
 from nomad import utils, infrastructure, files, config
 from nomad.coe_repo import User, Calc, LoginException
@@ -54,6 +56,9 @@ use_stats_for_filestats_threshold = 1024
 
 default_comment = 'entry with unknown provernance'
 default_uploader = dict(id=1)
+
+protected_uploads = ['ftp_upload_for_uid_125', 'ftp_upload_for_uid_290']
+""" Uploads that we will not delete existing extracted files for """
 
 
 def iterable_to_stream(iterable, buffer_size=io.DEFAULT_BUFFER_SIZE):
@@ -147,6 +152,9 @@ class Package(Document):
     """ The version of the last successful migration of this package """
     report = DictField()
     """ The report of the last successful migration of this package """
+
+    migration_failure = StringField()
+    """ String that describe the cause for last failed migration attempt """
 
     meta = dict(indexes=['upload_id', 'migration_version'])
 
@@ -316,6 +324,16 @@ class Package(Document):
             if len(files) == 0:
                 continue
 
+            if len(files) < 20 and any(file.endswith('.tar.gz') for file in files):
+                # TODO the OQMD case, files are managed as bunch of .tar.gz files
+                for file in files:
+                    archive_path = os.path.join(root, file)
+                    prefix = os.path.dirname(archive_path)[len(upload_path) + 1:]
+                    with cls.extracted_archive(archive_path) as extracted_archive:
+                        for paths, _, size in cls.iterate_upload_directory(extracted_archive):
+                            yield [os.path.join(prefix, path) for path in paths], upload_path, size
+                continue
+
             for file in files:
                 filepath = os.path.join(root, file)
                 filename = filepath[len(upload_path) + 1:]
@@ -357,6 +375,36 @@ class Package(Document):
 
         shutil.rmtree(tmp_directory)
 
+    def delete_files(self, extracted_site: str, uploaded_site: str) -> Tuple[bool, str]:
+        """
+        Deletes the extracted files that this package was created from if
+        - there is an "uploaded" version
+        - the package is complete
+        - it is not a "protected upload"
+        """
+        if self.packages < 1:
+            return False, 'packaging not completed'
+
+        upload_file = os.path.join(uploaded_site, self.upload_id, 'archive.tar.gz')
+        if not os.path.exists(upload_file):
+            return False, 'uploaded archive does not exist'
+
+        extracted_dir = os.path.join(extracted_site, self.upload_id)
+        if not os.path.isdir(extracted_dir):
+            return False, 'extracted upload does not exist'
+
+        if any(str(self.upload_id).startswith(upload) for upload in protected_uploads):
+            return False, 'is a protected upload'
+
+        try:
+            shutil.rmtree(extracted_dir)
+            return True, None
+        except Exception as e:
+            utils.get_logger(
+                __name__, package_id=self.package_id,
+                source_upload_id=self.upload_id, exc_info=e)
+            return False, 'exception while deleting'
+
 
 class SourceCalc(Document):
     """
@@ -381,6 +429,51 @@ class SourceCalc(Document):
     meta = dict(indexes=['upload', 'mainfile', 'migration_version'])
 
     _dataset_cache: dict = {}
+
+    @staticmethod
+    def missing(use_cache=False):
+        """
+        Produces data about non migrated calcs
+        """
+        tmp_data_path = '/tmp/nomad_migration_missing.json'
+        if os.path.exists(tmp_data_path) and use_cache:
+            with open(tmp_data_path, 'rt') as f:
+                data = utils.POPO(**json.load(f))
+        else:
+            data = utils.POPO(step=0)
+
+        try:
+            # get source_uploads that have non migrated calcs
+            if data.step < 1 or not use_cache:
+                import re
+                data.source_uploads = SourceCalc._get_collection() \
+                    .find({'migration_version': {'$lt': 0}, 'mainfile': {'$not': re.compile(r'^aflowlib_data.*')}}) \
+                    .distinct('upload')
+                data.step = 1
+
+            if data.step < 2 or not use_cache:
+                source_uploads = []
+                data.packages = utils.POPO()
+                data.uploads_with_no_package = []
+                for source_upload in data.source_uploads:
+                    package = Package.objects(upload_id=source_upload).first()
+                    if package is None:
+                        data.uploads_with_no_package.append(source_upload)
+                    else:
+                        calcs = SourceCalc.objects(upload=source_upload).count()
+                        packages = Package.objects(upload_id=source_upload).count()
+                        source_uploads.append(dict(
+                            id=source_upload, package_count=packages,
+                            packages=package.packages, calcs=calcs,
+                            path=package.upload_path))
+                        source_uploads = sorted(source_uploads, key=lambda k: k['calcs'], reverse=True)
+                data.source_uploads = source_uploads
+                data.step = 2
+        finally:
+            with open(tmp_data_path, 'wt') as f:
+                json.dump(data, f)
+
+        return data
 
     @staticmethod
     def index(source, drop: bool = False, with_metadata: bool = True, per_query: int = 100) \
@@ -428,7 +521,7 @@ class SourceCalc(Document):
                         continue  # dataset case
 
                     filename = filenames[0]
-                    if len(filenames) == 1 and (filename.endswith('.tgz') or filename.endswith('.zip')):
+                    if len(filenames) == 1 and (filename.endswith('.tgz') or filename.endswith('.tar.gz') or filename.endswith('.zip')):
                         continue  # also a dataset, some datasets have a downloadable archive
 
                     for prefix in SourceCalc.prefixes:
@@ -438,6 +531,16 @@ class SourceCalc(Document):
                     source_calc = SourceCalc(pid=calc.pid)
                     source_calc.upload = segments[0]
                     source_calc.mainfile = os.path.join(*segments[1:])
+
+                    # this is taken from metadata.location and has inconsistent directory prefix,
+                    # but is more accurate than taking the first file as mainfile, which
+                    # also is sometimes not the actual mainfile.
+                    if calc.mainfile is not None:
+                        calc_mainfile = os.path.basename(calc.mainfile)
+                        if calc_mainfile != os.path.basename(source_calc.mainfile):
+                            source_calc.mainfile = os.path.join(
+                                os.path.dirname(source_calc.mainfile), calc_mainfile)
+
                     if with_metadata:
                         source_calc.metadata = calc.to_calc_with_metadata().__dict__
                     source_calcs.append(source_calc)
@@ -667,7 +770,10 @@ class NomadCOEMigration:
             finally:
                 NomadCOEMigration._client_lock.release()
 
-    def migrate(self, *args, delete_failed: str = '', create_packages: bool = False) -> utils.POPO:
+    def migrate(
+            self, *args, delete_failed: str = '',
+            create_packages: bool = False, only_republish: bool = False,
+            wait: int = 0) -> utils.POPO:
         """
         Migrate the given uploads.
 
@@ -690,6 +796,10 @@ class NomadCOEMigration:
                 operation (P) should be deleted after the migration attempt.
             create_packages: If True, it will attempt to create upload packages if they
                 do not exists.
+            only_republish: If the package exists and is published, it will be republished.
+                Nothing else. Useful to reindex/recreate coe repo, etc.
+            offset: Will add a random sleep before migrating each package between 0 and
+                ``wait`` seconds.
 
         Returns: Dictionary with statistics on the migration.
         """
@@ -707,21 +817,29 @@ class NomadCOEMigration:
                 package_id=package.package_id, source_upload_id=package.upload_id)
 
             if package.migration_version is not None and package.migration_version >= self.migration_version:
-                self.logger.info(
-                    'package already migrated, skip it',
-                    package_id=package.package_id, source_upload_id=package.upload_id)
+                if only_republish:
+                    self.republish_package(package)
+                else:
+                    self.logger.info(
+                        'package already migrated, skip it',
+                        package_id=package.package_id, source_upload_id=package.upload_id)
 
                 package_report = package.report
                 overall_report.skipped_packages += 1
             else:
                 try:
+                    if wait > 0:
+                        self.logger.info('wait for a random amount of time')
+                        time.sleep(random.randint(0, wait))
+
                     package_report = self.migrate_package(package, delete_failed=delete_failed)
 
                 except Exception as e:
                     package_report = Report()
                     package_report.failed_packages = 1
-                    logger.error(
-                        'unexpected exception while migrating packages', exc_info=e)
+                    event = 'unexpected exception while migrating packages'
+                    package.migration_failure = event + ': ' + str(e)
+                    logger.error(event, exc_info=e)
                 finally:
                     package.report = package_report
                     package.migration_version = self.migration_version
@@ -776,6 +894,40 @@ class NomadCOEMigration:
 
     _client_lock = threading.Lock()
 
+    def republish_package(self, package: Package) -> None:
+
+        source_upload_id = package.upload_id
+        package_id = package.package_id
+
+        logger = self.logger.bind(package_id=package_id, source_upload_id=source_upload_id)
+
+        uploads = self.call_api('uploads.get_uploads', name=package_id)
+        if len(uploads) > 1:
+            self.logger.warning('upload name is not unique')
+        if len(uploads) == 0:
+            self.logger.info('upload does not exist')
+            return
+
+        for upload in uploads:
+            if not upload.published:
+                self.logger.info('upload is not published, therefore cannot re-publish')
+                continue
+
+            upload = self.call_api(
+                'uploads.exec_upload_operation', upload_id=upload.upload_id,
+                payload=dict(operation='publish'))
+
+            sleep = utils.SleepTimeBackoff()
+            while upload.process_running:
+                upload = self.call_api('uploads.get_upload', upload_id=upload.upload_id)
+                sleep()
+
+            if upload.tasks_status == FAILURE:
+                event = 'could not re publish upload'
+                logger.error(event, process_errors=upload.errors)
+            else:
+                logger.info('republished upload')
+
     def migrate_package(self, package: Package, delete_failed: str = '') -> 'Report':
         """ Migrates the given package. For other params see :func:`migrate`. """
 
@@ -788,15 +940,41 @@ class NomadCOEMigration:
         report = Report()
         report.total_packages += 1
 
-        # upload and process the upload file
-        with utils.timer(logger, 'upload completed'):
-            try:
-                upload = self.call_api(
-                    'uploads.upload', name=package_id, local_path=package.package_path)
-            except Exception as e:
-                self.logger.error('could not upload package', exc_info=e)
+        # check if the package is already uploaded
+        upload = None
+        try:
+            uploads = self.call_api('uploads.get_uploads', name=package_id)
+            if len(uploads) > 1:
+                event = 'duplicate upload name'
+                package.migration_failure(event)
                 report.failed_packages += 1
                 return report
+            elif len(uploads) == 1:
+                upload = uploads[0]
+
+        except Exception as e:
+            event = 'could not verify if upload already exists'
+            logger.error(event, exc_info=e)
+            package.migration_failure(event)
+            report.failed_packages += 1
+            return report
+
+        # upload and process the upload file
+        if upload is None:
+            with utils.timer(logger, 'upload completed'):
+                try:
+                    upload = self.call_api(
+                        'uploads.upload', name=package_id, local_path=package.package_path)
+                except Exception as e:
+                    event = 'could not upload package'
+                    logger.error(event, exc_info=e)
+                    package.migration_failure = event + ': ' + str(e)
+                    report.failed_packages += 1
+                    return report
+        else:
+            self.logger.info('package was already uploaded')
+            # get more details than the get_uploads call provided
+            upload = self.call_api('uploads.get_upload', upload_id=upload.upload_id)
 
         logger = logger.bind(
             source_upload_id=source_upload_id, upload_id=upload.upload_id)
@@ -863,7 +1041,9 @@ class NomadCOEMigration:
                 sleep()
 
         if upload.tasks_status == FAILURE:
-            logger.error('failed to process upload', process_errors=upload.errors)
+            event = 'failed to process upload'
+            logger.error(event, process_errors=upload.errors)
+            package.migration_failure = event + ': ' + str(upload.errors)
             report.failed_packages += 1
             delete_upload(FAILED_PROCESSING)
             return report
@@ -875,11 +1055,11 @@ class NomadCOEMigration:
 
         # check for processing errors
         with utils.timer(logger, 'checked upload processing'):
-            per_page = 500
+            per_page = 10000
             for page in range(1, math.ceil(upload_total_calcs / per_page) + 1):
                 upload = self.call_api(
                     'uploads.get_upload', upload_id=upload.upload_id, per_page=per_page,
-                    page=page, order_by='mainfile')
+                    page=page)
 
                 for calc_proc in upload.calcs.results:
                     calc_logger = logger.bind(
@@ -962,20 +1142,18 @@ class NomadCOEMigration:
 
                 sleep = utils.SleepTimeBackoff()
                 while upload.process_running:
-                    try:
-                        upload = self.call_api('uploads.get_upload', upload_id=upload.upload_id)
-                        sleep()
-                    except HTTPNotFound:
-                        # the proc upload will be deleted by the publish operation
-                        break
+                    upload = self.call_api('uploads.get_upload', upload_id=upload.upload_id)
+                    sleep()
 
                 if upload.tasks_status == FAILURE:
-                    logger.error('could not publish upload', process_errors=upload.errors)
+                    event = 'could not publish upload'
+                    logger.error(event, process_errors=upload.errors)
                     report.failed_calcs = report.total_calcs
                     report.migrated_calcs = 0
                     report.calcs_with_diffs = 0
                     report.new_calcs = 0
                     report.failed_packages += 1
+                    package.migration_failure = event + ': ' + str(upload.errors)
 
                     delete_upload(FAILED_PUBLISH)
                     SourceCalc.objects(upload=source_upload_id, mainfile__in=calc_mainfiles) \

@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from io import StringIO
 import json
+import numpy as np
 import pytest
+import os
 
 from nomadcore.local_meta_info import loadJsonFile
 import nomad_meta_info
@@ -45,7 +46,7 @@ parser_examples = [
     ('parsers/quantumespresso', 'tests/data/parsers/quantum-espresso/benchmark.out'),
     ('parsers/orca', 'tests/data/parsers/orca/orca3dot2706823.out'),
     ('parsers/castep', 'tests/data/parsers/castep/BC2N-Pmm2-Raman.castep'),
-    ('parsers/dl-poly', 'tests/data/parsers/dl-poly/OUTPUT'),
+    # ('parsers/dl-poly', 'tests/data/parsers/dl-poly/OUTPUT'), # timeout on Matid System Classification
     ('parsers/lib-atoms', 'tests/data/parsers/lib-atoms/gp.xml'),
     ('parsers/octopus', 'tests/data/parsers/octopus/stdout.txt'),
     ('parsers/phonopy', 'tests/data/parsers/phonopy/control.in'),
@@ -68,11 +69,8 @@ for parser, mainfile in parser_examples:
         fixed_parser_examples.append((parser, mainfile))
 parser_examples = fixed_parser_examples
 
-faulty_unknown_one_d_matid_example = [
-    ('parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
-]
 
-correct_num_output_files = 33
+correct_num_output_files = 34
 
 
 class TestLocalBackend(object):
@@ -112,6 +110,22 @@ class TestLocalBackend(object):
         assert backend.get_sections('section_run') == [0, 1, 2]
         for i in range(0, 3):
             assert backend.get_value('program_name', i) == 't%d' % i
+
+    def test_section_override(self, backend, no_warn):
+        """ Test whether we can overwrite values already in the backend."""
+        expected_value = ['Cl', 'Zn']
+        backend.openSection('section_run')
+        backend.openSection('section_system')
+        backend.addArrayValues('atom_labels', np.array(['Al', 'Zn']))
+        backend.addArrayValues('atom_labels', np.array(expected_value), override=True)
+        backend.closeSection('section_system', 0)
+
+        backend.closeSection('section_run', 0)
+        output = StringIO()
+        backend.write_json(output)
+        print("Right before assert")
+        print(backend.get_value('atom_labels').tolist())
+        assert backend.get_value('atom_labels').tolist() == expected_value
 
     def test_two_sections(self, backend, no_warn):
         g_index = backend.openSection('section_run')
@@ -256,6 +270,11 @@ def assert_parser_result(backend):
     assert errors is None or len(errors) == 0
 
 
+def assert_parser_dir_unchanged(previous_wd, current_wd):
+    """Assert working directory has not been changed from parser."""
+    assert previous_wd == current_wd
+
+
 def run_parser(parser_name, mainfile):
     parser = parser_dict[parser_name]
     result = parser.run(mainfile, logger=utils.get_logger(__name__))
@@ -274,10 +293,9 @@ def parsed_template_example() -> LocalBackend:
         'parsers/template', 'tests/data/parsers/template.json')
 
 
-@pytest.fixture(
-    params=faulty_unknown_one_d_matid_example, ids=lambda spec: '%s-%s' % spec)
-def parsed_faulty_unknown_matid_example(caplog, request) -> LocalBackend:
-    parser_name, mainfile = request.param
+# Function used by normalizer tests.
+def parse_file(parser_name_and_mainfile) -> LocalBackend:
+    parser_name, mainfile = parser_name_and_mainfile
     return run_parser(parser_name, mainfile)
 
 
@@ -302,8 +320,11 @@ def add_calculation_info(backend: LocalBackend, **kwargs) -> LocalBackend:
 
 @pytest.mark.parametrize('parser_name, mainfile', parser_examples)
 def test_parser(parser_name, mainfile):
+    previous_wd = os.getcwd()  # Get Working directory before parsing.
     parsed_example = run_parser(parser_name, mainfile)
     assert_parser_result(parsed_example)
+    # Check that cwd has not changed.
+    assert_parser_dir_unchanged(previous_wd, current_wd=os.getcwd())
 
 
 def test_match(raw_files, no_warn):

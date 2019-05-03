@@ -161,10 +161,11 @@ class AbstractParserBackend(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def addArrayValues(self, metaName, values, gIndex=-1):
+    def addArrayValues(self, metaName, values, gIndex=-1, override: bool = False):
         """
         Adds an array with the given numpy array values for the given metaName and
-        parent section gIndex.
+        parent section gIndex. Override determines whether to rewrite exisiting values
+        in the backend.
         """
         pass
 
