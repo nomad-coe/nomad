@@ -57,6 +57,9 @@ use_stats_for_filestats_threshold = 1024
 default_comment = 'entry with unknown provernance'
 default_uploader = dict(id=1)
 
+protected_uploads = ['ftp_upload_for_uid_125', 'ftp_upload_for_uid_290']
+""" Uploads that we will not delete existing extracted files for """
+
 
 def iterable_to_stream(iterable, buffer_size=io.DEFAULT_BUFFER_SIZE):
     """
@@ -371,6 +374,36 @@ class Package(Document):
         yield tmp_directory
 
         shutil.rmtree(tmp_directory)
+
+    def delete_files(self, extracted_site: str, uploaded_site: str) -> bool:
+        """
+        Deletes the extracted files that this package was created from if
+        - there is an "uploaded" version
+        - the package is complete
+        - it is not a "protected upload"
+        """
+        if self.packages < 1:
+            return False
+
+        upload_file = os.path.join(uploaded_site, self.upload_id, 'archive.tar.gz')
+        if not os.path.exists(upload_file):
+            return False
+
+        extracted_dir = os.path.join(extracted_site, self.upload_id)
+        if not os.path.isdir(extracted_dir):
+            return False
+
+        if any(str(self.upload_id).startswith(upload) for upload in protected_uploads):
+            return False
+
+        try:
+            shutil.rmtree(extracted_dir)
+            return True
+        except Exception as e:
+            utils.get_logger(
+                __name__, package_id=self.package_id,
+                source_upload_id=self.source_upload_id, exc_info=e)
+            return False
 
 
 class SourceCalc(Document):

@@ -148,6 +148,32 @@ def determine_upload_paths(paths, pattern=None):
     return paths
 
 
+@migration.command(help='Delete extracted files for given packages.')
+@click.argument('upload-paths', nargs=-1)
+@click.option('--pattern', default=None, type=str, help='Interpret the paths as directory and migrate those subdirectory that match the given regexp')
+@click.option('--extracted', default='/nomad/repository/data/extracted', type=str, help='The parent directory with all extracted uploads')
+@click.option('--uploaded', default='/nomad/repository/data/uploaded', type=str, help='The parent directory with all "uploaded" uploads')
+def delete(upload_paths, pattern, extracted, uploaded):
+    migration = _Migration()
+    upload_paths = determine_upload_paths(upload_paths, pattern)
+    for upload_path in upload_paths:
+        packages = list(Package.get_packages(upload_path, migration.package_directory))
+        if len(packages) == 0:
+            continue
+
+        if any(not os.path.exists(package.package_path) for package in packages):
+            migration.logger.error('package without packaged file', source_upload_id=package.upload_id)
+            continue
+
+        package = packages[0]
+        for package in Package.get_packages(upload_path, migration.package_directory):
+            deleted = package.delete_files(extracted, uploaded)
+            if deleted:
+                migration.logger.info('deleted extracted files', source_upload_id=package.upload_id)
+            # doing this for one of the uploaded packages is enough
+            break
+
+
 @migration.command(help='Add an upload folder to the package index.')
 @click.argument('upload-paths', nargs=-1)
 @click.option('--pattern', default=None, type=str, help='Interpret the paths as directory and migrate those subdirectory that match the given regexp')
