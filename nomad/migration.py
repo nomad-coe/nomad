@@ -375,7 +375,7 @@ class Package(Document):
 
         shutil.rmtree(tmp_directory)
 
-    def delete_files(self, extracted_site: str, uploaded_site: str) -> bool:
+    def delete_files(self, extracted_site: str, uploaded_site: str) -> Tuple[bool, str]:
         """
         Deletes the extracted files that this package was created from if
         - there is an "uploaded" version

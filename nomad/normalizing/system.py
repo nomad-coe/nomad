@@ -70,29 +70,33 @@ class SystemNormalizer(SystemBasedNormalizer):
         if atom_labels is None and atom_species is None:
             self.logger.error('calculation has neither atom species nor labels')
             return
-
+        # If there are no atom labels we create them from atom species data.
         if atom_labels is None:
             atom_labels = list(ase.data.chemical_symbols[species] for species in atom_species)
-        else:
-            atom_labels = atom_labels
-
-        symbols = ''.join(atom_labels)
-        symbols = symbols.replace('1', '')
+        # If atom labels are present, check that each atom label in the atom labels list
+        # is a true atom label by checking if it is in the ASE list of atom labels.
+        elif not all(label in ase.data.chemical_symbols for label in atom_labels):
+            # Throw an error that the atom labels are poorly formated or there are unknown
+            # labels. Save first ten elemenets in logged error.
+            self.logger.error('Atom labels cannot be recognized.', atom_labels=atom_labels[:10])
+            return
         try:
-            atoms = ase.Atoms(symbols=symbols)
+            atoms = ase.Atoms(symbols=atom_labels)
+            chemical_symbols = list(atoms.get_chemical_symbols())
+            if atom_labels != chemical_symbols:
+                self.logger.error('atom labels are ambiguous', atom_labels=atom_labels[:10])
+            atom_labels = chemical_symbols
         except Exception as e:
             self.logger.error(
                 'cannot build ase atoms from atom labels',
                 atom_labels=atom_labels[:10], exc_info=e, error=str(e))
-            return
-        chemical_symbols = list(atoms.get_chemical_symbols())
-        if atom_labels != chemical_symbols:
-            self.logger.error('atom labels are ambiguous', atom_labels=atom_labels[:10])
-            return
+            raise e
+        # Write labels. Rewrite if labels exist in backend already from parser.
+        self._backend.addArrayValues('atom_labels', atom_labels)
 
         if atom_species is None:
             atom_species = atoms.get_atomic_numbers().tolist()
-            set_value('atom_species', atom_species)
+            self._backend.addArrayValues('atom_species', atom_species)
         else:
             if not isinstance(atom_species, list):
                 atom_species = [atom_species]
@@ -120,7 +124,6 @@ class SystemNormalizer(SystemBasedNormalizer):
         set_value('chemical_composition', atoms.get_chemical_formula(mode='all'))
         set_value('chemical_composition_reduced', atoms.get_chemical_formula(mode='reduce'))
         set_value('chemical_composition_bulk_reduced', atoms.get_chemical_formula(mode='hill'))
-
         # positions
         atom_positions = get_value('atom_positions', None)
         if atom_positions is None:
@@ -170,7 +173,6 @@ class SystemNormalizer(SystemBasedNormalizer):
                     system_size=atoms.get_number_of_atoms()):
 
                 self.system_type_analysis(atoms)
-
         # symmetry analysis
         if atom_positions is not None and (lattice_vectors is not None or not any(pbc)):
             with utils.timer(

@@ -188,10 +188,10 @@ class CalcProcReproduction:
 @click.option('--show-backend', is_flag=True, default=False, help='Print the backend data.')
 @click.option('--show-metadata', is_flag=True, default=False, help='Print the extracted repo metadata.')
 @click.option('--mainfile', default=None, type=str, help='Use this mainfile (in case mainfile cannot be retrived via API.')
-def local(archive_id, show_backend=False, show_metadata=False, **kwargs):
+def local(calc_id, show_backend=False, show_metadata=False, **kwargs):
     utils.configure_logging()
     utils.get_logger(__name__).info('Using %s' % config.client.url)
-    with CalcProcReproduction(archive_id, **kwargs) as local:
+    with CalcProcReproduction(calc_id, **kwargs) as local:
         backend = local.parse()
         local.normalize_all(parser_backend=backend)
         if show_backend:
