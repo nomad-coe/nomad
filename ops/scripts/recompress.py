@@ -21,7 +21,6 @@ def command(src, tmp):
                 tmp_path = os.path.join(tmp, str(uuid.uuid4()))
                 new_path = tmp_path + '_new.zip'
 
-                print(path)
                 with zipfile.ZipFile(path, mode='r', allowZip64=True) as zip_file:
                     os.makedirs(tmp_path)
                     zip_file.extractall(tmp_path)
@@ -32,8 +31,7 @@ def command(src, tmp):
                         for tmp_file in tmp_files:
                             zip_file.write(os.path.join(tmp_root, tmp_file), os.path.relpath(os.path.join(tmp_root, tmp_file), tmp_path))
 
-                shutil.rmtree(tmp_path)
-                shutil.move(new_path, path)
+                shutil.copy(new_path, path)
             except Exception as e:
                 logging.error('exception', exc_info=e)
             finally:
@@ -47,4 +45,5 @@ def command(src, tmp):
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     command()
