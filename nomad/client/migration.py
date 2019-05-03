@@ -152,8 +152,10 @@ def determine_upload_paths(paths, pattern=None):
 @click.argument('upload-paths', nargs=-1)
 @click.option('--pattern', default=None, type=str, help='Interpret the paths as directory and migrate those subdirectory that match the given regexp')
 @click.option('--extracted', default='/nomad/repository/data/extracted', type=str, help='The parent directory with all extracted uploads')
-@click.option('--uploaded', default='/nomad/repository/data/uploaded', type=str, help='The parent directory with all "uploaded" uploads')
-def delete(upload_paths, pattern, extracted, uploaded):
+@click.option('--uploads', default='/nomad/repository/data/uploads', type=str, help='The parent directory with all "uploaded" uploads')
+def delete(upload_paths, pattern, extracted, uploads):
+    infrastructure.setup_logging()
+    infrastructure.setup_mongo()
     migration = _Migration()
     upload_paths = determine_upload_paths(upload_paths, pattern)
     for upload_path in upload_paths:
@@ -167,9 +169,11 @@ def delete(upload_paths, pattern, extracted, uploaded):
 
         package = packages[0]
         for package in Package.get_packages(upload_path, migration.package_directory):
-            deleted = package.delete_files(extracted, uploaded)
+            deleted, cause = package.delete_files(extracted, uploads)
             if deleted:
                 migration.logger.info('deleted extracted files', source_upload_id=package.upload_id)
+            else:
+                migration.logger.warn('delete conditions not satisfied', source_upload_id=package.upload_id, cause=cause)
             # doing this for one of the uploaded packages is enough
             break
 

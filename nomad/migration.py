@@ -383,27 +383,27 @@ class Package(Document):
         - it is not a "protected upload"
         """
         if self.packages < 1:
-            return False
+            return False, 'packaging not completed'
 
         upload_file = os.path.join(uploaded_site, self.upload_id, 'archive.tar.gz')
         if not os.path.exists(upload_file):
-            return False
+            return False, 'uploaded archive does not exist'
 
         extracted_dir = os.path.join(extracted_site, self.upload_id)
         if not os.path.isdir(extracted_dir):
-            return False
+            return False, 'extracted upload does not exist'
 
         if any(str(self.upload_id).startswith(upload) for upload in protected_uploads):
-            return False
+            return False, 'is a protected upload'
 
         try:
             shutil.rmtree(extracted_dir)
-            return True
+            return True, None
         except Exception as e:
             utils.get_logger(
                 __name__, package_id=self.package_id,
-                source_upload_id=self.source_upload_id, exc_info=e)
-            return False
+                source_upload_id=self.upload_id, exc_info=e)
+            return False, 'exception while deleting'
 
 
 class SourceCalc(Document):
