@@ -139,6 +139,8 @@ class Package(Document):
     """ The absolute path of the source upload """
     upload_id = StringField(required=True)
     """ The source upload_id. There might be multiple packages per upload (this is the point). """
+    target_upload_id = StringField()
+    """ The current target upload id of the processed package """
     restricted = IntField(default=0)
     """ The restricted in month, 0 for unrestricted. """
     size = IntField()
@@ -956,6 +958,24 @@ class NomadCOEMigration:
             else:
                 logger.info('republished upload')
 
+    def retrive_migrated_calcs(self, upload_id: str):
+        """
+        Yields all nomad search entries for the given ``upload_id``. The given upload
+        id is a target ``upload_id``, i.e. uuid. The upload name, however, corresponds to the
+        migration ``package_id``.
+        """
+
+        scroll_id = 'first'
+        while scroll_id is not None:
+            scroll_args: Dict[str, Any] = dict(scroll=True)
+            if scroll_id != 'first':
+                scroll_args['scroll_id'] = scroll_id
+
+            search = self.call_api('repo.search', upload_id=upload_id, **scroll_args)
+            scroll_id = search.scroll_id
+            for calc in search.results:
+                yield calc
+
     def migrate_package(self, package: Package, delete_failed: str = '') -> 'Report':
         """ Migrates the given package. For other params see :func:`migrate`. """
 
@@ -1003,6 +1023,8 @@ class NomadCOEMigration:
             self.logger.info('package was already uploaded')
             # get more details than the get_uploads call provided
             upload = self.call_api('uploads.get_upload', upload_id=upload.upload_id)
+
+        package.target_upload_id = upload.upload_id
 
         logger = logger.bind(
             source_upload_id=source_upload_id, upload_id=upload.upload_id)
@@ -1105,53 +1127,43 @@ class NomadCOEMigration:
         # verify upload against source
         calcs_in_search = 0
         with utils.timer(logger, 'verified upload against source calcs'):
-            scroll_id = 'first'
-            while scroll_id is not None:
-                scroll_args: Dict[str, Any] = dict(scroll=True)
-                if scroll_id != 'first':
-                    scroll_args['scroll_id'] = scroll_id
+            for calc in self.retrive_migrated_calcs(upload.upload_id):
+                calcs_in_search += 1
+                source_calc, source_calc_with_metadata = source_calcs.get(
+                    calc['mainfile'], (None, None))
 
-                search = self.call_api('repo.search', upload_id=upload.upload_id, **scroll_args)
+                if source_calc is not None:
+                    report.migrated_calcs += 1
 
-                scroll_id = search.scroll_id
-
-                for calc in search.results:
-                    calcs_in_search += 1
-                    source_calc, source_calc_with_metadata = source_calcs.get(
-                        calc['mainfile'], (None, None))
-
-                    if source_calc is not None:
-                        report.migrated_calcs += 1
-
-                        calc_logger = logger.bind(calc_id=calc['calc_id'], mainfile=calc['mainfile'])
-                        if calc.get('processed', False):
-                            try:
-                                if not self.validate(
-                                        calc, source_calc_with_metadata, calc_logger):
-                                    report.calcs_with_diffs += 1
-                            except Exception as e:
-                                calc_logger.warning(
-                                    'unexpected exception during validation', exc_info=e)
+                    calc_logger = logger.bind(calc_id=calc['calc_id'], mainfile=calc['mainfile'])
+                    if calc.get('processed', False):
+                        try:
+                            if not self.validate(
+                                    calc, source_calc_with_metadata, calc_logger):
                                 report.calcs_with_diffs += 1
+                        except Exception as e:
+                            calc_logger.warning(
+                                'unexpected exception during validation', exc_info=e)
+                            report.calcs_with_diffs += 1
+                else:
+                    calc_logger.info('processed a calc that has no source')
+                    report.new_calcs += 1
+                    # guessing the metadata from other calcs in upload/package
+                    if surrogate_source_calc_with_metadata is not None:
+                        new_calc_with_metadata = CalcWithMetadata(**surrogate_source_calc_with_metadata.to_dict())
+                        new_calc_with_metadata.mainfile = calc['mainfile']
                     else:
-                        calc_logger.info('processed a calc that has no source')
-                        report.new_calcs += 1
-                        # guessing the metadata from other calcs in upload/package
-                        if surrogate_source_calc_with_metadata is not None:
-                            new_calc_with_metadata = CalcWithMetadata(**surrogate_source_calc_with_metadata.to_dict())
-                            new_calc_with_metadata.mainfile = calc['mainfile']
-                        else:
-                            calc_logger.warning('could not determine any metadata for new calc')
-                            create_time_epoch = os.path.getctime(package.upload_path)
-                            new_calc_with_metadata = CalcWithMetadata(
-                                upload_time=datetime.datetime.fromtimestamp(create_time_epoch),
-                                with_embargo=package.restricted > 0,
-                                comment=default_comment,
-                                uploader=default_uploader,
-                                mainfile=calc['mainfile'])
-                            surrogate_source_calc_with_metadata = new_calc_with_metadata
+                        calc_logger.warning('could not determine any metadata for new calc')
+                        create_time_epoch = os.path.getctime(package.upload_path)
+                        new_calc_with_metadata = CalcWithMetadata(
+                            upload_time=datetime.datetime.fromtimestamp(create_time_epoch),
+                            with_embargo=package.restricted > 0,
+                            comment=default_comment,
+                            uploader=default_uploader,
+                            mainfile=calc['mainfile'])
+                        surrogate_source_calc_with_metadata = new_calc_with_metadata
 
-                        source_calcs[calc['mainfile']] = (None, new_calc_with_metadata)
+                    source_calcs[calc['mainfile']] = (None, new_calc_with_metadata)
 
             if len(calc_mainfiles) != calcs_in_search:
                 logger.error('missmatch between processed calcs and calcs found with search')
