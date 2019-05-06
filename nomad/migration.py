@@ -885,10 +885,10 @@ class NomadCOEMigration:
                     package.report = package_report
                     package.migration_version = self.migration_version
 
-            package.migration_id = self.migration_id
-            package.save()
-
             with cv:
+                package.migration_id = self.migration_id
+                package.save()
+
                 try:
                     overall_report.add(package_report)
 
