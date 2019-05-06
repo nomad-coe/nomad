@@ -22,6 +22,8 @@ import shutil
 import multiprocessing
 import queue
 import json
+from elasticsearch_dsl import Document, Keyword
+import elasticsearch
 
 from nomad import config, infrastructure, utils
 from nomad.migration import NomadCOEMigration, SourceCalc, Package
@@ -81,6 +83,39 @@ def index(drop, with_metadata, per_query):
             'indexed: %8d, calcs: %8d, total: %8d, ETA: %s\r' %
             (indexed_total, indexed_calcs, total, datetime.timedelta(seconds=eta)), end='')
     print('done')
+
+
+@migration.command(help='Transfer migration index to elastic search')
+@click.option('--es-index', default='source_calcs', help='Name of the elastic index.')
+def index_elastic(es_index):
+    infrastructure.setup_mongo()
+    infrastructure.setup_elastic()
+
+    class SourceCalcES(Document):
+        class Index:
+            name = es_index
+
+        upload_id = Keyword()
+        mainfile = Keyword()
+        pid = Keyword()
+        migration_version = Keyword()
+        is_migrated = Keyword()
+        uploader_id = Keyword()
+
+    updates = []
+    for source_calc in SourceCalc.objects():
+        source_calc_es = SourceCalcES(meta=dict(source_calc=source_calc.metadata.pid))
+        source_calc.upload_id = source_calc.upload
+        source_calc.pid = source_calc.metadata.pid
+        source_calc.mainfile = source_calc.mainfile
+        source_calc.migration_version = source_calc.migration_version
+        source_calc.is_migrated = source_calc.migration_version >= 0
+        source_calc.uploader_id = source_calc.metadata.uploader.id
+
+        updates.append(source_calc_es)
+        if len(updates) >= 1000:
+            elasticsearch.helpers.bulk(infrastructure.elastic_client, updates)
+            updates = []
 
 
 @migration.command(help='Reset migration version to start a new migration.')
