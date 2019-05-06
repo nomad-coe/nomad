@@ -1169,7 +1169,7 @@ class NomadCOEMigration:
                 logger.error('missmatch between processed calcs and calcs found with search')
 
         # publish upload
-        if len(calc_mainfiles) > 0:
+        if len(calc_mainfiles) > 0 and not upload.published:
             with utils.timer(logger, 'upload published'):
                 upload_metadata = dict(with_embargo=(package.restricted > 0))
                 upload_metadata['calculations'] = [
@@ -1202,8 +1202,11 @@ class NomadCOEMigration:
                     SourceCalc.objects(upload=source_upload_id, mainfile__in=calc_mainfiles) \
                         .update(migration_version=self.migration_version)
         else:
-            delete_upload(NO_PROCESSED_CALCS)
-            logger.info('no successful calcs, skip publish')
+            if upload.published:
+                logger.info('package upload already published, skip publish')
+            else:
+                delete_upload(NO_PROCESSED_CALCS)
+                logger.info('no successful calcs, skip publish')
 
         logger.info('migrated package', **report)
         return report

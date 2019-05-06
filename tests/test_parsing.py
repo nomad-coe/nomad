@@ -123,8 +123,6 @@ class TestLocalBackend(object):
         backend.closeSection('section_run', 0)
         output = StringIO()
         backend.write_json(output)
-        print("Right before assert")
-        print(backend.get_value('atom_labels').tolist())
         assert backend.get_value('atom_labels').tolist() == expected_value
 
     def test_two_sections(self, backend, no_warn):

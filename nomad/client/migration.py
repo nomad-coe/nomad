@@ -142,7 +142,10 @@ def reset(delete_packages: bool):
         Package.objects(migration_version__ne=-1).update(migration_version=-1)
 
 
-def determine_upload_paths(paths, pattern=None):
+def determine_upload_paths(paths, pattern=None, all=False):
+    if all:
+        return Package.objects().distinct('upload_path')
+
     if len(paths) == 1 and paths[0].endswith('.json'):
         with open(paths[0], 'rt') as f:
             data = json.load(f)
@@ -293,16 +296,17 @@ def pid_prefix(prefix: int):
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.option('--create-packages', is_flag=True, help='Indicate that packages should be created, if they do not already exist.')
 @click.option('--republish', is_flag=True, help='Will only republish already published packages.')
+@click.option('--all', is_flag=True, help='Go through all known packages. Ignores pattern and args.')
 @click.option('--wait', default=0, type=int, help='Wait for a random (upto given) number of seconds before each upload to scatter io and compute heavy processing tasks.')
 def upload(
         upload_paths: list, pattern: str, parallel: int, delete_failed: str,
-        create_packages: bool, republish: bool, wait: int):
+        create_packages: bool, republish: bool, wait: int, all: bool):
 
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
 
     _Migration(threads=parallel).migrate(
-        *determine_upload_paths(upload_paths, pattern), delete_failed=delete_failed,
+        *determine_upload_paths(upload_paths, pattern=pattern, all=all), delete_failed=delete_failed,
         create_packages=create_packages, only_republish=republish, wait=wait)
 
 

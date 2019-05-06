@@ -87,6 +87,7 @@ upload_model = api.inherit('UploadProcessing', proc_model, {
     # TODO just removed during migration, where this get particularily large
     # 'metadata': fields.Nested(model=upload_metadata_model, description='Additional upload and calculation meta data.'),
     'upload_path': fields.String(description='The uploaded file on the server'),
+    'published': fields.Boolean(description='If this upload is already published'),
     'upload_time': RFC3339DateTime(),
 })
 
