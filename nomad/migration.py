@@ -152,7 +152,7 @@ class Package(Document):
 
     migration_version = IntField(default=-1)
     """ The version of the last successful migration of this package """
-    migration_id = String()
+    migration_id = StringField()
     """ A random uuid that ids the migration run on this package """
     report = DictField()
     """ The report of the last successful migration of this package """
