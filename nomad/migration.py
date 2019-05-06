@@ -803,7 +803,7 @@ class NomadCOEMigration:
     def migrate(
             self, *args, delete_failed: str = '',
             create_packages: bool = False, only_republish: bool = False,
-            wait: int = 0) -> utils.POPO:
+            wait: int = 0, republish: bool = False) -> utils.POPO:
         """
         Migrate the given uploads.
 
@@ -827,7 +827,12 @@ class NomadCOEMigration:
             create_packages: If True, it will attempt to create upload packages if they
                 do not exists.
             only_republish: If the package exists and is published, it will be republished.
-                Nothing else. Useful to reindex/recreate coe repo, etc.
+                Nothing else. Useful to reindex/recreate coe repo, etc. This will not
+                reapply the metadata (see parameter ``republish``).
+            republish: Normally packages that are already uploaded and published are not republished.
+                If true, already published packages are republished. This is different from
+                ``only_republish``, because the package metadata will be updated, calc diffs
+                recomputed, etc.
             offset: Will add a random sleep before migrating each package between 0 and
                 ``wait`` seconds.
 
@@ -862,7 +867,7 @@ class NomadCOEMigration:
                         self.logger.info('wait for a random amount of time')
                         time.sleep(random.randint(0, wait))
 
-                    package_report = self.migrate_package(package, delete_failed=delete_failed)
+                    package_report = self.migrate_package(package, delete_failed=delete_failed, republish=republish)
 
                 except Exception as e:
                     package_report = Report()
@@ -931,7 +936,7 @@ class NomadCOEMigration:
 
         logger = self.logger.bind(package_id=package_id, source_upload_id=source_upload_id)
 
-        uploads = self.call_api('uploads.get_uploads', name=package_id)
+        uploads = self.call_api('uploads.get_uploads', all=True, name=package_id)
         if len(uploads) > 1:
             self.logger.warning('upload name is not unique')
         if len(uploads) == 0:
@@ -976,7 +981,7 @@ class NomadCOEMigration:
             for calc in search.results:
                 yield calc
 
-    def migrate_package(self, package: Package, delete_failed: str = '') -> 'Report':
+    def migrate_package(self, package: Package, delete_failed: str = '', republish: bool = False) -> 'Report':
         """ Migrates the given package. For other params see :func:`migrate`. """
 
         source_upload_id = package.upload_id
@@ -991,7 +996,7 @@ class NomadCOEMigration:
         # check if the package is already uploaded
         upload = None
         try:
-            uploads = self.call_api('uploads.get_uploads', name=package_id)
+            uploads = self.call_api('uploads.get_uploads', all=True, name=package_id)
             if len(uploads) > 1:
                 event = 'duplicate upload name'
                 package.migration_failure(event)
@@ -1169,7 +1174,7 @@ class NomadCOEMigration:
                 logger.error('missmatch between processed calcs and calcs found with search')
 
         # publish upload
-        if len(calc_mainfiles) > 0 and not upload.published:
+        if len(calc_mainfiles) > 0 and (republish or not upload.published):
             with utils.timer(logger, 'upload published'):
                 upload_metadata = dict(with_embargo=(package.restricted > 0))
                 upload_metadata['calculations'] = [
@@ -1195,9 +1200,11 @@ class NomadCOEMigration:
                     report.failed_packages += 1
                     package.migration_failure = event + ': ' + str(upload.errors)
 
-                    delete_upload(FAILED_PUBLISH)
-                    SourceCalc.objects(upload=source_upload_id, mainfile__in=calc_mainfiles) \
-                        .update(migration_version=-1)
+                    if not upload.published:
+                        # only do this if the upload was not publish with prior migration
+                        delete_upload(FAILED_PUBLISH)
+                        SourceCalc.objects(upload=source_upload_id, mainfile__in=calc_mainfiles) \
+                            .update(migration_version=-1)
                 else:
                     SourceCalc.objects(upload=source_upload_id, mainfile__in=calc_mainfiles) \
                         .update(migration_version=self.migration_version)

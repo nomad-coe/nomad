@@ -295,19 +295,20 @@ def pid_prefix(prefix: int):
 @click.option('--delete-failed', default='', type=str, help='String from N, U, P to determine if empty (N), failed (U), or failed to publish (P) uploads should be deleted or kept for debugging.')
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.option('--create-packages', is_flag=True, help='Indicate that packages should be created, if they do not already exist.')
-@click.option('--republish', is_flag=True, help='Will only republish already published packages.')
+@click.option('--only-republish', is_flag=True, help='Will only republish already published packages.')
+@click.option('--republish', is_flag=True, help='Will process normally and republish already published packages.')
 @click.option('--all', is_flag=True, help='Go through all known packages. Ignores pattern and args.')
 @click.option('--wait', default=0, type=int, help='Wait for a random (upto given) number of seconds before each upload to scatter io and compute heavy processing tasks.')
 def upload(
         upload_paths: list, pattern: str, parallel: int, delete_failed: str,
-        create_packages: bool, republish: bool, wait: int, all: bool):
+        create_packages: bool, republish_only: bool, republish: bool, wait: int, all: bool):
 
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
 
     _Migration(threads=parallel).migrate(
         *determine_upload_paths(upload_paths, pattern=pattern, all=all), delete_failed=delete_failed,
-        create_packages=create_packages, only_republish=republish, wait=wait)
+        create_packages=create_packages, only_republish=republish_only, wait=wait, republish=republish)
 
 
 @migration.command(help='Get an report about not migrated calcs based on source calcs.')
