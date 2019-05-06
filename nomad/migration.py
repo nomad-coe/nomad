@@ -152,6 +152,8 @@ class Package(Document):
 
     migration_version = IntField(default=-1)
     """ The version of the last successful migration of this package """
+    migration_id = String()
+    """ A random uuid that ids the migration run on this package """
     report = DictField()
     """ The report of the last successful migration of this package """
 
@@ -627,6 +629,7 @@ class NomadCOEMigration:
         self.logger = utils.get_logger(__name__, migration_version=migration_version)
 
         self.migration_version = migration_version
+        self.migration_id = utils.create_uuid()
         self.package_directory = package_directory if package_directory is not None else config.fs.migration_packages
         self.compress_packages = compress_packages
         self._client = None
@@ -881,14 +884,16 @@ class NomadCOEMigration:
                 finally:
                     package.report = package_report
                     package.migration_version = self.migration_version
-                    package.save()
+
+            package.migration_id = self.migration_id
+            package.save()
 
             with cv:
                 try:
                     overall_report.add(package_report)
 
                     migrated_all_packages = all(
-                        p.migration_version == self.migration_version
+                        p.migration_id == self.migration_id
                         for p in Package.objects(upload_id=package.upload_id))
 
                     if migrated_all_packages:
