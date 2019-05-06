@@ -102,20 +102,30 @@ def index_elastic(es_index):
         is_migrated = Keyword()
         uploader_id = Keyword()
 
+    indexed = 0
     updates = []
     for source_calc in SourceCalc.objects():
-        source_calc_es = SourceCalcES(meta=dict(source_calc=source_calc.metadata.pid))
-        source_calc.upload_id = source_calc.upload
-        source_calc.pid = source_calc.metadata.pid
-        source_calc.mainfile = source_calc.mainfile
-        source_calc.migration_version = source_calc.migration_version
-        source_calc.is_migrated = source_calc.migration_version >= 0
-        source_calc.uploader_id = source_calc.metadata.uploader.id
+        metadata = utils.POPO(**source_calc.metadata)
+        source_calc_es = SourceCalcES(meta=dict(id=metadata.pid))
+        source_calc_es.upload_id = source_calc.upload
+        source_calc_es.pid = metadata.pid
+        source_calc_es.mainfile = source_calc.mainfile
+        source_calc_es.migration_version = source_calc.migration_version
+        source_calc_es.is_migrated = source_calc.migration_version >= 0
+        source_calc_es.uploader_id = metadata.uploader['id']
+
+        source_calc_es = source_calc_es.to_dict(include_meta=True)
+        source = source_calc_es.pop('_source')
+        source_calc_es['doc'] = source
+        # source_calc_es['_op_type'] = 'update'
 
         updates.append(source_calc_es)
         if len(updates) >= 1000:
             elasticsearch.helpers.bulk(infrastructure.elastic_client, updates)
+            indexed += len(updates)
             updates = []
+            print(indexed)
+
 
 
 @migration.command(help='Reset migration version to start a new migration.')
