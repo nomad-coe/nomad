@@ -295,9 +295,9 @@ class Package(Document):
                 'packaged upload', source_upload_id=upload_id, source_upload_path=upload_path,
                 restricted=restricted)
 
-            return package_query
+            return package_query.timeout(False)
         else:
-            return cls.objects(upload_id=upload_id)
+            return cls.objects(upload_id=upload_id).timeout(False)
 
     @classmethod
     @contextmanager
