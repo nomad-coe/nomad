@@ -157,6 +157,8 @@ class Package(Document):
 
     migration_failure = StringField()
     """ String that describe the cause for last failed migration attempt """
+    migration_failure_type = StringField()
+    """ The type of migration failure: ``no_calcs``, ``processing``, ``publish``, ``exception``. """
 
     meta = dict(indexes=['upload_id', 'migration_version'])
 
@@ -874,6 +876,7 @@ class NomadCOEMigration:
                     package_report.failed_packages = 1
                     event = 'unexpected exception while migrating packages'
                     package.migration_failure = event + ': ' + str(e)
+                    package.migration_failure_type = 'exception'
                     logger.error(event, exc_info=e)
                 finally:
                     package.report = package_report
@@ -1000,6 +1003,7 @@ class NomadCOEMigration:
             if len(uploads) > 1:
                 event = 'duplicate upload name'
                 package.migration_failure(event)
+                package.migration_failure_type = 'exception'
                 report.failed_packages += 1
                 return report
             elif len(uploads) == 1:
@@ -1009,6 +1013,7 @@ class NomadCOEMigration:
             event = 'could not verify if upload already exists'
             logger.error(event, exc_info=e)
             package.migration_failure(event)
+            package.migration_failure_type = 'exception'
             report.failed_packages += 1
             return report
 
@@ -1022,6 +1027,7 @@ class NomadCOEMigration:
                     event = 'could not upload package'
                     logger.error(event, exc_info=e)
                     package.migration_failure = event + ': ' + str(e)
+                    package.migration_failure_type = 'processing'
                     report.failed_packages += 1
                     return report
         else:
@@ -1099,6 +1105,7 @@ class NomadCOEMigration:
             event = 'failed to process upload'
             logger.error(event, process_errors=upload.errors)
             package.migration_failure = event + ': ' + str(upload.errors)
+            package.migration_failure_type = 'processing'
             report.failed_packages += 1
             delete_upload(FAILED_PROCESSING)
             return report
@@ -1199,6 +1206,7 @@ class NomadCOEMigration:
                     report.new_calcs = 0
                     report.failed_packages += 1
                     package.migration_failure = event + ': ' + str(upload.errors)
+                    package.migration_failure_type = 'publish'
 
                     if not upload.published:
                         # only do this if the upload was not publish with prior migration
@@ -1213,6 +1221,9 @@ class NomadCOEMigration:
                 logger.info('package upload already published, skip publish')
             else:
                 delete_upload(NO_PROCESSED_CALCS)
+                report.failed_packages += 1
+                package.migration_failure = 'no calculcations found'
+                package.migration_failure_type = 'no_calcs'
                 logger.info('no successful calcs, skip publish')
 
         logger.info('migrated package', **report)
