@@ -159,7 +159,11 @@ def delete(upload_paths, pattern, extracted, uploads):
     migration = _Migration()
     upload_paths = determine_upload_paths(upload_paths, pattern)
     for upload_path in upload_paths:
-        packages = list(Package.get_packages(upload_path, migration.package_directory))
+        packages_iterable = Package.get_packages(upload_path, migration.package_directory)
+        if packages_iterable is None:
+            continue
+
+        packages = list(packages_iterable)
         if len(packages) == 0:
             continue
 
