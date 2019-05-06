@@ -405,6 +405,35 @@ class Package(Document):
                 source_upload_id=self.upload_id, exc_info=e)
             return False, 'exception while deleting'
 
+    @staticmethod
+    def missing():
+        """ Produces data about missing calculations """
+        def get_upload_data(upload_id: str) -> dict:
+            total = SourceCalc.objects(upload=upload_id).count()
+            migrated = SourceCalc.objects(upload=upload_id, migration_version__gte=0).count()
+            packages = Package.objects(upload_id=upload_id, migration_version__gte=0)
+            report = Report()
+            package_count = packages.count()
+            upload_path = ''
+            for package in packages:
+                upload_path = package.upload_path
+                report.add(package.report)
+
+            report.missing_calcs = total - migrated
+
+            return dict(
+                upload_id=upload_id,
+                upload_path=upload_path,
+                packages=package_count,
+                report=report)
+
+        upload_ids = Package.objects().distinct('upload_id')
+        upload_data = sorted(
+            [get_upload_data(upload_id) for upload_id in upload_ids],
+            key=lambda d: d['report']['missing_calcs'])
+
+        return upload_data
+
 
 class SourceCalc(Document):
     """

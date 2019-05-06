@@ -127,7 +127,6 @@ def index_elastic(es_index):
             print(indexed)
 
 
-
 @migration.command(help='Reset migration version to start a new migration.')
 @click.option('--delete-packages', is_flag=True, help='Also remove all packages.')
 def reset(delete_packages: bool):
@@ -307,11 +306,15 @@ def upload(
         create_packages=create_packages, only_republish=republish, wait=wait)
 
 
-@migration.command(help='Get an report about not migrated calcs.')
+@migration.command(help='Get an report about not migrated calcs based on source calcs.')
+@click.option('--package', is_flag=True, help='Return missing calcs based on packages.')
 @click.option('--use-cache', is_flag=True, help='Skip processing steps and take results from prior runs')
-def missing(use_cache):
+def missing(package, use_cache):
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
 
-    report = SourceCalc.missing(use_cache=use_cache)
+    if package:
+        report = Package.missing()
+    else:
+        report = SourceCalc.missing(use_cache=use_cache)
     print(json.dumps(report, indent=2))
