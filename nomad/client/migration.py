@@ -301,14 +301,14 @@ def pid_prefix(prefix: int):
 @click.option('--wait', default=0, type=int, help='Wait for a random (upto given) number of seconds before each upload to scatter io and compute heavy processing tasks.')
 def upload(
         upload_paths: list, pattern: str, parallel: int, delete_failed: str,
-        create_packages: bool, republish_only: bool, republish: bool, wait: int, all: bool):
+        create_packages: bool, only_republish: bool, republish: bool, wait: int, all: bool):
 
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
 
     _Migration(threads=parallel).migrate(
         *determine_upload_paths(upload_paths, pattern=pattern, all=all), delete_failed=delete_failed,
-        create_packages=create_packages, only_republish=republish_only, wait=wait, republish=republish)
+        create_packages=create_packages, only_republish=only_republish, wait=wait, republish=republish)
 
 
 @migration.command(help='Get an report about not migrated calcs based on source calcs.')
