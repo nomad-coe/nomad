@@ -365,6 +365,12 @@ parsers = [
         parser_class_name='skeletonparser.SkeletonParserInterface',
         mainfile_mime_re=r'(application/json)|(text/.*)',
         mainfile_contents_re=(r'skeleton experimental metadata format')
+    ),
+    LegacyParser(
+        name='parsers/mpes', code_name='mpes', domain='EMS',
+        parser_class_name='mpesparser.MPESParserInterface',
+        mainfile_mime_re=r'(application/json)|(text/.*)',
+        mainfile_name_re=(r'.*')
     )
 ]
 

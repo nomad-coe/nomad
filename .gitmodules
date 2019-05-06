@@ -105,3 +105,6 @@
 [submodule "dependencies/parsers/skeleton"]
 	path = dependencies/parsers/skeleton
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-skeleton.git
+[submodule "dependencies/parsers/mpes"]
+	path = dependencies/parsers/mpes
+	url = https://gitlab.mpcdf.mpg.de/rpx/parser-mpes.git
