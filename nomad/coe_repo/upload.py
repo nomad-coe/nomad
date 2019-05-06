@@ -54,7 +54,7 @@ from sqlalchemy import exc as sa_exc
 from nomad import utils, infrastructure, config
 from nomad.datamodel import UploadWithMetadata, DFTCalcWithMetadata
 
-from .calc import Calc, PublishContext
+from .calc import Calc, PublishContext, create_handle
 from .base import Base
 from .user import User
 
@@ -186,6 +186,7 @@ class Upload(Base):  # type: ignore
                 # reuse the cache for the whole transaction to profit from repeating
                 # star schema entries for users, ds, topics, etc.
                 context = PublishContext(upload_id=upload.upload_id)
+                coe_calcs = []
                 for calc in upload.calcs:
                     has_calcs = True
                     coe_calc = Calc(
@@ -193,6 +194,7 @@ class Upload(Base):  # type: ignore
                         checksum=calc.calc_id,
                         upload=coe_upload)
                     repo_db.add(coe_calc)
+                    coe_calcs.append(coe_calc)
 
                     coe_calc.apply_calc_with_metadata(
                         cast(DFTCalcWithMetadata, calc), context=context)
@@ -203,6 +205,11 @@ class Upload(Base):  # type: ignore
 
                 result = None
                 if has_calcs:
+                    repo_db.flush()
+                    for coe_calc in coe_calcs:
+                        coe_calc.handlepid = create_handle(coe_calc.coe_calc_id)
+                    logger.debug('created all handlepids')
+
                     repo_db.commit()
                     logger.info('committed publish transaction')
                     result = coe_upload

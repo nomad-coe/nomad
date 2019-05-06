@@ -97,7 +97,8 @@ repository_db = NomadConfig(
     port=5432,
     dbname='nomad_fairdi_repo_db',
     user='postgres',
-    password='nomad'
+    password='nomad',
+    handle_prefix='21.11132/'
 )
 
 mongo = NomadConfig(

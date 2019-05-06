@@ -19,7 +19,7 @@ from sqlalchemy.orm import relationship, aliased
 from sqlalchemy.sql.expression import literal
 from datetime import datetime
 
-from nomad import infrastructure, utils
+from nomad import infrastructure, utils, config
 from nomad.datamodel import DFTCalcWithMetadata
 
 from . import base
@@ -27,6 +27,25 @@ from .user import User
 from .base import Base, calc_citation_association, ownership, co_authorship, shareship, \
     Tag, Topics, CalcSet, calc_dataset_containment, Citation, Spacegroup, CalcMetaData, \
     CodeVersion, StructRatio, UserMetaData
+
+
+handle_base = '0123456789abcdefghijklmnopqrstuvwxyz'
+
+
+def create_handle(pid: int) -> str:
+    """
+    Create a handle for the given pid. The pid is an autoincrement number. The handle
+    a 'base32' encoded string of that number. Therefore, its string representation is a
+    little shorter. The handle is prefixed with the configured handle prefix.
+    """
+
+    value = pid
+    result = ''
+    while value > 0:
+        result += handle_base[value & 31]
+        value = value >> 5
+
+    return config.repository_db.handle_prefix + result[::-1]
 
 
 class PublishContext:
@@ -58,6 +77,7 @@ class Calc(Base):
     __tablename__ = 'calculations'
 
     coe_calc_id = Column('calc_id', Integer, primary_key=True, autoincrement=True)
+    handlepid = Column(String)
     origin_id = Column(Integer, ForeignKey('uploads.upload_id'))
     upload = relationship('Upload', lazy='joined')
     checksum = Column(String)
