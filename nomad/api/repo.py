@@ -199,6 +199,10 @@ class RepoCalcsResource(Resource):
             if g.user is None:
                 abort(401, message='Authentication required for owner value user.')
             q = Q('term', published=False) & Q('term', owners__user_id=g.user.user_id)
+        elif owner == 'admin':
+            if g.user is None or not g.user.is_admin:
+                abort(401, message='This can only be used by the admin user.')
+            q = None
         else:
             abort(400, message='Invalid owner value. Valid values are all|user|staging, default is all')
 

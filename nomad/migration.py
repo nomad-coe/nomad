@@ -152,11 +152,15 @@ class Package(Document):
 
     migration_version = IntField(default=-1)
     """ The version of the last successful migration of this package """
+    migration_id = StringField()
+    """ A random uuid that ids the migration run on this package """
     report = DictField()
     """ The report of the last successful migration of this package """
 
     migration_failure = StringField()
     """ String that describe the cause for last failed migration attempt """
+    migration_failure_type = StringField()
+    """ The type of migration failure: ``no_calcs``, ``processing``, ``publish``, ``exception``. """
 
     meta = dict(indexes=['upload_id', 'migration_version'])
 
@@ -293,9 +297,9 @@ class Package(Document):
                 'packaged upload', source_upload_id=upload_id, source_upload_path=upload_path,
                 restricted=restricted)
 
-            return package_query
+            return package_query.timeout(False)
         else:
-            return cls.objects(upload_id=upload_id)
+            return cls.objects(upload_id=upload_id).timeout(False)
 
     @classmethod
     @contextmanager
@@ -625,6 +629,7 @@ class NomadCOEMigration:
         self.logger = utils.get_logger(__name__, migration_version=migration_version)
 
         self.migration_version = migration_version
+        self.migration_id = utils.create_uuid()
         self.package_directory = package_directory if package_directory is not None else config.fs.migration_packages
         self.compress_packages = compress_packages
         self._client = None
@@ -803,7 +808,7 @@ class NomadCOEMigration:
     def migrate(
             self, *args, delete_failed: str = '',
             create_packages: bool = False, only_republish: bool = False,
-            wait: int = 0) -> utils.POPO:
+            wait: int = 0, republish: bool = False) -> utils.POPO:
         """
         Migrate the given uploads.
 
@@ -827,7 +832,12 @@ class NomadCOEMigration:
             create_packages: If True, it will attempt to create upload packages if they
                 do not exists.
             only_republish: If the package exists and is published, it will be republished.
-                Nothing else. Useful to reindex/recreate coe repo, etc.
+                Nothing else. Useful to reindex/recreate coe repo, etc. This will not
+                reapply the metadata (see parameter ``republish``).
+            republish: Normally packages that are already uploaded and published are not republished.
+                If true, already published packages are republished. This is different from
+                ``only_republish``, because the package metadata will be updated, calc diffs
+                recomputed, etc.
             offset: Will add a random sleep before migrating each package between 0 and
                 ``wait`` seconds.
 
@@ -862,25 +872,28 @@ class NomadCOEMigration:
                         self.logger.info('wait for a random amount of time')
                         time.sleep(random.randint(0, wait))
 
-                    package_report = self.migrate_package(package, delete_failed=delete_failed)
+                    package_report = self.migrate_package(package, delete_failed=delete_failed, republish=republish)
 
                 except Exception as e:
                     package_report = Report()
                     package_report.failed_packages = 1
                     event = 'unexpected exception while migrating packages'
                     package.migration_failure = event + ': ' + str(e)
+                    package.migration_failure_type = 'exception'
                     logger.error(event, exc_info=e)
                 finally:
                     package.report = package_report
                     package.migration_version = self.migration_version
-                    package.save()
 
             with cv:
+                package.migration_id = self.migration_id
+                package.save()
+
                 try:
                     overall_report.add(package_report)
 
                     migrated_all_packages = all(
-                        p.migration_version == self.migration_version
+                        p.migration_id == self.migration_id
                         for p in Package.objects(upload_id=package.upload_id))
 
                     if migrated_all_packages:
@@ -931,7 +944,7 @@ class NomadCOEMigration:
 
         logger = self.logger.bind(package_id=package_id, source_upload_id=source_upload_id)
 
-        uploads = self.call_api('uploads.get_uploads', name=package_id)
+        uploads = self.call_api('uploads.get_uploads', all=True, name=package_id)
         if len(uploads) > 1:
             self.logger.warning('upload name is not unique')
         if len(uploads) == 0:
@@ -971,12 +984,12 @@ class NomadCOEMigration:
             if scroll_id != 'first':
                 scroll_args['scroll_id'] = scroll_id
 
-            search = self.call_api('repo.search', upload_id=upload_id, **scroll_args)
+            search = self.call_api('repo.search', upload_id=upload_id, owner='admin', **scroll_args)
             scroll_id = search.scroll_id
             for calc in search.results:
                 yield calc
 
-    def migrate_package(self, package: Package, delete_failed: str = '') -> 'Report':
+    def migrate_package(self, package: Package, delete_failed: str = '', republish: bool = False) -> 'Report':
         """ Migrates the given package. For other params see :func:`migrate`. """
 
         source_upload_id = package.upload_id
@@ -986,15 +999,16 @@ class NomadCOEMigration:
         logger.debug('start to process package')
 
         report = Report()
-        report.total_packages += 1
+        report.total_packages = 1
 
         # check if the package is already uploaded
         upload = None
         try:
-            uploads = self.call_api('uploads.get_uploads', name=package_id)
+            uploads = self.call_api('uploads.get_uploads', all=True, name=package_id)
             if len(uploads) > 1:
                 event = 'duplicate upload name'
                 package.migration_failure(event)
+                package.migration_failure_type = 'exception'
                 report.failed_packages += 1
                 return report
             elif len(uploads) == 1:
@@ -1004,6 +1018,7 @@ class NomadCOEMigration:
             event = 'could not verify if upload already exists'
             logger.error(event, exc_info=e)
             package.migration_failure(event)
+            package.migration_failure_type = 'exception'
             report.failed_packages += 1
             return report
 
@@ -1017,6 +1032,7 @@ class NomadCOEMigration:
                     event = 'could not upload package'
                     logger.error(event, exc_info=e)
                     package.migration_failure = event + ': ' + str(e)
+                    package.migration_failure_type = 'processing'
                     report.failed_packages += 1
                     return report
         else:
@@ -1094,6 +1110,7 @@ class NomadCOEMigration:
             event = 'failed to process upload'
             logger.error(event, process_errors=upload.errors)
             package.migration_failure = event + ': ' + str(upload.errors)
+            package.migration_failure_type = 'processing'
             report.failed_packages += 1
             delete_upload(FAILED_PROCESSING)
             return report
@@ -1169,7 +1186,7 @@ class NomadCOEMigration:
                 logger.error('missmatch between processed calcs and calcs found with search')
 
         # publish upload
-        if len(calc_mainfiles) > 0 and not upload.published:
+        if len(calc_mainfiles) > 0 and (republish or not upload.published):
             with utils.timer(logger, 'upload published'):
                 upload_metadata = dict(with_embargo=(package.restricted > 0))
                 upload_metadata['calculations'] = [
@@ -1194,10 +1211,13 @@ class NomadCOEMigration:
                     report.new_calcs = 0
                     report.failed_packages += 1
                     package.migration_failure = event + ': ' + str(upload.errors)
+                    package.migration_failure_type = 'publish'
 
-                    delete_upload(FAILED_PUBLISH)
-                    SourceCalc.objects(upload=source_upload_id, mainfile__in=calc_mainfiles) \
-                        .update(migration_version=-1)
+                    if not upload.published:
+                        # only do this if the upload was not publish with prior migration
+                        delete_upload(FAILED_PUBLISH)
+                        SourceCalc.objects(upload=source_upload_id, mainfile__in=calc_mainfiles) \
+                            .update(migration_version=-1)
                 else:
                     SourceCalc.objects(upload=source_upload_id, mainfile__in=calc_mainfiles) \
                         .update(migration_version=self.migration_version)
@@ -1206,6 +1226,9 @@ class NomadCOEMigration:
                 logger.info('package upload already published, skip publish')
             else:
                 delete_upload(NO_PROCESSED_CALCS)
+                report.failed_packages += 1
+                package.migration_failure = 'no calculcations found'
+                package.migration_failure_type = 'no_calcs'
                 logger.info('no successful calcs, skip publish')
 
         logger.info('migrated package', **report)
@@ -1219,10 +1242,14 @@ class NomadCOEMigration:
             _uploader=calc_with_metadata.uploader['id'],
             _pid=calc_with_metadata.pid,
             references=[ref['value'] for ref in calc_with_metadata.references],
-            datasets=[dict(
-                id=ds['id'],
-                _doi=ds.get('doi', {'value': None})['value'],
-                _name=ds.get('name', None)) for ds in calc_with_metadata.datasets],
+            datasets=[
+                dict(
+                    id=ds['id'],
+                    _doi=ds.get('doi', {'value': None})['value'],
+                    _name=ds.get('name', None))
+                for ds in calc_with_metadata.datasets
+                if ds is not None
+            ] if calc_with_metadata.datasets is not None else [],
             mainfile=calc_with_metadata.mainfile,
             with_embargo=calc_with_metadata.with_embargo,
             comment=calc_with_metadata.comment,
