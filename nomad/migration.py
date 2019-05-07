@@ -1239,19 +1239,21 @@ class NomadCOEMigration:
     def _to_api_metadata(self, calc_with_metadata: CalcWithMetadata) -> dict:
         """ Transforms to a dict that fullfils the API's uploade metadata model. """
 
+        source_datasets = calc_with_metadata.datasets
+        datasets = []
+        if source_datasets is not None:
+            for ds in source_datasets:
+                doi = ds.get('doi', None)
+                if doi is not None:
+                    doi = doi['value']
+                datasets.append(dict(id=ds['id'], _doi=doi, _name=ds.get('name', None)))
+
         return dict(
             _upload_time=calc_with_metadata.upload_time,
             _uploader=calc_with_metadata.uploader['id'],
             _pid=calc_with_metadata.pid,
             references=[ref['value'] for ref in calc_with_metadata.references],
-            datasets=[
-                dict(
-                    id=ds['id'],
-                    _doi=ds.get('doi', {'value': None})['value'],
-                    _name=ds.get('name', None))
-                for ds in calc_with_metadata.datasets
-                if ds is not None
-            ] if calc_with_metadata.datasets is not None else [],
+            datasets=datasets,
             mainfile=calc_with_metadata.mainfile,
             with_embargo=calc_with_metadata.with_embargo,
             comment=calc_with_metadata.comment,
