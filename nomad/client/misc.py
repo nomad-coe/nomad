@@ -62,6 +62,11 @@ def rm(upload_ids, processing, stop_processing):
     logger = utils.get_logger(__name__)
     logger.info('start deleting uploads', count=len(upload_ids))
 
+    print('Will delete: ')
+    for upload_id in upload_ids:
+        print('   %s' % upload_id)
+    input("Press Enter to continue...")
+
     for upload_id in upload_ids:
         logger = logger.bind(upload_id=upload_id)
 
