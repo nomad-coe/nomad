@@ -124,6 +124,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         set_value('chemical_composition', atoms.get_chemical_formula(mode='all'))
         set_value('chemical_composition_reduced', atoms.get_chemical_formula(mode='reduce'))
         set_value('chemical_composition_bulk_reduced', atoms.get_chemical_formula(mode='hill'))
+
         # positions
         atom_positions = get_value('atom_positions', None)
         if atom_positions is None:
@@ -173,6 +174,7 @@ class SystemNormalizer(SystemBasedNormalizer):
                     system_size=atoms.get_number_of_atoms()):
 
                 self.system_type_analysis(atoms)
+
         # symmetry analysis
         if atom_positions is not None and (lattice_vectors is not None or not any(pbc)):
             with utils.timer(
@@ -188,8 +190,12 @@ class SystemNormalizer(SystemBasedNormalizer):
         """
         system_type = config.services.unavailable_value
         try:
-            dimensionality = get_dimensionality(
-                atoms, cluster_threshold=3.1, return_clusters=False)
+            if atoms.get_number_of_atoms() > config.normalize.system_classification_with_clusters_threshold:
+                # it is too expensive to run Matid's cluster detection, just check pbc
+                dimensionality = np.sum(atoms.get_pbc())
+            else:
+                dimensionality = get_dimensionality(
+                    atoms, cluster_threshold=3.1, return_clusters=False)
 
             if dimensionality is None:
                 pass
