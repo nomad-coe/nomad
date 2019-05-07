@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any
 import pytest
 import time
 import json
@@ -623,6 +624,17 @@ class TestRepo():
             calc_id='4', uploader=other_test_user.to_popo(), published=True, with_embargo=True)
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
+    def assert_search(self, rv: Any, number_of_calcs: int) -> dict:
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+
+        results = data.get('results', None)
+        assert results is not None
+        assert isinstance(results, list)
+        assert len(results) == number_of_calcs
+
+        return data
+
     def test_own_calc(self, client, example_elastic_calcs, no_warn, test_user_auth):
         rv = client.get('/repo/0/1', headers=test_user_auth)
         assert rv.status_code == 200
@@ -663,12 +675,8 @@ class TestRepo():
     def test_search_owner(self, client, example_elastic_calcs, no_warn, test_user_auth, other_test_user_auth, calcs, owner, auth):
         auth = dict(none=None, test_user=test_user_auth, other_test_user=other_test_user_auth).get(auth)
         rv = client.get('/repo/?owner=%s' % owner, headers=auth)
-        assert rv.status_code == 200
-        data = json.loads(rv.data)
+        data = self.assert_search(rv, calcs)
         results = data.get('results', None)
-        assert results is not None
-        assert isinstance(results, list)
-        assert len(results) == calcs
         if calcs > 0:
             for key in ['uploader', 'calc_id', 'formula', 'upload_id']:
                 assert key in results[0]
@@ -696,13 +704,7 @@ class TestRepo():
             query_string = '?%s' % query_string
 
         rv = client.get('/repo/%s' % query_string)
-        assert rv.status_code == 200
-        data = json.loads(rv.data)
-
-        results = data.get('results', None)
-        assert results is not None
-        assert isinstance(results, list)
-        assert len(results) == calcs
+        self.assert_search(rv, calcs)
 
     @pytest.mark.parametrize('calcs, quantity, value', [
         (2, 'system', 'bulk'),
@@ -720,15 +722,9 @@ class TestRepo():
     ])
     def test_search_quantities(self, client, example_elastic_calcs, no_warn, test_user_auth, calcs, quantity, value):
         query_string = '%s=%s' % (quantity, ','.join(value) if isinstance(value, list) else value)
+
         rv = client.get('/repo/?%s' % query_string, headers=test_user_auth)
-
-        assert rv.status_code == 200
-        data = json.loads(rv.data)
-
-        results = data.get('results', None)
-        assert results is not None
-        assert isinstance(results, list)
-        assert len(results) == calcs
+        data = self.assert_search(rv, calcs)
 
         aggregations = data.get('aggregations', None)
         assert aggregations is not None
@@ -739,6 +735,17 @@ class TestRepo():
             assert value in aggregations['system']
 
     metrics_permutations = [[], search.metrics_names] + [[metric] for metric in search.metrics_names]
+
+    def test_search_admin(self, client, example_elastic_calcs, no_warn, admin_user_auth):
+        rv = client.get('/repo/?owner=admin', headers=admin_user_auth)
+        self.assert_search(rv, 4)
+
+    def test_search_admin_auth(self, client, example_elastic_calcs, no_warn, test_user_auth):
+        rv = client.get('/repo/?owner=admin', headers=test_user_auth)
+        assert rv.status_code == 401
+
+        rv = client.get('/repo/?owner=admin')
+        assert rv.status_code == 401
 
     @pytest.mark.parametrize('metrics', metrics_permutations)
     def test_search_total_metrics(self, client, example_elastic_calcs, no_warn, metrics):

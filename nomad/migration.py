@@ -984,7 +984,7 @@ class NomadCOEMigration:
             if scroll_id != 'first':
                 scroll_args['scroll_id'] = scroll_id
 
-            search = self.call_api('repo.search', upload_id=upload_id, **scroll_args)
+            search = self.call_api('repo.search', upload_id=upload_id, owner='admin', **scroll_args)
             scroll_id = search.scroll_id
             for calc in search.results:
                 yield calc
@@ -999,7 +999,7 @@ class NomadCOEMigration:
         logger.debug('start to process package')
 
         report = Report()
-        report.total_packages += 1
+        report.total_packages = 1
 
         # check if the package is already uploaded
         upload = None
