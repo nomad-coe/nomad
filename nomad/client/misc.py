@@ -20,7 +20,7 @@ import asyncio
 from concurrent.futures import ProcessPoolExecutor
 from mongoengine import Q
 
-from nomad import config, infrastructure, processing, utils
+from nomad import config, infrastructure, processing, utils, files, search
 
 from .main import cli
 
@@ -43,6 +43,76 @@ def ls():
 
     ls(processing.Calc.objects(query))
     ls(processing.Upload.objects(query))
+
+
+@proc.command(help='Remove uploads')
+@click.argument('upload-ids', nargs=-1)
+@click.option('--processing', is_flag=True, help='Target all uploads that are still processing')
+@click.option('--stop-processing', is_flag=True, help='Attempt to stop processing on to delete uploads')
+def rm(upload_ids, processing, stop_processing):
+    infrastructure.setup_logging()
+    infrastructure.setup_mongo()
+    infrastructure.setup_elastic()
+
+    if processing:
+        query = Q(process_status=processing.PROCESS_RUNNING) | Q(tasks_status=processing.RUNNING)
+        for upload in processing.Upload.objects(query):
+            upload_ids.append(upload.upload_id)
+
+    logger = utils.get_logger(__name__)
+    logger.info('start deleting uploads', count=len(upload_ids))
+
+    for upload_id in upload_ids:
+        logger = logger.bind(upload_id=upload_id)
+
+        # stop processing
+        if stop_processing:
+            upload = processing.Upload.objects(upload_id=upload_id).first()
+            try:
+                processing.app.control.revoke(upload.celery_task_id, terminate=True, signal='SIGKILL')
+            except Exception as e:
+                logger.debug(
+                    'could not revoke celery task', exc_info=e, celery_task_id=upload.celery_task_id)
+            query = Q(upload_id=upload_id)
+            query &= Q(process_status=processing.PROCESS_RUNNING) | Q(tasks_status=processing.RUNNING)
+            for calc in processing.Calc.objects(query):
+                try:
+                    processing.app.control.revoke(calc.celery_task_id, terminate=True, signal='SIGKILL')
+                except Exception as e:
+                    logger.debug(
+                        'could not revoke celery task', exc_info=e,
+                        celery_task_id=calc.celery_task_id, calc_id=calc.calc_id)
+
+                calc.fail('process terminate via nomad cli')
+                calc.process_status = processing.PROCESS_COMPLETED
+                calc.on_process_complete(None)
+                calc.save()
+
+            upload.fail('process terminate via nomad cli')
+            upload.process_status = processing.PROCESS_COMPLETED
+            upload.on_process_complete(None)
+            upload.save()
+
+            logger.info('stopped upload processing')
+
+    # delete elastic
+    search.delete_upload(upload_id=upload_id)
+
+    # delete mongo
+    processing.Upload.objects(upload_id=upload_id).remove()
+    processing.Calc.objects(query).remove()
+
+    # delete files
+    while True:
+        try:
+            upload_files = files.UploadFiles.get(upload_id=upload_id)
+        except KeyError:
+            break
+
+        try:
+            upload_files.delete()
+        except Exception as e:
+            logger.error('could not delete files', exc_info=e)
 
 
 @proc.command(help='Stop all running processing')
