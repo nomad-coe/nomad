@@ -1242,10 +1242,14 @@ class NomadCOEMigration:
             _uploader=calc_with_metadata.uploader['id'],
             _pid=calc_with_metadata.pid,
             references=[ref['value'] for ref in calc_with_metadata.references],
-            datasets=[dict(
-                id=ds['id'],
-                _doi=ds.get('doi', {'value': None})['value'],
-                _name=ds.get('name', None)) for ds in calc_with_metadata.datasets],
+            datasets=[
+                dict(
+                    id=ds['id'],
+                    _doi=ds.get('doi', {'value': None})['value'],
+                    _name=ds.get('name', None))
+                for ds in calc_with_metadata.datasets
+                if ds is not None
+            ] if calc_with_metadata.datasets is not None else [],
             mainfile=calc_with_metadata.mainfile,
             with_embargo=calc_with_metadata.with_embargo,
             comment=calc_with_metadata.comment,
