@@ -47,14 +47,16 @@ def ls():
 
 @proc.command(help='Remove uploads')
 @click.argument('upload-ids', nargs=-1)
-@click.option('--processing', is_flag=True, help='Target all uploads that are still processing')
+@click.option('--still-processing', is_flag=True, help='Target all uploads that are still processing')
 @click.option('--stop-processing', is_flag=True, help='Attempt to stop processing on to delete uploads')
-def rm(upload_ids, processing, stop_processing):
+def rm(upload_ids, still_processing, stop_processing):
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
-    if processing:
+    upload_ids = list(upload_ids)
+
+    if still_processing:
         query = Q(process_status=processing.PROCESS_RUNNING) | Q(tasks_status=processing.RUNNING)
         for upload in processing.Upload.objects(query):
             upload_ids.append(upload.upload_id)
@@ -100,24 +102,23 @@ def rm(upload_ids, processing, stop_processing):
 
             logger.info('stopped upload processing')
 
-    # delete elastic
-    search.delete_upload(upload_id=upload_id)
+        # delete elastic
+        search.delete_upload(upload_id=upload_id)
 
-    # delete mongo
-    processing.Upload.objects(upload_id=upload_id).remove()
-    processing.Calc.objects(query).remove()
-
-    # delete files
-    while True:
-        try:
+        # delete files
+        for _ in range(0, 2):
             upload_files = files.UploadFiles.get(upload_id=upload_id)
-        except KeyError:
-            break
 
-        try:
-            upload_files.delete()
-        except Exception as e:
-            logger.error('could not delete files', exc_info=e)
+            try:
+                if upload_files is not None:
+                    upload_files.delete()
+            except Exception as e:
+                logger.error('could not delete files', exc_info=e)
+                break
+
+        # delete mongo
+        processing.Calc.objects(upload_id=upload_id).delete()
+        processing.Upload.objects(upload_id=upload_id).delete()
 
 
 @proc.command(help='Stop all running processing')
