@@ -159,7 +159,7 @@ mail = NomadConfig(
 
 normalize = NomadConfig(
     all_systems=False,
-    system_classification_with_clusters_threshold=100
+    system_classification_with_clusters_threshold=50
 )
 
 client = NomadConfig(
