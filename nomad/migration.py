@@ -297,9 +297,9 @@ class Package(Document):
                 'packaged upload', source_upload_id=upload_id, source_upload_path=upload_path,
                 restricted=restricted)
 
-            return package_query.timeout(False)
+            return list(package_query)  # prevent timeout, there are only ~10k packages
         else:
-            return cls.objects(upload_id=upload_id).timeout(False)
+            return list(cls.objects(upload_id=upload_id))  # prevent timeout, there are only ~10k packages
 
     @classmethod
     @contextmanager
@@ -1009,7 +1009,7 @@ class NomadCOEMigration:
             uploads = self.call_api('uploads.get_uploads', all=True, name=package_id)
             if len(uploads) > 1:
                 event = 'duplicate upload name'
-                package.migration_failure(event)
+                package.migration_failure = event
                 package.migration_failure_type = 'exception'
                 report.failed_packages += 1
                 return report
@@ -1019,7 +1019,7 @@ class NomadCOEMigration:
         except Exception as e:
             event = 'could not verify if upload already exists'
             logger.error(event, exc_info=e)
-            package.migration_failure(event)
+            package.migration_failure = event
             package.migration_failure_type = 'exception'
             report.failed_packages += 1
             return report
