@@ -193,13 +193,6 @@ class Package(Document):
         upload_id = os.path.basename(upload_path)
         logger = utils.get_logger(__name__, source_upload_path=upload_path, source_upload_id=upload_id)
 
-        if not os.path.isdir(upload_path):
-            logger.error('upload path is not a directory')
-            return []
-
-        upload_directory = files.DirectoryObject(target_dir, upload_id, create=True, prefix=True)
-        restricted = 0
-
         # The packages number is written after all packages of an upload have been created.
         # this should allow to abort mid upload packaging and continue later by removing
         # all started packages first.
@@ -212,6 +205,13 @@ class Package(Document):
         if not is_packaged:
             if not create:
                 return None
+
+            if not os.path.isdir(upload_path):
+                logger.error('upload path is not a directory')
+                return []
+
+            upload_directory = files.DirectoryObject(target_dir, upload_id, create=True, prefix=True)
+            restricted = 0
 
             cls.objects(upload_id=upload_id).delete()
 
