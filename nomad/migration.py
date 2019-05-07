@@ -1000,6 +1000,8 @@ class NomadCOEMigration:
 
         report = Report()
         report.total_packages = 1
+        package.migration_failure = None
+        package.migration_failure_type = None
 
         # check if the package is already uploaded
         upload = None
