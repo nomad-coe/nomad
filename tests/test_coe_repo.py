@@ -93,6 +93,7 @@ def assert_coe_calc(coe_calc: Calc, calc: datamodel.DFTCalcWithMetadata, has_han
     if calc.with_embargo is not None:
         assert coe_calc.with_embargo == calc.with_embargo
     else:
+        # with out metadata, the default setting is no embargo
         assert not coe_calc.with_embargo
 
 
