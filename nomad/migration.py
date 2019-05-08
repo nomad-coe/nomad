@@ -139,7 +139,7 @@ def missing_calcs_data():
         source_upload['mainfiles'] = sorted(source_upload['mainfiles'])
 
     source_uploads = [
-        utils.POPO(source_upload_id=d['_id'], mainfiles=d['mainfiles']) 
+        utils.POPO(source_upload_id=d['_id'], mainfiles=d['mainfiles'])
         for d in source_uploads]
 
     source_uploads = sorted(source_uploads, key=lambda u: len(u.mainfiles))
@@ -199,7 +199,7 @@ def missing_calcs_data():
                 for mainfile in source_upload.mainfiles:
                     contained = False
                     for package in package_query():
-                         with zipfile.ZipFile(package.package_path, 'r', allowZip64=True) as zf:
+                        with zipfile.ZipFile(package.package_path, 'r', allowZip64=True) as zf:
                             try:
                                 if zf.getinfo(mainfile) is not None:
                                     contained = True
@@ -210,7 +210,7 @@ def missing_calcs_data():
                     if not contained:
                         results.missing_mainfile.append(cause(source_upload, missing_mainfile=mainfile))
                         raise KeyError
-                    
+
                     # only check the first
                     break
             except KeyError:
