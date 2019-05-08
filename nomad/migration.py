@@ -127,35 +127,36 @@ def missing_calcs_data():
         no_calcs=[],
         failed_packages=[],
         missing_mainfile=[],
-        other=[])
+        others=[])
 
     # aggregate missing calcs based on uploads
-    source_uploads = utils.POPO()
-    for source_calc in SourceCalc.object(migration_version=-1):
-        source_upload_id = source_calc.upload
-        if source_upload_id not in source_uploads:
-            source_uploads[source_upload_id] = utils.POPO(
-                source_upload_id=source_upload_id,
-                mainfiles=[])
-        source_upload = source_uploads.get(source_upload_id)
-        source_upload.mainfiles.append(source_calc.mainfile)
+    source_uploads = SourceCalc._get_collection().aggregate([
+        {'$match': {'migration_version': -1, 'upload': {'$ne': 'ftp_upload_for_uid_125'}}},
+        {'$group': {'_id': '$upload', 'mainfiles': {'$push': '$mainfile'}}}])
+    source_uploads = list(source_uploads)
 
-    for source_upload in source_uploads.values():
-        source_upload.mainfiles = sorted(source_upload.mainfiles)
+    for source_upload in source_uploads:
+        source_upload['mainfiles'] = sorted(source_upload['mainfiles'])
 
-    source_uploads = sorted(source_uploads.values, key=lambda u: len(u.mainfiles))
+    source_uploads = [
+        utils.POPO(source_upload_id=d['_id'], mainfiles=d['mainfiles']) 
+        for d in source_uploads]
+
+    source_uploads = sorted(source_uploads, key=lambda u: len(u.mainfiles))
 
     # go through all problematic uploads
     for source_upload in source_uploads:
         logger = utils.get_logger(__name__, source_upload_id=source_upload.source_upload_id)
 
         def package_query(**kwargs):
-            return Package.objects(upload_id=source_upload, **kwargs)
+            return Package.objects(upload_id=source_upload.source_upload_id, **kwargs)
 
         def cause(upload, **kwargs):
-            return dict(
+            cause = dict(
                 source_upload_id=upload.source_upload_id, mainfiles=len(upload.mainfiles),
+                example_mainfile=upload.mainfiles[0],
                 **kwargs)
+            return cause
 
         try:
 
@@ -164,6 +165,8 @@ def missing_calcs_data():
                 results.no_package.append(cause(source_upload))
                 continue
 
+            logger.debug('package exists')
+
             # check if packages are not migrated
             not_migrated_query = package_query(migration_version__lt=0)
             if not_migrated_query.count() > 0:
@@ -171,6 +174,7 @@ def missing_calcs_data():
                     source_upload,
                     packages=list(package.package_id for package in not_migrated_query)))
                 continue
+            logger.debug('packages are migrated')
 
             # check if packages all failed due to no calcs
             no_calcs_query = package_query(report__total_calcs=0)
@@ -179,39 +183,44 @@ def missing_calcs_data():
                     source_upload,
                     packages=list(package.package_id for package in no_calcs_query)))
                 continue
+            logger.debug('packages have calcs')
 
             # check if packages failed
             failed_packages_query = package_query(report__failed_packages__ne=0)
-            if len(failed_packages_query.count()) > 0:
+            if failed_packages_query.count() > 0:
                 results.failed_packages.append(cause(
                     source_upload,
                     packages=list(package.package_id for package in failed_packages_query)))
                 continue
+            logger.debug('packages are processed')
 
             # check if a mainfile does not exist in the package
             try:
                 for mainfile in source_upload.mainfiles:
                     contained = False
                     for package in package_query():
-                        with zipfile.ZipFile(package.package_path, 'r', allowZip64=True) as zf:
+                         with zipfile.ZipFile(package.package_path, 'r', allowZip64=True) as zf:
                             try:
                                 if zf.getinfo(mainfile) is not None:
                                     contained = True
+                                    break
                             except KeyError:
                                 pass
 
                     if not contained:
-                        results.missing_mainfile.append(cause(source_upload, mainfile=mainfile))
+                        results.missing_mainfile.append(cause(source_upload, missing_mainfile=mainfile))
                         raise KeyError
+                    
+                    # only check the first
+                    break
             except KeyError:
                 continue
+            logger.debug('mainfiles do exist')
 
             results.others.append(cause(source_upload))
 
         except Exception as e:
             logger.error('exception while checking upload', exc_info=e)
-        else:
-            logger.info('checked upload')
 
     return results
 

@@ -312,7 +312,7 @@ def upload(
 
 
 @migration.command(help='Get an report about not migrated calcs.')
-def missing(package, use_cache):
+def missing():
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
 
