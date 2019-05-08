@@ -26,7 +26,7 @@ from elasticsearch_dsl import Document, Keyword
 import elasticsearch
 
 from nomad import config, infrastructure, utils
-from nomad.migration import NomadCOEMigration, SourceCalc, Package
+from nomad.migration import NomadCOEMigration, SourceCalc, Package, missing_calcs_data
 
 from .main import cli
 
@@ -311,15 +311,10 @@ def upload(
         create_packages=create_packages, only_republish=only_republish, wait=wait, republish=republish)
 
 
-@migration.command(help='Get an report about not migrated calcs based on source calcs.')
-@click.option('--package', is_flag=True, help='Return missing calcs based on packages.')
-@click.option('--use-cache', is_flag=True, help='Skip processing steps and take results from prior runs')
+@migration.command(help='Get an report about not migrated calcs.')
 def missing(package, use_cache):
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
 
-    if package:
-        report = Package.missing()
-    else:
-        report = SourceCalc.missing(use_cache=use_cache)
+    report = missing_calcs_data()
     print(json.dumps(report, indent=2))

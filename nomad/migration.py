@@ -29,7 +29,7 @@ import os.path
 import zipfile
 import tarfile
 import math
-from mongoengine import Document, IntField, StringField, DictField
+from mongoengine import Document, IntField, StringField, DictField, BooleanField
 import datetime
 from bravado.exception import HTTPNotFound, HTTPBadRequest, HTTPGatewayTimeout
 import os
@@ -38,7 +38,6 @@ import io
 import threading
 from contextlib import contextmanager
 import shutil
-import json
 import random
 
 from nomad import utils, infrastructure, files, config
@@ -121,6 +120,102 @@ def create_package_zip(
     logger.info('package zip created')
 
 
+def missing_calcs_data():
+    """ Produces data about missing calculations """
+    results = utils.POPO(
+        no_package=[],
+        no_calcs=[],
+        failed_packages=[],
+        missing_mainfile=[],
+        other=[])
+
+    # aggregate missing calcs based on uploads
+    source_uploads = utils.POPO()
+    for source_calc in SourceCalc.object(migration_version=-1):
+        source_upload_id = source_calc.upload
+        if source_upload_id not in source_uploads:
+            source_uploads[source_upload_id] = utils.POPO(
+                source_upload_id=source_upload_id,
+                mainfiles=[])
+        source_upload = source_uploads.get(source_upload_id)
+        source_upload.mainfiles.append(source_calc.mainfile)
+
+    for source_upload in source_uploads.values():
+        source_upload.mainfiles = sorted(source_upload.mainfiles)
+
+    source_uploads = sorted(source_uploads.values, key=lambda u: len(u.mainfiles))
+
+    # go through all problematic uploads
+    for source_upload in source_uploads:
+        logger = utils.get_logger(__name__, source_upload_id=source_upload.source_upload_id)
+
+        def package_query(**kwargs):
+            return Package.objects(upload_id=source_upload, **kwargs)
+
+        def cause(upload, **kwargs):
+            return dict(
+                source_upload_id=upload.source_upload_id, mainfiles=len(upload.mainfiles),
+                **kwargs)
+
+        try:
+
+            # check if packages exist
+            if package_query().count() == 0:
+                results.no_package.append(cause(source_upload))
+                continue
+
+            # check if packages are not migrated
+            not_migrated_query = package_query(migration_version__lt=0)
+            if not_migrated_query.count() > 0:
+                results.not_migrated.append(cause(
+                    source_upload,
+                    packages=list(package.package_id for package in not_migrated_query)))
+                continue
+
+            # check if packages all failed due to no calcs
+            no_calcs_query = package_query(report__total_calcs=0)
+            if no_calcs_query.count() == package_query().count():
+                results.no_calcs.append(cause(
+                    source_upload,
+                    packages=list(package.package_id for package in no_calcs_query)))
+                continue
+
+            # check if packages failed
+            failed_packages_query = package_query(report__failed_packages__ne=0)
+            if len(failed_packages_query.count()) > 0:
+                results.failed_packages.append(cause(
+                    source_upload,
+                    packages=list(package.package_id for package in failed_packages_query)))
+                continue
+
+            # check if a mainfile does not exist in the package
+            try:
+                for mainfile in source_upload.mainfiles:
+                    contained = False
+                    for package in package_query():
+                        with zipfile.ZipFile(package.package_path, 'r', allowZip64=True) as zf:
+                            try:
+                                if zf.getinfo(mainfile) is not None:
+                                    contained = True
+                            except KeyError:
+                                pass
+
+                    if not contained:
+                        results.missing_mainfile.append(cause(source_upload, mainfile=mainfile))
+                        raise KeyError
+            except KeyError:
+                continue
+
+            results.others.append(cause(source_upload))
+
+        except Exception as e:
+            logger.error('exception while checking upload', exc_info=e)
+        else:
+            logger.info('checked upload')
+
+    return results
+
+
 class Package(Document):
     """
     A Package represents split origin NOMAD CoE uploads. We use packages as uploads
@@ -156,6 +251,8 @@ class Package(Document):
     """ A random uuid that ids the migration run on this package """
     report = DictField()
     """ The report of the last successful migration of this package """
+    skip_migration = BooleanField()
+    """ Packages with known problems can be marked to be not migrated """
 
     migration_failure = StringField()
     """ String that describe the cause for last failed migration attempt """
@@ -411,34 +508,6 @@ class Package(Document):
                 source_upload_id=self.upload_id, exc_info=e)
             return False, 'exception while deleting'
 
-    @staticmethod
-    def missing():
-        """ Produces data about missing calculations """
-        def get_upload_data(upload_id: str) -> dict:
-            total = SourceCalc.objects(upload=upload_id).count()
-            migrated = SourceCalc.objects(upload=upload_id, migration_version__gte=0).count()
-            packages = Package.objects(upload_id=upload_id, migration_version__gte=0)
-            report = Report()
-            upload_path = ''
-            for package in packages:
-                upload_path = package.upload_path
-                report.add(package.report)
-
-            report.missing_calcs = total - migrated
-            report.total_source_calcs = total
-
-            return dict(
-                upload_id=upload_id,
-                upload_path=upload_path,
-                report=report)
-
-        upload_ids = Package.objects().distinct('upload_id')
-        upload_data = sorted(
-            [get_upload_data(upload_id) for upload_id in upload_ids],
-            key=lambda d: d['report']['missing_calcs'])
-
-        return upload_data
-
 
 class SourceCalc(Document):
     """
@@ -463,51 +532,6 @@ class SourceCalc(Document):
     meta = dict(indexes=['upload', 'mainfile', 'migration_version'])
 
     _dataset_cache: dict = {}
-
-    @staticmethod
-    def missing(use_cache=False):
-        """
-        Produces data about non migrated calcs
-        """
-        tmp_data_path = '/tmp/nomad_migration_missing.json'
-        if os.path.exists(tmp_data_path) and use_cache:
-            with open(tmp_data_path, 'rt') as f:
-                data = utils.POPO(**json.load(f))
-        else:
-            data = utils.POPO(step=0)
-
-        try:
-            # get source_uploads that have non migrated calcs
-            if data.step < 1 or not use_cache:
-                import re
-                data.source_uploads = SourceCalc._get_collection() \
-                    .find({'migration_version': {'$lt': 0}, 'mainfile': {'$not': re.compile(r'^aflowlib_data.*')}}) \
-                    .distinct('upload')
-                data.step = 1
-
-            if data.step < 2 or not use_cache:
-                source_uploads = []
-                data.packages = utils.POPO()
-                data.uploads_with_no_package = []
-                for source_upload in data.source_uploads:
-                    package = Package.objects(upload_id=source_upload).first()
-                    if package is None:
-                        data.uploads_with_no_package.append(source_upload)
-                    else:
-                        calcs = SourceCalc.objects(upload=source_upload).count()
-                        packages = Package.objects(upload_id=source_upload).count()
-                        source_uploads.append(dict(
-                            id=source_upload, package_count=packages,
-                            packages=package.packages, calcs=calcs,
-                            path=package.upload_path))
-                        source_uploads = sorted(source_uploads, key=lambda k: k['calcs'], reverse=True)
-                data.source_uploads = source_uploads
-                data.step = 2
-        finally:
-            with open(tmp_data_path, 'wt') as f:
-                json.dump(data, f)
-
-        return data
 
     @staticmethod
     def index(source, drop: bool = False, with_metadata: bool = True, per_query: int = 100) \
@@ -856,7 +880,14 @@ class NomadCOEMigration:
             logger = self.logger.bind(
                 package_id=package.package_id, source_upload_id=package.upload_id)
 
-            if package.migration_version is not None and package.migration_version >= self.migration_version:
+            if package.skip_migration:
+                self.logger.info(
+                    'package is marked to skip migration',
+                    package_id=package.package_id, source_upload_id=package.upload_id)
+                overall_report.total_packages += 1
+                overall_report.skipped_packages += 1
+
+            elif package.migration_version is not None and package.migration_version >= self.migration_version:
                 if only_republish:
                     self.republish_package(package)
                 else:
@@ -866,6 +897,7 @@ class NomadCOEMigration:
 
                 package_report = package.report
                 overall_report.skipped_packages += 1
+
             else:
                 try:
                     if wait > 0:
@@ -1191,6 +1223,7 @@ class NomadCOEMigration:
         if len(calc_mainfiles) > 0 and (republish or not upload.published):
             with utils.timer(logger, 'upload published'):
                 upload_metadata = dict(with_embargo=(package.restricted > 0))
+                # TODO sample metadata from calcs in upload for new calcs
                 upload_metadata['calculations'] = [
                     self._to_api_metadata(source_calc_with_metadata)
                     for _, source_calc_with_metadata in source_calcs.values()]
