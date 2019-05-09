@@ -1442,7 +1442,6 @@ class NomadCOEMigration:
         if len(calc_mainfiles) > 0 and (republish or not upload.published):
             with utils.timer(logger, 'upload published'):
                 upload_metadata = dict(with_embargo=(package.restricted > 0))
-                # TODO sample metadata from calcs in upload for new calcs
                 upload_metadata['calculations'] = [
                     self._to_api_metadata(source_calc_with_metadata)
                     for _, source_calc_with_metadata in source_calcs.values()]

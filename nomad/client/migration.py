@@ -87,10 +87,11 @@ def index(drop, with_metadata, per_query):
 @click.argument('tar-file', nargs=1)
 @click.option('--offset', default=None, type=int, help='Start processing the tar from a specific offset, e.g. to continue')
 @click.option('--upload', default=None, type=str, help='Force the whole tar contents into a given upload id')
-def package_tar(tar_file, offset, upload):
+@click.option('--compress', is_flag=True, help='Turn on compression for creating migration packages')
+def package_tar(tar_file, offset, upload, compress):
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
-    Package.create_packages_from_tar(tar_file, offset=offset, compress=True, forced_upload_id=upload)
+    Package.create_packages_from_tar(tar_file, offset=offset, compress=compress, forced_upload_id=upload)
 
 
 @migration.command(help='Reset migration version to start a new migration.')
