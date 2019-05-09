@@ -355,7 +355,6 @@ class Package(Document):
                         Package._get_collection().update_many(
                             dict(upload_id=self.package.upload_id), {'$set': dict(packages=packages)})
 
-
             current_upload = None
             # the package of the current directory, might be reused for other directories,
             # if not too big
