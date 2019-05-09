@@ -136,12 +136,14 @@ class RepoCalcsResource(Resource):
 
         The pagination parameters allows determine which page to return via the
         ``page`` and ``per_page`` parameters. Pagination however, is limited to the first
-        100k (depending on ES configuration) hits. An alternative to pagination is to use
-        ``scroll`` and ``scroll_id``. With ``scroll`` you will get a ``scroll_id`` on
-        the first request. Each call with ``scroll`` and the respective ``scroll_id`` will
-        return the next ``per_page`` (here the default is 1000) results. Scroll however,
-        ignores ordering and does not return aggregations. The scroll view used in the
-        background will stay alive for 1 minute between requests.
+        100k (depending on ES configuration) hits.
+
+        An alternative to pagination is to use ``scroll`` and ``scroll_id``. With ``scroll``
+        you will get a ``scroll_id`` on the first request. Each call with ``scroll`` and
+        the respective ``scroll_id`` will return the next ``per_page`` (here the default is 1000)
+        results. Scroll however, ignores ordering and does not return aggregations.
+        The scroll view used in the background will stay alive for 1 minute between requests.
+        If the given ``scroll_id`` is not available anymore, a HTTP 400 is raised.
 
         The search will return aggregations on a predefined set of quantities. Aggregations
         will tell you what quantity values exist and how many entries match those values.
@@ -235,6 +237,8 @@ class RepoCalcsResource(Resource):
             else:
                 scroll_id = None
                 total, results, aggregations, metrics = search.aggregate_search(q=q, **data)
+        except search.ScrollIdNotFound:
+            abort(400, 'The given scroll_id does not exist.')
         except KeyError as e:
             abort(400, str(e))
 
