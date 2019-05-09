@@ -297,12 +297,13 @@ class Package(Document):
         Assuming that the tarfile contains multiple extracted uploads. The first directory
         hierarchy level is interpreted as upload_id.
         """
-        tf = tarfile.TarFile.open(source_tar_path, copybufsize=1024*1024)
+        tf = tarfile.TarFile.open(source_tar_path, copybufsize=1024 * 1024)  # type: ignore
         if offset is not None:
-            tf.offset = offset
-    
+            tf.offset = offset  # type: ignore
+
         try:
             last_offset = 0
+
             class PackageFile():
                 def __init__(self, upload_id: str):
                     self.package = Package(upload_id=upload_id, package_id=utils.create_uuid())
@@ -382,7 +383,6 @@ class Package(Document):
                         current_upload = upload
                         print('new upload %s' % current_upload)
 
-
                         current_directory = None
                         current_package = PackageFile(current_upload)
                         last_package = current_package
@@ -456,7 +456,7 @@ class Package(Document):
                 else:
                     pass
 
-                last_offset = tf.offset
+                last_offset = tf.offset  # type: ignore
                 next_info = tf.next()
         except Exception:
             import traceback
@@ -467,7 +467,7 @@ class Package(Document):
             smallest_offset = last_offset
             for package in list(directories.values()) + [current_package, last_package]:
                 if package is not None:
-                    packages[package.package.package_id] = package.package_path
+                    packages[package.package.package_id] = package.package.package_path
                     smallest_offset = min(package.offset, smallest_offset)
 
             for package_path in packages.values():
@@ -482,8 +482,6 @@ class Package(Document):
             tf.close()
             if current_package is not None:
                 current_package.close()
-
-
 
     @classmethod
     def get_packages(

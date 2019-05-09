@@ -22,8 +22,6 @@ import shutil
 import multiprocessing
 import queue
 import json
-from elasticsearch_dsl import Document, Keyword
-import elasticsearch
 
 from nomad import config, infrastructure, utils
 from nomad.migration import NomadCOEMigration, SourceCalc, Package, missing_calcs_data
