@@ -268,6 +268,9 @@ class Package(Document):
     migration_failure_type = StringField()
     """ The type of migration failure: ``no_calcs``, ``processing``, ``publish``, ``exception``. """
 
+    next_offset = IntField(default=-1)
+    """ Only for packages created from large tars. Give the offset to continue to create the next package. """
+
     meta = dict(indexes=['upload_id', 'migration_version'])
 
     @classmethod
@@ -288,19 +291,23 @@ class Package(Document):
         return report
 
     @classmethod
-    def create_packages_from_tar(cls, source_tar_path: str, compress: bool = True) -> None:
+    def create_packages_from_tar(cls, source_tar_path: str, offset: int = None, compress: bool = True) -> None:
         """
         Utility function for manually creating packages within a tar archive.
         Assuming that the tarfile contains multiple extracted uploads. The first directory
         hierarchy level is interpreted as upload_id.
         """
-        tf = tarfile.TarFile.open(source_tar_path)
+        tf = tarfile.TarFile.open(source_tar_path, copybufsize=1024*1024)
+        if offset is not None:
+            tf.offset = offset
+    
         try:
+            last_offset = 0
             class PackageFile():
                 def __init__(self, upload_id: str):
                     self.package = Package(upload_id=upload_id, package_id=utils.create_uuid())
                     self.package.package_path = files.PathObject(
-                        config.fs.migration_packages, self.package.package_id,
+                        config.fs.migration_packages, self.package.package_id + '.zip',
                         prefix=True, create_prefix=True).os_path
                     self.package.upload_path = os.path.join(source_tar_path, upload_id)
 
@@ -311,7 +318,7 @@ class Package(Document):
                     self.package.size = 0
                     self.package.files = 0
                     self.package.restricted = 0
-                    self.offset = tf.offset  # type: ignore
+                    self.offset = last_offset
 
                 def add_file(self, tarinfo: tarfile.TarInfo, path: str = None) -> None:
                     if path is None:
@@ -339,6 +346,7 @@ class Package(Document):
 
                 def close(self) -> None:
                     self.package_file.close()
+                    self.package.next_offset = last_offset
                     self.package.save()
 
             current_upload = None
@@ -359,15 +367,21 @@ class Package(Document):
                     upload = segments[0]
                     if upload != current_upload:
                         # new upload
-                        current_upload = upload
-                        print('new upload %s' % current_upload)
-
                         for package in directories.values():
                             if package != current_package:
                                 package.close()
 
                         if current_package is not None:
                             current_package.close()
+
+                        if current_upload is not None:
+                            packages = Package.objects(upload_id=current_upload).count()
+                            Package._get_collection().update_many(
+                                dict(upload_id=current_upload), {'$set': dict(packages=packages)})
+
+                        current_upload = upload
+                        print('new upload %s' % current_upload)
+
 
                         current_directory = None
                         current_package = PackageFile(current_upload)
@@ -405,7 +419,20 @@ class Package(Document):
                         #   add files to the parent package no matter what (its basically the same directory)
                         if current_directory in directories:
                             del(directories[current_directory])
-                        current_package = directories[directory]
+
+                        current_package = None
+                        while current_package is None:
+                            current_package = directories.get(directory, None)
+                            directory = os.path.dirname(directory)
+                            if directory == '':
+                                break
+                        if current_package is None:
+                            current_package = last_package
+                            if current_package.package.size > max_package_size:
+                                if last_package == current_package:
+                                    last_package = None
+                                current_package = last_package if last_package is not None else PackageFile(current_upload)
+                                last_package = current_package
 
                     else:
                         # sibling ...
@@ -429,17 +456,27 @@ class Package(Document):
                 else:
                     pass
 
+                last_offset = tf.offset
                 next_info = tf.next()
         except Exception:
-            print('Exception while processing tarfile. The entry at %d' % str(tf.offset))
-            print('Open package offsets are: ')
+            import traceback
+            traceback.print_exc()
+            print('Exception while processing tarfile. The entry at %d' % last_offset)
+            print('Deleting files of open packages.')
             packages = {}
-            for package in directories.values() + [current_package, last_package]:
+            smallest_offset = last_offset
+            for package in list(directories.values()) + [current_package, last_package]:
                 if package is not None:
-                    packages[package.package.package_id] = package.offset
+                    packages[package.package.package_id] = package.package_path
+                    smallest_offset = min(package.offset, smallest_offset)
 
-            for package_id, offset in packages.items():
-                print('  %s: %d' % (package_id, offset))
+            for package_path in packages.values():
+                try:
+                    os.remove(package_path)
+                except Exception:
+                    pass
+
+            print('The smallest offset of an open package was %d' % smallest_offset)
 
         finally:
             tf.close()

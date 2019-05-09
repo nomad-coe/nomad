@@ -87,10 +87,11 @@ def index(drop, with_metadata, per_query):
 
 @migration.command(help='Transfer migration index to elastic search')
 @click.argument('tar-file', nargs=1)
-def package_tar(tar_file):
+@click.option('--offset', default=None, type=int, help='Start processing the tar from a specific offset, e.g. to continue')
+def package_tar(tar_file, offset):
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
-    Package.create_packages_from_tar(tar_file, True)
+    Package.create_packages_from_tar(tar_file, offset=offset, compress=True)
 
 
 @migration.command(help='Reset migration version to start a new migration.')
