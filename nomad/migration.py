@@ -288,6 +288,167 @@ class Package(Document):
         return report
 
     @classmethod
+    def create_packages_from_tar(cls, source_tar_path: str, compress: bool = True) -> None:
+        """
+        Utility function for manually creating packages within a tar archive.
+        Assuming that the tarfile contains multiple extracted uploads. The first directory
+        hierarchy level is interpreted as upload_id.
+        """
+        tf = tarfile.TarFile.open(source_tar_path)
+        try:
+            class PackageFile():
+                def __init__(self, upload_id: str):
+                    self.package = Package(upload_id=upload_id, package_id=utils.create_uuid())
+                    self.package.package_path = files.PathObject(
+                        config.fs.migration_packages, self.package.package_id,
+                        prefix=True, create_prefix=True).os_path
+                    self.package.upload_path = os.path.join(source_tar_path, upload_id)
+
+                    self.package_file = zipfile.ZipFile(
+                        self.package.package_path, 'w',
+                        compression=zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED)
+
+                    self.package.size = 0
+                    self.package.files = 0
+                    self.package.restricted = 0
+                    self.offset = tf.offset  # type: ignore
+
+                def add_file(self, tarinfo: tarfile.TarInfo, path: str = None) -> None:
+                    if path is None:
+                        path = tarinfo.name
+
+                    basepath = os.path.basename(path)
+
+                    with self.package_file.open(path, 'w') as target:
+                        source = tf.fileobj
+                        source.seek(tarinfo.offset_data)  # type: ignore
+                        bufsize = tf.copybufsize  # type: ignore
+
+                        tarfile.copyfileobj(  # type: ignore
+                            source, target, tarinfo.size, tarfile.ReadError, bufsize)
+
+                    if basepath.startswith('RESTRICTED'):
+                        self.package.restricted = 36
+                        try:
+                            self.package.restricted = min(36, int(basepath[len('RESTRICTED_'):]))
+                        except Exception:
+                            pass
+
+                    self.package.size += tarinfo.size
+                    self.package.files += 1
+
+                def close(self) -> None:
+                    self.package_file.close()
+                    self.package.save()
+
+            current_upload = None
+            # the package of the current directory, might be reused for other directories,
+            # if not too big
+            current_package = None
+            # the last package is the last created package, and can be used if not too
+            # big, but the current one is too big
+            last_package = None
+            # used to keep packages of parent directories
+            directories: Dict[str, PackageFile] = {}
+
+            next_info = tf.next()
+            while next_info is not None:
+                if next_info.isfile():
+                    segments = next_info.name.split('/')
+
+                    upload = segments[0]
+                    if upload != current_upload:
+                        # new upload
+                        current_upload = upload
+                        print('new upload %s' % current_upload)
+
+                        for package in directories.values():
+                            if package != current_package:
+                                package.close()
+
+                        if current_package is not None:
+                            current_package.close()
+
+                        current_directory = None
+                        current_package = PackageFile(current_upload)
+                        last_package = current_package
+                        directories = {}
+
+                    if len(segments) == 2:
+                        directory = ''
+                    else:
+                        directory = os.path.join(segments[1], *segments[2:-1])
+
+                    if current_directory is None:
+                        current_directory = directory
+
+                    if current_directory == directory:
+                        # same directory ... add files to the same package no matter what
+                        pass
+
+                    elif directory.startswith(current_directory):
+                        # sub-directory ...
+                        #   keep the parent package
+                        #   the child package might be a new one, if current is too big
+                        directories[current_directory] = current_package
+
+                        if current_package.package.size > max_package_size:
+                            if last_package == current_package:
+                                last_package = None
+                            current_package = last_package if last_package is not None else PackageFile(current_upload)
+                            last_package = current_package
+
+                    elif current_directory.startswith(directory):
+                        # super-directory ...
+                        #   remove the child package if kept
+                        #   restore the parent package
+                        #   add files to the parent package no matter what (its basically the same directory)
+                        if current_directory in directories:
+                            del(directories[current_directory])
+                        current_package = directories[directory]
+
+                    else:
+                        # sibling ...
+                        #   remove old directories package if kept
+                        #   use current or new package, if current is too big
+                        if current_directory in directories:
+                            del(directories[current_directory])
+
+                        if current_package.package.size > max_package_size:
+                            current_package.close()
+                            if current_package == last_package:
+                                last_package = None
+
+                            current_package = last_package if last_package is not None else PackageFile(current_upload)
+                            last_package = current_package
+
+                    current_directory = directory
+
+                    current_package.add_file(next_info, next_info.name[len(current_upload) + 1:])
+
+                else:
+                    pass
+
+                next_info = tf.next()
+        except Exception:
+            print('Exception while processing tarfile. The entry at %d' % str(tf.offset))
+            print('Open package offsets are: ')
+            packages = {}
+            for package in directories.values() + [current_package, last_package]:
+                if package is not None:
+                    packages[package.package.package_id] = package.offset
+
+            for package_id, offset in packages.items():
+                print('  %s: %d' % (package_id, offset))
+
+        finally:
+            tf.close()
+            if current_package is not None:
+                current_package.close()
+
+
+
+    @classmethod
     def get_packages(
             cls, upload_path: str, target_dir: str, create: bool = False,
             compress: bool = False, parallel: int = 1) -> Iterable['Package']:

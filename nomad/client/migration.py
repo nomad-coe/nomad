@@ -86,45 +86,11 @@ def index(drop, with_metadata, per_query):
 
 
 @migration.command(help='Transfer migration index to elastic search')
-@click.option('--es-index', default='source_calcs', help='Name of the elastic index.')
-def index_elastic(es_index):
+@click.argument('tar-file', nargs=1)
+def package_tar(tar_file):
+    infrastructure.setup_logging()
     infrastructure.setup_mongo()
-    infrastructure.setup_elastic()
-
-    class SourceCalcES(Document):
-        class Index:
-            name = es_index
-
-        upload_id = Keyword()
-        mainfile = Keyword()
-        pid = Keyword()
-        migration_version = Keyword()
-        is_migrated = Keyword()
-        uploader_id = Keyword()
-
-    indexed = 0
-    updates = []
-    for source_calc in SourceCalc.objects():
-        metadata = utils.POPO(**source_calc.metadata)
-        source_calc_es = SourceCalcES(meta=dict(id=metadata.pid))
-        source_calc_es.upload_id = source_calc.upload
-        source_calc_es.pid = metadata.pid
-        source_calc_es.mainfile = source_calc.mainfile
-        source_calc_es.migration_version = source_calc.migration_version
-        source_calc_es.is_migrated = source_calc.migration_version >= 0
-        source_calc_es.uploader_id = metadata.uploader['id']
-
-        source_calc_es = source_calc_es.to_dict(include_meta=True)
-        source = source_calc_es.pop('_source')
-        source_calc_es['doc'] = source
-        # source_calc_es['_op_type'] = 'update'
-
-        updates.append(source_calc_es)
-        if len(updates) >= 1000:
-            elasticsearch.helpers.bulk(infrastructure.elastic_client, updates)
-            indexed += len(updates)
-            updates = []
-            print(indexed)
+    Package.create_packages_from_tar(tar_file, True)
 
 
 @migration.command(help='Reset migration version to start a new migration.')
