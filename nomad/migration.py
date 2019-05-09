@@ -291,7 +291,9 @@ class Package(Document):
         return report
 
     @classmethod
-    def create_packages_from_tar(cls, source_tar_path: str, offset: int = None, compress: bool = True) -> None:
+    def create_packages_from_tar(
+            cls, source_tar_path: str, offset: int = None, compress: bool = True,
+            forced_upload_id: str = None) -> None:
         """
         Utility function for manually creating packages within a tar archive.
         Assuming that the tarfile contains multiple extracted uploads. The first directory
@@ -368,7 +370,12 @@ class Package(Document):
             next_info = tf.next()
             while next_info is not None:
                 if next_info.isfile():
-                    segments = next_info.name.split('/')
+                    if forced_upload_id is not None:
+                        name = os.path.join(forced_upload_id, next_info.name)
+                    else:
+                        name = next_info.name
+
+                    segments = name.split('/')
 
                     upload = segments[0]
                     if upload != current_upload:
@@ -451,7 +458,7 @@ class Package(Document):
 
                     current_directory = directory
 
-                    current_package.add_file(next_info, next_info.name[len(current_upload) + 1:])
+                    current_package.add_file(next_info, name[len(current_upload) + 1:])
 
                 else:
                     pass
