@@ -345,10 +345,16 @@ class Package(Document):
                     self.package.size += tarinfo.size
                     self.package.files += 1
 
-                def close(self) -> None:
+                def close(self, all_packages: bool = False) -> None:
                     self.package_file.close()
                     self.package.next_offset = last_offset
                     self.package.save()
+
+                    if all_packages:
+                        packages = Package.objects(upload_id=self.package.upload_id).count()
+                        Package._get_collection().update_many(
+                            dict(upload_id=self.package.upload_id), {'$set': dict(packages=packages)})
+
 
             current_upload = None
             # the package of the current directory, might be reused for other directories,
@@ -373,12 +379,7 @@ class Package(Document):
                                 package.close()
 
                         if current_package is not None:
-                            current_package.close()
-
-                        if current_upload is not None:
-                            packages = Package.objects(upload_id=current_upload).count()
-                            Package._get_collection().update_many(
-                                dict(upload_id=current_upload), {'$set': dict(packages=packages)})
+                            current_package.close(True)
 
                         current_upload = upload
                         print('new upload %s' % current_upload)
@@ -477,11 +478,14 @@ class Package(Document):
                     pass
 
             print('The smallest offset of an open package was %d' % smallest_offset)
-
+        else:
+            for package in list(directories.values()) + [current_package, last_package]:
+                if package is not None and package != current_package:
+                    package.close()
+            if current_package is not None:
+                current_package.close(True)
         finally:
             tf.close()
-            if current_package is not None:
-                current_package.close()
 
     @classmethod
     def get_packages(
