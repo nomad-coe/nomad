@@ -96,7 +96,10 @@ def source_package(mongo, migration):
 
 
 def assert_packages(restriction: int = 0, upload_id: str = None):
-    packages = Package.objects(upload_id=upload_id)
+    if upload_id is None:
+        packages = Package.objects()
+    else:
+        packages = Package.objects(upload_id=upload_id)
     for package in packages:
         assert os.path.exists(package.package_path)
         assert package.size > 0
@@ -118,11 +121,12 @@ def test_package(
     monkeypatch.setattr('nomad.migration.max_package_size', 3)
     upload = os.path.join('tests/data/migration/packaging%s' % variant, upload)
 
-    migration.package_index(upload, restriction=restriction)
-    assert assert_packages() == n_packages
+    migration.package_index(upload)
+    assert assert_packages(restriction=restriction) == n_packages
 
 
 def test_tar_package(mongo, raw_files, monkeypatch):
+    Package.objects().delete()  # the mongo fixture drops the db, but we still get old results, probably mongoengine caching
     monkeypatch.setattr('nomad.migration.max_package_size', 3)
     example_tar_file = 'tests/data/migration/example.tar.gz'
     assert os.path.isfile(example_tar_file)

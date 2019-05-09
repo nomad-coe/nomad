@@ -299,6 +299,8 @@ class Package(Document):
         Assuming that the tarfile contains multiple extracted uploads. The first directory
         hierarchy level is interpreted as upload_id.
         """
+        logger = utils.get_logger(__name__)
+
         tf = tarfile.TarFile.open(source_tar_path, copybufsize=1024 * 1024)  # type: ignore
         if offset is not None:
             tf.offset = offset  # type: ignore
@@ -308,10 +310,12 @@ class Package(Document):
 
             class PackageFile():
                 def __init__(self, upload_id: str):
+                    upload_directory = files.DirectoryObject(
+                        config.fs.migration_packages, upload_id, create=True, prefix=True)
+
                     self.package = Package(upload_id=upload_id, package_id=utils.create_uuid())
-                    self.package.package_path = files.PathObject(
-                        config.fs.migration_packages, self.package.package_id + '.zip',
-                        prefix=True, create_prefix=True).os_path
+                    self.package.package_path = upload_directory.join_file(
+                        self.package.package_id + '.zip').os_path
                     self.package.upload_path = os.path.join(source_tar_path, upload_id)
 
                     self.package_file = zipfile.ZipFile(
@@ -388,7 +392,7 @@ class Package(Document):
                             current_package.close(True)
 
                         current_upload = upload
-                        print('new upload %s' % current_upload)
+                        logger.info('new upload', source_upload_id=current_upload)
 
                         current_directory = None
                         current_package = PackageFile(current_upload)
