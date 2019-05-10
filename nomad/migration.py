@@ -336,7 +336,7 @@ class Package(Document):
 
                     basepath = os.path.basename(path)
                     zip64 = True if tarinfo.size >= (2 * gb) else None
-                    with self.package_file.open(path, 'w', force_zip64=zip64) as target:
+                    with self.package_file.open(path, 'w', force_zip64=zip64) as target:  # type: ignore
                         source = tf.fileobj
                         source.seek(tarinfo.offset_data)  # type: ignore
                         bufsize = tf.copybufsize  # type: ignore

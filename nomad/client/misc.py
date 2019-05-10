@@ -14,11 +14,13 @@
 
 import os.path
 import os
+import shutil
 import sys
 import click
 import asyncio
 from concurrent.futures import ProcessPoolExecutor
 from mongoengine import Q
+from elasticsearch_dsl import Search, A
 
 from nomad import config, infrastructure, processing, utils, files, search
 
@@ -164,6 +166,60 @@ def stop_all(calcs: bool, kill: bool):
     stop_all(processing.Calc.objects(query))
     if not calcs:
         stop_all(processing.Upload.objects(query))
+
+
+@cli.command(help='Removes all public (non staging) files that do not belong to an upload.')
+@click.option('--dry', is_flag=True, help='Dont delete anything, just check.')
+def clean_public(dry):
+    infrastructure.setup_logging()
+    infrastructure.setup_mongo()
+
+    def uploads():
+        for prefix in os.listdir(config.fs.public):
+            for upload in os.listdir(os.path.join(config.fs.public, prefix)):
+                yield upload, os.path.join(config.fs.public, prefix, upload)
+
+    to_delete = list(
+        path for upload, path in uploads()
+        if processing.Upload.objects(upload_id=upload).first() is not None)
+
+    input('Will delete %d uploads. Press any key to continue ...' % len(to_delete))
+
+    if not dry:
+        for path in to_delete:
+            shutil.rmtree(path)
+
+
+@cli.command(help='Removes data that does not belong to an upload.')
+@click.option('--dry', is_flag=True, help='Dont delete anything, just check.')
+def clean_es(dry):
+    infrastructure.setup_logging()
+    infrastructure.setup_mongo()
+    infrastructure.setup_elastic()
+
+    def uploads():
+        search = Search(index=config.elastic.index_name)
+        search.aggs.bucket('uploads', A('terms', field='upload_id', size=12000))
+
+        response = search.execute()
+        for bucket in response.aggregations.uploads.buckets:
+            yield bucket.key, bucket.doc_count
+
+    to_delete = list(
+        (upload, calcs) for upload, calcs in uploads()
+        if processing.Upload.objects(upload_id=upload).first() is not None)
+
+    calcs = 0
+    for _, upload_calcs in to_delete:
+        calcs += upload_calcs
+
+    input(
+        'Will delete %d calcs in %d uploads from ES. Press any key to continue ...' %
+        (calcs, len(to_delete)))
+
+    if not dry:
+        for upload, _ in to_delete:
+            Search(index=config.elastic.index_name).query('term', upload_id=upload).delete()
 
 
 @cli.command(help='Attempts to reset the nomad.')
