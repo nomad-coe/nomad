@@ -320,7 +320,8 @@ class Package(Document):
 
                     self.package_file = zipfile.ZipFile(
                         self.package.package_path, 'w',
-                        compression=zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED)
+                        compression=zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED,
+                        allowZip64=True)
 
                     self.package.size = 0
                     self.package.files = 0
