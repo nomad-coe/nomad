@@ -202,6 +202,8 @@ def clean_es(dry):
         search.aggs.bucket('uploads', A('terms', field='upload_id', size=12000))
 
         response = search.execute()
+
+        print('Found %d uploads in ES.' % len(response.aggregations.uploads.buckets))
         for bucket in response.aggregations.uploads.buckets:
             yield bucket.key, bucket.doc_count
 

@@ -304,7 +304,8 @@ class Package(Document):
         """
         logger = utils.get_logger(__name__)
 
-        f = io.open(source_tar_path, 'rb', buffering=2100000000)
+        f = io.open(source_tar_path, 'rb', buffering=128 * 1024 * 1024)
+
         tf = tarfile.TarFile.open(fileobj=f, copybufsize=1024 * 1024)  # type: ignore
         if offset is not None:
             tf.offset = offset  # type: ignore
