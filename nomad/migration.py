@@ -49,7 +49,9 @@ from nomad.processing import FAILURE
 default_pid_prefix = 7000000
 """ The default pid prefix for new non migrated calculations """
 
-max_package_size = 32 * 1024 * 1024 * 1024  # 32 GB
+gb = 1024 * 1024 * 1024
+
+max_package_size = 32 * gb
 """ The maximum size of a package that will be used as an upload on nomad@FAIRDI """
 use_stats_for_filestats_threshold = 1024
 
@@ -333,8 +335,8 @@ class Package(Document):
                         path = tarinfo.name
 
                     basepath = os.path.basename(path)
-
-                    with self.package_file.open(path, 'w') as target:
+                    zip64 = True if tarinfo.size >= (2 * gb) else None
+                    with self.package_file.open(path, 'w', force_zip64=zip64) as target:
                         source = tf.fileobj
                         source.seek(tarinfo.offset_data)  # type: ignore
                         bufsize = tf.copybufsize  # type: ignore
