@@ -39,6 +39,7 @@ import threading
 from contextlib import contextmanager
 import shutil
 import random
+import io
 
 from nomad import utils, infrastructure, files, config
 from nomad.coe_repo import User, Calc, LoginException
@@ -303,7 +304,8 @@ class Package(Document):
         """
         logger = utils.get_logger(__name__)
 
-        tf = tarfile.TarFile.open(source_tar_path, copybufsize=1024 * 1024)  # type: ignore
+        f = io.open(source_tar_path, 'rb', buffering=2100000000)
+        tf = tarfile.TarFile.open(fileobj=f, copybufsize=1024 * 1024)  # type: ignore
         if offset is not None:
             tf.offset = offset  # type: ignore
 
@@ -498,7 +500,11 @@ class Package(Document):
             if current_package is not None:
                 current_package.close(True)
         finally:
-            tf.close()
+            try:
+                tf.close()
+                f.close()
+            except Exception:
+                pass
 
     @classmethod
     def get_packages(
