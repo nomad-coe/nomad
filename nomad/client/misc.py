@@ -181,7 +181,7 @@ def clean_public(dry):
 
     to_delete = list(
         path for upload, path in uploads()
-        if processing.Upload.objects(upload_id=upload).first() is not None)
+        if processing.Upload.objects(upload_id=upload).first() is None)
 
     input('Will delete %d uploads. Press any key to continue ...' % len(to_delete))
 
@@ -207,7 +207,7 @@ def clean_es(dry):
 
     to_delete = list(
         (upload, calcs) for upload, calcs in uploads()
-        if processing.Upload.objects(upload_id=upload).first() is not None)
+        if processing.Upload.objects(upload_id=upload).first() is None)
 
     calcs = 0
     for _, upload_calcs in to_delete:
