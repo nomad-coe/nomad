@@ -459,7 +459,10 @@ class Package(Document):
                             del(directories[current_directory])
 
                         if current_package.package.size > max_package_size:
-                            current_package.close()
+                            # close current_package, if it is not used by any parent directory
+                            if all(package != current_package for package in directories.values()):
+                                current_package.close()
+
                             if current_package == last_package:
                                 last_package = None
 
