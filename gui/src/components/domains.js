@@ -141,7 +141,7 @@ class DomainProviderBase extends React.Component {
         },
         experiment_time: {
           label: 'Date/Time',
-          render: time => new Date(time * 1000).toLocaleString()
+          render: time => time !== 'unavailable' ? new Date(time * 1000).toLocaleString() : time
         }
       },
       /**

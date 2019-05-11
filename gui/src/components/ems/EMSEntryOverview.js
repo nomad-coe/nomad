@@ -26,19 +26,21 @@ export default class EMSEntryOverview extends React.Component {
 
     return (
       <Quantity column>
-        <Quantity quantity="experiment_summary" label="summary" noWrap {...this.props} />
+        <Quantity quantity="experiment_summary" label="summary" {...this.props} />
         <Quantity row>
           <Quantity column>
             <Quantity row>
               <Quantity quantity="formula" label="sample formula" noWrap {...this.props} />
-              <Quantity quantity="chemical" label="sample chemical" noWrap {...this.props} />
+              {data.chemical !== 'unavailable'
+                ? <Quantity quantity="chemical" label="sample chemical" noWrap {...this.props} />
+                : ''}
             </Quantity>
             <Quantity quantity="method" label="experimental method" noWrap {...this.props} />
             <Quantity quantity="experiment_location" label="experiment location" noWrap {...this.props} />
             <Quantity label="experiment time" {...this.props}>
-              <Typography noWrap>
-                {new Date(data.experiment_time * 1000).toLocaleString()}
-              </Typography>
+              <Typography noWrap>{
+                data.experiment_time !== 'unavailable' ? new Date(data.experiment_time * 1000).toLocaleString() : 'unavailable'
+              }</Typography>
             </Quantity>
             <Quantity label="data" {...this.props}>
               <Typography noWrap>
