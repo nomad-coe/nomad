@@ -216,7 +216,7 @@ class SearchPage extends React.Component {
             <SearchBar classes={{autosuggestRoot: classes.searchBar}}
               fullWidth fullWidthInput={false} helperText={helperText}
               label="search"
-              placeholder="enter atoms, codes, functionals, or other quantity values"
+              placeholder={domain.searchPlaceholder}
               data={data} searchValues={searchValues}
               InputLabelProps={{
                 shrink: true

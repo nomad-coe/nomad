@@ -131,9 +131,9 @@ class RepoEntryView extends React.Component {
                         {new Date(calcData.upload_time * 1000).toLocaleString()}
                       </Typography>
                     </Quantity>
-                    <Quantity quantity="calc_id" label='calculation id' noWrap {...quantityProps} />
+                    <Quantity quantity="calc_id" label={`${domain.entryLabel} id`} noWrap {...quantityProps} />
                     <Quantity quantity='mainfile' loading={loading} noWrap {...quantityProps} />
-                    <Quantity quantity="calc_hash" label='calculation hash' loading={loading} noWrap {...quantityProps} />
+                    <Quantity quantity="calc_hash" label={`${domain.entryLabel} hash`} loading={loading} noWrap {...quantityProps} />
                     <Quantity quantity="last_processing" label='last processing' loading={loading} placeholder="not processed" noWrap {...quantityProps}>
                       <Typography noWrap>
                         {new Date(calcData.last_processing * 1000).toLocaleString()}

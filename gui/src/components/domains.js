@@ -23,6 +23,8 @@ class DomainProviderBase extends React.Component {
   domains = {
     DFT: {
       name: 'DFT',
+      entryLabel: 'calculation',
+      searchPlaceholder: 'enter atoms, codes, functionals, or other quantity values',
       /**
        * A component that is used to render the search aggregations. The components needs
        * to work with props: aggregations (the aggregation data from the api),
@@ -99,6 +101,8 @@ class DomainProviderBase extends React.Component {
     },
     EMS: {
       name: 'EMS',
+      entryLabel: 'experiment',
+      searchPlaceholder: 'enter atoms, experimental methods, or other quantity values',
       /**
        * A component that is used to render the search aggregations. The components needs
        * to work with props: aggregations (the aggregation data from the api),

@@ -587,8 +587,13 @@ class TestArchive(UploadFilesBasedTests):
         rv = client.get('/archive/%s' % 'doesnt/exist', headers=auth_headers)
         assert rv.status_code == 404
 
-    def test_get_metainfo(self, client):
-        rv = client.get('/archive/metainfo/all.nomadmetainfo.json')
+    @pytest.mark.parametrize('info', [
+        'all.nomadmetainfo.json',
+        'all.experimental.nomadmetainfo.json',
+        'vasp.nomadmetainfo.json',
+        'mpes.nomadmetainfo.json'])
+    def test_get_metainfo(self, client, info):
+        rv = client.get('/archive/metainfo/%s' % info)
         assert rv.status_code == 200
         metainfo = json.loads((rv.data))
         assert len(metainfo) > 0

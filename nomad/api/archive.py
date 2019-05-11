@@ -22,6 +22,7 @@ import os.path
 from flask import send_file
 from flask_restplus import abort, Resource
 import json
+import importlib
 
 import nomad_meta_info
 
@@ -125,11 +126,11 @@ class MetainfoResource(Resource):
             return load_metainfo(metainfo_package_name), 200
         except FileNotFoundError:
             parser_prefix = metainfo_package_name[:-len('.nomadmetainfo.json')]
-            alternative_path = os.path.join(
-                metainfo_main_path,
-                '../{0}parser/{0}.nomadmetainfo.json'.format(parser_prefix))
+
             try:
-                return load_metainfo(alternative_path, is_path=True), 200
+                return load_metainfo(dict(
+                    parser='%sparser' % parser_prefix,
+                    path='%s.nomadmetainfo.json' % parser_prefix)), 200
             except FileNotFoundError:
                 abort(404, message='The metainfo %s does not exist.' % metainfo_package_name)
 
@@ -137,24 +138,53 @@ class MetainfoResource(Resource):
 metainfo_main_path = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
 
 
-def load_metainfo(package_name: str, is_path: bool = False, loaded_packages: Dict[str, Any] = None) -> Dict[str, Any]:
+def load_metainfo(
+        package_name_or_dependency: str, dependency_source: str = None,
+        loaded_packages: Dict[str, Any] = None) -> Dict[str, Any]:
     """
     Loads the given metainfo package and all its dependencies. Returns a dict with
     all loaded package_names and respective packages.
 
     Arguments:
-        package_name: The name of the package, or a path to .nomadmetainfo.json file.
-        is_path: True will interpret package_name as (relative) path.
+        package_name_or_dependency: The name of the package, or a nomadmetainfo dependency object.
+        dependency_source: The path of the metainfo that uses this function to load a relative dependency.
         loaded_packages: Give a dict and the function will added freshly loaded packages
             to it and return it.
     """
     if loaded_packages is None:
         loaded_packages = {}
 
-    if is_path:
-        metainfo_path = package_name
-    else:
+    if isinstance(package_name_or_dependency, str):
+        package_name = package_name_or_dependency
         metainfo_path = os.path.join(metainfo_main_path, package_name)
+    else:
+        dependency = package_name_or_dependency
+        if 'relativePath' in dependency:
+            if dependency_source is None:
+                raise Exception(
+                    'Can only load relative dependency from within another metainfo package')
+
+            metainfo_path = os.path.join(
+                os.path.dirname(dependency_source), dependency['relativePath'])
+
+        elif 'metainfoPath' in dependency:
+            metainfo_path = os.path.join(metainfo_main_path, dependency['metainfoPath'])
+
+        elif 'parser' in dependency:
+            parser = dependency['parser']
+            path = dependency['path']
+            try:
+                parser_module = importlib.import_module(parser).__file__
+            except Exception:
+                raise Exception('Parser not installed %s for metainfo path %s' % (parser, metainfo_path))
+
+            parser_directory = os.path.dirname(parser_module)
+            metainfo_path = os.path.join(parser_directory, path)
+
+        else:
+            raise Exception('Invalid dependency type in metainfo package %s' % metainfo_path)
+
+        package_name = os.path.basename(metainfo_path)
 
     package_name = os.path.basename(package_name)
 
@@ -167,15 +197,6 @@ def load_metainfo(package_name: str, is_path: bool = False, loaded_packages: Dic
     loaded_packages[package_name] = metainfo_json
 
     for dependency in metainfo_json.get('dependencies', []):
-        if 'relativePath' in dependency:
-            dependency_path = os.path.join(
-                os.path.dirname(metainfo_path), dependency['relativePath'])
-        elif 'metainfoPath' in dependency:
-            dependency_path = os.path.join(metainfo_main_path, dependency['metainfoPath'])
-        else:
-            raise Exception(
-                'Invalid dependency type in metainfo package %s' % metainfo_path)
-
-        load_metainfo(dependency_path, is_path=True, loaded_packages=loaded_packages)
+        load_metainfo(dependency, dependency_source=metainfo_path, loaded_packages=loaded_packages)
 
     return loaded_packages

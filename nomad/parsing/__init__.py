@@ -370,7 +370,7 @@ parsers = [
         name='parsers/mpes', code_name='mpes', domain='EMS',
         parser_class_name='mpesparser.MPESParserInterface',
         mainfile_mime_re=r'(application/json)|(text/.*)',
-        mainfile_name_re=(r'.*')
+        mainfile_name_re=(r'.*_data.meta')
     )
 ]
 

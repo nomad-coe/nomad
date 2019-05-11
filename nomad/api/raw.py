@@ -65,8 +65,14 @@ class RawFileFromPathResource(Resource):
         """
         upload_filepath = path
 
-        upload_files = UploadFiles.get(
-            upload_id, create_authorization_predicate(upload_id))
+        # TODO find a better way to all access to certain files
+        if os.path.basename(path).endswith('.png'):
+            def authorization_predicate(*args, **kwargs):
+                return True
+        else:
+            authorization_predicate = create_authorization_predicate(upload_id)
+
+        upload_files = UploadFiles.get(upload_id, authorization_predicate)
         if upload_files is None:
             abort(404, message='The upload with id %s does not exist.' % upload_id)
 

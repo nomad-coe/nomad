@@ -32,11 +32,17 @@ class EMSEntryWithMetadata(CalcWithMetadata):
         self.atoms: List[str] = []
         self.n_atoms: int = 0
         self.chemical: str = None
+        self.sample_constituents: str = None
+        self.sample_microstructure: str = None
 
         # general metadata
+        self.experiment_summary: str = None
         self.experiment_location: str = None
         self.experiment_time: str = None
+
+        # method
         self.method: str = None
+        self.probing_method: str = None
 
         # data metadata
         self.repository_name: str = None
@@ -63,13 +69,22 @@ class EMSEntryWithMetadata(CalcWithMetadata):
         self.atoms.sort()
         self.chemical = get_optional_backend_value(
             backend, 'sample_chemical_name', 'section_sample', logger=logger)
+        self.sample_microstructure = get_optional_backend_value(
+            backend, 'sample_microstructure', 'section_sample', logger=logger)
+        self.sample_constituents = get_optional_backend_value(
+            backend, 'sample_constituents', 'section_sample', logger=logger)
 
+        self.experiment_summary = get_optional_backend_value(
+            backend, 'experiment_summary', 'section_experiment', logger=logger)
         self.experiment_location = get_optional_backend_value(
             backend, 'experiment_location', 'section_experiment', logger=logger)
         self.experiment_time = get_optional_backend_value(
             backend, 'experiment_time', 'section_experiment', logger=logger)
+
         self.method = get_optional_backend_value(
-            backend, 'experiment_method_name', 'section_experiment', logger=logger)
+            backend, 'experiment_method_name', 'section_method', logger=logger)
+        self.probing_method = get_optional_backend_value(
+            backend, 'probing_method', 'section_method', logger=logger)
 
         self.repository_name = get_optional_backend_value(
             backend, 'data_repository_name', 'section_data', logger=logger)
@@ -109,8 +124,12 @@ Domain(
             aggregations=len(ase.data.chemical_symbols)),
         method=DomainQuantity(
             'The experimental method used.', aggregations=20),
-        experiment_location=DomainQuantity(
-            'The used basis set functions.', aggregations=10),
+        probing_method=DomainQuantity(
+            'The used probing method.', aggregations=10),
+        sample_microstructure=DomainQuantity(
+            'The sample micro structure.', aggregations=10),
+        sample_constituents=DomainQuantity(
+            'The sample constituents.', aggregations=10),
         quantities=DomainQuantity(
             'All quantities that are used by this calculation',
             metric=('quantities', 'value_count')
