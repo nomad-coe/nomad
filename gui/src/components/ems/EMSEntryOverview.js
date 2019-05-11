@@ -20,8 +20,8 @@ export default class EMSEntryOverview extends React.Component {
     } else if (preview_url.indexOf('http://') === 0 || preview_url.indexOf('https://') === 0) {
       relative_preview_url = preview_url
     } else {
-      const dirname = data.mainfile.substring(0, data.mainfile.lastIndexOf('/') + 1)
-      relative_preview_url = `${apiBase}/raw/${data.upload_id}/${dirname ? dirname + '/' : ''}${preview_url}`
+      const dirname = data.mainfile.substring(0, data.mainfile.lastIndexOf('/'))
+      relative_preview_url = `${apiBase}/raw/${data.upload_id}/${dirname}/${preview_url}`
     }
 
     return (

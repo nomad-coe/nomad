@@ -34,7 +34,7 @@ class SearchResultListUnstyled extends React.Component {
       label: 'Authors',
       render: (authors) => {
         if (authors.length > 3) {
-          return authors.filter((_, index) => index < 2).map(author => author.name).join('; ') + 'et al'
+          return authors.filter((_, index) => index < 2).map(author => author.name).join('; ') + ' et al'
         } else {
           return authors.map(author => author.name).join('; ')
         }
