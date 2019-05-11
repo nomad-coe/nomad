@@ -141,8 +141,10 @@ class Entry(Document, metaclass=WithDomain):
         self.authors = [User.from_user_popo(user) for user in source.coauthors]
         self.owners = [User.from_user_popo(user) for user in source.shared_with]
         if self.uploader is not None:
-            self.authors.append(self.uploader)
-            self.owners.append(self.uploader)
+            if self.uploader not in self.authors:
+                self.authors.append(self.uploader)
+            if self.uploader not in self.owners:
+                self.owners.append(self.uploader)
         self.comment = source.comment
         self.references = [ref.value for ref in source.references]
         self.datasets = [Dataset.from_dataset_popo(ds) for ds in source.datasets]
