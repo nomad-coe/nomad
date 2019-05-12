@@ -142,8 +142,11 @@ def determine_upload_paths(paths, pattern=None, all=False):
                     paths.append(path)
 
             if not exists:
-                utils.get_logger(__name__).error(
-                    'source upload does not exist', source_upload_id=upload_id)
+                # This does not really matter, to save space we deleted some source
+                # data after packaging it. the migration will use the packages anyways.
+                # We just use the full path to communicate the upload_id at the end
+                # for historical reasons.
+                path.append(os.path.join('/does/not/exist/anymore', upload_id))
 
     elif pattern is not None:
         assert len(paths) == 1, "Can only apply pattern on a single directory."
