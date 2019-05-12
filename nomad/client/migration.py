@@ -146,7 +146,7 @@ def determine_upload_paths(paths, pattern=None, all=False):
                 # data after packaging it. the migration will use the packages anyways.
                 # We just use the full path to communicate the upload_id at the end
                 # for historical reasons.
-                path.append(os.path.join('/does/not/exist/anymore', upload_id))
+                paths.append(os.path.join('/does/not/exist/anymore', upload_id))
 
     elif pattern is not None:
         assert len(paths) == 1, "Can only apply pattern on a single directory."
