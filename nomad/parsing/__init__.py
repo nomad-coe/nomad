@@ -147,8 +147,7 @@ parsers = [
         mainfile_contents_re=(
             r'^(.*\n)*'
             r'?\s*Invoking FHI-aims \.\.\.'
-            r'?\s*Version'),
-        mainfile_name_re=r'^.(?!.*phonopy-FHI-aims-displacement)'
+            r'?\s*Version')
     ),
     LegacyParser(
         name='parsers/cp2k', code_name='CP2K',

@@ -70,7 +70,7 @@ for parser, mainfile in parser_examples:
 parser_examples = fixed_parser_examples
 
 
-correct_num_output_files = 38
+correct_num_output_files = 39
 
 
 class TestLocalBackend(object):
