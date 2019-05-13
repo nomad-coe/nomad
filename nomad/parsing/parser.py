@@ -65,16 +65,43 @@ class Parser(metaclass=ABCMeta):
         """
 
 
-class LegacyParser(Parser):
+class BrokenParser(Parser):
     """
-    A parser implementation for legacy NOMAD-coe parsers. It assumes that parsers
-    are installed to the python environment. It
-    uses regular expessions to match parsers to mainfiles.
+    A parser implementation that just fails and is used to match mainfiles with known
+    patterns of corruption.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.name = 'parser/broken'
+        self.code_name = 'currupted mainfile'
+        self._patterns = [
+            re.compile(r'^pid=[0-9]+'),  # some 'mainfile' contain list of log-kinda information with pids
+            re.compile(r'^Can\'t open .* library:.*')  # probably bad code runs
+        ]
+
+    def is_mainfile(self, filename: str, mime: str, buffer: bytes, compression: str = None) -> bool:
+
+        try:  # Try to open the file as a string for regex matching.
+            decoded_buffer = buffer.decode('utf-8')
+        except UnicodeDecodeError:
+            # This file is binary, and should not be binary
+            return True
+        else:
+            for pattern in self._patterns:
+                if pattern.search(decoded_buffer) is not None:
+                    return True
+
+        return False
+
+    def run(self, mainfile: str, logger=None) -> LocalBackend:
+        raise Exception('Failed on purpose.')
+
+
+class MatchingParser(Parser):
+    """
+    A parser implementation that used regular experessions to match mainfiles.
 
     Arguments:
-        python_get: the git repository and commit that contains the legacy parser
-        parser_class_name: the main parser class that implements NOMAD-coe's
-            python-common *ParserInterface*. Instances of this class are currently not reused.
         mainfile_mime_re: A regexp that is used to match against a files mime type
         mainfile_contents_re: A regexp that is used to match the first 1024 bytes of a
             potential mainfile.
@@ -83,7 +110,7 @@ class LegacyParser(Parser):
         supported_compressions: A list of [gz, bz2], if the parser supports compressed files
     """
     def __init__(
-            self, name: str, code_name: str, parser_class_name: str,
+            self, name: str, code_name: str,
             mainfile_contents_re: str = None,
             mainfile_mime_re: str = r'text/.*',
             mainfile_name_re: str = r'.*',
@@ -93,7 +120,6 @@ class LegacyParser(Parser):
         super().__init__()
 
         self.name = name
-        self.parser_class_name = parser_class_name
         self.domain = domain
         self._mainfile_mime_re = re.compile(mainfile_mime_re)
         self._mainfile_name_re = re.compile(mainfile_name_re)
@@ -105,7 +131,6 @@ class LegacyParser(Parser):
         self._supported_compressions = supported_compressions
 
     def is_mainfile(self, filename: str, mime: str, buffer: bytes, compression: str = None) -> bool:
-
         if self._mainfile_contents_re is not None:
             try:  # Try to open the file as a string for regex matching.
                 decoded_buffer = buffer.decode('utf-8')
@@ -113,10 +138,38 @@ class LegacyParser(Parser):
                 return False  # We're looking for a string match in a file that can't be converted to string.
             if self._mainfile_contents_re.search(decoded_buffer) is None:
                 return False
-
         return self._mainfile_mime_re.match(mime) is not None and \
             self._mainfile_name_re.match(filename) is not None and \
             (compression is None or compression in self._supported_compressions)
+
+    def __repr__(self):
+        return self.name
+
+
+class MissingParser(MatchingParser):
+    """
+    A parser implementation that just fails and is used to match mainfiles with known
+    patterns of corruption.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def run(self, mainfile: str, logger=None) -> LocalBackend:
+        raise Exception('The code %s is not yet supported.' % self.code_name)
+
+
+class LegacyParser(MatchingParser):
+    """
+    A parser implementation for legacy NOMAD-coe parsers. It assumes that parsers
+    are installed to the python environment. 
+
+    Arguments:
+        parser_class_name: the main parser class that implements NOMAD-coe's
+    """
+    def __init__(self, parser_class_name: str, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.parser_class_name = parser_class_name
 
     def run(self, mainfile: str, logger=None) -> LocalBackend:
         # TODO we need a homogeneous interface to parsers, but we dont have it right now.
@@ -147,9 +200,6 @@ class LegacyParser(Parser):
                 backend = self.parser.parser_context.super_backend
 
         return backend
-
-    def __repr__(self):
-        return self.name
 
 
 class VaspOutcarParser(LegacyParser):

@@ -66,7 +66,7 @@ import bz2
 from nomad import files, config
 
 from nomad.parsing.backend import AbstractParserBackend, LocalBackend, LegacyLocalBackend, JSONStreamWriter, BadContextURI, WrongContextState
-from nomad.parsing.parser import Parser, LegacyParser, VaspOutcarParser
+from nomad.parsing.parser import Parser, LegacyParser, VaspOutcarParser, BrokenParser, MissingParser
 from nomad.parsing.artificial import TemplateParser, GenerateRandomParser, ChaosParser
 
 
@@ -138,11 +138,8 @@ parsers = [
     LegacyParser(
         name='parsers/exciting', code_name='exciting',
         parser_class_name='excitingparser.ExcitingParser',
-        mainfile_name_re=r'^.*/INFO\.OUT?',
-        mainfile_contents_re=(
-            r'^\s*=================================================+\s*'
-            r'\s*\|\s*EXCITING\s+\S+\s+started\s*='
-            r'\s*\|\s*version hash id:\s*\S*\s*=')
+        mainfile_name_re=r'^.*.OUT?',
+        mainfile_contents_re=(r'EXCITING.*started')
     ),
     LegacyParser(
         name='parsers/fhi-aims', code_name='FHI-aims',
@@ -168,10 +165,9 @@ parsers = [
         name='parsers/crystal', code_name='Crystal',
         parser_class_name='crystalparser.CrystalParser',
         mainfile_contents_re=(
-            r'\s*[\*]{22,}'  # Looks for '*' 22 times or more in a row.
-            r'\s*\*\s{20,}\*'  # Looks for a '*' sandwhiched by whitespace.
+            r'(CRYSTAL\s*\n0 0 0)|('
             r'\s*\*\s{10,}CRYSTAL(?P<majorVersion>[\d]+)\s{10,}\*'
-            r'\s*\*\s{10,}public \: (?P<minorVersion>[\d\.]+) \- .*\*'
+            r'\s*\*\s{10,}public \: (?P<minorVersion>[\d\.]+) \- .*\*)'
         )
     ),
     # The main contents regex of CPMD was causing a catostrophic backtracking issue
@@ -195,11 +191,7 @@ parsers = [
         name='parsers/nwchem', code_name='NWChem',
         parser_class_name='nwchemparser.NWChemParser',
         mainfile_contents_re=(
-            r'\s+Northwest Computational Chemistry Package \(NWChem\) \d+\.\d+'
-            r'\s+------------------------------------------------------'
-            r'\s+Environmental Molecular Sciences Laboratory'
-            r'\s+Pacific Northwest National Laboratory'
-            r'\s+Richland, WA 99352'
+            r'Northwest Computational Chemistry Package \(NWChem\) (\d+\.)+\d+'
         )
     ),
     LegacyParser(
@@ -255,15 +247,16 @@ parsers = [
     LegacyParser(
         name='parsers/quantumespresso', code_name='Quantum Espresso',
         parser_class_name='quantumespressoparser.QuantumEspressoParserPWSCF',
-        mainfile_contents_re=(
-            r'^\s*Program (\S+)\s+v\.(\S+)(?:\s+\(svn\s+rev\.\s+'
-            r'(\d+)\s*\))?\s+starts[^\n]+'
-            r'(?:\s*\n?)*This program is part of the open-source Quantum')
+        mainfile_contents_re=r'(Program PWSCF)|(This program is part of the open-source Quantum)'
+        #    r'^(.*\n)*'
+        #    r'\s*Program (\S+)\s+v\.(\S+)(?:\s+\(svn\s+rev\.\s+'
+        #    r'(\d+)\s*\))?\s+starts[^\n]+'
+        #    r'(?:\s*\n?)*This program is part of the open-source Quantum')
     ),
     LegacyParser(
         name='parsers/abinit', code_name='ABINIT',
         parser_class_name='abinitparser.AbinitParser',
-        mainfile_contents_re=(r'^\n\.Version\s*[0-9.]*\s*of ABINIT\s*')
+        mainfile_contents_re=(r'^\n*\.Version\s*[0-9.]*\s*of ABINIT\s*')
     ),
     LegacyParser(
         name='parsers/orca', code_name='ORCA',
@@ -335,10 +328,7 @@ parsers = [
     LegacyParser(
         name='parsers/elk', code_name='elk',
         parser_class_name='elkparser.ElkParser',
-        mainfile_contents_re=(
-            r'\s*\+-----------+\+\s*'
-            r'\s*\| Elk version (P?<version>[0-9.a-zA-Z]+) started \|\s*'
-            r'\s*\+----------+\+\s*')
+        mainfile_contents_re=r'\| Elk version [0-9.a-zA-Z]+ started \|'
     ),
     LegacyParser(
         name='parsers/elastic', code_name='elastic',
@@ -357,8 +347,7 @@ parsers = [
         name='parsers/turbomole', code_name='turbomole',
         parser_class_name='turbomoleparser.TurbomoleParser',
         mainfile_contents_re=(
-            r'\s*(P?<progr>[a-zA-z0-9_]+)\s*(?:\([^()]+\))\s*:\s*TURBOMOLE\s*(P?<version>.*)'
-            r'\s*Copyright \(C\) [0-9]+ TURBOMOLE GmbH, Karlsruhe')
+            r'Copyright \(C\) [0-9]+ TURBOMOLE GmbH, Karlsruhe')
     ),
     LegacyParser(
         name='parsers/skeleton', code_name='skeleton', domain='EMS',
@@ -378,7 +367,51 @@ parsers = [
         parser_class_name='aptfimparser.APTFIMParserInterface',
         mainfile_mime_re=r'(application/json)|(text/.*)',
         mainfile_name_re=(r'.*.aptfim')
-    )
+    ),
+    MissingParser(
+        name='parsers/qbox', code_name='qbox', domain='DFT',
+        mainfile_contents_re=(r'http://qboxcode.org')
+    ),        
+    MissingParser(
+        name='parsers/dmol', code_name='DMol3', domain='DFT',
+        mainfile_name_re=r'.*\.outmol'
+    ),
+    MissingParser(
+        name='parser/fleur', code_name='fleur', domain='DFT',
+        mainfile_contents_re=r'This output is generated by fleur.'
+    ),
+    MissingParser(
+        name='parser/molcas', code_name='MOLCAS', domain='DFT',
+        mainfile_contents_re=r'M O L C A S'
+    ),
+    MissingParser(
+        name='parser/molcas', code_name='MOLCAS', domain='DFT',
+        mainfile_contents_re=r'####### #     # ####### ####### ####### ######'
+    ),
+    # These are supposedly octopus files, but they do not look like octopus files at all
+    MissingParser(
+        name='parser/octopus', code_name='Octopus', domain='DFT',
+        mainfile_name_re=r'(inp)|(.*/inp)'
+    ),
+    # We already have crystal with mainfile_contents_re, but this one does not always properly match
+    LegacyParser(
+        name='parsers/crystal', code_name='Crystal',
+        parser_class_name='crystalparser.CrystalParser',
+        mainfile_name_re='.*\.cryst\.out'
+    ),
+    # We already have wien2k with mainfile_contents_re, but this one does not always properly match
+    LegacyParser(
+        name='parsers/wien2k', code_name='WIEN2k',
+        parser_class_name='wien2kparser.Wien2kParser',
+        mainfile_name_re='.*\.scf'
+    ),
+    # We already have fhi-aims with mainfile_contents_re, but this one does not always properly match
+    LegacyParser(
+        name='parsers/fhi-aims', code_name='FHI-aims',
+        parser_class_name='fhiaimsparser.FHIaimsParser',
+        mainfile_name_re='.*\.fhiaims'
+    ),
+    BrokenParser()
 ]
 
 """ Instantiation and constructor based config of all parsers. """

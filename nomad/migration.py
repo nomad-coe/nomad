@@ -128,24 +128,107 @@ def missing_calcs_data():
     results = utils.POPO(
         no_package=[],
         no_calcs=[],
+        not_migrated=[],
         failed_packages=[],
         missing_mainfile=[],
         others=[])
 
+    # not not check these uploads
+    not_check_uploads = [
+        'ftp_upload_for_uid_125',
+        'ftp_upload_for_uid_290',
+        'ftp_upload_for_uid_502_2011-09-06-15-33-33-333221',
+        'ftp_upload_for_uid_502_2011-09-27-20-49-58-937390',
+        'ftp_upload_for_uid_502_2011-10-01-20-48-22-561661',
+        'ftp_upload_for_uid_502_2011-10-07-08-52-06-841358',
+        'ftp_upload_for_uid_502_2011-10-07-08-57-17-804213',
+        'ftp_upload_for_uid_502_2011-10-07-08-59-32-464608',
+        'ftp_upload_for_uid_502_2011-10-07-19-04-54-725186',
+        'ftp_upload_for_uid_502_2011-11-15-20-50-34-020718',
+        'ftp_upload_for_uid_502_2011-11-15-20-56-28-015287',
+        'ftp_upload_for_uid_502_2011-11-15-21-30-01-561680',
+        'ftp_upload_for_uid_502_2011-11-15-21-33-26-574967',
+        'ftp_upload_for_uid_502_2011-11-15-21-40-33-307359',
+        'ftp_upload_for_uid_502_2011-11-26-23-17-19-882290',
+        'ftp_upload_for_uid_502_2011-11-26-23-50-30-089143',
+        'ftp_upload_for_uid_502_2011-12-01-00-14-18-140240',
+        'ftp_upload_for_uid_502_2011-12-01-14-04-45-404271',
+        'ftp_upload_for_uid_502_2011-12-01-23-09-09-854328',
+        'ftp_upload_for_uid_502_2011-12-05-08-46-20-831174',
+        'ftp_upload_for_uid_502_2011-12-05-10-46-30-923923',
+        'ftp_upload_for_uid_502_2011-12-23-09-26-49-935721',
+        'ftp_upload_for_uid_502_2011-12-23-10-39-22-459271',
+        'ftp_upload_for_uid_502_2012-03-15-09-16-22-390174',
+        'ftp_upload_for_uid_502_2012-03-23-19-18-02-789330',
+        'ftp_upload_for_uid_502_2012-03-24-06-09-06-576223',
+        'ftp_upload_for_uid_502_2012-03-26-08-53-28-847937',
+        'ftp_upload_for_uid_502_2012-03-28-09-53-35-930264',
+        'ftp_upload_for_uid_502_2012-04-25-17-12-51-662156',
+        'ftp_upload_for_uid_502_2012-04-26-00-04-07-260381',
+        'ftp_upload_for_uid_502_2012-04-26-09-31-29-421336',
+        'ftp_upload_for_uid_502_2012-04-27-07-15-28-871403',
+        'ftp_upload_for_uid_502_2012-04-27-22-53-49-117894',
+        'ftp_upload_for_uid_502_2012-05-16-13-36-29-938929',
+        'ftp_upload_for_uid_502_2012-05-18-17-18-20-527193',
+        'ftp_upload_for_uid_502_2012-05-19-19-51-50-814160',
+        'ftp_upload_for_uid_502_2012-05-21-15-14-17-579123',
+        'ftp_upload_for_uid_502_2012-05-25-13-52-49-651647',
+        'ftp_upload_for_uid_502_2012-06-14-17-47-19-089204',
+        'ftp_upload_for_uid_502_2012-06-21-21-34-07-966108',
+        'ftp_upload_for_uid_502_2012-06-26-22-25-28-412879',
+        'ftp_upload_for_uid_502_2012-07-02-10-35-45-887222',
+        'ftp_upload_for_uid_502_2012-07-02-10-36-33-740348',
+        'ftp_upload_for_uid_502_2012-07-09-10-03-15-368689',
+        'ftp_upload_for_uid_502_2012-07-26-07-27-00-284225',
+        'ftp_upload_for_uid_502_2012-07-26-07-29-11-627501',
+        'ftp_upload_for_uid_502_2012-08-14-13-16-25-535995',
+        'ftp_upload_for_uid_502_2012-08-16-15-04-45-599710',
+        'ftp_upload_for_uid_502_2012-08-23-06-23-02-115869',
+        'ftp_upload_for_uid_502_2012-08-23-16-36-49-087908',
+        'ftp_upload_for_uid_502_2012-08-24-17-10-15-161628',
+        'ftp_upload_for_uid_502_2012-08-26-05-04-25-027012',
+        'ftp_upload_for_uid_502_2012-08-29-18-31-26-494251',
+        'ftp_upload_for_uid_502_2012-08-30-07-01-07-502171',
+        'ftp_upload_for_uid_502_2012-09-01-08-01-03-573873',
+        'ftp_upload_for_uid_502_2012-09-06-13-54-56-201039',
+        'ftp_upload_for_uid_502_2012-09-07-21-38-22-787875',
+        'ftp_upload_for_uid_502_2012-09-09-07-32-31-653109',
+        'ftp_upload_for_uid_502_2012-09-10-09-48-57-289279',
+        'ftp_upload_for_uid_502_2012-09-11-07-04-32-036763',
+        'ftp_upload_for_uid_502_2012-09-15-20-31-02-157060',
+        'ftp_upload_for_uid_502_2012-09-20-06-29-02-132434',
+        'ftp_upload_for_uid_502_2012-09-21-11-27-20-615773',
+        'ftp_upload_for_uid_502_2012-09-21-17-31-17-335523',
+        'ftp_upload_for_uid_502_2012-09-24-20-27-36-041292',
+        'ftp_upload_for_uid_502_2012-09-25-16-21-09-043610',
+        'ftp_upload_for_uid_502_2012-10-01-17-27-20-733800',
+        'ftp_upload_for_uid_502_2012-10-02-17-02-03-194493',
+        'ftp_upload_for_uid_502_2012-10-08-14-10-54-373136',
+        'ftp_upload_for_uid_502_2012-10-12-12-40-36-780644',
+        'ftp_upload_for_uid_502_2012-10-24-14-51-09-134377',
+        'ftp_upload_for_uid_502_2012-10-29-11-01-45-431034',
+        'ftp_upload_for_uid_502_2012-11-16-17-02-37-016199',
+        'ftp_upload_for_uid_502_2012-11-19-09-16-47-377264',
+        'ftp_upload_for_uid_502_2012-11-23-13-23-45-623620',
+        'ftp_upload_for_uid_502_2012-11-26-14-56-17-339064',
+        'ftp_upload_for_uid_502_2012-12-03-09-52-02-714224',
+        'ftp_upload_for_uid_502_2012-12-10-20-09-30-463926',
+        'ftp_upload_for_uid_502_2011-08-17-14-29-25-505869']        
+
     # aggregate missing calcs based on uploads
     source_uploads = SourceCalc._get_collection().aggregate([
-        {'$match': {'migration_version': -1, 'upload': {'$ne': 'ftp_upload_for_uid_125'}}},
-        {'$group': {'_id': '$upload', 'mainfiles': {'$push': '$mainfile'}}}])
+        {'$match': {'migration_version': -1, 'upload': {'$nin':not_check_uploads}}},
+        {'$group': {'_id': '$upload', 'calcs': {'$push': { 'mainfile': '$mainfile', 'pid': '$metadata.pid'}}}}])
     source_uploads = list(source_uploads)
 
     for source_upload in source_uploads:
-        source_upload['mainfiles'] = sorted(source_upload['mainfiles'])
+        source_upload['calcs'] = sorted(source_upload['calcs'], key=lambda a: a['mainfile'])
 
     source_uploads = [
-        utils.POPO(source_upload_id=d['_id'], mainfiles=d['mainfiles'])
+        utils.POPO(source_upload_id=d['_id'], calcs=d['calcs'])
         for d in source_uploads]
 
-    source_uploads = sorted(source_uploads, key=lambda u: len(u.mainfiles))
+    source_uploads = sorted(source_uploads, key=lambda u: len(u.calcs))
 
     # go through all problematic uploads
     for source_upload in source_uploads:
@@ -156,9 +239,11 @@ def missing_calcs_data():
 
         def cause(upload, **kwargs):
             cause = dict(
-                source_upload_id=upload.source_upload_id, mainfiles=len(upload.mainfiles),
-                example_mainfile=upload.mainfiles[0],
-                **kwargs)
+                source_upload_id=upload.source_upload_id, calcs=len(upload.calcs),
+                example_mainfile=upload.calcs[0]['mainfile'],
+                example_pid=upload.calcs[0]['pid'])
+            cause.update(**kwargs)
+
             return cause
 
         try:
@@ -198,32 +283,73 @@ def missing_calcs_data():
             logger.debug('packages are processed')
 
             # check if a mainfile does not exist in the package
-            try:
-                for mainfile in source_upload.mainfiles:
-                    contained = False
-                    for package in package_query():
-                        with zipfile.ZipFile(package.package_path, 'r', allowZip64=True) as zf:
+            checkall = True
+            if checkall:
+                all_files = {}
+                for package in package_query():
+                    with zipfile.ZipFile(package.package_path, 'r') as zf:
+                        for path in zf.namelist():
+                            all_files[path] = path
+                exist, not_exist = 0, 0
+                example_mainfile, example_exists_mainfile = '', ''
+                for calc in source_upload.calcs:
+                    mainfile = calc['mainfile']
+                    if mainfile in all_files:
+                        exist += 1
+                        example_exists_mainfile = mainfile
+                    else: 
+                        not_exist += 1
+                        example_mainfile = mainfile
+                        example_pid = calc['pid']
+                if not_exist > 0:
+                    results.missing_mainfile.append(cause(
+                        source_upload,
+                        missing=not_exist,
+                        example_mainfile=example_mainfile,
+                        example_pid=example_pid,
+                        missing_but_exist=exist,
+                        missing_but_exists_example=example_exists_mainfile))
+                    continue
+            else:
+                try:
+                    for calc in source_upload.calcs:
+                        mainfile = calc['mainfile']
+                        contained = False
+                        for package in package_query():
                             try:
-                                if zf.getinfo(mainfile) is not None:
-                                    contained = True
-                                    break
-                            except KeyError:
-                                pass
+                                with zipfile.ZipFile(package.package_path, 'r', allowZip64=True) as zf:
+                                    try:
+                                        if zf.getinfo(mainfile) is not None:
+                                            contained = True
+                                            break
+                                    except KeyError:
+                                        pass
+                            except FileNotFoundError:
+                                logger.info('cannot verify mainfile existence due to missing package data.')
 
-                    if not contained:
-                        results.missing_mainfile.append(cause(source_upload, missing_mainfile=mainfile))
-                        raise KeyError
+                        if not contained:
+                            results.missing_mainfile.append(cause(source_upload, missing_mainfile=mainfile))
+                            raise KeyError
 
-                    # only check the first
-                    break
-            except KeyError:
-                continue
+                        # only check the first
+                        break
+                except KeyError:
+                    continue
             logger.debug('mainfiles do exist')
 
             results.others.append(cause(source_upload))
 
         except Exception as e:
             logger.error('exception while checking upload', exc_info=e)
+
+    summary = utils.POPO(overall_missing=0)
+    for key, values in results.items():
+        summary[key] = 0
+        for value in values:
+            summary[key] += value['calcs']
+            summary.overall_missing += value['calcs']
+
+    results.summary = summary
 
     return results
 
