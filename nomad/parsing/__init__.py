@@ -371,7 +371,7 @@ parsers = [
     MissingParser(
         name='parsers/qbox', code_name='qbox', domain='DFT',
         mainfile_contents_re=(r'http://qboxcode.org')
-    ),        
+    ),
     MissingParser(
         name='parsers/dmol', code_name='DMol3', domain='DFT',
         mainfile_name_re=r'.*\.outmol'
@@ -397,19 +397,19 @@ parsers = [
     LegacyParser(
         name='parsers/crystal', code_name='Crystal',
         parser_class_name='crystalparser.CrystalParser',
-        mainfile_name_re='.*\.cryst\.out'
+        mainfile_name_re=r'.*\.cryst\.out'
     ),
     # We already have wien2k with mainfile_contents_re, but this one does not always properly match
     LegacyParser(
         name='parsers/wien2k', code_name='WIEN2k',
         parser_class_name='wien2kparser.Wien2kParser',
-        mainfile_name_re='.*\.scf'
+        mainfile_name_re=r'.*\.scf'
     ),
     # We already have fhi-aims with mainfile_contents_re, but this one does not always properly match
     LegacyParser(
         name='parsers/fhi-aims', code_name='FHI-aims',
         parser_class_name='fhiaimsparser.FHIaimsParser',
-        mainfile_name_re='.*\.fhiaims'
+        mainfile_name_re=r'.*\.fhiaims'
     ),
     BrokenParser()
 ]

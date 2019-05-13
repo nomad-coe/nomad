@@ -213,12 +213,12 @@ def missing_calcs_data():
         'ftp_upload_for_uid_502_2012-11-26-14-56-17-339064',
         'ftp_upload_for_uid_502_2012-12-03-09-52-02-714224',
         'ftp_upload_for_uid_502_2012-12-10-20-09-30-463926',
-        'ftp_upload_for_uid_502_2011-08-17-14-29-25-505869']        
+        'ftp_upload_for_uid_502_2011-08-17-14-29-25-505869']
 
     # aggregate missing calcs based on uploads
     source_uploads = SourceCalc._get_collection().aggregate([
-        {'$match': {'migration_version': -1, 'upload': {'$nin':not_check_uploads}}},
-        {'$group': {'_id': '$upload', 'calcs': {'$push': { 'mainfile': '$mainfile', 'pid': '$metadata.pid'}}}}])
+        {'$match': {'migration_version': -1, 'upload': {'$nin': not_check_uploads}}},
+        {'$group': {'_id': '$upload', 'calcs': {'$push': {'mainfile': '$mainfile', 'pid': '$metadata.pid'}}}}])
     source_uploads = list(source_uploads)
 
     for source_upload in source_uploads:
@@ -297,7 +297,7 @@ def missing_calcs_data():
                     if mainfile in all_files:
                         exist += 1
                         example_exists_mainfile = mainfile
-                    else: 
+                    else:
                         not_exist += 1
                         example_mainfile = mainfile
                         example_pid = calc['pid']
@@ -347,7 +347,7 @@ def missing_calcs_data():
         summary[key] = 0
         for value in values:
             summary[key] += value['calcs']
-            summary.overall_missing += value['calcs']
+            summary['overall_missing'] += value['calcs']
 
     results.summary = summary
 

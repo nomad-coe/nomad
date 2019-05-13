@@ -23,7 +23,7 @@ import multiprocessing
 import queue
 import json
 
-from nomad import config, infrastructure, utils
+from nomad import config, infrastructure
 from nomad.migration import NomadCOEMigration, SourceCalc, Package, missing_calcs_data
 
 from .main import cli

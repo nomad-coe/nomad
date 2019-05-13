@@ -118,8 +118,8 @@ class MatchingParser(Parser):
             supported_compressions: List[str] = []) -> None:
 
         super().__init__()
-
         self.name = name
+        self.code_name = code_name
         self.domain = domain
         self._mainfile_mime_re = re.compile(mainfile_mime_re)
         self._mainfile_name_re = re.compile(mainfile_name_re)
@@ -161,7 +161,7 @@ class MissingParser(MatchingParser):
 class LegacyParser(MatchingParser):
     """
     A parser implementation for legacy NOMAD-coe parsers. It assumes that parsers
-    are installed to the python environment. 
+    are installed to the python environment.
 
     Arguments:
         parser_class_name: the main parser class that implements NOMAD-coe's
