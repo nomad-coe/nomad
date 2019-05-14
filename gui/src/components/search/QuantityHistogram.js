@@ -70,7 +70,6 @@ class QuantityHistogram extends React.Component {
         name: key,
         value: this.props.data[key][this.props.metric]
       }))
-      .filter(d => d.value !== 0)
 
     data.sort((a, b) => {
       const nameA = a.name
