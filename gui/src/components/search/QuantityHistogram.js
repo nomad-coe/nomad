@@ -39,6 +39,8 @@ class QuantityHistogram extends React.Component {
   }
 
   componentDidMount() {
+    // TODO this just a workaround for bad layout on initial rendering
+    this.updateChart()
     this.updateChart()
   }
 
