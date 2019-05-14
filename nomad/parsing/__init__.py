@@ -358,7 +358,7 @@ parsers = [
         name='parsers/mpes', code_name='mpes', domain='EMS',
         parser_class_name='mpesparser.MPESParserInterface',
         mainfile_mime_re=r'(application/json)|(text/.*)',
-        mainfile_name_re=(r'.*_data.meta'),
+        mainfile_name_re=(r'.*.meta'),
         mainfile_contents_re=(r'"data_repository_name": "zenodo.org"')
     ),
     LegacyParser(

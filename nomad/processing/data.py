@@ -703,6 +703,13 @@ class Upload(Proc):
     def join(self):
         self.cleanup()
 
+    @property
+    def gui_url(self):
+        base = config.api_url()[:-3]
+        if base.endswith('/'):
+            base = base[:-1]
+        return '%s/uploads/' % base
+
     @task
     def cleanup(self):
         search.refresh()
@@ -715,7 +722,7 @@ class Upload(Proc):
             '',
             'your data %suploaded %s has completed processing.' % (
                 self.name if self.name else '', self.upload_time.isoformat()),  # pylint: disable=no-member
-            'You can review your data on your upload page: %s/uploads' % config.api_url()[:-3]
+            'You can review your data on your upload page: %s' % self.gui_url
         ])
         try:
             infrastructure.send_mail(

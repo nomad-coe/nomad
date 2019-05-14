@@ -69,7 +69,7 @@ class SearchPage extends React.Component {
 
   state = {
     data: SearchPage.emptySearchData,
-    owner: 'all',
+    owner: 'migrated',
     searchState: {
       ...SearchAggregations.defaultState
     },
@@ -147,6 +147,7 @@ class SearchPage extends React.Component {
     const { pagination: { total }, metrics } = data
 
     const ownerLabel = {
+      migrated: 'Only migrated',
       all: 'All entries',
       public: 'Only public entries',
       user: 'Only your entries',
@@ -199,7 +200,7 @@ class SearchPage extends React.Component {
               <FormControl>
                 <FormLabel>Filter entries and show: </FormLabel>
                 <FormGroup row>
-                  {['all', 'public', 'user', 'staging'].map(owner => (
+                  {['migrated', 'all', 'public', 'user', 'staging'].map(owner => (
                     <FormControlLabel key={owner}
                       control={
                         <Checkbox checked={this.state.owner === owner} onChange={() => this.handleOwnerChange(owner)} value="owner" />
