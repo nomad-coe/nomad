@@ -26,8 +26,8 @@ class EMSEntryCards extends React.Component {
         <CardHeader title="Raw Data and Meta Data Files" />
         <CardContent classes={{root: classes.cardContent}}>
           <Markdown classes={{root: classes.description}}>{`
-            The data for this experiment was uploaded to [xenodo.org](https://xenodo.org).
-            Visit the xenodo entry to download the raw experiment data:
+            The data for this experiment was uploaded to [zenodo.org](https://zenodo.org).
+            Visit the zenodo entry to download the raw experiment data:
             [${data.repository_url}](${data.repository_url}).
 
             The meta data describing this experiment in its original format, can be

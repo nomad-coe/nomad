@@ -38,7 +38,20 @@ class About extends React.Component {
     return (
       <div className={classes.root}>
         <Markdown>{`
-          ## The nomad**@FAIR** prototype
+          ## The nomad**@FAIRDI** *beta* test
+
+          **!Please read this, before you explore this new part of Nomad!**
+
+          ### About nomad@FAIRDI
+
+          After the conclusion of the origin [NOMAD-coe](http://nomad-coe.eu) project,
+          the newly founded NGO *FAIR Data Infrastructures* (FAIRDI) provides an
+          umbrella to continue operation and further development of the original Nomad
+          software. Therefore, we use the name *nomad@FAIRDI* to refer to the new
+          consolidated nomad data infrastructure.
+
+          As a first step, we refined the Nomad upload and data processing.
+
           This is a prototype, a concept, for a continuation of the
           [NOMAD-coe](http://nomad-coe.eu) project. It is an attempt to redesign
           the nomad software and infrastructure with the following goals in mind:

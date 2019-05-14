@@ -208,6 +208,9 @@ class RepoCalcsResource(Resource):
         else:
             abort(400, message='Invalid owner value. Valid values are all|user|staging, default is all')
 
+        with_provernance = not Q('term', **{'uploader.user_id': 1})
+        q = q & with_provernance if q is not None else with_provernance
+
         data = dict(**request.args)
         data.pop('owner', None)
         data.pop('scroll', None)

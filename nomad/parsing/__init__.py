@@ -384,7 +384,7 @@ parsers = [
         mainfile_contents_re=r'M O L C A S'
     ),
     MissingParser(
-        name='parser/molcas', code_name='MOLCAS', domain='DFT',
+        name='parser/onetep', code_name='ONETEP', domain='DFT',
         mainfile_contents_re=r'####### #     # ####### ####### ####### ######'
     ),
     # These are supposedly octopus files, but they do not look like octopus files at all
