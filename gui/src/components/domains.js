@@ -24,7 +24,7 @@ class DomainProviderBase extends React.Component {
     DFT: {
       name: 'DFT',
       about: `
-        ## The nomad**@FAIRDI** *beta* test
+        ## The nomad**@FAIRDI** beta test
 
         ### About nomad@FAIRDI
 
@@ -44,11 +44,17 @@ class DomainProviderBase extends React.Component {
         capabilities to search and explore uploaded dat. But to add comments, co-authors, and references,
         create data-sets, and manage your account you still have to use the original [Nomad Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1).
 
-        ### How to test the new upload
+        This GUI allows you to (menu on the left):
+        * About: read about this, access the documentation, and API.
+        * Search: inspect for existing data, your's and others.
+        * Upload: drop data, view the processing, and publish your uploads.
+        * Metainfo: browse the *metainfo*, Nomad's (meta-)data schema for processed data.
+
+        ### How to test the new upload and processing
 
         **!Please read this, before you explore this new part of Nomad!**
 
-        Try to explore this as *new user*. Travel through the menu on the left and just
+        Try to explore this as a *new user*. Travel through the menu on the left and just
         use it. Feel free to upload data, look for limitations and things you do not like.
         The goal should be to figure out what is wrong and missing.
 
@@ -57,11 +63,11 @@ class DomainProviderBase extends React.Component {
         you can use our test user: \`leonard.hofstadter@nomad-fairdi.tests.de\`, the password
         is \`password\`.
         * This is not yet connected to the actual Nomad Repository. Everything you upload
-        will only appear here and will be removed after this first testing period.
+        will only appear here and might be removed after this first testing period.
         * Now all existing entries from the original Nomad appear in the search, since we
         are still migrating data.
 
-        For feedback and any issues you find, feel free to open an issue [here](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/issues) or write
+        For feedback and any issues you find, feel free to [open an issue](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/issues) or write
         an email to [markus.scheidgen@physik.hu-berlin.de](mailto:markus.scheidgen@physik.hu-berlin.de).
 
         ### Mid- and long term goals of nomad@FAIRDI
@@ -89,23 +95,28 @@ class DomainProviderBase extends React.Component {
       searchMetrics: {
         code_runs: {
           label: 'Entries',
-          renderResultString: count => (<span><b>{count}</b> entries</span>)
+          tooltip: 'The statistics will show the number of database entry. Each set of input/output files that represents a code run is an entry.',
+          renderResultString: count => (<span><b>{count.toLocaleString()}</b> entries</span>)
         },
         unique_code_runs: {
           label: 'Unique entries',
-          renderResultString: count => (<span> and <b>{count}</b> unique entries</span>)
+          tooltip: 'Counts duplicates only once.',
+          renderResultString: count => (<span> and <b>{count.toLocaleString()}</b> unique entries</span>)
         },
         total_energies: {
           label: 'Total energy calculations',
-          renderResultString: count => (<span> with <b>{count}</b> total energy calculations</span>)
+          tooltip: 'Aggregates the number of total energy calculations as each entry can contain many calculations.',
+          renderResultString: count => (<span> with <b>{count.toLocaleString()}</b> total energy calculations</span>)
         },
         geometries: {
           label: 'Unique geometries',
-          renderResultString: count => (<span> that simulate <b>{count}</b> unique geometries</span>)
+          tooltip: 'Aggregates the number of unique simulated system geometries in all entries.',
+          renderResultString: count => (<span> that simulate <b>{count.toLocaleString()}</b> unique geometries</span>)
         },
         datasets: {
           label: 'Datasets',
-          renderResultString: count => (<span> curated in <b>{count}</b> datasets</span>)
+          tooltip: 'Shows statistics in terms of datasets that entries belong to.',
+          renderResultString: count => (<span> curated in <b>{count.toLocaleString()}</b> datasets</span>)
         }
       },
       /**
@@ -182,10 +193,12 @@ class DomainProviderBase extends React.Component {
       searchMetrics: {
         code_runs: {
           label: 'Entries',
+          tooltip: 'Statistics will show the number of database entry. Usually each entry represents a single experiment.',
           renderResultString: count => (<span><b>{count}</b> entries</span>)
         },
         datasets: {
           label: 'Datasets',
+          tooltip: 'Shows statistics in terms of datasets that entries belong to.',
           renderResultString: count => (<span> curated in <b>{count}</b> datasets</span>)
         }
       },

@@ -65,10 +65,12 @@ class QuantityHistogram extends React.Component {
     const width = this.container.current.offsetWidth
     const height = Object.keys(this.props.data).length * 32
 
-    const data = Object.keys(this.props.data).map(key => ({
-      name: key,
-      value: this.props.data[key][this.props.metric]
-    }))
+    const data = Object.keys(this.props.data)
+      .map(key => ({
+        name: key,
+        value: this.props.data[key][this.props.metric]
+      }))
+      .filter(d => d.value !== 0)
 
     data.sort((a, b) => {
       const nameA = a.name
