@@ -284,8 +284,8 @@ Go back to %s and press reload to see the progress on your upload and publish yo
 
 ''' % upload.gui_url,
                 200, {'Content-Type': 'text/plain; charset=utf-8'})
-        else:
-            return upload, 200
+
+        return upload, 200
 
 
 class ProxyUpload:
