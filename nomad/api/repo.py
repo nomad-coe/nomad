@@ -252,6 +252,10 @@ class RepoCalcsResource(Resource):
         except KeyError as e:
             abort(400, str(e))
 
+        # TODO just a workarround to make things prettier
+        if 'code_name' in aggregations and 'currupted mainfile' in aggregations['code_name']:
+            del(aggregations['code_name']['currupted mainfile'])
+
         return dict(
             pagination=dict(total=total, page=page, per_page=per_page),
             results=results,
