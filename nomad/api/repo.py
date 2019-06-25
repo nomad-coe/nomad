@@ -186,7 +186,13 @@ class RepoCalcsResource(Resource):
         if order not in [-1, 1]:
             abort(400, message='invalid pagination')
 
-        if owner == 'all':
+        if owner == 'migrated':
+            # TODO this should be removed after migration
+            q = Q('term', published=True) & Q('term', with_embargo=False)
+            if g.user is not None:
+                q = q | Q('term', owners__user_id=g.user.user_id)
+            q = q & ~Q('term', **{'uploader.user_id': 1})  # pylint: disable=invalid-unary-operand-type
+        elif owner == 'all':
             q = Q('term', published=True) & Q('term', with_embargo=False)
             if g.user is not None:
                 q = q | Q('term', owners__user_id=g.user.user_id)
@@ -208,9 +214,9 @@ class RepoCalcsResource(Resource):
         else:
             abort(400, message='Invalid owner value. Valid values are all|user|staging, default is all')
 
-        if config.services.migrated:
-            with_provernance = ~Q('term', **{'uploader.user_id': 1})  # pylint: disable=invalid-unary-operand-type
-            q = q & with_provernance if q is not None else with_provernance
+        # TODO this should be removed after migration
+        without_currupted_mainfile = ~Q('term', code_name='currupted mainfile')  # pylint: disable=invalid-unary-operand-type
+        q = q & without_currupted_mainfile if q is not None else without_currupted_mainfile
 
         data = dict(**request.args)
         data.pop('owner', None)
@@ -245,6 +251,10 @@ class RepoCalcsResource(Resource):
             abort(400, 'The given scroll_id does not exist.')
         except KeyError as e:
             abort(400, str(e))
+
+        # TODO just a workarround to make things prettier
+        if 'code_name' in aggregations and 'currupted mainfile' in aggregations['code_name']:
+            del(aggregations['code_name']['currupted mainfile'])
 
         return dict(
             pagination=dict(total=total, page=page, per_page=per_page),

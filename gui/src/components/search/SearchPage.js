@@ -69,7 +69,7 @@ class SearchPage extends React.Component {
 
   state = {
     data: SearchPage.emptySearchData,
-    owner: 'all',
+    owner: 'migrated',
     searchState: {
       ...SearchAggregations.defaultState
     },
@@ -147,11 +147,22 @@ class SearchPage extends React.Component {
     const { pagination: { total }, metrics } = data
 
     const ownerLabel = {
+      migrated: 'Only migrated',
       all: 'All entries',
       public: 'Only public entries',
       user: 'Only your entries',
-      staging: 'Only entries from your staging area'
+      staging: 'Staging area only'
     }
+
+    const ownerTooltips = {
+      migrated: 'Only show entries with established provenance in the original Nomad repository.',
+      all: 'This will show all entries in the database, even those that might be duplicates.',
+      public: 'Do not show entries that are only visible to you.',
+      user: 'Do only show entries visible to you.',
+      staging: 'Will only show entries that you uploaded, but not yet published.'
+    }
+
+    const withoutLogin = ['migrated', 'all']
 
     const useMetric = Object.keys(metrics).find(metric => metric !== 'code_runs') || 'code_runs'
     const helperText = <span>
@@ -194,23 +205,25 @@ class SearchPage extends React.Component {
         `}</Help>
 
         <DisableOnLoading>
-          { user
-            ? <div className={classes.searchEntry}>
-              <FormControl>
-                <FormLabel>Filter entries and show: </FormLabel>
-                <FormGroup row>
-                  {['all', 'public', 'user', 'staging'].map(owner => (
-                    <FormControlLabel key={owner}
-                      control={
-                        <Checkbox checked={this.state.owner === owner} onChange={() => this.handleOwnerChange(owner)} value="owner" />
-                      }
-                      label={ownerLabel[owner]}
-                    />
+          <div className={classes.searchEntry}>
+            <FormControl>
+              <FormLabel>Filter entries and show: </FormLabel>
+              <FormGroup row>
+                {['migrated', 'all', 'public', 'user', 'staging']
+                  .filter(key => user || withoutLogin.indexOf(key) !== -1)
+                  .map(owner => (
+                    <Tooltip key={owner} title={ownerTooltips[owner]}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox checked={this.state.owner === owner} onChange={() => this.handleOwnerChange(owner)} value="owner" />
+                        }
+                        label={ownerLabel[owner]}
+                      />
+                    </Tooltip>
                   ))}
-                </FormGroup>
-              </FormControl>
-            </div> : ''
-          }
+              </FormGroup>
+            </FormControl>
+          </div>
 
           <div className={classes.search}>
             <SearchBar classes={{autosuggestRoot: classes.searchBar}}

@@ -85,7 +85,7 @@ class BrokenParser(Parser):
             decoded_buffer = buffer.decode('utf-8')
         except UnicodeDecodeError:
             # This file is binary, and should not be binary
-            return True
+            pass
         else:
             for pattern in self._patterns:
                 if pattern.search(decoded_buffer) is not None:

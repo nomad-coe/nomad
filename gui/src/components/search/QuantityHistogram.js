@@ -39,6 +39,8 @@ class QuantityHistogram extends React.Component {
   }
 
   componentDidMount() {
+    // TODO this just a workaround for bad layout on initial rendering
+    this.updateChart()
     this.updateChart()
   }
 
@@ -65,10 +67,11 @@ class QuantityHistogram extends React.Component {
     const width = this.container.current.offsetWidth
     const height = Object.keys(this.props.data).length * 32
 
-    const data = Object.keys(this.props.data).map(key => ({
-      name: key,
-      value: this.props.data[key][this.props.metric]
-    }))
+    const data = Object.keys(this.props.data)
+      .map(key => ({
+        name: key,
+        value: this.props.data[key][this.props.metric]
+      }))
 
     data.sort((a, b) => {
       const nameA = a.name

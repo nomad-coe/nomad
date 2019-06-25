@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, FormControl, FormLabel, FormGroup, FormControlLabel, Checkbox } from '@material-ui/core'
+import { withStyles, FormControl, FormLabel, FormGroup, FormControlLabel, Checkbox, Tooltip } from '@material-ui/core'
 import { withDomain } from '../domains'
 import { compose } from 'recompose'
 
@@ -49,12 +49,14 @@ class SearchAggregationsUnstyled extends React.Component {
             <FormLabel>Metric used in statistics: </FormLabel>
             <FormGroup row>
               {Object.keys(metricsDefinitions).map(metric => (
-                <FormControlLabel key={metric}
-                  control={
-                    <Checkbox checked={selectedMetric === metric} onChange={() => this.handleMetricChange(metric)} value={metric} />
-                  }
-                  label={metricsDefinitions[metric].label}
-                />
+                <Tooltip key={metric} title={metricsDefinitions[metric].tooltip}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox checked={selectedMetric === metric} onChange={() => this.handleMetricChange(metric)} value={metric} />
+                    }
+                    label={metricsDefinitions[metric].label}
+                  />
+                </Tooltip>
               ))}
             </FormGroup>
           </FormControl>
