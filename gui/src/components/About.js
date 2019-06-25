@@ -5,11 +5,13 @@ import Markdown from './Markdown'
 import { kibanaBase, apiBase } from '../config'
 import { compose } from 'recompose'
 import { withApi } from './api'
+import { withDomain } from './domains'
 
 class About extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
+    domain: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired
   }
 
@@ -32,23 +34,13 @@ class About extends React.Component {
   }
 
   render() {
-    const { classes } = this.props
+    const { classes, domain } = this.props
     const { info } = this.state
 
     return (
       <div className={classes.root}>
         <Markdown>{`
-          ## The nomad**@FAIR** prototype
-          This is a prototype, a concept, for a continuation of the
-          [NOMAD-coe](http://nomad-coe.eu) project. It is an attempt to redesign
-          the nomad software and infrastructure with the following goals in mind:
-
-          * more immediate and near-time use-modes (*staging area*, *code integration*, *on-site data*)
-          * 3rd parties run instances of the nomad on their servers (*mirrors*, *oasis*, *industry* usage)
-          * mirrors(partially) synchronize data with the central nomad instance (*data federation*)
-          * the nomad architecture/infrastructure is used for related *domains* (e.g. experimental material science) or even more unrelated domains
-          * nomad is integrated with existing *Open Data* initiatives and databases (*FAIRDI*, *EUDAT*, *optimade*)
-          * we benefit from nomad being *Open Source* (public git, outside participation)
+          ${domain.about}
 
           ### Developer Documentation
           You find in depth developer documentation [here](${apiBase}/docs/index.html).
@@ -79,9 +71,9 @@ class About extends React.Component {
           ### Test user
           During development this GUI might not be connected to the actual nomad
           repository. Therefore, you cannot create a user or login with an existing
-          user. You might use our test users \`sheldon.cooper@nomad-fairdi.tests.de\`
-          or \`leonard.hofstadter@nomad-fairdi.tests.de\` both
-          with password \`password\`.
+          user. You might use the test user \`leonard.hofstadter@nomad-fairdi.tests.de\`
+          with password \`password\`. The user \`sheldon.cooper@nomad-fairdi.tests.de\` is
+          used for data that has no provenance with the original Nomad CoE database.
 
           ### About this version
           - version: \`${info ? info.version : 'loading'}/${info ? info.release : 'loading'}\`
@@ -96,4 +88,4 @@ class About extends React.Component {
   }
 }
 
-export default compose(withApi(), withStyles(About.styles))(About)
+export default compose(withApi(), withDomain, withStyles(About.styles))(About)

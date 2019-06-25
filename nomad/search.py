@@ -21,6 +21,7 @@ from elasticsearch_dsl import Document, InnerDoc, Keyword, Text, Date, \
     Object, Boolean, Search, Q, A, analyzer, tokenizer
 from elasticsearch_dsl.document import IndexMeta
 import elasticsearch.helpers
+from elasticsearch.exceptions import NotFoundError
 from datetime import datetime
 
 from nomad import config, datamodel, infrastructure, datamodel, coe_repo, utils
@@ -34,6 +35,9 @@ class AlreadyExists(Exception): pass
 
 
 class ElasticSearchError(Exception): pass
+
+
+class ScrollIdNotFound(Exception): pass
 
 
 class User(InnerDoc):
@@ -137,8 +141,10 @@ class Entry(Document, metaclass=WithDomain):
         self.authors = [User.from_user_popo(user) for user in source.coauthors]
         self.owners = [User.from_user_popo(user) for user in source.shared_with]
         if self.uploader is not None:
-            self.authors.append(self.uploader)
-            self.owners.append(self.uploader)
+            if self.uploader not in self.authors:
+                self.authors.append(self.uploader)
+            if self.uploader not in self.owners:
+                self.owners.append(self.uploader)
         self.comment = source.comment
         self.references = [ref.value for ref in source.references]
         self.datasets = [Dataset.from_dataset_popo(ds) for ds in source.datasets]
@@ -266,7 +272,9 @@ def scroll_search(
     and no aggregation information is given.
 
     Scrolling is done by calling this function again and again with the same ``scroll_id``.
-    Each time, this function will return the next batch of search results.
+    Each time, this function will return the next batch of search results. If the
+    ``scroll_id`` is not available anymore, a new ``scroll_id`` is assigned and scrolling
+    starts from the beginning again.
 
     See see :func:`aggregate_search` for additional ``kwargs``
 
@@ -276,6 +284,7 @@ def scroll_search(
         size: The batch size in number of hits.
         scroll: The time the scroll should be kept alive (i.e. the time between requests
             to this method) in ES time units. Default is 5 minutes.
+    Returns: A tuple with ``scroll_id``, total amount of hits, and result list.
     """
     es = infrastructure.elastic_client
 
@@ -289,7 +298,10 @@ def scroll_search(
             # no results for search query
             return None, 0, []
     else:
-        resp = es.scroll(scroll_id, scroll=scroll)  # pylint: disable=E1123
+        try:
+            resp = es.scroll(scroll_id, scroll=scroll)  # pylint: disable=E1123
+        except NotFoundError:
+            raise ScrollIdNotFound()
 
     total = resp['hits']['total']
     results = [hit['_source'] for hit in resp['hits']['hits']]

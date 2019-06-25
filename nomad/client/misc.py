@@ -14,13 +14,15 @@
 
 import os.path
 import os
+import shutil
 import sys
 import click
 import asyncio
 from concurrent.futures import ProcessPoolExecutor
 from mongoengine import Q
+from elasticsearch_dsl import Search, A
 
-from nomad import config, infrastructure, processing, utils
+from nomad import config, infrastructure, processing, utils, files, search
 
 from .main import cli
 
@@ -43,6 +45,82 @@ def ls():
 
     ls(processing.Calc.objects(query))
     ls(processing.Upload.objects(query))
+
+
+@proc.command(help='Remove uploads')
+@click.argument('upload-ids', nargs=-1)
+@click.option('--still-processing', is_flag=True, help='Target all uploads that are still processing')
+@click.option('--stop-processing', is_flag=True, help='Attempt to stop processing on to delete uploads')
+def rm(upload_ids, still_processing, stop_processing):
+    infrastructure.setup_logging()
+    infrastructure.setup_mongo()
+    infrastructure.setup_elastic()
+
+    upload_ids = list(upload_ids)
+
+    if still_processing:
+        query = Q(process_status=processing.PROCESS_RUNNING) | Q(tasks_status=processing.RUNNING)
+        for upload in processing.Upload.objects(query):
+            upload_ids.append(upload.upload_id)
+
+    logger = utils.get_logger(__name__)
+    logger.info('start deleting uploads', count=len(upload_ids))
+
+    print('Will delete: ')
+    for upload_id in upload_ids:
+        print('   %s' % upload_id)
+    input("Press Enter to continue...")
+
+    for upload_id in upload_ids:
+        logger = logger.bind(upload_id=upload_id)
+
+        # stop processing
+        if stop_processing:
+            upload = processing.Upload.objects(upload_id=upload_id).first()
+            try:
+                processing.app.control.revoke(upload.celery_task_id, terminate=True, signal='SIGKILL')
+            except Exception as e:
+                logger.debug(
+                    'could not revoke celery task', exc_info=e, celery_task_id=upload.celery_task_id)
+            query = Q(upload_id=upload_id)
+            query &= Q(process_status=processing.PROCESS_RUNNING) | Q(tasks_status=processing.RUNNING)
+            for calc in processing.Calc.objects(query):
+                try:
+                    processing.app.control.revoke(calc.celery_task_id, terminate=True, signal='SIGKILL')
+                except Exception as e:
+                    logger.debug(
+                        'could not revoke celery task', exc_info=e,
+                        celery_task_id=calc.celery_task_id, calc_id=calc.calc_id)
+
+                calc.fail('process terminate via nomad cli')
+                calc.process_status = processing.PROCESS_COMPLETED
+                calc.on_process_complete(None)
+                calc.save()
+
+            upload.fail('process terminate via nomad cli')
+            upload.process_status = processing.PROCESS_COMPLETED
+            upload.on_process_complete(None)
+            upload.save()
+
+            logger.info('stopped upload processing')
+
+        # delete elastic
+        search.delete_upload(upload_id=upload_id)
+
+        # delete files
+        for _ in range(0, 2):
+            upload_files = files.UploadFiles.get(upload_id=upload_id)
+
+            try:
+                if upload_files is not None:
+                    upload_files.delete()
+            except Exception as e:
+                logger.error('could not delete files', exc_info=e)
+                break
+
+        # delete mongo
+        processing.Calc.objects(upload_id=upload_id).delete()
+        processing.Upload.objects(upload_id=upload_id).delete()
 
 
 @proc.command(help='Stop all running processing')
@@ -88,6 +166,62 @@ def stop_all(calcs: bool, kill: bool):
     stop_all(processing.Calc.objects(query))
     if not calcs:
         stop_all(processing.Upload.objects(query))
+
+
+@cli.command(help='Removes all public (non staging) files that do not belong to an upload.')
+@click.option('--dry', is_flag=True, help='Dont delete anything, just check.')
+def clean_public(dry):
+    infrastructure.setup_logging()
+    infrastructure.setup_mongo()
+
+    def uploads():
+        for prefix in os.listdir(config.fs.public):
+            for upload in os.listdir(os.path.join(config.fs.public, prefix)):
+                yield upload, os.path.join(config.fs.public, prefix, upload)
+
+    to_delete = list(
+        path for upload, path in uploads()
+        if processing.Upload.objects(upload_id=upload).first() is None)
+
+    input('Will delete %d uploads. Press any key to continue ...' % len(to_delete))
+
+    if not dry:
+        for path in to_delete:
+            shutil.rmtree(path)
+
+
+@cli.command(help='Removes data that does not belong to an upload.')
+@click.option('--dry', is_flag=True, help='Dont delete anything, just check.')
+def clean_es(dry):
+    infrastructure.setup_logging()
+    infrastructure.setup_mongo()
+    infrastructure.setup_elastic()
+
+    def uploads():
+        search = Search(index=config.elastic.index_name)
+        search.aggs.bucket('uploads', A('terms', field='upload_id', size=12000))
+
+        response = search.execute()
+
+        print('Found %d uploads in ES.' % len(response.aggregations.uploads.buckets))
+        for bucket in response.aggregations.uploads.buckets:
+            yield bucket.key, bucket.doc_count
+
+    to_delete = list(
+        (upload, calcs) for upload, calcs in uploads()
+        if processing.Upload.objects(upload_id=upload).first() is None)
+
+    calcs = 0
+    for _, upload_calcs in to_delete:
+        calcs += upload_calcs
+
+    input(
+        'Will delete %d calcs in %d uploads from ES. Press any key to continue ...' %
+        (calcs, len(to_delete)))
+
+    if not dry:
+        for upload, _ in to_delete:
+            Search(index=config.elastic.index_name).query('term', upload_id=upload).delete()
 
 
 @cli.command(help='Attempts to reset the nomad.')

@@ -22,11 +22,9 @@ import shutil
 import multiprocessing
 import queue
 import json
-from elasticsearch_dsl import Document, Keyword
-import elasticsearch
 
-from nomad import config, infrastructure, utils
-from nomad.migration import NomadCOEMigration, SourceCalc, Package
+from nomad import config, infrastructure
+from nomad.migration import NomadCOEMigration, SourceCalc, Package, missing_calcs_data
 
 from .main import cli
 
@@ -86,45 +84,14 @@ def index(drop, with_metadata, per_query):
 
 
 @migration.command(help='Transfer migration index to elastic search')
-@click.option('--es-index', default='source_calcs', help='Name of the elastic index.')
-def index_elastic(es_index):
+@click.argument('tar-file', nargs=1)
+@click.option('--offset', default=None, type=int, help='Start processing the tar from a specific offset, e.g. to continue')
+@click.option('--upload', default=None, type=str, help='Force the whole tar contents into a given upload id')
+@click.option('--compress', is_flag=True, help='Turn on compression for creating migration packages')
+def package_tar(tar_file, offset, upload, compress):
+    infrastructure.setup_logging()
     infrastructure.setup_mongo()
-    infrastructure.setup_elastic()
-
-    class SourceCalcES(Document):
-        class Index:
-            name = es_index
-
-        upload_id = Keyword()
-        mainfile = Keyword()
-        pid = Keyword()
-        migration_version = Keyword()
-        is_migrated = Keyword()
-        uploader_id = Keyword()
-
-    indexed = 0
-    updates = []
-    for source_calc in SourceCalc.objects():
-        metadata = utils.POPO(**source_calc.metadata)
-        source_calc_es = SourceCalcES(meta=dict(id=metadata.pid))
-        source_calc_es.upload_id = source_calc.upload
-        source_calc_es.pid = metadata.pid
-        source_calc_es.mainfile = source_calc.mainfile
-        source_calc_es.migration_version = source_calc.migration_version
-        source_calc_es.is_migrated = source_calc.migration_version >= 0
-        source_calc_es.uploader_id = metadata.uploader['id']
-
-        source_calc_es = source_calc_es.to_dict(include_meta=True)
-        source = source_calc_es.pop('_source')
-        source_calc_es['doc'] = source
-        # source_calc_es['_op_type'] = 'update'
-
-        updates.append(source_calc_es)
-        if len(updates) >= 1000:
-            elasticsearch.helpers.bulk(infrastructure.elastic_client, updates)
-            indexed += len(updates)
-            updates = []
-            print(indexed)
+    Package.create_packages_from_tar(tar_file, offset=offset, compress=compress, forced_upload_id=upload)
 
 
 @migration.command(help='Reset migration version to start a new migration.')
@@ -175,8 +142,11 @@ def determine_upload_paths(paths, pattern=None, all=False):
                     paths.append(path)
 
             if not exists:
-                utils.get_logger(__name__).error(
-                    'source upload does not exist', source_upload_id=upload_id)
+                # This does not really matter, to save space we deleted some source
+                # data after packaging it. the migration will use the packages anyways.
+                # We just use the full path to communicate the upload_id at the end
+                # for historical reasons.
+                paths.append(os.path.join('/does/not/exist/anymore', upload_id))
 
     elif pattern is not None:
         assert len(paths) == 1, "Can only apply pattern on a single directory."
@@ -311,15 +281,10 @@ def upload(
         create_packages=create_packages, only_republish=only_republish, wait=wait, republish=republish)
 
 
-@migration.command(help='Get an report about not migrated calcs based on source calcs.')
-@click.option('--package', is_flag=True, help='Return missing calcs based on packages.')
-@click.option('--use-cache', is_flag=True, help='Skip processing steps and take results from prior runs')
-def missing(package, use_cache):
+@migration.command(help='Get an report about not migrated calcs.')
+def missing():
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
 
-    if package:
-        report = Package.missing()
-    else:
-        report = SourceCalc.missing(use_cache=use_cache)
+    report = missing_calcs_data()
     print(json.dumps(report, indent=2))

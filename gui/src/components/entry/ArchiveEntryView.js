@@ -85,10 +85,12 @@ class ArchiveEntryView extends React.Component {
       this.props.raiseError(error)
     })
 
-    api.getMetaInfo().then(metaInfo => {
-      if (!this.unmounted) {
-        this.setState({metaInfo: metaInfo})
-      }
+    api.getInfo().then(info => {
+      this.props.api.getMetaInfo(info.domain.metainfo.all_package).then(metaInfo => {
+        if (!this.unmounted) {
+          this.setState({metaInfo: metaInfo})
+        }
+      })
     }).catch(error => {
       this.props.raiseError(error)
     })

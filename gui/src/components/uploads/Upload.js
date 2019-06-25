@@ -98,8 +98,13 @@ class Upload extends React.Component {
     const {page, perPage, orderBy, order} = params
     this.state.upload.get(page, perPage, orderBy, order === 'asc' ? 1 : -1)
       .then(upload => {
-        const {tasks_running, process_running, current_task} = upload
+        const {tasks_running, process_running, current_task, published} = upload
         if (!this._unmounted) {
+          if (published) {
+            this.setState({...params})
+            this.props.onDoesNotExist()
+            return
+          }
           const continueUpdating = tasks_running || process_running || current_task === 'uploading'
           this.setState({upload: upload, params: params, updating: continueUpdating})
           if (continueUpdating) {

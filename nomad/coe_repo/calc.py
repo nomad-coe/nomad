@@ -141,7 +141,9 @@ class Calc(Base):
 
     @property
     def with_embargo(self) -> bool:
-        return self.user_metadata.permission == 1
+        # permission = 1 means public
+        # permission = 0 means not public, i.e. with embargo
+        return self.user_metadata.permission != 1
 
     @property
     def formula(self) -> str:
@@ -239,7 +241,7 @@ class Calc(Base):
         user_metadata = UserMetaData(
             calc=self,
             label=calc.comment,
-            permission=(1 if calc.with_embargo else 0))
+            permission=(0 if calc.with_embargo else 1))
         repo_db.add(user_metadata)
 
         if isinstance(calc.spacegroup, int) or calc.spacegroup.isdigit():
