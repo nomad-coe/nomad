@@ -39,8 +39,6 @@ api:
   adminPassword: "password"
   ## Disable the dangerous reset (delete all data) function
   disableReset: "true"
-  ## Do not show data of user with id 1, since he was used for data with unknown provernance
-  migrated: "false"
 
 ## Everthing concerning the nomad worker
 worker:

@@ -27,7 +27,6 @@ data:
       admin_password: "{{ .Values.api.adminPassword }}"
       disable_reset: {{ .Values.api.disableReset }}
       https: {{ .Values.api.https }}
-      migrated: {{ .Values.api.migrated }}
     rabbitmq:
       host: "{{ .Release.Name }}-rabbitmq"
     elastic:

@@ -123,9 +123,7 @@ services = NomadConfig(
     disable_reset=True,
     not_processed_value='not processed',
     unavailable_value='unavailable',
-    https=False,
-    migrated=False  # with migrated data will not show data of user 1 in search results,
-                    # since this user was used for data with unknown provenance
+    https=False
 )
 
 tests = NomadConfig(
