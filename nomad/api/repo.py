@@ -23,7 +23,7 @@ from elasticsearch_dsl import Q
 from elasticsearch.exceptions import NotFoundError
 import datetime
 
-from nomad import search, config
+from nomad import search
 
 from .app import api, rfc3339DateTime
 from .auth import login_if_available
