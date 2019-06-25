@@ -30,6 +30,8 @@ parser_examples = [
     ('parsers/template', 'tests/data/parsers/template.json'),
     ('parsers/exciting', 'tests/data/parsers/exciting/Ag/INFO.OUT'),
     ('parsers/exciting', 'tests/data/parsers/exciting/GW/INFO.OUT'),
+    ('parsers/exciting', 'tests/data/parsers/exciting/nitrogen/INFO.OUT_nitrogen'),
+    ('parsers/exciting', 'tests/data/parsers/exciting/nitrogen/INFO.OUT_carbon'),
     ('parsers/vasp', 'tests/data/parsers/vasp/vasp.xml'),
     ('parsers/vasp', 'tests/data/parsers/vasp_compressed/vasp.xml.gz'),
     ('parsers/vaspoutcar', 'tests/data/parsers/vasp_outcar/OUTCAR'),
@@ -70,7 +72,7 @@ for parser, mainfile in parser_examples:
 parser_examples = fixed_parser_examples
 
 
-correct_num_output_files = 39
+correct_num_output_files = 41
 
 
 class TestLocalBackend(object):
