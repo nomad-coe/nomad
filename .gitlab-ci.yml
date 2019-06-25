@@ -33,7 +33,7 @@ build:
   stage: build
   before_script:
     - git submodule sync
-    - git submodule update --init
+    - git submodule update --init --remote
     - ./gitinfo.sh
   script:
     # ignore test directories of dependencies, there is a lot of data that we not use
