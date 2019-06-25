@@ -23,7 +23,7 @@ export default class DFTEntryOverview extends React.Component {
           <Quantity quantity="xc_functional" label='xc functional' noWrap {...this.props} />
         </Quantity>
         <Quantity row>
-          <Quantity quantity="system_type" label='system type' noWrap {...this.props} />
+          <Quantity quantity="system" label='system type' noWrap {...this.props} />
           <Quantity quantity="crystal_system" label='crystal system' noWrap {...this.props} />
           <Quantity quantity='spacegroup_symbol' label="spacegroup" noWrap {...this.props}>
             <Typography noWrap>
