@@ -139,7 +139,7 @@ class MatchingParser(Parser):
             if self._mainfile_contents_re.search(decoded_buffer) is None:
                 return False
         return self._mainfile_mime_re.match(mime) is not None and \
-            self._mainfile_name_re.match(filename) is not None and \
+            self._mainfile_name_re.fullmatch(filename) is not None and \
             (compression is None or compression in self._supported_compressions)
 
     def __repr__(self):
