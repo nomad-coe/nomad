@@ -62,7 +62,9 @@ your browser.
 - support for multiple domains
 - info API endpoint
 - metainfo browser
+- support for latest exciting version
 - bugfixes in system normalization
+- many minor bugfixes
 
 ### v0.4.3
 - more flexible celery routing
