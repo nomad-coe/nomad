@@ -58,7 +58,8 @@ parser_examples = [
     ('parsers/elk', 'tests/data/parsers/elk/Al/INFO.OUT'),
     ('parsers/elastic', 'dependencies/parsers/elastic/test/examples/2nd/INFO_ElaStic'),  # 70Mb file 2big4git
     ('parsers/turbomole', 'tests/data/parsers/turbomole/acrolein.out'),
-    ('parsers/gamess', 'tests/data/parsers/gamess/exam01.out')
+    ('parsers/gamess', 'tests/data/parsers/gamess/exam01.out'),
+    ('parsers/vaspoutcar', 'tests/data/parsers/vasp/failed/OUTCAR')
 ]
 
 # We need to remove some cases with external mainfiles, which might not exist

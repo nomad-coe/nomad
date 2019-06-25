@@ -140,9 +140,8 @@ parsers = [
         parser_class_name='excitingparser.ExcitingParser',
         mainfile_name_re=r'^.*/INFO\.OUT?',
         mainfile_contents_re=(
-            r'^\s*=================================================+\s*'
-            r'\s*\|\s*EXCITING\s+\S+\s+started\s*='
-            r'\s*\|\s*version hash id:\s*\S*\s*=')
+            r'^\s*=================================================+'
+            r'\s*\s*\|\s*EXCITING\s+\S+\s+started\s*')
     ),
     LegacyParser(
         name='parsers/fhi-aims', code_name='FHI-aims',
