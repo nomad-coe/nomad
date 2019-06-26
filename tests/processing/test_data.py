@@ -101,7 +101,7 @@ def test_processing(processed, no_warn, mails, monkeypatch):
     assert re.search(r'Processing completed', mails.messages[0].data.decode('utf-8')) is not None
 
 
-def test_publish(non_empty_processed: Upload, no_warn, example_user_metadata, monkeypatch, with_publish_to_coe_repo):
+def test_publish(non_empty_processed: Upload, no_warn, example_user_metadata, with_publish_to_coe_repo, monkeypatch):
     processed = non_empty_processed
     processed.compress_and_set_metadata(example_user_metadata)
 
@@ -121,6 +121,9 @@ def test_publish(non_empty_processed: Upload, no_warn, example_user_metadata, mo
 
     assert_upload_files(upload, PublicUploadFiles, published=True)
     assert_search_upload(upload, additional_keys, published=True)
+
+    if with_publish_to_coe_repo and config.repository_db.mode == 'coe':
+        assert(os.path.exists(os.path.join(config.fs.extracted, upload.upload_id)))
 
 
 def test_republish(non_empty_processed: Upload, no_warn, example_user_metadata, monkeypatch, with_publish_to_coe_repo):

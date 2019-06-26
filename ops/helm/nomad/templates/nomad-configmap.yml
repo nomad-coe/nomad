@@ -13,6 +13,7 @@ data:
     domain: "{{ .Values.domain }}"
     fs:
       tmp: "{{ .Values.volumes.tmp }}"
+      coe_extracted: "{{ .Values.volumes.coe_extracted }}"
       prefix_size: {{ .Values.volumes.prefixSize }}
       working_directory: /app
     logstash:
@@ -44,6 +45,7 @@ data:
       dbname: "{{ .Values.dbname }}"
       sequential_publish: {{ .Values.postgres.sequential_publish }}
       publish_enabled: {{ .Values.postgres.publish_enabled }}
+      mode: "{{ .Values.postgres.mode }}"
     mail:
       host: "{{ .Values.mail.host }}"
       port: {{ .Values.mail.port }}

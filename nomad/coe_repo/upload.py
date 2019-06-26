@@ -86,6 +86,7 @@ class Upload(Base):  # type: ignore
 
     coe_upload_id = Column('upload_id', Integer, primary_key=True, autoincrement=True)
     upload_name = Column(String)
+    target_path = Column(String)
     user_id = Column(Integer, ForeignKey('users.user_id'))
     is_processed = Column(Boolean)
     created = Column(DateTime)
@@ -140,6 +141,14 @@ class Upload(Base):  # type: ignore
         uploads-entry, respective calculation and property entries. Everything in one
         transaction.
 
+        There are two modes (fairdi, coe). The coe mode will mimic the old python API
+        behaviour. An additional extracted raw-file copy needs to be stored for the old CoE
+        repository. Here, we will add the file path to the respective table.
+        In fairdi mode, only the .zip-based raw file archive is used. The file path data
+        will be replaced with information necessary to use nomad@fairdis raw-file API.
+        This function only handles the postgres entries. Files are created elsewhere
+        (e.g. nomad.processing.data).
+
         Arguments:
             upload: The upload to add, including calculations with respective IDs, UMD, CMD.
 
@@ -177,6 +186,7 @@ class Upload(Base):  # type: ignore
                 # create upload
                 coe_upload = Upload(
                     upload_name=upload.upload_id,
+                    target_path='$EXTRACTED/fairdi/%s' % upload.upload_id if config.repository_db.mode == 'coe' else None,
                     created=upload.upload_time,
                     user_id=upload.uploader.id,
                     is_processed=True)

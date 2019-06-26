@@ -532,6 +532,13 @@ class Upload(Proc):
             upload_with_metadata = self.to_upload_with_metadata(self.metadata)
 
             if config.repository_db.publish_enabled:
+                if config.repository_db.mode == 'coe' and isinstance(self.upload_files, StagingUploadFiles):
+                    with utils.timer(
+                            logger, 'coe extracted raw-file copy created', step='repo',
+                            upload_size=self.upload_files.size):
+
+                        self.upload_files.create_extracted_copy()
+
                 coe_upload = coe_repo.Upload.from_upload_id(upload_with_metadata.upload_id)
                 if coe_upload is None:
                     with utils.timer(

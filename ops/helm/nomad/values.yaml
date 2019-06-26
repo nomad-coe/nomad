@@ -106,6 +106,9 @@ postgres:
   publish_enabled: true
   host: nomad-flink-01.esc
   port: 5432
+  ## CoE repository mode, values are fairdi, coe. Fairdi stores raw-file path for
+  # new raw-file API; coe stores raw-file paths for extracted raw-file copy
+  mode: fairdi
 
 logstash:
   port: 5000
