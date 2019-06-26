@@ -169,7 +169,7 @@ client = NomadConfig(
     url='http://localhost:8000/fairdi/nomad/latest/api'
 )
 
-version = '0.4.4'
+version = '0.4.5'
 commit = gitinfo.commit
 release = 'devel'
 domain = 'DFT'
