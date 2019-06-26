@@ -189,6 +189,7 @@ class UploadListResource(Resource):
 
     @api.doc('upload')
     @api.expect(upload_metadata_parser)
+    @api.response(400, 'To many uploads')
     @marshal_with(upload_model, skip_none=True, code=200, description='Upload received')
     @login_really_required
     @with_logger
@@ -207,11 +208,20 @@ class UploadListResource(Resource):
 
             curl -X put ".../nomad/api/uploads/" -F file=@local_file
             curl ".../nomad/api/uploads/" --upload-file local_file
+
+        There is a general limit on how many unpublished uploads a user can have. Will
+        return 400 if this limit is exceeded.
         """
+        # check existence of local_path if local_path is used
         local_path = request.args.get('local_path')
         if local_path:
             if not os.path.exists(local_path):
                 abort(404, message='The given local_path was not found.')
+
+        # check the upload limit
+        if not g.user.is_admin:
+            if Upload.user_uploads(g.user, published=False).count() >= config.services.upload_limit:
+                abort(400, 'Limit of unpublished uploads exceeded for user.')
 
         upload_name = request.args.get('name')
         upload_id = utils.create_uuid()

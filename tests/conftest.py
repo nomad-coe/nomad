@@ -154,7 +154,8 @@ def worker(mongo, celery_session_worker, celery_inspect):
 
 
 @pytest.fixture(scope='session')
-def mongo_infra():
+def mongo_infra(monkeysession):
+    monkeysession.setattr('nomad.config.mongo.db_name', 'test_db')
     return infrastructure.setup_mongo()
 
 

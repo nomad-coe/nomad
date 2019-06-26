@@ -338,6 +338,14 @@ class TestUploads:
 
         self.assert_processing(client, test_user_auth, upload['upload_id'])
 
+    def test_upload_limit(self, client, mongo, test_user, test_user_auth, proc_infra):
+        for _ in range(0, config.services.upload_limit):
+            Upload.create(user=test_user)
+        file = example_file
+        rv = client.put('/uploads/?local_path=%s' % file, headers=test_user_auth)
+        assert rv.status_code == 400
+        assert Upload.user_uploads(test_user).count() == config.services.upload_limit
+
     def test_delete_not_existing(self, client, test_user_auth, no_warn):
         rv = client.delete('/uploads/123456789012123456789012', headers=test_user_auth)
         assert rv.status_code == 404
