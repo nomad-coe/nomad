@@ -61,14 +61,14 @@ def raw_files_infra():
     config.fs.staging = '.volumes/test_fs/staging'
     config.fs.public = '.volumes/test_fs/public'
     config.fs.migration_packages = '.volumes/test_fs/migration_packages'
-    config.fs.extracted = '.volumes/test_fs/extracted'
+    config.fs.coe_extracted = '.volumes/test_fs/extracted'
     config.fs.prefix_size = 2
 
 
 @pytest.fixture(scope='function')
 def raw_files(raw_files_infra):
     """ Provides cleaned out files directory structure per function. Clears files after test. """
-    directories = [config.fs.staging, config.fs.public, config.fs.migration_packages, config.fs.tmp, config.fs.extracted]
+    directories = [config.fs.staging, config.fs.public, config.fs.migration_packages, config.fs.tmp, config.fs.coe_extracted]
     for directory in directories:
         if not os.path.exists(directory):
             os.makedirs(directory)

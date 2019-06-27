@@ -123,7 +123,7 @@ def test_publish(non_empty_processed: Upload, no_warn, example_user_metadata, wi
     assert_search_upload(upload, additional_keys, published=True)
 
     if with_publish_to_coe_repo and config.repository_db.mode == 'coe':
-        assert(os.path.exists(os.path.join(config.fs.extracted, upload.upload_id)))
+        assert(os.path.exists(os.path.join(config.fs.coe_extracted, upload.upload_id)))
 
 
 def test_republish(non_empty_processed: Upload, no_warn, example_user_metadata, monkeypatch, with_publish_to_coe_repo):

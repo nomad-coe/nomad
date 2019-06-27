@@ -337,7 +337,7 @@ class TestStagingUploadFiles(UploadFilesContract):
         upload_files.create_extracted_copy()
         for calc in upload.calcs:
             assert os.path.exists(os.path.join(
-                config.fs.extracted, upload_files.upload_id, calc.mainfile))
+                config.fs.coe_extracted, upload_files.upload_id, calc.mainfile))
 
 
 class TestArchiveBasedStagingUploadFiles(UploadFilesFixtures):
