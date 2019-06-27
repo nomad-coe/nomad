@@ -72,12 +72,7 @@ for parser, mainfile in parser_examples:
 parser_examples = fixed_parser_examples
 
 
-<<<<<<< HEAD
-correct_num_output_files = 33
-=======
-correct_num_output_files = 38
->>>>>>> master
-
+correct_num_output_files = 37
 
 class TestLocalBackend(object):
 
