@@ -17,7 +17,7 @@ from typing import cast
 from passlib.hash import bcrypt
 from datetime import datetime
 
-from nomad.coe_repo import User, Calc, Upload
+from nomad.coe_repo import User, Calc, Upload, create_handle
 from nomad.coe_repo.calc import PublishContext
 from nomad import processing, parsing, datamodel
 
@@ -65,15 +65,18 @@ def assert_coe_upload(upload_id: str, upload: datamodel.UploadWithMetadata = Non
             if user_metadata is not None:
                 calc.apply_user_metadata(user_metadata)
 
-            assert_coe_calc(coe_calc, cast(datamodel.DFTCalcWithMetadata, calc))
+            assert_coe_calc(coe_calc, cast(datamodel.DFTCalcWithMetadata, calc), has_handle=True)
 
         if upload is not None and upload.upload_time is not None:
             assert coe_upload.created.isoformat()[:26] == upload.upload_time.isoformat()
 
 
-def assert_coe_calc(coe_calc: Calc, calc: datamodel.DFTCalcWithMetadata):
+def assert_coe_calc(coe_calc: Calc, calc: datamodel.DFTCalcWithMetadata, has_handle: bool = False):
     if calc.pid is not None:
         assert coe_calc.pid == calc.pid
+    elif has_handle:
+        assert coe_calc.pid is not None
+        assert create_handle(coe_calc.pid) == coe_calc.handlepid
 
     # calc data
     assert len(coe_calc.files) == len(calc.files)
@@ -90,6 +93,7 @@ def assert_coe_calc(coe_calc: Calc, calc: datamodel.DFTCalcWithMetadata):
     if calc.with_embargo is not None:
         assert coe_calc.with_embargo == calc.with_embargo
     else:
+        # with out metadata, the default setting is no embargo
         assert not coe_calc.with_embargo
 
 

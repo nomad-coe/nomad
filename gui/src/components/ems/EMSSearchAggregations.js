@@ -66,9 +66,11 @@ class EMSSearchAggregations extends React.Component {
         <Grid container spacing={24} className={classes.quantityGrid}>
           <Grid item xs={6}>
             {quantity('method', 'Method')}
+            {quantity('probing_method', 'Probing')}
           </Grid>
           <Grid item xs={6}>
-            {quantity('experiment_location', 'Location')}
+            {quantity('sample_microstructure', 'Sample structure')}
+            {quantity('sample_constituents', 'Sample constituents')}
           </Grid>
         </Grid>
       </div>

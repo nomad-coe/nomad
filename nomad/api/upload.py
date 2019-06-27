@@ -17,13 +17,14 @@ The upload API of the nomad@FAIRDI APIs. Provides endpoints to upload files and
 get the processing status of uploads.
 """
 
-from flask import g, request
+from flask import g, request, Response
 from flask_restplus import Resource, fields, abort
 from datetime import datetime
 from werkzeug.datastructures import FileStorage
 import os.path
 import os
 import io
+from functools import wraps
 
 from nomad import config, utils, files
 from nomad.processing import Upload, FAILURE
@@ -87,6 +88,7 @@ upload_model = api.inherit('UploadProcessing', proc_model, {
     # TODO just removed during migration, where this get particularily large
     # 'metadata': fields.Nested(model=upload_metadata_model, description='Additional upload and calculation meta data.'),
     'upload_path': fields.String(description='The uploaded file on the server'),
+    'published': fields.Boolean(description='If this upload is already published'),
     'upload_time': RFC3339DateTime(),
 })
 
@@ -120,11 +122,52 @@ upload_operation_model = api.model('UploadOperation', {
 upload_metadata_parser = api.parser()
 upload_metadata_parser.add_argument('name', type=str, help='An optional name for the upload.', location='args')
 upload_metadata_parser.add_argument('local_path', type=str, help='Use a local file on the server.', location='args')
+upload_metadata_parser.add_argument('curl', type=bool, help='Provide a human readable message as body.', location='args')
 upload_metadata_parser.add_argument('file', type=FileStorage, help='The file to upload.', location='files')
 
 upload_list_parser = api.parser()
 upload_list_parser.add_argument('all', type=bool, help='List all uploads, including published.', location='args')
 upload_list_parser.add_argument('name', type=str, help='Filter for uploads with the given name.', location='args')
+
+
+def disable_marshalling(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except DisableMarshalling as e:
+            print(e.un_marshalled)
+            return e.un_marshalled
+
+    return wrapper
+
+
+def marshal_with(*args, **kwargs):
+    """
+    A special version of the RESTPlus marshal_with decorator that allows to disable
+    marshalling at runtime by raising DisableMarshalling.
+    """
+    def decorator(func):
+        @api.marshal_with(*args, **kwargs)
+        def with_marshalling(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        @wraps(with_marshalling)
+        def wrapper(*args, **kwargs):
+            try:
+                return with_marshalling(*args, **kwargs)
+            except DisableMarshalling as e:
+                print(e.un_marshalled)
+                return e.un_marshalled
+
+        return wrapper
+    return decorator
+
+
+class DisableMarshalling(Exception):
+    def __init__(self, body, status, headers):
+        super().__init__()
+        self.un_marshalled = Response(body, status=status, headers=headers)
 
 
 @ns.route('/')
@@ -145,8 +188,8 @@ class UploadListResource(Resource):
         return [upload for upload in Upload.user_uploads(g.user, **query_kwargs)], 200
 
     @api.doc('upload')
-    @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload received')
     @api.expect(upload_metadata_parser)
+    @marshal_with(upload_model, skip_none=True, code=200, description='Upload received')
     @login_really_required
     @with_logger
     def put(self, logger):
@@ -232,6 +275,15 @@ class UploadListResource(Resource):
 
         upload.process_upload()
         logger.info('initiated processing')
+
+        if bool(request.args.get('curl', False)):
+            raise DisableMarshalling(
+                '''
+Thanks for uploading your data to nomad.
+Go back to %s and press reload to see the progress on your upload and publish your data.
+
+''' % upload.gui_url,
+                200, {'Content-Type': 'text/plain; charset=utf-8'})
 
         return upload, 200
 
@@ -409,7 +461,7 @@ class UploadCommandResource(Resource):
     @login_really_required
     def get(self):
         """ Get url and example command for shell based uploads. """
-        upload_url = '%s/uploads' % config.api_url()
+        upload_url = '%s/uploads/?curl=True' % config.api_url()
 
         upload_command = 'curl -X PUT -H "X-Token: %s" "%s" -F file=@<local_file>' % (
             g.user.get_auth_token().decode('utf-8'), upload_url)

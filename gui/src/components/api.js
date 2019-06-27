@@ -191,7 +191,6 @@ class Api {
       }))
       .catch(this.handleApiError)
       .then(response => {
-        console.log(response)
         const result = response.body || response.text || response.data
         if (typeof result === 'string') {
           try {

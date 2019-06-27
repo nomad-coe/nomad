@@ -258,8 +258,9 @@ class Uploads extends React.Component {
       <div className={classes.root}>
         <Agree message={agreement} cookie="agreedToUploadTerms">
           <Help cookie="uploadHelp" component={Markdown}>{`
-            To upload your own data, please put all relevant files in a
-            \`*.zip\` or \`*.tar.gz\` archive. We encourage you to add all code input and
+            To upload your own data, please put all relevant files of all the calculations
+            you want to upload into a single \`*.zip\` or \`*.tar.gz\` archive.
+            We encourage you to add all code input and
             output files, as well as any other auxiliary files that you might have created.
             You can put data from multiple calculations, using your preferred directory
             structure, into your archives. Drop your archive file(s) below.
@@ -272,6 +273,9 @@ class Uploads extends React.Component {
             for your data, and later publish the data. The *embargo* might last up to
             36 month before it becomes public automatically. During an *embargo*
             some meta-data will be available.
+
+            There is a limit of 32 GB per upload. Please upload multiple archives, if
+            you have more than 32 GB of data to upload.
           `}</Help>
 
           <Paper className={classes.dropzoneContainer}>
@@ -282,7 +286,7 @@ class Uploads extends React.Component {
               rejectClassName={classes.dropzoneReject}
               onDrop={this.onDrop.bind(this)}
             >
-              <p>drop files here</p>
+              <p>drop .tar.gz or .zip files here</p>
               <UploadIcon style={{fontSize: 36}}/>
             </Dropzone>
           </Paper>
@@ -290,7 +294,7 @@ class Uploads extends React.Component {
           <Help cookie="uploadCommandHelp">{`
             Alternatively, you can upload files via the following shell command.
             Replace \`<local_file>\` with your archive file. After executing the command,
-            return here and reload (e.g. press the reload button below).
+            return here and press the reload button below). The same 32 GB limit applies.
           `}</Help>
 
           <Markdown>{`

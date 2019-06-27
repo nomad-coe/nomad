@@ -136,12 +136,14 @@ class RepoCalcsResource(Resource):
 
         The pagination parameters allows determine which page to return via the
         ``page`` and ``per_page`` parameters. Pagination however, is limited to the first
-        100k (depending on ES configuration) hits. An alternative to pagination is to use
-        ``scroll`` and ``scroll_id``. With ``scroll`` you will get a ``scroll_id`` on
-        the first request. Each call with ``scroll`` and the respective ``scroll_id`` will
-        return the next ``per_page`` (here the default is 1000) results. Scroll however,
-        ignores ordering and does not return aggregations. The scroll view used in the
-        background will stay alive for 1 minute between requests.
+        100k (depending on ES configuration) hits.
+
+        An alternative to pagination is to use ``scroll`` and ``scroll_id``. With ``scroll``
+        you will get a ``scroll_id`` on the first request. Each call with ``scroll`` and
+        the respective ``scroll_id`` will return the next ``per_page`` (here the default is 1000)
+        results. Scroll however, ignores ordering and does not return aggregations.
+        The scroll view used in the background will stay alive for 1 minute between requests.
+        If the given ``scroll_id`` is not available anymore, a HTTP 400 is raised.
 
         The search will return aggregations on a predefined set of quantities. Aggregations
         will tell you what quantity values exist and how many entries match those values.
@@ -184,7 +186,13 @@ class RepoCalcsResource(Resource):
         if order not in [-1, 1]:
             abort(400, message='invalid pagination')
 
-        if owner == 'all':
+        if owner == 'migrated':
+            # TODO this should be removed after migration
+            q = Q('term', published=True) & Q('term', with_embargo=False)
+            if g.user is not None:
+                q = q | Q('term', owners__user_id=g.user.user_id)
+            q = q & ~Q('term', **{'uploader.user_id': 1})  # pylint: disable=invalid-unary-operand-type
+        elif owner == 'all':
             q = Q('term', published=True) & Q('term', with_embargo=False)
             if g.user is not None:
                 q = q | Q('term', owners__user_id=g.user.user_id)
@@ -199,8 +207,16 @@ class RepoCalcsResource(Resource):
             if g.user is None:
                 abort(401, message='Authentication required for owner value user.')
             q = Q('term', published=False) & Q('term', owners__user_id=g.user.user_id)
+        elif owner == 'admin':
+            if g.user is None or not g.user.is_admin:
+                abort(401, message='This can only be used by the admin user.')
+            q = None
         else:
             abort(400, message='Invalid owner value. Valid values are all|user|staging, default is all')
+
+        # TODO this should be removed after migration
+        without_currupted_mainfile = ~Q('term', code_name='currupted mainfile')  # pylint: disable=invalid-unary-operand-type
+        q = q & without_currupted_mainfile if q is not None else without_currupted_mainfile
 
         data = dict(**request.args)
         data.pop('owner', None)
@@ -231,8 +247,14 @@ class RepoCalcsResource(Resource):
             else:
                 scroll_id = None
                 total, results, aggregations, metrics = search.aggregate_search(q=q, **data)
+        except search.ScrollIdNotFound:
+            abort(400, 'The given scroll_id does not exist.')
         except KeyError as e:
             abort(400, str(e))
+
+        # TODO just a workarround to make things prettier
+        if 'code_name' in aggregations and 'currupted mainfile' in aggregations['code_name']:
+            del(aggregations['code_name']['currupted mainfile'])
 
         return dict(
             pagination=dict(total=total, page=page, per_page=per_page),

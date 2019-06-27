@@ -95,15 +95,11 @@ def source_package(mongo, migration):
     migration.package(*glob.glob('tests/data/migration/*'))
 
 
-@pytest.mark.parametrize('variant', ['', '_archived', '_oqmd'])
-@pytest.mark.parametrize('n_packages, restriction, upload', [(1, 36, 'baseline'), (2, 0, 'too_big'), (1, 24, 'restriction')])
-def test_package(
-        mongo, migration: NomadCOEMigration, monkeypatch, n_packages, restriction, upload, variant):
-    monkeypatch.setattr('nomad.migration.max_package_size', 3)
-    upload = os.path.join('tests/data/migration/packaging%s' % variant, upload)
-
-    migration.package_index(upload)
-    packages = Package.objects()
+def assert_packages(restriction: int = 0, upload_id: str = None):
+    if upload_id is None:
+        packages = Package.objects()
+    else:
+        packages = Package.objects(upload_id=upload_id)
     for package in packages:
         assert os.path.exists(package.package_path)
         assert package.size > 0
@@ -112,7 +108,32 @@ def test_package(
         with zipfile.ZipFile(package.package_path, 'r') as zf:
             len(zf.filelist) == package.files
 
-    assert packages.count() == n_packages
+    return packages.count()
+
+
+package_specs = [(1, 36, 'baseline'), (2, 0, 'too_big'), (1, 24, 'restriction')]
+
+
+@pytest.mark.parametrize('variant', ['', '_archived', '_oqmd'])
+@pytest.mark.parametrize('n_packages, restriction, upload', package_specs)
+def test_package(
+        mongo, migration: NomadCOEMigration, monkeypatch, n_packages, restriction, upload, variant):
+    monkeypatch.setattr('nomad.migration.max_package_size', 3)
+    upload = os.path.join('tests/data/migration/packaging%s' % variant, upload)
+
+    migration.package_index(upload)
+    assert assert_packages(restriction=restriction) == n_packages
+
+
+def test_tar_package(mongo, raw_files, monkeypatch):
+    Package.objects().delete()  # the mongo fixture drops the db, but we still get old results, probably mongoengine caching
+    monkeypatch.setattr('nomad.migration.max_package_size', 3)
+    example_tar_file = 'tests/data/migration/example.tar.gz'
+    assert os.path.isfile(example_tar_file)
+    Package.create_packages_from_tar(example_tar_file)
+
+    for n_packages, restriction, upload_id in package_specs:
+        assert assert_packages(restriction=restriction, upload_id=upload_id) == n_packages
 
 
 def perform_index(migration, has_indexed, with_metadata, **kwargs):

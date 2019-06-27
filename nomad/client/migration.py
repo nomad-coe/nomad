@@ -23,8 +23,8 @@ import multiprocessing
 import queue
 import json
 
-from nomad import config, infrastructure, utils
-from nomad.migration import NomadCOEMigration, SourceCalc, Package
+from nomad import config, infrastructure
+from nomad.migration import NomadCOEMigration, SourceCalc, Package, missing_calcs_data
 
 from .main import cli
 
@@ -83,6 +83,17 @@ def index(drop, with_metadata, per_query):
     print('done')
 
 
+@migration.command(help='Transfer migration index to elastic search')
+@click.argument('tar-file', nargs=1)
+@click.option('--offset', default=None, type=int, help='Start processing the tar from a specific offset, e.g. to continue')
+@click.option('--upload', default=None, type=str, help='Force the whole tar contents into a given upload id')
+@click.option('--compress', is_flag=True, help='Turn on compression for creating migration packages')
+def package_tar(tar_file, offset, upload, compress):
+    infrastructure.setup_logging()
+    infrastructure.setup_mongo()
+    Package.create_packages_from_tar(tar_file, offset=offset, compress=compress, forced_upload_id=upload)
+
+
 @migration.command(help='Reset migration version to start a new migration.')
 @click.option('--delete-packages', is_flag=True, help='Also remove all packages.')
 def reset(delete_packages: bool):
@@ -98,7 +109,10 @@ def reset(delete_packages: bool):
         Package.objects(migration_version__ne=-1).update(migration_version=-1)
 
 
-def determine_upload_paths(paths, pattern=None):
+def determine_upload_paths(paths, pattern=None, all=False):
+    if all:
+        return Package.objects().distinct('upload_path')
+
     if len(paths) == 1 and paths[0].endswith('.json'):
         with open(paths[0], 'rt') as f:
             data = json.load(f)
@@ -128,8 +142,11 @@ def determine_upload_paths(paths, pattern=None):
                     paths.append(path)
 
             if not exists:
-                utils.get_logger(__name__).error(
-                    'source upload does not exist', source_upload_id=upload_id)
+                # This does not really matter, to save space we deleted some source
+                # data after packaging it. the migration will use the packages anyways.
+                # We just use the full path to communicate the upload_id at the end
+                # for historical reasons.
+                paths.append(os.path.join('/does/not/exist/anymore', upload_id))
 
     elif pattern is not None:
         assert len(paths) == 1, "Can only apply pattern on a single directory."
@@ -159,7 +176,11 @@ def delete(upload_paths, pattern, extracted, uploads):
     migration = _Migration()
     upload_paths = determine_upload_paths(upload_paths, pattern)
     for upload_path in upload_paths:
-        packages = list(Package.get_packages(upload_path, migration.package_directory))
+        packages_iterable = Package.get_packages(upload_path, migration.package_directory)
+        if packages_iterable is None:
+            continue
+
+        packages = list(packages_iterable)
         if len(packages) == 0:
             continue
 
@@ -244,25 +265,26 @@ def pid_prefix(prefix: int):
 @click.option('--delete-failed', default='', type=str, help='String from N, U, P to determine if empty (N), failed (U), or failed to publish (P) uploads should be deleted or kept for debugging.')
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.option('--create-packages', is_flag=True, help='Indicate that packages should be created, if they do not already exist.')
-@click.option('--republish', is_flag=True, help='Will only republish already published packages.')
+@click.option('--only-republish', is_flag=True, help='Will only republish already published packages.')
+@click.option('--republish', is_flag=True, help='Will process normally and republish already published packages.')
+@click.option('--all', is_flag=True, help='Go through all known packages. Ignores pattern and args.')
 @click.option('--wait', default=0, type=int, help='Wait for a random (upto given) number of seconds before each upload to scatter io and compute heavy processing tasks.')
 def upload(
         upload_paths: list, pattern: str, parallel: int, delete_failed: str,
-        create_packages: bool, republish: bool, wait: int):
+        create_packages: bool, only_republish: bool, republish: bool, wait: int, all: bool):
 
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
 
     _Migration(threads=parallel).migrate(
-        *determine_upload_paths(upload_paths, pattern), delete_failed=delete_failed,
-        create_packages=create_packages, only_republish=republish, wait=wait)
+        *determine_upload_paths(upload_paths, pattern=pattern, all=all), delete_failed=delete_failed,
+        create_packages=create_packages, only_republish=only_republish, wait=wait, republish=republish)
 
 
 @migration.command(help='Get an report about not migrated calcs.')
-@click.option('--use-cache', is_flag=True, help='Skip processing steps and take results from prior runs')
-def missing(use_cache):
+def missing():
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
 
-    report = SourceCalc.missing(use_cache=use_cache)
+    report = missing_calcs_data()
     print(json.dumps(report, indent=2))

@@ -22,7 +22,7 @@ from nomadcore.local_meta_info import loadJsonFile
 import nomad_meta_info
 
 from nomad import utils, files
-from nomad.parsing import JSONStreamWriter, parser_dict, match_parser
+from nomad.parsing import JSONStreamWriter, parser_dict, match_parser, BrokenParser
 from nomad.parsing import LocalBackend, BadContextURI
 
 parser_examples = [
@@ -30,6 +30,8 @@ parser_examples = [
     ('parsers/template', 'tests/data/parsers/template.json'),
     ('parsers/exciting', 'tests/data/parsers/exciting/Ag/INFO.OUT'),
     ('parsers/exciting', 'tests/data/parsers/exciting/GW/INFO.OUT'),
+    ('parsers/exciting', 'tests/data/parsers/exciting/nitrogen/INFO.OUT_nitrogen'),
+    ('parsers/exciting', 'tests/data/parsers/exciting/nitrogen/INFO.OUT_carbon'),
     ('parsers/vasp', 'tests/data/parsers/vasp/vasp.xml'),
     ('parsers/vasp', 'tests/data/parsers/vasp_compressed/vasp.xml.gz'),
     ('parsers/vaspoutcar', 'tests/data/parsers/vasp_outcar/OUTCAR'),
@@ -70,7 +72,11 @@ for parser, mainfile in parser_examples:
 parser_examples = fixed_parser_examples
 
 
+<<<<<<< HEAD
 correct_num_output_files = 33
+=======
+correct_num_output_files = 38
+>>>>>>> master
 
 
 class TestLocalBackend(object):
@@ -123,8 +129,6 @@ class TestLocalBackend(object):
         backend.closeSection('section_run', 0)
         output = StringIO()
         backend.write_json(output)
-        print("Right before assert")
-        print(backend.get_value('atom_labels').tolist())
         assert backend.get_value('atom_labels').tolist() == expected_value
 
     def test_two_sections(self, backend, no_warn):
@@ -335,7 +339,7 @@ def test_match(raw_files, no_warn):
     count = 0
     for mainfile in upload_files.raw_file_manifest():
         parser = match_parser(mainfile, upload_files)
-        if parser is not None:
+        if parser is not None and not isinstance(parser, BrokenParser):
             count += 1
 
     assert count == correct_num_output_files

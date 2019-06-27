@@ -41,11 +41,12 @@ To load an entity from the database use :data:`nomad.infrastructure.repository_d
 .. autoclass:: Calc
     :members:
     :undoc-members:
+.. autofunction:: create_handle
 .. autoclass:: DataSet
     :members:
     :undoc-members:
 """
 
 from .user import User, ensure_test_user, admin_user, LoginException
-from .calc import Calc, DataSet
+from .calc import Calc, DataSet, create_handle
 from .upload import UploadMetaData, Upload

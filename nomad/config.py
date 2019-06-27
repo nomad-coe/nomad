@@ -97,7 +97,8 @@ repository_db = NomadConfig(
     port=5432,
     dbname='nomad_fairdi_repo_db',
     user='postgres',
-    password='nomad'
+    password='nomad',
+    handle_prefix='21.11132/'
 )
 
 mongo = NomadConfig(
@@ -157,7 +158,8 @@ mail = NomadConfig(
 )
 
 normalize = NomadConfig(
-    all_systems=False
+    all_systems=False,
+    system_classification_with_clusters_threshold=50
 )
 
 client = NomadConfig(
