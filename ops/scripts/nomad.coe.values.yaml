@@ -19,7 +19,7 @@ postgres:
   dbname: 'nomad_staging'
   host: 'staging-nomad.esc'
   user: 'nomad_fairdi'
-  password_secret: 'nomad_staging_db_password'
+  password_secret: 'nomad-staging-repository-password'
 
 uploadurl: 'https://labdev-nomad.rzg.mpg.de/fairdi/nomad/coe/upload'
 
