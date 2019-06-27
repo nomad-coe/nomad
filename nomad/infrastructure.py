@@ -177,7 +177,7 @@ def sqlalchemy_repository_db(exists: bool = False, readonly: bool = True, **kwar
                     cur.execute(
                         "UPDATE public.users SET password='%s' WHERE user_id=0;" %
                         bcrypt.encrypt(config.services.admin_password, ident='2y'))
-        except Exception:
+        except Exception as e:
             logger.warning('could not update admin password', exc_info=e)
 
     def no_flush():
