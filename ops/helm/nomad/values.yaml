@@ -42,7 +42,7 @@ api:
   ## Limit of unpublished uploads per user, except admin user
   uploadLimit: 20
 
-## Everthing concerning the nomad worker
+## Everything concerning the nomad worker
 worker:
   replicas: 1
   # request and limit in GB
@@ -50,6 +50,9 @@ worker:
   memlimit: 420
   console_loglevel: ERROR
   logstash_loglevel: INFO
+  ## There are two routing modes "queue" and "worker". The "queue" routing will use a general
+  # task queue and spread calc processing task over worker instances. The "worker" routing
+  # will send all tasks related to an upload to the same worker
   routing: "queue"
   storage: "disk"
 

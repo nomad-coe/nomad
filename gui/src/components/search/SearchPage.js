@@ -180,6 +180,11 @@ class SearchPage extends React.Component {
           gives you various options to enter and configure your search. The lower half
           show the search results.
 
+          ** Disclaimer: ** This is a preliminary version of the NOMAD software. It might
+          now show all of NOMAD's data. To see the full NOMAD dataset use the original
+          [NOMAD CoE Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/search/)
+          for now.
+
           ### Search Options
 
           Nomad's *domain-aware* search allows you to screen data by filtering based on

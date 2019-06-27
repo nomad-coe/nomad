@@ -58,6 +58,13 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
+        {{ if .Value.postgres.password_secret }}
+        - name: NOMAD_REPOSITORY_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Value.postgres.password_secret }}
+              key: password
+        {{ end }}
         command: ["python", "-m", "celery", "worker", "-A", "nomad.processing", "-n", "$(NOMAD_CELERY_NODE_NAME)"]
         livenessProbe:
           exec:
