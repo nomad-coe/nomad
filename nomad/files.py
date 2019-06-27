@@ -381,7 +381,7 @@ class StagingUploadFiles(UploadFiles):
         Copies all raw-file to the extracted bucket to mimic the behaviour of the old
         CoE python API. TODO: should be removed after migration.
         """
-        shutil.copytree(self._raw_dir.os_path, os.path.join(config.fs.extracted, self.upload_id))
+        shutil.copytree(self._raw_dir.os_path, os.path.join(config.fs.coe_extracted, self.upload_id))
 
     def pack(self, upload: UploadWithMetadata) -> None:
         """

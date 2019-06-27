@@ -171,14 +171,14 @@ def sqlalchemy_repository_db(exists: bool = False, readonly: bool = True, **kwar
 
     # set the admin user password
     if not exists:
-        try:
-            with repository_db_connection(dbname=dbname) as conn:
-                with conn.cursor() as cur:
+        with repository_db_connection(dbname=dbname) as conn:
+            with conn.cursor() as cur:
+                try:
                     cur.execute(
                         "UPDATE public.users SET password='%s' WHERE user_id=0;" %
                         bcrypt.encrypt(config.services.admin_password, ident='2y'))
-        except Exception as e:
-            logger.warning('could not update admin password', exc_info=e)
+                except Exception as e:
+                    logger.warning('could not update admin password', exc_info=e)
 
     def no_flush():
         pass

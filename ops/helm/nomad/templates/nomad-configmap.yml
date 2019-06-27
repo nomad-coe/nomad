@@ -13,7 +13,6 @@ data:
     domain: "{{ .Values.domain }}"
     fs:
       tmp: "{{ .Values.volumes.tmp }}"
-      coe_extracted: "{{ .Values.volumes.coe_extracted }}"
       prefix_size: {{ .Values.volumes.prefixSize }}
       working_directory: /app
     logstash:

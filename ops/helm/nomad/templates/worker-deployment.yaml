@@ -43,8 +43,10 @@ spec:
           name: public-volume
         - mountPath: /app/.volumes/fs/staging
           name: staging-volume
+        {{ if .Values.volumes.coe_extracted }}
         - mountPath: /app/.volumes/fs/extracted
           name: extracted-volume
+        {{ end }}
         - mountPath: /nomad
           name: nomad-volume
         env:
@@ -95,10 +97,12 @@ spec:
         hostPath:
           path: {{ .Values.volumes.public }}
           type: Directory
+      {{ if .Values.volumes.coe_extracted }}
       - name: extracted-volume
         hostPath:
-          path: {{ .Values.volumes.extracted }}
+          path: {{ .Values.volumes.coe_extracted }}
           type: Directory
+      {{ end }}
       - name: staging-volume
         {{ if (eq .Values.worker.storage "memory") }}
         emptyDir:
