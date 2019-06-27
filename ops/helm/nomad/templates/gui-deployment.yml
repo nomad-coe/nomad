@@ -18,10 +18,10 @@ data:
         try_files $uri {{ .Values.proxy.external.path }}/gui/index.html;
       }
       location {{ .Values.proxy.external.path }}/gui/service-worker.js {
-        root      /app/;
-        rewrite ^{{ .Values.proxy.external.path }}/gui/(.*)$ /nomad/$1 break;
-        more_clear_headers "Cache-Control";
         add_header Cache-Control "public, max-age=60, s-maxage=60";
+        expires -1;
+        root      /app/;
+        rewrite ^{{ .Values.proxy.external.path }}/gui/service-worker.js /nomad/service-worker.js break;
       }
     }
   env.js: |
