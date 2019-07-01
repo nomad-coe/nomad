@@ -28,5 +28,5 @@ volumes:
   public: /nomad/fairdi/coe/fs/public
   staging: /nomad/fairdi/coe/fs/staging
   tmp: /nomad/fairdi/coe/fs/tmp
-  extracted: /nomad/fairdi/coe/fs/extracted
+  coe_extracted: /nomad/fairdi/coe/fs/extracted
   nomad: /nomad
