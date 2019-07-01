@@ -196,7 +196,9 @@ class Uploads extends React.Component {
 
           <Tooltip title="publish selected uploads" >
             <div>
-              <IconButton disabled={selectedUploads.length === 0} onClick={() => this.onPublishClicked()}>
+              <IconButton
+                disabled={selectedUploads.length === 0 || selectedUploads.some(upload => upload.failed_calcs !== 0 || upload.total_calcs === 0)}
+                onClick={() => this.onPublishClicked()}>
                 <CheckIcon />
               </IconButton>
             </div>
@@ -247,11 +249,9 @@ class Uploads extends React.Component {
       By uploading and downloading data, you agree to the
       [terms of use](https://www.nomad-coe.eu/the-project/nomad-repository/nomad-repository-terms).
 
-      Note that uploaded files become downloadable. Uploaded data is licensed under the
+      Note that uploaded files become downloadable by others. Uploaded data is licensed under the
       Creative Commons Attribution license ([CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)).
       You can put an *embargo* on uploaded data. The *embargo period* lasts up to 36 month.
-      If you do not decide on an *embargo* after upload, data will be made public after 48h
-      automatically.
     `
 
     return (
@@ -265,7 +265,7 @@ class Uploads extends React.Component {
             You can put data from multiple calculations, using your preferred directory
             structure, into your archives. Drop your archive file(s) below.
 
-            Uploaded data will not be public immediately. This is called the *staging area*.
+            Uploaded data will not be public immediately. We call this *staging area*.
             After uploading and processing, you can decide if you want to make the data public,
             delete it again, or put an *embargo* on it.
 
