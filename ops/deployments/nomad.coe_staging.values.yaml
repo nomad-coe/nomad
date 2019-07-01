@@ -1,5 +1,5 @@
 proxy:
-  nodePort: 30004
+  nodePort: 30005
   external:
     host: "labdev-nomad.esc.rzg.mpg.de"
     path: "/fairdi/nomad/coe_staging"
