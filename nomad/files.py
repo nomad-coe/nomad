@@ -75,6 +75,23 @@ def always_restricted(path: str):
         return True
 
 
+def copytree(src, dst):
+    """
+    A close on ``shutils.copytree`` that does not try to copy the stats on all files.
+    This is unecessary for our usecase and also causes permission denies for unknown
+    reasons.
+    """
+    os.makedirs(dst, exist_ok=False)
+
+    for item in os.listdir(src):
+        s = os.path.join(src, item)
+        d = os.path.join(dst, item)
+        if os.path.isdir(s):
+            copytree(s, d)
+        else:
+            shutil.copyfile(s, d)
+
+
 class PathObject:
     """
     Object storage-like abstraction for paths in general.
@@ -381,7 +398,7 @@ class StagingUploadFiles(UploadFiles):
         Copies all raw-file to the extracted bucket to mimic the behaviour of the old
         CoE python API. TODO: should be removed after migration.
         """
-        shutil.copytree(self._raw_dir.os_path, os.path.join(config.fs.coe_extracted, self.upload_id))
+        copytree(self._raw_dir.os_path, os.path.join(config.fs.coe_extracted, self.upload_id))
 
     def pack(self, upload: UploadWithMetadata) -> None:
         """
