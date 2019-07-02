@@ -16,7 +16,7 @@ import click
 from tabulate import tabulate
 from mongoengine import Q
 
-from nomad import processing as proc, infrastructure, utils
+from nomad import processing as proc, infrastructure, utils, search, files
 from .__main__ import cli
 
 
@@ -61,9 +61,35 @@ def ls():
 @upload.command(help='Delete selected upload')
 @click.option('--with-coe-repo', help='Also attempt to delete from repository db', is_flag=True)
 def rm(with_coe_repo):
+    logger = utils.get_logger(__name__)
     print('%d uploads selected, deleting ...' % uploads.count())
+
+    if with_coe_repo:
+        from nomad import coe_repo
+        infrastructure.setup_repository_db()
+
     for upload in uploads:
-        upload.delete_upload_local(with_coe_repo=with_coe_repo)
+        # delete repository db entry
+        if with_coe_repo:
+            coe_repo.Upload.delete(upload.upload_id)
+
+        # delete elastic
+        search.delete_upload(upload_id=upload.upload_id)
+
+        # delete files
+        for _ in range(0, 2):
+            upload_files = files.UploadFiles.get(upload_id=upload.upload_id)
+
+            try:
+                if upload_files is not None:
+                    upload_files.delete()
+            except Exception as e:
+                logger.error('could not delete files', exc_info=e)
+                break
+
+        # delete mongo
+        proc.Calc.objects(upload_id=upload.upload_id).delete()
+        upload.delete()
 
 
 @upload.command(help='Attempt to abort the processing of uploads.')
