@@ -73,9 +73,9 @@ class SystemNormalizer(SystemBasedNormalizer):
         # If there are no atom labels we create them from atom species data.
         if atom_labels is None:
             atom_labels = list(ase.data.chemical_symbols[species] for species in atom_species)
-        # If atom labels are present, check that each atom label in the atom labels list
-        # is a true atom label by checking if it is in the ASE list of atom labels.
-        elif not all(label in ase.data.chemical_symbols for label in atom_labels):
+        # At this point we should have atom labels. Check that each atom label in the atom
+        # labels list is a true atom label by checking if it is in the ASE list of atom labels.
+        if not all(label in ase.data.chemical_symbols for label in atom_labels):
             # Throw an error that the atom labels are poorly formated or there are unknown
             # labels. Save first ten elemenets in logged error.
             self.logger.error('Atom labels cannot be recognized.', atom_labels=atom_labels[:10])
