@@ -17,6 +17,7 @@ import logging
 import os
 import sys
 import shutil
+from tabulate import tabulate
 from elasticsearch_dsl import A
 
 from nomad import config as nomad_config, infrastructure, processing
@@ -73,9 +74,9 @@ def clean(dry, skip_fs, skip_es):
     if not skip_fs:
         upload_dirs = []
         for bucket in [nomad_config.fs.public, nomad_config.fs.staging]:
-            for prefix in os.listdir(nomad_config.fs.public):
-                for upload in os.listdir(os.path.join(nomad_config.fs.public, prefix)):
-                    upload_dirs.append((upload, os.path.join(nomad_config.fs.public, prefix, upload)))
+            for prefix in os.listdir(bucket):
+                for upload in os.listdir(os.path.join(bucket, prefix)):
+                    upload_dirs.append((upload, os.path.join(bucket, prefix, upload)))
 
         to_delete = list(
             path for upload, path in upload_dirs
@@ -88,6 +89,9 @@ def clean(dry, skip_fs, skip_es):
                 shutil.rmtree(path)
         else:
             print('Found %d upload directories with no upload in mongo.' % len(to_delete))
+            print('List first 10:')
+            for path in to_delete[:10]:
+                print(path)
 
     if not skip_es:
         search = Search(index=nomad_config.elastic.index_name)
@@ -111,6 +115,8 @@ def clean(dry, skip_fs, skip_es):
                 Search(index=nomad_config.elastic.index_name).query('term', upload_id=upload).delete()
         else:
             print('Found %d calcs in %d uploads from ES with no upload in mongo.' % (calcs, len(to_delete)))
+            print('List first 10:')
+            tabulate(to_delete, headers=['id', '#calcs'])
 
 
 if __name__ == '__main__':
