@@ -11,7 +11,7 @@ worker:
   replicas: 1
   routing: "queue"
 
-dbname: fairdi_nomad_coe
+dbname: fairdi_nomad_coe_staging
 
 postgres:
   publish_enabled: true

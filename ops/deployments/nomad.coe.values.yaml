@@ -18,7 +18,7 @@ postgres:
   mode: 'coe'
   dbname: 'nomad_prod'
   host: 'db-repository-nomad.esc'
-  user: 'nomadlab'
+  user: 'nomadrep'
   password_secret: 'nomad-production-repository-password'
 
 uploadurl: 'https://labdev-nomad.rzg.mpg.de/fairdi/nomad/coe/upload'
