@@ -19,7 +19,7 @@ as a final integration test.
 
 import time
 
-from .main import cli
+from .__main__ import cli
 
 
 example_file = 'tests/data/proc/examples_vasp.zip'
@@ -27,7 +27,7 @@ example_file = 'tests/data/proc/examples_vasp.zip'
 
 @cli.command(help='Runs a few example operations as a test.')
 def integrationtests():
-    from .main import create_client
+    from .__main__ import create_client
     client = create_client()
 
     print('upload with multiple code data')

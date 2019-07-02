@@ -484,20 +484,20 @@ class Upload(Proc):
         Calc.objects(upload_id=self.upload_id).delete()
         super().delete()
 
-    @process
-    def delete_upload(self):
+    def delete_upload_local(self, with_coe_repo: bool = False):
         """
         Deletes of the upload, including its processing state and
-        staging files.
+        staging files. Local version without celery processing.
         """
         logger = self.get_logger()
 
         with utils.lnr(logger, 'staged upload delete failed'):
 
-            with utils.timer(
-                    logger, 'upload deleted from repo db', step='repo',
-                    upload_size=self.upload_files.size):
-                coe_repo.Upload.delete(self.upload_id)
+            if with_coe_repo and self.published:
+                with utils.timer(
+                        logger, 'upload deleted from repo db', step='repo',
+                        upload_size=self.upload_files.size):
+                    coe_repo.Upload.delete(self.upload_id)
 
             with utils.timer(
                     logger, 'upload deleted from index', step='index',
@@ -509,6 +509,14 @@ class Upload(Proc):
                     upload_size=self.upload_files.size):
                 self.upload_files.delete()
                 self.delete()
+
+    @process
+    def delete_upload(self, with_coe_repo: bool = False):
+        """
+        Deletes of the upload, including its processing state and
+        staging files. This starts the celery process of deleting the upload.
+        """
+        self.delete_upload_local(with_coe_repo=with_coe_repo)
 
         return True  # do not save the process status on the delete upload
 

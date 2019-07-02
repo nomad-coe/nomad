@@ -19,4 +19,5 @@ setup(
     entry_points='''
         [console_scripts]
         nomad=nomad.client:cli
+        admin=nomad.admin:cli
     ''')
