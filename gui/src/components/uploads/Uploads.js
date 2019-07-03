@@ -263,7 +263,8 @@ class Uploads extends React.Component {
             We encourage you to add all code input and
             output files, as well as any other auxiliary files that you might have created.
             You can put data from multiple calculations, using your preferred directory
-            structure, into your archives. Drop your archive file(s) below.
+            structure, into your archives. Drop your archive file(s) below. You can also
+            click the dropbox to select the file from your hard drive.
 
             Uploaded data will not be public immediately. We call this *staging area*.
             After uploading and processing, you can decide if you want to make the data public,
