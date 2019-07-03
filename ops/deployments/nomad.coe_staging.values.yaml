@@ -30,3 +30,9 @@ volumes:
   tmp: /nomad/fairdi/coe_staging/fs/tmp
   coe_extracted: /nomad/fairdi/coe_staging/fs/extracted
   nomad: /nomad
+
+mail:
+  enabled: "true"
+  host: 'mailrelay.mpcdf.mpg.de'
+  port: 25
+  from: 'webmaster@nomad-repository.eu'
