@@ -92,6 +92,11 @@ upload_model = api.inherit('UploadProcessing', proc_model, {
     'upload_time': RFC3339DateTime(),
 })
 
+upload_list_model = api.model('UploadList', {
+    'pagination': fields.Nested(model=pagination_model),
+    'results': fields.List(fields.Nested(model=upload_model))
+})
+
 calc_model = api.inherit('UploadCalculationProcessing', proc_model, {
     'calc_id': fields.String,
     'mainfile': fields.String,
@@ -125,7 +130,7 @@ upload_metadata_parser.add_argument('local_path', type=str, help='Use a local fi
 upload_metadata_parser.add_argument('curl', type=bool, help='Provide a human readable message as body.', location='args')
 upload_metadata_parser.add_argument('file', type=FileStorage, help='The file to upload.', location='files')
 
-upload_list_parser = api.parser()
+upload_list_parser = pagination_request_parser.copy()
 upload_list_parser.add_argument('all', type=bool, help='List all uploads, including published.', location='args')
 upload_list_parser.add_argument('name', type=str, help='Filter for uploads with the given name.', location='args')
 
@@ -173,19 +178,41 @@ class DisableMarshalling(Exception):
 @ns.route('/')
 class UploadListResource(Resource):
     @api.doc('get_uploads')
-    @api.marshal_list_with(upload_model, skip_none=True, code=200, description='Uploads send')
+    @api.marshal_with(upload_list_model, skip_none=True, code=200, description='Uploads send')
     @api.expect(upload_list_parser)
     @login_really_required
     def get(self):
         """ Get the list of all uploads from the authenticated user. """
-        all = bool(request.args.get('all', False))
-        name = request.args.get('name', None)
+        try:
+            all = bool(request.args.get('all', False))
+            name = request.args.get('name', None)
+            page = int(request.args.get('page', 1))
+            per_page = int(request.args.get('per_page', 10))
+        except Exception:
+            abort(400, message='bad parameter types')
+
+        try:
+            assert page >= 1
+            assert per_page > 0
+        except AssertionError:
+            abort(400, message='invalid pagination')
+
         query_kwargs = {}
         if not all:
             query_kwargs.update(published=False)
         if name is not None:
             query_kwargs.update(name=name)
-        return [upload for upload in Upload.user_uploads(g.user, **query_kwargs)], 200
+
+        uploads = Upload.user_uploads(g.user, **query_kwargs)
+        total = uploads.count()
+
+        results = [
+            upload
+            for upload in uploads[(page - 1) * per_page: page * per_page]]
+
+        return dict(
+            pagination=dict(total=total, page=page, per_page=per_page),
+            results=results), 200
 
     @api.doc('upload')
     @api.expect(upload_metadata_parser)

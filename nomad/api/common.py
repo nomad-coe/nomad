@@ -26,7 +26,7 @@ pagination_model = api.model('Pagination', {
     'page': fields.Integer(description='Number of the current page, starting with 0.'),
     'per_page': fields.Integer(description='Number of elements per page.')
 })
-""" Model used in responsed with pagination. """
+""" Model used in responses with pagination. """
 
 
 pagination_request_parser = api.parser()

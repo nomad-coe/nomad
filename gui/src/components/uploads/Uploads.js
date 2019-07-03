@@ -88,8 +88,8 @@ class Uploads extends React.Component {
   update() {
     this.props.api.getUploads()
       .then(uploads => {
-        const filteredUploads = uploads.filter(upload => !upload.is_state)
-        this.setState({uploads: filteredUploads, selectedUploads: []})
+        // const filteredUploads = uploads.filter(upload => !upload.is_state)
+        this.setState({uploads: uploads.results, selectedUploads: []})
       })
       .catch(error => {
         this.setState({uploads: [], selectedUploads: []})
@@ -168,6 +168,10 @@ class Uploads extends React.Component {
     const { selectedUploads, showPublish } = this.state
     const uploads = this.state.uploads || []
 
+    if (uploads.length === 0) {
+      return ''
+    }
+
     return (<div>
       <div style={{width: '100%'}}>
         <FormGroup className={classes.selectFormGroup} row>
@@ -213,30 +217,27 @@ class Uploads extends React.Component {
         </FormGroup>
       </div>
       <div className={classes.uploads}>{
-        (uploads.length > 0)
-          ? (
-            <div>
-              <Help cookie="uploadList">{`
-                These are all your uploads in the *staging area*. You can see the
-                progress on data progresses and review your uploads before publishing
-                them to the *nomad repository*.
+        <div>
+          <Help cookie="uploadList">{`
+            These are all your uploads in the *staging area*. You can see the
+            progress on data progresses and review your uploads before publishing
+            them to the *nomad repository*.
 
-                Select uploads to delete or publish them. Click on uploads to see individual
-                calculations. Click on calculations to see more details on each calculation.
+            Select uploads to delete or publish them. Click on uploads to see individual
+            calculations. Click on calculations to see more details on each calculation.
 
-                When you select and click publish, you will be ask if you want to publish
-                with or without the optional *embargo period*.
-              `}</Help>
-              {
-                this.sortedUploads().map(upload => (
-                  <Upload key={upload.gui_upload_id} upload={upload}
-                    checked={selectedUploads.indexOf(upload) !== -1}
-                    onDoesNotExist={() => this.handleDoesNotExist(upload)}
-                    onCheckboxChanged={checked => this.onSelectionChanged(upload, checked)}/>
-                ))
-              }
-            </div>
-          ) : ''
+            When you select and click publish, you will be ask if you want to publish
+            with or without the optional *embargo period*.
+          `}</Help>
+          {
+            this.sortedUploads().map(upload => (
+              <Upload key={upload.gui_upload_id} upload={upload}
+                checked={selectedUploads.indexOf(upload) !== -1}
+                onDoesNotExist={() => this.handleDoesNotExist(upload)}
+                onCheckboxChanged={checked => this.onSelectionChanged(upload, checked)}/>
+            ))
+          }
+        </div>
       }</div>
     </div>)
   }

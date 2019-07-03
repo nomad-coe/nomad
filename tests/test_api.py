@@ -189,6 +189,10 @@ class TestUploads:
 
     def assert_uploads(self, upload_json_str, count=0, **kwargs):
         data = json.loads(upload_json_str)
+        assert 'pagination' in data
+        assert 'page' in data['pagination']
+
+        data = data['results']
         assert isinstance(data, list)
         assert len(data) == count
 
@@ -401,13 +405,13 @@ class TestUploads:
         # still listed with all=True
         rv = client.get('/uploads/?all=True', headers=test_user_auth)
         assert rv.status_code == 200
-        data = json.loads(rv.data)
+        data = json.loads(rv.data)['results']
         assert len(data) > 0
         assert any(item['upload_id'] == upload['upload_id'] for item in data)
         # not listed with all=False
         rv = client.get('/uploads/', headers=test_user_auth)
         assert rv.status_code == 200
-        data = json.loads(rv.data)
+        data = json.loads(rv.data)['results']
         assert not any(item['upload_id'] == upload['upload_id'] for item in data)
 
     def test_post_metadata(

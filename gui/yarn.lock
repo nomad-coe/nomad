@@ -1735,7 +1735,7 @@ class-utils@^0.3.5:
     isobject "^3.0.0"
     static-extend "^0.1.1"
 
-classnames@^2.2.5:
+classnames@^2.2.5, classnames@^2.2.6:
   version "2.2.6"
   resolved "https://registry.yarnpkg.com/classnames/-/classnames-2.2.6.tgz#43935bffdd291f326dad0a205309b38d00f650ce"
 
@@ -5225,6 +5225,12 @@ material-ui-chip-input@^1.0.0-beta.14:
   dependencies:
     classnames "^2.2.5"
     prop-types "^15.6.1"
+
+material-ui-flat-pagination@^3.2.0:
+  version "3.2.0"
+  resolved "https://registry.yarnpkg.com/material-ui-flat-pagination/-/material-ui-flat-pagination-3.2.0.tgz#4db75c70ef740dc0621452d39d1e1469d15527ea"
+  dependencies:
+    classnames "^2.2.6"
 
 math-expression-evaluator@^1.2.14:
   version "1.2.17"

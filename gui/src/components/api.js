@@ -174,10 +174,13 @@ class Api {
     return this.swaggerPromise
       .then(client => client.apis.uploads.get_uploads())
       .catch(this.handleApiError)
-      .then(response => response.body.map(uploadJson => {
-        const upload = new Upload(uploadJson, this)
-        upload.uploading = 100
-        return upload
+      .then(response => ({
+        results: response.body.results.map(uploadJson => {
+          const upload = new Upload(uploadJson, this)
+          upload.uploading = 100
+          return upload
+        }),
+        ...response
       }))
       .finally(this.onFinishLoading)
   }
