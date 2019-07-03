@@ -82,6 +82,9 @@ def assert_coe_calc(coe_calc: Calc, calc: datamodel.DFTCalcWithMetadata, has_han
     assert len(coe_calc.files) == len(calc.files)
     assert coe_calc.formula == calc.formula
 
+    # calc files
+    assert len(coe_calc.files) == len(calc.files)
+
     # user meta data
     assert coe_calc.comment == calc.comment
     assert len(coe_calc.references) == len(calc.references)

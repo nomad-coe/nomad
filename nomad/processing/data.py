@@ -538,6 +538,7 @@ class Upload(Proc):
 
         with utils.lnr(logger, '(re-)publish failed'):
             upload_with_metadata = self.to_upload_with_metadata(self.metadata)
+            calcs = upload_with_metadata.calcs
 
             if config.repository_db.publish_enabled:
                 if config.repository_db.mode == 'coe' and isinstance(self.upload_files, StagingUploadFiles):
@@ -555,13 +556,10 @@ class Upload(Proc):
                         coe_upload = coe_repo.Upload.publish(upload_with_metadata)
 
                 with utils.timer(
-                        logger, 'upload read from repository', step='repo',
+                        logger, 'upload PIDs read from repository', step='repo',
                         upload_size=self.upload_files.size):
-                    calcs = [
-                        coe_calc.to_calc_with_metadata()
-                        for coe_calc in coe_upload.calcs]
-            else:
-                calcs = upload_with_metadata.calcs
+                    for calc, coe_calc in zip(calcs, coe_upload.calcs):
+                        calc.pid = coe_calc.coe_calc_id
 
             with utils.timer(
                     logger, 'upload metadata updated', step='metadata',
