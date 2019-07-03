@@ -413,7 +413,7 @@ def send_mail(name: str, email: str, message: str, subject: str):
         try:
             server.starttls()
         except Exception as e:
-            logger.warning('Could use TTS', exc_info=e)
+            logger.warning('Could not use TTS', exc_info=e)
 
     if config.mail.with_login:
         try:

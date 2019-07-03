@@ -2,7 +2,7 @@ proxy:
   nodePort: 30005
   external:
     host: "labdev-nomad.esc.rzg.mpg.de"
-    path: "/fairdi/nomad/coe_staging"
+    path: "/fairdi/nomad/coe-staging"
 
 api:
   disableReset: false
@@ -21,7 +21,7 @@ postgres:
   user: 'nomad_fairdi'
   password_secret: 'nomad-staging-repository-password'
 
-uploadurl: 'https://labdev-nomad.rzg.mpg.de/fairdi/nomad/coe_staging/upload'
+uploadurl: 'https://labdev-nomad.rzg.mpg.de/fairdi/nomad/coe-staging/upload'
 
 volumes:
   prefixSize: 2

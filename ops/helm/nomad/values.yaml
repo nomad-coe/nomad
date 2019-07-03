@@ -122,11 +122,10 @@ kibana:
   host: nomad-flink-01.esc
 
 mail:
-  host: ''
-  port: 995
-  user: ''
-  password: ''
-  from: 'webmaster@fairdi.eu'
+  enabled: "false"
+  host: 'localhost'
+  port: 25
+  from: 'webmaster@nomad-repository.eu'
 
 ## Everything concerning the data that is used by the service
 volumes:
