@@ -89,6 +89,7 @@ class Upload(Base):  # type: ignore
     target_path = Column(String)
     user_id = Column(Integer, ForeignKey('users.user_id'))
     is_processed = Column(Boolean)
+    is_all_uploaded = Column(Boolean)
     created = Column(DateTime)
 
     user = relationship('User')
@@ -186,10 +187,10 @@ class Upload(Base):  # type: ignore
                 # create upload
                 coe_upload = Upload(
                     upload_name=upload.upload_id,
-                    target_path='$EXTRACTED/fairdi/%s' % upload.upload_id if config.repository_db.mode == 'coe' else None,
+                    target_path=upload.upload_id if config.repository_db.mode == 'coe' else None,
                     created=upload.upload_time,
                     user_id=upload.uploader.id,
-                    is_processed=True)
+                    is_processed=True, is_all_uploaded=True)
                 repo_db.add(coe_upload)
 
                 # add calculations and metadata
