@@ -147,7 +147,7 @@ class SearchPage extends React.Component {
     const { pagination: { total }, metrics } = data
 
     const ownerLabel = {
-      migrated: 'Only migrated',
+      migrated: 'With PID',
       all: 'All entries',
       public: 'Only public entries',
       user: 'Only your entries',
