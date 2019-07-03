@@ -236,7 +236,7 @@ class Calc(Base):
 
         for calc_file in calc.files:
             if config.repository_db.mode == 'coe':
-                coe_file = os.path.join('$EXTRACTED', 'fairdi', upload_id, calc_file)
+                coe_file = os.path.join('$EXTRACTED', 'nomad', upload_id, calc_file)
             else:
                 coe_file = calc_file
 
