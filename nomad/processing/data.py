@@ -734,7 +734,7 @@ class Upload(Proc):
             'Dear %s,' % name,
             '',
             'your data %suploaded at %s has completed processing.' % (
-                '"%" ' % self.name if self.name else '', self.upload_time.isoformat()),  # pylint: disable=no-member
+                '"%s" ' % self.name if self.name else '', self.upload_time.isoformat()),  # pylint: disable=no-member
             'You can review your data on your upload page: %s' % self.gui_url
         ])
         try:
