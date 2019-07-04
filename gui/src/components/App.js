@@ -26,6 +26,7 @@ import LoginLogout from './LoginLogout'
 import { genTheme, repoTheme, archiveTheme } from '../config'
 import { DomainProvider } from './domains'
 import MetaInfoBrowser from './metaInfoBrowser/MetaInfoBrowser'
+import packageJson from '../../package.json'
 
 const drawerWidth = 200
 
@@ -153,6 +154,20 @@ class NavigationUnstyled extends React.Component {
 
     this.handleDrawerOpen = this.handleDrawerOpen.bind(this)
     this.handleDrawerClose = this.handleDrawerClose.bind(this)
+  }
+
+  componentDidMount() {
+    fetch('/meta.json')
+      .then((response) => response.json())
+      .then((meta) => {
+        if (meta.version !== packageJson.version) {
+          console.log('Different version, hard reloading...')
+          window.location.reload(true)
+        }
+      })
+      .catch(() => {
+        console.log('Could not validate version, continue...')
+      })
   }
 
   handleDrawerOpen() {
