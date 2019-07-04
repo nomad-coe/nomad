@@ -10,6 +10,7 @@ api:
 worker:
   replicas: 1
   routing: "queue"
+  processes: 10
 
 dbname: fairdi_nomad_coe_staging
 

@@ -67,7 +67,7 @@ spec:
               name: {{ .Values.postgres.password_secret }}
               key: password
         {{ end }}
-        command: ["python", "-m", "celery", "worker", "-A", "nomad.processing", "-n", "$(NOMAD_CELERY_NODE_NAME)"]
+        command: ["python", "-m", "celery", "worker", "-A", "nomad.processing", "-n", "$(NOMAD_CELERY_NODE_NAME)" {{ if .Values.worker.processes }}, "-c", "{{ .Values.worker.processes }}"{{ end }}]
         livenessProbe:
           exec:
             command:

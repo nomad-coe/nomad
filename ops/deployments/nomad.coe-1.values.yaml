@@ -1,5 +1,5 @@
 proxy:
-  nodePort: 30004
+  nodePort: 30001
   external:
     host: "labdev-nomad.esc.rzg.mpg.de"
     path: "/fairdi/nomad/coe"
@@ -10,6 +10,7 @@ api:
 worker:
   replicas: 1
   routing: "queue"
+  processes: 10
 
 dbname: fairdi_nomad_coe
 
