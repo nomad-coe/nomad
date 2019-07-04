@@ -92,6 +92,11 @@ upload_model = api.inherit('UploadProcessing', proc_model, {
     'upload_time': RFC3339DateTime(),
 })
 
+upload_list_model = api.model('UploadList', {
+    'pagination': fields.Nested(model=pagination_model),
+    'results': fields.List(fields.Nested(model=upload_model))
+})
+
 calc_model = api.inherit('UploadCalculationProcessing', proc_model, {
     'calc_id': fields.String,
     'mainfile': fields.String,
@@ -125,8 +130,8 @@ upload_metadata_parser.add_argument('local_path', type=str, help='Use a local fi
 upload_metadata_parser.add_argument('curl', type=bool, help='Provide a human readable message as body.', location='args')
 upload_metadata_parser.add_argument('file', type=FileStorage, help='The file to upload.', location='files')
 
-upload_list_parser = api.parser()
-upload_list_parser.add_argument('all', type=bool, help='List all uploads, including published.', location='args')
+upload_list_parser = pagination_request_parser.copy()
+upload_list_parser.add_argument('state', type=str, help='List uploads with given state: all, unpublished, published.', location='args')
 upload_list_parser.add_argument('name', type=str, help='Filter for uploads with the given name.', location='args')
 
 
@@ -173,22 +178,53 @@ class DisableMarshalling(Exception):
 @ns.route('/')
 class UploadListResource(Resource):
     @api.doc('get_uploads')
-    @api.marshal_list_with(upload_model, skip_none=True, code=200, description='Uploads send')
+    @api.response(400, 'Bad parameters')
+    @api.marshal_with(upload_list_model, skip_none=True, code=200, description='Uploads send')
     @api.expect(upload_list_parser)
     @login_really_required
     def get(self):
         """ Get the list of all uploads from the authenticated user. """
-        all = bool(request.args.get('all', False))
-        name = request.args.get('name', None)
+        try:
+            state = request.args.get('state', 'unpublished')
+            name = request.args.get('name', None)
+            page = int(request.args.get('page', 1))
+            per_page = int(request.args.get('per_page', 10))
+        except Exception:
+            abort(400, message='bad parameter types')
+
+        try:
+            assert page >= 1
+            assert per_page > 0
+        except AssertionError:
+            abort(400, message='invalid pagination')
+
         query_kwargs = {}
-        if not all:
+        if state == 'published':
+            query_kwargs.update(published=True)
+        elif state == 'unpublished':
             query_kwargs.update(published=False)
+        elif state == 'all':
+            pass
+        else:
+            abort(400, message='bad state value %s' % state)
+
         if name is not None:
             query_kwargs.update(name=name)
-        return [upload for upload in Upload.user_uploads(g.user, **query_kwargs)], 200
+
+        uploads = Upload.user_uploads(g.user, **query_kwargs)
+        total = uploads.count()
+
+        results = [
+            upload
+            for upload in uploads.order_by('-upload_time')[(page - 1) * per_page: page * per_page]]
+
+        return dict(
+            pagination=dict(total=total, page=page, per_page=per_page),
+            results=results), 200
 
     @api.doc('upload')
     @api.expect(upload_metadata_parser)
+    @api.response(400, 'To many uploads')
     @marshal_with(upload_model, skip_none=True, code=200, description='Upload received')
     @login_really_required
     @with_logger
@@ -207,11 +243,20 @@ class UploadListResource(Resource):
 
             curl -X put ".../nomad/api/uploads/" -F file=@local_file
             curl ".../nomad/api/uploads/" --upload-file local_file
+
+        There is a general limit on how many unpublished uploads a user can have. Will
+        return 400 if this limit is exceeded.
         """
+        # check existence of local_path if local_path is used
         local_path = request.args.get('local_path')
         if local_path:
             if not os.path.exists(local_path):
                 abort(404, message='The given local_path was not found.')
+
+        # check the upload limit
+        if not g.user.is_admin:
+            if Upload.user_uploads(g.user, published=False).count() >= config.services.upload_limit:
+                abort(400, 'Limit of unpublished uploads exceeded for user.')
 
         upload_name = request.args.get('name')
         upload_id = utils.create_uuid()

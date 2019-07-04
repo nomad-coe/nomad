@@ -189,6 +189,10 @@ class TestUploads:
 
     def assert_uploads(self, upload_json_str, count=0, **kwargs):
         data = json.loads(upload_json_str)
+        assert 'pagination' in data
+        assert 'page' in data['pagination']
+
+        data = data['results']
         assert isinstance(data, list)
         assert len(data) == count
 
@@ -338,6 +342,14 @@ class TestUploads:
 
         self.assert_processing(client, test_user_auth, upload['upload_id'])
 
+    def test_upload_limit(self, client, mongo, test_user, test_user_auth, proc_infra):
+        for _ in range(0, config.services.upload_limit):
+            Upload.create(user=test_user)
+        file = example_file
+        rv = client.put('/uploads/?local_path=%s' % file, headers=test_user_auth)
+        assert rv.status_code == 400
+        assert Upload.user_uploads(test_user).count() == config.services.upload_limit
+
     def test_delete_not_existing(self, client, test_user_auth, no_warn):
         rv = client.delete('/uploads/123456789012123456789012', headers=test_user_auth)
         assert rv.status_code == 404
@@ -391,15 +403,15 @@ class TestUploads:
         # still visible
         assert client.get('/uploads/%s' % upload['upload_id'], headers=test_user_auth).status_code == 200
         # still listed with all=True
-        rv = client.get('/uploads/?all=True', headers=test_user_auth)
+        rv = client.get('/uploads/?state=all', headers=test_user_auth)
         assert rv.status_code == 200
-        data = json.loads(rv.data)
+        data = json.loads(rv.data)['results']
         assert len(data) > 0
         assert any(item['upload_id'] == upload['upload_id'] for item in data)
         # not listed with all=False
         rv = client.get('/uploads/', headers=test_user_auth)
         assert rv.status_code == 200
-        data = json.loads(rv.data)
+        data = json.loads(rv.data)['results']
         assert not any(item['upload_id'] == upload['upload_id'] for item in data)
 
     def test_post_metadata(

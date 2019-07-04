@@ -39,8 +39,10 @@ api:
   adminPassword: "password"
   ## Disable the dangerous reset (delete all data) function
   disableReset: "true"
+  ## Limit of unpublished uploads per user, except admin user
+  uploadLimit: 10
 
-## Everthing concerning the nomad worker
+## Everything concerning the nomad worker
 worker:
   replicas: 1
   # request and limit in GB
@@ -48,6 +50,9 @@ worker:
   memlimit: 420
   console_loglevel: ERROR
   logstash_loglevel: INFO
+  ## There are two routing modes "queue" and "worker". The "queue" routing will use a general
+  # task queue and spread calc processing task over worker instances. The "worker" routing
+  # will send all tasks related to an upload to the same worker
   routing: "queue"
   storage: "disk"
 
@@ -104,6 +109,9 @@ postgres:
   publish_enabled: true
   host: nomad-flink-01.esc
   port: 5432
+  ## CoE repository mode, values are fairdi, coe. Fairdi stores raw-file path for
+  # new raw-file API; coe stores raw-file paths for extracted raw-file copy
+  mode: fairdi
 
 logstash:
   port: 5000
@@ -114,11 +122,10 @@ kibana:
   host: nomad-flink-01.esc
 
 mail:
-  host: ''
-  port: 995
-  user: ''
-  password: ''
-  from: 'webmaster@fairdi.eu'
+  enabled: "false"
+  host: 'localhost'
+  port: 25
+  from: 'webmaster@nomad-repository.eu'
 
 ## Everything concerning the data that is used by the service
 volumes:

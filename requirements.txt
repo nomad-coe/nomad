@@ -45,6 +45,7 @@ jsonschema[format]
 python-magic
 runstats
 pyyaml
+tabulate
 
 # dev/ops related
 setuptools

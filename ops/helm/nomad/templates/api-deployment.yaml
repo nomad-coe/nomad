@@ -112,6 +112,13 @@ spec:
           value: "{{ .Values.api.console_loglevel }}"
         - name: NOMAD_LOGSTASH_LEVEL
           value: "{{ .Values.api.logstash_loglevel }}"
+        {{ if .Values.postgres.password_secret }}
+        - name: NOMAD_REPOSITORY_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.postgres.password_secret }}
+              key: password
+        {{ end }}
         command: ["python", "-m", "gunicorn.app.wsgiapp", "--timeout", "3600", "--config", "gunicorn.conf", "--log-config", "gunicorn.log.conf", "-w", "{{ .Values.api.worker }}", "-b 0.0.0.0:8000", "nomad.api:app"]
         livenessProbe:
           httpGet:

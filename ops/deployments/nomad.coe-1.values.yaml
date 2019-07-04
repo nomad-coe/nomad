@@ -1,0 +1,39 @@
+proxy:
+  nodePort: 30001
+  external:
+    host: "labdev-nomad.esc.rzg.mpg.de"
+    path: "/fairdi/nomad/coe"
+
+api:
+  disableReset: false
+
+worker:
+  replicas: 1
+  routing: "queue"
+  processes: 10
+
+dbname: fairdi_nomad_coe
+
+postgres:
+  publish_enabled: true
+  mode: 'coe'
+  dbname: 'nomad_prod'
+  host: 'db-repository-nomad.esc'
+  user: 'nomadrep'
+  password_secret: 'nomad-production-repository-password'
+
+uploadurl: 'https://labdev-nomad.rzg.mpg.de/fairdi/nomad/coe/upload'
+
+volumes:
+  prefixSize: 2
+  public: /nomad/fairdi/coe/fs/public
+  staging: /nomad/fairdi/coe/fs/staging
+  tmp: /nomad/fairdi/coe/fs/tmp
+  coe_extracted: /nomad/fairdi/coe/fs/extracted
+  nomad: /nomad
+
+mail:
+  enabled: "true"
+  host: 'mailrelay.mpcdf.mpg.de'
+  port: 25
+  from: 'webmaster@nomad-repository.eu'

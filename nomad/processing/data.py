@@ -413,7 +413,7 @@ class Upload(Proc):
 
     meta: Any = {
         'indexes': [
-            'user_id', 'tasks_status', 'process_status', 'published'
+            'user_id', 'tasks_status', 'process_status', 'published', 'upload_time'
         ]
     }
 
@@ -484,20 +484,20 @@ class Upload(Proc):
         Calc.objects(upload_id=self.upload_id).delete()
         super().delete()
 
-    @process
-    def delete_upload(self):
+    def delete_upload_local(self, with_coe_repo: bool = False):
         """
         Deletes of the upload, including its processing state and
-        staging files.
+        staging files. Local version without celery processing.
         """
         logger = self.get_logger()
 
         with utils.lnr(logger, 'staged upload delete failed'):
 
-            with utils.timer(
-                    logger, 'upload deleted from repo db', step='repo',
-                    upload_size=self.upload_files.size):
-                coe_repo.Upload.delete(self.upload_id)
+            if with_coe_repo and self.published:
+                with utils.timer(
+                        logger, 'upload deleted from repo db', step='repo',
+                        upload_size=self.upload_files.size):
+                    coe_repo.Upload.delete(self.upload_id)
 
             with utils.timer(
                     logger, 'upload deleted from index', step='index',
@@ -509,6 +509,14 @@ class Upload(Proc):
                     upload_size=self.upload_files.size):
                 self.upload_files.delete()
                 self.delete()
+
+    @process
+    def delete_upload(self, with_coe_repo: bool = False):
+        """
+        Deletes of the upload, including its processing state and
+        staging files. This starts the celery process of deleting the upload.
+        """
+        self.delete_upload_local(with_coe_repo=with_coe_repo)
 
         return True  # do not save the process status on the delete upload
 
@@ -530,8 +538,16 @@ class Upload(Proc):
 
         with utils.lnr(logger, '(re-)publish failed'):
             upload_with_metadata = self.to_upload_with_metadata(self.metadata)
+            calcs = upload_with_metadata.calcs
 
             if config.repository_db.publish_enabled:
+                if config.repository_db.mode == 'coe' and isinstance(self.upload_files, StagingUploadFiles):
+                    with utils.timer(
+                            logger, 'coe extracted raw-file copy created', step='repo',
+                            upload_size=self.upload_files.size):
+
+                        self.upload_files.create_extracted_copy()
+
                 coe_upload = coe_repo.Upload.from_upload_id(upload_with_metadata.upload_id)
                 if coe_upload is None:
                     with utils.timer(
@@ -540,13 +556,10 @@ class Upload(Proc):
                         coe_upload = coe_repo.Upload.publish(upload_with_metadata)
 
                 with utils.timer(
-                        logger, 'upload read from repository', step='repo',
+                        logger, 'upload PIDs read from repository', step='repo',
                         upload_size=self.upload_files.size):
-                    calcs = [
-                        coe_calc.to_calc_with_metadata()
-                        for coe_calc in coe_upload.calcs]
-            else:
-                calcs = upload_with_metadata.calcs
+                    for calc, coe_calc in zip(calcs, coe_upload.calcs):
+                        calc.pid = coe_calc.coe_calc_id
 
             with utils.timer(
                     logger, 'upload metadata updated', step='metadata',
@@ -720,9 +733,13 @@ class Upload(Proc):
         message = '\n'.join([
             'Dear %s,' % name,
             '',
-            'your data %suploaded %s has completed processing.' % (
-                self.name if self.name else '', self.upload_time.isoformat()),  # pylint: disable=no-member
-            'You can review your data on your upload page: %s' % self.gui_url
+            'your data %suploaded at %s has completed processing.' % (
+                '"%s" ' % self.name if self.name else '', self.upload_time.isoformat()),  # pylint: disable=no-member
+            'You can review your data on your upload page: %s' % self.gui_url,
+            '',
+            'If you encouter any issues with your upload, please let us know and replay to this email.',
+            '',
+            'The nomad team'
         ])
         try:
             infrastructure.send_mail(

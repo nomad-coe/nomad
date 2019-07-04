@@ -61,13 +61,14 @@ def raw_files_infra():
     config.fs.staging = '.volumes/test_fs/staging'
     config.fs.public = '.volumes/test_fs/public'
     config.fs.migration_packages = '.volumes/test_fs/migration_packages'
+    config.fs.coe_extracted = '.volumes/test_fs/extracted'
     config.fs.prefix_size = 2
 
 
 @pytest.fixture(scope='function')
 def raw_files(raw_files_infra):
     """ Provides cleaned out files directory structure per function. Clears files after test. """
-    directories = [config.fs.staging, config.fs.public, config.fs.migration_packages, config.fs.tmp]
+    directories = [config.fs.staging, config.fs.public, config.fs.migration_packages, config.fs.tmp, config.fs.coe_extracted]
     for directory in directories:
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -154,7 +155,8 @@ def worker(mongo, celery_session_worker, celery_inspect):
 
 
 @pytest.fixture(scope='session')
-def mongo_infra():
+def mongo_infra(monkeysession):
+    monkeysession.setattr('nomad.config.mongo.db_name', 'test_db')
     return infrastructure.setup_mongo()
 
 
@@ -544,7 +546,10 @@ def non_empty_processed(non_empty_uploaded: Tuple[str, str], test_user: coe_repo
     return test_processing.run_processing(non_empty_uploaded, test_user)
 
 
-@pytest.fixture(scope='function', params=[False, True])
+@pytest.fixture(scope='function', params=[None, 'fairdi', 'coe'])
 def with_publish_to_coe_repo(monkeypatch, request):
-    monkeypatch.setattr('nomad.config.repository_db.publish_enabled', request.param)
-    return request.param
+    mode = request.param
+    if mode is not None:
+        monkeypatch.setattr('nomad.config.repository_db.publish_enabled', True)
+        monkeypatch.setattr('nomad.config.repository_db.mode', mode)
+    return request.param is not None

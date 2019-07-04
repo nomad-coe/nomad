@@ -75,6 +75,23 @@ def always_restricted(path: str):
         return True
 
 
+def copytree(src, dst):
+    """
+    A close on ``shutils.copytree`` that does not try to copy the stats on all files.
+    This is unecessary for our usecase and also causes permission denies for unknown
+    reasons.
+    """
+    os.makedirs(dst, exist_ok=False)
+
+    for item in os.listdir(src):
+        s = os.path.join(src, item)
+        d = os.path.join(dst, item)
+        if os.path.isdir(s):
+            copytree(s, d)
+        else:
+            shutil.copyfile(s, d)
+
+
 class PathObject:
     """
     Object storage-like abstraction for paths in general.
@@ -224,6 +241,13 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         """
         raise NotImplementedError()
 
+    def raw_file_size(self, file_path: str) -> int:
+        """
+        Returns:
+            The size of the given raw file.
+        """
+        raise NotImplementedError()
+
     def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
         """
         Returns the path for all raw files in the archive (with a given prefix).
@@ -290,6 +314,11 @@ class StagingUploadFiles(UploadFiles):
         if not self._is_authorized():
             raise Restricted
         return self._file(self.raw_file_object(file_path), *args, **kwargs)
+
+    def raw_file_size(self, file_path: str) -> int:
+        if not self._is_authorized():
+            raise Restricted
+        return self.raw_file_object(file_path).size
 
     def raw_file_object(self, file_path: str) -> PathObject:
         return self._raw_dir.join_file(file_path)
@@ -363,6 +392,13 @@ class StagingUploadFiles(UploadFiles):
     def is_frozen(self) -> bool:
         """ Returns True if this upload is already *bagged*. """
         return self._frozen_file.exists()
+
+    def create_extracted_copy(self) -> None:
+        """
+        Copies all raw-file to the extracted bucket to mimic the behaviour of the old
+        CoE python API. TODO: should be removed after migration.
+        """
+        copytree(self._raw_dir.os_path, os.path.join(config.fs.coe_extracted, self.upload_id))
 
     def pack(self, upload: UploadWithMetadata) -> None:
         """
@@ -595,6 +631,23 @@ class PublicUploadFiles(UploadFiles):
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
         return self._file('raw', 'plain', file_path, *args, *kwargs)
+
+    def raw_file_size(self, file_path: str) -> int:
+        for access in ['public', 'restricted']:
+            try:
+                zip_file = self.join_file('raw-%s.plain.zip' % access)
+                with ZipFile(zip_file.os_path) as zf:
+                    info = zf.getinfo(file_path)
+                    if (access == 'restricted' or always_restricted(file_path)) and not self._is_authorized():
+                        raise Restricted
+
+                    return info.file_size
+            except FileNotFoundError:
+                pass
+            except KeyError:
+                pass
+
+        raise KeyError()
 
     def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
         for access in ['public', 'restricted']:

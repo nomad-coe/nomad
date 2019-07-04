@@ -64,7 +64,7 @@ def run_processing(uploaded: Tuple[str, str], test_user) -> Upload:
     return upload
 
 
-def assert_processing(upload: Upload):
+def assert_processing(upload: Upload, published: bool = False):
     assert not upload.tasks_running
     assert upload.current_task == 'cleanup'
     assert upload.upload_id is not None
@@ -72,24 +72,32 @@ def assert_processing(upload: Upload):
     assert upload.tasks_status == SUCCESS
 
     upload_files = UploadFiles.get(upload.upload_id, is_authorized=lambda: True)
-    assert isinstance(upload_files, StagingUploadFiles)
+    if published:
+        assert isinstance(upload_files, PublicUploadFiles)
+    else:
+        assert isinstance(upload_files, StagingUploadFiles)
 
     for calc in Calc.objects(upload_id=upload.upload_id):
         assert calc.parser is not None
         assert calc.mainfile is not None
         assert calc.tasks_status == SUCCESS
+        assert calc.metadata['published'] == published
 
         with upload_files.archive_file(calc.calc_id) as archive_json:
             archive = json.load(archive_json)
         assert 'section_run' in archive
         assert 'section_entry_info' in archive
 
-        with upload_files.archive_log_file(calc.calc_id) as f:
+        with upload_files.archive_log_file(calc.calc_id, 'rt') as f:
             assert 'a test' in f.read()
         assert len(calc.errors) == 0
 
         with upload_files.raw_file(calc.mainfile) as f:
             f.read()
+
+        for path in calc.metadata['files']:
+            with upload_files.raw_file(path) as f:
+                f.read()
 
         assert upload.get_calc(calc.calc_id).metadata is not None
 
@@ -101,7 +109,7 @@ def test_processing(processed, no_warn, mails, monkeypatch):
     assert re.search(r'Processing completed', mails.messages[0].data.decode('utf-8')) is not None
 
 
-def test_publish(non_empty_processed: Upload, no_warn, example_user_metadata, monkeypatch, with_publish_to_coe_repo):
+def test_publish(non_empty_processed: Upload, no_warn, example_user_metadata, with_publish_to_coe_repo, monkeypatch):
     processed = non_empty_processed
     processed.compress_and_set_metadata(example_user_metadata)
 
@@ -121,6 +129,11 @@ def test_publish(non_empty_processed: Upload, no_warn, example_user_metadata, mo
 
     assert_upload_files(upload, PublicUploadFiles, published=True)
     assert_search_upload(upload, additional_keys, published=True)
+
+    if with_publish_to_coe_repo and config.repository_db.mode == 'coe':
+        assert(os.path.exists(os.path.join(config.fs.coe_extracted, upload.upload_id)))
+
+    assert_processing(Upload.get(upload.upload_id, include_published=True), published=True)
 
 
 def test_republish(non_empty_processed: Upload, no_warn, example_user_metadata, monkeypatch, with_publish_to_coe_repo):

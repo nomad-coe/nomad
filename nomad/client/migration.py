@@ -26,7 +26,7 @@ import json
 from nomad import config, infrastructure
 from nomad.migration import NomadCOEMigration, SourceCalc, Package, missing_calcs_data
 
-from .main import cli
+from .__main__ import cli
 
 
 def _Migration(**kwargs) -> NomadCOEMigration:

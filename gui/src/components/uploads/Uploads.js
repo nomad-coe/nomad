@@ -13,6 +13,9 @@ import ConfirmDialog from './ConfirmDialog'
 import { Help, Agree } from '../help'
 import { withApi } from '../api'
 import { withCookies, Cookies } from 'react-cookie'
+import Pagination from 'material-ui-flat-pagination'
+
+const publishedUploadsPageSize = 10
 
 class Uploads extends React.Component {
   static propTypes = {
@@ -64,14 +67,23 @@ class Uploads extends React.Component {
     },
     uploads: {
       marginTop: theme.spacing.unit * 2
+    },
+    uploadsContainer: {
+      marginTop: theme.spacing.unit * 4
+    },
+    pagination: {
+      textAlign: 'center'
     }
   })
 
   state = {
-    uploads: null,
+    unpublishedUploads: null,
+    publishedUploads: null,
+    publishedUploadsPage: 1,
+    publishedUploadsTotal: 0,
     uploadCommand: 'loading ...',
-    selectedUploads: [],
-    showPublish: false
+    selectedUnpublishedUploads: [],
+    showPublishDialog: false
   }
 
   componentDidMount() {
@@ -85,20 +97,31 @@ class Uploads extends React.Component {
       })
   }
 
-  update() {
-    this.props.api.getUploads()
+  update(publishedUploadsPage) {
+    this.props.api.getUnpublishedUploads()
       .then(uploads => {
-        const filteredUploads = uploads.filter(upload => !upload.is_state)
-        this.setState({uploads: filteredUploads, selectedUploads: []})
+        // const filteredUploads = uploads.filter(upload => !upload.is_state)
+        this.setState({unpublishedUploads: uploads.results, selectedUnpublishedUploads: []})
       })
       .catch(error => {
-        this.setState({uploads: [], selectedUploads: []})
+        this.setState({unpublishedUploads: [], selectedUnpublishedUploads: []})
+        this.props.raiseError(error)
+      })
+    this.props.api.getPublishedUploads(publishedUploadsPage, publishedUploadsPageSize)
+      .then(uploads => {
+        this.setState({
+          publishedUploads: uploads.results,
+          publishedUploadsTotal: uploads.pagination.total,
+          publishedUploadsPage: uploads.pagination.page})
+      })
+      .catch(error => {
+        this.setState({publishedUploads: []})
         this.props.raiseError(error)
       })
   }
 
   onDeleteClicked() {
-    Promise.all(this.state.selectedUploads.map(upload => this.props.api.deleteUpload(upload.upload_id)))
+    Promise.all(this.state.selectedUnpublishedUploads.map(upload => this.props.api.deleteUpload(upload.upload_id)))
       .then(() => this.update())
       .catch(error => {
         this.props.raiseError(error)
@@ -107,14 +130,14 @@ class Uploads extends React.Component {
   }
 
   onPublishClicked() {
-    this.setState({showPublish: true})
+    this.setState({showPublishDialog: true})
   }
 
   onPublish(withEmbargo) {
-    Promise.all(this.state.selectedUploads
+    Promise.all(this.state.selectedUnpublishedUploads
       .map(upload => this.props.api.publishUpload(upload.upload_id, withEmbargo)))
       .then(() => {
-        this.setState({showPublish: false})
+        this.setState({showPublishDialog: false})
         return this.update()
       })
       .catch(error => {
@@ -123,57 +146,105 @@ class Uploads extends React.Component {
       })
   }
 
-  sortedUploads(order) {
+  sortedUnpublishedUploads(order) {
     order = order || -1
-    return this.state.uploads.concat()
+    return this.state.unpublishedUploads.concat()
       .sort((a, b) => (a.gui_upload_id === b.gui_upload_id)
         ? 0
         : ((a.gui_upload_id < b.gui_upload_id) ? -1 : 1) * order)
   }
 
-  handleDoesNotExist(nonExistingUupload) {
+  handleDoesNotExist(nonExistingUpload) {
     this.setState({
-      uploads: this.state.uploads.filter(upload => upload !== nonExistingUupload)
+      unpublishedUploads: this.state.unpublishedUploads.filter(upload => upload !== nonExistingUpload)
     })
+  }
+
+  handlePublished(publishedUpload) {
+    this.update()
   }
 
   onDrop(files) {
     files.forEach(file => {
       const upload = this.props.api.createUpload(file.name)
-      this.setState({uploads: [...this.state.uploads, upload]})
+      this.setState({unpublishedUploads: [...this.state.unpublishedUploads, upload]})
       upload.uploadFile(file).catch(this.props.raiseError)
     })
   }
 
   onSelectionChanged(upload, checked) {
     if (checked) {
-      this.setState({selectedUploads: [upload, ...this.state.selectedUploads]})
+      this.setState({selectedUnpublishedUploads: [upload, ...this.state.selectedUnpublishedUploads]})
     } else {
-      const selectedUploads = [...this.state.selectedUploads]
-      selectedUploads.splice(selectedUploads.indexOf(upload), 1)
-      this.setState({selectedUploads: selectedUploads})
+      const selectedUnpublishedUploads = [...this.state.selectedUnpublishedUploads]
+      selectedUnpublishedUploads.splice(selectedUnpublishedUploads.indexOf(upload), 1)
+      this.setState({selectedUnpublishedUploads: selectedUnpublishedUploads})
     }
   }
 
   onSelectionAllChanged(checked) {
     if (checked) {
-      this.setState({selectedUploads: [...this.state.uploads.filter(upload => !upload.tasks_running)]})
+      this.setState({selectedUnpublishedUploads: [...this.state.unpublishedUploads.filter(upload => !upload.tasks_running)]})
     } else {
-      this.setState({selectedUploads: []})
+      this.setState({selectedUnpublishedUploads: []})
     }
   }
 
-  renderUploads() {
+  renderPublishedUploads() {
     const { classes } = this.props
-    const { selectedUploads, showPublish } = this.state
-    const uploads = this.state.uploads || []
+    const { publishedUploadsTotal, publishedUploadsPage, publishedUploads } = this.state
 
-    return (<div>
+    if (!publishedUploads || publishedUploads.length === 0) {
+      return ''
+    }
+
+    return (<div className={classes.uploadsContainer}>
+      <FormLabel className={classes.uploadsLabel}>Your published uploads: </FormLabel>
+      <div className={classes.uploads}>
+        <div>
+          <Help cookie="publishedUploadList">{`
+            These are the uploads that you have already published in the past for
+            your reference.
+          `}</Help>
+          {
+            publishedUploads.map(upload => (
+              <Upload key={upload.gui_upload_id} upload={upload}
+                checked={false}
+                onCheckboxChanged={checked => true}/>
+            ))
+          }
+          {
+            (publishedUploadsTotal > publishedUploadsPageSize)
+              ? <Pagination classes={{root: classes.pagination}}
+                limit={publishedUploadsPageSize}
+                offset={(publishedUploadsPage - 1) * publishedUploadsPageSize}
+                total={publishedUploadsTotal}
+                onClick={(_, offset) => this.update((offset / publishedUploadsPageSize) + 1)}
+                previousPageLabel={'prev'}
+                nextPageLabel={'next'}
+              /> : ''
+          }
+        </div>
+      </div>
+    </div>)
+  }
+
+  renderUnpublishedUploads() {
+    const { classes } = this.props
+    const { selectedUnpublishedUploads, showPublishDialog } = this.state
+    const unpublishedUploads = this.state.unpublishedUploads || []
+
+    if (unpublishedUploads.length === 0) {
+      return ''
+    }
+
+    return (<div className={classes.uploadsContainer}>
       <div style={{width: '100%'}}>
+        <FormLabel className={classes.uploadsLabel}>Your unpublished uploads: </FormLabel>
         <FormGroup className={classes.selectFormGroup} row>
           <FormControlLabel label="all" style={{flexGrow: 1}} control={(
             <Checkbox
-              checked={selectedUploads.length === uploads.length && uploads.length !== 0}
+              checked={selectedUnpublishedUploads.length === unpublishedUploads.length && unpublishedUploads.length !== 0}
               onChange={(_, checked) => this.onSelectionAllChanged(checked)}
             />
           )} />
@@ -181,12 +252,12 @@ class Uploads extends React.Component {
             <IconButton onClick={() => this.update()}><ReloadIcon /></IconButton>
           </Tooltip>
           <FormLabel classes={{root: classes.selectLabel}}>
-            {`selected uploads ${selectedUploads.length}/${uploads.length}`}
+            {`selected uploads ${selectedUnpublishedUploads.length}/${unpublishedUploads.length}`}
           </FormLabel>
           <Tooltip title="delete selected uploads" >
             <div>
               <IconButton
-                disabled={selectedUploads.length === 0}
+                disabled={selectedUnpublishedUploads.length === 0}
                 onClick={this.onDeleteClicked.bind(this)}
               >
                 <DeleteIcon />
@@ -196,46 +267,47 @@ class Uploads extends React.Component {
 
           <Tooltip title="publish selected uploads" >
             <div>
-              <IconButton disabled={selectedUploads.length === 0} onClick={() => this.onPublishClicked()}>
+              <IconButton
+                disabled={selectedUnpublishedUploads.length === 0 || selectedUnpublishedUploads.some(upload => upload.failed_calcs !== 0 || upload.total_calcs === 0)}
+                onClick={() => this.onPublishClicked()}>
                 <CheckIcon />
               </IconButton>
             </div>
           </Tooltip>
 
           <ConfirmDialog
-            open={showPublish}
-            onClose={() => this.setState({showPublish: false})}
+            open={showPublishDialog}
+            onClose={() => this.setState({showPublishDialog: false})}
             onPublish={(withEmbargo) => this.onPublish(withEmbargo)}
           />
 
         </FormGroup>
       </div>
-      <div className={classes.uploads}>{
-        (uploads.length > 0)
-          ? (
-            <div>
-              <Help cookie="uploadList">{`
-                These are all your uploads in the *staging area*. You can see the
-                progress on data progresses and review your uploads before publishing
-                them to the *nomad repository*.
 
-                Select uploads to delete or publish them. Click on uploads to see individual
-                calculations. Click on calculations to see more details on each calculation.
+      <div className={classes.uploads}>
+        <div>
+          <Help cookie="uploadList">{`
+            These are all your uploads in the *staging area*. You can see the
+            progress on data progresses and review your uploads before publishing
+            them to the *nomad repository*.
 
-                When you select and click publish, you will be ask if you want to publish
-                with or without the optional *embargo period*.
-              `}</Help>
-              {
-                this.sortedUploads().map(upload => (
-                  <Upload key={upload.gui_upload_id} upload={upload}
-                    checked={selectedUploads.indexOf(upload) !== -1}
-                    onDoesNotExist={() => this.handleDoesNotExist(upload)}
-                    onCheckboxChanged={checked => this.onSelectionChanged(upload, checked)}/>
-                ))
-              }
-            </div>
-          ) : ''
-      }</div>
+            Select uploads to delete or publish them. Click on uploads to see individual
+            calculations. Click on calculations to see more details on each calculation.
+
+            When you select and click publish, you will be ask if you want to publish
+            with or without the optional *embargo period*.
+          `}</Help>
+          {
+            this.sortedUnpublishedUploads().map(upload => (
+              <Upload key={upload.gui_upload_id} upload={upload}
+                checked={selectedUnpublishedUploads.indexOf(upload) !== -1}
+                onDoesNotExist={() => this.handleDoesNotExist(upload)}
+                onPublished={() => this.handlePublished(upload)}
+                onCheckboxChanged={checked => this.onSelectionChanged(upload, checked)}/>
+            ))
+          }
+        </div>
+      </div>
     </div>)
   }
 
@@ -247,11 +319,9 @@ class Uploads extends React.Component {
       By uploading and downloading data, you agree to the
       [terms of use](https://www.nomad-coe.eu/the-project/nomad-repository/nomad-repository-terms).
 
-      Note that uploaded files become downloadable. Uploaded data is licensed under the
+      Note that uploaded files become downloadable by others. Uploaded data is licensed under the
       Creative Commons Attribution license ([CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)).
       You can put an *embargo* on uploaded data. The *embargo period* lasts up to 36 month.
-      If you do not decide on an *embargo* after upload, data will be made public after 48h
-      automatically.
     `
 
     return (
@@ -263,9 +333,10 @@ class Uploads extends React.Component {
             We encourage you to add all code input and
             output files, as well as any other auxiliary files that you might have created.
             You can put data from multiple calculations, using your preferred directory
-            structure, into your archives. Drop your archive file(s) below.
+            structure, into your archives. Drop your archive file(s) below. You can also
+            click the dropbox to select the file from your hard drive.
 
-            Uploaded data will not be public immediately. This is called the *staging area*.
+            Uploaded data will not be public immediately. We call this *staging area*.
             After uploading and processing, you can decide if you want to make the data public,
             delete it again, or put an *embargo* on it.
 
@@ -280,7 +351,10 @@ class Uploads extends React.Component {
 
           <Paper className={classes.dropzoneContainer}>
             <Dropzone
-              accept={['application/zip', 'application/gzip', 'application/bz2']}
+              accept={[
+                'application/zip', 'application/gzip', 'application/bz2', 'application/x-gzip',
+                'application/x-bz2', 'application/x-gtar', 'application/x-tgz', 'application/tar+gzip',
+                'application/tar', 'application/tar+bz2']}
               className={classes.dropzone}
               activeClassName={classes.dropzoneAccept}
               rejectClassName={classes.dropzoneReject}
@@ -303,7 +377,8 @@ class Uploads extends React.Component {
             \`\`\`
           `}</Markdown>
 
-          {this.renderUploads()}
+          {this.renderUnpublishedUploads()}
+          {this.renderPublishedUploads()}
         </Agree>
       </div>
     )

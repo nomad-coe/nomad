@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List
+from typing import List, Dict, Any
 import json
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship, aliased
 from sqlalchemy.sql.expression import literal
 from datetime import datetime
+import os.path
 
-from nomad import infrastructure, utils, config
+from nomad import infrastructure, utils, config, files
 from nomad.datamodel import DFTCalcWithMetadata
 
 from . import base
@@ -56,9 +57,11 @@ class PublishContext:
     Access to a logger with bound data about the upload, etc.
     """
 
-    def __init__(self, **kwargs):
-        self._cache = {}
-        self.logger = utils.get_logger(__name__, **kwargs)
+    def __init__(self, upload_id: str = None, **kwargs):
+        self._cache: Dict[str, Any] = {}
+        self.upload_id = upload_id
+        self.upload_files = None if upload_id is None else files.UploadFiles.get(upload_id, is_authorized=lambda: True)
+        self.logger = utils.get_logger(__name__, upload_id=upload_id, **kwargs)
 
     def cache(self, entity, **kwargs):
         key = json.dumps(dict(entity=entity.__class__.__name__, **kwargs))
@@ -223,11 +226,31 @@ class Calc(Base):
         else:
             added_time = datetime.now()
 
+        upload_id = context.upload_id
+        upload_files = context.upload_files
+        coe_files = list()
+        if upload_files is None:
+            upload_size = -1
+        else:
+            upload_size = 0
+
+        for calc_file in calc.files:
+            if config.repository_db.mode == 'coe':
+                coe_file = os.path.join('$EXTRACTED', 'nomad', upload_id, calc_file).replace('/', '\\/')
+            else:
+                coe_file = calc_file
+
+            if upload_files is not None:
+                upload_size += upload_files.raw_file_size(calc_file)
+            coe_files.append(coe_file)
+
         metadata = CalcMetaData(
             calc=self,
             added=added_time,
+            oadate=added_time,
             chemical_formula=calc.formula,
-            filenames=('[%s]' % ','.join(['"%s"' % filename for filename in calc.files])).encode('utf-8'),
+            filenames=('[%s]' % ','.join(['"%s"' % coe_file for coe_file in coe_files])).encode('utf-8'),
+            download_size=upload_size,
             location=calc.mainfile,
             version=code_version_obj)
         repo_db.add(metadata)

@@ -57,6 +57,11 @@ your browser.
 
 ## Change log
 
+### v0.4.5
+- improved uploads view with published uploads
+- support for publishing to the existing nomad CoE repository
+- many minor bugfixes
+
 ### v0.4.4
 - improved GUI navigation
 - support for multiple domains

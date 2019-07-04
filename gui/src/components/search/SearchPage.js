@@ -147,7 +147,7 @@ class SearchPage extends React.Component {
     const { pagination: { total }, metrics } = data
 
     const ownerLabel = {
-      migrated: 'Only migrated',
+      migrated: 'With PID',
       all: 'All entries',
       public: 'Only public entries',
       user: 'Only your entries',
@@ -179,6 +179,11 @@ class SearchPage extends React.Component {
           This page allows you to **search** in nomad's data. The upper part of this page
           gives you various options to enter and configure your search. The lower half
           show the search results.
+
+          ** Disclaimer: ** This is a preliminary version of the NOMAD software. It might
+          now show all of NOMAD's data. To see the full NOMAD dataset use the original
+          [NOMAD CoE Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/search/)
+          for now.
 
           ### Search Options
 

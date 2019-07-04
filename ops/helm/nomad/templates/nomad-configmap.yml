@@ -27,6 +27,7 @@ data:
       admin_password: "{{ .Values.api.adminPassword }}"
       disable_reset: {{ .Values.api.disableReset }}
       https: {{ .Values.api.https }}
+      upload_limit: {{ .Values.api.uploadLimit }}
     rabbitmq:
       host: "{{ .Release.Name }}-rabbitmq"
     elastic:
@@ -40,14 +41,28 @@ data:
     repository_db:
       host: "{{ .Values.postgres.host }}"
       port: {{ .Values.postgres.port }}
-      dbname: "{{ .Values.dbname }}"
+      dbname: {{ if .Values.postgres.dbname }} "{{ .Values.postgres.dbname }}" {{ else }} "{{ .Values.dbname }}" {{ end }}
       sequential_publish: {{ .Values.postgres.sequential_publish }}
       publish_enabled: {{ .Values.postgres.publish_enabled }}
+      mode: "{{ .Values.postgres.mode }}"
+      {{ if .Values.postgres.user }}
+      user: "{{ .Values.postgres.user }}"
+      {{ end }}
+      {{ if .Values.postgres.password }}
+      password: "{{ .Values.postgres.password }}"
+      {{ end }}
     mail:
+      enabled: {{ .Values.mail.enabled }}
       host: "{{ .Values.mail.host }}"
+      {{ if .Values.mail.port }}
       port: {{ .Values.mail.port }}
+      {{ end }}
+      {{ if .Values.mail.user }}
       user: "{{ .Values.mail.user }}"
+      {{ end }}
+      {{ if .Values.mail.password }}
       password: "{{ .Values.mail.password }}"
+      {{ end }}
       from_address: "{{ .Values.mail.from }}"
     celery:
       routing: "{{ .Values.worker.routing }}"

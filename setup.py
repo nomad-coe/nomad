@@ -12,11 +12,12 @@ reqs = [str(ir.req) for ir in install_reqs if 'sphinxcontrib.httpdomain' not in 
 
 setup(
     name='nomad',
-    version='0.4.4',
+    version='0.4.5',
     description='The nomad@FAIRDI infrastructure python package',
     py_modules=['nomad'],
     install_requires=reqs,
     entry_points='''
         [console_scripts]
         nomad=nomad.client:cli
+        admin=nomad.admin:cli
     ''')

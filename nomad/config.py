@@ -78,6 +78,7 @@ fs = NomadConfig(
     tmp='.volumes/fs/tmp',
     staging='.volumes/fs/staging',
     public='.volumes/fs/public',
+    coe_extracted='.volumes/fs/extracted',
     migration_packages='.volumes/fs/migration_packages',
     local_tmp='/tmp',
     prefix_size=2,
@@ -98,7 +99,8 @@ repository_db = NomadConfig(
     dbname='nomad_fairdi_repo_db',
     user='postgres',
     password='nomad',
-    handle_prefix='21.11132/'
+    handle_prefix='21.11132/',
+    mode='fairdi'
 )
 
 mongo = NomadConfig(
@@ -123,7 +125,8 @@ services = NomadConfig(
     disable_reset=True,
     not_processed_value='not processed',
     unavailable_value='unavailable',
-    https=False
+    https=False,
+    upload_limit=10
 )
 
 tests = NomadConfig(
@@ -168,7 +171,7 @@ client = NomadConfig(
     url='http://localhost:8000/fairdi/nomad/latest/api'
 )
 
-version = '0.4.4'
+version = '0.4.5'
 commit = gitinfo.commit
 release = 'devel'
 domain = 'DFT'

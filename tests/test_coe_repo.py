@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import pytest
-from typing import cast
+from typing import cast, Tuple
 from passlib.hash import bcrypt
 from datetime import datetime
 
@@ -82,6 +82,9 @@ def assert_coe_calc(coe_calc: Calc, calc: datamodel.DFTCalcWithMetadata, has_han
     assert len(coe_calc.files) == len(calc.files)
     assert coe_calc.formula == calc.formula
 
+    # calc files
+    assert len(coe_calc.files) == len(calc.files)
+
     # user meta data
     assert coe_calc.comment == calc.comment
     assert len(coe_calc.references) == len(calc.references)
@@ -97,8 +100,9 @@ def assert_coe_calc(coe_calc: Calc, calc: datamodel.DFTCalcWithMetadata, has_han
         assert not coe_calc.with_embargo
 
 
-def test_add_normalized_calc(postgres, normalized: parsing.LocalBackend, test_user):
-    calc_with_metadata = datamodel.DFTCalcWithMetadata()
+def test_add_normalized_calc(postgres, example_mainfile: Tuple[str, str], normalized: parsing.LocalBackend, test_user):
+    _, mainfile = example_mainfile
+    calc_with_metadata = datamodel.DFTCalcWithMetadata(mainfile=mainfile)
     calc_with_metadata.apply_domain_metadata(normalized)
     calc_with_metadata.uploader = test_user.to_popo()
     calc_with_metadata.files = [calc_with_metadata.mainfile, '1', '2', '3', '4']

@@ -173,9 +173,12 @@ def sqlalchemy_repository_db(exists: bool = False, readonly: bool = True, **kwar
     if not exists:
         with repository_db_connection(dbname=dbname) as conn:
             with conn.cursor() as cur:
-                cur.execute(
-                    "UPDATE public.users SET password='%s' WHERE user_id=0;" %
-                    bcrypt.encrypt(config.services.admin_password, ident='2y'))
+                try:
+                    cur.execute(
+                        "UPDATE public.users SET password='%s' WHERE user_id=0;" %
+                        bcrypt.encrypt(config.services.admin_password, ident='2y'))
+                except Exception as e:
+                    logger.warning('could not update admin password', exc_info=e)
 
     def no_flush():
         pass
@@ -410,7 +413,7 @@ def send_mail(name: str, email: str, message: str, subject: str):
         try:
             server.starttls()
         except Exception as e:
-            logger.warning('Could use TTS', exc_info=e)
+            logger.warning('Could not use TTS', exc_info=e)
 
     if config.mail.with_login:
         try:
@@ -420,7 +423,7 @@ def send_mail(name: str, email: str, message: str, subject: str):
 
     msg = MIMEText(message)
     msg['Subject'] = subject
-    msg['From'] = config.mail.from_address
+    msg['From'] = 'The nomad team <%s>' % config.mail.from_address
     msg['To'] = name
 
     try:

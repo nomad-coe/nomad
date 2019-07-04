@@ -1160,6 +1160,26 @@ class NomadCOEMigration:
         self.logger.info('set pid prefix', pid_prefix=prefix)
         self.client.admin.exec_pidprefix_command(payload=dict(prefix=prefix)).response()
 
+    def call_paginated_api(self, *args, **kwargs) -> List[Any]:
+        """
+        Calls nomad via :func:`call_api` multiple times and yields all paginated results. Works
+        only for endpoints with pagination of course.
+        """
+        all_results: List[Any] = []
+        page = 1
+        stop = False
+        kwargs.update(page=page)
+        while not stop:
+            response = self.call_api(*args, **kwargs)
+            for result in response.results:
+                all_results.append(result)
+
+            pagination = response.pagination
+            if pagination.total <= pagination.per_page * pagination.page:
+                stop = True
+
+        return all_results
+
     def call_api(self, operation: str, *args, **kwargs) -> Any:
         """
         Calls nomad via the bravado client. It deals with a very busy nomad and catches,
@@ -1334,7 +1354,7 @@ class NomadCOEMigration:
 
         logger = self.logger.bind(package_id=package_id, source_upload_id=source_upload_id)
 
-        uploads = self.call_api('uploads.get_uploads', all=True, name=package_id)
+        uploads = self.call_paginated_api('uploads.get_uploads', state='all', name=package_id)
         if len(uploads) > 1:
             self.logger.warning('upload name is not unique')
         if len(uploads) == 0:
@@ -1396,7 +1416,7 @@ class NomadCOEMigration:
         # check if the package is already uploaded
         upload = None
         try:
-            uploads = self.call_api('uploads.get_uploads', all=True, name=package_id)
+            uploads = self.call_paginated_api('uploads.get_uploads', state='all', name=package_id)
             if len(uploads) > 1:
                 event = 'duplicate upload name'
                 package.migration_failure = event
