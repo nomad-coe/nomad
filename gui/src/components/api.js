@@ -141,6 +141,10 @@ class Api {
       'X-Token': user.token
     }
     this.swaggerPromise = Api.createSwaggerClient(user.token).catch(this.handleApiError)
+
+    // keep a list of localUploads, these are uploads that are currently uploaded through
+    // the browser and that therefore not yet returned by the backend
+    this.localUploads = []
   }
 
   handleApiError(e) {
@@ -160,27 +164,45 @@ class Api {
   }
 
   createUpload(name) {
-    return new Upload({
+    const upload = new Upload({
       name: name,
       tasks: ['uploading', 'extract', 'parse_all', 'cleanup'],
       current_task: 'uploading',
       uploading: 0,
       create_time: new Date()
     }, this)
+
+    return upload
   }
 
-  async getUploads() {
+  async getUnpublishedUploads() {
     this.onStartLoading()
     return this.swaggerPromise
-      .then(client => client.apis.uploads.get_uploads())
+      .then(client => client.apis.uploads.get_uploads({state: 'unpublished', page: 1, per_page: 1000}))
       .catch(this.handleApiError)
       .then(response => ({
+        ...response.body,
         results: response.body.results.map(uploadJson => {
           const upload = new Upload(uploadJson, this)
           upload.uploading = 100
           return upload
-        }),
-        ...response
+        })
+      }))
+      .finally(this.onFinishLoading)
+  }
+
+  async getPublishedUploads(page, perPage) {
+    this.onStartLoading()
+    return this.swaggerPromise
+      .then(client => client.apis.uploads.get_uploads({state: 'published', page: page || 1, per_page: perPage || 10}))
+      .catch(this.handleApiError)
+      .then(response => ({
+        ...response.body,
+        results: response.body.results.map(uploadJson => {
+          const upload = new Upload(uploadJson, this)
+          upload.uploading = 100
+          return upload
+        })
       }))
       .finally(this.onFinishLoading)
   }

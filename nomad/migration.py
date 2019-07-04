@@ -1354,7 +1354,7 @@ class NomadCOEMigration:
 
         logger = self.logger.bind(package_id=package_id, source_upload_id=source_upload_id)
 
-        uploads = self.call_paginated_api('uploads.get_uploads', all=True, name=package_id).results
+        uploads = self.call_paginated_api('uploads.get_uploads', state='all', name=package_id)
         if len(uploads) > 1:
             self.logger.warning('upload name is not unique')
         if len(uploads) == 0:
@@ -1416,7 +1416,7 @@ class NomadCOEMigration:
         # check if the package is already uploaded
         upload = None
         try:
-            uploads = self.call_paginated_api('uploads.get_uploads', all=True, name=package_id)
+            uploads = self.call_paginated_api('uploads.get_uploads', state='all', name=package_id)
             if len(uploads) > 1:
                 event = 'duplicate upload name'
                 package.migration_failure = event

@@ -40,7 +40,7 @@ api:
   ## Disable the dangerous reset (delete all data) function
   disableReset: "true"
   ## Limit of unpublished uploads per user, except admin user
-  uploadLimit: 20
+  uploadLimit: 10
 
 ## Everything concerning the nomad worker
 worker:

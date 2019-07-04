@@ -131,7 +131,7 @@ upload_metadata_parser.add_argument('curl', type=bool, help='Provide a human rea
 upload_metadata_parser.add_argument('file', type=FileStorage, help='The file to upload.', location='files')
 
 upload_list_parser = pagination_request_parser.copy()
-upload_list_parser.add_argument('all', type=bool, help='List all uploads, including published.', location='args')
+upload_list_parser.add_argument('state', type=str, help='List uploads with given state: all, unpublished, published.', location='args')
 upload_list_parser.add_argument('name', type=str, help='Filter for uploads with the given name.', location='args')
 
 
@@ -178,13 +178,14 @@ class DisableMarshalling(Exception):
 @ns.route('/')
 class UploadListResource(Resource):
     @api.doc('get_uploads')
+    @api.response(400, 'Bad parameters')
     @api.marshal_with(upload_list_model, skip_none=True, code=200, description='Uploads send')
     @api.expect(upload_list_parser)
     @login_really_required
     def get(self):
         """ Get the list of all uploads from the authenticated user. """
         try:
-            all = bool(request.args.get('all', False))
+            state = request.args.get('state', 'unpublished')
             name = request.args.get('name', None)
             page = int(request.args.get('page', 1))
             per_page = int(request.args.get('per_page', 10))
@@ -198,8 +199,15 @@ class UploadListResource(Resource):
             abort(400, message='invalid pagination')
 
         query_kwargs = {}
-        if not all:
+        if state == 'published':
+            query_kwargs.update(published=True)
+        elif state == 'unpublished':
             query_kwargs.update(published=False)
+        elif state == 'all':
+            pass
+        else:
+            abort(400, message='bad state value %s' % state)
+
         if name is not None:
             query_kwargs.update(name=name)
 
@@ -208,7 +216,7 @@ class UploadListResource(Resource):
 
         results = [
             upload
-            for upload in uploads[(page - 1) * per_page: page * per_page]]
+            for upload in uploads.order_by('-upload_time')[(page - 1) * per_page: page * per_page]]
 
         return dict(
             pagination=dict(total=total, page=page, per_page=per_page),

@@ -19,6 +19,7 @@ class Upload extends React.Component {
     checked: PropTypes.bool,
     onCheckboxChanged: PropTypes.func,
     onDoesNotExist: PropTypes.func,
+    onPublished: PropTypes.func,
     history: PropTypes.any.isRequired
   }
 
@@ -85,7 +86,7 @@ class Upload extends React.Component {
       orderBy: 'tasks_status',
       order: 'asc'
     },
-    updating: true // it is still not complete and continieusly looking for updates
+    updating: true // it is still not complete and continuously looking for updates
   }
 
   _unmounted = false
@@ -102,7 +103,9 @@ class Upload extends React.Component {
         if (!this._unmounted) {
           if (published) {
             this.setState({...params})
-            this.props.onDoesNotExist()
+            if (this.props.onPublished) {
+              this.props.onPublished()
+            }
             return
           }
           const continueUpdating = tasks_running || process_running || current_task === 'uploading'
@@ -195,10 +198,10 @@ class Upload extends React.Component {
       step = 'upload'
     } else if (task_index > 0 && tasks_running) {
       step = 'process'
-    } else {
+    } else if (!upload.published) {
       step = 'publish'
     }
-    const stepIndex = steps.indexOf(step)
+    const stepIndex = upload.published ? steps.length : steps.indexOf(step)
 
     const labelPropsFactories = {
       upload: (props) => {
@@ -277,24 +280,28 @@ class Upload extends React.Component {
         }
       },
       publish: (props) => {
-        props.children = 'inspect'
-
-        if (process_running) {
-          if (current_process === 'publish_upload') {
-            props.children = 'approved'
-            props.optional = <Typography variant="caption">moving data ...</Typography>
-          } else if (current_process === 'delete_upload') {
-            props.children = 'declined'
-            props.optional = <Typography variant="caption">deleting data ...</Typography>
-          }
+        if (upload.published) {
+          props.children = 'published'
         } else {
-          props.optional = <Typography variant="caption">publish or delete</Typography>
+          props.children = 'inspect'
+
+          if (process_running) {
+            if (current_process === 'publish_upload') {
+              props.children = 'approved'
+              props.optional = <Typography variant="caption">moving data ...</Typography>
+            } else if (current_process === 'delete_upload') {
+              props.children = 'declined'
+              props.optional = <Typography variant="caption">deleting data ...</Typography>
+            }
+          } else {
+            props.optional = <Typography variant="caption">publish or delete</Typography>
+          }
         }
       }
     }
 
     return (
-      <Stepper activeStep={steps.indexOf(step)} classes={{root: classes.stepper}}>
+      <Stepper activeStep={stepIndex} classes={{root: classes.stepper}}>
         {steps.map((label, index) => {
           const labelProps = {
             children: label
@@ -454,6 +461,28 @@ class Upload extends React.Component {
     )
   }
 
+  renderCheckBox() {
+    const { classes } = this.props
+    const { upload } = this.state
+
+    if (upload.tasks_running || upload.process_running) {
+      return <div className={classes.progress}>
+        <CircularProgress size={32}/>
+      </div>
+    } else if (!upload.published) {
+      return <FormControlLabel control={(
+        <Checkbox
+          checked={this.props.checked}
+          className={classes.checkbox}
+          onClickCapture={(e) => e.stopPropagation()}
+          onChange={this.onCheckboxChanged.bind(this)}
+        />
+      )}/>
+    } else {
+      return ''
+    }
+  }
+
   render() {
     const { classes } = this.props
     const { upload } = this.state
@@ -464,21 +493,10 @@ class Upload extends React.Component {
         <div className={classes.root}>
           <ExpansionPanel>
             <ExpansionPanelSummary
-              expandIcon={<ExpandMoreIcon/>} classes={{root: classes.summary}}>
-              {(upload.tasks_running || upload.process_running)
-                ? <div className={classes.progress}>
-                  <CircularProgress size={32}/>
-                </div>
-                : <FormControlLabel control={(
-                  <Checkbox
-                    checked={this.props.checked}
-                    className={classes.checkbox}
-                    onClickCapture={(e) => e.stopPropagation()}
-                    onChange={this.onCheckboxChanged.bind(this)}
-                  />
-                )}/>
-              }
-              {this.renderTitle()} {this.renderStepper()}
+              expandIcon={<ExpandMoreIcon/>}
+              classes={{root: classes.summary}}>
+
+              {this.renderCheckBox()} {this.renderTitle()} {this.renderStepper()}
             </ExpansionPanelSummary>
             <ExpansionPanelDetails style={{width: '100%'}} classes={{root: classes.details}}>
               {errors && errors.length > 0

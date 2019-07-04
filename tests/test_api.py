@@ -403,7 +403,7 @@ class TestUploads:
         # still visible
         assert client.get('/uploads/%s' % upload['upload_id'], headers=test_user_auth).status_code == 200
         # still listed with all=True
-        rv = client.get('/uploads/?all=True', headers=test_user_auth)
+        rv = client.get('/uploads/?state=all', headers=test_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)['results']
         assert len(data) > 0

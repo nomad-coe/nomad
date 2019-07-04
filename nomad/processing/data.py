@@ -413,7 +413,7 @@ class Upload(Proc):
 
     meta: Any = {
         'indexes': [
-            'user_id', 'tasks_status', 'process_status', 'published'
+            'user_id', 'tasks_status', 'process_status', 'published', 'upload_time'
         ]
     }
 
