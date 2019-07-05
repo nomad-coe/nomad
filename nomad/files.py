@@ -604,6 +604,7 @@ class ArchiveBasedStagingUploadFiles(StagingUploadFiles):
 class PublicUploadFiles(UploadFiles):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(config.fs.public, *args, **kwargs)
+        self.zip_files = {}
 
     def _file(self, prefix: str, ext: str, path: str, *args, **kwargs) -> IO:
         mode = kwargs.get('mode') if len(args) == 0 else args[0]
@@ -613,15 +614,20 @@ class PublicUploadFiles(UploadFiles):
 
         for access in ['public', 'restricted']:
             try:
-                zip_file = self.join_file('%s-%s.%s.zip' % (prefix, access, ext))
-                with ZipFile(zip_file.os_path) as zf:
-                    f = zf.open(path, 'r', **kwargs)
-                    if (access == 'restricted' or always_restricted(path)) and not self._is_authorized():
-                        raise Restricted
-                    if 't' in mode:
-                        return io.TextIOWrapper(f)
-                    else:
-                        return f
+                if access in self.zip_files:
+                    zf = self.zip_files[access]
+                else:
+                    zip_file = self.join_file('%s-%s.%s.zip' % (prefix, access, ext))
+                    zf = ZipFile(zip_file.os_path)
+                    self.zip_files[access] = zf
+
+                f = zf.open(path, 'r', **kwargs)
+                if (access == 'restricted' or always_restricted(path)) and not self._is_authorized():
+                    raise Restricted
+                if 't' in mode:
+                    return io.TextIOWrapper(f)
+                else:
+                    return f
             except FileNotFoundError:
                 pass
             except KeyError:

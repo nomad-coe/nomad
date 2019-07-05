@@ -34,10 +34,15 @@ def _create_client(*args, **kwargs):
     return __create_client(*args, **kwargs)
 
 
-def __create_client(user: str = nomad_config.client.user, password: str = nomad_config.client.password):
+def __create_client(user: str = nomad_config.client.user, password: str = nomad_config.client.password, ssl_verify: bool = True):
     """ A factory method to create the client. """
     host = urlparse(nomad_config.client.url).netloc.split(':')[0]
-    http_client = RequestsClient()
+
+    if not ssl_verify:
+        import warnings
+        warnings.filterwarnings("ignore")
+
+    http_client = RequestsClient(ssl_verify=ssl_verify)
     if user is not None:
         http_client.set_basic_auth(host, user, password)
 
@@ -67,9 +72,10 @@ def handle_common_errors(func):
 @click.option('-u', '--user', default=None, help='the user name to login, default is "%s" login.' % nomad_config.client.user)
 @click.option('-w', '--password', default=nomad_config.client.password, help='the password used to login.')
 @click.option('-v', '--verbose', help='sets log level to info', is_flag=True)
+@click.option('--no-ssl-verify', help='disables SSL verificaton when talking to nomad.', is_flag=True)
 @click.option('--debug', help='sets log level to debug', is_flag=True)
 @click.option('--config', help='the config file to use')
-def cli(url: str, verbose: bool, debug: bool, user: str, password: str, config: str):
+def cli(url: str, verbose: bool, debug: bool, user: str, password: str, config: str, no_ssl_verify: bool):
     if config is not None:
         nomad_config.load_config(config_file=config)
 
@@ -95,10 +101,10 @@ def cli(url: str, verbose: bool, debug: bool, user: str, password: str, config: 
     def _create_client(*args, **kwargs):  # pylint: disable=W0612
         if user is not None:
             logger.info('create client', user=user)
-            return __create_client(user=user, password=password)
+            return __create_client(user=user, password=password, ssl_verify=not no_ssl_verify)
         else:
             logger.info('create anonymous client')
-            return __create_client()
+            return __create_client(ssl_verify=not no_ssl_verify)
 
 
 @cli.command(help='Attempts to reset the nomad.')
