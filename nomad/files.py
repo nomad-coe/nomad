@@ -58,6 +58,7 @@ import tarfile
 import hashlib
 import io
 import pickle
+import cachetools
 
 from nomad import config, utils
 from nomad.datamodel import UploadWithMetadata
@@ -601,10 +602,27 @@ class ArchiveBasedStagingUploadFiles(StagingUploadFiles):
         assert False, 'do not add_rawfiles to a %s' % self.__class__.__name__
 
 
+class LRUZipFileCache(cachetools.LRUCache):
+    """ Specialized cache that closes the cached zipfiles on eviction """
+    def __init__(self, maxsize):
+        super().__init__(maxsize)
+
+    def popitem(self):
+        key, val = super().popitem()
+        val.close()
+        return key, val
+
+
 class PublicUploadFiles(UploadFiles):
+    __zip_file_cache = LRUZipFileCache(maxsize=128)
+
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(config.fs.public, *args, **kwargs)
-        self.zip_files = {}
+
+    @cachetools.cached(cache=__zip_file_cache)
+    def get_zip_file(self, prefix: str, access: str, ext: str) -> ZipFile:
+        zip_file = self.join_file('%s-%s.%s.zip' % (prefix, access, ext))
+        return ZipFile(zip_file.os_path)
 
     def _file(self, prefix: str, ext: str, path: str, *args, **kwargs) -> IO:
         mode = kwargs.get('mode') if len(args) == 0 else args[0]
@@ -614,12 +632,7 @@ class PublicUploadFiles(UploadFiles):
 
         for access in ['public', 'restricted']:
             try:
-                if access in self.zip_files:
-                    zf = self.zip_files[access]
-                else:
-                    zip_file = self.join_file('%s-%s.%s.zip' % (prefix, access, ext))
-                    zf = ZipFile(zip_file.os_path)
-                    self.zip_files[access] = zf
+                zf = self.get_zip_file(prefix, access, ext)
 
                 f = zf.open(path, 'r', **kwargs)
                 if (access == 'restricted' or always_restricted(path)) and not self._is_authorized():
@@ -641,13 +654,12 @@ class PublicUploadFiles(UploadFiles):
     def raw_file_size(self, file_path: str) -> int:
         for access in ['public', 'restricted']:
             try:
-                zip_file = self.join_file('raw-%s.plain.zip' % access)
-                with ZipFile(zip_file.os_path) as zf:
-                    info = zf.getinfo(file_path)
-                    if (access == 'restricted' or always_restricted(file_path)) and not self._is_authorized():
-                        raise Restricted
+                zf = self.get_zip_file('raw', access, 'plain')
+                info = zf.getinfo(file_path)
+                if (access == 'restricted' or always_restricted(file_path)) and not self._is_authorized():
+                    raise Restricted
 
-                    return info.file_size
+                return info.file_size
             except FileNotFoundError:
                 pass
             except KeyError:
@@ -658,11 +670,10 @@ class PublicUploadFiles(UploadFiles):
     def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
         for access in ['public', 'restricted']:
             try:
-                zip_file = self.join_file('raw-%s.plain.zip' % access)
-                with ZipFile(zip_file.os_path) as zf:
-                    for path in zf.namelist():
-                        if path_prefix is None or path.startswith(path_prefix):
-                            yield path
+                zf = self.get_zip_file('raw', access, 'plain')
+                for path in zf.namelist():
+                    if path_prefix is None or path.startswith(path_prefix):
+                        yield path
             except FileNotFoundError:
                 pass
 

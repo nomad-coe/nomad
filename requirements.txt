@@ -46,6 +46,7 @@ python-magic
 runstats
 pyyaml
 tabulate
+cachetools
 
 # dev/ops related
 setuptools
