@@ -46,6 +46,15 @@ def test_password_authorize(test_user):
     assert_user(user, test_user)
 
 
+def test_generate_token(postgres_infra):
+    user = User.create_user(
+        'test@email.com', 'password', False,
+        first_name='test', last_name='test',
+        affiliation=dict(name='institut', address='address'),
+        generate_token=False)
+    assert user.get_auth_token() is not None
+
+
 def assert_coe_upload(upload_id: str, upload: datamodel.UploadWithMetadata = None, user_metadata: dict = None):
     coe_upload = Upload.from_upload_id(upload_id)
 
