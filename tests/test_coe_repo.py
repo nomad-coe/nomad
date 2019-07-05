@@ -48,7 +48,7 @@ def test_password_authorize(test_user):
 
 def test_generate_token(postgres_infra):
     user = User.create_user(
-        'test@email.com', 'password', False,
+        'test@email.com', 'password', False, user_id=6000,
         first_name='test', last_name='test',
         affiliation=dict(name='institut', address='address'),
         generate_token=False)
