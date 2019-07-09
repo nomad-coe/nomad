@@ -258,7 +258,7 @@ class SearchPage extends React.Component {
 
           <div className={classes.searchResults}>
             <Typography variant="caption" style={{margin: 12}}>
-              About {total} results:
+              About {total.toLocaleString()} results:
             </Typography>
 
             <SearchResultList
