@@ -56,8 +56,6 @@ def test_generate_token(postgres, test_user):
 
     assert test_user.get_auth_token() is not None
 
-    postgres.expunge(test_user)
-
 
 def assert_coe_upload(upload_id: str, upload: datamodel.UploadWithMetadata = None, user_metadata: dict = None):
     coe_upload = Upload.from_upload_id(upload_id)
