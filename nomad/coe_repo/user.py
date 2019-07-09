@@ -125,26 +125,29 @@ class User(Base):  # type: ignore
     def from_user_id(user_id) -> 'User':
         return infrastructure.repository_db.query(User).get(user_id)
 
-    def get_auth_token(self):
+    def get_auth_token(self, create: bool = True):
         repo_db = infrastructure.repository_db
         session = repo_db.query(Session).filter_by(user_id=self.user_id).first()
 
         if not session:
-            # No session, user probably not logged in at NOMAD-coe repository GUI
-            repo_db.begin()
-            try:
-                # TODO this has to change, e.g. trade for JWTs
-                token = ''.join(random.choices(User._token_chars, k=64))
-                session = Session(token=token, user=self)
-                repo_db.add(session)
+            if create:
+                repo_db.begin()
+                try:
+                    # TODO this has to change, e.g. trade for JWTs
+                    token = ''.join(random.choices(User._token_chars, k=64))
+                    session = Session(token=token, user=self)
+                    repo_db.add(session)
 
-                repo_db.commit()
-            except Exception as e:
-                repo_db.rollback()
-                utils.get_logger('__name__').error(
-                    'could not generate token for user', email=self.email, user_id=self.user_id,
-                    exc_info=e)
-                raise e
+                    repo_db.commit()
+                except Exception as e:
+                    repo_db.rollback()
+                    utils.get_logger('__name__').error(
+                        'could not generate token for user', email=self.email, user_id=self.user_id,
+                        exc_info=e)
+                    raise e
+            else:
+                raise LoginException(
+                    'No session, user probably not logged in at NOMAD-coe repository GUI')
 
         return session.token.encode('utf-8')
 
@@ -176,7 +179,7 @@ class User(Base):  # type: ignore
 
     @property
     def token(self):
-        return self.get_auth_token().decode('utf-8')
+        return self.get_auth_token(create=False).decode('utf-8')
 
     @property
     def is_admin(self) -> bool:
