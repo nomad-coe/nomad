@@ -17,6 +17,7 @@ import { Help } from '../help'
 class SearchPage extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
+    match: PropTypes.any,
     api: PropTypes.object.isRequired,
     user: PropTypes.object,
     raiseError: PropTypes.func.isRequired,
@@ -85,6 +86,8 @@ class SearchPage extends React.Component {
     this.updateSearchResultList = this.updateSearchResultList.bind(this)
     this.updateSearch = this.updateSearch.bind(this)
     this.handleClickExpand = this.handleClickExpand.bind(this)
+
+    this._mounted = false
   }
 
   updateSearchResultList(changes) {
@@ -102,6 +105,10 @@ class SearchPage extends React.Component {
   }
 
   update(changes) {
+    if (!this._mounted) {
+      return
+    }
+
     changes = changes || {}
     const { owner, searchResultListState, searchState } = {...this.state, ...changes}
     const { searchValues, ...searchStateRest } = searchState
@@ -123,12 +130,22 @@ class SearchPage extends React.Component {
   }
 
   componentDidMount() {
+    this._mounted = true
     this.update()
   }
 
+  componentWillUnmount() {
+    this._mounted = false
+  }
+
   componentDidUpdate(prevProps) {
-    if (prevProps.api !== this.props.api) {
+    if (prevProps.api !== this.props.api) { // login/logout case, reload results
       this.update()
+    } else if (prevProps.match.path !== this.props.match.path) { // navigation case
+      // update if we went back to the search
+      if (this.props.match.path === '/search' && this.props.match.isExact) {
+        this.update()
+      }
     }
   }
 
