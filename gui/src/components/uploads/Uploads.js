@@ -1,7 +1,7 @@
 import React from 'react'
 import PropTypes, { instanceOf } from 'prop-types'
 import Markdown from '../Markdown'
-import { withStyles, Paper, IconButton, FormGroup, Checkbox, FormControlLabel, FormLabel, Tooltip, Typography } from '@material-ui/core'
+import { withStyles, Paper, IconButton, FormGroup, Checkbox, FormControlLabel, FormLabel, Tooltip } from '@material-ui/core'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import Dropzone from 'react-dropzone'
 import Upload from './Upload'
