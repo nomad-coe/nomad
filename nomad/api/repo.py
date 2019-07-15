@@ -186,13 +186,13 @@ class RepoCalcsResource(Resource):
         if order not in [-1, 1]:
             abort(400, message='invalid pagination')
 
-        if owner == 'migrated':
-            # TODO this should be removed after migration
-            q = Q('term', published=True) & Q('term', with_embargo=False)
-            if g.user is not None:
-                q = q | Q('term', owners__user_id=g.user.user_id)
-            q = q & ~Q('term', **{'uploader.user_id': 1})  # pylint: disable=invalid-unary-operand-type
-        elif owner == 'all':
+        # TODO this should be removed after migration
+        # if owner == 'migrated':
+        #     q = Q('term', published=True) & Q('term', with_embargo=False)
+        #     if g.user is not None:
+        #         q = q | Q('term', owners__user_id=g.user.user_id)
+        #     q = q & ~Q('term', **{'uploader.user_id': 1})  # pylint: disable=invalid-unary-operand-type
+        if owner == 'all':
             q = Q('term', published=True) & Q('term', with_embargo=False)
             if g.user is not None:
                 q = q | Q('term', owners__user_id=g.user.user_id)
