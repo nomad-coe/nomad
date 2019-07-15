@@ -75,7 +75,7 @@ def clean(dry, skip_calcs, skip_fs, skip_es):
     if not skip_calcs:
         uploads_for_calcs = mongo_client[nomad_config.mongo.db_name]['calc'].distinct('upload_id')
         uploads = {}
-        for upload in mongo_client[nomad_config.mongo.db_name]['calc'].distinct('_id'):
+        for upload in mongo_client[nomad_config.mongo.db_name]['upload'].distinct('_id'):
             uploads[upload] = True
 
         missing_uploads = []
