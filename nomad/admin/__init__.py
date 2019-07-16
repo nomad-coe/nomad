@@ -23,4 +23,4 @@ from .__main__ import cli as cli_main
 
 
 def cli():
-    cli_main(obj=POPO())
+    cli_main(obj=POPO())  # pylint: disable=E1120,E1123

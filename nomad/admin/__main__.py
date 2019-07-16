@@ -20,7 +20,7 @@ import shutil
 from tabulate import tabulate
 from elasticsearch_dsl import A
 
-from nomad import config as nomad_config, infrastructure, processing, utils
+from nomad import config as nomad_config, infrastructure, processing
 from nomad.search import Search
 
 
@@ -145,4 +145,4 @@ def clean(dry, skip_calcs, skip_fs, skip_es):
 
 
 if __name__ == '__main__':
-    cli(obj={})  # pylint: disable=E1120
+    cli(obj={})  # pylint: disable=E1120,E1123

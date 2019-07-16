@@ -16,6 +16,6 @@
 Swagger/bravado based python client library for the API and various usefull shell commands.
 """
 
-from . import local, migration, upload, integrationtests
+from . import local, migration, upload, integrationtests, parse
 from .__main__ import cli, create_client
 from .upload import stream_upload_with_client
