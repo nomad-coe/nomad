@@ -15,8 +15,9 @@
 import click
 from tabulate import tabulate
 from mongoengine import Q
+from pymongo import UpdateOne
 
-from nomad import processing as proc, infrastructure, utils, search, files
+from nomad import processing as proc, infrastructure, utils, search, files, coe_repo
 from .__main__ import cli
 
 
@@ -61,6 +62,37 @@ def ls(ctx, uploads):
             [upload.upload_id, upload.name, upload.user_id, upload.process_status, upload.published]
             for upload in uploads[:10]],
         headers=['id', 'name', 'user', 'status', 'published']))
+
+
+@upload.command(help='Change the owner of the upload and all its calcs.')
+@click.argument('USER', nargs=1)
+@click.argument('UPLOADS', nargs=-1)
+@click.pass_context
+def chown(ctx, user, uploads):
+    infrastructure.setup_repository_db()
+    _, uploads = query_uploads(ctx, uploads)
+
+    print('%d uploads selected, changing its owner ...' % uploads.count())
+
+    user_id = str(user)
+    user = coe_repo.User.from_user_id(user_id)
+
+    for upload in uploads:
+        upload.user_id = user_id
+        upload_with_metadata = upload.to_upload_with_metadata()
+        calcs = upload_with_metadata.calcs
+
+        def create_update(calc):
+            return UpdateOne(
+                {'_id': calc.calc_id},
+                {'$set': {'metadata.uploader': user.to_popo()}})
+
+        proc.Calc._get_collection().bulk_write([create_update(calc) for calc in calcs])
+        upload.save()
+
+        upload_with_metadata = upload.to_upload_with_metadata()
+        calcs = upload_with_metadata.calcs
+        search.publish(calcs)
 
 
 @upload.command(help='Delete selected upload')
