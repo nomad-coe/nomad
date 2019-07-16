@@ -89,17 +89,22 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         super().__init__(**kwargs)
 
     def apply_domain_metadata(self, backend):
+        from nomad.normalizing.system import normalized_atom_labels
+
         logger = utils.get_logger(__name__).bind(
             upload_id=self.upload_id, calc_id=self.calc_id, mainfile=self.mainfile)
 
         self.code_name = backend.get_value('program_name', 0)
-        self.code_version = simplify_version(backend.get_value('program_version', 0))
+        try:
+            self.code_version = simplify_version(backend.get_value('program_version', 0))
+        except KeyError:
+            self.code_version = config.services.unavailable_value
 
         self.atoms = get_optional_backend_value(backend, 'atom_labels', 'section_system', logger=logger)
         if hasattr(self.atoms, 'tolist'):
             self.atoms = self.atoms.tolist()
         self.n_atoms = len(self.atoms)
-        self.atoms = list(set(self.atoms))
+        self.atoms = list(set(normalized_atom_labels(set(self.atoms))))
         self.atoms.sort()
 
         self.crystal_system = get_optional_backend_value(

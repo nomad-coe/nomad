@@ -16,12 +16,30 @@ from typing import Any
 import ase
 import numpy as np
 import json
+import re
 
 from matid import SymmetryAnalyzer
 from matid.geometry import get_dimensionality
 
 from nomad import utils, config
 from nomad.normalizing.normalizer import SystemBasedNormalizer
+
+
+# use a regular expression to check atom labels; expression is build from list of
+# all labels sorted desc to find Br and not B when searching for Br.
+atom_label_re = re.compile('|'.join(
+    sorted(ase.data.chemical_symbols, key=lambda x: len(x), reverse=True)))
+
+
+def normalized_atom_labels(atom_labels):
+    """
+    Normalizes the given atom labels: they either are labels right away, or contain
+    additional numbers (to distinguish same species but different labels, see meta-info),
+    or we replace them with ase placeholder atom for unknown elements 'X'.
+    """
+    return [
+        ase.data.chemical_symbols[0] if match is None else match.group(0)
+        for match in [re.search(atom_label_re, atom_label) for atom_label in atom_labels]]
 
 
 class SystemNormalizer(SystemBasedNormalizer):
@@ -66,20 +84,25 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         # analyze atoms labels
         atom_labels = get_value('atom_labels', nonp=True)
+        if atom_labels is not None:
+            atom_labels = normalized_atom_labels(atom_labels)
+
         atom_species = get_value('atom_species', nonp=True)
         if atom_labels is None and atom_species is None:
             self.logger.error('calculation has neither atom species nor labels')
             return
+
         # If there are no atom labels we create them from atom species data.
         if atom_labels is None:
-            atom_labels = list(ase.data.chemical_symbols[species] for species in atom_species)
-        # At this point we should have atom labels. Check that each atom label in the atom
-        # labels list is a true atom label by checking if it is in the ASE list of atom labels.
-        if not all(label in ase.data.chemical_symbols for label in atom_labels):
-            # Throw an error that the atom labels are poorly formated or there are unknown
-            # labels. Save first ten elemenets in logged error.
-            self.logger.error('Atom labels cannot be recognized.', atom_labels=atom_labels[:10])
-            return
+            try:
+                atom_labels = list(ase.data.chemical_symbols[species] for species in atom_species)
+            except IndexError:
+                self.logger.error('calculation has atom species that are out of range')
+                return
+
+            self._backend.addArrayValues('atom_labels', atom_labels)
+
+        # At this point we should have atom labels.
         try:
             atoms = ase.Atoms(symbols=atom_labels)
             chemical_symbols = list(atoms.get_chemical_symbols())
@@ -91,8 +114,6 @@ class SystemNormalizer(SystemBasedNormalizer):
                 'cannot build ase atoms from atom labels',
                 atom_labels=atom_labels[:10], exc_info=e, error=str(e))
             raise e
-        # Write labels. Rewrite if labels exist in backend already from parser.
-        self._backend.addArrayValues('atom_labels', atom_labels)
 
         if atom_species is None:
             atom_species = atoms.get_atomic_numbers().tolist()

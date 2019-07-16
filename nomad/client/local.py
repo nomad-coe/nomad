@@ -17,16 +17,16 @@ import os
 import io
 import requests
 import click
-from typing import Union, Callable, cast
+from typing import Union, Callable
 import sys
 import ujson
 import bravado.exception
 
 from nomad import config, utils
 from nomad.files import ArchiveBasedStagingUploadFiles
-from nomad.parsing import parser_dict, LocalBackend, match_parser
-from nomad.normalizing import normalizers
 from nomad.datamodel import CalcWithMetadata
+from nomad.parsing import LocalBackend
+from nomad.client.parse import parse, normalize, normalize_all
 
 from .__main__ import cli
 
@@ -126,30 +126,7 @@ class CalcProcReproduction:
         Run the given parser on the downloaded calculation. If no parser is given,
         do parser matching and use the respective parser.
         """
-        if parser_name is not None:
-            parser = parser_dict.get(parser_name)
-        else:
-            parser = match_parser(self.mainfile, self.upload_files)
-
-        assert parser is not None, 'there is not parser matching %s' % self.mainfile
-        self.logger = self.logger.bind(parser=parser.name)  # type: ignore
-        self.logger.info('identified parser')
-
-        parser_backend = parser.run(self.upload_files.raw_file_object(self.mainfile).os_path, logger=self.logger)
-
-        if not parser_backend.status[0] == 'ParseSuccess':
-            self.logger.error('parsing was not successful', status=parser_backend.status)
-
-        parser_backend.openNonOverlappingSection('section_entry_info')
-        parser_backend.addValue('upload_id', self.upload_id)
-        parser_backend.addValue('calc_id', self.calc_id)
-        parser_backend.addValue('calc_hash', "no hash")
-        parser_backend.addValue('mainfile', self.mainfile)
-        parser_backend.addValue('parser_name', parser.__class__.__name__)
-        parser_backend.closeNonOverlappingSection('section_entry_info')
-
-        self.logger.info('ran parser')
-        return parser_backend
+        return parse(self.mainfile, self.upload_files, parser_name=parser_name, logger=self.logger)
 
     def normalize(self, normalizer: Union[str, Callable], parser_backend: LocalBackend = None):
         """
@@ -158,28 +135,13 @@ class CalcProcReproduction:
         if parser_backend is None:
             parser_backend = self.parse()
 
-        if isinstance(normalizer, str):
-            normalizer = next(
-                normalizer_instance for normalizer_instance in normalizers
-                if normalizer_instance.__class__.__name__ == normalizer)
-
-        assert normalizer is not None, 'there is no normalizer %s' % str(normalizer)
-        normalizer_instance = cast(Callable, normalizer)(parser_backend)
-        logger = self.logger.bind(normalizer=normalizer_instance.__class__.__name__)
-        self.logger.info('identified normalizer')
-
-        normalizer_instance.normalize(logger=logger)
-        self.logger.info('ran normalizer')
-        return parser_backend
+        return normalize(parser_backend=parser_backend, normalizer=normalizer, logger=self.logger)
 
     def normalize_all(self, parser_backend: LocalBackend = None):
         """
         Parse the downloaded calculation and run the whole normalizer chain.
         """
-        for normalizer in normalizers:
-            parser_backend = self.normalize(normalizer, parser_backend=parser_backend)
-
-        return parser_backend
+        return normalize_all(parser_backend=parser_backend, logger=self.logger)
 
 
 @cli.command(help='Run processing locally.')
