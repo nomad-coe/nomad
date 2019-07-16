@@ -20,7 +20,7 @@ import shutil
 from tabulate import tabulate
 from elasticsearch_dsl import A
 
-from nomad import config as nomad_config, infrastructure, processing
+from nomad import config as nomad_config, infrastructure, processing, utils
 from nomad.search import Search
 
 
@@ -29,7 +29,8 @@ from nomad.search import Search
 @click.option('-v', '--verbose', help='sets log level to info', is_flag=True)
 @click.option('--debug', help='sets log level to debug', is_flag=True)
 @click.option('--config', help='the config file to use')
-def cli(verbose: bool, debug: bool, config: str):
+@click.pass_context
+def cli(ctx, verbose: bool, debug: bool, config: str):
     if config is not None:
         nomad_config.load_config(config_file=config)
 
@@ -144,4 +145,4 @@ def clean(dry, skip_calcs, skip_fs, skip_es):
 
 
 if __name__ == '__main__':
-    cli()  # pylint: disable=E1120
+    cli(obj={})  # pylint: disable=E1120

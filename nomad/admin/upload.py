@@ -20,23 +20,16 @@ from nomad import processing as proc, infrastructure, utils, search, files
 from .__main__ import cli
 
 
-uploads = None
-query = None
-
-
 @cli.group(help='Upload related commands')
-@click.option('--upload', help='Select upload of with given id', type=str)
 @click.option('--user', help='Select uploads of user with given id', type=str)
 @click.option('--staging', help='Select only uploads in staging', is_flag=True)
 @click.option('--processing', help='Select only processing uploads', is_flag=True)
-def upload(upload: str, user: str, staging: bool, processing: bool):
+@click.pass_context
+def upload(ctx, user: str, staging: bool, processing: bool):
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
-    global query
     query = Q()
-    if upload is not None:
-        query &= Q(upload_id=upload)
     if user is not None:
         query &= Q(user_id=user)
     if staging:
@@ -44,12 +37,24 @@ def upload(upload: str, user: str, staging: bool, processing: bool):
     if processing:
         query &= Q(process_status=proc.PROCESS_RUNNING) | Q(tasks_status=proc.RUNNING)
 
-    global uploads
-    uploads = proc.Upload.objects(query)
+    ctx.obj.query = query
+    ctx.obj.uploads = proc.Upload.objects(query)
+
+
+def query_uploads(ctx, uploads):
+    query = ctx.obj.query
+    if len(uploads) > 0:
+        query &= Q(upload_id__in=uploads)
+
+    return query, proc.Upload.objects(query)
 
 
 @upload.command(help='List selected uploads')
-def ls():
+@click.argument('UPLOADS', nargs=-1)
+@click.pass_context
+def ls(ctx, uploads):
+    _, uploads = query_uploads(ctx, uploads)
+
     print('%d uploads selected, showing no more than first 10' % uploads.count())
     print(tabulate(
         [
@@ -59,11 +64,15 @@ def ls():
 
 
 @upload.command(help='Delete selected upload')
+@click.argument('UPLOADS', nargs=-1)
 @click.option('--with-coe-repo', help='Also attempt to delete from repository db', is_flag=True)
 @click.option('--skip-es', help='Keep the elastic index version of the data.', is_flag=True)
 @click.option('--skip-mongo', help='Keep uploads and calcs in mongo.', is_flag=True)
 @click.option('--skip-files', help='Keep all related files.', is_flag=True)
-def rm(with_coe_repo, skip_es, skip_mongo, skip_files):
+@click.pass_context
+def rm(ctx, uploads, with_coe_repo, skip_es, skip_mongo, skip_files):
+    _, uploads = query_uploads(ctx, uploads)
+
     logger = utils.get_logger(__name__)
     print('%d uploads selected, deleting ...' % uploads.count())
 
@@ -100,9 +109,13 @@ def rm(with_coe_repo, skip_es, skip_mongo, skip_files):
 
 
 @upload.command(help='Attempt to abort the processing of uploads.')
+@click.argument('UPLOADS', nargs=-1)
 @click.option('--calcs', is_flag=True, help='Only stop calculation processing.')
 @click.option('--kill', is_flag=True, help='Use the kill signal and force task failure.')
-def stop(calcs: bool, kill: bool):
+@click.pass_context
+def stop(ctx, uploads, calcs: bool, kill: bool):
+    query, _ = query_uploads(ctx, uploads)
+
     logger = utils.get_logger(__name__)
 
     def stop_all(query):
