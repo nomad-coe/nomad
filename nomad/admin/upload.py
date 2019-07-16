@@ -60,7 +60,10 @@ def ls():
 
 @upload.command(help='Delete selected upload')
 @click.option('--with-coe-repo', help='Also attempt to delete from repository db', is_flag=True)
-def rm(with_coe_repo):
+@click.option('--skip-es', help='Keep the elastic index version of the data.', is_flag=True)
+@click.option('--skip-mongo', help='Keep uploads and calcs in mongo.', is_flag=True)
+@click.option('--skip-files', help='Keep all related files.', is_flag=True)
+def rm(with_coe_repo, skip_es, skip_mongo, skip_files):
     logger = utils.get_logger(__name__)
     print('%d uploads selected, deleting ...' % uploads.count())
 
@@ -74,22 +77,26 @@ def rm(with_coe_repo):
             coe_repo.Upload.delete(upload.upload_id)
 
         # delete elastic
-        search.delete_upload(upload_id=upload.upload_id)
+        if not skip_es:
+            search.delete_upload(upload_id=upload.upload_id)
 
         # delete files
-        for _ in range(0, 2):
-            upload_files = files.UploadFiles.get(upload_id=upload.upload_id)
+        if not skip_files:
+            # do it twice to get the two potential versions 'public' and 'staging'
+            for _ in range(0, 2):
+                upload_files = files.UploadFiles.get(upload_id=upload.upload_id)
 
-            try:
-                if upload_files is not None:
-                    upload_files.delete()
-            except Exception as e:
-                logger.error('could not delete files', exc_info=e)
-                break
+                try:
+                    if upload_files is not None:
+                        upload_files.delete()
+                except Exception as e:
+                    logger.error('could not delete files', exc_info=e)
+                    break
 
         # delete mongo
-        proc.Calc.objects(upload_id=upload.upload_id).delete()
-        upload.delete()
+        if not skip_mongo:
+            proc.Calc.objects(upload_id=upload.upload_id).delete()
+            upload.delete()
 
 
 @upload.command(help='Attempt to abort the processing of uploads.')
