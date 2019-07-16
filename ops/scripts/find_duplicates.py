@@ -38,8 +38,8 @@ def load_local_data():
         return json.load(f)
 
 
-# pid_dict = load_local_data()
-pid_dict = retrieve_remote_data()
+pid_dict = load_local_data()
+# pid_dict = retrieve_remote_data()
 print('data available ...')
 
 
@@ -53,12 +53,12 @@ def calc_dups():
     upload_dict = {}
     for _, uploads in pid_dict.items():
         for upload in uploads:
-            old = upload_dict.get(upload)
+            dup, single = upload_dict.get(upload, (0, 0))
             if len(uploads) >= 2:
-                upload_dict[upload] = 'full' if old is None or old == 'full' else 'partial'
+                dup += 1
             else:
-                if old is not None:
-                    upload_dict[upload] = 'partial'
+                single += 1
+            upload_dict[upload] = (dup, single)
 
     return upload_dict
 
@@ -66,15 +66,14 @@ def calc_dups():
 more = False
 while True:
     upload_dict = calc_dups()
-    for upload, value in upload_dict.items():
-        if value == 'full':
+    for upload, (dup, single) in upload_dict.items():
+        if singe == 0:
             print('full: ' + upload)
             remove_upload(upload)
             more = True
             break
 
     if not more:
-        for upload, value in upload_dict.items():
-            if value == 'partial':
-                print('partial: ' + upload)
+        for upload, (dup, single) in upload_dict.items():
+            print('partial: %s (%d vs %d)' % (upload, dup, single))
         break
