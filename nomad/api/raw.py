@@ -31,6 +31,14 @@ from .auth import login_if_available, create_authorization_predicate, \
 
 ns = api.namespace('raw', description='Downloading raw data files.')
 
+raw_file_list_model = api.model('RawFileList', {
+    'upload_id': fields.String(description='The id of the upload.'),
+    'directory': fields.String(description='The path to the directory in the upload.'),
+    'contents': fields.List(
+        fields.Nested(model=api.model('RawFileListContents', {
+            'file': fields.String(description='The file name'),
+            'size': fields.Integer(description='The file size in bytes')
+        })))})
 
 raw_file_compress_argument = dict(
     name='compress', type=bool, help='Use compression on .zip files, default is not.',
@@ -38,6 +46,43 @@ raw_file_compress_argument = dict(
 raw_file_from_path_parser = api.parser()
 raw_file_from_path_parser.add_argument(**raw_file_compress_argument)
 raw_file_from_path_parser.add_argument(**signature_token_argument)
+
+
+@ns.route('/list/<string:upload_id>/<path:directory>')
+@api.doc(params={
+    'upload_id': 'The unique id for the requested upload.',
+    'directory': 'The directory in the upload with the desired contents.'
+})
+@api.header('Content-Type', 'application/json')
+class RawFileList(Resource):
+    @api.doc('get')
+    @api.response(404, 'The upload or path does not exist')
+    @api.response(401, 'Not authorized to access the data.')
+    @api.response(200, 'File(s) send', headers={'Content-Type': 'application/json'})
+    @api.marshal_with(raw_file_list_model, skip_none=True, code=200, description='File list send')
+    @login_if_available
+    @with_signature_token
+    def get(self, upload_id: str, directory: str):
+        """
+        Get the contents of the given directory for the given upload.
+
+        If the path points to a file a single entry is returned. If the path
+        points to a directory, information on all files in the directory are returned.
+        """
+
+        upload_files = UploadFiles.get(upload_id, create_authorization_predicate(upload_id))
+        if upload_files is None:
+            abort(404, message='The upload with id %s does not exist.' % upload_id)
+
+        files = upload_files.raw_file_list(directory=directory)
+        if len(files) == 0:
+            abort(404, message='There are no files for %s.' % directory)
+        else:
+            return {
+                'upload_id': upload_id,
+                'directory': directory,
+                'contents': [dict(file=file, size=size) for file, size in files]
+            }
 
 
 @ns.route('/<string:upload_id>/<path:path>')

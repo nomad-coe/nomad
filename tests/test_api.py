@@ -863,7 +863,7 @@ class TestRaw(UploadFilesBasedTests):
         assert 'files' not in data
 
     @UploadFilesBasedTests.ignore_authorization
-    def test_raw_file_listing(self, client, upload, auth_headers):
+    def test_raw_file_list_alternatives(self, client, upload, auth_headers):
         url = '/raw/%s/examples' % upload
         rv = client.get(url, headers=auth_headers)
         assert rv.status_code == 404
@@ -957,6 +957,26 @@ class TestRaw(UploadFilesBasedTests):
         url = '/raw/doesnotexist?files=shoud/not/matter.txt'
         rv = client.get(url, headers=auth_headers)
 
+        assert rv.status_code == 404
+
+    @UploadFilesBasedTests.ignore_authorization
+    def test_raw_files_list(self, client, upload, auth_headers):
+        url = '/raw/list/%s/examples_template' % upload
+        rv = client.get(url, headers=auth_headers)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+
+        assert len(data['contents']) == 5
+        assert data['upload_id'] == upload
+        assert data['directory'] == 'examples_template'
+        for content in data['contents']:
+            assert content['file'] is not None
+            assert content['size'] >= 0
+
+    @UploadFilesBasedTests.ignore_authorization
+    def test_raw_files_list_missing(self, client, upload, auth_headers):
+        url = '/raw/list/%s/examples_' % upload
+        rv = client.get(url, headers=auth_headers)
         assert rv.status_code == 404
 
 

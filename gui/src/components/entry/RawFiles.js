@@ -9,7 +9,8 @@ import Download from './Download'
 class RawFiles extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    data: PropTypes.object.isRequired,
+    uploadId: PropTypes.str.isRequired,
+    mainfile: PropTypes.str.isRequired,
     api: PropTypes.object.isRequired,
     user: PropTypes.object,
     loading: PropTypes.number.isRequired
@@ -23,7 +24,28 @@ class RawFiles extends React.Component {
   })
 
   state = {
-    selectedFiles: []
+    selectedFiles: [],
+    files: null
+  }
+
+  componentDidMount() {
+    this.update()
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.api !== this.props.api) {
+      this.update()
+    }
+  }
+
+  update() {
+    const {uploadId, mainfile} = this.props
+    this.props.api.raw_file_list(uploadId, mainfile).then(data => {
+      this.setState({files: data.files})
+    }).catch(error => {
+      this.setState({files: null})
+      this.props.raiseError(error)
+    })
   }
 
   label(file) {
@@ -42,9 +64,22 @@ class RawFiles extends React.Component {
   }
 
   render() {
-    const {classes, data: {files, upload_id, calc_id}, loading} = this.props
-    const availableFiles = files || []
-    const {selectedFiles} = this.state
+    const {classes, uploadId, mainfile, loading} = this.props
+    const {selectedFiles, files} = this.state
+
+    const mainfileLocal = mainfile.split('/')[-1]
+
+    let availableFiles = [
+      {
+        file: mainfileLocal,
+        size: -1
+      }
+    ]
+
+    if (files) {
+      const mainfileIndex = files.findIndex(file => file.file === mainfileLocal)
+    }
+
     const someSelected = selectedFiles.length > 0
     const allSelected = availableFiles.length === selectedFiles.length && someSelected
 
@@ -65,7 +100,7 @@ class RawFiles extends React.Component {
           </FormLabel>
           <Download component={IconButton} disabled={selectedFiles.length === 0}
             tooltip="download selected files"
-            url={(selectedFiles.length === 1) ? `raw/${upload_id}/${selectedFiles[0]}` : `raw/${calc_id}?files=${encodeURIComponent(selectedFiles.join(','))}`}
+            url={(selectedFiles.length === 1) ? `raw/${uploadId}/${selectedFiles[0]}` : `raw/${calc_id}?files=${encodeURIComponent(selectedFiles.join(','))}`}
             fileName={selectedFiles.length === 1 ? this.label(selectedFiles[0]) : `${calc_id}.zip`}
           >
             <DownloadIcon />

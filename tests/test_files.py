@@ -221,6 +221,21 @@ class UploadFilesContract(UploadFilesFixtures):
         raw_files = list(upload_files.raw_file_manifest(path_prefix=prefix))
         assert_example_files(raw_files)
 
+    @pytest.mark.parametrize('prefix', [None, 'examples_template'])
+    def test_raw_file_list(self, test_upload: UploadWithFiles, prefix: str):
+        _, upload_files = test_upload
+        raw_files = list(upload_files.raw_file_list(directory=prefix))
+        if prefix is None:
+            assert len(raw_files) == 0
+        else:
+            assert '1.aux' in list(path for path, _ in raw_files)
+            for file, size in raw_files:
+                if file.endswith('.aux'):
+                    assert size == 0
+                else:
+                    assert size > 0
+            assert_example_files([os.path.join(prefix, path) for path, _ in raw_files])
+
     @pytest.mark.parametrize('test_logs', [True, False])
     def test_archive(self, test_upload: UploadWithFiles, test_logs: bool):
         upload, upload_files = test_upload

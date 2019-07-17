@@ -49,7 +49,7 @@ being other mainfiles. Therefore, the aux files of a restricted calc might becom
 """
 
 from abc import ABCMeta
-from typing import IO, Generator, Dict, Iterable, Callable
+from typing import IO, Generator, Dict, Iterable, Callable, List, Tuple
 import os.path
 import os
 import shutil
@@ -256,6 +256,16 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
             path_prefix: An optional prefix; only returns those files that have the prefix.
         Returns:
             An iterable over all (matching) raw files.
+        """
+        raise NotImplementedError()
+
+    def raw_file_list(self, directory: str) -> List[Tuple[str, int]]:
+        """
+        Gives a list of directory contents and its size.
+        Arguments:
+            directory: The directory to list
+        Returns:
+            A list of tuples with file name and size.
         """
         raise NotImplementedError()
 
@@ -502,6 +512,23 @@ class StagingUploadFiles(UploadFiles):
                 if path_prefix is None or path.startswith(path_prefix):
                     yield path
 
+    def raw_file_list(self, directory: str) -> List[Tuple[str, int]]:
+        if directory is None or directory == '':
+            prefix = self._raw_dir.os_path
+        else:
+            prefix = os.path.join(self._raw_dir.os_path, directory)
+
+        results: List[Tuple[str, int]] = []
+        if not os.path.isdir(prefix):
+            return results
+
+        for file in os.listdir(prefix):
+            path = os.path.join(prefix, file)
+            if os.path.isfile(path):
+                results.append((file, os.path.getsize(path)))
+
+        return results
+
     def calc_files(self, mainfile: str, with_mainfile: bool = True) -> Iterable[str]:
         """
         Returns all the auxfiles and mainfile for a given mainfile. This implements
@@ -676,6 +703,30 @@ class PublicUploadFiles(UploadFiles):
                         yield path
             except FileNotFoundError:
                 pass
+
+    def raw_file_list(self, directory: str) -> List[Tuple[str, int]]:
+        if directory is None:
+            directory = ''
+        directory_len = len(directory)
+
+        results = []
+        for access in ['public', 'restricted']:
+            try:
+                zf = self.get_zip_file('raw', access, 'plain')
+                for path in zf.namelist():
+                    content_path = path[directory_len + (0 if directory_len == 0 else 1):]
+                    if path.startswith(directory) and '/' not in content_path:
+                        if '/' not in content_path:
+                            results.append((content_path, zf.getinfo(path).file_size))
+                        else:
+                            # this asserts that sub directories are always behind their
+                            # parents and file siblings
+                            break
+
+            except FileNotFoundError:
+                pass
+
+        return results
 
     def archive_file(self, calc_id: str, *args, **kwargs) -> IO:
         return self._file('archive', self._archive_ext, '%s.%s' % (calc_id, self._archive_ext), *args, **kwargs)
