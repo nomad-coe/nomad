@@ -74,8 +74,8 @@ def chown(ctx, user, uploads):
 
     print('%d uploads selected, changing its owner ...' % uploads.count())
 
-    user_id = str(user)
-    user = coe_repo.User.from_user_id(user_id)
+    user_id = user
+    user = coe_repo.User.from_user_id(int(user_id))
 
     for upload in uploads:
         upload.user_id = user_id

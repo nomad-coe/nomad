@@ -81,6 +81,8 @@ while True:
         for upload, (dup, single) in upload_dict.items():
             if dup > 0:
                 package_id = uploads.find_one({'_id': upload})['name']        
-                source_upload_id = packages.find_one({'_id': package_id})['upload_id']
-                print('%s, %s, %s (%d vs %d)' % (source_upload_id, package_id, upload, dup, single))
+                pkg = packages.find_one({'_id': package_id})
+                source_upload_id = pkg['upload_id']
+                pkg_path = pkg['package_path']
+                print('%s, %s, %s, %s (%d vs %d)' % (source_upload_id, package_id, pkg_path, upload, dup, single))
         break
