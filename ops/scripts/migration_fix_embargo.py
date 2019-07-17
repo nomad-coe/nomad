@@ -11,24 +11,17 @@ infrastructure.setup_elastic()
 
 def check_and_fix(upload):
     example = calcs.find_one({'upload_id': upload, 'metadata.pid': {'$exists': True}})
+    if example is None:
+        # can happen on multi package uploads
+        return
+
     pid = example['metadata']['pid']
     truth = index.find_one({'_id': pid})
 
     if truth['metadata']['with_embargo'] != example['metadata']['with_embargo']:
-        print('need to fix %s' % upload)
+        u = uploads_col.find_one({'_id': upload})
+        print('need to fix from user %d, %s package id %s' % (example['metadata']['uploader']['id'], upload, u['name']))
 
-        calcs.update_many(
-            {'upload_id': upload, 'metadata.with_embargo': True},
-            {'$set': {'changed': True, 'metadata.with_embargo': False}})
-
-        calcs.update_many(
-            {'upload_id': upload, 'metadata.with_embargo': False, 'changed': True},
-            {'$unset': {'changed': 1}, '$set': {'metadata.with_embargo': True}})
-
-        upload_proc = processing.Upload.get_by_id(upload)
-        upload_with_metadata = upload_proc.to_upload_with_metadata(upload_proc.metadata)
-        calcs_with_metadata = upload_with_metadata.calcs
-        search.publish(calcs_with_metadata)
 
 
 for upload in calcs.distinct('upload_id'):
