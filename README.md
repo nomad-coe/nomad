@@ -57,6 +57,11 @@ your browser.
 
 ## Change log
 
+### v0.5.0
+- Raw file API with support to list directories. This replaces the `files` calculation
+  metadata key. It was necessary due to arbitrary large lists of *auxfiles* in some
+  calculations.
+
 ### v0.4.6
 - admin commands to directly manipulate upload data
 - additional migration scripts
