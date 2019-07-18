@@ -22,6 +22,7 @@ import io
 import inspect
 from passlib.hash import bcrypt
 import datetime
+import os.path
 
 from nomad.api.app import rfc3339DateTime
 from nomad import coe_repo, search, parsing, files, config
@@ -840,12 +841,41 @@ class TestRepo():
 
 class TestRaw(UploadFilesBasedTests):
 
+    def test_raw_file_from_calc(self, client, non_empty_processed, test_user_auth):
+        calc = list(non_empty_processed.calcs)[0]
+        url = '/raw/calc/%s/%s/%s' % (
+            non_empty_processed.upload_id, calc.calc_id, os.path.basename(calc.mainfile))
+        rv = client.get(url, headers=test_user_auth)
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
+
+        url = '/raw/calc/%s/%s/' % (non_empty_processed.upload_id, calc.calc_id)
+        rv = client.get(url, headers=test_user_auth)
+        assert rv.status_code == 200
+        result = json.loads(rv.data)
+        assert len(result['contents']) > 0
+
     @UploadFilesBasedTests.check_authorizaton
     def test_raw_file(self, client, upload, auth_headers):
         url = '/raw/%s/%s' % (upload, example_file_mainfile)
         rv = client.get(url, headers=auth_headers)
         assert rv.status_code == 200
         assert len(rv.data) > 0
+
+    @UploadFilesBasedTests.check_authorizaton
+    def test_raw_file_partial(self, client, upload, auth_headers):
+        url = '/raw/%s/%s?offset=0&length=20' % (upload, example_file_mainfile)
+        rv = client.get(url, headers=auth_headers)
+        assert rv.status_code == 200
+        start_data = rv.data
+        assert len(start_data) == 20
+
+        url = '/raw/%s/%s?offset=10&length=10' % (upload, example_file_mainfile)
+        rv = client.get(url, headers=auth_headers)
+        assert rv.status_code == 200
+        next_data = rv.data
+        assert len(rv.data) == 10
+        assert start_data[10:] == next_data
 
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_file_signed(self, client, upload, _, test_user_signature_token):
@@ -861,14 +891,6 @@ class TestRaw(UploadFilesBasedTests):
         assert rv.status_code == 404
         data = json.loads(rv.data)
         assert 'files' not in data
-
-    @UploadFilesBasedTests.ignore_authorization
-    def test_raw_file_list_alternatives(self, client, upload, auth_headers):
-        url = '/raw/%s/examples' % upload
-        rv = client.get(url, headers=auth_headers)
-        assert rv.status_code == 404
-        data = json.loads(rv.data)
-        assert len(data['files']) == 5
 
     @pytest.mark.parametrize('compress', [True, False])
     @UploadFilesBasedTests.ignore_authorization
@@ -961,7 +983,7 @@ class TestRaw(UploadFilesBasedTests):
 
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_files_list(self, client, upload, auth_headers):
-        url = '/raw/list/%s/examples_template' % upload
+        url = '/raw/%s/examples_template' % upload
         rv = client.get(url, headers=auth_headers)
         assert rv.status_code == 200
         data = json.loads(rv.data)
@@ -970,12 +992,12 @@ class TestRaw(UploadFilesBasedTests):
         assert data['upload_id'] == upload
         assert data['directory'] == 'examples_template'
         for content in data['contents']:
-            assert content['file'] is not None
+            assert content['name'] is not None
             assert content['size'] >= 0
 
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_files_list_missing(self, client, upload, auth_headers):
-        url = '/raw/list/%s/examples_' % upload
+        url = '/raw/%s/examples_' % upload
         rv = client.get(url, headers=auth_headers)
         assert rv.status_code == 404
 

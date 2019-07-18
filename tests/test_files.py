@@ -227,7 +227,7 @@ class UploadFilesContract(UploadFilesFixtures):
         raw_files = list(upload_files.raw_file_list(directory=prefix))
         if prefix is None:
             assert len(raw_files) == 0
-        else:
+        elif upload_files._is_authorized() or len(raw_files) > 0:
             assert '1.aux' in list(path for path, _ in raw_files)
             for file, size in raw_files:
                 if file.endswith('.aux'):

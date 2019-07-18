@@ -242,6 +242,27 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
+  async getRawFileListFromCalc(uploadId, calcId) {
+    this.onStartLoading()
+    return this.swaggerPromise
+      .then(client => {
+        try {
+          return client.apis.raw.get_file_list_from_calc({
+            upload_id: uploadId,
+            calc_id: calcId,
+            path: null
+          })
+        } catch (e) {
+          console.log(e)
+        }
+      })
+      .catch(this.handleApiError)
+      .then(response => {
+        return response.body
+      })
+      .finally(this.onFinishLoading)
+  }
+
   async repo(uploadId, calcId) {
     this.onStartLoading()
     return this.swaggerPromise

@@ -26,7 +26,7 @@ import multiprocessing.pool
 import time
 import os
 import os.path
-import zipfile
+import sys
 import tarfile
 import math
 from mongoengine import Document, IntField, StringField, DictField, BooleanField
@@ -46,6 +46,11 @@ from nomad.coe_repo import User, Calc, LoginException
 from nomad.datamodel import CalcWithMetadata
 from nomad.processing import FAILURE
 
+
+if sys.version_info >= (3, 7):
+    import zipfile
+else:
+    import zipfile37 as zipfile
 
 default_pid_prefix = 7000000
 """ The default pid prefix for new non migrated calculations """

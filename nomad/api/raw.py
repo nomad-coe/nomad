@@ -16,18 +16,26 @@
 The raw API of the nomad@FAIRDI APIs. Can be used to retrieve raw calculation files.
 """
 
+from typing import IO, Any, Union
 import os.path
-from zipfile import ZIP_DEFLATED, ZIP_STORED
-
 import zipstream
 from flask import Response, request, send_file, stream_with_context
 from flask_restplus import abort, Resource, fields
+import magic
+import sys
 
 from nomad.files import UploadFiles, Restricted
+from nomad.processing import Calc
 
 from .app import api
 from .auth import login_if_available, create_authorization_predicate, \
     signature_token_argument, with_signature_token
+
+if sys.version_info >= (3, 7):
+    import zipfile
+else:
+    import zipfile37 as zipfile
+
 
 ns = api.namespace('raw', description='Downloading raw data files.')
 
@@ -46,65 +54,147 @@ raw_file_compress_argument = dict(
 raw_file_from_path_parser = api.parser()
 raw_file_from_path_parser.add_argument(**raw_file_compress_argument)
 raw_file_from_path_parser.add_argument(**signature_token_argument)
+raw_file_from_path_parser.add_argument(
+    name='length', type=int, help='Download only x bytes from the given file.',
+    location='args')
+raw_file_from_path_parser.add_argument(
+    name='offset', type=int, help='Start downloading a file\' content from the given offset.',
+    location='args')
 
 
-@ns.route('/list/<string:upload_id>/<path:directory>')
-@api.doc(params={
-    'upload_id': 'The unique id for the requested upload.',
-    'directory': 'The directory in the upload with the desired contents.'
-})
-@api.header('Content-Type', 'application/json')
-class RawFileList(Resource):
-    @api.doc('get')
-    @api.response(404, 'The upload or path does not exist')
-    @api.response(401, 'Not authorized to access the data.')
-    @api.response(200, 'File(s) send', headers={'Content-Type': 'application/json'})
-    @api.marshal_with(raw_file_list_model, skip_none=True, code=200, description='File list send')
-    @login_if_available
-    @with_signature_token
-    def get(self, upload_id: str, directory: str):
-        """
-        Get the contents of the given directory for the given upload.
+class FileView:
+    """
+    File-like wrapper that restricts the contents to a portion of the file.
+    Arguments:
+        f: the file-like
+        offset: the offset
+        length: the amount of bytes
+    """
+    def __init__(self, f, offset, length):
+        self.f = f
+        self.f_offset = offset
+        self.offset = 0
+        self.length = length
 
-        If the path points to a file a single entry is returned. If the path
-        points to a directory, information on all files in the directory are returned.
-        """
-
-        upload_files = UploadFiles.get(upload_id, create_authorization_predicate(upload_id))
-        if upload_files is None:
-            abort(404, message='The upload with id %s does not exist.' % upload_id)
-
-        files = upload_files.raw_file_list(directory=directory)
-        if len(files) == 0:
-            abort(404, message='There are no files for %s.' % directory)
+    def seek(self, offset, whence=0):
+        if whence == os.SEEK_SET:
+            self.offset = offset
+        elif whence == os.SEEK_CUR:
+            self.offset += offset
+        elif whence == os.SEEK_END:
+            self.offset = self.length + offset
         else:
-            return {
-                'upload_id': upload_id,
-                'directory': directory,
-                'contents': [dict(file=file, size=size) for file, size in files]
-            }
+            # Other values of whence should raise an IOError
+            return self.f.seek(offset, whence)
+        return self.f.seek(self.offset + self.f_offset, os.SEEK_SET)
+
+    def tell(self):
+        return self.offset
+
+    def read(self, size=-1):
+        self.seek(self.offset)
+        if size < 0:
+            size = self.length - self.offset
+        size = max(0, min(size, self.length - self.offset))
+        self.offset += size
+        return self.f.read(size)
+
+
+def get_raw_file_from_upload_path(upload_files, upload_filepath, authorization_predicate):
+    """
+    Helper method used by func:`RawFileFromUploadPathResource.get` and
+    func:`RawFileFromCalcPathResource.get`.
+    """
+    if upload_filepath[-1:] == '*':
+        upload_filepath = upload_filepath[0:-1]
+        wildcarded_files = list(upload_files.raw_file_manifest(path_prefix=upload_filepath))
+        if len(wildcarded_files) == 0:
+            abort(404, message='There are no files for %s.' % upload_filepath)
+        else:
+            compress = request.args.get('compress', None) is not None
+            return respond_to_get_raw_files(upload_files.upload_id, wildcarded_files, compress)
+
+    try:
+        with upload_files.raw_file(upload_filepath, 'br') as raw_file:
+            buffer = raw_file.read(2048)
+        mime_type = magic.from_buffer(buffer, mime=True)
+
+        try:
+            offset = int(request.args.get('offset', 0))
+            length = int(request.args.get('length', -1))
+        except Exception:
+            abort(400, message='bad parameter types')
+
+        if offset < 0:
+            abort(400, message='bad offset, length values')
+        if offset > 0 and length <= 0:
+            abort(400, message='bad offset, length values')
+
+        raw_file = upload_files.raw_file(upload_filepath, 'br')
+        raw_file_view: Union[FileView, IO[Any]] = None
+        if length > 0:
+            raw_file_view = FileView(raw_file, offset, length)
+        else:
+            raw_file_view = raw_file
+
+        return send_file(
+            raw_file_view,
+            mimetype=mime_type,
+            as_attachment=True,
+            attachment_filename=os.path.basename(upload_filepath))
+    except Restricted:
+        abort(401, message='Not authorized to access all files in %s.' % upload_files.upload_id)
+    except KeyError:
+        directory_files = upload_files.raw_file_list(upload_filepath)
+        if len(directory_files) == 0:
+            abort(404, message='There is nothing to be found at %s.' % upload_filepath)
+        return {
+            'upload_id': upload_files.upload_id,
+            'directory': upload_filepath,
+            'contents': [
+                dict(name=name, size=size) for name, size in directory_files]
+        }, 200
 
 
 @ns.route('/<string:upload_id>/<path:path>')
 @api.doc(params={
     'upload_id': 'The unique id for the requested upload.',
-    'path': 'The path to a file or directory.'
+    'path': 'The path to a file or directory with optional wildcard.'
 })
-@api.header('Content-Type', 'application/gz')
-class RawFileFromPathResource(Resource):
+class RawFileFromUploadPathResource(Resource):
     @api.doc('get')
     @api.response(404, 'The upload or path does not exist')
-    @api.response(401, 'Not authorized to access the data.')
-    @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
+    @api.response(401, 'Not authorized to access the requested files.')
+    @api.response(200, 'File(s) send')
     @api.expect(raw_file_from_path_parser, validate=True)
     @login_if_available
     @with_signature_token
     def get(self, upload_id: str, path: str):
         """
-        Get a single raw calculation file or whole directory from a given upload.
+        Get a single raw calculation file, directory contents, or whole directory sub-tree
+        from a given upload.
 
-        If the given path points to a file, the file is provided. If the given path
-        points to an directory, the directory and all contents is provided as .zip file.
+        The 'upload_id' parameter needs to identify an existing upload.
+
+        If the upload
+        is not yet published or contains requested data with embargo, proper authentication
+        is required. This can be done via HTTP headers as usual. But, if you need to
+        access files via plain URLs (e.g. for curl, download link, etc.), URLs for
+        this endpoint can be token signed (see also /auth/token). For unpublished
+        uploads, authentication is required regardless. For (partially) embargoed data,
+        multi file downloads work, but will not contain any embargoed data.
+
+        If the given path points to a file, the file is provided with the appropriate
+        Content-Type header. A 401 is returned for staging, embargo files with unsigned
+        or wrongly signed URLs. When accessing a file, the additional query parameters 'length'
+        and 'offset' can be used to partially download a file's content.
+
+        If the given path points to a directory, the content (names, sizes, type) is returned
+        as a json body. Only visible items (depending on authenticated user, token) are
+        returned.
+
+        If the given path ends with the '*' wildcard character, all upload contents that
+        match the given path at the start, will be returned as a .zip file body.
         Zip files are streamed; instead of 401 errors, the zip file will just not contain
         any files that the user is not authorized to access.
         """
@@ -121,29 +211,67 @@ class RawFileFromPathResource(Resource):
         if upload_files is None:
             abort(404, message='The upload with id %s does not exist.' % upload_id)
 
-        if upload_filepath[-1:] == '*':
-            upload_filepath = upload_filepath[0:-1]
-            files = list(upload_files.raw_file_manifest(path_prefix=upload_filepath))
-            if len(files) == 0:
-                abort(404, message='There are no files for %s.' % upload_filepath)
-            else:
-                compress = request.args.get('compress', None) is not None
-                return respond_to_get_raw_files(upload_id, files, compress)
+        return get_raw_file_from_upload_path(upload_files, upload_filepath, authorization_predicate)
 
-        try:
-            return send_file(
-                upload_files.raw_file(upload_filepath, 'br'),
-                mimetype='application/octet-stream',
-                as_attachment=True,
-                attachment_filename=os.path.basename(upload_filepath))
-        except Restricted:
-            abort(401, message='Not authorized to access upload %s.' % upload_id)
-        except KeyError:
-            files = list(file for file in upload_files.raw_file_manifest(upload_filepath))
-            if len(files) == 0:
-                abort(404, message='The file %s does not exist.' % upload_filepath)
-            else:
-                abort(404, message='The file %s does not exist, but there are files with matching paths' % upload_filepath, files=files)
+
+@ns.route('/calc/<string:upload_id>/<string:calc_id>/<path:path>')
+@api.doc(params={
+    'upload_id': 'The unique id for the requested calc\'s upload.',
+    'calc_id': 'The unique calc id for the requested calc',
+    'path': 'The path to a file or directory with optional wildcard.'
+})
+class RawFileFromCalcPathResource(Resource):
+    @api.doc('get_file_from_calc')
+    @api.response(404, 'The upload or path does not exist')
+    @api.response(401, 'Not authorized to access the requested files.')
+    @api.response(200, 'File(s) send')
+    @api.expect(raw_file_from_path_parser, validate=True)
+    @login_if_available
+    @with_signature_token
+    def get(self, upload_id: str, calc_id: str, path: str):
+        """
+        Get a single raw calculation file, calculation contents, or all files for a
+        given calculation.
+
+        The 'upload_id' parameter needs to identify an existing upload.
+        The 'calc_id' parameter needs to identify a calculation within in the upload.
+
+        This endpoint behaves exactly like /raw/<upload_id>/<path>, but the path is
+        now relative to the calculation and not the upload.
+        """
+        calc_filepath = path if path is not None else ''
+        authorization_predicate = create_authorization_predicate(upload_id)
+        upload_files = UploadFiles.get(upload_id, authorization_predicate)
+        if upload_files is None:
+            abort(404, message='The upload with id %s does not exist.' % upload_id)
+
+        calc = Calc.get(calc_id)
+        if calc is None:
+            abort(404, message='The calc with id %s does not exist.' % calc_id)
+        if calc.upload_id != upload_id:
+            abort(404, message='The calc with id %s is not part of the upload with id %s.' % (calc_id, upload_id))
+
+        upload_filepath = os.path.join(os.path.dirname(calc.mainfile), calc_filepath)
+        return get_raw_file_from_upload_path(upload_files, upload_filepath, authorization_predicate)
+
+
+@ns.route('/calc/<string:upload_id>/<string:calc_id>/')
+class RawFileFromCalcEmptyPathResource(RawFileFromCalcPathResource):
+    @api.doc('get_file_list_from_calc')
+    @api.response(404, 'The upload or path does not exist')
+    @api.response(401, 'Not authorized to access the requested files.')
+    @api.response(200, 'File(s) send')
+    @api.expect(raw_file_from_path_parser, validate=True)
+    @login_if_available
+    @with_signature_token
+    def get(self, upload_id: str, calc_id: str):
+        """
+        Get calculation contents.
+
+        This is basically /raw/calc/<upload_id>/<calc_id>/<path> with an empty path, since
+        having an empty path parameter is not possible.
+        """
+        return super().get(upload_id, calc_id, None)
 
 
 raw_files_request_model = api.model('RawFilesRequest', {
@@ -236,7 +364,7 @@ def respond_to_get_raw_files(upload_id, files, compress=False):
                     # we just leave it out in the download
                     pass
 
-        compression = ZIP_DEFLATED if compress else ZIP_STORED
+        compression = zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED
         zip_stream = zipstream.ZipFile(mode='w', compression=compression, allowZip64=True)
         zip_stream.paths_to_write = iterator()
 

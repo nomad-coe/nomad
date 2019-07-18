@@ -64,7 +64,7 @@ class MProperty(MObject):
 
 
 class MElementDef(MSection):
-    def __init__(self, m_definition: 'MElementDef', name: str): # more **kwargs
+    def __init__(self, m_definition: 'MElementDef', name: str):  # more **kwargs
         super().__init__(m_definition=m_definition)
         self.name = name
 

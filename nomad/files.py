@@ -49,11 +49,11 @@ being other mainfiles. Therefore, the aux files of a restricted calc might becom
 """
 
 from abc import ABCMeta
+import sys
 from typing import IO, Generator, Dict, Iterable, Callable, List, Tuple
 import os.path
 import os
 import shutil
-from zipfile import ZipFile, BadZipFile
 import tarfile
 import hashlib
 import io
@@ -63,6 +63,14 @@ import cachetools
 from nomad import config, utils
 from nomad.datamodel import UploadWithMetadata
 
+
+# TODO this should become obsolete, once we are going beyong python 3.6. For now
+# python 3.6's zipfile does not allow to seek/tell within a file-like opened from a
+# file in a zipfile.
+if sys.version_info >= (3, 7):
+    import zipfile
+else:
+    import zipfile37 as zipfile
 
 user_metadata_filename = 'user_metadata.pickle'
 
@@ -320,6 +328,8 @@ class StagingUploadFiles(UploadFiles):
             return open(path_object.os_path, *args, **kwargs)
         except FileNotFoundError:
             raise KeyError()
+        except IsADirectoryError:
+            raise KeyError()
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
         if not self._is_authorized():
@@ -370,12 +380,12 @@ class StagingUploadFiles(UploadFiles):
         ext = os.path.splitext(path)[1]
         if force_archive or ext == '.zip':
             try:
-                with ZipFile(path) as zf:
+                with zipfile.ZipFile(path) as zf:
                     zf.extractall(target_dir.os_path)
                 if move:
                     os.remove(path)
                 return
-            except BadZipFile:
+            except zipfile.BadZipFile:
                 pass
 
         if force_archive or ext in ['.tgz', '.tar.gz', '.tar.bz2']:
@@ -440,9 +450,9 @@ class StagingUploadFiles(UploadFiles):
                 self._user_metadata_file.os_path,
                 target_metadata_file.os_path)
 
-        def create_zipfile(kind: str, prefix: str, ext: str) -> ZipFile:
+        def create_zipfile(kind: str, prefix: str, ext: str) -> zipfile.ZipFile:
             file = target_dir.join_file('%s-%s.%s.zip' % (kind, prefix, ext))
-            return ZipFile(file.os_path, mode='w')
+            return zipfile.ZipFile(file.os_path, mode='w')
 
         # In prior versions we used bagit on raw files. There was not much purpose for
         # it, so it was removed. Check 0.3.x for the implementation
@@ -513,6 +523,9 @@ class StagingUploadFiles(UploadFiles):
                     yield path
 
     def raw_file_list(self, directory: str) -> List[Tuple[str, int]]:
+        if not self._is_authorized():
+            raise Restricted
+
         if directory is None or directory == '':
             prefix = self._raw_dir.os_path
         else:
@@ -647,9 +660,9 @@ class PublicUploadFiles(UploadFiles):
         super().__init__(config.fs.public, *args, **kwargs)
 
     @cachetools.cached(cache=__zip_file_cache)
-    def get_zip_file(self, prefix: str, access: str, ext: str) -> ZipFile:
+    def get_zip_file(self, prefix: str, access: str, ext: str) -> zipfile.ZipFile:
         zip_file = self.join_file('%s-%s.%s.zip' % (prefix, access, ext))
-        return ZipFile(zip_file.os_path)
+        return zipfile.ZipFile(zip_file.os_path)
 
     def _file(self, prefix: str, ext: str, path: str, *args, **kwargs) -> IO:
         mode = kwargs.get('mode') if len(args) == 0 else args[0]
@@ -669,6 +682,8 @@ class PublicUploadFiles(UploadFiles):
                 else:
                     return f
             except FileNotFoundError:
+                pass
+            except IsADirectoryError:
                 pass
             except KeyError:
                 pass
@@ -711,6 +726,9 @@ class PublicUploadFiles(UploadFiles):
 
         results = []
         for access in ['public', 'restricted']:
+            if access == 'restricted' and not self._is_authorized():
+                continue
+
             try:
                 zf = self.get_zip_file('raw', access, 'plain')
                 for path in zf.namelist():
