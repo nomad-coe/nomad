@@ -468,9 +468,11 @@ class StagingUploadFiles(UploadFiles):
             if not calc.with_embargo:
                 mainfile = calc.mainfile
                 assert mainfile is not None
-                for filepath in self.calc_files(mainfile):
-                    if not always_restricted(filepath):
-                        public_files[filepath] = None
+                # mainfile might already have been added due to being a auxfile to another calc
+                if mainfile not in public_files:
+                    for filepath in self.calc_files(mainfile, with_cutoff=False):
+                        if not always_restricted(filepath):
+                            public_files[filepath] = None
         # 1.2 remove the non public mainfiles that have been added as auxfiles of public mainfiles
         for calc in upload.calcs:
             if calc.with_embargo:
@@ -542,7 +544,7 @@ class StagingUploadFiles(UploadFiles):
 
         return results
 
-    def calc_files(self, mainfile: str, with_mainfile: bool = True) -> Iterable[str]:
+    def calc_files(self, mainfile: str, with_mainfile: bool = True, with_cutoff: bool = True) -> Iterable[str]:
         """
         Returns all the auxfiles and mainfile for a given mainfile. This implements
         nomad's logic about what is part of a calculation and what not. The mainfile
@@ -559,16 +561,21 @@ class StagingUploadFiles(UploadFiles):
         calc_dir = os.path.dirname(mainfile_object.os_path)
         calc_relative_dir = calc_dir[len(self._raw_dir.os_path) + 1:]
 
-        ls = os.listdir(calc_dir)
-        if len(ls) > config.auxfile_cutoff:
-            # If there are two many of them, its probably just a directory with lots of
-            # calculations. In this case it does not make any sense to provide thousands of
-            # aux files.
-            return [mainfile] if with_mainfile else []
+        file_count = 0
+        aux_files: List[str] = []
+        for filename in os.listdir(calc_dir):
+            if filename != mainfile_basename and os.path.isfile(os.path.join(calc_dir, filename)):
+                aux_files.append(os.path.join(calc_relative_dir, filename))
+                file_count += 1
 
-        aux_files = sorted(
-            os.path.join(calc_relative_dir, path) for path in ls
-            if os.path.isfile(os.path.join(calc_dir, path)) and path != mainfile_basename)
+            if with_cutoff and file_count > config.auxfile_cutoff:
+                # If there are two many of them, its probably just a directory with lots of
+                # calculations. In this case it does not make any sense to provide thousands of
+                # aux files.
+                break
+
+        aux_files = sorted(aux_files)
+
         if with_mainfile:
             return [mainfile] + aux_files
         else:

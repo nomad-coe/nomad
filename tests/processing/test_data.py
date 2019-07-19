@@ -109,6 +109,14 @@ def test_processing(processed, no_warn, mails, monkeypatch):
     assert re.search(r'Processing completed', mails.messages[0].data.decode('utf-8')) is not None
 
 
+def test_processing_with_large_dir(test_user, proc_infra):
+    upload_path = 'tests/data/proc/examples_large_dir.zip'
+    upload_id = upload_path[:-4]
+    upload = run_processing((upload_id, upload_path), test_user)
+    for calc in upload.calcs:
+        assert len(calc.warnings) == 1
+
+
 def test_publish(non_empty_processed: Upload, no_warn, example_user_metadata, with_publish_to_coe_repo, monkeypatch):
     processed = non_empty_processed
     processed.compress_and_set_metadata(example_user_metadata)

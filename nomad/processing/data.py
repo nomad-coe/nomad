@@ -164,8 +164,12 @@ class Calc(Proc):
             calc_with_metadata.nomad_commit = config.commit
             calc_with_metadata.last_processing = datetime.now()
             calc_with_metadata.files = self.upload_files.calc_files(self.mainfile)
-            self.preprocess_files(calc_with_metadata.files)
             self.metadata = calc_with_metadata.to_dict()
+
+            if len(calc_with_metadata.files) >= config.auxfile_cutoff:
+                self.warning(
+                    'This calc has many aux files in its directory. '
+                    'Have you placed many calculations in the same directory?')
 
             self.parsing()
             self.normalizing()
@@ -214,36 +218,6 @@ class Calc(Proc):
         if process_name == 'process_calc' or process_name is None:
             self.upload.reload()
             self.upload.check_join()
-
-    def preprocess_files(self, filepaths):
-        for path in filepaths:
-            if os.path.basename(path) == 'POTCAR':
-                # create checksum
-                hash = hashlib.sha224()
-                with open(self.upload_files.raw_file_object(path).os_path, 'rb') as f:
-                    for line in f.readlines():
-                        hash.update(line)
-
-                checksum = hash.hexdigest()
-
-                # created stripped POTCAR
-                stripped_path = path + '.stripped'
-                with open(self.upload_files.raw_file_object(stripped_path).os_path, 'wt') as f:
-                    f.write('Stripped POTCAR file. Checksum of original file (sha224): %s\n' % checksum)
-                os.system(
-                    '''
-                        awk < %s >> %s '
-                        BEGIN { dump=1 }
-                        /End of Dataset/ { dump=1 }
-                        dump==1 { print }
-                        /END of PSCTR/ { dump=0 }'
-                    ''' % (
-                        self.upload_files.raw_file_object(path).os_path,
-                        self.upload_files.raw_file_object(stripped_path).os_path))
-
-                filepaths.append(stripped_path)
-
-        return filepaths
 
     @task
     def parsing(self):
@@ -652,6 +626,35 @@ class Upload(Proc):
             self.fail('bad .zip/.tar file', log_level=logging.INFO)
             return
 
+    def _preprocess_files(self, path):
+        """
+        Some files need preprocessing. Currently we need to add a stripped POTCAR version
+        and always restrict/embargo the original.
+        """
+        if os.path.basename(path) == 'POTCAR':
+            # create checksum
+            hash = hashlib.sha224()
+            with open(self.staging_upload_files.raw_file_object(path).os_path, 'rb') as orig_f:
+                for line in orig_f.readlines():
+                    hash.update(line)
+
+            checksum = hash.hexdigest()
+
+            # created stripped POTCAR
+            stripped_path = path + '.stripped'
+            with open(self.staging_upload_files.raw_file_object(stripped_path).os_path, 'wt') as stripped_f:
+                stripped_f.write('Stripped POTCAR file. Checksum of original file (sha224): %s\n' % checksum)
+            os.system(
+                '''
+                    awk < %s >> %s '
+                    BEGIN { dump=1 }
+                    /End of Dataset/ { dump=1 }
+                    dump==1 { print }
+                    /END of PSCTR/ { dump=0 }'
+                ''' % (
+                    self.staging_upload_files.raw_file_object(path).os_path,
+                    self.staging_upload_files.raw_file_object(stripped_path).os_path))
+
     def match_mainfiles(self) -> Generator[Tuple[str, object], None, None]:
         """
         Generator function that matches all files in the upload to all parsers to
@@ -663,6 +666,7 @@ class Upload(Proc):
         directories_with_match: Dict[str, str] = dict()
         upload_files = self.staging_upload_files
         for filename in upload_files.raw_file_manifest():
+            self._preprocess_files(filename)
             try:
                 parser = match_parser(filename, upload_files)
                 if parser is not None:

@@ -354,7 +354,20 @@ class Upload extends React.Component {
 
     const renderRow = (calc, index) => {
       const { mainfile, upload_id, calc_id, parser, tasks, current_task, tasks_status, errors } = calc
-      const color = tasks_status === 'FAILURE' ? 'error' : 'default'
+      let tooltip_html = null
+      let color = tasks_status === 'FAILURE' ? 'error' : 'default'
+      if (tasks_status === 'FAILURE') {
+        tooltip_html = `Calculation processing failed with errors: ${errors.join(', ')}`
+        color = 'error'
+      }
+      if (calc.errors.length > 0) {
+        color = 'error'
+        tooltip_html = `Calculation processed with errors: ${calc.errors.join(', ')}`
+      }
+      if (calc.warnings.length > 0) {
+        color = 'error'
+        tooltip_html = `Calculation processed with warnings: ${calc.warnings.join(', ')}`
+      }
       const processed = tasks_status === 'FAILURE' || tasks_status === 'SUCCESS'
       const row = (
         <TableRow key={index} hover={processed}
@@ -391,10 +404,9 @@ class Upload extends React.Component {
         </TableRow>
       )
 
-      if (tasks_status === 'FAILURE') {
-        const error_html = `Calculation processing failed with errors: ${errors.join(', ')}`
+      if (tooltip_html) {
         return (
-          <Tooltip key={calc_id} title={error_html}>
+          <Tooltip key={calc_id} title={tooltip_html}>
             {row}
           </Tooltip>
         )

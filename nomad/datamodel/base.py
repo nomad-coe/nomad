@@ -85,7 +85,6 @@ class CalcWithMetadata():
         # basic upload and processing related metadata
         self.upload_time: datetime.datetime = None
         self.files: List[str] = None
-        self.file_sizes: List[int] = None
         self.uploader: utils.POPO = None
         self.processed: bool = False
         self.last_processing: datetime.datetime = None

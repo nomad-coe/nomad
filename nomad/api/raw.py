@@ -100,7 +100,8 @@ class FileView:
         return self.f.read(size)
 
 
-def get_raw_file_from_upload_path(upload_files, upload_filepath, authorization_predicate):
+def get_raw_file_from_upload_path(
+        upload_files, upload_filepath, authorization_predicate, mainfile: str = None):
     """
     Helper method used by func:`RawFileFromUploadPathResource.get` and
     func:`RawFileFromCalcPathResource.get`.
@@ -148,11 +149,14 @@ def get_raw_file_from_upload_path(upload_files, upload_filepath, authorization_p
         directory_files = upload_files.raw_file_list(upload_filepath)
         if len(directory_files) == 0:
             abort(404, message='There is nothing to be found at %s.' % upload_filepath)
+
+        contents = sorted([dict(name=name, size=size) for name, size in directory_files], key=lambda x: '' if x['name'] == mainfile else x['name'])
+        # if mainfile is not None:
+        #     contents = [mainfile] + [content for content in contents if content['name'] != mainfile]
         return {
             'upload_id': upload_files.upload_id,
             'directory': upload_filepath,
-            'contents': [
-                dict(name=name, size=size) for name, size in directory_files]
+            'contents': contents
         }, 200
 
 
@@ -252,7 +256,9 @@ class RawFileFromCalcPathResource(Resource):
             abort(404, message='The calc with id %s is not part of the upload with id %s.' % (calc_id, upload_id))
 
         upload_filepath = os.path.join(os.path.dirname(calc.mainfile), calc_filepath)
-        return get_raw_file_from_upload_path(upload_files, upload_filepath, authorization_predicate)
+        return get_raw_file_from_upload_path(
+            upload_files, upload_filepath, authorization_predicate,
+            mainfile=os.path.basename(calc.mainfile))
 
 
 @ns.route('/calc/<string:upload_id>/<string:calc_id>/')

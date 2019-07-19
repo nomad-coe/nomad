@@ -460,6 +460,7 @@ class TestUploads:
     #     assert rv.status_code == 400
 
     def test_potcar(self, client, proc_infra, test_user_auth):
+        # only the owner, shared with people are supposed to download the original potcar file
         example_file = 'tests/data/proc/examples_potcar.zip'
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
 

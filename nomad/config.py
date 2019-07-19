@@ -176,7 +176,7 @@ commit = gitinfo.commit
 release = 'devel'
 domain = 'DFT'
 service = 'unknown nomad service'
-auxfile_cutoff = 30
+auxfile_cutoff = 100
 console_log_level = logging.WARNING
 
 
