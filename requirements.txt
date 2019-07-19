@@ -47,6 +47,7 @@ runstats
 pyyaml
 tabulate
 cachetools
+zipfile37
 
 # dev/ops related
 setuptools
