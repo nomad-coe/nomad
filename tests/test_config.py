@@ -12,9 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
+
 from nomad import config
 
 
-def test_apply():
+@pytest.fixture
+def with_config():
+    old_value = config.fs.migration_packages
+    yield config
+    config.fs.migration_packages = old_value
+
+
+def test_apply(with_config):
     config.apply('fs_migration_packages', 'test_value')
     assert config.fs.migration_packages == 'test_value'

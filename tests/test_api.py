@@ -745,13 +745,13 @@ class TestRepo():
         rv = client.get('/repo/?%s' % query_string, headers=test_user_auth)
         data = self.assert_search(rv, calcs)
 
-        aggregations = data.get('aggregations', None)
-        assert aggregations is not None
+        quantities = data.get('quantities', None)
+        assert quantities is not None
         if quantity == 'system' and calcs != 0:
-            # for simplicity we only assert on aggregations for this case
-            assert 'system' in aggregations
-            assert len(aggregations['system']) == 1
-            assert value in aggregations['system']
+            # for simplicity we only assert on quantities for this case
+            assert 'system' in quantities
+            assert len(quantities['system']) == 1
+            assert value in quantities['system']
 
     metrics_permutations = [[], search.metrics_names] + [[metric] for metric in search.metrics_names]
 
@@ -768,21 +768,22 @@ class TestRepo():
 
     @pytest.mark.parametrize('metrics', metrics_permutations)
     def test_search_total_metrics(self, client, example_elastic_calcs, no_warn, metrics):
-        rv = client.get('/repo/?total_metrics=%s' % ','.join(metrics))
+        rv = client.get('/repo/?metrics=%s' % ','.join(metrics))
         assert rv.status_code == 200
         data = json.loads(rv.data)
-        metrics_result = data.get('metrics', None)
-        assert 'code_runs' in metrics_result
+        total_metrics = data.get('quantities', {}).get('total', {}).get('all', None)
+        assert total_metrics is not None
+        assert 'code_runs' in total_metrics
         for metric in metrics:
-            assert metric in metrics_result
+            assert metric in total_metrics
 
     @pytest.mark.parametrize('metrics', metrics_permutations)
     def test_search_aggregation_metrics(self, client, example_elastic_calcs, no_warn, metrics):
-        rv = client.get('/repo/?aggregation_metrics=%s' % ','.join(metrics))
+        rv = client.get('/repo/?metrics=%s' % ','.join(metrics))
         assert rv.status_code == 200
         data = json.loads(rv.data)
-        for aggregations in data.get('aggregations').values():
-            for metrics_result in aggregations.values():
+        for quantities in data.get('quantities').values():
+            for metrics_result in quantities.values():
                 assert 'code_runs' in metrics_result
                 for metric in metrics:
                     assert metric in metrics_result
@@ -819,17 +820,17 @@ class TestRepo():
         assert rv.status_code == 200
         data = json.loads(rv.data)
         results = data.get('results', None)
-        assert data['pagination']['total'] == 2
+        assert data.get('scroll', {}).get('size', -1) > 0
         assert results is not None
         assert len(results) == n_results
-        scroll_id = data.get('scroll_id', None)
+        scroll_id = data.get('scroll', {}).get('scroll_id', None)
         assert scroll_id is not None
 
         has_another_page = False
         while scroll_id is not None:
             rv = client.get('/repo/?scroll=1&scroll_id=%s' % scroll_id)
             data = json.loads(rv.data)
-            scroll_id = data.get('scroll_id', None)
+            scroll_id = data.get('scroll', {}).get('scroll_id', None)
             has_another_page |= len(data.get('results')) > 0
 
         if n_results < 2:

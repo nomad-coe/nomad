@@ -70,17 +70,18 @@ class RepoCalcResource(Resource):
 
 
 repo_calcs_model = api.model('RepoCalculations', {
-    'pagination': fields.Nested(pagination_model),
+    'pagination': fields.Nested(pagination_model, allow_null=True),
+    'scroll': fields.Nested(allow_null=True, skip_none=True, model=api.model('Scroll', {
+        'total': fields.Integer(description='The total amount of hits for the search.'),
+        'scroll_id': fields.String(allow_null=True, description='The scroll_id that can be used to retrieve the next page.'),
+        'size': fields.Integer(help='The size of the returned scroll page.')})),
     'results': fields.List(fields.Raw, description=(
         'A list of search results. Each result is a dict with quantitie names as key and '
         'values as values')),
-    'scroll_id': fields.String(description='Id of the current scroll view in scroll based search.'),
-    'aggregations': fields.Raw(description=(
+    'quantities': fields.Raw(description=(
         'A dict with all aggregations. Each aggregation is dictionary with a metrics dict as '
-        'value and quantity value as key. The metrics are code runs(calcs), %s. ' %
-        ', '.join(search.metrics_names))),
-    'metrics': fields.Raw(description=(
-        'A dict with the overall metrics. The metrics are code runs(calcs), %s.' %
+        'value and quantity value as key. The metrics are code runs(calcs), %s. '
+        'There is a pseudo quantity "total" with a single value "all" that contains the metrics over all results. ' %
         ', '.join(search.metrics_names)))
 })
 
@@ -99,12 +100,8 @@ repo_request_parser.add_argument(
 repo_request_parser.add_argument(
     'scroll_id', type=str, help='The id of the current scrolling window to use.')
 repo_request_parser.add_argument(
-    'total_metrics', type=str, help=(
-        'Metrics to aggregate all search results over.'
-        'Possible values are %s.' % ', '.join(search.metrics_names)))
-repo_request_parser.add_argument(
-    'aggregation_metrics', type=str, help=(
-        'Metrics to aggregate all aggregation buckets over as comma separated list. '
+    'metrics', type=str, help=(
+        'Metrics to aggregate over all quantities and their values as comma separated list. '
         'Possible values are %s.' % ', '.join(search.metrics_names)))
 
 for search_quantity in search.search_quantities.keys():
@@ -157,19 +154,15 @@ class RepoCalcsResource(Resource):
             page = int(request.args.get('page', 1))
             per_page = int(request.args.get('per_page', 10 if not scroll else 1000))
             order = int(request.args.get('order', -1))
-            total_metrics_str = request.args.get('total_metrics', '')
-            aggregation_metrics_str = request.args.get('aggregation_metrics', '')
+            metrics_str = request.args.get('metrics', '')
 
             from_time = rfc3339DateTime.parse(request.args.get('from_time', '2000-01-01'))
             until_time_str = request.args.get('until_time', None)
             until_time = rfc3339DateTime.parse(until_time_str) if until_time_str is not None else datetime.datetime.now()
             time_range = (from_time, until_time)
 
-            total_metrics = [
-                metric for metric in total_metrics_str.split(',')
-                if metric in search.metrics_names]
-            aggregation_metrics = [
-                metric for metric in aggregation_metrics_str.split(',')
+            metrics = [
+                metric for metric in metrics_str.split(',')
                 if metric in search.metrics_names]
         except Exception:
             abort(400, message='bad parameter types')
@@ -218,47 +211,35 @@ class RepoCalcsResource(Resource):
         without_currupted_mainfile = ~Q('term', code_name='currupted mainfile')  # pylint: disable=invalid-unary-operand-type
         q = q & without_currupted_mainfile if q is not None else without_currupted_mainfile
 
-        data = dict(**request.args)
-        data.pop('owner', None)
-        data.pop('scroll', None)
-        data.pop('scroll_id', None)
-        data.pop('per_page', None)
-        data.pop('page', None)
-        data.pop('order', None)
-        data.pop('order_by', None)
-        data.pop('total_metrics', None)
-        data.pop('aggregation_metrics', None)
-        data.pop('from_time', None)
-        data.pop('until_time', None)
-
-        if scroll:
-            data.update(scroll_id=scroll_id, size=per_page)
-        else:
-            data.update(
-                per_page=per_page, page=page, order=order, order_by=order_by, time_range=time_range,
-                total_metrics=total_metrics, aggregation_metrics=aggregation_metrics)
+        search_parameters = dict(**request.args)
+        search_parameters.pop('owner', None)
+        search_parameters.pop('scroll', None)
+        search_parameters.pop('scroll_id', None)
+        search_parameters.pop('per_page', None)
+        search_parameters.pop('page', None)
+        search_parameters.pop('order', None)
+        search_parameters.pop('order_by', None)
+        search_parameters.pop('metrics', None)
+        search_parameters.pop('from_time', None)
+        search_parameters.pop('until_time', None)
 
         try:
             if scroll:
-                page = -1
-                scroll_id, total, results = search.scroll_search(q=q, **data)
-                aggregations = {}
-                metrics = {}
+                results = search.scroll_search(
+                    q=q, scroll_id=scroll_id, size=per_page, search_parameters=search_parameters)
+
             else:
-                scroll_id = None
-                total, results, aggregations, metrics = search.aggregate_search(q=q, **data)
+                results = search.metrics_search(
+                    q=q, per_page=per_page, page=page, order=order, order_by=order_by,
+                    time_range=time_range, metrics_to_use=metrics, search_parameters=search_parameters)
+
+                # TODO just a work around to make things prettier
+                quantities = results['quantities']
+                if 'code_name' in quantities and 'currupted mainfile' in quantities['code_name']:
+                    del(quantities['code_name']['currupted mainfile'])
+
+            return results, 200
         except search.ScrollIdNotFound:
             abort(400, 'The given scroll_id does not exist.')
         except KeyError as e:
             abort(400, str(e))
-
-        # TODO just a workarround to make things prettier
-        if 'code_name' in aggregations and 'currupted mainfile' in aggregations['code_name']:
-            del(aggregations['code_name']['currupted mainfile'])
-
-        return dict(
-            pagination=dict(total=total, page=page, per_page=per_page),
-            results=results,
-            scroll_id=scroll_id,
-            aggregations=aggregations,
-            metrics=metrics), 200

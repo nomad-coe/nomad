@@ -9,8 +9,7 @@ class SearchAggregationsUnstyled extends React.Component {
     classes: PropTypes.object.isRequired,
     onChange: PropTypes.func.isRequired,
     data: PropTypes.object.isRequired,
-    total_metrics: PropTypes.arrayOf(PropTypes.string).isRequired,
-    aggregation_metrics: PropTypes.arrayOf(PropTypes.string).isRequired,
+    metrics: PropTypes.arrayOf(PropTypes.string).isRequired,
     searchValues: PropTypes.object.isRequired,
     domain: PropTypes.object.isRequired,
     showDetails: PropTypes.bool
@@ -28,7 +27,7 @@ class SearchAggregationsUnstyled extends React.Component {
   handleMetricChange(metric) {
     const metrics = metric === 'code_runs' ? [] : [metric]
     this.setState({metric: metric})
-    this.props.onChange({total_metrics: metrics, aggregation_metrics: metrics})
+    this.props.onChange({metrics: metrics})
   }
 
   handleSearchChanged(searchValues) {
@@ -36,10 +35,10 @@ class SearchAggregationsUnstyled extends React.Component {
   }
 
   render() {
-    const { classes, data, total_metrics, searchValues, domain, onChange, showDetails } = this.props
-    const { aggregations, metrics } = data
-    const selectedMetric = total_metrics.length === 0 ? 'code_runs' : total_metrics[0]
-    const useMetric = Object.keys(metrics).find(metric => metric !== 'code_runs') || 'code_runs'
+    const { classes, data, metrics, searchValues, domain, onChange, showDetails } = this.props
+    const { quantities } = data
+    const selectedMetric = metrics.length === 0 ? 'code_runs' : metrics[0]
+    const useMetric = Object.keys(quantities.total.all).find(metric => metric !== 'code_runs') || 'code_runs'
     const metricsDefinitions = domain.searchMetrics
 
     return (
@@ -60,7 +59,7 @@ class SearchAggregationsUnstyled extends React.Component {
               ))}
             </FormGroup>
           </FormControl>
-          <domain.SearchAggregations aggregations={aggregations} searchValues={searchValues} metric={useMetric} onChange={onChange} />
+          <domain.SearchAggregations quantities={quantities} searchValues={searchValues} metric={useMetric} onChange={onChange} />
         </div>
       </div>
     )
@@ -70,8 +69,7 @@ class SearchAggregationsUnstyled extends React.Component {
 const SearchAggregations = compose(withDomain, withStyles(SearchAggregationsUnstyled.styles))(SearchAggregationsUnstyled)
 Object.assign(SearchAggregations, {
   defaultState: {
-    aggregation_metrics: [],
-    total_metrics: [],
+    metrics: [],
     searchValues: {}
   }
 })

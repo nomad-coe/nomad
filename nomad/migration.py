@@ -1400,7 +1400,7 @@ class NomadCOEMigration:
                 scroll_args['scroll_id'] = scroll_id
 
             search = self.call_api('repo.search', upload_id=upload_id, owner='admin', **scroll_args)
-            scroll_id = search.scroll_id
+            scroll_id = search.scroll.scroll_id
             for calc in search.results:
                 yield calc
 

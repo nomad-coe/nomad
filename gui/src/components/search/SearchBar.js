@@ -124,15 +124,15 @@ class SearchBar extends React.Component {
   getSuggestions(value) {
     value = value.toLowerCase()
 
-    const { data: { aggregations } } = this.props
+    const { data: { quantities } } = this.props
     const suggestions = []
 
-    Object.keys(aggregations).forEach(aggKey => {
-      Object.keys(aggregations[aggKey]).forEach(aggValue => {
-        if (aggValue.toLowerCase().startsWith(value)) {
+    Object.keys(quantities).forEach(quantity => {
+      Object.keys(quantities[quantity]).forEach(quantityValue => {
+        if (quantityValue.toLowerCase().startsWith(value)) {
           suggestions.push({
-            key: aggKey,
-            value: aggValue
+            key: quantity,
+            value: quantityValue
           })
         }
       })
