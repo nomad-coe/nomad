@@ -237,7 +237,7 @@ class SearchBar extends React.Component {
         getSuggestionValue={getSuggestionValue}
         renderSuggestion={renderSuggestion}
         onSuggestionSelected={(e, { suggestionValue }) => { this.handleAddChip(suggestionValue); e.preventDefault() }}
-        focusInputOnSuggestionClick={false}
+        focusInputOnSuggestionClick={true}
         inputProps={{
           classes,
           chips: this.getChips(),
