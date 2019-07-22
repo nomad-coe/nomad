@@ -61,6 +61,11 @@ your browser.
 - Raw file API with support to list directories. This replaces the `files` calculation
   metadata key. It was necessary due to arbitrary large lists of *auxfiles* in some
   calculations.
+- Refactored search API that allows to search for entries (paginated + scroll),
+  metrics based on quantity aggregations (+ paginated entries), quantity aggregations
+  with all values via `after` key (+ paginated entries).
+- Reprocessing of published results (e.g. after parser/normalizer improvements).
+- Mirror functionality.
 
 ### v0.4.6
 - admin commands to directly manipulate upload data
