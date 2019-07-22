@@ -4,7 +4,7 @@ import { withErrors } from './errors'
 import { UploadRequest } from '@navjobs/upload'
 import Swagger from 'swagger-client'
 import { apiBase } from '../config'
-import { Typography, withStyles } from '@material-ui/core'
+import { Typography, withStyles, Link } from '@material-ui/core'
 import LoginLogout from './LoginLogout'
 import { Cookies, withCookies } from 'react-cookie'
 import { compose } from 'recompose'
@@ -476,12 +476,18 @@ class LoginRequiredUnstyled extends React.Component {
   })
 
   render() {
-    const {classes, isLoggingIn, onLoggedIn} = this.props
+    const {classes, isLoggingIn, onLoggedIn, message} = this.props
+
+    let loginMessage = ''
+    if (message) {
+      loginMessage = <Typography>
+        {this.props.message} Register for a Nomad Repository account <Link href='http://nomad-repository.eu:8080/NomadRepository-1.1/register/'>here</Link>.
+      </Typography>
+    }
+
     return (
       <div className={classes.root}>
-        <Typography>
-          {this.props.message || ''}
-        </Typography>
+        {loginMessage}
         <LoginLogout onLoggedIn={onLoggedIn} variant="outlined" color="primary" isLoggingIn={isLoggingIn}/>
       </div>
     )

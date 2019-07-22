@@ -61,7 +61,7 @@ class DomainProviderBase extends React.Component {
         Keep in mind that there are limitations:
         * You can only login with users that already exist in the Nomad Repository. If you
         are new to Nomad, visit the [Nomad Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1)
-        and create a user account there.
+        or register for a user account [here](http://nomad-repository.eu:8080/NomadRepository-1.1/register/).
         * When you published your data here, it will still take a day to index. Therefore,
         your data will not appear in the Nomad Repository immediately.
         * The existing entries from the original Nomad do not appear in the search. We

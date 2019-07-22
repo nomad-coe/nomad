@@ -51,6 +51,7 @@ buildgui:
   stage: build
   script:
     - cd gui
+    - ./version.sh
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
     - docker build -t $FRONTEND_TEST_IMAGE .
     - docker push $FRONTEND_TEST_IMAGE
