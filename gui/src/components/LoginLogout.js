@@ -41,6 +41,7 @@ class LoginLogout extends React.Component {
     super(props)
     this.handleLogout = this.handleLogout.bind(this)
     this.handleChange = this.handleChange.bind(this)
+    this.handleKeyPress = this.handleKeyPress.bind(this)
   }
 
   state = {
@@ -82,7 +83,7 @@ class LoginLogout extends React.Component {
 
   handleChange = name => event => {
     this.setState({
-      [name]: event.target.value
+      [name]: event.target.value, failure: false
     })
   }
 
@@ -90,6 +91,13 @@ class LoginLogout extends React.Component {
     this.props.logout()
     if (this.props.onLoggedOut) {
       this.props.onLoggedOut()
+    }
+  }
+
+  handleKeyPress(ev) {
+    if (ev.key === 'Enter') {
+      ev.preventDefault()
+      this.handleLoginDialogClosed(true)
     }
   }
 
@@ -141,6 +149,7 @@ class LoginLogout extends React.Component {
                     fullWidth
                     value={this.state.userName}
                     onChange={this.handleChange('userName')}
+                    onKeyPress={this.handleKeyPress}
                   />
                   <TextField
                     autoComplete="current-password"
@@ -152,6 +161,7 @@ class LoginLogout extends React.Component {
                     fullWidth
                     value={this.state.password}
                     onChange={this.handleChange('password')}
+                    onKeyPress={this.handleKeyPress}
                   />
                 </FormGroup>
               </form>
