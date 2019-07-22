@@ -57,6 +57,12 @@ your browser.
 
 ## Change log
 
+### v0.4.6
+- admin commands to directly manipulate upload data
+- additional migration scripts
+- fixed system normalizer to understand indexed atom labels correctly
+- many minor bugfixes
+
 ### v0.4.5
 - improved uploads view with published uploads
 - support for publishing to the existing nomad CoE repository

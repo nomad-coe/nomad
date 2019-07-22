@@ -234,23 +234,25 @@ class Uploads extends React.Component {
     const { selectedUnpublishedUploads, showPublishDialog } = this.state
     const unpublishedUploads = this.state.unpublishedUploads || []
 
-    if (unpublishedUploads.length === 0) {
-      return ''
-    }
+    const reloadButton = <Tooltip title="reload uploads" >
+      <IconButton onClick={() => this.update()}><ReloadIcon /></IconButton>
+    </Tooltip>
 
     return (<div className={classes.uploadsContainer}>
       <div style={{width: '100%'}}>
-        <FormLabel className={classes.uploadsLabel}>Your unpublished uploads: </FormLabel>
-        <FormGroup className={classes.selectFormGroup} row>
-          <FormControlLabel label="all" style={{flexGrow: 1}} control={(
-            <Checkbox
-              checked={selectedUnpublishedUploads.length === unpublishedUploads.length && unpublishedUploads.length !== 0}
-              onChange={(_, checked) => this.onSelectionAllChanged(checked)}
-            />
-          )} />
-          <Tooltip title="reload uploads" >
-            <IconButton onClick={() => this.update()}><ReloadIcon /></IconButton>
-          </Tooltip>
+        {(unpublishedUploads.length === 0) ? ''
+          : <FormLabel className={classes.uploadsLabel}>Your unpublished uploads: </FormLabel>
+        }
+        <FormGroup className={classes.selectFormGroup} style={{alignItems: 'center'}}row>
+          {(unpublishedUploads.length === 0) ? <FormLabel label="all" style={{flexGrow: 1}}>You have currently no unpublished uploads</FormLabel>
+            : <FormControlLabel label="all" style={{flexGrow: 1}} control={(
+              <Checkbox
+                checked={selectedUnpublishedUploads.length === unpublishedUploads.length && unpublishedUploads.length !== 0}
+                onChange={(_, checked) => this.onSelectionAllChanged(checked)}
+              />
+            )} />
+          }
+          {reloadButton}
           <FormLabel classes={{root: classes.selectLabel}}>
             {`selected uploads ${selectedUnpublishedUploads.length}/${unpublishedUploads.length}`}
           </FormLabel>
@@ -283,31 +285,31 @@ class Uploads extends React.Component {
 
         </FormGroup>
       </div>
+      {
+        (unpublishedUploads.length === 0)
+          ? ''
+          : <div className={classes.uploads}>
+            <Help cookie="uploadList">{`
+              These are all your uploads in the *staging area*. You can see the
+              progress on data progresses and review your uploads before publishing
+              them to the *nomad repository*.
 
-      <div className={classes.uploads}>
-        <div>
-          <Help cookie="uploadList">{`
-            These are all your uploads in the *staging area*. You can see the
-            progress on data progresses and review your uploads before publishing
-            them to the *nomad repository*.
+              Select uploads to delete or publish them. Click on uploads to see individual
+              calculations. Click on calculations to see more details on each calculation.
 
-            Select uploads to delete or publish them. Click on uploads to see individual
-            calculations. Click on calculations to see more details on each calculation.
-
-            When you select and click publish, you will be ask if you want to publish
-            with or without the optional *embargo period*.
-          `}</Help>
-          {
-            this.sortedUnpublishedUploads().map(upload => (
+              When you select and click publish, you will be ask if you want to publish
+              with or without the optional *embargo period*.
+            `}</Help>
+            { this.sortedUnpublishedUploads().map(upload => (
               <Upload key={upload.gui_upload_id} upload={upload}
                 checked={selectedUnpublishedUploads.indexOf(upload) !== -1}
                 onDoesNotExist={() => this.handleDoesNotExist(upload)}
                 onPublished={() => this.handlePublished(upload)}
                 onCheckboxChanged={checked => this.onSelectionChanged(upload, checked)}/>
             ))
-          }
-        </div>
-      </div>
+            }
+          </div>
+      }
     </div>)
   }
 
@@ -385,4 +387,4 @@ class Uploads extends React.Component {
   }
 }
 
-export default compose(withApi(true, false, 'To upload data, you must have a nomad account and you must be logged in.'), withCookies, withStyles(Uploads.styles))(Uploads)
+export default compose(withApi(true, false, 'To upload data, you must have a Nomad Repository account and you must be logged in.'), withCookies, withStyles(Uploads.styles))(Uploads)

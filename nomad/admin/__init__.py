@@ -16,5 +16,11 @@
 Swagger/bravado based python client library for the API and various usefull shell commands.
 """
 
+from nomad.utils import POPO
+
 from . import upload, run
-from .__main__ import cli
+from .__main__ import cli as cli_main
+
+
+def cli():
+    cli_main(obj=POPO())  # pylint: disable=E1120,E1123

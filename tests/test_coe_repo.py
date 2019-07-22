@@ -18,6 +18,7 @@ from passlib.hash import bcrypt
 from datetime import datetime
 
 from nomad.coe_repo import User, Calc, Upload, create_handle
+from nomad.coe_repo.user import Session
 from nomad.coe_repo.calc import PublishContext
 from nomad import processing, parsing, datamodel
 
@@ -44,6 +45,16 @@ def test_token_authorize(test_user):
 def test_password_authorize(test_user):
     user = User.verify_user_password(test_user.email, 'password')
     assert_user(user, test_user)
+
+
+def test_generate_token(postgres, test_user):
+    postgres.begin()
+    session = postgres.query(Session).filter_by(user_id=test_user.user_id).first()
+    if session is not None:
+        postgres.delete(session)
+    postgres.commit()
+
+    assert test_user.get_auth_token() is not None
 
 
 def assert_coe_upload(upload_id: str, upload: datamodel.UploadWithMetadata = None, user_metadata: dict = None):

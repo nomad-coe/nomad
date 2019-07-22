@@ -75,7 +75,8 @@ class User(Base):  # type: ignore
     @staticmethod
     def create_user(
             email: str, password: str, crypted: bool, user_id: int = None,
-            affiliation: Dict[str, str] = None, token: str = None, **kwargs):
+            affiliation: Dict[str, str] = None, token: str = None, generate_token: bool = True,
+            **kwargs):
         repo_db = infrastructure.repository_db
         repo_db.begin()
         try:
@@ -88,9 +89,10 @@ class User(Base):  # type: ignore
             user.set_password(password, crypted)
 
             # TODO this has to change, e.g. trade for JWTs
-            if token is None:
+            if token is None and generate_token:
                 token = ''.join(random.choices(User._token_chars, k=64))
-            repo_db.add(Session(token=token, user=user))
+            if token is not None:
+                repo_db.add(Session(token=token, user=user))
 
             repo_db.commit()
             return user
@@ -123,11 +125,29 @@ class User(Base):  # type: ignore
     def from_user_id(user_id) -> 'User':
         return infrastructure.repository_db.query(User).get(user_id)
 
-    def get_auth_token(self):
+    def get_auth_token(self, create: bool = True):
         repo_db = infrastructure.repository_db
         session = repo_db.query(Session).filter_by(user_id=self.user_id).first()
+
         if not session:
-            raise LoginException('No session, user probably not logged in at NOMAD-coe repository GUI')
+            if create:
+                repo_db.begin()
+                try:
+                    # TODO this has to change, e.g. trade for JWTs
+                    token = ''.join(random.choices(User._token_chars, k=64))
+                    session = Session(token=token, user=self)
+                    repo_db.add(session)
+
+                    repo_db.commit()
+                except Exception as e:
+                    repo_db.rollback()
+                    utils.get_logger('__name__').error(
+                        'could not generate token for user', email=self.email, user_id=self.user_id,
+                        exc_info=e)
+                    raise e
+            else:
+                raise LoginException(
+                    'No session, user probably not logged in at NOMAD-coe repository GUI')
 
         return session.token.encode('utf-8')
 
@@ -159,7 +179,7 @@ class User(Base):  # type: ignore
 
     @property
     def token(self):
-        return self.get_auth_token().decode('utf-8')
+        return self.get_auth_token(create=False).decode('utf-8')
 
     @property
     def is_admin(self) -> bool:
