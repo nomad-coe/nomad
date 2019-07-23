@@ -279,6 +279,8 @@ def _execute_paginated_search(
     if order_by not in search_quantities:
         raise KeyError('Unknown order quantity %s' % order_by)
 
+    _, order_by, _ = search_quantities[order_by]
+
     search = search.sort(order_by if order == 1 else '-%s' % order_by)
     paginated_search = search[(page - 1) * per_page: page * per_page]
     response = paginated_search.execute()  # pylint: disable=E1101
