@@ -187,6 +187,13 @@ class Proc(Document, metaclass=ProcMetaclass):
 
         return self
 
+    def reset(self):
+        """ Resets the task chain. Assumes there no current running process. """
+        self.current_task = None
+        self.tasks_status = PENDING
+        self.errors = []
+        self.warnings = []
+
     @classmethod
     def get_by_id(cls, id: str, id_field: str):
         try:
@@ -261,7 +268,7 @@ class Proc(Document, metaclass=ProcMetaclass):
         tasks = self.__class__.tasks
         assert task in tasks, 'task %s must be one of the classes tasks %s' % (task, str(tasks))  # pylint: disable=E1135
         if self.current_task is None:
-            assert task == tasks[0], "process has to start with first task"  # pylint: disable=E1136
+            assert task == tasks[0], "process has to start with first task %s" % tasks[0]  # pylint: disable=E1136
         elif tasks.index(task) <= tasks.index(self.current_task):
             # task is repeated, probably the celery task of the process was reschedule
             # due to prior worker failure

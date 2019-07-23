@@ -394,7 +394,40 @@ class TestPublicUploadFiles(UploadFilesContract):
         calc_specs, protected = request.param
         upload, upload_files = create_staging_upload(test_upload_id, calc_specs=calc_specs)
         upload_files.pack(upload)
+        upload_files.delete()
         return upload, PublicUploadFiles(test_upload_id, is_authorized=lambda: not protected)
+
+    def test_to_staging_upload_files(self, test_upload):
+        upload, upload_files = test_upload
+        assert upload_files.to_staging_upload_files() is None
+        staging_upload_files = upload_files.to_staging_upload_files(create=True)
+        assert staging_upload_files is not None
+        assert str(staging_upload_files) == str(upload_files.to_staging_upload_files())
+
+        upload_path = upload_files.os_path
+        all_files = list(
+            os.path.join(upload_path, f)
+            for f in os.listdir(upload_path)
+            if os.path.isfile(os.path.join(upload_path, f)))
+
+        # We override the public files before packing to see what packing does to the files
+        for f in all_files:
+            with open(f, 'wt') as fh:
+                fh.write('')
+
+        staging_upload_files.pack(upload)
+        staging_upload_files.delete()
+
+        # We do a very simple check. We made all files empty, those that are rezipped
+        # by pack, should not be empty anymore.
+        new_sizes = list(os.path.getsize(f) for f in all_files)
+        for f, new in zip(all_files, new_sizes):
+            if 'archive' in f:
+                assert new > 0
+            else:
+                assert new == 0
+
+        assert upload_files.to_staging_upload_files() is None
 
 
 def assert_upload_files(

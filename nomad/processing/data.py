@@ -144,7 +144,37 @@ class Calc(Proc):
             return wrap_logger(logger, processors=[save_to_calc_log])
 
     @process
+    def re_process_calc(self):
+        """
+        Processes a calculation again. This means there is already metadata and
+        instead of creating it initially, we are just updating the existing
+        records.
+        """
+        logger = self.get_logger()
+
+        try:
+            self.metadata['nomad_version'] = config.version
+            self.metadata['nomad_commit'] = config.commit
+            self.metadata['last_processing'] = datetime.now()
+
+            self.parsing()
+            self.normalizing()
+            self.archiving()
+        finally:
+            # close loghandler that was not closed due to failures
+            try:
+                if self._calc_proc_logwriter is not None:
+                    self._calc_proc_logwriter.close()
+                    self._calc_proc_logwriter = None
+            except Exception as e:
+                logger.error('could not close calculation proc log', exc_info=e)
+
+    @process
     def process_calc(self):
+        """
+        Processes a new calculation that has no prior records in the mongo, elastic,
+        or filesystem storage. It will create an initial set of (user) metadata.
+        """
         logger = self.get_logger()
         if self.upload is None:
             logger.error('calculation upload does not exist')
@@ -215,7 +245,7 @@ class Calc(Proc):
         # the save might be necessary to correctly read the join condition from the db
         self.save()
         # in case of error, the process_name might be unknown
-        if process_name == 'process_calc' or process_name is None:
+        if process_name == 'process_calc' or process_name == 're_process_calc' or process_name is None:
             self.upload.reload()
             self.upload.check_join()
 
@@ -572,6 +602,35 @@ class Upload(Proc):
                 self.save()
 
     @process
+    def re_process_upload(self):
+        """
+        Runs the distributed process of fully reparsing/renormalizing an existing and
+        already published upload. Will renew the archive part of the upload and update
+        mongo and elastic search entries.
+
+        TODO this implementation does not do any re-matching. This will be more complex
+        due to handling of new or missing matches.
+        """
+        assert self.published
+
+        self.reset()
+        # mock the steps of actual processing
+        self._continue_with('uploading')
+
+        # extract the published raw files into a staging upload files instance
+        self._continue_with('extracting')
+        public_upload_files = cast(PublicUploadFiles, self.upload_files)
+        public_upload_files.to_staging_upload_files(create=True)
+
+        self._continue_with('parse_all')
+        for calc in self.calcs:
+            calc.reset()
+            calc.re_process_calc()
+
+        # the packing and removing of the staging upload files, will be trigged by
+        # the 'cleanup' task after processing all calcs
+
+    @process
     def process_upload(self):
         self.extracting()
         self.parse_all()
@@ -705,7 +764,7 @@ class Upload(Proc):
                 calc.process_calc()
 
     def on_process_complete(self, process_name):
-        if process_name == 'process_upload':
+        if process_name == 'process_upload' or process_name == 're_process_upload':
             self.check_join()
 
     def check_join(self):
@@ -727,10 +786,7 @@ class Upload(Proc):
             base = base[:-1]
         return '%s/uploads/' % base
 
-    @task
-    def cleanup(self):
-        search.refresh()
-
+    def _cleanup_after_processing(self):
         # send email about process finish
         user = self.uploader
         name = '%s %s' % (user.first_name, user.last_name)
@@ -752,6 +808,35 @@ class Upload(Proc):
             # probably due to email configuration problems
             # don't fail or present this error to clients
             self.logger.error('could not send after processing email', exc_info=e)
+
+    def _cleanup_after_re_processing(self):
+        logger = self.get_logger()
+        logger.info('started to repack re-processed upload')
+
+        staging_upload_files = self.upload_files.to_staging_upload_files()
+
+        with utils.timer(
+                logger, 'reprocessed staged upload packed', step='delete staged',
+                upload_size=self.upload_files.size):
+
+            staging_upload_files.pack(self.to_upload_with_metadata())
+
+        with utils.timer(
+                logger, 'reprocessed staged upload deleted', step='delete staged',
+                upload_size=self.upload_files.size):
+
+            staging_upload_files.delete()
+            self.last_update = datetime.now()
+            self.save()
+
+    @task
+    def cleanup(self):
+        search.refresh()
+
+        if self.current_process == 're_process_upload':
+            self._cleanup_after_re_processing()
+        else:
+            self._cleanup_after_processing()
 
     def get_calc(self, calc_id) -> Calc:
         return Calc.objects(upload_id=self.upload_id, calc_id=calc_id).first()

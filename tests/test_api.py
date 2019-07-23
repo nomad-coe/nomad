@@ -800,7 +800,8 @@ class TestRepo():
 
     @pytest.mark.parametrize('first, order_by, order', [
         ('1', 'formula', -1), ('2', 'formula', 1),
-        ('2', 'basis_set', -1), ('1', 'basis_set', 1)])
+        ('2', 'basis_set', -1), ('1', 'basis_set', 1),
+        (None, 'authors', -1)])
     def test_search_order(self, client, example_elastic_calcs, no_warn, first, order_by, order):
         rv = client.get('/repo/?order_by=%s&order=%d' % (order_by, order))
         assert rv.status_code == 200
@@ -808,7 +809,8 @@ class TestRepo():
         results = data.get('results', None)
         assert data['pagination']['total'] == 2
         assert len(results) == 2
-        assert results[0]['calc_id'] == first
+        if first is not None:
+            assert results[0]['calc_id'] == first
 
     @pytest.mark.parametrize('n_results, size', [(2, None), (2, 5), (1, 1)])
     def test_search_scroll(self, client, example_elastic_calcs, no_warn, n_results, size):
