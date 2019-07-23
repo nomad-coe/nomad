@@ -67,6 +67,10 @@ your browser.
 - Reprocessing of published results (e.g. after parser/normalizer improvements).
 - Mirror functionality.
 
+### v0.4.7
+- more migration scripts
+- minor bugfixes
+
 ### v0.4.6
 - admin commands to directly manipulate upload data
 - additional migration scripts

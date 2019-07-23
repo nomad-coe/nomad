@@ -396,6 +396,8 @@ class Package(Document):
     """ The report of the last successful migration of this package """
     skip_migration = BooleanField()
     """ Packages with known problems can be marked to be not migrated """
+    skip_migration_reason = StringField()
+    """ Optional description of the reason for skipping migration """
 
     migration_failure = StringField()
     """ String that describe the cause for last failed migration attempt """
@@ -1269,6 +1271,10 @@ class NomadCOEMigration:
                     package_id=package.package_id, source_upload_id=package.upload_id)
                 overall_report.total_packages += 1
                 overall_report.skipped_packages += 1
+
+                package_report = package.report
+                if package_report is None:
+                    package_report = Report()
 
             elif package.migration_version is not None and package.migration_version >= self.migration_version:
                 if only_republish:

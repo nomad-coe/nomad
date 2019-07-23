@@ -1,0 +1,26 @@
+proxy:
+  nodePort: 30007
+  external:
+    host: "labdev-nomad.esc.rzg.mpg.de"
+    path: "/fairdi/nomad/testing"
+
+api:
+  disableReset: false
+
+worker:
+  replicas: 1
+  routing: "queue"
+
+dbname: fairdi_nomad_testing
+
+postgres:
+  publish_enabled: false
+
+uploadurl: 'https://labdev-nomad.rzg.mpg.de/fairdi/nomad/testing/upload'
+
+volumes:
+  prefixSize: 2
+  public: /nomad/fairdi/testing/fs/public
+  staging: /nomad/fairdi/testing/fs/staging
+  tmp: /nomad/fairdi/testing/fs/tmp
+  nomad: /nomad
