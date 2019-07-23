@@ -40,9 +40,10 @@ def upload(ctx, user: str, staging: bool, processing: bool, outdated: bool):
         query &= Q(process_status=proc.PROCESS_RUNNING) | Q(tasks_status=proc.RUNNING)
 
     if outdated:
-        uploads = proc.Calc.objects(
-            {'metadata.nomad_version__ne': config.version}).distinct(field='upload_id')
-        query &= Q(uploads__in=uploads)
+        uploads = proc.Calc._get_collection().distinct(
+            'upload_id',
+            {'metadata.nomad_version': { '$ne': config.version}})
+        query &= Q(upload_id__in=uploads)
 
     ctx.obj.query = query
     ctx.obj.uploads = proc.Upload.objects(query)
@@ -155,11 +156,8 @@ def re_process(ctx, uploads):
     logger = utils.get_logger(__name__)
     print('%d uploads selected, re-processing ...' % uploads.count())
 
-    def re_process_upload(upload_id: str):
-        logger.info('re-processing started', upload_id=upload_id)
-        upload = proc.Upload.objects(upload_id=upload_id).first()
-        if upload is None:
-            logger.error('upload for re-processing does not exist', upload_id=upload_id)
+    def re_process_upload(upload: str):
+        logger.info('re-processing started', upload_id=upload.upload_id)
 
         upload.re_process_upload()
         upload.block_until_complete(interval=.1)
@@ -167,8 +165,8 @@ def re_process(ctx, uploads):
         logger.info('re-processing complete', upload_id=upload_id)
 
     count = 0
-    for upload_id in uploads:
-        re_process_upload(upload_id)
+    for upload in uploads:
+        re_process_upload(upload)
         count += 1
         print('   re-processed %s of %s uploads' % (count, len(uploads)))
 
