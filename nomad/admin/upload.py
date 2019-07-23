@@ -17,7 +17,7 @@ from tabulate import tabulate
 from mongoengine import Q
 from pymongo import UpdateOne
 
-from nomad import processing as proc, infrastructure, utils, search, files, coe_repo
+from nomad import processing as proc, config, infrastructure, utils, search, files, coe_repo
 from .__main__ import cli
 
 
@@ -25,8 +25,9 @@ from .__main__ import cli
 @click.option('--user', help='Select uploads of user with given id', type=str)
 @click.option('--staging', help='Select only uploads in staging', is_flag=True)
 @click.option('--processing', help='Select only processing uploads', is_flag=True)
+@click.option('--outdated', help='Select published uploads with older nomad version', is_flag=True)
 @click.pass_context
-def upload(ctx, user: str, staging: bool, processing: bool):
+def upload(ctx, user: str, staging: bool, processing: bool, outdated: bool):
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
@@ -37,6 +38,11 @@ def upload(ctx, user: str, staging: bool, processing: bool):
         query &= Q(published=False)
     if processing:
         query &= Q(process_status=proc.PROCESS_RUNNING) | Q(tasks_status=proc.RUNNING)
+
+    if outdated:
+        uploads = proc.Calc.objects(
+            {'metadata.nomad_version__ne': config.version}).distinct(field='upload_id')
+        query &= Q(uploads__in=uploads)
 
     ctx.obj.query = query
     ctx.obj.uploads = proc.Upload.objects(query)
@@ -138,6 +144,33 @@ def rm(ctx, uploads, with_coe_repo, skip_es, skip_mongo, skip_files):
         if not skip_mongo:
             proc.Calc.objects(upload_id=upload.upload_id).delete()
             upload.delete()
+
+
+@upload.command(help='Reprocess selected uploads.')
+@click.argument('UPLOADS', nargs=-1)
+@click.pass_context
+def re_process(ctx, uploads):
+    _, uploads = query_uploads(ctx, uploads)
+
+    logger = utils.get_logger(__name__)
+    print('%d uploads selected, re-processing ...' % uploads.count())
+
+    def re_process_upload(upload_id: str):
+        logger.info('re-processing started', upload_id=upload_id)
+        upload = proc.Upload.objects(upload_id=upload_id).first()
+        if upload is None:
+            logger.error('upload for re-processing does not exist', upload_id=upload_id)
+
+        upload.re_process_upload()
+        upload.block_until_complete(interval=.1)
+
+        logger.info('re-processing complete', upload_id=upload_id)
+
+    count = 0
+    for upload_id in uploads:
+        re_process_upload(upload_id)
+        count += 1
+        print('   re-processed %s of %s uploads' % (count, len(uploads)))
 
 
 @upload.command(help='Attempt to abort the processing of uploads.')
