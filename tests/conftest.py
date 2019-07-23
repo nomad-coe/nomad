@@ -546,6 +546,22 @@ def non_empty_processed(non_empty_uploaded: Tuple[str, str], test_user: coe_repo
     return test_processing.run_processing(non_empty_uploaded, test_user)
 
 
+@pytest.mark.timeout(config.tests.default_timeout)
+@pytest.fixture(scope='function')
+def published(non_empty_processed: processing.Upload, example_user_metadata) -> processing.Upload:
+    """
+    Provides a processed upload. Upload was uploaded with test_user.
+    """
+    non_empty_processed.compress_and_set_metadata(example_user_metadata)
+    non_empty_processed.publish_upload()
+    try:
+        non_empty_processed.block_until_complete(interval=.01)
+    except Exception:
+        pass
+
+    return non_empty_processed
+
+
 @pytest.fixture(scope='function', params=[None, 'fairdi', 'coe'])
 def with_publish_to_coe_repo(monkeypatch, request):
     mode = request.param

@@ -17,5 +17,9 @@ Swagger/bravado based python client library for the API and various usefull shel
 """
 
 from . import local, migration, upload, integrationtests, parse
-from .__main__ import cli, create_client
+from .main import cli, create_client
 from .upload import stream_upload_with_client
+
+
+def run_cli():
+    cli()  # pylint: disable=E1120

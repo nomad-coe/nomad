@@ -9,7 +9,7 @@ from nomad.parsing import LocalBackend, parser_dict, match_parser
 from nomad.normalizing import normalizers
 from nomad.datamodel import CalcWithMetadata
 
-from .__main__ import cli
+from .main import cli
 
 
 def parse(

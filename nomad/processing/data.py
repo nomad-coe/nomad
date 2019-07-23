@@ -613,6 +613,9 @@ class Upload(Proc):
         """
         assert self.published
 
+        logger = self.get_logger()
+        logger.info('started to re-process')
+
         self.reset()
         # mock the steps of actual processing
         self._continue_with('uploading')
@@ -860,6 +863,12 @@ class Upload(Proc):
     def all_calcs(self, start, end, order_by=None):
         query = Calc.objects(upload_id=self.upload_id)[start:end]
         return query.order_by(order_by) if order_by is not None else query
+
+    @property
+    def outdated_calcs(self):
+        return Calc.objects(
+            upload_id=self.upload_id, tasks_status=SUCCESS,
+            metadata__nomad_version__ne=config.version)
 
     @property
     def calcs(self):

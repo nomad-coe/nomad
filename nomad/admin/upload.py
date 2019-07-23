@@ -18,7 +18,7 @@ from mongoengine import Q
 from pymongo import UpdateOne
 
 from nomad import processing as proc, config, infrastructure, utils, search, files, coe_repo
-from .__main__ import cli
+from .cli import cli
 
 
 @cli.group(help='Upload related commands')
@@ -42,7 +42,7 @@ def upload(ctx, user: str, staging: bool, processing: bool, outdated: bool):
     if outdated:
         uploads = proc.Calc._get_collection().distinct(
             'upload_id',
-            {'metadata.nomad_version': { '$ne': config.version}})
+            {'metadata.nomad_version': {'$ne': config.version}})
         query &= Q(upload_id__in=uploads)
 
     ctx.obj.query = query
@@ -156,13 +156,13 @@ def re_process(ctx, uploads):
     logger = utils.get_logger(__name__)
     print('%d uploads selected, re-processing ...' % uploads.count())
 
-    def re_process_upload(upload: str):
+    def re_process_upload(upload):
         logger.info('re-processing started', upload_id=upload.upload_id)
 
         upload.re_process_upload()
         upload.block_until_complete(interval=.1)
 
-        logger.info('re-processing complete', upload_id=upload_id)
+        logger.info('re-processing complete', upload_id=upload.upload_id)
 
     count = 0
     for upload in uploads:

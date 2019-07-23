@@ -22,7 +22,7 @@ import requests
 from nomad import utils, config
 from nomad.processing import FAILURE, SUCCESS
 
-from .__main__ import cli, create_client
+from .main import cli, create_client
 
 
 def stream_upload_with_client(client, stream, name=None):

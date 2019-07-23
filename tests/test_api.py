@@ -447,6 +447,20 @@ class TestUploads:
         self.assert_published(client, admin_user_auth, upload['upload_id'], proc_infra, metadata)
         self.assert_published(client, admin_user_auth, upload['upload_id'], proc_infra, metadata, publish_with_metadata=False)
 
+    def test_post_re_process(self, client, published, test_user_auth, monkeypatch):
+        monkeypatch.setattr('nomad.config.version', 're_process_test_version')
+        monkeypatch.setattr('nomad.config.commit', 're_process_test_commit')
+
+        upload_id = published.upload_id
+        rv = client.post(
+            '/uploads/%s' % upload_id,
+            headers=test_user_auth,
+            data=json.dumps(dict(operation='re-process')),
+            content_type='application/json')
+
+        assert rv.status_code == 200
+        assert self.block_until_completed(client, upload_id, test_user_auth) is not None
+
     # TODO validate metadata (or all input models in API for that matter)
     # def test_post_bad_metadata(self, client, proc_infra, test_user_auth, postgres):
     #     rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)

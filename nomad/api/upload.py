@@ -445,7 +445,7 @@ class UploadResource(Resource):
     @login_really_required
     def post(self, upload_id):
         """
-        Execute an upload operation. Available operations: ``publish``
+        Execute an upload operation. Available operations are ``publish`` and ``re-process``
 
         Publish accepts further meta data that allows to provide coauthors, comments,
         external references, etc. See the model for details. The fields that start with
@@ -453,6 +453,10 @@ class UploadResource(Resource):
 
         Publish changes the visibility of the upload. Clients can specify the visibility
         via meta data.
+
+        Re-process will re-process the upload and produce updated repository metadata and
+        archive. Only published uploads that are not processing at the moment are allowed.
+        Only for uploads where calculations have been processed with an older nomad version.
         """
         try:
             upload = Upload.get(upload_id)
@@ -489,8 +493,21 @@ class UploadResource(Resource):
                 abort(400, message='The upload is still/already processed')
 
             return upload, 200
+        elif operation == 're-process':
+            if upload.tasks_running or not upload.published:
+                abort(400, message='Can only non processing, re-process published uploads')
 
-        abort(400, message='Unsuported operation %s.' % operation)
+            if len(metadata) > 0:
+                abort(400, message='You can not provide metadata for re-processing')
+
+            if len(upload.outdated_calcs) == 0:
+                abort(400, message='You can only re-process uploads with at least one outdated calculation')
+
+            upload.re_process_upload()
+
+            return upload, 200
+
+        abort(400, message='Unsupported operation %s.' % operation)
 
 
 upload_command_model = api.model('UploadCommand', {

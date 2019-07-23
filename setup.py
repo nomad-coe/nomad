@@ -18,6 +18,6 @@ setup(
     install_requires=reqs,
     entry_points='''
         [console_scripts]
-        nomad=nomad.client:cli
-        admin=nomad.admin:cli
+        nomad=nomad.client:run_cli
+        admin=nomad.admin:run_cli
     ''')

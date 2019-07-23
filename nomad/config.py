@@ -259,7 +259,7 @@ def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yaml'))
     if os.path.exists(config_file):
         with open(config_file, 'r') as stream:
             try:
-                config_data = yaml.load(stream)
+                config_data = yaml.load(stream, Loader=getattr(yaml, 'FullLoader'))
             except yaml.YAMLError as e:
                 logger.error('cannot read nomad config', exc_info=e)
 

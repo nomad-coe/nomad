@@ -28,7 +28,7 @@ from nomad.datamodel import CalcWithMetadata
 from nomad.parsing import LocalBackend
 from nomad.client.parse import parse, normalize, normalize_all
 
-from .__main__ import cli
+from .main import cli
 
 
 class CalcProcReproduction:
@@ -58,7 +58,7 @@ class CalcProcReproduction:
         self.mainfile = mainfile
         self.parser = None
 
-        from .__main__ import create_client
+        from .main import create_client
         client = create_client()
         if self.mainfile is None:
             try:

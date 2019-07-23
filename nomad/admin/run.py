@@ -17,7 +17,7 @@ import asyncio
 from concurrent.futures import ProcessPoolExecutor
 
 from nomad import config
-from nomad.admin.__main__ import cli
+from .cli import cli
 
 
 @cli.group(help='Run a nomad service locally (outside docker).')
