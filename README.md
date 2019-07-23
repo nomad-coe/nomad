@@ -15,7 +15,7 @@ Currently, there is only a *staging* version running at garching. There is
 no real production system yet. You have to expect frequent down times and restarts.
 You can access the running system and its documentation here:
 
-[http://enc-staging-nomad.esc.rzg.mpg.de/nomad/docs](http://enc-staging-nomad.esc.rzg.mpg.de/fairdi/nomad/v0.3.0/docs)
+[https://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/coe/api/docs/index.html](https://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/coe/api/docs/index.html)
 
 ### Generate the docs from the source
 
