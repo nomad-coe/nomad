@@ -19,12 +19,13 @@ def retrieve_remote_data():
         pid = calc['metadata']['pid']
         upload = calc['upload_id']
 
-        calcs = pid_dict.get(pid)
-        if calcs is None:
-            calcs = []
-            pid_dict[pid] = calcs
+        pid_calcs = pid_dict.get(pid)
+        if pid_calcs is None:
+            pid_calcs = []
+            pid_dict[pid] = pid_calcs
 
-        calcs.append(upload)
+        if upload != 'j-IVBd3MQWWvTJ6pg5oaSw':
+            pid_calcs.append(upload)
 
         count += 1
         if count % 100000 == 0:
@@ -41,8 +42,11 @@ def load_local_data():
         return json.load(f)
 
 
-pid_dict = load_local_data()
-# pid_dict = retrieve_remote_data()
+try:
+    pid_dict = load_local_data()
+except Exception:
+    pid_dict = retrieve_remote_data()
+
 print('data available ...')
 
 
