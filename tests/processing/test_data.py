@@ -240,58 +240,56 @@ def test_process_non_existing(proc_infra, test_user, with_error):
     assert len(upload.errors) > 0
 
 
-def test_re_processing(non_empty_processed: Upload, no_warn, example_user_metadata, with_publish_to_coe_repo, monkeypatch):
-    processed = non_empty_processed
+@pytest.mark.timeout(config.tests.default_timeout)
+@pytest.mark.parametrize('with_failure', [None, 'before', 'after'])
+def test_re_processing(published: Upload, example_user_metadata, monkeypatch, with_failure):
+    if with_failure == 'before':
+        calc = published.all_calcs(0, 1).first()
+        calc.tasks_status = FAILURE
+        calc.errors = ['example error']
+        calc.save()
+        assert published.failed_calcs > 0
 
-    # publish
-    processed.compress_and_set_metadata(example_user_metadata)
+    assert published.published
+    assert published.upload_files.to_staging_upload_files() is None
 
-    additional_keys = ['with_embargo']
-    if with_publish_to_coe_repo:
-        additional_keys.append('pid')
+    with_failure = with_failure == 'after'
 
-    processed.publish_upload()
-    try:
-        processed.block_until_complete(interval=.01)
-    except Exception:
-        pass
-
-    processed.reload()
-    assert processed.published
-    assert processed.upload_files.to_staging_upload_files() is None
-
-    old_upload_time = processed.last_update
-    first_calc = processed.calcs.first()
+    old_upload_time = published.last_update
+    first_calc = published.all_calcs(0, 1).first()
     old_calc_time = first_calc.metadata['last_processing']
 
     old_archive_files = list(
         archive_file
-        for archive_file in os.listdir(processed.upload_files.os_path)
+        for archive_file in os.listdir(published.upload_files.os_path)
         if 'archive' in archive_file)
     for archive_file in old_archive_files:
-        with open(processed.upload_files.join_file(archive_file).os_path, 'wt') as f:
+        with open(published.upload_files.join_file(archive_file).os_path, 'wt') as f:
             f.write('')
 
+    if with_failure:
+        raw_files = 'tests/data/proc/examples_template_unparsable.zip'
+    else:
+        raw_files = 'tests/data/proc/examples_template_different_atoms.zip'
     shutil.copyfile(
-        'tests/data/proc/examples_template_different_atoms.zip',
-        processed.upload_files.join_file('raw-restricted.plain.zip').os_path)
+        raw_files, published.upload_files.join_file('raw-restricted.plain.zip').os_path)
 
-    upload = processed.to_upload_with_metadata(example_user_metadata)
+    upload = published.to_upload_with_metadata(example_user_metadata)
 
     # reprocess
     monkeypatch.setattr('nomad.config.version', 're_process_test_version')
     monkeypatch.setattr('nomad.config.commit', 're_process_test_commit')
-    processed.re_process_upload()
+    published.re_process_upload()
     try:
-        processed.block_until_complete(interval=.01)
+        published.block_until_complete(interval=.01)
     except Exception:
         pass
 
-    processed.reload()
+    published.reload()
     first_calc.reload()
 
     # assert new process time
-    assert processed.last_update > old_upload_time
+    assert published.last_update > old_upload_time
     assert first_calc.metadata['last_processing'] > old_calc_time
 
     # assert new process version
@@ -299,23 +297,21 @@ def test_re_processing(non_empty_processed: Upload, no_warn, example_user_metada
     assert first_calc.metadata['nomad_commit'] == 're_process_test_commit'
 
     # assert changed archive files
-    for archive_file in old_archive_files:
-        assert os.path.getsize(processed.upload_files.join_file(archive_file).os_path) > 0
+    if not with_failure:
+        for archive_file in old_archive_files:
+            assert os.path.getsize(published.upload_files.join_file(archive_file).os_path) > 0
 
-    # assert maintained user metadata (mongo+es+coe)
-    if with_publish_to_coe_repo:
-        assert_coe_upload(upload.upload_id, user_metadata=example_user_metadata)
-
+    # assert maintained user metadata (mongo+es)
     assert_upload_files(upload, PublicUploadFiles, published=True)
-    assert_search_upload(upload, additional_keys, published=True)
-
-    if with_publish_to_coe_repo and config.repository_db.mode == 'coe':
-        assert(os.path.exists(os.path.join(config.fs.coe_extracted, upload.upload_id)))
-
-    assert_processing(Upload.get(upload.upload_id, include_published=True), published=True)
+    assert_search_upload(upload, published=True)
+    if not with_failure:
+        assert_processing(Upload.get(upload.upload_id, include_published=True), published=True)
 
     # assert changed calc metadata (mongo)
-    assert first_calc.metadata['atoms'][0] == 'H'
+    if not with_failure:
+        assert first_calc.metadata['atoms'][0] == 'H'
+    else:
+        assert first_calc.metadata['atoms'][0] == 'Br'
 
 
 def mock_failure(cls, task, monkeypatch):

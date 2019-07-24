@@ -153,9 +153,15 @@ class Calc(Proc):
         logger = self.get_logger()
 
         try:
-            self.metadata['nomad_version'] = config.version
-            self.metadata['nomad_commit'] = config.commit
-            self.metadata['last_processing'] = datetime.now()
+            calc_with_metadata = datamodel.CalcWithMetadata(**self.metadata)
+            calc_with_metadata.upload_id = self.upload_id
+            calc_with_metadata.calc_id = self.calc_id
+            calc_with_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
+            calc_with_metadata.mainfile = self.mainfile
+            calc_with_metadata.nomad_version = config.version
+            calc_with_metadata.nomad_commit = config.commit
+            calc_with_metadata.last_processing = datetime.now()
+            self.metadata = calc_with_metadata.to_dict()
 
             self.parsing()
             self.normalizing()
@@ -626,7 +632,7 @@ class Upload(Proc):
         public_upload_files.to_staging_upload_files(create=True)
 
         self._continue_with('parse_all')
-        for calc in self.calcs:
+        for calc in Calc.objects(upload_id=self.upload_id):
             calc.reset()
             calc.re_process_calc()
 
