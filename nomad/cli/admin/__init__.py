@@ -13,4 +13,4 @@
 # limitations under the License.
 
 
-from . import admin, uploads, run
+from . import admin, uploads, run, clean

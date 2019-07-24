@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List
 import click
 from tabulate import tabulate
 from mongoengine import Q
 from pymongo import UpdateOne
+import threading
 
 from nomad import processing as proc, config, infrastructure, utils, search, files, coe_repo
 from .admin import admin
@@ -149,12 +151,22 @@ def rm(ctx, uploads, with_coe_repo, skip_es, skip_mongo, skip_files):
 
 @uploads.command(help='Reprocess selected uploads.')
 @click.argument('UPLOADS', nargs=-1)
+@click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.pass_context
-def re_process(ctx, uploads):
+def re_process(ctx, uploads, parallel: int):
     _, uploads = query_uploads(ctx, uploads)
+    uploads_count = uploads.count()
+
+    cv = threading.Condition()
+    threads: List[threading.Thread] = []
+
+    state = dict(
+        completed_count=0,
+        available_threads_count=parallel)
 
     logger = utils.get_logger(__name__)
-    print('%d uploads selected, re-processing ...' % uploads.count())
+
+    print('%d uploads selected, re-processing ...' % uploads_count)
 
     def re_process_upload(upload):
         logger.info('re-processing started', upload_id=upload.upload_id)
@@ -163,12 +175,22 @@ def re_process(ctx, uploads):
         upload.block_until_complete(interval=.1)
 
         logger.info('re-processing complete', upload_id=upload.upload_id)
+        state['completed_count'] += 1
+        print('   re-processed %s of %s uploads' % (state['completed_count'], uploads_count))
 
-    count = 0
+        state['available_threads_count'] += 1
+        cv.notify()
+
     for upload in uploads:
-        re_process_upload(upload)
-        count += 1
-        print('   re-processed %s of %s uploads' % (count, len(uploads)))
+        with cv:
+            cv.wait_for(lambda: state['available_threads_count'] > 0)
+            state['available_threads_count'] -= 1
+            thread = threading.Thread(target=lambda: re_process_upload(upload))
+            threads.append(thread)
+            thread.start()
+
+    for thread in threads:
+        thread.join()
 
 
 @uploads.command(help='Attempt to abort the processing of uploads.')

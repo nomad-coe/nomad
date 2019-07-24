@@ -64,8 +64,10 @@ your browser.
 - Refactored search API that allows to search for entries (paginated + scroll),
   metrics based on quantity aggregations (+ paginated entries), quantity aggregations
   with all values via `after` key (+ paginated entries).
-- Reprocessing of published results (e.g. after parser/normalizer improvements).
-- Mirror functionality.
+- reprocessing of published results (e.g. after parser/normalizer improvements)
+- mirror functionality
+- refactored command line interface (CLI)
+- many minor bugfixes
 
 ### v0.4.7
 - more migration scripts

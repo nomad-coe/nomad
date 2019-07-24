@@ -569,3 +569,14 @@ def with_publish_to_coe_repo(monkeypatch, request):
         monkeypatch.setattr('nomad.config.repository_db.publish_enabled', True)
         monkeypatch.setattr('nomad.config.repository_db.mode', mode)
     return request.param is not None
+
+
+@pytest.fixture
+def reset_config():
+    """ Fixture that resets the log-level after test. """
+    service = config.service
+    log_level = config.console_log_level
+    yield None
+    config.service = service
+    config.console_log_level = log_level
+    infrastructure.setup_logging()

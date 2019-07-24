@@ -29,7 +29,8 @@ from .admin import admin
 @click.option('--skip-calcs', is_flag=True, help='Skip cleaning calcs with missing uploads.')
 @click.option('--skip-fs', is_flag=True, help='Skip cleaning the filesystem.')
 @click.option('--skip-es', is_flag=True, help='Skip cleaning the es index.')
-def clean(dry, skip_calcs, skip_fs, skip_es):
+@click.option('--force', is_flag=True, help='Do not ask for confirmation.')
+def clean(dry, skip_calcs, skip_fs, skip_es, force):
     infrastructure.setup_logging()
     mongo_client = infrastructure.setup_mongo()
     infrastructure.setup_elastic()
@@ -46,7 +47,8 @@ def clean(dry, skip_calcs, skip_fs, skip_es):
                 missing_uploads.append(upload_for_calc)
 
         if not dry and len(missing_uploads) > 0:
-            input('Will delete calcs (mongo + es) for %d missing uploads. Press any key to continue ...' % len(missing_uploads))
+            if not force:
+                input('Will delete calcs (mongo + es) for %d missing uploads. Press any key to continue ...' % len(missing_uploads))
 
             for upload in missing_uploads:
                 mongo_client[nomad_config.mongo.db_name]['calc'].remove(dict(upload_id=upload))
@@ -69,7 +71,8 @@ def clean(dry, skip_calcs, skip_fs, skip_es):
             if processing.Upload.objects(upload_id=upload).first() is None)
 
         if not dry and len(to_delete) > 0:
-            input('Will delete %d upload directories. Press any key to continue ...' % len(to_delete))
+            if not force:
+                input('Will delete %d upload directories. Press any key to continue ...' % len(to_delete))
 
             for path in to_delete:
                 shutil.rmtree(path)
@@ -94,9 +97,10 @@ def clean(dry, skip_calcs, skip_fs, skip_es):
             calcs += upload_calcs
 
         if not dry and len(to_delete) > 0:
-            input(
-                'Will delete %d calcs in %d uploads from ES. Press any key to continue ...' %
-                (calcs, len(to_delete)))
+            if not force:
+                input(
+                    'Will delete %d calcs in %d uploads from ES. Press any key to continue ...' %
+                    (calcs, len(to_delete)))
             for upload, _ in to_delete:
                 Search(index=nomad_config.elastic.index_name).query('term', upload_id=upload).delete()
         else:

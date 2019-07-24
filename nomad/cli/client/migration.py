@@ -281,7 +281,7 @@ def upload(
         create_packages=create_packages, only_republish=only_republish, wait=wait, republish=republish)
 
 
-@migration.command(help='Get an report about not migrated calcs.')
+@migration.command(help='Get an report about not migrated calcs. This connects directly to nomad dbs, like admin commands.')
 def missing():
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
