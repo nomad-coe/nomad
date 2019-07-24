@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from flask import g, request
+from flask import request
 from flask_restplus import abort, Resource, fields
 
 from nomad import infrastructure, config
 
 from .app import api
-from .auth import login_really_required
+from .auth import admin_login_required
 
 
 ns = api.namespace('admin', description='Administrative operations')
@@ -29,7 +29,7 @@ class AdminResetResource(Resource):
     @api.doc('exec_reset_command')
     @api.response(200, 'Reset performed')
     @api.response(400, 'Reset not available/disabled')
-    @login_really_required
+    @admin_login_required
     def post(self):
         """
         The ``reset`` command will attempt to clear the contents of all databased and
@@ -37,9 +37,6 @@ class AdminResetResource(Resource):
 
         Nomad can be configured to disable reset and the command might not be available.
         """
-        if not g.user.is_admin:
-            abort(401, message='Only the admin user can perform reset.')
-
         if config.services.disable_reset:
             abort(400, message='Operation is disabled')
 
@@ -53,7 +50,7 @@ class AdminRemoveResource(Resource):
     @api.doc('exec_remove_command')
     @api.response(200, 'Remove performed')
     @api.response(400, 'Remove not available/disabled')
-    @login_really_required
+    @admin_login_required
     def post(self):
         """
         The ``remove``command will attempt to remove all databases. Expect the
@@ -61,8 +58,6 @@ class AdminRemoveResource(Resource):
 
         Nomad can be configured to disable remove and the command might not be available.
         """
-        if not g.user.is_admin:
-            abort(401, message='Only the admin user can perform remove.')
 
         if config.services.disable_reset:
             abort(400, message='Operation is disabled')
@@ -77,21 +72,20 @@ pidprefix_model = api.model('PidPrefix', {
 })
 
 
+# TODO remove after migration
 @ns.route('/pidprefix')
 class AdminPidPrefixResource(Resource):
     @api.doc('exec_pidprefix_command')
     @api.response(200, 'Pid prefix set')
     @api.response(400, 'Bad pid prefix data')
     @api.expect(pidprefix_model)
-    @login_really_required
+    @admin_login_required
     def post(self):
         """
         The ``pidprefix``command will set the pid counter to the given value.
 
         This might be useful while migrating data with old pids.
         """
-        if not g.user.is_admin:
-            abort(401, message='Only the admin user can perform remove.')
 
         infrastructure.set_pid_prefix(**request.get_json())
 

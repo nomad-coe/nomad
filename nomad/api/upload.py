@@ -32,7 +32,7 @@ from nomad.processing import ProcessAlreadyRunning
 
 from .app import api, with_logger, RFC3339DateTime
 from .auth import login_really_required
-from .common import pagination_request_parser, pagination_model
+from .common import pagination_request_parser, pagination_model, upload_route
 
 
 ns = api.namespace(
@@ -342,8 +342,7 @@ class ProxyUpload:
         return self.upload.__getattribute__(name)
 
 
-@ns.route('/<string:upload_id>')
-@api.doc(params={'upload_id': 'The unique id for the requested upload.'})
+@upload_route(ns)
 class UploadResource(Resource):
     @api.doc('get_upload')
     @api.response(404, 'Upload does not exist')

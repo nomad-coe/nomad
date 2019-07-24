@@ -128,6 +128,24 @@ def login_really_required(func):
     return wrapper
 
 
+def admin_login_required(func):
+    """
+    A decorator for API endpoint implementations that should only work for the admin user.
+    """
+    @api.response(401, 'Authentication required or not authorized as admin user. Only admin can access this endpoint.')
+    @api.doc(security=list(api.authorizations.keys()))
+    @login_really_required
+    def wrapper(*args, **kwargs):
+        if not g.user.is_admin:
+            abort(401, message='Only the admin user can perform reset.')
+        else:
+            return func(*args, **kwargs)
+
+    wrapper.__name__ = func.__name__
+    wrapper.__doc__ = func.__doc__
+    return wrapper
+
+
 ns = api.namespace(
     'auth',
     description='Authentication related endpoints.')

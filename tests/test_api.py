@@ -1022,6 +1022,21 @@ class TestRaw(UploadFilesBasedTests):
         assert rv.status_code == 404
 
 
+class TestMirror:
+
+    def test_upload(self, client, published, admin_user_auth, no_warn):
+        url = '/mirror/%s' % published.upload_id
+        rv = client.get(url, headers=admin_user_auth)
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data)
+        assert data['upload_id'] == published.upload_id
+        assert json.loads(data['upload'])['_id'] == published.upload_id
+        assert Upload.from_json(data['upload']).upload_id == published.upload_id
+        assert len(data['calcs']) == len(published.calcs)
+        assert data['upload_files_path'] == published.upload_files.os_path
+
+
 def test_docs(client):
     rv = client.get('/docs/index.html')
     rv = client.get('/docs/introduction.html')
