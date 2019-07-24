@@ -175,11 +175,12 @@ def re_process(ctx, uploads, parallel: int):
         upload.block_until_complete(interval=.1)
 
         logger.info('re-processing complete', upload_id=upload.upload_id)
-        state['completed_count'] += 1
-        print('   re-processed %s of %s uploads' % (state['completed_count'], uploads_count))
 
-        state['available_threads_count'] += 1
-        cv.notify()
+        with cv:
+            state['completed_count'] += 1
+            print('   re-processed %s of %s uploads' % (state['completed_count'], uploads_count))
+            state['available_threads_count'] += 1
+            cv.notify()
 
     for upload in uploads:
         with cv:
