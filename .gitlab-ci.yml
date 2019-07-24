@@ -55,6 +55,21 @@ buildgui:
     - /^dev-.*$/
     - tags
 
+linting:
+  stage: test
+  image: $TEST_IMAGE
+  script:
+    - cd /app
+    - python -m pycodestyle --ignore=E501,E701 nomad tests
+    - python -m pylint --load-plugins=pylint_mongoengine nomad tests
+    - python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests
+  except:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
+      - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
+
 tests:
   stage: test
   image: $TEST_IMAGE
