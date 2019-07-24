@@ -161,6 +161,7 @@ class Calc(Proc):
             calc_with_metadata.nomad_version = config.version
             calc_with_metadata.nomad_commit = config.commit
             calc_with_metadata.last_processing = datetime.now()
+            calc_with_metadata.files = self.upload_files.calc_files(self.mainfile)
             self.metadata = calc_with_metadata.to_dict()
 
             self.parsing()
