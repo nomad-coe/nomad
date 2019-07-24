@@ -12,7 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .main import cli
 
-if __name__ == '__main__':
-    cli()  # pylint: disable=E1120
+from . import admin, upload, run

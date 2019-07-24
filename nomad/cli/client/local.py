@@ -26,9 +26,9 @@ from nomad import config, utils
 from nomad.files import ArchiveBasedStagingUploadFiles
 from nomad.datamodel import CalcWithMetadata
 from nomad.parsing import LocalBackend
-from nomad.client.parse import parse, normalize, normalize_all
+from nomad.cli.parse import parse, normalize, normalize_all
 
-from .main import cli
+from .client import client
 
 
 class CalcProcReproduction:
@@ -58,7 +58,7 @@ class CalcProcReproduction:
         self.mainfile = mainfile
         self.parser = None
 
-        from .main import create_client
+        from nomad.cli.client import create_client
         client = create_client()
         if self.mainfile is None:
             try:
@@ -144,7 +144,7 @@ class CalcProcReproduction:
         return normalize_all(parser_backend=parser_backend, logger=self.logger)
 
 
-@cli.command(help='Run processing locally.')
+@client.command(help='Run processing locally.')
 @click.argument('CALC_ID', nargs=1, required=True, type=str)
 @click.option('--override', is_flag=True, default=False, help='Override existing local calculation data.')
 @click.option('--show-backend', is_flag=True, default=False, help='Print the backend data.')

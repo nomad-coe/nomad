@@ -13,9 +13,7 @@
 # limitations under the License.
 
 import click
-import logging
 import os
-import sys
 import shutil
 from tabulate import tabulate
 from elasticsearch_dsl import A
@@ -23,47 +21,10 @@ from elasticsearch_dsl import A
 from nomad import config as nomad_config, infrastructure, processing
 from nomad.search import Search
 
-
-@click.group(help='''The nomad admin command to do nasty stuff directly on the databases.
-                     Remember: With great power comes great responsibility!''')
-@click.option('-v', '--verbose', help='sets log level to info', is_flag=True)
-@click.option('--debug', help='sets log level to debug', is_flag=True)
-@click.option('--config', help='the config file to use')
-@click.pass_context
-def cli(ctx, verbose: bool, debug: bool, config: str):
-    if config is not None:
-        nomad_config.load_config(config_file=config)
-
-    if debug:
-        nomad_config.console_log_level = logging.DEBUG
-    elif verbose:
-        nomad_config.console_log_level = logging.INFO
-    else:
-        nomad_config.console_log_level = logging.WARNING
-
-    nomad_config.service = os.environ.get('NOMAD_SERVICE', 'admin')
-    infrastructure.setup_logging()
+from .admin import admin
 
 
-@cli.command(help='Runs tests and linting. Useful before commit code.')
-@click.option('--skip-tests', help='Do not test, just do code checks.', is_flag=True)
-def qa(skip_tests: bool):
-    os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-    ret_code = 0
-    if not skip_tests:
-        click.echo('Run tests ...')
-        ret_code += os.system('python -m pytest -svx tests')
-    click.echo('Run code style checks ...')
-    ret_code += os.system('python -m pycodestyle --ignore=E501,E701 nomad tests')
-    click.echo('Run linter ...')
-    ret_code += os.system('python -m pylint --load-plugins=pylint_mongoengine nomad tests')
-    click.echo('Run static type checks ...')
-    ret_code += os.system('python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests')
-
-    sys.exit(ret_code)
-
-
-@cli.command(help='Checks consistency of files and es vs mongo and deletes orphan entries.')
+@admin.command(help='Checks consistency of files and es vs mongo and deletes orphan entries.')
 @click.option('--dry', is_flag=True, help='Do not delete anything, just check.')
 @click.option('--skip-calcs', is_flag=True, help='Skip cleaning calcs with missing uploads.')
 @click.option('--skip-fs', is_flag=True, help='Skip cleaning the filesystem.')

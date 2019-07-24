@@ -18,10 +18,10 @@ from mongoengine import Q
 from pymongo import UpdateOne
 
 from nomad import processing as proc, config, infrastructure, utils, search, files, coe_repo
-from .cli import cli
+from .admin import admin
 
 
-@cli.group(help='Upload related commands')
+@admin.group(help='Upload related commands')
 @click.option('--user', help='Select uploads of user with given id', type=str)
 @click.option('--staging', help='Select only uploads in staging', is_flag=True)
 @click.option('--processing', help='Select only processing uploads', is_flag=True)

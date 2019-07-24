@@ -13,13 +13,18 @@
 # limitations under the License.
 
 """
-Swagger/bravado based python client library for the API and various usefull shell commands.
+Command line interface (CLI) for nomad. Provides a group/sub-command structure, think git,
+that offers various functionality to the command line user.
+
+Use it from the command line with ``nomad --help`` or ``python -m nomad.cli --help``to learn
+more.
 """
 
-from . import local, migration, upload, integrationtests, parse
-from .main import cli, create_client
-from .upload import stream_upload_with_client
+from nomad.utils import POPO
+
+from . import dev, admin, client, parse
+from .cli import cli
 
 
 def run_cli():
-    cli()  # pylint: disable=E1120
+    cli(obj=POPO())  # pylint: disable=E1120,E1123

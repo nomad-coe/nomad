@@ -17,10 +17,10 @@ import asyncio
 from concurrent.futures import ProcessPoolExecutor
 
 from nomad import config
-from .cli import cli
+from .admin import admin
 
 
-@cli.group(help='Run a nomad service locally (outside docker).')
+@admin.group(help='Run a nomad service locally (outside docker).')
 def run():
     pass
 

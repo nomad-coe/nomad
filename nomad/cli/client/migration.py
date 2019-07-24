@@ -26,7 +26,7 @@ import json
 from nomad import config, infrastructure
 from nomad.migration import NomadCOEMigration, SourceCalc, Package, missing_calcs_data
 
-from .main import cli
+from .client import client
 
 
 def _Migration(**kwargs) -> NomadCOEMigration:
@@ -37,7 +37,7 @@ def _setup():
     pass
 
 
-@cli.group(help='Migrate data from NOMAD CoE to nomad@FAIRDI')
+@client.group(help='Migrate data from NOMAD CoE to nomad@FAIRDI')
 @click.option('-h', '--host', default=config.migration_source_db.host, help='The migration repository source db host, default is "%s".' % config.migration_source_db.host)
 @click.option('-p', '--port', default=config.migration_source_db.port, help='The migration repository source db port, default is %d.' % config.migration_source_db.port)
 @click.option('-u', '--user', default=config.migration_source_db.user, help='The migration repository source db user, default is %s.' % config.migration_source_db.user)

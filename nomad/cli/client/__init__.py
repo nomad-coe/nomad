@@ -12,15 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Swagger/bravado based python client library for the API and various usefull shell commands.
-"""
 
-from nomad.utils import POPO
-
-from . import upload, run
-from .cli import cli
-
-
-def run_cli():
-    cli(obj=POPO())  # pylint: disable=E1120,E1123
+from . import local, migration, upload, integrationtests
+from .client import create_client
+from .upload import stream_upload_with_client

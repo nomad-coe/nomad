@@ -17,5 +17,4 @@ from nomad.utils import POPO
 from .cli import cli
 
 if __name__ == '__main__':
-    print('#######################')
     cli(obj=POPO())  # pylint: disable=E1120,E1123

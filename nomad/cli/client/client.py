@@ -12,17 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import sys
 import requests
 import click
-import logging
 from bravado.requests_client import RequestsClient
 from bravado.client import SwaggerClient
 from urllib.parse import urlparse
 
 from nomad import config as nomad_config
-from nomad import utils, infrastructure
+from nomad import utils
+from nomad.cli.cli import cli
 
 
 def create_client():
@@ -66,28 +65,12 @@ def handle_common_errors(func):
     return wrapper
 
 
-@click.group()
+@cli.group(help='Commands that use the nomad API to do useful things')
 @click.option('-n', '--url', default=nomad_config.client.url, help='The URL where nomad is running, default is "%s".' % nomad_config.client.url)
 @click.option('-u', '--user', default=None, help='the user name to login, default is "%s" login.' % nomad_config.client.user)
 @click.option('-w', '--password', default=nomad_config.client.password, help='the password used to login.')
-@click.option('-v', '--verbose', help='sets log level to info', is_flag=True)
 @click.option('--no-ssl-verify', help='disables SSL verificaton when talking to nomad.', is_flag=True)
-@click.option('--debug', help='sets log level to debug', is_flag=True)
-@click.option('--config', help='the config file to use')
-def cli(url: str, verbose: bool, debug: bool, user: str, password: str, config: str, no_ssl_verify: bool):
-    if config is not None:
-        nomad_config.load_config(config_file=config)
-
-    if debug:
-        nomad_config.console_log_level = logging.DEBUG
-    elif verbose:
-        nomad_config.console_log_level = logging.INFO
-    else:
-        nomad_config.console_log_level = logging.WARNING
-
-    nomad_config.service = os.environ.get('NOMAD_SERVICE', 'client')
-    infrastructure.setup_logging()
-
+def client(url: str, user: str, password: str, no_ssl_verify: bool):
     logger = utils.get_logger(__name__)
 
     logger.info('Used nomad is %s' % url)
@@ -106,7 +89,6 @@ def cli(url: str, verbose: bool, debug: bool, user: str, password: str, config: 
             return __create_client(ssl_verify=not no_ssl_verify)
 
 
-@cli.command(help='Attempts to reset the nomad.')
+@client.command(help='Attempts to reset the nomad.')
 def reset():
-    from .main import create_client
     create_client().admin.exec_reset_command().response()

@@ -1030,7 +1030,7 @@ class NomadCOEMigration:
     @property
     def client(self):
         if self._client is None:
-            from nomad.client import create_client
+            from nomad.cli.client import create_client
             self._client = create_client()
 
         return self._client

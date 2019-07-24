@@ -22,7 +22,7 @@ import requests
 from nomad import utils, config
 from nomad.processing import FAILURE, SUCCESS
 
-from .main import cli, create_client
+from .client import client, create_client
 
 
 def stream_upload_with_client(client, stream, name=None):
@@ -93,7 +93,7 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, publish
     return upload.upload_id
 
 
-@cli.command(
+@client.command(
     help='Upload files to nomad. The given path can be a single file or a directory. '
     'All .zip files in a directory will be uploaded.')
 @click.argument('PATH', nargs=-1, required=True, type=click.Path(exists=True))
