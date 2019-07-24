@@ -106,6 +106,8 @@ def get_raw_file_from_upload_path(
     Helper method used by func:`RawFileFromUploadPathResource.get` and
     func:`RawFileFromCalcPathResource.get`.
     """
+    upload_filepath = upload_filepath.rstrip('/')
+
     if upload_filepath[-1:] == '*':
         upload_filepath = upload_filepath[0:-1]
         wildcarded_files = list(upload_files.raw_file_manifest(path_prefix=upload_filepath))

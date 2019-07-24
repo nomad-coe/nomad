@@ -999,9 +999,10 @@ class TestRaw(UploadFilesBasedTests):
 
         assert rv.status_code == 404
 
+    @pytest.mark.parametrize('path', ['examples_template', 'examples_template/'])
     @UploadFilesBasedTests.ignore_authorization
-    def test_raw_files_list(self, client, upload, auth_headers):
-        url = '/raw/%s/examples_template' % upload
+    def test_raw_files_list(self, client, upload, auth_headers, path):
+        url = '/raw/%s/%s' % (upload, path)
         rv = client.get(url, headers=auth_headers)
         assert rv.status_code == 200
         data = json.loads(rv.data)
@@ -1012,6 +1013,7 @@ class TestRaw(UploadFilesBasedTests):
         for content in data['contents']:
             assert content['name'] is not None
             assert content['size'] >= 0
+        assert '1.aux' in list(content['name'] for content in data['contents'])
 
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_files_list_missing(self, client, upload, auth_headers):
