@@ -27,7 +27,7 @@ from .admin import admin
 @click.option('--processing', help='Select only processing uploads', is_flag=True)
 @click.option('--outdated', help='Select published uploads with older nomad version', is_flag=True)
 @click.pass_context
-def upload(ctx, user: str, staging: bool, processing: bool, outdated: bool):
+def uploads(ctx, user: str, staging: bool, processing: bool, outdated: bool):
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
@@ -57,7 +57,7 @@ def query_uploads(ctx, uploads):
     return query, proc.Upload.objects(query)
 
 
-@upload.command(help='List selected uploads')
+@uploads.command(help='List selected uploads')
 @click.argument('UPLOADS', nargs=-1)
 @click.pass_context
 def ls(ctx, uploads):
@@ -71,7 +71,7 @@ def ls(ctx, uploads):
         headers=['id', 'name', 'user', 'status', 'published']))
 
 
-@upload.command(help='Change the owner of the upload and all its calcs.')
+@uploads.command(help='Change the owner of the upload and all its calcs.')
 @click.argument('USER', nargs=1)
 @click.argument('UPLOADS', nargs=-1)
 @click.pass_context
@@ -102,7 +102,7 @@ def chown(ctx, user, uploads):
         search.publish(calcs)
 
 
-@upload.command(help='Delete selected upload')
+@uploads.command(help='Delete selected upload')
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--with-coe-repo', help='Also attempt to delete from repository db', is_flag=True)
 @click.option('--skip-es', help='Keep the elastic index version of the data.', is_flag=True)
@@ -147,7 +147,7 @@ def rm(ctx, uploads, with_coe_repo, skip_es, skip_mongo, skip_files):
             upload.delete()
 
 
-@upload.command(help='Reprocess selected uploads.')
+@uploads.command(help='Reprocess selected uploads.')
 @click.argument('UPLOADS', nargs=-1)
 @click.pass_context
 def re_process(ctx, uploads):
@@ -171,7 +171,7 @@ def re_process(ctx, uploads):
         print('   re-processed %s of %s uploads' % (count, len(uploads)))
 
 
-@upload.command(help='Attempt to abort the processing of uploads.')
+@uploads.command(help='Attempt to abort the processing of uploads.')
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--calcs', is_flag=True, help='Only stop calculation processing.')
 @click.option('--kill', is_flag=True, help='Use the kill signal and force task failure.')
