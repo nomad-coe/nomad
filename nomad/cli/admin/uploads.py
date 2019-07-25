@@ -163,24 +163,39 @@ def re_process(ctx, uploads, parallel: int):
 
     state = dict(
         completed_count=0,
+        skipped_count=0,
         available_threads_count=parallel)
 
     logger = utils.get_logger(__name__)
 
     print('%d uploads selected, re-processing ...' % uploads_count)
 
-    def re_process_upload(upload):
+    def re_process_upload(upload: proc.Upload):
         logger.info('re-processing started', upload_id=upload.upload_id)
 
-        upload.re_process_upload()
-        upload.block_until_complete(interval=.1)
+        completed = False
+        if upload.process_running:
+            logger.warn(
+                'cannot trigger re-process, since the upload is already/still processing',
+                current_process=upload.current_process,
+                current_task=upload.current_task, upload_id=upload.upload_id)
 
-        logger.info('re-processing complete', upload_id=upload.upload_id)
+        else:
+            upload.re_process_upload()
+            upload.block_until_complete(interval=.5)
+            completed = True
+
+            logger.info('re-processing complete', upload_id=upload.upload_id)
 
         with cv:
-            state['completed_count'] += 1
-            print('   re-processed %s of %s uploads' % (state['completed_count'], uploads_count))
+            state['completed_count'] += 1 if completed else 0
+            state['skipped_count'] += 1 if not completed else 0
             state['available_threads_count'] += 1
+
+            print(
+                '   re-processed %s and skipped %s of %s uploads' %
+                (state['completed_count'], state['skipped_count'], uploads_count))
+
             cv.notify()
 
     for upload in uploads:
