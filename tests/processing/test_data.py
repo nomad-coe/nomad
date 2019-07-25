@@ -279,6 +279,7 @@ def test_re_processing(published: Upload, example_user_metadata, monkeypatch, wi
     # reprocess
     monkeypatch.setattr('nomad.config.version', 're_process_test_version')
     monkeypatch.setattr('nomad.config.commit', 're_process_test_commit')
+    published.reset()
     published.re_process_upload()
     try:
         published.block_until_complete(interval=.01)

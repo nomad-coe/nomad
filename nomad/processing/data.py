@@ -623,7 +623,6 @@ class Upload(Proc):
         logger = self.get_logger()
         logger.info('started to re-process')
 
-        self.reset()
         # mock the steps of actual processing
         self._continue_with('uploading')
 

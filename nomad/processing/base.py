@@ -509,7 +509,7 @@ def process(func):
     def wrapper(self, *args, **kwargs):
         assert len(args) == 0 and len(kwargs) == 0, 'process functions must not have arguments'
         if self.process_running:
-            raise ProcessAlreadyRunning
+            raise ProcessAlreadyRunning('Tried to call a processing function on an already processing process.')
 
         self.current_process = func.__name__
         self.process_status = PROCESS_CALLED

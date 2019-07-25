@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
 import click.testing
 import json
 
@@ -20,11 +21,12 @@ from nomad import utils, search, processing as proc
 from nomad.cli import cli
 from nomad.processing import Upload, Calc
 
-
 # TODO there is much more to test
 
+
+@pytest.mark.usefixtures('reset_config', 'no_warn')
 class TestAdmin:
-    def test_clean(self, published, no_warn, reset_config):
+    def test_clean(self, published):
         upload_id = published.upload_id
 
         Upload.objects(upload_id=upload_id).delete()
@@ -41,9 +43,10 @@ class TestAdmin:
         assert search.entry_search(search_parameters=dict(upload_id=upload_id))['pagination']['total'] > 0
 
 
+@pytest.mark.usefixtures('reset_config', 'no_warn')
 class TestAdminUploads:
 
-    def test_ls(self, published, no_warn, reset_config):
+    def test_ls(self, published):
         upload_id = published.upload_id
 
         result = click.testing.CliRunner().invoke(
@@ -52,7 +55,7 @@ class TestAdminUploads:
         assert result.exit_code == 0
         assert '1 uploads selected' in result.stdout
 
-    def test_rm(self, published, no_warn, reset_config):
+    def test_rm(self, published):
         upload_id = published.upload_id
 
         result = click.testing.CliRunner().invoke(
@@ -63,7 +66,7 @@ class TestAdminUploads:
         assert Upload.objects(upload_id=upload_id).first() is None
         assert Calc.objects(upload_id=upload_id).first() is None
 
-    def test_re_process(self, published, no_warn, monkeypatch, reset_config):
+    def test_re_process(self, published, monkeypatch):
         monkeypatch.setattr('nomad.config.version', 'test_version')
         upload_id = published.upload_id
         calc = Calc.objects(upload_id=upload_id).first()
@@ -78,9 +81,12 @@ class TestAdminUploads:
         assert calc.metadata['nomad_version'] == 'test_version'
 
 
+@pytest.mark.usefixtures('reset_config')
 class TestClient:
 
-    def test_mirror_dry(self, published, admin_user_bravado_client):
+    def test_mirror_dry(self, published, admin_user_bravado_client, monkeypatch):
+        monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
+
         result = click.testing.CliRunner().invoke(
             cli, ['client', 'mirror', '--dry'], catch_exceptions=False, obj=utils.POPO())
 
@@ -95,7 +101,7 @@ class TestClient:
         monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
 
         result = click.testing.CliRunner().invoke(
-            cli, ['client', 'mirror'], catch_exceptions=False, obj=utils.POPO())
+            cli, ['client', 'mirror', '--move'], catch_exceptions=False, obj=utils.POPO())
 
         assert result.exit_code == 0
         assert proc.Upload.objects(upload_id=published.upload_id).count() == 1

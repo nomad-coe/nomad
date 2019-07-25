@@ -27,12 +27,13 @@ def dev():
 
 @dev.command(help='Runs tests and linting of the nomad source code. Useful before committing code.')
 @click.option('--skip-tests', help='Do no tests, just do code checks.', is_flag=True)
-def qa(skip_tests: bool):
+@click.option('-x', '--exitfirst', help='Stop testing after first failed test case.', is_flag=True)
+def qa(skip_tests: bool, exitfirst: bool):
     os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
     ret_code = 0
     if not skip_tests:
         click.echo('Run tests ...')
-        ret_code += os.system('python -m pytest -svx tests')
+        ret_code += os.system('python -m pytest -sv%s tests' % ('x' if exitfirst else ''))
     click.echo('Run code style checks ...')
     ret_code += os.system('python -m pycodestyle --ignore=E501,E701 nomad tests')
     click.echo('Run linter ...')

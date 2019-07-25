@@ -493,7 +493,7 @@ class UploadResource(Resource):
 
             return upload, 200
         elif operation == 're-process':
-            if upload.tasks_running or not upload.published:
+            if upload.tasks_running or upload.process_running or not upload.published:
                 abort(400, message='Can only non processing, re-process published uploads')
 
             if len(metadata) > 0:
@@ -502,6 +502,7 @@ class UploadResource(Resource):
             if len(upload.outdated_calcs) == 0:
                 abort(400, message='You can only re-process uploads with at least one outdated calculation')
 
+            upload.reset()
             upload.re_process_upload()
 
             return upload, 200

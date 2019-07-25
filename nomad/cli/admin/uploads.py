@@ -181,6 +181,7 @@ def re_process(ctx, uploads, parallel: int):
                 current_task=upload.current_task, upload_id=upload.upload_id)
 
         else:
+            upload.reset()
             upload.re_process_upload()
             upload.block_until_complete(interval=.5)
 

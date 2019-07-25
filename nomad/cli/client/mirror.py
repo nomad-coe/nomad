@@ -15,8 +15,10 @@
 import click
 import sys
 import json
+import os
+import os.path
 
-from nomad import utils, processing as proc, search
+from nomad import utils, processing as proc, search, config, files
 
 from .client import client
 
@@ -98,13 +100,18 @@ def mirror(query, move: bool, dry: bool):
             search.index_all(upload.to_upload_with_metadata().calcs)
 
             # copy/mv file
+            upload_files_path = upload_data.upload_files_path
             if __in_test:
-                pass
+                tmp = os.path.join(config.fs.tmp, 'to_mirror')
+                os.rename(upload_files_path, tmp)
+                upload_files_path = tmp
 
             if move:
-                pass
+                target_upload_files_path = files.PathObject(config.fs.public, upload.upload_id, create_prefix=True, prefix=True).os_path
+                os.rename(upload_files_path, target_upload_files_path)
+                os.symlink(os.path.abspath(target_upload_files_path), upload_files_path)
             else:
-                pass
+                raise NotImplementedError
 
             print(
                 'Mirrored %s with %d calcs at %s' %
