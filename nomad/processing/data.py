@@ -73,7 +73,8 @@ class Calc(Proc):
             ('upload_id', 'mainfile'),
             ('upload_id', 'parser'),
             ('upload_id', 'tasks_status'),
-            ('upload_id', 'process_status')
+            ('upload_id', 'process_status'),
+            ('upload_id', 'metadata.nomad_version')
         ]
     }
 
@@ -633,7 +634,10 @@ class Upload(Proc):
 
         self._continue_with('parse_all')
         try:
-            for calc in Calc.objects(upload_id=self.upload_id):
+            # we use a copy of the mongo queryset; reasons are cursor timeouts and
+            # changing results on modifying the calc entries
+            calcs = list(Calc.objects(upload_id=self.upload_id))
+            for calc in calcs:
                 if calc.process_running:
                     if calc.current_process == 're_process_calc':
                         logger.warn('re_process_calc is already running', calc_id=calc.calc_id)

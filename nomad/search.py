@@ -64,7 +64,7 @@ class Dataset(InnerDoc):
     def from_dataset_popo(cls, dataset):
         return cls(
             id=dataset.id,
-            doi=dataset.doi.value if dataset.doi is not None else None,
+            doi=dataset.doi['value'] if dataset.doi is not None else None,
             name=dataset.name)
 
     id = Keyword()
