@@ -85,16 +85,25 @@ repo_calcs_model = api.model('RepoCalculations', {
         ', '.join(search.metrics_names)))
 })
 
+
+def add_common_parameters(request_parser):
+    request_parser.add_argument(
+        'owner', type=str,
+        help='Specify which calcs to return: ``all``, ``public``, ``user``, ``staging``, default is ``all``')
+    request_parser.add_argument(
+        'from_time', type=lambda x: rfc3339DateTime.parse(x),
+        help='A yyyy-MM-ddTHH:mm:ss (RFC3339) minimum entry time (e.g. upload time)')
+    request_parser.add_argument(
+        'until_time', type=lambda x: rfc3339DateTime.parse(x),
+        help='A yyyy-MM-ddTHH:mm:ss (RFC3339) maximum entry time (e.g. upload time)')
+
+    for search_quantity in search.search_quantities.keys():
+        _, _, description = search.search_quantities[search_quantity]
+        request_parser.add_argument(search_quantity, type=str, help=description)
+
+
 repo_request_parser = pagination_request_parser.copy()
-repo_request_parser.add_argument(
-    'owner', type=str,
-    help='Specify which calcs to return: ``all``, ``public``, ``user``, ``staging``, default is ``all``')
-repo_request_parser.add_argument(
-    'from_time', type=lambda x: rfc3339DateTime.parse(x),
-    help='A yyyy-MM-ddTHH:mm:ss (RFC3339) minimum entry time (e.g. upload time)')
-repo_request_parser.add_argument(
-    'until_time', type=lambda x: rfc3339DateTime.parse(x),
-    help='A yyyy-MM-ddTHH:mm:ss (RFC3339) maximum entry time (e.g. upload time)')
+add_common_parameters(repo_request_parser)
 repo_request_parser.add_argument(
     'scroll', type=bool, help='Enable scrolling')
 repo_request_parser.add_argument(
@@ -104,21 +113,70 @@ repo_request_parser.add_argument(
         'Metrics to aggregate over all quantities and their values as comma separated list. '
         'Possible values are %s.' % ', '.join(search.metrics_names)))
 
-for search_quantity in search.search_quantities.keys():
-    _, _, description = search.search_quantities[search_quantity]
-    repo_request_parser.add_argument(search_quantity, type=str, help=description)
+
+def create_owner_query():
+    owner = request.args.get('owner', 'all')
+
+    # TODO this should be removed after migration
+    # if owner == 'migrated':
+    #     q = Q('term', published=True) & Q('term', with_embargo=False)
+    #     if g.user is not None:
+    #         q = q | Q('term', owners__user_id=g.user.user_id)
+    #     q = q & ~Q('term', **{'uploader.user_id': 1})  # pylint: disable=invalid-unary-operand-type
+    if owner == 'all':
+        q = Q('term', published=True) & Q('term', with_embargo=False)
+        if g.user is not None:
+            q = q | Q('term', owners__user_id=g.user.user_id)
+    elif owner == 'public':
+        q = Q('term', published=True) & Q('term', with_embargo=False)
+    elif owner == 'user':
+        if g.user is None:
+            abort(401, message='Authentication required for owner value user.')
+
+        q = Q('term', owners__user_id=g.user.user_id)
+    elif owner == 'staging':
+        if g.user is None:
+            abort(401, message='Authentication required for owner value user.')
+        q = Q('term', published=False) & Q('term', owners__user_id=g.user.user_id)
+    elif owner == 'admin':
+        if g.user is None or not g.user.is_admin:
+            abort(401, message='This can only be used by the admin user.')
+        q = None
+    else:
+        abort(400, message='Invalid owner value. Valid values are all|user|staging, default is all')
+
+    return q
+
+
+def create_search_parameters():
+    """ Helper that creates a request.args dict with isolated search parameters """
+    search_parameters = dict(**request.args)
+    search_parameters.pop('owner', None)
+    search_parameters.pop('scroll', None)
+    search_parameters.pop('scroll_id', None)
+    search_parameters.pop('per_page', None)
+    search_parameters.pop('page', None)
+    search_parameters.pop('order', None)
+    search_parameters.pop('order_by', None)
+    search_parameters.pop('metrics', None)
+    search_parameters.pop('from_time', None)
+    search_parameters.pop('until_time', None)
+    search_parameters.pop('size', None)
+    search_parameters.pop('after', None)
+
+    return search_parameters
 
 
 @ns.route('/')
 class RepoCalcsResource(Resource):
     @api.doc('search')
-    @api.response(400, 'Invalid requests, e.g. wrong owner type or bad quantities')
+    @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
     @api.expect(repo_request_parser, validate=True)
-    @api.marshal_with(repo_calcs_model, skip_none=True, code=200, description='Metadata send')
+    @api.marshal_with(repo_calcs_model, skip_none=True, code=200, description='Search results send')
     @login_if_available
     def get(self):
         """
-        Search for calculations in the repository from, paginated.
+        Search for calculations in the repository form, paginated.
 
         The ``owner`` parameter determines the overall entries to search through.
         Possible values are: ``all`` (show all entries visible to the current user), ``public``
@@ -167,7 +225,6 @@ class RepoCalcsResource(Resource):
         except Exception:
             abort(400, message='bad parameter types')
 
-        owner = request.args.get('owner', 'all')
         order_by = request.args.get('order_by', 'formula')
 
         try:
@@ -179,49 +236,13 @@ class RepoCalcsResource(Resource):
         if order not in [-1, 1]:
             abort(400, message='invalid pagination')
 
-        # TODO this should be removed after migration
-        # if owner == 'migrated':
-        #     q = Q('term', published=True) & Q('term', with_embargo=False)
-        #     if g.user is not None:
-        #         q = q | Q('term', owners__user_id=g.user.user_id)
-        #     q = q & ~Q('term', **{'uploader.user_id': 1})  # pylint: disable=invalid-unary-operand-type
-        if owner == 'all':
-            q = Q('term', published=True) & Q('term', with_embargo=False)
-            if g.user is not None:
-                q = q | Q('term', owners__user_id=g.user.user_id)
-        elif owner == 'public':
-            q = Q('term', published=True) & Q('term', with_embargo=False)
-        elif owner == 'user':
-            if g.user is None:
-                abort(401, message='Authentication required for owner value user.')
-
-            q = Q('term', owners__user_id=g.user.user_id)
-        elif owner == 'staging':
-            if g.user is None:
-                abort(401, message='Authentication required for owner value user.')
-            q = Q('term', published=False) & Q('term', owners__user_id=g.user.user_id)
-        elif owner == 'admin':
-            if g.user is None or not g.user.is_admin:
-                abort(401, message='This can only be used by the admin user.')
-            q = None
-        else:
-            abort(400, message='Invalid owner value. Valid values are all|user|staging, default is all')
+        q = create_owner_query()
 
         # TODO this should be removed after migration
         without_currupted_mainfile = ~Q('term', code_name='currupted mainfile')  # pylint: disable=invalid-unary-operand-type
         q = q & without_currupted_mainfile if q is not None else without_currupted_mainfile
 
-        search_parameters = dict(**request.args)
-        search_parameters.pop('owner', None)
-        search_parameters.pop('scroll', None)
-        search_parameters.pop('scroll_id', None)
-        search_parameters.pop('per_page', None)
-        search_parameters.pop('page', None)
-        search_parameters.pop('order', None)
-        search_parameters.pop('order_by', None)
-        search_parameters.pop('metrics', None)
-        search_parameters.pop('from_time', None)
-        search_parameters.pop('until_time', None)
+        search_parameters = create_search_parameters()
 
         try:
             if scroll:
@@ -243,3 +264,76 @@ class RepoCalcsResource(Resource):
             abort(400, 'The given scroll_id does not exist.')
         except KeyError as e:
             abort(400, str(e))
+
+
+repo_quantity_values_model = api.model('RepoQuantityValues', {
+    'quantities': fields.Raw(description='''
+        A dict with the requested quantity as single key.
+        The value is a dictionary with 'after' and 'values' keys.
+        The 'values' key holds a dict with actual values as keys and their entry count
+        as values (i.e. number of entries with that value). ''')
+})
+
+repo_quantity_search_request_parser = api.parser()
+add_common_parameters(repo_quantity_search_request_parser)
+repo_quantity_search_request_parser.add_argument(
+    'after', type=str, help='The after value to use for "scrolling".')
+repo_request_parser.add_argument(
+    'size', type=int, help='The max size of the returned values.')
+
+
+@ns.route('/<string:quantity>')
+class RepoQuantityResource(Resource):
+    @api.doc('quantity_search')
+    @api.response(400, 'Invalid requests, e.g. wrong owner type, bad quantity, bad search parameters')
+    @api.expect(repo_quantity_search_request_parser, validate=True)
+    @api.marshal_with(repo_quantity_values_model, skip_none=True, code=200, description='Search results send')
+    @login_if_available
+    def get(self, quantity: str):
+        """
+        Retrieve quantity values from entries matching the search.
+
+        You can use the various quantities to search/filter for. For some of the
+        indexed quantities this endpoint returns aggregation information. This means
+        you will be given a list of all possible values and the number of entries
+        that have the certain value. You can also use these aggregations on an empty
+        search to determine the possible values.
+
+        There is no ordering and no pagination. Instead there is an 'after' key based
+        scrolling. The result will contain an 'after' value, that can be specified
+        for the next request. You can use the 'size' and 'after' parameters accordingly.
+
+        The result will contain a 'quantities' key with the given quantity and the
+        respective values (upto 'size' many). For the rest of the values use the
+        'after' parameter accordingly.
+        """
+
+        try:
+            after = request.args.get('after', None)
+            size = int(request.args.get('size', 100))
+
+            from_time = rfc3339DateTime.parse(request.args.get('from_time', '2000-01-01'))
+            until_time_str = request.args.get('until_time', None)
+            until_time = rfc3339DateTime.parse(until_time_str) if until_time_str is not None else datetime.datetime.now()
+            time_range = (from_time, until_time)
+        except Exception:
+            abort(400, message='bad parameter types')
+
+        try:
+            assert size >= 0
+        except AssertionError:
+            abort(400, message='invalid size')
+
+        q = create_owner_query()
+        search_parameters = create_search_parameters()
+
+        try:
+            results = search.quantity_search(
+                q=q, time_range=time_range, search_parameters=search_parameters,
+                quantities={quantity: after}, size=size, with_entries=False)
+
+            return results, 200
+        except KeyError as e:
+            import traceback
+            traceback.print_exc()
+            abort(400, 'Given quantity does not exist: %s' % str(e))

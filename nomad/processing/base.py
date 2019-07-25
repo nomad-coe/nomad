@@ -189,6 +189,8 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     def reset(self):
         """ Resets the task chain. Assumes there no current running process. """
+        assert not self.process_running
+
         self.current_task = None
         self.tasks_status = PENDING
         self.errors = []

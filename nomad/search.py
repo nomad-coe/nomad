@@ -175,6 +175,19 @@ def publish(calcs: Iterable[datamodel.CalcWithMetadata]) -> None:
     refresh()
 
 
+def index_all(calcs: Iterable[datamodel.CalcWithMetadata]) -> None:
+    """ Adds all given calcs with their metadata to the index. """
+    def elastic_updates():
+        for calc in calcs:
+            entry = Entry.from_calc_with_metadata(calc)
+            entry = entry.to_dict(include_meta=True)
+            entry['_op_type'] = 'index'
+            yield entry
+
+    elasticsearch.helpers.bulk(infrastructure.elastic_client, elastic_updates())
+    refresh()
+
+
 def refresh():
     infrastructure.elastic_client.indices.refresh(config.elastic.index_name)
 
@@ -436,20 +449,25 @@ def quantity_search(
 
         composite = dict(sources={quantity: terms}, size=size)
         if after is not None:
-            composite['after'] = after
+            composite['after'] = {quantity: after}
 
         search.aggs.bucket(quantity, 'composite', **composite)
 
     response, entry_results = _execute_paginated_search(search, **kwargs)
 
+    def create_quantity_result(quantity):
+        values = getattr(response.aggregations, quantity)
+        result = dict(values={
+            getattr(bucket.key, quantity): bucket.doc_count
+            for bucket in values.buckets})
+
+        if hasattr(values, 'after_key'):
+            result.update(after=getattr(values.after_key, quantity))
+
+        return result
+
     quantity_results = {
-        quantity: {
-            'after': getattr(getattr(response.aggregations, quantity).after_key, quantity),
-            'values': {
-                getattr(bucket.key, quantity): bucket.doc_count
-                for bucket in getattr(response.aggregations, quantity).buckets
-            }
-        }
+        quantity: create_quantity_result(quantity)
         for quantity in quantities.keys()
     }
 

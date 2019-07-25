@@ -856,6 +856,53 @@ class TestRepo():
         rv = client.get('/repo/?owner=user')
         assert rv.status_code == 401
 
+    @pytest.mark.parametrize('calcs, quantity, value', [
+        (2, 'system', 'bulk'),
+        (0, 'system', 'atom'),
+        (1, 'atoms', 'Br'),
+        (1, 'atoms', 'Fe'),
+        (1, 'authors', 'Hofstadter, Leonard'),
+        (2, 'files', 'test/mainfile.txt'),
+        (0, 'quantities', 'dos')
+    ])
+    def test_quantity_search(self, client, example_elastic_calcs, no_warn, test_user_auth, calcs, quantity, value):
+        rv = client.get('/repo/%s' % quantity, headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+
+        quantities = data['quantities']
+        assert quantity in quantities
+        values = quantities[quantity]['values']
+        assert (value in values) == (calcs > 0)
+        assert values.get(value, 0) == calcs
+
+    def test_quantity_search_after(self, client, example_elastic_calcs, no_warn, test_user_auth):
+        rv = client.get('/repo/atoms?size=1')
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+
+        quantity = data['quantities']['atoms']
+        assert 'after' in quantity
+        after = quantity['after']
+        assert len(quantity['values']) == 1
+        value = list(quantity['values'].keys())[0]
+
+        while True:
+            rv = client.get('/repo/atoms?size=1&after=%s' % after)
+            assert rv.status_code == 200
+            data = json.loads(rv.data)
+
+            quantity = data['quantities']['atoms']
+
+            if 'after' not in quantity:
+                assert len(quantity['values']) == 0
+                break
+
+            assert len(quantity['values']) == 1
+            assert value != list(quantity['values'].keys())[0]
+            assert after != quantity['after']
+            after = quantity['after']
+
 
 class TestRaw(UploadFilesBasedTests):
 

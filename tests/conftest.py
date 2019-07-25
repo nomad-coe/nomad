@@ -329,6 +329,15 @@ def bravado(client, postgres, test_user_auth):
 
 
 @pytest.fixture(scope='function')
+def admin_user_bravado_client(client, admin_user_auth, monkeypatch):
+    def create_client():
+        http_client = FlaskTestHttpClient(client, headers=admin_user_auth)
+        return SwaggerClient.from_url('/swagger.json', http_client=http_client)
+
+    monkeypatch.setattr('nomad.cli.client.create_client', create_client)
+
+
+@pytest.fixture(scope='function')
 def no_warn(caplog):
     yield caplog
     for record in caplog.get_records(when='call'):

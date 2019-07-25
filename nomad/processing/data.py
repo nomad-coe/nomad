@@ -633,9 +633,25 @@ class Upload(Proc):
         public_upload_files.to_staging_upload_files(create=True)
 
         self._continue_with('parse_all')
-        for calc in Calc.objects(upload_id=self.upload_id):
-            calc.reset()
-            calc.re_process_calc()
+        try:
+            for calc in Calc.objects(upload_id=self.upload_id):
+                if calc.process_running:
+                    if calc.current_process == 're_process_calc':
+                        logger.warn('re_process_calc is already running', calc_id=calc.calc_id)
+                    else:
+                        logger.warn('a process is already running on calc', calc_id=calc.calc_id)
+
+                    continue
+
+                calc.reset()
+                calc.re_process_calc()
+        except Exception as e:
+            # try to remove the staging copy in failure case
+            staging_upload_files = self.upload_files.to_staging_upload_files()
+            if staging_upload_files.exist():
+                staging_upload_files.delete()
+
+            raise e
 
         # the packing and removing of the staging upload files, will be trigged by
         # the 'cleanup' task after processing all calcs

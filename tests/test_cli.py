@@ -14,8 +14,9 @@
 # limitations under the License.
 
 import click.testing
+import json
 
-from nomad import utils, search
+from nomad import utils, search, processing as proc
 from nomad.cli import cli
 from nomad.processing import Upload, Calc
 
@@ -75,3 +76,37 @@ class TestAdminUploads:
         assert 're-processing' in result.stdout
         calc.reload()
         assert calc.metadata['nomad_version'] == 'test_version'
+
+
+class TestClient:
+
+    def test_mirror_dry(self, published, admin_user_bravado_client):
+        result = click.testing.CliRunner().invoke(
+            cli, ['client', 'mirror', '--dry'], catch_exceptions=False, obj=utils.POPO())
+
+        assert result.exit_code == 0
+        assert published.upload_id in result.output
+        assert published.upload_files.os_path in result.output
+
+    def test_mirror(self, published, admin_user_bravado_client, monkeypatch):
+        ref_search_results = search.entry_search(
+            search_parameters=dict(upload_id=published.upload_id))['results'][0]
+
+        monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
+
+        result = click.testing.CliRunner().invoke(
+            cli, ['client', 'mirror'], catch_exceptions=False, obj=utils.POPO())
+
+        assert result.exit_code == 0
+        assert proc.Upload.objects(upload_id=published.upload_id).count() == 1
+        assert proc.Calc.objects(upload_id=published.upload_id).count() == 1
+        new_search = search.entry_search(search_parameters=dict(upload_id=published.upload_id))
+        calcs_in_search = new_search['pagination']['total']
+        assert calcs_in_search == 1
+
+        new_search_results = new_search['results'][0]
+        for key in new_search_results.keys():
+            if key not in ['upload_time']:  # There is a sub second change due to date conversions (?)
+                assert json.dumps(new_search_results[key]) == json.dumps(ref_search_results[key])
+
+        published.upload_files.exists

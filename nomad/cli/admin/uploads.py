@@ -183,6 +183,10 @@ def re_process(ctx, uploads, parallel: int):
         else:
             upload.re_process_upload()
             upload.block_until_complete(interval=.5)
+
+            if upload.tasks_status == proc.FAILURE:
+                logger.info('re-processing with failure', upload_id=upload.upload_id)
+
             completed = True
 
             logger.info('re-processing complete', upload_id=upload.upload_id)

@@ -40,7 +40,7 @@ class MirrorUploadResource(Resource):
     @api.response(400, 'Not available for the given upload, e.g. upload not published.')
     @api.response(404, 'The upload does not exist')
     @api.marshal_with(mirror_upload_model, skip_none=True, code=200, description='Upload exported')
-    @api.doc('get_mirror_upload')
+    @api.doc('get_upload_mirror')
     @admin_login_required
     def get(self, upload_id):
         """
