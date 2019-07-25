@@ -134,6 +134,8 @@ class TestClient:
                 cli, ['client', 'mirror'], catch_exceptions=False, obj=utils.POPO())
 
         assert result.exit_code == 0
+        assert published.upload_id in result.output
+        assert published.upload_files.os_path in result.output
         assert proc.Upload.objects(upload_id=published.upload_id).count() == 1
         assert proc.Calc.objects(upload_id=published.upload_id).count() == 1
         new_search = search.entry_search(search_parameters=dict(upload_id=published.upload_id))

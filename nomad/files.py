@@ -58,7 +58,6 @@ import tarfile
 import hashlib
 import io
 import pickle
-import cachetools
 
 from nomad import config, utils
 from nomad.datamodel import UploadWithMetadata
@@ -690,30 +689,25 @@ class PublicUploadFilesBasedStagingUploadFiles(StagingUploadFiles):
         super().pack(upload, target_dir=self.public_upload_files, skip_raw=True)
 
 
-class LRUZipFileCache(cachetools.LRUCache):
-    """ Specialized cache that closes the cached zipfiles on eviction """
-    def __init__(self, maxsize):
-        super().__init__(maxsize)
-
-    def popitem(self):
-        key, val = super().popitem()
-        val.close()
-        return key, val
-
-
 class PublicUploadFiles(UploadFiles):
-    __zip_file_cache = LRUZipFileCache(maxsize=128)
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(config.fs.public, *args, **kwargs)
+        self._zipfile_cache: Dict[str, zipfile.ZipFile] = {}
 
     def get_zip_file(self, prefix: str, access: str, ext: str) -> PathObject:
         return self.join_file('%s-%s.%s.zip' % (prefix, access, ext))
 
-    @cachetools.cached(cache=__zip_file_cache)
     def open_zip_file(self, prefix: str, access: str, ext: str) -> zipfile.ZipFile:
-        zip_file = self.get_zip_file(prefix, access, ext)
-        return zipfile.ZipFile(zip_file.os_path)
+        zip_path = self.get_zip_file(prefix, access, ext).os_path
+        return zipfile.ZipFile(zip_path)
+        # if zip_path in self._zipfile_cache:
+        #     f = self._zipfile_cache[zip_path]
+        # else:
+        #     f = zipfile.ZipFile(zip_path)
+        #     self._zipfile_cache[zip_path] = f
+
+        # return f
 
     def _file(self, prefix: str, ext: str, path: str, *args, **kwargs) -> IO:
         mode = kwargs.get('mode') if len(args) == 0 else args[0]
@@ -822,3 +816,8 @@ class PublicUploadFiles(UploadFiles):
         the restrictions on calculations. This is potentially a long running operation.
         """
         raise NotImplementedError()
+
+    # TODO with zipfile cache ...
+    # def close():
+    #     for zip_file in self._zipfile_cache.values():
+    #         zip_file.close()

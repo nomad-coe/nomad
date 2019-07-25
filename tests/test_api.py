@@ -422,7 +422,7 @@ class TestUploads:
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
         metadata = dict(**example_user_metadata)
-        metadata['_upload_time'] = datetime.datetime.now().isoformat()
+        metadata['_upload_time'] = datetime.datetime.utcnow().isoformat()
         self.assert_published(client, admin_user_auth, upload['upload_id'], proc_infra, metadata)
 
     def test_post_metadata_forbidden(self, client, proc_infra, test_user_auth, no_warn):
@@ -443,7 +443,7 @@ class TestUploads:
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
         metadata = dict(**example_user_metadata)
-        metadata['_upload_time'] = datetime.datetime.now().isoformat()
+        metadata['_upload_time'] = datetime.datetime.utcnow().isoformat()
         self.assert_published(client, admin_user_auth, upload['upload_id'], proc_infra, metadata)
         self.assert_published(client, admin_user_auth, upload['upload_id'], proc_infra, metadata, publish_with_metadata=False)
 

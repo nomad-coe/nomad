@@ -216,7 +216,7 @@ class RepoCalcsResource(Resource):
 
             from_time = rfc3339DateTime.parse(request.args.get('from_time', '2000-01-01'))
             until_time_str = request.args.get('until_time', None)
-            until_time = rfc3339DateTime.parse(until_time_str) if until_time_str is not None else datetime.datetime.now()
+            until_time = rfc3339DateTime.parse(until_time_str) if until_time_str is not None else datetime.datetime.utcnow()
             time_range = (from_time, until_time)
 
             metrics = [
@@ -314,7 +314,7 @@ class RepoQuantityResource(Resource):
 
             from_time = rfc3339DateTime.parse(request.args.get('from_time', '2000-01-01'))
             until_time_str = request.args.get('until_time', None)
-            until_time = rfc3339DateTime.parse(until_time_str) if until_time_str is not None else datetime.datetime.now()
+            until_time = rfc3339DateTime.parse(until_time_str) if until_time_str is not None else datetime.datetime.utcnow()
             time_range = (from_time, until_time)
         except Exception:
             abort(400, message='bad parameter types')

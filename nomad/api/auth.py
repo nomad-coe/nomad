@@ -216,7 +216,7 @@ class UserResource(Resource):
         user = coe_repo.User.create_user(
             email=data['email'], password=data.get('password', None), crypted=True,
             first_name=data['first_name'], last_name=data['last_name'],
-            created=data.get('created', datetime.now()),
+            created=data.get('created', datetime.utcnow()),
             affiliation=data.get('affiliation', None), token=data.get('token', None),
             user_id=data.get('user_id', None))
 

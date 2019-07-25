@@ -177,7 +177,7 @@ class Proc(Document, metaclass=ProcMetaclass):
         assert 'tasks_status' not in kwargs, \
             """ do not set the status manually, its managed """
 
-        kwargs.setdefault('create_time', datetime.now())
+        kwargs.setdefault('create_time', datetime.utcnow())
         self = cls(**kwargs)
         if len(cls.tasks) == 0:
             self.tasks_status = SUCCESS
@@ -245,7 +245,7 @@ class Proc(Document, metaclass=ProcMetaclass):
                     exc_info=error, error=str(error))
 
         self.errors = [str(error) for error in errors]
-        self.complete_time = datetime.now()
+        self.complete_time = datetime.utcnow()
 
         if not failed_with_exception:
             errors_str = "; ".join([str(error) for error in errors])
@@ -302,7 +302,7 @@ class Proc(Document, metaclass=ProcMetaclass):
         if self.tasks_status != FAILURE:
             assert self.tasks_status == RUNNING, 'Can only complete a running process, process is %s' % self.tasks_status
             self.tasks_status = SUCCESS
-            self.complete_time = datetime.now()
+            self.complete_time = datetime.utcnow()
             self.on_tasks_complete()
             self.save()
             self.get_logger().info('completed process')

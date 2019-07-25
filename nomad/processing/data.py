@@ -132,9 +132,10 @@ class Calc(Proc):
                 if self._calc_proc_logwriter is not None:
                     program = event_dict.get('normalizer', 'parser')
                     event = event_dict.get('event', '')
-                    entry = '[%s] %s: %s' % (method_name, program, event)
-                    if len(entry) > 120:
-                        self._calc_proc_logwriter.write(entry[:120])
+
+                    entry = '[%s] %s, %s: %s' % (method_name, datetime.utcnow().isoformat(), program, event)
+                    if len(entry) > 140:
+                        self._calc_proc_logwriter.write(entry[:140])
                         self._calc_proc_logwriter.write('...')
                     else:
                         self._calc_proc_logwriter.write(entry)
@@ -161,7 +162,7 @@ class Calc(Proc):
             calc_with_metadata.mainfile = self.mainfile
             calc_with_metadata.nomad_version = config.version
             calc_with_metadata.nomad_commit = config.commit
-            calc_with_metadata.last_processing = datetime.now()
+            calc_with_metadata.last_processing = datetime.utcnow()
             calc_with_metadata.files = self.upload_files.calc_files(self.mainfile)
             self.metadata = calc_with_metadata.to_dict()
 
@@ -200,7 +201,7 @@ class Calc(Proc):
             calc_with_metadata.upload_time = self.upload.upload_time
             calc_with_metadata.nomad_version = config.version
             calc_with_metadata.nomad_commit = config.commit
-            calc_with_metadata.last_processing = datetime.now()
+            calc_with_metadata.last_processing = datetime.utcnow()
             calc_with_metadata.files = self.upload_files.calc_files(self.mainfile)
             self.metadata = calc_with_metadata.to_dict()
 
@@ -602,11 +603,11 @@ class Upload(Proc):
                         upload_size=self.upload_files.size):
                     self.upload_files.delete()
                     self.published = True
-                    self.publish_time = datetime.now()
-                    self.last_update = datetime.now()
+                    self.publish_time = datetime.utcnow()
+                    self.last_update = datetime.utcnow()
                     self.save()
             else:
-                self.last_update = datetime.now()
+                self.last_update = datetime.utcnow()
                 self.save()
 
     @process
@@ -855,7 +856,7 @@ class Upload(Proc):
                 upload_size=self.upload_files.size):
 
             staging_upload_files.delete()
-            self.last_update = datetime.now()
+            self.last_update = datetime.utcnow()
             self.save()
 
     @task

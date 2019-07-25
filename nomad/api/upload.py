@@ -314,7 +314,7 @@ class UploadListResource(Resource):
             upload_id=upload_id,
             user=g.user,
             name=upload_name,
-            upload_time=datetime.now(),
+            upload_time=datetime.utcnow(),
             upload_path=upload_path,
             temporary=local_path != upload_path)
 

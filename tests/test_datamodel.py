@@ -71,7 +71,7 @@ def generate_calc(pid: int = 0, calc_id: str = None, upload_id: str = None) -> d
     self.upload_id = upload_id if upload_id is not None else utils.create_uuid()
     self.calc_id = calc_id if calc_id is not None else utils.create_uuid()
 
-    self.upload_time = datetime.datetime.now()
+    self.upload_time = datetime.datetime.utcnow()
     self.calc_hash = utils.create_uuid()
     self.pid = pid
     self.mainfile = random.choice(filepaths)

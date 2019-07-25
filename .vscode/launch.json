@@ -44,7 +44,7 @@
       "cwd": "${workspaceFolder}",
       "program": "${workspaceFolder}/.pyenv/bin/pytest",
       "args": [
-        "-sv", "tests/test_api.py::TestRaw::test_raw_file_from_calc"
+        "-sv", "tests/test_cli.py::TestClient::test_mirror"
       ]
     },
     {

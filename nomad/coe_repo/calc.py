@@ -224,7 +224,7 @@ class Calc(Base):
         elif self.upload is not None and self.upload.upload_time is not None:
             added_time = self.upload.upload_time
         else:
-            added_time = datetime.now()
+            added_time = datetime.utcnow()
 
         upload_id = context.upload_id
         upload_files = context.upload_files
