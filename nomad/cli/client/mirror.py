@@ -14,6 +14,7 @@
 
 import click
 import sys
+import shutil
 import json
 import os
 import os.path
@@ -106,12 +107,12 @@ def mirror(query, move: bool, dry: bool):
                 os.rename(upload_files_path, tmp)
                 upload_files_path = tmp
 
+            target_upload_files_path = files.PathObject(config.fs.public, upload.upload_id, create_prefix=True, prefix=True).os_path
             if move:
-                target_upload_files_path = files.PathObject(config.fs.public, upload.upload_id, create_prefix=True, prefix=True).os_path
                 os.rename(upload_files_path, target_upload_files_path)
                 os.symlink(os.path.abspath(target_upload_files_path), upload_files_path)
             else:
-                raise NotImplementedError
+                shutil.copytree(upload_files_path, target_upload_files_path)
 
             print(
                 'Mirrored %s with %d calcs at %s' %

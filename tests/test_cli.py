@@ -94,14 +94,19 @@ class TestClient:
         assert published.upload_id in result.output
         assert published.upload_files.os_path in result.output
 
-    def test_mirror(self, published, admin_user_bravado_client, monkeypatch):
+    @pytest.mark.parametrize('move', [True, False])
+    def test_mirror(self, published, admin_user_bravado_client, monkeypatch, move):
         ref_search_results = search.entry_search(
             search_parameters=dict(upload_id=published.upload_id))['results'][0]
 
         monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
 
-        result = click.testing.CliRunner().invoke(
-            cli, ['client', 'mirror', '--move'], catch_exceptions=False, obj=utils.POPO())
+        if move:
+            result = click.testing.CliRunner().invoke(
+                cli, ['client', 'mirror', '--move'], catch_exceptions=False, obj=utils.POPO())
+        else:
+            result = click.testing.CliRunner().invoke(
+                cli, ['client', 'mirror'], catch_exceptions=False, obj=utils.POPO())
 
         assert result.exit_code == 0
         assert proc.Upload.objects(upload_id=published.upload_id).count() == 1
