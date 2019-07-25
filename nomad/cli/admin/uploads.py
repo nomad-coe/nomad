@@ -156,6 +156,7 @@ def rm(ctx, uploads, with_coe_repo, skip_es, skip_mongo, skip_files):
 def re_process(ctx, uploads, parallel: int):
     _, uploads = query_uploads(ctx, uploads)
     uploads_count = uploads.count()
+    uploads = list(uploads)  # copy the whole mongo query set to avoid cursor timeouts
 
     cv = threading.Condition()
     threads: List[threading.Thread] = []
