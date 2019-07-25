@@ -22,7 +22,7 @@ import requests
 from nomad import utils, config
 from nomad.processing import FAILURE, SUCCESS
 
-from .client import client, create_client
+from .client import client
 
 
 def stream_upload_with_client(client, stream, name=None):
@@ -53,6 +53,7 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, publish
     Returns: The upload_id
     """
     if client is None:
+        from nomad.cli.client import create_client
         client = create_client()
     if offline:
         upload = client.uploads.upload(

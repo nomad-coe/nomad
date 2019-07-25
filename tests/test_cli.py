@@ -84,6 +84,31 @@ class TestAdminUploads:
 @pytest.mark.usefixtures('reset_config')
 class TestClient:
 
+    def test_upload(self, test_user_bravado_client, non_empty_example_upload, proc_infra):
+        result = click.testing.CliRunner().invoke(
+            cli,
+            ['client', 'upload', '--offline', '--name', 'test_upload', non_empty_example_upload],
+            catch_exceptions=False, obj=utils.POPO())
+
+        assert result.exit_code == 0
+        assert '1/0/1' in result.output
+        assert proc.Upload.objects(name='test_upload').first() is not None
+
+    def test_local(self, client, published, admin_user_bravado_client, monkeypatch):
+        def requests_get(url, stream, headers):
+            assert stream
+            rv = client.get(url[url.index('/raw'):], headers=headers)
+            assert rv.status_code == 200
+            return utils.POPO(iter_content=lambda *args, **kwargs: [bytes(rv.data)])
+
+        monkeypatch.setattr('requests.get', requests_get)
+        result = click.testing.CliRunner().invoke(
+            cli,
+            ['client', 'local', '%s/%s' % (published.upload_id, list(published.calcs)[0].calc_id)],
+            catch_exceptions=False, obj=utils.POPO())
+
+        assert result.exit_code == 0
+
     def test_mirror_dry(self, published, admin_user_bravado_client, monkeypatch):
         monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
 
