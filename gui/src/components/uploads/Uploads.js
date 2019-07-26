@@ -9,11 +9,13 @@ import { compose } from 'recompose'
 import DeleteIcon from '@material-ui/icons/Delete'
 import ReloadIcon from '@material-ui/icons/Cached'
 import CheckIcon from '@material-ui/icons/Check'
+import ClipboardIcon from '@material-ui/icons/Assignment'
 import ConfirmDialog from './ConfirmDialog'
 import { Help, Agree } from '../help'
 import { withApi } from '../api'
 import { withCookies, Cookies } from 'react-cookie'
 import Pagination from 'material-ui-flat-pagination'
+import { CopyToClipboard } from 'react-copy-to-clipboard'
 
 const publishedUploadsPageSize = 10
 
@@ -58,6 +60,16 @@ class Uploads extends React.Component {
     dropzoneReject: {
       background: 'red !important',
       color: theme.palette.common.white
+    },
+    commandContainer: {
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'center'
+    },
+    commandMarkup: {
+      flexGrow: 1,
+      marginRight: theme.spacing.unit,
+      overflow: 'scroll'
     },
     selectFormGroup: {
       paddingLeft: theme.spacing.unit * 3
@@ -373,11 +385,23 @@ class Uploads extends React.Component {
             return here and press the reload button below). The same 32 GB limit applies.
           `}</Help>
 
-          <Markdown>{`
-            \`\`\`
-              ${uploadCommand}
-            \`\`\`
-          `}</Markdown>
+          <div className={classes.commandContainer}>
+            <div className={classes.commandMarkup}>
+              <Markdown>{`
+                \`\`\`
+                  ${uploadCommand}
+                \`\`\`
+              `}</Markdown>
+            </div>
+            <CopyToClipboard text={uploadCommand} onCopy={() => null}>
+              <Tooltip title="copy command to clipboard">
+                <IconButton>
+                  <ClipboardIcon />
+                </IconButton>
+              </Tooltip>
+              {/* <button>Copy to clipboard with button</button> */}
+            </CopyToClipboard>
+          </div>
 
           {this.renderUnpublishedUploads()}
           {this.renderPublishedUploads()}
