@@ -58,6 +58,7 @@ import tarfile
 import hashlib
 import io
 import pickle
+from contextlib import contextmanager
 
 from nomad import config, utils
 from nomad.datamodel import UploadWithMetadata
@@ -422,7 +423,7 @@ class StagingUploadFiles(UploadFiles):
 
     def create_extracted_copy(self) -> None:
         """
-        Copies all raw-file to the extracted bucket to mimic the behaviour of the old
+        Copies all raw-file to the extracted bucket to mimic the behavior of the old
         CoE python API. TODO: should be removed after migration.
         """
         copytree(self._raw_dir.os_path, os.path.join(config.fs.coe_extracted, self.upload_id))
@@ -693,21 +694,23 @@ class PublicUploadFiles(UploadFiles):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(config.fs.public, *args, **kwargs)
-        self._zipfile_cache: Dict[str, zipfile.ZipFile] = {}
+        self._zipfile_cache: Dict[str, zipfile.ZipFile] = None
 
     def get_zip_file(self, prefix: str, access: str, ext: str) -> PathObject:
         return self.join_file('%s-%s.%s.zip' % (prefix, access, ext))
 
     def open_zip_file(self, prefix: str, access: str, ext: str) -> zipfile.ZipFile:
         zip_path = self.get_zip_file(prefix, access, ext).os_path
-        return zipfile.ZipFile(zip_path)
-        # if zip_path in self._zipfile_cache:
-        #     f = self._zipfile_cache[zip_path]
-        # else:
-        #     f = zipfile.ZipFile(zip_path)
-        #     self._zipfile_cache[zip_path] = f
+        if self._zipfile_cache is None:
+            return zipfile.ZipFile(zip_path)
+        else:
+            if zip_path in self._zipfile_cache:
+                f = self._zipfile_cache[zip_path]
+            else:
+                f = zipfile.ZipFile(zip_path)
+                self._zipfile_cache[zip_path] = f
 
-        # return f
+            return f
 
     def _file(self, prefix: str, ext: str, path: str, *args, **kwargs) -> IO:
         mode = kwargs.get('mode') if len(args) == 0 else args[0]
@@ -817,7 +820,16 @@ class PublicUploadFiles(UploadFiles):
         """
         raise NotImplementedError()
 
-    # TODO with zipfile cache ...
-    # def close():
-    #     for zip_file in self._zipfile_cache.values():
-    #         zip_file.close()
+    @contextmanager
+    def zipfile_cache(self):
+        """
+        Context that allows to read files while caching zipfiles without reopening them
+        all the time.
+        """
+        if self._zipfile_cache is None:
+            self._zipfile_cache = {}
+        try:
+            yield
+        finally:
+            for zip_file in self._zipfile_cache.values():
+                zip_file.close()

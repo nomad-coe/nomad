@@ -23,6 +23,7 @@ from flask import Response, request, send_file, stream_with_context
 from flask_restplus import abort, Resource, fields
 import magic
 import sys
+import contextlib
 
 from nomad.files import UploadFiles, Restricted
 from nomad.processing import Calc
@@ -348,36 +349,47 @@ def respond_to_get_raw_files(upload_id, files, compress=False):
     if upload_files is None:
         abort(404, message='The upload with id %s does not exist.' % upload_id)
 
-    def generator():
-        """ Stream a zip file with all files using zipstream. """
-        def iterator():
-            """ Replace the directory based iter of zipstream with an iter over all given files. """
-            for filename in files:
-                # Write a file to the zipstream.
-                try:
-                    with upload_files.raw_file(filename, 'rb') as f:
-                        def iter_content():
-                            while True:
-                                data = f.read(100000)
-                                if not data:
-                                    break
-                                yield data
+    # the zipfile cache allows to access many raw-files from public upload files without
+    # having to re-open the underlying zip files all the time
+    if hasattr(upload_files, 'zipfile_cache'):
+        zipfile_cache = upload_files.zipfile_cache()
+    else:
+        zipfile_cache = contextlib.suppress()
 
-                        yield dict(arcname=filename, iterable=iter_content())
-                except KeyError:
-                    # files that are not found, will not be returned
-                    pass
-                except Restricted:
-                    # due to the streaming nature, we cannot raise 401 here
-                    # we just leave it out in the download
-                    pass
+    with zipfile_cache:
+        def generator():
+            """ Stream a zip file with all files using zipstream. """
+            def iterator():
+                """
+                Replace the directory based iter of zipstream with an iter over all given
+                files.
+                """
+                for filename in files:
+                    # Write a file to the zipstream.
+                    try:
+                        with upload_files.raw_file(filename, 'rb') as f:
+                            def iter_content():
+                                while True:
+                                    data = f.read(100000)
+                                    if not data:
+                                        break
+                                    yield data
 
-        compression = zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED
-        zip_stream = zipstream.ZipFile(mode='w', compression=compression, allowZip64=True)
-        zip_stream.paths_to_write = iterator()
+                            yield dict(arcname=filename, iterable=iter_content())
+                    except KeyError:
+                        # files that are not found, will not be returned
+                        pass
+                    except Restricted:
+                        # due to the streaming nature, we cannot raise 401 here
+                        # we just leave it out in the download
+                        pass
 
-        for chunk in zip_stream:
-            yield chunk
+            compression = zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED
+            zip_stream = zipstream.ZipFile(mode='w', compression=compression, allowZip64=True)
+            zip_stream.paths_to_write = iterator()
+
+            for chunk in zip_stream:
+                yield chunk
 
     response = Response(stream_with_context(generator()), mimetype='application/zip')
     response.headers['Content-Disposition'] = 'attachment; filename={}'.format('%s.zip' % upload_id)
