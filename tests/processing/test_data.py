@@ -71,6 +71,7 @@ def assert_processing(upload: Upload, published: bool = False):
     assert upload.upload_id is not None
     assert len(upload.errors) == 0
     assert upload.tasks_status == SUCCESS
+    assert upload.joined
 
     upload_files = UploadFiles.get(upload.upload_id, is_authorized=lambda: True)
     if published:
