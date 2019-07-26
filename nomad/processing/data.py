@@ -809,7 +809,7 @@ class Upload(Proc):
         if not self.process_running and processed_calcs >= total_calcs:
             # this can easily be called multiple times, e.g. upload finished after all calcs finished
             modified_upload = self._get_collection().update(
-                dict(_id=self.upload_id, joined=False),
+                dict(_id=self.upload_id, joined__ne=True),
                 {'$set': {'joined': True}}, upsert=False)
             if modified_upload is not None:
                 self.get_logger().debug('join')
