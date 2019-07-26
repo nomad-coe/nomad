@@ -275,7 +275,7 @@ class Proc(Document, metaclass=ProcMetaclass):
             # task is repeated, probably the celery task of the process was reschedule
             # due to prior worker failure
             self.current_task = task
-            self.get_logger().warning('task is re-run')
+            self.get_logger().error('task is re-run')
             self.save()
             return True
         else:
