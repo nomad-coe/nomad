@@ -195,6 +195,7 @@ class Proc(Document, metaclass=ProcMetaclass):
         self.tasks_status = PENDING
         self.errors = []
         self.warnings = []
+        self.worker_hostname = None
 
     @classmethod
     def get_by_id(cls, id: str, id_field: str):
