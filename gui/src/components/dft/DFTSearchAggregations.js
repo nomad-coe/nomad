@@ -45,10 +45,10 @@ class DFTSearchAggregations extends React.Component {
   render() {
     const { classes, quantities, metric, searchValues } = this.props
 
-    const quantity = (key, title) => (<QuantityHistogram
+    const quantity = (key, title, scale) => (<QuantityHistogram
       classes={{root: classes.quantity}} title={title || key} width={300}
       data={quantities[key]} metric={metric}
-      value={searchValues[key]}
+      value={searchValues[key]} defaultScale={scale}
       onChanged={(selection) => this.handleQuantityChanged(key, selection)}/>)
 
     return (
@@ -65,15 +65,15 @@ class DFTSearchAggregations extends React.Component {
 
         <Grid container spacing={24} className={classes.quantityGrid}>
           <Grid item xs={4}>
-            {quantity('code_name', 'Code')}
+            {quantity('code_name', 'Code', 0.25)}
           </Grid>
           <Grid item xs={4}>
-            {quantity('system', 'System type')}
-            {quantity('crystal_system', 'Crystal system')}
+            {quantity('system', 'System type', 0.25)}
+            {quantity('crystal_system', 'Crystal system', 1)}
           </Grid>
           <Grid item xs={4}>
-            {quantity('basis_set', 'Basis set')}
-            {quantity('xc_functional', 'XC functionals')}
+            {quantity('basis_set', 'Basis set', 0.25)}
+            {quantity('xc_functional', 'XC functionals', 0.5)}
           </Grid>
         </Grid>
       </div>
