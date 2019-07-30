@@ -230,7 +230,7 @@ class Domain:
 
     base_quantities = dict(
         authors=DomainQuantity(
-            elastic_field='authors.name.keyword', multi=True,
+            elastic_field='authors.name.keyword', multi=True, aggregations=1000,
             description=(
                 'Search for the given author. Exact keyword matches in the form "Lastname, '
                 'Firstname".')),
@@ -322,7 +322,7 @@ class Domain:
         """
         return {
             quantity.name: quantity.aggregations
-            for quantity in self.quantities.values()
+            for quantity in self.search_quantities.values()
             if quantity.aggregations > 0
         }
 

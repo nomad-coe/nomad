@@ -17,6 +17,7 @@ The repository API of the nomad@FAIRDI APIs. Currently allows to resolve reposit
 meta-data.
 """
 
+from typing import List
 from flask_restplus import Resource, abort, fields
 from flask import request, g
 from elasticsearch_dsl import Q
@@ -110,7 +111,7 @@ repo_request_parser.add_argument(
 repo_request_parser.add_argument(
     'scroll_id', type=str, help='The id of the current scrolling window to use.')
 repo_request_parser.add_argument(
-    'metrics', type=str, help=(
+    'metrics', type=str, action='append', help=(
         'Metrics to aggregate over all quantities and their values as comma separated list. '
         'Possible values are %s.' % ', '.join(search.metrics_names)))
 
@@ -213,16 +214,11 @@ class RepoCalcsResource(Resource):
             page = int(request.args.get('page', 1))
             per_page = int(request.args.get('per_page', 10 if not scroll else 1000))
             order = int(request.args.get('order', -1))
-            metrics_str = request.args.get('metrics', '')
-
+            metrics: List[str] = request.args.getlist('metrics')
             from_time = rfc3339DateTime.parse(request.args.get('from_time', '2000-01-01'))
             until_time_str = request.args.get('until_time', None)
             until_time = rfc3339DateTime.parse(until_time_str) if until_time_str is not None else datetime.datetime.utcnow()
             time_range = (from_time, until_time)
-
-            metrics = [
-                metric for metric in metrics_str.split(',')
-                if metric in search.metrics_names]
         except Exception:
             abort(400, message='bad parameter types')
 
@@ -236,6 +232,10 @@ class RepoCalcsResource(Resource):
 
         if order not in [-1, 1]:
             abort(400, message='invalid pagination')
+
+        for metric in metrics:
+            if metric not in search.metrics_names:
+                abort(400, message='there is not metric %s' % metric)
 
         q = create_owner_query()
 
@@ -263,8 +263,8 @@ class RepoCalcsResource(Resource):
             return results, 200
         except search.ScrollIdNotFound:
             abort(400, 'The given scroll_id does not exist.')
-        except KeyError as e:
-            abort(400, str(e))
+        # except KeyError as e:
+        #     abort(400, str(e))
 
 
 repo_quantity_values_model = api.model('RepoQuantityValues', {

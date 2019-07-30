@@ -127,15 +127,31 @@ class SearchBar extends React.Component {
     const { data: { quantities } } = this.props
     const suggestions = []
 
-    Object.keys(quantities).forEach(quantity => {
+    // filter out pseudo quantity total
+    const quantityKeys = Object.keys(quantities).filter(quantity => quantity !== 'total')
+
+    // put authors to the end
+    const authorIndex = quantityKeys.indexOf('authors')
+    if (authorIndex >= 0) {
+      quantityKeys[authorIndex] = quantityKeys.splice(quantityKeys.length - 1, 1, quantityKeys[authorIndex])[0]
+    }
+
+    quantityKeys.forEach(quantity => {
       Object.keys(quantities[quantity]).forEach(quantityValue => {
-        if (quantityValue.toLowerCase().startsWith(value)) {
+        const quantityValueLower = quantityValue.toLowerCase()
+        if (quantityValueLower.startsWith(value) || (quantity === 'authors' && quantityValueLower.includes(value))) {
           suggestions.push({
             key: quantity,
             value: quantityValue
           })
         }
       })
+    })
+
+    // Always add as comment to the end of suggestions
+    suggestions.push({
+      key: 'comment',
+      value: value
     })
 
     return suggestions

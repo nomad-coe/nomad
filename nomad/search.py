@@ -507,7 +507,8 @@ def metrics_search(
             order=dict(_key='asc'))
 
         buckets = search.aggs.bucket(quantity_name, terms)
-        add_metrics(buckets)
+        if quantity_name not in ['authors']:
+            add_metrics(buckets)
 
     add_metrics(search.aggs)
 
@@ -517,6 +518,7 @@ def metrics_search(
         result = {
             metric: bucket[metric]['value']
             for metric in metrics_to_use
+            if hasattr(bucket, metric)
         }
         result.update(code_runs=code_runs)
         return result

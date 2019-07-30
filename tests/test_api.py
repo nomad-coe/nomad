@@ -783,8 +783,8 @@ class TestRepo():
 
     @pytest.mark.parametrize('metrics', metrics_permutations)
     def test_search_total_metrics(self, client, example_elastic_calcs, no_warn, metrics):
-        rv = client.get('/repo/?metrics=%s' % ','.join(metrics))
-        assert rv.status_code == 200
+        rv = client.get('/repo/?%s' % urlencode(dict(metrics=metrics), doseq=True))
+        assert rv.status_code == 200, str(rv.data)
         data = json.loads(rv.data)
         total_metrics = data.get('quantities', {}).get('total', {}).get('all', None)
         assert total_metrics is not None
@@ -794,14 +794,17 @@ class TestRepo():
 
     @pytest.mark.parametrize('metrics', metrics_permutations)
     def test_search_aggregation_metrics(self, client, example_elastic_calcs, no_warn, metrics):
-        rv = client.get('/repo/?metrics=%s' % ','.join(metrics))
+        rv = client.get('/repo/?%s' % urlencode(dict(metrics=metrics), doseq=True))
         assert rv.status_code == 200
         data = json.loads(rv.data)
-        for quantities in data.get('quantities').values():
-            for metrics_result in quantities.values():
+        for name, quantity in data.get('quantities').items():
+            for metrics_result in quantity.values():
                 assert 'code_runs' in metrics_result
-                for metric in metrics:
-                    assert metric in metrics_result
+                if name != 'authors':
+                    for metric in metrics:
+                        assert metric in metrics_result
+                else:
+                    assert len(metrics_result) == 1  # code_runs is the only metric for authors
 
     @pytest.mark.parametrize('n_results, page, per_page', [(2, 1, 5), (1, 1, 1), (0, 2, 3)])
     def test_search_pagination(self, client, example_elastic_calcs, no_warn, n_results, page, per_page):
