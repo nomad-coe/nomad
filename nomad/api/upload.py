@@ -268,19 +268,20 @@ class UploadListResource(Resource):
             if local_path:
                 # file is already there and does not to be received
                 upload_path = local_path
-            elif request.mimetype == 'application/multipart-formdata':
+            elif request.mimetype in ['multipart/form-data', 'application/multipart-formdata']:
                 logger.info('receive upload as multipart formdata')
+                upload_path = files.PathObject(config.fs.tmp, upload_id).os_path
                 # multipart formdata, e.g. with curl -X put "url" -F file=@local_file
                 # might have performance issues for large files: https://github.com/pallets/flask/issues/2086
-                if 'file' in request.files:
+                if 'file' not in request.files:
                     abort(400, message='Bad multipart-formdata, there is no file part.')
                 file = request.files['file']
                 if upload_name is None or upload_name is '':
                     upload_name = file.filename
 
-                upload_path = files.PathObject(config.fs.tmp, upload_id).os_path
                 file.save(upload_path)
             else:
+                print(request.mimetype)
                 # simple streaming data in HTTP body, e.g. with curl "url" -T local_file
                 logger.info('started to receive upload streaming data')
                 upload_path = files.PathObject(config.fs.tmp, upload_id).os_path
@@ -527,5 +528,8 @@ class UploadCommandResource(Resource):
 
         upload_command = 'curl -X PUT -H "X-Token: %s" "%s" -F file=@<local_file>' % (
             g.user.get_auth_token().decode('utf-8'), upload_url)
+
+        # upload_command = 'curl -H "X-Token: %s" "%s" -T <local_file>' % (
+        #    g.user.get_auth_token().decode('utf-8'), upload_url)
 
         return dict(upload_url=upload_url, upload_command=upload_command), 200

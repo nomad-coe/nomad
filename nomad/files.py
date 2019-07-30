@@ -395,7 +395,7 @@ class StagingUploadFiles(UploadFiles):
             except zipfile.BadZipFile:
                 pass
 
-        if force_archive or ext in ['.tgz', '.tar.gz', '.tar.bz2']:
+        if force_archive or ext in ['.tgz', '.tar.gz', '.tar.bz2', '.tar']:
             try:
                 with tarfile.open(path) as tf:
                     tf.extractall(target_dir.os_path)

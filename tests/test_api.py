@@ -324,7 +324,9 @@ class TestUploads:
 
         if mode == 'multipart':
             rv = client.put(
-                url, data=dict(file=(open(file, 'rb'), 'file')), headers=test_user_auth)
+                url, data=dict(file=(open(file, 'rb'), 'the_name')), headers=test_user_auth)
+            if not name:
+                name = 'the_name'
         elif mode == 'stream':
             with open(file, 'rb') as f:
                 rv = client.put(url, data=f.read(), headers=test_user_auth)
