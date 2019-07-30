@@ -195,31 +195,8 @@ def refresh():
 aggregations = datamodel.Domain.instance.aggregations
 """ The available aggregations in :func:`aggregate_search` and their maximum aggregation size """
 
-search_quantities = {
-    'authors': ('term', 'authors.name.keyword', (
-        'Search for the given author. Exact keyword matches in the form "Lastname, Firstname".')),
-
-    'comment': ('match', 'comment', 'Search within the comments. This is a text search ala google.'),
-    'paths': ('match', 'files', (
-        'Search for elements in one of the file paths. The paths are split at all "/".')),
-
-    'files': ('term', 'files.keyword', 'Search for exact file name with full path.'),
-    'quantities': ('term', 'quantities', 'Search for the existence of a certain meta-info quantity'),
-    'upload_id': ('term', 'upload_id', 'Search for the upload_id.'),
-    'calc_id': ('term', 'calc_id', 'Search for the calc_id.'),
-    'pid': ('term', 'pid', 'Search for the pid.'),
-    'mainfile': ('term', 'mainfile', 'Search for the mainfile.'),
-    'datasets': ('term', 'datasets.name', 'Search for a particular dataset by name.')
-}
-"""
-The available search quantities in :func:`aggregate_search` as tuples with *search type*,
-elastic field and description.
-"""
-
-for quantity in datamodel.Domain.instance.quantities.values():
-    search_spec = ('term', quantity.name, quantity.description)
-    search_quantities[quantity.name] = search_spec
-
+search_quantities = datamodel.Domain.instance.search_quantities
+"""The available search quantities """
 
 metrics = {
     'datasets': ('cardinality', 'datasets.id'),
@@ -231,8 +208,7 @@ be used in aggregations, e.g. the sum of all total energy calculations or cardin
 all unique geometries.
 """
 
-for key, value in datamodel.Domain.instance.metrics.items():
-    metrics[key] = value
+metrics.update(**datamodel.Domain.instance.metrics)
 
 metrics_names = list(metric for metric in metrics.keys())
 
@@ -256,8 +232,8 @@ def _construct_search(
         search = search.query('range', upload_time=dict(gte=time_range[0], lte=time_range[1]))
 
     for key, value in search_parameters.items():
-        query_type, field, _ = search_quantities.get(key, (None, None, None))
-        if query_type is None:
+        quantity = search_quantities.get(key, None)
+        if quantity is None:
             if key in ['page', 'per_page', 'order', 'order_by']:
                 continue
             else:
@@ -269,17 +245,9 @@ def _construct_search(
             values = [value]
 
         for item in values:
-            quantity = datamodel.Domain.instance.quantities.get(key)
-            if quantity is not None and quantity.multi:
-                items = item.split(',')
-            else:
-                items = [item]
-
-            for item in items:
-                search = search.query(Q(query_type, **{field: item}))
+            search = search.query(Q(quantity.elastic_search_type, **{quantity.elastic_field: item}))
 
     search = search.source(exclude=['quantities'])
-
     return search
 
 
@@ -292,9 +260,12 @@ def _execute_paginated_search(
     if order_by not in search_quantities:
         raise KeyError('Unknown order quantity %s' % order_by)
 
-    _, order_by, _ = search_quantities[order_by]
+    order_by_quantity = search_quantities[order_by]
 
-    search = search.sort(order_by if order == 1 else '-%s' % order_by)
+    if order == 1:
+        search = search.sort(order_by_quantity.elastic_field)
+    else:
+        search = search.sort('-%s' % order_by_quantity.elastic_field)
     paginated_search = search[(page - 1) * per_page: page * per_page]
     response = paginated_search.execute()  # pylint: disable=E1101
 
@@ -443,15 +414,15 @@ def quantity_search(
     """
 
     search = _construct_search(**kwargs)
-    for quantity, after in quantities.items():
-        _, field, _ = search_quantities[quantity]
-        terms = A('terms', field=field)
+    for quantity_name, after in quantities.items():
+        quantity = search_quantities[quantity_name]
+        terms = A('terms', field=quantity.elastic_field)
 
-        composite = dict(sources={quantity: terms}, size=size)
+        composite = dict(sources={quantity_name: terms}, size=size)
         if after is not None:
-            composite['after'] = {quantity: after}
+            composite['after'] = {quantity_name: after}
 
-        search.aggs.bucket(quantity, 'composite', **composite)
+        search.aggs.bucket(quantity_name, 'composite', **composite)
 
     response, entry_results = _execute_paginated_search(search, **kwargs)
 
@@ -524,15 +495,18 @@ def metrics_search(
             metric_kind, field = metrics[metric]
             parent.metric(metric, A(metric_kind, field=field))
 
-    for quantity, size in quantities.items():
+    for quantity_name, size in quantities.items():
         # We are using elastic searchs 'composite aggregations' here. We do not really
         # compose aggregations, but only those pseudo composites allow us to use the
         # 'after' feature that allows to scan through all aggregation values.
         terms: Dict[str, Any] = None
-        _, field, _ = search_quantities[quantity]
-        terms = A('terms', field=field, size=size, min_doc_count=0, order=dict(_key='asc'))
+        quantity = search_quantities[quantity_name]
+        min_doc_count = 0 if quantity.zero_aggs else 1
+        terms = A(
+            'terms', field=quantity.elastic_field, size=size, min_doc_count=min_doc_count,
+            order=dict(_key='asc'))
 
-        buckets = search.aggs.bucket(quantity, terms)
+        buckets = search.aggs.bucket(quantity_name, terms)
         add_metrics(buckets)
 
     add_metrics(search.aggs)
@@ -548,12 +522,12 @@ def metrics_search(
         return result
 
     metrics_results = {
-        quantity: {
+        quantity_name: {
             bucket.key: get_metrics(bucket, bucket.doc_count)
-            for bucket in getattr(response.aggregations, quantity).buckets
+            for bucket in getattr(response.aggregations, quantity_name).buckets
         }
-        for quantity in quantities.keys()
-        if quantity not in metrics_names  # ES aggs for total metrics, and aggs for quantities stand side by side
+        for quantity_name in quantities.keys()
+        if quantity_name not in metrics_names  # ES aggs for total metrics, and aggs for quantities stand side by side
     }
 
     total_metrics_result = get_metrics(response.aggregations, entry_results['pagination']['total'])

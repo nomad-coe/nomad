@@ -97,9 +97,10 @@ def add_common_parameters(request_parser):
         'until_time', type=lambda x: rfc3339DateTime.parse(x),
         help='A yyyy-MM-ddTHH:mm:ss (RFC3339) maximum entry time (e.g. upload time)')
 
-    for search_quantity in search.search_quantities.keys():
-        _, _, description = search.search_quantities[search_quantity]
-        request_parser.add_argument(search_quantity, type=str, help=description)
+    for quantity in search.search_quantities.values():
+        request_parser.add_argument(
+            quantity.name, type=str, help=quantity.description,
+            action='append' if quantity.multi else None)
 
 
 repo_request_parser = pagination_request_parser.copy()

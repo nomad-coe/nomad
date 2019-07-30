@@ -23,6 +23,7 @@ import inspect
 from passlib.hash import bcrypt
 import datetime
 import os.path
+from urllib.parse import urlencode
 
 from nomad.api.app import rfc3339DateTime
 from nomad import coe_repo, search, parsing, files, config
@@ -754,7 +755,7 @@ class TestRepo():
         (0, 'quantities', 'dos')
     ])
     def test_search_quantities(self, client, example_elastic_calcs, no_warn, test_user_auth, calcs, quantity, value):
-        query_string = '%s=%s' % (quantity, ','.join(value) if isinstance(value, list) else value)
+        query_string = urlencode({quantity: value}, doseq=True)
 
         rv = client.get('/repo/?%s' % query_string, headers=test_user_auth)
         data = self.assert_search(rv, calcs)

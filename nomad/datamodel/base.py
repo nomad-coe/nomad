@@ -168,13 +168,18 @@ class DomainQuantity:
             0 (the default) means no aggregations.
         metric: Indicates that this quantity should be used as search metric. Values need
             to be tuples with metric name and elastic aggregation (e.g. sum, cardinality)
+        zero_aggs: Return aggregation values for values with zero hits in the search. Default
+            is with zero aggregations.
         elastic_mapping: An optional elasticsearch_dsl mapping. Default is ``Keyword``.
+        elastic_search_type: An optional elasticsearch search type. Default is ``term``.
+        elastic_field: An optional elasticsearch key. Default is the name of the quantity.
     """
 
     def __init__(
             self, description: str = None, multi: bool = False, aggregations: int = 0,
             order_default: bool = False, metric: Tuple[str, str] = None,
-            elastic_mapping=None):
+            zero_aggs: bool = True, elastic_mapping: str = None,
+            elastic_search_type: str = 'term', elastic_field: str = None):
 
         self.name: str = None
         self.description = description
@@ -182,10 +187,17 @@ class DomainQuantity:
         self.order_default = order_default
         self.aggregations = aggregations
         self.metric = metric
+        self.zero_aggs = zero_aggs
         self.elastic_mapping = elastic_mapping
+        self.elastic_search_type = elastic_search_type
+        self._elastic_key = elastic_field
 
         if self.elastic_mapping is None:
             self.elastic_mapping = Keyword(multi=self.multi)
+
+    @property
+    def elastic_field(self) -> str:
+        return self._elastic_key if self._elastic_key is not None else self.name
 
 
 class Domain:
@@ -216,6 +228,32 @@ class Domain:
     instance: 'Domain' = None
     instances: Dict[str, 'Domain'] = {}
 
+    base_quantities = dict(
+        authors=DomainQuantity(
+            elastic_field='authors.name.keyword', multi=True,
+            description=(
+                'Search for the given author. Exact keyword matches in the form "Lastname, '
+                'Firstname".')),
+        comment=DomainQuantity(
+            elastic_search_type='match', multi=True,
+            description='Search within the comments. This is a text search ala google.'),
+        paths=DomainQuantity(
+            elastic_search_type='match', elastic_field='files', multi=True,
+            description='Search for elements in one of the file paths. The paths are split at all "/".'),
+        files=DomainQuantity(
+            elastic_field='files.keyword', multi=True,
+            description='Search for exact file name with full path.'),
+        quantities=DomainQuantity(
+            multi=True,
+            description='Search for the existence of a certain meta-info quantity'),
+        upload_id=DomainQuantity(description='Search for the upload_id.'),
+        calc_id=DomainQuantity(description='Search for the calc_id.'),
+        pid=DomainQuantity(description='Search for the pid.'),
+        mainfile=DomainQuantity(description='Search for the mainfile.'),
+        datasets=DomainQuantity(
+            elastic_field='datasets.name', multi=True,
+            description='Search for a particular dataset by name.'))
+
     def __init__(
             self, name: str, domain_entry_class: Type[CalcWithMetadata],
             quantities: Dict[str, DomainQuantity],
@@ -239,9 +277,11 @@ class Domain:
         for quantity_name, value in reference_domain_calc.__dict__.items():
             if not hasattr(reference_general_calc, quantity_name):
                 quantity = quantities.get(quantity_name, None)
+
                 if quantity is None:
                     quantity = DomainQuantity()
                     quantities[quantity_name] = quantity
+
                 quantity.name = quantity_name
                 quantity.multi = isinstance(value, list)
                 self.quantities[quantity.name] = quantity
@@ -252,6 +292,11 @@ class Domain:
 
         assert any(quantity.order_default for quantity in Domain.instances[name].quantities.values()), \
             'you need to define a order default quantity'
+
+        self.search_quantities = dict(**Domain.base_quantities)
+        for name, quantity in self.search_quantities.items():
+            quantity.name = name
+        self.search_quantities.update(self.quantities)
 
     @property
     def metrics(self) -> Dict[str, Tuple[str, str]]:
