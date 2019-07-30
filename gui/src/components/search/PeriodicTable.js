@@ -96,7 +96,7 @@ class ElementUnstyled extends React.Component {
           ? <Typography
             classes={{root: classes.count}} variant="caption"
             style={selected ? {color: 'white'} : disabled ? {color: '#BDBDBD'} : {}}>
-            {count}
+            {count.toLocaleString()}
           </Typography> : ''
         }
       </div>

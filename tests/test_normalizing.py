@@ -131,17 +131,22 @@ def test_normalizer_faulty_matid(caplog):
 
 
 def test_normalizer_single_string_atom_labels(caplog):
-    """ Runs normalizer on ['Br1SiSiK'] expects error that it is formatted wrong."""
+    """
+    Runs normalizer on ['Br1SiSiK'] expects error. Should replace the label with 'X' and
+    the numbers of postitions should not match the labels.
+    """
     backend = parse_file(single_string_atom_labels)
     run_normalize(backend)
-    assert_log(caplog, 'ERROR', 'Atom labels cannot be recognized.')
+    assert_log(caplog, 'ERROR', 'len of atom position does not match number of atoms')
 
 
-def test_normalizer_unknown_atom_label(caplog):
-    """ Runs normalizer on ['Br','Si','Si','Za'], expects Za throws an error"""
+def test_normalizer_unknown_atom_label(caplog, no_warn):
+    """ Runs normalizer on ['Br','Si','Si','Za'], for normalizeation Za will be replaced,
+        but stays int the labels.
+    """
     backend = parse_file(unknown_atom_label)
     run_normalize(backend)
-    assert_log(caplog, 'ERROR', 'Atom labels cannot be recognized.')
+    assert backend.get_value('atom_labels')[3] == 'Za'
 
 
 def test_symmetry_classification_fcc():

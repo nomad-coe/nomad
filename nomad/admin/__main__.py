@@ -29,7 +29,8 @@ from nomad.search import Search
 @click.option('-v', '--verbose', help='sets log level to info', is_flag=True)
 @click.option('--debug', help='sets log level to debug', is_flag=True)
 @click.option('--config', help='the config file to use')
-def cli(verbose: bool, debug: bool, config: str):
+@click.pass_context
+def cli(ctx, verbose: bool, debug: bool, config: str):
     if config is not None:
         nomad_config.load_config(config_file=config)
 
@@ -64,12 +65,36 @@ def qa(skip_tests: bool):
 
 @cli.command(help='Checks consistency of files and es vs mongo and deletes orphan entries.')
 @click.option('--dry', is_flag=True, help='Do not delete anything, just check.')
+@click.option('--skip-calcs', is_flag=True, help='Skip cleaning calcs with missing uploads.')
 @click.option('--skip-fs', is_flag=True, help='Skip cleaning the filesystem.')
 @click.option('--skip-es', is_flag=True, help='Skip cleaning the es index.')
-def clean(dry, skip_fs, skip_es):
+def clean(dry, skip_calcs, skip_fs, skip_es):
     infrastructure.setup_logging()
-    infrastructure.setup_mongo()
+    mongo_client = infrastructure.setup_mongo()
     infrastructure.setup_elastic()
+
+    if not skip_calcs:
+        uploads_for_calcs = mongo_client[nomad_config.mongo.db_name]['calc'].distinct('upload_id')
+        uploads = {}
+        for upload in mongo_client[nomad_config.mongo.db_name]['upload'].distinct('_id'):
+            uploads[upload] = True
+
+        missing_uploads = []
+        for upload_for_calc in uploads_for_calcs:
+            if upload_for_calc not in uploads:
+                missing_uploads.append(upload_for_calc)
+
+        if not dry and len(missing_uploads) > 0:
+            input('Will delete calcs (mongo + es) for %d missing uploads. Press any key to continue ...' % len(missing_uploads))
+
+            for upload in missing_uploads:
+                mongo_client[nomad_config.mongo.db_name]['calc'].remove(dict(upload_id=upload))
+                Search(index=nomad_config.elastic.index_name).query('term', upload_id=upload).delete()
+        else:
+            print('Found %s uploads that have calcs in mongo, but there is no upload entry.' % len(missing_uploads))
+            print('List first 10:')
+            for upload in missing_uploads[:10]:
+                print(upload)
 
     if not skip_fs:
         upload_dirs = []
@@ -120,4 +145,4 @@ def clean(dry, skip_fs, skip_es):
 
 
 if __name__ == '__main__':
-    cli()  # pylint: disable=E1120
+    cli(obj={})  # pylint: disable=E1120,E1123

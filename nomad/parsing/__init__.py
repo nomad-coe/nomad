@@ -58,10 +58,11 @@ based on NOMAD-coe's *python-common* module.
     :members:
 
 """
-from typing import Callable, IO
+from typing import Callable, IO, Union
 import magic
 import gzip
 import bz2
+import os.path
 
 from nomad import files, config
 
@@ -76,7 +77,7 @@ _compressions = {
 }
 
 
-def match_parser(mainfile: str, upload_files: files.StagingUploadFiles) -> 'Parser':
+def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFiles]) -> 'Parser':
     """
     Performs parser matching. This means it take the given mainfile and potentially
     opens it with the given callback and tries to identify a parser that can parse
@@ -87,15 +88,21 @@ def match_parser(mainfile: str, upload_files: files.StagingUploadFiles) -> 'Pars
 
     Arguments:
         mainfile: The upload relative path to the mainfile
-        open: A function that allows to open a stream to the file
+        upload_files: Either a :class:`files.StagingUploadFiles` object or a directory name.
+            Directory name + mainfile needs to point to the file.
 
     Returns: The parser, or None if no parser could be matched.
     """
-    with upload_files.raw_file(mainfile, 'rb') as f:
+    if isinstance(upload_files, str):
+        mainfile_path = os.path.join(upload_files, mainfile)
+    else:
+        mainfile_path = upload_files.raw_file_object(mainfile).os_path
+
+    with open(mainfile_path, 'rb') as f:
         compression, open_compressed = _compressions.get(f.read(3), (None, open))
-    mainfile_path = upload_files.raw_file_object(mainfile).os_path
-    with open_compressed(mainfile_path, 'rb') as f:
-        buffer = f.read(2048)
+
+    with open_compressed(mainfile_path, 'rb') as cf:
+        buffer = cf.read(2048)
 
     mime_type = magic.from_buffer(buffer, mime=True)
     for parser in parsers:

@@ -17,6 +17,7 @@ import { Help } from '../help'
 class SearchPage extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
+    match: PropTypes.any,
     api: PropTypes.object.isRequired,
     user: PropTypes.object,
     raiseError: PropTypes.func.isRequired,
@@ -69,7 +70,7 @@ class SearchPage extends React.Component {
 
   state = {
     data: SearchPage.emptySearchData,
-    owner: 'migrated',
+    owner: 'all',
     searchState: {
       ...SearchAggregations.defaultState
     },
@@ -85,6 +86,8 @@ class SearchPage extends React.Component {
     this.updateSearchResultList = this.updateSearchResultList.bind(this)
     this.updateSearch = this.updateSearch.bind(this)
     this.handleClickExpand = this.handleClickExpand.bind(this)
+
+    this._mounted = false
   }
 
   updateSearchResultList(changes) {
@@ -102,6 +105,10 @@ class SearchPage extends React.Component {
   }
 
   update(changes) {
+    if (!this._mounted) {
+      return
+    }
+
     changes = changes || {}
     const { owner, searchResultListState, searchState } = {...this.state, ...changes}
     const { searchValues, ...searchStateRest } = searchState
@@ -123,12 +130,22 @@ class SearchPage extends React.Component {
   }
 
   componentDidMount() {
+    this._mounted = true
     this.update()
   }
 
+  componentWillUnmount() {
+    this._mounted = false
+  }
+
   componentDidUpdate(prevProps) {
-    if (prevProps.api !== this.props.api) {
+    if (prevProps.api !== this.props.api) { // login/logout case, reload results
       this.update()
+    } else if (prevProps.match.path !== this.props.match.path) { // navigation case
+      // update if we went back to the search
+      if (this.props.match.path === '/search' && this.props.match.isExact) {
+        this.update()
+      }
     }
   }
 
@@ -147,7 +164,6 @@ class SearchPage extends React.Component {
     const { pagination: { total }, metrics } = data
 
     const ownerLabel = {
-      migrated: 'With PID',
       all: 'All entries',
       public: 'Only public entries',
       user: 'Only your entries',
@@ -155,14 +171,13 @@ class SearchPage extends React.Component {
     }
 
     const ownerTooltips = {
-      migrated: 'Only show entries with established provenance in the original Nomad repository.',
       all: 'This will show all entries in the database, even those that might be duplicates.',
       public: 'Do not show entries that are only visible to you.',
       user: 'Do only show entries visible to you.',
       staging: 'Will only show entries that you uploaded, but not yet published.'
     }
 
-    const withoutLogin = ['migrated', 'all']
+    const withoutLogin = ['all']
 
     const useMetric = Object.keys(metrics).find(metric => metric !== 'code_runs') || 'code_runs'
     const helperText = <span>
@@ -214,7 +229,7 @@ class SearchPage extends React.Component {
             <FormControl>
               <FormLabel>Filter entries and show: </FormLabel>
               <FormGroup row>
-                {['migrated', 'all', 'public', 'user', 'staging']
+                {['all', 'public', 'user', 'staging']
                   .filter(key => user || withoutLogin.indexOf(key) !== -1)
                   .map(owner => (
                     <Tooltip key={owner} title={ownerTooltips[owner]}>
@@ -258,7 +273,7 @@ class SearchPage extends React.Component {
 
           <div className={classes.searchResults}>
             <Typography variant="caption" style={{margin: 12}}>
-              About {total} results:
+              About {total.toLocaleString()} results:
             </Typography>
 
             <SearchResultList
