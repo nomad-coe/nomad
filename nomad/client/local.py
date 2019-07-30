@@ -81,11 +81,13 @@ class CalcProcReproduction:
         if not os.path.exists(local_path) or override:
             # download raw if not already downloaded or if override is set
             # download with request, since bravado does not support streaming
-            # TODO currently only downloads mainfile
             self.logger.info('Downloading calc.', mainfile=self.mainfile)
             try:
                 token = client.auth.get_user().response().result.token
-                req = requests.get('%s/raw/%s/%s' % (config.client.url, self.upload_id, os.path.dirname(self.mainfile)) + '/*', stream=True, headers={'X-Token': token})
+                dir_name = os.path.dirname(self.mainfile)
+                req = requests.get(
+                    '%s/raw/%s/%s' % (config.client.url, self.upload_id, dir_name) + '/*',
+                    stream=True, headers={'X-Token': token})
                 with open(local_path, 'wb') as f:
                     for chunk in req.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
                         f.write(chunk)
@@ -192,7 +194,12 @@ def local(calc_id, show_backend=False, show_metadata=False, **kwargs):
     utils.configure_logging()
     utils.get_logger(__name__).info('Using %s' % config.client.url)
     with CalcProcReproduction(calc_id, **kwargs) as local:
+        if local.upload_id != 'unknown':
+            print(
+                'Data being saved to .volumes/fs/tmp/repro_'
+                '%s if not already there' % local.upload_id)
         backend = local.parse()
+        # Run suite of nomalizers on parsed backend.
         local.normalize_all(parser_backend=backend)
         if show_backend:
             backend.write_json(sys.stdout, pretty=True)
