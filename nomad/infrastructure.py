@@ -117,8 +117,9 @@ def setup_repository_db(**kwargs):
     global repository_db
     global repository_db_conn
 
-    repository_db_conn, repository_db = connection, db
-    logger.info('setup repository db connection')
+    if repository_db is None:
+        repository_db_conn, repository_db = connection, db
+        logger.info('setup repository db connection')
 
     return repository_db_conn, repository_db
 

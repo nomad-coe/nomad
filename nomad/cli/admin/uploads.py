@@ -108,6 +108,7 @@ def chown(ctx, user, uploads):
 @click.argument('UPLOADS', nargs=-1)
 @click.pass_context
 def index(ctx, uploads):
+    infrastructure.setup_repository_db()
     _, uploads = query_uploads(ctx, uploads)
     uploads_count = uploads.count()
 
