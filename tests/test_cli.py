@@ -66,6 +66,21 @@ class TestAdminUploads:
         assert Upload.objects(upload_id=upload_id).first() is None
         assert Calc.objects(upload_id=upload_id).first() is None
 
+    def test_index(self, published):
+        upload_id = published.upload_id
+        calc = Calc.objects(upload_id=upload_id).first()
+        calc.metadata['comment'] = 'specific'
+        calc.save()
+
+        assert search.entry_search(search_parameters=dict(comment='specific'))['pagination']['total'] == 0
+
+        result = click.testing.CliRunner().invoke(
+            cli, ['admin', 'uploads', 'index', upload_id], catch_exceptions=False, obj=utils.POPO())
+        assert result.exit_code == 0
+        assert 'index' in result.stdout
+
+        assert search.entry_search(search_parameters=dict(comment='specific'))['pagination']['total'] == 1
+
     def test_re_process(self, published, monkeypatch):
         monkeypatch.setattr('nomad.config.version', 'test_version')
         upload_id = published.upload_id

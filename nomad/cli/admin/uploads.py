@@ -104,6 +104,25 @@ def chown(ctx, user, uploads):
         search.publish(calcs)
 
 
+@uploads.command(help='(Re-)index all calcs of the given uploads.')
+@click.argument('UPLOADS', nargs=-1)
+@click.pass_context
+def index(ctx, uploads):
+    infrastructure.setup_repository_db()
+    _, uploads = query_uploads(ctx, uploads)
+    uploads_count = uploads.count()
+
+    print('%d uploads selected, indexing ...' % uploads_count)
+
+    i, failed = 0, 0
+    for upload in uploads:
+        upload_with_metadata = upload.to_upload_with_metadata()
+        calcs = upload_with_metadata.calcs
+        failed += search.index_all(calcs)
+
+        print('   indexed %d of %d uploads, failed to index %d entries' % (i, uploads_count, failed))
+
+
 @uploads.command(help='Delete selected upload')
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--with-coe-repo', help='Also attempt to delete from repository db', is_flag=True)

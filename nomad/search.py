@@ -178,7 +178,12 @@ def publish(calcs: Iterable[datamodel.CalcWithMetadata]) -> None:
 
 
 def index_all(calcs: Iterable[datamodel.CalcWithMetadata]) -> None:
-    """ Adds all given calcs with their metadata to the index. """
+    """
+    Adds all given calcs with their metadata to the index.
+
+    Returns:
+        Number of failed entries.
+    """
     def elastic_updates():
         for calc in calcs:
             entry = Entry.from_calc_with_metadata(calc)
@@ -186,8 +191,9 @@ def index_all(calcs: Iterable[datamodel.CalcWithMetadata]) -> None:
             entry['_op_type'] = 'index'
             yield entry
 
-    elasticsearch.helpers.bulk(infrastructure.elastic_client, elastic_updates())
+    _, failed = elasticsearch.helpers.bulk(infrastructure.elastic_client, elastic_updates(), stats_only=True)
     refresh()
+    return failed
 
 
 def refresh():
