@@ -119,6 +119,7 @@ def index(ctx, uploads):
         upload_with_metadata = upload.to_upload_with_metadata()
         calcs = upload_with_metadata.calcs
         failed += search.index_all(calcs)
+        i += 1
 
         print('   indexed %d of %d uploads, failed to index %d entries' % (i, uploads_count, failed))
 
