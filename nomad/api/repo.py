@@ -263,8 +263,8 @@ class RepoCalcsResource(Resource):
             return results, 200
         except search.ScrollIdNotFound:
             abort(400, 'The given scroll_id does not exist.')
-        # except KeyError as e:
-        #     abort(400, str(e))
+        except KeyError as e:
+            abort(400, str(e))
 
 
 repo_quantity_values_model = api.model('RepoQuantityValues', {

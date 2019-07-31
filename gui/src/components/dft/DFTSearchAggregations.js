@@ -23,12 +23,39 @@ class DFTSearchAggregations extends React.Component {
     }
   })
 
+  constructor(props) {
+    super(props)
+    this.handleExclusiveChanged = this.handleExclusiveChanged.bind(this)
+  }
+
+  state = {
+    exclusive: false
+  }
+
+  handleExclusiveChanged() {
+    const { searchValues } = this.props
+    const value = !this.state.exclusive
+    this.setState({exclusive: value})
+    if (value) {
+      searchValues.only_atoms = searchValues.only_atoms || searchValues.atoms
+      delete searchValues.atoms
+    } else {
+      searchValues.atoms = searchValues.only_atoms || searchValues.atoms
+      delete searchValues.only_atoms
+    }
+    this.props.onChange({searchValues: searchValues})
+  }
+
   handleAtomsChanged(atoms) {
+    if (this.state.exclusive) {
+      this.setState({exclusive: false})
+    }
     const searchValues = {...this.props.searchValues}
     searchValues.atoms = atoms
     if (searchValues.atoms.length === 0) {
       delete searchValues.atoms
     }
+    delete searchValues.only_atoms
     this.props.onChange({searchValues: searchValues})
   }
 
@@ -57,8 +84,10 @@ class DFTSearchAggregations extends React.Component {
           <CardContent>
             <PeriodicTable
               aggregations={quantities.atoms} metric={metric}
-              values={searchValues.atoms || []}
+              exclusive={this.state.exclusive}
+              values={searchValues.atoms || searchValues.only_atoms || []}
               onChanged={(selection) => this.handleAtomsChanged(selection)}
+              onExclusiveChanged={this.handleExclusiveChanged}
             />
           </CardContent>
         </Card>

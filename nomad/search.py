@@ -149,8 +149,10 @@ class Entry(Document, metaclass=WithDomain):
         self.references = [ref.value for ref in source.references]
         self.datasets = [Dataset.from_dataset_popo(ds) for ds in source.datasets]
 
-        for quantity in datamodel.Domain.instance.quantities.keys():
-            setattr(self, quantity, getattr(source, quantity))
+        for quantity in datamodel.Domain.instance.quantities.values():
+            setattr(
+                self, quantity.name,
+                quantity.elastic_value(getattr(source, quantity.metadata_field)))
 
 
 def delete_upload(upload_id):
@@ -238,6 +240,8 @@ def _construct_search(
                 continue
             else:
                 raise KeyError('Unknown quantity %s' % key)
+
+        value = quantity.elastic_value(value)
 
         if isinstance(value, list):
             values = value
