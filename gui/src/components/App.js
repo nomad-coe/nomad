@@ -23,7 +23,7 @@ import { ErrorSnacks } from './errors'
 import Calc from './entry/Calc'
 import About from './About'
 import LoginLogout from './LoginLogout'
-import { genTheme, repoTheme, archiveTheme } from '../config'
+import { genTheme, repoTheme, archiveTheme, appBase } from '../config'
 import { DomainProvider } from './domains'
 import MetaInfoBrowser from './metaInfoBrowser/MetaInfoBrowser'
 import packageJson from '../../package.json'
@@ -157,7 +157,7 @@ class NavigationUnstyled extends React.Component {
   }
 
   componentDidMount() {
-    fetch('/meta.json')
+    fetch(`${appBase}/meta.json`)
       .then((response) => response.json())
       .then((meta) => {
         if (meta.version !== packageJson.version) {
