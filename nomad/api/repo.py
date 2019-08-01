@@ -272,6 +272,8 @@ class RepoCalcsResource(Resource):
         except search.ScrollIdNotFound:
             abort(400, 'The given scroll_id does not exist.')
         except KeyError as e:
+            import traceback
+            traceback.print_exc()
             abort(400, str(e))
 
 
