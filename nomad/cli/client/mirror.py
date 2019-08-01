@@ -19,7 +19,7 @@ import json
 import os
 import os.path
 
-from nomad import utils, processing as proc, search, config, files
+from nomad import utils, processing as proc, search, config, files, infrastructure
 
 from .client import client
 
@@ -47,6 +47,9 @@ __in_test = False
     '--dry', is_flag=True, default=False,
     help='Do not actually mirror data, just fetch data and report.')
 def mirror(query, move: bool, dry: bool):
+    infrastructure.setup_mongo()
+    infrastructure.setup_elastic()
+
     if query is not None:
         try:
             query = json.loads(query)
