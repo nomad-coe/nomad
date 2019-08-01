@@ -28,7 +28,8 @@ def admin(ctx):
 
 
 @admin.command(help='(Re-)index all calcs.')
-def index():
+@click.option('--dry', help='Doe not index, only compute entries.', is_flag=True)
+def index(dry):
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
@@ -47,6 +48,12 @@ def index():
                 stdout.flush()
             yield datamodel.CalcWithMetadata(**calc.metadata)
 
-    failed = search.index_all(calc_generator())
+    if dry:
+        for _ in calc_generator():
+            pass
+        failed = 0
+    else:
+        failed = search.index_all(calc_generator())
+
     print('')
     print('indexing completed, %d failed entries' % failed)
