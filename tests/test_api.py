@@ -40,6 +40,7 @@ from tests.test_search import assert_search_upload
 
 logger = utils.get_logger(__name__)
 
+
 def test_alive(client):
     rv = client.get('/alive')
     assert rv.status_code == 200
