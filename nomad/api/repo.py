@@ -101,6 +101,7 @@ def add_common_parameters(request_parser):
         help='A yyyy-MM-ddTHH:mm:ss (RFC3339) maximum entry time (e.g. upload time)')
 
     for quantity in search.search_quantities.values():
+        print('## %s: %s' % (quantity.name, quantity.multi))
         request_parser.add_argument(
             quantity.name, type=str, help=quantity.description,
             action='append' if quantity.multi else None)
@@ -154,6 +155,8 @@ def create_owner_query():
 
 def create_search_parameters():
     """ Helper that creates a request.args dict with isolated search parameters """
+    logger.debug('create search parameter', request_args=str(dict(**request.args)))
+
     search_parameters = dict(**request.args)
     search_parameters.pop('owner', None)
     search_parameters.pop('scroll', None)
