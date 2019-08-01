@@ -215,12 +215,20 @@ class RepoCalcsResource(Resource):
             per_page = int(request.args.get('per_page', 10 if not scroll else 1000))
             order = int(request.args.get('order', -1))
             metrics: List[str] = request.args.getlist('metrics')
-            from_time = rfc3339DateTime.parse(request.args.get('from_time', '2000-01-01'))
+            from_time_str = request.args.get('from_time', None)
             until_time_str = request.args.get('until_time', None)
-            until_time = rfc3339DateTime.parse(until_time_str) if until_time_str is not None else datetime.datetime.utcnow()
-            time_range = (from_time, until_time)
         except Exception:
             abort(400, message='bad parameter types')
+
+        try:
+            if from_time_str is None and until_time_str is None:
+                time_range = None
+            else:
+                from_time = rfc3339DateTime.parse('2000-01-01' if from_time_str is None else from_time_str)
+                until_time = rfc3339DateTime.parse(until_time_str) if until_time_str is not None else datetime.datetime.utcnow()
+                time_range = (from_time, until_time)
+        except Exception:
+            abort(400, message='bad datetime format')
 
         order_by = request.args.get('order_by', 'formula')
 
