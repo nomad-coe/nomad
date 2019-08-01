@@ -753,7 +753,7 @@ class TestRepo():
         (0, 'system', 'atom'),
         (1, 'atoms', 'Br'),
         (1, 'atoms', 'Fe'),
-        (0, 'atoms', ['Fe', 'Br']),
+        (0, 'atoms', ['Fe', 'Br', 'A', 'B']),
         (0, 'only_atoms', ['Br', 'Si']),
         (1, 'only_atoms', ['Fe']),
         (1, 'only_atoms', ['Br', 'K', 'Si']),

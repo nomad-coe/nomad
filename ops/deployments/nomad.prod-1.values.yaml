@@ -2,7 +2,7 @@ proxy:
   nodePort: 30011
   external:
     host: "repository.nomad-coe.eu"
-    path: "/uploads"
+    path: "/fairdi/nomad/prod"
 
 api:
   disableReset: false
@@ -22,7 +22,7 @@ postgres:
   user: 'nomadrep'
   password_secret: 'nomad-production-repository-password'
 
-uploadurl: 'https://repository.nomad-coe.eu/uploads/upload'
+uploadurl: 'https://repository.nomad-coe.eu/fairdi/nomad/prod/gui/upload'
 
 volumes:
   prefixSize: 1

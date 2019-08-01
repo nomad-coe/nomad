@@ -24,15 +24,13 @@ from elasticsearch_dsl import Q
 from elasticsearch.exceptions import NotFoundError
 import datetime
 
-from nomad import search, utils
+from nomad import search
 
 from .app import api, rfc3339DateTime
 from .auth import login_if_available
 from .common import pagination_model, pagination_request_parser, calc_route
 
 ns = api.namespace('repo', description='Access repository metadata.')
-
-logger = utils.get_logger(__name__)
 
 
 @calc_route(ns)
@@ -101,9 +99,8 @@ def add_common_parameters(request_parser):
         help='A yyyy-MM-ddTHH:mm:ss (RFC3339) maximum entry time (e.g. upload time)')
 
     for quantity in search.search_quantities.values():
-        print('## %s: %s' % (quantity.name, quantity.multi))
         request_parser.add_argument(
-            quantity.name, type=str, help=quantity.description,
+            quantity.name, help=quantity.description,
             action='append' if quantity.multi else None)
 
 
@@ -155,9 +152,9 @@ def create_owner_query():
 
 def create_search_parameters():
     """ Helper that creates a request.args dict with isolated search parameters """
-    logger.debug('create search parameter', request_args=str(dict(**request.args)))
-
-    search_parameters = dict(**request.args)
+    search_parameters = {
+        key: request.args.getlist(key) if search.search_quantities[key] else request.args.get(key)
+        for key in request.args.keys()}
     search_parameters.pop('owner', None)
     search_parameters.pop('scroll', None)
     search_parameters.pop('scroll_id', None)
@@ -257,7 +254,6 @@ class RepoCalcsResource(Resource):
         q = q & without_currupted_mainfile if q is not None else without_currupted_mainfile
 
         search_parameters = create_search_parameters()
-        logger.debug('repo search', search_parameters=str(search_parameters))
 
         try:
             if scroll:

@@ -27,8 +27,6 @@ from datetime import datetime
 from nomad import config, datamodel, infrastructure, datamodel, coe_repo, utils
 
 
-logger = utils.get_logger(__name__)
-
 path_analyzer = analyzer(
     'path_analyzer',
     tokenizer=tokenizer('path_tokenizer', 'pattern', pattern='/'))
@@ -284,9 +282,7 @@ def _execute_paginated_search(
         search = search.sort('-%s' % order_by_quantity.elastic_field)
     paginated_search = search[(page - 1) * per_page: page * per_page]
 
-    logger.debug('search request', search_request=str(paginated_search.to_dict()))
     response = paginated_search.execute()  # pylint: disable=E1101
-    logger.debug('search response', search_request=str(response.to_dict()))
 
     total_results = response.hits.total
     search_results = [hit.to_dict() for hit in response.hits]
