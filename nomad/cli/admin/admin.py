@@ -13,9 +13,8 @@
 # limitations under the License.
 
 import click
-from sys import stdout
 
-from nomad import processing as proc, search, datamodel, infrastructure
+from nomad import processing as proc, search, datamodel, infrastructure, utils
 
 from nomad.cli.cli import cli
 
@@ -39,14 +38,10 @@ def index(dry):
     print('indexing %d ...' % all_calcs)
 
     def calc_generator():
-        count = 0
-
-        for calc in proc.Calc.objects():
-            count += 1
-            if count % 1000 == 0:
-                stdout.write('\r   indexed %10d of %10d calcs' % (count, all_calcs))
-                stdout.flush()
-            yield datamodel.CalcWithMetadata(**calc.metadata)
+        with utils.ETA(all_calcs, '   index %10d or %10d calcs, ETA %s') as eta:
+            for calc in proc.Calc.objects():
+                eta.add()
+                yield datamodel.CalcWithMetadata(**calc.metadata)
 
     if dry:
         for _ in calc_generator():

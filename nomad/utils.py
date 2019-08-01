@@ -47,6 +47,8 @@ import time
 import re
 from werkzeug.exceptions import HTTPException
 import hashlib
+import sys
+from datetime import timedelta
 
 from nomad import config
 
@@ -403,3 +405,31 @@ class SleepTimeBackoff:
         time.sleep(self.current_time)
         self.current_time *= 2
         self.current_time = min(self.max_time, self.current_time)
+
+
+class ETA:
+    def __init__(self, total: int, message: str, interval: int = 1000):
+        self.start = time.time()
+        self.total = total
+        self.count = 0
+        self.interval = interval
+        self.interval_count = 0
+        self.message = message
+
+    def add(self, amount: int = 1):
+        self.count += amount
+        interval_count = int(self.count / self.interval)
+        if interval_count > self.interval_count:
+            self.interval_count = interval_count
+            delta_t = time.time() - self.start
+            eta = delta_t * (self.total - self.count) / self.count
+            eta_str = str(timedelta(seconds=eta))
+            sys.stdout.write('\r' + (self.message % (self.count, self.total, eta_str)))
+            sys.stdout.flush()
+
+    def __enter__(self):
+        self.start = time.time()
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        print('')
