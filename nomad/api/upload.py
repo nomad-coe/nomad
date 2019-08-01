@@ -526,10 +526,20 @@ class UploadCommandResource(Resource):
         """ Get url and example command for shell based uploads. """
         upload_url = '%s/uploads/?curl=True' % config.api_url()
 
-        upload_command = 'curl -X PUT -H "X-Token: %s" "%s" -F file=@<local_file>' % (
+        # upload_command = 'curl -X PUT -H "X-Token: %s" "%s" -F file=@<local_file>' % (
+        #     g.user.get_auth_token().decode('utf-8'), upload_url)
+
+        # Upload via streaming data tends to work much easier, e.g. no mime type issues, etc.
+        # It is also easier for the user to unterstand IMHO.
+        upload_command = 'curl -H X-Token:%s %s -T <local_file>' % (
             g.user.get_auth_token().decode('utf-8'), upload_url)
 
-        # upload_command = 'curl -H "X-Token: %s" "%s" -T <local_file>' % (
-        #    g.user.get_auth_token().decode('utf-8'), upload_url)
+        upload_progress_command = upload_command + ' | xargs echo'
+        upload_tar_command = 'tar -cf - <local_folder> | curl -# -H X-Token:%s %s -T - | xargs echo' % (
+            g.user.get_auth_token().decode('utf-8'), upload_url)
 
-        return dict(upload_url=upload_url, upload_command=upload_command), 200
+        return dict(
+            upload_url=upload_url,
+            upload_command=upload_command,
+            upload_progress_command=upload_progress_command,
+            upload_tar_command=upload_tar_command), 200
