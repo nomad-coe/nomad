@@ -661,7 +661,10 @@ class TestRepo():
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
     def assert_search(self, rv: Any, number_of_calcs: int) -> dict:
+        if rv.status_code != 200:
+            print(rv.data)
         assert rv.status_code == 200
+
         data = json.loads(rv.data)
 
         results = data.get('results', None)
