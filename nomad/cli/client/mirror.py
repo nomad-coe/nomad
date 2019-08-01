@@ -28,6 +28,23 @@ __in_test = False
 """ Will be monkeypatched by tests to alter behavior for testing. """
 
 
+class Mapping:
+
+    def __init__(self, mapping: str):
+        if mapping is None:
+            self.source_len = 0
+            self.target = ''
+        else:
+            mapping_split = mapping.split(':')
+            assert len(mapping_split) == 2, 'Mapping format is dir:mapping'
+
+            source, self.target = mapping_split
+            self.source_len = len(source)
+
+    def apply(self, path):
+        return self.target + path[self.source_len:]
+
+
 @client.command(
     help='''
         Mirror data from another nomad deployment.
@@ -44,21 +61,26 @@ __in_test = False
     '--move', is_flag=True, default=False,
     help='Instead of copying the underlying upload files, we move it and replace it with a symlink.')
 @click.option(
-    '--mapping', type=str, default=None,
+    '--source-mapping', type=str, default=None,
     help=(
-        'A mapping in the form "mirror:mapped" that replaces path prefix "mirror" with '
+        'A mapping in the form "dir:mapped" that replaces path prefix "dir" with '
         '"mapped" in all paths provided by the API of the source. Allows to handle local mounts '
         'paths in source deployment. E.g. use ".volumes/fs:/nomad/fairdi/<source>/fs".'))
 @click.option(
+    '--target-mapping', type=str, default=None,
+    help=(
+        'A mapping in the form "dir:mapped" that replaces path prefix "mirror" with '
+        '"mapped" in all paths used for the target. Allows to handle local mounts '
+        'paths in target deployment. E.g. use ".volumes/fs:/nomad/fairdi/<target>/fs".'))
+@click.option(
     '--dry', is_flag=True, default=False,
     help='Do not actually mirror data, just fetch data and report.')
-def mirror(query, move: bool, dry: bool, mapping):
+def mirror(query, move: bool, dry: bool, source_mapping, target_mapping):
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
-    if mapping is not None:
-        mapping = mapping.split(':')
-        assert len(mapping) == 2
+    source_mapping = Mapping(source_mapping)
+    target_mapping = Mapping(target_mapping)
 
     if query is not None:
         try:
@@ -105,14 +127,6 @@ def mirror(query, move: bool, dry: bool, mapping):
                     (upload_data.upload_id, upload_ids['values'][upload_id], upload_data.upload_files_path))
                 continue
 
-            # create mongo
-            upload = proc.Upload.from_json(upload_data.upload, created=True).save()
-            for calc_data in upload_data.calcs:
-                proc.Calc.from_json(calc_data, created=True).save()
-
-            # index es
-            search.index_all(upload.to_upload_with_metadata().calcs)
-
             # copy/mv file
             upload_files_path = upload_data.upload_files_path
             if __in_test:
@@ -120,15 +134,25 @@ def mirror(query, move: bool, dry: bool, mapping):
                 os.rename(upload_files_path, tmp)
                 upload_files_path = tmp
 
-            if mapping is not None:
-                upload_files_path = mapping[1] + upload_files_path[len(mapping[0]):]
+            upload_files_path = source_mapping.apply(upload_files_path)
 
-            target_upload_files_path = files.PathObject(config.fs.public, upload.upload_id, create_prefix=True, prefix=True).os_path
+            target_upload_files_path = files.PathObject(
+                config.fs.public, upload.upload_id, create_prefix=True, prefix=True).os_path
+            target_upload_files_path = target_mapping.apply(target_upload_files_path)
+
             if move:
                 os.rename(upload_files_path, target_upload_files_path)
                 os.symlink(os.path.abspath(target_upload_files_path), upload_files_path)
             else:
                 shutil.copytree(upload_files_path, target_upload_files_path)
+
+            # create mongo
+            upload = proc.Upload.from_json(upload_data.upload, created=True).save()
+            for calc_data in upload_data.calcs:
+                proc.Calc.from_json(calc_data, created=True).save()
+
+            # index es
+            search.index_all(upload.to_upload_with_metadata().calcs)
 
             print(
                 'Mirrored %s with %d calcs at %s' %

@@ -161,7 +161,7 @@ class TestClient:
                 cli, ['client', 'mirror', '--move'], catch_exceptions=False, obj=utils.POPO())
         else:
             result = click.testing.CliRunner().invoke(
-                cli, ['client', 'mirror', '--mapping', '.volumes/test_fs:.volumes/test_fs'], catch_exceptions=False, obj=utils.POPO())
+                cli, ['client', 'mirror', '--source-mapping', '.volumes/test_fs:.volumes/test_fs'], catch_exceptions=False, obj=utils.POPO())
 
         assert result.exit_code == 0
         assert published.upload_id in result.output
