@@ -44,11 +44,21 @@ __in_test = False
     '--move', is_flag=True, default=False,
     help='Instead of copying the underlying upload files, we move it and replace it with a symlink.')
 @click.option(
+    '--mapping', type=str, default=None,
+    help=(
+        'A mapping in the form "mirror:mapped" that replaces path prefix "mirror" with '
+        '"mapped" in all paths provided by the API of the source. Allows to handle local mounts '
+        'paths in source deployment. E.g. use ".volumes/fs:/nomad/fairdi/<source>/fs".'))
+@click.option(
     '--dry', is_flag=True, default=False,
     help='Do not actually mirror data, just fetch data and report.')
-def mirror(query, move: bool, dry: bool):
+def mirror(query, move: bool, dry: bool, mapping):
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
+
+    if mapping is not None:
+        mapping = mapping.split(':')
+        assert len(mapping) == 2
 
     if query is not None:
         try:
@@ -109,6 +119,9 @@ def mirror(query, move: bool, dry: bool):
                 tmp = os.path.join(config.fs.tmp, 'to_mirror')
                 os.rename(upload_files_path, tmp)
                 upload_files_path = tmp
+
+            if mapping is not None:
+                upload_files_path = mapping[1] + upload_files_path[len(mapping[0]):]
 
             target_upload_files_path = files.PathObject(config.fs.public, upload.upload_id, create_prefix=True, prefix=True).os_path
             if move:
