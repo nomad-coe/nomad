@@ -280,7 +280,10 @@ def _execute_paginated_search(
     else:
         search = search.sort('-%s' % order_by_quantity.elastic_field)
     paginated_search = search[(page - 1) * per_page: page * per_page]
+
+    print(paginated_search.to_dict())
     response = paginated_search.execute()  # pylint: disable=E1101
+    print(response.to_dict())
 
     total_results = response.hits.total
     search_results = [hit.to_dict() for hit in response.hits]
