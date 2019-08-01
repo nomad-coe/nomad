@@ -367,7 +367,7 @@ class Api {
     return this.swaggerPromise
       .then(client => client.apis.uploads.get_upload_command())
       .catch(this.handleApiError)
-      .then(response => response.body.upload_command)
+      .then(response => response.body)
       .finally(this.onFinishLoading)
   }
 }

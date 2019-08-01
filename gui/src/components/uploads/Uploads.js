@@ -93,7 +93,11 @@ class Uploads extends React.Component {
     publishedUploads: null,
     publishedUploadsPage: 1,
     publishedUploadsTotal: 0,
-    uploadCommand: 'loading ...',
+    uploadCommand: {
+      upload_command: 'loading ...',
+      upload_tar_command: 'loading ...',
+      upload_progress_command: 'loading ...'
+    },
     selectedUnpublishedUploads: [],
     showPublishDialog: false
   }
@@ -389,7 +393,7 @@ class Uploads extends React.Component {
             <div className={classes.commandMarkup}>
               <Markdown>{`
                 \`\`\`
-                  ${uploadCommand}
+                  ${uploadCommand.upload_command}
                 \`\`\`
               `}</Markdown>
             </div>
@@ -402,6 +406,12 @@ class Uploads extends React.Component {
               {/* <button>Copy to clipboard with button</button> */}
             </CopyToClipboard>
           </div>
+
+          <Help cookie="moreUploadCommandHelp">{`
+            The above command can be modified. To see progress on large files, use
+            \`${uploadCommand.upload_progress_command}\`. To
+            \`tar\` and upload in one command, use \`${uploadCommand.upload_tar_command}\`.
+          `}</Help>
 
           {this.renderUnpublishedUploads()}
           {this.renderPublishedUploads()}

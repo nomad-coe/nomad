@@ -513,7 +513,9 @@ class UploadResource(Resource):
 
 upload_command_model = api.model('UploadCommand', {
     'upload_url': fields.Url,
-    'upload_command': fields.String
+    'upload_command': fields.String,
+    'upload_progress_command': fields.String,
+    'upload_tar_command': fields.String
 })
 
 
