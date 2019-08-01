@@ -247,12 +247,10 @@ def _construct_search(
             else:
                 raise KeyError('Unknown quantity %s' % key)
 
-        value = quantity.elastic_value(value)
-
         if isinstance(value, list):
-            values = value
+            values = quantity.elastic_value(value)
         else:
-            values = [value]
+            values = quantity.elastic_value([value])
 
         for item in values:
             search = search.query(Q(quantity.elastic_search_type, **{quantity.elastic_field: item}))
