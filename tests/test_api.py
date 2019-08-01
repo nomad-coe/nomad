@@ -750,11 +750,11 @@ class TestRepo():
         (0, 'system', 'atom'),
         (1, 'atoms', 'Br'),
         (1, 'atoms', 'Fe'),
-        (0, 'atoms', ['Fe', 'Br']),  #1
+        (0, 'atoms', ['Fe', 'Br']),
         (0, 'only_atoms', ['Br', 'Si']),
         (1, 'only_atoms', ['Fe']),
-        (1, 'only_atoms', ['Br', 'K', 'Si']),  #0
-        (1, 'only_atoms', ['Br', 'Si', 'K']),  #0
+        (1, 'only_atoms', ['Br', 'K', 'Si']),
+        (1, 'only_atoms', ['Br', 'Si', 'K']),
         (1, 'comment', 'specific'),
         (1, 'authors', 'Hofstadter, Leonard'),
         (2, 'files', 'test/mainfile.txt'),
