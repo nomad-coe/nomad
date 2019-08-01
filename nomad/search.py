@@ -286,7 +286,7 @@ def _execute_paginated_search(
 
     logger.debug('search request', search_request=str(paginated_search.to_dict()))
     response = paginated_search.execute()  # pylint: disable=E1101
-    logger.debug('search response', search_request=str(paginated_search.to_dict()))
+    logger.debug('search response', search_request=str(response.to_dict()))
 
     total_results = response.hits.total
     search_results = [hit.to_dict() for hit in response.hits]

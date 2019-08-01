@@ -24,13 +24,15 @@ from elasticsearch_dsl import Q
 from elasticsearch.exceptions import NotFoundError
 import datetime
 
-from nomad import search
+from nomad import search, utils
 
 from .app import api, rfc3339DateTime
 from .auth import login_if_available
 from .common import pagination_model, pagination_request_parser, calc_route
 
 ns = api.namespace('repo', description='Access repository metadata.')
+
+logger = utils.get_logger(__name__)
 
 
 @calc_route(ns)
@@ -252,6 +254,7 @@ class RepoCalcsResource(Resource):
         q = q & without_currupted_mainfile if q is not None else without_currupted_mainfile
 
         search_parameters = create_search_parameters()
+        logger.debug('repo search', search_parameters=str(search_parameters))
 
         try:
             if scroll:

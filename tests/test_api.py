@@ -26,7 +26,7 @@ import os.path
 from urllib.parse import urlencode
 
 from nomad.api.app import rfc3339DateTime
-from nomad import coe_repo, search, parsing, files, config
+from nomad import coe_repo, search, parsing, files, config, utils
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
 from nomad.datamodel import UploadWithMetadata, CalcWithMetadata
@@ -37,6 +37,8 @@ from tests.test_files import create_staging_upload, create_public_upload, assert
 from tests.test_coe_repo import assert_coe_upload
 from tests.test_search import assert_search_upload
 
+
+logger = utils.get_logger(__name__)
 
 def test_alive(client):
     rv = client.get('/alive')
@@ -767,6 +769,7 @@ class TestRepo():
         query_string = urlencode({quantity: value}, doseq=True)
 
         rv = client.get('/repo/?%s' % query_string, headers=test_user_auth)
+        logger.debug('run search quantities test', query_string=query_string)
         data = self.assert_search(rv, calcs)
 
         quantities = data.get('quantities', None)
