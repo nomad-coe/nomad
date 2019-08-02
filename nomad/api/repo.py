@@ -152,23 +152,10 @@ def create_owner_query():
 
 def create_search_parameters():
     """ Helper that creates a request.args dict with isolated search parameters """
-    search_parameters = {
+    return {
         key: request.args.getlist(key) if search.search_quantities[key] else request.args.get(key)
-        for key in request.args.keys()}
-    search_parameters.pop('owner', None)
-    search_parameters.pop('scroll', None)
-    search_parameters.pop('scroll_id', None)
-    search_parameters.pop('per_page', None)
-    search_parameters.pop('page', None)
-    search_parameters.pop('order', None)
-    search_parameters.pop('order_by', None)
-    search_parameters.pop('metrics', None)
-    search_parameters.pop('from_time', None)
-    search_parameters.pop('until_time', None)
-    search_parameters.pop('size', None)
-    search_parameters.pop('after', None)
-
-    return search_parameters
+        for key in request.args.keys()
+        if key in search.search_quantities}
 
 
 @ns.route('/')

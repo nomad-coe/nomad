@@ -496,6 +496,9 @@ class TestUploads:
         assert rv.status_code == 200
 
 
+today = datetime.datetime.utcnow().date()
+
+
 class UploadFilesBasedTests:
 
     @staticmethod
@@ -640,7 +643,7 @@ class TestRepo():
             test_user: coe_repo.User, other_test_user: coe_repo.User):
         clear_elastic(elastic_infra)
 
-        calc_with_metadata = CalcWithMetadata(upload_id=0, calc_id=0, upload_time=datetime.date.today())
+        calc_with_metadata = CalcWithMetadata(upload_id=0, calc_id=0, upload_time=today)
         calc_with_metadata.files = ['test/mainfile.txt']
         calc_with_metadata.apply_domain_metadata(normalized)
 
@@ -650,7 +653,7 @@ class TestRepo():
 
         calc_with_metadata.update(
             calc_id='2', uploader=other_test_user.to_popo(), published=True, with_embargo=False,
-            upload_time=datetime.date.today() - datetime.timedelta(days=5))
+            upload_time=today - datetime.timedelta(days=5))
         calc_with_metadata.update(
             atoms=['Fe'], comment='this is a specific word', formula='AAA', basis_set='zzz')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
@@ -724,15 +727,15 @@ class TestRepo():
                 assert key in results[0]
 
     @pytest.mark.parametrize('calcs, start, end', [
-        (2, datetime.date.today() - datetime.timedelta(days=6), datetime.date.today()),
-        (2, datetime.date.today() - datetime.timedelta(days=5), datetime.date.today()),
-        (1, datetime.date.today() - datetime.timedelta(days=4), datetime.date.today()),
-        (1, datetime.date.today(), datetime.date.today()),
-        (1, datetime.date.today() - datetime.timedelta(days=6), datetime.date.today() - datetime.timedelta(days=5)),
-        (0, datetime.date.today() - datetime.timedelta(days=7), datetime.date.today() - datetime.timedelta(days=6)),
+        (2, today - datetime.timedelta(days=6), today),
+        (2, today - datetime.timedelta(days=5), today),
+        (1, today - datetime.timedelta(days=4), today),
+        (1, today, today),
+        (1, today - datetime.timedelta(days=6), today - datetime.timedelta(days=5)),
+        (0, today - datetime.timedelta(days=7), today - datetime.timedelta(days=6)),
         (2, None, None),
-        (1, datetime.date.today(), None),
-        (2, None, datetime.date.today())
+        (1, today, None),
+        (2, None, today)
     ])
     def test_search_time(self, client, example_elastic_calcs, no_warn, calcs, start, end):
         query_string = ''
