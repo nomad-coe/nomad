@@ -1,4 +1,4 @@
-export NOMAD_CLIENT_URL=https://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/prod/api
+export NOMAD_CLIENT_URL=https://repository.nomad-coe.eu/uploads/api
 export NOMAD_CLIENT_USER=admin
 export NOMAD_MONGO_DB_NAME=fairdi_nomad_prod
 export NOMAD_ELASTIC_INDEX_NAME=fairdi_nomad_prod
