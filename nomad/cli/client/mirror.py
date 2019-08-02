@@ -98,14 +98,12 @@ def mirror(
     else:
         query = {}
 
-    query.update(owner='admin')
-
     utils.configure_logging()
 
     from nomad.cli.client import create_client
     client = create_client()
 
-    uploads = client.mirror.get_uploads_mirror(payload=dict(query={})).response().result
+    uploads = client.mirror.get_uploads_mirror(payload=dict(query=query)).response().result
 
     for upload_data in uploads:
         upload_id = upload_data.upload_id
