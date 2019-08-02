@@ -51,7 +51,7 @@ class TestAdmin:
         assert search.entry_search(search_parameters=dict(comment='specific'))['pagination']['total'] == 0
 
         result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'index'], catch_exceptions=False, obj=utils.POPO())
+            cli, ['admin', 'index', '--threads', '2'], catch_exceptions=False, obj=utils.POPO())
         assert result.exit_code == 0
         assert 'index' in result.stdout
 

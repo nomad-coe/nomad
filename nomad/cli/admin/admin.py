@@ -50,8 +50,10 @@ def index(threads):
                 yield entry
 
     if threads > 1:
-        elasticsearch.helpers.parallel_bulk(
-            infrastructure.elastic_client, elastic_updates(), chunk_size=1000, thread_count=threads)
+        for _ in elasticsearch.helpers.parallel_bulk(
+                infrastructure.elastic_client, elastic_updates(), chunk_size=1000,
+                thread_count=threads):
+            pass
     else:
         elasticsearch.helpers.bulk(
             infrastructure.elastic_client, elastic_updates())
