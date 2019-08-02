@@ -6,3 +6,4 @@ export NOMAD_FS_LOCAL_TMP=/nomad/fairdi/prod/fs/tmp
 export NOMAD_FS_STAGING=/nomad/fairdi/prod/fs/staging
 export NOMAD_FS_PUBLIC=/nomad/fairdi/prod/fs/public
 export NOMAD_FS_TMP=/nomad/fairdi/prod/fs/tmp
+export NOMAD_FS_PREFIX_SIZE=1

@@ -139,12 +139,17 @@ def mirror(query, move: bool, dry: bool, source_mapping, target_mapping):
             target_upload_files_path = files.PathObject(
                 config.fs.public, upload_id, create_prefix=True, prefix=True).os_path
             target_upload_files_path = target_mapping.apply(target_upload_files_path)
+            if not os.path.exists(target_upload_files_path):
+                os.makedirs(target_upload_files_path)
 
             if move:
                 os.rename(upload_files_path, target_upload_files_path)
                 os.symlink(os.path.abspath(target_upload_files_path), upload_files_path)
             else:
-                shutil.copytree(upload_files_path, target_upload_files_path)
+                for to_copy in os.listdir(upload_files_path):
+                    shutil.copyfile(
+                        os.path.join(upload_files_path, to_copy),
+                        os.path.join(target_upload_files_path, to_copy))
 
             # create mongo
             upload = proc.Upload.from_json(upload_data.upload, created=True).save()
