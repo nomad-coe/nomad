@@ -52,3 +52,43 @@ def index(dry):
 
     print('')
     print('indexing completed, %d failed entries' % failed)
+
+
+@admin.group(help='Helper scripts for nomad operations')
+def ops():
+    pass
+
+
+@ops.command(help=(
+    'Generate a proxy pass config for apache2 reverse proxy servers. This can be used to '
+    'generate partial apache2 configs, e.g. via ... > /etc/https/conf.d/nomad.conf.'))
+@click.option('--nginx', is_flag=True, help='Provide config for apache2, default is apache.')
+@click.option('--prefix', type=str, default='uploads', help='The path prefix under which everything is proxy passed.')
+@click.option('--host', type=str, default='130.183.207.104', help='The host to proxy to.')
+@click.option('--port', type=str, default='30001', help='The port to proxy to.')
+def proxy_pass(nginx, prefix, host, port):
+    if not nginx:
+        print('''\
+ProxyPass "/{0}" "http://{1}:{2}/{0}"
+ProxyPassReverse "/{0}" "http://{1}:{2}/{0}"
+<Proxy http://{1}:{2}/{0}>
+    ProxyPreserveHost On
+    Order deny,allow
+    Allow from all
+</Proxy>'''.format(prefix, host, port))
+    else:
+        print('''\
+    location /{0} {{
+        client_max_body_size 35g;
+        proxy_pass http://{1}:{2};
+        proxy_set_header Host $host;
+        proxy_pass_request_headers on;
+        proxy_buffering off;
+        proxy_request_buffering off;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_connect_timeout 600;
+        proxy_send_timeout 3600;
+        proxy_read_timeout 600;
+        send_timeout 3600;
+    }}'''.format(prefix, host, port))
