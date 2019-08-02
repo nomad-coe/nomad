@@ -30,7 +30,8 @@ def admin(ctx):
 
 @admin.command(help='(Re-)index all calcs.')
 @click.option('--threads', type=int, default=1, help='Number of threads to use.')
-def index(threads):
+@click.option('--dry', is_flag=True, help='Do not index, just compute entries.')
+def index(threads, dry):
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
@@ -43,15 +44,20 @@ def index(threads):
         with utils.ETA(all_calcs, '   index %10d or %10d calcs, ETA %s') as eta:
             for calc in proc.Calc.objects():
                 eta.add()
+                entry = None
                 entry = search.Entry.from_calc_with_metadata(
                     datamodel.CalcWithMetadata(**calc.metadata))
                 entry = entry.to_dict(include_meta=True)
                 entry['_op_type'] = 'index'
                 yield entry
-
+    
+    if dry:
+        for _ in elastic_updates():
+            pass
     if threads > 1:
+        print('  use %d threads' % threads)
         for _ in elasticsearch.helpers.parallel_bulk(
-                infrastructure.elastic_client, elastic_updates(), chunk_size=1000,
+                infrastructure.elastic_client, elastic_updates(), chunk_size=500,
                 thread_count=threads):
             pass
     else:
