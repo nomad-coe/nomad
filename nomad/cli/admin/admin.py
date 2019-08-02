@@ -14,6 +14,7 @@
 
 import click
 import datetime
+import elasticsearch.helpers
 
 from nomad import processing as proc, search, datamodel, infrastructure, utils, config
 
@@ -28,8 +29,8 @@ def admin(ctx):
 
 
 @admin.command(help='(Re-)index all calcs.')
-@click.option('--dry', help='Doe not index, only compute entries.', is_flag=True)
-def index(dry):
+@click.option('--threads', type=int, default=1, help='Number of threads to use.')
+def index(threads):
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
@@ -38,21 +39,26 @@ def index(dry):
     all_calcs = proc.Calc.objects().count()
     print('indexing %d ...' % all_calcs)
 
-    def calc_generator():
+    def elastic_updates():
         with utils.ETA(all_calcs, '   index %10d or %10d calcs, ETA %s') as eta:
             for calc in proc.Calc.objects():
                 eta.add()
-                yield datamodel.CalcWithMetadata(**calc.metadata)
+                entry = search.Entry.from_calc_with_metadata(
+                    datamodel.CalcWithMetadata(**calc.metadata))
+                entry = entry.to_dict(include_meta=True)
+                entry['_op_type'] = 'index'
+                yield entry
 
-    if dry:
-        for _ in calc_generator():
-            pass
-        failed = 0
+    if threads > 1:
+        elasticsearch.helpers.parallel_bulk(
+            infrastructure.elastic_client, elastic_updates(), chunk_size=1000, thread_count=threads)
     else:
-        failed = search.index_all(calc_generator())
+        elasticsearch.helpers.bulk(
+            infrastructure.elastic_client, elastic_updates())
+    search.refresh()
 
     print('')
-    print('indexing completed, %d failed entries' % failed)
+    print('indexing completed')
 
 
 @admin.group(help='Generate scripts and commands for nomad operation.')

@@ -83,3 +83,27 @@ Content-Type: application/json
         }
     }
 }
+
+###
+# Disable refresh and replica for fast index
+PUT http://localhost:19200/fairdi_nomad_prod/_settings HTTP/1.1
+Content-Type: application/json
+
+{
+    "index" : {
+        "number_of_replicas" : 0,
+        "refresh_interval" : "-1"
+    }
+}
+
+###
+# Enable refresh and replica for fast index
+PUT http://localhost:19200/fairdi_nomad_prod/_settings HTTP/1.1
+Content-Type: application/json
+
+{
+    "index" : {
+        "number_of_replicas" : 2,
+        "refresh_interval" : null
+    }
+}
