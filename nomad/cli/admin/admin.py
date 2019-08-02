@@ -13,8 +13,9 @@
 # limitations under the License.
 
 import click
+import datetime
 
-from nomad import processing as proc, search, datamodel, infrastructure, utils
+from nomad import processing as proc, search, datamodel, infrastructure, utils, config
 
 from nomad.cli.cli import cli
 
@@ -54,9 +55,24 @@ def index(dry):
     print('indexing completed, %d failed entries' % failed)
 
 
-@admin.group(help='Helper scripts for nomad operations')
+@admin.group(help='Generate scripts and commands for nomad operation.')
 def ops():
     pass
+
+
+@ops.command(help=('Dump the mongo (calculation metadata) db.'))
+@click.option('--restore', is_flag=True, help='Do not dump, but restore.')
+def dump(restore: bool):
+    date_str = datetime.datetime.utcnow().strftime('%Y_%m_%d')
+    print('mongodump --host {} --port {} --db {} -o /backup/fairdi/mongo/{}'.format(
+        config.mongo.host, config.mongo.port, config.mongo.db_name, date_str))
+
+
+@ops.command(help=('Restore the mongo (calculation metadata) db.'))
+@click.argument('PATH_TO_DUMP', type=str, nargs=1)
+def restore(path_to_dump):
+    print('mongorestore --host {} --port {} --db {} {}'.format(
+        config.mongo.host, config.mongo.port, config.mongo.db_name, path_to_dump))
 
 
 @ops.command(help=(
