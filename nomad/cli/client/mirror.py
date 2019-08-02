@@ -137,7 +137,7 @@ def mirror(query, move: bool, dry: bool, source_mapping, target_mapping):
             upload_files_path = source_mapping.apply(upload_files_path)
 
             target_upload_files_path = files.PathObject(
-                config.fs.public, upload.upload_id, create_prefix=True, prefix=True).os_path
+                config.fs.public, upload_id, create_prefix=True, prefix=True).os_path
             target_upload_files_path = target_mapping.apply(target_upload_files_path)
 
             if move:
