@@ -32,7 +32,7 @@ path_analyzer = analyzer(
     tokenizer=tokenizer('path_tokenizer', 'pattern', pattern='/'))
 
 
-user_cache = dict()
+user_cache: Dict[str, Any] = dict()
 """
 A cache for user popos used in the index. We will not retrieve names all the time.
 This cache should be cleared, before larger re-index operations.

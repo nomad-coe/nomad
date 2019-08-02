@@ -50,7 +50,7 @@ def index(threads, dry):
                 entry = entry.to_dict(include_meta=True)
                 entry['_op_type'] = 'index'
                 yield entry
-    
+
     if dry:
         for _ in elastic_updates():
             pass
