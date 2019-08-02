@@ -32,6 +32,13 @@ path_analyzer = analyzer(
     tokenizer=tokenizer('path_tokenizer', 'pattern', pattern='/'))
 
 
+user_cache = dict()
+"""
+A cache for user popos used in the index. We will not retrieve names all the time.
+This cache should be cleared, before larger re-index operations.
+"""
+
+
 class AlreadyExists(Exception): pass
 
 
@@ -45,13 +52,16 @@ class User(InnerDoc):
 
     @classmethod
     def from_user_popo(cls, user):
-        self = cls(user_id=user.id)
+        self = user_cache.get(user.id, None)
+        if self is None:
+            self = cls(user_id=user.id)
 
-        if 'first_name' not in user:
-            user = coe_repo.User.from_user_id(user.id).to_popo()
+            if 'first_name' not in user:
+                user = coe_repo.User.from_user_id(user.id).to_popo()
 
-        name = '%s, %s' % (user['last_name'], user['first_name'])
-        self.name = name
+            name = '%s, %s' % (user['last_name'], user['first_name'])
+            self.name = name
+            user_cache[user.id] = self
 
         return self
 
