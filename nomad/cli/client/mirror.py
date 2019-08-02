@@ -98,72 +98,66 @@ def mirror(query, move: bool, dry: bool, source_mapping, target_mapping):
     from nomad.cli.client import create_client
     client = create_client()
 
-    while True:
-        query_results = client.repo.quantity_search(quantity='upload_id', **query).response().result
-        upload_ids = query_results.quantities['upload_id']
+    uploads = client.mirror.get_uploads_mirror(payload=dict(query={})).response().result
 
-        for upload_id in upload_ids['values'].keys():
-            upload_data = client.mirror.get_upload_mirror(upload_id=upload_id).response().result
+    for upload_with_id in uploads:
+        upload_id = upload_with_id['upload_id']
+        upload_data = client.mirror.get_upload_mirror(upload_id=upload_id).response().result
 
-            try:
-                upload = proc.Upload.get(upload_id)
-                if __in_test:
-                    proc.Calc.objects(upload_id=upload_id).delete()
-                    proc.Upload.objects(upload_id=upload_id).delete()
-                    search.delete_upload(upload_id)
-
-                    raise KeyError()
-
-                print(
-                    'Upload %s already exists, updating existing uploads is not implemented yet. '
-                    'Skip upload.' % upload_id)
-                continue
-            except KeyError:
-                pass
-
-            if dry:
-                print(
-                    'Need to mirror %s with %d calcs at %s' %
-                    (upload_data.upload_id, upload_ids['values'][upload_id], upload_data.upload_files_path))
-                continue
-
-            # copy/mv file
-            upload_files_path = upload_data.upload_files_path
+        try:
+            upload = proc.Upload.get(upload_id)
             if __in_test:
-                tmp = os.path.join(config.fs.tmp, 'to_mirror')
-                os.rename(upload_files_path, tmp)
-                upload_files_path = tmp
+                proc.Calc.objects(upload_id=upload_id).delete()
+                proc.Upload.objects(upload_id=upload_id).delete()
+                search.delete_upload(upload_id)
 
-            upload_files_path = source_mapping.apply(upload_files_path)
-
-            target_upload_files_path = files.PathObject(
-                config.fs.public, upload_id, create_prefix=True, prefix=True).os_path
-            target_upload_files_path = target_mapping.apply(target_upload_files_path)
-            if not os.path.exists(target_upload_files_path):
-                os.makedirs(target_upload_files_path)
-
-            if move:
-                os.rename(upload_files_path, target_upload_files_path)
-                os.symlink(os.path.abspath(target_upload_files_path), upload_files_path)
-            else:
-                for to_copy in os.listdir(upload_files_path):
-                    shutil.copyfile(
-                        os.path.join(upload_files_path, to_copy),
-                        os.path.join(target_upload_files_path, to_copy))
-
-            # create mongo
-            upload = proc.Upload.from_json(upload_data.upload, created=True).save()
-            for calc_data in upload_data.calcs:
-                proc.Calc.from_json(calc_data, created=True).save()
-
-            # index es
-            search.index_all(upload.to_upload_with_metadata().calcs)
+                raise KeyError()
 
             print(
-                'Mirrored %s with %d calcs at %s' %
-                (upload_data.upload_id, upload_ids['values'][upload_id], upload_data.upload_files_path))
+                'Upload %s already exists, updating existing uploads is not implemented yet. '
+                'Skip upload.' % upload_id)
+            continue
+        except KeyError:
+            pass
 
-        if 'after' not in upload_ids:
-            break
+        if dry:
+            print(
+                'Need to mirror %s with %d calcs at %s' %
+                (upload_data.upload_id, len(upload_data.calcs), upload_data.upload_files_path))
+            continue
 
-        query.update(after=upload_ids['after'])
+        # copy/mv file
+        upload_files_path = upload_data.upload_files_path
+        if __in_test:
+            tmp = os.path.join(config.fs.tmp, 'to_mirror')
+            os.rename(upload_files_path, tmp)
+            upload_files_path = tmp
+
+        upload_files_path = source_mapping.apply(upload_files_path)
+
+        target_upload_files_path = files.PathObject(
+            config.fs.public, upload_id, create_prefix=True, prefix=True).os_path
+        target_upload_files_path = target_mapping.apply(target_upload_files_path)
+        if not os.path.exists(target_upload_files_path):
+            os.makedirs(target_upload_files_path)
+
+        if move:
+            os.rename(upload_files_path, target_upload_files_path)
+            os.symlink(os.path.abspath(target_upload_files_path), upload_files_path)
+        else:
+            for to_copy in os.listdir(upload_files_path):
+                shutil.copyfile(
+                    os.path.join(upload_files_path, to_copy),
+                    os.path.join(target_upload_files_path, to_copy))
+
+        # create mongo
+        upload = proc.Upload.from_json(upload_data.upload, created=True).save()
+        for calc_data in upload_data.calcs:
+            proc.Calc.from_json(calc_data, created=True).save()
+
+        # index es
+        search.index_all(upload.to_upload_with_metadata().calcs)
+
+        print(
+            'Mirrored %s with %d calcs at %s' %
+            (upload_data.upload_id, len(upload_data.calcs), upload_data.upload_files_path))

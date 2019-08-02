@@ -1103,6 +1103,15 @@ class TestMirror:
         assert len(data['calcs']) == len(published.calcs)
         assert data['upload_files_path'] == published.upload_files.os_path
 
+    def test_uploads(self, client, published, admin_user_auth, no_warn):
+        rv = client.post(
+            '/mirror/',
+            content_type='application/json', data='{"query":{}}', headers=admin_user_auth)
+        assert rv.status_code == 200, rv.data
+
+        data = json.loads(rv.data)
+        assert data[0]['upload_id'] == published.upload_id
+
 
 def test_docs(client):
     rv = client.get('/docs/index.html')

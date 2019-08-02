@@ -16,9 +16,10 @@
 The mirror API of the nomad@FAIRDI APIs. Allows to export upload metadata.
 """
 
+from flask import request
 from flask_restplus import Resource, abort, fields
 
-from nomad import processing
+from nomad import processing as proc
 
 from .app import api
 from .auth import admin_login_required
@@ -34,6 +35,35 @@ mirror_upload_model = api.model('MirrorUpload', {
     'upload_files_path': fields.String(description='The path to the local uploads file folder')
 })
 
+mirror_query_model = api.model('MirrorQuery', {
+    'query': fields.Raw(
+        description='Mongoengine query that is used to search for uploads to mirror.')
+})
+
+
+@ns.route('/')
+class MirrorUploadsResource(Resource):
+    @api.doc('get_uploads_mirror')
+    @api.response(400, 'Bad query')
+    @api.marshal_with(
+        mirror_upload_model, skip_none=True, code=200, as_list=True,
+        description='Uploads exported')
+    @api.expect(mirror_query_model)
+    @admin_login_required
+    def post(self):
+        json_data = request.get_json()
+        if json_data is None:
+            query = {}
+        else:
+            query = json_data.get('query', {})
+
+        try:
+            return [
+                dict(upload_id=upload.upload_id)
+                for upload in proc.Upload.objects(**query)], 200
+        except Exception as e:
+            abort(400, message='Could not query mongodb: %s' % str(e))
+
 
 @upload_route(ns)
 class MirrorUploadResource(Resource):
@@ -47,7 +77,7 @@ class MirrorUploadResource(Resource):
         Export upload (and all calc) metadata for mirrors.
         """
         try:
-            upload = processing.Upload.get(upload_id)
+            upload = proc.Upload.get(upload_id)
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
