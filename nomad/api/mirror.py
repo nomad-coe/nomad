@@ -59,7 +59,10 @@ class MirrorUploadsResource(Resource):
 
         try:
             return [
-                dict(upload_id=upload.upload_id)
+                {
+                    'upload_id': upload.upload_id,
+                    'upload_files_path': upload.upload_files.os_path
+                }
                 for upload in proc.Upload.objects(**query)], 200
         except Exception as e:
             abort(400, message='Could not query mongodb: %s' % str(e))

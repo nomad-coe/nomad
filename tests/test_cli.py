@@ -178,3 +178,15 @@ class TestClient:
                 assert json.dumps(new_search_results[key]) == json.dumps(ref_search_results[key])
 
         published.upload_files.exists
+
+    def test_mirror_files_only(self, published, admin_user_bravado_client, monkeypatch):
+        monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
+
+        result = click.testing.CliRunner().invoke(
+            cli, ['client', 'mirror', '--files-only'], catch_exceptions=False, obj=utils.POPO())
+
+        assert result.exit_code == 0, result.output
+        assert published.upload_id in result.output
+        assert published.upload_files.os_path in result.output
+
+        published.upload_files.exists

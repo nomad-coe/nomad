@@ -75,7 +75,14 @@ class Mapping:
 @click.option(
     '--dry', is_flag=True, default=False,
     help='Do not actually mirror data, just fetch data and report.')
-def mirror(query, move: bool, dry: bool, source_mapping, target_mapping):
+@click.option(
+    '--files-only', is_flag=True, default=False,
+    help=(
+        'Will only copy/move files and not even look at the calculations. Useful, '
+        'when moving metadata via mongo dump/restore.'))
+def mirror(
+        query, move: bool, dry: bool, files_only: bool, source_mapping, target_mapping):
+
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
@@ -100,30 +107,35 @@ def mirror(query, move: bool, dry: bool, source_mapping, target_mapping):
 
     uploads = client.mirror.get_uploads_mirror(payload=dict(query={})).response().result
 
-    for upload_with_id in uploads:
-        upload_id = upload_with_id['upload_id']
-        upload_data = client.mirror.get_upload_mirror(upload_id=upload_id).response().result
+    for upload_data in uploads:
+        upload_id = upload_data.upload_id
 
-        try:
-            upload = proc.Upload.get(upload_id)
-            if __in_test:
-                proc.Calc.objects(upload_id=upload_id).delete()
-                proc.Upload.objects(upload_id=upload_id).delete()
-                search.delete_upload(upload_id)
+        if not files_only:
+            upload_data = client.mirror.get_upload_mirror(upload_id=upload_id).response().result
+            n_calcs = len(upload_data.calcs)
 
-                raise KeyError()
+            try:
+                upload = proc.Upload.get(upload_id)
+                if __in_test:
+                    proc.Calc.objects(upload_id=upload_id).delete()
+                    proc.Upload.objects(upload_id=upload_id).delete()
+                    search.delete_upload(upload_id)
 
-            print(
-                'Upload %s already exists, updating existing uploads is not implemented yet. '
-                'Skip upload.' % upload_id)
-            continue
-        except KeyError:
-            pass
+                    raise KeyError()
+
+                print(
+                    'Upload %s already exists, updating existing uploads is not implemented yet. '
+                    'Skip upload.' % upload_id)
+                continue
+            except KeyError:
+                pass
+        else:
+            n_calcs = 0
 
         if dry:
             print(
                 'Need to mirror %s with %d calcs at %s' %
-                (upload_data.upload_id, len(upload_data.calcs), upload_data.upload_files_path))
+                (upload_id, n_calcs, upload_data.upload_files_path))
             continue
 
         # copy/mv file
@@ -150,14 +162,15 @@ def mirror(query, move: bool, dry: bool, source_mapping, target_mapping):
                     os.path.join(upload_files_path, to_copy),
                     os.path.join(target_upload_files_path, to_copy))
 
-        # create mongo
-        upload = proc.Upload.from_json(upload_data.upload, created=True).save()
-        for calc_data in upload_data.calcs:
-            proc.Calc.from_json(calc_data, created=True).save()
+        if not files_only:
+            # create mongo
+            upload = proc.Upload.from_json(upload_data.upload, created=True).save()
+            for calc_data in upload_data.calcs:
+                proc.Calc.from_json(calc_data, created=True).save()
 
-        # index es
-        search.index_all(upload.to_upload_with_metadata().calcs)
+            # index es
+            search.index_all(upload.to_upload_with_metadata().calcs)
 
         print(
             'Mirrored %s with %d calcs at %s' %
-            (upload_data.upload_id, len(upload_data.calcs), upload_data.upload_files_path))
+            (upload_id, n_calcs, upload_data.upload_files_path))
