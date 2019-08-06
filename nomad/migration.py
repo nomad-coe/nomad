@@ -930,7 +930,8 @@ class SourceCalc(Document):
         source_query = source.query(Calc)
         total = source_query.count() - SourceCalc.objects.count()
 
-        while True:
+        do_continue = True
+        while do_continue:
             query_timer = utils.timer(logger, 'query source db')
             query_timer.__enter__()  # pylint: disable=E1101
             calcs: Iterable[Calc] = source_query \
@@ -939,6 +940,7 @@ class SourceCalc(Document):
                 .limit(per_query)
 
             source_calcs = []
+            do_continue = False
             for calc in calcs:
                 query_timer.__exit__(None, None, None)  # pylint: disable=E1101
                 try:
@@ -970,15 +972,16 @@ class SourceCalc(Document):
                     if with_metadata:
                         source_calc.metadata = calc.to_calc_with_metadata().__dict__
                     source_calcs.append(source_calc)
-                    start_pid = source_calc.pid
-
-                    yield source_calc, total
                 except Exception as e:
                     logger.error('could not index', pid=calc.pid, exc_info=e)
+                    start_pid += 1
+                else:
+                    start_pid = source_calc.pid
+                    yield source_calc, total
 
-            if len(source_calcs) == 0:
-                break
-            else:
+                do_continue = True
+
+            if len(source_calcs) > 0:
                 with utils.timer(logger, 'write index'):
                     SourceCalc.objects.insert(source_calcs)
 
