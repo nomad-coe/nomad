@@ -1,12 +1,12 @@
 // trigger rebuild
 
 import React from 'react'
-import PropTypes from 'prop-types'
+import PropTypes, { instanceOf } from 'prop-types'
 import { compose } from 'recompose'
 import classNames from 'classnames'
 import { MuiThemeProvider, withStyles } from '@material-ui/core/styles'
 import { IconButton, Checkbox, FormLabel, LinearProgress, ListItemIcon, ListItemText,
-  MenuList, MenuItem, Typography, Drawer, AppBar, Toolbar, Divider } from '@material-ui/core'
+  MenuList, MenuItem, Typography, Drawer, AppBar, Toolbar, Divider, Snackbar, SnackbarContent, Button } from '@material-ui/core'
 import { BrowserRouter, Switch, Route, Link, withRouter } from 'react-router-dom'
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
@@ -27,6 +27,7 @@ import { genTheme, repoTheme, archiveTheme, appBase } from '../config'
 import { DomainProvider } from './domains'
 import MetaInfoBrowser from './metaInfoBrowser/MetaInfoBrowser'
 import packageJson from '../../package.json'
+import { Cookies, withCookies } from 'react-cookie'
 
 const drawerWidth = 200
 
@@ -280,6 +281,62 @@ class NavigationUnstyled extends React.Component {
 
 const Navigation = compose(withRouter, withApi(false), withStyles(NavigationUnstyled.styles))(NavigationUnstyled)
 
+class CookieConsentUnstyled extends React.Component {
+  static propTypes = {
+    classes: PropTypes.object.isRequired,
+    cookies: instanceOf(Cookies).isRequired
+  }
+
+  static styles = theme => ({
+    content: {
+      backgroundColor: theme.palette.primary.main
+    },
+    button: {
+      color: 'white'
+    }
+  })
+
+  constructor(props) {
+    super(props)
+
+    this.handleClosed = this.handleClosed.bind(this)
+  }
+
+  state = {
+    accepted: this.props.cookies.get('eu-cookie-law-accepted')
+  }
+
+  handleClosed() {
+    this.props.cookies.set('eu-cookie-law-accepted', true)
+    this.setState({accepted: true})
+  }
+
+  render() {
+    return (
+      <Snackbar
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'left'
+        }}
+        open={!this.state.accepted}>
+
+        <SnackbarContent
+          className={this.props.classes.content}
+          message={'This website uses cookies. By using this website you agree to the use of cookies.'}
+          action={
+            <Button
+              className={this.props.classes.button}
+              onClick={this.handleClosed} size="small">
+                don't show again
+            </Button>
+          }/>
+      </Snackbar>
+    )
+  }
+}
+
+const CookieConsent = compose(withCookies, withStyles(CookieConsentUnstyled.styles))(CookieConsentUnstyled)
+
 export default class App extends React.Component {
   constructor(props) {
     super(props)
@@ -385,6 +442,7 @@ export default class App extends React.Component {
             </HelpProvider>
           </BrowserRouter>
         </ErrorSnacks>
+        <CookieConsent />
       </MuiThemeProvider>
     )
   }
