@@ -125,6 +125,7 @@ class LoginLogout extends React.Component {
             onClick={() => this.setState({loginDialogOpen: true})}
           >Login</Button>
           <Dialog
+            disableBackdropClick disableEscapeKeyDown
             open={this.state.loginDialogOpen}
             onClose={() => this.handleLoginDialogClosed(false)}
           >
