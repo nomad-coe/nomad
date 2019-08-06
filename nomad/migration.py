@@ -406,6 +406,8 @@ class Package(Document):
 
     next_offset = IntField(default=-1)
     """ Only for packages created from large tars. Give the offset to continue to create the next package. """
+    no_provernance = BooleanField(default=False)
+    """ Does this package have calculations in the CoE Repository postgres db """
 
     meta = dict(indexes=['upload_id', 'migration_version'])
 
@@ -900,8 +902,8 @@ class SourceCalc(Document):
 
     @staticmethod
     def index(
-        source, drop: bool = False, with_metadata: bool = True, per_query: int = 100,
-        start_pid: int = -1) -> Generator[Tuple['SourceCalc', int], None, None]:
+            source, drop: bool = False, with_metadata: bool = True, per_query: int = 100,
+            start_pid: int = -1) -> Generator[Tuple['SourceCalc', int], None, None]:
         """
         Creates a collection of :class:`SourceCalc` documents that represent source repo
         db entries.
