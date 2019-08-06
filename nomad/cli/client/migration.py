@@ -295,10 +295,11 @@ def missing(start_pid, uploads):
         print(json.dumps(report, indent=2))
     else:
         uploads = set()
-        for value in report.values():
-            upload = value.get('source_upload_id', None)
-            if upload is not None:
-                uploads.append(upload)
+        for upload_list in report.values():
+            for upload_information in upload_list:
+                source_upload_id = upload_information.get('source_upload_id', None)
+                if source_upload_id is not None:
+                    uploads.append(source_upload_id)
 
-        for upload in uploads:
-            print(upload)
+        for source_upload_id in uploads:
+            print(source_upload_id)
