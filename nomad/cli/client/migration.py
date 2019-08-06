@@ -284,9 +284,21 @@ def upload(
 
 
 @migration.command(help='Get an report about not migrated calcs. This connects directly to nomad dbs, like admin commands.')
-def missing():
+@click.option('--start-pid', type=int, default=0, help='Only index calculations with PID greater equal the given value')
+@click.option('--uploads', is_flag=True, help='Instead of extensive information, only provide a list of missing uploads')
+def missing(start_pid, uploads):
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
 
-    report = missing_calcs_data()
-    print(json.dumps(report, indent=2))
+    report = missing_calcs_data(start_pid=start_pid)
+    if not uploads:
+        print(json.dumps(report, indent=2))
+    else:
+        uploads = set()
+        for value in report.values():
+            upload = value.get('source_upload_id', None)
+            if upload is not None:
+                uploads.append(upload)
+
+        for upload in uploads:
+            print(upload)

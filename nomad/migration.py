@@ -128,7 +128,7 @@ def create_package_zip(
     logger.info('package zip created')
 
 
-def missing_calcs_data():
+def missing_calcs_data(start_pid: int = 0):
     """ Produces data about missing calculations """
     results = utils.POPO(
         no_package=[],
@@ -222,7 +222,7 @@ def missing_calcs_data():
 
     # aggregate missing calcs based on uploads
     source_uploads = SourceCalc._get_collection().aggregate([
-        {'$match': {'migration_version': -1, 'upload': {'$nin': not_check_uploads}}},
+        {'$match': {'migration_version': -1, '_id': {'$gte': start_pid}, 'upload': {'$nin': not_check_uploads}}},
         {'$group': {'_id': '$upload', 'calcs': {'$push': {'mainfile': '$mainfile', 'pid': '$metadata.pid'}}}}])
     source_uploads = list(source_uploads)
 
