@@ -899,8 +899,9 @@ class SourceCalc(Document):
     _dataset_cache: dict = {}
 
     @staticmethod
-    def index(source, drop: bool = False, with_metadata: bool = True, per_query: int = 100) \
-            -> Generator[Tuple['SourceCalc', int], None, None]:
+    def index(
+        source, drop: bool = False, with_metadata: bool = True, per_query: int = 100,
+        start_pid: int = -1) -> Generator[Tuple['SourceCalc', int], None, None]:
         """
         Creates a collection of :class:`SourceCalc` documents that represent source repo
         db entries.
@@ -914,6 +915,7 @@ class SourceCalc(Document):
                 query on the CoE snoflake/star shaped schema.
                 The query cannot ask for the whole db at once: choose how many calculations
                 should be read at a time to optimize for your application.
+            start_pid: Only index calculations with PID greater equal the given value
 
         Returns:
             yields tuples (:class:`SourceCalc`, #calcs_total[incl. datasets])
@@ -923,7 +925,8 @@ class SourceCalc(Document):
             SourceCalc.drop_collection()
 
         last_source_calc = SourceCalc.objects().order_by('-pid').first()
-        start_pid = last_source_calc.pid if last_source_calc is not None else 0
+        if start_pid is None or start_pid == -1:
+            start_pid = last_source_calc.pid if last_source_calc is not None else 0
         source_query = source.query(Calc)
         total = source_query.count() - SourceCalc.objects.count()
 

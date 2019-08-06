@@ -68,12 +68,14 @@ def migration(
 @click.option('--drop', help='Drop the existing index, otherwise it will only add new data.', is_flag=True)
 @click.option('--with-metadata', help='Extract metadata for each calc and add it to the index.', is_flag=True)
 @click.option('--per-query', default=100, help='We index many objects with one query. Default is 100.')
-def index(drop, with_metadata, per_query):
+@click.option('--start-pid', type=int, default=-1, help='Only index calculations with PID greater equal the given value')
+def index(drop, with_metadata, per_query, start_pid):
     _setup()
     start = time.time()
     indexed_total = 0
     indexed_calcs = 0
-    for calc, total in _Migration().source_calc_index(drop=drop, with_metadata=with_metadata, per_query=int(per_query)):
+    for calc, total in _Migration().source_calc_index(
+            drop=drop, with_metadata=with_metadata, per_query=int(per_query), start_pid=start_pid):
         indexed_total += 1
         indexed_calcs += 1 if calc is not None else 0
         eta = total * ((time.time() - start) / indexed_total)
