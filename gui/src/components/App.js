@@ -6,7 +6,7 @@ import { compose } from 'recompose'
 import classNames from 'classnames'
 import { MuiThemeProvider, withStyles } from '@material-ui/core/styles'
 import { IconButton, Checkbox, FormLabel, LinearProgress, ListItemIcon, ListItemText,
-  MenuList, MenuItem, Typography, Drawer, AppBar, Toolbar, Divider, Snackbar, SnackbarContent, Button } from '@material-ui/core'
+  MenuList, MenuItem, Typography, Drawer, AppBar, Toolbar, Divider, Button, DialogContent, DialogTitle, DialogActions, Dialog } from '@material-ui/core'
 import { BrowserRouter, Switch, Route, Link, withRouter } from 'react-router-dom'
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
@@ -28,6 +28,7 @@ import { DomainProvider } from './domains'
 import MetaInfoBrowser from './metaInfoBrowser/MetaInfoBrowser'
 import packageJson from '../../package.json'
 import { Cookies, withCookies } from 'react-cookie'
+import Markdown from './Markdown'
 
 const drawerWidth = 200
 
@@ -281,7 +282,7 @@ class NavigationUnstyled extends React.Component {
 
 const Navigation = compose(withRouter, withApi(false), withStyles(NavigationUnstyled.styles))(NavigationUnstyled)
 
-class CookieConsentUnstyled extends React.Component {
+class LicenseAgreementUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     cookies: instanceOf(Cookies).isRequired
@@ -303,39 +304,54 @@ class CookieConsentUnstyled extends React.Component {
   }
 
   state = {
-    accepted: this.props.cookies.get('eu-cookie-law-accepted')
+    accepted: this.props.cookies.get('terms-accepted')
   }
 
-  handleClosed() {
-    this.props.cookies.set('eu-cookie-law-accepted', true)
-    this.setState({accepted: true})
+  handleClosed(accepted) {
+    if (accepted) {
+      this.props.cookies.set('terms-accepted', true)
+      this.setState({accepted: true})
+    }
   }
 
   render() {
     return (
-      <Snackbar
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'left'
-        }}
-        open={!this.state.accepted}>
+      <div>
+        <Dialog
+          disableBackdropClick disableEscapeKeyDown
+          open={!this.state.accepted}
+        >
+          <DialogTitle>Terms of Use</DialogTitle>
+          <DialogContent>
+            <Markdown>{`
+              By uploading and downloading data, you agree to the
+              [terms of use](https://www.nomad-coe.eu/the-project/nomad-repository/nomad-repository-terms).
 
-        <SnackbarContent
-          className={this.props.classes.content}
-          message={'This website uses cookies. By using this website you agree to the use of cookies.'}
-          action={
-            <Button
-              className={this.props.classes.button}
-              onClick={this.handleClosed} size="small">
-                don't show again
+              Uploaded data is licensed under the Creative Commons Attribution license
+              ([CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)). You can publish
+              uploaded data with an *embargo*. Data with an *embargo* is only visible to
+              you and users you share your data with. The *embargo period* lasts up to 36 month.
+              After the *embargo* your published data will be public. **Note that public data
+              is visible to others and files become downloadable by everyone.**
+
+              This web-site uses *cookies*. By using this web-site you agree to our use
+              of *cookies*. [Learn more](https://www.cookiesandyou.com/).
+              `}
+            </Markdown>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => this.handleClosed(true)} color="primary">
+              Accept
             </Button>
-          }/>
-      </Snackbar>
+          </DialogActions>
+        </Dialog>
+        {this.state.accepted ? this.props.children : ''}
+      </div>
     )
   }
 }
 
-const CookieConsent = compose(withCookies, withStyles(CookieConsentUnstyled.styles))(CookieConsentUnstyled)
+const LicenseAgreement = compose(withCookies, withStyles(LicenseAgreementUnstyled.styles))(LicenseAgreementUnstyled)
 
 export default class App extends React.Component {
   constructor(props) {
@@ -442,7 +458,7 @@ export default class App extends React.Component {
             </HelpProvider>
           </BrowserRouter>
         </ErrorSnacks>
-        <CookieConsent />
+        <LicenseAgreement />
       </MuiThemeProvider>
     )
   }

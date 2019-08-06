@@ -68,7 +68,8 @@ var styles = theme => ({
       margin: '24px 0 16px'
     }),
     '& p, & ul, & ol': {
-      lineHeight: theme.typography.lineHeight
+      lineHeight: theme.typography.lineHeight,
+      marginBottom: theme.spacing.unit
     },
     '& ul': {
       paddingLeft: 0,

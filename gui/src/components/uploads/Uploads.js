@@ -11,7 +11,7 @@ import ReloadIcon from '@material-ui/icons/Cached'
 import CheckIcon from '@material-ui/icons/Check'
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import ConfirmDialog from './ConfirmDialog'
-import { Help, Agree } from '../help'
+import { Help } from '../help'
 import { withApi } from '../api'
 import { withCookies, Cookies } from 'react-cookie'
 import Pagination from 'material-ui-flat-pagination'
@@ -333,89 +333,78 @@ class Uploads extends React.Component {
     const { classes } = this.props
     const { uploadCommand } = this.state
 
-    const agreement = `
-      By uploading and downloading data, you agree to the
-      [terms of use](https://www.nomad-coe.eu/the-project/nomad-repository/nomad-repository-terms).
-
-      Note that uploaded files become downloadable by others. Uploaded data is licensed under the
-      Creative Commons Attribution license ([CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)).
-      You can put an *embargo* on uploaded data. The *embargo period* lasts up to 36 month.
-    `
-
     return (
       <div className={classes.root}>
-        <Agree message={agreement} cookie="agreedToUploadTerms">
-          <Help cookie="uploadHelp" component={Markdown}>{`
-            To upload your own data, please put all relevant files of all the calculations
-            you want to upload into a single \`*.zip\` or \`*.tar.gz\` archive.
-            We encourage you to add all code input and
-            output files, as well as any other auxiliary files that you might have created.
-            You can put data from multiple calculations, using your preferred directory
-            structure, into your archives. Drop your archive file(s) below. You can also
-            click the dropbox to select the file from your hard drive.
+        <Help cookie="uploadHelp" component={Markdown}>{`
+          To upload your own data, please put all relevant files of all the calculations
+          you want to upload into a single \`*.zip\` or \`*.tar.gz\` archive.
+          We encourage you to add all code input and
+          output files, as well as any other auxiliary files that you might have created.
+          You can put data from multiple calculations, using your preferred directory
+          structure, into your archives. Drop your archive file(s) below. You can also
+          click the dropbox to select the file from your hard drive.
 
-            Uploaded data will not be public immediately. We call this *staging area*.
-            After uploading and processing, you can decide if you want to make the data public,
-            delete it again, or put an *embargo* on it.
+          Uploaded data will not be public immediately. We call this *staging area*.
+          After uploading and processing, you can decide if you want to make the data public,
+          delete it again, or put an *embargo* on it.
 
-            The *embargo* allows you to shared it with selected users, create a DOI
-            for your data, and later publish the data. The *embargo* might last up to
-            36 month before it becomes public automatically. During an *embargo*
-            some meta-data will be available.
+          The *embargo* allows you to shared it with selected users, create a DOI
+          for your data, and later publish the data. The *embargo* might last up to
+          36 month before it becomes public automatically. During an *embargo*
+          some meta-data will be available.
 
-            There is a limit of 32 GB per upload. Please upload multiple archives, if
-            you have more than 32 GB of data to upload.
-          `}</Help>
+          There is a limit of 32 GB per upload. Please upload multiple archives, if
+          you have more than 32 GB of data to upload.
+        `}</Help>
 
-          <Paper className={classes.dropzoneContainer}>
-            <Dropzone
-              accept={[
-                'application/zip', 'application/gzip', 'application/bz2', 'application/x-gzip',
-                'application/x-bz2', 'application/x-gtar', 'application/x-tgz', 'application/tar+gzip',
-                'application/x-tar', 'application/tar+bz2']}
-              className={classes.dropzone}
-              activeClassName={classes.dropzoneAccept}
-              rejectClassName={classes.dropzoneReject}
-              onDrop={this.onDrop.bind(this)}
-            >
-              <p>drop .tar.gz or .zip files here</p>
-              <UploadIcon style={{fontSize: 36}}/>
-            </Dropzone>
-          </Paper>
+        <Paper className={classes.dropzoneContainer}>
+          <Dropzone
+            accept={[
+              'application/zip', 'application/gzip', 'application/bz2', 'application/x-gzip',
+              'application/x-bz2', 'application/x-gtar', 'application/x-tgz', 'application/tar+gzip',
+              'application/x-tar', 'application/tar+bz2']}
+            className={classes.dropzone}
+            activeClassName={classes.dropzoneAccept}
+            rejectClassName={classes.dropzoneReject}
+            onDrop={this.onDrop.bind(this)}
+          >
+            <p>drop .tar.gz or .zip files here</p>
+            <UploadIcon style={{fontSize: 36}}/>
+          </Dropzone>
+        </Paper>
 
-          <Help cookie="uploadCommandHelp">{`
-            Alternatively, you can upload files via the following shell command.
-            Replace \`<local_file>\` with your archive file. After executing the command,
-            return here and press the reload button below). The same 32 GB limit applies.
-          `}</Help>
+        <Help cookie="uploadCommandHelp">{`
+          Alternatively, you can upload files via the following shell command.
+          Replace \`<local_file>\` with your archive file. After executing the command,
+          return here and press the reload button below). The same 32 GB limit applies.
+        `}</Help>
 
-          <div className={classes.commandContainer}>
-            <div className={classes.commandMarkup}>
-              <Markdown>{`
-                \`\`\`
-                  ${uploadCommand.upload_command}
-                \`\`\`
-              `}</Markdown>
-            </div>
-            <CopyToClipboard text={uploadCommand} onCopy={() => null}>
-              <Tooltip title="copy command to clipboard">
-                <IconButton>
-                  <ClipboardIcon />
-                </IconButton>
-              </Tooltip>
-              {/* <button>Copy to clipboard with button</button> */}
-            </CopyToClipboard>
+        <div className={classes.commandContainer}>
+          <div className={classes.commandMarkup}>
+            <Markdown>{`
+              \`\`\`
+                ${uploadCommand.upload_command}
+              \`\`\`
+            `}</Markdown>
           </div>
+          <CopyToClipboard text={uploadCommand} onCopy={() => null}>
+            <Tooltip title="copy command to clipboard">
+              <IconButton>
+                <ClipboardIcon />
+              </IconButton>
+            </Tooltip>
+            {/* <button>Copy to clipboard with button</button> */}
+          </CopyToClipboard>
+        </div>
 
-          <Help cookie="moreUploadCommandHelp">{`
-            The above command can be modified. To see progress on large files, use
-            \`${uploadCommand.upload_progress_command}\`. To
-            \`tar\` and upload in one command, use \`${uploadCommand.upload_tar_command}\`.
-          `}</Help>
+        <Help cookie="moreUploadCommandHelp">{`
+          The above command can be modified. To see progress on large files, use
+          \`${uploadCommand.upload_progress_command}\`. To
+          \`tar\` and upload in one command, use \`${uploadCommand.upload_tar_command}\`.
+        `}</Help>
 
-          {this.renderUnpublishedUploads()}
-          {this.renderPublishedUploads()}
-        </Agree>
+        {this.renderUnpublishedUploads()}
+        {this.renderPublishedUploads()}
       </div>
     )
   }

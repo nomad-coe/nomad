@@ -1,5 +1,5 @@
 import React from 'react'
-import { withStyles, Button, Collapse, Fade } from '@material-ui/core'
+import { withStyles, Button, Collapse } from '@material-ui/core'
 import Markdown from './Markdown'
 import PropTypes, { instanceOf } from 'prop-types'
 import { Cookies, withCookies } from 'react-cookie'
@@ -74,48 +74,6 @@ export class Help extends React.Component {
     )
   }
 }
-
-class AgreeComponent extends React.Component {
-  static propTypes = {
-    children: PropTypes.oneOfType([
-      PropTypes.node, PropTypes.arrayOf(PropTypes.node)
-    ]).isRequired,
-    message: PropTypes.string.isRequired,
-    cookie: PropTypes.string.isRequired,
-    cookies: instanceOf(Cookies).isRequired
-  }
-
-  state = {
-    agreed: this.props.cookies.get(this.props.cookie)
-  }
-
-  onAgreeClicked() {
-    this.props.cookies.set(this.props.cookie, true)
-    this.setState({agreed: true})
-  }
-
-  render() {
-    const { children, message } = this.props
-    const { agreed } = this.state
-
-    return (
-      <div>
-        <Collapse in={!agreed}>
-          <GotIt onGotIt={() => this.onAgreeClicked()} color="error">
-            {message}
-          </GotIt>
-        </Collapse>
-        <Fade in={!!agreed}>
-          <div>
-            {children}
-          </div>
-        </Fade>
-      </div>
-    )
-  }
-}
-
-export const Agree = withCookies(AgreeComponent)
 
 class GotItUnstyled extends React.Component {
   static propTypes = {
