@@ -24,26 +24,26 @@ class DomainProviderBase extends React.Component {
     DFT: {
       name: 'DFT',
       about: `
-        ### About the Nomad upload
+        ### About the NOMAD upload
 
-        Currently this is designed as a complement to the original [Nomad Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1).
+        Currently this is designed as a complement to the original [NOMAD Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1).
         You upload, process, inspect, and publish your data here. Here you have some
         capabilities to search and explore uploaded data. But to add comments, co-authors, and references,
-        create data-sets, and manage your account you still have to use the original [Nomad Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1).
+        create data-sets, and manage your account you still have to use the original [NOMAD Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1).
 
-        In the future, this web-page will include more and more features of other Nomad
+        In the future, this web-page will include more and more features of other NOMAD
         components as an effort to consolidate the various web applications from the
-        Nomad Repository, Archive, Metainfo, Encyclopedia, and Analytics Toolkit.
+        NOMAD Repository, Archive, Metainfo, Encyclopedia, and Analytics Toolkit.
 
         ### Limitations
-        You can only login with users that already exist in the Nomad Repository. If you
-        are new to Nomad, visit the [Nomad Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1)
+        You can only login with users that already exist in the NOMAD Repository. If you
+        are new to NOMAD, visit the [NOMAD Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1)
         or register for a user account [here](http://nomad-repository.eu:8080/NomadRepository-1.1/register/).
 
         When you published your data here, it will still take a day to index. Therefore,
-        your data will not appear in the Nomad Repository immediately.
+        your data will not appear in the NOMAD Repository immediately.
 
-        We migrated all data from the Nomad Repository to this new system. However, not
+        We migrated all data from the NOMAD Repository to this new system. However, not
         all data could be successfully processed by the new and more powerful parsers.
         We will continue to improve the parsers to raise the quality of archive data overtime.
         For some entries, no archive data might be currently available and some metadata might
@@ -137,10 +137,10 @@ class DomainProviderBase extends React.Component {
 
         The original goal of the NOMAD CoE project was to provide a data sharing and
         publication platform for computational material science data. With this prototype,
-        we want to apply Nomad ideas and implementations to experimental material science
+        we want to apply NOMAD ideas and implementations to experimental material science
         data.
 
-        As a first step, this site demonstrates Nomad's \`domain specific\` search interface
+        As a first step, this site demonstrates NOMAD's \`domain specific\` search interface
         and how experiment (meta-)data can be represented. We want to explore what
         meta-data exists for material experiments, what is necessary to provide meaningful
         search capabilities, how we can implement FAIR data sharing principles, and

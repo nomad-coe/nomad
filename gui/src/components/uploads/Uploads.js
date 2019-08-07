@@ -21,9 +21,9 @@ import { CopyToClipboard } from 'react-copy-to-clipboard'
 const publishedUploadsPageSize = 10
 
 export const help = `
-Nomad now provides a two step upload process. After you upload your files, you
-check nomad's processing of your files before you publish your data. This gives you
-more control about how nomad will present your data.
+NOMAD now provides a two step upload process. After you upload your files, you
+check NOMAD's processing of your files before you publish your data. This gives you
+more control about how NOMAD will present your data.
 
 #### Prepare and upload files
 
@@ -61,14 +61,14 @@ The *embargo* might last up to 36 month before it becomes public automatically.
 During an *embargo* some meta-data will be available.
 
 When you published your upload, it will take a night before it will appear in the
-[Nomad Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/).
+[NOMAD Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/).
 We are working on improving this process.
 
 #### Co-Authors, References, Comments, Datasets
 
 Currently, this web-page is only about uploading your calculations. To further edit
 comments, references, co-authors, share with other authors, or curate datasets, use
-the [Nomad Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/) on
+the [NOMAD Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/) on
 your published data (as usual).
 `
 
@@ -415,7 +415,7 @@ class Uploads extends React.Component {
             ${uploadCommand.upload_tar_command}
             \`\`\`
             As an experienced shell and *curl* user, you can modify the commands to
-            your liking. Nomad accepts stream data (\`-H <local_file>\`) or multi-form data (\`-f file=@<local_file>\`).
+            your liking. NOMAD accepts stream data (\`-H <local_file>\`) or multi-form data (\`-f file=@<local_file>\`).
           `}/>
         </div>
 

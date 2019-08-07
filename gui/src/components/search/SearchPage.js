@@ -15,7 +15,7 @@ import { withDomain } from '../domains'
 import { appBase } from '../../config'
 
 export const help = `
-This page allows you to **search** in nomad's data. The upper part of this page
+This page allows you to **search** in NOMAD's data. The upper part of this page
 gives you various options to enter and configure your search. The lower half
 shows all data that fulfills your search criteria.
 
@@ -26,7 +26,7 @@ for now.
 
 #### Search Options
 
-Nomad's *domain-aware* search allows you to screen data by filtering based on
+NOMAD's *domain-aware* search allows you to screen data by filtering based on
 desired properties. This is different from basic *text-search* that traditional
 search engines offer.
 
@@ -49,7 +49,7 @@ The results table gives you a quick overview of all entries that fit your search
 You can click entries to see more details, download data, see the archive, etc.
 The *raw files* tab, will show you all files that belong to the entry and offers a download
 on individual, or all files. The *archive* tab, shows you the parsed data as a tree
-data structure. This view is connected to Nomad's [meta-info](${appBase}/metainfo), which acts a schema for
+data structure. This view is connected to NOMAD's [meta-info](${appBase}/metainfo), which acts a schema for
 all parsed data. The *log* tab, will show you a log of the entry's processing.
 `
 

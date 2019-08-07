@@ -35,7 +35,7 @@ const toolbarTitles = {
   '/': 'About, Documentation, Getting Help',
   '/search': 'Find and Download Data',
   '/uploads': 'Upload and Publish Data',
-  '/metainfo': 'The Nomad Meta Info'
+  '/metainfo': 'The NOMAD Meta Info'
 }
 
 const toolbarThemes = {
@@ -49,7 +49,7 @@ const toolbarHelp = {
   '/': null,
   '/search': {title: 'How to find and download data', content: searchHelp},
   '/uploads': {title: 'How to upload data', content: uploadHelp},
-  '/metainfo': {title: 'About the Nomad meta-info', content: metainfoHelp}
+  '/metainfo': {title: 'About the NOMAD meta-info', content: metainfoHelp}
 }
 
 class NavigationUnstyled extends React.Component {

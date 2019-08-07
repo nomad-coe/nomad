@@ -12,13 +12,13 @@ import { ValueAttributes, MetaAttribute } from '../metaInfoBrowser/ValueCard'
 import ApiDialogButton from '../ApiDialogButton'
 
 export const help = `
-The nomad **archive** provides data and meta-data in a common hierarchical format based on
+The NOMAD **archive** provides data and meta-data in a common hierarchical format based on
 well-defined quantity definitions that we call *metainfo*. This representation
 is independent from the raw data format and provides a homogenous data stock.
 
 You can click the various quantity values to see the quantity definition. Similarly,
 you can click section names to get more information. Browse the *metainfo* to
-learn more about nomad's archive format [here](/metainfo).
+learn more about NOMAD's archive format [here](/metainfo).
 `
 
 class ArchiveEntryView extends React.Component {

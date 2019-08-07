@@ -10,11 +10,11 @@ import { compose } from 'recompose'
 import { schema } from '../MetaInfoRepository'
 
 export const help = `
-The nomad *metainfo* defines all quantities used to represent archive data in
-nomad. You could say it is the archive *schema*. You can browse this schema and
+The NOMAD *metainfo* defines all quantities used to represent archive data in
+NOMAD. You could say it is the archive *schema*. You can browse this schema and
 all its definitions here.
 
-The nomad metainfo knows three different *kinds* of definitions:
+The NOMAD metainfo knows three different *kinds* of definitions:
 
 - **sections**: A section are nested groups of quantities that allow a hierarchical data structure
 - **values**: Actual quantities that contain data

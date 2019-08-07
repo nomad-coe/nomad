@@ -51,20 +51,20 @@ class About extends React.Component {
 
           ### Developer Documentation
           You find in depth developer documentation [here](${apiBase}/docs/index.html).
-          It contains a general introduction to Nomad, the underlying architecture,
-          is (meta)data, and processing. Learn how to use the Nomad ReST API. It
-          contains information about how to develop Nomad, how to operate it, how to
+          It contains a general introduction to NOMAD, the underlying architecture,
+          is (meta)data, and processing. Learn how to use the NOMAD ReST API. It
+          contains information about how to develop NOMAD, how to operate it, how to
           contribute parser, and much more.
 
           ### ReST API
-          Nomad services can also be accessed programmatically via Nomad's
+          NOMAD services can also be accessed programmatically via NOMAD's
           ReST API. The API is described via [swagger](https://swagger.io/), therefore
           you can use your favorite swagger client library (e.g.
           [bravado](https://github.com/Yelp/bravado) for Python).
           Here is [our API's swagger UI](${apiBase}/) as reference documentation.
 
           ### Source code
-          The source-code for this new version of Nomad (dubbed *nomad@FAIRDI*) is maintained
+          The source-code for this new version of NOMAD (dubbed *nomad@FAIRDI*) is maintained
           at the MPCDF's [gitlab](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR).
           To push code, you need an MPCDF account and you can apply
           [here](https://www.mpcdf.mpg.de/userspace/forms/onlineregistrationform).
@@ -78,11 +78,11 @@ class About extends React.Component {
           can be analysed visually. Here is the [link to Kibana](${kibanaBase}/)
 
           ### Test user
-          During development this GUI might not be connected to the actual Nomad
+          During development this GUI might not be connected to the actual NOMAD
           repository. Therefore, you cannot create a user or login with an existing
           user. You might use the test user \`leonard.hofstadter@nomad-fairdi.tests.de\`
           with password \`password\`. The user \`sheldon.cooper@nomad-fairdi.tests.de\` is
-          used for data that has no provenance with the original Nomad CoE database.
+          used for data that has no provenance with the original NOMAD CoE database.
           ` : ''}
 
           ### About this version

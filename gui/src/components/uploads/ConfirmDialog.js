@@ -32,7 +32,7 @@ class ConfirmDialog extends React.Component {
           <DialogContent>
             <DialogContentText>
               If you agree the selected uploads will move out of your private staging
-               area into the public nomad.
+               area into the public NOMAD.
             </DialogContentText>
 
             <FormGroup row style={{alignItems: 'center'}}>
