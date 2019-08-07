@@ -295,7 +295,9 @@ def missing(start_pid, uploads):
         print(json.dumps(report, indent=2))
     else:
         uploads = set()
-        for upload_list in report.values():
+        for reason, upload_list in report.items():
+            if reason == 'summary':
+                continue
             for upload_information in upload_list:
                 source_upload_id = upload_information.get('source_upload_id', None)
                 if source_upload_id is not None:
