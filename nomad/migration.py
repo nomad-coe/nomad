@@ -140,6 +140,8 @@ def missing_calcs_data(start_pid: int = 0):
 
     # not not check these uploads
     not_check_uploads = [
+        'fairdi',  # these are links to uploads already processed with nomad@fairdi
+        'nomad',  # these are links to uploads already processed with nomad@fairdi
         'ftp_upload_for_uid_125',
         'ftp_upload_for_uid_290',
         'ftp_upload_for_uid_502_2011-09-06-15-33-33-333221',
