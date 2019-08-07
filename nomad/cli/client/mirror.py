@@ -118,9 +118,10 @@ def mirror(
 
                     raise KeyError()
 
-                print(
-                    'Upload %s already exists, updating existing uploads is not implemented yet. '
-                    'Skip upload.' % upload_id)
+                if len(query) > 0:
+                    print(
+                        'Upload %s already exists, updating existing uploads is not implemented yet. '
+                        'Skip upload.' % upload_id)
                 continue
             except KeyError:
                 pass
