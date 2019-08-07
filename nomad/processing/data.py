@@ -470,7 +470,11 @@ class Upload(Proc):
 
     def get_logger(self, **kwargs):
         logger = super().get_logger()
-        logger = logger.bind(upload_id=self.upload_id, upload_name=self.name, **kwargs)
+        user = self.uploader
+        user_name = '%s %s' % (user.first_name, user.last_name)
+        logger = logger.bind(
+            upload_id=self.upload_id, upload_name=self.name, user_name=user_name,
+            user_id=user.user_id, **kwargs)
         return logger
 
     @classmethod
