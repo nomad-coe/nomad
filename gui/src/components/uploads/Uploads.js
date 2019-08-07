@@ -64,6 +64,21 @@ When you published your upload, it will take a night before it will appear in th
 [NOMAD Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/).
 We are working on improving this process.
 
+#### Processing errors
+
+We distinguish between uploads that fail processing completely and uploads that contain
+entries that could not be processed. The former might be caused by issues during the
+upload, bad file formats, etc. The latter (for more common) case means that not all of the provided
+code input/output files could not be parsed by our parsers for various reasons.
+The processing logs of the failed entries might provide some insight.
+
+We do not allow to publish uploads that failed processing completely. Frankly, in most
+cases there won't be any data to publish anyways. In the case of failed processing of
+some entires, the data can still be published. You will be able to share it and create
+DOIs for it, etc. The only shortcomings will be missing metadata (labeled *not processed*
+or *unavailable*) and missing archive data. We continuously improve our parsers and
+the missing information might be made available in the future.
+
 #### Co-Authors, References, Comments, Datasets
 
 Currently, this web-page is only about uploading your calculations. To further edit
@@ -335,7 +350,7 @@ class Uploads extends React.Component {
           <Tooltip title="Publish selected uploads" >
             <div>
               <IconButton
-                disabled={selectedUnpublishedUploads.length === 0 || selectedUnpublishedUploads.some(upload => upload.failed_calcs !== 0 || upload.total_calcs === 0)}
+                disabled={selectedUnpublishedUploads.length === 0 || selectedUnpublishedUploads.some(upload => upload.tasks_status !== 'SUCCESS' || upload.total_calcs === 0)}
                 onClick={() => this.onPublishClicked()}>
                 <CheckIcon />
               </IconButton>
