@@ -109,9 +109,6 @@ def mirror(
         upload_id = upload_data.upload_id
 
         if not files_only:
-            upload_data = client.mirror.get_upload_mirror(upload_id=upload_id).response().result
-            n_calcs = len(upload_data.calcs)
-
             try:
                 upload = proc.Upload.get(upload_id)
                 if __in_test:
@@ -127,6 +124,9 @@ def mirror(
                 continue
             except KeyError:
                 pass
+
+            upload_data = client.mirror.get_upload_mirror(upload_id=upload_id).response().result
+            n_calcs = len(upload_data.calcs)
         else:
             n_calcs = 0
 
