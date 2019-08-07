@@ -23,7 +23,7 @@ First, clone this repo and init its submodules:
 ```
 git clone git@gitlab.mpcdf.mpg.de:nomad-lab/nomad-FAIR.git
 cd nomad-FAIR
-git submodules init --depth 1
+git submodule init --depth 1
 ```
 
 Second, create and source your own virtual python environment:
