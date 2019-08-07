@@ -9,15 +9,61 @@ import { compose } from 'recompose'
 import DeleteIcon from '@material-ui/icons/Delete'
 import ReloadIcon from '@material-ui/icons/Cached'
 import CheckIcon from '@material-ui/icons/Check'
+import MoreIcon from '@material-ui/icons/MoreHoriz'
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import ConfirmDialog from './ConfirmDialog'
-import { Help } from '../help'
+import HelpDialog from '../Help'
 import { withApi } from '../api'
 import { withCookies, Cookies } from 'react-cookie'
 import Pagination from 'material-ui-flat-pagination'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 
 const publishedUploadsPageSize = 10
+
+export const help = `
+Nomad now provides a two step upload process. After you upload your files, you
+check nomad's processing of your files before you publish your data. This gives you
+more control about how nomad will present your data.
+
+### Prepare and upload files
+
+To upload your own data, please put all relevant files of all the calculations
+you want to upload into a single \`*.zip\` or \`*.tar.gz\` archive.
+We encourage you to add all code input and
+output files, as well as any other auxiliary files that you might have created.
+You can put data from multiple calculations, using your preferred directory
+structure, into your archives. Drop your archive file(s) below. You can also
+click the dropbox to select the file from your hard drive.
+
+Alternatively, you can upload files via the given shell command.
+Replace \`<local_file>\` with your archive file. After executing the command,
+return here and press the reload button below).
+
+There is a limit of 32 GB per upload. Please upload multiple archives, if
+you have more than 32 GB of data to upload.
+
+### The staging area
+
+Uploaded data will not be public immediately. We call this *staging area*.
+
+Below you will find all your unpublished and published uploads.
+The unpublished uploads are in the *staging area*. You can see the
+progress on the processing, you can review your uploads, and publish or delete them again.
+
+Click on an upload to see more details about its contents. Click on processed calculations
+to see their metadata, archive data, and a processing log. Select uploads to *delete*
+or *publish* them.
+
+If you press publish, a dialog will appear that allows you to set an
+*embargo* or publish your data as *Open Access* right away. The *embargo* allows you to shared
+it with selected users, create a DOI for your data, and later publish the data.
+The *embargo* might last up to 36 month before it becomes public automatically.
+During an *embargo* some meta-data will be available.
+
+When you published your upload, it will take a night before it will appear in the
+[Nomad Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/).
+We are working on improving this process.
+`
 
 class Uploads extends React.Component {
   static propTypes = {
@@ -218,10 +264,6 @@ class Uploads extends React.Component {
       <FormLabel className={classes.uploadsLabel}>Your published uploads: </FormLabel>
       <div className={classes.uploads}>
         <div>
-          <Help cookie="publishedUploadList">{`
-            These are the uploads that you have already published in the past for
-            your reference.
-          `}</Help>
           {
             publishedUploads.map(upload => (
               <Upload key={upload.gui_upload_id} upload={upload}
@@ -250,7 +292,7 @@ class Uploads extends React.Component {
     const { selectedUnpublishedUploads, showPublishDialog } = this.state
     const unpublishedUploads = this.state.unpublishedUploads || []
 
-    const reloadButton = <Tooltip title="reload uploads" >
+    const reloadButton = <Tooltip title="Reload uploads, e.g. after using the curl upload" >
       <IconButton onClick={() => this.update()}><ReloadIcon /></IconButton>
     </Tooltip>
 
@@ -272,7 +314,7 @@ class Uploads extends React.Component {
           <FormLabel classes={{root: classes.selectLabel}}>
             {`selected uploads ${selectedUnpublishedUploads.length}/${unpublishedUploads.length}`}
           </FormLabel>
-          <Tooltip title="delete selected uploads" >
+          <Tooltip title="Delete selected uploads" >
             <div>
               <IconButton
                 disabled={selectedUnpublishedUploads.length === 0}
@@ -283,7 +325,7 @@ class Uploads extends React.Component {
             </div>
           </Tooltip>
 
-          <Tooltip title="publish selected uploads" >
+          <Tooltip title="Publish selected uploads" >
             <div>
               <IconButton
                 disabled={selectedUnpublishedUploads.length === 0 || selectedUnpublishedUploads.some(upload => upload.failed_calcs !== 0 || upload.total_calcs === 0)}
@@ -305,17 +347,6 @@ class Uploads extends React.Component {
         (unpublishedUploads.length === 0)
           ? ''
           : <div className={classes.uploads}>
-            <Help cookie="uploadList">{`
-              These are all your uploads in the *staging area*. You can see the
-              progress on data progresses and review your uploads before publishing
-              them to the *nomad repository*.
-
-              Select uploads to delete or publish them. Click on uploads to see individual
-              calculations. Click on calculations to see more details on each calculation.
-
-              When you select and click publish, you will be ask if you want to publish
-              with or without the optional *embargo period*.
-            `}</Help>
             { this.sortedUnpublishedUploads().map(upload => (
               <Upload key={upload.gui_upload_id} upload={upload}
                 checked={selectedUnpublishedUploads.indexOf(upload) !== -1}
@@ -335,28 +366,6 @@ class Uploads extends React.Component {
 
     return (
       <div className={classes.root}>
-        <Help cookie="uploadHelp" component={Markdown}>{`
-          To upload your own data, please put all relevant files of all the calculations
-          you want to upload into a single \`*.zip\` or \`*.tar.gz\` archive.
-          We encourage you to add all code input and
-          output files, as well as any other auxiliary files that you might have created.
-          You can put data from multiple calculations, using your preferred directory
-          structure, into your archives. Drop your archive file(s) below. You can also
-          click the dropbox to select the file from your hard drive.
-
-          Uploaded data will not be public immediately. We call this *staging area*.
-          After uploading and processing, you can decide if you want to make the data public,
-          delete it again, or put an *embargo* on it.
-
-          The *embargo* allows you to shared it with selected users, create a DOI
-          for your data, and later publish the data. The *embargo* might last up to
-          36 month before it becomes public automatically. During an *embargo*
-          some meta-data will be available.
-
-          There is a limit of 32 GB per upload. Please upload multiple archives, if
-          you have more than 32 GB of data to upload.
-        `}</Help>
-
         <Paper className={classes.dropzoneContainer}>
           <Dropzone
             accept={[
@@ -373,12 +382,6 @@ class Uploads extends React.Component {
           </Dropzone>
         </Paper>
 
-        <Help cookie="uploadCommandHelp">{`
-          Alternatively, you can upload files via the following shell command.
-          Replace \`<local_file>\` with your archive file. After executing the command,
-          return here and press the reload button below). The same 32 GB limit applies.
-        `}</Help>
-
         <div className={classes.commandContainer}>
           <div className={classes.commandMarkup}>
             <Markdown>{`
@@ -388,20 +391,26 @@ class Uploads extends React.Component {
             `}</Markdown>
           </div>
           <CopyToClipboard text={uploadCommand} onCopy={() => null}>
-            <Tooltip title="copy command to clipboard">
+            <Tooltip title="Copy command to clipboard">
               <IconButton>
                 <ClipboardIcon />
               </IconButton>
             </Tooltip>
             {/* <button>Copy to clipboard with button</button> */}
           </CopyToClipboard>
+          <HelpDialog icon={<MoreIcon/>} maxWidth="md" title="Alternative shell commands" content={`
+            The given command can be modified. To see progress on large files, use
+            \`\`\`
+              ${uploadCommand.upload_progress_command}
+            \`\`\`
+            To \`tar\` and upload multiple folders in one command, use
+            \`\`\`
+            ${uploadCommand.upload_tar_command}
+            \`\`\`
+            As an experienced shell and *curl* user, you can modify the commands to
+            your liking. Nomad accepts stream data (\`-H <local_file>\`) or multi-form data (\`-f file=@<local_file>\`).
+          `}/>
         </div>
-
-        <Help cookie="moreUploadCommandHelp">{`
-          The above command can be modified. To see progress on large files, use
-          \`${uploadCommand.upload_progress_command}\`. To
-          \`tar\` and upload in one command, use \`${uploadCommand.upload_tar_command}\`.
-        `}</Help>
 
         {this.renderUnpublishedUploads()}
         {this.renderPublishedUploads()}

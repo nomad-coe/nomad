@@ -5,19 +5,17 @@ import PropTypes, { instanceOf } from 'prop-types'
 import { compose } from 'recompose'
 import classNames from 'classnames'
 import { MuiThemeProvider, withStyles } from '@material-ui/core/styles'
-import { IconButton, Checkbox, FormLabel, LinearProgress, ListItemIcon, ListItemText,
-  MenuList, MenuItem, Typography, Drawer, AppBar, Toolbar, Divider, Button, DialogContent, DialogTitle, DialogActions, Dialog } from '@material-ui/core'
+import { IconButton, LinearProgress, ListItemIcon, ListItemText,
+  MenuList, MenuItem, Typography, Drawer, AppBar, Toolbar, Divider, Button, DialogContent, DialogTitle, DialogActions, Dialog, Tooltip } from '@material-ui/core'
 import { BrowserRouter, Switch, Route, Link, withRouter } from 'react-router-dom'
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
-import AboutIcon from '@material-ui/icons/Home'
+import AboutIcon from '@material-ui/icons/Help'
 import MetainfoIcon from '@material-ui/icons/Info'
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft'
 import MenuIcon from '@material-ui/icons/Menu'
-
-import Uploads from './uploads/Uploads'
-import SearchPage from './search/SearchPage'
-import { HelpProvider, HelpContext } from './help'
+import {help as searchHelp, default as SearchPage} from './search/SearchPage'
+import HelpDialog from './Help'
 import { ApiProvider, withApi } from './api'
 import { ErrorSnacks } from './errors'
 import Calc from './entry/Calc'
@@ -25,17 +23,18 @@ import About from './About'
 import LoginLogout from './LoginLogout'
 import { genTheme, repoTheme, archiveTheme, appBase } from '../config'
 import { DomainProvider } from './domains'
-import MetaInfoBrowser from './metaInfoBrowser/MetaInfoBrowser'
+import {help as metainfoHelp, default as MetaInfoBrowser} from './metaInfoBrowser/MetaInfoBrowser'
 import packageJson from '../../package.json'
 import { Cookies, withCookies } from 'react-cookie'
 import Markdown from './Markdown'
+import {help as uploadHelp, default as Uploads} from './uploads/Uploads'
 
 const drawerWidth = 200
 
 const toolbarTitles = {
-  '/': 'About nomad@FAIRDI',
-  '/search': 'Search',
-  '/uploads': 'Upload Your Own Data',
+  '/': 'About, Documentation, Getting Help',
+  '/search': 'Find and Download Data',
+  '/uploads': 'Upload and Publish Data',
   '/metainfo': 'The Nomad Meta Info'
 }
 
@@ -44,6 +43,13 @@ const toolbarThemes = {
   '/search': repoTheme,
   '/uploads': repoTheme,
   '/metainfo': archiveTheme
+}
+
+const toolbarHelp = {
+  '/': null,
+  '/search': {title: 'How to find and download data', content: searchHelp},
+  '/uploads': {title: 'How to upload data', content: uploadHelp},
+  '/metainfo': {title: 'About the Nomad meta-info', content: metainfoHelp}
 }
 
 class NavigationUnstyled extends React.Component {
@@ -56,8 +62,12 @@ class NavigationUnstyled extends React.Component {
 
   static styles = theme => ({
     root: {},
-    flex: {
-      flexGrow: 1
+    title: {
+      marginLeft: theme.spacing.unit,
+      flexGrow: 1,
+      display: 'flex',
+      alignItems: 'center',
+      alignContent: 'flex-start'
     },
     appFrame: {
       zIndex: 1,
@@ -85,8 +95,10 @@ class NavigationUnstyled extends React.Component {
       })
     },
     menuButton: {
-      marginLeft: 12,
-      marginRight: 36
+      marginLeft: theme.spacing.unit
+    },
+    helpButton: {
+      marginLeft: theme.spacing.unit
     },
     hide: {
       display: 'none'
@@ -140,22 +152,19 @@ class NavigationUnstyled extends React.Component {
     },
     barButton: {
       borderColor: theme.palette.getContrastText(theme.palette.primary.main),
-      marginRight: theme.spacing.unit * 4
+      marginRight: 0
     },
     barButtonDisabled: {
-      marginRight: theme.spacing.unit * 4
+      marginRight: 0
     }
   })
-
-  state = {
-    open: false
-  }
 
   constructor(props) {
     super(props)
 
-    this.handleDrawerOpen = this.handleDrawerOpen.bind(this)
-    this.handleDrawerClose = this.handleDrawerClose.bind(this)
+    this.state = {
+      open: false
+    }
   }
 
   componentDidMount() {
@@ -172,12 +181,8 @@ class NavigationUnstyled extends React.Component {
       })
   }
 
-  handleDrawerOpen() {
-    this.setState({ open: true })
-  }
-
-  handleDrawerClose() {
-    this.setState({ open: false })
+  handleDrawerEvent(isOpen) {
+    this.setState({ open: !isOpen, openIsSet: true })
   }
 
   render() {
@@ -191,6 +196,7 @@ class NavigationUnstyled extends React.Component {
     }
 
     const theme = selected(toolbarThemes)
+    const help = selected(toolbarHelp)
 
     return (
       <div className={classes.root}>
@@ -203,25 +209,19 @@ class NavigationUnstyled extends React.Component {
               <Toolbar disableGutters={!this.state.open}>
                 <IconButton
                   color="inherit"
-                  onClick={this.handleDrawerOpen}
+                  onClick={() => this.handleDrawerEvent(this.state.open)}
                   className={classNames(classes.menuButton, this.state.open && classes.hide)}
                 >
                   <MenuIcon />
                 </IconButton>
-                <Typography variant="h6" color="inherit" noWrap className={classes.flex}>
-                  {selected(toolbarTitles)}
-                </Typography>
+                <div className={classes.title}>
+                  <Typography variant="h6" color="inherit" noWrap>
+                    {selected(toolbarTitles)}
+                  </Typography>
+                  {help ? <HelpDialog color="inherit" maxWidth="md" classes={{root: classes.helpButton}} {...help}/> : ''}
+                </div>
                 <div className={classes.barActions}>
                   <LoginLogout variant="outlined" color="inherit" classes={{button: classes.barButton, buttonDisabled: classes.barButtonDisabled}} />
-                  <FormLabel className={classes.barSelect} >Show help</FormLabel>
-                  <HelpContext.Consumer>{
-                    help => (
-                      <Checkbox
-                        checked={!help.someClosed()} indeterminate={!help.allClosed() && help.someClosed()}
-                        onClick={() => help.switchHelp()}
-                        classes={{root: classes.barSelect, checked: classes.barSelect}} />
-                    )
-                  }</HelpContext.Consumer>
                 </div>
               </Toolbar>
               {loading ? <LinearProgress color="primary" /> : ''}
@@ -233,38 +233,46 @@ class NavigationUnstyled extends React.Component {
               anchor="left"
             >
               <div className={classes.toolbar}>
-                <IconButton onClick={this.handleDrawerClose}>
+                <IconButton onClick={() => this.handleDrawerEvent(this.state.open)}>
                   <ChevronLeftIcon/>
                 </IconButton>
               </div>
 
               <MenuList>
-                <MenuItem className={classes.menuItem} component={Link} to="/" selected={ pathname === '/' }>
-                  <ListItemIcon>
-                    <AboutIcon />
-                  </ListItemIcon>
-                  <ListItemText inset primary="About"/>
-                </MenuItem>
+                <Tooltip title="Upload and publish data">
+                  <MenuItem className={classes.menuItem} component={Link} to="/uploads" selected={ pathname === '/uploads' }>
+                    <ListItemIcon>
+                      <BackupIcon style={{fill: repoTheme.palette.primary.main}}/>
+                    </ListItemIcon>
+                    <ListItemText inset primary="Upload"/>
+                  </MenuItem>
+                </Tooltip>
+                <Tooltip title="Find and download data">
+                  <MenuItem className={classes.menuItem} component={Link} to="/search" selected={ pathname.startsWith('/repo') }>
+                    <ListItemIcon>
+                      <SearchIcon style={{fill: repoTheme.palette.primary.main}}/>
+                    </ListItemIcon>
+                    <ListItemText inset primary="Search"/>
+                  </MenuItem>
+                </Tooltip>
                 <Divider />
-                <MenuItem className={classes.menuItem} component={Link} to="/search" selected={ pathname.startsWith('/repo') }>
-                  <ListItemIcon>
-                    <SearchIcon style={{fill: repoTheme.palette.primary.main}}/>
-                  </ListItemIcon>
-                  <ListItemText inset primary="Search"/>
-                </MenuItem>
-                <MenuItem className={classes.menuItem} component={Link} to="/uploads" selected={ pathname === '/uploads' }>
-                  <ListItemIcon>
-                    <BackupIcon style={{fill: repoTheme.palette.primary.main}}/>
-                  </ListItemIcon>
-                  <ListItemText inset primary="Upload"/>
-                </MenuItem>
+                <Tooltip title="Browse the archive schema">
+                  <MenuItem className={classes.menuItem} component={Link} to="/metainfo" selected={ pathname === '/metainfo' }>
+                    <ListItemIcon>
+                      <MetainfoIcon style={{fill: archiveTheme.palette.primary.main}}/>
+                    </ListItemIcon>
+                    <ListItemText inset primary="Meta Info"/>
+                  </MenuItem>
+                </Tooltip>
                 <Divider />
-                <MenuItem className={classes.menuItem} component={Link} to="/metainfo" selected={ pathname === '/metainfo' }>
-                  <ListItemIcon>
-                    <MetainfoIcon style={{fill: archiveTheme.palette.primary.main}}/>
-                  </ListItemIcon>
-                  <ListItemText inset primary="Meta Info"/>
-                </MenuItem>
+                <Tooltip title="About, Documentation, Getting Help">
+                  <MenuItem className={classes.menuItem} component={Link} to="/" selected={ pathname === '/' }>
+                    <ListItemIcon>
+                      <AboutIcon />
+                    </ListItemIcon>
+                    <ListItemText inset primary="Help"/>
+                  </MenuItem>
+                </Tooltip>
               </MenuList>
             </Drawer>
 
@@ -345,7 +353,6 @@ class LicenseAgreementUnstyled extends React.Component {
             </Button>
           </DialogActions>
         </Dialog>
-        {this.state.accepted ? this.props.children : ''}
       </div>
     )
   }
@@ -438,24 +445,22 @@ export default class App extends React.Component {
       <MuiThemeProvider theme={genTheme}>
         <ErrorSnacks>
           <BrowserRouter basename={process.env.PUBLIC_URL}>
-            <HelpProvider>
-              <ApiProvider>
-                <DomainProvider>
-                  <Navigation>
-                    <Switch>
-                      {Object.keys(this.routes).map(route => (
-                      // eslint-disable-next-line react/jsx-key
-                        <Route key={'nop'}
-                        // eslint-disable-next-line react/no-children-prop
-                          children={props => this.renderChildren(route, props)}
-                          exact={this.routes[route].exact}
-                          path={this.routes[route].path} />
-                      ))}
-                    </Switch>
-                  </Navigation>
-                </DomainProvider>
-              </ApiProvider>
-            </HelpProvider>
+            <ApiProvider>
+              <DomainProvider>
+                <Navigation>
+                  <Switch>
+                    {Object.keys(this.routes).map(route => (
+                    // eslint-disable-next-line react/jsx-key
+                      <Route key={'nop'}
+                      // eslint-disable-next-line react/no-children-prop
+                        children={props => this.renderChildren(route, props)}
+                        exact={this.routes[route].exact}
+                        path={this.routes[route].path} />
+                    ))}
+                  </Switch>
+                </Navigation>
+              </DomainProvider>
+            </ApiProvider>
           </BrowserRouter>
         </ErrorSnacks>
         <LicenseAgreement />
