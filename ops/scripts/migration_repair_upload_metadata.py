@@ -10,6 +10,11 @@ uploads = mongo.fairdi_nomad_migration.upload
 def doit(upload):
     example = calcs.find_one({'upload_id': upload})
     user_id = example['metadata']['uploader']['id']
+
+    if 'upload_time' not in example['metadata']:
+        print('no upload time in %s' % upload)
+        return
+
     upload_time = example['metadata']['upload_time']
 
     uploads.update_one(
