@@ -25,7 +25,7 @@ Nomad now provides a two step upload process. After you upload your files, you
 check nomad's processing of your files before you publish your data. This gives you
 more control about how nomad will present your data.
 
-### Prepare and upload files
+#### Prepare and upload files
 
 To upload your own data, please put all relevant files of all the calculations
 you want to upload into a single \`*.zip\` or \`*.tar.gz\` archive.
@@ -42,7 +42,7 @@ return here and press the reload button below).
 There is a limit of 32 GB per upload. Please upload multiple archives, if
 you have more than 32 GB of data to upload.
 
-### The staging area
+#### The staging area
 
 Uploaded data will not be public immediately. We call this *staging area*.
 
@@ -63,6 +63,13 @@ During an *embargo* some meta-data will be available.
 When you published your upload, it will take a night before it will appear in the
 [Nomad Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/).
 We are working on improving this process.
+
+#### Co-Authors, References, Comments, Datasets
+
+Currently, this web-page is only about uploading your calculations. To further edit
+comments, references, co-authors, share with other authors, or curate datasets, use
+the [Nomad Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/) on
+your published data (as usual).
 `
 
 class Uploads extends React.Component {

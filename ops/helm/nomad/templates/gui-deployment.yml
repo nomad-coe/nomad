@@ -27,7 +27,8 @@ data:
   env.js: |
     window.nomadEnv = {
       "apiBase": "{{ .Values.proxy.external.path }}/api",
-      "kibanaBase": "{{ .Values.proxy.external.kibanaPath }}"
+      "kibanaBase": "{{ .Values.proxy.external.kibanaPath }}",
+      "debug": {{ .Values.gui.debug }}
     };
 ---
 apiVersion: apps/v1

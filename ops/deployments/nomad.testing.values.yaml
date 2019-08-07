@@ -7,6 +7,9 @@ proxy:
 api:
   disableReset: false
 
+gui:
+  debug: true
+
 worker:
   replicas: 1
   routing: "queue"

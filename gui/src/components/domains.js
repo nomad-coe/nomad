@@ -24,51 +24,30 @@ class DomainProviderBase extends React.Component {
     DFT: {
       name: 'DFT',
       about: `
-        ## The nomad**@FAIRDI** (*beta*)
-
-        ### About nomad@FAIRDI
-
-        After the conclusion of the original [NOMAD-coe](http://nomad-coe.eu) project,
-        the newly founded NGO *FAIR Data Infrastructures* (FAIRDI) provides an
-        umbrella to continue operation and further development of the Nomad
-        material science data sharing platform.
-
-        The immediate goal is to to consolidate and stabilize the nomad infrastructure, and
-        as a first step, we refined the Nomad upload and data processing. This GUI introduces
-        the *staging area* that allows you to observe your uploads processing and inspect
-        the uploaded data before you decide to either publish your data or delete your upload again.
+        ### About the Nomad upload
 
         Currently this is designed as a complement to the original [Nomad Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1).
         You upload, process, inspect, and publish your data here. Here you have some
         capabilities to search and explore uploaded data. But to add comments, co-authors, and references,
         create data-sets, and manage your account you still have to use the original [Nomad Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1).
 
-        This GUI allows you to (menu on the left):
-        * About: read about this, access the documentation, and API.
-        * Search: inspect for existing data, your's and others (currently the search will only changed new data uploaded through nomad@FAIRDI).
-        * Upload: drop data, view the processing, and publish your uploads.
-        * Metainfo: browse the *metainfo*, Nomad's (meta-)data schema for processed data.
+        In the future, this web-page will include more and more features of other Nomad
+        components as an effort to consolidate the various web applications from the
+        Nomad Repository, Archive, Metainfo, Encyclopedia, and Analytics Toolkit.
 
-        ### How to use the new upload and processing
-
-        **!Please read this, before you explore this new part of Nomad!**
-
-        Feel free to explore this *new* part of Nomad, but expect that not everything will
-        be working perfectly. Travel through the menu on the left and just
-        use it. Feel free to upload data, look for limitations and things you do not like.
-        The goal should be to figure out what is wrong and missing.
-
-        Keep in mind that there are limitations:
-        * You can only login with users that already exist in the Nomad Repository. If you
+        ### Limitations
+        You can only login with users that already exist in the Nomad Repository. If you
         are new to Nomad, visit the [Nomad Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1)
         or register for a user account [here](http://nomad-repository.eu:8080/NomadRepository-1.1/register/).
-        * When you published your data here, it will still take a day to index. Therefore,
-        your data will not appear in the Nomad Repository immediately.
-        * The existing entries from the original Nomad do not appear in the search. We
-        are currently migrating the data. You will be able to see all your data, old and new, soon.
 
-        For feedback and any issues you find, feel free to [open an issue](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/issues) or write
-        an email to [markus.scheidgen@physik.hu-berlin.de](mailto:markus.scheidgen@physik.hu-berlin.de).
+        When you published your data here, it will still take a day to index. Therefore,
+        your data will not appear in the Nomad Repository immediately.
+
+        We migrated all data from the Nomad Repository to this new system. However, not
+        all data could be successfully processed by the new and more powerful parsers.
+        We will continue to improve the parsers to raise the quality of archive data overtime.
+        For some entries, no archive data might be currently available and some metadata might
+        still be missing.
       `,
       entryLabel: 'calculation',
       searchPlaceholder: 'enter atoms, codes, functionals, or other quantity values',

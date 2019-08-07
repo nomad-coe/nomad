@@ -24,7 +24,7 @@ now show all of NOMAD's data. To see the full NOMAD dataset use the original
 [NOMAD CoE Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/search/)
 for now.
 
-### Search Options
+#### Search Options
 
 Nomad's *domain-aware* search allows you to screen data by filtering based on
 desired properties. This is different from basic *text-search* that traditional
@@ -43,7 +43,7 @@ The periodic table and bar-charts show metrics for all data that fit your criter
 You can display *entries* (e.g. code runs), *unique entries*, and *datasets*.
 Other more specific metrics might be available.
 
-### Search Results
+#### Search Results
 
 The results table gives you a quick overview of all entries that fit your search.
 You can click entries to see more details, download data, see the archive, etc.

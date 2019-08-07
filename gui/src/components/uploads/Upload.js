@@ -10,6 +10,7 @@ import ReactJson from 'react-json-view'
 import { compose } from 'recompose'
 import { withErrors } from '../errors'
 import { withRouter } from 'react-router'
+import { debug } from '../../config'
 
 class Upload extends React.Component {
   static propTypes = {
@@ -517,10 +518,10 @@ class Upload extends React.Component {
                 </Typography> : ''
               }
               {upload.calcs ? this.renderCalcTable() : ''}
-
-              <div className={classes.detailsContent}>
-                <ReactJson src={upload} enableClipboard={false} collapsed={0} />
-              </div>
+              {debug
+                ? <div className={classes.detailsContent}>
+                  <ReactJson src={upload} enableClipboard={false} collapsed={0} />
+                </div> : ''}
             </ExpansionPanelDetails>
           </ExpansionPanel>
         </div>
