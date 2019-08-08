@@ -97,7 +97,7 @@ def mirror(
             print('Cannot parse the given query %s: %s' % (query, str(e)))
             sys.exit(1)
     else:
-        query = {}
+        query = dict(published=True)
 
     utils.configure_logging()
 
@@ -123,9 +123,14 @@ def mirror(
                 continue
             except KeyError:
                 pass
-
-            upload_data = client.mirror.get_upload_mirror(upload_id=upload_id).response().result
-            n_calcs = len(upload_data.calcs)
+            
+            try:
+                upload_data = client.mirror.get_upload_mirror(upload_id=upload_id).response().result
+                n_calcs = len(upload_data.calcs)
+            except HTTPBadRequest:
+                print('Could not mirror %s, it is probably not published.' % upload_id)
+                n_calcs = 0
+                continue
 
             if __in_test:
                 # In tests, we mirror from our selves, remove it so it is not there for import
