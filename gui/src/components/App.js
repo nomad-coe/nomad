@@ -7,7 +7,7 @@ import classNames from 'classnames'
 import { MuiThemeProvider, withStyles } from '@material-ui/core/styles'
 import { IconButton, LinearProgress, ListItemIcon, ListItemText,
   MenuList, MenuItem, Typography, Drawer, AppBar, Toolbar, Divider, Button, DialogContent, DialogTitle, DialogActions, Dialog, Tooltip } from '@material-ui/core'
-import { BrowserRouter, Switch, Route, Link, withRouter } from 'react-router-dom'
+import { Switch, Route, Link, withRouter } from 'react-router-dom'
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
 import AboutIcon from '@material-ui/icons/Help'
@@ -444,7 +444,6 @@ export default class App extends React.Component {
     return (
       <MuiThemeProvider theme={genTheme}>
         <ErrorSnacks>
-          {/* <BrowserRouter basename={process.env.PUBLIC_URL}> */}
           <ApiProvider>
             <DomainProvider>
               <Navigation>
@@ -461,7 +460,6 @@ export default class App extends React.Component {
               </Navigation>
             </DomainProvider>
           </ApiProvider>
-          {/* </BrowserRouter> */}
         </ErrorSnacks>
         <LicenseAgreement />
       </MuiThemeProvider>
