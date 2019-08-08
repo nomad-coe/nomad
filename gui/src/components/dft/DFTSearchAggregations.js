@@ -7,7 +7,7 @@ import QuantityHistogram from '../search/QuantityHistogram'
 class DFTSearchAggregations extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    aggregations: PropTypes.object.isRequired,
+    quantities: PropTypes.object.isRequired,
     metric: PropTypes.string.isRequired,
     searchValues: PropTypes.object.isRequired,
     onChange: PropTypes.func.isRequired
@@ -23,12 +23,39 @@ class DFTSearchAggregations extends React.Component {
     }
   })
 
+  constructor(props) {
+    super(props)
+    this.handleExclusiveChanged = this.handleExclusiveChanged.bind(this)
+  }
+
+  state = {
+    exclusive: false
+  }
+
+  handleExclusiveChanged() {
+    const { searchValues } = this.props
+    const value = !this.state.exclusive
+    this.setState({exclusive: value})
+    if (value) {
+      searchValues.only_atoms = searchValues.only_atoms || searchValues.atoms
+      delete searchValues.atoms
+    } else {
+      searchValues.atoms = searchValues.only_atoms || searchValues.atoms
+      delete searchValues.only_atoms
+    }
+    this.props.onChange({searchValues: searchValues})
+  }
+
   handleAtomsChanged(atoms) {
+    if (this.state.exclusive) {
+      this.setState({exclusive: false})
+    }
     const searchValues = {...this.props.searchValues}
     searchValues.atoms = atoms
     if (searchValues.atoms.length === 0) {
       delete searchValues.atoms
     }
+    delete searchValues.only_atoms
     this.props.onChange({searchValues: searchValues})
   }
 
@@ -43,12 +70,12 @@ class DFTSearchAggregations extends React.Component {
   }
 
   render() {
-    const { classes, aggregations, metric, searchValues } = this.props
+    const { classes, quantities, metric, searchValues } = this.props
 
-    const quantity = (key, title) => (<QuantityHistogram
+    const quantity = (key, title, scale) => (<QuantityHistogram
       classes={{root: classes.quantity}} title={title || key} width={300}
-      data={aggregations[key]} metric={metric}
-      value={searchValues[key]}
+      data={quantities[key]} metric={metric}
+      value={searchValues[key]} defaultScale={scale}
       onChanged={(selection) => this.handleQuantityChanged(key, selection)}/>)
 
     return (
@@ -56,24 +83,26 @@ class DFTSearchAggregations extends React.Component {
         <Card>
           <CardContent>
             <PeriodicTable
-              aggregations={aggregations.atoms} metric={metric}
-              values={searchValues.atoms || []}
+              aggregations={quantities.atoms} metric={metric}
+              exclusive={this.state.exclusive}
+              values={searchValues.atoms || searchValues.only_atoms || []}
               onChanged={(selection) => this.handleAtomsChanged(selection)}
+              onExclusiveChanged={this.handleExclusiveChanged}
             />
           </CardContent>
         </Card>
 
         <Grid container spacing={24} className={classes.quantityGrid}>
           <Grid item xs={4}>
-            {quantity('code_name', 'Code')}
+            {quantity('code_name', 'Code', 0.25)}
           </Grid>
           <Grid item xs={4}>
-            {quantity('system', 'System type')}
-            {quantity('crystal_system', 'Crystal system')}
+            {quantity('system', 'System type', 0.25)}
+            {quantity('crystal_system', 'Crystal system', 1)}
           </Grid>
           <Grid item xs={4}>
-            {quantity('basis_set', 'Basis set')}
-            {quantity('xc_functional', 'XC functionals')}
+            {quantity('basis_set', 'Basis set', 0.25)}
+            {quantity('xc_functional', 'XC functionals', 0.5)}
           </Grid>
         </Grid>
       </div>

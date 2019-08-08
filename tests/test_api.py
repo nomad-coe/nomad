@@ -22,9 +22,11 @@ import io
 import inspect
 from passlib.hash import bcrypt
 import datetime
+import os.path
+from urllib.parse import urlencode
 
 from nomad.api.app import rfc3339DateTime
-from nomad import coe_repo, search, parsing, files, config
+from nomad import coe_repo, search, parsing, files, config, utils
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
 from nomad.datamodel import UploadWithMetadata, CalcWithMetadata
@@ -34,6 +36,9 @@ from tests.test_files import example_file, example_file_mainfile, example_file_c
 from tests.test_files import create_staging_upload, create_public_upload, assert_upload_files
 from tests.test_coe_repo import assert_coe_upload
 from tests.test_search import assert_search_upload
+
+
+logger = utils.get_logger(__name__)
 
 
 def test_alive(client):
@@ -322,7 +327,9 @@ class TestUploads:
 
         if mode == 'multipart':
             rv = client.put(
-                url, data=dict(file=(open(file, 'rb'), 'file')), headers=test_user_auth)
+                url, data=dict(file=(open(file, 'rb'), 'the_name')), headers=test_user_auth)
+            if not name:
+                name = 'the_name'
         elif mode == 'stream':
             with open(file, 'rb') as f:
                 rv = client.put(url, data=f.read(), headers=test_user_auth)
@@ -421,7 +428,7 @@ class TestUploads:
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
         metadata = dict(**example_user_metadata)
-        metadata['_upload_time'] = datetime.datetime.now().isoformat()
+        metadata['_upload_time'] = datetime.datetime.utcnow().isoformat()
         self.assert_published(client, admin_user_auth, upload['upload_id'], proc_infra, metadata)
 
     def test_post_metadata_forbidden(self, client, proc_infra, test_user_auth, no_warn):
@@ -442,9 +449,23 @@ class TestUploads:
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
         metadata = dict(**example_user_metadata)
-        metadata['_upload_time'] = datetime.datetime.now().isoformat()
+        metadata['_upload_time'] = datetime.datetime.utcnow().isoformat()
         self.assert_published(client, admin_user_auth, upload['upload_id'], proc_infra, metadata)
         self.assert_published(client, admin_user_auth, upload['upload_id'], proc_infra, metadata, publish_with_metadata=False)
+
+    def test_post_re_process(self, client, published, test_user_auth, monkeypatch):
+        monkeypatch.setattr('nomad.config.version', 're_process_test_version')
+        monkeypatch.setattr('nomad.config.commit', 're_process_test_commit')
+
+        upload_id = published.upload_id
+        rv = client.post(
+            '/uploads/%s' % upload_id,
+            headers=test_user_auth,
+            data=json.dumps(dict(operation='re-process')),
+            content_type='application/json')
+
+        assert rv.status_code == 200
+        assert self.block_until_completed(client, upload_id, test_user_auth) is not None
 
     # TODO validate metadata (or all input models in API for that matter)
     # def test_post_bad_metadata(self, client, proc_infra, test_user_auth, postgres):
@@ -459,6 +480,7 @@ class TestUploads:
     #     assert rv.status_code == 400
 
     def test_potcar(self, client, proc_infra, test_user_auth):
+        # only the owner, shared with people are supposed to download the original potcar file
         example_file = 'tests/data/proc/examples_potcar.zip'
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
 
@@ -472,6 +494,9 @@ class TestUploads:
         assert rv.status_code == 200
         rv = client.get('/raw/%s/examples_potcar/POTCAR.stripped' % upload_id)
         assert rv.status_code == 200
+
+
+today = datetime.datetime.utcnow().date()
 
 
 class UploadFilesBasedTests:
@@ -618,7 +643,7 @@ class TestRepo():
             test_user: coe_repo.User, other_test_user: coe_repo.User):
         clear_elastic(elastic_infra)
 
-        calc_with_metadata = CalcWithMetadata(upload_id=0, calc_id=0, upload_time=datetime.date.today())
+        calc_with_metadata = CalcWithMetadata(upload_id=0, calc_id=0, upload_time=today)
         calc_with_metadata.files = ['test/mainfile.txt']
         calc_with_metadata.apply_domain_metadata(normalized)
 
@@ -628,7 +653,7 @@ class TestRepo():
 
         calc_with_metadata.update(
             calc_id='2', uploader=other_test_user.to_popo(), published=True, with_embargo=False,
-            upload_time=datetime.date.today() - datetime.timedelta(days=5))
+            upload_time=today - datetime.timedelta(days=5))
         calc_with_metadata.update(
             atoms=['Fe'], comment='this is a specific word', formula='AAA', basis_set='zzz')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
@@ -642,7 +667,10 @@ class TestRepo():
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
     def assert_search(self, rv: Any, number_of_calcs: int) -> dict:
+        if rv.status_code != 200:
+            print(rv.data)
         assert rv.status_code == 200
+
         data = json.loads(rv.data)
 
         results = data.get('results', None)
@@ -699,15 +727,15 @@ class TestRepo():
                 assert key in results[0]
 
     @pytest.mark.parametrize('calcs, start, end', [
-        (2, datetime.date.today() - datetime.timedelta(days=6), datetime.date.today()),
-        (2, datetime.date.today() - datetime.timedelta(days=5), datetime.date.today()),
-        (1, datetime.date.today() - datetime.timedelta(days=4), datetime.date.today()),
-        (1, datetime.date.today(), datetime.date.today()),
-        (1, datetime.date.today() - datetime.timedelta(days=6), datetime.date.today() - datetime.timedelta(days=5)),
-        (0, datetime.date.today() - datetime.timedelta(days=7), datetime.date.today() - datetime.timedelta(days=6)),
+        (2, today - datetime.timedelta(days=6), today),
+        (2, today - datetime.timedelta(days=5), today),
+        (1, today - datetime.timedelta(days=4), today),
+        (1, today, today),
+        (1, today - datetime.timedelta(days=6), today - datetime.timedelta(days=5)),
+        (0, today - datetime.timedelta(days=7), today - datetime.timedelta(days=6)),
         (2, None, None),
-        (1, datetime.date.today(), None),
-        (2, None, datetime.date.today())
+        (1, today, None),
+        (2, None, today)
     ])
     def test_search_time(self, client, example_elastic_calcs, no_warn, calcs, start, end):
         query_string = ''
@@ -728,7 +756,11 @@ class TestRepo():
         (0, 'system', 'atom'),
         (1, 'atoms', 'Br'),
         (1, 'atoms', 'Fe'),
-        (0, 'atoms', ['Fe', 'Br']),
+        (0, 'atoms', ['Fe', 'Br', 'A', 'B']),
+        (0, 'only_atoms', ['Br', 'Si']),
+        (1, 'only_atoms', ['Fe']),
+        (1, 'only_atoms', ['Br', 'K', 'Si']),
+        (1, 'only_atoms', ['Br', 'Si', 'K']),
         (1, 'comment', 'specific'),
         (1, 'authors', 'Hofstadter, Leonard'),
         (2, 'files', 'test/mainfile.txt'),
@@ -738,18 +770,19 @@ class TestRepo():
         (0, 'quantities', 'dos')
     ])
     def test_search_quantities(self, client, example_elastic_calcs, no_warn, test_user_auth, calcs, quantity, value):
-        query_string = '%s=%s' % (quantity, ','.join(value) if isinstance(value, list) else value)
+        query_string = urlencode({quantity: value}, doseq=True)
 
         rv = client.get('/repo/?%s' % query_string, headers=test_user_auth)
+        logger.debug('run search quantities test', query_string=query_string)
         data = self.assert_search(rv, calcs)
 
-        aggregations = data.get('aggregations', None)
-        assert aggregations is not None
+        quantities = data.get('quantities', None)
+        assert quantities is not None
         if quantity == 'system' and calcs != 0:
-            # for simplicity we only assert on aggregations for this case
-            assert 'system' in aggregations
-            assert len(aggregations['system']) == 1
-            assert value in aggregations['system']
+            # for simplicity we only assert on quantities for this case
+            assert 'system' in quantities
+            assert len(quantities['system']) == 1
+            assert value in quantities['system']
 
     metrics_permutations = [[], search.metrics_names] + [[metric] for metric in search.metrics_names]
 
@@ -766,24 +799,28 @@ class TestRepo():
 
     @pytest.mark.parametrize('metrics', metrics_permutations)
     def test_search_total_metrics(self, client, example_elastic_calcs, no_warn, metrics):
-        rv = client.get('/repo/?total_metrics=%s' % ','.join(metrics))
-        assert rv.status_code == 200
+        rv = client.get('/repo/?%s' % urlencode(dict(metrics=metrics), doseq=True))
+        assert rv.status_code == 200, str(rv.data)
         data = json.loads(rv.data)
-        metrics_result = data.get('metrics', None)
-        assert 'code_runs' in metrics_result
+        total_metrics = data.get('quantities', {}).get('total', {}).get('all', None)
+        assert total_metrics is not None
+        assert 'code_runs' in total_metrics
         for metric in metrics:
-            assert metric in metrics_result
+            assert metric in total_metrics
 
     @pytest.mark.parametrize('metrics', metrics_permutations)
     def test_search_aggregation_metrics(self, client, example_elastic_calcs, no_warn, metrics):
-        rv = client.get('/repo/?aggregation_metrics=%s' % ','.join(metrics))
+        rv = client.get('/repo/?%s' % urlencode(dict(metrics=metrics), doseq=True))
         assert rv.status_code == 200
         data = json.loads(rv.data)
-        for aggregations in data.get('aggregations').values():
-            for metrics_result in aggregations.values():
+        for name, quantity in data.get('quantities').items():
+            for metrics_result in quantity.values():
                 assert 'code_runs' in metrics_result
-                for metric in metrics:
-                    assert metric in metrics_result
+                if name != 'authors':
+                    for metric in metrics:
+                        assert metric in metrics_result
+                else:
+                    assert len(metrics_result) == 1  # code_runs is the only metric for authors
 
     @pytest.mark.parametrize('n_results, page, per_page', [(2, 1, 5), (1, 1, 1), (0, 2, 3)])
     def test_search_pagination(self, client, example_elastic_calcs, no_warn, n_results, page, per_page):
@@ -797,7 +834,8 @@ class TestRepo():
 
     @pytest.mark.parametrize('first, order_by, order', [
         ('1', 'formula', -1), ('2', 'formula', 1),
-        ('2', 'basis_set', -1), ('1', 'basis_set', 1)])
+        ('2', 'basis_set', -1), ('1', 'basis_set', 1),
+        (None, 'authors', -1)])
     def test_search_order(self, client, example_elastic_calcs, no_warn, first, order_by, order):
         rv = client.get('/repo/?order_by=%s&order=%d' % (order_by, order))
         assert rv.status_code == 200
@@ -805,7 +843,8 @@ class TestRepo():
         results = data.get('results', None)
         assert data['pagination']['total'] == 2
         assert len(results) == 2
-        assert results[0]['calc_id'] == first
+        if first is not None:
+            assert results[0]['calc_id'] == first
 
     @pytest.mark.parametrize('n_results, size', [(2, None), (2, 5), (1, 1)])
     def test_search_scroll(self, client, example_elastic_calcs, no_warn, n_results, size):
@@ -817,17 +856,17 @@ class TestRepo():
         assert rv.status_code == 200
         data = json.loads(rv.data)
         results = data.get('results', None)
-        assert data['pagination']['total'] == 2
+        assert data.get('scroll', {}).get('size', -1) > 0
         assert results is not None
         assert len(results) == n_results
-        scroll_id = data.get('scroll_id', None)
+        scroll_id = data.get('scroll', {}).get('scroll_id', None)
         assert scroll_id is not None
 
         has_another_page = False
         while scroll_id is not None:
             rv = client.get('/repo/?scroll=1&scroll_id=%s' % scroll_id)
             data = json.loads(rv.data)
-            scroll_id = data.get('scroll_id', None)
+            scroll_id = data.get('scroll', {}).get('scroll_id', None)
             has_another_page |= len(data.get('results')) > 0
 
         if n_results < 2:
@@ -837,8 +876,69 @@ class TestRepo():
         rv = client.get('/repo/?owner=user')
         assert rv.status_code == 401
 
+    @pytest.mark.parametrize('calcs, quantity, value', [
+        (2, 'system', 'bulk'),
+        (0, 'system', 'atom'),
+        (1, 'atoms', 'Br'),
+        (1, 'atoms', 'Fe'),
+        (1, 'authors', 'Hofstadter, Leonard'),
+        (2, 'files', 'test/mainfile.txt'),
+        (0, 'quantities', 'dos')
+    ])
+    def test_quantity_search(self, client, example_elastic_calcs, no_warn, test_user_auth, calcs, quantity, value):
+        rv = client.get('/repo/%s' % quantity, headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+
+        quantities = data['quantities']
+        assert quantity in quantities
+        values = quantities[quantity]['values']
+        assert (value in values) == (calcs > 0)
+        assert values.get(value, 0) == calcs
+
+    def test_quantity_search_after(self, client, example_elastic_calcs, no_warn, test_user_auth):
+        rv = client.get('/repo/atoms?size=1')
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+
+        quantity = data['quantities']['atoms']
+        assert 'after' in quantity
+        after = quantity['after']
+        assert len(quantity['values']) == 1
+        value = list(quantity['values'].keys())[0]
+
+        while True:
+            rv = client.get('/repo/atoms?size=1&after=%s' % after)
+            assert rv.status_code == 200
+            data = json.loads(rv.data)
+
+            quantity = data['quantities']['atoms']
+
+            if 'after' not in quantity:
+                assert len(quantity['values']) == 0
+                break
+
+            assert len(quantity['values']) == 1
+            assert value != list(quantity['values'].keys())[0]
+            assert after != quantity['after']
+            after = quantity['after']
+
 
 class TestRaw(UploadFilesBasedTests):
+
+    def test_raw_file_from_calc(self, client, non_empty_processed, test_user_auth):
+        calc = list(non_empty_processed.calcs)[0]
+        url = '/raw/calc/%s/%s/%s' % (
+            non_empty_processed.upload_id, calc.calc_id, os.path.basename(calc.mainfile))
+        rv = client.get(url, headers=test_user_auth)
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
+
+        url = '/raw/calc/%s/%s/' % (non_empty_processed.upload_id, calc.calc_id)
+        rv = client.get(url, headers=test_user_auth)
+        assert rv.status_code == 200
+        result = json.loads(rv.data)
+        assert len(result['contents']) > 0
 
     @UploadFilesBasedTests.check_authorizaton
     def test_raw_file(self, client, upload, auth_headers):
@@ -846,6 +946,21 @@ class TestRaw(UploadFilesBasedTests):
         rv = client.get(url, headers=auth_headers)
         assert rv.status_code == 200
         assert len(rv.data) > 0
+
+    @UploadFilesBasedTests.check_authorizaton
+    def test_raw_file_partial(self, client, upload, auth_headers):
+        url = '/raw/%s/%s?offset=0&length=20' % (upload, example_file_mainfile)
+        rv = client.get(url, headers=auth_headers)
+        assert rv.status_code == 200
+        start_data = rv.data
+        assert len(start_data) == 20
+
+        url = '/raw/%s/%s?offset=10&length=10' % (upload, example_file_mainfile)
+        rv = client.get(url, headers=auth_headers)
+        assert rv.status_code == 200
+        next_data = rv.data
+        assert len(rv.data) == 10
+        assert start_data[10:] == next_data
 
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_file_signed(self, client, upload, _, test_user_signature_token):
@@ -861,14 +976,6 @@ class TestRaw(UploadFilesBasedTests):
         assert rv.status_code == 404
         data = json.loads(rv.data)
         assert 'files' not in data
-
-    @UploadFilesBasedTests.ignore_authorization
-    def test_raw_file_listing(self, client, upload, auth_headers):
-        url = '/raw/%s/examples' % upload
-        rv = client.get(url, headers=auth_headers)
-        assert rv.status_code == 404
-        data = json.loads(rv.data)
-        assert len(data['files']) == 5
 
     @pytest.mark.parametrize('compress', [True, False])
     @UploadFilesBasedTests.ignore_authorization
@@ -958,6 +1065,52 @@ class TestRaw(UploadFilesBasedTests):
         rv = client.get(url, headers=auth_headers)
 
         assert rv.status_code == 404
+
+    @pytest.mark.parametrize('path', ['examples_template', 'examples_template/'])
+    @UploadFilesBasedTests.ignore_authorization
+    def test_raw_files_list(self, client, upload, auth_headers, path):
+        url = '/raw/%s/%s' % (upload, path)
+        rv = client.get(url, headers=auth_headers)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+
+        assert len(data['contents']) == 5
+        assert data['upload_id'] == upload
+        assert data['directory'] == 'examples_template'
+        for content in data['contents']:
+            assert content['name'] is not None
+            assert content['size'] >= 0
+        assert '1.aux' in list(content['name'] for content in data['contents'])
+
+    @UploadFilesBasedTests.ignore_authorization
+    def test_raw_files_list_missing(self, client, upload, auth_headers):
+        url = '/raw/%s/examples_' % upload
+        rv = client.get(url, headers=auth_headers)
+        assert rv.status_code == 404
+
+
+class TestMirror:
+
+    def test_upload(self, client, published, admin_user_auth, no_warn):
+        url = '/mirror/%s' % published.upload_id
+        rv = client.get(url, headers=admin_user_auth)
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data)
+        assert data['upload_id'] == published.upload_id
+        assert json.loads(data['upload'])['_id'] == published.upload_id
+        assert Upload.from_json(data['upload']).upload_id == published.upload_id
+        assert len(data['calcs']) == len(published.calcs)
+        assert data['upload_files_path'] == published.upload_files.os_path
+
+    def test_uploads(self, client, published, admin_user_auth, no_warn):
+        rv = client.post(
+            '/mirror/',
+            content_type='application/json', data='{"query":{}}', headers=admin_user_auth)
+        assert rv.status_code == 200, rv.data
+
+        data = json.loads(rv.data)
+        assert data[0]['upload_id'] == published.upload_id
 
 
 def test_docs(client):

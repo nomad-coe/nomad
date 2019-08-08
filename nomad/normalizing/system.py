@@ -298,7 +298,7 @@ class SystemNormalizer(SystemBasedNormalizer):
             return
 
         # Write data extracted from Matid symmetry analysis to the backend.
-        symGid = self._backend.openSection('section_symmetry')
+        symmetry_gid = self._backend.openSection('section_symmetry')
         # TODO: @dts, should we change the symmetry_method to MATID?
         self._backend.addValue('symmetry_method', 'Matid (spg)')
         self._backend.addValue('space_group_number', space_group_number)
@@ -311,25 +311,25 @@ class SystemNormalizer(SystemBasedNormalizer):
         self._backend.addArrayValues('origin_shift', origin_shift)
         self._backend.addArrayValues('transformation_matrix', transform)
 
-        stdGid = self._backend.openSection('section_std_system')
+        std_gid = self._backend.openSection('section_std_system')
         self._backend.addArrayValues('lattice_vectors_std', conv_cell)
         self._backend.addArrayValues('atom_positions_std', conv_pos)
         self._backend.addArrayValues('atomic_numbers_std', conv_num)
         self._backend.addArrayValues('wyckoff_letters_std', conv_wyckoff)
         self._backend.addArrayValues('equivalent_atoms_std', conv_equivalent_atoms)
-        self._backend.closeSection('section_std_system', stdGid)
+        self._backend.closeSection('section_std_system', std_gid)
 
-        primGid = self._backend.openSection('section_primitive_system')
+        prim_gid = self._backend.openSection('section_primitive_system')
         self._backend.addArrayValues('lattice_vectors_primitive', prim_cell)
         self._backend.addArrayValues('atom_positions_primitive', prim_pos)
         self._backend.addArrayValues('atomic_numbers_primitive', prim_num)
         self._backend.addArrayValues('wyckoff_letters_primitive', prim_wyckoff)
         self._backend.addArrayValues('equivalent_atoms_primitive', prim_equivalent_atoms)
-        self._backend.closeSection('section_primitive_system', primGid)
+        self._backend.closeSection('section_primitive_system', prim_gid)
 
-        origGid = self._backend.openSection('section_original_system')
+        orig_gid = self._backend.openSection('section_original_system')
         self._backend.addArrayValues('wyckoff_letters_original', orig_wyckoff)
         self._backend.addArrayValues('equivalent_atoms_original', orig_equivalent_atoms)
-        self._backend.closeSection('section_original_system', origGid)
+        self._backend.closeSection('section_original_system', orig_gid)
 
-        self._backend.closeSection('section_symmetry', symGid)
+        self._backend.closeSection('section_symmetry', symmetry_gid)

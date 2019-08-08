@@ -1,0 +1,42 @@
+proxy:
+  nodePort: 30005
+  external:
+    host: "staging-nomad.esc.rzg.mpg.de"
+    path: "/uploads"
+
+api:
+  disableReset: false
+
+gui:
+  debug: true
+
+worker:
+  replicas: 1
+  routing: "queue"
+  processes: 10
+
+dbname: fairdi_nomad_staging
+
+postgres:
+  publish_enabled: true
+  mode: 'coe'
+  dbname: 'nomad_staging'
+  host: 'staging-nomad.esc'
+  user: 'nomad_fairdi'
+  password_secret: 'nomad-staging-repository-password'
+
+uploadurl: 'https://staging-nomad.rzg.mpg.de/uploads/gui/upload'
+
+volumes:
+  prefixSize: 2
+  public: /nomad/fairdi/staging/fs/public
+  staging: /nomad/fairdi/staging/fs/staging
+  tmp: /nomad/fairdi/staging/fs/tmp
+  coe_extracted: /nomad/fairdi/staging/fs/extracted
+  nomad: /nomad
+
+mail:
+  enabled: "true"
+  host: 'mailrelay.mpcdf.mpg.de'
+  port: 25
+  from: 'webmaster@nomad-repository.eu'

@@ -1,7 +1,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import periodicTableData from './PeriodicTableData'
-import { withStyles, Typography, Button, Tooltip } from '@material-ui/core'
+import { withStyles, Typography, Button, Tooltip, FormControlLabel, Checkbox } from '@material-ui/core'
 import chroma from 'chroma-js'
 
 const elements = []
@@ -112,12 +112,15 @@ class PeriodicTable extends React.Component {
     aggregations: PropTypes.object,
     metric: PropTypes.string.isRequired,
     values: PropTypes.array.isRequired,
-    onChanged: PropTypes.func.isRequired
+    onChanged: PropTypes.func.isRequired,
+    exclusive: PropTypes.bool,
+    onExclusiveChanged: PropTypes.func.isRequired
   }
 
   static styles = theme => ({
     root: {
-      overflowX: 'scroll'
+      overflowX: 'scroll',
+      position: 'relative'
     },
     table: {
       margin: 'auto',
@@ -126,6 +129,12 @@ class PeriodicTable extends React.Component {
       maxWidth: 900,
       tableLayout: 'fixed',
       borderSpacing: theme.spacing.unit * 0.5
+    },
+    formContainer: {
+      position: 'absolute',
+      top: theme.spacing.unit * 0,
+      left: '10%',
+      textAlign: 'center'
     }
   })
 
@@ -151,7 +160,7 @@ class PeriodicTable extends React.Component {
   }
 
   render() {
-    const {classes, aggregations, metric, values} = this.props
+    const {classes, aggregations, metric, values, exclusive, onExclusiveChanged} = this.props
     const max = aggregations ? Math.max(...this.unSelectedAggregations()) || 1 : 1
     const heatmapScale = chroma.scale(['#ffcdd2', '#d50000']).domain([1, max], 10, 'log')
     return (
@@ -177,6 +186,17 @@ class PeriodicTable extends React.Component {
             ))}
           </tbody>
         </table>
+        <div className={classes.formContainer}>
+          <Tooltip title={
+            'Search for entries with compositions that only (exclusively) contain the ' +
+            'selected atoms. The default is to return all entries that have at least ' +
+            '(inclusively) the selected atoms.'}>
+            <FormControlLabel
+              control={<Checkbox checked={exclusive} onChange={onExclusiveChanged} />}
+              label={'only composition that exclusively contain these atoms'}
+            />
+          </Tooltip>
+        </div>
       </div>
     )
   }

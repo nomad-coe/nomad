@@ -242,6 +242,27 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
+  async getRawFileListFromCalc(uploadId, calcId) {
+    this.onStartLoading()
+    return this.swaggerPromise
+      .then(client => {
+        try {
+          return client.apis.raw.get_file_list_from_calc({
+            upload_id: uploadId,
+            calc_id: calcId,
+            path: null
+          })
+        } catch (e) {
+          console.log(e)
+        }
+      })
+      .catch(this.handleApiError)
+      .then(response => {
+        return response.body
+      })
+      .finally(this.onFinishLoading)
+  }
+
   async repo(uploadId, calcId) {
     this.onStartLoading()
     return this.swaggerPromise
@@ -346,7 +367,7 @@ class Api {
     return this.swaggerPromise
       .then(client => client.apis.uploads.get_upload_command())
       .catch(this.handleApiError)
-      .then(response => response.body.upload_command)
+      .then(response => response.body)
       .finally(this.onFinishLoading)
   }
 }
@@ -460,7 +481,7 @@ class LoginRequiredUnstyled extends React.Component {
     let loginMessage = ''
     if (message) {
       loginMessage = <Typography>
-        {this.props.message} Register for a Nomad Repository account <Link href='http://nomad-repository.eu:8080/NomadRepository-1.1/register/'>here</Link>.
+        {this.props.message} If you do not have a NOMAD Repository account, register <Link href='http://nomad-repository.eu:8080/NomadRepository-1.1/register/'>here</Link>.
       </Typography>
     }
 

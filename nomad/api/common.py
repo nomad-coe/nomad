@@ -52,3 +52,14 @@ def calc_route(ns, prefix: str = ''):
             })(func)
         )
     return decorator
+
+
+def upload_route(ns, prefix: str = ''):
+    """ A resource decorator for /<upload> based routes. """
+    def decorator(func):
+        ns.route('%s/<string:upload_id>' % prefix)(
+            api.doc(params={
+                'upload_id': 'The unique id for the requested upload.'
+            })(func)
+        )
+    return decorator

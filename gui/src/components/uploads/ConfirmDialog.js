@@ -4,9 +4,9 @@ import Button from '@material-ui/core/Button'
 import Dialog from '@material-ui/core/Dialog'
 import DialogActions from '@material-ui/core/DialogActions'
 import DialogContent from '@material-ui/core/DialogContent'
-import DialogContentText from '@material-ui/core/DialogContentText'
 import DialogTitle from '@material-ui/core/DialogTitle'
 import { FormGroup, Checkbox, FormLabel } from '@material-ui/core'
+import Markdown from '../Markdown'
 
 class ConfirmDialog extends React.Component {
   static propTypes = {
@@ -30,10 +30,13 @@ class ConfirmDialog extends React.Component {
         >
           <DialogTitle>Publish data</DialogTitle>
           <DialogContent>
-            <DialogContentText>
+            <Markdown>{`
               If you agree the selected uploads will move out of your private staging
-               area into the public nomad.
-            </DialogContentText>
+              area into the public NOMAD Repository. If you wish to put an embargo
+              on your data it will last upto 36 month. Afterwards, your data will
+              be made public. All public data will be made available under the Creative
+              Commons Attribution license ([CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)).
+            `}</Markdown>
 
             <FormGroup row style={{alignItems: 'center'}}>
               <Checkbox

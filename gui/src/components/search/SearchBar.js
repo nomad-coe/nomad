@@ -124,18 +124,34 @@ class SearchBar extends React.Component {
   getSuggestions(value) {
     value = value.toLowerCase()
 
-    const { data: { aggregations } } = this.props
+    const { data: { quantities } } = this.props
     const suggestions = []
 
-    Object.keys(aggregations).forEach(aggKey => {
-      Object.keys(aggregations[aggKey]).forEach(aggValue => {
-        if (aggValue.toLowerCase().startsWith(value)) {
+    // filter out pseudo quantity total
+    const quantityKeys = Object.keys(quantities).filter(quantity => quantity !== 'total')
+
+    // put authors to the end
+    const authorIndex = quantityKeys.indexOf('authors')
+    if (authorIndex >= 0) {
+      quantityKeys[authorIndex] = quantityKeys.splice(quantityKeys.length - 1, 1, quantityKeys[authorIndex])[0]
+    }
+
+    quantityKeys.forEach(quantity => {
+      Object.keys(quantities[quantity]).forEach(quantityValue => {
+        const quantityValueLower = quantityValue.toLowerCase()
+        if (quantityValueLower.startsWith(value) || (quantity === 'authors' && quantityValueLower.includes(value))) {
           suggestions.push({
-            key: aggKey,
-            value: aggValue
+            key: quantity,
+            value: quantityValue
           })
         }
       })
+    })
+
+    // Always add as comment to the end of suggestions
+    suggestions.push({
+      key: 'comment',
+      value: value
     })
 
     return suggestions

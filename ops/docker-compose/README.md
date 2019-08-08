@@ -20,9 +20,3 @@ The different overrides are:
 The .env file contains some additional config and secrets. The development secrets do
 not matter and are in the git (`.env_development`) and are replaced by real secret on
 the production machine.
-
-### rawapi
-
-Same ad `nomad` but in `rawapi` you find everything to just run the *rawapi*. This is a
-partial api that only serves raw files. It is used by the *materials project* to
-download NOMAD-coe files from Garching. It will be removed after consolidation.

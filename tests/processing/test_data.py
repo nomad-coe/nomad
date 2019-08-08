@@ -18,6 +18,7 @@ from datetime import datetime
 import os.path
 import json
 import re
+import shutil
 
 from nomad import utils, infrastructure, config, datamodel
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
@@ -53,7 +54,7 @@ def run_processing(uploaded: Tuple[str, str], test_user) -> Upload:
     uploaded_id, uploaded_path = uploaded
     upload = Upload.create(
         upload_id=uploaded_id, user=test_user, upload_path=uploaded_path)
-    upload.upload_time = datetime.now()
+    upload.upload_time = datetime.utcnow()
 
     assert upload.tasks_status == 'RUNNING'
     assert upload.current_task == 'uploading'
@@ -70,6 +71,7 @@ def assert_processing(upload: Upload, published: bool = False):
     assert upload.upload_id is not None
     assert len(upload.errors) == 0
     assert upload.tasks_status == SUCCESS
+    assert upload.joined
 
     upload_files = UploadFiles.get(upload.upload_id, is_authorized=lambda: True)
     if published:
@@ -107,6 +109,14 @@ def test_processing(processed, no_warn, mails, monkeypatch):
 
     assert len(mails.messages) == 1
     assert re.search(r'Processing completed', mails.messages[0].data.decode('utf-8')) is not None
+
+
+def test_processing_with_large_dir(test_user, proc_infra):
+    upload_path = 'tests/data/proc/examples_large_dir.zip'
+    upload_id = upload_path[:-4]
+    upload = run_processing((upload_id, upload_path), test_user)
+    for calc in upload.calcs:
+        assert len(calc.warnings) == 1
 
 
 def test_publish(non_empty_processed: Upload, no_warn, example_user_metadata, with_publish_to_coe_repo, monkeypatch):
@@ -229,6 +239,90 @@ def test_process_non_existing(proc_infra, test_user, with_error):
     assert upload.current_task == 'extracting'
     assert upload.tasks_status == FAILURE
     assert len(upload.errors) > 0
+
+
+@pytest.mark.timeout(config.tests.default_timeout)
+@pytest.mark.parametrize('with_failure', [None, 'before', 'after'])
+def test_re_processing(published: Upload, example_user_metadata, monkeypatch, with_failure):
+    if with_failure == 'before':
+        calc = published.all_calcs(0, 1).first()
+        calc.tasks_status = FAILURE
+        calc.errors = ['example error']
+        calc.save()
+        assert published.failed_calcs > 0
+
+    assert published.published
+    assert published.upload_files.to_staging_upload_files() is None
+
+    with_failure = with_failure == 'after'
+
+    old_upload_time = published.last_update
+    first_calc = published.all_calcs(0, 1).first()
+    old_calc_time = first_calc.metadata['last_processing']
+
+    if not with_failure:
+        with published.upload_files.archive_log_file(first_calc.calc_id) as f:
+            old_log_line = f.readline()
+    old_archive_files = list(
+        archive_file
+        for archive_file in os.listdir(published.upload_files.os_path)
+        if 'archive' in archive_file)
+    for archive_file in old_archive_files:
+        with open(published.upload_files.join_file(archive_file).os_path, 'wt') as f:
+            f.write('')
+
+    if with_failure:
+        raw_files = 'tests/data/proc/examples_template_unparsable.zip'
+    else:
+        raw_files = 'tests/data/proc/examples_template_different_atoms.zip'
+    shutil.copyfile(
+        raw_files, published.upload_files.join_file('raw-restricted.plain.zip').os_path)
+
+    upload = published.to_upload_with_metadata(example_user_metadata)
+
+    # reprocess
+    monkeypatch.setattr('nomad.config.version', 're_process_test_version')
+    monkeypatch.setattr('nomad.config.commit', 're_process_test_commit')
+    published.reset()
+    published.re_process_upload()
+    try:
+        published.block_until_complete(interval=.01)
+    except Exception:
+        pass
+
+    published.reload()
+    first_calc.reload()
+
+    # assert new process time
+    assert published.last_update > old_upload_time
+    assert first_calc.metadata['last_processing'] > old_calc_time
+
+    # assert new process version
+    assert first_calc.metadata['nomad_version'] == 're_process_test_version'
+    assert first_calc.metadata['nomad_commit'] == 're_process_test_commit'
+
+    # assert changed archive files
+    if not with_failure:
+        for archive_file in old_archive_files:
+            assert os.path.getsize(published.upload_files.join_file(archive_file).os_path) > 0
+
+    # assert changed archive log files
+    if not with_failure:
+        with published.upload_files.archive_log_file(first_calc.calc_id) as f:
+            new_log_line = f.readline()
+        assert old_log_line != new_log_line
+
+    # assert maintained user metadata (mongo+es)
+    assert_upload_files(upload, PublicUploadFiles, published=True)
+    assert_search_upload(upload, published=True)
+    if not with_failure:
+        assert_processing(Upload.get(upload.upload_id, include_published=True), published=True)
+
+    # assert changed calc metadata (mongo)
+    if not with_failure:
+        assert first_calc.metadata['atoms'][0] == 'H'
+    else:
+        assert first_calc.metadata['atoms'][0] == 'Br'
 
 
 def mock_failure(cls, task, monkeypatch):

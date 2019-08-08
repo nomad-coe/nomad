@@ -32,7 +32,7 @@ from nomad.processing import ProcessAlreadyRunning
 
 from .app import api, with_logger, RFC3339DateTime
 from .auth import login_really_required
-from .common import pagination_request_parser, pagination_model
+from .common import pagination_request_parser, pagination_model, upload_route
 
 
 ns = api.namespace(
@@ -268,19 +268,20 @@ class UploadListResource(Resource):
             if local_path:
                 # file is already there and does not to be received
                 upload_path = local_path
-            elif request.mimetype == 'application/multipart-formdata':
+            elif request.mimetype in ['multipart/form-data', 'application/multipart-formdata']:
                 logger.info('receive upload as multipart formdata')
+                upload_path = files.PathObject(config.fs.tmp, upload_id).os_path
                 # multipart formdata, e.g. with curl -X put "url" -F file=@local_file
                 # might have performance issues for large files: https://github.com/pallets/flask/issues/2086
-                if 'file' in request.files:
+                if 'file' not in request.files:
                     abort(400, message='Bad multipart-formdata, there is no file part.')
                 file = request.files['file']
                 if upload_name is None or upload_name is '':
                     upload_name = file.filename
 
-                upload_path = files.PathObject(config.fs.tmp, upload_id).os_path
                 file.save(upload_path)
             else:
+                print(request.mimetype)
                 # simple streaming data in HTTP body, e.g. with curl "url" -T local_file
                 logger.info('started to receive upload streaming data')
                 upload_path = files.PathObject(config.fs.tmp, upload_id).os_path
@@ -314,7 +315,7 @@ class UploadListResource(Resource):
             upload_id=upload_id,
             user=g.user,
             name=upload_name,
-            upload_time=datetime.now(),
+            upload_time=datetime.utcnow(),
             upload_path=upload_path,
             temporary=local_path != upload_path)
 
@@ -342,8 +343,7 @@ class ProxyUpload:
         return self.upload.__getattribute__(name)
 
 
-@ns.route('/<string:upload_id>')
-@api.doc(params={'upload_id': 'The unique id for the requested upload.'})
+@upload_route(ns)
 class UploadResource(Resource):
     @api.doc('get_upload')
     @api.response(404, 'Upload does not exist')
@@ -445,7 +445,7 @@ class UploadResource(Resource):
     @login_really_required
     def post(self, upload_id):
         """
-        Execute an upload operation. Available operations: ``publish``
+        Execute an upload operation. Available operations are ``publish`` and ``re-process``
 
         Publish accepts further meta data that allows to provide coauthors, comments,
         external references, etc. See the model for details. The fields that start with
@@ -453,6 +453,10 @@ class UploadResource(Resource):
 
         Publish changes the visibility of the upload. Clients can specify the visibility
         via meta data.
+
+        Re-process will re-process the upload and produce updated repository metadata and
+        archive. Only published uploads that are not processing at the moment are allowed.
+        Only for uploads where calculations have been processed with an older nomad version.
         """
         try:
             upload = Upload.get(upload_id)
@@ -489,13 +493,29 @@ class UploadResource(Resource):
                 abort(400, message='The upload is still/already processed')
 
             return upload, 200
+        elif operation == 're-process':
+            if upload.tasks_running or upload.process_running or not upload.published:
+                abort(400, message='Can only non processing, re-process published uploads')
 
-        abort(400, message='Unsuported operation %s.' % operation)
+            if len(metadata) > 0:
+                abort(400, message='You can not provide metadata for re-processing')
+
+            if len(upload.outdated_calcs) == 0:
+                abort(400, message='You can only re-process uploads with at least one outdated calculation')
+
+            upload.reset()
+            upload.re_process_upload()
+
+            return upload, 200
+
+        abort(400, message='Unsupported operation %s.' % operation)
 
 
 upload_command_model = api.model('UploadCommand', {
     'upload_url': fields.Url,
-    'upload_command': fields.String
+    'upload_command': fields.String,
+    'upload_progress_command': fields.String,
+    'upload_tar_command': fields.String
 })
 
 
@@ -508,7 +528,20 @@ class UploadCommandResource(Resource):
         """ Get url and example command for shell based uploads. """
         upload_url = '%s/uploads/?curl=True' % config.api_url()
 
-        upload_command = 'curl -X PUT -H "X-Token: %s" "%s" -F file=@<local_file>' % (
+        # upload_command = 'curl -X PUT -H "X-Token: %s" "%s" -F file=@<local_file>' % (
+        #     g.user.get_auth_token().decode('utf-8'), upload_url)
+
+        # Upload via streaming data tends to work much easier, e.g. no mime type issues, etc.
+        # It is also easier for the user to unterstand IMHO.
+        upload_command = 'curl -H X-Token:%s %s -T <local_file>' % (
             g.user.get_auth_token().decode('utf-8'), upload_url)
 
-        return dict(upload_url=upload_url, upload_command=upload_command), 200
+        upload_progress_command = upload_command + ' | xargs echo'
+        upload_tar_command = 'tar -cf - <local_folder> | curl -# -H X-Token:%s %s -T - | xargs echo' % (
+            g.user.get_auth_token().decode('utf-8'), upload_url)
+
+        return dict(
+            upload_url=upload_url,
+            upload_command=upload_command,
+            upload_progress_command=upload_progress_command,
+            upload_tar_command=upload_tar_command), 200

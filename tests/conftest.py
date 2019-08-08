@@ -329,6 +329,24 @@ def bravado(client, postgres, test_user_auth):
 
 
 @pytest.fixture(scope='function')
+def admin_user_bravado_client(client, admin_user_auth, monkeypatch):
+    def create_client():
+        http_client = FlaskTestHttpClient(client, headers=admin_user_auth)
+        return SwaggerClient.from_url('/swagger.json', http_client=http_client)
+
+    monkeypatch.setattr('nomad.cli.client.create_client', create_client)
+
+
+@pytest.fixture(scope='function')
+def test_user_bravado_client(client, test_user_auth, monkeypatch):
+    def create_client():
+        http_client = FlaskTestHttpClient(client, headers=test_user_auth)
+        return SwaggerClient.from_url('/swagger.json', http_client=http_client)
+
+    monkeypatch.setattr('nomad.cli.client.create_client', create_client)
+
+
+@pytest.fixture(scope='function')
 def no_warn(caplog):
     yield caplog
     for record in caplog.get_records(when='call'):
@@ -494,7 +512,7 @@ def example_user_metadata(other_test_user, test_user) -> dict:
         'references': ['http://external.ref/one', 'http://external.ref/two'],
         '_uploader': other_test_user.user_id,
         'coauthors': [test_user.user_id],
-        '_upload_time': datetime.datetime.now(),
+        '_upload_time': datetime.datetime.utcnow(),
         '_pid': 256
     }
 
@@ -546,6 +564,22 @@ def non_empty_processed(non_empty_uploaded: Tuple[str, str], test_user: coe_repo
     return test_processing.run_processing(non_empty_uploaded, test_user)
 
 
+@pytest.mark.timeout(config.tests.default_timeout)
+@pytest.fixture(scope='function')
+def published(non_empty_processed: processing.Upload, example_user_metadata) -> processing.Upload:
+    """
+    Provides a processed upload. Upload was uploaded with test_user.
+    """
+    non_empty_processed.compress_and_set_metadata(example_user_metadata)
+    non_empty_processed.publish_upload()
+    try:
+        non_empty_processed.block_until_complete(interval=.01)
+    except Exception:
+        pass
+
+    return non_empty_processed
+
+
 @pytest.fixture(scope='function', params=[None, 'fairdi', 'coe'])
 def with_publish_to_coe_repo(monkeypatch, request):
     mode = request.param
@@ -553,3 +587,14 @@ def with_publish_to_coe_repo(monkeypatch, request):
         monkeypatch.setattr('nomad.config.repository_db.publish_enabled', True)
         monkeypatch.setattr('nomad.config.repository_db.mode', mode)
     return request.param is not None
+
+
+@pytest.fixture
+def reset_config():
+    """ Fixture that resets the log-level after test. """
+    service = config.service
+    log_level = config.console_log_level
+    yield None
+    config.service = service
+    config.console_log_level = log_level
+    infrastructure.setup_logging()

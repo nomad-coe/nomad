@@ -24,51 +24,35 @@ class DomainProviderBase extends React.Component {
     DFT: {
       name: 'DFT',
       about: `
-        ## The nomad**@FAIRDI** (*beta*)
+        ### The New Nomad Data Upload
 
-        ### About nomad@FAIRDI
+        This web-page was created to complement to the original
+        [NOMAD Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1).
+        You upload, process, inspect, and publish your data here. Here you will be able
+        to search and explore uploaded data. However, to add comments, co-authors, and references,
+        create data-sets, and manage your account, you will still have to use the original
+        [NOMAD Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1).
 
-        After the conclusion of the original [NOMAD-coe](http://nomad-coe.eu) project,
-        the newly founded NGO *FAIR Data Infrastructures* (FAIRDI) provides an
-        umbrella to continue operation and further development of the Nomad
-        material science data sharing platform.
+        In the future, this web-page will include more and more features of other NOMAD
+        components as an effort to consolidate the various web applications from the
+        NOMAD Repository, Archive, Metainfo, Encyclopedia, and Analytics Toolkit.
 
-        The immediate goal is to to consolidate and stabilize the nomad infrastructure, and
-        as a first step, we refined the Nomad upload and data processing. This GUI introduces
-        the *staging area* that allows you to observe your uploads processing and inspect
-        the uploaded data before you decide to either publish your data or delete your upload again.
-
-        Currently this is designed as a complement to the original [Nomad Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1).
-        You upload, process, inspect, and publish your data here. Here you have some
-        capabilities to search and explore uploaded data. But to add comments, co-authors, and references,
-        create data-sets, and manage your account you still have to use the original [Nomad Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1).
-
-        This GUI allows you to (menu on the left):
-        * About: read about this, access the documentation, and API.
-        * Search: inspect for existing data, your's and others (currently the search will only changed new data uploaded through nomad@FAIRDI).
-        * Upload: drop data, view the processing, and publish your uploads.
-        * Metainfo: browse the *metainfo*, Nomad's (meta-)data schema for processed data.
-
-        ### How to use the new upload and processing
-
-        **!Please read this, before you explore this new part of Nomad!**
-
-        Feel free to explore this *new* part of Nomad, but expect that not everything will
-        be working perfectly. Travel through the menu on the left and just
-        use it. Feel free to upload data, look for limitations and things you do not like.
-        The goal should be to figure out what is wrong and missing.
-
-        Keep in mind that there are limitations:
-        * You can only login with users that already exist in the Nomad Repository. If you
-        are new to Nomad, visit the [Nomad Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1)
+        ### Limitations
+        You can only login with users that already exist in the NOMAD Repository. If you
+        are new to NOMAD, visit the [NOMAD Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1)
         or register for a user account [here](http://nomad-repository.eu:8080/NomadRepository-1.1/register/).
-        * When you published your data here, it will still take a day to index. Therefore,
-        your data will not appear in the Nomad Repository immediately.
-        * The existing entries from the original Nomad do not appear in the search. We
-        are currently migrating the data. You will be able to see all your data, old and new, soon.
 
-        For feedback and any issues you find, feel free to [open an issue](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/issues) or write
-        an email to [markus.scheidgen@physik.hu-berlin.de](mailto:markus.scheidgen@physik.hu-berlin.de).
+        When you have published your data with the new upload process (menu item on the
+        left of this page) you will still have to wait about a day for indexing to
+        take place and have your calculation show up in the Nomad Repository GUI.
+        Therefore, you should not expect your data to appear in the NOMAD Repository immediately.
+
+        We have migrated all data from the NOMAD Repository to this new system. However, not
+        all of the data was successfully processed by the new and more powerful parsers.
+        We will continue to improve the parsers to raise the quality of archive data overtime.
+        For some entries, no archive data might be currently available and some metadata might
+        still be missing when you are exploring Nomad data using the new search and data
+        exploring capabilities (menu items on the left).
       `,
       entryLabel: 'calculation',
       searchPlaceholder: 'enter atoms, codes, functionals, or other quantity values',
@@ -158,10 +142,10 @@ class DomainProviderBase extends React.Component {
 
         The original goal of the NOMAD CoE project was to provide a data sharing and
         publication platform for computational material science data. With this prototype,
-        we want to apply Nomad ideas and implementations to experimental material science
+        we want to apply NOMAD ideas and implementations to experimental material science
         data.
 
-        As a first step, this site demonstrates Nomad's \`domain specific\` search interface
+        As a first step, this site demonstrates NOMAD's \`domain specific\` search interface
         and how experiment (meta-)data can be represented. We want to explore what
         meta-data exists for material experiments, what is necessary to provide meaningful
         search capabilities, how we can implement FAIR data sharing principles, and

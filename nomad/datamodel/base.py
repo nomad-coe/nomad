@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Iterable, List, Dict, Type, Tuple
+from typing import Iterable, List, Dict, Type, Tuple, Callable, Any
 import datetime
 from elasticsearch_dsl import Keyword
 
@@ -85,7 +85,6 @@ class CalcWithMetadata():
         # basic upload and processing related metadata
         self.upload_time: datetime.datetime = None
         self.files: List[str] = None
-        self.file_sizes: List[int] = None
         self.uploader: utils.POPO = None
         self.processed: bool = False
         self.last_processing: datetime.datetime = None
@@ -169,24 +168,53 @@ class DomainQuantity:
             0 (the default) means no aggregations.
         metric: Indicates that this quantity should be used as search metric. Values need
             to be tuples with metric name and elastic aggregation (e.g. sum, cardinality)
+        zero_aggs: Return aggregation values for values with zero hits in the search. Default
+            is with zero aggregations.
         elastic_mapping: An optional elasticsearch_dsl mapping. Default is ``Keyword``.
+        elastic_search_type: An optional elasticsearch search type. Default is ``term``.
+        elastic_field: An optional elasticsearch key. Default is the name of the quantity.
+        elastic_value: A collable that takes a :class:`CalcWithMetadata` as input and produces the
+            value for the elastic search index.
     """
 
     def __init__(
             self, description: str = None, multi: bool = False, aggregations: int = 0,
             order_default: bool = False, metric: Tuple[str, str] = None,
-            elastic_mapping=None):
+            zero_aggs: bool = True, metadata_field: str = None,
+            elastic_mapping: str = None,
+            elastic_search_type: str = 'term', elastic_field: str = None,
+            elastic_value: Callable[[Any], Any] = None):
 
-        self.name: str = None
+        self._name: str = None
         self.description = description
         self.multi = multi
         self.order_default = order_default
         self.aggregations = aggregations
         self.metric = metric
+        self.zero_aggs = zero_aggs
         self.elastic_mapping = elastic_mapping
+        self.elastic_search_type = elastic_search_type
+        self.metadata_field = metadata_field
+        self.elastic_field = elastic_field
+
+        self.elastic_value = elastic_value
+        if self.elastic_value is None:
+            self.elastic_value = lambda o: o
 
         if self.elastic_mapping is None:
             self.elastic_mapping = Keyword(multi=self.multi)
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, name: str) -> None:
+        self._name = name
+        if self.metadata_field is None:
+            self.metadata_field = name
+        if self.elastic_field is None:
+            self.elastic_field = name
 
 
 class Domain:
@@ -217,6 +245,32 @@ class Domain:
     instance: 'Domain' = None
     instances: Dict[str, 'Domain'] = {}
 
+    base_quantities = dict(
+        authors=DomainQuantity(
+            elastic_field='authors.name.keyword', multi=True, aggregations=1000,
+            description=(
+                'Search for the given author. Exact keyword matches in the form "Lastname, '
+                'Firstname".')),
+        comment=DomainQuantity(
+            elastic_search_type='match', multi=True,
+            description='Search within the comments. This is a text search ala google.'),
+        paths=DomainQuantity(
+            elastic_search_type='match', elastic_field='files', multi=True,
+            description='Search for elements in one of the file paths. The paths are split at all "/".'),
+        files=DomainQuantity(
+            elastic_field='files.keyword', multi=True,
+            description='Search for exact file name with full path.'),
+        quantities=DomainQuantity(
+            multi=True,
+            description='Search for the existence of a certain meta-info quantity'),
+        upload_id=DomainQuantity(description='Search for the upload_id.'),
+        calc_id=DomainQuantity(description='Search for the calc_id.'),
+        pid=DomainQuantity(description='Search for the pid.'),
+        mainfile=DomainQuantity(description='Search for the mainfile.'),
+        datasets=DomainQuantity(
+            elastic_field='datasets.name', multi=True,
+            description='Search for a particular dataset by name.'))
+
     def __init__(
             self, name: str, domain_entry_class: Type[CalcWithMetadata],
             quantities: Dict[str, DomainQuantity],
@@ -237,19 +291,32 @@ class Domain:
         reference_domain_calc = domain_entry_class()
         reference_general_calc = CalcWithMetadata()
 
-        for quantity_name, value in reference_domain_calc.__dict__.items():
+        # add non specified quantities from additional metadata class fields
+        for quantity_name in reference_domain_calc.__dict__.keys():
             if not hasattr(reference_general_calc, quantity_name):
                 quantity = quantities.get(quantity_name, None)
-                if quantity is None:
-                    quantity = DomainQuantity()
-                    quantities[quantity_name] = quantity
-                quantity.name = quantity_name
-                quantity.multi = isinstance(value, list)
-                self.quantities[quantity.name] = quantity
 
-        for quantity_name in quantities.keys():
-            assert hasattr(reference_domain_calc, quantity_name) and not hasattr(reference_general_calc, quantity_name), \
-                'quantity does not exist or overrides general non domain quantity'
+                if quantity is None:
+                    quantities[quantity_name] = DomainQuantity()
+
+        # add all domain quantities
+        for quantity_name, quantity in quantities.items():
+            quantity.name = quantity_name
+            self.quantities[quantity.name] = quantity
+
+            # update the multi status from an example value
+            if quantity.metadata_field in reference_domain_calc.__dict__:
+                quantity.multi = isinstance(
+                    reference_domain_calc.__dict__[quantity.metadata_field], list)
+
+            assert not hasattr(reference_general_calc, quantity_name), \
+                'quantity overrides general non domain quantity'
+
+        # construct search quantities from base and domain quantities
+        self.search_quantities = dict(**Domain.base_quantities)
+        for quantity_name, quantity in self.search_quantities.items():
+            quantity.name = quantity_name
+        self.search_quantities.update(self.quantities)
 
         assert any(quantity.order_default for quantity in Domain.instances[name].quantities.values()), \
             'you need to define a order default quantity'
@@ -278,7 +345,7 @@ class Domain:
         """
         return {
             quantity.name: quantity.aggregations
-            for quantity in self.quantities.values()
+            for quantity in self.search_quantities.values()
             if quantity.aggregations > 0
         }
 

@@ -177,7 +177,7 @@ class Proc(Document, metaclass=ProcMetaclass):
         assert 'tasks_status' not in kwargs, \
             """ do not set the status manually, its managed """
 
-        kwargs.setdefault('create_time', datetime.now())
+        kwargs.setdefault('create_time', datetime.utcnow())
         self = cls(**kwargs)
         if len(cls.tasks) == 0:
             self.tasks_status = SUCCESS
@@ -186,6 +186,16 @@ class Proc(Document, metaclass=ProcMetaclass):
         self.save()
 
         return self
+
+    def reset(self):
+        """ Resets the task chain. Assumes there no current running process. """
+        assert not self.process_running
+
+        self.current_task = None
+        self.tasks_status = PENDING
+        self.errors = []
+        self.warnings = []
+        self.worker_hostname = None
 
     @classmethod
     def get_by_id(cls, id: str, id_field: str):
@@ -236,7 +246,7 @@ class Proc(Document, metaclass=ProcMetaclass):
                     exc_info=error, error=str(error))
 
         self.errors = [str(error) for error in errors]
-        self.complete_time = datetime.now()
+        self.complete_time = datetime.utcnow()
 
         if not failed_with_exception:
             errors_str = "; ".join([str(error) for error in errors])
@@ -261,12 +271,12 @@ class Proc(Document, metaclass=ProcMetaclass):
         tasks = self.__class__.tasks
         assert task in tasks, 'task %s must be one of the classes tasks %s' % (task, str(tasks))  # pylint: disable=E1135
         if self.current_task is None:
-            assert task == tasks[0], "process has to start with first task"  # pylint: disable=E1136
+            assert task == tasks[0], "process has to start with first task %s" % tasks[0]  # pylint: disable=E1136
         elif tasks.index(task) <= tasks.index(self.current_task):
             # task is repeated, probably the celery task of the process was reschedule
             # due to prior worker failure
             self.current_task = task
-            self.get_logger().warning('task is re-run')
+            self.get_logger().error('task is re-run')
             self.save()
             return True
         else:
@@ -293,7 +303,7 @@ class Proc(Document, metaclass=ProcMetaclass):
         if self.tasks_status != FAILURE:
             assert self.tasks_status == RUNNING, 'Can only complete a running process, process is %s' % self.tasks_status
             self.tasks_status = SUCCESS
-            self.complete_time = datetime.now()
+            self.complete_time = datetime.utcnow()
             self.on_tasks_complete()
             self.save()
             self.get_logger().info('completed process')
@@ -500,7 +510,7 @@ def process(func):
     def wrapper(self, *args, **kwargs):
         assert len(args) == 0 and len(kwargs) == 0, 'process functions must not have arguments'
         if self.process_running:
-            raise ProcessAlreadyRunning
+            raise ProcessAlreadyRunning('Tried to call a processing function on an already processing process.')
 
         self.current_process = func.__name__
         self.process_status = PROCESS_CALLED

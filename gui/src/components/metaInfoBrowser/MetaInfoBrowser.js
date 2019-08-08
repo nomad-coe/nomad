@@ -4,12 +4,41 @@ import { withRouter } from 'react-router-dom'
 import Viewer from './Viewer'
 import PropTypes from 'prop-types'
 import { withApi } from '../api'
-import { Help } from '../help'
 import MetainfoSearch from './MetainfoSearch'
 import { FormControl, withStyles, Select, Input, MenuItem, ListItemText, InputLabel } from '@material-ui/core'
 import { compose } from 'recompose'
 import { schema } from '../MetaInfoRepository'
 
+export const help = `
+The NOMAD *metainfo* defines all quantities used to represent archive data in
+NOMAD. You could say it is the archive *schema*. You can browse this schema and
+all its definitions here.
+
+The NOMAD metainfo knows three different *kinds* of definitions:
+
+- **sections**: A section are nested groups of quantities that allow a hierarchical data structure
+- **values**: Actual quantities that contain data
+- **references**: References that allow to connect related sections.
+
+All definitions have a name that you can search for. Furthermore, all definitions
+are organized in packages. There is a *common* package with definitions that are
+used by all codes and there are packages for each code with code specific definitions.
+You can select the package to browse below.
+
+Depending on the selected package, there are quiet a large number of definitions.
+You can use the *definition* field to search based on definition names.
+
+All definitions are represented as *cards* below. Click on the various card items
+to expand sub-sections, open values or references, hide and show compartments, or
+collapse cards again. The highlighted *main* card cannot be collapsed. The
+shapes in the background represent section containment (grey) and
+reference (blue) relations.
+
+If you bookmark this page, you can save the definition represented by the highlighted
+*main* card.
+
+To learn more about the meta-info, visit the [meta-info homepage](https://metainfo.nomad-coe.eu/nomadmetainfo_public/archive.html).
+`
 const ITEM_HEIGHT = 48
 const ITEM_PADDING_TOP = 8
 const MenuProps = {
@@ -131,34 +160,6 @@ class MetaInfoBrowser extends Component {
 
     return <div>
       <div className={classes.forms}>
-        <Help cookie="uploadList">{`
-          The nomad *metainfo* defines all quantities used to represent archive data in
-          nomad. You could say it is the archive *schema*. You can browse this schema and
-          all its definitions here.
-
-          The nomad metainfo knows three different *kinds* of definitions:
-
-          - **sections**: A section are nested groups of quantities that allow a hierarchical data structure
-          - **values**: Actual quantities that contain data
-          - **references**: References that allow to connect related sections.
-
-          All definitions have a name that you can search for. Furthermore, all definitions
-          are organized in packages. There is a *common* package with definitions that are
-          used by all codes and there are packages for each code with code specific definitions.
-          You can select the package to browse below.
-
-          Depending on the selected package, there are quiet a large number of definitions.
-          You can use the *definition* field to search based on definition names.
-
-          All definitions are represented as *cards* below. Click on the various card items
-          to expand sub-sections, open values or references, hide and show compartments, or
-          collapse cards again. The highlighted *main* card cannot be collapsed. The
-          shapes in the background represent section containment (grey) and
-          reference (blue) relations.
-
-          If you bookmark this page, you can save the definition represented by the highlighted
-          *main* card.
-        `}</Help>
         <form style={{ display: 'flex' }}>
           <FormControl disabled={loading > 0}>
             <InputLabel htmlFor="select-multiple-checkbox">Package</InputLabel>

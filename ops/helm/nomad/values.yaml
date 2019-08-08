@@ -61,6 +61,8 @@ gui:
   replicas: 1
   ## This port is hard coded into the frontend image, it cannot be really changed
   port: 8080
+  ## This variable is used in the GUI to show or hide additional information
+  debug: false
 
 ## Everything concerning the proxy that combined gui, api, kibana
 #  It is run via NodePort service

@@ -14,11 +14,6 @@ The chart does not run any databases and search engines. Those are supposed to r
 separately (see also *nomad-full* for an alternative approach) and their hosts, etc.
 can be configures via helm values.
 
-### rawapi
-
-Similar to *nomad* and similar to *rawapi* in `docker-compose`. Runs rawapi solo for
-the *materials project*.
-
 ### nomad-full
 
 This chart is under development. It is an attempt to also run all required databases

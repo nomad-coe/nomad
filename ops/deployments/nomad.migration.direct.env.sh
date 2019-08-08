@@ -7,3 +7,5 @@ export NOMAD_FS_LOCAL_TMP=/nomad/fairdi/migration/fs/tmp
 export NOMAD_FS_STAGING=/nomad/fairdi/migration/fs/staging
 export NOMAD_FS_PUBLIC=/nomad/fairdi/migration/fs/public
 export NOMAD_FS_TMP=/nomad/fairdi/migration/fs/tmp
+export NOMAD_CELERY_ROUTING=worker
+export NOMAD_REPOSITORY_DB_DBNAME=fairdi_nomad_migration

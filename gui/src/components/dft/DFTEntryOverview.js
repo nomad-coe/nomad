@@ -15,6 +15,9 @@ export default class DFTEntryOverview extends React.Component {
     return (
       <Quantity column>
         <Quantity row>
+          <Quantity quantity="formula" label='formula' noWrap {...this.props} />
+        </Quantity>
+        <Quantity row>
           <Quantity quantity="code_name" label='dft code' noWrap {...this.props} />
           <Quantity quantity="code_version" label='dft code version' noWrap {...this.props} />
         </Quantity>

@@ -5,7 +5,6 @@ import { compose } from 'recompose'
 import { withApi } from '../api'
 import Download from './Download'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
-import { Help } from '../help'
 
 class ArchiveLogView extends React.Component {
   static propTypes = {
@@ -63,10 +62,6 @@ class ArchiveLogView extends React.Component {
 
     return (
       <div className={classes.root}>
-        <Help cookie="archiveLogView">{`
-          This log was creating during parsing and normalizing. If you uploaded data
-          that did not process correctly, these logs might offer some clues.
-        `}</Help>
         <pre>{data || 'empty log'}</pre>
 
         <Download

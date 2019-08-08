@@ -19,6 +19,7 @@ DFT specific metadata
 from typing import List
 import re
 from elasticsearch_dsl import Integer
+import ase.data
 
 from nomad import utils, config
 
@@ -155,14 +156,23 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.n_geometries = n_geometries
 
 
+def only_atoms(atoms):
+    numbers = [ase.data.atomic_numbers[atom] for atom in atoms]
+    only_atoms = [ase.data.chemical_symbols[number] for number in sorted(numbers)]
+    return ''.join(only_atoms)
+
+
 Domain('DFT', DFTCalcWithMetadata, quantities=dict(
     formula=DomainQuantity(
         'The chemical (hill) formula of the simulated system.',
         order_default=True),
     atoms=DomainQuantity(
         'The atom labels of all atoms in the simulated system.',
-        # aggregations=len(ase.data.chemical_symbols)),
-        aggregations=200, multi=True),  # quickfix for bad atom labels
+        aggregations=len(ase.data.chemical_symbols), multi=True, zero_aggs=False),
+    only_atoms=DomainQuantity(
+        'The atom labels concatenated in species-number order. Used with keyword search '
+        'to facilitate exclusive searches.',
+        elastic_value=only_atoms, metadata_field='atoms', multi=True),
     basis_set=DomainQuantity(
         'The used basis set functions.', aggregations=10),
     xc_functional=DomainQuantity(

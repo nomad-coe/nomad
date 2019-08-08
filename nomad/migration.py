@@ -26,7 +26,7 @@ import multiprocessing.pool
 import time
 import os
 import os.path
-import zipfile
+import sys
 import tarfile
 import math
 from mongoengine import Document, IntField, StringField, DictField, BooleanField
@@ -46,6 +46,11 @@ from nomad.coe_repo import User, Calc, LoginException
 from nomad.datamodel import CalcWithMetadata
 from nomad.processing import FAILURE
 
+
+if sys.version_info >= (3, 7):
+    import zipfile
+else:
+    import zipfile37 as zipfile
 
 default_pid_prefix = 7000000
 """ The default pid prefix for new non migrated calculations """
@@ -123,7 +128,7 @@ def create_package_zip(
     logger.info('package zip created')
 
 
-def missing_calcs_data():
+def missing_calcs_data(start_pid: int = 0):
     """ Produces data about missing calculations """
     results = utils.POPO(
         no_package=[],
@@ -135,6 +140,8 @@ def missing_calcs_data():
 
     # not not check these uploads
     not_check_uploads = [
+        'fairdi',  # these are links to uploads already processed with nomad@fairdi
+        'nomad',  # these are links to uploads already processed with nomad@fairdi
         'ftp_upload_for_uid_125',
         'ftp_upload_for_uid_290',
         'ftp_upload_for_uid_502_2011-09-06-15-33-33-333221',
@@ -217,7 +224,7 @@ def missing_calcs_data():
 
     # aggregate missing calcs based on uploads
     source_uploads = SourceCalc._get_collection().aggregate([
-        {'$match': {'migration_version': -1, 'upload': {'$nin': not_check_uploads}}},
+        {'$match': {'migration_version': -1, '_id': {'$gte': start_pid}, 'upload': {'$nin': not_check_uploads}}},
         {'$group': {'_id': '$upload', 'calcs': {'$push': {'mainfile': '$mainfile', 'pid': '$metadata.pid'}}}}])
     source_uploads = list(source_uploads)
 
@@ -391,6 +398,8 @@ class Package(Document):
     """ The report of the last successful migration of this package """
     skip_migration = BooleanField()
     """ Packages with known problems can be marked to be not migrated """
+    skip_migration_reason = StringField()
+    """ Optional description of the reason for skipping migration """
 
     migration_failure = StringField()
     """ String that describe the cause for last failed migration attempt """
@@ -399,6 +408,8 @@ class Package(Document):
 
     next_offset = IntField(default=-1)
     """ Only for packages created from large tars. Give the offset to continue to create the next package. """
+    no_provernance = BooleanField(default=False)
+    """ Does this package have calculations in the CoE Repository postgres db """
 
     meta = dict(indexes=['upload_id', 'migration_version'])
 
@@ -892,8 +903,9 @@ class SourceCalc(Document):
     _dataset_cache: dict = {}
 
     @staticmethod
-    def index(source, drop: bool = False, with_metadata: bool = True, per_query: int = 100) \
-            -> Generator[Tuple['SourceCalc', int], None, None]:
+    def index(
+            source, drop: bool = False, with_metadata: bool = True, per_query: int = 100,
+            start_pid: int = -1) -> Generator[Tuple['SourceCalc', int], None, None]:
         """
         Creates a collection of :class:`SourceCalc` documents that represent source repo
         db entries.
@@ -907,6 +919,7 @@ class SourceCalc(Document):
                 query on the CoE snoflake/star shaped schema.
                 The query cannot ask for the whole db at once: choose how many calculations
                 should be read at a time to optimize for your application.
+            start_pid: Only index calculations with PID greater equal the given value
 
         Returns:
             yields tuples (:class:`SourceCalc`, #calcs_total[incl. datasets])
@@ -916,11 +929,13 @@ class SourceCalc(Document):
             SourceCalc.drop_collection()
 
         last_source_calc = SourceCalc.objects().order_by('-pid').first()
-        start_pid = last_source_calc.pid if last_source_calc is not None else 0
+        if start_pid is None or start_pid == -1:
+            start_pid = last_source_calc.pid if last_source_calc is not None else 0
         source_query = source.query(Calc)
         total = source_query.count() - SourceCalc.objects.count()
 
-        while True:
+        do_continue = True
+        while do_continue:
             query_timer = utils.timer(logger, 'query source db')
             query_timer.__enter__()  # pylint: disable=E1101
             calcs: Iterable[Calc] = source_query \
@@ -929,6 +944,7 @@ class SourceCalc(Document):
                 .limit(per_query)
 
             source_calcs = []
+            do_continue = False
             for calc in calcs:
                 query_timer.__exit__(None, None, None)  # pylint: disable=E1101
                 try:
@@ -960,15 +976,16 @@ class SourceCalc(Document):
                     if with_metadata:
                         source_calc.metadata = calc.to_calc_with_metadata().__dict__
                     source_calcs.append(source_calc)
-                    start_pid = source_calc.pid
-
-                    yield source_calc, total
                 except Exception as e:
                     logger.error('could not index', pid=calc.pid, exc_info=e)
+                    start_pid += 1
+                else:
+                    start_pid = source_calc.pid
+                    yield source_calc, total
 
-            if len(source_calcs) == 0:
-                break
-            else:
+                do_continue = True
+
+            if len(source_calcs) > 0:
                 with utils.timer(logger, 'write index'):
                     SourceCalc.objects.insert(source_calcs)
 
@@ -1023,7 +1040,7 @@ class NomadCOEMigration:
     @property
     def client(self):
         if self._client is None:
-            from nomad.client import create_client
+            from nomad.cli.client import create_client
             self._client = create_client()
 
         return self._client
@@ -1265,6 +1282,10 @@ class NomadCOEMigration:
                 overall_report.total_packages += 1
                 overall_report.skipped_packages += 1
 
+                package_report = package.report
+                if package_report is None:
+                    package_report = Report()
+
             elif package.migration_version is not None and package.migration_version >= self.migration_version:
                 if only_republish:
                     self.republish_package(package)
@@ -1395,7 +1416,7 @@ class NomadCOEMigration:
                 scroll_args['scroll_id'] = scroll_id
 
             search = self.call_api('repo.search', upload_id=upload_id, owner='admin', **scroll_args)
-            scroll_id = search.scroll_id
+            scroll_id = search.scroll.scroll_id
             for calc in search.results:
                 yield calc
 

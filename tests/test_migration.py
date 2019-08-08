@@ -199,12 +199,12 @@ def migrate_infra(migration, target_repo, proc_infra, client, monkeypatch):
     def create_client():
         return create_client_for_user(infra.admin_auth)
 
-    monkeypatch.setattr('nomad.client.create_client', create_client)
+    monkeypatch.setattr('nomad.cli.client.create_client', create_client)
 
     def stream_upload_with_client(client, upload_f, name=None):
         return client.uploads.upload(file=upload_f, name=name).response().result
 
-    monkeypatch.setattr('nomad.client.stream_upload_with_client', stream_upload_with_client)
+    monkeypatch.setattr('nomad.cli.client.stream_upload_with_client', stream_upload_with_client)
 
     # source repo is the still the original infrastructure repo
     migration.copy_users()

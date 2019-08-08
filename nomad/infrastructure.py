@@ -16,7 +16,7 @@
 This module provides function to establish connections to the database, searchengine, etc.
 infrastructure services. Usually everything is setup at once with :func:`setup`. This
 is run once for each *api* and *worker* process. Individual functions for partial setups
-exist to facilitate testing, :py:mod:`nomad.migration`, aspects of :py:mod:`nomad.client`, etc.
+exist to facilitate testing, :py:mod:`nomad.migration`, aspects of :py:mod:`nomad.cli`, etc.
 """
 
 import os.path
@@ -117,8 +117,9 @@ def setup_repository_db(**kwargs):
     global repository_db
     global repository_db_conn
 
-    repository_db_conn, repository_db = connection, db
-    logger.info('setup repository db connection')
+    if repository_db is None:
+        repository_db_conn, repository_db = connection, db
+        logger.info('setup repository db connection')
 
     return repository_db_conn, repository_db
 

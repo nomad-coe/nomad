@@ -171,12 +171,12 @@ client = NomadConfig(
     url='http://localhost:8000/fairdi/nomad/latest/api'
 )
 
-version = '0.4.6'
+version = '0.5.0'
 commit = gitinfo.commit
 release = 'devel'
 domain = 'DFT'
 service = 'unknown nomad service'
-auxfile_cutoff = 30
+auxfile_cutoff = 100
 console_log_level = logging.WARNING
 
 
@@ -259,7 +259,7 @@ def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yaml'))
     if os.path.exists(config_file):
         with open(config_file, 'r') as stream:
             try:
-                config_data = yaml.load(stream)
+                config_data = yaml.load(stream, Loader=getattr(yaml, 'FullLoader'))
             except yaml.YAMLError as e:
                 logger.error('cannot read nomad config', exc_info=e)
 

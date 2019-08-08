@@ -49,20 +49,28 @@ being other mainfiles. Therefore, the aux files of a restricted calc might becom
 """
 
 from abc import ABCMeta
-from typing import IO, Generator, Dict, Iterable, Callable
+import sys
+from typing import IO, Generator, Dict, Iterable, Callable, List, Tuple
 import os.path
 import os
 import shutil
-from zipfile import ZipFile, BadZipFile
 import tarfile
 import hashlib
 import io
 import pickle
-import cachetools
+from contextlib import contextmanager
 
 from nomad import config, utils
 from nomad.datamodel import UploadWithMetadata
 
+
+# TODO this should become obsolete, once we are going beyong python 3.6. For now
+# python 3.6's zipfile does not allow to seek/tell within a file-like opened from a
+# file in a zipfile.
+if sys.version_info >= (3, 7):
+    import zipfile
+else:
+    import zipfile37 as zipfile
 
 user_metadata_filename = 'user_metadata.pickle'
 
@@ -221,6 +229,10 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         with open(self._user_metadata_file.os_path, 'wb') as f:
             pickle.dump(data, f)
 
+    def to_staging_upload_files(self, create: bool = False) -> 'StagingUploadFiles':
+        """ Casts to or creates corresponding staging upload files or returns None. """
+        raise NotImplementedError()
+
     @staticmethod
     def get(upload_id: str, *args, **kwargs) -> 'UploadFiles':
         if DirectoryObject(config.fs.staging, upload_id, prefix=True).exists():
@@ -256,6 +268,16 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
             path_prefix: An optional prefix; only returns those files that have the prefix.
         Returns:
             An iterable over all (matching) raw files.
+        """
+        raise NotImplementedError()
+
+    def raw_file_list(self, directory: str) -> List[Tuple[str, int]]:
+        """
+        Gives a list of directory contents and its size.
+        Arguments:
+            directory: The directory to list
+        Returns:
+            A list of tuples with file name and size.
         """
         raise NotImplementedError()
 
@@ -297,6 +319,9 @@ class StagingUploadFiles(UploadFiles):
         self._size = 0
         self._shared = DirectoryObject(config.fs.public, upload_id, create=create)
 
+    def to_staging_upload_files(self, create: bool = False) -> 'StagingUploadFiles':
+        return self
+
     @property
     def _user_metadata_file(self):
         return self._shared.join_file('user_metadata.pickle')
@@ -309,6 +334,8 @@ class StagingUploadFiles(UploadFiles):
         try:
             return open(path_object.os_path, *args, **kwargs)
         except FileNotFoundError:
+            raise KeyError()
+        except IsADirectoryError:
             raise KeyError()
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
@@ -360,15 +387,15 @@ class StagingUploadFiles(UploadFiles):
         ext = os.path.splitext(path)[1]
         if force_archive or ext == '.zip':
             try:
-                with ZipFile(path) as zf:
+                with zipfile.ZipFile(path) as zf:
                     zf.extractall(target_dir.os_path)
                 if move:
                     os.remove(path)
                 return
-            except BadZipFile:
+            except zipfile.BadZipFile:
                 pass
 
-        if force_archive or ext in ['.tgz', '.tar.gz', '.tar.bz2']:
+        if force_archive or ext in ['.tgz', '.tar.gz', '.tar.bz2', '.tar']:
             try:
                 with tarfile.open(path) as tf:
                     tf.extractall(target_dir.os_path)
@@ -396,19 +423,24 @@ class StagingUploadFiles(UploadFiles):
 
     def create_extracted_copy(self) -> None:
         """
-        Copies all raw-file to the extracted bucket to mimic the behaviour of the old
+        Copies all raw-file to the extracted bucket to mimic the behavior of the old
         CoE python API. TODO: should be removed after migration.
         """
         copytree(self._raw_dir.os_path, os.path.join(config.fs.coe_extracted, self.upload_id))
 
-    def pack(self, upload: UploadWithMetadata) -> None:
+    def pack(
+            self, upload: UploadWithMetadata, target_dir: DirectoryObject = None,
+            skip_raw: bool = False) -> None:
         """
         Replaces the staging upload data with a public upload record by packing all
         data into files. It is only available if upload *is_bag*.
         This is potentially a long running operation.
         Arguments:
-            calcs: The calculation metadata of the upload used to determine what files to
-                pack and what the embargo situation is.
+            upload: The upload with all calcs and  calculation metadata of the upload
+                used to determine what files to pack and what the embargo situation is.
+            target_dir: optional DirectoryObject to override where to put the files. Default
+                is the corresponding public upload files directory.
+            skip_raw: determine to not pack the raw data, only archive and user metadata
         """
         self.logger.debug('started to pack upload')
 
@@ -418,9 +450,10 @@ class StagingUploadFiles(UploadFiles):
             f.write('frozen')
 
         # create a target dir in the public bucket
-        target_dir = DirectoryObject(
-            config.fs.public, self.upload_id, create=True, prefix=True,
-            create_prefix=True)
+        if target_dir is None:
+            target_dir = DirectoryObject(
+                config.fs.public, self.upload_id, create=True, prefix=True,
+                create_prefix=True)
         assert target_dir.exists()
 
         # copy user metadata
@@ -430,46 +463,11 @@ class StagingUploadFiles(UploadFiles):
                 self._user_metadata_file.os_path,
                 target_metadata_file.os_path)
 
-        def create_zipfile(kind: str, prefix: str, ext: str) -> ZipFile:
-            file = target_dir.join_file('%s-%s.%s.zip' % (kind, prefix, ext))
-            return ZipFile(file.os_path, mode='w')
-
         # In prior versions we used bagit on raw files. There was not much purpose for
         # it, so it was removed. Check 0.3.x for the implementation
-
-        # zip raw files
-        raw_public_zip = create_zipfile('raw', 'public', 'plain')
-        raw_restricted_zip = create_zipfile('raw', 'restricted', 'plain')
-
-        # 1. add all public raw files
-        # 1.1 collect all public mainfiles and aux files
-        public_files: Dict[str, str] = {}
-        for calc in upload.calcs:
-            if not calc.with_embargo:
-                mainfile = calc.mainfile
-                assert mainfile is not None
-                for filepath in self.calc_files(mainfile):
-                    if not always_restricted(filepath):
-                        public_files[filepath] = None
-        # 1.2 remove the non public mainfiles that have been added as auxfiles of public mainfiles
-        for calc in upload.calcs:
-            if calc.with_embargo:
-                mainfile = calc.mainfile
-                assert mainfile is not None
-                if mainfile in public_files:
-                    del(public_files[mainfile])
-        # 1.3 zip all remaining public
-        for filepath in public_files.keys():
-            raw_public_zip.write(self._raw_dir.join_file(filepath).os_path, filepath)
-
-        # 2. everything else becomes restricted
-        for filepath in self.raw_file_manifest():
-            if filepath not in public_files:
-                raw_restricted_zip.write(self._raw_dir.join_file(filepath).os_path, filepath)
-
-        raw_restricted_zip.close()
-        raw_public_zip.close()
-        self.logger.debug('packed raw files')
+        def create_zipfile(kind: str, prefix: str, ext: str) -> zipfile.ZipFile:
+            file = target_dir.join_file('%s-%s.%s.zip' % (kind, prefix, ext))
+            return zipfile.ZipFile(file.os_path, mode='w')
 
         # zip archives
         archive_public_zip = create_zipfile('archive', 'public', self._archive_ext)
@@ -492,7 +490,44 @@ class StagingUploadFiles(UploadFiles):
         archive_public_zip.close()
         self.logger.debug('packed archives')
 
-        self.logger.debug('packed upload')
+        if skip_raw:
+            return
+
+        # zip raw files
+        raw_public_zip = create_zipfile('raw', 'public', 'plain')
+        raw_restricted_zip = create_zipfile('raw', 'restricted', 'plain')
+
+        # 1. add all public raw files
+        # 1.1 collect all public mainfiles and aux files
+        public_files: Dict[str, str] = {}
+        for calc in upload.calcs:
+            if not calc.with_embargo:
+                mainfile = calc.mainfile
+                assert mainfile is not None
+                # mainfile might already have been added due to being a auxfile to another calc
+                if mainfile not in public_files:
+                    for filepath in self.calc_files(mainfile, with_cutoff=False):
+                        if not always_restricted(filepath):
+                            public_files[filepath] = None
+        # 1.2 remove the non public mainfiles that have been added as auxfiles of public mainfiles
+        for calc in upload.calcs:
+            if calc.with_embargo:
+                mainfile = calc.mainfile
+                assert mainfile is not None
+                if mainfile in public_files:
+                    del(public_files[mainfile])
+        # 1.3 zip all remaining public
+        for filepath in public_files.keys():
+            raw_public_zip.write(self._raw_dir.join_file(filepath).os_path, filepath)
+
+        # 2. everything else becomes restricted
+        for filepath in self.raw_file_manifest():
+            if filepath not in public_files:
+                raw_restricted_zip.write(self._raw_dir.join_file(filepath).os_path, filepath)
+
+        raw_restricted_zip.close()
+        raw_public_zip.close()
+        self.logger.debug('packed raw files')
 
     def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
         upload_prefix_len = len(self._raw_dir.os_path) + 1
@@ -502,7 +537,27 @@ class StagingUploadFiles(UploadFiles):
                 if path_prefix is None or path.startswith(path_prefix):
                     yield path
 
-    def calc_files(self, mainfile: str, with_mainfile: bool = True) -> Iterable[str]:
+    def raw_file_list(self, directory: str) -> List[Tuple[str, int]]:
+        if not self._is_authorized():
+            raise Restricted
+
+        if directory is None or directory == '':
+            prefix = self._raw_dir.os_path
+        else:
+            prefix = os.path.join(self._raw_dir.os_path, directory)
+
+        results: List[Tuple[str, int]] = []
+        if not os.path.isdir(prefix):
+            return results
+
+        for file in os.listdir(prefix):
+            path = os.path.join(prefix, file)
+            if os.path.isfile(path):
+                results.append((file, os.path.getsize(path)))
+
+        return results
+
+    def calc_files(self, mainfile: str, with_mainfile: bool = True, with_cutoff: bool = True) -> Iterable[str]:
         """
         Returns all the auxfiles and mainfile for a given mainfile. This implements
         nomad's logic about what is part of a calculation and what not. The mainfile
@@ -519,16 +574,21 @@ class StagingUploadFiles(UploadFiles):
         calc_dir = os.path.dirname(mainfile_object.os_path)
         calc_relative_dir = calc_dir[len(self._raw_dir.os_path) + 1:]
 
-        ls = os.listdir(calc_dir)
-        if len(ls) > config.auxfile_cutoff:
-            # If there are two many of them, its probably just a directory with lots of
-            # calculations. In this case it does not make any sense to provide thousands of
-            # aux files.
-            return [mainfile] if with_mainfile else []
+        file_count = 0
+        aux_files: List[str] = []
+        for filename in os.listdir(calc_dir):
+            if filename != mainfile_basename and os.path.isfile(os.path.join(calc_dir, filename)):
+                aux_files.append(os.path.join(calc_relative_dir, filename))
+                file_count += 1
 
-        aux_files = sorted(
-            os.path.join(calc_relative_dir, path) for path in ls
-            if os.path.isfile(os.path.join(calc_dir, path)) and path != mainfile_basename)
+            if with_cutoff and file_count > config.auxfile_cutoff:
+                # If there are two many of them, its probably just a directory with lots of
+                # calculations. In this case it does not make any sense to provide thousands of
+                # aux files.
+                break
+
+        aux_files = sorted(aux_files)
+
         if with_mainfile:
             return [mainfile] + aux_files
         else:
@@ -602,27 +662,55 @@ class ArchiveBasedStagingUploadFiles(StagingUploadFiles):
         assert False, 'do not add_rawfiles to a %s' % self.__class__.__name__
 
 
-class LRUZipFileCache(cachetools.LRUCache):
-    """ Specialized cache that closes the cached zipfiles on eviction """
-    def __init__(self, maxsize):
-        super().__init__(maxsize)
+class PublicUploadFilesBasedStagingUploadFiles(StagingUploadFiles):
+    """
+    :class:`StagingUploadFiles` based on a single uploaded archive file (.zip)
 
-    def popitem(self):
-        key, val = super().popitem()
-        val.close()
-        return key, val
+    Arguments:
+        upload_path: The path to the uploaded file.
+    """
+
+    def __init__(
+            self, public_upload_files: 'PublicUploadFiles', *args, **kwargs) -> None:
+        super().__init__(public_upload_files.upload_id, *args, **kwargs)
+        self.public_upload_files = public_upload_files
+
+    def extract(self) -> None:
+        assert next(self.raw_file_manifest(), None) is None, 'can only extract once'
+        for access in ['public', 'restricted']:
+            super().add_rawfiles(
+                self.public_upload_files.get_zip_file('raw', access, 'plain').os_path,
+                force_archive=True)
+
+    def add_rawfiles(self, path: str, move: bool = False, prefix: str = None, force_archive: bool = False) -> None:
+        assert False, 'do not add_rawfiles to a %s' % self.__class__.__name__
+
+    def pack(self, upload: UploadWithMetadata, *args, **kwargs) -> None:
+        """ Packs only the archive contents and stores it in the existing public upload files. """
+        super().pack(upload, target_dir=self.public_upload_files, skip_raw=True)
 
 
 class PublicUploadFiles(UploadFiles):
-    __zip_file_cache = LRUZipFileCache(maxsize=128)
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(config.fs.public, *args, **kwargs)
+        self._zipfile_cache: Dict[str, zipfile.ZipFile] = None
 
-    @cachetools.cached(cache=__zip_file_cache)
-    def get_zip_file(self, prefix: str, access: str, ext: str) -> ZipFile:
-        zip_file = self.join_file('%s-%s.%s.zip' % (prefix, access, ext))
-        return ZipFile(zip_file.os_path)
+    def get_zip_file(self, prefix: str, access: str, ext: str) -> PathObject:
+        return self.join_file('%s-%s.%s.zip' % (prefix, access, ext))
+
+    def open_zip_file(self, prefix: str, access: str, ext: str) -> zipfile.ZipFile:
+        zip_path = self.get_zip_file(prefix, access, ext).os_path
+        if self._zipfile_cache is None:
+            return zipfile.ZipFile(zip_path)
+        else:
+            if zip_path in self._zipfile_cache:
+                f = self._zipfile_cache[zip_path]
+            else:
+                f = zipfile.ZipFile(zip_path)
+                self._zipfile_cache[zip_path] = f
+
+            return f
 
     def _file(self, prefix: str, ext: str, path: str, *args, **kwargs) -> IO:
         mode = kwargs.get('mode') if len(args) == 0 else args[0]
@@ -632,7 +720,7 @@ class PublicUploadFiles(UploadFiles):
 
         for access in ['public', 'restricted']:
             try:
-                zf = self.get_zip_file(prefix, access, ext)
+                zf = self.open_zip_file(prefix, access, ext)
 
                 f = zf.open(path, 'r', **kwargs)
                 if (access == 'restricted' or always_restricted(path)) and not self._is_authorized():
@@ -643,10 +731,24 @@ class PublicUploadFiles(UploadFiles):
                     return f
             except FileNotFoundError:
                 pass
+            except IsADirectoryError:
+                pass
             except KeyError:
                 pass
 
         raise KeyError()
+
+    def to_staging_upload_files(self, create: bool = False) -> 'StagingUploadFiles':
+        try:
+            staging_upload_files = PublicUploadFilesBasedStagingUploadFiles(self)
+        except KeyError:
+            if not create:
+                return None
+
+            staging_upload_files = PublicUploadFilesBasedStagingUploadFiles(self, create=True)
+            staging_upload_files.extract()
+
+        return staging_upload_files
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
         return self._file('raw', 'plain', file_path, *args, *kwargs)
@@ -654,7 +756,7 @@ class PublicUploadFiles(UploadFiles):
     def raw_file_size(self, file_path: str) -> int:
         for access in ['public', 'restricted']:
             try:
-                zf = self.get_zip_file('raw', access, 'plain')
+                zf = self.open_zip_file('raw', access, 'plain')
                 info = zf.getinfo(file_path)
                 if (access == 'restricted' or always_restricted(file_path)) and not self._is_authorized():
                     raise Restricted
@@ -670,12 +772,39 @@ class PublicUploadFiles(UploadFiles):
     def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
         for access in ['public', 'restricted']:
             try:
-                zf = self.get_zip_file('raw', access, 'plain')
+                zf = self.open_zip_file('raw', access, 'plain')
                 for path in zf.namelist():
                     if path_prefix is None or path.startswith(path_prefix):
                         yield path
             except FileNotFoundError:
                 pass
+
+    def raw_file_list(self, directory: str) -> List[Tuple[str, int]]:
+        if directory is None:
+            directory = ''
+        directory_len = len(directory)
+
+        results = []
+        for access in ['public', 'restricted']:
+            if access == 'restricted' and not self._is_authorized():
+                continue
+
+            try:
+                zf = self.open_zip_file('raw', access, 'plain')
+                for path in zf.namelist():
+                    content_path = path[directory_len + (0 if directory_len == 0 else 1):]
+                    if path.startswith(directory) and '/' not in content_path:
+                        if '/' not in content_path:
+                            results.append((content_path, zf.getinfo(path).file_size))
+                        else:
+                            # this asserts that sub directories are always behind their
+                            # parents and file siblings
+                            break
+
+            except FileNotFoundError:
+                pass
+
+        return results
 
     def archive_file(self, calc_id: str, *args, **kwargs) -> IO:
         return self._file('archive', self._archive_ext, '%s.%s' % (calc_id, self._archive_ext), *args, **kwargs)
@@ -690,3 +819,17 @@ class PublicUploadFiles(UploadFiles):
         the restrictions on calculations. This is potentially a long running operation.
         """
         raise NotImplementedError()
+
+    @contextmanager
+    def zipfile_cache(self):
+        """
+        Context that allows to read files while caching zipfiles without reopening them
+        all the time.
+        """
+        if self._zipfile_cache is None:
+            self._zipfile_cache = {}
+        try:
+            yield
+        finally:
+            for zip_file in self._zipfile_cache.values():
+                zip_file.close()

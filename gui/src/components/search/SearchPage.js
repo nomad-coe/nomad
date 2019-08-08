@@ -12,7 +12,46 @@ import SearchAggregations from './SearchAggregations'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ExpandLessIcon from '@material-ui/icons/ExpandLess'
 import { withDomain } from '../domains'
-import { Help } from '../help'
+import { appBase } from '../../config'
+
+export const help = `
+This page allows you to **search** in NOMAD's data. The upper part of this page
+gives you various options to enter and configure your search. The lower half
+shows all data that fulfills your search criteria.
+
+** Disclaimer: ** This is a preliminary version of the NOMAD software. It might
+now show all of NOMAD's data. To see the full NOMAD dataset use the original
+[NOMAD CoE Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/search/)
+for now.
+
+#### Search Options
+
+NOMAD's *domain-aware* search allows you to screen data by filtering based on
+desired properties. This is different from basic *text-search* that traditional
+search engines offer.
+
+If you are logged-in, you can specify if you want to search among all data, publicly
+available data, your own data, or just unpublished data in your [staging area](/uploads/).
+
+The search bar allows you to specify various quantity values that you want to
+see in your results. This includes *authors*, *comments*, *atom labels*, *code name*,
+*system type*, *crystal system*, *basis set types*, and *XC functionals*.
+Alternatively, you can click the periodic table and statistic bars to filter for respective
+quantities.
+
+The periodic table and bar-charts show metrics for all data that fit your criteria.
+You can display *entries* (e.g. code runs), *unique entries*, and *datasets*.
+Other more specific metrics might be available.
+
+#### Search Results
+
+The results table gives you a quick overview of all entries that fit your search.
+You can click entries to see more details, download data, see the archive, etc.
+The *raw files* tab, will show you all files that belong to the entry and offers a download
+on individual, or all files. The *archive* tab, shows you the parsed data as a tree
+data structure. This view is connected to NOMAD's [meta-info](${appBase}/metainfo), which acts a schema for
+all parsed data. The *log* tab, will show you a log of the entry's processing.
+`
 
 class SearchPage extends React.Component {
   static propTypes = {
@@ -64,8 +103,12 @@ class SearchPage extends React.Component {
     pagination: {
       total: 0
     },
-    aggregations: {},
-    metrics: {}
+    quantities: {
+      total: {
+        all: {
+        }
+      }
+    }
   }
 
   state = {
@@ -161,7 +204,7 @@ class SearchPage extends React.Component {
     const { classes, user, domain, loading } = this.props
     const { data, searchState, searchResultListState, showDetails } = this.state
     const { searchValues } = searchState
-    const { pagination: { total }, metrics } = data
+    const { pagination: { total }, quantities } = data
 
     const ownerLabel = {
       all: 'All entries',
@@ -171,7 +214,7 @@ class SearchPage extends React.Component {
     }
 
     const ownerTooltips = {
-      all: 'This will show all entries in the database, even those that might be duplicates.',
+      all: 'This will show all entries in the database.',
       public: 'Do not show entries that are only visible to you.',
       user: 'Do only show entries visible to you.',
       staging: 'Will only show entries that you uploaded, but not yet published.'
@@ -179,51 +222,17 @@ class SearchPage extends React.Component {
 
     const withoutLogin = ['all']
 
-    const useMetric = Object.keys(metrics).find(metric => metric !== 'code_runs') || 'code_runs'
+    const useMetric = Object.keys(quantities.total.all).find(metric => metric !== 'code_runs') || 'code_runs'
     const helperText = <span>
       There are {Object.keys(domain.searchMetrics).map(key => {
         return (key === useMetric || key === 'code_runs') ? <span key={key}>
-          {domain.searchMetrics[key].renderResultString(!loading && metrics[key] !== undefined ? metrics[key] : '...')}
+          {domain.searchMetrics[key].renderResultString(!loading && quantities.total.all[key] !== undefined ? quantities.total.all[key] : '...')}
         </span> : ''
       })}{Object.keys(searchValues).length ? ' left' : ''}.
     </span>
 
     return (
       <div className={classes.root}>
-        <Help cookie="searchPage">{`
-          This page allows you to **search** in nomad's data. The upper part of this page
-          gives you various options to enter and configure your search. The lower half
-          show the search results.
-
-          ** Disclaimer: ** This is a preliminary version of the NOMAD software. It might
-          now show all of NOMAD's data. To see the full NOMAD dataset use the original
-          [NOMAD CoE Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/search/)
-          for now.
-
-          ### Search Options
-
-          Nomad's *domain-aware* search allows you to screen data by filtering based on
-          desired properties. This is different from basic *text-search* that traditional
-          search engines offer
-
-          You can specify if you want to search among all data, publicly available data,
-          your own data, or just unpublished data in your [staging area](/uploads/).
-
-          The search bar allows you to specify various quantity values that you want to
-          see in your results. This includes *atom labels*, *code name*, *system type*,
-          *crystal system*, *basis set types*, and *XC functionals*. Alternatively, you can
-          click the periodic table and statistic bars to filter for respective quantities.
-
-          The periodic table and bar-charts show metrics for all data that fit your search.
-          You can choose between *entries* (e.g. code runs), *unique entries*, and *dataset*.
-          Other more specific metrics might be available.
-
-          ### Search Results
-
-          The results table gives you a quick overview of all entries that fit your search.
-          You can click entries to see more details, download data, see the archive, etc.
-        `}</Help>
-
         <DisableOnLoading>
           <div className={classes.searchEntry}>
             <FormControl>
@@ -232,7 +241,7 @@ class SearchPage extends React.Component {
                 {['all', 'public', 'user', 'staging']
                   .filter(key => user || withoutLogin.indexOf(key) !== -1)
                   .map(owner => (
-                    <Tooltip key={owner} title={ownerTooltips[owner]}>
+                    <Tooltip key={owner} title={ownerTooltips[owner] + (user ? '' : 'You need to be logged-in for more options.')}>
                       <FormControlLabel
                         control={
                           <Checkbox checked={this.state.owner === owner} onChange={() => this.handleOwnerChange(owner)} value="owner" />
@@ -257,7 +266,7 @@ class SearchPage extends React.Component {
               onChanged={values => this.updateSearch({searchValues: values})}
             />
             <Divider className={classes.searchDivider} />
-            <Tooltip title={showDetails ? 'hide statistics' : 'show statistics'}>
+            <Tooltip title={showDetails ? 'Hide statistics' : 'Show statistics'}>
               <IconButton className={classes.searchButton} color="secondary" onClick={this.handleClickExpand}>
                 {showDetails ? <ExpandLessIcon/> : <ExpandMoreIcon/>}
               </IconButton>

@@ -73,7 +73,8 @@ class Calc(Proc):
             ('upload_id', 'mainfile'),
             ('upload_id', 'parser'),
             ('upload_id', 'tasks_status'),
-            ('upload_id', 'process_status')
+            ('upload_id', 'process_status'),
+            ('upload_id', 'metadata.nomad_version')
         ]
     }
 
@@ -131,9 +132,10 @@ class Calc(Proc):
                 if self._calc_proc_logwriter is not None:
                     program = event_dict.get('normalizer', 'parser')
                     event = event_dict.get('event', '')
-                    entry = '[%s] %s: %s' % (method_name, program, event)
-                    if len(entry) > 120:
-                        self._calc_proc_logwriter.write(entry[:120])
+
+                    entry = '[%s] %s, %s: %s' % (method_name, datetime.utcnow().isoformat(), program, event)
+                    if len(entry) > 140:
+                        self._calc_proc_logwriter.write(entry[:140])
                         self._calc_proc_logwriter.write('...')
                     else:
                         self._calc_proc_logwriter.write(entry)
@@ -144,7 +146,44 @@ class Calc(Proc):
             return wrap_logger(logger, processors=[save_to_calc_log])
 
     @process
+    def re_process_calc(self):
+        """
+        Processes a calculation again. This means there is already metadata and
+        instead of creating it initially, we are just updating the existing
+        records.
+        """
+        logger = self.get_logger()
+
+        try:
+            calc_with_metadata = datamodel.CalcWithMetadata(**self.metadata)
+            calc_with_metadata.upload_id = self.upload_id
+            calc_with_metadata.calc_id = self.calc_id
+            calc_with_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
+            calc_with_metadata.mainfile = self.mainfile
+            calc_with_metadata.nomad_version = config.version
+            calc_with_metadata.nomad_commit = config.commit
+            calc_with_metadata.last_processing = datetime.utcnow()
+            calc_with_metadata.files = self.upload_files.calc_files(self.mainfile)
+            self.metadata = calc_with_metadata.to_dict()
+
+            self.parsing()
+            self.normalizing()
+            self.archiving()
+        finally:
+            # close loghandler that was not closed due to failures
+            try:
+                if self._calc_proc_logwriter is not None:
+                    self._calc_proc_logwriter.close()
+                    self._calc_proc_logwriter = None
+            except Exception as e:
+                logger.error('could not close calculation proc log', exc_info=e)
+
+    @process
     def process_calc(self):
+        """
+        Processes a new calculation that has no prior records in the mongo, elastic,
+        or filesystem storage. It will create an initial set of (user) metadata.
+        """
         logger = self.get_logger()
         if self.upload is None:
             logger.error('calculation upload does not exist')
@@ -162,10 +201,14 @@ class Calc(Proc):
             calc_with_metadata.upload_time = self.upload.upload_time
             calc_with_metadata.nomad_version = config.version
             calc_with_metadata.nomad_commit = config.commit
-            calc_with_metadata.last_processing = datetime.now()
+            calc_with_metadata.last_processing = datetime.utcnow()
             calc_with_metadata.files = self.upload_files.calc_files(self.mainfile)
-            self.preprocess_files(calc_with_metadata.files)
             self.metadata = calc_with_metadata.to_dict()
+
+            if len(calc_with_metadata.files) >= config.auxfile_cutoff:
+                self.warning(
+                    'This calc has many aux files in its directory. '
+                    'Have you placed many calculations in the same directory?')
 
             self.parsing()
             self.normalizing()
@@ -211,39 +254,9 @@ class Calc(Proc):
         # the save might be necessary to correctly read the join condition from the db
         self.save()
         # in case of error, the process_name might be unknown
-        if process_name == 'process_calc' or process_name is None:
+        if process_name == 'process_calc' or process_name == 're_process_calc' or process_name is None:
             self.upload.reload()
             self.upload.check_join()
-
-    def preprocess_files(self, filepaths):
-        for path in filepaths:
-            if os.path.basename(path) == 'POTCAR':
-                # create checksum
-                hash = hashlib.sha224()
-                with open(self.upload_files.raw_file_object(path).os_path, 'rb') as f:
-                    for line in f.readlines():
-                        hash.update(line)
-
-                checksum = hash.hexdigest()
-
-                # created stripped POTCAR
-                stripped_path = path + '.stripped'
-                with open(self.upload_files.raw_file_object(stripped_path).os_path, 'wt') as f:
-                    f.write('Stripped POTCAR file. Checksum of original file (sha224): %s\n' % checksum)
-                os.system(
-                    '''
-                        awk < %s >> %s '
-                        BEGIN { dump=1 }
-                        /End of Dataset/ { dump=1 }
-                        dump==1 { print }
-                        /END of PSCTR/ { dump=0 }'
-                    ''' % (
-                        self.upload_files.raw_file_object(path).os_path,
-                        self.upload_files.raw_file_object(stripped_path).os_path))
-
-                filepaths.append(stripped_path)
-
-        return filepaths
 
     @task
     def parsing(self):
@@ -411,6 +424,8 @@ class Upload(Proc):
     publish_time = DateTimeField()
     last_update = DateTimeField()
 
+    joined = BooleanField(default=False)
+
     meta: Any = {
         'indexes': [
             'user_id', 'tasks_status', 'process_status', 'published', 'upload_time'
@@ -455,7 +470,11 @@ class Upload(Proc):
 
     def get_logger(self, **kwargs):
         logger = super().get_logger()
-        logger = logger.bind(upload_id=self.upload_id, upload_name=self.name, **kwargs)
+        user = self.uploader
+        user_name = '%s %s' % (user.first_name, user.last_name)
+        logger = logger.bind(
+            upload_id=self.upload_id, upload_name=self.name, user_name=user_name,
+            user_id=user.user_id, **kwargs)
         return logger
 
     @classmethod
@@ -590,12 +609,62 @@ class Upload(Proc):
                         upload_size=self.upload_files.size):
                     self.upload_files.delete()
                     self.published = True
-                    self.publish_time = datetime.now()
-                    self.last_update = datetime.now()
+                    self.publish_time = datetime.utcnow()
+                    self.last_update = datetime.utcnow()
                     self.save()
             else:
-                self.last_update = datetime.now()
+                self.last_update = datetime.utcnow()
                 self.save()
+
+    @process
+    def re_process_upload(self):
+        """
+        Runs the distributed process of fully reparsing/renormalizing an existing and
+        already published upload. Will renew the archive part of the upload and update
+        mongo and elastic search entries.
+
+        TODO this implementation does not do any re-matching. This will be more complex
+        due to handling of new or missing matches.
+        """
+        assert self.published
+
+        logger = self.get_logger()
+        logger.info('started to re-process')
+
+        # mock the steps of actual processing
+        self._continue_with('uploading')
+
+        # extract the published raw files into a staging upload files instance
+        self._continue_with('extracting')
+        public_upload_files = cast(PublicUploadFiles, self.upload_files)
+        public_upload_files.to_staging_upload_files(create=True)
+
+        self._continue_with('parse_all')
+        try:
+            # we use a copy of the mongo queryset; reasons are cursor timeouts and
+            # changing results on modifying the calc entries
+            calcs = list(Calc.objects(upload_id=self.upload_id))
+            for calc in calcs:
+                if calc.process_running:
+                    if calc.current_process == 're_process_calc':
+                        logger.warn('re_process_calc is already running', calc_id=calc.calc_id)
+                    else:
+                        logger.warn('a process is already running on calc', calc_id=calc.calc_id)
+
+                    continue
+
+                calc.reset()
+                calc.re_process_calc()
+        except Exception as e:
+            # try to remove the staging copy in failure case
+            staging_upload_files = self.upload_files.to_staging_upload_files()
+            if staging_upload_files.exist():
+                staging_upload_files.delete()
+
+            raise e
+
+        # the packing and removing of the staging upload files, will be trigged by
+        # the 'cleanup' task after processing all calcs
 
     @process
     def process_upload(self):
@@ -652,6 +721,35 @@ class Upload(Proc):
             self.fail('bad .zip/.tar file', log_level=logging.INFO)
             return
 
+    def _preprocess_files(self, path):
+        """
+        Some files need preprocessing. Currently we need to add a stripped POTCAR version
+        and always restrict/embargo the original.
+        """
+        if os.path.basename(path) == 'POTCAR':
+            # create checksum
+            hash = hashlib.sha224()
+            with open(self.staging_upload_files.raw_file_object(path).os_path, 'rb') as orig_f:
+                for line in orig_f.readlines():
+                    hash.update(line)
+
+            checksum = hash.hexdigest()
+
+            # created stripped POTCAR
+            stripped_path = path + '.stripped'
+            with open(self.staging_upload_files.raw_file_object(stripped_path).os_path, 'wt') as stripped_f:
+                stripped_f.write('Stripped POTCAR file. Checksum of original file (sha224): %s\n' % checksum)
+            os.system(
+                '''
+                    awk < %s >> %s '
+                    BEGIN { dump=1 }
+                    /End of Dataset/ { dump=1 }
+                    dump==1 { print }
+                    /END of PSCTR/ { dump=0 }'
+                ''' % (
+                    self.staging_upload_files.raw_file_object(path).os_path,
+                    self.staging_upload_files.raw_file_object(stripped_path).os_path))
+
     def match_mainfiles(self) -> Generator[Tuple[str, object], None, None]:
         """
         Generator function that matches all files in the upload to all parsers to
@@ -663,6 +761,7 @@ class Upload(Proc):
         directories_with_match: Dict[str, str] = dict()
         upload_files = self.staging_upload_files
         for filename in upload_files.raw_file_manifest():
+            self._preprocess_files(filename)
             try:
                 parser = match_parser(filename, upload_files)
                 if parser is not None:
@@ -701,7 +800,7 @@ class Upload(Proc):
                 calc.process_calc()
 
     def on_process_complete(self, process_name):
-        if process_name == 'process_upload':
+        if process_name == 'process_upload' or process_name == 're_process_upload':
             self.check_join()
 
     def check_join(self):
@@ -709,12 +808,23 @@ class Upload(Proc):
         processed_calcs = self.processed_calcs
 
         self.get_logger().debug('check join', processed_calcs=processed_calcs, total_calcs=total_calcs)
+        # check if process is not running anymore, i.e. not still spawining new processes to join
+        # check the join condition, i.e. all calcs have been processed
         if not self.process_running and processed_calcs >= total_calcs:
-            self.get_logger().debug('join')
-            self.join()
+            # this can easily be called multiple times, e.g. upload finished after all calcs finished
+            modified_upload = self._get_collection().find_one_and_update(
+                {'_id': self.upload_id, 'joined': {'$ne': True}},
+                {'$set': {'joined': True}})
+            if modified_upload is not None:
+                self.get_logger().debug('join')
+                self.cleanup()
+            else:
+                # the join was already done due to a prior call
+                pass
 
-    def join(self):
-        self.cleanup()
+    def reset(self):
+        self.joined = False
+        super().reset()
 
     @property
     def gui_url(self):
@@ -723,10 +833,7 @@ class Upload(Proc):
             base = base[:-1]
         return '%s/uploads/' % base
 
-    @task
-    def cleanup(self):
-        search.refresh()
-
+    def _cleanup_after_processing(self):
         # send email about process finish
         user = self.uploader
         name = '%s %s' % (user.first_name, user.last_name)
@@ -748,6 +855,35 @@ class Upload(Proc):
             # probably due to email configuration problems
             # don't fail or present this error to clients
             self.logger.error('could not send after processing email', exc_info=e)
+
+    def _cleanup_after_re_processing(self):
+        logger = self.get_logger()
+        logger.info('started to repack re-processed upload')
+
+        staging_upload_files = self.upload_files.to_staging_upload_files()
+
+        with utils.timer(
+                logger, 'reprocessed staged upload packed', step='delete staged',
+                upload_size=self.upload_files.size):
+
+            staging_upload_files.pack(self.to_upload_with_metadata())
+
+        with utils.timer(
+                logger, 'reprocessed staged upload deleted', step='delete staged',
+                upload_size=self.upload_files.size):
+
+            staging_upload_files.delete()
+            self.last_update = datetime.utcnow()
+            self.save()
+
+    @task
+    def cleanup(self):
+        search.refresh()
+
+        if self.current_process == 're_process_upload':
+            self._cleanup_after_re_processing()
+        else:
+            self._cleanup_after_processing()
 
     def get_calc(self, calc_id) -> Calc:
         return Calc.objects(upload_id=self.upload_id, calc_id=calc_id).first()
@@ -771,6 +907,12 @@ class Upload(Proc):
     def all_calcs(self, start, end, order_by=None):
         query = Calc.objects(upload_id=self.upload_id)[start:end]
         return query.order_by(order_by) if order_by is not None else query
+
+    @property
+    def outdated_calcs(self):
+        return Calc.objects(
+            upload_id=self.upload_id, tasks_status=SUCCESS,
+            metadata__nomad_version__ne=config.version)
 
     @property
     def calcs(self):
@@ -801,13 +943,18 @@ class Upload(Proc):
                 calc_metadata = dict(upload_metadata)
                 calc_metadata.update(calc_metadatas.get(calc.mainfile, {}))
                 calc_with_metadata.apply_user_metadata(calc_metadata)
+                if calc_with_metadata.upload_time is None:
+                    calc_with_metadata.upload_time = self.upload_time if user_upload_time is None else user_upload_time
 
                 return calc_with_metadata
         else:
             user_upload_time = None
 
             def get_metadata(calc: Calc):
-                return datamodel.CalcWithMetadata(**calc.metadata)
+                calc_with_metadata = datamodel.CalcWithMetadata(**calc.metadata)
+                calc_with_metadata.upload_time = self.upload_time
+
+                return calc_with_metadata
 
         result = UploadWithMetadata(
             upload_id=self.upload_id,

@@ -18,7 +18,8 @@ class QuantityHistogram extends React.Component {
     data: PropTypes.object,
     metric: PropTypes.string.isRequired,
     value: PropTypes.string,
-    onChanged: PropTypes.func.isRequired
+    onChanged: PropTypes.func.isRequired,
+    defaultScale: PropTypes.number
   }
 
   static styles = theme => ({
@@ -35,7 +36,7 @@ class QuantityHistogram extends React.Component {
   }
 
   state = {
-    scalePower: 0.25
+    scalePower: this.props.defaultScale || 0.25
   }
 
   componentDidMount() {

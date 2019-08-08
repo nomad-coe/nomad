@@ -133,7 +133,7 @@ def test_add_normalized_calc_with_metadata(
 
     coe_upload = Upload(
         upload_name='test_upload',
-        created=datetime.now(),
+        created=datetime.utcnow(),
         user_id=0,
         is_processed=True)
     coe_calc = Calc(coe_calc_id=calc_with_metadata.pid, upload=coe_upload)

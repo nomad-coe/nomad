@@ -46,9 +46,9 @@ nomad.api
 ---------
 .. automodule:: nomad.api
 
-nomad.client
+nomad.cli
 ------------
-.. automodule:: nomad.client
+.. automodule:: nomad.cli
 
 nomad.utils
 -----------

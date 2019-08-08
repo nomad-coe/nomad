@@ -23,11 +23,7 @@ variables:
   FRONTEND_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:test_${CI_COMMIT_REF_NAME}
   FRONTEND_RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:${CI_COMMIT_REF_NAME}
   FRONTEND_LATEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:latest
-  RAWAPI_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/rawapi:${CI_COMMIT_REF_NAME}
-  RAWAPI_RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/rawapi:latest
-
   KUBECONFIG: /etc/deploy/config
-  STAGING_NAMESPACE: nomad-fairdi
 
 build:
   stage: build
@@ -58,17 +54,6 @@ buildgui:
   except:
     - /^dev-.*$/
     - tags
-
-
-buildrawapi:
-  stage: build
-  script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
-    - docker build -t $RAWAPI_TEST_IMAGE -f rawapi.Dockerfile .
-    - docker push $RAWAPI_TEST_IMAGE
-  only:
-    - rawapi
-
 
 linting:
   stage: test
@@ -121,45 +106,6 @@ tests:
       - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
       - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
 
-# does currently not work, current GitLab CI runner does not network services with each other
-# integration-tests:
-#   stage: integration
-#   services:
-#     - postgres:latest
-#     - mongo:latest
-#       # this will cause a warning, as the gitlab ci runner health check will test the wrong
-#       # port on rabbitmq container:
-#       # https://gitlab.com/gitlab-org/gitlab-runner/issues/3163
-#     - rabbitmq
-#     - name: docker.elastic.co/elasticsearch/elasticsearch:6.3.2
-#       alias: elastic
-#       # fix issue with running elastic in gitlab ci runner:
-#       # https://gitlab.com/gitlab-org/gitlab-ce/issues/42214
-#       command: [ "bin/elasticsearch", "-Ediscovery.type=single-node" ]
-#     - name: $TEST_IMAGE
-#       alias: api
-#       command: ["python", "-m", "nomad.client", "run", "api"]
-#     - name: $TEST_IMAGE
-#       alias: worker
-#       command: ["python", "-m", "nomad.client", "run", "worker"]
-#   variables:
-#     POSTGRES_DB: nomad
-#     POSTGRES_USER: postgres
-#     POSTGRES_PASSWORD: nomad
-#     RABBITMQ_ERLANG_COOKIE: SWQOKODSQALRPCLNMEQG
-#     RABBITMQ_DEFAULT_USER: rabbitmq
-#     RABBITMQ_DEFAULT_PASS: rabbitmq
-#     RABBITMQ_DEFAULT_VHOST: /
-#     NOMAD_REPOSITORY_DB_HOST: postgres
-#     NOMAD_RABBITMQ_HOST: rabbitmq
-#     NOMAD_ELASTIC_HOST: elastic
-#     NOMAD_MONGO_HOST: mongo
-#   script:
-#     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
-#     - integration/test_integration.sh
-#   except:
-#     - /^dev-.*$/
-
 release:
   stage: release
   script:
@@ -187,31 +133,7 @@ release_version:
   only:
     - tags
 
-release_rawapi:
-  stage: release
-  script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
-    - docker pull $RAWAPI_TEST_IMAGE
-    - docker tag $RAWAPI_TEST_IMAGE $RAWAPI_RELEASE_IMAGE
-    - docker push $RAWAPI_RELEASE_IMAGE
-  only:
-    - rawapi
-  when: manual
-
-deploy_rawapi:
-  stage: deploy
-  script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
-    - cd ops/docker-compose/rawapi
-    # secret .env file is stored on the "production" machine and is bind mounted into the
-    # runner container at /nomad/config/.env
-    - cp /nomad/config/.rawapi_env .env
-    - docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-  only:
-    - rawapi
-  when: manual
-
-deploy:
+deploy_coe_staging:
   stage: deploy
   image: dtzar/helm-kubectl
   before_script:
@@ -226,31 +148,7 @@ deploy:
     - cd ops/helm/nomad
     - export KUBECONFIG=/etc/deploy/config
     - helm dep build
-    - export NOMAD_VERSION="$(grep "version" Chart.yaml | cut -d" " -f2)"
-    - export NUMERIC_VERSION="$(echo ${NOMAD_VERSION} | cut -d"." -f1-2)"
-    - export RELEASE_NAME="nomad-v${NOMAD_VERSION//./-}"
-    - export DEPLOYS=$(helm ls | grep $RELEASE_NAME | wc -l)
-    - export EXTERNAL_PATH="/fairdi/nomad/v${NOMAD_VERSION}"
-    - export DBNAME="fairdi_nomad_v${NOMAD_VERSION//./_}"
-    - export FILES_PATH="/nomad/fairdi/nomad_v${NOMAD_VERSION}/fs"
-    - if [ ${DEPLOYS}  -eq 0 ]; then
-        helm install --name=${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE}
-          --set images.nomad.tag=${CI_COMMIT_REF_NAME}
-          --set images.frontend.tag=${CI_COMMIT_REF_NAME}
-          --set api.disableReset="false"
-          --set proxy.nodePort="300${NUMERIC_VERSION//./}"
-          --set proxy.external.path=${EXTERNAL_PATH}
-          --set dbname=${DBNAME}
-          --set worker.replicas=1
-          --set worker.memrequest=32
-          --set volumes.public=${FILES_PATH}/public
-          --set volumes.staging=${FILES_PATH}/staging
-          --set volumes.tmp=${FILES_PATH}/tmp;
-      else
-        helm upgrade ${RELEASE_NAME} . --namespace=${STAGING_NAMESPACE}
-          --set images.nomad.tag=${CI_COMMIT_REF_NAME}
-          --set images.frontend.tag=${CI_COMMIT_REF_NAME}
-          --recreate-pods;
-      fi
-  only:
-    - tags
+    - helm upgrade nomad-coe-staging . --recreate-pods;
+  except:
+    - /^dev-.*$/
+  when: manual

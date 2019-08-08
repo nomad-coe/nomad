@@ -125,6 +125,7 @@ class LoginLogout extends React.Component {
             onClick={() => this.setState({loginDialogOpen: true})}
           >Login</Button>
           <Dialog
+            disableBackdropClick disableEscapeKeyDown
             open={this.state.loginDialogOpen}
             onClose={() => this.handleLoginDialogClosed(false)}
           >
@@ -132,7 +133,7 @@ class LoginLogout extends React.Component {
             <DialogContent>
               <DialogContentText>
                 To login, please enter your email address and password. If you
-                do not have an account, please go to the nomad repository and
+                do not have an account, please go to the NOMAD Repository and
                 create one.
               </DialogContentText>
               {failure ? <DialogContentText className={classes.errorText} color="error">Wrong username or password!</DialogContentText> : ''}
