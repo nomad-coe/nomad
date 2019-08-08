@@ -11,11 +11,9 @@ introduction, architecture, development setup/deployment, contributing, and API 
 
 ### Read the docs on the latest deployed version
 
-Currently, there is only a *staging* version running at garching. There is
-no real production system yet. You have to expect frequent down times and restarts.
 You can access the running system and its documentation here:
 
-[http://enc-staging-nomad.esc.rzg.mpg.de/nomad/docs](http://enc-staging-nomad.esc.rzg.mpg.de/fairdi/nomad/v0.3.0/docs)
+[https://repository.nomad-coe.eu/uploads/api/docs](https://repository.nomad-coe.eu/uploads/api/docs/index.html)
 
 ### Generate the docs from the source
 
@@ -58,9 +56,12 @@ your browser.
 ## Change log
 
 ### v0.5.0
+The first production version of nomad@fairdi as the upload API and gui for NOMAD
+- Production ready software and deployments (term agreements, better GUI docs)
 - Raw file API with support to list directories. This replaces the `files` calculation
   metadata key. It was necessary due to arbitrary large lists of *auxfiles* in some
   calculations.
+- Search interface that contains all features of the CoE Repository GUI.
 - Refactored search API that allows to search for entries (paginated + scroll),
   metrics based on quantity aggregations (+ paginated entries), quantity aggregations
   with all values via `after` key (+ paginated entries).
