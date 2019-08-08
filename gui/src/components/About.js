@@ -45,16 +45,16 @@ class About extends React.Component {
           ### Getting Help
           If you encounter any difficulties, please write to
           [webmaster@nomad-repository.eu](mailto:webmaster@nomad-repository.eu). If you think
-          that this web-page does not work as expected, or you want to start a discussion
+          that this web-page is not working as expected, or if you want to start a discussion
           about possible features, feel free to open an issue on our [issue tracking
           system](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/issues).
 
           ### Developer Documentation
           You find in depth developer documentation [here](${apiBase}/docs/index.html).
           It contains a general introduction to NOMAD, the underlying architecture,
-          is (meta)data, and processing. Learn how to use the NOMAD ReST API. It
-          contains information about how to develop NOMAD, how to operate it, how to
-          contribute parser, and much more.
+          is (meta)data, and processing. You will also find some information on how to use
+          the NOMAD ReST API. It contains information about how to develop NOMAD, how to
+          operate it, how to contribute parser, and much more.
 
           ### ReST API
           NOMAD services can also be accessed programmatically via NOMAD's
