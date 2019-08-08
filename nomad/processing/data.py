@@ -943,13 +943,18 @@ class Upload(Proc):
                 calc_metadata = dict(upload_metadata)
                 calc_metadata.update(calc_metadatas.get(calc.mainfile, {}))
                 calc_with_metadata.apply_user_metadata(calc_metadata)
+                if calc_with_metadata.upload_time is None:
+                    calc_with_metadata.upload_time = self.upload_time if user_upload_time is None else user_upload_time
 
                 return calc_with_metadata
         else:
             user_upload_time = None
 
             def get_metadata(calc: Calc):
-                return datamodel.CalcWithMetadata(**calc.metadata)
+                calc_with_metadata = datamodel.CalcWithMetadata(**calc.metadata)
+                calc_with_metadata.upload_time = self.upload_time
+
+                return calc_with_metadata
 
         result = UploadWithMetadata(
             upload_id=self.upload_id,
