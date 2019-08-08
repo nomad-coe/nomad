@@ -444,24 +444,24 @@ export default class App extends React.Component {
     return (
       <MuiThemeProvider theme={genTheme}>
         <ErrorSnacks>
-          <BrowserRouter basename={process.env.PUBLIC_URL}>
-            <ApiProvider>
-              <DomainProvider>
-                <Navigation>
-                  <Switch>
-                    {Object.keys(this.routes).map(route => (
+          {/* <BrowserRouter basename={process.env.PUBLIC_URL}> */}
+          <ApiProvider>
+            <DomainProvider>
+              <Navigation>
+                <Switch>
+                  {Object.keys(this.routes).map(route => (
                     // eslint-disable-next-line react/jsx-key
-                      <Route key={'nop'}
+                    <Route key={'nop'}
                       // eslint-disable-next-line react/no-children-prop
-                        children={props => this.renderChildren(route, props)}
-                        exact={this.routes[route].exact}
-                        path={this.routes[route].path} />
-                    ))}
-                  </Switch>
-                </Navigation>
-              </DomainProvider>
-            </ApiProvider>
-          </BrowserRouter>
+                      children={props => this.renderChildren(route, props)}
+                      exact={this.routes[route].exact}
+                      path={this.routes[route].path} />
+                  ))}
+                </Switch>
+              </Navigation>
+            </DomainProvider>
+          </ApiProvider>
+          {/* </BrowserRouter> */}
         </ErrorSnacks>
         <LicenseAgreement />
       </MuiThemeProvider>
