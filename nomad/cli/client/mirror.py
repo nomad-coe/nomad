@@ -18,6 +18,7 @@ import shutil
 import json
 import os
 import os.path
+from bravado.exception import HTTPBadRequest
 
 from nomad import utils, processing as proc, search, config, files, infrastructure
 
@@ -123,7 +124,7 @@ def mirror(
                 continue
             except KeyError:
                 pass
-            
+
             try:
                 upload_data = client.mirror.get_upload_mirror(upload_id=upload_id).response().result
                 n_calcs = len(upload_data.calcs)
