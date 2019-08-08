@@ -135,6 +135,11 @@ class User(Base):  # type: ignore
                 # TODO this has to change, e.g. trade for JWTs
                 token = ''.join(random.choices(User._token_chars, k=64))
                 session = Session(token=token, user=self)
+                # This will allow to add session to repo_db, even though it is already
+                # attached to a different repo_db SQL alchemy session. This happens during
+                # migration tests, where we mimic the use of two different postgres
+                # databases
+                session = repo_db.merge(session)
                 repo_db.add(session)
 
                 repo_db.commit()

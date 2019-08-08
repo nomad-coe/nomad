@@ -113,10 +113,7 @@ def mirror(
             try:
                 upload = proc.Upload.get(upload_id)
                 if __in_test:
-                    proc.Calc.objects(upload_id=upload_id).delete()
-                    proc.Upload.objects(upload_id=upload_id).delete()
-                    search.delete_upload(upload_id)
-
+                    # In tests, we mirror from our selves, fake that the upload does not exist
                     raise KeyError()
 
                 if len(query) > 0:
@@ -129,6 +126,12 @@ def mirror(
 
             upload_data = client.mirror.get_upload_mirror(upload_id=upload_id).response().result
             n_calcs = len(upload_data.calcs)
+
+            if __in_test:
+                # In tests, we mirror from our selves, remove it so it is not there for import
+                proc.Calc.objects(upload_id=upload_id).delete()
+                proc.Upload.objects(upload_id=upload_id).delete()
+                search.delete_upload(upload_id)
         else:
             n_calcs = 0
 
