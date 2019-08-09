@@ -133,22 +133,23 @@ release_version:
   only:
     - tags
 
-deploy_coe_staging:
-  stage: deploy
-  image: dtzar/helm-kubectl
-  before_script:
-    - mkdir -p /etc/deploy
-    # kube_config is a CI/CD variable set in GitLab GUI
-    - echo $CI_KUBE_CONFIG | base64 -d > /etc/deploy/config
-    - helm init --upgrade
-    - helm repo add stable https://kubernetes-charts.storage.googleapis.com/
-    - helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com/
-    - helm repo update
-  script:
-    - cd ops/helm/nomad
-    - export KUBECONFIG=/etc/deploy/config
-    - helm dep build
-    - helm upgrade nomad-coe-staging . --recreate-pods;
-  except:
-    - /^dev-.*$/
-  when: manual
+## TODO This has to be fixed, we need one for testing, staging, production
+# deploy_coe_staging:
+#   stage: deploy
+#   image: dtzar/helm-kubectl
+#   before_script:
+#     - mkdir -p /etc/deploy
+#     # kube_config is a CI/CD variable set in GitLab GUI
+#     - echo $CI_KUBE_CONFIG | base64 -d > /etc/deploy/config
+#     - helm init --upgrade
+#     - helm repo add stable https://kubernetes-charts.storage.googleapis.com/
+#     - helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com/
+#     - helm repo update
+#   script:
+#     - cd ops/helm/nomad
+#     - export KUBECONFIG=/etc/deploy/config
+#     - helm dep build
+#     - helm upgrade nomad-coe-staging . --recreate-pods;
+#   except:
+#     - /^dev-.*$/
+#   when: manual
