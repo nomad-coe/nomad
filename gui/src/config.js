@@ -9,7 +9,10 @@ window.nomadEnv = window.nomadEnv || {}
 export const apiBase = window.nomadEnv.apiBase
 export const appBase = process.env.PUBLIC_URL
 export const kibanaBase = window.nomadEnv.kibanaBase
+export const matomoUrl = window.nomadEnv.matomoUrl
+export const matomoSiteId = window.nomadEnv.matomoSiteId
 export const debug = window.nomadEnv.debug || false
+export const sendTrackingData = window.nomadEnv.sendTrackingData
 
 export const repoPrimaryColor = repo
 

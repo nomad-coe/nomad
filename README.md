@@ -1,8 +1,30 @@
 [![pipeline status](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/badges/master/pipeline.svg)](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/commits/master)
 [![coverage report](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/badges/master/coverage.svg)](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/commits/master)
 
-This project tries and test approaches that might lead to an improved architecture for
-nomad@FAIR.
+This project implements the new *nomad@FAIRDI* infrastructure. It is currently used
+to enable users to upload data, process the data, maintain a version of the NOMAD
+archive and meta-info, provide search, inspection, and download to all NOMAD raw and
+archive data. As a long term strategy, this project will integrate, refactor, and re-write
+more and more of the existing NOMAD CoE components.
+
+The overall goal of *nomad@FAIRDI* is to provide common interfaces to the main services of NOMAD:
+*Repository*, *Archive*, and *Encyclopedia*. These interfaces comprise a graphical web-based
+UI that allows users to upload data, supervise data processing, inspect and download
+metadata, raw-files, and archive data, provide visual tools to explore the data, and
+to learn more about advanced use modes, like API and Analytics Toolkit. The second interface
+is a unified REST API with various endpoints that represent the core NOMAD services.
+This will allow users the automated use of NOMAD for managing their data, and using
+data on NOMAD for analytics. A specific way of using the API is through the NOMAD
+Analytics Toolkit, which is revamped as a
+[separate project](https://gitlab.mpcdf.mpg.de/nomad-lab/analytics-jupyterhub).
+
+Furthermore, this projects aims at establishing NOMAD as a distributed platform for
+material science data sharing and management. This includes the on-site deployment of
+NOMAD as a standalone service (*oasis*), the federated use of NOMAD through a
+serious of full and partial *mirrors*, the integration of 3rd party material science
+databases (i.e. [Aflow](http://www.aflow.org/), [OQMD](http://oqmd.org/),
+[Materials Project](https://materialsproject.org/)), and support for open APIs and
+standards like the [Optimade](http://www.optimade.org/) API.
 
 ## Getting started
 
@@ -21,7 +43,7 @@ First, clone this repo and init its submodules:
 ```
 git clone git@gitlab.mpcdf.mpg.de:nomad-lab/nomad-FAIR.git
 cd nomad-FAIR
-git submodules init --depth 1
+git submodule init --depth 1
 ```
 
 Second, create and source your own virtual python environment:
@@ -68,6 +90,7 @@ The first production version of nomad@fairdi as the upload API and gui for NOMAD
 - reprocessing of published results (e.g. after parser/normalizer improvements)
 - mirror functionality
 - refactored command line interface (CLI)
+- potential GUI user tracking capabilities
 - many minor bugfixes
 
 ### v0.4.7

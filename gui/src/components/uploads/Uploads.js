@@ -27,7 +27,7 @@ more control about how NOMAD will present your data.
 
 #### Prepare and upload files
 
-To upload your own data, please put all relevant files of all the calculations
+To upload your own data, please put all the relevant files of all the calculations
 you want to upload into a single \`*.zip\` or \`*.tar.gz\` archive.
 We encourage you to add all code input and
 output files, as well as any other auxiliary files that you might have created.
@@ -60,9 +60,9 @@ it with selected users, create a DOI for your data, and later publish the data.
 The *embargo* might last up to 36 month before it becomes public automatically.
 During an *embargo* some meta-data will be available.
 
-When you published your upload, it will take a night before it will appear in the
+When you publish your upload, it will take a night before it will appear in the
 [NOMAD Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/).
-We are working on improving this process.
+We are working on expediting this process.
 
 #### Processing errors
 
@@ -72,9 +72,9 @@ upload, bad file formats, etc. The latter (for more common) case means that not 
 code input/output files could not be parsed by our parsers for various reasons.
 The processing logs of the failed entries might provide some insight.
 
-We do not allow to publish uploads that failed processing completely. Frankly, in most
+We do not allow the publishing of uploads that fail processing completely. Frankly, in most
 cases there won't be any data to publish anyways. In the case of failed processing of
-some entires, the data can still be published. You will be able to share it and create
+some entries, the data can still be published. You will be able to share it and create
 DOIs for it, etc. The only shortcomings will be missing metadata (labeled *not processed*
 or *unavailable*) and missing archive data. We continuously improve our parsers and
 the missing information might be made available in the future.

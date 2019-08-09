@@ -28,6 +28,9 @@ data:
     window.nomadEnv = {
       "apiBase": "{{ .Values.proxy.external.path }}/api",
       "kibanaBase": "{{ .Values.proxy.external.kibanaPath }}",
+      "matomoSiteId": {{ .Values.gui.matomoSiteId }},
+      "matomoUrl": {{ .Values.gui.matomoUrl }},
+      "sendTrackingData": {{ .Values.gui.sendTrackingData }},
       "debug": {{ .Values.gui.debug }}
     };
 ---

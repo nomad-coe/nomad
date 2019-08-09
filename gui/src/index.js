@@ -8,17 +8,15 @@ import registerServiceWorker from './registerServiceWorker'
 import { Router } from 'react-router-dom'
 import history from './history'
 import PiwikReactRouter from 'piwik-react-router'
-import { debug } from './config'
+import { sendTrackingData, matomoUrl, matomoSiteId } from './config'
 
 const matomo = PiwikReactRouter({
-  url: 'https://labdev-nomad.esc.rzg.mpg.de/fairdi/matomo/',
-  siteId: 1
+  url: matomoUrl,
+  siteId: matomoSiteId
 })
 
-console.log(debug)
-
 ReactDOM.render(
-  <Router history={debug ? history : matomo.connectToHistory(history)}>
+  <Router history={sendTrackingData ? matomo.connectToHistory(history) : history}>
     <App />
   </Router>, document.getElementById('root'))
 registerServiceWorker()
