@@ -68,6 +68,7 @@ The first production version of nomad@fairdi as the upload API and gui for NOMAD
 - reprocessing of published results (e.g. after parser/normalizer improvements)
 - mirror functionality
 - refactored command line interface (CLI)
+- potential GUI user tracking capabilities
 - many minor bugfixes
 
 ### v0.4.7
