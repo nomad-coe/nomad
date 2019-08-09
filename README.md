@@ -77,6 +77,9 @@ your browser.
 
 ## Change log
 
+### v0.5.1
+- lots of minor bugfixes
+
 ### v0.5.0
 The first production version of nomad@fairdi as the upload API and gui for NOMAD
 - Production ready software and deployments (term agreements, better GUI docs)
