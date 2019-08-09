@@ -14,9 +14,9 @@ The NOMAD *metainfo* defines all quantities used to represent archive data in
 NOMAD. You could say it is the archive *schema*. You can browse this schema and
 all its definitions here.
 
-The NOMAD metainfo knows three different *kinds* of definitions:
+The NOMAD metainfo contains three different *kinds* of definitions:
 
-- **sections**: A section are nested groups of quantities that allow a hierarchical data structure
+- **sections**: A section is a nested groups of quantities that allow a hierarchical data structure
 - **values**: Actual quantities that contain data
 - **references**: References that allow to connect related sections.
 
@@ -25,7 +25,7 @@ are organized in packages. There is a *common* package with definitions that are
 used by all codes and there are packages for each code with code specific definitions.
 You can select the package to browse below.
 
-Depending on the selected package, there are quiet a large number of definitions.
+Depending on the selected package, there are quite a large number of definitions.
 You can use the *definition* field to search based on definition names.
 
 All definitions are represented as *cards* below. Click on the various card items
