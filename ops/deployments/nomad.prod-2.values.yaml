@@ -5,7 +5,7 @@ proxy:
     path: "/uploads"
 
 api:
-  disableReset: false
+  disableReset: true
 
 worker:
   replicas: 1
