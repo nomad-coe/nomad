@@ -637,7 +637,7 @@ class Upload(Proc):
         # extract the published raw files into a staging upload files instance
         self._continue_with('extracting')
         public_upload_files = cast(PublicUploadFiles, self.upload_files)
-        public_upload_files.to_staging_upload_files(create=True)
+        staging_upload_files = public_upload_files.to_staging_upload_files(create=True)
 
         self._continue_with('parse_all')
         try:
@@ -654,6 +654,17 @@ class Upload(Proc):
                     continue
 
                 calc.reset()
+
+                parser = match_parser(calc.mainfile, staging_upload_files)
+                if parser is None:
+                    logger.warn(
+                        'no parser matches during re-process, use old parser',
+                        calc_id=calc.calcid)
+                elif calc.parser != parser.name:
+                    calc.parser = parser.name
+                    logger.info(
+                        'different parser matches during re-process, use new parser',
+                        calc_id=calc.calcid, parser=parser.name)
                 calc.re_process_calc()
         except Exception as e:
             # try to remove the staging copy in failure case
