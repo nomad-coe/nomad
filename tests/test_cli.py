@@ -61,6 +61,21 @@ class TestAdmin:
 @pytest.mark.usefixtures('reset_config', 'no_warn')
 class TestAdminUploads:
 
+    @pytest.mark.parametrize('codes, count', [
+        (['VASP'], 1),
+        (['doesNotExist'], 0),
+        (['VASP', 'doesNotExist'], 1)])
+    def test_uploads_code(self, published, codes, count):
+        codes_args = []
+        for code in codes:
+            codes_args.append('--code')
+            codes_args.append(code)
+        result = click.testing.CliRunner().invoke(
+            cli, ['admin', 'uploads'] + codes_args + ['ls'], catch_exceptions=False, obj=utils.POPO())
+
+        assert result.exit_code == 0
+        assert '%d uploads selected' % count in result.stdout
+
     def test_ls(self, published):
         upload_id = published.upload_id
 

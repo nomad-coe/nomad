@@ -18,6 +18,7 @@ from tabulate import tabulate
 from mongoengine import Q
 from pymongo import UpdateOne
 import threading
+import elasticsearch_dsl as es
 
 from nomad import processing as proc, config, infrastructure, utils, search, files, coe_repo
 from .admin import admin
@@ -28,8 +29,9 @@ from .admin import admin
 @click.option('--staging', help='Select only uploads in staging', is_flag=True)
 @click.option('--processing', help='Select only processing uploads', is_flag=True)
 @click.option('--outdated', help='Select published uploads with older nomad version', is_flag=True)
+@click.option('--code', multiple=True, type=str, help='Select only uploads with calcs of given codes')
 @click.pass_context
-def uploads(ctx, user: str, staging: bool, processing: bool, outdated: bool):
+def uploads(ctx, user: str, staging: bool, processing: bool, outdated: bool, code: List[str]):
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
@@ -45,6 +47,20 @@ def uploads(ctx, user: str, staging: bool, processing: bool, outdated: bool):
         uploads = proc.Calc._get_collection().distinct(
             'upload_id',
             {'metadata.nomad_version': {'$ne': config.version}})
+        query &= Q(upload_id__in=uploads)
+
+    if code is not None and len(code) > 0:
+        code_queries = [es.Q('match', code_name=code_name) for code_name in code]
+        code_query = es.Q('bool', should=code_queries, minimum_should_match=1)
+
+        code_search = es.Search(index=config.elastic.index_name)
+        code_search = code_search.query(code_query)
+        code_search.aggs.bucket('uploads', es.A(
+            'terms', field='upload_id', size=10000, min_doc_count=1))
+        uploads = [
+            upload['key']
+            for upload in code_search.execute().aggs['uploads']['buckets']]
+
         query &= Q(upload_id__in=uploads)
 
     ctx.obj.query = query
