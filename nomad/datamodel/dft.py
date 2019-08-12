@@ -143,7 +143,7 @@ class DFTCalcWithMetadata(CalcWithMetadata):
 
         for meta_info, _, value in backend._delegate.results.traverse():
             quantities.add(meta_info)
-            if meta_info == 'energy_total':
+            if meta_info == 'section_single_configuration_calculation':  # 'energy_total'
                 n_total_energies += 1
             if meta_info == 'section_system':
                 n_geometries += 1
