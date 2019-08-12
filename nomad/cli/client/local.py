@@ -160,9 +160,12 @@ def local(calc_id, show_backend=False, show_metadata=False, **kwargs):
             print(
                 'Data being saved to .volumes/fs/tmp/repro_'
                 '%s if not already there' % local.upload_id)
+        print('######## B')
         backend = local.parse()
+        print('######## C')
         # Run suite of nomalizers on parsed backend.
         local.normalize_all(parser_backend=backend)
+        print('######## A')
         if show_backend:
             backend.write_json(sys.stdout, pretty=True)
         if show_metadata:

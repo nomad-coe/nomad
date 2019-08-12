@@ -48,7 +48,7 @@ mscale.register_scale(PowerScale)
 nomad_url = 'http://repository.nomad-coe.eu/uploads/api'
 host = urlparse(nomad_url).netloc.split(':')[0]
 http_client = RequestsClient()
-http_client.set_basic_auth(host, 'admin', '******')
+http_client.set_basic_auth(host, 'admin', 'password')
 client = SwaggerClient.from_url('%s/swagger.json' % nomad_url, http_client=http_client)
 
 

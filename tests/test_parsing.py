@@ -51,7 +51,7 @@ parser_examples = [
     # ('parsers/dl-poly', 'tests/data/parsers/dl-poly/OUTPUT'), # timeout on Matid System Classification
     ('parsers/lib-atoms', 'tests/data/parsers/lib-atoms/gp.xml'),
     ('parsers/octopus', 'tests/data/parsers/octopus/stdout.txt'),
-    ('parsers/phonopy', 'tests/data/parsers/phonopy/control.in'),
+    ('parsers/phonopy', 'tests/data/parsers/phonopy/phonopy-FHI-aims-displacement-01/control.in'),
     ('parsers/gpaw', 'tests/data/parsers/gpaw/Fe2.gpw'),
     ('parsers/gpaw2', 'tests/data/parsers/gpaw2/H2_lcao.gpw2'),
     ('parsers/atk', 'tests/data/parsers/atk/Si2.nc'),

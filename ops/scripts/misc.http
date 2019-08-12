@@ -75,9 +75,9 @@ Content-Type: application/json
     "size": 0,
     "query": {
         "bool": {
-            "must_not": {
-                "exists": {
-                    "field": "upload_time"
+            "must": {
+                "match": {
+                    "upload_id": "IPSqilPPRTyxsD28n4XVsg"
                 }
             }
         }
@@ -85,7 +85,7 @@ Content-Type: application/json
     "aggs": {
         "upload_id": {
             "terms": {
-                "field": "upload_id"
+                "field": "system"
             }
         }
     }
