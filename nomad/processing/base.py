@@ -491,6 +491,8 @@ def proc_task(task, cls_name, self_id, func_attr):
         self.fail(e)
     except Exception as e:
         self.fail(e)
+    except SystemExit as e:
+        self.fail(e)
     finally:
         if deleted is None or not deleted:
             self.process_status = PROCESS_COMPLETED

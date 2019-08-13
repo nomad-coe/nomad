@@ -274,6 +274,11 @@ class Calc(Proc):
                     'parser failed with exception', level=logging.ERROR,
                     exc_info=e, error=str(e), **context)
                 return
+            except SystemExit:
+                self.fail(
+                    'parser raised system exit', level=logging.ERROR,
+                    error='system exit', **context)
+                return
 
         # add the non code specific calc metadata to the backend
         # all other quantities have been determined by parsers/normalizers
@@ -659,17 +664,16 @@ class Upload(Proc):
                 if parser is None:
                     logger.warn(
                         'no parser matches during re-process, use old parser',
-                        calc_id=calc.calcid)
+                        calc_id=calc.calc_id)
                 elif calc.parser != parser.name:
                     calc.parser = parser.name
                     logger.info(
                         'different parser matches during re-process, use new parser',
-                        calc_id=calc.calcid, parser=parser.name)
+                        calc_id=calc.calc_id, parser=parser.name)
                 calc.re_process_calc()
         except Exception as e:
             # try to remove the staging copy in failure case
-            staging_upload_files = self.upload_files.to_staging_upload_files()
-            if staging_upload_files.exist():
+            if staging_upload_files is not None and staging_upload_files.exists():
                 staging_upload_files.delete()
 
             raise e

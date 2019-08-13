@@ -59,7 +59,12 @@ parser_exceptions = {
     'parsers/gamess': ['formula', 'system'] + symmetry_keys,
     'parsers/gulp': ['formula', 'xc_functional', 'system'] + symmetry_keys,
     'parsers/turbomole': symmetry_keys,
-    'parsers/elastic': ['basis_set', 'xc_functional', 'system'] + symmetry_keys
+    'parsers/elastic': ['basis_set', 'xc_functional', 'system'] + symmetry_keys,
+    'parsers/dmol': ['system'] + symmetry_keys,
+    'parser/molcas': symmetry_keys,
+    'parsers/band': ['system'] + symmetry_keys,
+    'parsers/qbox': ['xc_functional'],
+    'parser/onetep': ['formula', 'basis_set', 'xc_functional', 'system'] + symmetry_keys
 }
 """
 Keys that the normalizer for certain parsers might not produce. In an ideal world this

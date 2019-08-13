@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<fleurInput fleurInputVersion="0.27">
+   <comment>
+      alpha Si                                                                        
+   </comment>
+   <calculationSetup>
+      <cutoffs Kmax="3.70000000" Gmax="11.10000000" GmaxXC="9.30000000" numbands="0"/>
+      <scfLoop itmax="20" maxIterBroyd="99" imix="Anderson" alpha=".05000000" spinf="2.00000000"/>
+      <coreElectrons ctail="T" frcor="F" kcrel="0"/>
+      <magnetism jspins="1" l_noco="F" l_J="F" swsp="F" lflip="F"/>
+      <soc theta=".00000000" phi=".00000000" l_soc="F" spav="F" off="F" soc66="T"/>
+      <nocoParams l_ss="F" l_mperp="F" l_constr="F" l_disp="F" sso_opt="FFF" mix_b=".00000000" thetaJ=".00000000" nsh="0">
+         <qss>.000000000000000 .000000000000000 .000000000000000</qss>
+      </nocoParams>
+      <expertModes gw="0" pot8="F" eig66="F" lpr="0" isec1="99" secvar="F"/>
+      <geometryOptimization l_f="F" xa="2.00000000" thetad="330.00000000" epsdisp=".00001000" epsforce=".00001000"/>
+      <bzIntegration valenceElectrons="8.00000000" mode="hist" fermiSmearingEnergy=".00100000">
+         <kPointList posScale="18.00000000" weightScale="729.00000000" count="365">
+            <kPoint weight="    2.000000">    8.000000     8.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     8.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     8.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     8.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     8.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     8.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000    10.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000    10.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     8.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     6.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     6.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     6.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     6.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     6.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     6.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     6.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">   12.000000     6.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     6.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     4.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     4.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     4.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     4.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     4.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     4.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     4.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">   12.000000     4.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     4.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     2.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     2.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     2.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     2.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     2.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     2.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     2.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">   12.000000     2.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     2.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     0.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     0.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     0.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     0.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     0.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     0.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     0.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     0.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     0.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000    -2.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000    -2.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000    -2.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000    -2.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000    -2.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     2.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     2.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     2.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     2.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     4.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000    -4.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000    -4.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000    -4.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     4.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     4.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     4.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     4.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     4.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     6.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000    12.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000    12.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000    12.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     6.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     6.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     6.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     6.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     6.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000    10.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000    10.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000    10.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000    10.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000    10.000000     8.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     8.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     8.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     8.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     8.000000    10.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     8.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     8.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     8.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     8.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     8.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     8.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     8.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   12.000000     8.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     8.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     6.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     6.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     6.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     6.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     6.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     6.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     6.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   12.000000     6.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     6.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     4.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     4.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     4.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     4.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     4.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     4.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     4.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   12.000000     4.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     4.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     2.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     2.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     2.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     2.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     2.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     2.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     2.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   -6.000000     2.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     2.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     0.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     0.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     0.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     0.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     0.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     0.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     0.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   -6.000000     0.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     0.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000    -2.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000    -2.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000    -2.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000    -2.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000    -2.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000    -2.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000    -2.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   -6.000000    -2.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000    -2.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000    -4.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000    -4.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000    -4.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000    -4.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000    -4.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000    -4.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000    -4.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     4.000000    12.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     4.000000    12.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000    12.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000    12.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000    12.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000    -6.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000    -6.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000    -6.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     6.000000    12.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     6.000000    12.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     6.000000    12.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000    10.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000    10.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000    10.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000    10.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000    10.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000    10.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     8.000000    12.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     8.000000    12.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000    10.000000     6.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     8.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     8.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     8.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     8.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     8.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     8.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     8.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   12.000000     8.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     8.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     6.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     6.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     6.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     6.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     6.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     6.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     6.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   12.000000     6.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     6.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     4.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     4.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     4.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     4.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     4.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     4.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     4.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -6.000000     4.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     4.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     2.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     2.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     2.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     2.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     2.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     2.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     2.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -6.000000     2.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     2.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     0.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     0.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     0.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     0.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     0.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     0.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     0.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -6.000000     0.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     0.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000    -2.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000    -2.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000    -2.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000    -2.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000    -2.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000    -2.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000    -2.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -6.000000    -2.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -8.000000    -2.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000    -4.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000    -4.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000    -4.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000    -4.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000    -4.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000    -4.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000    -4.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -6.000000    -4.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -8.000000    -4.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000    12.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000    12.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     6.000000    -4.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000    -6.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000    -6.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000    -6.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000    -6.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -6.000000    -6.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">   -8.000000    -6.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000    10.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000    10.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000    10.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000    10.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000    10.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     8.000000    -4.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     8.000000    -4.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     8.000000    -4.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000    10.000000     4.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     8.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     8.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     8.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     8.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     8.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     8.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     8.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   12.000000     8.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     8.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     6.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     6.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     6.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     6.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     6.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     6.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     6.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   -6.000000     6.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     6.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     4.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     4.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     4.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     4.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     4.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     4.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     4.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   -6.000000     4.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     4.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     2.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     2.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     2.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     2.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     2.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     2.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     2.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   -6.000000     2.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     2.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     0.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     0.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     0.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     0.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     0.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     0.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     0.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   -6.000000     0.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   -8.000000     0.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000    -2.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000    -2.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000    -2.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000    -2.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000    -2.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000    -2.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000    -2.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   -6.000000    -2.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   -8.000000    -2.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   -8.000000     4.000000    -2.000000</kPoint>
+            <kPoint weight="    2.000000">   -6.000000     4.000000    -2.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     4.000000    -2.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     4.000000    -2.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     4.000000    -2.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     4.000000    -2.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     4.000000    -2.000000</kPoint>
+            <kPoint weight="    2.000000">   -6.000000    -4.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   -8.000000    -4.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     6.000000    -2.000000</kPoint>
+            <kPoint weight="    2.000000">   -6.000000     6.000000    -2.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     6.000000    -2.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     6.000000    -2.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     6.000000    -2.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     6.000000    -2.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     6.000000    -2.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     6.000000    -2.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     6.000000    -2.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000    10.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000    10.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000    10.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000    10.000000     2.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     8.000000    -2.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     8.000000    -2.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     8.000000    -2.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     8.000000    -2.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     8.000000    -2.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     8.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     8.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     8.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     8.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     8.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     8.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000    10.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000    10.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     8.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     6.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     6.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     6.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     6.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     6.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     6.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     6.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">   -6.000000     6.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     6.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     4.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     4.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     4.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     4.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     4.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     4.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     4.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">   -6.000000     4.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">   10.000000     4.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">    8.000000     2.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">    6.000000     2.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">    4.000000     2.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">    2.000000     2.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">    0.000000     2.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     2.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     2.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">   -6.000000     2.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">   -8.000000     2.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">   -8.000000     0.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">   -6.000000     0.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">   -4.000000     0.000000     0.000000</kPoint>
+            <kPoint weight="    2.000000">   -2.000000     0.000000     0.000000</kPoint>
+            <kPoint weight="    1.000000">    0.000000     0.000000     0.000000</kPoint>
+         </kPointList>
+      </bzIntegration>
+      <energyParameterLimits ellow="-.80000000" elup="1.00000000"/>
+   </calculationSetup>
+   <cell>
+      <symmetryOperations>
+         <symOp>
+            <row-1>1 0 0 .000000000000000</row-1>
+            <row-2>0 1 0 .000000000000000</row-2>
+            <row-3>0 0 1 .000000000000000</row-3>
+         </symOp>
+      </symmetryOperations>
+      <bulkLattice scale="1.000000000000" latnam="any">
+         <bravaisMatrix>
+            <row-1>.000000000000 5.167355275190 5.167355275190</row-1>
+            <row-2>5.167355275190 .000000000000 5.167355275190</row-2>
+            <row-3>5.167355275190 5.167355275190 .000000000000</row-3>
+         </bravaisMatrix>
+      </bulkLattice>
+   </cell>
+   <xcFunctional name="pbe" relativisticCorrections="F"/>
+   <atomSpecies>
+      <species name="Si-1" element="Si" atomicNumber="14" coreStates="4" magMom=".00000000" flipSpin="T">
+         <mtSphere radius="2.15000000" gridPoints="711" logIncrement=".01600000"/>
+         <atomicCutoffs lmax="8" lnonsphr="6"/>
+         <energyParameters s="3" p="3" d="3" f="4"/>
+      </species>
+      <species name="Si-2" element="Si" atomicNumber="14" coreStates="4" magMom=".00000000" flipSpin="T">
+         <mtSphere radius="2.15000000" gridPoints="711" logIncrement=".01600000"/>
+         <atomicCutoffs lmax="8" lnonsphr="6"/>
+         <energyParameters s="3" p="3" d="3" f="4"/>
+      </species>
+   </atomSpecies>
+   <atomGroups>
+      <atomGroup species="Si-1">
+         <relPos>1.000000000000/8.000000000000 1.000000000000/8.000000000000 1.000000000000/8.000000000000</relPos>
+         <force calculate="T" relaxXYZ="TTT"/>
+         <nocoParams l_relax="F" l_magn="F" M=".0000000000" alpha=".0000000000" beta=".0000000000" b_cons_x=".0000000000" b_cons_y=".0000000000"/>
+      </atomGroup>
+      <atomGroup species="Si-2">
+         <relPos>-.125000000000 -.130000000000 -.135000000000</relPos>
+         <force calculate="T" relaxXYZ="TTT"/>
+         <nocoParams l_relax="F" l_magn="F" M=".0000000000" alpha=".0000000000" beta=".0000000000" b_cons_x=".0000000000" b_cons_y=".0000000000"/>
+      </atomGroup>
+   </atomGroups>
+   <output dos="F" band="F" vacdos="F" slice="F">
+      <checks vchk="F" cdinf="F" disp="F"/>
+      <densityOfStates ndir="0" minEnergy="-.50000000" maxEnergy=".50000000" sigma=".01500000"/>
+      <vacuumDOS layers="0" integ="F" star="F" nstars="0" locx1=".00000000" locy1=".00000000" locx2=".00000000" locy2=".00000000" nstm="0" tworkf=".00000000"/>
+      <plotting iplot="F" score="F" plplot="F"/>
+      <chargeDensitySlicing numkpt="0" minEigenval=".00000000" maxEigenval=".00000000" nnne="0" pallst="F"/>
+      <specialOutput form66="F" eonly="F" bmt="F"/>
+   </output>
+</fleurInput>

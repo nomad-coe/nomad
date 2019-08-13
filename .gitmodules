@@ -48,81 +48,108 @@
 [submodule "dependencies/parsers/gaussian"]
 	path = dependencies/parsers/gaussian
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gaussian.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/quantum-espresso"]
 	path = dependencies/parsers/quantum-espresso
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-quantum-espresso.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/abinit"]
 	path = dependencies/parsers/abinit
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-abinit.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/orca"]
 	path = dependencies/parsers/orca
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-orca.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/castep"]
 	path = dependencies/parsers/castep
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-castep.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/dl-poly"]
 	path = dependencies/parsers/dl-poly
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-dl-poly.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/lib-atoms"]
 	path = dependencies/parsers/lib-atoms
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-lib-atoms.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/octopus"]
 	path = dependencies/parsers/octopus
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-octopus.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/phonopy"]
 	path = dependencies/parsers/phonopy
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-phonopy.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/phonopy-library"]
 	path = dependencies/parsers/phonopy-library
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/phonopy.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/gpaw"]
 	path = dependencies/parsers/gpaw
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gpaw.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/atk"]
 	path = dependencies/parsers/atk
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-atk.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/gulp"]
 	path = dependencies/parsers/gulp
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gulp.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/siesta"]
 	path = dependencies/parsers/siesta
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-siesta.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/elk"]
 	path = dependencies/parsers/elk
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-elk.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/elastic"]
 	path = dependencies/parsers/elastic
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-elastic.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/gamess"]
 	path = dependencies/parsers/gamess
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gamess.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/turbomole"]
 	path = dependencies/parsers/turbomole
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-turbomole.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/photoemission"]
 	path = dependencies/parsers/photoemission
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-photoemission.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/skeleton"]
 	path = dependencies/parsers/skeleton
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-skeleton.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/mpes"]
 	path = dependencies/parsers/mpes
 	url = https://gitlab.mpcdf.mpg.de/rpx/parser-mpes.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/aptfim"]
 	path = dependencies/parsers/aptfim
 	url = https://gitlab.mpcdf.mpg.de/mkuehbac/parser-aptfim.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/dmol3"]
 	path = dependencies/parsers/dmol3
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-dmol3.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/fleur"]
 	path = dependencies/parsers/fleur
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-fleur.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/molcas"]
 	path = dependencies/parsers/molcas
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-molcas.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/qbox"]
 	path = dependencies/parsers/qbox
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-qbox.git
+	branch = nomad-fair
 [submodule "dependencies/parsers/onetep"]
 	path = dependencies/parsers/onetep
-	url = git@gitlab.mpcdf.mpg.de:nomad-lab/parser-onetep
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-onetep.git
+	branch = nomad-fair
