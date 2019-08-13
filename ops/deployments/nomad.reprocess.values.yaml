@@ -25,7 +25,7 @@ uploadurl: 'https://labdev-nomad.rzg.mpg.de/fairdi/nomad/reprocess/upload'
 volumes:
   prefixSize: 1
   public: /nomad/fairdi/prod/fs/public
-  staging: /nomad/fairdi/prod/fs/staging
+  staging: /scratch/fairdi/migration/fs/staging
   tmp: /nomad/fairdi/prod/fs/tmp
   coe_extracted: /nomad/fairdi/prod/fs/extracted
   nomad: /nomad
