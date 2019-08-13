@@ -658,7 +658,7 @@ class Upload(Proc):
 
                     continue
 
-                calc.reset()
+                calc.reset(worker_hostname=self.worker_hostname)
 
                 parser = match_parser(calc.mainfile, staging_upload_files)
                 if parser is None:

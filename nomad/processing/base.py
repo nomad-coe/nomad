@@ -187,7 +187,7 @@ class Proc(Document, metaclass=ProcMetaclass):
 
         return self
 
-    def reset(self):
+    def reset(self, worker_hostname: str = None):
         """ Resets the task chain. Assumes there no current running process. """
         assert not self.process_running
 
@@ -195,7 +195,7 @@ class Proc(Document, metaclass=ProcMetaclass):
         self.tasks_status = PENDING
         self.errors = []
         self.warnings = []
-        self.worker_hostname = None
+        self.worker_hostname = worker_hostname
 
     @classmethod
     def get_by_id(cls, id: str, id_field: str):
