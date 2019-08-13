@@ -294,6 +294,7 @@ def stop(ctx, uploads, calcs: bool, kill: bool, no_celery: bool):
                 process.on_process_complete(None)
                 process.save()
 
-    stop_all(proc.Calc.objects(query))
+    running_query = query & (Q(process_status=proc.PROCESS_RUNNING) | Q(tasks_status=proc.RUNNING))
+    stop_all(proc.Calc.objects(running_query))
     if not calcs:
-        stop_all(proc.Upload.objects(query))
+        stop_all(proc.Upload.objects(running_query))
