@@ -111,3 +111,18 @@
 [submodule "dependencies/parsers/aptfim"]
 	path = dependencies/parsers/aptfim
 	url = https://gitlab.mpcdf.mpg.de/mkuehbac/parser-aptfim.git
+[submodule "dependencies/parsers/dmol3"]
+	path = dependencies/parsers/dmol3
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-dmol3.git
+[submodule "dependencies/parsers/fleur"]
+	path = dependencies/parsers/fleur
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-fleur.git
+[submodule "dependencies/parsers/molcas"]
+	path = dependencies/parsers/molcas
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-molcas.git
+[submodule "dependencies/parsers/qbox"]
+	path = dependencies/parsers/qbox
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-qbox.git
+[submodule "dependencies/parsers/onetep"]
+	path = dependencies/parsers/onetep
+	url = git@gitlab.mpcdf.mpg.de:nomad-lab/parser-onetep
