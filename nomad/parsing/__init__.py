@@ -238,7 +238,7 @@ parsers = [
         mainfile_contents_re=r':LABEL\d+: using WIEN2k_\d+\.\d+'
     ),
     LegacyParser(
-        name='parsers/band', code_name=config.services.not_processed_value,
+        name='parsers/band', code_name='BAND',
         parser_class_name='bandparser.BANDParser',
         mainfile_contents_re=r' +\* +Amsterdam Density Functional +\(ADF\)'),
     LegacyParser(

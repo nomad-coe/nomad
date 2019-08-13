@@ -78,6 +78,9 @@ your browser.
 ## Change log
 
 ### v0.5.1
+- integrated parsers Dmol3, qbox, molcas, fleur, and onetep
+- improvements to admin cli: e.g. clean staging files, reprocess uploads based on codes
+- lots of parser bugfixes
 - lots of minor bugfixes
 
 ### v0.5.0
