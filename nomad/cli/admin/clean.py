@@ -87,7 +87,7 @@ def clean(dry, skip_calcs, skip_fs, skip_es, staging_too, force):
 
     if staging_too and not skip_fs:
         to_delete = list(
-            path for upload, path in staging_dirs
+            path for upload, path in staging_dirs.items()
             if upload in public_dirs)
 
         if not dry and len(to_delete) > 0:
