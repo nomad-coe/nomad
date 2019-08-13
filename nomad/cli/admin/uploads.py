@@ -262,33 +262,33 @@ def stop(ctx, uploads, calcs: bool, kill: bool):
     logger = utils.get_logger(__name__)
 
     def stop_all(query):
-        for proc in query:
-            logger_kwargs = dict(upload_id=proc.upload_id)
-            if isinstance(proc, proc.Calc):
-                logger_kwargs.update(calc_id=proc.calc_id)
+        for process in query:
+            logger_kwargs = dict(upload_id=process.upload_id)
+            if isinstance(process, proc.Calc):
+                logger_kwargs.update(calc_id=process.calc_id)
 
             logger.info(
-                'send terminate celery task', celery_task_id=proc.celery_task_id,
+                'send terminate celery task', celery_task_id=process.celery_task_id,
                 kill=kill, **logger_kwargs)
 
             kwargs = {}
             if kill:
                 kwargs.update(signal='SIGKILL')
             try:
-                proc.app.control.revoke(proc.celery_task_id, terminate=True, **kwargs)
+                proc.app.control.revoke(process.celery_task_id, terminate=True, **kwargs)
             except Exception as e:
                 logger.warning(
                     'could not revoke celery task', exc_info=e,
-                    celery_task_id=proc.celery_task_id, **logger_kwargs)
+                    celery_task_id=process.celery_task_id, **logger_kwargs)
             if kill:
                 logger.info(
-                    'fail proc', celery_task_id=proc.celery_task_id, kill=kill,
+                    'fail proc', celery_task_id=process.celery_task_id, kill=kill,
                     **logger_kwargs)
 
-                proc.fail('process terminate via nomad cli')
-                proc.process_status = proc.PROCESS_COMPLETED
-                proc.on_process_complete(None)
-                proc.save()
+                process.fail('process terminate via nomad cli')
+                process.process_status = proc.PROCESS_COMPLETED
+                process.on_process_complete(None)
+                process.save()
 
     stop_all(proc.Calc.objects(query))
     if not calcs:
