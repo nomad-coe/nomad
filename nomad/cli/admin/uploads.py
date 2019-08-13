@@ -258,6 +258,7 @@ def re_process(ctx, uploads, parallel: int):
 @click.option('--no-celery', is_flag=True, help='Do not attempt to stop the actual celery tasks')
 @click.pass_context
 def stop(ctx, uploads, calcs: bool, kill: bool, no_celery: bool):
+    infrastructure.setup_repository_db()
     query, _ = query_uploads(ctx, uploads)
 
     logger = utils.get_logger(__name__)
