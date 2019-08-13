@@ -255,8 +255,9 @@ def re_process(ctx, uploads, parallel: int):
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--calcs', is_flag=True, help='Only stop calculation processing.')
 @click.option('--kill', is_flag=True, help='Use the kill signal and force task failure.')
+@click.option('--no-celery', is_flag=True, help='Do not attempt to stop the actual celery tasks')
 @click.pass_context
-def stop(ctx, uploads, calcs: bool, kill: bool):
+def stop(ctx, uploads, calcs: bool, kill: bool, no_celery: bool):
     query, _ = query_uploads(ctx, uploads)
 
     logger = utils.get_logger(__name__)
@@ -267,19 +268,22 @@ def stop(ctx, uploads, calcs: bool, kill: bool):
             if isinstance(process, proc.Calc):
                 logger_kwargs.update(calc_id=process.calc_id)
 
-            logger.info(
-                'send terminate celery task', celery_task_id=process.celery_task_id,
-                kill=kill, **logger_kwargs)
+            if not no_celery:
+                logger.info(
+                    'send terminate celery task', celery_task_id=process.celery_task_id,
+                    kill=kill, **logger_kwargs)
 
             kwargs = {}
             if kill:
                 kwargs.update(signal='SIGKILL')
             try:
-                proc.app.control.revoke(process.celery_task_id, terminate=True, **kwargs)
+                if not no_celery:
+                    proc.app.control.revoke(process.celery_task_id, terminate=True, **kwargs)
             except Exception as e:
                 logger.warning(
                     'could not revoke celery task', exc_info=e,
                     celery_task_id=process.celery_task_id, **logger_kwargs)
+
             if kill:
                 logger.info(
                     'fail proc', celery_task_id=process.celery_task_id, kill=kill,
