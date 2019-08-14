@@ -398,6 +398,8 @@ export class ApiProviderComponent extends React.Component {
 
     api.getInfo().then(info => {
       this.setState({info: info})
+    }).catch(error => {
+      this.props.raiseError(error)
     })
 
     return api

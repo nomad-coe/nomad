@@ -514,7 +514,9 @@ class UploadResource(Resource):
 upload_command_model = api.model('UploadCommand', {
     'upload_url': fields.Url,
     'upload_command': fields.String,
+    'upload_command_with_name': fields.String,
     'upload_progress_command': fields.String,
+    'upload_command_form': fields.String,
     'upload_tar_command': fields.String
 })
 
@@ -527,6 +529,7 @@ class UploadCommandResource(Resource):
     def get(self):
         """ Get url and example command for shell based uploads. """
         upload_url = '%s/uploads/?curl=True' % config.api_url()
+        upload_url_with_name = upload_url + '&name=<name>'
 
         # upload_command = 'curl -X PUT -H "X-Token: %s" "%s" -F file=@<local_file>' % (
         #     g.user.get_auth_token().decode('utf-8'), upload_url)
@@ -536,6 +539,12 @@ class UploadCommandResource(Resource):
         upload_command = 'curl -H X-Token:%s %s -T <local_file>' % (
             g.user.get_auth_token().decode('utf-8'), upload_url)
 
+        upload_command_form = 'curl -H X-Token:%s %s -X PUT -F file=@<local_file>' % (
+            g.user.get_auth_token().decode('utf-8'), upload_url)
+
+        upload_command_with_name = 'curl -H X-Token:%s "%s" -X PUT -T <local_file>' % (
+            g.user.get_auth_token().decode('utf-8'), upload_url_with_name)
+
         upload_progress_command = upload_command + ' | xargs echo'
         upload_tar_command = 'tar -cf - <local_folder> | curl -# -H X-Token:%s %s -T - | xargs echo' % (
             g.user.get_auth_token().decode('utf-8'), upload_url)
@@ -543,5 +552,7 @@ class UploadCommandResource(Resource):
         return dict(
             upload_url=upload_url,
             upload_command=upload_command,
+            upload_command_with_name=upload_command_with_name,
             upload_progress_command=upload_progress_command,
+            upload_command_form=upload_command_form,
             upload_tar_command=upload_tar_command), 200
