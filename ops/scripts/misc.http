@@ -73,19 +73,11 @@ Content-Type: application/json
 
 {
     "size": 0,
-    "query": {
-        "bool": {
-            "must": {
-                "match": {
-                    "upload_id": "IPSqilPPRTyxsD28n4XVsg"
-                }
-            }
-        }
-    },
     "aggs": {
         "upload_id": {
-            "terms": {
-                "field": "system"
+            "cardinality": {
+                "field": "uploader.name.keyword",
+                "precision_threshold": 300
             }
         }
     }

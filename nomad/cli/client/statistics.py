@@ -26,16 +26,27 @@ import click
 from .client import client
 
 
-def codes(client):
-    result = client.repo.search(per_page=1, owner='admin').response().result
+def codes(client, metrics=[]):
+    data = client.repo.search(per_page=1, owner='admin', metrics=metrics).response().result
 
-    return sorted([
-        code for code, values in result.quantities['code_name'].items()
+    x_values = sorted([
+        code for code, values in data.quantities['code_name'].items()
         if code != 'not processed' and values['code_runs'] > 0], key=lambda x: x.lower())
+
+    return data.quantities, x_values, 'code_name', 'code'
+
+
+def dates(client, metrics=[]):
+    data = client.repo.search(per_page=1, owner='admin', metrics=metrics, date_histogram=True).response().result
+
+    x_values = list([
+        x for x in data.quantities['date_histogram'].keys()])
+
+    return data.quantities, x_values, 'date_histogram', 'month'
 
 
 def error_fig(client):
-    labels = codes(client)
+    _, labels, _, _ = codes(client)
 
     def code_values(metric='code_runs', **kwargs):
         result = client.repo.search(
@@ -118,45 +129,69 @@ def error_fig(client):
     plt.show()
 
 
-def codes_fig(client):
-    labels = codes(client)
+class Metric:
+    def __init__(self, metric, label=None, power=1, multiplier=1, format=None, cumulate=False):
+        if label is None:
+            label = metric
 
-    # get the data
-    result = client.repo.search(
-        per_page=1, owner='admin', metrics=['total_energies']).response().result
-    all_entries = {
-        code: values['code_runs']
-        for code, values in result.quantities['code_name'].items()
-        if code != 'not processed' and code in labels}
-    total_energies = {
-        code: values['total_energies']
-        for code, values in result.quantities['code_name'].items()
-        if code != 'not processed' and code in labels}
+        self.metric = metric
+        self.agg = None
+        self.label = label
+        self.multiplier = multiplier
+        self.power = power
+        self.format = format
+        self.cumulate = cumulate
+
+    def draw_axis(self, axis, data, x_values, x_positions, width, color):
+        value_map = {
+            x: values[self.metric]
+            for x, values in data[self.agg].items()
+            if x in x_values}
+
+        axis.set_yscale('power', exponent=self.power)
+        axis.set_ylabel(self.label, color=color)
+
+        if self.format is not None:
+            axis.yaxis.set_major_formatter(ticker.StrMethodFormatter(self.format))
+
+        y_values = [value_map[x] * self.multiplier for x in x_values]
+        if self.cumulate:
+            y_values = np.array(y_values).cumsum()
+        axis.bar(x_positions, y_values, width, label=self.label, color=color)
+        axis.tick_params(axis='y', labelcolor=color)
+
+
+def bar_plot(client, retrieve, metric1, metric2=None, title=None):
+    metrics = [] if metric1.metric == 'code_runs' else [metric1.metric]
+    if metric2 is not None:
+        metrics += [] if metric2.metric == 'code_runs' else [metric2.metric]
+
+    data, x_values, agg, agg_label = retrieve(client, metrics)
+    metric1.agg = agg
+    if metric2 is not None:
+        metric2.agg = agg
 
     fig, ax1 = plt.subplots(figsize=(15, 6), dpi=72)
-    x = np.arange(len(labels))  # the label locations
-    width = 0.7 / 2  # the width of the bars
+    x = np.arange(len(x_values))
+    width = 0.7 / 2
+    if metric2 is None:
+        width = 0.7
     plt.sca(ax1)
     plt.xticks(rotation=90)
     ax1.set_xticks(x)
-    ax1.set_xticklabels(labels)
-    ax1.set_title('Number of entries (code runs, sets of input/output files) and total energy calculations per code')
+    ax1.set_xticklabels(x_values)
+    if title is None:
+        title = 'Number of %s' % metric1.label
+        if metric2 is not None:
+            title += ' and %s' % metric2.label
+        title += ' per %s' % agg_label
+        ax1.set_title(title)
 
-    color = 'tab:red'
-    ax1.set_yscale('power', exponent=0.25)
-    ax1.set_ylabel('number of entries', color=color)
-    ax1.yaxis.set_major_formatter(ticker.StrMethodFormatter('{x:,.1f}M'))
-    ax1.bar(x - width / 2, [all_entries[code] / 1e6 for code in labels], width, label='entries', color=color)
-    ax1.tick_params(axis='y', labelcolor=color)
+    metric1.draw_axis(ax1, data, x_values, x - (width / 2 if metric2 is not None else 0), width, 'tab:red')
 
-    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-
-    color = 'tab:blue'
-    ax2.set_yscale('power', exponent=0.25)
-    ax2.set_ylabel('number of total energy calculations', color=color)
-    ax2.yaxis.set_major_formatter(ticker.StrMethodFormatter('{x:,.1f}M'))
-    ax2.bar(x + width / 2, [total_energies[code] / 1e6 for code in labels], width, label='total energy calculations', color=color)
-    ax2.tick_params(axis='y', labelcolor=color)
+    if metric2:
+        ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+        metric2.draw_axis(ax2, data, x_values, x + width / 2, width, 'tab:blue')
 
     fig.tight_layout()
     plt.show()
@@ -164,8 +199,12 @@ def codes_fig(client):
 
 @client.command(help='Generate various matplotlib charts')
 @click.option('--errors', is_flag=True, help='Two charts with relative and absolute parser/normalizer errors per code.')
-@click.option('--per-code', is_flag=True, help='Entries and total energy calculations per code.')
-def statistics(errors, per_code):
+@click.option('--x-axis', type=str, help='Aggregation used for x-axis, values are "code" and "time".')
+@click.option('--y-axis', multiple=True, type=str, help='Metrics used for y-axis, values are "entries", "energies", "users".')
+@click.option('--cumulate', is_flag=True, help='Cumulate over x-axis.')
+@click.option('--title', type=str, help='Override chart title with given value.')
+@click.option('--total', is_flag=True, help='Provide total sums of key metrics.')
+def statistics(errors, title, x_axis, y_axis, cumulate, total):
     from .client import create_client
     client = create_client()
 
@@ -205,7 +244,40 @@ def statistics(errors, per_code):
 
     mscale.register_scale(PowerScale)
 
+    metrics = {
+        'entries': Metric(
+            'code_runs',
+            label='entries (code runs)',
+            cumulate=cumulate,
+            power=0.25 if not cumulate else 1, multiplier=1e-6, format='{x:,.1f}M'),
+        'users': Metric(
+            'users',
+            cumulate=cumulate,
+            label='users that provided data'),
+        'energies': Metric(
+            'total_energies',
+            label='total energy calculations',
+            cumulate=cumulate,
+            power=0.25 if not cumulate else 1, multiplier=1e-6, format='{x:,.1f}M')
+    }
+
     if errors:
         error_fig(client)
-    if per_code:
-        codes_fig(client)
+
+    if x_axis is not None:
+        assert 1 <= len(y_axis) <= 2, 'Need 1 or 2 y axis'
+
+        if x_axis == 'code':
+            x_axis = codes
+        elif x_axis == 'time':
+            x_axis = dates
+        else:
+            assert False, 'x axis can only be "code" or "time"'
+
+        y_axis = [metrics[y] for y in y_axis]
+
+        bar_plot(client, x_axis, *y_axis, title=title)
+
+    if total:
+        data = client.repo.search(per_page=1, owner='admin', metrics=['total_energies', 'users', 'datasets']).response().result
+        print(data.quantities['total'])
