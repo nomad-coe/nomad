@@ -349,7 +349,7 @@ class Api {
   async getInfo() {
     if (!this._cachedInfo) {
       this.onStartLoading()
-      this._cachedInfo = this.swaggerPromise
+      this._cachedInfo = await this.swaggerPromise
         .then(client => {
           return client.apis.info.get_info()
             .catch(this.handleApiError)

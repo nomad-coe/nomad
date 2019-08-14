@@ -55,7 +55,6 @@ class MetaInfoBrowser extends Component {
     classes: PropTypes.object.isRequired,
     metainfo: PropTypes.string,
     api: PropTypes.object.isRequired,
-    info: PropTypes.object.isRequired,
     loading: PropTypes.number,
     raiseError: PropTypes.func.isRequired,
     history: PropTypes.object.isRequired
@@ -91,15 +90,18 @@ class MetaInfoBrowser extends Component {
   }
 
   update(pkg) {
-    const { info } = this.props.info
-    this.props.api.getMetaInfo(pkg || info.domain.metainfo.all_package).then(metainfos => {
-      const metainfoName = this.props.metainfo || info.domain.metainfo.root_sections[0]
-      const definition = metainfos.get(metainfoName)
-      if (!definition) {
-        this.props.history.push(`/metainfo/${info.domain.metainfo.root_sections[0]}`)
-      } else {
-        this.setState({loadedPackage: pkg, metainfos: metainfos})
-      }
+    this.props.api.getInfo().then(info => {
+      this.props.api.getMetaInfo(pkg || info.domain.metainfo.all_package).then(metainfos => {
+        const metainfoName = this.props.metainfo || info.domain.metainfo.root_sections[0]
+        const definition = metainfos.get(metainfoName)
+        if (!definition) {
+          this.props.history.push(`/metainfo/${info.domain.metainfo.root_sections[0]}`)
+        } else {
+          this.setState({loadedPackage: pkg, metainfos: metainfos})
+        }
+      }).catch(error => {
+        this.props.raiseError(error)
+      })
     }).catch(error => {
       this.props.raiseError(error)
     })
