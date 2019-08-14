@@ -395,12 +395,18 @@ export class ApiProviderComponent extends React.Component {
     const api = new Api(user)
     api.onStartLoading = () => this.setState({loading: this.state.loading + 1})
     api.onFinishLoading = () => this.setState({loading: Math.max(0, this.state.loading - 1)})
+
+    api.getInfo().then(info => {
+      this.setState({info: info})
+    })
+
     return api
   }
 
   state = {
     api: null,
     user: null,
+    info: null,
     isLoggingIn: false,
     loading: 0,
     login: (userNameToken, password, successCallback) => {

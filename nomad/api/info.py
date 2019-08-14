@@ -53,6 +53,7 @@ git_info_model = api.model('GitInfo', {
 
 info_model = api.model('Info', {
     'parsers': fields.List(fields.String),
+    'codes': fields.List(fields.String),
     'normalizers': fields.List(fields.String),
     'domain': fields.Nested(model=domain_model),
     'version': fields.String,
@@ -68,7 +69,13 @@ class InfoResource(Resource):
     def get(self):
         """ Return information about the nomad backend and its configuration. """
         return {
-            'parsers': [key[8:] for key in parsing.parser_dict.keys()],
+            'parsers': [
+                key[key.index('/') + 1:]
+                for key in parsing.parser_dict.keys()],
+            'codes': sorted(set([
+                parser.code_name
+                for parser in parsing.parser_dict.values()
+                if isinstance(parser, parsing.MatchingParser) and parser.domain == datamodel.Domain.instance.name]), key=lambda x: x.lower()),
             'normalizers': [normalizer.__name__ for normalizer in normalizing.normalizers],
             'domain': {
                 'name': datamodel.Domain.instance.name,

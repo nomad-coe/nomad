@@ -25,6 +25,7 @@ class ArchiveEntryView extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
+    info: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired,
     uploadId: PropTypes.string.isRequired,
     calcId: PropTypes.string.isRequired
@@ -94,14 +95,10 @@ class ArchiveEntryView extends React.Component {
       this.props.raiseError(error)
     })
 
-    api.getInfo().then(info => {
-      this.props.api.getMetaInfo(info.domain.metainfo.all_package).then(metaInfo => {
-        if (!this.unmounted) {
-          this.setState({metaInfo: metaInfo})
-        }
-      })
-    }).catch(error => {
-      this.props.raiseError(error)
+    this.props.api.getMetaInfo(this.props.info.domain.metainfo.all_package).then(metaInfo => {
+      if (!this.unmounted) {
+        this.setState({metaInfo: metaInfo})
+      }
     })
   }
 

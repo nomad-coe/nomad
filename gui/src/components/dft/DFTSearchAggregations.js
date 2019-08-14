@@ -3,6 +3,8 @@ import PropTypes from 'prop-types'
 import { withStyles, Grid, Card, CardContent } from '@material-ui/core'
 import PeriodicTable from '../search/PeriodicTable'
 import QuantityHistogram from '../search/QuantityHistogram'
+import { compose } from 'recompose'
+import { withApi } from '../api'
 
 class DFTSearchAggregations extends React.Component {
   static propTypes = {
@@ -10,7 +12,8 @@ class DFTSearchAggregations extends React.Component {
     quantities: PropTypes.object.isRequired,
     metric: PropTypes.string.isRequired,
     searchValues: PropTypes.object.isRequired,
-    onChange: PropTypes.func.isRequired
+    onChange: PropTypes.func.isRequired,
+    info: PropTypes.object
   }
 
   static styles = theme => ({
@@ -70,7 +73,21 @@ class DFTSearchAggregations extends React.Component {
   }
 
   render() {
-    const { classes, quantities, metric, searchValues } = this.props
+    const { classes, quantities, metric, searchValues, info } = this.props
+
+    if (quantities.code_name && info) {
+      // filter based on known codes, since elastic search might return 0 aggregations on
+      // obsolete code names
+      const filteredCodeNames = {}
+      const defaultValue = {
+        code_runs: 0
+      }
+      defaultValue[metric] = 0
+      info.codes.forEach(key => {
+        filteredCodeNames[key] = quantities.code_name[key] || defaultValue
+      })
+      quantities.code_name = filteredCodeNames
+    }
 
     const quantity = (key, title, scale) => (<QuantityHistogram
       classes={{root: classes.quantity}} title={title || key} width={300}
@@ -110,4 +127,4 @@ class DFTSearchAggregations extends React.Component {
   }
 }
 
-export default withStyles(DFTSearchAggregations.styles)(DFTSearchAggregations)
+export default compose(withApi(false), withStyles(DFTSearchAggregations.styles))(DFTSearchAggregations)

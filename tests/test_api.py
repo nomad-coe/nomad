@@ -64,6 +64,10 @@ def get_upload_with_metadata(upload: dict) -> UploadWithMetadata:
 class TestInfo:
     def test_info(self, client):
         rv = client.get('/info/')
+        data = json.loads(rv.data)
+        assert 'codes' in data
+        assert 'parsers' in data
+        assert len(data['parsers']) >= len(data['codes'])
         assert rv.status_code == 200
 
 
