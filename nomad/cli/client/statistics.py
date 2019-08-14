@@ -1,58 +1,42 @@
+# Copyright 2018 Markus Scheidgen
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an"AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""
+A command that generates various statistics.
+"""
+
 from matplotlib import scale as mscale
 from matplotlib import transforms as mtransforms
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
-from bravado.requests_client import RequestsClient
-from bravado.client import SwaggerClient
-from urllib.parse import urlparse
+import click
+
+from .client import client
 
 
-class PowerScale(mscale.ScaleBase):
-    name = 'power'
+def codes(client):
+    result = client.repo.search(per_page=1, owner='admin').response().result
 
-    def __init__(self, axis, exponent, **kwargs):
-        mscale.ScaleBase.__init__(self, axis, **kwargs)
-        self.exponent = exponent
-
-    def set_default_locators_and_formatters(self, axis):
-        axis.set_major_locator(ticker.AutoLocator())
-        axis.set_major_formatter(ticker.ScalarFormatter())
-        axis.set_minor_locator(ticker.NullLocator())
-        axis.set_minor_formatter(ticker.NullFormatter())
-
-    def limit_range_for_scale(self, vmin, vmax, minpos):
-        return max(0., vmin), vmax
-
-    class Transform(mtransforms.Transform):
-        input_dims = 1
-        output_dims = 1
-        is_separable = True
-
-        def __init__(self, exponent):
-            super().__init__()
-            self.exponent = exponent
-
-        def transform_non_affine(self, a):
-            return np.array(a)**self.exponent
-
-        def inverted(self):
-            return PowerScale.Transform(1 / self.exponent)
-
-    def get_transform(self):
-        return self.Transform(self.exponent)
+    return sorted([
+        code for code, values in result.quantities['code_name'].items()
+        if code != 'not processed' and values['code_runs'] > 0], key=lambda x: x.lower())
 
 
-mscale.register_scale(PowerScale)
+def error_fig(client):
+    labels = codes(client)
 
-nomad_url = 'http://repository.nomad-coe.eu/uploads/api'
-host = urlparse(nomad_url).netloc.split(':')[0]
-http_client = RequestsClient()
-http_client.set_basic_auth(host, 'admin', 'mad17no')
-client = SwaggerClient.from_url('%s/swagger.json' % nomad_url, http_client=http_client)
-
-
-def error_fig():
     def code_values(metric='code_runs', **kwargs):
         result = client.repo.search(
             per_page=1,
@@ -63,7 +47,7 @@ def error_fig():
         return {
             code: values[metric]
             for code, values in result.quantities['code_name'].items()
-            if code != 'not processed'}
+            if code != 'not processed' and (not labels or code in labels) > 0}
 
     # get the data
     all_entries = code_values()
@@ -88,7 +72,6 @@ def error_fig():
     fig, axs = plt.subplots(figsize=(15, 12), dpi=72, nrows=2)
 
     def draw_error_chart(errors, ax, colors, entries=None, mul=1, scale=0.5):
-        labels = sorted(list(all_entries.keys()), key=lambda a: a.lower())
         n_bars = len(errors) - 1
         leg_colors = list(colors)
 
@@ -135,21 +118,22 @@ def error_fig():
     plt.show()
 
 
-def codes_fig():
+def codes_fig(client):
+    labels = codes(client)
+
     # get the data
     result = client.repo.search(
         per_page=1, owner='admin', metrics=['total_energies']).response().result
     all_entries = {
         code: values['code_runs']
         for code, values in result.quantities['code_name'].items()
-        if code != 'not processed'}
+        if code != 'not processed' and code in labels}
     total_energies = {
         code: values['total_energies']
         for code, values in result.quantities['code_name'].items()
-        if code != 'not processed'}
+        if code != 'not processed' and code in labels}
 
     fig, ax1 = plt.subplots(figsize=(15, 6), dpi=72)
-    labels = sorted(list(all_entries.keys()), key=lambda a: a.lower())
     x = np.arange(len(labels))  # the label locations
     width = 0.7 / 2  # the width of the bars
     plt.sca(ax1)
@@ -178,5 +162,50 @@ def codes_fig():
     plt.show()
 
 
-error_fig()
-codes_fig()
+@client.command(help='Generate various matplotlib charts')
+@click.option('--errors', is_flag=True, help='Two charts with relative and absolute parser/normalizer errors per code.')
+@click.option('--per-code', is_flag=True, help='Entries and total energy calculations per code.')
+def statistics(errors, per_code):
+    from .client import create_client
+    client = create_client()
+
+    class PowerScale(mscale.ScaleBase):
+        name = 'power'
+
+        def __init__(self, axis, exponent, **kwargs):
+            mscale.ScaleBase.__init__(self, axis, **kwargs)
+            self.exponent = exponent
+
+        def set_default_locators_and_formatters(self, axis):
+            axis.set_major_locator(ticker.AutoLocator())
+            axis.set_major_formatter(ticker.ScalarFormatter())
+            axis.set_minor_locator(ticker.NullLocator())
+            axis.set_minor_formatter(ticker.NullFormatter())
+
+        def limit_range_for_scale(self, vmin, vmax, minpos):
+            return max(0., vmin), vmax
+
+        class Transform(mtransforms.Transform):
+            input_dims = 1
+            output_dims = 1
+            is_separable = True
+
+            def __init__(self, exponent):
+                super().__init__()
+                self.exponent = exponent
+
+            def transform_non_affine(self, a):
+                return np.array(a)**self.exponent
+
+            def inverted(self):
+                return PowerScale.Transform(1 / self.exponent)
+
+        def get_transform(self):
+            return self.Transform(self.exponent)
+
+    mscale.register_scale(PowerScale)
+
+    if errors:
+        error_fig(client)
+    if per_code:
+        codes_fig(client)
