@@ -10,10 +10,10 @@ import history from './history'
 import PiwikReactRouter from 'piwik-react-router'
 import { sendTrackingData, matomoUrl, matomoSiteId } from './config'
 
-const matomo = PiwikReactRouter({
+const matomo = sendTrackingData ? PiwikReactRouter({
   url: matomoUrl,
   siteId: matomoSiteId
-})
+}) : null
 
 ReactDOM.render(
   <Router history={sendTrackingData ? matomo.connectToHistory(history) : history}>
