@@ -25,7 +25,7 @@ class ArchiveEntryView extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
-    info: PropTypes.object.isRequired,
+    info: PropTypes.object,
     raiseError: PropTypes.func.isRequired,
     uploadId: PropTypes.string.isRequired,
     calcId: PropTypes.string.isRequired
@@ -77,28 +77,38 @@ class ArchiveEntryView extends React.Component {
   }
 
   componentDidMount() {
-    this.update()
+    this.updateArchive()
+    this.updateMetaInfo()
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.api !== this.props.api) {
-      this.update()
+    if (prevProps.api !== this.props.api || prevProps.info !== this.props.info) {
+      this.updateArchive()
+      this.updateMetaInfo()
     }
   }
 
-  update() {
+  updateMetaInfo() {
+    if (this.props.api && this.props.info) {
+      this.props.api.getMetaInfo(this.props.info.domain.metainfo.all_package).then(metaInfo => {
+        if (!this.unmounted) {
+          this.setState({metaInfo: metaInfo})
+        }
+      })
+    }
+  }
+
+  updateArchive() {
     const {uploadId, calcId, api} = this.props
     api.archive(uploadId, calcId).then(data => {
-      this.setState({data: data})
-    }).catch(error => {
-      this.setState({data: null})
-      this.props.raiseError(error)
-    })
-
-    this.props.api.getMetaInfo(this.props.info.domain.metainfo.all_package).then(metaInfo => {
       if (!this.unmounted) {
-        this.setState({metaInfo: metaInfo})
+        this.setState({data: data})
       }
+    }).catch(error => {
+      if (!this.unmounted) {
+        this.setState({data: null})
+      }
+      this.props.raiseError(error)
     })
   }
 

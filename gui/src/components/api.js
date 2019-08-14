@@ -26,6 +26,13 @@ export class NotAuthorized extends Error {
   }
 }
 
+export class ApiError extends Error {
+  constructor(msg) {
+    super(msg)
+    this.name = 'CannotReachApi'
+  }
+}
+
 const upload_to_gui_ids = {}
 let gui_upload_id_counter = 0
 
@@ -159,7 +166,7 @@ class Api {
         throw Error(`API error (${e.response.status}): ${message}`)
       }
     } else {
-      throw Error('Network related error, cannot reach API')
+      throw new ApiError()
     }
   }
 
@@ -322,17 +329,21 @@ class Api {
       return metaInfoRepository
     } else {
       this.onStartLoading()
-      const loadMetaInfo = async(path) => {
-        return this.swaggerPromise
-          .then(client => client.apis.archive.get_metainfo({metainfo_package_name: path}))
-          .catch(this.handleApiError)
-          .then(response => response.body)
+      try {
+        const loadMetaInfo = async(path) => {
+          return this.swaggerPromise
+            .then(client => client.apis.archive.get_metainfo({metainfo_package_name: path}))
+            .catch(this.handleApiError)
+            .then(response => response.body)
+        }
+        const metaInfo = await loadMetaInfo(pkg)
+        const metaInfoRepository = new MetaInfoRepository(metaInfo)
+        this._metaInfoRepositories[pkg] = metaInfoRepository
+
+        return metaInfoRepository
+      } finally {
+        this.onFinishLoading()
       }
-      const metaInfo = await loadMetaInfo(pkg)
-      const metaInfoRepository = new MetaInfoRepository(metaInfo)
-      this._metaInfoRepositories[pkg] = metaInfoRepository
-      this.onFinishLoading()
-      return metaInfoRepository
     }
   }
 
@@ -344,12 +355,10 @@ class Api {
       this._cachedInfo = await this.swaggerPromise
         .then(client => {
           return client.apis.info.get_info()
+            .then(response => response.body)
             .catch(this.handleApiError)
-            .then(response => {
-              this.onFinishLoading()
-              return response.body
-            })
         })
+        .finally(this.onFinishLoading)
     }
     return this._cachedInfo
   }
@@ -407,22 +416,8 @@ export class ApiProviderComponent extends React.Component {
       this.setState({isLoggingIn: true})
       successCallback = successCallback || (() => true)
       Api.createSwaggerClient(userNameToken, password)
-        .catch((error) => {
-          this.setState({api: this.createApi(), isLoggingIn: false, user: null})
-          this.props.raiseError(error)
-        })
         .then(client => {
           client.apis.auth.get_user()
-            .catch(error => {
-              if (error.response.status !== 401) {
-                try {
-                  this.props.raiseError(error)
-                } catch (e) {
-                  this.setState({api: this.createApi(), isLoggingIn: false, user: null})
-                  this.props.raiseError(error)
-                }
-              }
-            })
             .then(response => {
               if (response) {
                 const user = response.body
@@ -434,10 +429,24 @@ export class ApiProviderComponent extends React.Component {
                 successCallback(false)
               }
             })
+            .catch(error => {
+              if (error.response.status !== 401) {
+                try {
+                  this.props.raiseError(error)
+                } catch (e) {
+                  this.setState({api: this.createApi(), isLoggingIn: false, user: null})
+                  this.props.raiseError(error)
+                }
+              }
+            })
         })
         .catch(error => {
           this.setState({api: this.createApi(), isLoggingIn: false, user: null})
-          this.props.raiseError(error)
+          if (error.message === 'Failed to fetch') {
+            this.props.raiseError(new ApiError())
+          } else {
+            this.props.raiseError(error)
+          }
         })
     },
     logout: () => {
@@ -526,8 +535,7 @@ class WithApiComponent extends React.Component {
   }
 
   state = {
-    notAuthorized: false,
-    notFound: false
+    notAuthorized: false
   }
 
   constructor(props) {
@@ -551,8 +559,6 @@ class WithApiComponent extends React.Component {
     } else {
       if (error.name === 'NotAuthorized') {
         this.setState({notAuthorized: true})
-      } else if (error.name === 'DoesNotExist') {
-        this.setState({notFound: true})
       } else {
         raiseError(error)
       }
@@ -562,7 +568,7 @@ class WithApiComponent extends React.Component {
   render() {
     const { raiseError, loginRequired, loginMessage, Component, ...rest } = this.props
     const { api, user, isLoggingIn } = rest
-    const { notAuthorized, notFound } = this.state
+    const { notAuthorized } = this.state
     if (notAuthorized) {
       if (user) {
         return (
@@ -584,13 +590,6 @@ class WithApiComponent extends React.Component {
           />
         )
       }
-    } else if (notFound) {
-      return <div>
-        <Typography variant="h6">Not Found</Typography>
-        <Typography>
-        The information that you are trying to access does not exists.
-        </Typography>
-      </div>
     } else {
       if (api) {
         if (user || !loginRequired) {
