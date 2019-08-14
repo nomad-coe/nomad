@@ -219,7 +219,8 @@ search_quantities = datamodel.Domain.instance.search_quantities
 
 metrics = {
     'datasets': ('cardinality', 'datasets.id'),
-    'unique_code_runs': ('cardinality', 'calc_hash')
+    'unique_code_runs': ('cardinality', 'calc_hash'),
+    'users': ('cardinality', 'uploader.name.keyword')
 }
 """
 The available search metrics. Metrics are integer values given for each entry that can
@@ -476,7 +477,7 @@ def quantity_search(
 
 def metrics_search(
         quantities: Dict[str, int] = aggregations, metrics_to_use: List[str] = [],
-        with_entries: bool = True, **kwargs) -> Dict[str, Any]:
+        with_entries: bool = True, with_date_histogram: bool = False, **kwargs) -> Dict[str, Any]:
     """
     Performs a search like :func:`entry_search`, but instead of entries, returns the given
     metrics aggregated for (a limited set of values) of the given quantities calculated
@@ -524,7 +525,6 @@ def metrics_search(
         # We are using elastic searchs 'composite aggregations' here. We do not really
         # compose aggregations, but only those pseudo composites allow us to use the
         # 'after' feature that allows to scan through all aggregation values.
-        terms: Dict[str, Any] = None
         quantity = search_quantities[quantity_name]
         min_doc_count = 0 if quantity.zero_aggs else 1
         terms = A(
@@ -534,6 +534,10 @@ def metrics_search(
         buckets = search.aggs.bucket(quantity_name, terms)
         if quantity_name not in ['authors']:
             add_metrics(buckets)
+
+    if with_date_histogram:
+        histogram = A('date_histogram', field='upload_time', interval='1M', format='yyyy-MM-dd')
+        add_metrics(search.aggs.bucket('date_histogram', histogram))
 
     add_metrics(search.aggs)
 
@@ -556,6 +560,12 @@ def metrics_search(
         for quantity_name in quantities.keys()
         if quantity_name not in metrics_names  # ES aggs for total metrics, and aggs for quantities stand side by side
     }
+
+    if with_date_histogram:
+        metrics_results['date_histogram'] = {
+            bucket.key_as_string: get_metrics(bucket, bucket.doc_count)
+            for bucket in response.aggregations.date_histogram.buckets
+        }
 
     total_metrics_result = get_metrics(response.aggregations, entry_results['pagination']['total'])
     metrics_results['total'] = dict(all=total_metrics_result)

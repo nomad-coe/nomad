@@ -826,6 +826,14 @@ class TestRepo():
                 else:
                     assert len(metrics_result) == 1  # code_runs is the only metric for authors
 
+    def test_search_date_histogram(self, client, example_elastic_calcs, no_warn):
+        rv = client.get('/repo/?date_histogram=true&metrics=total_energies')
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        histogram = data.get('quantities').get('date_histogram')
+        print(histogram)
+        assert len(histogram) > 0
+
     @pytest.mark.parametrize('n_results, page, per_page', [(2, 1, 5), (1, 1, 1), (0, 2, 3)])
     def test_search_pagination(self, client, example_elastic_calcs, no_warn, n_results, page, per_page):
         rv = client.get('/repo/?page=%d&per_page=%d' % (page, per_page))

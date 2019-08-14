@@ -111,6 +111,8 @@ repo_request_parser.add_argument(
 repo_request_parser.add_argument(
     'scroll_id', type=str, help='The id of the current scrolling window to use.')
 repo_request_parser.add_argument(
+    'date_histogram', type=bool, help='Add an additional aggregation over the upload time')
+repo_request_parser.add_argument(
     'metrics', type=str, action='append', help=(
         'Metrics to aggregate over all quantities and their values as comma separated list. '
         'Possible values are %s.' % ', '.join(search.metrics_names)))
@@ -199,6 +201,7 @@ class RepoCalcsResource(Resource):
 
         try:
             scroll = bool(request.args.get('scroll', False))
+            date_histogram = bool(request.args.get('date_histogram', False))
             scroll_id = request.args.get('scroll_id', None)
             page = int(request.args.get('page', 1))
             per_page = int(request.args.get('per_page', 10 if not scroll else 1000))
@@ -250,7 +253,8 @@ class RepoCalcsResource(Resource):
             else:
                 results = search.metrics_search(
                     q=q, per_page=per_page, page=page, order=order, order_by=order_by,
-                    time_range=time_range, metrics_to_use=metrics, search_parameters=search_parameters)
+                    time_range=time_range, metrics_to_use=metrics, search_parameters=search_parameters,
+                    with_date_histogram=date_histogram)
 
                 # TODO just a work around to make things prettier
                 quantities = results['quantities']
