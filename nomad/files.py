@@ -442,7 +442,7 @@ class StagingUploadFiles(UploadFiles):
                 is the corresponding public upload files directory.
             skip_raw: determine to not pack the raw data, only archive and user metadata
         """
-        self.logger.debug('started to pack upload')
+        self.logger.info('started to pack upload')
 
         # freeze the upload
         assert not self.is_frozen, "Cannot pack an upload that is packed, or packing."
@@ -473,22 +473,28 @@ class StagingUploadFiles(UploadFiles):
         archive_public_zip = create_zipfile('archive', 'public', self._archive_ext)
         archive_restricted_zip = create_zipfile('archive', 'restricted', self._archive_ext)
 
-        for calc in upload.calcs:
-            archive_zip = archive_restricted_zip if calc.with_embargo else archive_public_zip
+        try:
+            for calc in upload.calcs:
+                archive_zip = archive_restricted_zip if calc.with_embargo else archive_public_zip
 
-            archive_filename = '%s.%s' % (calc.calc_id, self._archive_ext)
-            archive_file = self._archive_dir.join_file(archive_filename)
-            if archive_file.exists():
-                archive_zip.write(archive_file.os_path, archive_filename)
+                archive_filename = '%s.%s' % (calc.calc_id, self._archive_ext)
+                archive_file = self._archive_dir.join_file(archive_filename)
+                if archive_file.exists():
+                    archive_zip.write(archive_file.os_path, archive_filename)
 
-            archive_log_filename = '%s.%s' % (calc.calc_id, 'log')
-            log_file = self._archive_dir.join_file(archive_log_filename)
-            if log_file.exists():
-                archive_zip.write(log_file.os_path, archive_log_filename)
+                archive_log_filename = '%s.%s' % (calc.calc_id, 'log')
+                log_file = self._archive_dir.join_file(archive_log_filename)
+                if log_file.exists():
+                    archive_zip.write(log_file.os_path, archive_log_filename)
 
-        archive_restricted_zip.close()
-        archive_public_zip.close()
-        self.logger.debug('packed archives')
+        except Exception as e:
+            self.logger.error('exception during packing archives', exc_info=e)
+
+        finally:
+            archive_restricted_zip.close()
+            archive_public_zip.close()
+
+        self.logger.info('packed archives')
 
         if skip_raw:
             return
@@ -497,37 +503,43 @@ class StagingUploadFiles(UploadFiles):
         raw_public_zip = create_zipfile('raw', 'public', 'plain')
         raw_restricted_zip = create_zipfile('raw', 'restricted', 'plain')
 
-        # 1. add all public raw files
-        # 1.1 collect all public mainfiles and aux files
-        public_files: Dict[str, str] = {}
-        for calc in upload.calcs:
-            if not calc.with_embargo:
-                mainfile = calc.mainfile
-                assert mainfile is not None
-                # mainfile might already have been added due to being a auxfile to another calc
-                if mainfile not in public_files:
-                    for filepath in self.calc_files(mainfile, with_cutoff=False):
-                        if not always_restricted(filepath):
-                            public_files[filepath] = None
-        # 1.2 remove the non public mainfiles that have been added as auxfiles of public mainfiles
-        for calc in upload.calcs:
-            if calc.with_embargo:
-                mainfile = calc.mainfile
-                assert mainfile is not None
-                if mainfile in public_files:
-                    del(public_files[mainfile])
-        # 1.3 zip all remaining public
-        for filepath in public_files.keys():
-            raw_public_zip.write(self._raw_dir.join_file(filepath).os_path, filepath)
+        try:
+            # 1. add all public raw files
+            # 1.1 collect all public mainfiles and aux files
+            public_files: Dict[str, str] = {}
+            for calc in upload.calcs:
+                if not calc.with_embargo:
+                    mainfile = calc.mainfile
+                    assert mainfile is not None
+                    # mainfile might already have been added due to being a auxfile to another calc
+                    if mainfile not in public_files:
+                        for filepath in self.calc_files(mainfile, with_cutoff=False):
+                            if not always_restricted(filepath):
+                                public_files[filepath] = None
+            # 1.2 remove the non public mainfiles that have been added as auxfiles of public mainfiles
+            for calc in upload.calcs:
+                if calc.with_embargo:
+                    mainfile = calc.mainfile
+                    assert mainfile is not None
+                    if mainfile in public_files:
+                        del(public_files[mainfile])
+            # 1.3 zip all remaining public
+            for filepath in public_files.keys():
+                raw_public_zip.write(self._raw_dir.join_file(filepath).os_path, filepath)
 
-        # 2. everything else becomes restricted
-        for filepath in self.raw_file_manifest():
-            if filepath not in public_files:
-                raw_restricted_zip.write(self._raw_dir.join_file(filepath).os_path, filepath)
+            # 2. everything else becomes restricted
+            for filepath in self.raw_file_manifest():
+                if filepath not in public_files:
+                    raw_restricted_zip.write(self._raw_dir.join_file(filepath).os_path, filepath)
 
-        raw_restricted_zip.close()
-        raw_public_zip.close()
-        self.logger.debug('packed raw files')
+        except Exception as e:
+            self.logger.error('exception during packing raw files', exc_info=e)
+
+        finally:
+            raw_restricted_zip.close()
+            raw_public_zip.close()
+
+        self.logger.info('packed raw files')
 
     def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
         upload_prefix_len = len(self._raw_dir.os_path) + 1

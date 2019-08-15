@@ -73,11 +73,19 @@ Content-Type: application/json
 
 {
     "size": 0,
+    "query": {
+        "bool": {
+            "must": {
+                "match": {
+                "code_name": "currupted mainfile"
+            }
+        }
+    },
     "aggs": {
         "upload_id": {
-            "cardinality": {
-                "field": "uploader.name.keyword",
-                "precision_threshold": 300
+            "terms": {
+                "field": "upload_id",
+                "size": 300
             }
         }
     }
