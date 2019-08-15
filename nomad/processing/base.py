@@ -339,17 +339,27 @@ def task(func):
     only be executed, if the process has not yet reached FAILURE state.
     """
     def wrapper(self, *args, **kwargs):
-        if self.tasks_status == FAILURE:
-            return
-
-        self._continue_with(func.__name__)
         try:
-            func(self, *args, **kwargs)
-        except Exception as e:
-            self.fail(e)
+            if self.tasks_status == FAILURE:
+                return
 
-        if self.__class__.tasks[-1] == self.current_task and self.tasks_running:
-            self._complete()
+            self._continue_with(func.__name__)
+            try:
+                func(self, *args, **kwargs)
+
+            except Exception as e:
+                self.fail(e)
+
+            except SystemExit:
+                self.fail('unexpected system exit')
+
+            if self.__class__.tasks[-1] == self.current_task and self.tasks_running:
+                self._complete()
+
+        except Exception as e:
+            # this is very critical and an indicator that the task fail error handling
+            # it self failed
+            self.get_logger().critical('task wrapper failed with exception', exc_info=e)
 
     setattr(wrapper, '__task_name', func.__name__)
     wrapper.__name__ = func.__name__
