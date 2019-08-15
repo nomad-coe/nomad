@@ -418,6 +418,11 @@ export class ApiProviderComponent extends React.Component {
       Api.createSwaggerClient(userNameToken, password)
         .then(client => {
           client.apis.auth.get_user()
+            .catch(error => {
+              if (error.response.status !== 401) {
+                throw error
+              }
+            })
             .then(response => {
               if (response) {
                 const user = response.body
@@ -430,13 +435,11 @@ export class ApiProviderComponent extends React.Component {
               }
             })
             .catch(error => {
-              if (error.response.status !== 401) {
-                try {
-                  this.props.raiseError(error)
-                } catch (e) {
-                  this.setState({api: this.createApi(), isLoggingIn: false, user: null})
-                  this.props.raiseError(error)
-                }
+              try {
+                this.props.raiseError(error)
+              } catch (e) {
+                this.setState({api: this.createApi(), isLoggingIn: false, user: null})
+                this.props.raiseError(error)
               }
             })
         })
