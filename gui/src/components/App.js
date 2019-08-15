@@ -17,7 +17,7 @@ import MenuIcon from '@material-ui/icons/Menu'
 import {help as searchHelp, default as SearchPage} from './search/SearchPage'
 import HelpDialog from './Help'
 import { ApiProvider, withApi } from './api'
-import { ErrorSnacks } from './errors'
+import { ErrorSnacks, withErrors } from './errors'
 import Calc from './entry/Calc'
 import About from './About'
 import LoginLogout from './LoginLogout'
@@ -28,6 +28,13 @@ import packageJson from '../../package.json'
 import { Cookies, withCookies } from 'react-cookie'
 import Markdown from './Markdown'
 import {help as uploadHelp, default as Uploads} from './uploads/Uploads'
+
+export class VersionMismatch extends Error {
+  constructor(msg) {
+    super(msg)
+    this.name = 'VersionMismatch'
+  }
+}
 
 const drawerWidth = 200
 
@@ -57,7 +64,8 @@ class NavigationUnstyled extends React.Component {
     classes: PropTypes.object.isRequired,
     children: PropTypes.any,
     location: PropTypes.object.isRequired,
-    loading: PropTypes.number.isRequired
+    loading: PropTypes.number.isRequired,
+    raiseError: PropTypes.func.isRequired
   }
 
   static styles = theme => ({
@@ -172,8 +180,9 @@ class NavigationUnstyled extends React.Component {
       .then((response) => response.json())
       .then((meta) => {
         if (meta.version !== packageJson.version) {
-          console.log('Different version, hard reloading...')
-          window.location.reload(true)
+          // this should not happen, if we setup the web servers correctly
+          console.log('Different version, ask for hard reloading...')
+          this.props.raiseError(new VersionMismatch())
         }
       })
       .catch(() => {
@@ -288,7 +297,7 @@ class NavigationUnstyled extends React.Component {
   }
 }
 
-const Navigation = compose(withRouter, withApi(false), withStyles(NavigationUnstyled.styles))(NavigationUnstyled)
+const Navigation = compose(withRouter, withErrors, withApi(false), withStyles(NavigationUnstyled.styles))(NavigationUnstyled)
 
 class LicenseAgreementUnstyled extends React.Component {
   static propTypes = {
