@@ -5,7 +5,7 @@ import click
 import sys
 
 from nomad import config, utils, files
-from nomad.parsing import LocalBackend, parser_dict, match_parser
+from nomad.parsing import LocalBackend, parser_dict, match_parser, MatchingParser
 from nomad.normalizing import normalizers
 from nomad.datamodel import CalcWithMetadata
 
@@ -14,7 +14,7 @@ from .cli import cli
 
 def parse(
         mainfile: str, upload_files: Union[str, files.StagingUploadFiles],
-        parser_name: str = None, logger=None) -> LocalBackend:
+        parser_name: str = None, strict: bool = True, logger=None) -> LocalBackend:
     """
     Run the given parser on the downloaded calculation. If no parser is given,
     do parser matching and use the respective parser.
@@ -24,7 +24,11 @@ def parse(
     if parser_name is not None:
         parser = parser_dict.get(parser_name)
     else:
-        parser = match_parser(mainfile, upload_files)
+        parser = match_parser(mainfile, upload_files, strict=strict)
+        if isinstance(parser, MatchingParser):
+            parser_name = parser.name
+        else:
+            parser_name = parser.__class__.__name__
 
     assert parser is not None, 'there is not parser matching %s' % mainfile
     logger = logger.bind(parser=parser.name)  # type: ignore
@@ -45,7 +49,7 @@ def parse(
     parser_backend.addValue('calc_id', config.services.unavailable_value)
     parser_backend.addValue('calc_hash', "no hash")
     parser_backend.addValue('mainfile', mainfile)
-    parser_backend.addValue('parser_name', parser.__class__.__name__)
+    parser_backend.addValue('parser_name', parser_name)
     parser_backend.closeNonOverlappingSection('section_entry_info')
 
     logger.info('ran parser')
@@ -89,10 +93,11 @@ def normalize_all(parser_backend: LocalBackend = None, logger=None) -> LocalBack
 @click.option('--show-backend', is_flag=True, default=False, help='Print the backend data.')
 @click.option('--show-metadata', is_flag=True, default=False, help='Print the extracted repo metadata.')
 @click.option('--skip-normalizers', is_flag=True, default=False, help='Do not run the normalizer.')
-def _parse(mainfile, show_backend, show_metadata, skip_normalizers):
+@click.option('--not-strict', is_flag=True, help='Do also match artificial parsers.')
+def _parse(mainfile, show_backend, show_metadata, skip_normalizers, not_strict):
     utils.configure_logging()
 
-    backend = parse(mainfile, '.')
+    backend = parse(mainfile, '.', strict=not not_strict)
 
     if not skip_normalizers:
         normalize_all(backend)

@@ -110,7 +110,7 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         except KeyError:
             self.code_version = config.services.unavailable_value
 
-        self.atoms = get_optional_backend_value(backend, 'atom_labels', 'section_system', logger=logger)
+        self.atoms = get_optional_backend_value(backend, 'atom_labels', 'section_system', [], logger=logger)
         if hasattr(self.atoms, 'tolist'):
             self.atoms = self.atoms.tolist()
         self.n_atoms = len(self.atoms)

@@ -68,7 +68,7 @@ from nomad import files, config
 
 from nomad.parsing.backend import AbstractParserBackend, LocalBackend, LegacyLocalBackend, JSONStreamWriter, BadContextURI, WrongContextState
 from nomad.parsing.parser import Parser, LegacyParser, VaspOutcarParser, BrokenParser, MissingParser, MatchingParser
-from nomad.parsing.artificial import TemplateParser, GenerateRandomParser, ChaosParser
+from nomad.parsing.artificial import TemplateParser, GenerateRandomParser, ChaosParser, EmptyParser
 
 
 _compressions = {
@@ -77,7 +77,7 @@ _compressions = {
 }
 
 
-def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFiles]) -> 'Parser':
+def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFiles], strict=True) -> 'Parser':
     """
     Performs parser matching. This means it take the given mainfile and potentially
     opens it with the given callback and tries to identify a parser that can parse
@@ -90,6 +90,7 @@ def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFile
         mainfile: The upload relative path to the mainfile
         upload_files: Either a :class:`files.StagingUploadFiles` object or a directory name.
             Directory name + mainfile needs to point to the file.
+        strict: Only match strict parsers, e.g. no artificial parsers for missing or empty entries.
 
     Returns: The parser, or None if no parser could be matched.
     """
@@ -106,10 +107,15 @@ def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFile
 
     mime_type = magic.from_buffer(buffer, mime=True)
     for parser in parsers:
-        if parser.domain == config.domain:
-            if parser.is_mainfile(mainfile_path, mime_type, buffer, compression):
-                # TODO: deal with multiple possible parser specs
-                return parser
+        if strict and (isinstance(parser, MissingParser) or isinstance(parser, EmptyParser)):
+            continue
+
+        if parser.domain != config.domain:
+            continue
+
+        if parser.is_mainfile(mainfile_path, mime_type, buffer, compression):
+            # TODO: deal with multiple possible parser specs
+            return parser
 
     return None
 
@@ -402,28 +408,23 @@ parsers = [
         parser_class_name='onetepparser.OnetepParser',
         mainfile_contents_re=r'####### #     # ####### ####### ####### ######'
     ),
-    # These are supposedly octopus files, but they do not look like octopus files at all
-    # TODO We have migrated the wrong octopus mainfiles .. this should be removed now
-    # MissingParser(
-    #     name='parser/octopus', code_name='Octopus', domain='DFT',
-    #     mainfile_name_re=r'(inp)|(.*/inp)'
-    # ),
-    # We already have crystal with mainfile_contents_re, but this one does not always properly match
-    LegacyParser(
-        name='parsers/crystal', code_name='Crystal',
-        parser_class_name='crystalparser.CrystalParser',
+    # There are some entries with PIDs that have mainfiles which do not match what
+    # the actual parsers expect. We use the EmptyParser to produce placeholder entries
+    # to keep the PIDs. These parsers will not match for new, non migrated data.
+    EmptyParser(
+        name='missing/octopus', code_name='Octopus', domain='DFT',
+        mainfile_name_re=r'(inp)|(.*/inp)'
+    ),
+    EmptyParser(
+        name='missing/crystal', code_name='Crystal',
         mainfile_name_re=r'.*\.cryst\.out'
     ),
-    # We already have wien2k with mainfile_contents_re, but this one does not always properly match
-    LegacyParser(
-        name='parsers/wien2k', code_name='WIEN2k',
-        parser_class_name='wien2kparser.Wien2kParser',
+    EmptyParser(
+        name='missing/wien2k', code_name='WIEN2k',
         mainfile_name_re=r'.*\.scf'
     ),
-    # We already have fhi-aims with mainfile_contents_re, but this one does not always properly match
-    LegacyParser(
-        name='parsers/fhi-aims', code_name='FHI-aims',
-        parser_class_name='fhiaimsparser.FHIaimsParser',
+    EmptyParser(
+        name='missing/fhi-aims', code_name='FHI-aims', domain='DFT',
         mainfile_name_re=r'.*\.fhiaims'
     ),
     BrokenParser()

@@ -123,12 +123,12 @@ class CalcProcReproduction:
     def __exit__(self, *args):
         self.upload_files.delete()
 
-    def parse(self, parser_name: str = None) -> LocalBackend:
+    def parse(self, parser_name: str = None, **kwargs) -> LocalBackend:
         """
         Run the given parser on the downloaded calculation. If no parser is given,
         do parser matching and use the respective parser.
         """
-        return parse(self.mainfile, self.upload_files, parser_name=parser_name, logger=self.logger)
+        return parse(self.mainfile, self.upload_files, parser_name=parser_name, logger=self.logger, **kwargs)
 
     def normalize(self, normalizer: Union[str, Callable], parser_backend: LocalBackend = None):
         """
@@ -153,7 +153,8 @@ class CalcProcReproduction:
 @click.option('--show-metadata', is_flag=True, help='Print the extracted repo metadata.')
 @click.option('--mainfile', default=None, type=str, help='Use this mainfile (in case mainfile cannot be retrived via API.')
 @click.option('--skip-normalizers', is_flag=True, help='Do not normalize.')
-def local(calc_id, show_backend, show_metadata, skip_normalizers, **kwargs):
+@click.option('--not-strict', is_flag=True, help='Also match artificial parsers.')
+def local(calc_id, show_backend, show_metadata, skip_normalizers, not_strict, **kwargs):
     utils.configure_logging()
     utils.get_logger(__name__).info('Using %s' % config.client.url)
 
@@ -162,7 +163,7 @@ def local(calc_id, show_backend, show_metadata, skip_normalizers, **kwargs):
             print(
                 'Data being saved to .volumes/fs/tmp/repro_'
                 '%s if not already there' % local.upload_id)
-        backend = local.parse()
+        backend = local.parse(strict=not not_strict)
 
         if not skip_normalizers:
             local.normalize_all(parser_backend=backend)

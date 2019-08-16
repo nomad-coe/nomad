@@ -660,10 +660,10 @@ class Upload(Proc):
 
                 calc.reset(worker_hostname=self.worker_hostname)
 
-                parser = match_parser(calc.mainfile, staging_upload_files)
+                parser = match_parser(calc.mainfile, staging_upload_files, strict=False)
                 if parser is None:
-                    logger.warn(
-                        'no parser matches during re-process, use old parser',
+                    logger.error(
+                        'no parser matches during re-process, use the old parser',
                         calc_id=calc.calc_id)
                 elif calc.parser != parser.name:
                     calc.parser = parser.name
