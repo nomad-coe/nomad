@@ -197,9 +197,9 @@ Domain('DFT', DFTCalcWithMetadata, quantities=dict(
         'to facilitate exclusive searches.',
         elastic_value=only_atoms, metadata_field='atoms', multi=True),
     basis_set=DomainQuantity(
-        'The used basis set functions.', aggregations=10),
+        'The used basis set functions.', aggregations=20),
     xc_functional=DomainQuantity(
-        'The xc functional type used for the simulation.', aggregations=10),
+        'The xc functional type used for the simulation.', aggregations=20),
     system=DomainQuantity(
         'The system type of the simulated system.', aggregations=10),
     crystal_system=DomainQuantity(
