@@ -28,11 +28,6 @@ from nomad import utils, config
 from .base import CalcWithMetadata, DomainQuantity, Domain, get_optional_backend_value
 
 
-calculations_sections = [
-    'section_single_configuration_calculation',
-    'section_k_band',
-    'section_eigenvalues']
-
 xc_treatments = {
     'gga': 'GGA',
     'hf_': 'HF',
@@ -89,7 +84,6 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.code_version: str = None
 
         self.n_geometries = 0
-        self.n_single_configuration_calculations = 0
         self.n_calculations = 0
         self.n_total_energies = 0
         self.n_quantities = 0
@@ -152,7 +146,6 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         n_calculations = 0
         n_total_energies = 0
         n_geometries = 0
-        n_single_configuration_calculations = 0
 
         for meta_info, event, value in backend._delegate.results.traverse():
             quantities.add(meta_info)
@@ -167,11 +160,8 @@ class DFTCalcWithMetadata(CalcWithMetadata):
                     geometries.add(value)
 
             elif event == ParserEvent.open_section:
-                if meta_info in calculations_sections:
-                    n_calculations += 1
-
                 if meta_info == 'section_single_configuration_calculation':
-                    n_single_configuration_calculations += 1
+                    n_calculations += 1
 
                 if meta_info == 'section_system':
                     n_geometries += 1
@@ -181,7 +171,6 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.n_quantities = n_quantities
         self.n_calculations = n_calculations
         self.n_total_energies = n_total_energies
-        self.n_single_configuration_calculations = n_single_configuration_calculations
         self.n_geometries = n_geometries
 
 
@@ -227,12 +216,8 @@ Domain('DFT', DFTCalcWithMetadata, quantities=dict(
         metric=('total_energies', 'sum'),
         elastic_mapping=Integer()),
     n_calculations=DomainQuantity(
-        'Number of calculations (single configuration, k band, and eigenvalues)',
+        'Number of single configuration calculation sections',
         metric=('calculations', 'sum'),
-        elastic_mapping=Integer()),
-    n_single_configuration_calculations=DomainQuantity(
-        'Number of single configuration calculations',
-        metric=('single_configuration_calculations', 'sum'),
         elastic_mapping=Integer()),
     n_quantities=DomainQuantity(
         'Number of overall parsed quantities',
