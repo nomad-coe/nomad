@@ -148,26 +148,28 @@ class CalcProcReproduction:
 
 @client.command(help='Run processing locally.')
 @click.argument('CALC_ID', nargs=1, required=True, type=str)
-@click.option('--override', is_flag=True, default=False, help='Override existing local calculation data.')
-@click.option('--show-backend', is_flag=True, default=False, help='Print the backend data.')
-@click.option('--show-metadata', is_flag=True, default=False, help='Print the extracted repo metadata.')
+@click.option('--override', is_flag=True, help='Override existing local calculation data.')
+@click.option('--show-backend', is_flag=True, help='Print the backend data.')
+@click.option('--show-metadata', is_flag=True, help='Print the extracted repo metadata.')
 @click.option('--mainfile', default=None, type=str, help='Use this mainfile (in case mainfile cannot be retrived via API.')
-def local(calc_id, show_backend=False, show_metadata=False, **kwargs):
+@click.option('--skip-normalizers', is_flag=True, help='Do not normalize.')
+def local(calc_id, show_backend, show_metadata, skip_normalizers, **kwargs):
     utils.configure_logging()
     utils.get_logger(__name__).info('Using %s' % config.client.url)
+
     with CalcProcReproduction(calc_id, **kwargs) as local:
         if local.upload_id != 'unknown':
             print(
                 'Data being saved to .volumes/fs/tmp/repro_'
                 '%s if not already there' % local.upload_id)
-        print('######## B')
         backend = local.parse()
-        print('######## C')
-        # Run suite of nomalizers on parsed backend.
-        local.normalize_all(parser_backend=backend)
-        print('######## A')
+
+        if not skip_normalizers:
+            local.normalize_all(parser_backend=backend)
+
         if show_backend:
             backend.write_json(sys.stdout, pretty=True)
+
         if show_metadata:
             metadata = CalcWithMetadata()
             metadata.apply_domain_metadata(backend)
