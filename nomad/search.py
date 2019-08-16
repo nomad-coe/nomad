@@ -321,7 +321,9 @@ def _execute_paginated_search(
 
 def scroll_search(
         scroll_id: str = None, size: int = 1000, scroll: str = u'5m',
-        q: Q = None, search_parameters: Dict[str, Any] = {}) -> Dict[str, Any]:
+        q: Q = None,
+        time_range: Tuple[datetime, datetime] = None,
+        search_parameters: Dict[str, Any] = {}) -> Dict[str, Any]:
     """
     Alternative search based on ES scroll API. Can be used similar to
     :func:`aggregate_search`, but pagination is replaced with scrolling, no ordering,
@@ -341,6 +343,9 @@ def scroll_search(
         size: The batch size in number of hits.
         scroll: The time the scroll should be kept alive (i.e. the time between requests
             to this method) in ES time units. Default is 5 minutes.
+        time_range: A tuple to filter for uploads within with start, end ``upload_time``.
+        search_parameters: Adds a ``and`` search for each key, value pair. Where the key corresponds
+            to a quantity and the value is the value to search for in this quantity.
 
     Returns:
         A dict with keys 'scroll' and 'results'. The key 'scroll' holds a dict with
@@ -350,7 +355,7 @@ def scroll_search(
 
     if scroll_id is None:
         # initiate scroll
-        search = _construct_search(q, search_parameters=search_parameters)
+        search = _construct_search(q, time_range, search_parameters=search_parameters)
         resp = es.search(body=search.to_dict(), scroll=scroll, size=size, index=config.elastic.index_name)  # pylint: disable=E1123
 
         scroll_id = resp.get('_scroll_id')
@@ -417,6 +422,15 @@ def entry_search(
     _, results = _execute_paginated_search(search, page, per_page, order_by, order)
 
     return results
+
+
+def entry_scan(**kwargs):
+    """
+    Like fund:`entry_search` put directly generates results without pagination.
+    """
+    search = _construct_search(**kwargs)
+    for hit in search.scan():
+        yield hit.to_dict()
 
 
 def quantity_search(

@@ -1030,6 +1030,26 @@ class TestRaw(UploadFilesBasedTests):
             assert zip_file.testzip() is None
             assert len(zip_file.namelist()) == len(example_file_contents)
 
+    def test_raw_files_from_query(self, client, non_empty_processed, test_user_auth):
+        url = '/raw/query?upload_id=%s' % non_empty_processed.upload_id
+        rv = client.get(url, headers=test_user_auth)
+
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
+        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
+            assert zip_file.testzip() is None
+            assert len(zip_file.namelist()) == len(example_file_contents)
+
+    def test_raw_files_from_empty_query(self, client, elastic):
+        url = '/raw/query?upload_id=doesNotExist'
+        rv = client.get(url)
+
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
+        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
+            assert zip_file.testzip() is None
+            assert len(zip_file.namelist()) == 0
+
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_files_signed(self, client, upload, _, test_user_signature_token):
         url = '/raw/%s?files=%s&token=%s' % (
