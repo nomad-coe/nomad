@@ -260,7 +260,7 @@ parsers = [
     LegacyParser(
         name='parsers/quantumespresso', code_name='Quantum Espresso',
         parser_class_name='quantumespressoparser.QuantumEspressoParserPWSCF',
-        mainfile_contents_re=r'Program PWSCF.*starts \.\.\.'
+        mainfile_contents_re=r'Program PWSCF.*starts'
         #    r'^(.*\n)*'
         #    r'\s*Program (\S+)\s+v\.(\S+)(?:\s+\(svn\s+rev\.\s+'
         #    r'(\d+)\s*\))?\s+starts[^\n]+'
