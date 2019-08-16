@@ -228,7 +228,11 @@ class Api {
           try {
             return JSON.parse(result)
           } catch (e) {
-            return result
+            try {
+              return JSON.parse(result.replace(/\bNaN\b/g, '"NaN"'))
+            } catch (e) {
+              return result
+            }
           }
         } else {
           return result
