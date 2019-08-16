@@ -12,6 +12,9 @@ import { withDomain } from '../domains'
 class RepoEntryView extends React.Component {
   static styles = theme => ({
     root: {},
+    error: {
+      marginTop: theme.spacing.unit * 2
+    },
     title: {
       marginBottom: theme.spacing.unit * 3
     },
@@ -42,7 +45,8 @@ class RepoEntryView extends React.Component {
   }
 
   state = {
-    calcData: null
+    calcData: null,
+    doesNotExist: false
   }
 
   componentDidMount() {
@@ -61,7 +65,11 @@ class RepoEntryView extends React.Component {
       this.setState({calcData: data})
     }).catch(error => {
       this.setState({calcData: null})
-      this.props.raiseError(error)
+      if (error.name === 'DoesNotExist') {
+        this.setState({doesNotExist: true})
+      } else {
+        this.props.raiseError(error)
+      }
     })
   }
 
@@ -76,6 +84,12 @@ class RepoEntryView extends React.Component {
     const calcPath = mainfile ? mainfile.substring(0, mainfile.lastIndexOf('/')) : null
 
     const authors = loading ? null : calcData.authors
+
+    if (this.state.doesNotExist) {
+      return <Typography className={classes.error}>
+          This entry does not exist.
+      </Typography>
+    }
 
     return (
       <div className={classes.root}>

@@ -33,6 +33,9 @@ class ArchiveEntryView extends React.Component {
 
   static styles = theme => ({
     root: {},
+    error: {
+      marginTop: theme.spacing.unit * 2
+    },
     metaInfo: {
       height: '20vh',
       overflowY: 'auto',
@@ -67,7 +70,8 @@ class ArchiveEntryView extends React.Component {
     this.state = {
       data: null,
       metaInfo: null,
-      showMetaInfo: false
+      showMetaInfo: false,
+      doesNotExist: false
     }
     this.unmounted = false
   }
@@ -108,7 +112,11 @@ class ArchiveEntryView extends React.Component {
       if (!this.unmounted) {
         this.setState({data: null})
       }
-      this.props.raiseError(error)
+      if (error.name === 'DoesNotExist') {
+        this.setState({doesNotExist: true})
+      } else {
+        this.props.raiseError(error)
+      }
     })
   }
 
@@ -122,8 +130,18 @@ class ArchiveEntryView extends React.Component {
 
   render() {
     const { classes, uploadId, calcId } = this.props
-    const { data, showMetaInfo, metaInfo } = this.state
+    const { data, showMetaInfo, metaInfo, doesNotExist } = this.state
     const metaInfoData = metaInfo ? metaInfo.get(showMetaInfo) : null
+
+    if (doesNotExist) {
+      return (
+        <Typography className={classes.error}>
+          No archive does exist for this entry. Either the archive was not generated due
+          to parsing or other processing errors (check the log tab), or the entry it
+          self does not exist.
+        </Typography>
+      )
+    }
 
     return (
       <div className={classes.root}>
