@@ -108,7 +108,7 @@ class LoginLogout extends React.Component {
       return (
         <div className={classes.root}>
           <Typography color="inherit" variant="body1">
-            Welcome, {user.first_name} {user.last_name}
+            Welcome {user.first_name} {user.last_name}
           </Typography>
           <Button
             className={classes.button}

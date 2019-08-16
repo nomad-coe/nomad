@@ -59,7 +59,18 @@ class User(InnerDoc):
             if 'first_name' not in user:
                 user = coe_repo.User.from_user_id(user.id).to_popo()
 
-            name = '%s, %s' % (user['last_name'], user['first_name'])
+            last_name = user['last_name'].strip()
+            first_name = user['first_name'].strip()
+
+            if len(last_name) > 0 and len(first_name) > 0:
+                name = '%s, %s' % (user['last_name'], user['first_name'])
+            elif len(last_name) != 0:
+                name = last_name
+            elif len(first_name) != 0:
+                name = first_name
+            else:
+                name = 'unnamed user with id %d' % user.id
+
             self.name = name
             user_cache[user.id] = self
 
