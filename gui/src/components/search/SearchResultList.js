@@ -172,7 +172,7 @@ const SearchResultList = compose(withRouter, withDomain, withStyles(SearchResult
 Object.assign(SearchResultList, {
   defaultState: {
     order_by: 'formula',
-    order: '1',
+    order: 1,
     page: 1,
     per_page: 10
   }
