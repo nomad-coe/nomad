@@ -97,8 +97,6 @@ class QuantityHistogram extends React.Component {
       return nameA.localeCompare(nameB)
     })
 
-    console.log(`${width} x ${height}`)
-
     const y = scaleBand().rangeRound([0, height]).padding(0.1)
     const x = scalePow().range([0, width]).exponent(scalePower)
     const heatmapScale = chroma.scale(['#ffcdd2', '#d50000'])
