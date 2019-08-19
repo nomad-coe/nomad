@@ -379,7 +379,7 @@ class RawFileQueryResource(Resource):
 
                 with zipfile_cache:
                     for filename in list(upload_files.raw_file_manifest(path_prefix=os.path.dirname(mainfile))):
-                        yield filename, upload_files
+                        yield os.path.join(upload_id, filename), filename, upload_files
 
         return _streamed_zipfile(generator(), zipfile_name='nomad_raw_files.zip')
 
@@ -399,12 +399,12 @@ def respond_to_get_raw_files(upload_id, files, compress=False):
 
     with zipfile_cache:
         return _streamed_zipfile(
-            [(filename, upload_files) for filename in files],
+            [(filename, filename, upload_files) for filename in files],
             zipfile_name='%s.zip' % upload_id, compress=compress)
 
 
 def _streamed_zipfile(
-        files: Iterable[Tuple[str, UploadFiles]], zipfile_name: str, compress: bool = False):
+        files: Iterable[Tuple[str, str, UploadFiles]], zipfile_name: str, compress: bool = False):
 
     def generator():
         """ Stream a zip file with all files using zipstream. """
@@ -413,10 +413,10 @@ def _streamed_zipfile(
             Replace the directory based iter of zipstream with an iter over all given
             files.
             """
-            for filename, upload_files in files:
+            for zipped_filename, upload_filename, upload_files in files:
                 # Write a file to the zipstream.
                 try:
-                    with upload_files.raw_file(filename, 'rb') as f:
+                    with upload_files.raw_file(upload_filename, 'rb') as f:
                         def iter_content():
                             while True:
                                 data = f.read(100000)
@@ -424,7 +424,7 @@ def _streamed_zipfile(
                                     break
                                 yield data
 
-                        yield dict(arcname=filename, iterable=iter_content())
+                        yield dict(arcname=zipped_filename, iterable=iter_content())
                 except KeyError:
                     # files that are not found, will not be returned
                     pass

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Tuple
+from typing import Tuple, List
 import pytest
 import logging
 from sqlalchemy.orm import Session
@@ -553,6 +553,18 @@ def processed(uploaded: Tuple[str, str], test_user: coe_repo.User, proc_infra) -
     Provides a processed upload. Upload was uploaded with test_user.
     """
     return test_processing.run_processing(uploaded, test_user)
+
+
+@pytest.mark.timeout(config.tests.default_timeout)
+@pytest.fixture(scope='function')
+def processeds(non_empty_example_upload: str, test_user: coe_repo.User, proc_infra) -> List[processing.Upload]:
+    result: List[processing.Upload] = []
+    for i in range(2):
+        upload_id = '%s_%d' % (os.path.basename(non_empty_example_upload).replace('.zip', ''), i)
+        result.append(
+            test_processing.run_processing((upload_id, non_empty_example_upload), test_user))
+
+    return result
 
 
 @pytest.mark.timeout(config.tests.default_timeout)

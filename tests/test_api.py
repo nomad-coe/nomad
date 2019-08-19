@@ -1030,7 +1030,7 @@ class TestRaw(UploadFilesBasedTests):
             assert zip_file.testzip() is None
             assert len(zip_file.namelist()) == len(example_file_contents)
 
-    def test_raw_files_from_query(self, client, non_empty_processed, test_user_auth):
+    def test_raw_files_from_query_upload_id(self, client, non_empty_processed, test_user_auth):
         url = '/raw/query?upload_id=%s' % non_empty_processed.upload_id
         rv = client.get(url, headers=test_user_auth)
 
@@ -1039,6 +1039,21 @@ class TestRaw(UploadFilesBasedTests):
         with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
             assert zip_file.testzip() is None
             assert len(zip_file.namelist()) == len(example_file_contents)
+
+    @pytest.mark.parametrize('query_params', [
+        {'atoms': 'Si'},
+        {'authors': 'Cooper, Sheldon'}
+    ])
+    def test_raw_files_from_query(self, client, processeds, test_user_auth, query_params):
+
+        url = '/raw/query?%s' % urlencode(query_params)
+        rv = client.get(url, headers=test_user_auth)
+
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
+        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
+            assert zip_file.testzip() is None
+            assert len(zip_file.namelist()) == len(example_file_contents) * len(processeds)
 
     def test_raw_files_from_empty_query(self, client, elastic):
         url = '/raw/query?upload_id=doesNotExist'
