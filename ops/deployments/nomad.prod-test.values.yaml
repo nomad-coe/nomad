@@ -1,0 +1,31 @@
+proxy:
+  nodePort: 30014
+  external:
+    host: "labdev-nomad.esc.rzg.mpg.de"
+    path: "/fairdi/nomad/prod-test"
+
+api:
+  disableReset: true
+
+gui:
+  debug: true
+
+worker:
+  replicas: 1
+  routing: "worker"
+
+dbname: fairdi_nomad_prod
+
+postgres:
+  publish_enabled: false
+  dbname: 'fairdi_nomad_migration'
+
+uploadurl: 'https://labdev-nomad.rzg.mpg.de/fairdi/nomad/prod-test/upload'
+
+volumes:
+  prefixSize: 1
+  public: /nomad/fairdi/prod/fs/public
+  staging: /scratch/fairdi/migration/fs/staging
+  tmp: /nomad/fairdi/prod/fs/tmp
+  coe_extracted: /nomad/fairdi/prod/fs/extracted
+  nomad: /nomad
