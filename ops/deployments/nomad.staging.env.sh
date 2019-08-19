@@ -1,4 +1,4 @@
-export NOMAD_CLIENT_URL=https://staging-nomad.esc.rzg.mpg.de/uploads/api
+export NOMAD_CLIENT_URL=http://staging-nomad.esc.rzg.mpg.de/uploads/api
 export NOMAD_CLIENT_USER=admin
 export NOMAD_MONGO_DB_NAME=fairdi_nomad_staging
 export NOMAD_ELASTIC_INDEX_NAME=fairdi_nomad_staging

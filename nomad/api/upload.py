@@ -67,7 +67,7 @@ metadata_model = api.model('MetaData', {
     'shared_with': fields.List(fields.Integer, description='A list of users to share calculations with given by user_id.'),
     '_upload_time': RFC3339DateTime(description='Overrride the upload time.'),
     '_uploader': fields.Integer(description='Override the uploader with the given user id.'),
-    'datasets': fields.List(fields.Nested(model=dataset_model), description='A list of datasets.')
+    'datasets': fields.List(fields.Nested(model=dataset_model, skip_none=True), description='A list of datasets.')
 })
 
 calc_metadata_model = api.inherit('CalcMetaData', metadata_model, {
@@ -76,7 +76,7 @@ calc_metadata_model = api.inherit('CalcMetaData', metadata_model, {
 })
 
 upload_metadata_model = api.inherit('UploadMetaData', metadata_model, {
-    'calculations': fields.List(fields.Nested(model=calc_metadata_model), description='Specific per calculation data that will override the upload data.')
+    'calculations': fields.List(fields.Nested(model=calc_metadata_model, skip_none=True), description='Specific per calculation data that will override the upload data.')
 })
 
 upload_model = api.inherit('UploadProcessing', proc_model, {
@@ -86,7 +86,7 @@ upload_model = api.inherit('UploadProcessing', proc_model, {
     'upload_id': fields.String(
         description='The unique id for the upload.'),
     # TODO just removed during migration, where this get particularily large
-    # 'metadata': fields.Nested(model=upload_metadata_model, description='Additional upload and calculation meta data.'),
+    # 'metadata': fields.Nested(model=upload_metadata_model, description='Additional upload and calculation meta data.', skip_none=True),
     'upload_path': fields.String(description='The uploaded file on the server'),
     'published': fields.Boolean(description='If this upload is already published'),
     'upload_time': RFC3339DateTime(),
@@ -94,7 +94,7 @@ upload_model = api.inherit('UploadProcessing', proc_model, {
 
 upload_list_model = api.model('UploadList', {
     'pagination': fields.Nested(model=pagination_model),
-    'results': fields.List(fields.Nested(model=upload_model))
+    'results': fields.List(fields.Nested(model=upload_model, skip_none=True))
 })
 
 calc_model = api.inherit('UploadCalculationProcessing', proc_model, {
@@ -114,8 +114,8 @@ upload_with_calcs_model = api.inherit('UploadWithPaginatedCalculations', upload_
             'successes': fields.Integer,
             'failures': fields.Integer,
         })),
-        'results': fields.List(fields.Nested(model=calc_model))
-    }))
+        'results': fields.List(fields.Nested(model=calc_model, skip_none=True))
+    }), skip_none=True)
 })
 
 upload_operation_model = api.model('UploadOperation', {
@@ -514,7 +514,9 @@ class UploadResource(Resource):
 upload_command_model = api.model('UploadCommand', {
     'upload_url': fields.Url,
     'upload_command': fields.String,
+    'upload_command_with_name': fields.String,
     'upload_progress_command': fields.String,
+    'upload_command_form': fields.String,
     'upload_tar_command': fields.String
 })
 
@@ -527,6 +529,7 @@ class UploadCommandResource(Resource):
     def get(self):
         """ Get url and example command for shell based uploads. """
         upload_url = '%s/uploads/?curl=True' % config.api_url()
+        upload_url_with_name = upload_url + '&name=<name>'
 
         # upload_command = 'curl -X PUT -H "X-Token: %s" "%s" -F file=@<local_file>' % (
         #     g.user.get_auth_token().decode('utf-8'), upload_url)
@@ -536,6 +539,12 @@ class UploadCommandResource(Resource):
         upload_command = 'curl -H X-Token:%s %s -T <local_file>' % (
             g.user.get_auth_token().decode('utf-8'), upload_url)
 
+        upload_command_form = 'curl -H X-Token:%s %s -X PUT -F file=@<local_file>' % (
+            g.user.get_auth_token().decode('utf-8'), upload_url)
+
+        upload_command_with_name = 'curl -H X-Token:%s "%s" -X PUT -T <local_file>' % (
+            g.user.get_auth_token().decode('utf-8'), upload_url_with_name)
+
         upload_progress_command = upload_command + ' | xargs echo'
         upload_tar_command = 'tar -cf - <local_folder> | curl -# -H X-Token:%s %s -T - | xargs echo' % (
             g.user.get_auth_token().decode('utf-8'), upload_url)
@@ -543,5 +552,7 @@ class UploadCommandResource(Resource):
         return dict(
             upload_url=upload_url,
             upload_command=upload_command,
+            upload_command_with_name=upload_command_with_name,
             upload_progress_command=upload_progress_command,
+            upload_command_form=upload_command_form,
             upload_tar_command=upload_tar_command), 200

@@ -274,6 +274,11 @@ class Calc(Proc):
                     'parser failed with exception', level=logging.ERROR,
                     exc_info=e, error=str(e), **context)
                 return
+            except SystemExit:
+                self.fail(
+                    'parser raised system exit', level=logging.ERROR,
+                    error='system exit', **context)
+                return
 
         # add the non code specific calc metadata to the backend
         # all other quantities have been determined by parsers/normalizers
@@ -637,7 +642,7 @@ class Upload(Proc):
         # extract the published raw files into a staging upload files instance
         self._continue_with('extracting')
         public_upload_files = cast(PublicUploadFiles, self.upload_files)
-        public_upload_files.to_staging_upload_files(create=True)
+        staging_upload_files = public_upload_files.to_staging_upload_files(create=True)
 
         self._continue_with('parse_all')
         try:
@@ -653,12 +658,22 @@ class Upload(Proc):
 
                     continue
 
-                calc.reset()
+                calc.reset(worker_hostname=self.worker_hostname)
+
+                parser = match_parser(calc.mainfile, staging_upload_files, strict=False)
+                if parser is None:
+                    logger.error(
+                        'no parser matches during re-process, use the old parser',
+                        calc_id=calc.calc_id)
+                elif calc.parser != parser.name:
+                    calc.parser = parser.name
+                    logger.info(
+                        'different parser matches during re-process, use new parser',
+                        calc_id=calc.calc_id, parser=parser.name)
                 calc.re_process_calc()
         except Exception as e:
             # try to remove the staging copy in failure case
-            staging_upload_files = self.upload_files.to_staging_upload_files()
-            if staging_upload_files.exist():
+            if staging_upload_files is not None and staging_upload_files.exists():
                 staging_upload_files.delete()
 
             raise e

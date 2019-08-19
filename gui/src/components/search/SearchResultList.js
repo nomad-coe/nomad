@@ -13,7 +13,7 @@ class SearchResultListUnstyled extends React.Component {
     onChange: PropTypes.func,
     history: PropTypes.any.isRequired,
     order_by: PropTypes.string.isRequired,
-    order: PropTypes.string.isRequired,
+    order: PropTypes.number.isRequired,
     page: PropTypes.number.isRequired,
     per_page: PropTypes.number.isRequired,
     domain: PropTypes.object.isRequired
@@ -121,7 +121,7 @@ class SearchResultListUnstyled extends React.Component {
                   >
                     <TableSortLabel
                       active={order_by === key}
-                      direction={order === 1 ? 'dsc' : 'asc'}
+                      direction={order === 1 ? 'desc' : 'asc'}
                       onClick={() => this.handleSort(key)}
                     >
                       {rowConfig[key].label}
@@ -172,7 +172,7 @@ const SearchResultList = compose(withRouter, withDomain, withStyles(SearchResult
 Object.assign(SearchResultList, {
   defaultState: {
     order_by: 'formula',
-    order: '1',
+    order: 1,
     page: 1,
     per_page: 10
   }

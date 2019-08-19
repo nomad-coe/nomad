@@ -101,7 +101,8 @@ class QuantityHistogram extends React.Component {
     const x = scalePow().range([0, width]).exponent(scalePower)
     const heatmapScale = chroma.scale(['#ffcdd2', '#d50000'])
 
-    x.domain([0, d3.max(data, d => d.value)])
+    // we use at least the domain 0..1, because an empty domain causes a weird layout
+    x.domain([0, d3.max(data, d => d.value) || 1])
     y.domain(data.map(d => d.name))
     heatmapScale.domain([0, d3.max(data, d => d.value)], 10, 'log')
 
@@ -147,7 +148,7 @@ class QuantityHistogram extends React.Component {
       .attr('class', 'value')
       .attr('dy', y.bandwidth())
       .attr('y', d => y(d.name) - 4)
-      .attr('x', d => x(d.value) - 4)
+      .attr('x', d => x(d.value || 1) - 4)
       .attr('text-anchor', 'end')
       .style('fill', textColor)
       .text(d => formatQuantity(d.value))

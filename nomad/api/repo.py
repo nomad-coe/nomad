@@ -111,12 +111,18 @@ repo_request_parser.add_argument(
 repo_request_parser.add_argument(
     'scroll_id', type=str, help='The id of the current scrolling window to use.')
 repo_request_parser.add_argument(
+    'date_histogram', type=bool, help='Add an additional aggregation over the upload time')
+repo_request_parser.add_argument(
     'metrics', type=str, action='append', help=(
         'Metrics to aggregate over all quantities and their values as comma separated list. '
         'Possible values are %s.' % ', '.join(search.metrics_names)))
 
 
-def create_owner_query():
+search_request_parser = api.parser()
+add_common_parameters(search_request_parser)
+
+
+def _create_owner_query():
     owner = request.args.get('owner', 'all')
 
     # TODO this should be removed after migration
@@ -147,15 +153,41 @@ def create_owner_query():
     else:
         abort(400, message='Invalid owner value. Valid values are all|user|staging, default is all')
 
+    # TODO this should be removed after migration
+    without_currupted_mainfile = ~Q('term', code_name='currupted mainfile')  # pylint: disable=invalid-unary-operand-type
+    q = q & without_currupted_mainfile if q is not None else without_currupted_mainfile
+
     return q
 
 
-def create_search_parameters():
+def _create_search_parameters():
     """ Helper that creates a request.args dict with isolated search parameters """
     return {
         key: request.args.getlist(key) if search.search_quantities[key] else request.args.get(key)
         for key in request.args.keys()
         if key in search.search_quantities}
+
+
+def _create_time_range():
+    from_time_str = request.args.get('from_time', None)
+    until_time_str = request.args.get('until_time', None)
+
+    try:
+        if from_time_str is None and until_time_str is None:
+            return None
+        else:
+            from_time = rfc3339DateTime.parse('2000-01-01' if from_time_str is None else from_time_str)
+            until_time = rfc3339DateTime.parse(until_time_str) if until_time_str is not None else datetime.datetime.utcnow()
+            return from_time, until_time
+    except Exception:
+        abort(400, message='bad datetime format')
+
+
+def create_search_kwargs():
+    return dict(
+        q=_create_owner_query(),
+        time_range=_create_time_range(),
+        search_parameters=_create_search_parameters())
 
 
 @ns.route('/')
@@ -199,25 +231,16 @@ class RepoCalcsResource(Resource):
 
         try:
             scroll = bool(request.args.get('scroll', False))
+            date_histogram = bool(request.args.get('date_histogram', False))
             scroll_id = request.args.get('scroll_id', None)
             page = int(request.args.get('page', 1))
             per_page = int(request.args.get('per_page', 10 if not scroll else 1000))
             order = int(request.args.get('order', -1))
             metrics: List[str] = request.args.getlist('metrics')
-            from_time_str = request.args.get('from_time', None)
-            until_time_str = request.args.get('until_time', None)
         except Exception:
             abort(400, message='bad parameter types')
 
-        try:
-            if from_time_str is None and until_time_str is None:
-                time_range = None
-            else:
-                from_time = rfc3339DateTime.parse('2000-01-01' if from_time_str is None else from_time_str)
-                until_time = rfc3339DateTime.parse(until_time_str) if until_time_str is not None else datetime.datetime.utcnow()
-                time_range = (from_time, until_time)
-        except Exception:
-            abort(400, message='bad datetime format')
+        search_kwargs = create_search_kwargs()
 
         order_by = request.args.get('order_by', 'formula')
 
@@ -234,23 +257,16 @@ class RepoCalcsResource(Resource):
             if metric not in search.metrics_names:
                 abort(400, message='there is not metric %s' % metric)
 
-        q = create_owner_query()
-
-        # TODO this should be removed after migration
-        without_currupted_mainfile = ~Q('term', code_name='currupted mainfile')  # pylint: disable=invalid-unary-operand-type
-        q = q & without_currupted_mainfile if q is not None else without_currupted_mainfile
-
-        search_parameters = create_search_parameters()
-
         try:
             if scroll:
                 results = search.scroll_search(
-                    q=q, scroll_id=scroll_id, size=per_page, search_parameters=search_parameters)
+                    scroll_id=scroll_id, size=per_page, **search_kwargs)
 
             else:
                 results = search.metrics_search(
-                    q=q, per_page=per_page, page=page, order=order, order_by=order_by,
-                    time_range=time_range, metrics_to_use=metrics, search_parameters=search_parameters)
+                    per_page=per_page, page=page, order=order, order_by=order_by,
+                    metrics_to_use=metrics,
+                    with_date_histogram=date_histogram, **search_kwargs)
 
                 # TODO just a work around to make things prettier
                 quantities = results['quantities']
@@ -324,8 +340,8 @@ class RepoQuantityResource(Resource):
         except AssertionError:
             abort(400, message='invalid size')
 
-        q = create_owner_query()
-        search_parameters = create_search_parameters()
+        q = _create_owner_query()
+        search_parameters = _create_search_parameters()
 
         try:
             results = search.quantity_search(

@@ -66,9 +66,13 @@ def test_metrics_search(elastic, normalized: parsing.LocalBackend):
     create_entry(calc_with_metadata)
     refresh_index()
 
+    assert 'users' in search.metrics_names
+    assert 'datasets' in search.metrics_names
+    assert 'unique_code_runs' in search.metrics_names
+
     use_metrics = search.metrics_names
 
-    results = metrics_search(metrics_to_use=use_metrics, with_entries=True)
+    results = metrics_search(metrics_to_use=use_metrics, with_entries=True, with_date_histogram=True)
     quantities = results['quantities']
     hits = results['results']
     assert results['pagination']['total'] == 1

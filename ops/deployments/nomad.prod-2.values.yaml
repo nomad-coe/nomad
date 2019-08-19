@@ -5,7 +5,8 @@ proxy:
     path: "/uploads"
 
 api:
-  disableReset: false
+  disableReset: true
+  adminPasswordSecrete: 'nomad-production-repository-password'
 
 worker:
   replicas: 1

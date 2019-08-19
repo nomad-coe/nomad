@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, FormGroup, FormControlLabel, Checkbox, FormLabel, IconButton, Divider } from '@material-ui/core'
+import { withStyles, FormGroup, FormControlLabel, Checkbox, FormLabel, IconButton, Divider, Typography } from '@material-ui/core'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { withApi } from '../api'
 import { compose } from 'recompose'
@@ -26,7 +26,8 @@ class RawFiles extends React.Component {
   state = {
     selectedFiles: [],
     uploadDirectory: null,
-    files: null
+    files: null,
+    doesNotExist: false
   }
 
   componentDidMount() {
@@ -41,11 +42,21 @@ class RawFiles extends React.Component {
 
   update() {
     const {data: {uploadId, calcId}} = this.props
+    // this might accidentally happen, when the user logs out and the ids aren't
+    // necessarily available anymore, but the component is still mounted
+    if (!uploadId || !calcId) {
+      return
+    }
+
     this.props.api.getRawFileListFromCalc(uploadId, calcId).then(data => {
       this.setState({files: data.contents, uploadDirectory: data.directory})
     }).catch(error => {
       this.setState({files: null})
-      this.props.raiseError(error)
+      if (error.name === 'DoesNotExist') {
+        this.setState({doesNotExist: true})
+      } else {
+        this.props.raiseError(error)
+      }
     })
   }
 
@@ -66,12 +77,19 @@ class RawFiles extends React.Component {
 
   render() {
     const {classes, data: {upload_id, calc_id}, loading} = this.props
-    const {selectedFiles, files, uploadDirectory} = this.state
+    const {selectedFiles, files, uploadDirectory, doesNotExist} = this.state
 
     const availableFiles = files ? files.map(file => file.name) : []
 
     const someSelected = selectedFiles.length > 0
     const allSelected = availableFiles.length === selectedFiles.length && someSelected
+
+    if (doesNotExist) {
+      return <Typography>
+        The uploaded raw files for this entry do not exist. This is most likely a NOMAD
+        issue. Please inform us, if this error persists.
+      </Typography>
+    }
 
     return (
       <div className={classes.root}>
@@ -115,4 +133,4 @@ class RawFiles extends React.Component {
   }
 }
 
-export default compose(withApi(false), withStyles(RawFiles.styles))(RawFiles)
+export default compose(withApi(false, true), withStyles(RawFiles.styles))(RawFiles)

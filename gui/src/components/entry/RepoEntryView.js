@@ -12,6 +12,9 @@ import { withDomain } from '../domains'
 class RepoEntryView extends React.Component {
   static styles = theme => ({
     root: {},
+    error: {
+      marginTop: theme.spacing.unit * 2
+    },
     title: {
       marginBottom: theme.spacing.unit * 3
     },
@@ -42,7 +45,8 @@ class RepoEntryView extends React.Component {
   }
 
   state = {
-    calcData: null
+    calcData: null,
+    doesNotExist: false
   }
 
   componentDidMount() {
@@ -61,7 +65,11 @@ class RepoEntryView extends React.Component {
       this.setState({calcData: data})
     }).catch(error => {
       this.setState({calcData: null})
-      this.props.raiseError(error)
+      if (error.name === 'DoesNotExist') {
+        this.setState({doesNotExist: true})
+      } else {
+        this.props.raiseError(error)
+      }
     })
   }
 
@@ -76,6 +84,12 @@ class RepoEntryView extends React.Component {
     const calcPath = mainfile ? mainfile.substring(0, mainfile.lastIndexOf('/')) : null
 
     const authors = loading ? null : calcData.authors
+
+    if (this.state.doesNotExist) {
+      return <Typography className={classes.error}>
+          This entry does not exist.
+      </Typography>
+    }
 
     return (
       <div className={classes.root}>
@@ -119,15 +133,15 @@ class RepoEntryView extends React.Component {
                 <CardHeader title="Ids / processing" />
                 <CardContent classes={{root: classes.cardContent}}>
                   <Quantity column style={{maxWidth: 350}}>
-                    <Quantity quantity="pid" label='PID' loading={loading} placeholder="not yet assigned" noWrap {...quantityProps} />
-                    <Quantity quantity="upload_id" label='upload id' {...quantityProps} noWrap />
+                    <Quantity quantity="pid" label='PID' loading={loading} placeholder="not yet assigned" noWrap {...quantityProps} withClipboard />
+                    <Quantity quantity="upload_id" label='upload id' {...quantityProps} noWrap withClipboard />
                     <Quantity quantity="upload_time" label='upload time' noWrap {...quantityProps} >
                       <Typography noWrap>
                         {new Date(calcData.upload_time * 1000).toLocaleString()}
                       </Typography>
                     </Quantity>
-                    <Quantity quantity="calc_id" label={`${domain.entryLabel} id`} noWrap {...quantityProps} />
-                    <Quantity quantity='mainfile' loading={loading} noWrap {...quantityProps} />
+                    <Quantity quantity="calc_id" label={`${domain.entryLabel} id`} noWrap withClipboard {...quantityProps} />
+                    <Quantity quantity='mainfile' loading={loading} noWrap {...quantityProps} withClipboard />
                     <Quantity quantity="calc_hash" label={`${domain.entryLabel} hash`} loading={loading} noWrap {...quantityProps} />
                     <Quantity quantity="last_processing" label='last processing' loading={loading} placeholder="not processed" noWrap {...quantityProps}>
                       <Typography noWrap>

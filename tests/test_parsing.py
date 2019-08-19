@@ -42,16 +42,16 @@ parser_examples = [
     ('parsers/nwchem', 'tests/data/parsers/nwchem/single_point/output.out'),
     ('parsers/bigdft', 'tests/data/parsers/bigdft/n2_output.out'),
     ('parsers/wien2k', 'tests/data/parsers/wien2k/AlN/AlN_ZB.scf'),
-    # ('parsers/band', 'tests/data/parsers/band_adf.out'),  # causes spglib to segfault
+    ('parsers/band', 'tests/data/parsers/band_adf.out'),  # causes spglib to segfault
     ('parsers/gaussian', 'tests/data/parsers/gaussian/aniline.out'),
     ('parsers/abinit', 'tests/data/parsers/abinit/Fe.out'),
     ('parsers/quantumespresso', 'tests/data/parsers/quantum-espresso/benchmark.out'),
     ('parsers/orca', 'tests/data/parsers/orca/orca3dot2706823.out'),
     ('parsers/castep', 'tests/data/parsers/castep/BC2N-Pmm2-Raman.castep'),
-    # ('parsers/dl-poly', 'tests/data/parsers/dl-poly/OUTPUT'), # timeout on Matid System Classification
+    # ('parsers/dl-poly', 'tests/data/parsers/dl-poly/OUTPUT'),  # timeout on Matid System Classification
     ('parsers/lib-atoms', 'tests/data/parsers/lib-atoms/gp.xml'),
     ('parsers/octopus', 'tests/data/parsers/octopus/stdout.txt'),
-    ('parsers/phonopy', 'tests/data/parsers/phonopy/control.in'),
+    ('parsers/phonopy', 'tests/data/parsers/phonopy/phonopy-FHI-aims-displacement-01/control.in'),
     ('parsers/gpaw', 'tests/data/parsers/gpaw/Fe2.gpw'),
     ('parsers/gpaw2', 'tests/data/parsers/gpaw2/H2_lcao.gpw2'),
     ('parsers/atk', 'tests/data/parsers/atk/Si2.nc'),
@@ -60,7 +60,12 @@ parser_examples = [
     ('parsers/elk', 'tests/data/parsers/elk/Al/INFO.OUT'),
     ('parsers/elastic', 'dependencies/parsers/elastic/test/examples/2nd/INFO_ElaStic'),  # 70Mb file 2big4git
     ('parsers/turbomole', 'tests/data/parsers/turbomole/acrolein.out'),
-    ('parsers/gamess', 'tests/data/parsers/gamess/exam01.out')
+    ('parsers/gamess', 'tests/data/parsers/gamess/exam01.out'),
+    ('parsers/dmol', 'tests/data/parsers/dmol3/h2o.outmol'),
+    ('parser/fleur', 'tests/data/parsers/fleur/out'),
+    ('parser/molcas', 'tests/data/parsers/molcas/test000.input.out'),
+    ('parsers/qbox', 'tests/data/parsers/qbox/01_h2ogs.r'),
+    ('parser/onetep', 'tests/data/parsers/onetep/single_point_2.out')
 ]
 
 # We need to remove some cases with external mainfiles, which might not exist
@@ -72,7 +77,7 @@ for parser, mainfile in parser_examples:
 parser_examples = fixed_parser_examples
 
 
-correct_num_output_files = 37
+correct_num_output_files = 41
 
 
 class TestLocalBackend(object):
@@ -332,10 +337,12 @@ def test_match(raw_files, no_warn):
     upload_files = files.StagingUploadFiles(example_upload_id, create=True, is_authorized=lambda: True)
     upload_files.add_rawfiles('tests/data/parsers')
 
-    count = 0
+    matched_mainfiles = {}
     for mainfile in upload_files.raw_file_manifest():
         parser = match_parser(mainfile, upload_files)
         if parser is not None and not isinstance(parser, BrokenParser):
-            count += 1
+            matched_mainfiles[mainfile] = parser
 
-    assert count == correct_num_output_files
+    assert len(matched_mainfiles) == correct_num_output_files, ', '.join([
+        '%s: %s' % (parser.name, mainfile)
+        for mainfile, parser in matched_mainfiles.items()])

@@ -16,7 +16,7 @@
 All APIs are served by one Flask app (:py:mod:`nomad.api.app`) under different paths.
 """
 
-from flask import Flask, jsonify, url_for
+from flask import Flask, jsonify, url_for, abort
 from flask_restplus import Api, fields
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
@@ -25,6 +25,7 @@ import os.path
 import inspect
 from datetime import datetime
 import pytz
+import random
 
 from nomad import config, utils
 
@@ -149,3 +150,10 @@ class RFC3339DateTime(fields.DateTime):
 
 
 rfc3339DateTime = RFC3339DateTime()
+
+
+@app.before_request
+def before_request():
+    if config.services.api_chaos > 0:
+        if random.randint(0, 100) <= config.services.api_chaos:
+            abort(random.choice([400, 404, 500]), 'With best wishes from the chaos monkey.')

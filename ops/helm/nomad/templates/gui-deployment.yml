@@ -18,8 +18,11 @@ data:
         try_files $uri {{ .Values.proxy.external.path }}/gui/index.html;
       }
       location {{ .Values.proxy.external.path }}/gui/service-worker.js {
-        add_header Cache-Control "public, max-age=60, s-maxage=60";
-        expires -1;
+        add_header Last-Modified $date_gmt;
+        add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
+        if_modified_since off;
+        expires off;
+        etag off;
         root      /app/;
         rewrite ^{{ .Values.proxy.external.path }}/gui/service-worker.js /nomad/service-worker.js break;
       }
@@ -29,7 +32,7 @@ data:
       "apiBase": "{{ .Values.proxy.external.path }}/api",
       "kibanaBase": "{{ .Values.proxy.external.kibanaPath }}",
       "matomoSiteId": {{ .Values.gui.matomoSiteId }},
-      "matomoUrl": {{ .Values.gui.matomoUrl }},
+      "matomoUrl": "{{ .Values.gui.matomoUrl }}",
       "sendTrackingData": {{ .Values.gui.sendTrackingData }},
       "debug": {{ .Values.gui.debug }}
     };

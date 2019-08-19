@@ -64,6 +64,10 @@ def get_upload_with_metadata(upload: dict) -> UploadWithMetadata:
 class TestInfo:
     def test_info(self, client):
         rv = client.get('/info/')
+        data = json.loads(rv.data)
+        assert 'codes' in data
+        assert 'parsers' in data
+        assert len(data['parsers']) >= len(data['codes'])
         assert rv.status_code == 200
 
 
@@ -822,6 +826,14 @@ class TestRepo():
                 else:
                     assert len(metrics_result) == 1  # code_runs is the only metric for authors
 
+    def test_search_date_histogram(self, client, example_elastic_calcs, no_warn):
+        rv = client.get('/repo/?date_histogram=true&metrics=total_energies')
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        histogram = data.get('quantities').get('date_histogram')
+        print(histogram)
+        assert len(histogram) > 0
+
     @pytest.mark.parametrize('n_results, page, per_page', [(2, 1, 5), (1, 1, 1), (0, 2, 3)])
     def test_search_pagination(self, client, example_elastic_calcs, no_warn, n_results, page, per_page):
         rv = client.get('/repo/?page=%d&per_page=%d' % (page, per_page))
@@ -1017,6 +1029,42 @@ class TestRaw(UploadFilesBasedTests):
         with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
             assert zip_file.testzip() is None
             assert len(zip_file.namelist()) == len(example_file_contents)
+
+    @pytest.mark.parametrize('compress', [False, True])
+    def test_raw_files_from_query_upload_id(self, client, non_empty_processed, test_user_auth, compress):
+        url = '/raw/query?upload_id=%s&compress=%s' % (non_empty_processed.upload_id, 'true' if compress else 'false')
+        rv = client.get(url, headers=test_user_auth)
+
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
+        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
+            assert zip_file.testzip() is None
+            assert len(zip_file.namelist()) == len(example_file_contents)
+
+    @pytest.mark.parametrize('query_params', [
+        {'atoms': 'Si'},
+        {'authors': 'Cooper, Sheldon'}
+    ])
+    def test_raw_files_from_query(self, client, processeds, test_user_auth, query_params):
+
+        url = '/raw/query?%s' % urlencode(query_params)
+        rv = client.get(url, headers=test_user_auth)
+
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
+        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
+            assert zip_file.testzip() is None
+            assert len(zip_file.namelist()) == len(example_file_contents) * len(processeds)
+
+    def test_raw_files_from_empty_query(self, client, elastic):
+        url = '/raw/query?upload_id=doesNotExist'
+        rv = client.get(url)
+
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
+        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
+            assert zip_file.testzip() is None
+            assert len(zip_file.namelist()) == 0
 
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_files_signed(self, client, upload, _, test_user_signature_token):

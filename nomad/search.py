@@ -59,7 +59,18 @@ class User(InnerDoc):
             if 'first_name' not in user:
                 user = coe_repo.User.from_user_id(user.id).to_popo()
 
-            name = '%s, %s' % (user['last_name'], user['first_name'])
+            last_name = user['last_name'].strip()
+            first_name = user['first_name'].strip()
+
+            if len(last_name) > 0 and len(first_name) > 0:
+                name = '%s, %s' % (user['last_name'], user['first_name'])
+            elif len(last_name) != 0:
+                name = last_name
+            elif len(first_name) != 0:
+                name = first_name
+            else:
+                name = 'unnamed user with id %d' % user.id
+
             self.name = name
             user_cache[user.id] = self
 
@@ -219,7 +230,8 @@ search_quantities = datamodel.Domain.instance.search_quantities
 
 metrics = {
     'datasets': ('cardinality', 'datasets.id'),
-    'unique_code_runs': ('cardinality', 'calc_hash')
+    'unique_code_runs': ('cardinality', 'calc_hash'),
+    'users': ('cardinality', 'uploader.name.keyword')
 }
 """
 The available search metrics. Metrics are integer values given for each entry that can
@@ -309,7 +321,9 @@ def _execute_paginated_search(
 
 def scroll_search(
         scroll_id: str = None, size: int = 1000, scroll: str = u'5m',
-        q: Q = None, search_parameters: Dict[str, Any] = {}) -> Dict[str, Any]:
+        q: Q = None,
+        time_range: Tuple[datetime, datetime] = None,
+        search_parameters: Dict[str, Any] = {}) -> Dict[str, Any]:
     """
     Alternative search based on ES scroll API. Can be used similar to
     :func:`aggregate_search`, but pagination is replaced with scrolling, no ordering,
@@ -329,6 +343,9 @@ def scroll_search(
         size: The batch size in number of hits.
         scroll: The time the scroll should be kept alive (i.e. the time between requests
             to this method) in ES time units. Default is 5 minutes.
+        time_range: A tuple to filter for uploads within with start, end ``upload_time``.
+        search_parameters: Adds a ``and`` search for each key, value pair. Where the key corresponds
+            to a quantity and the value is the value to search for in this quantity.
 
     Returns:
         A dict with keys 'scroll' and 'results'. The key 'scroll' holds a dict with
@@ -338,7 +355,7 @@ def scroll_search(
 
     if scroll_id is None:
         # initiate scroll
-        search = _construct_search(q, search_parameters=search_parameters)
+        search = _construct_search(q, time_range, search_parameters=search_parameters)
         resp = es.search(body=search.to_dict(), scroll=scroll, size=size, index=config.elastic.index_name)  # pylint: disable=E1123
 
         scroll_id = resp.get('_scroll_id')
@@ -405,6 +422,15 @@ def entry_search(
     _, results = _execute_paginated_search(search, page, per_page, order_by, order)
 
     return results
+
+
+def entry_scan(**kwargs):
+    """
+    Like fund:`entry_search` put directly generates results without pagination.
+    """
+    search = _construct_search(**kwargs)
+    for hit in search.scan():
+        yield hit.to_dict()
 
 
 def quantity_search(
@@ -476,7 +502,7 @@ def quantity_search(
 
 def metrics_search(
         quantities: Dict[str, int] = aggregations, metrics_to_use: List[str] = [],
-        with_entries: bool = True, **kwargs) -> Dict[str, Any]:
+        with_entries: bool = True, with_date_histogram: bool = False, **kwargs) -> Dict[str, Any]:
     """
     Performs a search like :func:`entry_search`, but instead of entries, returns the given
     metrics aggregated for (a limited set of values) of the given quantities calculated
@@ -524,7 +550,6 @@ def metrics_search(
         # We are using elastic searchs 'composite aggregations' here. We do not really
         # compose aggregations, but only those pseudo composites allow us to use the
         # 'after' feature that allows to scan through all aggregation values.
-        terms: Dict[str, Any] = None
         quantity = search_quantities[quantity_name]
         min_doc_count = 0 if quantity.zero_aggs else 1
         terms = A(
@@ -534,6 +559,10 @@ def metrics_search(
         buckets = search.aggs.bucket(quantity_name, terms)
         if quantity_name not in ['authors']:
             add_metrics(buckets)
+
+    if with_date_histogram:
+        histogram = A('date_histogram', field='upload_time', interval='1M', format='yyyy-MM-dd')
+        add_metrics(search.aggs.bucket('date_histogram', histogram))
 
     add_metrics(search.aggs)
 
@@ -556,6 +585,12 @@ def metrics_search(
         for quantity_name in quantities.keys()
         if quantity_name not in metrics_names  # ES aggs for total metrics, and aggs for quantities stand side by side
     }
+
+    if with_date_histogram:
+        metrics_results['date_histogram'] = {
+            bucket.key_as_string: get_metrics(bucket, bucket.doc_count)
+            for bucket in response.aggregations.date_histogram.buckets
+        }
 
     total_metrics_result = get_metrics(response.aggregations, entry_results['pagination']['total'])
     metrics_results['total'] = dict(all=total_metrics_result)

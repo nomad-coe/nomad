@@ -121,6 +121,7 @@ services = NomadConfig(
     api_port=8000,
     api_base_path='/fairdi/nomad/latest/api',
     api_secret='defaultApiSecret',
+    api_chaos=0,
     admin_password='password',
     disable_reset=True,
     not_processed_value='not processed',
@@ -171,7 +172,7 @@ client = NomadConfig(
     url='http://localhost:8000/fairdi/nomad/latest/api'
 )
 
-version = '0.5.0'
+version = '0.5.1'
 commit = gitinfo.commit
 release = 'devel'
 domain = 'DFT'

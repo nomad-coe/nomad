@@ -59,7 +59,12 @@ parser_exceptions = {
     'parsers/gamess': ['formula', 'system'] + symmetry_keys,
     'parsers/gulp': ['formula', 'xc_functional', 'system'] + symmetry_keys,
     'parsers/turbomole': symmetry_keys,
-    'parsers/elastic': ['basis_set', 'xc_functional', 'system'] + symmetry_keys
+    'parsers/elastic': ['basis_set', 'xc_functional', 'system'] + symmetry_keys,
+    'parsers/dmol': ['system'] + symmetry_keys,
+    'parser/molcas': symmetry_keys,
+    'parsers/band': ['system'] + symmetry_keys,
+    'parsers/qbox': ['xc_functional'],
+    'parser/onetep': ['formula', 'basis_set', 'xc_functional', 'system'] + symmetry_keys
 }
 """
 Keys that the normalizer for certain parsers might not produce. In an ideal world this
@@ -107,10 +112,13 @@ def assert_normalized(backend: LocalBackend):
     assert metadata.xc_functional is not None
     assert metadata.system is not None
     assert metadata.crystal_system is not None
-    assert len(metadata.atoms) > 0
+    assert len(metadata.atoms) is not None
     assert metadata.spacegroup is not None
 
     exceptions = parser_exceptions.get(backend.get_value('parser_name'), [])
+
+    if metadata.formula != config.services.unavailable_value:
+        assert len(metadata.atoms) > 0
 
     for key in calc_metadata_keys:
         if key not in exceptions:

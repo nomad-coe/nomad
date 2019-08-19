@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Fab } from '@material-ui/core'
+import { withStyles, Fab, Typography } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withApi } from '../api'
 import Download from './Download'
@@ -21,6 +21,9 @@ class ArchiveLogView extends React.Component {
         overflowX: 'auto'
       }
     },
+    error: {
+      marginTop: theme.spacing.unit * 2
+    },
     downloadFab: {
       zIndex: 1,
       right: 32,
@@ -32,7 +35,8 @@ class ArchiveLogView extends React.Component {
   constructor(props) {
     super(props)
     this.state = {
-      data: null
+      data: null,
+      doesNotExist: false
     }
   }
 
@@ -52,17 +56,30 @@ class ArchiveLogView extends React.Component {
       this.setState({data: data})
     }).catch(error => {
       this.setState({data: null})
-      raiseError(error)
+      if (error.name === 'DoesNotExist') {
+        this.setState({doesNotExist: true})
+      } else {
+        raiseError(error)
+      }
     })
   }
 
   render() {
     const { classes, uploadId, calcId } = this.props
-    const { data } = this.state
+    const { data, doesNotExist } = this.state
+
+    if (doesNotExist) {
+      return (
+        <Typography className={classes.error}>
+          No archive log does exist for this entry. Most likely the entry itself does not
+          exist.
+        </Typography>
+      )
+    }
 
     return (
       <div className={classes.root}>
-        <pre>{data || 'empty log'}</pre>
+        <pre>{data || 'loading ...'}</pre>
 
         <Download
           classes={{root: classes.downloadFab}} tooltip="download logfile"

@@ -166,9 +166,13 @@ class SearchPage extends React.Component {
       this.setState({
         data: data || SearchPage.emptySearchData
       })
-    }).catch(errors => {
-      this.setState({data: SearchPage.emptySearchData, owner: owner})
-      this.props.raiseError(errors)
+    }).catch(error => {
+      if (error.name === 'NotAuthorized' && owner !== 'all') {
+        this.setState({data: SearchPage.emptySearchData, owner: 'all'})
+      } else {
+        this.setState({data: SearchPage.emptySearchData, owner: owner})
+        this.props.raiseError(error)
+      }
     })
   }
 

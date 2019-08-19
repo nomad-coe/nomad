@@ -26,13 +26,19 @@ export class NotAuthorized extends Error {
   }
 }
 
+export class ApiError extends Error {
+  constructor(msg) {
+    super(msg)
+    this.name = 'CannotReachApi'
+  }
+}
+
 const upload_to_gui_ids = {}
 let gui_upload_id_counter = 0
 
 class Upload {
   constructor(json, api) {
     this.api = api
-    this.handleApiError = api.handleApiError.bind(api)
 
     // Cannot use upload_id as key in GUI, because uploads don't have an upload_id
     // before upload is completed
@@ -70,7 +76,7 @@ class Upload {
         }
       )
       if (uploadRequest.error) {
-        this.handleApiError(uploadRequest.error)
+        handleApiError(uploadRequest.error)
       }
       if (uploadRequest.aborted) {
         throw Error('User abort')
@@ -96,7 +102,7 @@ class Upload {
           order_by: orderBy || 'mainfile',
           order: order || -1
         }))
-          .catch(this.handleApiError)
+          .catch(handleApiError)
           .then(response => response.body)
           .then(uploadJson => {
             Object.assign(this, uploadJson)
@@ -106,6 +112,33 @@ class Upload {
         return new Promise(resolve => resolve(this))
       }
     }
+  }
+}
+
+function handleApiError(e) {
+  if (e.name === 'CannotReachApi' || e.name === 'NotAuthorized' || e.name === 'DoesNotExist') {
+    throw e
+  }
+
+  if (e.response) {
+    const body = e.response.body
+    const message = (body && body.message) ? body.message : e.response.statusText
+    const errorMessage = `${message} (${e.response.status})`
+    let error = null
+    if (e.response.status === 404) {
+      error = new DoesNotExist(errorMessage)
+    } else if (e.response.status === 401) {
+      error = new NotAuthorized(errorMessage)
+    } else if (e.response.status === 502) {
+      error = new ApiError(errorMessage)
+    } else {
+      error = new Error(errorMessage)
+    }
+    error.status = e.response.status
+    throw error
+  } else {
+    const errorMessage = e.status ? `${e} (${e.status})` : '' + e
+    throw new Error(errorMessage)
   }
 }
 
@@ -127,40 +160,26 @@ class Api {
       data = {authorizations: auth}
     }
 
-    return Swagger(`${apiBase}/swagger.json`, data)
+    try {
+      return await Swagger(`${apiBase}/swagger.json`, data)
+    } catch (e) {
+      throw new ApiError()
+    }
   }
 
   constructor(user) {
     this.onStartLoading = () => null
     this.onFinishLoading = () => null
 
-    this.handleApiError = this.handleApiError.bind(this)
-
     user = user || {}
     this.auth_headers = {
       'X-Token': user.token
     }
-    this.swaggerPromise = Api.createSwaggerClient(user.token).catch(this.handleApiError)
+    this.swaggerPromise = Api.createSwaggerClient(user.token).catch(handleApiError)
 
     // keep a list of localUploads, these are uploads that are currently uploaded through
     // the browser and that therefore not yet returned by the backend
     this.localUploads = []
-  }
-
-  handleApiError(e) {
-    if (e.response) {
-      const body = e.response.body
-      const message = (body && body.message) ? body.message : e.response.statusText
-      if (e.response.status === 404) {
-        throw new DoesNotExist(message)
-      } else if (e.response.status === 401) {
-        throw new NotAuthorized(message)
-      } else {
-        throw Error(`API error (${e.response.status}): ${message}`)
-      }
-    } else {
-      throw Error('Network related error, cannot reach API')
-    }
   }
 
   createUpload(name) {
@@ -179,7 +198,7 @@ class Api {
     this.onStartLoading()
     return this.swaggerPromise
       .then(client => client.apis.uploads.get_uploads({state: 'unpublished', page: 1, per_page: 1000}))
-      .catch(this.handleApiError)
+      .catch(handleApiError)
       .then(response => ({
         ...response.body,
         results: response.body.results.map(uploadJson => {
@@ -195,7 +214,7 @@ class Api {
     this.onStartLoading()
     return this.swaggerPromise
       .then(client => client.apis.uploads.get_uploads({state: 'published', page: page || 1, per_page: perPage || 10}))
-      .catch(this.handleApiError)
+      .catch(handleApiError)
       .then(response => ({
         ...response.body,
         results: response.body.results.map(uploadJson => {
@@ -214,14 +233,18 @@ class Api {
         upload_id: uploadId,
         calc_id: calcId
       }))
-      .catch(this.handleApiError)
+      .catch(handleApiError)
       .then(response => {
         const result = response.body || response.text || response.data
         if (typeof result === 'string') {
           try {
             return JSON.parse(result)
           } catch (e) {
-            return result
+            try {
+              return JSON.parse(result.replace(/\bNaN\b/g, '"NaN"'))
+            } catch (e) {
+              return result
+            }
           }
         } else {
           return result
@@ -237,7 +260,7 @@ class Api {
         upload_id: uploadId,
         calc_id: calcId
       }))
-      .catch(this.handleApiError)
+      .catch(handleApiError)
       .then(response => response.text)
       .finally(this.onFinishLoading)
   }
@@ -245,21 +268,13 @@ class Api {
   async getRawFileListFromCalc(uploadId, calcId) {
     this.onStartLoading()
     return this.swaggerPromise
-      .then(client => {
-        try {
-          return client.apis.raw.get_file_list_from_calc({
-            upload_id: uploadId,
-            calc_id: calcId,
-            path: null
-          })
-        } catch (e) {
-          console.log(e)
-        }
-      })
-      .catch(this.handleApiError)
-      .then(response => {
-        return response.body
-      })
+      .then(client => client.apis.raw.get_file_list_from_calc({
+        upload_id: uploadId,
+        calc_id: calcId,
+        path: null
+      }))
+      .catch(handleApiError)
+      .then(response => response.body)
       .finally(this.onFinishLoading)
   }
 
@@ -270,7 +285,7 @@ class Api {
         upload_id: uploadId,
         calc_id: calcId
       }))
-      .catch(this.handleApiError)
+      .catch(handleApiError)
       .then(response => response.body)
       .finally(this.onFinishLoading)
   }
@@ -279,7 +294,7 @@ class Api {
     this.onStartLoading()
     return this.swaggerPromise
       .then(client => client.apis.repo.search(search))
-      .catch(this.handleApiError)
+      .catch(handleApiError)
       .then(response => response.body)
       .finally(this.onFinishLoading)
   }
@@ -288,7 +303,7 @@ class Api {
     this.onStartLoading()
     return this.swaggerPromise
       .then(client => client.apis.uploads.delete_upload({upload_id: uploadId}))
-      .catch(this.handleApiError)
+      .catch(handleApiError)
       .then(response => response.body)
       .finally(this.onFinishLoading)
   }
@@ -305,7 +320,7 @@ class Api {
           }
         }
       }))
-      .catch(this.handleApiError)
+      .catch(handleApiError)
       .then(response => response.body)
       .finally(this.onFinishLoading)
   }
@@ -314,7 +329,7 @@ class Api {
     this.onStartLoading()
     return this.swaggerPromise
       .then(client => client.apis.auth.get_token())
-      .catch(this.handleApiError)
+      .catch(handleApiError)
       .then(response => response.body)
       .finally(this.onFinishLoading)
   }
@@ -330,17 +345,21 @@ class Api {
       return metaInfoRepository
     } else {
       this.onStartLoading()
-      const loadMetaInfo = async(path) => {
-        return this.swaggerPromise
-          .then(client => client.apis.archive.get_metainfo({metainfo_package_name: path}))
-          .catch(this.handleApiError)
-          .then(response => response.body)
+      try {
+        const loadMetaInfo = async(path) => {
+          return this.swaggerPromise
+            .then(client => client.apis.archive.get_metainfo({metainfo_package_name: path}))
+            .catch(handleApiError)
+            .then(response => response.body)
+        }
+        const metaInfo = await loadMetaInfo(pkg)
+        const metaInfoRepository = new MetaInfoRepository(metaInfo)
+        this._metaInfoRepositories[pkg] = metaInfoRepository
+
+        return metaInfoRepository
+      } finally {
+        this.onFinishLoading()
       }
-      const metaInfo = await loadMetaInfo(pkg)
-      const metaInfoRepository = new MetaInfoRepository(metaInfo)
-      this._metaInfoRepositories[pkg] = metaInfoRepository
-      this.onFinishLoading()
-      return metaInfoRepository
     }
   }
 
@@ -349,15 +368,13 @@ class Api {
   async getInfo() {
     if (!this._cachedInfo) {
       this.onStartLoading()
-      this._cachedInfo = this.swaggerPromise
+      this._cachedInfo = await this.swaggerPromise
         .then(client => {
           return client.apis.info.get_info()
-            .catch(this.handleApiError)
-            .then(response => {
-              this.onFinishLoading()
-              return response.body
-            })
+            .then(response => response.body)
+            .catch(handleApiError)
         })
+        .finally(this.onFinishLoading)
     }
     return this._cachedInfo
   }
@@ -366,7 +383,7 @@ class Api {
     this.onStartLoading()
     return this.swaggerPromise
       .then(client => client.apis.uploads.get_upload_command())
-      .catch(this.handleApiError)
+      .catch(handleApiError)
       .then(response => response.body)
       .finally(this.onFinishLoading)
   }
@@ -393,34 +410,37 @@ export class ApiProviderComponent extends React.Component {
 
   createApi(user) {
     const api = new Api(user)
-    api.onStartLoading = () => this.setState({loading: this.state.loading + 1})
-    api.onFinishLoading = () => this.setState({loading: Math.max(0, this.state.loading - 1)})
+    api.onStartLoading = (name) => {
+      this.setState(state => ({loading: state.loading + 1}))
+    }
+    api.onFinishLoading = (name) => {
+      this.setState(state => ({loading: Math.max(0, state.loading - 1)}))
+    }
+
+    api.getInfo().then(info => {
+      this.setState({info: info})
+    }).catch(error => {
+      this.props.raiseError(error)
+    })
+
     return api
   }
 
   state = {
     api: null,
     user: null,
+    info: null,
     isLoggingIn: false,
     loading: 0,
     login: (userNameToken, password, successCallback) => {
       this.setState({isLoggingIn: true})
       successCallback = successCallback || (() => true)
       Api.createSwaggerClient(userNameToken, password)
-        .catch((error) => {
-          this.setState({api: this.createApi(), isLoggingIn: false, user: null})
-          this.props.raiseError(error)
-        })
         .then(client => {
           client.apis.auth.get_user()
             .catch(error => {
-              if (error.response.status !== 401) {
-                try {
-                  this.props.raiseError(error)
-                } catch (e) {
-                  this.setState({api: this.createApi(), isLoggingIn: false, user: null})
-                  this.props.raiseError(error)
-                }
+              if (error.response && error.response.status !== 401) {
+                throw error
               }
             })
             .then(response => {
@@ -432,6 +452,14 @@ export class ApiProviderComponent extends React.Component {
               } else {
                 this.setState({api: this.createApi(), isLoggingIn: false, user: null})
                 successCallback(false)
+              }
+            })
+            .catch(error => {
+              try {
+                this.props.raiseError(error)
+              } catch (e) {
+                this.setState({api: this.createApi(), isLoggingIn: false, user: null})
+                this.props.raiseError(error)
               }
             })
         })
@@ -526,8 +554,7 @@ class WithApiComponent extends React.Component {
   }
 
   state = {
-    notAuthorized: false,
-    notFound: false
+    notAuthorized: false
   }
 
   constructor(props) {
@@ -551,8 +578,6 @@ class WithApiComponent extends React.Component {
     } else {
       if (error.name === 'NotAuthorized') {
         this.setState({notAuthorized: true})
-      } else if (error.name === 'DoesNotExist') {
-        this.setState({notFound: true})
       } else {
         raiseError(error)
       }
@@ -562,7 +587,7 @@ class WithApiComponent extends React.Component {
   render() {
     const { raiseError, loginRequired, loginMessage, Component, ...rest } = this.props
     const { api, user, isLoggingIn } = rest
-    const { notAuthorized, notFound } = this.state
+    const { notAuthorized } = this.state
     if (notAuthorized) {
       if (user) {
         return (
@@ -584,13 +609,6 @@ class WithApiComponent extends React.Component {
           />
         )
       }
-    } else if (notFound) {
-      return <div>
-        <Typography variant="h6">Not Found</Typography>
-        <Typography>
-        The information that you are trying to access does not exists.
-        </Typography>
-      </div>
     } else {
       if (api) {
         if (user || !loginRequired) {

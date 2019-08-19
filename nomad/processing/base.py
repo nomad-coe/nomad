@@ -187,7 +187,7 @@ class Proc(Document, metaclass=ProcMetaclass):
 
         return self
 
-    def reset(self):
+    def reset(self, worker_hostname: str = None):
         """ Resets the task chain. Assumes there no current running process. """
         assert not self.process_running
 
@@ -195,7 +195,7 @@ class Proc(Document, metaclass=ProcMetaclass):
         self.tasks_status = PENDING
         self.errors = []
         self.warnings = []
-        self.worker_hostname = None
+        self.worker_hostname = worker_hostname
 
     @classmethod
     def get_by_id(cls, id: str, id_field: str):
@@ -339,17 +339,27 @@ def task(func):
     only be executed, if the process has not yet reached FAILURE state.
     """
     def wrapper(self, *args, **kwargs):
-        if self.tasks_status == FAILURE:
-            return
-
-        self._continue_with(func.__name__)
         try:
-            func(self, *args, **kwargs)
-        except Exception as e:
-            self.fail(e)
+            if self.tasks_status == FAILURE:
+                return
 
-        if self.__class__.tasks[-1] == self.current_task and self.tasks_running:
-            self._complete()
+            self._continue_with(func.__name__)
+            try:
+                func(self, *args, **kwargs)
+
+            except Exception as e:
+                self.fail(e)
+
+            except SystemExit:
+                self.fail('unexpected system exit')
+
+            if self.__class__.tasks[-1] == self.current_task and self.tasks_running:
+                self._complete()
+
+        except Exception as e:
+            # this is very critical and an indicator that the task fail error handling
+            # it self failed
+            self.get_logger().critical('task wrapper failed with exception', exc_info=e)
 
     setattr(wrapper, '__task_name', func.__name__)
     wrapper.__name__ = func.__name__
@@ -444,7 +454,7 @@ def unwarp_task(task, cls_name, self_id, *args, **kwargs):
 @app.task(
     bind=True, base=NomadCeleryTask, ignore_results=True, max_retries=3,
     acks_late=config.celery.acks_late, soft_time_limit=config.celery.timeout,
-    time_limit=config.celery.timeout + 120)
+    time_limit=config.celery.timeout * 2)
 def proc_task(task, cls_name, self_id, func_attr):
     """
     The celery task that is used to execute async process functions.
@@ -490,6 +500,8 @@ def proc_task(task, cls_name, self_id, func_attr):
         logger.error('exceeded the celery task soft time limit')
         self.fail(e)
     except Exception as e:
+        self.fail(e)
+    except SystemExit as e:
         self.fail(e)
     finally:
         if deleted is None or not deleted:

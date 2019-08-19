@@ -16,7 +16,7 @@
 The raw API of the nomad@FAIRDI APIs. Can be used to retrieve raw calculation files.
 """
 
-from typing import IO, Any, Union
+from typing import IO, Any, Union, Iterable, Tuple, Set
 import os.path
 import zipstream
 from flask import Response, request, send_file, stream_with_context
@@ -25,12 +25,14 @@ import magic
 import sys
 import contextlib
 
+from nomad import search
 from nomad.files import UploadFiles, Restricted
 from nomad.processing import Calc
 
 from .app import api
 from .auth import login_if_available, create_authorization_predicate, \
     signature_token_argument, with_signature_token
+from .repo import search_request_parser, create_search_kwargs
 
 if sys.version_info >= (3, 7):
     import zipfile
@@ -343,6 +345,56 @@ class RawFilesResource(Resource):
         return respond_to_get_raw_files(upload_id, files, compress)
 
 
+raw_file_from_query_parser = search_request_parser.copy()
+raw_file_from_query_parser = dict(
+    name='compress', type=bool, help='Use compression on .zip files, default is not.',
+    location='args')
+
+
+@ns.route('/query')
+class RawFileQueryResource(Resource):
+    @api.doc('raw_files_from_query')
+    @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
+    @api.expect(search_request_parser, validate=True)
+    @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
+    @login_if_available
+    def get(self):
+        """
+        Download a .zip file with all raw-files for all entries that match the given
+        search parameters. See ``/repo`` endpoint for documentation on the search
+        parameters.
+        Zip files are streamed; instead of 401 errors, the zip file will just not contain
+        any files that the user is not authorized to access.
+        """
+        try:
+            compress = bool(request.args.get('compress', False))
+        except Exception:
+            abort(400, message='bad parameter types')
+
+        search_kwargs = create_search_kwargs()
+        calcs = sorted([
+            (entry['upload_id'], entry['mainfile'])
+            for entry in search.entry_scan(**search_kwargs)], key=lambda x: x[0])
+
+        def generator():
+            for upload_id, mainfile in calcs:
+                upload_files = UploadFiles.get(
+                    upload_id, create_authorization_predicate(upload_id))
+                if upload_files is None:
+                    pass  # this should not happen, TODO log error
+
+                if hasattr(upload_files, 'zipfile_cache'):
+                    zipfile_cache = upload_files.zipfile_cache()
+                else:
+                    zipfile_cache = contextlib.suppress()
+
+                with zipfile_cache:
+                    for filename in list(upload_files.raw_file_manifest(path_prefix=os.path.dirname(mainfile))):
+                        yield os.path.join(upload_id, filename), filename, upload_files
+
+        return _streamed_zipfile(generator(), zipfile_name='nomad_raw_files.zip', compress=compress)
+
+
 def respond_to_get_raw_files(upload_id, files, compress=False):
     upload_files = UploadFiles.get(
         upload_id, create_authorization_predicate(upload_id))
@@ -357,40 +409,67 @@ def respond_to_get_raw_files(upload_id, files, compress=False):
         zipfile_cache = contextlib.suppress()
 
     with zipfile_cache:
-        def generator():
-            """ Stream a zip file with all files using zipstream. """
-            def iterator():
-                """
-                Replace the directory based iter of zipstream with an iter over all given
-                files.
-                """
-                for filename in files:
-                    # Write a file to the zipstream.
-                    try:
-                        with upload_files.raw_file(filename, 'rb') as f:
-                            def iter_content():
-                                while True:
-                                    data = f.read(100000)
-                                    if not data:
-                                        break
-                                    yield data
+        return _streamed_zipfile(
+            [(filename, filename, upload_files) for filename in files],
+            zipfile_name='%s.zip' % upload_id, compress=compress)
 
-                            yield dict(arcname=filename, iterable=iter_content())
-                    except KeyError:
-                        # files that are not found, will not be returned
-                        pass
-                    except Restricted:
-                        # due to the streaming nature, we cannot raise 401 here
-                        # we just leave it out in the download
-                        pass
 
-            compression = zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED
-            zip_stream = zipstream.ZipFile(mode='w', compression=compression, allowZip64=True)
-            zip_stream.paths_to_write = iterator()
+def _streamed_zipfile(
+        files: Iterable[Tuple[str, str, UploadFiles]], zipfile_name: str,
+        compress: bool = False):
+    """
+    Creates a response that streams the given files as a streamed zip file. Ensures that
+    each given file is only streamed once, based on its filename in the resulting zipfile.
 
-            for chunk in zip_stream:
-                yield chunk
+    Arguments:
+        files: An iterable of tuples with the filename to be used in the resulting zipfile,
+            the filename within the upload, the :class:`UploadFiles` that contains
+            the file.
+        zipfile_name: A name that will be used in the content disposition attachment
+            used as an HTTP respone.
+        compress: Uses compression. Default is stored only.
+    """
+
+    streamed_files: Set[str] = set()
+
+    def generator():
+        """ Stream a zip file with all files using zipstream. """
+        def iterator():
+            """
+            Replace the directory based iter of zipstream with an iter over all given
+            files.
+            """
+            for zipped_filename, upload_filename, upload_files in files:
+                if zipped_filename in streamed_files:
+                    continue
+                streamed_files.add(zipped_filename)
+
+                # Write a file to the zipstream.
+                try:
+                    with upload_files.raw_file(upload_filename, 'rb') as f:
+                        def iter_content():
+                            while True:
+                                data = f.read(1024 * 64)
+                                if not data:
+                                    break
+                                yield data
+
+                        yield dict(arcname=zipped_filename, iterable=iter_content())
+                except KeyError:
+                    # files that are not found, will not be returned
+                    pass
+                except Restricted:
+                    # due to the streaming nature, we cannot raise 401 here
+                    # we just leave it out in the download
+                    pass
+
+        compression = zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED
+        zip_stream = zipstream.ZipFile(mode='w', compression=compression, allowZip64=True)
+        zip_stream.paths_to_write = iterator()
+
+        for chunk in zip_stream:
+            yield chunk
 
     response = Response(stream_with_context(generator()), mimetype='application/zip')
-    response.headers['Content-Disposition'] = 'attachment; filename={}'.format('%s.zip' % upload_id)
+    response.headers['Content-Disposition'] = 'attachment; filename={}'.format(zipfile_name)
     return response

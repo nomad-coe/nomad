@@ -269,7 +269,10 @@ class Domain:
         mainfile=DomainQuantity(description='Search for the mainfile.'),
         datasets=DomainQuantity(
             elastic_field='datasets.name', multi=True,
-            description='Search for a particular dataset by name.'))
+            description='Search for a particular dataset by name.'),
+        doi=DomainQuantity(
+            elastic_field='datasets.doi', elastic_search_type='match', multi=True,
+            description='Search for a particular dataset by doi (incl. http://dx.doi.org).'))
 
     def __init__(
             self, name: str, domain_entry_class: Type[CalcWithMetadata],

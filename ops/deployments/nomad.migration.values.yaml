@@ -6,6 +6,7 @@ proxy:
 
 api:
   disableReset: false
+  adminPasswordSecrete: 'nomad-production-repository-password'
 
 gui:
   debug: true

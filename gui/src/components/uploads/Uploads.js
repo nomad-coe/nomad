@@ -412,7 +412,7 @@ class Uploads extends React.Component {
               \`\`\`
             `}</Markdown>
           </div>
-          <CopyToClipboard text={uploadCommand} onCopy={() => null}>
+          <CopyToClipboard text={uploadCommand.upload_command} onCopy={() => null}>
             <Tooltip title="Copy command to clipboard">
               <IconButton>
                 <ClipboardIcon />
@@ -421,6 +421,9 @@ class Uploads extends React.Component {
             {/* <button>Copy to clipboard with button</button> */}
           </CopyToClipboard>
           <HelpDialog icon={<MoreIcon/>} maxWidth="md" title="Alternative shell commands" content={`
+            As an experienced shell and *curl* user, you can modify the commands to
+            your liking.
+
             The given command can be modified. To see progress on large files, use
             \`\`\`
               ${uploadCommand.upload_progress_command}
@@ -429,8 +432,27 @@ class Uploads extends React.Component {
             \`\`\`
             ${uploadCommand.upload_tar_command}
             \`\`\`
-            As an experienced shell and *curl* user, you can modify the commands to
-            your liking. NOMAD accepts stream data (\`-H <local_file>\`) or multi-form data (\`-f file=@<local_file>\`).
+
+            ### Form data vs. streaming
+            NOMAD accepts stream data (\`-T <local_file>\`) (like in the
+            examples above) or multi-part form data (\`-X PUT -f file=@<local_file>\`):
+            \`\`\`
+            ${uploadCommand.upload_command_form}
+            \`\`\`
+            We generally recommend to use streaming, because form data can produce very
+            large HTTP request on large files. Form data has the advantage of carrying
+            more information (e.g. the file name) to our servers (see below).
+
+            #### Upload names
+            With multi-part form data (\`-X PUT -f file=@<local_file>\`), your upload will
+            be named after the file by default. With stream data (\`-T <local_file>\`)
+            there will be no default name. To set a custom name, you can use the URL
+            parameter \`name\`:
+            \`\`\`
+            ${uploadCommand.upload_command_with_name}
+            \`\`\`
+            Make sure to user proper [URL encoding](https://www.w3schools.com/tags/ref_urlencode.asp)
+            and shell encoding, if your name contains spaces or other special characters.
           `}/>
         </div>
 

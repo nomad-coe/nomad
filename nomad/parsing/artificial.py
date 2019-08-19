@@ -31,25 +31,38 @@ from nomadcore.local_meta_info import loadJsonFile, InfoKindEl
 import nomad_meta_info
 
 from nomad.parsing.backend import LocalBackend
-from nomad.parsing.parser import Parser
+from nomad.parsing.parser import Parser, MatchingParser
+
+
+file_dir = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
+meta_info_path = os.path.normpath(os.path.join(file_dir, 'vasp.nomadmetainfo.json'))
+meta_info_env, _ = loadJsonFile(filePath=meta_info_path, dependencyLoader=None, extraArgsHandling=InfoKindEl.ADD_EXTRA_ARGS, uri=None)
 
 
 class ArtificalParser(Parser):
     """ Base class for artifical parsers based on VASP metainfo. """
     def __init__(self):
         super().__init__()
-        # use vasp metainfo, not to really use it, but because it works
-        file_dir = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
-        meta_info_path = os.path.normpath(os.path.join(file_dir, 'vasp.nomadmetainfo.json'))
-        self.meta_info_env, _ = loadJsonFile(filePath=meta_info_path, dependencyLoader=None, extraArgsHandling=InfoKindEl.ADD_EXTRA_ARGS, uri=None)
         self.backend = None
 
     def init_backend(self):
-        self.backend = LocalBackend(metaInfoEnv=self.meta_info_env, debug=False)
+        self.backend = LocalBackend(metaInfoEnv=meta_info_env, debug=False)
 
     @property
     def name(self):
         return self.__class__.name
+
+
+class EmptyParser(MatchingParser):
+    """
+    Implementation that produces an empty code_run
+    """
+    def run(self, mainfile: str, logger=None) -> LocalBackend:
+        backend = LocalBackend(metaInfoEnv=meta_info_env, debug=False)  # type: ignore
+        backend.openSection('section_run')
+        backend.addValue('program_name', self.code_name)
+        backend.closeSection('section_run', 0)
+        return backend
 
 
 class TemplateParser(ArtificalParser):
@@ -85,7 +98,7 @@ class TemplateParser(ArtificalParser):
             else:
                 value = self.transform_value(key, value)
                 if isinstance(value, list):
-                    shape = self.meta_info_env[key].get('shape')
+                    shape = meta_info_env[key].get('shape')
                     if shape is None or len(shape) == 0:
                         for single_value in value:
                             self.backend.addValue(key, single_value, index)

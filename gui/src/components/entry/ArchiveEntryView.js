@@ -25,6 +25,7 @@ class ArchiveEntryView extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
+    info: PropTypes.object,
     raiseError: PropTypes.func.isRequired,
     uploadId: PropTypes.string.isRequired,
     calcId: PropTypes.string.isRequired
@@ -32,6 +33,9 @@ class ArchiveEntryView extends React.Component {
 
   static styles = theme => ({
     root: {},
+    error: {
+      marginTop: theme.spacing.unit * 2
+    },
     metaInfo: {
       height: '20vh',
       overflowY: 'auto',
@@ -66,7 +70,8 @@ class ArchiveEntryView extends React.Component {
     this.state = {
       data: null,
       metaInfo: null,
-      showMetaInfo: false
+      showMetaInfo: false,
+      doesNotExist: false
     }
     this.unmounted = false
   }
@@ -76,32 +81,42 @@ class ArchiveEntryView extends React.Component {
   }
 
   componentDidMount() {
-    this.update()
+    this.updateArchive()
+    this.updateMetaInfo()
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.api !== this.props.api) {
-      this.update()
+    if (prevProps.api !== this.props.api || prevProps.info !== this.props.info) {
+      this.updateArchive()
+      this.updateMetaInfo()
     }
   }
 
-  update() {
-    const {uploadId, calcId, api} = this.props
-    api.archive(uploadId, calcId).then(data => {
-      this.setState({data: data})
-    }).catch(error => {
-      this.setState({data: null})
-      this.props.raiseError(error)
-    })
-
-    api.getInfo().then(info => {
-      this.props.api.getMetaInfo(info.domain.metainfo.all_package).then(metaInfo => {
+  updateMetaInfo() {
+    if (this.props.api && this.props.info) {
+      this.props.api.getMetaInfo(this.props.info.domain.metainfo.all_package).then(metaInfo => {
         if (!this.unmounted) {
           this.setState({metaInfo: metaInfo})
         }
       })
+    }
+  }
+
+  updateArchive() {
+    const {uploadId, calcId, api} = this.props
+    api.archive(uploadId, calcId).then(data => {
+      if (!this.unmounted) {
+        this.setState({data: data})
+      }
     }).catch(error => {
-      this.props.raiseError(error)
+      if (!this.unmounted) {
+        this.setState({data: null})
+      }
+      if (error.name === 'DoesNotExist') {
+        this.setState({doesNotExist: true})
+      } else {
+        this.props.raiseError(error)
+      }
     })
   }
 
@@ -115,8 +130,18 @@ class ArchiveEntryView extends React.Component {
 
   render() {
     const { classes, uploadId, calcId } = this.props
-    const { data, showMetaInfo, metaInfo } = this.state
+    const { data, showMetaInfo, metaInfo, doesNotExist } = this.state
     const metaInfoData = metaInfo ? metaInfo.get(showMetaInfo) : null
+
+    if (doesNotExist) {
+      return (
+        <Typography className={classes.error}>
+          No archive does exist for this entry. Either the archive was not generated due
+          to parsing or other processing errors (check the log tab), or the entry it
+          self does not exist.
+        </Typography>
+      )
+    }
 
     return (
       <div className={classes.root}>

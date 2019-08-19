@@ -1,0 +1,43 @@
+strho=F,film=F,dos=F,isec1=99,ndir= 0,secvar=F
+alpha Si                                                                        
+any any ,invs=F,zrfs=F,invs2=F,jspins=1,l_noco=F,l_J=F
+     0.00000000     5.16735528     5.16735528
+     5.16735528     0.00000000     5.16735528
+     5.16735528     5.16735528     0.00000000     0.00000000     1.00000000
+pbe    non-relativi
+igrd=1,lwb=F,ndvgrd=6,idsprs=0,chng=-0.100D-11
+    
+  2
+**********************************
+Si  14    4    8  711  2.150000  0.016000
+    
+ 1,force =T,nlo= 0,llo=
+  1.000000  1.000000  1.000000  8.000000
+**********************************
+Si  14    4    8  711  2.150000  0.016000
+    
+ 1,force =T,nlo= 0,llo=
+ -0.125000 -0.130000 -0.135000  1.000000
+**********************************
+ 11.100000  9.300000
+vchk=F,cdinf=F,pot8=F,gw=0,numbands=   0
+lpr=0,form66=F,l_f=F,eonly=F,eig66=F,soc66=T
+  6  6
+  1  0
+ellow, elup, valence electrons:
+  -0.80000   1.00000   8.00000
+   3.70000 =kmax
+gauss=F   0.00100tria=F
+  0.000000  0.000000,l_soc=F,spav=F,off=F
+frcor=F,slice=F,ctail=T,disp=F,kcrel=0,u2f=F,f2u=F,bmt=F
+itmax=20,maxiter= 99,imix= 7,alpha=  0.05,spinf=  2.00
+swsp=F  0.00  0.00
+lflip=F  1  1
+vacdos=F,layers= 0,integ=F,star=F,nstars= 0     0.00     0.00     0.00     0.00,nstm=0,tworkf=  0.000000
+ 
+iplot=F,score=F,plpot=F,band=F
+  0  0.000000  0.000000,nnne=  0,pallst=F
+xa=   2.00000,thetad= 330.00000,epsdisp=   0.00001,epsforce=   0.00001
+relax 111 111
+emin_dos=  -0.50000,emax_dos=   0.50000,sig_dos=   0.01500
+nkpt=  783

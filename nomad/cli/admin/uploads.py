@@ -18,6 +18,7 @@ from tabulate import tabulate
 from mongoengine import Q
 from pymongo import UpdateOne
 import threading
+import elasticsearch_dsl as es
 
 from nomad import processing as proc, config, infrastructure, utils, search, files, coe_repo
 from .admin import admin
@@ -28,8 +29,9 @@ from .admin import admin
 @click.option('--staging', help='Select only uploads in staging', is_flag=True)
 @click.option('--processing', help='Select only processing uploads', is_flag=True)
 @click.option('--outdated', help='Select published uploads with older nomad version', is_flag=True)
+@click.option('--code', multiple=True, type=str, help='Select only uploads with calcs of given codes')
 @click.pass_context
-def uploads(ctx, user: str, staging: bool, processing: bool, outdated: bool):
+def uploads(ctx, user: str, staging: bool, processing: bool, outdated: bool, code: List[str]):
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
@@ -45,6 +47,20 @@ def uploads(ctx, user: str, staging: bool, processing: bool, outdated: bool):
         uploads = proc.Calc._get_collection().distinct(
             'upload_id',
             {'metadata.nomad_version': {'$ne': config.version}})
+        query &= Q(upload_id__in=uploads)
+
+    if code is not None and len(code) > 0:
+        code_queries = [es.Q('match', code_name=code_name) for code_name in code]
+        code_query = es.Q('bool', should=code_queries, minimum_should_match=1)
+
+        code_search = es.Search(index=config.elastic.index_name)
+        code_search = code_search.query(code_query)
+        code_search.aggs.bucket('uploads', es.A(
+            'terms', field='upload_id', size=10000, min_doc_count=1))
+        uploads = [
+            upload['key']
+            for upload in code_search.execute().aggs['uploads']['buckets']]
+
         query &= Q(upload_id__in=uploads)
 
     ctx.obj.query = query
@@ -239,41 +255,47 @@ def re_process(ctx, uploads, parallel: int):
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--calcs', is_flag=True, help='Only stop calculation processing.')
 @click.option('--kill', is_flag=True, help='Use the kill signal and force task failure.')
+@click.option('--no-celery', is_flag=True, help='Do not attempt to stop the actual celery tasks')
 @click.pass_context
-def stop(ctx, uploads, calcs: bool, kill: bool):
+def stop(ctx, uploads, calcs: bool, kill: bool, no_celery: bool):
+    infrastructure.setup_repository_db()
     query, _ = query_uploads(ctx, uploads)
 
     logger = utils.get_logger(__name__)
 
     def stop_all(query):
-        for proc in query:
-            logger_kwargs = dict(upload_id=proc.upload_id)
-            if isinstance(proc, proc.Calc):
-                logger_kwargs.update(calc_id=proc.calc_id)
+        for process in query:
+            logger_kwargs = dict(upload_id=process.upload_id)
+            if isinstance(process, proc.Calc):
+                logger_kwargs.update(calc_id=process.calc_id)
 
-            logger.info(
-                'send terminate celery task', celery_task_id=proc.celery_task_id,
-                kill=kill, **logger_kwargs)
+            if not no_celery:
+                logger.info(
+                    'send terminate celery task', celery_task_id=process.celery_task_id,
+                    kill=kill, **logger_kwargs)
 
             kwargs = {}
             if kill:
                 kwargs.update(signal='SIGKILL')
             try:
-                proc.app.control.revoke(proc.celery_task_id, terminate=True, **kwargs)
+                if not no_celery:
+                    proc.app.control.revoke(process.celery_task_id, terminate=True, **kwargs)
             except Exception as e:
                 logger.warning(
                     'could not revoke celery task', exc_info=e,
-                    celery_task_id=proc.celery_task_id, **logger_kwargs)
+                    celery_task_id=process.celery_task_id, **logger_kwargs)
+
             if kill:
                 logger.info(
-                    'fail proc', celery_task_id=proc.celery_task_id, kill=kill,
+                    'fail proc', celery_task_id=process.celery_task_id, kill=kill,
                     **logger_kwargs)
 
-                proc.fail('process terminate via nomad cli')
-                proc.process_status = proc.PROCESS_COMPLETED
-                proc.on_process_complete(None)
-                proc.save()
+                process.fail('process terminate via nomad cli')
+                process.process_status = proc.PROCESS_COMPLETED
+                process.on_process_complete(None)
+                process.save()
 
-    stop_all(proc.Calc.objects(query))
+    running_query = query & (Q(process_status=proc.PROCESS_RUNNING) | Q(tasks_status=proc.RUNNING))
+    stop_all(proc.Calc.objects(running_query))
     if not calcs:
-        stop_all(proc.Upload.objects(query))
+        stop_all(proc.Upload.objects(running_query))

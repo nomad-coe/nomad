@@ -21,6 +21,8 @@ import re
 from elasticsearch_dsl import Integer
 import ase.data
 
+from nomadcore.local_backend import ParserEvent
+
 from nomad import utils, config
 
 from .base import CalcWithMetadata, DomainQuantity, Domain, get_optional_backend_value
@@ -81,8 +83,10 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.code_name: str = None
         self.code_version: str = None
 
-        self.n_total_energies = 0
         self.n_geometries = 0
+        self.n_calculations = 0
+        self.n_total_energies = 0
+        self.n_quantities = 0
         self.quantities = []
         self.geometries = []
         self.group_hash: str = None
@@ -101,7 +105,7 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         except KeyError:
             self.code_version = config.services.unavailable_value
 
-        self.atoms = get_optional_backend_value(backend, 'atom_labels', 'section_system', logger=logger)
+        self.atoms = get_optional_backend_value(backend, 'atom_labels', 'section_system', [], logger=logger)
         if hasattr(self.atoms, 'tolist'):
             self.atoms = self.atoms.tolist()
         self.n_atoms = len(self.atoms)
@@ -138,20 +142,34 @@ class DFTCalcWithMetadata(CalcWithMetadata):
 
         quantities = set()
         geometries = set()
+        n_quantities = 0
+        n_calculations = 0
         n_total_energies = 0
         n_geometries = 0
 
-        for meta_info, _, value in backend._delegate.results.traverse():
+        for meta_info, event, value in backend._delegate.results.traverse():
             quantities.add(meta_info)
-            if meta_info == 'energy_total':
-                n_total_energies += 1
-            if meta_info == 'section_system':
-                n_geometries += 1
-            if meta_info == 'configuration_raw_gid':
-                geometries.add(value)
+
+            if event == ParserEvent.add_value or event == ParserEvent.add_array_value:
+                n_quantities += 1
+
+                if meta_info == 'energy_total':
+                    n_total_energies += 1
+
+                if meta_info == 'configuration_raw_gid':
+                    geometries.add(value)
+
+            elif event == ParserEvent.open_section:
+                if meta_info == 'section_single_configuration_calculation':
+                    n_calculations += 1
+
+                if meta_info == 'section_system':
+                    n_geometries += 1
 
         self.quantities = list(quantities)
         self.geometries = list(geometries)
+        self.n_quantities = n_quantities
+        self.n_calculations = n_calculations
         self.n_total_energies = n_total_energies
         self.n_geometries = n_geometries
 
@@ -174,9 +192,9 @@ Domain('DFT', DFTCalcWithMetadata, quantities=dict(
         'to facilitate exclusive searches.',
         elastic_value=only_atoms, metadata_field='atoms', multi=True),
     basis_set=DomainQuantity(
-        'The used basis set functions.', aggregations=10),
+        'The used basis set functions.', aggregations=20),
     xc_functional=DomainQuantity(
-        'The xc functional type used for the simulation.', aggregations=10),
+        'The xc functional type used for the simulation.', aggregations=20),
     system=DomainQuantity(
         'The system type of the simulated system.', aggregations=10),
     crystal_system=DomainQuantity(
@@ -196,6 +214,14 @@ Domain('DFT', DFTCalcWithMetadata, quantities=dict(
     n_total_energies=DomainQuantity(
         'Number of total energy calculations',
         metric=('total_energies', 'sum'),
+        elastic_mapping=Integer()),
+    n_calculations=DomainQuantity(
+        'Number of single configuration calculation sections',
+        metric=('calculations', 'sum'),
+        elastic_mapping=Integer()),
+    n_quantities=DomainQuantity(
+        'Number of overall parsed quantities',
+        metric=('parsed_quantities', 'sum'),
         elastic_mapping=Integer()),
     n_geometries=DomainQuantity(
         'Number of unique geometries',

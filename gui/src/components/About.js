@@ -11,6 +11,7 @@ class About extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
+    info: PropTypes.object,
     domain: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired
   }
@@ -21,21 +22,8 @@ class About extends React.Component {
     }
   })
 
-  state = {
-    info: null
-  }
-
-  componentDidMount() {
-    this.props.api.getInfo()
-      .then(info => this.setState({info: info}))
-      .catch(error => {
-        this.props.raiseError(error)
-      })
-  }
-
   render() {
-    const { classes, domain } = this.props
-    const { info } = this.state
+    const { classes, domain, info } = this.props
 
     return (
       <div className={classes.root}>
@@ -90,6 +78,7 @@ class About extends React.Component {
           - domain: ${info ? info.domain.name : 'loading'}
           - git: \`${info ? info.git.ref : 'loading'}; ${info ? info.git.version : 'loading'}\`
           - last commit message: *${info ? info.git.log : 'loading'}*
+          - codes: ${info ? info.codes.join(', ') : 'loading'}
           - parsers: ${info ? info.parsers.join(', ') : 'loading'}
           - normalizers: ${info ? info.normalizers.join(', ') : 'loading'}
         `}</Markdown>
