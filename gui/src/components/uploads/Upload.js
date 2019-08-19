@@ -77,50 +77,60 @@ class Upload extends React.Component {
     clickableRow: {
       cursor: 'pointer'
     }
-  });
+  })
 
   state = {
     upload: this.props.upload,
     params: {
       page: 1,
-      perPage: 5,
+      perPage: 10,
       orderBy: 'tasks_status',
-      order: 'asc'
+      order: 'desc'
     },
     updating: true // it is still not complete and continuously looking for updates
   }
 
   _unmounted = false
 
-  update(params) {
+  componentDidUpdate(prevProps, prevState) {
+    if (this.state.updating) {
+      return
+    }
+
+    if (this.state.params === prevState.params && prevProps.upload.process_running === this.props.upload.process_running) {
+      return
+    }
+
+    this.update()
+  }
+
+  update() {
     if (this._unmounted) {
       return
     }
 
-    const {page, perPage, orderBy, order} = params
+    const {page, perPage, orderBy, order} = this.state.params
     this.state.upload.get(page, perPage, orderBy, order === 'asc' ? 1 : -1)
       .then(upload => {
         const {tasks_running, process_running, current_task, published} = upload
         if (!this._unmounted) {
           if (published) {
-            this.setState({...params})
             if (this.props.onPublished) {
               this.props.onPublished()
             }
             return
           }
           const continueUpdating = tasks_running || process_running || current_task === 'uploading'
-          this.setState({upload: upload, params: params, updating: continueUpdating})
+          this.setState({upload: upload, updating: continueUpdating})
           if (continueUpdating) {
             window.setTimeout(() => {
-              this.update(this.state.params)
+              this.update()
             }, 500)
           }
         }
       })
       .catch(error => {
         if (!this._unmounted) {
-          this.setState({...params})
           if (error.name === 'DoesNotExist') {
             this.props.onDoesNotExist()
           } else {
@@ -131,13 +141,7 @@ class Upload extends React.Component {
   }
 
   componentDidMount() {
-    this.update(this.state.params)
-  }
-
-  componentDidUpdate(prevProps) {
-    if (!prevProps.upload.process_running && this.props.upload.process_running) {
-      this.update(this.state.params)
-    }
+    this.update()
   }
 
   componentWillUnmount() {
@@ -145,20 +149,29 @@ class Upload extends React.Component {
   }
 
   handleChangePage = (_, page) => {
-    this.update({...this.state.params, page: page + 1})
+    this.setState(state => ({params: {...state.params, page: page + 1}}))
   }
 
   handleChangeRowsPerPage = event => {
     const perPage = event.target.value
-    this.update({...this.state.params, perPage: perPage})
+    this.setState(state => ({params: {...state.params, perPage: perPage}}))
   }
 
   handleSort(orderBy) {
-    let order = 'desc'
-    if (this.state.params.orderBy === orderBy && this.state.params.order === 'desc') {
-      order = 'asc'
-    }
-    this.update({...this.state.params, orderBy: orderBy, order: order})
+    this.setState(state => {
+      let order = 'desc'
+      if (state.params.orderBy === orderBy && state.params.order === 'desc') {
+        order = 'asc'
+      }
+      return {
+        params: {
+          ...state.params,
+          orderBy: orderBy,
+          order: order,
+          page: 1
+        }
+      }
+    })
   }
 
   onCheckboxChanged(_, checked) {
@@ -417,7 +430,10 @@ class Upload extends React.Component {
     }
 
     const total = pagination.total
-    const emptyRows = perPage - Math.min(perPage, total - (page - 1) * perPage)
+    let emptyRows = 0
+    if (total > perPage) {
+      emptyRows = perPage - Math.min(perPage, total - (page - 1) * perPage)
+    }
 
     const columns = [
       { id: 'mainfile', sort: true, label: 'mainfile' },

@@ -77,7 +77,8 @@ Content-Type: application/json
         "bool": {
             "must": {
                 "match": {
-                "code_name": "currupted mainfile"
+                    "code_name": "currupted mainfile"
+                }
             }
         }
     },
