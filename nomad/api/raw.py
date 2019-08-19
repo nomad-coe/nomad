@@ -16,7 +16,7 @@
 The raw API of the nomad@FAIRDI APIs. Can be used to retrieve raw calculation files.
 """
 
-from typing import IO, Any, Union, Iterable, Tuple
+from typing import IO, Any, Union, Iterable, Tuple, Set
 import os.path
 import zipstream
 from flask import Response, request, send_file, stream_with_context
@@ -419,7 +419,7 @@ def _streamed_zipfile(
         compress: Uses compression. Default is stored only.
     """
 
-    streamed_files = set()
+    streamed_files: Set[str] = set()
 
     def generator():
         """ Stream a zip file with all files using zipstream. """
