@@ -32,7 +32,9 @@ def worker():
 
 @run.command(help='Run the nomad development api.')
 @click.option('--debug', help='Does run flask in debug.', is_flag=True)
-def api(debug: bool):
+@click.option('--with-chaos', type=int, default=0, help='Enable a certain percentage of chaos.')
+def api(debug: bool, with_chaos: int):
+    config.services.api_chaos = with_chaos
     run_api(debug=debug)
 
 

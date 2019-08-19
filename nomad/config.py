@@ -121,6 +121,7 @@ services = NomadConfig(
     api_port=8000,
     api_base_path='/fairdi/nomad/latest/api',
     api_secret='defaultApiSecret',
+    api_chaos=0,
     admin_password='password',
     disable_reset=True,
     not_processed_value='not processed',
