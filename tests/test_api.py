@@ -1030,8 +1030,9 @@ class TestRaw(UploadFilesBasedTests):
             assert zip_file.testzip() is None
             assert len(zip_file.namelist()) == len(example_file_contents)
 
-    def test_raw_files_from_query_upload_id(self, client, non_empty_processed, test_user_auth):
-        url = '/raw/query?upload_id=%s' % non_empty_processed.upload_id
+    @pytest.mark.parametrize('compress', [False, True])
+    def test_raw_files_from_query_upload_id(self, client, non_empty_processed, test_user_auth, compress):
+        url = '/raw/query?upload_id=%s&compress=%s' % (non_empty_processed.upload_id, 'true' if compress else 'false')
         rv = client.get(url, headers=test_user_auth)
 
         assert rv.status_code == 200

@@ -345,6 +345,12 @@ class RawFilesResource(Resource):
         return respond_to_get_raw_files(upload_id, files, compress)
 
 
+raw_file_from_query_parser = search_request_parser.copy()
+raw_file_from_query_parser = dict(
+    name='compress', type=bool, help='Use compression on .zip files, default is not.',
+    location='args')
+
+
 @ns.route('/query')
 class RawFileQueryResource(Resource):
     @api.doc('raw_files_from_query')
@@ -360,6 +366,11 @@ class RawFileQueryResource(Resource):
         Zip files are streamed; instead of 401 errors, the zip file will just not contain
         any files that the user is not authorized to access.
         """
+        try:
+            compress = bool(request.args.get('compress', False))
+        except Exception:
+            abort(400, message='bad parameter types')
+
         search_kwargs = create_search_kwargs()
         calcs = sorted([
             (entry['upload_id'], entry['mainfile'])
@@ -381,7 +392,7 @@ class RawFileQueryResource(Resource):
                     for filename in list(upload_files.raw_file_manifest(path_prefix=os.path.dirname(mainfile))):
                         yield os.path.join(upload_id, filename), filename, upload_files
 
-        return _streamed_zipfile(generator(), zipfile_name='nomad_raw_files.zip')
+        return _streamed_zipfile(generator(), zipfile_name='nomad_raw_files.zip', compress=compress)
 
 
 def respond_to_get_raw_files(upload_id, files, compress=False):
@@ -438,7 +449,7 @@ def _streamed_zipfile(
                     with upload_files.raw_file(upload_filename, 'rb') as f:
                         def iter_content():
                             while True:
-                                data = f.read(100000)
+                                data = f.read(1024 * 64)
                                 if not data:
                                     break
                                 yield data
