@@ -42,6 +42,12 @@ class RawFiles extends React.Component {
 
   update() {
     const {data: {uploadId, calcId}} = this.props
+    // this might accidentally happen, when the user logs out and the ids aren't
+    // necessarily available anymore, but the component is still mounted
+    if (!uploadId || !calcId) {
+      return
+    }
+
     this.props.api.getRawFileListFromCalc(uploadId, calcId).then(data => {
       this.setState({files: data.contents, uploadDirectory: data.directory})
     }).catch(error => {
@@ -127,4 +133,4 @@ class RawFiles extends React.Component {
   }
 }
 
-export default compose(withApi(false), withStyles(RawFiles.styles))(RawFiles)
+export default compose(withApi(false, true), withStyles(RawFiles.styles))(RawFiles)
