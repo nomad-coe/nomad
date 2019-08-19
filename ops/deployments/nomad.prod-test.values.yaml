@@ -13,7 +13,7 @@ gui:
 
 worker:
   replicas: 1
-  routing: "worker"
+  routing: "queue"
 
 dbname: fairdi_nomad_prod
 
@@ -26,7 +26,7 @@ uploadurl: 'https://labdev-nomad.rzg.mpg.de/fairdi/nomad/prod-test/upload'
 volumes:
   prefixSize: 1
   public: /nomad/fairdi/prod/fs/public
-  staging: /scratch/fairdi/migration/fs/staging
+  staging: /nomad/fairdi/prod/fs/staging
   tmp: /nomad/fairdi/prod/fs/tmp
   coe_extracted: /nomad/fairdi/prod/fs/extracted
   nomad: /nomad
