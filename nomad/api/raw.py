@@ -404,7 +404,22 @@ def respond_to_get_raw_files(upload_id, files, compress=False):
 
 
 def _streamed_zipfile(
-        files: Iterable[Tuple[str, str, UploadFiles]], zipfile_name: str, compress: bool = False):
+        files: Iterable[Tuple[str, str, UploadFiles]], zipfile_name: str,
+        compress: bool = False):
+    """
+    Creates a response that streams the given files as a streamed zip file. Ensures that
+    each given file is only streamed once, based on its filename in the resulting zipfile.
+
+    Arguments:
+        files: An iterable of tuples with the filename to be used in the resulting zipfile,
+            the filename within the upload, the :class:`UploadFiles` that contains
+            the file.
+        zipfile_name: A name that will be used in the content disposition attachment
+            used as an HTTP respone.
+        compress: Uses compression. Default is stored only.
+    """
+
+    streamed_files = set()
 
     def generator():
         """ Stream a zip file with all files using zipstream. """
@@ -414,6 +429,10 @@ def _streamed_zipfile(
             files.
             """
             for zipped_filename, upload_filename, upload_files in files:
+                if zipped_filename in streamed_files:
+                    continue
+                streamed_files.add(zipped_filename)
+
                 # Write a file to the zipstream.
                 try:
                     with upload_files.raw_file(upload_filename, 'rb') as f:
