@@ -426,10 +426,15 @@ def send_mail(name: str, email: str, message: str, subject: str):
     msg['Subject'] = subject
     msg['From'] = 'The nomad team <%s>' % config.mail.from_address
     msg['To'] = name
+    to_addrs = [email]
+
+    if config.mail.cc_address is not None:
+        msg['Cc'] = 'The nomad team <%s>' % config.mail.cc_address
+        to_addrs.append(config.mail.cc_address)
 
     try:
-        server.send_message(msg, config.mail.from_address, email)
+        server.send_message(msg, from_addr=config.mail.from_address, to_addrs=to_addrs)
     except Exception as e:
-        logger.error('Could send email', exc_info=e)
+        logger.error('Could not send email', exc_info=e)
 
     server.quit()
