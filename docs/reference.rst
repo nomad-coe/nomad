@@ -4,7 +4,6 @@ Reference
 nomad.config
 ------------
 .. automodule:: nomad.config
-    :members:
 
 nomad.infrastructure
 --------------------
@@ -37,6 +36,7 @@ nomad.processing
 nomad.search
 ------------
 .. automodule:: nomad.search
+    :members:
 
 nomad.coe_repo
 --------------

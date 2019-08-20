@@ -13,8 +13,3 @@ by using different URL-path and database names.
 The chart does not run any databases and search engines. Those are supposed to run
 separately (see also *nomad-full* for an alternative approach) and their hosts, etc.
 can be configures via helm values.
-
-### nomad-full
-
-This chart is under development. It is an attempt to also run all required databases
-and search engine in the same kubernetes cluster.

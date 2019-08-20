@@ -12,6 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+This module describes all configurable parameters for the nomad python code. The
+configuration is used for all executed python code including API, worker, CLI, and other
+scripts. To use the configuration in your own scripts or new modules, simply import
+this module.
+
+All parameters are structured into objects for two reasons. First, to have
+categories. Second, to allow runtime manipulation that is not effected
+by python import logic. The categories are choosen along infrastructure components:
+``mongo``, ``elastic``, etc.
+
+This module also provides utilities to read the configuration from environment variables
+and .yaml files. This is done automatically on import. The precedence is env over .yaml
+over defaults.
+
+.. autoclass:: nomad.config.NomadConfig
+.. autofunction:: nomad.config.apply
+.. autofunction:: nomad.config.load_config
+"""
+
 import logging
 import os
 import os.path
@@ -27,7 +47,8 @@ warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 class NomadConfig(dict):
     """
-    A dict subclass that uses attributes as key/value pairs.
+    A class for configuration categories. It is a dict subclass that uses attributes as
+    key/value pairs.
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -158,7 +179,8 @@ mail = NomadConfig(
     port=8995,
     user='',
     password='',
-    from_address='webmaster@nomad-coe.eu'
+    from_address='webmaster@nomad-coe.eu',
+    cc_address='webmaster@nomad-coe.eu'
 )
 
 normalize = NomadConfig(
@@ -256,6 +278,13 @@ def apply(key, value) -> None:
 
 
 def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yaml')) -> None:
+    """
+    Loads the configuration from the ``config_file`` and environment.
+
+    Arguments:
+        config_file: Override the configfile, default is file stored in env variable
+            NOMAD_CONFIG or ``nomad.yaml``.
+    """
     # load yaml and override defaults
     if os.path.exists(config_file):
         with open(config_file, 'r') as stream:
