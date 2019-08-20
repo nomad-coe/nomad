@@ -329,7 +329,7 @@ def scroll_search(
     :func:`aggregate_search`, but pagination is replaced with scrolling, no ordering,
     no property, and no metrics information is available.
 
-    he search is limited to parameters :param:`q` and :param:`search_parameters`,
+    he search is limited to parameters ``q`` and ``search_parameters``,
     which work exactly as in :func:`entry_search`.
 
     Scrolling is done by calling this function again and again with the same ``scroll_id``.
@@ -397,13 +397,13 @@ def entry_search(
     """
     Performs a search and returns a paginated list of search results.
 
-    The search is determimed by the given elasticsearch_dsl query param:`q`,
-    param:`time_range` and additional :param:`search_parameters`.
+    The search is determimed by the given elasticsearch_dsl query ``q``,
+    ``time_range`` and additional ``search_parameters``.
     The search_parameters have to match general or domain specific metadata quantities.
     See module:`datamodel`.
 
     The search results are paginated. Pagination is controlled by the pagination parameters
-    param:`page` and param:`per_page`. The results are ordered.
+    ``page`` and ``per_page``. The results are ordered.
 
     Arguments:
         page: The page to return starting with page 1
@@ -518,9 +518,9 @@ def metrics_search(
     datasets, and additional domain specific metrics (e.g. total energies, and unique geometries for DFT
     calculations). The quantities that can be aggregated to metrics are defined
     in module:`datamodel`. Aggregations and respective metrics are calculated for
-    aggregations given in param:`aggregations` and metrics in param:`aggregation_metrics`.
-    As a pseudo aggregation param:`total_metrics` are calculation over all search results.
-    The param:`aggregations` gives tuples of quantities and default aggregation sizes.
+    aggregations given in ``aggregations`` and metrics in ``aggregation_metrics``.
+    As a pseudo aggregation ``total_metrics`` are calculation over all search results.
+    The ``aggregations`` gives tuples of quantities and default aggregation sizes.
 
     Arguments:
         aggregations: A customized list of aggregations to perform. Keys are index fields,

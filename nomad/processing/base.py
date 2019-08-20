@@ -27,6 +27,7 @@ from mongoengine import Document, StringField, ListField, DateTimeField, Validat
 from mongoengine.connection import MongoEngineConnectionError
 from mongoengine.base.metaclasses import TopLevelDocumentMetaclass
 from datetime import datetime
+import functools
 
 from nomad import config, utils, infrastructure
 import nomad.patch  # pylint: disable=unused-import
@@ -338,6 +339,7 @@ def task(func):
     SUCCESS state. Calling the first task will put it into RUNNING state. Tasks will
     only be executed, if the process has not yet reached FAILURE state.
     """
+    @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
         try:
             if self.tasks_status == FAILURE:
@@ -362,7 +364,6 @@ def task(func):
             self.get_logger().critical('task wrapper failed with exception', exc_info=e)
 
     setattr(wrapper, '__task_name', func.__name__)
-    wrapper.__name__ = func.__name__
     return wrapper
 
 
@@ -519,6 +520,7 @@ def process(func):
     other :class:`Proc` instances. Each :class:`Proc` instance can only run one
     any process at a time.
     """
+    @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
         assert len(args) == 0 and len(kwargs) == 0, 'process functions must not have arguments'
         if self.process_running:
@@ -547,7 +549,7 @@ def process(func):
     task = getattr(func, '__task_name', None)
     if task is not None:
         setattr(wrapper, '__task_name', task)
-    wrapper.__name__ = func.__name__
+
     setattr(wrapper, '__process_unwrapped', func)
 
     return wrapper

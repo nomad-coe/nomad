@@ -20,3 +20,8 @@ The different overrides are:
 The .env file contains some additional config and secrets. The development secrets do
 not matter and are in the git (`.env_development`) and are replaced by real secret on
 the production machine.
+
+### Matomo (piwik)
+
+This docker-compose can be used to run the user-data tracking server *Matomo* and its
+database. This is currently not used by the official nomad production deployment.
