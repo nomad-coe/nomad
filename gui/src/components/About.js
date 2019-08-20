@@ -6,6 +6,7 @@ import { kibanaBase, apiBase, debug } from '../config'
 import { compose } from 'recompose'
 import { withApi } from './api'
 import { withDomain } from './domains'
+import packageJson from '../../package.json'
 
 class About extends React.Component {
   static propTypes = {
@@ -74,7 +75,8 @@ class About extends React.Component {
           ` : ''}
 
           ### About this version
-          - version: \`${info ? info.version : 'loading'}/${info ? info.release : 'loading'}\`
+          - version (API): \`${info ? info.version : 'loading'}/${info ? info.release : 'loading'}\`
+          - version (GUI): \`${packageJson.version}\`
           - domain: ${info ? info.domain.name : 'loading'}
           - git: \`${info ? info.git.ref : 'loading'}; ${info ? info.git.version : 'loading'}\`
           - last commit message: *${info ? info.git.log : 'loading'}*
