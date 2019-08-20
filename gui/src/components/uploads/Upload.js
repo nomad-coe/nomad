@@ -109,16 +109,18 @@ class Upload extends React.Component {
       return
     }
 
+    console.log('hello 2')
+
     const {page, perPage, orderBy, order} = this.state.params
+    const wasPublished = this.state.published
     this.state.upload.get(page, perPage, orderBy, order === 'asc' ? 1 : -1)
       .then(upload => {
         const {tasks_running, process_running, current_task, published} = upload
         if (!this._unmounted) {
-          if (published) {
+          if (published && !wasPublished) {
             if (this.props.onPublished) {
               this.props.onPublished()
             }
-            return
           }
           const continueUpdating = tasks_running || process_running || current_task === 'uploading'
           this.setState({upload: upload, updating: continueUpdating})
@@ -141,6 +143,7 @@ class Upload extends React.Component {
   }
 
   componentDidMount() {
+    console.log('hello 1')
     this.update()
   }
 
