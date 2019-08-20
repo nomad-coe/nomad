@@ -79,7 +79,9 @@ your browser.
 
 ### v0.5.1
 - integrated parsers Dmol3, qbox, molcas, fleur, and onetep
+- API endpoint for query based raw file download
 - improvements to admin cli: e.g. clean staging files, reprocess uploads based on codes
+- improved error handling in the GUI
 - lots of parser bugfixes
 - lots of minor bugfixes
 
