@@ -19,9 +19,11 @@ stages:
 variables:
   TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:test_${CI_COMMIT_REF_NAME}
   RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:${CI_COMMIT_REF_NAME}
+  STABLE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:stable
   LATEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
   FRONTEND_TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:test_${CI_COMMIT_REF_NAME}
   FRONTEND_RELEASE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:${CI_COMMIT_REF_NAME}
+  FRONTEND_STABLE_IMAGE:  gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:stable
   FRONTEND_LATEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:latest
   KUBECONFIG: /etc/deploy/config
 
@@ -126,10 +128,14 @@ release_version:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
     - docker pull $LATEST_IMAGE
     - docker tag $LATEST_IMAGE $RELEASE_IMAGE
+    - docker tag $LATEST_IMAGE $STABLE_IMAGE
     - docker push $RELEASE_IMAGE
+    - docker push $STABLE_IMAGE
     - docker pull $FRONTEND_LATEST_IMAGE
     - docker tag $FRONTEND_LATEST_IMAGE $FRONTEND_RELEASE_IMAGE
+    - docker tag $FRONTEND_LATEST_IMAGE $FRONTEND_STABLE_IMAGE
     - docker push $FRONTEND_RELEASE_IMAGE
+    - docker push $FRONTEND_STABLE_IMAGE
   only:
     - tags
 

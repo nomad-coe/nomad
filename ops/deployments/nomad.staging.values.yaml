@@ -1,3 +1,6 @@
+images.nomad.tag: "stable"
+images.frontend.tag: "stable"
+
 proxy:
   nodePort: 30005
   external:
