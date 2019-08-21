@@ -26,7 +26,7 @@ itsdangerous
 passlib
 python-logstash
 gitpython
-gunicorn[eventlet]
+gunicorn[gevent]
 structlog
 recommonmark
 m2r
