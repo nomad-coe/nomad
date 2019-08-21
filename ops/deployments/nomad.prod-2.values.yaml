@@ -9,7 +9,7 @@ proxy:
 
 api:
   disableReset: true
-  adminPasswordSecrete: 'nomad-production-repository-password'
+  adminPasswordSecret: 'nomad-production-repository-password'
 
 worker:
   replicas: 1
