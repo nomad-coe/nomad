@@ -6,6 +6,7 @@ import { compose } from 'recompose'
 import { Button, DialogTitle, DialogContent, DialogContentText, TextField, DialogActions,
   Dialog, FormGroup } from '@material-ui/core'
 import { withApi } from './api'
+import { withKeycloak } from 'react-keycloak'
 
 class LoginLogout extends React.Component {
   static propTypes = {
@@ -18,7 +19,8 @@ class LoginLogout extends React.Component {
     variant: PropTypes.string,
     color: PropTypes.string,
     onLoggedIn: PropTypes.func,
-    onLoggedOut: PropTypes.func
+    onLoggedOut: PropTypes.func,
+    keycloak: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
@@ -102,7 +104,13 @@ class LoginLogout extends React.Component {
   }
 
   render() {
-    const { classes, user, variant, color, isLoggingIn } = this.props
+    const { classes, variant, color, isLoggingIn, keycloak } = this.props
+
+    let user = null
+    if (keycloak.authenticated) {
+      user = {}
+    }
+
     const { failure } = this.state
     if (user) {
       return (
@@ -113,7 +121,7 @@ class LoginLogout extends React.Component {
           <Button
             className={classes.button}
             variant={variant} color={color}
-            onClick={this.handleLogout}
+            onClick={() => keycloak.logout()}
           >Logout</Button>
         </div>
       )
@@ -121,8 +129,7 @@ class LoginLogout extends React.Component {
       return (
         <div className={classes.root}>
           <Button
-            className={isLoggingIn ? classes.buttonDisabled : classes.button} variant={variant} color={color} disabled={isLoggingIn}
-            onClick={() => this.setState({loginDialogOpen: true})}
+            className={classes.button} variant={variant} color={color} onClick={() => keycloak.login()}
           >Login</Button>
           <Dialog
             disableBackdropClick disableEscapeKeyDown
@@ -184,4 +191,4 @@ class LoginLogout extends React.Component {
   }
 }
 
-export default compose(withApi(false), withStyles(LoginLogout.styles))(LoginLogout)
+export default compose(withKeycloak, withApi(false), withStyles(LoginLogout.styles))(LoginLogout)

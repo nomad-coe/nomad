@@ -19,6 +19,7 @@ x-common-variables: &nomad_backend_env
     NOMAD_LOGSTASH_HOST: elk
     NOMAD_ELASTIC_HOST: elastic
     NOMAD_MONGO_HOST: mongo
+    NOMAD_KEYCLOAK_HOST: keycloak
 
 services:
     # postgres for NOMAD-coe repository API and GUI
@@ -31,6 +32,20 @@ services:
             POSTGRES_USER: 'postgres'
         volumes:
             - nomad_postgres:/var/lib/postgresql/data
+
+    # keycload for user management
+    keycloak:
+        restart: always
+        image: jboss/keycloak
+        container_name: nomad_keycloak
+        environment:
+            DB_VENDOR: "h2"
+            KEYCLOAK_USER: "admin"
+            KEYCLOAK_PASSWORD: "password"
+        volumes:
+            - nomad_keycloak:/opt/jboss/keycloak/standalone
+        ports:
+            - 8002:8080
 
     # broker for celery
     rabbitmq:
@@ -74,6 +89,7 @@ services:
             <<: *nomad_backend_env
             NOMAD_SERVICE: nomad_worker
         links:
+            - keycloak
             - postgres
             - rabbitmq
             - elastic
@@ -95,6 +111,7 @@ services:
             NOMAD_SERVICES_API_SECRET: ${API_SECRET}
             NOMAD_SERVICE: nomad_api
         links:
+            - keycloak
             - postgres
             - rabbitmq
             - elastic
@@ -102,18 +119,6 @@ services:
         volumes:
             - ${VOLUME_BINDS}/fs:/app/.volumes/fs
         command: python -m gunicorn.app.wsgiapp -w 4 --log-config ops/gunicorn.log.conf -b 0.0.0.0:8000 --timeout 300 nomad.api:app
-
-    # NOMAD-coe search api
-    coeapi:
-        restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/coe-repowebservice:latest
-        container_name: nomad_coeapi
-        environment:
-            REPO_DB_JDBC_URL: jdbc:postgresql://postgres:5432/nomad
-            REPO_ELASTIC_URL: elasticsearch://elastic:9200
-        links:
-            - postgres
-            - elastic
 
     # nomad gui
     gui:
@@ -137,6 +142,7 @@ services:
         command: nginx -g 'daemon off;'
 
 volumes:
+    nomad_keycloak:
     nomad_postgres:
     nomad_mongo:
     nomad_elastic:

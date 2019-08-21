@@ -15,6 +15,10 @@
 version: '3.4'
 
 services:
+    # keycloak for user management
+    keycloak:
+        volumes:
+            - /nomad/fairdi/db/keycloak:/opt/jboss/keycloak/standalone
 
     postgres:
         ports:

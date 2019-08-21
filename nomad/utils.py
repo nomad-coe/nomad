@@ -112,7 +112,10 @@ class LogstashHandler(logstash.TCPLogstashHandler):
 
     def filter(self, record):
         if super().filter(record):
-            is_structlog = record.msg.startswith('{') and record.msg.endswith('}')
+            is_structlog = False
+            if isinstance(record.msg, str):
+                is_structlog = record.msg.startswith('{') and record.msg.endswith('}')
+
             if is_structlog:
                 return True
             else:

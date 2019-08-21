@@ -32,6 +32,7 @@ from mongoengine import connect
 from passlib.hash import bcrypt
 import smtplib
 from email.mime.text import MIMEText
+import keycloak
 
 from nomad import config, utils
 
@@ -47,6 +48,11 @@ repository_db = None
 """ The repository postgres db sqlalchemy session. """
 repository_db_conn = None
 """ The repository postgres db sqlalchemy connection. """
+
+keycloak_oidc_client = None
+""" The keycode OpenID connect client. """
+keycloak_admin_client = None
+""" The keycode admin client. """
 
 
 def setup():
@@ -106,6 +112,26 @@ def setup_elastic():
             raise e
 
     return elastic_client
+
+
+def setup_keycloak():
+    """ Creates a keycloak client. """
+    global keycloak_oidc_client
+    global keycloak_admin_client
+
+    keycloak_oidc_client = keycloak.KeycloakOpenID(
+        server_url=config.keycloak.server_url,
+        client_id=config.keycloak.client_id,
+        realm_name=config.keycloak.realm_name,
+        client_secret_key=config.keycloak.client_secret_key)
+
+    keycloak_admin_client = keycloak.KeycloakAdmin(
+        server_url=config.keycloak.server_url,
+        username=config.keycloak.username,
+        password=config.keycloak.password,
+        realm_name='master',
+        verify=True)
+    keycloak_admin_client.realm_name = config.keycloak.realm_name
 
 
 def setup_repository_db(**kwargs):
@@ -424,12 +450,12 @@ def send_mail(name: str, email: str, message: str, subject: str):
 
     msg = MIMEText(message)
     msg['Subject'] = subject
-    msg['From'] = 'The nomad team <%s>' % config.mail.from_address
+    msg['From'] = 'The NOMAD team <%s>' % config.mail.from_address
     msg['To'] = name
     to_addrs = [email]
 
     if config.mail.cc_address is not None:
-        msg['Cc'] = 'The nomad team <%s>' % config.mail.cc_address
+        msg['Cc'] = 'The NOMAD team <%s>' % config.mail.cc_address
         to_addrs.append(config.mail.cc_address)
 
     try:
@@ -438,3 +464,21 @@ def send_mail(name: str, email: str, message: str, subject: str):
         logger.error('Could not send email', exc_info=e)
 
     server.quit()
+
+
+if __name__ == '__main__':
+    import logging, time
+
+    config.console_log_level = logging.DEBUG
+    setup_logging()
+    setup_keycloak()
+
+    token = keycloak_oidc_client.token(
+        username='sheldon.cooper@nomad-coe.eu', password='password')
+
+    while True:
+        print(keycloak_oidc_client.userinfo(token['access_token']))
+        keycloak_user_id = keycloak_admin_client.get_user_id('sheldon.cooper@nomad-coe.eu')
+        print(keycloak_admin_client.get_user(keycloak_user_id))
+        time.sleep(5)
+

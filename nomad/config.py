@@ -124,6 +124,15 @@ repository_db = NomadConfig(
     mode='fairdi'
 )
 
+keycloak = NomadConfig(
+    server_url='http://localhost:8002/auth/',
+    realm_name='fairdi_nomad_test',
+    username='admin',
+    password='password',
+    client_id='nomad_api',
+    client_secret_key='0f9ec82f-a1dc-4405-a80e-593160aeea42'
+)
+
 mongo = NomadConfig(
     host='localhost',
     port=27017,
