@@ -32,10 +32,14 @@ class ConfirmDialog extends React.Component {
           <DialogContent>
             <Markdown>{`
               If you agree the selected uploads will move out of your private staging
-              area into the public NOMAD Repository. If you wish to put an embargo
-              on your data it will last upto 36 month. Afterwards, your data will
+              area into the public [NOMAD Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/).
+              If you wish to put an embargo on your data it will last upto 36 month. Afterwards, your data will
               be made public. All public data will be made available under the Creative
               Commons Attribution license ([CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)).
+
+              The published data will be added to the NOMAD Repository's index overnight.
+              Therefore, it will take until tomorrow before your data appears in the
+              [NOMAD Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/).
             `}</Markdown>
 
             <FormGroup row style={{alignItems: 'center'}}>

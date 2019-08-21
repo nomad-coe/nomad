@@ -156,11 +156,10 @@ tests = NomadConfig(
 )
 
 
-def api_url():
-    return '%s://%s%s%s' % (
-        'https' if services.https else 'http',
+def api_url(ssl: bool = True):
+    return '%s://%s%s' % (
+        'https' if services.https and ssl else 'http',
         services.api_host,
-        ':%s' % services.api_port if int(services.api_port) != 80 else '',
         services.api_base_path)
 
 
@@ -194,12 +193,13 @@ client = NomadConfig(
     url='http://localhost:8000/fairdi/nomad/latest/api'
 )
 
-version = '0.5.1'
+version = '0.5.2'
 commit = gitinfo.commit
 release = 'devel'
 domain = 'DFT'
 service = 'unknown nomad service'
 auxfile_cutoff = 100
+parser_matching_size = 9128
 console_log_level = logging.WARNING
 
 

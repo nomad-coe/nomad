@@ -116,7 +116,7 @@ def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFile
         compression, open_compressed = _compressions.get(f.read(3), (None, open))
 
     with open_compressed(mainfile_path, 'rb') as cf:
-        buffer = cf.read(2048)
+        buffer = cf.read(config.parser_matching_size)
 
     mime_type = magic.from_buffer(buffer, mime=True)
     for parser in parsers:
