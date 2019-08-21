@@ -114,8 +114,6 @@ class Upload extends React.Component {
       return
     }
 
-    console.log('hello 2')
-
     const {page, perPage, orderBy, order} = this.state.params
     const wasPublished = this.state.published
     this.state.upload.get(page, perPage, orderBy, order === 'asc' ? 1 : -1)
@@ -148,7 +146,6 @@ class Upload extends React.Component {
   }
 
   componentDidMount() {
-    console.log('hello 1')
     this.update()
   }
 
