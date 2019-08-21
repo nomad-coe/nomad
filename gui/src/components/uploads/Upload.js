@@ -49,12 +49,17 @@ class Upload extends React.Component {
       width: 350,
       overflowX: 'hidden'
     },
-    title: {
+    shortTitle: {
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
       overflowX: 'inherit',
       direction: 'rtl',
       textAlign: 'left'
+    },
+    title: {
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+      overflowX: 'inherit'
     },
     checkbox: {
       marginRight: theme.spacing.unit * 2
@@ -189,7 +194,7 @@ class Upload extends React.Component {
 
     return (
       <div className={classes.titleContainer}>
-        <Typography variant="h6" className={classes.title}>
+        <Typography variant="h6" className={name ? classes.shortTitle : classes.title}>
           {name || new Date(Date.parse(create_time)).toLocaleString()}
         </Typography>
         {name
