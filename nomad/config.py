@@ -199,6 +199,7 @@ release = 'devel'
 domain = 'DFT'
 service = 'unknown nomad service'
 auxfile_cutoff = 100
+parser_matching_size = 9128
 console_log_level = logging.WARNING
 
 
