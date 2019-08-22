@@ -8,12 +8,16 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
-  type: ClusterIP
+  type: NodePort
+  externalIPs:
+    - {{ .Values.proxy.nodeIP }}
   ports:
-    - port: {{ .Values.gui.port }}
-      targetPort: {{ .Values.gui.port }}
+    - nodePort: {{ .Values.proxy.nodePort }}
+      port: 80
+      targetPort: 80
       protocol: TCP
       name: http
+
   selector:
     app.kubernetes.io/name: {{ include "nomad.name" . }}-gui
     app.kubernetes.io/instance: {{ .Release.Name }}

@@ -64,6 +64,10 @@ metadata:
 data:
   gunicorn.conf: |
     secure_scheme_headers = {'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}
+    worker_class = '{{ .Values.api.workerClass }}'
+    threads = {{ .Values.api.threads }}
+    worker_connections = 1000
+    worker = {{ .Values.api.worker }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -121,12 +125,12 @@ spec:
         {{ end }}
         {{ if .Values.api.adminPasswordSecret }}
         - name: NOMAD_SERVICES_ADMIN_PASSWORD
-          valueFrom
+          valueFrom:
             secretKeyRef:
               name: {{ .Values.api.adminPasswordSecret }}
               key: password
         {{ end }}
-        command: ["python", "-m", "gunicorn.app.wsgiapp", "--timeout", "3600", "--config", "gunicorn.conf", "--log-config", "gunicorn.log.conf", "-w", "{{ .Values.api.worker }}", "-b 0.0.0.0:8000", "nomad.api:app"]
+        command: ["python", "-m", "gunicorn.app.wsgiapp", "--config", "gunicorn.conf", "--log-config", "gunicorn.log.conf", "-b 0.0.0.0:8000", "nomad.api:app"]
         livenessProbe:
           httpGet:
             path: "{{ .Values.proxy.external.path }}/api/alive"

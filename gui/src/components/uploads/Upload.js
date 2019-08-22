@@ -49,12 +49,17 @@ class Upload extends React.Component {
       width: 350,
       overflowX: 'hidden'
     },
-    title: {
+    shortTitle: {
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
       overflowX: 'inherit',
       direction: 'rtl',
       textAlign: 'left'
+    },
+    title: {
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+      overflowX: 'inherit'
     },
     checkbox: {
       marginRight: theme.spacing.unit * 2
@@ -109,8 +114,6 @@ class Upload extends React.Component {
       return
     }
 
-    console.log('hello 2')
-
     const {page, perPage, orderBy, order} = this.state.params
     const wasPublished = this.state.published
     this.state.upload.get(page, perPage, orderBy, order === 'asc' ? 1 : -1)
@@ -143,7 +146,6 @@ class Upload extends React.Component {
   }
 
   componentDidMount() {
-    console.log('hello 1')
     this.update()
   }
 
@@ -189,7 +191,7 @@ class Upload extends React.Component {
 
     return (
       <div className={classes.titleContainer}>
-        <Typography variant="h6" className={classes.title}>
+        <Typography variant="h6" className={name ? classes.shortTitle : classes.title}>
           {name || new Date(Date.parse(create_time)).toLocaleString()}
         </Typography>
         {name
