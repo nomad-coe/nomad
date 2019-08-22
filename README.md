@@ -76,6 +76,7 @@ Open [http://localhost:8888/html/setup.html](http://localhost:8888/html/setup.ht
 your browser.
 
 ## Change log
+Omitted versions are plain bugfix releases with only minor changes and fixes.
 
 ### v0.5.2
 - allows to download large files over longer time period
