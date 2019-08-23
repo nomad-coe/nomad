@@ -28,6 +28,7 @@ import os.path
 import datetime
 import base64
 from bravado.client import SwaggerClient
+import basicauth
 
 from nomad import config, infrastructure, parsing, processing, coe_repo, api
 
@@ -201,6 +202,13 @@ def elastic(elastic_infra):
     return elastic_infra
 
 
+@pytest.fixture(scope='session')
+def keycloak():
+    infrastructure.setup_keycloak()
+
+    return infrastructure.keycloak_oidc_client
+
+
 @contextmanager
 def create_postgres_infra(patch=None, **kwargs):
     """
@@ -306,10 +314,14 @@ def create_auth_headers(user):
         'Authorization': 'Basic %s' % basic_auth_base64
     }
 
-
 @pytest.fixture(scope='module')
 def test_user_auth(test_user: coe_repo.User):
-    return create_auth_headers(test_user)
+    return dict(Authorization=basicauth.encode('sheldon.cooper@nomad-coe.eu', 'password'))
+
+
+# @pytest.fixture(scope='module')
+# def test_user_auth(test_user: coe_repo.User):
+#     return create_auth_headers(test_user)
 
 
 @pytest.fixture(scope='module')

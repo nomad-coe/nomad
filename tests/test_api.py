@@ -99,6 +99,14 @@ class TestAdmin:
 
 
 class TestAuth:
+    def test_auth_wo_credentials(self, client, keycloak, no_warn):
+        rv = client.get('/auth/')
+        assert rv.status_code == 401
+
+    def test_auth(self, client, test_user_auth, keycloak):
+        rv = client.get('/auth/', headers=test_user_auth)
+        assert rv.status_code == 200
+
     def test_xtoken_auth(self, client, test_user: coe_repo.User, no_warn):
         rv = client.get('/uploads/', headers={
             'X-Token': test_user.first_name.lower()  # the test users have their firstname as tokens for convinience

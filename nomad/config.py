@@ -129,7 +129,7 @@ keycloak = NomadConfig(
     realm_name='fairdi_nomad_test',
     username='admin',
     password='password',
-    client_id='nomad_api',
+    client_id='nomad_api_dev',
     client_secret_key='0f9ec82f-a1dc-4405-a80e-593160aeea42'
 )
 

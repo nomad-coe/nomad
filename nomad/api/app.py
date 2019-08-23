@@ -26,6 +26,8 @@ import inspect
 from datetime import datetime
 import pytz
 import random
+from flask_oidc import OpenIDConnect
+import json
 
 from nomad import config, utils
 
@@ -59,6 +61,24 @@ app.config.RESTPLUS_MASK_SWAGGER = False  # type: ignore
 app.config.SWAGGER_UI_OPERATION_ID = True  # type: ignore
 app.config.SWAGGER_UI_REQUEST_DURATION = True  # type: ignore
 
+oidc_issuer_url = '%s/realms/%s' % (config.keycloak.server_url.rstrip('/'), config.keycloak.realm_name)
+oidc_client_secrets = dict(
+    client_id=config.keycloak.client_id,
+    client_secret=config.keycloak.client_secret_key,
+    issuer=oidc_issuer_url,
+    auth_uri='%s/protocol/openid-connect/auth' % oidc_issuer_url,
+    token_uri='%s/protocol/openid-connect/token' % oidc_issuer_url,
+    userinfo_uri='%s/protocol/openid-connect/userinfo' % oidc_issuer_url,
+    token_introspection_uri='%s/protocol/openid-connect/token/introspect' % oidc_issuer_url,
+    redirect_uris=['http://localhost/fairdi/nomad/latest'])
+oidc_client_secrets_file = os.path.join(config.fs.tmp, 'oidc_client_secrets')
+with open(oidc_client_secrets_file, 'wt') as f:
+    json.dump(dict(web=oidc_client_secrets), f)
+app.config.update(dict(
+    SECRET_KEY=config.services.api_secret,
+    OIDC_CLIENT_SECRETS=oidc_client_secrets_file,
+    OIDC_OPENID_REALM=config.keycloak.realm_name))
+
 
 def api_base_path_response(env, resp):
     resp('200 OK', [('Content-Type', 'text/plain')])
@@ -70,6 +90,7 @@ def api_base_path_response(env, resp):
 app.wsgi_app = DispatcherMiddleware(  # type: ignore
     api_base_path_response, {config.services.api_base_path: app.wsgi_app})
 
+oidc = OpenIDConnect(app)
 
 CORS(app)
 

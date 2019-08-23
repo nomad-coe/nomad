@@ -13,77 +13,111 @@
 # limitations under the License.
 
 """
-Endpoints can use *flask_httpauth* based authentication either with basic HTTP
-authentication or access tokens. Currently the authentication is validated against
-users and sessions in the NOMAD-coe repository postgres db.
-
-There are two authentication "schemes" to authenticate users. First we use
-HTTP Basic Authentication (username, password), which also works with username=token,
-password=''. Second, there is a curstom HTTP header 'X-Token' that can be used to
-give a token. The first precedes the second. The used tokens are given and stored
-by the NOMAD-coe repository GUI.
+The API is protected with *keycloak* and *OpenIDConnect*. All API endpoints that require
+or support authentication accept OIDC bearer tokens via HTTP header (``Authentication``,
+recommended), query (``access_token``), or form parameter (``access_token``). These
+token can be acquired from the NOMAD keycloak server or through the ``/auth`` endpoint
+that also supports HTTP Basic authentication and passes the given credentials to
+keycloak.
 
 Authenticated user information is available via FLASK's build in flask.g.user object.
 It is set to None, if no user information is available.
 
-There are two decorators for FLASK API endpoints that can be used if endpoints require
-authenticated user information for authorization or otherwise.
+There are three decorators for FLASK API endpoints that can be used to protect
+endpoints that require or support authentication.
 
 .. autofunction:: login_if_available
 .. autofunction:: login_really_required
+.. autofunction:: admin_login_required
 """
 
+from typing import Tuple
 from flask import g, request
 from flask_restplus import abort, Resource, fields
-from flask_httpauth import HTTPBasicAuth
 from datetime import datetime
+import functools
+import basicauth
 
-from nomad import config, processing, files, utils, coe_repo
-from nomad.coe_repo import User, LoginException
+from nomad import config, processing, files, utils, coe_repo, infrastructure
+from nomad.coe_repo import LoginException
 
-from .app import app, api, RFC3339DateTime
-
-app.config['SECRET_KEY'] = config.services.api_secret
-auth = HTTPBasicAuth()
-
-
-# Authentication scheme definitions, for swagger only.
-api.authorizations = {
-    'HTTP Basic': {
-        'type': 'basic'
-    },
-    'X-Token': {
-        'type': 'apiKey',
-        'in': 'header',
-        'name': 'X-Token'
-    }
-}
+from .app import api, RFC3339DateTime, oidc
 
 
-@auth.verify_password
-def verify_password(username_or_token, password):
-    if username_or_token is None or username_or_token == '':
-        g.user = None
-        return True
+class User:
+    """
+    A data class that holds all information for a single user. This can be the logged in
+    and authenticated user, or other users (i.e. co-authors, etc.).
+    """
+    def __init__(
+            self, email, name=None, first_name='', last_name='', affiliation=None,
+            created: datetime = None, **kwargs):
+        assert email is not None, 'Users must have an email, it is used as unique id'
 
-    if password is None or password == '':
-        g.user = User.verify_auth_token(username_or_token)
-        return g.user is not None
-    else:
+        self.email = email
+
+        first_name = kwargs.get('firstName', first_name)
+        last_name = kwargs.get('lastName', last_name)
+        name = kwargs.get('username', name)
+        created_timestamp = kwargs.get('createdTimestamp', None)
+
+        if len(last_name) > 0 and len(first_name) > 0:
+            name = '%s, %s' % (last_name, first_name)
+        elif len(last_name) != 0:
+            name = last_name
+        elif len(first_name) != 0:
+            name = first_name
+        elif name is None:
+            name = 'unnamed user'
+
+        self.name = name
+
+        if created is not None:
+            self.created = None
+        elif created_timestamp is not None:
+            self.created = datetime.fromtimestamp(created_timestamp)
+        else:
+            self.created = None
+
+        # TODO affliation
+
+
+def _validate_token(require_token: bool = True, **kwargs) -> Tuple[bool, str]:
+    """
+    Uses OIDC to check if the request carries token based authentication and if
+    this authentication is valid.
+
+    Returns: A tuple with bool and potential error message
+    """
+    token = None
+    if 'Authorization' in request.headers and request.headers['Authorization'].startswith('Bearer '):
+        token = request.headers['Authorization'].split(None, 1)[1].strip()
+    if 'access_token' in request.form:
+        token = request.form['access_token']
+    elif 'access_token' in request.args:
+        token = request.args['access_token']
+
+    validity = oidc.validate_token(token, **kwargs)
+
+    if validity:
+        g.oidc_id_token = g.oidc_token_info
+
+    return (validity is True) or (not require_token), validity
+
+
+def _get_user():
+    """
+    Retrieves OIDC user info and populate the global flask ``g.user`` variable.
+    """
+    if g.oidc_id_token:
         try:
-            g.user = User.verify_user_password(username_or_token, password)
-        except LoginException:
-            return False
+            g.user = User(**oidc.user_getinfo([
+                'email', 'firstName', 'lastName', 'username', 'createdTimestamp']))
         except Exception as e:
-            utils.get_logger(__name__).error('could not verify password', exc_info=e)
-            return False
-
-        return g.user is not None
-
-
-@auth.error_handler
-def auth_error_handler():
-    abort(401, 'Could not authenticate user, bad credentials')
+            ## TODO logging
+            raise e
+    else:
+        g.user = None
 
 
 def login_if_available(func):
@@ -91,22 +125,17 @@ def login_if_available(func):
     A decorator for API endpoint implementations that might authenticate users, but
     provide limited functionality even without users.
     """
+    @functools.wraps(func)
     @api.response(401, 'Not authorized, some data require authentication and authorization')
-    @api.doc(security=list(api.authorizations.keys()))
-    @auth.login_required
+    @api.doc(security=list('OpenIDConnect Bearer Token'))
     def wrapper(*args, **kwargs):
-        # TODO the cutom X-Token based authentication should be replaced by a real
-        # Authentication header based token authentication
-        if not g.user and 'X-Token' in request.headers:
-            token = request.headers['X-Token']
-            g.user = User.verify_auth_token(token)
-            if not g.user:
-                abort(401, message='Not authorized, some data require authentication and authorization')
+        valid, msg = _validate_token(require_token=False)
+        if valid:
+            _get_user()
+            return func(*args, **kwargs)
+        else:
+            abort(401, message=msg)
 
-        return func(*args, **kwargs)
-
-    wrapper.__name__ = func.__name__
-    wrapper.__doc__ = func.__doc__
     return wrapper
 
 
@@ -115,16 +144,17 @@ def login_really_required(func):
     A decorator for API endpoint implementations that forces user authentication on
     endpoints.
     """
-    @api.response(401, 'Authentication required or not authorized to access requested data')
-    @api.doc(security=list(api.authorizations.keys()))
-    @login_if_available
+    @functools.wraps(func)
+    @api.response(401, 'Not authorized, this endpoint required authorization')
+    @api.doc(security=list('OpenIDConnect Bearer Token'))
     def wrapper(*args, **kwargs):
-        if g.user is None:
-            abort(401, message='Authentication required or not authorized to access requested data')
-        else:
+        valid, msg = _validate_token(require_token=True)
+        if valid:
+            _get_user()
             return func(*args, **kwargs)
-    wrapper.__name__ = func.__name__
-    wrapper.__doc__ = func.__doc__
+        else:
+            abort(401, message=msg)
+
     return wrapper
 
 
@@ -132,17 +162,16 @@ def admin_login_required(func):
     """
     A decorator for API endpoint implementations that should only work for the admin user.
     """
+    @functools.wraps(func)
     @api.response(401, 'Authentication required or not authorized as admin user. Only admin can access this endpoint.')
-    @api.doc(security=list(api.authorizations.keys()))
-    @login_really_required
+    @api.doc(security=list('OpenIDConnect Bearer Token'))
+    @oidc.accept_token(require_token=True)
     def wrapper(*args, **kwargs):
-        if not g.user.is_admin:
-            abort(401, message='Only the admin user can perform reset.')
-        else:
+        if oidc.user_getfield('email') == config.keycloak.adminEmail:
             return func(*args, **kwargs)
+        else:
+            abort(401, message='Only the admin user can perform reset.')
 
-    wrapper.__name__ = func.__name__
-    wrapper.__doc__ = func.__doc__
     return wrapper
 
 
@@ -167,40 +196,51 @@ user_model = api.model('User', {
 })
 
 
+@ns.route('/')
+class AuthResource(Resource):
+    @api.doc('get_token')
+    @api.marshal_with(user_model, skip_none=True, code=200, description='User info send')
+    @login_if_available
+    def get(self):
+        if g.user is not None:
+            return g.user
+
+        if 'Authorization' in request.headers and request.headers['Authorization'].startswith('Basic '):
+            try:
+                username, password = basicauth.decode(request.headers['Authorization'])
+                token = infrastructure.keycloak_oidc_client.token(username=username, password=password)
+                validity = oidc.validate_token(token['access_token'])
+            except Exception as e:
+                # TODO logging
+                abort(401, message='Could not authenticate Basic auth: %s' % str(e))
+
+            if validity is not True:
+                abort(401, message=validity)
+            else:
+                g.oidc_id_token = g.oidc_token_info
+                _get_user()
+        else:
+            abort(401, message='Authentication credentials found in your request')
+
+        if g.user is None:
+            abort(401, message='User not authenticated')
+
+        return g.user
+
+
 @ns.route('/user')
 class UserResource(Resource):
-    @api.doc('get_user')
-    @api.marshal_with(user_model, skip_none=True, code=200, description='User data send')
-    @login_really_required
-    def get(self):
-        """
-        Get user information including a long term access token for the authenticated user.
-
-        You can use basic authentication to access this endpoint and receive a
-        token for further api access. This token will expire at some point and presents
-        a more secure method of authentication.
-        """
-        try:
-            return g.user
-        except LoginException:
-            abort(
-                401,
-                message='User not logged in, provide credentials via Basic HTTP authentication.')
-
     @api.doc('create_user')
     @api.expect(user_model)
     @api.response(400, 'Invalid user data')
     @api.marshal_with(user_model, skip_none=True, code=200, description='User created')
-    @login_really_required
+    @admin_login_required
     def put(self):
         """
         Creates a new user account. Currently only the admin user is allows. The
         NOMAD-CoE repository GUI should be used to create user accounts for now.
         Passwords have to be encrypted by the client with bcrypt and 2y indent.
         """
-        if not g.user.is_admin:
-            abort(401, message='Only the admin user can perform create user.')
-
         data = request.get_json()
         if data is None:
             data = {}
@@ -221,27 +261,6 @@ class UserResource(Resource):
             user_id=data.get('user_id', None))
 
         return user, 200
-
-    @api.doc('update_user')
-    @api.expect(user_model)
-    @api.response(400, 'Invalid user data')
-    @api.marshal_with(user_model, skip_none=True, code=200, description='User updated')
-    @login_really_required
-    def post(self):
-        """
-        Allows to edit the authenticated user and change his password. Password
-        have to be encrypted by the client with bcrypt and 2y indent.
-        """
-        data = request.get_json()
-        if data is None:
-            data = {}
-
-        if 'email' in data:
-            abort(400, message='Cannot change the users email.')
-
-        g.user.update(crypted=True, **data)
-
-        return g.user, 200
 
 
 token_model = api.model('Token', {

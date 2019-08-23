@@ -49,6 +49,8 @@ tabulate
 cachetools
 zipfile37
 python-keycloak
+Flask-OIDC
+basicauth
 
 # dev/ops related
 setuptools
