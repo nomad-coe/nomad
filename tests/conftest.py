@@ -15,22 +15,19 @@
 from typing import Tuple, List
 import pytest
 import logging
-from sqlalchemy.orm import Session
-from contextlib import contextmanager
 from collections import namedtuple
 from smtpd import SMTPServer
 from threading import Lock, Thread
 import asyncore
 import time
-import pytest
 import shutil
 import os.path
 import datetime
-import base64
 from bravado.client import SwaggerClient
-import basicauth
+from flask import request, g
 
-from nomad import config, infrastructure, parsing, processing, coe_repo, api
+from nomad import config, infrastructure, parsing, processing, api, datamodel
+from nomad.datamodel import User
 
 from tests import test_parsing, test_normalizing
 from tests.processing import test_data as test_processing
@@ -62,14 +59,13 @@ def raw_files_infra():
     config.fs.staging = '.volumes/test_fs/staging'
     config.fs.public = '.volumes/test_fs/public'
     config.fs.migration_packages = '.volumes/test_fs/migration_packages'
-    config.fs.coe_extracted = '.volumes/test_fs/extracted'
     config.fs.prefix_size = 2
 
 
 @pytest.fixture(scope='function')
 def raw_files(raw_files_infra):
     """ Provides cleaned out files directory structure per function. Clears files after test. """
-    directories = [config.fs.staging, config.fs.public, config.fs.migration_packages, config.fs.tmp, config.fs.coe_extracted]
+    directories = [config.fs.staging, config.fs.public, config.fs.migration_packages, config.fs.tmp]
     for directory in directories:
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -119,22 +115,6 @@ def celery_inspect(purged_app):
     yield purged_app.control.inspect()
 
 
-# The follwing workarround seems unnecessary. I'll leave it here for an incubation period
-# @pytest.fixture()
-# def patched_celery(monkeypatch):
-#     # There is a bug in celery, which prevents to use the celery_worker for multiple
-#     # tests: https://github.com/celery/celery/issues/4088
-#     # The bug has a fix from Aug 2018, but it is not yet released (TODO).
-#     # We monkeypatch a similar solution here.
-#     def add_reader(self, fds, callback, *args):
-#         from kombu.utils.eventio import ERR, READ, poll
-#         if self.poller is None:
-#             self.poller = poll()
-#         return self.add(fds, callback, READ | ERR, args)
-#     monkeypatch.setattr('kombu.asynchronous.hub.Hub.add_reader', add_reader)
-#     yield
-
-
 # It might be necessary to make this a function scoped fixture, if old tasks keep
 # 'bleeding' into successive tests.
 @pytest.fixture(scope='function')
@@ -171,14 +151,14 @@ def mongo(mongo_infra):
 @pytest.fixture(scope='session')
 def elastic_infra():
     """ Provides elastic infrastructure to the session """
-    config.elastic.index_name = 'test_nomad_fairdi_calcs'
+    config.elastic.index_name = 'test_nomad_fairdi_0_6'
     try:
         return infrastructure.setup_elastic()
     except Exception:
         # try to delete index, error might be caused by changed mapping
         from elasticsearch_dsl import connections
         connections.create_connection(hosts=['%s:%d' % (config.elastic.host, config.elastic.port)]) \
-            .indices.delete(index='test_nomad_fairdi_calcs')
+            .indices.delete(index='test_nomad_fairdi_0_6')
         return infrastructure.setup_elastic()
 
 
@@ -186,7 +166,7 @@ def clear_elastic(elastic):
     while True:
         try:
             elastic.delete_by_query(
-                index='test_nomad_fairdi_calcs', body=dict(query=dict(match_all={})),
+                index='test_nomad_fairdi_0_6', body=dict(query=dict(match_all={})),
                 wait_for_completion=True, refresh=True)
             break
         except Exception:
@@ -202,140 +182,82 @@ def elastic(elastic_infra):
     return elastic_infra
 
 
-@pytest.fixture(scope='session')
-def keycloak():
-    infrastructure.setup_keycloak()
-
-    return infrastructure.keycloak_oidc_client
-
-
-@contextmanager
-def create_postgres_infra(patch=None, **kwargs):
-    """
-    A generator that sets up and tears down a test db and monkeypatches it to the
-    respective global infrastructure variables.
-    """
-    db_args = dict(dbname='test_nomad_fairdi_repo_db')
-    db_args.update(**kwargs)
-
-    old_config = config.repository_db
-    new_config = config.NomadConfig(**config.repository_db)
-    new_config.update(**db_args)
-
-    if patch is not None:
-        patch.setattr('nomad.config.repository_db', new_config)
-
-    connection, _ = infrastructure.sqlalchemy_repository_db(**db_args)
-    assert connection is not None
-
-    # we use a transaction around the session to rollback anything that happens within
-    # test execution
-    trans = connection.begin()
-    db = Session(bind=connection, autocommit=True)
-
-    old_connection, old_db = None, None
-    if patch is not None:
-        from nomad.infrastructure import repository_db_conn, repository_db
-        old_connection, old_db = repository_db_conn, repository_db
-        patch.setattr('nomad.infrastructure.repository_db_conn', connection)
-        patch.setattr('nomad.infrastructure.repository_db', db)
-
-    yield db
-
-    if patch is not None:
-        patch.setattr('nomad.infrastructure.repository_db_conn', old_connection)
-        patch.setattr('nomad.infrastructure.repository_db', old_db)
-        patch.setattr('nomad.config.repository_db', old_config)
-
-    trans.rollback()
-    db.expunge_all()
-    db.invalidate()
-    db.close_all()
-
-    connection.close()
-    connection.engine.dispose()
+test_users = {
+    '0': dict(email='admin'),
+    '1': dict(email='sheldon.cooper@nomad-coe.eu', first_name='Sheldon', last_name='Cooper'),
+    '2': dict(email='leonard.hofstadter@nomad-coe.eu', first_name='Leonard', last_name='Hofstadter')
+}
 
 
-@pytest.fixture(scope='module')
-def postgres_infra(monkeysession):
-    """ Provides a clean coe repository db per module """
-    with create_postgres_infra(monkeysession, exists=False) as db:
-        yield db
+class KeycloakMock:
+    def configure_flask(self, *args, **kwargs):
+        pass
+
+    def authorize_flask(self, *args, **kwargs):
+        if 'Authorization' in request.headers and request.headers['Authorization'].startswith('Mocked '):
+            user_id = request.headers['Authorization'].split(None, 1)[1].strip()
+            g.user = User(user_id=user_id, **test_users[user_id])
+
+    def get_user(self, user_id=None, email=None):
+        if user_id is not None:
+            return User(user_id=user_id, **test_users[user_id])
+        elif email is not None:
+            for user_id, user_values in test_users.items():
+                if user_values['email'] == email:
+                    return User(user_id=user_id, **user_values)
+            assert False, 'only test user emails are recognized'
+        else:
+            assert False, 'no token based get_user during tests'
+
+
+@pytest.fixture(scope='session', autouse=True)
+def keycloak(monkeysession):
+    monkeysession.setattr('nomad.infrastructure.keycloak', KeycloakMock())
 
 
 @pytest.fixture(scope='function')
-def proc_infra(worker, postgres, elastic, mongo, raw_files):
-    """ Combines all fixtures necessary for processing (postgres, elastic, worker, files, mongo) """
-    return dict(
-        postgres=postgres,
-        elastic=elastic)
-
-
-@pytest.fixture(scope='function')
-def expandable_postgres(monkeysession, postgres_infra):
-    """ Provides a coe repository db that can be deleted during test """
-    with create_postgres_infra(monkeysession, dbname='test_nomad_fairdi_expandable_repo_db', exists=False) as db:
-        yield db
-
-
-@pytest.fixture(scope='function')
-def postgres(postgres_infra):
-    """ Provides a clean coe repository db per function. Clears db before test. """
-    # do not wonder, this will not setback the id counters
-    postgres_infra.execute('TRUNCATE uploads CASCADE;')
-    postgres_infra.execute('DELETE FROM sessions WHERE user_id >= 3;')
-    postgres_infra.execute('DELETE FROM users WHERE user_id >= 3;')
-    yield postgres_infra
+def proc_infra(worker, elastic, mongo, raw_files):
+    """ Combines all fixtures necessary for processing (elastic, worker, files, mongo) """
+    return dict(elastic=elastic)
 
 
 @pytest.fixture(scope='module')
-def test_user(postgres_infra):
-    from nomad import coe_repo
-    return coe_repo.ensure_test_user(email='sheldon.cooper@nomad-fairdi.tests.de')
+def test_user(keycloak):
+    return User(id='1', **test_users['1'])
 
 
 @pytest.fixture(scope='module')
-def other_test_user(postgres_infra):
-    from nomad import coe_repo
-    return coe_repo.ensure_test_user(email='leonard.hofstadter@nomad-fairdi.tests.de')
+def other_test_user(keycloak):
+    return User(id='2', **test_users['2'])
 
 
 @pytest.fixture(scope='module')
-def admin_user(postgres_infra):
-    from nomad import coe_repo
-    return coe_repo.admin_user()
+def admin_user(keycloak):
+    return User(id='0', **test_users['0'])
 
 
-def create_auth_headers(user):
-    basic_auth_str = '%s:password' % user.email
-    basic_auth_bytes = basic_auth_str.encode('utf-8')
-    basic_auth_base64 = base64.b64encode(basic_auth_bytes).decode('utf-8')
+def create_auth_headers(user: User):
     return {
-        'Authorization': 'Basic %s' % basic_auth_base64
+        'Authorization': 'Mocked %s' % user.user_id
     }
 
 @pytest.fixture(scope='module')
-def test_user_auth(test_user: coe_repo.User):
-    return dict(Authorization=basicauth.encode('sheldon.cooper@nomad-coe.eu', 'password'))
-
-
-# @pytest.fixture(scope='module')
-# def test_user_auth(test_user: coe_repo.User):
-#     return create_auth_headers(test_user)
+def test_user_auth(test_user: User):
+    return create_auth_headers(test_user)
 
 
 @pytest.fixture(scope='module')
-def other_test_user_auth(other_test_user: coe_repo.User):
+def other_test_user_auth(other_test_user: User):
     return create_auth_headers(other_test_user)
 
 
 @pytest.fixture(scope='module')
-def admin_user_auth(admin_user: coe_repo.User):
+def admin_user_auth(admin_user: User):
     return create_auth_headers(admin_user)
 
 
 @pytest.fixture(scope='function')
-def bravado(client, postgres, test_user_auth):
+def bravado(client, test_user_auth):
     http_client = FlaskTestHttpClient(client, headers=test_user_auth)
     return SwaggerClient.from_url('/swagger.json', http_client=http_client)
 
@@ -560,7 +482,7 @@ def non_empty_uploaded(non_empty_example_upload: str, raw_files) -> Tuple[str, s
 
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.fixture(scope='function')
-def processed(uploaded: Tuple[str, str], test_user: coe_repo.User, proc_infra) -> processing.Upload:
+def processed(uploaded: Tuple[str, str], test_user: User, proc_infra) -> processing.Upload:
     """
     Provides a processed upload. Upload was uploaded with test_user.
     """
@@ -569,7 +491,7 @@ def processed(uploaded: Tuple[str, str], test_user: coe_repo.User, proc_infra) -
 
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.fixture(scope='function')
-def processeds(non_empty_example_upload: str, test_user: coe_repo.User, proc_infra) -> List[processing.Upload]:
+def processeds(non_empty_example_upload: str, test_user: User, proc_infra) -> List[processing.Upload]:
     result: List[processing.Upload] = []
     for i in range(2):
         upload_id = '%s_%d' % (os.path.basename(non_empty_example_upload).replace('.zip', ''), i)
@@ -581,7 +503,7 @@ def processeds(non_empty_example_upload: str, test_user: coe_repo.User, proc_inf
 
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.fixture(scope='function')
-def non_empty_processed(non_empty_uploaded: Tuple[str, str], test_user: coe_repo.User, proc_infra) -> processing.Upload:
+def non_empty_processed(non_empty_uploaded: Tuple[str, str], test_user: User, proc_infra) -> processing.Upload:
     """
     Provides a processed upload. Upload was uploaded with test_user.
     """
@@ -602,15 +524,6 @@ def published(non_empty_processed: processing.Upload, example_user_metadata) -> 
         pass
 
     return non_empty_processed
-
-
-@pytest.fixture(scope='function', params=[None, 'fairdi', 'coe'])
-def with_publish_to_coe_repo(monkeypatch, request):
-    mode = request.param
-    if mode is not None:
-        monkeypatch.setattr('nomad.config.repository_db.publish_enabled', True)
-        monkeypatch.setattr('nomad.config.repository_db.mode', mode)
-    return request.param is not None
 
 
 @pytest.fixture

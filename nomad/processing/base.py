@@ -387,10 +387,9 @@ class NomadCeleryRequest(Request):
         args = self._payload[0]
         # this might be run in the worker main thread, which does not have a mongo
         # connection by default
-        if infrastructure.mongo_client is None:
-            infrastructure.setup_mongo()
-        if infrastructure.repository_db is None:
-            infrastructure.setup_repository_db()
+        infrastructure.setup_mongo()
+        infrastructure.setup_keycloak()
+
         proc = unwarp_task(self.task, *args)
         proc.fail(event, **kwargs)
         proc.process_status = PROCESS_COMPLETED

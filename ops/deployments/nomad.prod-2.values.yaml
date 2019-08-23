@@ -18,14 +18,6 @@ worker:
 
 dbname: fairdi_nomad_prod
 
-postgres:
-  publish_enabled: true
-  mode: 'coe'
-  dbname: 'nomad_prod'
-  host: 'db-repository-nomad.esc'
-  user: 'nomadrep'
-  password_secret: 'nomad-production-repository-password'
-
 uploadurl: 'https://repository.nomad-coe.eu/uploads/gui/upload'
 
 volumes:
@@ -33,7 +25,6 @@ volumes:
   public: /nomad/fairdi/prod/fs/public
   staging: /nomad/fairdi/prod/fs/staging
   tmp: /nomad/fairdi/prod/fs/tmp
-  coe_extracted: /nomad/fairdi/prod/fs/extracted
   nomad: /nomad
 
 mail:

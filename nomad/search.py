@@ -24,19 +24,12 @@ import elasticsearch.helpers
 from elasticsearch.exceptions import NotFoundError
 from datetime import datetime
 
-from nomad import config, datamodel, infrastructure, datamodel, coe_repo, utils
+from nomad import config, datamodel, infrastructure, datamodel, utils
 
 
 path_analyzer = analyzer(
     'path_analyzer',
     tokenizer=tokenizer('path_tokenizer', 'pattern', pattern='/'))
-
-
-user_cache: Dict[str, Any] = dict()
-"""
-A cache for user popos used in the index. We will not retrieve names all the time.
-This cache should be cleared, before larger re-index operations.
-"""
 
 
 class AlreadyExists(Exception): pass
@@ -51,28 +44,9 @@ class ScrollIdNotFound(Exception): pass
 class User(InnerDoc):
 
     @classmethod
-    def from_user_popo(cls, user):
-        self = user_cache.get(user.id, None)
-        if self is None:
-            self = cls(user_id=user.id)
-
-            if 'first_name' not in user:
-                user = coe_repo.User.from_user_id(user.id).to_popo()
-
-            last_name = user['last_name'].strip()
-            first_name = user['first_name'].strip()
-
-            if len(last_name) > 0 and len(first_name) > 0:
-                name = '%s, %s' % (user['last_name'], user['first_name'])
-            elif len(last_name) != 0:
-                name = last_name
-            elif len(first_name) != 0:
-                name = first_name
-            else:
-                name = 'unnamed user with id %d' % user.id
-
-            self.name = name
-            user_cache[user.id] = self
+    def from_user_id(cls, user_id):
+        self = cls(user_id=user_id)
+        self.name = datamodel.User.get(user_id=user_id).name
 
         return self
 
@@ -156,12 +130,12 @@ class Entry(Document, metaclass=WithDomain):
         else:
             self.files = source.files
 
-        self.uploader = User.from_user_popo(source.uploader) if source.uploader is not None else None
+        self.uploader = User.from_user_id(source.uploader) if source.uploader is not None else None
 
         self.with_embargo = source.with_embargo
         self.published = source.published
-        self.authors = [User.from_user_popo(user) for user in source.coauthors]
-        self.owners = [User.from_user_popo(user) for user in source.shared_with]
+        self.authors = [User.from_user_id(user_id) for user_id in source.coauthors]
+        self.owners = [User.from_user_id(user_id) for user_id in source.shared_with]
         if self.uploader is not None:
             if self.uploader not in self.authors:
                 self.authors.append(self.uploader)

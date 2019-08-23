@@ -26,15 +26,14 @@ import os.path
 from urllib.parse import urlencode
 
 from nomad.api.app import rfc3339DateTime
-from nomad import coe_repo, search, parsing, files, config, utils
+from nomad import search, parsing, files, config, utils
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
-from nomad.datamodel import UploadWithMetadata, CalcWithMetadata
+from nomad.datamodel import UploadWithMetadata, CalcWithMetadata, User
 
 from tests.conftest import create_auth_headers, clear_elastic
 from tests.test_files import example_file, example_file_mainfile, example_file_contents
 from tests.test_files import create_staging_upload, create_public_upload, assert_upload_files
-from tests.test_coe_repo import assert_coe_upload
 from tests.test_search import assert_search_upload
 
 
@@ -73,13 +72,13 @@ class TestInfo:
 
 class TestAdmin:
     @pytest.mark.timeout(config.tests.default_timeout)
-    def test_reset(self, client, admin_user_auth, expandable_postgres, monkeypatch):
+    def test_reset(self, client, admin_user_auth, monkeypatch):
         monkeypatch.setattr('nomad.config.services.disable_reset', False)
         rv = client.post('/admin/reset', headers=admin_user_auth)
         assert rv.status_code == 200
 
     @pytest.mark.timeout(config.tests.default_timeout)
-    def test_remove(self, client, admin_user_auth, expandable_postgres, monkeypatch):
+    def test_remove(self, client, admin_user_auth, monkeypatch):
         monkeypatch.setattr('nomad.config.services.disable_reset', False)
         rv = client.post('/admin/remove', headers=admin_user_auth)
         assert rv.status_code == 200
@@ -92,7 +91,7 @@ class TestAdmin:
         rv = client.post('/admin/reset', headers=test_user_auth)
         assert rv.status_code == 401
 
-    def test_disabled(self, client, admin_user_auth, expandable_postgres, monkeypatch):
+    def test_disabled(self, client, admin_user_auth, monkeypatch):
         monkeypatch.setattr('nomad.config.services.disable_reset', True)
         rv = client.post('/admin/reset', headers=admin_user_auth)
         assert rv.status_code == 400
@@ -107,14 +106,14 @@ class TestAuth:
         rv = client.get('/auth/', headers=test_user_auth)
         assert rv.status_code == 200
 
-    def test_xtoken_auth(self, client, test_user: coe_repo.User, no_warn):
+    def test_xtoken_auth(self, client, test_user: User, no_warn):
         rv = client.get('/uploads/', headers={
             'X-Token': test_user.first_name.lower()  # the test users have their firstname as tokens for convinience
         })
 
         assert rv.status_code == 200
 
-    def test_xtoken_auth_denied(self, client, no_warn, postgres):
+    def test_xtoken_auth_denied(self, client, no_warn):
         rv = client.get('/uploads/', headers={
             'X-Token': 'invalid'
         })
@@ -132,7 +131,7 @@ class TestAuth:
         })
         assert rv.status_code == 401
 
-    def test_get_user(self, client, test_user_auth, test_user: coe_repo.User, no_warn):
+    def test_get_user(self, client, test_user_auth, test_user: User, no_warn):
         rv = client.get('/auth/user', headers=test_user_auth)
         assert rv.status_code == 200
         self.assert_user(client, json.loads(rv.data))
@@ -153,7 +152,7 @@ class TestAuth:
     @pytest.mark.parametrize('token, affiliation', [
         ('test_token', dict(name='HU Berlin', address='Unter den Linden 6')),
         (None, None)])
-    def test_put_user(self, client, postgres, admin_user_auth, token, affiliation):
+    def test_put_user(self, client, admin_user_auth, token, affiliation):
         data = dict(
             email='test@email.com', last_name='Tester', first_name='Testi',
             token=token, affiliation=affiliation,
@@ -183,7 +182,7 @@ class TestAuth:
                 email='test@email.com', password=bcrypt.encrypt('test_password', ident='2y'))))
         assert rv.status_code == 400
 
-    def test_post_user(self, client, postgres, admin_user_auth):
+    def test_post_user(self, client, admin_user_auth):
         rv = client.put(
             '/auth/user', headers=admin_user_auth,
             content_type='application/json', data=json.dumps(dict(
@@ -256,7 +255,7 @@ class TestUploads:
         assert_upload_files(upload_with_metadata, files.StagingUploadFiles)
         assert_search_upload(upload_with_metadata, additional_keys=['atoms', 'system'])
 
-    def assert_published(self, client, test_user_auth, upload_id, proc_infra, with_coe_repo=True, metadata={}, publish_with_metadata: bool = True):
+    def assert_published(self, client, test_user_auth, upload_id, proc_infra, metadata={}, publish_with_metadata: bool = True):
         rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
 
@@ -273,16 +272,12 @@ class TestUploads:
         assert upload['process_running']
 
         additional_keys = ['with_embargo']
-        if with_coe_repo:
-            additional_keys.append('pid')
 
         self.block_until_completed(client, upload_id, test_user_auth)
         upload_proc = Upload.objects(upload_id=upload_id).first()
         assert upload_proc is not None
         assert upload_proc.published is True
 
-        if with_coe_repo:
-            assert_coe_upload(upload_with_metadata.upload_id, user_metadata=metadata)
         assert_upload_files(upload_with_metadata, files.PublicUploadFiles, published=True)
         assert_search_upload(upload_with_metadata, additional_keys=additional_keys, published=True)
 
@@ -385,11 +380,11 @@ class TestUploads:
         yield True
         monkeypatch.setattr('nomad.processing.data.Upload.cleanup', old_cleanup)
 
-    def test_delete_published(self, client, test_user_auth, proc_infra, no_warn, with_publish_to_coe_repo):
+    def test_delete_published(self, client, test_user_auth, proc_infra, no_warn):
         rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
-        self.assert_published(client, test_user_auth, upload['upload_id'], proc_infra, with_coe_repo=with_publish_to_coe_repo)
+        self.assert_published(client, test_user_auth, upload['upload_id'], proc_infra)
         rv = client.delete('/uploads/%s' % upload['upload_id'], headers=test_user_auth)
         assert rv.status_code == 400
 
@@ -412,12 +407,12 @@ class TestUploads:
             content_type='application/json')
         assert rv.status_code == 400
 
-    def test_post(self, client, test_user_auth, non_empty_example_upload, proc_infra, no_warn, with_publish_to_coe_repo):
+    def test_post(self, client, test_user_auth, non_empty_example_upload, proc_infra, no_warn):
         rv = client.put('/uploads/?local_path=%s' % non_empty_example_upload, headers=test_user_auth)
         assert rv.status_code == 200
         upload = self.assert_upload(rv.data)
         self.assert_processing(client, test_user_auth, upload['upload_id'])
-        self.assert_published(client, test_user_auth, upload['upload_id'], proc_infra, with_coe_repo=with_publish_to_coe_repo)
+        self.assert_published(client, test_user_auth, upload['upload_id'], proc_infra)
 
         # still visible
         assert client.get('/uploads/%s' % upload['upload_id'], headers=test_user_auth).status_code == 200
@@ -480,7 +475,7 @@ class TestUploads:
         assert self.block_until_completed(client, upload_id, test_user_auth) is not None
 
     # TODO validate metadata (or all input models in API for that matter)
-    # def test_post_bad_metadata(self, client, proc_infra, test_user_auth, postgres):
+    # def test_post_bad_metadata(self, client, proc_infra, test_user_auth):
     #     rv = client.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
     #     upload = self.assert_upload(rv.data)
     #     self.assert_processing(client, test_user_auth, upload['upload_id'])
@@ -499,7 +494,7 @@ class TestUploads:
         upload = self.assert_upload(rv.data)
         upload_id = upload['upload_id']
         self.assert_processing(client, test_user_auth, upload_id)
-        self.assert_published(client, test_user_auth, upload_id, proc_infra, with_coe_repo=True)
+        self.assert_published(client, test_user_auth, upload_id, proc_infra)
         rv = client.get('/raw/%s/examples_potcar/POTCAR' % upload_id)
         assert rv.status_code == 401
         rv = client.get('/raw/%s/examples_potcar/POTCAR' % upload_id, headers=test_user_auth)
@@ -567,7 +562,7 @@ class UploadFilesBasedTests:
         return wrapper
 
     @pytest.fixture(scope='function')
-    def test_data(self, request, postgres, mongo, raw_files, no_warn, test_user, other_test_user):
+    def test_data(self, request, mongo, raw_files, no_warn, test_user, other_test_user):
         # delete potential old test files
         for _ in [0, 1]:
             upload_files = UploadFiles.get('test_upload')
@@ -594,12 +589,6 @@ class UploadFilesBasedTests:
             _, upload_files = create_staging_upload('test_upload', calc_specs=calc_specs)
         else:
             _, upload_files = create_public_upload('test_upload', calc_specs=calc_specs)
-            postgres.begin()
-            coe_upload = coe_repo.Upload(
-                upload_name='test_upload',
-                user_id=test_user.user_id, is_processed=True)
-            postgres.add(coe_upload)
-            postgres.commit()
 
         yield 'test_upload', authorized, auth_headers
 
@@ -652,7 +641,7 @@ class TestRepo():
     @pytest.fixture(scope='class')
     def example_elastic_calcs(
             self, elastic_infra, normalized: parsing.LocalBackend,
-            test_user: coe_repo.User, other_test_user: coe_repo.User):
+            test_user: User, other_test_user: User):
         clear_elastic(elastic_infra)
 
         calc_with_metadata = CalcWithMetadata(upload_id=0, calc_id=0, upload_time=today)

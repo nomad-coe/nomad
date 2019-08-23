@@ -30,7 +30,7 @@ number_of = 20
 random.seed(0)
 gen = DocumentGenerator()
 
-users = [(i + 1, names.get_first_name(), names.get_last_name(), gen.email()) for i in range(0, number_of)]
+users = [(str(i + 1), names.get_first_name(), names.get_last_name(), gen.email()) for i in range(0, number_of)]
 basis_sets = ['Numeric AOs', 'Gaussians', '(L)APW+lo', 'Plane waves']
 xc_functionals = ['LDA', 'GGA', 'hybrid', 'meta-GGA', 'GW', 'unknown']
 crystal_systems = ['triclinic', 'monoclinic', 'orthorombic', 'tetragonal', 'hexagonal', 'cubic']
@@ -49,8 +49,8 @@ low_numbers_for_geometries = [1, 2, 2, 3, 3, 4, 4]
 
 
 def _gen_user():
-    id, first, last, email = random.choice(users)
-    return utils.POPO(id=id, first_name=first, last_name=last, email=email)
+    user_id, first, last, email = random.choice(users)
+    return User(user_id=user_id, first_name=first, last_name=last, email=email)
 
 
 def _gen_dataset():

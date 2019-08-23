@@ -34,8 +34,6 @@ requests
 click
 zipstream
 bagit
-psycopg2-binary
-sqlalchemy
 bcrypt
 filelock
 ujson

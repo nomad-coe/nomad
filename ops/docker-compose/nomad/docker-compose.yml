@@ -22,17 +22,6 @@ x-common-variables: &nomad_backend_env
     NOMAD_KEYCLOAK_HOST: keycloak
 
 services:
-    # postgres for NOMAD-coe repository API and GUI
-    postgres:
-        restart: always
-        image: postgres:9.4
-        container_name: nomad_postgres
-        environment:
-            POSTGRES_PASSWORD: 'nomad'
-            POSTGRES_USER: 'postgres'
-        volumes:
-            - nomad_postgres:/var/lib/postgresql/data
-
     # keycload for user management
     keycloak:
         restart: always
@@ -90,7 +79,6 @@ services:
             NOMAD_SERVICE: nomad_worker
         links:
             - keycloak
-            - postgres
             - rabbitmq
             - elastic
             - mongo
@@ -112,7 +100,6 @@ services:
             NOMAD_SERVICE: nomad_api
         links:
             - keycloak
-            - postgres
             - rabbitmq
             - elastic
             - mongo
@@ -143,7 +130,6 @@ services:
 
 volumes:
     nomad_keycloak:
-    nomad_postgres:
     nomad_mongo:
     nomad_elastic:
     nomad_rabbitmq:

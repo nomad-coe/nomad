@@ -81,13 +81,9 @@ processing of uploaded files and therein contained calculations. We use
 [mongoengine](http://docs.mongoengine.org/) to program with mongodb.
 
 
-### PostgreSQL
+### Keycloak
 
-A relational database is used to store all user provided metadata: users, datasets
-(curated sets of uploaded data), references, comments, DOIs, coauthors, etc.
-Furthermore, it is still used to store some of the calculation metadata derived
-via parsing. *This will most likely move out of Postgres in the future.* We
-use [SQLAlchemy](https://docs.sqlalchemy.org/en/latest/) as on ORM framework.
+TODO
 
 
 ### flask, et al.
@@ -124,7 +120,7 @@ The component library [Material-UI](https://material-ui.com/)
 ### docker
 
 To run a **nomad@FAIRDI** instance, many services have to be orchestrated:
-the nomad api, nomad worker, mongodb, Elasticsearch, PostgreSQL, RabbitMQ,
+the nomad api, nomad worker, mongodb, Elasticsearch, Keycloak, RabbitMQ,
 Elasticstack (logging), the nomad GUI, and a reverse proxy to keep everything together.
 Further services might be needed (e.g. JypiterHUB), when nomad grows.
 The container platform [Docker](https://docs.docker.com/) allows us to provide all services
@@ -224,7 +220,7 @@ passed, stored, etc. by the various nomad modules.
 ### Implementation
 The different entities have often multiple implementations for different storage systems.
 For example, aspects of calculations are stored in files (raw files, calc metadata, archive data),
-Postgres (user metadata), Elasticsearch (metadata), and mongodb (processing state).
+Elasticsearch (metadata), and mongodb (metadata, processing state).
 Different transformation between different implementations exist. See
 :py:mod:`nomad.datamodel` for further information.
 

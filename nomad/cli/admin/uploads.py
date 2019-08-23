@@ -20,7 +20,7 @@ from pymongo import UpdateOne
 import threading
 import elasticsearch_dsl as es
 
-from nomad import processing as proc, config, infrastructure, utils, search, files, coe_repo
+from nomad import processing as proc, config, infrastructure, utils, search, files, datamodel
 from .admin import admin
 
 
@@ -90,17 +90,15 @@ def ls(ctx, uploads):
 
 
 @uploads.command(help='Change the owner of the upload and all its calcs.')
-@click.argument('USER', nargs=1)
+@click.argument('EMAIL', nargs=1)
 @click.argument('UPLOADS', nargs=-1)
 @click.pass_context
-def chown(ctx, user, uploads):
-    infrastructure.setup_repository_db()
+def chown(ctx, email, uploads):
     _, uploads = query_uploads(ctx, uploads)
 
     print('%d uploads selected, changing its owner ...' % uploads.count())
 
-    user_id = user
-    user = coe_repo.User.from_user_id(int(user_id))
+    user = datamodel.User.get_by_email(email)
 
     for upload in uploads:
         upload.user_id = user_id
@@ -142,26 +140,17 @@ def index(ctx, uploads):
 
 @uploads.command(help='Delete selected upload')
 @click.argument('UPLOADS', nargs=-1)
-@click.option('--with-coe-repo', help='Also attempt to delete from repository db', is_flag=True)
 @click.option('--skip-es', help='Keep the elastic index version of the data.', is_flag=True)
 @click.option('--skip-mongo', help='Keep uploads and calcs in mongo.', is_flag=True)
 @click.option('--skip-files', help='Keep all related files.', is_flag=True)
 @click.pass_context
-def rm(ctx, uploads, with_coe_repo, skip_es, skip_mongo, skip_files):
+def rm(ctx, uploads, skip_es, skip_mongo, skip_files):
     _, uploads = query_uploads(ctx, uploads)
 
     logger = utils.get_logger(__name__)
     print('%d uploads selected, deleting ...' % uploads.count())
 
-    if with_coe_repo:
-        from nomad import coe_repo
-        infrastructure.setup_repository_db()
-
     for upload in uploads:
-        # delete repository db entry
-        if with_coe_repo:
-            coe_repo.Upload.delete(upload.upload_id)
-
         # delete elastic
         if not skip_es:
             search.delete_upload(upload_id=upload.upload_id)

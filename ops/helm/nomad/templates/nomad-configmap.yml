@@ -38,19 +38,6 @@ data:
       host: "{{ .Values.mongo.host }}"
       port: {{ .Values.mongo.port }}
       db_name: "{{ .Values.dbname }}"
-    repository_db:
-      host: "{{ .Values.postgres.host }}"
-      port: {{ .Values.postgres.port }}
-      dbname: {{ if .Values.postgres.dbname }} "{{ .Values.postgres.dbname }}" {{ else }} "{{ .Values.dbname }}" {{ end }}
-      sequential_publish: {{ .Values.postgres.sequential_publish }}
-      publish_enabled: {{ .Values.postgres.publish_enabled }}
-      mode: "{{ .Values.postgres.mode }}"
-      {{ if .Values.postgres.user }}
-      user: "{{ .Values.postgres.user }}"
-      {{ end }}
-      {{ if .Values.postgres.password }}
-      password: "{{ .Values.postgres.password }}"
-      {{ end }}
     mail:
       enabled: {{ .Values.mail.enabled }}
       host: "{{ .Values.mail.host }}"

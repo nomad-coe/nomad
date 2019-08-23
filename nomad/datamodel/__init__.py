@@ -16,7 +16,7 @@
 This module contains classes that allow to represent the core
 nomad data entities :class:`Upload` and :class:`Calc` on a high level of abstraction
 independent from their representation in the different modules
-:py:mod:`nomad.processing`, :py:mod:`nomad.coe_repo`, :py:mod:`nomad.parsing`,
+:py:mod:`nomad.processing`, :py:mod:`nomad.parsing`,
 :py:mod:`nomad.search`, :py:mod:`nomad.api`, :py:mod:`nomad.migration`.
 
 It is not about representing every detail, but those parts that are directly involved in
@@ -45,11 +45,16 @@ quantities.
     :members:
 .. autoclass:: nomad.datamodel.DomainQuantity
     :members:
+
+The class :class:`User` is used to represent users and their attributes.
+
+.. autoclass:: nomad.datamodel.User
+    :members:
 """
 
 import sys
 
-from nomad.datamodel.base import UploadWithMetadata, CalcWithMetadata, Domain, DomainQuantity
+from nomad.datamodel.base import UploadWithMetadata, CalcWithMetadata, Domain, DomainQuantity, User
 from nomad.datamodel import ems, dft
 from nomad.datamodel.dft import DFTCalcWithMetadata
 from nomad.datamodel.ems import EMSEntryWithMetadata

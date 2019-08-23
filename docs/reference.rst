@@ -38,10 +38,6 @@ nomad.search
 .. automodule:: nomad.search
     :members:
 
-nomad.coe_repo
---------------
-.. automodule:: nomad.coe_repo
-
 nomad.api
 ---------
 .. automodule:: nomad.api

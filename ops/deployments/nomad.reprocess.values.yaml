@@ -16,10 +16,6 @@ worker:
 
 dbname: fairdi_nomad_prod
 
-postgres:
-  publish_enabled: false
-  dbname: 'fairdi_nomad_migration'
-
 uploadurl: 'https://labdev-nomad.rzg.mpg.de/fairdi/nomad/reprocess/upload'
 
 volumes:
@@ -27,5 +23,4 @@ volumes:
   public: /nomad/fairdi/prod/fs/public
   staging: /scratch/fairdi/migration/fs/staging
   tmp: /nomad/fairdi/prod/fs/tmp
-  coe_extracted: /nomad/fairdi/prod/fs/extracted
   nomad: /nomad

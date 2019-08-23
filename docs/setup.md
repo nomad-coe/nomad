@@ -263,7 +263,7 @@ The rest should be mocked or provided by the tests. Make sure that you do no run
 worker, as they will fight for tasks in the queue.
 ```
 cd ops/docker-compose
-docker-compose up -d elastic rabbitmq postgres
+docker-compose up -d elastic rabbitmq
 cd ../..
 pytest -svx tests
 ```

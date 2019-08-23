@@ -15,7 +15,7 @@
 from typing import List
 from elasticsearch_dsl import Q
 
-from nomad import datamodel, search, processing, parsing, infrastructure, config, coe_repo
+from nomad import datamodel, search, processing, parsing, infrastructure, config
 from nomad.search import Entry, metrics_search, quantity_search, scroll_search, entry_search
 
 
@@ -110,13 +110,13 @@ def test_scroll_search(elastic, normalized: parsing.LocalBackend):
     assert 'scroll_id' not in results['scroll']
 
 
-def test_quantity_search(elastic, normalized: parsing.LocalBackend, test_user: coe_repo.User, other_test_user: coe_repo.User):
+def test_quantity_search(elastic, normalized: parsing.LocalBackend, test_user: datamodel.User, other_test_user: datamodel.User):
     calc_with_metadata = datamodel.CalcWithMetadata(upload_id='test upload id', calc_id='test id')
     calc_with_metadata.apply_domain_metadata(normalized)
-    calc_with_metadata.uploader = test_user.to_popo()
+    calc_with_metadata.uploader = test_user.user_id
     create_entry(calc_with_metadata)
     calc_with_metadata.calc_id = 'other test id'
-    calc_with_metadata.uploader = other_test_user.to_popo()
+    calc_with_metadata.uploader = other_test_user.user_id
     create_entry(calc_with_metadata)
     refresh_index()
 
@@ -131,7 +131,8 @@ def refresh_index():
 
 
 def create_entry(calc_with_metadata: datamodel.CalcWithMetadata):
-    search.Entry.from_calc_with_metadata(calc_with_metadata).save()
+    entry = search.Entry.from_calc_with_metadata(calc_with_metadata)
+    entry.save()
     assert_entry(calc_with_metadata.calc_id)
 
 

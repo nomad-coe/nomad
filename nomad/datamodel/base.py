@@ -16,7 +16,56 @@ from typing import Iterable, List, Dict, Type, Tuple, Callable, Any
 import datetime
 from elasticsearch_dsl import Keyword
 
-from nomad import utils, config
+from nomad import utils, config, infrastructure
+
+
+class User:
+    """
+    A data class that holds all information for a single user. This can be the logged in
+    and authenticated user, or other users (i.e. co-authors, etc.).
+
+    # TODO legacy ids
+    """
+    def __init__(
+            self, email, user_id=None, name=None, first_name='', last_name='', affiliation=None,
+            created: datetime.datetime = None, token=None, **kwargs):
+
+        self.user_id = kwargs.get('id', user_id)
+        self.email = email
+
+        assert self.user_id is not None, 'Users must have a unique id'
+        assert email is not None, 'Users must have an email'
+
+        self.first_name = kwargs.get('firstName', first_name)
+        self.last_name = kwargs.get('lastName', last_name)
+        name = kwargs.get('username', name)
+        created_timestamp = kwargs.get('createdTimestamp', None)
+
+        if len(self.last_name) > 0 and len(self.first_name) > 0:
+            self.name = '%s, %s' % (self.last_name, self.first_name)
+        elif len(self.last_name) != 0:
+            self.name = self.last_name
+        elif len(self.first_name) != 0:
+            self.name = self.first_name
+        elif name is not None:
+            self.name = name
+        else:
+            self.name = 'unnamed user'
+
+        if created is not None:
+            self.created = None
+        elif created_timestamp is not None:
+            self.created = datetime.datetime.fromtimestamp(created_timestamp)
+        else:
+            self.created = None
+
+        self.token = token
+
+        # TODO affliation
+
+    @staticmethod
+    def get(*args, **kwargs) -> 'User':
+        return infrastructure.keycloak.get_user(*args, **kwargs)  # type: ignore
 
 
 class UploadWithMetadata():
@@ -26,7 +75,7 @@ class UploadWithMetadata():
 
     def __init__(self, **kwargs):
         self.upload_id: str = None
-        self.uploader: utils.POPO = None
+        self.uploader: str = None
         self.upload_time: datetime.datetime = None
 
         self.calcs: Iterable['CalcWithMetadata'] = list()
@@ -85,7 +134,7 @@ class CalcWithMetadata():
         # basic upload and processing related metadata
         self.upload_time: datetime.datetime = None
         self.files: List[str] = None
-        self.uploader: utils.POPO = None
+        self.uploader: str = None
         self.processed: bool = False
         self.last_processing: datetime.datetime = None
         self.nomad_version: str = None
@@ -94,8 +143,8 @@ class CalcWithMetadata():
         # user metadata, i.e. quantities given and editable by the user
         self.with_embargo: bool = None
         self.published: bool = False
-        self.coauthors: List[utils.POPO] = []
-        self.shared_with: List[utils.POPO] = []
+        self.coauthors: List[str] = []
+        self.shared_with: List[str] = []
         self.comment: str = None
         self.references: List[utils.POPO] = []
         self.datasets: List[utils.POPO] = []
@@ -136,13 +185,15 @@ class CalcWithMetadata():
         self.upload_time = metadata.get('_upload_time')
         uploader_id = metadata.get('_uploader')
         if uploader_id is not None:
-            self.uploader = utils.POPO(id=int(uploader_id))
+            self.uploader = uploader_id
         self.references = [utils.POPO(value=ref) for ref in metadata.get('references', [])]
         self.with_embargo = metadata.get('with_embargo', False)
         self.coauthors = [
-            utils.POPO(id=int(user)) for user in metadata.get('coauthors', [])]
+            user_id for user_id in metadata.get('coauthors', [])
+            if User.get(user_id=user_id) is not None]
         self.shared_with = [
-            utils.POPO(id=int(user)) for user in metadata.get('shared_with', [])]
+            user_id for user_id in metadata.get('shared_with', [])
+            if User.get(user_id=user_id) is not None]
         self.datasets = [
             utils.POPO(id=int(ds['id']), doi=utils.POPO(value=ds.get('_doi')), name=ds.get('_name'))
             for ds in metadata.get('datasets', [])]

@@ -99,7 +99,6 @@ fs = NomadConfig(
     tmp='.volumes/fs/tmp',
     staging='.volumes/fs/staging',
     public='.volumes/fs/public',
-    coe_extracted='.volumes/fs/extracted',
     migration_packages='.volumes/fs/migration_packages',
     local_tmp='/tmp',
     prefix_size=2,
@@ -110,18 +109,6 @@ elastic = NomadConfig(
     host='localhost',
     port=9200,
     index_name='nomad_fairdi_calcs'
-)
-
-repository_db = NomadConfig(
-    sequential_publish=False,
-    publish_enabled=True,
-    host='localhost',
-    port=5432,
-    dbname='nomad_fairdi_repo_db',
-    user='postgres',
-    password='nomad',
-    handle_prefix='21.11132/',
-    mode='fairdi'
 )
 
 keycloak = NomadConfig(

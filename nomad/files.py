@@ -421,13 +421,6 @@ class StagingUploadFiles(UploadFiles):
         """ Returns True if this upload is already *bagged*. """
         return self._frozen_file.exists()
 
-    def create_extracted_copy(self) -> None:
-        """
-        Copies all raw-file to the extracted bucket to mimic the behavior of the old
-        CoE python API. TODO: should be removed after migration.
-        """
-        copytree(self._raw_dir.os_path, os.path.join(config.fs.coe_extracted, self.upload_id))
-
     def pack(
             self, upload: UploadWithMetadata, target_dir: DirectoryObject = None,
             skip_raw: bool = False) -> None:
