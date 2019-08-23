@@ -200,7 +200,7 @@ def bar_plot(client, retrieve, metric1, metric2=None, title=None):
 @client.command(help='Generate various matplotlib charts')
 @click.option('--errors', is_flag=True, help='Two charts with relative and absolute parser/normalizer errors per code.')
 @click.option('--x-axis', type=str, help='Aggregation used for x-axis, values are "code" and "time".')
-@click.option('--y-axis', multiple=True, type=str, help='Metrics used for y-axis, values are "entries", "energies", "users".')
+@click.option('--y-axis', multiple=True, type=str, help='Metrics used for y-axis, values are "entries", "energies", "calculations", "users".')
 @click.option('--cumulate', is_flag=True, help='Cumulate over x-axis.')
 @click.option('--title', type=str, help='Override chart title with given value.')
 @click.option('--total', is_flag=True, help='Provide total sums of key metrics.')
@@ -258,6 +258,11 @@ def statistics(errors, title, x_axis, y_axis, cumulate, total):
             'total_energies',
             label='total energy calculations',
             cumulate=cumulate,
+            power=0.25 if not cumulate else 1, multiplier=1e-6, format='{x:,.1f}M'),
+        'calculations': Metric(
+            'calculations',
+            label='single configuration calculations',
+            cumulate=cumulate,
             power=0.25 if not cumulate else 1, multiplier=1e-6, format='{x:,.1f}M')
     }
 
@@ -279,5 +284,5 @@ def statistics(errors, title, x_axis, y_axis, cumulate, total):
         bar_plot(client, x_axis, *y_axis, title=title)
 
     if total:
-        data = client.repo.search(per_page=1, owner='admin', metrics=['total_energies', 'users', 'datasets']).response().result
+        data = client.repo.search(per_page=1, owner='admin', metrics=['total_energies', 'calculations', 'users', 'datasets']).response().result
         print(data.quantities['total'])

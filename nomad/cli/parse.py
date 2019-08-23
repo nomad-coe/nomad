@@ -30,7 +30,7 @@ def parse(
         else:
             parser_name = parser.__class__.__name__
 
-    assert parser is not None, 'there is not parser matching %s' % mainfile
+    assert parser is not None, 'there is no parser matching %s' % mainfile
     logger = logger.bind(parser=parser.name)  # type: ignore
     logger.info('identified parser')
 

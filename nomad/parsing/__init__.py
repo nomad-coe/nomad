@@ -263,13 +263,10 @@ parsers = [
     LegacyParser(
         name='parsers/gaussian', code_name='Gaussian',
         parser_class_name='gaussianparser.GaussianParser',
-        # This previous file matching string was too far down the line.
-        # r'\s*Cite this work as:'
-        # r'\s*Gaussian [0-9]+, Revision [A-Za-z0-9.]*,'
-        # r'\s\*\*\*\*\*\*\*\*\*\*\*\**'
-        # r'\s*Gaussian\s*([0-9]+):\s*([A-Za-z0-9-.]+)\s*([0-9][0-9]?\-[A-Z][a-z][a-z]\-[0-9]+)'
-        # r'\s*([0-9][0-9]?\-[A-Z][a-z][a-z]\-[0-9]+)')
-        mainfile_contents_re=r'Gaussian, Inc'),
+        mainfile_contents_re=(
+            r'\s*Cite this work as:'
+            r'\s*Gaussian [0-9]+, Revision [A-Za-z0-9\.]*,')
+    ),
     LegacyParser(
         name='parsers/quantumespresso', code_name='Quantum Espresso',
         parser_class_name='quantumespressoparser.QuantumEspressoParserPWSCF',
