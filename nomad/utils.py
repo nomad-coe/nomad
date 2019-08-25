@@ -73,6 +73,23 @@ def make_websave(hash, length: int = default_hash_len) -> str:
         return base64.b64encode(hash.digest(), altchars=b'-_')[0:-2].decode('utf-8')
 
 
+def base64_encode(string):
+    """
+    Removes any `=` used as padding from the encoded string.
+    """
+    encoded = base64.urlsafe_b64encode(string).decode('utf-8')
+    return encoded.rstrip("=")
+
+
+def base64_decode(string):
+    """
+    Adds back in the required padding before decoding.
+    """
+    padding = 4 - (len(string) % 4)
+    bytes = (string + ("=" * padding)).encode('utf-8')
+    return base64.urlsafe_b64decode(bytes)
+
+
 def sanitize_logevent(event: str) -> str:
     """
     Prepares a log event or message for analysis in elastic stack. It removes numbers,

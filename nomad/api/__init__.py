@@ -29,7 +29,7 @@ There is a separate documentation for the API endpoints from a client perspectiv
 .. automodule:: nomad.api.admin
 """
 from .app import app
-from . import info, auth, admin, upload, repo, archive, raw, mirror
+from . import info, auth, upload, repo, archive, raw, mirror
 
 
 @app.before_first_request

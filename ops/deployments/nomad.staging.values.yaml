@@ -7,9 +7,6 @@ proxy:
     host: "staging-nomad.esc.rzg.mpg.de"
     path: "/uploads"
 
-api:
-  disableReset: false
-
 gui:
   debug: true
 

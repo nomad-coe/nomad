@@ -39,8 +39,6 @@ api:
   adminPassword: "password"
   ## A kubernetes secret with administrator password (supersedes adminPassword)
   adminPasswordSecret: null
-  ## Disable the dangerous reset (delete all data) function
-  disableReset: "true"
   ## Limit of unpublished uploads per user, except admin user
   uploadLimit: 10
 

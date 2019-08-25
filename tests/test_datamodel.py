@@ -50,7 +50,7 @@ low_numbers_for_geometries = [1, 2, 2, 3, 3, 4, 4]
 
 def _gen_user():
     user_id, first, last, email = random.choice(users)
-    return User(user_id=user_id, first_name=first, last_name=last, email=email)
+    return datamodel.User(user_id=user_id, first_name=first, last_name=last, email=email)
 
 
 def _gen_dataset():

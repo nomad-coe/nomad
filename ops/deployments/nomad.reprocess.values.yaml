@@ -4,9 +4,6 @@ proxy:
     host: "labdev-nomad.esc.rzg.mpg.de"
     path: "/fairdi/nomad/reprocess"
 
-api:
-  disableReset: true
-
 gui:
   debug: true
 

@@ -25,7 +25,6 @@ data:
       api_base_path: "{{ .Values.proxy.external.path }}/api"
       api_secret: "{{ .Values.api.secret }}"
       admin_password: "{{ .Values.api.adminPassword }}"
-      disable_reset: {{ .Values.api.disableReset }}
       https: {{ .Values.api.https }}
       upload_limit: {{ .Values.api.uploadLimit }}
     rabbitmq:

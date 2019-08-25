@@ -27,7 +27,7 @@ import datetime
 from nomad import search
 
 from .app import api, rfc3339DateTime
-from .auth import login_if_available
+from .auth import authenticate
 from .common import pagination_model, pagination_request_parser, calc_route
 
 ns = api.namespace('repo', description='Access repository metadata.')
@@ -39,7 +39,7 @@ class RepoCalcResource(Resource):
     @api.response(401, 'Not authorized to access the calculation')
     @api.response(200, 'Metadata send', fields.Raw)
     @api.doc('get_repo_calc')
-    @login_if_available
+    @authenticate()
     def get(self, upload_id, calc_id):
         """
         Get calculation metadata in repository form.
@@ -56,15 +56,7 @@ class RepoCalcResource(Resource):
             if g.user is None:
                 abort(401, message='Not logged in to access %s/%s.' % (upload_id, calc_id))
 
-            is_owner = g.user.user_id == 0
-            if not is_owner:
-                for owner in calc.owners:
-                    # At somepoint ids will be emails (strings) anyways.
-                    # Right now it is hard to make sure that both are either str or int.
-                    if str(owner.user_id) == str(g.user.user_id):
-                        is_owner = True
-                        break
-            if not is_owner:
+            if not (any(g.user.user_id == user.user_id for user in calc.owners) or g.user.is_admin):
                 abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
 
         return calc.to_dict(), 200
@@ -196,7 +188,7 @@ class RepoCalcsResource(Resource):
     @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
     @api.expect(repo_request_parser, validate=True)
     @api.marshal_with(repo_calcs_model, skip_none=True, code=200, description='Search results send')
-    @login_if_available
+    @authenticate()
     def get(self):
         """
         Search for calculations in the repository form, paginated.
@@ -304,7 +296,7 @@ class RepoQuantityResource(Resource):
     @api.response(400, 'Invalid requests, e.g. wrong owner type, bad quantity, bad search parameters')
     @api.expect(repo_quantity_search_request_parser, validate=True)
     @api.marshal_with(repo_quantity_values_model, skip_none=True, code=200, description='Search results send')
-    @login_if_available
+    @authenticate()
     def get(self, quantity: str):
         """
         Retrieve quantity values from entries matching the search.

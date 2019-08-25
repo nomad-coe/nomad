@@ -144,16 +144,12 @@ class Keycloak():
 
         return self.__oidc_client
 
-    def authorize_flask(self, token_only: bool = True) -> Union[str, object]:
+    def authorize_flask(self, basic: bool = True) -> Union[str, object]:
         token = None
         if 'Authorization' in request.headers and request.headers['Authorization'].startswith('Bearer '):
             token = request.headers['Authorization'].split(None, 1)[1].strip()
-        elif 'access_token' in request.form:
-            token = request.form['access_token']
-        elif 'access_token' in request.args:
-            token = request.args['access_token']
         elif 'Authorization' in request.headers and request.headers['Authorization'].startswith('Basic '):
-            if token_only:
+            if not basic:
                 return 'Basic authentication not allowed, use Bearer token instead'
 
             try:

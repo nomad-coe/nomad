@@ -67,6 +67,10 @@ class User:
     def get(*args, **kwargs) -> 'User':
         return infrastructure.keycloak.get_user(*args, **kwargs)  # type: ignore
 
+    @property
+    def is_admin(self):
+        return self.user_id == config.services.admin_user_id
+
 
 class UploadWithMetadata():
     """
@@ -160,6 +164,9 @@ class CalcWithMetadata():
             if value is not None and key not in ['backend']
         }
 
+    def __str__(self):
+        return str(self.to_dict())
+
     def update(self, **kwargs):
         for key, value in kwargs.items():
             if value is None:
@@ -180,23 +187,25 @@ class CalcWithMetadata():
         """
         Applies a user provided metadata dict to this calc.
         """
-        self.pid = metadata.get('_pid')
-        self.comment = metadata.get('comment')
-        self.upload_time = metadata.get('_upload_time')
+        self.pid = metadata.get('_pid', self.pid)
+        self.comment = metadata.get('comment', self.comment)
+        self.upload_time = metadata.get('_upload_time', self.upload_time)
         uploader_id = metadata.get('_uploader')
         if uploader_id is not None:
             self.uploader = uploader_id
-        self.references = [utils.POPO(value=ref) for ref in metadata.get('references', [])]
-        self.with_embargo = metadata.get('with_embargo', False)
+        if 'references' in metadata:
+            self.references = [utils.POPO(value=ref) for ref in metadata['references']]
+        self.with_embargo = metadata.get('with_embargo', self.with_embargo)
         self.coauthors = [
-            user_id for user_id in metadata.get('coauthors', [])
+            user_id for user_id in metadata.get('coauthors', self.coauthors)
             if User.get(user_id=user_id) is not None]
         self.shared_with = [
-            user_id for user_id in metadata.get('shared_with', [])
+            user_id for user_id in metadata.get('shared_with', self.shared_with)
             if User.get(user_id=user_id) is not None]
-        self.datasets = [
-            utils.POPO(id=int(ds['id']), doi=utils.POPO(value=ds.get('_doi')), name=ds.get('_name'))
-            for ds in metadata.get('datasets', [])]
+        if 'datasets' in metadata:
+            self.datasets = [
+                utils.POPO(id=int(ds['id']), doi=utils.POPO(value=ds.get('_doi')), name=ds.get('_name'))
+                for ds in metadata['datasets']]
 
     def apply_domain_metadata(self, backend):
         raise NotImplementedError()

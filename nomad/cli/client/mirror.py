@@ -86,7 +86,6 @@ def mirror(
 
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
-    infrastructure.setup_repository_db()
 
     source_mapping = Mapping(source_mapping)
     target_mapping = Mapping(target_mapping)

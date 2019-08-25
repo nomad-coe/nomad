@@ -16,16 +16,15 @@ from typing import Any
 import pytest
 import time
 import json
-import base64
 import zipfile
 import io
 import inspect
-from passlib.hash import bcrypt
 import datetime
 import os.path
 from urllib.parse import urlencode
 
 from nomad.api.app import rfc3339DateTime
+from nomad.api.auth import generate_upload_token, verify_upload_token
 from nomad import search, parsing, files, config, utils
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
@@ -70,135 +69,37 @@ class TestInfo:
         assert rv.status_code == 200
 
 
-class TestAdmin:
-    @pytest.mark.timeout(config.tests.default_timeout)
-    def test_reset(self, client, admin_user_auth, monkeypatch):
-        monkeypatch.setattr('nomad.config.services.disable_reset', False)
-        rv = client.post('/admin/reset', headers=admin_user_auth)
-        assert rv.status_code == 200
-
-    @pytest.mark.timeout(config.tests.default_timeout)
-    def test_remove(self, client, admin_user_auth, monkeypatch):
-        monkeypatch.setattr('nomad.config.services.disable_reset', False)
-        rv = client.post('/admin/remove', headers=admin_user_auth)
-        assert rv.status_code == 200
-
-    def test_doesnotexist(self, client, admin_user_auth):
-        rv = client.post('/admin/doesnotexist', headers=admin_user_auth)
-        assert rv.status_code == 404
-
-    def test_only_admin(self, client, test_user_auth):
-        rv = client.post('/admin/reset', headers=test_user_auth)
-        assert rv.status_code == 401
-
-    def test_disabled(self, client, admin_user_auth, monkeypatch):
-        monkeypatch.setattr('nomad.config.services.disable_reset', True)
-        rv = client.post('/admin/reset', headers=admin_user_auth)
-        assert rv.status_code == 400
-
-
 class TestAuth:
     def test_auth_wo_credentials(self, client, keycloak, no_warn):
         rv = client.get('/auth/')
         assert rv.status_code == 401
 
-    def test_auth(self, client, test_user_auth, keycloak):
+    def test_auth_with_token(self, client, test_user_auth, keycloak):
         rv = client.get('/auth/', headers=test_user_auth)
         assert rv.status_code == 200
+        self.assert_auth(client, json.loads(rv.data))
 
-    def test_xtoken_auth(self, client, test_user: User, no_warn):
-        rv = client.get('/uploads/', headers={
-            'X-Token': test_user.first_name.lower()  # the test users have their firstname as tokens for convinience
-        })
+    # def test_auth_with_password(self, client, test_user_auth, keycloak):
+    #     rv = client.get('/auth/', headers=test_user_auth)
+    #     assert rv.status_code == 200
+    #     self.assert_auth(client, json.loads(rv.data))
 
-        assert rv.status_code == 200
+    def test_upload_token(self, test_user):
+        token = generate_upload_token(test_user)
+        assert verify_upload_token(token) == test_user.user_id
 
-    def test_xtoken_auth_denied(self, client, no_warn):
-        rv = client.get('/uploads/', headers={
-            'X-Token': 'invalid'
-        })
-
-        assert rv.status_code == 401
-
-    def test_basic_auth(self, client, test_user_auth, no_warn):
-        rv = client.get('/uploads/', headers=test_user_auth)
-        assert rv.status_code == 200
-
-    def test_basic_auth_denied(self, client, no_warn):
-        basic_auth_base64 = base64.b64encode('invalid'.encode('utf-8')).decode('utf-8')
-        rv = client.get('/uploads/', headers={
-            'Authorization': 'Basic %s' % basic_auth_base64
-        })
-        assert rv.status_code == 401
-
-    def test_get_user(self, client, test_user_auth, test_user: User, no_warn):
-        rv = client.get('/auth/user', headers=test_user_auth)
-        assert rv.status_code == 200
-        self.assert_user(client, json.loads(rv.data))
-
-    def assert_user(self, client, user):
-        for key in ['first_name', 'last_name', 'email', 'token']:
+    def assert_auth(self, client, user):
+        for key in ['first_name', 'last_name', 'email', 'name', 'user_id']:
             assert key in user
 
-        rv = client.get('/uploads/', headers={
-            'X-Token': user['token']
-        })
+        # rv = client.get('/uploads/', headers={
+        #     'X-Token': user['token']
+        # })
 
-        assert rv.status_code == 200
+        # assert rv.status_code == 200
 
     def test_signature_token(self, test_user_signature_token, no_warn):
         assert test_user_signature_token is not None
-
-    @pytest.mark.parametrize('token, affiliation', [
-        ('test_token', dict(name='HU Berlin', address='Unter den Linden 6')),
-        (None, None)])
-    def test_put_user(self, client, admin_user_auth, token, affiliation):
-        data = dict(
-            email='test@email.com', last_name='Tester', first_name='Testi',
-            token=token, affiliation=affiliation,
-            password=bcrypt.encrypt('test_password', ident='2y'))
-
-        data = {key: value for key, value in data.items() if value is not None}
-
-        rv = client.put(
-            '/auth/user', headers=admin_user_auth,
-            content_type='application/json', data=json.dumps(data))
-
-        assert rv.status_code == 200
-        self.assert_user(client, json.loads(rv.data))
-
-    def test_put_user_admin_only(self, client, test_user_auth):
-        rv = client.put(
-            '/auth/user', headers=test_user_auth,
-            content_type='application/json', data=json.dumps(dict(
-                email='test@email.com', last_name='Tester', first_name='Testi',
-                password=bcrypt.encrypt('test_password', ident='2y'))))
-        assert rv.status_code == 401
-
-    def test_put_user_required_field(self, client, admin_user_auth):
-        rv = client.put(
-            '/auth/user', headers=admin_user_auth,
-            content_type='application/json', data=json.dumps(dict(
-                email='test@email.com', password=bcrypt.encrypt('test_password', ident='2y'))))
-        assert rv.status_code == 400
-
-    def test_post_user(self, client, admin_user_auth):
-        rv = client.put(
-            '/auth/user', headers=admin_user_auth,
-            content_type='application/json', data=json.dumps(dict(
-                email='test@email.com', last_name='Tester', first_name='Testi',
-                password=bcrypt.encrypt('test_password', ident='2y'))))
-
-        assert rv.status_code == 200
-        user = json.loads(rv.data)
-
-        rv = client.post(
-            '/auth/user', headers={'X-Token': user['token']},
-            content_type='application/json', data=json.dumps(dict(
-                last_name='Tester', first_name='Testi v.',
-                password=bcrypt.encrypt('test_password_changed', ident='2y'))))
-        assert rv.status_code == 200
-        self.assert_user(client, json.loads(rv.data))
 
 
 class TestUploads:
@@ -255,7 +156,7 @@ class TestUploads:
         assert_upload_files(upload_with_metadata, files.StagingUploadFiles)
         assert_search_upload(upload_with_metadata, additional_keys=['atoms', 'system'])
 
-    def assert_published(self, client, test_user_auth, upload_id, proc_infra, metadata={}, publish_with_metadata: bool = True):
+    def assert_published(self, client, test_user_auth, upload_id, proc_infra, metadata={}):
         rv = client.get('/uploads/%s' % upload_id, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
 
@@ -264,7 +165,7 @@ class TestUploads:
         rv = client.post(
             '/uploads/%s' % upload_id,
             headers=test_user_auth,
-            data=json.dumps(dict(operation='publish', metadata=metadata if publish_with_metadata else {})),
+            data=json.dumps(dict(operation='publish', metadata=metadata)),
             content_type='application/json')
         assert rv.status_code == 200
         upload = self.assert_upload(rv.data)
@@ -274,9 +175,11 @@ class TestUploads:
         additional_keys = ['with_embargo']
 
         self.block_until_completed(client, upload_id, test_user_auth)
+
         upload_proc = Upload.objects(upload_id=upload_id).first()
         assert upload_proc is not None
         assert upload_proc.published is True
+        upload_with_metadata = upload_proc.to_upload_with_metadata()
 
         assert_upload_files(upload_with_metadata, files.PublicUploadFiles, published=True)
         assert_search_upload(upload_with_metadata, additional_keys=additional_keys, published=True)
@@ -322,6 +225,13 @@ class TestUploads:
     def test_get_not_existing(self, client, test_user_auth, no_warn):
         rv = client.get('/uploads/123456789012123456789012', headers=test_user_auth)
         assert rv.status_code == 404
+
+    def test_put_upload_token(self, client, non_empty_example_upload, test_user, no_warn):
+        url = '/uploads/?token=%s&local_path=%s&name=test_upload' % (
+            generate_upload_token(test_user), non_empty_example_upload)
+        rv = client.put(url)
+        assert rv.status_code == 200
+        self.assert_upload(rv.data, name='test_upload')
 
     @pytest.mark.parametrize('mode', ['multipart', 'stream', 'local_path'])
     @pytest.mark.parametrize('name', [None, 'test_name'])
@@ -458,7 +368,7 @@ class TestUploads:
         metadata = dict(**example_user_metadata)
         metadata['_upload_time'] = datetime.datetime.utcnow().isoformat()
         self.assert_published(client, admin_user_auth, upload['upload_id'], proc_infra, metadata)
-        self.assert_published(client, admin_user_auth, upload['upload_id'], proc_infra, metadata, publish_with_metadata=False)
+        self.assert_published(client, admin_user_auth, upload['upload_id'], proc_infra, {})
 
     def test_post_re_process(self, client, published, test_user_auth, monkeypatch):
         monkeypatch.setattr('nomad.config.version', 're_process_test_version')
@@ -519,15 +429,17 @@ class UploadFilesBasedTests:
     @staticmethod
     def check_authorizaton(func):
         @pytest.mark.parametrize('test_data', [
-            [True, None, True],     # in staging for upload
-            [True, None, False],    # in staging for different user
-            [True, None, None],     # in staging for guest
-            [False, True, True],    # in public, restricted for uploader
-            [False, True, False],   # in public, restricted for different user
-            [False, True, None],    # in public, restricted for guest
-            [False, False, True],   # in public, public, for uploader
-            [False, False, False],  # in public, public, for different user
-            [False, False, None]    # in public, public, for guest
+            [True, None, True],      # in staging for upload
+            [True, None, False],     # in staging for different user
+            [True, None, None],      # in staging for guest
+            [True, None, 'admin'],   # in staging, for admin
+            [False, True, True],     # in public, restricted for uploader
+            [False, True, False],    # in public, restricted for different user
+            [False, True, None],     # in public, restricted for guest
+            [False, True, 'admin'],  # in public, restricted for admin
+            [False, False, True],    # in public, public, for uploader
+            [False, False, False],   # in public, public, for different user
+            [False, False, None]     # in public, public, for guest
         ], indirect=True)
         def wrapper(self, client, test_data, *args, **kwargs):
             upload, authorized, auth_headers = test_data
@@ -562,7 +474,7 @@ class UploadFilesBasedTests:
         return wrapper
 
     @pytest.fixture(scope='function')
-    def test_data(self, request, mongo, raw_files, no_warn, test_user, other_test_user):
+    def test_data(self, request, mongo, raw_files, no_warn, test_user, other_test_user, admin_user):
         # delete potential old test files
         for _ in [0, 1]:
             upload_files = UploadFiles.get('test_upload')
@@ -572,20 +484,22 @@ class UploadFilesBasedTests:
         in_staging, restricted, for_uploader = request.param
 
         if in_staging:
-            authorized = for_uploader
+            authorized = for_uploader is True or for_uploader == 'admin'
         else:
-            authorized = not restricted or for_uploader
+            authorized = not restricted or for_uploader is True or for_uploader == 'admin'
 
-        if for_uploader:
+        if for_uploader is True:
             auth_headers = create_auth_headers(test_user)
         elif for_uploader is False:
             auth_headers = create_auth_headers(other_test_user)
+        elif for_uploader == 'admin':
+            auth_headers = create_auth_headers(admin_user)
         else:
             auth_headers = None
 
         calc_specs = 'r' if restricted else 'p'
+        Upload.create(user=test_user, upload_id='test_upload')
         if in_staging:
-            Upload.create(user=test_user, upload_id='test_upload')
             _, upload_files = create_staging_upload('test_upload', calc_specs=calc_specs)
         else:
             _, upload_files = create_public_upload('test_upload', calc_specs=calc_specs)
@@ -604,7 +518,7 @@ class TestArchive(UploadFilesBasedTests):
 
     @UploadFilesBasedTests.ignore_authorization
     def test_get_signed(self, client, upload, _, test_user_signature_token):
-        rv = client.get('/archive/%s/0?token=%s' % (upload, test_user_signature_token))
+        rv = client.get('/archive/%s/0?signature_token=%s' % (upload, test_user_signature_token))
         assert rv.status_code == 200
         assert json.loads(rv.data) is not None
 
@@ -616,7 +530,7 @@ class TestArchive(UploadFilesBasedTests):
 
     @UploadFilesBasedTests.ignore_authorization
     def test_get_calc_proc_log_signed(self, client, upload, _, test_user_signature_token):
-        rv = client.get('/archive/logs/%s/0?token=%s' % (upload, test_user_signature_token))
+        rv = client.get('/archive/logs/%s/0?signature_token=%s' % (upload, test_user_signature_token))
         assert rv.status_code == 200
         assert len(rv.data) > 0
 
@@ -649,22 +563,22 @@ class TestRepo():
         calc_with_metadata.apply_domain_metadata(normalized)
 
         calc_with_metadata.update(
-            calc_id='1', uploader=test_user.to_popo(), published=True, with_embargo=False)
+            calc_id='1', uploader=test_user.user_id, published=True, with_embargo=False)
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(
-            calc_id='2', uploader=other_test_user.to_popo(), published=True, with_embargo=False,
+            calc_id='2', uploader=other_test_user.user_id, published=True, with_embargo=False,
             upload_time=today - datetime.timedelta(days=5))
         calc_with_metadata.update(
             atoms=['Fe'], comment='this is a specific word', formula='AAA', basis_set='zzz')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(
-            calc_id='3', uploader=other_test_user.to_popo(), published=False, with_embargo=False)
+            calc_id='3', uploader=other_test_user.user_id, published=False, with_embargo=False)
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(
-            calc_id='4', uploader=other_test_user.to_popo(), published=True, with_embargo=True)
+            calc_id='4', uploader=other_test_user.user_id, published=True, with_embargo=True)
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
     def assert_search(self, rv: Any, number_of_calcs: int) -> dict:
@@ -973,7 +887,7 @@ class TestRaw(UploadFilesBasedTests):
 
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_file_signed(self, client, upload, _, test_user_signature_token):
-        url = '/raw/%s/%s?token=%s' % (upload, example_file_mainfile, test_user_signature_token)
+        url = '/raw/%s/%s?signature_token=%s' % (upload, example_file_mainfile, test_user_signature_token)
         rv = client.get(url)
         assert rv.status_code == 200
         assert len(rv.data) > 0
@@ -1065,7 +979,7 @@ class TestRaw(UploadFilesBasedTests):
 
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_files_signed(self, client, upload, _, test_user_signature_token):
-        url = '/raw/%s?files=%s&token=%s' % (
+        url = '/raw/%s?files=%s&signature_token=%s' % (
             upload, ','.join(example_file_contents), test_user_signature_token)
         rv = client.get(url)
 

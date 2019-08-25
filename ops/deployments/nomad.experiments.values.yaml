@@ -4,9 +4,6 @@ proxy:
     host: "labdev-nomad.esc.rzg.mpg.de"
     path: "/fairdi/nomad/experiments"
 
-api:
-  disableReset: false
-
 worker:
   replicas: 1
 

@@ -30,8 +30,7 @@ from nomad.files import UploadFiles, Restricted
 from nomad.processing import Calc
 
 from .app import api
-from .auth import login_if_available, create_authorization_predicate, \
-    signature_token_argument, with_signature_token
+from .auth import authenticate, create_authorization_predicate
 from .repo import search_request_parser, create_search_kwargs
 
 if sys.version_info >= (3, 7):
@@ -54,9 +53,9 @@ raw_file_list_model = api.model('RawFileList', {
 raw_file_compress_argument = dict(
     name='compress', type=bool, help='Use compression on .zip files, default is not.',
     location='args')
+
 raw_file_from_path_parser = api.parser()
 raw_file_from_path_parser.add_argument(**raw_file_compress_argument)
-raw_file_from_path_parser.add_argument(**signature_token_argument)
 raw_file_from_path_parser.add_argument(
     name='length', type=int, help='Download only x bytes from the given file.',
     location='args')
@@ -176,8 +175,7 @@ class RawFileFromUploadPathResource(Resource):
     @api.response(401, 'Not authorized to access the requested files.')
     @api.response(200, 'File(s) send')
     @api.expect(raw_file_from_path_parser, validate=True)
-    @login_if_available
-    @with_signature_token
+    @authenticate(signature_token=True)
     def get(self, upload_id: str, path: str):
         """
         Get a single raw calculation file, directory contents, or whole directory sub-tree
@@ -235,8 +233,7 @@ class RawFileFromCalcPathResource(Resource):
     @api.response(401, 'Not authorized to access the requested files.')
     @api.response(200, 'File(s) send')
     @api.expect(raw_file_from_path_parser, validate=True)
-    @login_if_available
-    @with_signature_token
+    @authenticate(signature_token=True)
     def get(self, upload_id: str, calc_id: str, path: str):
         """
         Get a single raw calculation file, calculation contents, or all files for a
@@ -273,8 +270,7 @@ class RawFileFromCalcEmptyPathResource(RawFileFromCalcPathResource):
     @api.response(401, 'Not authorized to access the requested files.')
     @api.response(200, 'File(s) send')
     @api.expect(raw_file_from_path_parser, validate=True)
-    @login_if_available
-    @with_signature_token
+    @authenticate(signature_token=True)
     def get(self, upload_id: str, calc_id: str):
         """
         Get calculation contents.
@@ -297,7 +293,6 @@ raw_files_request_parser = api.parser()
 raw_files_request_parser.add_argument(
     'files', required=True, type=str, help='Comma separated list of files to download.', location='args')
 raw_files_request_parser.add_argument(**raw_file_compress_argument)
-raw_file_from_path_parser.add_argument(**signature_token_argument)
 
 
 @ns.route('/<string:upload_id>')
@@ -309,7 +304,7 @@ class RawFilesResource(Resource):
     @api.response(404, 'The upload or path does not exist')
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
     @api.expect(raw_files_request_model, validate=True)
-    @login_if_available
+    @authenticate()
     def post(self, upload_id):
         """
         Download multiple raw calculation files in a .zip file.
@@ -326,8 +321,7 @@ class RawFilesResource(Resource):
     @api.response(404, 'The upload or path does not exist')
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
     @api.expect(raw_files_request_parser, validate=True)
-    @login_if_available
-    @with_signature_token
+    @authenticate(signature_token=True)
     def get(self, upload_id):
         """
         Download multiple raw calculation files.
@@ -357,7 +351,7 @@ class RawFileQueryResource(Resource):
     @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
     @api.expect(search_request_parser, validate=True)
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
-    @login_if_available
+    @authenticate()
     def get(self):
         """
         Download a .zip file with all raw-files for all entries that match the given

@@ -5,7 +5,6 @@ proxy:
     path: "/fairdi/nomad/prod-test"
 
 api:
-  disableReset: true
   adminPasswordSecrete: 'nomad-production-repository-password'
 
 gui:

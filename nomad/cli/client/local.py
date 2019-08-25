@@ -78,16 +78,17 @@ class CalcProcReproduction:
         local_path = os.path.join(config.fs.tmp, 'repro_%s.zip' % archive_id)
         if not os.path.exists(os.path.dirname(local_path)):
             os.makedirs(os.path.dirname(local_path))
+
         if not os.path.exists(local_path) or override:
             # download raw if not already downloaded or if override is set
             # download with request, since bravado does not support streaming
             self.logger.info('Downloading calc.', mainfile=self.mainfile)
             try:
-                token = client.auth.get_user().response().result.token
+                token = client.auth.get_token().response().result.token
                 dir_name = os.path.dirname(self.mainfile)
                 req = requests.get(
-                    '%s/raw/%s/%s' % (config.client.url, self.upload_id, dir_name) + '/*',
-                    stream=True, headers={'X-Token': token})
+                    '%s/raw/%s/%s/*?signature_token=%s' % (config.client.url, self.upload_id, dir_name, token),
+                    stream=True, headers={})
                 with open(local_path, 'wb') as f:
                     for chunk in req.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
                         f.write(chunk)

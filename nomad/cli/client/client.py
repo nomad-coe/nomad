@@ -41,14 +41,19 @@ def __create_client(user: str = nomad_config.client.user, password: str = nomad_
         warnings.filterwarnings("ignore")
 
     http_client = RequestsClient(ssl_verify=ssl_verify)
-    if user is not None:
-        http_client.set_basic_auth(host, user, password)
 
     client = SwaggerClient.from_url(
         '%s/swagger.json' % nomad_config.client.url,
         http_client=http_client)
 
     utils.get_logger(__name__).info('created bravado client', user=user)
+
+    if user is not None:
+        http_client.set_basic_auth(host, user, password)
+        token = client.auth.get_token().reponse().result.token
+        http_client.set_api_key(
+            host, 'Bearer %s' % token, param_name='Authorization', param_in='header')
+        utils.get_logger(__name__).info('set bravado client authentication', user=user)
 
     return client
 
@@ -87,8 +92,3 @@ def client(url: str, user: str, password: str, no_ssl_verify: bool):
         else:
             logger.info('create anonymous client')
             return __create_client(ssl_verify=not no_ssl_verify)
-
-
-@client.command(help='Attempts to reset the nomad.')
-def reset():
-    create_client().admin.exec_reset_command().response()

@@ -35,7 +35,6 @@ def index(threads, dry):
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
-    infrastructure.setup_repository_db()
 
     all_calcs = proc.Calc.objects().count()
     print('indexing %d ...' % all_calcs)
@@ -122,3 +121,19 @@ ProxyPassReverse "/{0}" "http://{1}:{2}/{0}"
         proxy_read_timeout 600;
         send_timeout 3600;
     }}'''.format(prefix, host, port))
+
+
+@admin.command(help='Resets all databases, indices, and files')
+@click.option('--i-know-what-i-am-doing', is_flag=True, help='Only works with this')
+@click.option('--remove', is_flag=True, help='Will also remove all databases')
+def reset(i_know_what_i_am_doing, remove):
+    if 'prod' in config.fs.public or 'prod' in config.mongo.db_name:
+        print('No, I wont do anything')
+
+    if i_know_what_i_am_doing:
+        if remove:
+            infrastructure.remove()
+        else:
+            infrastructure.reset()
+    else:
+        print('Did nothing')

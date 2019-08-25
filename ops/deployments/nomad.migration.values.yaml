@@ -5,7 +5,6 @@ proxy:
     path: "/fairdi/nomad/migration"
 
 api:
-  disableReset: false
   adminPasswordSecrete: 'nomad-production-repository-password'
 
 gui:

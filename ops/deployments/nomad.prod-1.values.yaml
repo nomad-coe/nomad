@@ -8,7 +8,6 @@ proxy:
     path: "/uploads"
 
 api:
-  disableReset: true
   adminPasswordSecrete: 'nomad-production-repository-password'
 
 worker:

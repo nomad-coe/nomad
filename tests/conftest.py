@@ -24,9 +24,9 @@ import shutil
 import os.path
 import datetime
 from bravado.client import SwaggerClient
-from flask import request, g
+from flask import request
 
-from nomad import config, infrastructure, parsing, processing, api, datamodel
+from nomad import config, infrastructure, parsing, processing, api
 from nomad.datamodel import User
 
 from tests import test_parsing, test_normalizing
@@ -182,10 +182,14 @@ def elastic(elastic_infra):
     return elastic_infra
 
 
+def test_user_uuid(handle):
+    return '00000000-0000-0000-0000-00000000000%d' % handle
+
+
 test_users = {
-    '0': dict(email='admin'),
-    '1': dict(email='sheldon.cooper@nomad-coe.eu', first_name='Sheldon', last_name='Cooper'),
-    '2': dict(email='leonard.hofstadter@nomad-coe.eu', first_name='Leonard', last_name='Hofstadter')
+    test_user_uuid(0): dict(email='admin', user_id=test_user_uuid(0)),
+    test_user_uuid(1): dict(email='sheldon.cooper@nomad-coe.eu', first_name='Sheldon', last_name='Cooper', user_id=test_user_uuid(1)),
+    test_user_uuid(2): dict(email='leonard.hofstadter@nomad-coe.eu', first_name='Leonard', last_name='Hofstadter', user_id=test_user_uuid(2))
 }
 
 
@@ -194,17 +198,17 @@ class KeycloakMock:
         pass
 
     def authorize_flask(self, *args, **kwargs):
-        if 'Authorization' in request.headers and request.headers['Authorization'].startswith('Mocked '):
+        if 'Authorization' in request.headers and request.headers['Authorization'].startswith('Bearer '):
             user_id = request.headers['Authorization'].split(None, 1)[1].strip()
-            g.user = User(user_id=user_id, **test_users[user_id])
+            return User(**test_users[user_id])
 
     def get_user(self, user_id=None, email=None):
         if user_id is not None:
-            return User(user_id=user_id, **test_users[user_id])
+            return User(**test_users[user_id])
         elif email is not None:
             for user_id, user_values in test_users.items():
                 if user_values['email'] == email:
-                    return User(user_id=user_id, **user_values)
+                    return User(**user_values)
             assert False, 'only test user emails are recognized'
         else:
             assert False, 'no token based get_user during tests'
@@ -223,23 +227,24 @@ def proc_infra(worker, elastic, mongo, raw_files):
 
 @pytest.fixture(scope='module')
 def test_user(keycloak):
-    return User(id='1', **test_users['1'])
+    return User(**test_users[test_user_uuid(1)])
 
 
 @pytest.fixture(scope='module')
 def other_test_user(keycloak):
-    return User(id='2', **test_users['2'])
+    return User(**test_users[test_user_uuid(2)])
 
 
 @pytest.fixture(scope='module')
 def admin_user(keycloak):
-    return User(id='0', **test_users['0'])
+    return User(**test_users[test_user_uuid(0)])
 
 
 def create_auth_headers(user: User):
     return {
-        'Authorization': 'Mocked %s' % user.user_id
+        'Authorization': 'Bearer %s' % user.user_id
     }
+
 
 @pytest.fixture(scope='module')
 def test_user_auth(test_user: User):

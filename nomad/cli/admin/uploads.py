@@ -98,10 +98,10 @@ def chown(ctx, email, uploads):
 
     print('%d uploads selected, changing its owner ...' % uploads.count())
 
-    user = datamodel.User.get_by_email(email)
+    user = datamodel.User.get(email=email)
 
     for upload in uploads:
-        upload.user_id = user_id
+        upload.user_id = user.user_id
         upload_with_metadata = upload.to_upload_with_metadata()
         calcs = upload_with_metadata.calcs
 
@@ -122,7 +122,6 @@ def chown(ctx, email, uploads):
 @click.argument('UPLOADS', nargs=-1)
 @click.pass_context
 def index(ctx, uploads):
-    infrastructure.setup_repository_db()
     _, uploads = query_uploads(ctx, uploads)
     uploads_count = uploads.count()
 
@@ -247,7 +246,6 @@ def re_process(ctx, uploads, parallel: int):
 @click.option('--no-celery', is_flag=True, help='Do not attempt to stop the actual celery tasks')
 @click.pass_context
 def stop(ctx, uploads, calcs: bool, kill: bool, no_celery: bool):
-    infrastructure.setup_repository_db()
     query, _ = query_uploads(ctx, uploads)
 
     logger = utils.get_logger(__name__)

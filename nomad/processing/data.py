@@ -469,11 +469,7 @@ class Upload(Proc):
 
     @classmethod
     def get(cls, id: str, include_published: bool = True) -> 'Upload':
-        upload = cls.get_by_id(id, 'upload_id')
-        if upload is not None:
-            return upload
-
-        raise KeyError()
+        return cls.get_by_id(id, 'upload_id')
 
     @classmethod
     def user_uploads(cls, user: datamodel.User, **kwargs) -> List['Upload']:
@@ -572,6 +568,7 @@ class Upload(Proc):
 
                 def create_update(calc):
                     calc.published = True
+                    calc.with_embargo = calc.with_embargo if calc.with_embargo is not None else False
                     return UpdateOne(
                         {'_id': calc.calc_id},
                         {'$set': {'metadata': calc.to_dict()}})

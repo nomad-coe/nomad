@@ -31,7 +31,7 @@ from nomad.processing import Upload, FAILURE
 from nomad.processing import ProcessAlreadyRunning
 
 from .app import api, with_logger, RFC3339DateTime
-from .auth import login_really_required
+from .auth import authenticate, generate_upload_token
 from .common import pagination_request_parser, pagination_model, upload_route
 
 
@@ -127,7 +127,7 @@ upload_operation_model = api.model('UploadOperation', {
 upload_metadata_parser = api.parser()
 upload_metadata_parser.add_argument('name', type=str, help='An optional name for the upload.', location='args')
 upload_metadata_parser.add_argument('local_path', type=str, help='Use a local file on the server.', location='args')
-upload_metadata_parser.add_argument('curl', type=bool, help='Provide a human readable message as body.', location='args')
+upload_metadata_parser.add_argument('token', type=str, help='Upload token to authenticate with curl command.', location='args')
 upload_metadata_parser.add_argument('file', type=FileStorage, help='The file to upload.', location='files')
 
 upload_list_parser = pagination_request_parser.copy()
@@ -141,7 +141,6 @@ def disable_marshalling(f):
         try:
             return f(*args, **kwargs)
         except DisableMarshalling as e:
-            print(e.un_marshalled)
             return e.un_marshalled
 
     return wrapper
@@ -162,7 +161,6 @@ def marshal_with(*args, **kwargs):
             try:
                 return with_marshalling(*args, **kwargs)
             except DisableMarshalling as e:
-                print(e.un_marshalled)
                 return e.un_marshalled
 
         return wrapper
@@ -181,7 +179,7 @@ class UploadListResource(Resource):
     @api.response(400, 'Bad parameters')
     @api.marshal_with(upload_list_model, skip_none=True, code=200, description='Uploads send')
     @api.expect(upload_list_parser)
-    @login_really_required
+    @authenticate(required=True)
     def get(self):
         """ Get the list of all uploads from the authenticated user. """
         try:
@@ -226,7 +224,7 @@ class UploadListResource(Resource):
     @api.expect(upload_metadata_parser)
     @api.response(400, 'To many uploads')
     @marshal_with(upload_model, skip_none=True, code=200, description='Upload received')
-    @login_really_required
+    @authenticate(required=True, upload_token=True)
     @with_logger
     def put(self, logger):
         """
@@ -281,7 +279,6 @@ class UploadListResource(Resource):
 
                 file.save(upload_path)
             else:
-                print(request.mimetype)
                 # simple streaming data in HTTP body, e.g. with curl "url" -T local_file
                 logger.info('started to receive upload streaming data')
                 upload_path = files.PathObject(config.fs.tmp, upload_id).os_path
@@ -350,7 +347,7 @@ class UploadResource(Resource):
     @api.response(400, 'Invalid parameters')
     @api.marshal_with(upload_with_calcs_model, skip_none=True, code=200, description='Upload send')
     @api.expect(pagination_request_parser)
-    @login_really_required
+    @authenticate(required=True)
     def get(self, upload_id: str):
         """
         Get an update for an existing upload.
@@ -403,7 +400,7 @@ class UploadResource(Resource):
     @api.response(401, 'Upload does not belong to authenticated user.')
     @api.response(400, 'The upload is still/already processed')
     @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload deleted')
-    @login_really_required
+    @authenticate(required=True)
     @with_logger
     def delete(self, upload_id: str, logger):
         """
@@ -442,7 +439,7 @@ class UploadResource(Resource):
     @api.response(401, 'If the operation is not allowed for the current user')
     @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload published successfully')
     @api.expect(upload_operation_model)
-    @login_really_required
+    @authenticate(required=True)
     def post(self, upload_id):
         """
         Execute an upload operation. Available operations are ``publish`` and ``re-process``
@@ -525,29 +522,25 @@ upload_command_model = api.model('UploadCommand', {
 class UploadCommandResource(Resource):
     @api.doc('get_upload_command')
     @api.marshal_with(upload_command_model, code=200, description='Upload command send')
-    @login_really_required
+    @authenticate(required=True)
     def get(self):
         """ Get url and example command for shell based uploads. """
-        upload_url = '%s/uploads/?curl=True' % config.api_url()
+        token = generate_upload_token(g.user)
+        upload_url = '%s/uploads/?token=%s' % (config.api_url(), token)
         upload_url_with_name = upload_url + '&name=<name>'
 
-        # upload_command = 'curl -X PUT -H "X-Token: %s" "%s" -F file=@<local_file>' % (
-        #     g.user.get_auth_token().decode('utf-8'), upload_url)
+        # upload_command = 'curl -X PUT "%s" -F file=@<local_file>' % upload_url
 
         # Upload via streaming data tends to work much easier, e.g. no mime type issues, etc.
         # It is also easier for the user to unterstand IMHO.
-        upload_command = 'curl -H X-Token:%s %s -T <local_file>' % (
-            g.user.get_auth_token().decode('utf-8'), upload_url)
+        upload_command = 'curl %s -T <local_file>' % upload_url
 
-        upload_command_form = 'curl -H X-Token:%s %s -X PUT -F file=@<local_file>' % (
-            g.user.get_auth_token().decode('utf-8'), upload_url)
+        upload_command_form = 'curl %s -X PUT -F file=@<local_file>' % upload_url
 
-        upload_command_with_name = 'curl -H X-Token:%s "%s" -X PUT -T <local_file>' % (
-            g.user.get_auth_token().decode('utf-8'), upload_url_with_name)
+        upload_command_with_name = 'curl "%s" -X PUT -T <local_file>' % upload_url_with_name
 
         upload_progress_command = upload_command + ' | xargs echo'
-        upload_tar_command = 'tar -cf - <local_folder> | curl -# -H X-Token:%s %s -T - | xargs echo' % (
-            g.user.get_auth_token().decode('utf-8'), upload_url)
+        upload_tar_command = 'tar -cf - <local_folder> | curl -# -H %s -T - | xargs echo' % upload_url
 
         return dict(
             upload_url=upload_url,

@@ -13,6 +13,6 @@
 # limitations under the License.
 
 
-from . import local, migration, upload, integrationtests, mirror, statistics
+from . import local, upload, integrationtests, mirror, statistics
 from .client import create_client
 from .upload import stream_upload_with_client
