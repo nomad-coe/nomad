@@ -84,7 +84,7 @@ class CalcProcReproduction:
             # download with request, since bravado does not support streaming
             self.logger.info('Downloading calc.', mainfile=self.mainfile)
             try:
-                token = client.auth.get_token().response().result.token
+                token = client.auth.get_auth().response().result.signature_token
                 dir_name = os.path.dirname(self.mainfile)
                 req = requests.get(
                     '%s/raw/%s/%s/*?signature_token=%s' % (config.client.url, self.upload_id, dir_name, token),

@@ -14,16 +14,21 @@
 
 """
 The API is protected with *keycloak* and *OpenIDConnect*. All API endpoints that require
-or support authentication accept OIDC bearer tokens via HTTP header (``Authentication``,
-recommended), query (``access_token``), or form parameter (``access_token``). These
-token can be acquired from the NOMAD keycloak server or through the ``/auth`` endpoint
+or support authentication accept OIDC bearer tokens via HTTP header (``Authentication``).
+These token can be acquired from the NOMAD keycloak server or through the ``/auth`` endpoint
 that also supports HTTP Basic authentication and passes the given credentials to
-keycloak.
+keycloak. For GUI's it is recommended to accquire an access token through the regular OIDC
+login flow.
 
 Authenticated user information is available via FLASK's build in flask.g.user object.
-It is set to None, if no user information is available.
+It is set to None, if no user information is available. To protect endpoints use the following
+decorator.
 
 .. autofunction:: authenticate
+
+To allow authentification with signed urls, use this decorator:
+
+.. autofunction:: with_signature_token
 """
 from flask import g, request
 from flask_restplus import abort, Resource, fields
@@ -62,25 +67,7 @@ api.authorizations = {
 }
 
 
-def generate_upload_token(user):
-    """
-    Generates a short user authenticating token based on its keycloak UUID.
-    It can be used to authenticate users in less security relevant but short curl commands.
-
-    It uses the users UUID as urlsafe base64 encoded payload with a HMACSHA1 signature.
-    """
-    payload = uuid.UUID(user.user_id).bytes
-    signature = hmac.new(
-        bytes(config.services.api_secret, 'utf-8'),
-        msg=payload,
-        digestmod=hashlib.sha1)
-
-    return '%s.%s' % (
-        utils.base64_encode(payload),
-        utils.base64_encode(signature.digest()))
-
-
-def verify_upload_token(token) -> str:
+def _verify_upload_token(token) -> str:
     """
     Verifies the upload token generated with :func:`generate_upload_token`.
 
@@ -133,7 +120,7 @@ def authenticate(
 
             if upload_token and 'token' in request.args:
                 token = request.args['token']
-                user_id = verify_upload_token(token)
+                user_id = _verify_upload_token(token)
                 if user_id is not None:
                     g.user = infrastructure.keycloak.get_user(user_id)
 
@@ -176,6 +163,18 @@ def authenticate(
     return decorator
 
 
+def generate_upload_token(user):
+    payload = uuid.UUID(user.user_id).bytes
+    signature = hmac.new(
+        bytes(config.services.api_secret, 'utf-8'),
+        msg=payload,
+        digestmod=hashlib.sha1)
+
+    return '%s.%s' % (
+        utils.base64_encode(payload),
+        utils.base64_encode(signature.digest()))
+
+
 ns = api.namespace(
     'auth',
     description='Authentication related endpoints.')
@@ -197,49 +196,51 @@ user_model = api.model('User', {
     'created': RFC3339DateTime(description='The create date for the user.')
 })
 
-
-@ns.route('/')
-class AuthResource(Resource):
-    @api.doc('get_user')
-    @api.marshal_with(user_model, skip_none=True, code=200, description='User info send')
-    @authenticate(required=True, basic=True)
-    def get(self):
-        return g.user
-
-
-token_model = api.model('Token', {
-    'user': fields.Nested(user_model, skip_none=True),
-    'token': fields.String(description='The short term token to sign URLs'),
-    'expiries_at': RFC3339DateTime(desription='The time when the token expires')
+auth_model = api.model('Auth', {
+    'user': fields.Nested(user_model, skip_none=True, description='The authenticated user info'),
+    'access_token': fields.String(description='The OIDC access token'),
+    'upload_token': fields.String(description='A short token for human readable upload URLs'),
+    'signature_token': fields.String(description='A short term token to sign URLs')
 })
 
 
-@ns.route('/token')
-class TokenResource(Resource):
-    @api.doc('get_token')
-    @api.marshal_with(token_model, skip_none=True, code=200, description='Token send')
-    @authenticate(required=True)
+@ns.route('/')
+class AuthResource(Resource):
+    @api.doc('get_auth')
+    @api.marshal_with(auth_model, skip_none=True, code=200, description='Auth info send')
+    @authenticate(required=True, basic=True)
     def get(self):
         """
-        Generates a short (10s) term JWT token that can be used to authenticate the user in
-        URLs towards most API get request, e.g. for file downloads on the
-        raw or archive api endpoints. Use the token query parameter to sign URLs.
+        Provides user and authentication information. This endpoint requires authentification.
+        Like all endpoints the OIDC access token based authentification. In additional,
+        basic HTTP authentification can be used. This allows to login and acquire an
+        access token.
+
+        The response contains information about the authentificated user; a
+        a short (10s) term JWT token that can be used to sign
+        URLs with a ``signature_token`` query parameter, e.g. for file downloads on the
+        raw or archive api endpoints; a short ``upload_token`` that is used in
+        ``curl`` command line based uploads; and the OIDC JWT access token.
         """
-        expires_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=10)
-        token = jwt.encode(
-            dict(user=g.user.user_id, exp=expires_at),
-            config.services.api_secret, 'HS256').decode('utf-8')
+
+        def signature_token():
+            expires_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=10)
+            return jwt.encode(
+                dict(user=g.user.user_id, exp=expires_at),
+                config.services.api_secret, 'HS256').decode('utf-8')
 
         return {
             'user': g.user,
-            'token': token,
-            'expires_at': expires_at.isoformat(),
+            'upload_token': generate_upload_token(g.user),
+            'signature_token': signature_token(),
+            'access_token': infrastructure.keycloak.access_token
         }
 
 
 def with_signature_token(func):
     """
-    A decorator for API endpoint implementations that validates signed URLs.
+    A decorator for API endpoint implementations that validates signed URLs. Token to
+    sign URLs can be retrieved via the ``/auth`` endpoint.
     """
     @functools.wraps(func)
     @api.response(401, 'Invalid or expired signature token')

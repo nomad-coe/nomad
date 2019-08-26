@@ -24,7 +24,7 @@ import shutil
 import os.path
 import datetime
 from bravado.client import SwaggerClient
-from flask import request
+from flask import request, g
 
 from nomad import config, infrastructure, parsing, processing, api
 from nomad.datamodel import User
@@ -200,6 +200,7 @@ class KeycloakMock:
     def authorize_flask(self, *args, **kwargs):
         if 'Authorization' in request.headers and request.headers['Authorization'].startswith('Bearer '):
             user_id = request.headers['Authorization'].split(None, 1)[1].strip()
+            g.oidc_id_token = user_id
             return User(**test_users[user_id])
 
     def get_user(self, user_id=None, email=None):
@@ -213,10 +214,22 @@ class KeycloakMock:
         else:
             assert False, 'no token based get_user during tests'
 
+    @property
+    def access_token(self):
+        return g.oidc_id_token
+
+
+_keycloak = infrastructure.keycloak
+
 
 @pytest.fixture(scope='session', autouse=True)
-def keycloak(monkeysession):
+def mocked_keycloak(monkeysession):
     monkeysession.setattr('nomad.infrastructure.keycloak', KeycloakMock())
+
+
+@pytest.fixture(scope='function')
+def keycloak(monkeypatch):
+    monkeypatch.setattr('nomad.infrastructure.keycloak', _keycloak)
 
 
 @pytest.fixture(scope='function')
@@ -226,17 +239,17 @@ def proc_infra(worker, elastic, mongo, raw_files):
 
 
 @pytest.fixture(scope='module')
-def test_user(keycloak):
+def test_user():
     return User(**test_users[test_user_uuid(1)])
 
 
 @pytest.fixture(scope='module')
-def other_test_user(keycloak):
+def other_test_user():
     return User(**test_users[test_user_uuid(2)])
 
 
 @pytest.fixture(scope='module')
-def admin_user(keycloak):
+def admin_user():
     return User(**test_users[test_user_uuid(0)])
 
 

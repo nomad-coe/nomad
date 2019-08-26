@@ -50,7 +50,7 @@ def __create_client(user: str = nomad_config.client.user, password: str = nomad_
 
     if user is not None:
         http_client.set_basic_auth(host, user, password)
-        token = client.auth.get_token().reponse().result.token
+        token = client.auth.get_auth().reponse().result.access_token
         http_client.set_api_key(
             host, 'Bearer %s' % token, param_name='Authorization', param_in='header')
         utils.get_logger(__name__).info('set bravado client authentication', user=user)

@@ -128,6 +128,8 @@ class Keycloak():
             json.dump(dict(web=oidc_client_secrets), f)
         app.config.update(dict(
             SECRET_KEY=config.services.api_secret,
+            OIDC_RESOURCE_SERVER_ONLY=True,
+            OIDC_USER_INFO_ENABLED=False,
             OIDC_CLIENT_SECRETS=oidc_client_secrets_file,
             OIDC_OPENID_REALM=config.keycloak.realm_name))
 
@@ -153,7 +155,8 @@ class Keycloak():
                 return 'Basic authentication not allowed, use Bearer token instead'
 
             try:
-                username, password = basicauth.decode(request.headers['Authorization'])
+                auth = request.headers['Authorization'].split(None, 1)[1].strip()
+                username, password = basicauth.decode(auth)
                 token_info = self._oidc_client.token(username=username, password=password)
                 token = token_info['access_token']
             except Exception as e:
@@ -167,10 +170,12 @@ class Keycloak():
                 return validity
 
             else:
-                g.oidc_id_token = g.oidc_token_info
+                g.oidc_id_token = g.oidc_token_info  # these seem to be synonyms
+                g.oidc_access_token = token
                 return self.get_user()
 
         else:
+            g.oidc_access_token = None
             return None
 
     def get_user(self, user_id: str = None, email: str = None) -> object:
@@ -184,8 +189,9 @@ class Keycloak():
 
         if user_id is None and g.oidc_id_token is not None and self._flask_oidc is not None:
             try:
-                return datamodel.User(token=g.oidc_id_token, **self._flask_oidc.user_getinfo([
-                    'email', 'firstName', 'lastName', 'username', 'createdTimestamp']))
+                user_data = self._flask_oidc.user_getinfo([
+                    'sub', 'email', 'name', 'given_name', 'family_name', 'sub'])
+                return datamodel.User(**user_data)
             except Exception as e:
                 # TODO logging
                 raise e
@@ -211,6 +217,10 @@ class Keycloak():
             self.__admin_client.realm_name = config.keycloak.realm_name
 
         return self.__admin_client
+
+    @property
+    def access_token(self):
+        return getattr(g, 'oidc_access_token', None)
 
 
 keycloak = Keycloak()

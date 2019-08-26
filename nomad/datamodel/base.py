@@ -30,14 +30,14 @@ class User:
             self, email, user_id=None, name=None, first_name='', last_name='', affiliation=None,
             created: datetime.datetime = None, token=None, **kwargs):
 
-        self.user_id = kwargs.get('id', user_id)
+        self.user_id = kwargs.get('id', kwargs.get('sub', user_id))
         self.email = email
 
         assert self.user_id is not None, 'Users must have a unique id'
         assert email is not None, 'Users must have an email'
 
-        self.first_name = kwargs.get('firstName', first_name)
-        self.last_name = kwargs.get('lastName', last_name)
+        self.first_name = kwargs.get('given_name', first_name)
+        self.last_name = kwargs.get('family_name', last_name)
         name = kwargs.get('username', name)
         created_timestamp = kwargs.get('createdTimestamp', None)
 
@@ -58,8 +58,6 @@ class User:
             self.created = datetime.datetime.fromtimestamp(created_timestamp)
         else:
             self.created = None
-
-        self.token = token
 
         # TODO affliation
 

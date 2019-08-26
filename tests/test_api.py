@@ -22,9 +22,10 @@ import inspect
 import datetime
 import os.path
 from urllib.parse import urlencode
+import base64
 
 from nomad.api.app import rfc3339DateTime
-from nomad.api.auth import generate_upload_token, verify_upload_token
+from nomad.api.auth import generate_upload_token
 from nomad import search, parsing, files, config, utils
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
@@ -46,9 +47,9 @@ def test_alive(client):
 
 @pytest.fixture(scope='function')
 def test_user_signature_token(client, test_user_auth):
-    rv = client.get('/auth/token', headers=test_user_auth)
+    rv = client.get('/auth/', headers=test_user_auth)
     assert rv.status_code == 200
-    return json.loads(rv.data)['token']
+    return json.loads(rv.data)['signature_token']
 
 
 def get_upload_with_metadata(upload: dict) -> UploadWithMetadata:
@@ -69,34 +70,48 @@ class TestInfo:
         assert rv.status_code == 200
 
 
-class TestAuth:
+class TestKeycloak:
     def test_auth_wo_credentials(self, client, keycloak, no_warn):
         rv = client.get('/auth/')
         assert rv.status_code == 401
 
-    def test_auth_with_token(self, client, test_user_auth, keycloak):
+    @pytest.fixture(scope='function')
+    def auth_headers(self, client, keycloak):
+        basic_auth = base64.standard_b64encode(b'sheldon.cooper@nomad-coe.eu:password')
+        rv = client.get('/auth/', headers=dict(Authorization='Basic %s' % basic_auth.decode('utf-8')))
+        assert rv.status_code == 200
+        auth = json.loads(rv.data)
+        assert 'access_token' in auth
+        assert auth['access_token'] is not None
+        return dict(Authorization='Bearer %s' % auth['access_token'])
+
+    def test_auth_with_password(self, client, auth_headers):
+        pass
+
+    def test_auth_with_access_token(self, client, auth_headers):
+        rv = client.get('/auth/', headers=auth_headers)
+        assert rv.status_code == 200
+
+
+class TestAuth:
+    def test_auth_wo_credentials(self, client, no_warn):
+        rv = client.get('/auth/')
+        assert rv.status_code == 401
+
+    def test_auth_with_token(self, client, test_user_auth):
         rv = client.get('/auth/', headers=test_user_auth)
         assert rv.status_code == 200
         self.assert_auth(client, json.loads(rv.data))
 
-    # def test_auth_with_password(self, client, test_user_auth, keycloak):
-    #     rv = client.get('/auth/', headers=test_user_auth)
-    #     assert rv.status_code == 200
-    #     self.assert_auth(client, json.loads(rv.data))
-
-    def test_upload_token(self, test_user):
-        token = generate_upload_token(test_user)
-        assert verify_upload_token(token) == test_user.user_id
-
-    def assert_auth(self, client, user):
+    def assert_auth(self, client, auth):
+        assert 'user' in auth
+        user = auth['user']
         for key in ['first_name', 'last_name', 'email', 'name', 'user_id']:
             assert key in user
 
-        # rv = client.get('/uploads/', headers={
-        #     'X-Token': user['token']
-        # })
-
-        # assert rv.status_code == 200
+        assert 'access_token' in auth
+        assert 'upload_token' in auth
+        assert 'signature_token' in auth
 
     def test_signature_token(self, test_user_signature_token, no_warn):
         assert test_user_signature_token is not None
