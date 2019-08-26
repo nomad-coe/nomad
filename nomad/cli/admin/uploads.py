@@ -77,16 +77,47 @@ def query_uploads(ctx, uploads):
 
 @uploads.command(help='List selected uploads')
 @click.argument('UPLOADS', nargs=-1)
+@click.option('-c', '--calculations', is_flag=True, help='Show details about calculations.')
+@click.option('--ids', is_flag=True, help='Only show a list of ids.')
+@click.option('--json', is_flag=True, help='Output a JSON array of ids.')
 @click.pass_context
-def ls(ctx, uploads):
+def ls(ctx, uploads, calculations, ids, json):
     _, uploads = query_uploads(ctx, uploads)
+
+    def row(upload):
+        row = [
+            upload.upload_id,
+            upload.name,
+            upload.user_id,
+            upload.process_status,
+            upload.tasks_status,
+            upload.published]
+
+        if calculations:
+            row += [
+                upload.total_calcs,
+                upload.failed_calcs,
+                upload.total_calcs - upload.processed_calcs]
+
+        return row
+
+    headers = ['id', 'name', 'user', 'process', 'tasks', 'published']
+    if calculations:
+        headers += ['calcs', 'failed', 'processing']
+
+    if ids:
+        for upload in uploads:
+            print(upload.upload_id)
+        return
+
+    if json:
+        print('[%s]' % ','.join(['"%s"' % upload.upload_id for upload in uploads]))
+        return
 
     print('%d uploads selected, showing no more than first 10' % uploads.count())
     print(tabulate(
-        [
-            [upload.upload_id, upload.name, upload.user_id, upload.process_status, upload.published]
-            for upload in uploads[:10]],
-        headers=['id', 'name', 'user', 'status', 'published']))
+        [row(upload) for upload in uploads[:10]],
+        headers=headers))
 
 
 @uploads.command(help='Change the owner of the upload and all its calcs.')
