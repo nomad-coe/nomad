@@ -194,13 +194,10 @@ test_users = {
 
 
 class KeycloakMock:
-    def configure_flask(self, *args, **kwargs):
-        pass
-
     def authorize_flask(self, *args, **kwargs):
         if 'Authorization' in request.headers and request.headers['Authorization'].startswith('Bearer '):
             user_id = request.headers['Authorization'].split(None, 1)[1].strip()
-            g.oidc_id_token = user_id
+            g.oidc_access_token = user_id
             return User(**test_users[user_id])
 
     def get_user(self, user_id=None, email=None):
@@ -216,7 +213,7 @@ class KeycloakMock:
 
     @property
     def access_token(self):
-        return g.oidc_id_token
+        return g.oidc_access_token
 
 
 _keycloak = infrastructure.keycloak

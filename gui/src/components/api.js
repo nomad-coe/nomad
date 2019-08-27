@@ -1,14 +1,14 @@
 import React from 'react'
-import PropTypes, { instanceOf } from 'prop-types'
+import PropTypes from 'prop-types'
 import { withErrors } from './errors'
 import { UploadRequest } from '@navjobs/upload'
 import Swagger from 'swagger-client'
 import { apiBase } from '../config'
 import { Typography, withStyles, Link } from '@material-ui/core'
 import LoginLogout from './LoginLogout'
-import { Cookies, withCookies } from 'react-cookie'
 import { compose } from 'recompose'
 import MetaInfoRepository from './MetaInfoRepository'
+import { withKeycloak } from 'react-keycloak'
 
 const ApiContext = React.createContext()
 
@@ -66,7 +66,7 @@ class Upload {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/gzip',
-              ...this.api.auth_headers
+              ...this.api.authHeaders
             }
           },
           files: [file],
@@ -143,20 +143,13 @@ function handleApiError(e) {
 }
 
 class Api {
-  static async createSwaggerClient(userNameToken, password) {
+  static async createSwaggerClient(accessToken) {
     let data
-    if (userNameToken) {
+    if (accessToken) {
       let auth = {
-        'X-Token': userNameToken
+        'OpenIDConnect Bearer Token': `Bearer ${accessToken}`
       }
-      if (password) {
-        auth = {
-          'HTTP Basic': {
-            username: userNameToken,
-            password: password
-          }
-        }
-      }
+
       data = {authorizations: auth}
     }
 
@@ -167,15 +160,14 @@ class Api {
     }
   }
 
-  constructor(user) {
+  constructor(accessToken) {
     this.onStartLoading = () => null
     this.onFinishLoading = () => null
 
-    user = user || {}
-    this.auth_headers = {
-      'X-Token': user.token
+    this.authHeaders = {
+      'Authentication': `Bearer ${accessToken}`
     }
-    this.swaggerPromise = Api.createSwaggerClient(user.token).catch(handleApiError)
+    this.swaggerPromise = Api.createSwaggerClient(accessToken).catch(handleApiError)
 
     // keep a list of localUploads, these are uploads that are currently uploaded through
     // the browser and that therefore not yet returned by the backend
@@ -395,21 +387,37 @@ export class ApiProviderComponent extends React.Component {
       PropTypes.arrayOf(PropTypes.node),
       PropTypes.node
     ]).isRequired,
-    cookies: instanceOf(Cookies).isRequired,
-    raiseError: PropTypes.func.isRequired
+    raiseError: PropTypes.func.isRequired,
+    keycloak: PropTypes.object.isRequired,
+    keycloakInitialized: PropTypes.bool
   }
 
-  componentDidMount(props) {
-    const token = this.props.cookies.get('token')
-    if (token && token !== 'undefined') {
-      this.state.login(token)
-    } else {
-      this.setState({api: this.createApi()})
+  update() {
+    const { keycloak } = this.props
+    this.setState({api: this.createApi(keycloak.token)})
+    if (keycloak.token) {
+      keycloak.loadUserInfo()
+        .success(user => {
+          this.setState({user: user})
+        })
+        .error(error => {
+          this.props.raiseError(error)
+        })
     }
   }
 
-  createApi(user) {
-    const api = new Api(user)
+  componentDidMount() {
+    this.update()
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.props.keycloakInitialized !== prevProps.keycloakInitialized) {
+      this.update()
+    }
+  }
+
+  createApi(accessToken) {
+    const api = new Api(accessToken)
     api.onStartLoading = (name) => {
       this.setState(state => ({loading: state.loading + 1}))
     }
@@ -428,50 +436,8 @@ export class ApiProviderComponent extends React.Component {
 
   state = {
     api: null,
-    user: null,
     info: null,
-    isLoggingIn: false,
-    loading: 0,
-    login: (userNameToken, password, successCallback) => {
-      this.setState({isLoggingIn: true})
-      successCallback = successCallback || (() => true)
-      Api.createSwaggerClient(userNameToken, password)
-        .then(client => {
-          client.apis.auth.get_user()
-            .catch(error => {
-              if (error.response && error.response.status !== 401) {
-                throw error
-              }
-            })
-            .then(response => {
-              if (response) {
-                const user = response.body
-                this.setState({api: this.createApi(user), isLoggingIn: false, user: user})
-                this.props.cookies.set('token', user.token)
-                successCallback(true)
-              } else {
-                this.setState({api: this.createApi(), isLoggingIn: false, user: null})
-                successCallback(false)
-              }
-            })
-            .catch(error => {
-              try {
-                this.props.raiseError(error)
-              } catch (e) {
-                this.setState({api: this.createApi(), isLoggingIn: false, user: null})
-                this.props.raiseError(error)
-              }
-            })
-        })
-        .catch(error => {
-          this.setState({api: this.createApi(), isLoggingIn: false, user: null})
-          this.props.raiseError(error)
-        })
-    },
-    logout: () => {
-      this.setState({api: this.createApi(), user: null})
-      this.props.cookies.set('token', undefined)
-    }
+    loading: 0
   }
 
   render() {
@@ -487,9 +453,7 @@ export class ApiProviderComponent extends React.Component {
 class LoginRequiredUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    message: PropTypes.string,
-    isLoggingIn: PropTypes.bool,
-    onLoggedIn: PropTypes.func
+    message: PropTypes.string
   }
 
   static styles = theme => ({
@@ -504,7 +468,7 @@ class LoginRequiredUnstyled extends React.Component {
   })
 
   render() {
-    const {classes, isLoggingIn, onLoggedIn, message} = this.props
+    const {classes, message} = this.props
 
     let loginMessage = ''
     if (message) {
@@ -516,7 +480,7 @@ class LoginRequiredUnstyled extends React.Component {
     return (
       <div className={classes.root}>
         {loginMessage}
-        <LoginLogout onLoggedIn={onLoggedIn} variant="outlined" color="primary" isLoggingIn={isLoggingIn}/>
+        <LoginLogout variant="outlined" color="primary" />
       </div>
     )
   }
@@ -537,7 +501,7 @@ DisableOnLoading.propTypes = {
   children: PropTypes.any.isRequired
 }
 
-export const ApiProvider = compose(withCookies, withErrors)(ApiProviderComponent)
+export const ApiProvider = compose(withKeycloak, withErrors)(ApiProviderComponent)
 
 const LoginRequired = withStyles(LoginRequiredUnstyled.styles)(LoginRequiredUnstyled)
 
@@ -549,7 +513,6 @@ class WithApiComponent extends React.Component {
     loginMessage: PropTypes.string,
     api: PropTypes.object,
     user: PropTypes.object,
-    isLoggingIn: PropTypes.bool,
     Component: PropTypes.any
   }
 
@@ -586,10 +549,10 @@ class WithApiComponent extends React.Component {
 
   render() {
     const { raiseError, loginRequired, loginMessage, Component, ...rest } = this.props
-    const { api, user, isLoggingIn } = rest
+    const { api, keycloak } = rest
     const { notAuthorized } = this.state
     if (notAuthorized) {
-      if (user) {
+      if (keycloak.authenticated) {
         return (
           <div>
             <Typography variant="h6">Not Authorized</Typography>
@@ -602,19 +565,15 @@ class WithApiComponent extends React.Component {
         )
       } else {
         return (
-          <LoginRequired
-            message="You need to be logged in to access this information."
-            isLoggingIn={isLoggingIn}
-            onLoggedIn={() => this.setState({notAuthorized: false})}
-          />
+          <LoginRequired message="You need to be logged in to access this information." />
         )
       }
     } else {
       if (api) {
-        if (user || !loginRequired) {
+        if (keycloak.authenticated || !loginRequired) {
           return <Component {...rest} raiseError={this.raiseError} />
         } else {
-          return <LoginRequired message={loginMessage} isLoggingIn={isLoggingIn} />
+          return <LoginRequired message={loginMessage} />
         }
       } else {
         return ''
@@ -623,12 +582,14 @@ class WithApiComponent extends React.Component {
   }
 }
 
+const WithKeycloakWithApiCompnent = withKeycloak(WithApiComponent)
+
 export function withApi(loginRequired, showErrorPage, loginMessage) {
   return function(Component) {
     return withErrors(props => (
       <ApiContext.Consumer>
         {apiContext => (
-          <WithApiComponent
+          <WithKeycloakWithApiCompnent
             loginRequired={loginRequired}
             loginMessage={loginMessage}
             showErrorPage={showErrorPage}

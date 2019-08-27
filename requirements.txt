@@ -38,7 +38,7 @@ bcrypt
 filelock
 ujson
 bravado
-PyJWT
+pyjwt[crypto]
 jsonschema[format]
 python-magic
 runstats
@@ -47,7 +47,6 @@ tabulate
 cachetools
 zipfile37
 python-keycloak
-Flask-OIDC
 basicauth
 
 # dev/ops related

@@ -229,12 +229,16 @@ class AuthResource(Resource):
                 dict(user=g.user.user_id, exp=expires_at),
                 config.services.api_secret, 'HS256').decode('utf-8')
 
-        return {
-            'user': g.user,
-            'upload_token': generate_upload_token(g.user),
-            'signature_token': signature_token(),
-            'access_token': infrastructure.keycloak.access_token
-        }
+        try:
+            return {
+                'user': infrastructure.keycloak.get_user(g.user.user_id),
+                'upload_token': generate_upload_token(g.user),
+                'signature_token': signature_token(),
+                'access_token': infrastructure.keycloak.access_token
+            }
+
+        except KeyError:
+            abort(401, 'The authenticated user does not exist')
 
 
 def with_signature_token(func):

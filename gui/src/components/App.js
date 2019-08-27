@@ -161,9 +161,6 @@ class NavigationUnstyled extends React.Component {
     barButton: {
       borderColor: theme.palette.getContrastText(theme.palette.primary.main),
       marginRight: 0
-    },
-    barButtonDisabled: {
-      marginRight: 0
     }
   })
 
@@ -230,7 +227,7 @@ class NavigationUnstyled extends React.Component {
                   {help ? <HelpDialog color="inherit" maxWidth="md" classes={{root: classes.helpButton}} {...help}/> : ''}
                 </div>
                 <div className={classes.barActions}>
-                  <LoginLogout variant="outlined" color="inherit" classes={{button: classes.barButton, buttonDisabled: classes.barButtonDisabled}} />
+                  <LoginLogout variant="outlined" color="inherit" classes={{button: classes.barButton}} />
                 </div>
               </Toolbar>
               {loading ? <LinearProgress color="primary" /> : ''}

@@ -27,7 +27,7 @@ from datetime import datetime
 import pytz
 import random
 
-from nomad import config, utils, infrastructure
+from nomad import config, utils
 
 base_path = config.services.api_base_path
 """ Provides the root path of the nomad APIs. """
@@ -69,8 +69,6 @@ def api_base_path_response(env, resp):
 
 app.wsgi_app = DispatcherMiddleware(  # type: ignore
     api_base_path_response, {config.services.api_base_path: app.wsgi_app})
-
-infrastructure.keycloak.configure_flask(app)
 
 CORS(app)
 

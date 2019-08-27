@@ -24,7 +24,7 @@ const keycloak = Keycloak({
 })
 
 ReactDOM.render(
-  <KeycloakProvider keycloak={keycloak} initConfig={{onLoad: 'check-sso'}} >
+  <KeycloakProvider keycloak={keycloak} initConfig={{onLoad: 'check-sso'}} LoadingComponent={<div />}>
     <Router history={sendTrackingData ? matomo.connectToHistory(history) : history}>
       <App />
     </Router>

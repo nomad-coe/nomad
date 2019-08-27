@@ -19,7 +19,6 @@ is run once for each *api* and *worker* process. Individual functions for partia
 exist to facilitate testing, :py:mod:`nomad.migration`, aspects of :py:mod:`nomad.cli`, etc.
 """
 
-from typing import Union
 import os.path
 import shutil
 from elasticsearch.exceptions import RequestError
@@ -28,10 +27,11 @@ from mongoengine import connect
 import smtplib
 from email.mime.text import MIMEText
 from keycloak import KeycloakOpenID, KeycloakAdmin
-from flask_oidc import OpenIDConnect
 import json
+import jwt
 from flask import g, request
 import basicauth
+from datetime import datetime
 
 from nomad import config, utils
 
@@ -108,32 +108,9 @@ class Keycloak():
     configuration
     """
     def __init__(self):
-        self._flask_oidc = None
         self.__oidc_client = None
         self.__admin_client = None
-
-    def configure_flask(self, app):
-        oidc_issuer_url = '%s/realms/%s' % (config.keycloak.server_url.rstrip('/'), config.keycloak.realm_name)
-        oidc_client_secrets = dict(
-            client_id=config.keycloak.client_id,
-            client_secret=config.keycloak.client_secret_key,
-            issuer=oidc_issuer_url,
-            auth_uri='%s/protocol/openid-connect/auth' % oidc_issuer_url,
-            token_uri='%s/protocol/openid-connect/token' % oidc_issuer_url,
-            userinfo_uri='%s/protocol/openid-connect/userinfo' % oidc_issuer_url,
-            token_introspection_uri='%s/protocol/openid-connect/token/introspect' % oidc_issuer_url,
-            redirect_uris=['http://localhost/fairdi/nomad/latest'])
-        oidc_client_secrets_file = os.path.join(config.fs.tmp, 'oidc_client_secrets')
-        with open(oidc_client_secrets_file, 'wt') as f:
-            json.dump(dict(web=oidc_client_secrets), f)
-        app.config.update(dict(
-            SECRET_KEY=config.services.api_secret,
-            OIDC_RESOURCE_SERVER_ONLY=True,
-            OIDC_USER_INFO_ENABLED=False,
-            OIDC_CLIENT_SECRETS=oidc_client_secrets_file,
-            OIDC_OPENID_REALM=config.keycloak.realm_name))
-
-        self._flask_oidc = OpenIDConnect(app)
+        self.__public_keys = None
 
     @property
     def _oidc_client(self):
@@ -146,10 +123,36 @@ class Keycloak():
 
         return self.__oidc_client
 
-    def authorize_flask(self, basic: bool = True) -> Union[str, object]:
-        token = None
+    @property
+    def _public_keys(self):
+        if self.__public_keys is None:
+            try:
+                jwks = self._oidc_client.certs()
+                self.__public_keys = {}
+                for jwk in jwks['keys']:
+                    kid = jwk['kid']
+                    self.__public_keys[kid] = jwt.algorithms.RSAAlgorithm.from_jwk(
+                        json.dumps(jwk))
+            except Exception as e:
+                self.__public_keys = None
+                raise e
+
+        return self.__public_keys
+
+    def authorize_flask(self, basic: bool = True) -> str:
+        """
+        Authorizes the current flask request with keycloak. Uses either Bearer or Basic
+        authentication, depending on available headers in the request. Bearer auth is
+        basically offline (besides retrieving and caching keycloaks public key for signature
+        validation). Basic auth causes authentication agains keycloak with each request.
+
+        Will set ``g.user``, either with None or user data from the respective OIDC token.
+
+        Returns: An error message or None
+        """
+        g.oidc_access_token = None
         if 'Authorization' in request.headers and request.headers['Authorization'].startswith('Bearer '):
-            token = request.headers['Authorization'].split(None, 1)[1].strip()
+            g.oidc_access_token = request.headers['Authorization'].split(None, 1)[1].strip()
         elif 'Authorization' in request.headers and request.headers['Authorization'].startswith('Basic '):
             if not basic:
                 return 'Basic authentication not allowed, use Bearer token instead'
@@ -158,52 +161,84 @@ class Keycloak():
                 auth = request.headers['Authorization'].split(None, 1)[1].strip()
                 username, password = basicauth.decode(auth)
                 token_info = self._oidc_client.token(username=username, password=password)
-                token = token_info['access_token']
+                g.oidc_access_token = token_info['access_token']
             except Exception as e:
                 # TODO logging
                 return 'Could not authenticate Basic auth: %s' % str(e)
 
-        if token is not None:
-            validity = self._flask_oidc.validate_token(token)
+        if g.oidc_access_token is not None:
+            auth_error: str = None
+            try:
+                kid = jwt.get_unverified_header(g.oidc_access_token)['kid']
+                key = self._public_keys[kid]
+                options = dict(verify_aud=False, verify_exp=True, verify_iss=True)
+                payload = jwt.decode(
+                    g.oidc_access_token, key=key, algorithms=['RS256'], options=options,
+                    issuer=config.keycloak.issuer_url)
 
-            if validity is not True:
-                return validity
+            except jwt.InvalidTokenError as e:
+                auth_error = str(e)
+            except Exception as e:
+                logger.error('Could not verify JWT token', exc_info=e)
+                raise e
+
+            if auth_error is not None:
+                g.user = None
+                return auth_error
 
             else:
-                g.oidc_id_token = g.oidc_token_info  # these seem to be synonyms
-                g.oidc_access_token = token
-                return self.get_user()
+                from nomad import datamodel
+                g.user = datamodel.User(
+                    user_id=payload.get('sub', None),
+                    name=payload.get('name', None),
+                    email=payload.get('email', None),
+                    first_name=payload.get('given_name', None),
+                    family_name=payload.get('family_name', None))
+
+                return None
 
         else:
-            g.oidc_access_token = None
+            g.user = None
+            # Do not return an error. This is the case were there are no credentials
             return None
 
-    def get_user(self, user_id: str = None, email: str = None) -> object:
+    def get_user(self, user_id: str = None, email: str = None, user=None) -> object:
+        """
+        Retrives all available information about a user from the keycloak admin
+        interface. This must be used to retrieve complete user information, because
+        the info solely gathered from tokens (i.e. for the authenticated user ``g.user``)
+        is generally incomplete.
+        """
         from nomad import datamodel
 
-        if email is not None:
+        if user is not None and user_id is None:
+            user_id = user.user_id
+
+        if email is not None and user_id is None:
             try:
                 user_id = self._admin_client.get_user_id(email)
             except Exception:
                 raise KeyError('User does not exist')
 
-        if user_id is None and g.oidc_id_token is not None and self._flask_oidc is not None:
-            try:
-                user_data = self._flask_oidc.user_getinfo([
-                    'sub', 'email', 'name', 'given_name', 'family_name', 'sub'])
-                return datamodel.User(**user_data)
-            except Exception as e:
-                # TODO logging
-                raise e
-
         assert user_id is not None, 'Could not determine user from given kwargs'
 
         try:
             keycloak_user = self._admin_client.get_user(user_id)
-        except Exception:
-            raise KeyError('User does not exist')
 
-        return datamodel.User(**keycloak_user)
+        except Exception as e:
+            if str(getattr(e, 'response_code', 404)) == '404':
+                raise KeyError('User does not exist')
+
+            logger.error('Could not retrieve user from keycloak', exc_info=e)
+            raise e
+
+        return datamodel.User(
+            user_id=keycloak_user['id'],
+            email=keycloak_user['email'],
+            name=keycloak_user.get('username', None),
+            first_name=keycloak_user.get('firstName', None),
+            family_name=keycloak_user.get('lastName', None),
+            created=datetime.fromtimestamp(keycloak_user['createdTimestamp'] / 1000))
 
     @property
     def _admin_client(self):
