@@ -145,39 +145,47 @@ function handleApiError(e) {
 
 class Api {
   swagger() {
-    const self = this
-    return new Promise((resolve, reject) => {
-      self.keycloak.updateToken()
-        .success(() => {
-          self._swaggerClient
-            .then(swaggerClient => {
-              swaggerClient.authorizations = {
-                'OpenIDConnect Bearer Token': `Bearer ${self.keycloak.token}`
-              }
-              resolve(swaggerClient)
-            })
-            .catch(() => {
-              reject(new ApiError())
-            })
-        })
-        .error(() => {
-          reject(new ApiError())
-        })
-    })
+    if (this.keycloak.token) {
+      const self = this
+      return new Promise((resolve, reject) => {
+        self.keycloak.updateToken()
+          .success(() => {
+            self._swaggerClient
+              .then(swaggerClient => {
+                swaggerClient.authorizations = {
+                  'OpenIDConnect Bearer Token': `Bearer ${self.keycloak.token}`
+                }
+                resolve(swaggerClient)
+              })
+              .catch(() => {
+                reject(new ApiError())
+              })
+          })
+          .error(() => {
+            reject(new ApiError())
+          })
+      })
+    } else {
+      return this._swaggerClient
+    }
   }
 
   authHeaders() {
-    return new Promise((resolve, reject) => {
-      this.keycloak.updateToken()
-        .success(() => {
-          resolve({
-            'Authorization': `Bearer ${this.keycloak.token}`
+    if (this.keycloak.token) {
+      return new Promise((resolve, reject) => {
+        this.keycloak.updateToken()
+          .success(() => {
+            resolve({
+              'Authorization': `Bearer ${this.keycloak.token}`
+            })
           })
-        })
-        .error(() => {
-          reject(new ApiError())
-        })
-    })
+          .error(() => {
+            reject(new ApiError())
+          })
+      })
+    } else {
+      return {}
+    }
   }
 
   constructor(keycloak) {
