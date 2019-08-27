@@ -3,8 +3,9 @@ import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
 import Typography from '@material-ui/core/Typography'
 import { compose } from 'recompose'
-import { Button } from '@material-ui/core'
+import { Button, Link } from '@material-ui/core'
 import { withApi } from './api'
+import { keycloakBase } from '../config'
 
 class LoginLogout extends React.Component {
   static propTypes = {
@@ -23,6 +24,10 @@ class LoginLogout extends React.Component {
         marginRight: theme.spacing.unit * 2
       }
     },
+    link: {
+      color: 'white',
+      textDecoration: 'underline'
+    },
     button: {} // to allow overrides
   })
 
@@ -33,10 +38,14 @@ class LoginLogout extends React.Component {
       return (
         <div className={classes.root}>
           <Typography color="inherit" variant="body1">
-            Welcome { user ? user.name : '...' }
+            Welcome <Link
+              className={classes.link}
+              href={`${keycloakBase}/account/`}>
+              { user ? user.name : '...' }
+            </Link>
           </Typography>
           <Button
-            className={classes.button}
+            className={classes.button} style={{marginLeft: 8}}
             variant={variant} color={color}
             onClick={() => keycloak.logout()}
           >Logout</Button>
@@ -47,7 +56,7 @@ class LoginLogout extends React.Component {
         <div className={classes.root}>
           <Button
             className={classes.button} variant={variant} color={color} onClick={() => keycloak.login()}
-          >Login</Button>
+          >Login / Register</Button>
         </div>
       )
     }
