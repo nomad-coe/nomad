@@ -26,7 +26,7 @@ import base64
 
 from nomad.api.app import rfc3339DateTime
 from nomad.api.auth import generate_upload_token
-from nomad import search, parsing, files, config, utils
+from nomad import search, parsing, files, config, utils, infrastructure
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
 from nomad.datamodel import UploadWithMetadata, CalcWithMetadata, User
@@ -92,6 +92,16 @@ class TestKeycloak:
         rv = client.get('/auth/', headers=auth_headers)
         assert rv.status_code == 200
 
+    def test_get_user(self, keycloak):
+        user = infrastructure.keycloak.get_user(email='sheldon.cooper@nomad-coe.eu')
+        assert user.email is not None
+        assert user.name == 'Sheldon Cooper'
+        assert user.first_name == 'Sheldon'
+        assert user.last_name == 'Cooper'
+        assert user.created is not None
+        assert user.affiliation is not None
+        assert user.affiliation_address is not None
+
 
 class TestAuth:
     def test_auth_wo_credentials(self, client, no_warn):
@@ -104,11 +114,7 @@ class TestAuth:
         self.assert_auth(client, json.loads(rv.data))
 
     def assert_auth(self, client, auth):
-        assert 'user' in auth
-        user = auth['user']
-        for key in ['first_name', 'last_name', 'email', 'name', 'user_id']:
-            assert key in user
-
+        assert 'user' not in auth
         assert 'access_token' in auth
         assert 'upload_token' in auth
         assert 'signature_token' in auth
@@ -241,12 +247,12 @@ class TestUploads:
         rv = client.get('/uploads/123456789012123456789012', headers=test_user_auth)
         assert rv.status_code == 404
 
-    def test_put_upload_token(self, client, non_empty_example_upload, test_user, no_warn):
+    def test_put_upload_token(self, client, non_empty_example_upload, test_user):
         url = '/uploads/?token=%s&local_path=%s&name=test_upload' % (
             generate_upload_token(test_user), non_empty_example_upload)
         rv = client.put(url)
         assert rv.status_code == 200
-        self.assert_upload(rv.data, name='test_upload')
+        assert 'Thanks for uploading' in rv.data.decode('utf-8')
 
     @pytest.mark.parametrize('mode', ['multipart', 'stream', 'local_path'])
     @pytest.mark.parametrize('name', [None, 'test_name'])
@@ -692,7 +698,7 @@ class TestRepo():
         (1, 'only_atoms', ['Br', 'K', 'Si']),
         (1, 'only_atoms', ['Br', 'Si', 'K']),
         (1, 'comment', 'specific'),
-        (1, 'authors', 'Hofstadter, Leonard'),
+        (1, 'authors', 'Leonard Hofstadter'),
         (2, 'files', 'test/mainfile.txt'),
         (2, 'paths', 'mainfile.txt'),
         (2, 'paths', 'test'),
@@ -819,7 +825,7 @@ class TestRepo():
         (0, 'system', 'atom'),
         (1, 'atoms', 'Br'),
         (1, 'atoms', 'Fe'),
-        (1, 'authors', 'Hofstadter, Leonard'),
+        (1, 'authors', 'Leonard Hofstadter'),
         (2, 'files', 'test/mainfile.txt'),
         (0, 'quantities', 'dos')
     ])
@@ -969,7 +975,7 @@ class TestRaw(UploadFilesBasedTests):
 
     @pytest.mark.parametrize('query_params', [
         {'atoms': 'Si'},
-        {'authors': 'Cooper, Sheldon'}
+        {'authors': 'Sheldon Cooper'}
     ])
     def test_raw_files_from_query(self, client, processeds, test_user_auth, query_params):
 

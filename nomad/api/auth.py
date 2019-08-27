@@ -41,7 +41,7 @@ import uuid
 
 from nomad import config, processing, utils, infrastructure, datamodel
 
-from .app import api, RFC3339DateTime
+from .app import api
 
 
 # Authentication scheme definitions, for swagger
@@ -129,7 +129,7 @@ def authenticate(
                 if token is not None:
                     try:
                         decoded = jwt.decode(token, config.services.api_secret, algorithms=['HS256'])
-                        user = datamodel.User.get(decoded['user'])
+                        user = datamodel.User(user_id=decoded['user'], email=None)
                         if user is None:
                             abort(401, 'User for the given signature does not exist')
                         else:
@@ -144,12 +144,10 @@ def authenticate(
             elif 'token' in request.args:
                 abort(401, 'Queram param token not supported for this endpoint')
 
-            user_or_error = infrastructure.keycloak.authorize_flask(basic=basic)
-            if user_or_error is not None:
-                if isinstance(user_or_error, datamodel.User):
-                    g.user = user_or_error
-                else:
-                    abort(401, message=user_or_error)
+            else:
+                error = infrastructure.keycloak.authorize_flask(basic=basic)
+                if error is not None:
+                    abort(401, message=error)
 
             if required and g.user is None:
                 abort(401, message='Authentication is required for this endpoint')
@@ -180,24 +178,7 @@ ns = api.namespace(
     description='Authentication related endpoints.')
 
 
-user_model = api.model('User', {
-    'user_id': fields.String(description='The users UUID.'),
-    'name': fields.String('The publically visible user name.'),
-    'first_name': fields.String(description='The user\'s first name'),
-    'last_name': fields.String(description='The user\'s last name'),
-    'email': fields.String(description='Guess what, the user\'s email'),
-    'affiliation': fields.Nested(model=api.model('Affiliation', {
-        'name': fields.String(description='The name of the affiliation', default='not given'),
-        'address': fields.String(description='The address of the affiliation', default='not given')})),
-    'password': fields.String(description='The bcrypt 2y-indented password for initial and changed password'),
-    'token': fields.String(
-        description='The access token that authenticates the user with the API. '
-        'User the HTTP header "X-Token" to provide it in API requests.'),
-    'created': RFC3339DateTime(description='The create date for the user.')
-})
-
 auth_model = api.model('Auth', {
-    'user': fields.Nested(user_model, skip_none=True, description='The authenticated user info'),
     'access_token': fields.String(description='The OIDC access token'),
     'upload_token': fields.String(description='A short token for human readable upload URLs'),
     'signature_token': fields.String(description='A short term token to sign URLs')
@@ -211,13 +192,12 @@ class AuthResource(Resource):
     @authenticate(required=True, basic=True)
     def get(self):
         """
-        Provides user and authentication information. This endpoint requires authentification.
+        Provides authentication information. This endpoint requires authentification.
         Like all endpoints the OIDC access token based authentification. In additional,
         basic HTTP authentification can be used. This allows to login and acquire an
         access token.
 
-        The response contains information about the authentificated user; a
-        a short (10s) term JWT token that can be used to sign
+        The response contains a short (10s) term JWT token that can be used to sign
         URLs with a ``signature_token`` query parameter, e.g. for file downloads on the
         raw or archive api endpoints; a short ``upload_token`` that is used in
         ``curl`` command line based uploads; and the OIDC JWT access token.
@@ -231,7 +211,6 @@ class AuthResource(Resource):
 
         try:
             return {
-                'user': infrastructure.keycloak.get_user(g.user.user_id),
                 'upload_token': generate_upload_token(g.user),
                 'signature_token': signature_token(),
                 'access_token': infrastructure.keycloak.access_token

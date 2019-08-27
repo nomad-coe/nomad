@@ -319,7 +319,7 @@ class UploadListResource(Resource):
         upload.process_upload()
         logger.info('initiated processing')
 
-        if bool(request.args.get('curl', False)):
+        if bool(request.args.get('token', False)):
             raise DisableMarshalling(
                 '''
 Thanks for uploading your data to nomad.

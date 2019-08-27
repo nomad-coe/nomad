@@ -190,10 +190,10 @@ class Keycloak():
                 from nomad import datamodel
                 g.user = datamodel.User(
                     user_id=payload.get('sub', None),
-                    name=payload.get('name', None),
                     email=payload.get('email', None),
+                    name=payload.get('name', None),
                     first_name=payload.get('given_name', None),
-                    family_name=payload.get('family_name', None))
+                    last_name=payload.get('family_name', None))
 
                 return None
 
@@ -232,13 +232,15 @@ class Keycloak():
             logger.error('Could not retrieve user from keycloak', exc_info=e)
             raise e
 
+        kwargs = {key: value[0] for key, value in keycloak_user.get('attributes', {}).items()}
         return datamodel.User(
             user_id=keycloak_user['id'],
             email=keycloak_user['email'],
             name=keycloak_user.get('username', None),
             first_name=keycloak_user.get('firstName', None),
-            family_name=keycloak_user.get('lastName', None),
-            created=datetime.fromtimestamp(keycloak_user['createdTimestamp'] / 1000))
+            last_name=keycloak_user.get('lastName', None),
+            created=datetime.fromtimestamp(keycloak_user['createdTimestamp'] / 1000),
+            **kwargs)
 
     @property
     def _admin_client(self):

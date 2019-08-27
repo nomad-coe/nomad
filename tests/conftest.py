@@ -198,7 +198,7 @@ class KeycloakMock:
         if 'Authorization' in request.headers and request.headers['Authorization'].startswith('Bearer '):
             user_id = request.headers['Authorization'].split(None, 1)[1].strip()
             g.oidc_access_token = user_id
-            return User(**test_users[user_id])
+            g.user = User(**test_users[user_id])
 
     def get_user(self, user_id=None, email=None):
         if user_id is not None:

@@ -27,39 +27,32 @@ class User:
     # TODO legacy ids
     """
     def __init__(
-            self, email, user_id=None, name=None, first_name='', last_name='', affiliation=None,
-            created: datetime.datetime = None, token=None, **kwargs):
+            self, user_id: str, email: str, name: str = None, first_name: str = None,
+            last_name: str = None, affiliation: str = None, affiliation_address: str = None,
+            created: datetime.datetime = None):
 
-        self.user_id = kwargs.get('id', kwargs.get('sub', user_id))
+        assert user_id is not None, 'Users must have a unique id'
+
+        name = '' if name is None else name.strip()
+        self.first_name = '' if first_name is None else first_name.strip()
+        self.last_name = '' if last_name is None else last_name.strip()
+
+        self.user_id = user_id
         self.email = email
-
-        assert self.user_id is not None, 'Users must have a unique id'
-        assert email is not None, 'Users must have an email'
-
-        self.first_name = kwargs.get('given_name', first_name)
-        self.last_name = kwargs.get('family_name', last_name)
-        name = kwargs.get('username', name)
-        created_timestamp = kwargs.get('createdTimestamp', None)
-
         if len(self.last_name) > 0 and len(self.first_name) > 0:
-            self.name = '%s, %s' % (self.last_name, self.first_name)
+            self.name = '%s %s' % (self.first_name, self.last_name)
+        elif len(name) != 0:
+            self.name = name
         elif len(self.last_name) != 0:
             self.name = self.last_name
         elif len(self.first_name) != 0:
             self.name = self.first_name
-        elif name is not None:
-            self.name = name
         else:
             self.name = 'unnamed user'
 
-        if created is not None:
-            self.created = None
-        elif created_timestamp is not None:
-            self.created = datetime.datetime.fromtimestamp(created_timestamp)
-        else:
-            self.created = None
-
-        # TODO affliation
+        self.created = created
+        self.affiliation = affiliation
+        self.affiliation_address = affiliation_address
 
     @staticmethod
     def get(*args, **kwargs) -> 'User':

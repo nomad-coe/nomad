@@ -59,6 +59,7 @@ class Upload {
 
   uploadFile(file) {
     const uploadFileWithProgress = async() => {
+      const authHeaders = await this.api.authHeaders()
       let uploadRequest = await UploadRequest(
         {
           request: {
@@ -66,7 +67,7 @@ class Upload {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/gzip',
-              ...this.api.authHeaders
+              ...authHeaders
             }
           },
           files: [file],
@@ -76,7 +77,7 @@ class Upload {
         }
       )
       if (uploadRequest.error) {
-        handleApiError(uploadRequest.error)
+        handleApiError(uploadRequest.response ? uploadRequest.response.message : uploadRequest.error)
       }
       if (uploadRequest.aborted) {
         throw Error('User abort')
@@ -95,7 +96,7 @@ class Upload {
       return new Promise(resolve => resolve(this))
     } else {
       if (this.upload_id) {
-        return this.api.swaggerPromise.then(client => client.apis.uploads.get_upload({
+        return this.api.swagger().then(client => client.apis.uploads.get_upload({
           upload_id: this.upload_id,
           page: page || 1,
           per_page: perPage || 5,
@@ -143,31 +144,48 @@ function handleApiError(e) {
 }
 
 class Api {
-  static async createSwaggerClient(accessToken) {
-    let data
-    if (accessToken) {
-      let auth = {
-        'OpenIDConnect Bearer Token': `Bearer ${accessToken}`
-      }
-
-      data = {authorizations: auth}
-    }
-
-    try {
-      return await Swagger(`${apiBase}/swagger.json`, data)
-    } catch (e) {
-      throw new ApiError()
-    }
+  swagger() {
+    const self = this
+    return new Promise((resolve, reject) => {
+      self.keycloak.updateToken()
+        .success(() => {
+          self._swaggerClient
+            .then(swaggerClient => {
+              swaggerClient.authorizations = {
+                'OpenIDConnect Bearer Token': `Bearer ${self.keycloak.token}`
+              }
+              resolve(swaggerClient)
+            })
+            .catch(() => {
+              reject(new ApiError())
+            })
+        })
+        .error(() => {
+          reject(new ApiError())
+        })
+    })
   }
 
-  constructor(accessToken) {
+  authHeaders() {
+    return new Promise((resolve, reject) => {
+      this.keycloak.updateToken()
+        .success(() => {
+          resolve({
+            'Authorization': `Bearer ${this.keycloak.token}`
+          })
+        })
+        .error(() => {
+          reject(new ApiError())
+        })
+    })
+  }
+
+  constructor(keycloak) {
     this.onStartLoading = () => null
     this.onFinishLoading = () => null
 
-    this.authHeaders = {
-      'Authentication': `Bearer ${accessToken}`
-    }
-    this.swaggerPromise = Api.createSwaggerClient(accessToken).catch(handleApiError)
+    this._swaggerClient = Swagger(`${apiBase}/swagger.json`)
+    this.keycloak = keycloak
 
     // keep a list of localUploads, these are uploads that are currently uploaded through
     // the browser and that therefore not yet returned by the backend
@@ -188,7 +206,7 @@ class Api {
 
   async getUnpublishedUploads() {
     this.onStartLoading()
-    return this.swaggerPromise
+    return this.swagger()
       .then(client => client.apis.uploads.get_uploads({state: 'unpublished', page: 1, per_page: 1000}))
       .catch(handleApiError)
       .then(response => ({
@@ -204,7 +222,7 @@ class Api {
 
   async getPublishedUploads(page, perPage) {
     this.onStartLoading()
-    return this.swaggerPromise
+    return this.swagger()
       .then(client => client.apis.uploads.get_uploads({state: 'published', page: page || 1, per_page: perPage || 10}))
       .catch(handleApiError)
       .then(response => ({
@@ -220,7 +238,7 @@ class Api {
 
   async archive(uploadId, calcId) {
     this.onStartLoading()
-    return this.swaggerPromise
+    return this.swagger()
       .then(client => client.apis.archive.get_archive_calc({
         upload_id: uploadId,
         calc_id: calcId
@@ -247,7 +265,7 @@ class Api {
 
   async calcProcLog(uploadId, calcId) {
     this.onStartLoading()
-    return this.swaggerPromise
+    return this.swagger()
       .then(client => client.apis.archive.get_archive_logs({
         upload_id: uploadId,
         calc_id: calcId
@@ -259,7 +277,7 @@ class Api {
 
   async getRawFileListFromCalc(uploadId, calcId) {
     this.onStartLoading()
-    return this.swaggerPromise
+    return this.swagger()
       .then(client => client.apis.raw.get_file_list_from_calc({
         upload_id: uploadId,
         calc_id: calcId,
@@ -272,7 +290,7 @@ class Api {
 
   async repo(uploadId, calcId) {
     this.onStartLoading()
-    return this.swaggerPromise
+    return this.swagger()
       .then(client => client.apis.repo.get_repo_calc({
         upload_id: uploadId,
         calc_id: calcId
@@ -284,7 +302,7 @@ class Api {
 
   async search(search) {
     this.onStartLoading()
-    return this.swaggerPromise
+    return this.swagger()
       .then(client => client.apis.repo.search(search))
       .catch(handleApiError)
       .then(response => response.body)
@@ -293,7 +311,7 @@ class Api {
 
   async deleteUpload(uploadId) {
     this.onStartLoading()
-    return this.swaggerPromise
+    return this.swagger()
       .then(client => client.apis.uploads.delete_upload({upload_id: uploadId}))
       .catch(handleApiError)
       .then(response => response.body)
@@ -302,7 +320,7 @@ class Api {
 
   async publishUpload(uploadId, withEmbargo) {
     this.onStartLoading()
-    return this.swaggerPromise
+    return this.swagger()
       .then(client => client.apis.uploads.exec_upload_operation({
         upload_id: uploadId,
         payload: {
@@ -319,10 +337,10 @@ class Api {
 
   async getSignatureToken() {
     this.onStartLoading()
-    return this.swaggerPromise
-      .then(client => client.apis.auth.get_token())
+    return this.swagger()
+      .then(client => client.apis.auth.get_auth())
       .catch(handleApiError)
-      .then(response => response.body)
+      .then(response => response.body.signature_token)
       .finally(this.onFinishLoading)
   }
 
@@ -339,7 +357,7 @@ class Api {
       this.onStartLoading()
       try {
         const loadMetaInfo = async(path) => {
-          return this.swaggerPromise
+          return this.swagger()
             .then(client => client.apis.archive.get_metainfo({metainfo_package_name: path}))
             .catch(handleApiError)
             .then(response => response.body)
@@ -360,7 +378,7 @@ class Api {
   async getInfo() {
     if (!this._cachedInfo) {
       this.onStartLoading()
-      this._cachedInfo = await this.swaggerPromise
+      this._cachedInfo = await this.swagger()
         .then(client => {
           return client.apis.info.get_info()
             .then(response => response.body)
@@ -373,7 +391,7 @@ class Api {
 
   async getUploadCommand() {
     this.onStartLoading()
-    return this.swaggerPromise
+    return this.swagger()
       .then(client => client.apis.uploads.get_upload_command())
       .catch(handleApiError)
       .then(response => response.body)
@@ -392,9 +410,18 @@ export class ApiProviderComponent extends React.Component {
     keycloakInitialized: PropTypes.bool
   }
 
+  constructor(props) {
+    super(props)
+    this.onToken = this.onToken.bind(this)
+  }
+
+  onToken(token) {
+    console.log(token)
+  }
+
   update() {
     const { keycloak } = this.props
-    this.setState({api: this.createApi(keycloak.token)})
+    this.setState({api: this.createApi(keycloak)})
     if (keycloak.token) {
       keycloak.loadUserInfo()
         .success(user => {
@@ -416,8 +443,8 @@ export class ApiProviderComponent extends React.Component {
     }
   }
 
-  createApi(accessToken) {
-    const api = new Api(accessToken)
+  createApi(keycloak) {
+    const api = new Api(keycloak)
     api.onStartLoading = (name) => {
       this.setState(state => ({loading: state.loading + 1}))
     }

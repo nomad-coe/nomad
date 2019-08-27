@@ -49,7 +49,7 @@ class Download extends React.Component {
             fullUrl = `${window.location.origin}${fullUrl}`
           }
           const downloadUrl = new URL(fullUrl)
-          downloadUrl.searchParams.append('token', result.token)
+          downloadUrl.searchParams.append('signature_token', result)
           FileSaver.saveAs(downloadUrl.href, fileName)
           this.setState({preparingDownload: false})
         })
