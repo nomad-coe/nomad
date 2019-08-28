@@ -40,7 +40,7 @@ class LoginLogout extends React.Component {
           <Typography color="inherit" variant="body1">
             Welcome <Link
               className={classes.link}
-              href={`${keycloakBase}/realms/${keycloakRealm}/account/`}>
+              href={`${keycloakBase.replace(/\/$/, '')}/realms/${keycloakRealm}/account/`}>
               { user ? user.name : '...' }
             </Link>
           </Typography>
