@@ -1,3 +1,6 @@
+services:
+  apiSecret: 'nomad-keycloak-prod-api-secret'
+
 proxy:
   nodePort: 30013
   external:

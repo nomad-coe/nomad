@@ -1,14 +1,14 @@
 images.nomad.tag: "stable"
 images.frontend.tag: "stable"
 
+services:
+  apiSecret: 'nomad-keycloak-prod-api-secret'
+
 proxy:
   nodePort: 30012
   external:
     host: "repository.nomad-coe.eu"
     path: "/uploads"
-
-api:
-  adminPasswordSecret: 'nomad-production-repository-password'
 
 worker:
   replicas: 1

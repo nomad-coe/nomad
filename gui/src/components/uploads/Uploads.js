@@ -248,12 +248,17 @@ class Uploads extends React.Component {
     this.update()
   }
 
-  onDrop(files) {
-    files.forEach(file => {
+  onDrop(files, rejectedFiles) {
+    const upload = file => {
       const upload = this.props.api.createUpload(file.name)
       this.setState({unpublishedUploads: [...this.state.unpublishedUploads, upload]})
       upload.uploadFile(file).catch(this.props.raiseError)
-    })
+    }
+
+    files.forEach(upload)
+    rejectedFiles
+      .filter(file => file.name.match(/(\.zip)|(\.bz)|(\.tgz)|(\.gz)|(\.bz2)$/i))
+      .forEach(upload)
   }
 
   onSelectionChanged(upload, checked) {
@@ -391,9 +396,19 @@ class Uploads extends React.Component {
         <Paper className={classes.dropzoneContainer}>
           <Dropzone
             accept={[
-              'application/zip', 'application/gzip', 'application/bz2', 'application/x-gzip',
-              'application/x-bz2', 'application/x-gtar', 'application/x-tgz', 'application/tar+gzip',
-              'application/x-tar', 'application/tar+bz2']}
+              'application/zip',
+              'application/gzip',
+              'application/bz2',
+              'application/x-gzip',
+              'application/x-bz2',
+              'application/x-gtar',
+              'application/x-tgz',
+              'application/tar+gzip',
+              'application/x-tar',
+              'application/tar+bz2',
+              'application/x-zip-compressed',
+              'application/x-compressed',
+              'application/x-zip']}
             className={classes.dropzone}
             activeClassName={classes.dropzoneAccept}
             rejectClassName={classes.dropzoneReject}

@@ -836,7 +836,7 @@ class Upload(Proc):
         base = config.api_url()[:-3]
         if base.endswith('/'):
             base = base[:-1]
-        return '%s/uploads/' % base
+        return '%s/gui/uploads/' % base
 
     def _cleanup_after_processing(self):
         # send email about process finish

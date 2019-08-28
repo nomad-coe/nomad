@@ -10,8 +10,8 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - port: {{ .Values.api.port }}
-      targetPort: {{ .Values.api.port }}
+    - port: 8000
+      targetPort: 8000
       protocol: TCP
       name: http
   selector:

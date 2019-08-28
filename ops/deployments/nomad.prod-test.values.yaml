@@ -1,11 +1,11 @@
+services:
+  apiSecret: 'nomad-keycloak-prod-api-secret'
+
 proxy:
   nodePort: 30014
   external:
     host: "labdev-nomad.esc.rzg.mpg.de"
     path: "/fairdi/nomad/prod-test"
-
-api:
-  adminPasswordSecret: 'nomad-production-repository-password'
 
 gui:
   debug: true

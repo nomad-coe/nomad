@@ -56,11 +56,18 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
-        {{ if .Values.api.adminPasswordSecret }}
-        - name: NOMAD_SERVICES_ADMIN_PASSWORD
+        {{ if .Values.services.apiSecret }}
+        - name: NOMAD_SERVICES_API_SECRET
           valueFrom:
             secretKeyRef:
-              name: {{ .Values.api.adminPasswordSecret }}
+              name: {{ .Values.services.apiSecret}}
+              key: password
+        {{ end }}
+        {{ if .Values.keycloak.clientSecret }}
+        - name: NOMAD_KEYCLOAK_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.keycloak.clientSecret }}
               key: password
         {{ end }}
         {{ if .Values.keycloak.passwordSecret }}

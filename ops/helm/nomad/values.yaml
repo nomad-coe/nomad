@@ -28,9 +28,12 @@ images:
 api:
   replicas: 1
   https: true
-  ## Number of gunicorn worker. Recommendation is 2xnum_cores+1
+  ## Number of gunicorn worker.
   worker: 10
-  port: 8000
+  ## Number of threads per gunicorn worker (for async workerClass)
+  threads: 4
+  ## Gunircon worker class (http://docs.gunicorn.org/en/stable/settings.html#worker-class)
+  workerClass: 'gthread'
   console_loglevel: INFO
   logstash_loglevel: INFO
   ## Secret used as cryptographic seed
@@ -59,8 +62,6 @@ worker:
 ## Everthing concerning the nomad gui
 gui:
   replicas: 1
-  ## This port is hard coded into the frontend image, it cannot be really changed
-  port: 8080
   ## This variable is used in the GUI to show or hide additional information
   debug: false
   ## URL for matomo(piwik) user tracking
@@ -70,14 +71,12 @@ gui:
   ## send matomo(piwik) user tracking data
   sendTrackingData: false
 
-## Everything concerning the proxy that combined gui, api, kibana
+## Everything concerning the nginx that serves the gui, proxies the api
 #  It is run via NodePort service
 proxy:
-  port: 80
   nodePort: 30001
   nodeIP: 130.183.207.104
-  timeout: 600
-  datatimeout: 3600
+  timeout: 120
   external:
     host: "labdev-nomad.esc.rzg.mpg.de"
     port: 80
