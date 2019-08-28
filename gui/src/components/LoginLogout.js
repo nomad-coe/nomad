@@ -5,7 +5,7 @@ import Typography from '@material-ui/core/Typography'
 import { compose } from 'recompose'
 import { Button, Link } from '@material-ui/core'
 import { withApi } from './api'
-import { keycloakBase } from '../config'
+import { keycloakBase, keycloakRealm } from '../config'
 
 class LoginLogout extends React.Component {
   static propTypes = {
@@ -40,7 +40,7 @@ class LoginLogout extends React.Component {
           <Typography color="inherit" variant="body1">
             Welcome <Link
               className={classes.link}
-              href={`${keycloakBase}/account/`}>
+              href={`${keycloakBase}/realms/${keycloakRealm}/account/`}>
               { user ? user.name : '...' }
             </Link>
           </Typography>
