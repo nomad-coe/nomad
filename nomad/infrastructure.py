@@ -27,6 +27,7 @@ from mongoengine import connect
 import smtplib
 from email.mime.text import MIMEText
 from keycloak import KeycloakOpenID, KeycloakAdmin
+from keycloak.exceptions import KeycloakAuthenticationError
 import json
 import jwt
 from flask import g, request
@@ -119,7 +120,7 @@ class Keycloak():
                 server_url=config.keycloak.server_url,
                 client_id=config.keycloak.client_id,
                 realm_name=config.keycloak.realm_name,
-                client_secret_key=config.keycloak.client_secret_key)
+                client_secret_key=config.keycloak.client_secret)
 
         return self.__oidc_client
 
@@ -162,8 +163,10 @@ class Keycloak():
                 username, password = basicauth.decode(auth)
                 token_info = self._oidc_client.token(username=username, password=password)
                 g.oidc_access_token = token_info['access_token']
+            except KeycloakAuthenticationError:
+                return 'Could not authenticate, wrong credentials'
             except Exception as e:
-                # TODO logging
+                logger.error('Could not authenticate Basic auth', exc_info=e)
                 return 'Could not authenticate Basic auth: %s' % str(e)
 
         if g.oidc_access_token is not None:

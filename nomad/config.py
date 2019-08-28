@@ -111,14 +111,16 @@ elastic = NomadConfig(
     index_name='nomad_fairdi_calcs'
 )
 
+keycloak_base_url = 'https://labdev-nomad.esc.rzg.mpg.de/fairdi/keycloak/auth/'
+
 keycloak = NomadConfig(
-    server_url='http://localhost:8002/auth/',
-    issuer_url='http://localhost:8002/auth/realms/fairdi_nomad_test',
+    server_url=keycloak_base_url,
+    issuer_url=keycloak_base_url + 'realms/fairdi_nomad_test',
     realm_name='fairdi_nomad_test',
     username='admin',
     password='password',
     client_id='nomad_api_dev',
-    client_secret_key='ae9bb323-3793-4243-9e4b-f380c54e54e2'
+    client_secret='**********'
 )
 
 mongo = NomadConfig(

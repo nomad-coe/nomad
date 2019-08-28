@@ -90,6 +90,7 @@ tests:
     NOMAD_RABBITMQ_HOST: rabbitmq
     NOMAD_ELASTIC_HOST: elastic
     NOMAD_MONGO_HOST: mongo
+    NOMAD_KEYCLOAK_CLIENT_SECRET: ${CI_KEYCLOAK_TEST_CLIENT_SECRET}
   script:
     - cd /app
     - python -m pytest --cov=nomad -sv tests
