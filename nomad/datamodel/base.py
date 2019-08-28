@@ -29,7 +29,7 @@ class User:
     def __init__(
             self, user_id: str, email: str, name: str = None, first_name: str = None,
             last_name: str = None, affiliation: str = None, affiliation_address: str = None,
-            created: datetime.datetime = None):
+            created: datetime.datetime = None, repo_user_id: str = None):
 
         assert user_id is not None, 'Users must have a unique id'
 
@@ -53,6 +53,7 @@ class User:
         self.created = created
         self.affiliation = affiliation
         self.affiliation_address = affiliation_address
+        self.repo_user_id = repo_user_id
 
     @staticmethod
     def get(*args, **kwargs) -> 'User':

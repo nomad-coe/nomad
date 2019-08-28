@@ -214,6 +214,7 @@ class Keycloak():
         if not isinstance(user, datamodel.User):
             if 'user_id' not in user:
                 user['user_id'] = 'not set'
+
             user = datamodel.User(**user)
 
         keycloak_user = dict(
@@ -223,6 +224,7 @@ class Keycloak():
             firstName=user.first_name,
             lastName=user.last_name,
             attributes=dict(
+                repo_user_id=user.repo_user_id,
                 affiliation=user.affiliation if user.affiliation is not None else '',
                 affiliation_address=user.affiliation_address if user.affiliation_address is not None else ''),
             createdTimestamp=user.created.timestamp() * 1000 if user.created is not None else None,
