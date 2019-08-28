@@ -13,11 +13,14 @@ RUN sed -i -e "s/\\/auth/\\/$prefix\\/auth/" $JBOSS_HOME/welcome-content/index.h
 
 ENV KEYCLOAK_USER=admin
 ENV KEYCLOAK_PASSWORD=$admin_password
-ENV KEYCLOAK_IMPORT=/opt/jboss/keycloak/import.json
+ENV KEYCLOAK_IMPORT=/opt/jboss/keycloak/fairdi_nomad_test.json
 ENV PROXY_ADDRESS_FORWARDING=true
 
 ADD ./fairdi_nomad_test.json /opt/jboss/keycloak/fairdi_nomad_test.json
 ADD ./fairdi_nomad_prod.json /opt/jboss/keycloak/fairdi_nomad_prod.json
-RUN echo "[`cat /opt/jboss/keycloak/fairdi_nomad_test.json`,`/opt/jboss/keycloak/fairdi_nomad_prod.json`]"
 
 ADD ./material_theme /opt/jboss/keycloak/themes/material
+
+RUN curl http://central.maven.org/maven2/org/mindrot/jbcrypt/0.4/jbcrypt-0.4.jar > /tmp/jbcrypt-0.4.jar
+RUN /opt/jboss/keycloak/bin/jboss-cli.sh --command="module add --name=org.mindrot.jbcrypt --resources=/tmp/jbcrypt-0.4.jar"
+RUN curl -L https://github.com/leroyguillaume/keycloak-bcrypt/releases/download/1.1.0/keycloak-bcrypt-1.1.0.jar > /opt/jboss/keycloak/standalone/deployments/keycloak-bcrypt-1.1.0.jar
