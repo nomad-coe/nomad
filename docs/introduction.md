@@ -83,7 +83,9 @@ processing of uploaded files and therein contained calculations. We use
 
 ### Keycloak
 
-TODO
+[Keycloak](https://www.keycloak.org/) is used for user management. It manages users and
+provide functions for registering, password forget, editing user accounts, and single
+sign on of fairdi@nomad and other related services.
 
 
 ### flask, et al.
