@@ -215,6 +215,13 @@ class Keycloak():
             if 'user_id' not in user:
                 user['user_id'] = 'not set'
 
+            if 'password' in user:
+                bcrypt_password = user.pop('password')
+
+            created = user.get('created', None)
+            if created is not None and not isinstance(created, datetime):
+                user['created'] = datetime.fromtimestamp(created / 1000)
+
             user = datamodel.User(**user)
 
         keycloak_user = dict(
@@ -251,7 +258,11 @@ class Keycloak():
         if self._admin_client.get_user_id(user.email) is not None:
             raise KeyError('User with email %s already exists' % user.email)
 
-        self._admin_client.create_user(keycloak_user)
+        try:
+            self._admin_client.create_user(keycloak_user)
+        except Exception as e:
+            return str(e)
+
         return None
 
     def get_user(self, user_id: str = None, email: str = None, user=None) -> object:
