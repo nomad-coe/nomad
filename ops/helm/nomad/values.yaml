@@ -131,6 +131,7 @@ keycloak:
   realmName: "fairdi_nomad_test"
   username: "admin"
   clientId: "nomad_api_dev"
+  guiClientId: "nomad_gui_dev"
 
 ## Everything concerning the data that is used by the service
 volumes:

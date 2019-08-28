@@ -19,6 +19,7 @@ dbname: fairdi_nomad_prod
 uploadurl: 'https://labdev-nomad.rzg.mpg.de/fairdi/nomad/prod-test/upload'
 
 keycloak:
+  realmName: 'fairdi_nomad_prod'
   passwordSecret: 'nomad-keycloak-password'
   clientSecret: 'nomad-keycloak-prod-api-secret'
 
