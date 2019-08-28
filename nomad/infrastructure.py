@@ -27,7 +27,7 @@ from mongoengine import connect
 import smtplib
 from email.mime.text import MIMEText
 from keycloak import KeycloakOpenID, KeycloakAdmin
-from keycloak.exceptions import KeycloakAuthenticationError
+from keycloak.exceptions import KeycloakAuthenticationError, KeycloakGetError
 import json
 import jwt
 from flask import g, request
@@ -204,6 +204,53 @@ class Keycloak():
             g.user = None
             # Do not return an error. This is the case were there are no credentials
             return None
+
+    def add_user(self, user, bcrypt_password=None):
+        """
+        Adds the given :class:`nomad.datamodel.User` instance to the configured keycloak
+        realm using the keycloak admin API.
+        """
+        from nomad import datamodel
+        if not isinstance(user, datamodel.User):
+            if 'user_id' not in user:
+                user['user_id'] = 'not set'
+            user = datamodel.User(**user)
+
+        keycloak_user = dict(
+            id=user.user_id if user.user_id != 'not set' else None,
+            email=user.email,
+            username=user.email,
+            firstName=user.first_name,
+            lastName=user.last_name,
+            attributes=dict(
+                affiliation=user.affiliation if user.affiliation is not None else '',
+                affiliation_address=user.affiliation_address if user.affiliation_address is not None else ''),
+            createdTimestamp=user.created.timestamp() * 1000 if user.created is not None else None,
+            enabled=True,
+            emailVerified=True)
+
+        if bcrypt_password is not None:
+            keycloak_user['credentials'] = [dict(
+                type='password',
+                hashedSaltedValue=bcrypt_password,
+                algorithm='bcrypt')]
+
+        keycloak_user = {
+            key: value for key, value in keycloak_user.items()
+            if value is not None}
+
+        if user.user_id != 'not_set':
+            try:
+                self._admin_client.get_user(user.user_id)
+                raise KeyError('User %s with given id already exists' % user.email)
+            except KeycloakGetError:
+                pass
+
+        if self._admin_client.get_user_id(user.email) is not None:
+            raise KeyError('User with email %s already exists' % user.email)
+
+        self._admin_client.create_user(keycloak_user)
+        return None
 
     def get_user(self, user_id: str = None, email: str = None, user=None) -> object:
         """

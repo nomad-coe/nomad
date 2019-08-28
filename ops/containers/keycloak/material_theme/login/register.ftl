@@ -89,7 +89,7 @@
                 <i class="material-icons mdc-text-field__icon" tabindex="-1" role="button">account_balance</i>
                 <input required id="user.attributes.affiliation_address" class="mdc-text-field__input ${properties.kcInputClass!}" name="user.attributes.affiliation_address" type="text" value="${(register.formData.affiliation_address!'')}">
                 <div class="${properties.kcLabelWrapperClass!}">
-                    <label for="user.attributes.affiliation_address" class="mdc-floating-label ${properties.kcLabelClass!}">Affiliation Address</label>
+                    <label for="user.attributes.affiliation_address" class="mdc-floating-label ${properties.kcLabelClass!}">Affiliation address</label>
                 </div>
                 <div class="mdc-notched-outline">
                     <svg>

@@ -26,10 +26,10 @@ services:
     keycloak:
         restart: always
         build: ../../containers/keycloak/
-        image: nomad/elk
+        image: nomad/keycloak
         container_name: nomad_keycloak
         volumes:
-            - nomad_keycloak:/opt/jboss/keycloak
+            - nomad_keycloak:/opt/jboss/keycloak/standalone/data
         ports:
             - 8002:8080
 

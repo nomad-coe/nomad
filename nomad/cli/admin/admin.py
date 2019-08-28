@@ -15,6 +15,7 @@
 import click
 import datetime
 import elasticsearch.helpers
+import json
 
 from nomad import processing as proc, search, datamodel, infrastructure, utils, config
 
@@ -137,3 +138,18 @@ def reset(i_know_what_i_am_doing, remove):
             infrastructure.reset()
     else:
         print('Did nothing')
+
+
+@admin.command(help='Imports users to the configures keycloak realm')
+@click.argument('INPUT_FILE', type=str, nargs=1)
+def import_users(input_file):
+    with open(input_file, 'rt') as f:
+        users = json.load(f)
+
+    for user in users:
+        bcrypt_password = user.pop('bcrypt_password', None)
+        try:
+            infrastructure.keycloak.add_user(user, bcrypt_password)
+            print('Added user %s' % user['email'])
+        except KeyError as e:
+            print('Could not add user: %s' % str(e))

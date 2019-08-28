@@ -91,6 +91,7 @@ tests:
     NOMAD_ELASTIC_HOST: elastic
     NOMAD_MONGO_HOST: mongo
     NOMAD_KEYCLOAK_CLIENT_SECRET: ${CI_KEYCLOAK_TEST_CLIENT_SECRET}
+    NOMAD_KEYCLOAK_PASSWORD: ${CI_KEYCLOAK_ADMIN_PASSWORD}
   script:
     - cd /app
     - python -m pytest --cov=nomad -sv tests
