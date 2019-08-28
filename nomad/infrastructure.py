@@ -177,7 +177,7 @@ class Keycloak():
                 options = dict(verify_aud=False, verify_exp=True, verify_iss=True)
                 payload = jwt.decode(
                     g.oidc_access_token, key=key, algorithms=['RS256'], options=options,
-                    issuer=config.keycloak.issuer_url)
+                    issuer='%s/realms/%s' % (config.keycloak.server_url, config.keycloak.realm_name))
 
             except jwt.InvalidTokenError as e:
                 auth_error = str(e)
