@@ -8,7 +8,7 @@ proxy:
     path: "/uploads"
 
 api:
-  adminPasswordSecrete: 'nomad-production-repository-password'
+  adminPasswordSecret: 'nomad-production-repository-password'
 
 worker:
   replicas: 1
@@ -18,6 +18,10 @@ worker:
 dbname: fairdi_nomad_prod
 
 uploadurl: 'https://repository.nomad-coe.eu/uploads/gui/upload'
+
+keycloak:
+  passwordSecret: 'nomad-keycloak-password'
+  clientSecret: 'nomad-keycloak-prod-api-secret'
 
 volumes:
   prefixSize: 1

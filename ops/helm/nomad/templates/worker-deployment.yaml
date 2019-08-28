@@ -63,6 +63,13 @@ spec:
               name: {{ .Values.api.adminPasswordSecret }}
               key: password
         {{ end }}
+        {{ if .Values.keycloak.passwordSecret }}
+        - name: NOMAD_KEYCLOAK_PASSWORD
+          valueFrom
+            secretKeyRef:
+              name: {{ .Values.keycloak.passwordSecret }}
+              key: password
+        {{ end }}
         command: ["python", "-m", "celery", "worker", "-A", "nomad.processing", "-n", "$(NOMAD_CELERY_NODE_NAME)" {{ if .Values.worker.processes }}, "-c", "{{ .Values.worker.processes }}"{{ end }}]
         livenessProbe:
           exec:

@@ -31,6 +31,7 @@ data:
     window.nomadEnv = {
       "apiBase": "{{ .Values.proxy.external.path }}/api",
       "kibanaBase": "{{ .Values.proxy.external.kibanaPath }}",
+      "keycloakBase": "{{ .Values.keycloak.serverUrl }}/realms/{{ .Values.keycloak.realmName }}",
       "matomoSiteId": {{ .Values.gui.matomoSiteId }},
       "matomoUrl": "{{ .Values.gui.matomoUrl }}",
       "sendTrackingData": {{ .Values.gui.sendTrackingData }},

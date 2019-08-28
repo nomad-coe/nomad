@@ -126,6 +126,12 @@ mail:
   port: 25
   from: 'webmaster@nomad-repository.eu'
 
+keycloak:
+  serverUrl: "https://labdev-nomad.esc.rzg.mpg.de/fairdi/keycloak/auth/"
+  realmName: "fairdi_nomad_test"
+  username: "admin"
+  clientId: "nomad_api_dev"
+
 ## Everything concerning the data that is used by the service
 volumes:
   prefixSize: 2

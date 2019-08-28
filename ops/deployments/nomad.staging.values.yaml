@@ -19,6 +19,10 @@ dbname: fairdi_nomad_staging
 
 uploadurl: 'https://staging-nomad.rzg.mpg.de/uploads/gui/upload'
 
+keycloak:
+  passwordSecret: 'nomad-keycloak-password'
+  clientSecret: 'nomad-keycloak-prod-api-secret'
+
 volumes:
   prefixSize: 2
   public: /nomad/fairdi/staging/fs/public

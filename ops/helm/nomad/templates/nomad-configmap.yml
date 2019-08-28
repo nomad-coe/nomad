@@ -53,4 +53,10 @@ data:
     celery:
       routing: "{{ .Values.worker.routing }}"
       timeout: 7200
-
+    keycloak:
+      server_url: "{{ .Values.keycloak.serverUrl }}"
+      realm_name: "{{ .Values.keycloak.realmName }}"
+      username: "{{ .Values.keycloak.username }}"
+      client_id: "{{ .Values.keycloak.clientId }}"
+      client_secret: "*"
+      password: "*"

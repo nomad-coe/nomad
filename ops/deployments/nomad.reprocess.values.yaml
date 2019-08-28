@@ -15,6 +15,10 @@ dbname: fairdi_nomad_prod
 
 uploadurl: 'https://labdev-nomad.rzg.mpg.de/fairdi/nomad/reprocess/upload'
 
+keycloak:
+  passwordSecret: 'nomad-keycloak-password'
+  clientSecret: 'nomad-keycloak-prod-api-secret'
+
 volumes:
   prefixSize: 1
   public: /nomad/fairdi/prod/fs/public

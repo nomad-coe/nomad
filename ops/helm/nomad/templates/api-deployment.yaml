@@ -119,6 +119,13 @@ spec:
               name: {{ .Values.api.adminPasswordSecret }}
               key: password
         {{ end }}
+        {{ if .Values.keycloak.passwordSecret }}
+        - name: NOMAD_KEYCLOAK_PASSWORD
+          valueFrom
+            secretKeyRef:
+              name: {{ .Values.keycloak.passwordSecret }}
+              key: password
+        {{ end }}
         command: ["python", "-m", "gunicorn.app.wsgiapp", "--timeout", "3600", "--config", "gunicorn.conf", "--log-config", "gunicorn.log.conf", "-w", "{{ .Values.api.worker }}", "-b 0.0.0.0:8000", "nomad.api:app"]
         livenessProbe:
           httpGet:
