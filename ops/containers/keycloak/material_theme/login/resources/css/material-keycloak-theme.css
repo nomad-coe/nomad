@@ -1,0 +1,162 @@
+@import url('https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+
+body {
+    background: #fafafa;
+    font-family: 'Roboto', sans-serif;
+}
+
+.title {
+    margin-bottom: 15px;
+}
+
+/* without this, the fields all expand
+   when the MDC JavaScript is run. */
+.mdc-text-field {
+    margin-top: 16px;
+}
+
+#kc-header,
+#kc-content {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#kc-header {
+    width: 90%;
+    font-size: 35px;
+    text-align: center;
+    margin-bottom: 25px;
+    font-weight: 300;
+    margin-top: 7%;
+    color: rgb(68, 68, 68);
+}
+
+#kc-content {
+    background: white;
+    padding: 20px;
+    box-shadow: 0 5px 6px -3px rgba(0, 0, 0, 0.2),
+        0 9px 12px 1px rgba(0, 0, 0, 0.14), 0 3px 16px 2px rgba(0, 0, 0, 0.12);
+}
+
+#kc-reset-password-form #kc-form-options {
+    float: left;
+}
+
+#kc-reset-password-form #kc-form-buttons {
+    float: right;
+}
+
+#kc-register-form #kc-form-options {
+    float: left;
+}
+
+#kc-register-form #kc-form-buttons {
+    float: right;
+}
+
+.clearfix {
+    float: none;
+    clear: both;
+}
+
+hr {
+    margin-top: 20px;
+    margin-bottom: 20px;
+    border: 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.24);
+}
+
+@media (max-width: 768px) {
+    #kc-content {
+        width: 90%;
+    }
+}
+
+@media (min-width: 769px) {
+    #kc-content {
+        width: 560px;
+    }
+}
+
+.mdc-text-field {
+    width: 100%;
+}
+
+#kc-form-login #kc-form-options {
+    margin-top: 15px;
+}
+
+#kc-login {
+    float: right;
+}
+
+#kc-error-message p {
+    margin: 0;
+}
+
+.remember-me-checkbox {
+    float: left;
+}
+
+.register .register-field {
+    margin-bottom: 15px;
+}
+
+.register .register-button-container {
+    margin-top: 20px;
+}
+
+.reset-password .reset-password-field {
+    margin-bottom: 15px;
+}
+
+.update-password .update-password-field {
+    margin-bottom: 15px;
+}
+
+.update-password .update-password-button-container {
+    margin-top: 20px;
+}
+
+.config-totp .config-totp-button-container {
+    margin-top: 15px;
+}
+
+.totp .totp-button-container {
+    margin-top: 15px;
+}
+
+.update-profile .update-profile-field {
+    margin-top: 15px;
+}
+
+.update-profile .update-profile-button-container {
+    margin-top: 20px;
+}
+
+.template .language-picker {
+    position: relative;
+    margin: 0 auto;
+    margin-top: 30px;
+    margin-bottom: 20px;
+    width: 195px;
+}
+
+.template .language-picker .language-icon {
+    float: left;
+    color: rgba(0, 0, 0, 0.54);
+}
+
+.template .language-picker .mdc-select {
+    float: right;
+    margin-top: -25px;
+}
+
+.template .language-picker .mdc-select option {
+    font-weight: normal;
+    display: block;
+    white-space: pre;
+    min-height: 1.2em;
+    padding: 0px 2px 1px;
+}

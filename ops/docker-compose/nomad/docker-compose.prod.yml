@@ -18,7 +18,7 @@ services:
     # keycloak for user management
     keycloak:
         volumes:
-            - /nomad/fairdi/db/keycloak:/opt/jboss/keycloak/standalone
+            - /nomad/fairdi/db/keycloak:/opt/jboss/keycloak
 
     # the search engine
     elastic:
