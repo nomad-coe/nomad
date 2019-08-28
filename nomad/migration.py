@@ -40,6 +40,7 @@ from contextlib import contextmanager
 import shutil
 import random
 import io
+import json
 
 from nomad import utils, infrastructure, files, config
 from nomad.coe_repo import User, Calc, LoginException
@@ -1081,6 +1082,38 @@ class NomadCOEMigration:
                 self.logger.info('copied user', user_id=source_user.user_id)
             except HTTPBadRequest as e:
                 self.logger.error('could not create user due to bad data', exc_info=e, user_id=source_user.user_id)
+
+    def export_users(self):
+        """ Export all users as JSON. """
+        users = []
+        for source_user in self.source.query(User).all():
+            if source_user.user_id <= 2:
+                # skip first two users to keep example users
+                # they probably are either already the example users, or [root, Evgeny]
+                continue
+
+            user_payload = dict(
+                user_id=source_user.user_id,
+                email=source_user.email,
+                first_name=source_user.first_name,
+                last_name=source_user.last_name,
+                password=source_user.password,
+                created=source_user.created
+            )
+
+            try:
+                user_payload.update(token=source_user.token)
+            except LoginException:
+                pass
+
+            if source_user.affiliation is not None:
+                user_payload.update(
+                    affiliation=source_user.affiliation.name,
+                    affiliation_address=source_user.affiliation.address)
+
+            users.append(user_payload)
+
+        print(json.dumps(users, indent=2))
 
     expected_differences = {
         '0d': 'molecule / cluster',
