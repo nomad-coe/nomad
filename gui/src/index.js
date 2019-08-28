@@ -8,7 +8,7 @@ import registerServiceWorker from './registerServiceWorker'
 import { Router } from 'react-router-dom'
 import history from './history'
 import PiwikReactRouter from 'piwik-react-router'
-import { sendTrackingData, matomoUrl, matomoSiteId } from './config'
+import { sendTrackingData, matomoUrl, matomoSiteId, keycloakBase, keycloakRealm, keycloakClientId } from './config'
 import Keycloak from 'keycloak-js'
 import { KeycloakProvider } from 'react-keycloak'
 
@@ -18,9 +18,9 @@ const matomo = sendTrackingData ? PiwikReactRouter({
 }) : null
 
 const keycloak = Keycloak({
-  url: 'http://localhost:8002/auth',
-  realm: 'fairdi_nomad_test',
-  clientId: 'nomad_gui_dev'
+  url: keycloakBase,
+  realm: keycloakRealm,
+  clientId: keycloakClientId
 })
 
 ReactDOM.render(
