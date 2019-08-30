@@ -254,6 +254,12 @@ def copy_users(**kwargs):
     _Migration().copy_users()
 
 
+@migration.command(help='Read users from source db and output as JSON')
+def export_users(**kwargs):
+    _setup()
+    _Migration().export_users()
+
+
 @migration.command(help='Set the repo db PID calc counter.')
 @click.argument('prefix', nargs=1, type=int, default=7000000)
 def pid_prefix(prefix: int):

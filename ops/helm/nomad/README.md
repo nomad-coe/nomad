@@ -1,8 +1,9 @@
 ## Cluster Deployment, Using Kubernetes and Helm
 
 We use helm charts to describe the deployment of nomad services in a kubernetes cluster.
-
-### nomad
+The NOMAD chart is part of the
+[NOMAD source code](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR)
+and can be found under `ops/helm/nomad`.
 
 This chart allows to run the nomad api, worker, gui, and proxy in a kubernetes cluster.
 The `values.yaml` contains more documentation on the different values.
