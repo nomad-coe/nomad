@@ -1,0 +1,21 @@
+version: '3.4'
+
+services:
+    api:
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:v0.5.3
+        volumes:
+            - "./example_nomad/nomad.yaml:/app/nomad.yaml"
+
+    worker:
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:v0.5.3
+        volumes:
+            - "./example_nomad/nomad.yaml:/app/nomad.yaml"
+
+    gui:
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:v0.5.3
+        volumes:
+            - "./example_nomad/nginx.conf:/etc/nginx/conf.d/default.conf"
+            - "./example_nomad/env.js:/app/nomad/env.js"
+        ports:
+            - 80:80
+        command: ["./run.sh", "/example-nomad"]
