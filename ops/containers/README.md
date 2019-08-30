@@ -1,7 +1,7 @@
 ## Containers for additional services
 
-Some third party services cannot be used with readymade public dockerhub images. For those
-we prodive our own Dockerfiles that extend public base images. These are largely due to
+Some third party services cannot be used with ready made public dockerhub images. For those
+we provide our own Dockerfiles that extend public base images. These are largely due to
 NOMAD specific configuration that we want to apply to the the base images.
 
 ### Keycloak (optional)
