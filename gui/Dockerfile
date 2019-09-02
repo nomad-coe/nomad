@@ -33,7 +33,6 @@ RUN yarn run build
 # production environment
 FROM nginx:1.13.9-alpine
 COPY --from=build /nomad/app/build /app/nomad
-COPY ./gui.conf /etc/nginx/conf.d/default.conf
 
 WORKDIR /app/nomad
 COPY ./run.sh run.sh
