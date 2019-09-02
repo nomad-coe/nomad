@@ -15,6 +15,7 @@
 from typing import Iterable, List, Dict, Type, Tuple, Callable, Any
 import datetime
 from elasticsearch_dsl import Keyword
+from cachetools import cached, TTLCache
 
 from nomad import utils, config, infrastructure
 
@@ -56,6 +57,7 @@ class User:
         self.repo_user_id = repo_user_id
 
     @staticmethod
+    @cached(cache=TTLCache(maxsize=2048, ttl=24 * 3600))
     def get(*args, **kwargs) -> 'User':
         return infrastructure.keycloak.get_user(*args, **kwargs)  # type: ignore
 
