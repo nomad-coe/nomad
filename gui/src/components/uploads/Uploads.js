@@ -137,7 +137,7 @@ class Uploads extends React.Component {
     commandMarkup: {
       flexGrow: 1,
       marginRight: theme.spacing.unit,
-      overflow: 'scroll'
+      overflow: 'hidden'
     },
     selectFormGroup: {
       paddingLeft: theme.spacing.unit * 3
