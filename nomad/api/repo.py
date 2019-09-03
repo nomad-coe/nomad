@@ -24,7 +24,7 @@ from elasticsearch_dsl import Q
 from elasticsearch.exceptions import NotFoundError
 import datetime
 
-from nomad import search
+from nomad import search, utils
 
 from .app import api, rfc3339DateTime
 from .auth import login_if_available
@@ -84,6 +84,11 @@ repo_calcs_model = api.model('RepoCalculations', {
         'value and quantity value as key. The metrics are code runs(calcs), %s. '
         'There is a pseudo quantity "total" with a single value "all" that contains the metrics over all results. ' %
         ', '.join(search.metrics_names)))
+})
+
+
+repo_calc_id_model = api.model('RepoCalculationId', {
+    'upload_id': fields.String(), 'calc_id': fields.String()
 })
 
 
@@ -353,3 +358,26 @@ class RepoQuantityResource(Resource):
             import traceback
             traceback.print_exc()
             abort(400, 'Given quantity does not exist: %s' % str(e))
+
+
+@ns.route('/pid/<int:pid>')
+class RepoPidResource(Resource):
+    @api.doc('resolve_pid')
+    @api.response(404, 'Entry with PID does not exist')
+    @api.marshal_with(repo_calc_id_model, skip_none=True, code=200, description='Entry resolved')
+    @login_if_available
+    def get(self, pid: int):
+        q = _create_owner_query()
+        results = search.entry_search(q, page=1, per_page=1, search_parameters=dict(pid=pid))
+        total = results['pagination']['total']
+        if total == 1:
+            return dict(
+                upload_id=results['results'][0]['upload_id'],
+                calc_id=results['results'][0]['calc_id'])
+        elif total == 0:
+            abort(404, 'Entry with PID %d does not exist' % pid)
+        else:
+            utils.get_logger(__name__).error('Two entries for the same pid', pid=pid)
+            return dict(
+                upload_id=results['results'][0]['upload_id'],
+                calc_id=results['results'][0]['calc_id'])

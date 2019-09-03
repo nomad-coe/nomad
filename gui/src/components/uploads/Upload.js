@@ -390,7 +390,7 @@ class Upload extends React.Component {
       const processed = tasks_status === 'FAILURE' || tasks_status === 'SUCCESS'
       const row = (
         <TableRow key={index} hover={processed}
-          onClick={() => this.props.history.push(`/uploads/${upload_id}/${calc_id}`)}
+          onClick={() => this.props.history.push(`/entry/id/${upload_id}/${calc_id}`)}
           className={processed ? classes.clickableRow : null} >
 
           <TableCell>

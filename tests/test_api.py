@@ -656,18 +656,20 @@ class TestRepo():
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(
-            calc_id='2', uploader=other_test_user.to_popo(), published=True, with_embargo=False,
-            upload_time=today - datetime.timedelta(days=5))
+            calc_id='2', uploader=other_test_user.to_popo(), published=True,
+            with_embargo=False, pid=2, upload_time=today - datetime.timedelta(days=5))
         calc_with_metadata.update(
             atoms=['Fe'], comment='this is a specific word', formula='AAA', basis_set='zzz')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(
-            calc_id='3', uploader=other_test_user.to_popo(), published=False, with_embargo=False)
+            calc_id='3', uploader=other_test_user.to_popo(), published=False,
+            with_embargo=False, pid=3)
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(
-            calc_id='4', uploader=other_test_user.to_popo(), published=True, with_embargo=True)
+            calc_id='4', uploader=other_test_user.to_popo(), published=True,
+            with_embargo=True, pid=4)
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
     def assert_search(self, rv: Any, number_of_calcs: int) -> dict:
@@ -934,6 +936,21 @@ class TestRepo():
             assert value != list(quantity['values'].keys())[0]
             assert after != quantity['after']
             after = quantity['after']
+
+    @pytest.mark.parametrize('pid, with_login, success', [
+        (2, True, True), (2, False, True),
+        (3, True, True), (3, False, False),
+        (4, True, True), (4, False, False)])
+    def test_resolve_pid(
+            self, client, example_elastic_calcs, other_test_user_auth, pid, with_login,
+            success, no_warn):
+        rv = client.get(
+            '/repo/pid/%d' % pid,
+            headers=other_test_user_auth if with_login else {})
+        assert rv.status_code == 200 if success else 404
+        if success:
+            assert json.loads(rv.data)['calc_id'] == '%d' % pid
+            assert json.loads(rv.data)['upload_id'] == '0'
 
 
 class TestRaw(UploadFilesBasedTests):

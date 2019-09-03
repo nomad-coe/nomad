@@ -28,6 +28,7 @@ import packageJson from '../../package.json'
 import { Cookies, withCookies } from 'react-cookie'
 import Markdown from './Markdown'
 import {help as uploadHelp, default as Uploads} from './uploads/Uploads'
+import ResolvePID from './entry/ResolvePID';
 
 export class VersionMismatch extends Error {
   constructor(msg) {
@@ -49,6 +50,7 @@ const toolbarThemes = {
   '/': genTheme,
   '/search': repoTheme,
   '/uploads': repoTheme,
+  '/entry': repoTheme,
   '/metainfo': archiveTheme
 }
 
@@ -388,13 +390,25 @@ export default class App extends React.Component {
       path: '/search',
       render: props => <SearchPage {...props} />
     },
-    'searchEntry': {
-      path: '/search/:uploadId/:calcId',
-      key: (props) => `searchEntry/${props.match.params.uploadId}/${props.match.params.uploadId}`,
+    'entry': {
+      path: '/entry/id/:uploadId/:calcId',
+      key: (props) => `entry/${props.match.params.uploadId}/${props.match.params.uploadId}`,
       render: props => {
         const { match, ...rest } = props
         if (match && match.params.uploadId && match.params.calcId) {
           return (<Calc {...rest} uploadId={match.params.uploadId} calcId={match.params.calcId} />)
+        } else {
+          return ''
+        }
+      }
+    },
+    'entry_pid': {
+      path: '/entry/pid/:pid',
+      key: (props) => `entry/pid/${props.match.params.pid}`,
+      render: props => {
+        const { match, ...rest } = props
+        if (match && match.params.pid) {
+          return (<ResolvePID {...rest} pid={match.params.pid} />)
         } else {
           return ''
         }
@@ -405,18 +419,6 @@ export default class App extends React.Component {
       singleton: true,
       path: '/uploads',
       render: props => <Uploads {...props} />
-    },
-    'uploadedEntry': {
-      path: '/uploads/:uploadId/:calcId',
-      key: (props) => `uploadedEntry/${props.match.params.uploadId}/${props.match.params.uploadId}`,
-      render: props => {
-        const { match, ...rest } = props
-        if (match && match.params.uploadId && match.params.calcId) {
-          return (<Calc {...rest} uploadId={match.params.uploadId} calcId={match.params.calcId} />)
-        } else {
-          return ''
-        }
-      }
     },
     'metainfo': {
       exact: true,

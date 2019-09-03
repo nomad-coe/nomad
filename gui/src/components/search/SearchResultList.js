@@ -63,7 +63,7 @@ class SearchResultListUnstyled extends React.Component {
   }
 
   handleClickCalc(calc) {
-    this.props.history.push(`/search/${calc.upload_id}/${calc.calc_id}`)
+    this.props.history.push(`/entry/id/${calc.upload_id}/${calc.calc_id}`)
   }
 
   handleChangePage = (event, page) => {
