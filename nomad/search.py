@@ -600,3 +600,172 @@ def metrics_search(
         results.update(**entry_results)
 
     return results
+
+
+class Search:
+    '''
+    Represents a search request. It allows to compose the following features: a query;
+    statistics (metrics and aggregations); quantity values; scrolling, pagination for entries;
+    scrolling for quantity values.
+
+    The query part filters NOMAD data before the other features come into effect.
+
+    The aggregations for statistics can be requested for pre-configured quantities. These
+    bucket aggregations come with a metric calculated for each each possible
+    quantity value.
+
+    The other possible form of aggregations, allows to get quantity values as results
+    (e.g. get all datasets, get all users, etc.). Each value can be accompanied by metrics
+    (over all entries with that value) and an example value.
+
+    Of course, searches can return a set of search results. Search objects can be
+    configured with pagination or scrolling for these results. Pagination is the default
+    and also allows ordering of results. Scrolling can be used if all entries need to be
+    'scrolled through'. This might be necessary, since elastic search has limits on
+    possible pages (e.g. 'from' must by smaller than 10000). On the downside, there is no
+    ordering on scrolling.
+
+    There is also scrolling for quantities to go through all quantity values. There is no
+    paging for aggregations.
+    '''
+    def __init__(self, query=None):
+        self.query = query
+
+        self.metrics = []
+        self.aggregations = []
+
+        self.quantities = []
+
+        self.scroll_id = None
+        self.page = None
+        self.per_page = None
+
+    def pagination(
+            self, page: int = 1, per_page=10, order_by: str = order_default_quantity,
+            order: int = -1):
+        """
+        Configures pagination for search results. Paginated results are sorted.
+        Will disable scrolling; only one of these options is allowed.
+
+        Arguments:
+            page: The requested page, starts with 1.
+            per_page: The number of entries per page.
+            order_by: The quantity to order by.
+            order: -1 or 1 for descending or ascending order.
+
+        """
+        self.page = page
+        self.per_page = per_page
+        self.scroll_id = None
+
+    def scroll(self, scroll_id: str = '-1'):
+        """
+        Configures scrolling for search results. Will disable pagination; only one
+        of these options is allowed.
+        """
+        self.scroll_id = scroll_id
+        self.page = None
+        self.per_page = None
+
+    def owner(self, owner_type: str = 'all', user_id: str = None):
+        """
+        Uses the query part of the search to restrict the results based on the owner.
+        The possible types are: ``all`` for all calculations; ``public`` for
+        caclulations visible by everyone, excluding entries only visible to the given user;
+        ``owner`` for all calculations of to the given user; ``staging`` for all
+        calculations in staging of the given user.
+
+        Arguments:
+            owner_type: The type of the owner query, see above.
+            user_id: The 'owner' given as the user's unique id.
+        """
+        return self
+
+    def search_parameters(self, **kwargs):
+        """
+        Configures the existing query with additional search parameters. Kwargs are
+        interpreted as key value pairs. Keys have to coresspond to valid entry quantities
+        in the domain's (DFT calculations) datamodel.
+        """
+        return self
+
+    def time_range(self, start: datetime, end: datetime):
+        """ Adds a time range to the query. """
+        return self
+
+    def q(self, q):
+        """ Adds (logical and) a elasticsearch_dsl query to the existing query. """
+        self.q &= q
+
+    def statistics(
+            self, quantities: Dict[str, int] = aggregations,
+            metrics_to_use: List[str] = []):
+        """
+        This can be used to display statistics over the searched entries and allows to
+        implement faceted search on the top values for each quantity.
+
+        The metrics contain overall and per quantity value sums of code runs (calcs),
+        unique code runs, datasets, and additional domain specific metrics
+        (e.g. total energies, and unique geometries for DFTcalculations). The quantities
+        that can be aggregated to metrics are defined in module:`datamodel`. Aggregations
+        and respective metrics are calculated for aggregations given in ``aggregations``
+        and metrics in ``aggregation_metrics``. As a pseudo aggregation ``total_metrics``
+        are calculation over all search results. The ``aggregations`` gives tuples of
+        quantities and default aggregation sizes.
+
+        The search results will contain a dictionary ``statistics``. This has a key
+        for each quantity and an extra key 'total'. Each quantity key will hold a dict
+        with a key for each quantity value. Each quantity value key will hold a dict
+        with a key for each metric. The values will be the actual aggregated metric values.
+        The pseudo quantity 'total' contains a pseudo value 'all'. It is used to
+        store the metrics aggregated over all entries in the search results.
+
+        Arguments:
+            quantities: A customized list of quantities to aggregate over. Keys are index fields,
+                and values the amount of buckets to return. Only works on *keyword* field.
+            metrics_to_use: The metrics calculated over the aggregations. Can be
+                ``unique_code_runs``, ``datasets``, other domain specific metrics.
+                The basic doc_count metric ``code_runs`` is always given.
+        """
+        return self
+
+    def quantities(self, **kwargs):
+        """
+        Adds a requests for values of the given quantities.
+        It allows to scroll through all values via elasticsearch's
+        composite aggregations. The response will contain the quantity values and
+        an example entry for each value.
+
+        This can be used to implement continues scrolling through authors, datasets,
+        or uploads within the searched entries.
+
+        The quantities are given as keyword arguments. The keys are quantity names, and
+        the values are tuples of 'after' value and the request ammount of values.
+
+        The 'after' value allows to scroll over various requests, by providing the 'after'
+        value of the last search. The 'after' value is part of the response. Use ``None``
+        in the first request.
+
+        The size gives the ammount of maximum values in the next scroll window.
+        If the size is None, a maximum of 100 quantity values will be requested.
+
+        The search results will contain a dictionary ``quantities``. The keys are quantity
+        name the values dictionary with 'after' and 'values' key.
+        The 'values' key holds a dict with all the values as keys and their entry count
+        as values (i.e. number of entries with that value).
+        """
+
+        return self
+
+    def scan(self):
+        """
+        This execute the search as scan. The result will be a generator over the found
+        entries. Everything but the query part of this object, will be ignored.
+        """
+
+    def execute(self):
+        """
+        Exectutes and prepares a result dictionary with the keys describe by the
+        various configuration methods.
+        """
+        return None
