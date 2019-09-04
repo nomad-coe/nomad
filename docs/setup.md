@@ -49,6 +49,17 @@ virtualenv -p `which python3` .pyenv
 source .pyenv/bin/activate
 ```
 
+The next steps can be done using the `setup.sh` script. If you prefere to understand all
+the steps and run them manually, read on:
+
+### Get all the submodules
+We use git submodules to retrieve all the other NOMAD repositories, mainly parsers.
+
+```
+git submodules update --init
+```
+
+### Install python dependencies
 We use *pip* to manage required python packages.
 ```
 pip install -r requirements.txt
@@ -56,19 +67,22 @@ pip install -r requirements.txt
 
 ### Install NOMAD-coe dependencies.
 Nomad is based on python modules from the NOMAD-coe project.
-This includes parsers, normalizers, python-common and the meta-info.
-Those dependencies are managed and configured via python in
-`nomad/dependencies.py`. This gives us more flexibility in interacting with
-different parser, normalizer versions from within the running nomad infrastructure.
+This includes parsers, python-common and the meta-info. These modules are maintained as
+their own GITLab/git repositories. To clone and initialize them run:
 
-To run the dependencies script and install all dependencies into your environment:
 ```
-./dependencies.sh
+git submodules update --init
 ```
-This will checkout the proper version of the respective NOMAD-coe modules, install
-further requirements, and install the modules themselves. The `-e` option will install
-the NOMAD-coe dependencies with symbolic links allowing you to change the downloaded
-dependency code without having to reinstall after.
+
+All requirements for these submodules need to be installed and they need to be installed
+themselves as python modules. Run the `dependencies.sh` script that will install
+everything into your virtual environment:
+```
+./dependencies.sh -e
+```
+
+The `-e` option will install the NOMAD-coe dependencies with symbolic links allowing you
+to change the downloaded dependency code without having to reinstall after.
 
 ### Install nomad
 Finally, you can add nomad to the environment itself.
@@ -117,18 +131,11 @@ The images are build via *docker-compose* and don't have to be created manually.
 We have multiple *docker-compose* files that must be used together.
 - `docker-compose.yml` contains the base definitions for all services
 - `docker-compose.override.yml` configures services for development (notably builds images for nomad services)
+- `docker-compose.dev-elk.yml` will also provide the ELK service
 - `docker-compose.prod.yml` configures services for production (notable uses a pre-build image for nomad services that was build during CI/CD)
 
 It is sufficient to use the implicit `docker-compose.yml` only (like in the command below).
 The `override` will be used automatically.
-
-There is also an `.env` file. For development you can use `.env_development`:
-```
-cd ./ops/docker-compose/nomad
-ln -s .env_development .env
-```
-
-The production `.env` file is stored on our serves and not part of the source code.
 
 Now we can build the *docker-compose* that contains all external services (rabbitmq,
 mongo, elastic, elk) and nomad services (worker, api, gui).
@@ -168,33 +175,27 @@ a single port and different paths.
 
 You can also run services selectively, e.g.
 ```
-docker-compose up -d rabbitmq, mongo, elastic, elk
+docker-compose up -d rabbitmq, mongo, elastic
 docker-compose up worker
 docker-compose up api gui proxy
 ```
-
-### Configure the containers
-The *docker-compose* takes some configuration from the environment. Environment
-variables are set in `.env`, which is a link to either `.env_local` (intended to run
-nomad for development on a local computer) and `.env_processing` (indented to run
-nomad on nomad in *'production'*, currently on the enc pre-processing machine).
-
-You can configure host ports, volume locations for host bindings, and these sort of things.
 
 ## Accessing 3'rd party services
 
 Usually these services only used by the nomad containers, but sometimes you also
 need to check something or do some manual steps.
 
-The file `ops/docker-compose/nomad/.env` contains variables that control the ports
-used to bind internal docker ports to your host machine. These are the ports you
-have to use to connect to the respective services.
+The *docker-compose* can be overriden with additional seetings. See documentation section on
+operating NOMAD for more details. The override `docker-compose.override.yml` will
+expose all database ports to the hostmachine and should be used in development. To use
+it run docker-compose with `-f docker-compose.yml -f docker-compose.override.yml`.
 
 ### ELK (elastic stack)
 
 If you run the ELK stack (and enable logstash in nomad/config.py),
 you can reach the Kibana with [localhost:5601](http://localhost:5601).
-The index prefix for logs is `logstash-`.
+The index prefix for logs is `logstash-`. The ELK is only available with the
+`docker-compose.dev-elk.yml` override.
 
 ### mongodb and elastic search
 
@@ -208,44 +209,29 @@ You can run the worker, api, and gui as part of the docker infrastructure, like
 seen above. But, of course there are always reasons to run them manually during
 development, like running them in a debugger, profiler, etc.
 
-### Run the nomad worker manually
+### API and worker
 
 To simply run a worker with the installed nomad cli, do (from the root)
 ```
-nomad run worker
+nomad admin run worker
 ```
 
-To run it manually with celery, do (from the root)
+To run it directly with celery, do (from the root)
 ```
 celery -A nomad.processing worker -l info
 ```
-You can use different debug level (e.g. switch `info` to `debug`)
 
-Use watchdog during development to reload the worker on code changes.
-Watchdog is part of the requirements-dev.txt. For MacOS (there is currently a bug in watchdog)
-uninstall and install this [fixed](https://github.com/gorakhargosh/watchdog/issues/330) version
+Run the api via docker, or (from the root):
 ```
-pip uninstall watchdog
-pip install git+https://github.com/gorakhargosh/watchdog.git
+nomad admin run api
 ```
 
-Now use this to auto relead worker:
+You can also run worker and api together:
 ```
-watchmedo auto-restart -d ./nomad -p '*.py' -- celery worker -l info -A nomad.processing
-```
-
-### Run the api
-Either with docker, or:
-```
-nomad run api
+nomad admin run apiworker
 ```
 
-Or manually:
-```
-python nomad/api.py
-```
-
-### Run the gui
+### GUI
 When you run the gui on its own (e.g. with react dev server below), you have to have
 the API running manually also. This *inside docker* API is configured for ngingx paths
 and proxies, which are run by the gui container. But you can run the *production* gui
@@ -270,12 +256,131 @@ pytest -svx tests
 
 We use pylint, pycodestyle, and mypy to ensure code quality. To run those:
 ```
-nomad qa --skip-test
+nomad dev qa --skip-test
 ```
 
 To run all tests and code qa:
 ```
-nomad qa
+nomad dev qa
 ```
 
 This mimiques the tests and checks that the GitLab CI/CD will perform.
+
+
+## Setup your (I)DE
+
+The documentation section on development guidelines details how the code is organized,
+tested, formatted, and documented. To help you meet these guidelines, we recomment to
+use a proper IDE for development and ditch any VIM/Emacs (mal-)practices.
+
+### Visual Studio Code
+
+Here are some VSCode settings that will enable features for linting, some auto formating,
+line size ruler, etc.
+```json
+{
+    "python.venvPath": "${workspaceFolder}/.pyenv",
+    "python.pythonPath": "${workspaceFolder}/.pyenv/bin/python",
+    "git.ignoreLimitWarning": true,
+    "editor.rulers": [90],
+    "editor.renderWhitespace": "all",
+    "editor.tabSize": 4,
+    "[javascript]": {
+        "editor.tabSize": 2
+    },
+    "files.trimTrailingWhitespace": true,
+    "git.enableSmartCommit": true,
+    "eslint.autoFixOnSave": true,
+    "python.linting.pylintArgs": [
+        "--load-plugins=pylint_mongoengine",
+    ],
+    "python.linting.pep8Path": "pycodestyle",
+    "python.linting.pep8Enabled": true,
+    "python.linting.pep8Args": ["--ignore=E501,E701"],
+    "python.linting.mypyEnabled": true,
+    "python.linting.mypyArgs": [
+        "--ignore-missing-imports",
+        "--follow-imports=silent",
+        "--no-strict-optional"
+    ],
+    "workbench.colorCustomizations": {
+        "editorError.foreground": "#FF2222",
+        "editorOverviewRuler.errorForeground": "#FF2222",
+        "editorWarning.foreground": "#FF5500",
+        "editorOverviewRuler.warningForeground": "#FF5500",
+        "activityBar.background": "#4D2111",
+        "titleBar.activeBackground": "#6B2E18",
+        "titleBar.activeForeground": "#FDF9F7"
+    },
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/*/**": true,
+        "**/.pyenv/*/**": true,
+        "**/__pycache__/*/**": true,
+        "**/.mypy_cache/*/**": true,
+        "**/.volumes/*/**": true,
+        "**/docs/.build/*/**": true
+    }
+}
+```
+
+Here are some example launch configs for VSCode:
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Launch Chrome against localhost",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/gui"
+    },
+    {
+      "name": "Python: API Flask (0.11.x or later)",
+      "type": "python",
+      "request": "launch",
+      "module": "flask",
+      "env": {
+        "FLASK_APP": "nomad/api/__init__.py"
+      },
+      "args": [
+        "run",
+        "--port",
+        "8000",
+        "--no-debugger",
+        "--no-reload"
+      ]
+    },
+    {
+      "name": "Python: some test",
+      "type": "python",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/.pyenv/bin/pytest",
+      "args": [
+        "-sv",
+        "tests/test_cli.py::TestClient::test_mirror"
+      ]
+    },
+    {
+      "name": "Python: Current File",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}"
+    },
+    {
+      "name": "Python: Attach",
+      "type": "python",
+      "request": "attach",
+      "localRoot": "${workspaceFolder}",
+      "remoteRoot": "${workspaceFolder}",
+      "port": 3000,
+      "secret": "my_secret",
+      "host": "localhost"
+    }
+  ]
+}
+```
