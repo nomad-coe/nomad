@@ -34,11 +34,29 @@ git clone git@gitlab.mpcdf.mpg.de:nomad-lab/nomad-FAIR.git
 cd nomad-FAIR
 ```
 
+### C libs
+
+Even though the NOMAD infrastructure is written in python, there is a C library
+required by one of our pyhton dependencies.
+
+#### libmagic
+
+Libmagic allows to determine the MIME type of files. It should be installed on most
+unix/linux systems. It can be installed on MacOS with homebrew:
+
+```
+brew install libmagic
+```
+
+### Virtual environment
+
+#### pyenv
 The nomad code currently targets python 3.6. If you host machine has 3.7 or later installed,
 you can use [pyenv](https://github.com/pyenv/pyenv) to use python 3.6 in parallel.
 While in principle everything should be compatable with 3.7 and later there have been
 issues with some dependencies and requirements not being compatible with 3.7
 
+#### virtualenv
 We strongly recommend to use *virtualenv* to create a virtual environment. It will allow you
 to keep nomad and its dependencies separate from your system's python installation.
 Make sure to base the virtual environment on Python 3.
@@ -47,6 +65,19 @@ To install *virtualenv*, create an environment and activate the environment use:
 pip install virtualenv
 virtualenv -p `which python3` .pyenv
 source .pyenv/bin/activate
+```
+
+#### Conda
+If you are a conda user, there is an equivalent, but you have to install pip and the
+right python version while creating the environment.
+```
+conda create --name nomad_env pip python=3.6
+conda activate nomad_env
+```
+
+To install libmagick for conda, you can use (other channels might also work):
+```
+conda -c conda-forge install --name nomad_env libmagic
 ```
 
 The next steps can be done using the `setup.sh` script. If you prefere to understand all
