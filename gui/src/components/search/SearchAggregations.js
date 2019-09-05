@@ -36,9 +36,9 @@ class SearchAggregationsUnstyled extends React.Component {
 
   render() {
     const { classes, data, metrics, searchValues, domain, onChange, showDetails } = this.props
-    const { quantities } = data
+    const { statistics } = data
     const selectedMetric = metrics.length === 0 ? 'code_runs' : metrics[0]
-    const useMetric = Object.keys(quantities.total.all).find(metric => metric !== 'code_runs') || 'code_runs'
+    const useMetric = Object.keys(statistics.total.all).find(metric => metric !== 'code_runs') || 'code_runs'
     const metricsDefinitions = domain.searchMetrics
 
     return (
@@ -59,7 +59,7 @@ class SearchAggregationsUnstyled extends React.Component {
               ))}
             </FormGroup>
           </FormControl>
-          <domain.SearchAggregations quantities={quantities} searchValues={searchValues} metric={useMetric} onChange={onChange} />
+          <domain.SearchAggregations statistics={statistics} searchValues={searchValues} metric={useMetric} onChange={onChange} />
         </div>
       </div>
     )

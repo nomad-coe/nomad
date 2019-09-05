@@ -103,7 +103,7 @@ class SearchPage extends React.Component {
     pagination: {
       total: 0
     },
-    quantities: {
+    statistics: {
       total: {
         all: {
         }
@@ -208,7 +208,7 @@ class SearchPage extends React.Component {
     const { classes, user, domain, loading } = this.props
     const { data, searchState, searchResultListState, showDetails } = this.state
     const { searchValues } = searchState
-    const { pagination: { total }, quantities } = data
+    const { pagination: { total }, statistics } = data
 
     const ownerLabel = {
       all: 'All entries',
@@ -226,11 +226,11 @@ class SearchPage extends React.Component {
 
     const withoutLogin = ['all']
 
-    const useMetric = Object.keys(quantities.total.all).find(metric => metric !== 'code_runs') || 'code_runs'
+    const useMetric = Object.keys(statistics.total.all).find(metric => metric !== 'code_runs') || 'code_runs'
     const helperText = <span>
       There are {Object.keys(domain.searchMetrics).map(key => {
         return (key === useMetric || key === 'code_runs') ? <span key={key}>
-          {domain.searchMetrics[key].renderResultString(!loading && quantities.total.all[key] !== undefined ? quantities.total.all[key] : '...')}
+          {domain.searchMetrics[key].renderResultString(!loading && statistics.total.all[key] !== undefined ? statistics.total.all[key] : '...')}
         </span> : ''
       })}{Object.keys(searchValues).length ? ' left' : ''}.
     </span>
