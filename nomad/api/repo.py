@@ -20,9 +20,7 @@ meta-data.
 from typing import List
 from flask_restplus import Resource, abort, fields
 from flask import request, g
-from elasticsearch_dsl import Q
 from elasticsearch.exceptions import NotFoundError
-import datetime
 
 from nomad import search, utils
 
@@ -79,11 +77,11 @@ repo_calcs_model = api.model('RepoCalculations', {
     'results': fields.List(fields.Raw, description=(
         'A list of search results. Each result is a dict with quantitie names as key and '
         'values as values')),
-    'quantities': fields.Raw(description=(
-        'A dict with all aggregations. Each aggregation is dictionary with a metrics dict as '
-        'value and quantity value as key. The metrics are code runs(calcs), %s. '
-        'There is a pseudo quantity "total" with a single value "all" that contains the metrics over all results. ' %
-        ', '.join(search.metrics_names)))
+    'statistics': fields.Raw(description=(
+        'A dict with all statistics. Each statistic is dictionary with a metrics dict as '
+        'value and quantity value as key. The possible metrics are code runs(calcs), %s. '
+        'There is a pseudo quantity "total" with a single value "all" that contains the '
+        ' metrics over all results. ' % ', '.join(search.metrics_names)))
 })
 
 
@@ -127,72 +125,36 @@ search_request_parser = api.parser()
 add_common_parameters(search_request_parser)
 
 
-def _create_owner_query():
-    owner = request.args.get('owner', 'all')
+def add_query(search_request: search.SearchRequest):
+    """
+    Help that adds query relevant request parameters to the given SearchRequest.
+    """
+    # owner
+    try:
+        search_request.owner(
+            request.args.get('owner', 'all'),
+            g.user.user_id if g.user is not None else None)
+    except ValueError as e:
+        abort(401, getattr(e, 'message', 'Invalid owner parameter'))
+    except Exception as e:
+        abort(400, getattr(e, 'message', 'Invalid owner parameter'))
 
-    # TODO this should be removed after migration
-    # if owner == 'migrated':
-    #     q = Q('term', published=True) & Q('term', with_embargo=False)
-    #     if g.user is not None:
-    #         q = q | Q('term', owners__user_id=g.user.user_id)
-    #     q = q & ~Q('term', **{'uploader.user_id': 1})  # pylint: disable=invalid-unary-operand-type
-    if owner == 'all':
-        q = Q('term', published=True) & Q('term', with_embargo=False)
-        if g.user is not None:
-            q = q | Q('term', owners__user_id=g.user.user_id)
-    elif owner == 'public':
-        q = Q('term', published=True) & Q('term', with_embargo=False)
-    elif owner == 'user':
-        if g.user is None:
-            abort(401, message='Authentication required for owner value user.')
-
-        q = Q('term', owners__user_id=g.user.user_id)
-    elif owner == 'staging':
-        if g.user is None:
-            abort(401, message='Authentication required for owner value user.')
-        q = Q('term', published=False) & Q('term', owners__user_id=g.user.user_id)
-    elif owner == 'admin':
-        if g.user is None or not g.user.is_admin:
-            abort(401, message='This can only be used by the admin user.')
-        q = None
-    else:
-        abort(400, message='Invalid owner value. Valid values are all|user|staging, default is all')
-
-    # TODO this should be removed after migration
-    without_currupted_mainfile = ~Q('term', code_name='currupted mainfile')  # pylint: disable=invalid-unary-operand-type
-    q = q & without_currupted_mainfile if q is not None else without_currupted_mainfile
-
-    return q
-
-
-def _create_search_parameters():
-    """ Helper that creates a request.args dict with isolated search parameters """
-    return {
-        key: request.args.getlist(key) if search.search_quantities[key] else request.args.get(key)
-        for key in request.args.keys()
-        if key in search.search_quantities}
-
-
-def _create_time_range():
+    # time range
     from_time_str = request.args.get('from_time', None)
     until_time_str = request.args.get('until_time', None)
 
     try:
-        if from_time_str is None and until_time_str is None:
-            return None
-        else:
-            from_time = rfc3339DateTime.parse('2000-01-01' if from_time_str is None else from_time_str)
-            until_time = rfc3339DateTime.parse(until_time_str) if until_time_str is not None else datetime.datetime.utcnow()
-            return from_time, until_time
+        from_time = rfc3339DateTime.parse(from_time_str) if from_time_str is not None else None
+        until_time = rfc3339DateTime.parse(until_time_str) if until_time_str is not None else None
+        search_request.time_range(start=from_time, end=until_time)
     except Exception:
         abort(400, message='bad datetime format')
 
-
-def create_search_kwargs():
-    return dict(
-        q=_create_owner_query(),
-        time_range=_create_time_range(),
-        search_parameters=_create_search_parameters())
+    # search parameter
+    search_request.search_parameters(**{
+        key: request.args.getlist(key) if search.search_quantities[key] else request.args.get(key)
+        for key in request.args.keys()
+        if key in search.search_quantities})
 
 
 @ns.route('/')
@@ -234,20 +196,23 @@ class RepoCalcsResource(Resource):
         Ordering is determined by ``order_by`` and ``order`` parameters.
         """
 
+        search_request = search.SearchRequest()
+        add_query(search_request)
+
         try:
             scroll = bool(request.args.get('scroll', False))
-            date_histogram = bool(request.args.get('date_histogram', False))
             scroll_id = request.args.get('scroll_id', None)
             page = int(request.args.get('page', 1))
             per_page = int(request.args.get('per_page', 10 if not scroll else 1000))
             order = int(request.args.get('order', -1))
+            order_by = request.args.get('order_by', 'formula')
+
+            if bool(request.args.get('date_histogram', False)):
+                search_request.date_histogram()
             metrics: List[str] = request.args.getlist('metrics')
+
         except Exception:
             abort(400, message='bad parameter types')
-
-        search_kwargs = create_search_kwargs()
-
-        order_by = request.args.get('order_by', 'formula')
 
         try:
             assert page >= 1
@@ -261,22 +226,20 @@ class RepoCalcsResource(Resource):
         for metric in metrics:
             if metric not in search.metrics_names:
                 abort(400, message='there is not metric %s' % metric)
+        search_request.statistics(metrics_to_use=metrics)
 
         try:
             if scroll:
-                results = search.scroll_search(
-                    scroll_id=scroll_id, size=per_page, **search_kwargs)
+                results = search_request.execute_scrolled(scroll_id=scroll_id, size=per_page)
 
             else:
-                results = search.metrics_search(
-                    per_page=per_page, page=page, order=order, order_by=order_by,
-                    metrics_to_use=metrics,
-                    with_date_histogram=date_histogram, **search_kwargs)
+                results = search_request.execute_paginated(
+                    per_page=per_page, page=page, order=order, order_by=order_by)
 
                 # TODO just a work around to make things prettier
-                quantities = results['quantities']
-                if 'code_name' in quantities and 'currupted mainfile' in quantities['code_name']:
-                    del(quantities['code_name']['currupted mainfile'])
+                statistics = results['statistics']
+                if 'code_name' in statistics and 'currupted mainfile' in statistics['code_name']:
+                    del(statistics['code_name']['currupted mainfile'])
 
             return results, 200
         except search.ScrollIdNotFound:
@@ -288,11 +251,10 @@ class RepoCalcsResource(Resource):
 
 
 repo_quantity_values_model = api.model('RepoQuantityValues', {
-    'quantities': fields.Raw(description='''
-        A dict with the requested quantity as single key.
-        The value is a dictionary with 'after' and 'values' keys.
-        The 'values' key holds a dict with actual values as keys and their entry count
-        as values (i.e. number of entries with that value). ''')
+    'quantity': fields.Nested(api.model('RepoQuantity', {
+        'after': fields.String(description='The after value that can be used to retrieve the next set of values.'),
+        'values': fields.Raw(description='A dict with values as key and entry count as values.')
+    }), allow_null=True)
 })
 
 repo_quantity_search_request_parser = api.parser()
@@ -324,19 +286,17 @@ class RepoQuantityResource(Resource):
         scrolling. The result will contain an 'after' value, that can be specified
         for the next request. You can use the 'size' and 'after' parameters accordingly.
 
-        The result will contain a 'quantities' key with the given quantity and the
-        respective values (upto 'size' many). For the rest of the values use the
-        'after' parameter accordingly.
+        The result will contain a 'quantity' key with quantity values and the "after"
+        value. There will be upto 'size' many values. For the rest of the values use the
+        "after" parameter in another request.
         """
+
+        search_request = search.SearchRequest()
+        add_query(search_request)
 
         try:
             after = request.args.get('after', None)
             size = int(request.args.get('size', 100))
-
-            from_time = rfc3339DateTime.parse(request.args.get('from_time', '2000-01-01'))
-            until_time_str = request.args.get('until_time', None)
-            until_time = rfc3339DateTime.parse(until_time_str) if until_time_str is not None else datetime.datetime.utcnow()
-            time_range = (from_time, until_time)
         except Exception:
             abort(400, message='bad parameter types')
 
@@ -345,13 +305,12 @@ class RepoQuantityResource(Resource):
         except AssertionError:
             abort(400, message='invalid size')
 
-        q = _create_owner_query()
-        search_parameters = _create_search_parameters()
+        search_request.quantity(quantity, size=size, after=after)
 
         try:
-            results = search.quantity_search(
-                q=q, time_range=time_range, search_parameters=search_parameters,
-                quantities={quantity: after}, size=size, with_entries=False)
+            results = search_request.execute()
+            quantities = results.pop('quantities')
+            results['quantity'] = quantities[quantity]
 
             return results, 200
         except KeyError as e:
@@ -367,17 +326,25 @@ class RepoPidResource(Resource):
     @api.marshal_with(repo_calc_id_model, skip_none=True, code=200, description='Entry resolved')
     @login_if_available
     def get(self, pid: int):
-        q = _create_owner_query()
-        results = search.entry_search(q, page=1, per_page=1, search_parameters=dict(pid=pid))
-        total = results['pagination']['total']
-        if total == 1:
-            return dict(
-                upload_id=results['results'][0]['upload_id'],
-                calc_id=results['results'][0]['calc_id'])
-        elif total == 0:
-            abort(404, 'Entry with PID %d does not exist' % pid)
+        search_request = search.SearchRequest()
+
+        if g.user is not None:
+            search_request.owner('all', user_id=g.user.user_id)
         else:
+            search_request.owner('all')
+
+        search_request.search_parameter('pid', pid)
+
+        results = list(search_request.execute_scan())
+        total = len(results)
+
+        if total == 0:
+            abort(404, 'Entry with PID %d does not exist' % pid)
+
+        if total > 1:
             utils.get_logger(__name__).error('Two entries for the same pid', pid=pid)
-            return dict(
-                upload_id=results['results'][0]['upload_id'],
-                calc_id=results['results'][0]['calc_id'])
+
+        result = results[0]
+        return dict(
+            upload_id=result['upload_id'],
+            calc_id=result['calc_id'])

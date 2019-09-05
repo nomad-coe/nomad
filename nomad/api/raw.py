@@ -32,7 +32,7 @@ from nomad.processing import Calc
 from .app import api
 from .auth import login_if_available, create_authorization_predicate, \
     signature_token_argument, with_signature_token
-from .repo import search_request_parser, create_search_kwargs
+from .repo import search_request_parser, add_query
 
 if sys.version_info >= (3, 7):
     import zipfile
@@ -371,10 +371,12 @@ class RawFileQueryResource(Resource):
         except Exception:
             abort(400, message='bad parameter types')
 
-        search_kwargs = create_search_kwargs()
+        search_request = search.SearchRequest()
+        add_query(search_request)
+
         calcs = sorted([
             (entry['upload_id'], entry['mainfile'])
-            for entry in search.entry_scan(**search_kwargs)], key=lambda x: x[0])
+            for entry in search_request.execute_scan()], key=lambda x: x[0])
 
         def generator():
             for upload_id, mainfile in calcs:

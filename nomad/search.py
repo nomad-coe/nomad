@@ -315,14 +315,14 @@ class SearchRequest:
                 raise ValueError('Authentication required for owner value user')
             q = Q('term', published=False) & Q('term', owners__user_id=user_id)
         elif owner_type == 'admin':
-            if user_id is None or not User.is_admin(user_id):
+            if user_id is None or not coe_repo.User.from_user_id(user_id).is_admin:
                 raise ValueError('This can only be used by the admin user.')
             q = None
         else:
             raise KeyError('Unsupported owner value')
 
         if q is not None:
-            self.q &= q
+            self.q = self.q & q
 
         return self
 
@@ -333,10 +333,12 @@ class SearchRequest:
         in the domain's (DFT calculations) datamodel. Alternatively search parameters
         can be set via attributes.
         """
-        for name, value in kwargs:
-            setattr(self, name, value)
+        for name, value in kwargs.items():
+            self.search_parameter(name, value)
 
-    def __setattr__(self, name, value):
+        return self
+
+    def search_parameter(self, name, value):
         quantity = search_quantities.get(name, None)
         if quantity is None:
             raise KeyError('Unknown quantity %s' % name)
@@ -352,7 +354,7 @@ class SearchRequest:
             values = [value]
 
         for item in values:
-            q &= Q(quantity.elastic_search_type, **{quantity.elastic_field: item})
+            self.q &= Q(quantity.elastic_search_type, **{quantity.elastic_field: item})
 
         return self
 
@@ -375,9 +377,11 @@ class SearchRequest:
         """ The underlying elasticsearch_dsl query object """
         if self._query is None:
             return Q('match_all')
+        else:
+            return self._query
 
     @q.setter
-    def q(self, q, value):
+    def q(self, q):
         self._query = q
 
     def statistics(
@@ -491,7 +495,7 @@ class SearchRequest:
         if after is not None:
             composite['after'] = {name: after}
 
-        self._search.aggs.bucket('quantitiy:%s' % name, 'composite', **composite)
+        self._search.aggs.bucket('quantity:%s' % name, 'composite', **composite)
 
         return self
 
@@ -500,17 +504,17 @@ class SearchRequest:
         Exectutes without returning actual results. Only makes sense if the request
         was configured for statistics or quantity values.
         """
-        return self._response(self._search.execute())
+        return self._response(self._search.query(self.q)[0:0].execute())
 
     def execute_scan(self):
         """
         This execute the search as scan. The result will be a generator over the found
         entries. Everything but the query part of this object, will be ignored.
         """
-        for hit in self._search.scan():
+        for hit in self._search.query(self.q).scan():
             yield hit.to_dict()
 
-    def execute_pagenated(
+    def execute_paginated(
             self, page: int = 1, per_page=10, order_by: str = order_default_quantity,
             order: int = -1):
         """
@@ -522,7 +526,7 @@ class SearchRequest:
             order_by: The quantity to order by.
             order: -1 or 1 for descending or ascending order.
         """
-        search = self._search
+        search = self._search.query(self.q)
 
         if order_by not in search_quantities:
             raise KeyError('Unknown order quantity %s' % order_by)
@@ -535,8 +539,9 @@ class SearchRequest:
             search = search.sort('-%s' % order_by_quantity.elastic_field)
         search = search[(page - 1) * per_page: page * per_page]
 
-        result = self._response(search.execute())
+        result = self._response(search.execute(), with_hits=True)
         result.update(pagination=dict(total=result['total'], page=page, per_page=per_page))
+        return result
 
     def execute_scrolled(self, scroll_id: str = None, size: int = 1000, scroll: str = u'5m'):
         """
@@ -563,7 +568,7 @@ class SearchRequest:
         if scroll_id is None:
             # initiate scroll
             resp = es.search(  # pylint: disable=E1123
-                body=self._search.to_dict(), scroll=scroll, size=size,
+                body=self._search.query(self.q).to_dict(), scroll=scroll, size=size,
                 index=config.elastic.index_name)
 
             scroll_id = resp.get('_scroll_id')
@@ -595,55 +600,64 @@ class SearchRequest:
 
         return dict(scroll=scroll_info, results=results)
 
-    def _response(self, response) -> Dict[str, Any]:
+    def _response(self, response, with_hits: bool = False) -> Dict[str, Any]:
+        """
+        Prepares a response object covering the total number of resutls, hits, statistics,
+        and quantities. Other aspects like pagination and scrolling have to be added
+        elsewhere.
+        """
         result: Dict[str, Any] = dict()
+        aggs = response.aggregations.to_dict()
 
+        # total
         total = response.hits.total if hasattr(response, 'hits') else 0
         result.update(total=total)
 
         # hits
-        result.update(results=[hit.to_dict() for hit in response.hits])
+        if len(response.hits) > 0 or with_hits:
+            result.update(results=[hit.to_dict() for hit in response.hits])
 
         # statistics
         def get_metrics(bucket, code_runs):
             result = {
                 metric: bucket[metric]['value']
-                for metric in vars(bucket)
+                for metric in metrics_names if metric in bucket
             }
             result.update(code_runs=code_runs)
             return result
 
         metrics_results = {
-            quantity_name: {
-                bucket.key: get_metrics(bucket, bucket.doc_count)
-                for bucket in getattr(response.aggregations, quantity_name).buckets
+            quantity_name[11:]: {
+                bucket['key']: get_metrics(bucket, bucket['doc_count'])
+                for bucket in quantity['buckets']
             }
-            for quantity_name in vars(response.aggrgations)
+            for quantity_name, quantity in aggs.items()
             if quantity_name.startswith('statistics:')
         }
 
-        total_metrics_result = get_metrics(response.aggregations, total)
-        metrics_results['total'] = dict(all=total_metrics_result)
-        result.update(quantities=metrics_results)
+        if len(metrics_results) > 0:
+            total_metrics_result = get_metrics(aggs, total)
+            metrics_results['total'] = dict(all=total_metrics_result)
+            result.update(statistics=metrics_results)
 
         # quantities
-        def create_quantity_result(quantity):
-            values = getattr(response.aggregations, quantity)
+        def create_quantity_result(quantity_name, quantity):
             result = dict(values={
-                getattr(bucket.key, quantity): bucket.doc_count
-                for bucket in values.buckets})
+                bucket['key'][quantity_name]: bucket['doc_count']
+                for bucket in quantity['buckets']})
 
-            if hasattr(values, 'after_key'):
-                result.update(after=getattr(values.after_key, quantity))
+            if 'after_key' in quantity:
+                result.update(after=quantity['after_key'][quantity_name])
 
             return result
 
         quantity_results = {
-            quantity: create_quantity_result(quantity)
-            for quantity_name in vars(response.aggrgations)
-            if quantity_name.startswith('statistics:')
+            quantity_name[9:]: create_quantity_result(quantity_name[9:], quantity)
+            for quantity_name, quantity in aggs.items()
+            if quantity_name.startswith('quantity:')
         }
 
-        result.update(quantities=quantity_results)
+        if len(quantity_results) > 0:
+            result.update(quantities=quantity_results)
 
         return result

@@ -775,20 +775,20 @@ class TestRepo():
         (2, 'quantities', ['wyckoff_letters_primitive', 'hall_number']),
         (0, 'quantities', 'dos')
     ])
-    def test_search_quantities(self, client, example_elastic_calcs, no_warn, test_user_auth, calcs, quantity, value):
+    def test_search_parameters(self, client, example_elastic_calcs, no_warn, test_user_auth, calcs, quantity, value):
         query_string = urlencode({quantity: value}, doseq=True)
 
         rv = client.get('/repo/?%s' % query_string, headers=test_user_auth)
         logger.debug('run search quantities test', query_string=query_string)
         data = self.assert_search(rv, calcs)
 
-        quantities = data.get('quantities', None)
-        assert quantities is not None
+        statistics = data.get('statistics', None)
+        assert statistics is not None
         if quantity == 'system' and calcs != 0:
             # for simplicity we only assert on quantities for this case
-            assert 'system' in quantities
-            assert len(quantities['system']) == 1
-            assert value in quantities['system']
+            assert 'system' in statistics
+            assert len(statistics['system']) == 1
+            assert value in statistics['system']
 
     metrics_permutations = [[], search.metrics_names] + [[metric] for metric in search.metrics_names]
 
@@ -808,7 +808,7 @@ class TestRepo():
         rv = client.get('/repo/?%s' % urlencode(dict(metrics=metrics), doseq=True))
         assert rv.status_code == 200, str(rv.data)
         data = json.loads(rv.data)
-        total_metrics = data.get('quantities', {}).get('total', {}).get('all', None)
+        total_metrics = data.get('statistics', {}).get('total', {}).get('all', None)
         assert total_metrics is not None
         assert 'code_runs' in total_metrics
         for metric in metrics:
@@ -819,7 +819,7 @@ class TestRepo():
         rv = client.get('/repo/?%s' % urlencode(dict(metrics=metrics), doseq=True))
         assert rv.status_code == 200
         data = json.loads(rv.data)
-        for name, quantity in data.get('quantities').items():
+        for name, quantity in data.get('statistics').items():
             for metrics_result in quantity.values():
                 assert 'code_runs' in metrics_result
                 if name != 'authors':
@@ -832,8 +832,7 @@ class TestRepo():
         rv = client.get('/repo/?date_histogram=true&metrics=total_energies')
         assert rv.status_code == 200
         data = json.loads(rv.data)
-        histogram = data.get('quantities').get('date_histogram')
-        print(histogram)
+        histogram = data.get('statistics').get('date_histogram')
         assert len(histogram) > 0
 
     @pytest.mark.parametrize('n_results, page, per_page', [(2, 1, 5), (1, 1, 1), (0, 2, 3)])
@@ -903,10 +902,7 @@ class TestRepo():
         rv = client.get('/repo/%s' % quantity, headers=test_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)
-
-        quantities = data['quantities']
-        assert quantity in quantities
-        values = quantities[quantity]['values']
+        values = data['quantity']['values']
         assert (value in values) == (calcs > 0)
         assert values.get(value, 0) == calcs
 
@@ -915,7 +911,7 @@ class TestRepo():
         assert rv.status_code == 200
         data = json.loads(rv.data)
 
-        quantity = data['quantities']['atoms']
+        quantity = data['quantity']
         assert 'after' in quantity
         after = quantity['after']
         assert len(quantity['values']) == 1
@@ -926,12 +922,11 @@ class TestRepo():
             assert rv.status_code == 200
             data = json.loads(rv.data)
 
-            quantity = data['quantities']['atoms']
+            quantity = data['quantity']
 
-            if 'after' not in quantity:
+            if quantity.get('after') is None:
                 assert len(quantity['values']) == 0
                 break
-
             assert len(quantity['values']) == 1
             assert value != list(quantity['values'].keys())[0]
             assert after != quantity['after']
