@@ -268,17 +268,32 @@ class Domain:
         pid=DomainQuantity(description='Search for the pid.'),
         mainfile=DomainQuantity(description='Search for the mainfile.'),
         datasets=DomainQuantity(
-            elastic_field='datasets.name', multi=True,
+            elastic_field='datasets.name', multi=True, elastic_search_type='match',
             description='Search for a particular dataset by name.'),
+        dataset_ids=DomainQuantity(
+            elastic_field='datasets.id', multi=True,
+            description='Search for a particular dataset by its id.'),
         doi=DomainQuantity(
-            elastic_field='datasets.doi', elastic_search_type='match', multi=True,
+            elastic_field='datasets.doi', multi=True,
             description='Search for a particular dataset by doi (incl. http://dx.doi.org).'))
+
+    base_metrics = dict(
+        datasets=('datasets.id', 'cardinality'),
+        uploaders=('uploader.name.keyword', 'cardinality'),
+        authors=('authors.name.keyword', 'cardinality'),
+        unique_entries=('calc_hash', 'cardinality'))
 
     def __init__(
             self, name: str, domain_entry_class: Type[CalcWithMetadata],
             quantities: Dict[str, DomainQuantity],
+            metrics: Dict[str, Tuple[str, str]],
+            default_statistics: List[str],
             root_sections=['section_run', 'section_entry_info'],
             metainfo_all_package='all.nomadmetainfo.json') -> None:
+
+        domain_quantities = quantities
+        domain_metrics = metrics
+
         if name == config.domain:
             assert Domain.instance is None, 'you can only define one domain.'
             Domain.instance = self
@@ -287,9 +302,10 @@ class Domain:
 
         self.name = name
         self.domain_entry_class = domain_entry_class
-        self.quantities: Dict[str, DomainQuantity] = {}
+        self.domain_quantities: Dict[str, DomainQuantity] = {}
         self.root_sections = root_sections
         self.metainfo_all_package = metainfo_all_package
+        self.default_statistics = default_statistics
 
         reference_domain_calc = domain_entry_class()
         reference_general_calc = CalcWithMetadata()
@@ -297,15 +313,15 @@ class Domain:
         # add non specified quantities from additional metadata class fields
         for quantity_name in reference_domain_calc.__dict__.keys():
             if not hasattr(reference_general_calc, quantity_name):
-                quantity = quantities.get(quantity_name, None)
+                quantity = domain_quantities.get(quantity_name, None)
 
                 if quantity is None:
-                    quantities[quantity_name] = DomainQuantity()
+                    domain_quantities[quantity_name] = DomainQuantity()
 
         # add all domain quantities
-        for quantity_name, quantity in quantities.items():
+        for quantity_name, quantity in domain_quantities.items():
             quantity.name = quantity_name
-            self.quantities[quantity.name] = quantity
+            self.domain_quantities[quantity.name] = quantity
 
             # update the multi status from an example value
             if quantity.metadata_field in reference_domain_calc.__dict__:
@@ -316,24 +332,17 @@ class Domain:
                 'quantity overrides general non domain quantity'
 
         # construct search quantities from base and domain quantities
-        self.search_quantities = dict(**Domain.base_quantities)
-        for quantity_name, quantity in self.search_quantities.items():
+        self.quantities = dict(**Domain.base_quantities)
+        for quantity_name, quantity in self.quantities.items():
             quantity.name = quantity_name
-        self.search_quantities.update(self.quantities)
+        self.quantities.update(self.domain_quantities)
 
         assert any(quantity.order_default for quantity in Domain.instances[name].quantities.values()), \
             'you need to define a order default quantity'
 
-    @property
-    def metrics(self) -> Dict[str, Tuple[str, str]]:
-        """
-        The metrics specification used for search aggregations. See :func:`nomad.search.metrics`.
-        """
-        return {
-            quantity.metric[0]: (quantity.metric[1], quantity.name)
-            for quantity in self.quantities.values()
-            if quantity.metric is not None
-        }
+        # construct metrics from base and domain metrics
+        self.metrics = dict(**Domain.base_metrics)
+        self.metrics.update(**domain_metrics)
 
     @property
     def metrics_names(self) -> Iterable[str]:
@@ -343,12 +352,12 @@ class Domain:
     @property
     def aggregations(self) -> Dict[str, int]:
         """
-        The search aggregations and the maximum number of calculated buckets. See also
+        The search aggregations and the default maximum number of calculated buckets. See also
         :func:`nomad.search.aggregations`.
         """
         return {
             quantity.name: quantity.aggregations
-            for quantity in self.search_quantities.values()
+            for quantity in self.quantities.values()
             if quantity.aggregations > 0
         }
 

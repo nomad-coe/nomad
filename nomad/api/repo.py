@@ -22,7 +22,7 @@ from flask_restplus import Resource, abort, fields
 from flask import request, g
 from elasticsearch.exceptions import NotFoundError
 
-from nomad import search, utils
+from nomad import search, utils, datamodel
 
 from .app import api, rfc3339DateTime
 from .auth import login_if_available
@@ -81,7 +81,11 @@ repo_calcs_model = api.model('RepoCalculations', {
         'A dict with all statistics. Each statistic is dictionary with a metrics dict as '
         'value and quantity value as key. The possible metrics are code runs(calcs), %s. '
         'There is a pseudo quantity "total" with a single value "all" that contains the '
-        ' metrics over all results. ' % ', '.join(search.metrics_names)))
+        ' metrics over all results. ' % ', '.join(datamodel.Domain.instance.metrics_names))),
+    'datasets': fields.Raw(api.model('RepoDatasets', {
+        'after': fields.String(description='The after value that can be used to retrieve the next datasets.'),
+        'values': fields.Raw(description='A dict with names as key. The values are dicts with "total" and "examples" keys.')
+    }), allow_null=True)
 })
 
 
@@ -101,7 +105,7 @@ def add_common_parameters(request_parser):
         'until_time', type=lambda x: rfc3339DateTime.parse(x),
         help='A yyyy-MM-ddTHH:mm:ss (RFC3339) maximum entry time (e.g. upload time)')
 
-    for quantity in search.search_quantities.values():
+    for quantity in search.quantities.values():
         request_parser.add_argument(
             quantity.name, help=quantity.description,
             action='append' if quantity.multi else None)
@@ -116,9 +120,11 @@ repo_request_parser.add_argument(
 repo_request_parser.add_argument(
     'date_histogram', type=bool, help='Add an additional aggregation over the upload time')
 repo_request_parser.add_argument(
+    'datasets_after', type=str, help='The last dataset id of the last scroll window for the dataset quantitiy')
+repo_request_parser.add_argument(
     'metrics', type=str, action='append', help=(
         'Metrics to aggregate over all quantities and their values as comma separated list. '
-        'Possible values are %s.' % ', '.join(search.metrics_names)))
+        'Possible values are %s.' % ', '.join(datamodel.Domain.instance.metrics_names)))
 
 
 search_request_parser = api.parser()
@@ -152,9 +158,9 @@ def add_query(search_request: search.SearchRequest):
 
     # search parameter
     search_request.search_parameters(**{
-        key: request.args.getlist(key) if search.search_quantities[key] else request.args.get(key)
+        key: request.args.getlist(key) if search.quantities[key] else request.args.get(key)
         for key in request.args.keys()
-        if key in search.search_quantities})
+        if key in search.quantities})
 
 
 @ns.route('/')
@@ -210,7 +216,6 @@ class RepoCalcsResource(Resource):
             if bool(request.args.get('date_histogram', False)):
                 search_request.date_histogram()
             metrics: List[str] = request.args.getlist('metrics')
-
         except Exception:
             abort(400, message='bad parameter types')
 
@@ -225,14 +230,23 @@ class RepoCalcsResource(Resource):
 
         for metric in metrics:
             if metric not in search.metrics_names:
-                abort(400, message='there is not metric %s' % metric)
-        search_request.statistics(metrics_to_use=metrics)
+                abort(400, message='there is no metric %s' % metric)
+
+        search_request.default_statistics(metrics_to_use=metrics)
+        if 'datasets' not in metrics:
+            total_metrics = metrics + ['datasets']
+        else:
+            total_metrics = metrics
+        search_request.totals(metrics_to_use=total_metrics)
+        search_request.statistic('authors', 1000)
 
         try:
             if scroll:
                 results = search_request.execute_scrolled(scroll_id=scroll_id, size=per_page)
 
             else:
+                search_request.quantity(
+                    'dataset_ids', size=per_page, examples=1, after=request.args.get('datasets_after', None))
                 results = search_request.execute_paginated(
                     per_page=per_page, page=page, order=order, order_by=order_by)
 
@@ -240,6 +254,9 @@ class RepoCalcsResource(Resource):
                 statistics = results['statistics']
                 if 'code_name' in statistics and 'currupted mainfile' in statistics['code_name']:
                     del(statistics['code_name']['currupted mainfile'])
+
+                datasets = results.pop('quantities')['dataset_ids']
+                results['datasets'] = datasets
 
             return results, 200
         except search.ScrollIdNotFound:
@@ -253,7 +270,7 @@ class RepoCalcsResource(Resource):
 repo_quantity_values_model = api.model('RepoQuantityValues', {
     'quantity': fields.Nested(api.model('RepoQuantity', {
         'after': fields.String(description='The after value that can be used to retrieve the next set of values.'),
-        'values': fields.Raw(description='A dict with values as key and entry count as values.')
+        'values': fields.Raw(description='A dict with values as key. Values are dicts with "total" and "examples" keys.')
     }), allow_null=True)
 })
 

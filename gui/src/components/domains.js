@@ -74,7 +74,7 @@ class DomainProviderBase extends React.Component {
           tooltip: 'The statistics will show the number of database entry. Each set of input/output files that represents a code run is an entry.',
           renderResultString: count => (<span><b>{count.toLocaleString()}</b> entries</span>)
         },
-        unique_code_runs: {
+        unique_entries: {
           label: 'Unique entries',
           tooltip: 'Counts duplicates only once.',
           renderResultString: count => (<span> and <b>{count.toLocaleString()}</b> unique entries</span>)
@@ -84,7 +84,7 @@ class DomainProviderBase extends React.Component {
           tooltip: 'Aggregates the number of total energy calculations as each entry can contain many calculations.',
           renderResultString: count => (<span> with <b>{count.toLocaleString()}</b> total energy calculations</span>)
         },
-        geometries: {
+        unique_geometries: {
           label: 'Unique geometries',
           tooltip: 'Aggregates the number of unique simulated system geometries in all entries.',
           renderResultString: count => (<span> that simulate <b>{count.toLocaleString()}</b> unique geometries</span>)

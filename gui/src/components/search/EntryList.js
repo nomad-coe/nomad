@@ -1,11 +1,11 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Paper, Table, TableHead, TableRow, TableCell, Tooltip, TableSortLabel, TableBody, TablePagination } from '@material-ui/core'
+import { withStyles, Table, TableHead, TableRow, TableCell, Tooltip, TableSortLabel, TableBody, TablePagination } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withRouter } from 'react-router'
 import { withDomain } from '../domains'
 
-class SearchResultListUnstyled extends React.Component {
+class EntryListUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     data: PropTypes.object.isRequired,
@@ -21,8 +21,9 @@ class SearchResultListUnstyled extends React.Component {
 
   static styles = theme => ({
     root: {
-      width: '100%',
-      overflowX: 'scroll'
+      overflow: 'auto',
+      paddingLeft: theme.spacing.unit * 2,
+      paddingRight: theme.spacing.unit * 2,
     },
     clickableRow: {
       cursor: 'pointer'
@@ -108,7 +109,7 @@ class SearchResultListUnstyled extends React.Component {
     const emptyRows = per_page - Math.min(per_page, total - (page - 1) * per_page)
 
     return (
-      <Paper className={classes.root}>
+      <div className={classes.root}>
         <Table>
           <TableHead>
             <TableRow>
@@ -163,13 +164,13 @@ class SearchResultListUnstyled extends React.Component {
             </TableRow>
           </TableBody>
         </Table>
-      </Paper>
+      </div>
     )
   }
 }
 
-const SearchResultList = compose(withRouter, withDomain, withStyles(SearchResultListUnstyled.styles))(SearchResultListUnstyled)
-Object.assign(SearchResultList, {
+const EntryList = compose(withRouter, withDomain, withStyles(EntryListUnstyled.styles))(EntryListUnstyled)
+Object.assign(EntryList, {
   defaultState: {
     order_by: 'formula',
     order: 1,
@@ -178,4 +179,4 @@ Object.assign(SearchResultList, {
   }
 })
 
-export default SearchResultList
+export default EntryList

@@ -651,6 +651,9 @@ class TestRepo():
         calc_with_metadata.files = ['test/mainfile.txt']
         calc_with_metadata.apply_domain_metadata(normalized)
 
+        calc_with_metadata.update(datasets=[
+            utils.POPO(id='ds_id', doi=dict(value='ds_doi'), name='ds_name')])
+
         calc_with_metadata.update(
             calc_id='1', uploader=test_user.to_popo(), published=True, with_embargo=False)
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
@@ -713,6 +716,17 @@ class TestRepo():
     def test_non_existing_calcs(self, client, example_elastic_calcs, test_user_auth):
         rv = client.get('/repo/0/10', headers=test_user_auth)
         assert rv.status_code == 404
+
+    def test_search_datasets(self, client, example_elastic_calcs, no_warn, other_test_user_auth):
+        rv = client.get('/repo/?owner=all', headers=other_test_user_auth)
+        data = self.assert_search(rv, 4)
+
+        datasets = data.get('datasets', None)
+        assert datasets is not None
+        values = datasets['values']
+        assert values['ds_id']['total'] == 4
+        assert values['ds_id']['examples'][0]['datasets'][0]['id'] == 'ds_id'
+        assert 'after' in datasets
 
     @pytest.mark.parametrize('calcs, owner, auth', [
         (2, 'all', 'none'),
@@ -830,6 +844,7 @@ class TestRepo():
 
     def test_search_date_histogram(self, client, example_elastic_calcs, no_warn):
         rv = client.get('/repo/?date_histogram=true&metrics=total_energies')
+        print(rv.data)
         assert rv.status_code == 200
         data = json.loads(rv.data)
         histogram = data.get('statistics').get('date_histogram')
@@ -904,7 +919,10 @@ class TestRepo():
         data = json.loads(rv.data)
         values = data['quantity']['values']
         assert (value in values) == (calcs > 0)
-        assert values.get(value, 0) == calcs
+        if value in values:
+            assert values[value]['total'] == calcs
+        else:
+            assert 0 == calcs
 
     def test_quantity_search_after(self, client, example_elastic_calcs, no_warn, test_user_auth):
         rv = client.get('/repo/atoms?size=1')

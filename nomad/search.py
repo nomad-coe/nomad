@@ -23,6 +23,7 @@ from elasticsearch_dsl.document import IndexMeta
 import elasticsearch.helpers
 from elasticsearch.exceptions import NotFoundError
 from datetime import datetime
+import json
 
 from nomad import config, datamodel, infrastructure, datamodel, coe_repo, utils
 
@@ -97,7 +98,7 @@ class Dataset(InnerDoc):
 class WithDomain(IndexMeta):
     """ Override elasticsearch_dsl metaclass to sneak in domain specific mappings """
     def __new__(cls, name, bases, attrs):
-        for quantity in datamodel.Domain.instance.quantities.values():
+        for quantity in datamodel.Domain.instance.domain_quantities.values():
             attrs[quantity.name] = quantity.elastic_mapping
         return super(WithDomain, cls).__new__(cls, name, bases, attrs)
 
@@ -171,7 +172,7 @@ class Entry(Document, metaclass=WithDomain):
         self.references = [ref.value for ref in source.references]
         self.datasets = [Dataset.from_dataset_popo(ds) for ds in source.datasets]
 
-        for quantity in datamodel.Domain.instance.quantities.values():
+        for quantity in datamodel.Domain.instance.domain_quantities.values():
             setattr(
                 self, quantity.name,
                 quantity.elastic_value(getattr(source, quantity.metadata_field)))
@@ -222,26 +223,18 @@ def refresh():
     infrastructure.elastic_client.indices.refresh(config.elastic.index_name)
 
 
-aggregations = datamodel.Domain.instance.aggregations
-""" The available aggregations in :func:`aggregate_search` and their maximum aggregation size """
-
-search_quantities = datamodel.Domain.instance.search_quantities
+quantities = datamodel.Domain.instance.quantities
 """The available search quantities """
 
-metrics = {
-    'datasets': ('cardinality', 'datasets.id'),
-    'unique_code_runs': ('cardinality', 'calc_hash'),
-    'users': ('cardinality', 'uploader.name.keyword')
-}
+metrics = datamodel.Domain.instance.metrics
 """
 The available search metrics. Metrics are integer values given for each entry that can
-be used in aggregations, e.g. the sum of all total energy calculations or cardinality of
+be used in statistics (aggregations), e.g. the sum of all total energy calculations or cardinality of
 all unique geometries.
 """
 
-metrics.update(**datamodel.Domain.instance.metrics)
-
-metrics_names = list(metric for metric in metrics.keys())
+metrics_names = datamodel.Domain.instance.metrics_names
+""" Names of all available metrics """
 
 order_default_quantity = None
 for quantity in datamodel.Domain.instance.quantities.values():
@@ -339,7 +332,7 @@ class SearchRequest:
         return self
 
     def search_parameter(self, name, value):
-        quantity = search_quantities.get(name, None)
+        quantity = quantities.get(name, None)
         if quantity is None:
             raise KeyError('Unknown quantity %s' % name)
 
@@ -384,9 +377,30 @@ class SearchRequest:
     def q(self, q):
         self._query = q
 
-    def statistics(
-            self, quantities: Dict[str, int] = aggregations,
-            metrics_to_use: List[str] = []):
+    def totals(self, metrics_to_use: List[str] = []):
+        """
+        Configure the request to return overall totals for the given metrics.
+
+        The statics are returned with the other quantity statistics under the pseudo
+        quantity name 'total'. 'total' contains the pseudo value 'all'. It is used to
+        store the metrics aggregated over all entries in the search results.
+        """
+        self._add_metrics(self._search.aggs, metrics_to_use)
+        return self
+
+    def default_statistics(self, metrics_to_use: List[str] = []):
+        """
+        Configures the domain's default statistics.
+        """
+        for name in datamodel.Domain.instance.default_statistics:
+            self.statistic(
+                name,
+                quantities[name].aggregations,
+                metrics_to_use=metrics_to_use)
+
+        return self
+
+    def statistic(self, quantity_name: str, size: int, metrics_to_use: List[str] = []):
         """
         This can be used to display statistics over the searched entries and allows to
         implement faceted search on the top values for each quantity.
@@ -401,34 +415,24 @@ class SearchRequest:
         quantities and default aggregation sizes.
 
         The search results will contain a dictionary ``statistics``. This has a key
-        for each quantity and an extra key 'total'. Each quantity key will hold a dict
+        for each configured quantity. Each quantity key will hold a dict
         with a key for each quantity value. Each quantity value key will hold a dict
         with a key for each metric. The values will be the actual aggregated metric values.
-        The pseudo quantity 'total' contains a pseudo value 'all'. It is used to
-        store the metrics aggregated over all entries in the search results.
 
         Arguments:
-            quantities: A customized list of quantities to aggregate over. Keys are index fields,
-                and values the amount of buckets to return. Only works on *keyword* field.
+            quantity_name: The quantity to aggregate statistics for. Only works on *keyword* field.
             metrics_to_use: The metrics calculated over the aggregations. Can be
                 ``unique_code_runs``, ``datasets``, other domain specific metrics.
                 The basic doc_count metric ``code_runs`` is always given.
         """
-        for quantity_name, size in quantities.items():
-            # We are using elastic searchs 'composite aggregations' here. We do not really
-            # compose aggregations, but only those pseudo composites allow us to use the
-            # 'after' feature that allows to scan through all aggregation values.
-            quantity = search_quantities[quantity_name]
-            min_doc_count = 0 if quantity.zero_aggs else 1
-            terms = A(
-                'terms', field=quantity.elastic_field, size=size, min_doc_count=min_doc_count,
-                order=dict(_key='asc'))
+        quantity = quantities[quantity_name]
+        min_doc_count = 0 if quantity.zero_aggs else 1
+        terms = A(
+            'terms', field=quantity.elastic_field, size=size, min_doc_count=min_doc_count,
+            order=dict(_key='asc'))
 
-            buckets = self._search.aggs.bucket('statistics:%s' % quantity_name, terms)
-            if quantity_name not in ['authors']:
-                self._add_metrics(buckets, metrics_to_use)
-
-        self._add_metrics(self._search.aggs, metrics_to_use)
+        buckets = self._search.aggs.bucket('statistics:%s' % quantity_name, terms)
+        self._add_metrics(buckets, metrics_to_use)
 
         return self
 
@@ -437,8 +441,8 @@ class SearchRequest:
             parent = self._search.aggs
 
         for metric in metrics_to_use:
-            metric_kind, field = metrics[metric]
-            parent.metric(metric, A(metric_kind, field=field))
+            field, metric_kind = metrics[metric]
+            parent.metric('metric:%s' % metric, A(metric_kind, field=field))
 
     def date_histogram(self, metrics_to_use: List[str] = []):
         """
@@ -460,7 +464,7 @@ class SearchRequest:
 
         return self
 
-    def quantity(self, name, size=100, after=None):
+    def quantity(self, name, size=100, after=None, examples=0, examples_source=None):
         """
         Adds a requests for values of the given quantity.
         It allows to scroll through all values via elasticsearch's
@@ -477,7 +481,7 @@ class SearchRequest:
         as values (i.e. number of entries with that value).
 
         Arguments:
-            name: The quantity name. Must be in :data:`search_quantities`.
+            name: The quantity name. Must be in :data:`quantities`.
             after: The 'after' value allows to scroll over various requests, by providing
                 the 'after' value of the last search. The 'after' value is part of the
                 response. Use ``None`` in the first request.
@@ -488,14 +492,23 @@ class SearchRequest:
         if size is None:
             size = 100
 
-        quantity = search_quantities[name]
+        quantity = quantities[name]
         terms = A('terms', field=quantity.elastic_field)
 
+        # We are using elastic searchs 'composite aggregations' here. We do not really
+        # compose aggregations, but only those pseudo composites allow us to use the
+        # 'after' feature that allows to scan through all aggregation values.
         composite = dict(sources={name: terms}, size=size)
         if after is not None:
             composite['after'] = {name: after}
 
-        self._search.aggs.bucket('quantity:%s' % name, 'composite', **composite)
+        composite = self._search.aggs.bucket('quantity:%s' % name, 'composite', **composite)
+        if examples > 0:
+            kwargs = {}
+            if examples_source is not None:
+                kwargs.update(_source=dict(includes=examples_source))
+
+            composite.metric('examples', A('top_hits', size=examples, **kwargs))
 
         return self
 
@@ -528,10 +541,10 @@ class SearchRequest:
         """
         search = self._search.query(self.q)
 
-        if order_by not in search_quantities:
+        if order_by not in quantities:
             raise KeyError('Unknown order quantity %s' % order_by)
 
-        order_by_quantity = search_quantities[order_by]
+        order_by_quantity = quantities[order_by]
 
         if order == 1:
             search = search.sort(order_by_quantity.elastic_field)
@@ -619,14 +632,15 @@ class SearchRequest:
 
         # statistics
         def get_metrics(bucket, code_runs):
-            result = {
-                metric: bucket[metric]['value']
-                for metric in metrics_names if metric in bucket
-            }
-            result.update(code_runs=code_runs)
+            result = {}
+            for metric in metrics_names:
+                agg_name = 'metric:%s' % metric
+                if agg_name in bucket:
+                    result[metric] = bucket[agg_name]['value']
+                result.update(code_runs=code_runs)
             return result
 
-        metrics_results = {
+        statistics_results = {
             quantity_name[11:]: {
                 bucket['key']: get_metrics(bucket, bucket['doc_count'])
                 for bucket in quantity['buckets']
@@ -635,17 +649,26 @@ class SearchRequest:
             if quantity_name.startswith('statistics:')
         }
 
-        if len(metrics_results) > 0:
-            total_metrics_result = get_metrics(aggs, total)
-            metrics_results['total'] = dict(all=total_metrics_result)
-            result.update(statistics=metrics_results)
+        # totals
+        totals_result = get_metrics(aggs, total)
+        statistics_results['total'] = dict(all=totals_result)
+
+        if len(statistics_results) > 0:
+            result.update(statistics=statistics_results)
 
         # quantities
         def create_quantity_result(quantity_name, quantity):
-            result = dict(values={
-                bucket['key'][quantity_name]: bucket['doc_count']
-                for bucket in quantity['buckets']})
+            values = {}
+            for bucket in quantity['buckets']:
+                value = dict(
+                    total=bucket['doc_count'])
+                if 'examples' in bucket:
+                    examples = [hit['_source'] for hit in bucket['examples']['hits']['hits']]
+                    value.update(examples=examples)
 
+                values[bucket['key'][quantity_name]] = value
+
+            result = dict(values=values)
             if 'after_key' in quantity:
                 result.update(after=quantity['after_key'][quantity_name])
 
@@ -661,3 +684,6 @@ class SearchRequest:
             result.update(quantities=quantity_results)
 
         return result
+
+    def __str__(self):
+        return json.dumps(self._search.to_dict(), indent=2)

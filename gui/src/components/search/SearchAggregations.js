@@ -38,7 +38,15 @@ class SearchAggregationsUnstyled extends React.Component {
     const { classes, data, metrics, searchValues, domain, onChange, showDetails } = this.props
     const { statistics } = data
     const selectedMetric = metrics.length === 0 ? 'code_runs' : metrics[0]
-    const useMetric = Object.keys(statistics.total.all).find(metric => metric !== 'code_runs') || 'code_runs'
+
+    // first the first statistic to determine which metric is used
+    let useMetric = 'code_runs'
+    const firstRealQuantitiy = Object.keys(statistics).find(key => key !== 'total')
+    if (firstRealQuantitiy) {
+      const firstValue = Object.keys(statistics[firstRealQuantitiy])[0]
+      useMetric = Object.keys(statistics[firstRealQuantitiy][firstValue]).find(metric => metric !== 'code_runs') || 'code_runs'
+    }
+
     const metricsDefinitions = domain.searchMetrics
 
     return (

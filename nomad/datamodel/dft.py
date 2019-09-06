@@ -180,50 +180,55 @@ def only_atoms(atoms):
     return ''.join(only_atoms)
 
 
-Domain('DFT', DFTCalcWithMetadata, quantities=dict(
-    formula=DomainQuantity(
-        'The chemical (hill) formula of the simulated system.',
-        order_default=True),
-    atoms=DomainQuantity(
-        'The atom labels of all atoms in the simulated system.',
-        aggregations=len(ase.data.chemical_symbols), multi=True, zero_aggs=False),
-    only_atoms=DomainQuantity(
-        'The atom labels concatenated in species-number order. Used with keyword search '
-        'to facilitate exclusive searches.',
-        elastic_value=only_atoms, metadata_field='atoms', multi=True),
-    basis_set=DomainQuantity(
-        'The used basis set functions.', aggregations=20),
-    xc_functional=DomainQuantity(
-        'The xc functional type used for the simulation.', aggregations=20),
-    system=DomainQuantity(
-        'The system type of the simulated system.', aggregations=10),
-    crystal_system=DomainQuantity(
-        'The crystal system type of the simulated system.', aggregations=10),
-    code_name=DomainQuantity(
-        'The code name.', aggregations=40),
-    spacegroup=DomainQuantity('The spacegroup of the simulated system as number'),
-    spacegroup_symbol=DomainQuantity('The spacegroup as international short symbol'),
-    geometries=DomainQuantity(
-        'Hashes that describe unique geometries simulated by this code run.',
-        metric=('geometries', 'cardinality')
+Domain(
+    'DFT', DFTCalcWithMetadata,
+    quantities=dict(
+        formula=DomainQuantity(
+            'The chemical (hill) formula of the simulated system.',
+            order_default=True),
+        atoms=DomainQuantity(
+            'The atom labels of all atoms in the simulated system.',
+            aggregations=len(ase.data.chemical_symbols), multi=True, zero_aggs=False),
+        only_atoms=DomainQuantity(
+            'The atom labels concatenated in species-number order. Used with keyword search '
+            'to facilitate exclusive searches.',
+            elastic_value=only_atoms, metadata_field='atoms', multi=True),
+        basis_set=DomainQuantity(
+            'The used basis set functions.', aggregations=20),
+        xc_functional=DomainQuantity(
+            'The xc functional type used for the simulation.', aggregations=20),
+        system=DomainQuantity(
+            'The system type of the simulated system.', aggregations=10),
+        crystal_system=DomainQuantity(
+            'The crystal system type of the simulated system.', aggregations=10),
+        code_name=DomainQuantity(
+            'The code name.', aggregations=40),
+        spacegroup=DomainQuantity('The spacegroup of the simulated system as number'),
+        spacegroup_symbol=DomainQuantity('The spacegroup as international short symbol'),
+        geometries=DomainQuantity(
+            'Hashes that describe unique geometries simulated by this code run.', multi=True),
+        quantities=DomainQuantity(
+            'All quantities that are used by this calculation',
+            metric=('quantities', 'value_count'), multi=True),
+        n_total_energies=DomainQuantity(
+            'Number of total energy calculations',
+            elastic_mapping=Integer()),
+        n_calculations=DomainQuantity(
+            'Number of single configuration calculation sections',
+            elastic_mapping=Integer()),
+        n_quantities=DomainQuantity(
+            'Number of overall parsed quantities',
+            elastic_mapping=Integer()),
+        n_geometries=DomainQuantity(
+            'Number of unique geometries',
+            elastic_mapping=Integer()),
+        n_atoms=DomainQuantity('Number of atoms in the simulated system', elastic_mapping=Integer())),
+    metrics=dict(
+        total_energies=('n_total_energies', 'sum'),
+        calculations=('n_calculations', 'sum'),
+        quantities=('n_quantities', 'sum'),
+        geometries=('n_geometries', 'sum'),
+        unique_geometries=('geometries', 'cardinality')
     ),
-    quantities=DomainQuantity(
-        'All quantities that are used by this calculation',
-        metric=('quantities', 'value_count'), multi=True
-    ),
-    n_total_energies=DomainQuantity(
-        'Number of total energy calculations',
-        metric=('total_energies', 'sum'),
-        elastic_mapping=Integer()),
-    n_calculations=DomainQuantity(
-        'Number of single configuration calculation sections',
-        metric=('calculations', 'sum'),
-        elastic_mapping=Integer()),
-    n_quantities=DomainQuantity(
-        'Number of overall parsed quantities',
-        metric=('parsed_quantities', 'sum'),
-        elastic_mapping=Integer()),
-    n_geometries=DomainQuantity(
-        'Number of unique geometries',
-        elastic_mapping=Integer()),
-    n_atoms=DomainQuantity('Number of atoms in the simulated system', elastic_mapping=Integer())))
+    default_statistics=[
+        'atoms', 'basis_set', 'xc_functional', 'system', 'crystal_system', 'code_name'])

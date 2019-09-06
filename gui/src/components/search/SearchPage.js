@@ -2,17 +2,18 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
 import { FormControl, FormControlLabel, Checkbox, FormGroup,
-  FormLabel, IconButton, Typography, Divider, Tooltip } from '@material-ui/core'
+  FormLabel, IconButton, Typography, Divider, Tooltip, Tabs, Tab } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withErrors } from '../errors'
 import { withApi, DisableOnLoading } from '../api'
 import SearchBar from './SearchBar'
-import SearchResultList from './SearchResultList'
+import EntryList from './EntryList'
 import SearchAggregations from './SearchAggregations'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ExpandLessIcon from '@material-ui/icons/ExpandLess'
 import { withDomain } from '../domains'
 import { appBase } from '../../config'
+import DatasetList from './DatasetList';
 
 export const help = `
 This page allows you to **search** in NOMAD's data. The upper part of this page
@@ -66,7 +67,11 @@ class SearchPage extends React.Component {
 
   static styles = theme => ({
     root: {
+    },
+    searchContainer: {
       padding: theme.spacing.unit * 3
+    },
+    resultsContainer: {
     },
     searchEntry: {
       minWidth: 500,
@@ -103,9 +108,14 @@ class SearchPage extends React.Component {
     pagination: {
       total: 0
     },
+    datasets: {
+      after: null,
+      values: []
+    },
     statistics: {
       total: {
         all: {
+          datasets: 0
         }
       }
     }
@@ -117,27 +127,39 @@ class SearchPage extends React.Component {
     searchState: {
       ...SearchAggregations.defaultState
     },
-    searchResultListState: {
-      ...SearchResultList.defaultState
+    entryListState: {
+      ...EntryList.defaultState
     },
-    showDetails: true
+    datasetListState: {
+      ...DatasetList.defaultState
+    },
+    showDetails: true,
+    resultTab: 'entries'
   }
 
   constructor(props) {
     super(props)
 
-    this.updateSearchResultList = this.updateSearchResultList.bind(this)
+    this.updateEntryList = this.updateEntryList.bind(this)
+    this.updateDatasetList = this.updateDatasetList.bind(this)
     this.updateSearch = this.updateSearch.bind(this)
     this.handleClickExpand = this.handleClickExpand.bind(this)
 
     this._mounted = false
   }
 
-  updateSearchResultList(changes) {
-    const searchResultListState = {
-      ...this.state.searchResultListState, ...changes
+  updateEntryList(changes) {
+    const entryListState = {
+      ...this.state.entryListState, ...changes
     }
-    this.update({searchResultListState: searchResultListState})
+    this.update({entryListState: entryListState})
+  }
+
+  updateDatasetList(changes) {
+    const datasetListState = {
+      ...this.state.datasetListState, ...changes
+    }
+    this.update({datasetListState: datasetListState})
   }
 
   updateSearch(changes) {
@@ -153,13 +175,14 @@ class SearchPage extends React.Component {
     }
 
     changes = changes || {}
-    const { owner, searchResultListState, searchState } = {...this.state, ...changes}
+    const { owner, entryListState, datasetListState, searchState } = {...this.state, ...changes}
     const { searchValues, ...searchStateRest } = searchState
     this.setState({...changes})
 
     this.props.api.search({
       owner: owner,
-      ...searchResultListState,
+      ...entryListState,
+      ...datasetListState,
       ...searchValues,
       ...searchStateRest
     }).then(data => {
@@ -206,7 +229,7 @@ class SearchPage extends React.Component {
 
   render() {
     const { classes, user, domain, loading } = this.props
-    const { data, searchState, searchResultListState, showDetails } = this.state
+    const { data, searchState, entryListState, datasetListState, showDetails, resultTab } = this.state
     const { searchValues } = searchState
     const { pagination: { total }, statistics } = data
 
@@ -226,76 +249,98 @@ class SearchPage extends React.Component {
 
     const withoutLogin = ['all']
 
-    const useMetric = Object.keys(statistics.total.all).find(metric => metric !== 'code_runs') || 'code_runs'
     const helperText = <span>
-      There are {Object.keys(domain.searchMetrics).map(key => {
-        return (key === useMetric || key === 'code_runs') ? <span key={key}>
+      There are {Object.keys(domain.searchMetrics).filter(key => statistics.total.all[key]).map(key => {
+        return <span key={key}>
           {domain.searchMetrics[key].renderResultString(!loading && statistics.total.all[key] !== undefined ? statistics.total.all[key] : '...')}
-        </span> : ''
+        </span>
       })}{Object.keys(searchValues).length ? ' left' : ''}.
     </span>
 
     return (
       <div className={classes.root}>
-        <DisableOnLoading>
-          <div className={classes.searchEntry}>
-            <FormControl>
-              <FormLabel>Filter entries and show: </FormLabel>
-              <FormGroup row>
-                {['all', 'public', 'user', 'staging']
-                  .filter(key => user || withoutLogin.indexOf(key) !== -1)
-                  .map(owner => (
-                    <Tooltip key={owner} title={ownerTooltips[owner] + (user ? '' : 'You need to be logged-in for more options.')}>
-                      <FormControlLabel
-                        control={
-                          <Checkbox checked={this.state.owner === owner} onChange={() => this.handleOwnerChange(owner)} value="owner" />
-                        }
-                        label={ownerLabel[owner]}
-                      />
-                    </Tooltip>
-                  ))}
-              </FormGroup>
-            </FormControl>
-          </div>
+        <div className={classes.searchContainer}>
+          <DisableOnLoading>
+            <div className={classes.searchEntry}>
+              <FormControl>
+                <FormLabel>Filter entries and show: </FormLabel>
+                <FormGroup row>
+                  {['all', 'public', 'user', 'staging']
+                    .filter(key => user || withoutLogin.indexOf(key) !== -1)
+                    .map(owner => (
+                      <Tooltip key={owner} title={ownerTooltips[owner] + (user ? '' : 'You need to be logged-in for more options.')}>
+                        <FormControlLabel
+                          control={
+                            <Checkbox checked={this.state.owner === owner} onChange={() => this.handleOwnerChange(owner)} value="owner" />
+                          }
+                          label={ownerLabel[owner]}
+                        />
+                      </Tooltip>
+                    ))}
+                </FormGroup>
+              </FormControl>
+            </div>
 
-          <div className={classes.search}>
-            <SearchBar classes={{autosuggestRoot: classes.searchBar}}
-              fullWidth fullWidthInput={false} helperText={helperText}
-              label="search"
-              placeholder={domain.searchPlaceholder}
-              data={data} searchValues={searchValues}
-              InputLabelProps={{
-                shrink: true
-              }}
-              onChanged={values => this.updateSearch({searchValues: values})}
-            />
-            <Divider className={classes.searchDivider} />
-            <Tooltip title={showDetails ? 'Hide statistics' : 'Show statistics'}>
-              <IconButton className={classes.searchButton} color="secondary" onClick={this.handleClickExpand}>
-                {showDetails ? <ExpandLessIcon/> : <ExpandMoreIcon/>}
-              </IconButton>
-            </Tooltip>
-          </div>
+            <div className={classes.search}>
+              <SearchBar classes={{autosuggestRoot: classes.searchBar}}
+                fullWidth fullWidthInput={false} helperText={helperText}
+                label="search"
+                placeholder={domain.searchPlaceholder}
+                data={data} searchValues={searchValues}
+                InputLabelProps={{
+                  shrink: true
+                }}
+                onChanged={values => this.updateSearch({searchValues: values})}
+              />
+              <Divider className={classes.searchDivider} />
+              <Tooltip title={showDetails ? 'Hide statistics' : 'Show statistics'}>
+                <IconButton className={classes.searchButton} color="secondary" onClick={this.handleClickExpand}>
+                  {showDetails ? <ExpandLessIcon/> : <ExpandMoreIcon/>}
+                </IconButton>
+              </Tooltip>
+            </div>
 
-          <div className={classes.searchEntry}>
-            <SearchAggregations
-              data={data} {...searchState} onChange={this.updateSearch}
-              showDetails={showDetails}
-            />
-          </div>
+            <div className={classes.searchEntry}>
+              <SearchAggregations
+                data={data} {...searchState} onChange={this.updateSearch}
+                showDetails={showDetails}
+              />
+            </div>
+          </DisableOnLoading>
+        </div>
+        <div className={classes.resultsContainer}>
+          <Tabs
+            value={resultTab}
+            indicatorColor="primary"
+            textColor="primary"
+            onChange={(event, value) => this.setState({resultTab: value})}
+          >
+            <Tab label="Calculations" value="entries" />
+            <Tab label="Datasets" value="datasets" />
+          </Tabs>
 
-          <div className={classes.searchResults}>
+          <div className={classes.searchResults} hidden={resultTab !== 'entries'}>
             <Typography variant="caption" style={{margin: 12}}>
               About {total.toLocaleString()} results:
             </Typography>
 
-            <SearchResultList
+            <EntryList
               data={data} total={total}
-              onChange={this.updateSearchResultList}
-              {...searchResultListState}
+              onChange={this.updateEntryList}
+              {...entryListState}
             />
           </div>
-        </DisableOnLoading>
+          <div className={classes.searchResults} hidden={resultTab !== 'datasets'}>
+            <Typography variant="caption" style={{margin: 12}}>
+              About {statistics.total.all.datasets.toLocaleString()} datasets:
+            </Typography>
+
+            <DatasetList data={data} total={statistics.total.all.datasets}
+              onChange={this.updateDatasetList}
+              {...datasetListState}
+            />
+          </div>
+        </div>
       </div>
     )
   }
