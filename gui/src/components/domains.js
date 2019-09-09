@@ -54,7 +54,7 @@ class DomainProviderBase extends React.Component {
         still be missing when you are exploring Nomad data using the new search and data
         exploring capabilities (menu items on the left).
       `,
-      entryLabel: 'calculation',
+      entryLabel: 'code run',
       searchPlaceholder: 'enter atoms, codes, functionals, or other quantity values',
       /**
        * A component that is used to render the search aggregations. The components needs

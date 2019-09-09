@@ -718,7 +718,7 @@ class TestRepo():
         assert rv.status_code == 404
 
     def test_search_datasets(self, client, example_elastic_calcs, no_warn, other_test_user_auth):
-        rv = client.get('/repo/?owner=all', headers=other_test_user_auth)
+        rv = client.get('/repo/?owner=all&datasets=true', headers=other_test_user_auth)
         data = self.assert_search(rv, 4)
 
         datasets = data.get('datasets', None)
@@ -790,7 +790,7 @@ class TestRepo():
         (0, 'quantities', 'dos')
     ])
     def test_search_parameters(self, client, example_elastic_calcs, no_warn, test_user_auth, calcs, quantity, value):
-        query_string = urlencode({quantity: value}, doseq=True)
+        query_string = urlencode({quantity: value, 'statistics': True}, doseq=True)
 
         rv = client.get('/repo/?%s' % query_string, headers=test_user_auth)
         logger.debug('run search quantities test', query_string=query_string)
@@ -819,7 +819,7 @@ class TestRepo():
 
     @pytest.mark.parametrize('metrics', metrics_permutations)
     def test_search_total_metrics(self, client, example_elastic_calcs, no_warn, metrics):
-        rv = client.get('/repo/?%s' % urlencode(dict(metrics=metrics), doseq=True))
+        rv = client.get('/repo/?%s' % urlencode(dict(metrics=metrics, statistics=True, datasets=True), doseq=True))
         assert rv.status_code == 200, str(rv.data)
         data = json.loads(rv.data)
         total_metrics = data.get('statistics', {}).get('total', {}).get('all', None)
@@ -830,7 +830,7 @@ class TestRepo():
 
     @pytest.mark.parametrize('metrics', metrics_permutations)
     def test_search_aggregation_metrics(self, client, example_elastic_calcs, no_warn, metrics):
-        rv = client.get('/repo/?%s' % urlencode(dict(metrics=metrics), doseq=True))
+        rv = client.get('/repo/?%s' % urlencode(dict(metrics=metrics, statistics=True, datasets=True), doseq=True))
         assert rv.status_code == 200
         data = json.loads(rv.data)
         for name, quantity in data.get('statistics').items():
@@ -844,7 +844,6 @@ class TestRepo():
 
     def test_search_date_histogram(self, client, example_elastic_calcs, no_warn):
         rv = client.get('/repo/?date_histogram=true&metrics=total_energies')
-        print(rv.data)
         assert rv.status_code == 200
         data = json.loads(rv.data)
         histogram = data.get('statistics').get('date_histogram')
@@ -852,7 +851,7 @@ class TestRepo():
 
     @pytest.mark.parametrize('n_results, page, per_page', [(2, 1, 5), (1, 1, 1), (0, 2, 3)])
     def test_search_pagination(self, client, example_elastic_calcs, no_warn, n_results, page, per_page):
-        rv = client.get('/repo/?page=%d&per_page=%d' % (page, per_page))
+        rv = client.get('/repo/?page=%d&per_page=%d&statistics=true' % (page, per_page))
         assert rv.status_code == 200
         data = json.loads(rv.data)
         results = data.get('results', None)

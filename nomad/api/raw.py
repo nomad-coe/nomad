@@ -25,7 +25,7 @@ import magic
 import sys
 import contextlib
 
-from nomad import search
+from nomad import search, utils
 from nomad.files import UploadFiles, Restricted
 from nomad.processing import Calc
 
@@ -383,7 +383,8 @@ class RawFileQueryResource(Resource):
                 upload_files = UploadFiles.get(
                     upload_id, create_authorization_predicate(upload_id))
                 if upload_files is None:
-                    pass  # this should not happen, TODO log error
+                    utils.get_logger(__name__).error('upload files do not exist', upload_id=upload_id)
+                    continue
 
                 if hasattr(upload_files, 'zipfile_cache'):
                     zipfile_cache = upload_files.zipfile_cache()

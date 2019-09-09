@@ -267,10 +267,10 @@ class Domain:
         calc_id=DomainQuantity(description='Search for the calc_id.'),
         pid=DomainQuantity(description='Search for the pid.'),
         mainfile=DomainQuantity(description='Search for the mainfile.'),
-        datasets=DomainQuantity(
+        dataset=DomainQuantity(
             elastic_field='datasets.name', multi=True, elastic_search_type='match',
             description='Search for a particular dataset by name.'),
-        dataset_ids=DomainQuantity(
+        dataset_id=DomainQuantity(
             elastic_field='datasets.id', multi=True,
             description='Search for a particular dataset by its id.'),
         doi=DomainQuantity(

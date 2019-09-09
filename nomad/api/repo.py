@@ -69,7 +69,7 @@ class RepoCalcResource(Resource):
 
 
 repo_calcs_model = api.model('RepoCalculations', {
-    'pagination': fields.Nested(pagination_model, allow_null=True),
+    'pagination': fields.Nested(pagination_model, skip_none=True),
     'scroll': fields.Nested(allow_null=True, skip_none=True, model=api.model('Scroll', {
         'total': fields.Integer(description='The total amount of hits for the search.'),
         'scroll_id': fields.String(allow_null=True, description='The scroll_id that can be used to retrieve the next page.'),
@@ -85,7 +85,7 @@ repo_calcs_model = api.model('RepoCalculations', {
     'datasets': fields.Raw(api.model('RepoDatasets', {
         'after': fields.String(description='The after value that can be used to retrieve the next datasets.'),
         'values': fields.Raw(description='A dict with names as key. The values are dicts with "total" and "examples" keys.')
-    }), allow_null=True)
+    }), skip_none=True)
 })
 
 
@@ -125,6 +125,10 @@ repo_request_parser.add_argument(
     'metrics', type=str, action='append', help=(
         'Metrics to aggregate over all quantities and their values as comma separated list. '
         'Possible values are %s.' % ', '.join(datamodel.Domain.instance.metrics_names)))
+repo_request_parser.add_argument(
+    'datasets', type=bool, help=('Return dataset information.'))
+repo_request_parser.add_argument(
+    'statistics', type=bool, help=('Return statistics.'))
 
 
 search_request_parser = api.parser()
@@ -216,6 +220,9 @@ class RepoCalcsResource(Resource):
             if bool(request.args.get('date_histogram', False)):
                 search_request.date_histogram()
             metrics: List[str] = request.args.getlist('metrics')
+
+            with_datasets = request.args.get('datasets', False)
+            with_statistics = request.args.get('statistics', False)
         except Exception:
             abort(400, message='bad parameter types')
 
@@ -232,31 +239,37 @@ class RepoCalcsResource(Resource):
             if metric not in search.metrics_names:
                 abort(400, message='there is no metric %s' % metric)
 
-        search_request.default_statistics(metrics_to_use=metrics)
-        if 'datasets' not in metrics:
-            total_metrics = metrics + ['datasets']
-        else:
-            total_metrics = metrics
-        search_request.totals(metrics_to_use=total_metrics)
-        search_request.statistic('authors', 1000)
+        if with_statistics:
+            search_request.default_statistics(metrics_to_use=metrics)
+            if 'datasets' not in metrics:
+                total_metrics = metrics + ['datasets']
+            else:
+                total_metrics = metrics
+            search_request.totals(metrics_to_use=total_metrics)
+            search_request.statistic('authors', 1000)
 
         try:
             if scroll:
                 results = search_request.execute_scrolled(scroll_id=scroll_id, size=per_page)
 
             else:
-                search_request.quantity(
-                    'dataset_ids', size=per_page, examples=1, after=request.args.get('datasets_after', None))
+                if with_datasets:
+                    search_request.quantity(
+                        'dataset_id', size=per_page, examples=1,
+                        after=request.args.get('datasets_after', None))
+
                 results = search_request.execute_paginated(
                     per_page=per_page, page=page, order=order, order_by=order_by)
 
                 # TODO just a work around to make things prettier
-                statistics = results['statistics']
-                if 'code_name' in statistics and 'currupted mainfile' in statistics['code_name']:
-                    del(statistics['code_name']['currupted mainfile'])
+                if with_statistics:
+                    statistics = results['statistics']
+                    if 'code_name' in statistics and 'currupted mainfile' in statistics['code_name']:
+                        del(statistics['code_name']['currupted mainfile'])
 
-                datasets = results.pop('quantities')['dataset_ids']
-                results['datasets'] = datasets
+                if with_datasets:
+                    datasets = results.pop('quantities')['dataset_id']
+                    results['datasets'] = datasets
 
             return results, 200
         except search.ScrollIdNotFound:
