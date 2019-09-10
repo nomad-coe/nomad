@@ -82,7 +82,7 @@ if upload.tasks_status != 'SUCCESS' or len(upload.errors) > 0:
 
 
 # search for data
-result = client.repo.search(paths='external_id').response().result
+result = client.repo.search(paths=['external_id']).response().result
 if result.pagination.total == 0:
     print('not found')
     sys.exit(1)
