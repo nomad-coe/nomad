@@ -651,23 +651,28 @@ class TestRepo():
         calc_with_metadata.files = ['test/mainfile.txt']
         calc_with_metadata.apply_domain_metadata(normalized)
 
+        calc_with_metadata.update(datasets=[
+            utils.POPO(id='ds_id', doi=dict(value='ds_doi'), name='ds_name')])
+
         calc_with_metadata.update(
             calc_id='1', uploader=test_user.to_popo(), published=True, with_embargo=False)
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(
-            calc_id='2', uploader=other_test_user.to_popo(), published=True, with_embargo=False,
-            upload_time=today - datetime.timedelta(days=5))
+            calc_id='2', uploader=other_test_user.to_popo(), published=True,
+            with_embargo=False, pid=2, upload_time=today - datetime.timedelta(days=5))
         calc_with_metadata.update(
             atoms=['Fe'], comment='this is a specific word', formula='AAA', basis_set='zzz')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(
-            calc_id='3', uploader=other_test_user.to_popo(), published=False, with_embargo=False)
+            calc_id='3', uploader=other_test_user.to_popo(), published=False,
+            with_embargo=False, pid=3)
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(
-            calc_id='4', uploader=other_test_user.to_popo(), published=True, with_embargo=True)
+            calc_id='4', uploader=other_test_user.to_popo(), published=True,
+            with_embargo=True, pid=4)
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
     def assert_search(self, rv: Any, number_of_calcs: int) -> dict:
@@ -711,6 +716,17 @@ class TestRepo():
     def test_non_existing_calcs(self, client, example_elastic_calcs, test_user_auth):
         rv = client.get('/repo/0/10', headers=test_user_auth)
         assert rv.status_code == 404
+
+    def test_search_datasets(self, client, example_elastic_calcs, no_warn, other_test_user_auth):
+        rv = client.get('/repo/?owner=all&datasets=true', headers=other_test_user_auth)
+        data = self.assert_search(rv, 4)
+
+        datasets = data.get('datasets', None)
+        assert datasets is not None
+        values = datasets['values']
+        assert values['ds_id']['total'] == 4
+        assert values['ds_id']['examples'][0]['datasets'][0]['id'] == 'ds_id'
+        assert 'after' in datasets
 
     @pytest.mark.parametrize('calcs, owner, auth', [
         (2, 'all', 'none'),
@@ -773,20 +789,20 @@ class TestRepo():
         (2, 'quantities', ['wyckoff_letters_primitive', 'hall_number']),
         (0, 'quantities', 'dos')
     ])
-    def test_search_quantities(self, client, example_elastic_calcs, no_warn, test_user_auth, calcs, quantity, value):
-        query_string = urlencode({quantity: value}, doseq=True)
+    def test_search_parameters(self, client, example_elastic_calcs, no_warn, test_user_auth, calcs, quantity, value):
+        query_string = urlencode({quantity: value, 'statistics': True}, doseq=True)
 
         rv = client.get('/repo/?%s' % query_string, headers=test_user_auth)
         logger.debug('run search quantities test', query_string=query_string)
         data = self.assert_search(rv, calcs)
 
-        quantities = data.get('quantities', None)
-        assert quantities is not None
+        statistics = data.get('statistics', None)
+        assert statistics is not None
         if quantity == 'system' and calcs != 0:
             # for simplicity we only assert on quantities for this case
-            assert 'system' in quantities
-            assert len(quantities['system']) == 1
-            assert value in quantities['system']
+            assert 'system' in statistics
+            assert len(statistics['system']) == 1
+            assert value in statistics['system']
 
     metrics_permutations = [[], search.metrics_names] + [[metric] for metric in search.metrics_names]
 
@@ -803,10 +819,10 @@ class TestRepo():
 
     @pytest.mark.parametrize('metrics', metrics_permutations)
     def test_search_total_metrics(self, client, example_elastic_calcs, no_warn, metrics):
-        rv = client.get('/repo/?%s' % urlencode(dict(metrics=metrics), doseq=True))
+        rv = client.get('/repo/?%s' % urlencode(dict(metrics=metrics, statistics=True, datasets=True), doseq=True))
         assert rv.status_code == 200, str(rv.data)
         data = json.loads(rv.data)
-        total_metrics = data.get('quantities', {}).get('total', {}).get('all', None)
+        total_metrics = data.get('statistics', {}).get('total', {}).get('all', None)
         assert total_metrics is not None
         assert 'code_runs' in total_metrics
         for metric in metrics:
@@ -814,10 +830,10 @@ class TestRepo():
 
     @pytest.mark.parametrize('metrics', metrics_permutations)
     def test_search_aggregation_metrics(self, client, example_elastic_calcs, no_warn, metrics):
-        rv = client.get('/repo/?%s' % urlencode(dict(metrics=metrics), doseq=True))
+        rv = client.get('/repo/?%s' % urlencode(dict(metrics=metrics, statistics=True, datasets=True), doseq=True))
         assert rv.status_code == 200
         data = json.loads(rv.data)
-        for name, quantity in data.get('quantities').items():
+        for name, quantity in data.get('statistics').items():
             for metrics_result in quantity.values():
                 assert 'code_runs' in metrics_result
                 if name != 'authors':
@@ -830,13 +846,12 @@ class TestRepo():
         rv = client.get('/repo/?date_histogram=true&metrics=total_energies')
         assert rv.status_code == 200
         data = json.loads(rv.data)
-        histogram = data.get('quantities').get('date_histogram')
-        print(histogram)
+        histogram = data.get('statistics').get('date_histogram')
         assert len(histogram) > 0
 
     @pytest.mark.parametrize('n_results, page, per_page', [(2, 1, 5), (1, 1, 1), (0, 2, 3)])
     def test_search_pagination(self, client, example_elastic_calcs, no_warn, n_results, page, per_page):
-        rv = client.get('/repo/?page=%d&per_page=%d' % (page, per_page))
+        rv = client.get('/repo/?page=%d&per_page=%d&statistics=true' % (page, per_page))
         assert rv.status_code == 200
         data = json.loads(rv.data)
         results = data.get('results', None)
@@ -901,19 +916,19 @@ class TestRepo():
         rv = client.get('/repo/%s' % quantity, headers=test_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)
-
-        quantities = data['quantities']
-        assert quantity in quantities
-        values = quantities[quantity]['values']
+        values = data['quantity']['values']
         assert (value in values) == (calcs > 0)
-        assert values.get(value, 0) == calcs
+        if value in values:
+            assert values[value]['total'] == calcs
+        else:
+            assert 0 == calcs
 
     def test_quantity_search_after(self, client, example_elastic_calcs, no_warn, test_user_auth):
         rv = client.get('/repo/atoms?size=1')
         assert rv.status_code == 200
         data = json.loads(rv.data)
 
-        quantity = data['quantities']['atoms']
+        quantity = data['quantity']
         assert 'after' in quantity
         after = quantity['after']
         assert len(quantity['values']) == 1
@@ -924,16 +939,30 @@ class TestRepo():
             assert rv.status_code == 200
             data = json.loads(rv.data)
 
-            quantity = data['quantities']['atoms']
+            quantity = data['quantity']
 
-            if 'after' not in quantity:
+            if quantity.get('after') is None:
                 assert len(quantity['values']) == 0
                 break
-
             assert len(quantity['values']) == 1
             assert value != list(quantity['values'].keys())[0]
             assert after != quantity['after']
             after = quantity['after']
+
+    @pytest.mark.parametrize('pid, with_login, success', [
+        (2, True, True), (2, False, True),
+        (3, True, True), (3, False, False),
+        (4, True, True), (4, False, False)])
+    def test_resolve_pid(
+            self, client, example_elastic_calcs, other_test_user_auth, pid, with_login,
+            success, no_warn):
+        rv = client.get(
+            '/repo/pid/%d' % pid,
+            headers=other_test_user_auth if with_login else {})
+        assert rv.status_code == 200 if success else 404
+        if success:
+            assert json.loads(rv.data)['calc_id'] == '%d' % pid
+            assert json.loads(rv.data)['upload_id'] == '0'
 
 
 class TestRaw(UploadFilesBasedTests):

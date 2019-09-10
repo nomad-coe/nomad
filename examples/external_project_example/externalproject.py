@@ -10,7 +10,7 @@ import time
 import os.path
 import sys
 
-nomad_url = 'https://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/testing/api'
+nomad_url = 'http://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/testing/api'
 user = 'leonard.hofstadter@nomad-fairdi.tests.de'
 password = 'password'
 
@@ -82,7 +82,7 @@ if upload.tasks_status != 'SUCCESS' or len(upload.errors) > 0:
 
 
 # search for data
-result = client.repo.search(paths='external_id').response().result
+result = client.repo.search(paths=['external_id']).response().result
 if result.pagination.total == 0:
     print('not found')
     sys.exit(1)
@@ -101,3 +101,6 @@ print('Download of first calc works.')
 print('Possible download URLs are:')
 print('%s/raw/%s/%s' % (nomad_url, calc['upload_id'], calc['mainfile']))
 print('%s/raw/%s/%s/*' % (nomad_url, calc['upload_id'], os.path.dirname(calc['mainfile'])))
+
+# direct download urls without having to search before
+print('%s/raw/query?paths=external_id' % nomad_url)

@@ -1,18 +1,12 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
-import { FormControl, FormControlLabel, Checkbox, FormGroup,
-  FormLabel, IconButton, Typography, Divider, Tooltip } from '@material-ui/core'
+import { FormControl, FormControlLabel, Checkbox, FormGroup, FormLabel, Tooltip } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withErrors } from '../errors'
 import { withApi, DisableOnLoading } from '../api'
-import SearchBar from './SearchBar'
-import SearchResultList from './SearchResultList'
-import SearchAggregations from './SearchAggregations'
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
-import ExpandLessIcon from '@material-ui/icons/ExpandLess'
-import { withDomain } from '../domains'
 import { appBase } from '../../config'
+import Search from './Search';
 
 export const help = `
 This page allows you to **search** in NOMAD's data. The upper part of this page
@@ -56,159 +50,26 @@ all parsed data. The *log* tab, will show you a log of the entry's processing.
 class SearchPage extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    match: PropTypes.any,
     api: PropTypes.object.isRequired,
     user: PropTypes.object,
-    raiseError: PropTypes.func.isRequired,
-    domain: PropTypes.object,
-    loading: PropTypes.number
+    raiseError: PropTypes.func.isRequired
   }
 
   static styles = theme => ({
     root: {
-      padding: theme.spacing.unit * 3
     },
     searchEntry: {
-      minWidth: 500,
-      maxWidth: 900,
-      margin: 'auto',
-      width: '100%'
-    },
-    search: {
-      marginTop: theme.spacing.unit * 4,
-      marginBottom: theme.spacing.unit * 8,
-      display: 'flex',
-      alignItems: 'center',
-      minWidth: 500,
-      maxWidth: 1000,
-      margin: 'auto',
-      width: '100%'
-    },
-    searchBar: {
-      width: '100%'
-    },
-    searchDivider: {
-      width: 1,
-      height: 28,
-      margin: theme.spacing.unit * 0.5
-    },
-    searchButton: {
-      padding: 10
-    },
-    searchResults: {}
+      padding: theme.spacing.unit * 3
+    }
   })
 
-  static emptySearchData = {
-    results: [],
-    pagination: {
-      total: 0
-    },
-    quantities: {
-      total: {
-        all: {
-        }
-      }
-    }
-  }
-
   state = {
-    data: SearchPage.emptySearchData,
-    owner: 'all',
-    searchState: {
-      ...SearchAggregations.defaultState
-    },
-    searchResultListState: {
-      ...SearchResultList.defaultState
-    },
-    showDetails: true
-  }
-
-  constructor(props) {
-    super(props)
-
-    this.updateSearchResultList = this.updateSearchResultList.bind(this)
-    this.updateSearch = this.updateSearch.bind(this)
-    this.handleClickExpand = this.handleClickExpand.bind(this)
-
-    this._mounted = false
-  }
-
-  updateSearchResultList(changes) {
-    const searchResultListState = {
-      ...this.state.searchResultListState, ...changes
-    }
-    this.update({searchResultListState: searchResultListState})
-  }
-
-  updateSearch(changes) {
-    const searchState = {
-      ...this.state.searchState, ...changes
-    }
-    this.update({searchState: searchState})
-  }
-
-  update(changes) {
-    if (!this._mounted) {
-      return
-    }
-
-    changes = changes || {}
-    const { owner, searchResultListState, searchState } = {...this.state, ...changes}
-    const { searchValues, ...searchStateRest } = searchState
-    this.setState({...changes})
-
-    this.props.api.search({
-      owner: owner,
-      ...searchResultListState,
-      ...searchValues,
-      ...searchStateRest
-    }).then(data => {
-      this.setState({
-        data: data || SearchPage.emptySearchData
-      })
-    }).catch(error => {
-      if (error.name === 'NotAuthorized' && owner !== 'all') {
-        this.setState({data: SearchPage.emptySearchData, owner: 'all'})
-      } else {
-        this.setState({data: SearchPage.emptySearchData, owner: owner})
-        this.props.raiseError(error)
-      }
-    })
-  }
-
-  componentDidMount() {
-    this._mounted = true
-    this.update()
-  }
-
-  componentWillUnmount() {
-    this._mounted = false
-  }
-
-  componentDidUpdate(prevProps) {
-    if (prevProps.api !== this.props.api) { // login/logout case, reload results
-      this.update()
-    } else if (prevProps.match.path !== this.props.match.path) { // navigation case
-      // update if we went back to the search
-      if (this.props.match.path === '/search' && this.props.match.isExact) {
-        this.update()
-      }
-    }
-  }
-
-  handleOwnerChange(owner) {
-    this.update({owner: owner})
-  }
-
-  handleClickExpand() {
-    this.setState({showDetails: !this.state.showDetails})
+    owner: 'all'
   }
 
   render() {
-    const { classes, user, domain, loading } = this.props
-    const { data, searchState, searchResultListState, showDetails } = this.state
-    const { searchValues } = searchState
-    const { pagination: { total }, quantities } = data
+    const { classes, user } = this.props
+    const { owner } = this.state
 
     const ownerLabel = {
       all: 'All entries',
@@ -226,15 +87,6 @@ class SearchPage extends React.Component {
 
     const withoutLogin = ['all']
 
-    const useMetric = Object.keys(quantities.total.all).find(metric => metric !== 'code_runs') || 'code_runs'
-    const helperText = <span>
-      There are {Object.keys(domain.searchMetrics).map(key => {
-        return (key === useMetric || key === 'code_runs') ? <span key={key}>
-          {domain.searchMetrics[key].renderResultString(!loading && quantities.total.all[key] !== undefined ? quantities.total.all[key] : '...')}
-        </span> : ''
-      })}{Object.keys(searchValues).length ? ' left' : ''}.
-    </span>
-
     return (
       <div className={classes.root}>
         <DisableOnLoading>
@@ -248,7 +100,7 @@ class SearchPage extends React.Component {
                     <Tooltip key={owner} title={ownerTooltips[owner] + (user ? '' : 'You need to be logged-in for more options.')}>
                       <FormControlLabel
                         control={
-                          <Checkbox checked={this.state.owner === owner} onChange={() => this.handleOwnerChange(owner)} value="owner" />
+                          <Checkbox checked={this.state.owner === owner} onChange={() => this.setState({owner: owner})} value="owner" />
                         }
                         label={ownerLabel[owner]}
                       />
@@ -257,48 +109,11 @@ class SearchPage extends React.Component {
               </FormGroup>
             </FormControl>
           </div>
-
-          <div className={classes.search}>
-            <SearchBar classes={{autosuggestRoot: classes.searchBar}}
-              fullWidth fullWidthInput={false} helperText={helperText}
-              label="search"
-              placeholder={domain.searchPlaceholder}
-              data={data} searchValues={searchValues}
-              InputLabelProps={{
-                shrink: true
-              }}
-              onChanged={values => this.updateSearch({searchValues: values})}
-            />
-            <Divider className={classes.searchDivider} />
-            <Tooltip title={showDetails ? 'Hide statistics' : 'Show statistics'}>
-              <IconButton className={classes.searchButton} color="secondary" onClick={this.handleClickExpand}>
-                {showDetails ? <ExpandLessIcon/> : <ExpandMoreIcon/>}
-              </IconButton>
-            </Tooltip>
-          </div>
-
-          <div className={classes.searchEntry}>
-            <SearchAggregations
-              data={data} {...searchState} onChange={this.updateSearch}
-              showDetails={showDetails}
-            />
-          </div>
-
-          <div className={classes.searchResults}>
-            <Typography variant="caption" style={{margin: 12}}>
-              About {total.toLocaleString()} results:
-            </Typography>
-
-            <SearchResultList
-              data={data} total={total}
-              onChange={this.updateSearchResultList}
-              {...searchResultListState}
-            />
-          </div>
         </DisableOnLoading>
+        <Search searchParameters={{owner: owner}} showDetails />
       </div>
     )
   }
 }
 
-export default compose(withApi(false), withErrors, withDomain, withStyles(SearchPage.styles))(SearchPage)
+export default compose(withApi(false), withErrors, withStyles(SearchPage.styles))(SearchPage)

@@ -20,11 +20,9 @@ meta-data.
 from typing import List
 from flask_restplus import Resource, abort, fields
 from flask import request, g
-from elasticsearch_dsl import Q
 from elasticsearch.exceptions import NotFoundError
-import datetime
 
-from nomad import search
+from nomad import search, utils, datamodel
 
 from .app import api, rfc3339DateTime
 from .auth import login_if_available
@@ -71,7 +69,7 @@ class RepoCalcResource(Resource):
 
 
 repo_calcs_model = api.model('RepoCalculations', {
-    'pagination': fields.Nested(pagination_model, allow_null=True),
+    'pagination': fields.Nested(pagination_model, skip_none=True),
     'scroll': fields.Nested(allow_null=True, skip_none=True, model=api.model('Scroll', {
         'total': fields.Integer(description='The total amount of hits for the search.'),
         'scroll_id': fields.String(allow_null=True, description='The scroll_id that can be used to retrieve the next page.'),
@@ -79,11 +77,20 @@ repo_calcs_model = api.model('RepoCalculations', {
     'results': fields.List(fields.Raw, description=(
         'A list of search results. Each result is a dict with quantitie names as key and '
         'values as values')),
-    'quantities': fields.Raw(description=(
-        'A dict with all aggregations. Each aggregation is dictionary with a metrics dict as '
-        'value and quantity value as key. The metrics are code runs(calcs), %s. '
-        'There is a pseudo quantity "total" with a single value "all" that contains the metrics over all results. ' %
-        ', '.join(search.metrics_names)))
+    'statistics': fields.Raw(description=(
+        'A dict with all statistics. Each statistic is dictionary with a metrics dict as '
+        'value and quantity value as key. The possible metrics are code runs(calcs), %s. '
+        'There is a pseudo quantity "total" with a single value "all" that contains the '
+        ' metrics over all results. ' % ', '.join(datamodel.Domain.instance.metrics_names))),
+    'datasets': fields.Raw(api.model('RepoDatasets', {
+        'after': fields.String(description='The after value that can be used to retrieve the next datasets.'),
+        'values': fields.Raw(description='A dict with names as key. The values are dicts with "total" and "examples" keys.')
+    }), skip_none=True)
+})
+
+
+repo_calc_id_model = api.model('RepoCalculationId', {
+    'upload_id': fields.String(), 'calc_id': fields.String()
 })
 
 
@@ -98,7 +105,7 @@ def add_common_parameters(request_parser):
         'until_time', type=lambda x: rfc3339DateTime.parse(x),
         help='A yyyy-MM-ddTHH:mm:ss (RFC3339) maximum entry time (e.g. upload time)')
 
-    for quantity in search.search_quantities.values():
+    for quantity in search.quantities.values():
         request_parser.add_argument(
             quantity.name, help=quantity.description,
             action='append' if quantity.multi else None)
@@ -113,81 +120,51 @@ repo_request_parser.add_argument(
 repo_request_parser.add_argument(
     'date_histogram', type=bool, help='Add an additional aggregation over the upload time')
 repo_request_parser.add_argument(
+    'datasets_after', type=str, help='The last dataset id of the last scroll window for the dataset quantitiy')
+repo_request_parser.add_argument(
     'metrics', type=str, action='append', help=(
         'Metrics to aggregate over all quantities and their values as comma separated list. '
-        'Possible values are %s.' % ', '.join(search.metrics_names)))
+        'Possible values are %s.' % ', '.join(datamodel.Domain.instance.metrics_names)))
+repo_request_parser.add_argument(
+    'datasets', type=bool, help=('Return dataset information.'))
+repo_request_parser.add_argument(
+    'statistics', type=bool, help=('Return statistics.'))
 
 
 search_request_parser = api.parser()
 add_common_parameters(search_request_parser)
 
 
-def _create_owner_query():
-    owner = request.args.get('owner', 'all')
+def add_query(search_request: search.SearchRequest):
+    """
+    Help that adds query relevant request parameters to the given SearchRequest.
+    """
+    # owner
+    try:
+        search_request.owner(
+            request.args.get('owner', 'all'),
+            g.user.user_id if g.user is not None else None)
+    except ValueError as e:
+        abort(401, getattr(e, 'message', 'Invalid owner parameter'))
+    except Exception as e:
+        abort(400, getattr(e, 'message', 'Invalid owner parameter'))
 
-    # TODO this should be removed after migration
-    # if owner == 'migrated':
-    #     q = Q('term', published=True) & Q('term', with_embargo=False)
-    #     if g.user is not None:
-    #         q = q | Q('term', owners__user_id=g.user.user_id)
-    #     q = q & ~Q('term', **{'uploader.user_id': 1})  # pylint: disable=invalid-unary-operand-type
-    if owner == 'all':
-        q = Q('term', published=True) & Q('term', with_embargo=False)
-        if g.user is not None:
-            q = q | Q('term', owners__user_id=g.user.user_id)
-    elif owner == 'public':
-        q = Q('term', published=True) & Q('term', with_embargo=False)
-    elif owner == 'user':
-        if g.user is None:
-            abort(401, message='Authentication required for owner value user.')
-
-        q = Q('term', owners__user_id=g.user.user_id)
-    elif owner == 'staging':
-        if g.user is None:
-            abort(401, message='Authentication required for owner value user.')
-        q = Q('term', published=False) & Q('term', owners__user_id=g.user.user_id)
-    elif owner == 'admin':
-        if g.user is None or not g.user.is_admin:
-            abort(401, message='This can only be used by the admin user.')
-        q = None
-    else:
-        abort(400, message='Invalid owner value. Valid values are all|user|staging, default is all')
-
-    # TODO this should be removed after migration
-    without_currupted_mainfile = ~Q('term', code_name='currupted mainfile')  # pylint: disable=invalid-unary-operand-type
-    q = q & without_currupted_mainfile if q is not None else without_currupted_mainfile
-
-    return q
-
-
-def _create_search_parameters():
-    """ Helper that creates a request.args dict with isolated search parameters """
-    return {
-        key: request.args.getlist(key) if search.search_quantities[key] else request.args.get(key)
-        for key in request.args.keys()
-        if key in search.search_quantities}
-
-
-def _create_time_range():
+    # time range
     from_time_str = request.args.get('from_time', None)
     until_time_str = request.args.get('until_time', None)
 
     try:
-        if from_time_str is None and until_time_str is None:
-            return None
-        else:
-            from_time = rfc3339DateTime.parse('2000-01-01' if from_time_str is None else from_time_str)
-            until_time = rfc3339DateTime.parse(until_time_str) if until_time_str is not None else datetime.datetime.utcnow()
-            return from_time, until_time
+        from_time = rfc3339DateTime.parse(from_time_str) if from_time_str is not None else None
+        until_time = rfc3339DateTime.parse(until_time_str) if until_time_str is not None else None
+        search_request.time_range(start=from_time, end=until_time)
     except Exception:
         abort(400, message='bad datetime format')
 
-
-def create_search_kwargs():
-    return dict(
-        q=_create_owner_query(),
-        time_range=_create_time_range(),
-        search_parameters=_create_search_parameters())
+    # search parameter
+    search_request.search_parameters(**{
+        key: request.args.getlist(key) if search.quantities[key] else request.args.get(key)
+        for key in request.args.keys()
+        if key in search.quantities})
 
 
 @ns.route('/')
@@ -229,20 +206,25 @@ class RepoCalcsResource(Resource):
         Ordering is determined by ``order_by`` and ``order`` parameters.
         """
 
+        search_request = search.SearchRequest()
+        add_query(search_request)
+
         try:
             scroll = bool(request.args.get('scroll', False))
-            date_histogram = bool(request.args.get('date_histogram', False))
             scroll_id = request.args.get('scroll_id', None)
             page = int(request.args.get('page', 1))
             per_page = int(request.args.get('per_page', 10 if not scroll else 1000))
             order = int(request.args.get('order', -1))
+            order_by = request.args.get('order_by', 'formula')
+
+            if bool(request.args.get('date_histogram', False)):
+                search_request.date_histogram()
             metrics: List[str] = request.args.getlist('metrics')
+
+            with_datasets = request.args.get('datasets', False)
+            with_statistics = request.args.get('statistics', False)
         except Exception:
             abort(400, message='bad parameter types')
-
-        search_kwargs = create_search_kwargs()
-
-        order_by = request.args.get('order_by', 'formula')
 
         try:
             assert page >= 1
@@ -255,23 +237,39 @@ class RepoCalcsResource(Resource):
 
         for metric in metrics:
             if metric not in search.metrics_names:
-                abort(400, message='there is not metric %s' % metric)
+                abort(400, message='there is no metric %s' % metric)
+
+        if with_statistics:
+            search_request.default_statistics(metrics_to_use=metrics)
+            if 'datasets' not in metrics:
+                total_metrics = metrics + ['datasets']
+            else:
+                total_metrics = metrics
+            search_request.totals(metrics_to_use=total_metrics)
+            search_request.statistic('authors', 1000)
 
         try:
             if scroll:
-                results = search.scroll_search(
-                    scroll_id=scroll_id, size=per_page, **search_kwargs)
+                results = search_request.execute_scrolled(scroll_id=scroll_id, size=per_page)
 
             else:
-                results = search.metrics_search(
-                    per_page=per_page, page=page, order=order, order_by=order_by,
-                    metrics_to_use=metrics,
-                    with_date_histogram=date_histogram, **search_kwargs)
+                if with_datasets:
+                    search_request.quantity(
+                        'dataset_id', size=per_page, examples=1,
+                        after=request.args.get('datasets_after', None))
+
+                results = search_request.execute_paginated(
+                    per_page=per_page, page=page, order=order, order_by=order_by)
 
                 # TODO just a work around to make things prettier
-                quantities = results['quantities']
-                if 'code_name' in quantities and 'currupted mainfile' in quantities['code_name']:
-                    del(quantities['code_name']['currupted mainfile'])
+                if with_statistics:
+                    statistics = results['statistics']
+                    if 'code_name' in statistics and 'currupted mainfile' in statistics['code_name']:
+                        del(statistics['code_name']['currupted mainfile'])
+
+                if with_datasets:
+                    datasets = results.pop('quantities')['dataset_id']
+                    results['datasets'] = datasets
 
             return results, 200
         except search.ScrollIdNotFound:
@@ -283,11 +281,10 @@ class RepoCalcsResource(Resource):
 
 
 repo_quantity_values_model = api.model('RepoQuantityValues', {
-    'quantities': fields.Raw(description='''
-        A dict with the requested quantity as single key.
-        The value is a dictionary with 'after' and 'values' keys.
-        The 'values' key holds a dict with actual values as keys and their entry count
-        as values (i.e. number of entries with that value). ''')
+    'quantity': fields.Nested(api.model('RepoQuantity', {
+        'after': fields.String(description='The after value that can be used to retrieve the next set of values.'),
+        'values': fields.Raw(description='A dict with values as key. Values are dicts with "total" and "examples" keys.')
+    }), allow_null=True)
 })
 
 repo_quantity_search_request_parser = api.parser()
@@ -319,19 +316,17 @@ class RepoQuantityResource(Resource):
         scrolling. The result will contain an 'after' value, that can be specified
         for the next request. You can use the 'size' and 'after' parameters accordingly.
 
-        The result will contain a 'quantities' key with the given quantity and the
-        respective values (upto 'size' many). For the rest of the values use the
-        'after' parameter accordingly.
+        The result will contain a 'quantity' key with quantity values and the "after"
+        value. There will be upto 'size' many values. For the rest of the values use the
+        "after" parameter in another request.
         """
+
+        search_request = search.SearchRequest()
+        add_query(search_request)
 
         try:
             after = request.args.get('after', None)
             size = int(request.args.get('size', 100))
-
-            from_time = rfc3339DateTime.parse(request.args.get('from_time', '2000-01-01'))
-            until_time_str = request.args.get('until_time', None)
-            until_time = rfc3339DateTime.parse(until_time_str) if until_time_str is not None else datetime.datetime.utcnow()
-            time_range = (from_time, until_time)
         except Exception:
             abort(400, message='bad parameter types')
 
@@ -340,16 +335,46 @@ class RepoQuantityResource(Resource):
         except AssertionError:
             abort(400, message='invalid size')
 
-        q = _create_owner_query()
-        search_parameters = _create_search_parameters()
+        search_request.quantity(quantity, size=size, after=after)
 
         try:
-            results = search.quantity_search(
-                q=q, time_range=time_range, search_parameters=search_parameters,
-                quantities={quantity: after}, size=size, with_entries=False)
+            results = search_request.execute()
+            quantities = results.pop('quantities')
+            results['quantity'] = quantities[quantity]
 
             return results, 200
         except KeyError as e:
             import traceback
             traceback.print_exc()
             abort(400, 'Given quantity does not exist: %s' % str(e))
+
+
+@ns.route('/pid/<int:pid>')
+class RepoPidResource(Resource):
+    @api.doc('resolve_pid')
+    @api.response(404, 'Entry with PID does not exist')
+    @api.marshal_with(repo_calc_id_model, skip_none=True, code=200, description='Entry resolved')
+    @login_if_available
+    def get(self, pid: int):
+        search_request = search.SearchRequest()
+
+        if g.user is not None:
+            search_request.owner('all', user_id=g.user.user_id)
+        else:
+            search_request.owner('all')
+
+        search_request.search_parameter('pid', pid)
+
+        results = list(search_request.execute_scan())
+        total = len(results)
+
+        if total == 0:
+            abort(404, 'Entry with PID %d does not exist' % pid)
+
+        if total > 1:
+            utils.get_logger(__name__).error('Two entries for the same pid', pid=pid)
+
+        result = results[0]
+        return dict(
+            upload_id=result['upload_id'],
+            calc_id=result['calc_id'])

@@ -17,21 +17,25 @@ version: '3.4'
 services:
     # postgres for NOMAD-coe repository API and GUI
     postgres:
+        restart: 'no'
         ports:
             - 5432:5432
 
     # broker for celery
     rabbitmq:
+        restart: 'no'
         ports:
             - 5672:5672
 
     # the search engine
     elastic:
+        restart: 'no'
         ports:
             - 9200:9200
 
     # the user data db
     mongo:
+        restart: 'no'
         ports:
             - 27017:27017
 

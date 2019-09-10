@@ -124,11 +124,11 @@ class SearchBar extends React.Component {
   getSuggestions(value) {
     value = value.toLowerCase()
 
-    const { data: { quantities } } = this.props
+    const { data: { statistics } } = this.props
     const suggestions = []
 
     // filter out pseudo quantity total
-    const quantityKeys = Object.keys(quantities).filter(quantity => quantity !== 'total')
+    const quantityKeys = Object.keys(statistics).filter(quantity => quantity !== 'total')
 
     // put authors to the end
     const authorIndex = quantityKeys.indexOf('authors')
@@ -137,7 +137,7 @@ class SearchBar extends React.Component {
     }
 
     quantityKeys.forEach(quantity => {
-      Object.keys(quantities[quantity]).forEach(quantityValue => {
+      Object.keys(statistics[quantity]).forEach(quantityValue => {
         const quantityValueLower = quantityValue.toLowerCase()
         if (quantityValueLower.startsWith(value) || (quantity === 'authors' && quantityValueLower.includes(value))) {
           suggestions.push({
