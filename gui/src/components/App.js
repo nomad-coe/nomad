@@ -190,8 +190,7 @@ class NavigationUnstyled extends React.Component {
       .then((meta) => {
         if (meta.version !== packageJson.version) {
           // this should not happen, if we setup the web servers correctly
-          console.log('Different version, ask for hard reloading...')
-          this.props.raiseError(new VersionMismatch())
+          console.error('GUI API version mismatch')
         }
       })
       .catch(() => {
