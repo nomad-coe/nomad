@@ -17,9 +17,10 @@
 from typing import Type
 import json
 from contextlib import contextmanager
+from logging import LogRecord
 
 
-def assert_log(caplog, level, event_part):
+def assert_log(caplog, level: str, event_part: str) -> LogRecord:
     """
     Assert whether a log message exists in the logs of the tests at a certain level.
 
@@ -35,14 +36,16 @@ def assert_log(caplog, level, event_part):
         contain this string.
 
     """
-    record_receieved = False
+    record = None
     for record in caplog.get_records(when='call'):
         if record.levelname == level:
             if (event_part in json.loads(record.msg)['event']):
-                record_receieved = True
+                record = record
                 # No need to look for more matches since we aren't counting matches.
                 break
-    assert(record_receieved)
+    assert record is not None
+
+    return record
 
 
 @contextmanager

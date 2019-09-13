@@ -41,7 +41,7 @@ def api(debug: bool, with_chaos: int):
 def run_api(**kwargs):
     config.service = 'api'
     from nomad import infrastructure
-    from nomad.api.__main__ import run_dev_server
+    from nomad.app.__main__ import run_dev_server
     infrastructure.setup()
     run_dev_server(port=8000, **kwargs)
 

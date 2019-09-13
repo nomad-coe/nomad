@@ -75,18 +75,40 @@ Content-Type: application/json
     "size": 0,
     "query": {
         "bool": {
-            "must": {
-                "match": {
-                    "code_name": "currupted mainfile"
-                }
+            "must": [
+                { "match": { "code_name": "Phonopy" } },
+                { "match": { "published": false}}
+            ]
+        }
+    },
+    "aggs": {
+        "upload_id": {
+            "sum": {
+                "field": "n_calculations"
             }
+        }
+    }
+}
+
+###
+# Search migration unpublished calcs
+
+GET http://localhost:19200/fairdi_nomad_prod/_search HTTP/1.1
+Content-Type: application/json
+
+{
+    "size": 1,
+    "query": {
+        "bool": {
+            "must": [
+                { "match": { "calc_hash": "CNyiqVrxIJbRhSgn4ADUy_wi_dBx" } }
+            ]
         }
     },
     "aggs": {
         "upload_id": {
             "terms": {
-                "field": "upload_id",
-                "size": 300
+                "field": "uploader.user_id"
             }
         }
     }
@@ -113,5 +135,41 @@ Content-Type: application/json
     "index" : {
         "number_of_replicas" : 2,
         "refresh_interval" : null
+    }
+}
+
+###
+# Archive ES
+GET http://localhost:19202/archive2018-09-24/_search HTTP/1.1
+content-type: application/json
+
+{
+    "size": 1,
+    "query": {
+    },
+    "aggs": {
+        "codes": {
+            "terms": {
+                "field": "section_run.program_name"
+            }
+        }
+    }
+}
+
+###
+# Archive ES
+GET http://localhost:19202/nomadarchiverepo/_search HTTP/1.1
+content-type: application/json
+
+{
+    "size": 1,
+    "query": {
+    },
+    "aggs": {
+        "codes": {
+            "terms": {
+                "field": "program_name"
+            }
+        }
     }
 }

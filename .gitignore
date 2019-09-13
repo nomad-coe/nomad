@@ -1,5 +1,6 @@
 .DS_Store
 .pyenv/
+.env/
 __pycache__
 .mypy_cache
 *.pyc

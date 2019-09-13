@@ -29,7 +29,7 @@ import datetime
 import base64
 from bravado.client import SwaggerClient
 
-from nomad import config, infrastructure, parsing, processing, coe_repo, api
+from nomad import config, infrastructure, parsing, processing, coe_repo, app
 
 from tests import test_parsing, test_normalizing
 from tests.processing import test_data as test_processing
@@ -84,8 +84,8 @@ def raw_files(raw_files_infra):
 
 @pytest.fixture(scope='function')
 def client(mongo):
-    api.app.config['TESTING'] = True
-    client = api.app.test_client()
+    app.app.config['TESTING'] = True
+    client = app.app.test_client()
 
     yield client
 
@@ -325,14 +325,14 @@ def admin_user_auth(admin_user: coe_repo.User):
 @pytest.fixture(scope='function')
 def bravado(client, postgres, test_user_auth):
     http_client = FlaskTestHttpClient(client, headers=test_user_auth)
-    return SwaggerClient.from_url('/swagger.json', http_client=http_client)
+    return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
 
 
 @pytest.fixture(scope='function')
 def admin_user_bravado_client(client, admin_user_auth, monkeypatch):
     def create_client():
         http_client = FlaskTestHttpClient(client, headers=admin_user_auth)
-        return SwaggerClient.from_url('/swagger.json', http_client=http_client)
+        return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
 
     monkeypatch.setattr('nomad.cli.client.create_client', create_client)
 
@@ -341,7 +341,7 @@ def admin_user_bravado_client(client, admin_user_auth, monkeypatch):
 def test_user_bravado_client(client, test_user_auth, monkeypatch):
     def create_client():
         http_client = FlaskTestHttpClient(client, headers=test_user_auth)
-        return SwaggerClient.from_url('/swagger.json', http_client=http_client)
+        return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
 
     monkeypatch.setattr('nomad.cli.client.create_client', create_client)
 

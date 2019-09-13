@@ -53,8 +53,9 @@ brew install libmagic
 #### pyenv
 The nomad code currently targets python 3.6. If you host machine has 3.7 or later installed,
 you can use [pyenv](https://github.com/pyenv/pyenv) to use python 3.6 in parallel.
-While in principle everything should be compatable with 3.7 and later there have been
-issues with some dependencies and requirements not being compatible with 3.7
+To use 3.7 there is a slight issue about the `enum34` which fails the compilation of the
+`mdtraj` and `mdanalysis` packages. A possible work arround is to uninstall and tham re-install
+`enum34` once the other packages are installed.
 
 #### virtualenv
 We strongly recommend to use *virtualenv* to create a virtual environment. It will allow you
