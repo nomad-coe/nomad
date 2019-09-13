@@ -28,6 +28,7 @@ import os.path
 import datetime
 import base64
 from bravado.client import SwaggerClient
+import elasticsearch.exceptions
 
 from nomad import config, infrastructure, parsing, processing, coe_repo, app
 
@@ -182,14 +183,19 @@ def elastic_infra():
 
 
 def clear_elastic(elastic):
-    for backoff in [0.1, 1, 5]:
+    for backoff in [0.1, 1, 5, None]:
         try:
             elastic.delete_by_query(
                 index='test_nomad_fairdi_calcs', body=dict(query=dict(match_all={})),
                 wait_for_completion=True, refresh=True)
             break
-        except Exception:
-            time.sleep(backoff)
+        except elasticsearch.exceptions.NotFoundError:
+            break
+        except Exception as e:
+            if backoff is None:
+                raise e
+            else:
+                time.sleep(backoff)
 
 
 @pytest.fixture(scope='function')
