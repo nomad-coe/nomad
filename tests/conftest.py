@@ -182,14 +182,14 @@ def elastic_infra():
 
 
 def clear_elastic(elastic):
-    while True:
+    for backoff in [0.1, 1, 5]:
         try:
             elastic.delete_by_query(
                 index='test_nomad_fairdi_calcs', body=dict(query=dict(match_all={})),
                 wait_for_completion=True, refresh=True)
             break
         except Exception:
-            time.sleep(0.1)
+            time.sleep(backoff)
 
 
 @pytest.fixture(scope='function')
