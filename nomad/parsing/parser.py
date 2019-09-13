@@ -112,6 +112,7 @@ class MatchingParser(Parser):
     def __init__(
             self, name: str, code_name: str,
             mainfile_contents_re: str = None,
+            mainfile_binary_header: bytes = None,
             mainfile_mime_re: str = r'text/.*',
             mainfile_name_re: str = r'.*',
             domain='DFT',
@@ -121,6 +122,7 @@ class MatchingParser(Parser):
         self.name = name
         self.code_name = code_name
         self.domain = domain
+        self._mainfile_binary_header = mainfile_binary_header
         self._mainfile_mime_re = re.compile(mainfile_mime_re)
         self._mainfile_name_re = re.compile(mainfile_name_re)
         # Assign private variable this way to avoid static check issue.
@@ -131,6 +133,9 @@ class MatchingParser(Parser):
         self._supported_compressions = supported_compressions
 
     def is_mainfile(self, filename: str, mime: str, buffer: bytes, compression: str = None) -> bool:
+        if self._mainfile_binary_header is not None:
+            if self._mainfile_binary_header not in buffer:
+                return False
         if self._mainfile_contents_re is not None:
             try:  # Try to open the file as a string for regex matching.
                 decoded_buffer = buffer.decode('utf-8')

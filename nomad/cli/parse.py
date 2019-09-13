@@ -23,6 +23,7 @@ def parse(
         logger = utils.get_logger(__name__)
     if parser_name is not None:
         parser = parser_dict.get(parser_name)
+        assert parser is not None, 'the given parser must exist'
     else:
         parser = match_parser(mainfile, upload_files, strict=strict)
         if isinstance(parser, MatchingParser):
@@ -94,10 +95,11 @@ def normalize_all(parser_backend: LocalBackend = None, logger=None) -> LocalBack
 @click.option('--show-metadata', is_flag=True, default=False, help='Print the extracted repo metadata.')
 @click.option('--skip-normalizers', is_flag=True, default=False, help='Do not run the normalizer.')
 @click.option('--not-strict', is_flag=True, help='Do also match artificial parsers.')
-def _parse(mainfile, show_backend, show_metadata, skip_normalizers, not_strict):
+@click.option('--parser', help='Skip matching and use the provided parser')
+def _parse(mainfile, show_backend, show_metadata, skip_normalizers, not_strict, parser):
     utils.configure_logging()
 
-    backend = parse(mainfile, '.', strict=not not_strict)
+    backend = parse(mainfile, '.', strict=not not_strict, parser_name=parser)
 
     if not skip_normalizers:
         normalize_all(backend)
