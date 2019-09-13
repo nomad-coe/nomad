@@ -15,6 +15,9 @@
 from flask import Blueprint
 from flask_restplus import Api
 
+"""
+The optimade implementation of NOMAD.
+"""
 
 blueprint = Blueprint('optimade', __name__)
 

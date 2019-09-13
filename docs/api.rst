@@ -1,17 +1,17 @@
-API Documentation
-=================
+API(s) Documentation
+====================
 
 
 Summary
 -------
 
-.. qrefflask:: nomad.api:app
+.. qrefflask:: nomad.app:app
   :undoc-static:
 
 
 
-API Details
------------
+API(s) Details
+--------------
 
-.. autoflask:: nomad.api:app
+.. autoflask:: nomad.app:app
   :undoc-static:

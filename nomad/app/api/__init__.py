@@ -12,5 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+The official NOMAD API.
+
+There is a separate documentation for the API endpoints from a client perspective.
+
+.. automodule:: nomad.app.api.api
+.. automodule:: nomad.app.api.auth
+.. automodule:: nomad.app.api.upload
+.. automodule:: nomad.app.api.repo
+.. automodule:: nomad.app.api.archive
+.. automodule:: nomad.app.api.admin
+"""
+
 from .api import blueprint
 from . import info, auth, admin, upload, repo, archive, raw, mirror

@@ -98,7 +98,7 @@ services:
             - mongo
         volumes:
             - nomad_files:/app/.volumes/fs
-        command: python -m gunicorn.app.wsgiapp -w 4 --log-config ops/gunicorn.log.conf -b 0.0.0.0:8000 --timeout 300 nomad.api:app
+        command: python -m gunicorn.app.wsgiapp -w 4 --log-config ops/gunicorn.log.conf -b 0.0.0.0:8000 --timeout 300 nomad.app:app
 
     # nomad gui
     gui:

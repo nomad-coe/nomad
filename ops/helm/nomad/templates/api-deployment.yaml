@@ -130,7 +130,7 @@ spec:
               name: {{ .Values.api.adminPasswordSecret }}
               key: password
         {{ end }}
-        command: ["python", "-m", "gunicorn.app.wsgiapp", "--config", "gunicorn.conf", "--log-config", "gunicorn.log.conf", "-b 0.0.0.0:8000", "nomad.api:app"]
+        command: ["python", "-m", "gunicorn.app.wsgiapp", "--config", "gunicorn.conf", "--log-config", "gunicorn.log.conf", "-b 0.0.0.0:8000", "nomad.app:app"]
         livenessProbe:
           httpGet:
             path: "{{ .Values.proxy.external.path }}/api/alive"

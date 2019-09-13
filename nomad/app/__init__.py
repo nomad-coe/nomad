@@ -13,20 +13,9 @@
 # limitations under the License.
 
 """
-This module comprises the nomad@FAIRDI APIs.
-
-The different APIs are upload, repository (raw data and search), and archive.
-
-There is a separate documentation for the API endpoints from a client perspective.
-
-.. autodata:: app
-
-.. automodule:: nomad.api.app
-.. automodule:: nomad.api.auth
-.. automodule:: nomad.api.upload
-.. automodule:: nomad.api.repo
-.. automodule:: nomad.api.archive
-.. automodule:: nomad.api.admin
+This module comprises the nomad@FAIRDI APIs. Currently there is NOMAD's official api, and
+we will soon at the optimade api. The app module also servers documentation, gui, and
+alive.
 """
 from flask import Flask, Blueprint, jsonify, url_for, abort, request
 from flask_restplus import Api

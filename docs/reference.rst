@@ -42,9 +42,9 @@ nomad.coe_repo
 --------------
 .. automodule:: nomad.coe_repo
 
-nomad.api
+nomad.app
 ---------
-.. automodule:: nomad.api
+.. automodule:: nomad.app
 
 nomad.cli
 ------------
