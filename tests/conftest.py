@@ -169,9 +169,9 @@ def mongo(mongo_infra):
 
 
 @pytest.fixture(scope='session')
-def elastic_infra():
+def elastic_infra(monkeysession):
     """ Provides elastic infrastructure to the session """
-    config.elastic.index_name = 'test_nomad_fairdi_calcs'
+    monkeysession.setattr('nomad.config.elastic.index_name', 'test_nomad_fairdi_calcs')
     try:
         return infrastructure.setup_elastic()
     except Exception:
@@ -183,19 +183,14 @@ def elastic_infra():
 
 
 def clear_elastic(elastic):
-    for backoff in [0.1, 1, 5, None]:
-        try:
-            elastic.delete_by_query(
-                index='test_nomad_fairdi_calcs', body=dict(query=dict(match_all={})),
-                wait_for_completion=True, refresh=True)
-            break
-        except elasticsearch.exceptions.NotFoundError:
-            break
-        except Exception as e:
-            if backoff is None:
-                raise e
-            else:
-                time.sleep(backoff)
+    try:
+        elastic.delete_by_query(
+            index='test_nomad_fairdi_calcs', body=dict(query=dict(match_all={})),
+            wait_for_completion=True, refresh=True)
+    except elasticsearch.exceptions.NotFoundError:
+        # it is unclear why this happens, but it happens at least once, when all tests
+        # are executed
+        infrastructure.setup_elastic()
 
 
 @pytest.fixture(scope='function')

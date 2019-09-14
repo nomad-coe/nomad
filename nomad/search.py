@@ -159,7 +159,7 @@ class Entry(Document, metaclass=WithDomain):
 
         self.uploader = User.from_user_popo(source.uploader) if source.uploader is not None else None
 
-        self.with_embargo = source.with_embargo
+        self.with_embargo = bool(source.with_embargo)
         self.published = source.published
         self.authors = [User.from_user_popo(user) for user in source.coauthors]
         self.owners = [User.from_user_popo(user) for user in source.shared_with]
