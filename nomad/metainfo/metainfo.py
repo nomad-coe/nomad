@@ -1,3 +1,7 @@
+"""
+Some playground to try the CONCEPT.md ideas.
+"""
+
 from typing import Dict, List, Any, Union, Type
 import json
 import ase.data
@@ -13,6 +17,7 @@ units = Units()
 
 
 class Definition():
+    m_definition: Any = None
     pass
 
 
@@ -22,17 +27,17 @@ class Property(Definition):
 
 class Quantity(Property):
     def __init__(
-            self, 
-            name: str = None, 
-            description: str = None, 
+            self,
+            name: str = None,
+            description: str = None,
             parent_section: 'Section' = None,
-            shape: List[Union[str, int]] = [], 
-            type: type = None, 
+            shape: List[Union[str, int]] = [],
+            type: Union['Enum', type] = None,
             unit: str = None,
             derived: bool = False,
             repeats: bool = False,
             synonym: str = None):
-        
+
         self.name = name
         self.parent_section = parent_section.m_definition if parent_section is not None else None
         self.derived = derived
@@ -45,10 +50,10 @@ class Quantity(Property):
 
         if self.derived:
             derive_method = getattr(obj, 'm_derive_%s' % self.name, None)
-            
+
             if derive_method is None:
                 raise KeyError('Derived quantity %s is not implemented' % self.name)
-            
+
             else:
                 return derive_method()
 
@@ -58,7 +63,7 @@ class Quantity(Property):
         else:
             return obj.m_data.get(self.name, None)
 
-    def __set__(self, obj: 'MetainfoObject', value: Any):        
+    def __set__(self, obj: 'MetainfoObject', value: Any):
         obj.m_data[self.name] = value
 
     def __delete__(self, obj: 'MetainfoObject'):
@@ -76,10 +81,10 @@ class Section(Definition):
     def __init__(
             self,
             name: str = None,
-            parent_section: 'Section' = None,
+            parent_section=None,
             repeats: bool = False,
-            extends: 'Section' = None,
-            adds_to: 'Section' = None):
+            extends=None,
+            adds_to=None):
 
         self.name = name
         self.parent_section = parent_section.m_definition if parent_section is not None else None
@@ -112,9 +117,9 @@ class MetainfoObjectMeta(type):
             if isinstance(value, Property):
                 value.name = name
                 value.parent_section = cls.m_definition
-                
+
         cls = super().__new__(cls, cls_name, bases, dct)
-        
+
         if cls.m_definition is not None:
             if cls.m_definition.name is None:
                 cls.m_definition.name = cls_name
@@ -122,15 +127,16 @@ class MetainfoObjectMeta(type):
         return cls
 
 
-class MetainfoObject(metaclass=MetainfoObjectMeta): 
+class MetainfoObject(metaclass=MetainfoObjectMeta):
     """
-    Base class for all 
+    Base class for all
     """
+    m_definition: Any = None
 
     def __init__(self):
         self.m_data = dict(m_defintion=self.m_definition.name)
 
-    def m_create(self, section_definition: Type['MSection'], *args, **kwargs) -> 'MSection':
+    def m_create(self, section_definition: Any, *args, **kwargs) -> Any:
         """
         Creates a sub section of the given section definition.
         """
@@ -142,7 +148,7 @@ class MetainfoObject(metaclass=MetainfoObjectMeta):
         else:
             # TODO test overwrite
             self.m_data[definition.name] = sub_section
-        
+
         return sub_section
 
     def m_get_definition(self, name):
@@ -199,7 +205,7 @@ class System(MetainfoObject):
 
     atom_species = Quantity(shape=['n_atoms'], type=int, derived=True)
 
-    atom_positions = Quantity(shape=['n_atoms', 3], type=float, unit=units.m) 
+    atom_positions = Quantity(shape=['n_atoms', 3], type=float, unit=units.m)
 
     cell = Quantity(shape=[3, 3], type=float, unit=units.m)
     lattice_vectors = Quantity(synonym='cell')

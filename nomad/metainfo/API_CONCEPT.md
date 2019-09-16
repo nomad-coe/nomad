@@ -1,3 +1,5 @@
+**! This is not yet aligned with the ideas of CONCEPT.md !**
+
 # A new metainfo schema, interface, and *file formats* support
 
 This is a design document (later documentation) for a re-implementation of nomad's old

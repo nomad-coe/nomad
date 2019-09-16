@@ -1,3 +1,7 @@
+"""
+Some playground to try the API_CONCEPT.md ideas.
+"""
+
 
 class MObject:
     def __init__(self, m_definition: 'MElementDef', m_section: 'MSection' = None):
