@@ -32,7 +32,7 @@ def codes(client, minimum=1, **kwargs):
 
     x_values = sorted([
         code for code, values in data.quantities['code_name'].items()
-        if code != 'not processed' and values['code_runs'] >= minimum], key=lambda x: x.lower())
+        if code != 'not processed' and values.get('calculations', 1000) >= minimum], key=lambda x: x.lower())
 
     return data.quantities, x_values, 'code_name', 'code'
 
@@ -167,14 +167,12 @@ class Metric:
         axis.bar(x_positions, y_values, width, label=self.label, color=color, align='edge')
         axis.tick_params(axis='y', labelcolor=label_color)
 
-        for x, v in zip(x_positions, y_values):
-            axis.text(x + .1, v, ' {:,}'.format(int(v)), color=color, fontweight='bold', rotation=90)
-
         # TODO remove
-        if color.endswith('red'):
-            import matplotlib.lines as mlines
-            line = mlines.Line2D([min(x_positions), max(x_positions)], [80, 80], color=color)
-            axis.add_line(line)
+        # for x, v in zip(x_positions, y_values):
+        #     axis.text(x + .1, v, ' {:,}'.format(int(v)), color=color, fontweight='bold', rotation=90)
+        # import matplotlib.lines as mlines
+        # line = mlines.Line2D([min(x_positions), max(x_positions)], [72, 72], color=color)
+        # axis.add_line(line)
 
 
 def bar_plot(client, retrieve, metric1, metric2=None, title=None, **kwargs):
@@ -205,10 +203,13 @@ def bar_plot(client, retrieve, metric1, metric2=None, title=None, **kwargs):
         ax1.set_title(title)
 
     metric1.draw_axis(ax1, data, x_values, x - (width / 2), width, 'tab:blue', only=metric2 is None)
+    ax1.set_ylim(bottom=1)
 
     if metric2:
         ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-        metric2.draw_axis(ax2, data, x_values, x + width / 2, width, 'tab:red')
+        metric2.draw_axis(
+            ax2, data, x_values, x + width / 2, width, 'tab:red')
+        ax2.set_ylim(bottom=1)
 
     fig.tight_layout()
 
@@ -317,7 +318,7 @@ def statistics(errors, title, x_axis, y_axis, cumulate, total, save, power, open
 
         y_axis = [metrics[y] for y in y_axis]
 
-        fig, plt = bar_plot(client, x_axis, *y_axis, title=title, owner=owner, minimum=minimum, code_name="VASP")
+        fig, plt = bar_plot(client, x_axis, *y_axis, title=title, owner=owner, minimum=minimum)
 
     if errors or x_axis is not None:
         if save is not None:
@@ -326,5 +327,7 @@ def statistics(errors, title, x_axis, y_axis, cumulate, total, save, power, open
             plt.show()
 
     if total:
-        data = client.repo.search(per_page=1, owner=owner, metrics=['total_energies', 'calculations', 'users', 'datasets']).response().result
+        data = client.repo.search(
+            per_page=1, owner=owner,
+            metrics=['total_energies', 'calculations', 'users', 'datasets']).response().result
         print(json.dumps(data.quantities['total'], indent=4))
