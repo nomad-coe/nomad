@@ -304,8 +304,6 @@ class UploadListResource(Resource):
                                 logger.info('received streaming data', size=received_data)
                             f.write(data)
 
-                        print(received_data)
-
                 except Exception as e:
                     logger.warning('Error on streaming upload', exc_info=e)
                     abort(400, message='Some IO went wrong, download probably aborted/disrupted.')
