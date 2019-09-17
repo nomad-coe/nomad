@@ -291,8 +291,11 @@ class UploadListResource(Resource):
                     with open(upload_path, 'wb') as f:
                         received_data = 0
                         received_last = 0
-                        while not request.stream.is_exhausted:
+                        while True:
                             data = request.stream.read(io.DEFAULT_BUFFER_SIZE)
+                            if len(data) == 0:
+                                break
+
                             received_data += len(data)
                             received_last += len(data)
                             if received_last > 1e9:
@@ -300,6 +303,8 @@ class UploadListResource(Resource):
                                 # TODO remove this logging or reduce it to debug
                                 logger.info('received streaming data', size=received_data)
                             f.write(data)
+
+                        print(received_data)
 
                 except Exception as e:
                     logger.warning('Error on streaming upload', exc_info=e)
