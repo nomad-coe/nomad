@@ -1,245 +1,246 @@
-"""
-Some playground to try the CONCEPT.md ideas.
-"""
+# Copyright 2018 Markus Scheidgen
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an"AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-from typing import Dict, List, Any, Union, Type
-import json
-import ase.data
-
-
-class Units():
-
-    def __getattribute__(self, name):
-        return name
-
-
-units = Units()
-
-
-class Definition():
-    m_definition: Any = None
-    pass
+from typing import Type, TypeVar, Union, Tuple, Iterable, List, Any, Dict
+import sys
 
 
-class Property(Definition):
-    pass
+__module__ = sys.modules[__name__]
+MObjectBound = TypeVar('MObjectBound', bound='MObject')
 
 
-class Quantity(Property):
-    def __init__(
-            self,
-            name: str = None,
-            description: str = None,
-            parent_section: 'Section' = None,
-            shape: List[Union[str, int]] = [],
-            type: Union['Enum', type] = None,
-            unit: str = None,
-            derived: bool = False,
-            repeats: bool = False,
-            synonym: str = None):
+# Reflection
 
-        self.name = name
-        self.parent_section = parent_section.m_definition if parent_section is not None else None
-        self.derived = derived
-        self.synonym = synonym
+class MObjectMeta(type):
 
-    def __get__(self, obj: 'MetainfoObject', type: Type):
-        if obj is None:
-            # access on cls not obj
-            return self
-
-        if self.derived:
-            derive_method = getattr(obj, 'm_derive_%s' % self.name, None)
-
-            if derive_method is None:
-                raise KeyError('Derived quantity %s is not implemented' % self.name)
-
-            else:
-                return derive_method()
-
-        elif self.synonym is not None:
-            return getattr(obj, self.synonym)
-
-        else:
-            return obj.m_data.get(self.name, None)
-
-    def __set__(self, obj: 'MetainfoObject', value: Any):
-        obj.m_data[self.name] = value
-
-    def __delete__(self, obj: 'MetainfoObject'):
-        del obj.m_data[self.name]
-
-    def __repr__(self):
-        base = self.name
-        if self.parent_section is not None:
-            return '%s.%s' % (str(self.parent_section), base)
-        else:
-            return base
-
-
-class Section(Definition):
-    def __init__(
-            self,
-            name: str = None,
-            parent_section=None,
-            repeats: bool = False,
-            extends=None,
-            adds_to=None):
-
-        self.name = name
-        self.parent_section = parent_section.m_definition if parent_section is not None else None
-        self.repeats = repeats
-
-    def __get__(self, obj: 'MetainfoObject', type: Type):
-        return self
-
-    def __repr__(self):
-        base = self.name
-        if self.parent_section is not None:
-            return '%s.%s' % (str(self.parent_section), base)
-        else:
-            return base
-
-
-class Reference(Property):
-    pass
-
-
-class Enum:
-    def __init__(self, values: List[Any]):
-        self.values = values
-
-
-class MetainfoObjectMeta(type):
-    def __new__(cls, cls_name, bases, dct):
-        cls.m_definition = dct.get('m_definition', None)
-        for name, value in dct.items():
-            if isinstance(value, Property):
-                value.name = name
-                value.parent_section = cls.m_definition
-
-        cls = super().__new__(cls, cls_name, bases, dct)
-
-        if cls.m_definition is not None:
-            if cls.m_definition.name is None:
-                cls.m_definition.name = cls_name
-
+    def __new__(self, cls_name, bases, dct):
+        cls = super().__new__(self, cls_name, bases, dct)
+        init = getattr(cls, '__init_section_cls__')
+        if init is not None:
+            init()
         return cls
 
 
-class MetainfoObject(metaclass=MetainfoObjectMeta):
-    """
-    Base class for all
-    """
-    m_definition: Any = None
+Content = Tuple[MObjectBound, Union[List[MObjectBound], MObjectBound], str, MObjectBound]
 
-    def __init__(self):
-        self.m_data = dict(m_defintion=self.m_definition.name)
 
-    def m_create(self, section_definition: Any, *args, **kwargs) -> Any:
+class MObject(metaclass=MObjectMeta):
+
+    def __init__(self, **kwargs):
+        self.m_section: 'Section' = kwargs.pop('m_section', getattr(self.__class__, 'm_section', None))  # TODO test with failure instead of None
+        self.m_data = dict(**kwargs)
+
+    @classmethod
+    def __init_section_cls__(cls):
+        if not hasattr(__module__, 'Quantity') or not hasattr(__module__, 'Section'):
+            # no initialization during bootstrapping, will be done maunally
+            return
+
+        m_section = getattr(cls, 'm_section', None)
+        if m_section is None:
+            m_section = Section()
+            setattr(cls, 'm_section', m_section)
+        m_section.name = cls.__name__
+
+        for name, value in cls.__dict__.items():
+            if isinstance(value, Quantity):
+                value.name = name
+                m_section.m_add('Quantity', value)
+
+    def m_create(self, section: Union['Section', Type[MObjectBound]], **kwargs) -> MObjectBound:
+        """Creates a subsection and adds it this this section
+
+        Args:
+            section: The section definition of the subsection. It is either the
+                definition itself, or the python class representing the section definition.
+            **kwargs: Are used to initialize the subsection.
+
+        Returns:
+            The created subsection
+
+        Raises:
+            ValueError: If the given section is not a subsection of this section, or
+                this given definition is not a section at all.
         """
-        Creates a sub section of the given section definition.
-        """
-        section_cls = section_definition
-        definition = section_definition.m_definition
-        sub_section = section_cls(*args, **kwargs)
-        if definition.repeats:
-            self.m_data.setdefault(definition.name, []).append(sub_section)
+        section_def: 'Section' = None
+        if isinstance(section, type) and hasattr(section, 'm_section'):
+            section_def = section.m_section
+        elif isinstance(section, Section):
+            section_def = section
         else:
-            # TODO test overwrite
-            self.m_data[definition.name] = sub_section
+            raise ValueError('Not a section definition')
 
-        return sub_section
+        if section_def.parent != self.m_section:
+            raise ValueError('Not a subsection')
 
-    def m_get_definition(self, name):
-        """
-        Returns the definition of the given quantity name.
-        """
-        descriptor = getattr(type(self), name)
-        if descriptor is None:
-            raise KeyError
-        elif not isinstance(descriptor, Property):
-            raise KeyError
+        section_cls = section_def.section_cls
+        section_instance = section_cls(**kwargs)
 
-        return descriptor
+        if section_def.repeats:
+            self.m_data.setdefault(section_def.name, []).append(section_instance)
+        else:
+            self.m_data[section_def.name] = section_instance
 
-    def m_to_dict(self) -> Dict[str, Any]:
-        """
-        Returns a JSON serializable dictionary version of this section (and all subsections).
-        """
+        return section_instance
+
+    def m_set(self, name: str, value: Any):
+        self.m_data[name] = value
+
+    def m_add(self, name: str, value: Any):
+        values = self.m_data.setdefault(name, [])
+        values.append(value)
+
+    def m_get(self, name: str) -> Any:
+        try:
+            return self.m_data[name]
+
+        except KeyError:
+            return self.m_section.attributes[name].default
+
+    def m_delete(self, name: str):
+        del self.m_data[name]
+
+    def m_to_dict(self):
+        pass
+
+    def m_to_json(self):
+        pass
+
+    def m_all_contents(self) -> Iterable[Content]:
+        for content in self.m_contents():
+            for sub_content in content[0].m_all_contents():
+                yield sub_content
+
+            yield content
+
+    def m_contents(self) -> Iterable[Content]:
+        for name, attr in self.m_data.items():
+            if isinstance(attr, list):
+                for value in attr:
+                    if isinstance(value, MObject):
+                        yield value, attr, name, self
+
+            elif isinstance(attr, MObject):
+                yield value, value, name, self
+
+    def __repr__(self):
+        m_section_name = self.m_section.name
+        name = ''
+        if 'name' in self.m_data:
+            name = self.m_data['name']
+
+        return '%s:%s' % (name, m_section_name)
+
+
+class Enum(list):
+    pass
+
+
+# M3
+
+class Quantity(MObject):
+    m_section: 'Section' = None
+    name: 'Quantity' = None
+    type: 'Quantity' = None
+    shape: 'Quantity' = None
+
+    __name = property(lambda self: self.m_data['name'])
+
+    default = property(lambda self: None)
+
+    def __get__(self, obj, type=None):
+        return obj.m_get(self.__name)
+
+    def __set__(self, obj, value):
+        obj.m_set(self.__name, value)
+
+    def __delete__(self, obj):
+        obj.m_delete(self.__name)
+
+
+class Section(MObject):
+    m_section: 'Section' = None
+    name: 'Quantity' = None
+    repeats: 'Quantity' = None
+    parent: 'Quantity' = None
+    extends: 'Quantity' = None
+
+    __all_instances: List['Section'] = []
+
+    default = property(lambda self: [] if self.repeats else None)
+    section_cls = property(lambda self: self.__class__)
+
+    def __init__(self, **kwargs):
+        # The mechanism that produces default values, depends on parent. Without setting
+        # the parent default manually, an endless recursion will occur.
+        kwargs.setdefault('parent', None)
+
+        super().__init__(**kwargs)
+        Section.__all_instances.append(self)
+
+    # TODO cache
+    @property
+    def attributes(self) -> Dict[str, Union['Section', Quantity]]:
+        """ All attribute (sub section and quantity) definitions. """
+
+        attributes: Dict[str, Union[Section, Quantity]] = dict(**self.quantities)
+        attributes.update(**self.sub_sections)
+        return attributes
+
+    # TODO cache
+    @property
+    def quantities(self) -> Dict[str, Quantity]:
+        """ All quantity definition in the given section definition. """
+
         return {
-            key: value.m_to_dict() if isinstance(value, MetainfoObject) else value
-            for key, value in self.m_data.items()
-        }
+            quantity.name: quantity
+            for quantity in self.m_data.get('Quantity', [])}
 
-    def m_to_json(self) -> str:
-        return json.dumps(self.m_to_dict(), indent=2)
+    # TODO cache
+    @property
+    def sub_sections(self) -> Dict[str, 'Section']:
+        """ All sub section definitions for this section definition. """
 
-    def m_validate(self) -> bool:
-        """
-        Validates this sections content based on section and quantity definitions.
-        Can be overwritten to customize the validation.
-        """
-        return True
-
-    def __repr__(self) -> str:
-        return self.m_to_json()
+        return {
+            sub_section.name: sub_section
+            for sub_section in Section.__all_instances
+            if sub_section.parent == self}
 
 
-class Run(MetainfoObject):
-    m_definition = Section()
+Section.m_section = Section(repeats=True, name='Section')
+Section.m_section.m_section = Section.m_section
+
+Section.name = Quantity(type=str, name='name')
+Section.repeats = Quantity(type=bool, name='repeats')
+Section.parent = Quantity(type=Section.m_section, name='parent')
+Section.extends = Quantity(type=Section.m_section, shape=['0..*'], name='extends')
+
+Quantity.m_section = Section(repeats=True, parent=Section.m_section, name='Quantity')
+Quantity.name = Quantity(type=str, name='name')
+Quantity.type = Quantity(type=Union[type, Enum, Section], name='type')
+Quantity.shape = Quantity(type=Union[str, int], shape=['0..*'], name='shape')
 
 
-class System(MetainfoObject):
-    """
-    The system is ...
-    """
-    m_definition = Section(parent_section=Run, repeats=True)
-
-    n_atoms = Quantity(type=int, derived=True)
-
-    atom_labels = Quantity(shape=['n_atoms'], type=Enum(ase.data.chemical_symbols))
-    """
-    Atom labels are ...
-    """
-
-    atom_species = Quantity(shape=['n_atoms'], type=int, derived=True)
-
-    atom_positions = Quantity(shape=['n_atoms', 3], type=float, unit=units.m)
-
-    cell = Quantity(shape=[3, 3], type=float, unit=units.m)
-    lattice_vectors = Quantity(synonym='cell')
-
-    pbc = Quantity(shape=[3], type=bool)
-
-    def m_derive_atom_species(self) -> List[int]:
-        return [ase.data.atomic_numbers[label] for label in self.atom_labels]
-
-    def m_derive_n_atoms(self) -> int:
-        return len(self.atom_labels)
+class Package(MObject):
+    m_section = Section()
+    name = Quantity(type=str)
 
 
-class VaspSystem(MetainfoObject):
-    m_definition = Section(adds_to=System)
-
-    vasp_specific = Quantity(type=str)
+Section.m_section.parent = Package.m_section
 
 
-run = Run()
-print(run.m_definition)
+class Definition(MObject):
+    m_section = Section(extends=[Section.m_section, Quantity.m_section, Package.m_section])
 
-system = run.m_create(System)
-system.atom_labels = ['H', 'H', 'O']
-system.atom_positions = [[0, 0, 0], [1, 0, 0], [0.5, 0.5, 0]]
-system.cell = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-system.pbc = [False, False, False]
-
-print(system.atom_species)
-print(system.lattice_vectors)
-print(system.n_atoms)
-
-print(system.__class__.m_definition)
-print(system.m_definition)
-print(system.m_get_definition('atom_labels'))
-
-print(run)
+    description = Quantity(type=str)
