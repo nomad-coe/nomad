@@ -19,6 +19,21 @@ import sys
 __module__ = sys.modules[__name__]
 MObjectBound = TypeVar('MObjectBound', bound='MObject')
 
+"""
+
+Discussion:
+-----------
+
+- Is the reflection interface really necessary? The ideas come from a compiled static
+  language (Java). In Python the non reflective interface can always be dynamically
+  generated and then reflectively used through pythons build in reflection mechanisms
+  (e.g. getattr, hasattr, ...)
+- Subsection creation would be most fluent with: ``system = System(m_parent=run)``
+- Specialized data entry methods would require refl. interface:
+    - m_add_array_values
+    - m_add
+"""
+
 
 # Reflection
 
@@ -94,22 +109,12 @@ class MObject(metaclass=MObjectMeta):
 
         return section_instance
 
-    def m_set(self, name: str, value: Any):
-        self.m_data[name] = value
-
     def m_add(self, name: str, value: Any):
         values = self.m_data.setdefault(name, [])
         values.append(value)
 
-    def m_get(self, name: str) -> Any:
-        try:
-            return self.m_data[name]
-
-        except KeyError:
-            return self.m_section.attributes[name].default
-
-    def m_delete(self, name: str):
-        del self.m_data[name]
+    def m_add_array_values(self, definition: Union[str, 'Quantity'], values, offset: int):
+        pass
 
     def m_to_dict(self):
         pass
@@ -160,13 +165,13 @@ class Quantity(MObject):
     default = property(lambda self: None)
 
     def __get__(self, obj, type=None):
-        return obj.m_get(self.__name)
+        return obj.m_data[self.__name]
 
     def __set__(self, obj, value):
-        obj.m_set(self.__name, value)
+        obj.m_data[self.__name] = value
 
     def __delete__(self, obj):
-        obj.m_delete(self.__name)
+        del obj.m_data[self.__name]
 
 
 class Section(MObject):

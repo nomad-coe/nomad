@@ -26,22 +26,6 @@ class TestM3:
         assert Quantity.m_section.parent == Section.m_section
 
 
-class TestReflection:
-    def test_m_get_success(self):
-        assert Section.m_section.m_get('name') == 'Section'
-
-    def test_m_get_fail(self):
-        try:
-            Section.m_section.m_get('doesnotexist')
-            assert False
-        except KeyError:
-            pass
-
-    def test_m_set_success(self):
-        Section.m_section.m_set('name', 'newname')
-        assert Section.m_section.m_get('name') == 'newname'
-
-
 class TestPureReflection:
 
     def test_instantiation(self):
@@ -51,8 +35,8 @@ class TestPureReflection:
         obj = MObject(m_section=test_section_def)
         assert obj.m_section.name == 'TestSection'
         # FIXME assert obj.m_get('test_quantity') is None
-        obj.m_set('test_quantity', 'test_value')
-        assert obj.m_get('test_quantity') == 'test_value'
+        setattr(obj, 'test_quantity', 'test_value')
+        assert getattr(obj, 'test_quantity') == 'test_value'
 
 
 class Run(MObject):
