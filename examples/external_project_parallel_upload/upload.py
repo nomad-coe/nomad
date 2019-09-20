@@ -4,11 +4,12 @@ chunk the data into even sized uploads and upload/process them in parallel. The 
 is that each source file is much smaller than the targeted upload size.
 """
 
-from typing import Iterator, Iterable, Union, Tuple
+from typing import Iterator, Iterable, Union, Tuple, Dict, Any
 from bravado.requests_client import RequestsClient
 from bravado.client import SwaggerClient
 from urllib.parse import urlparse, urlencode
 import requests
+import re
 import time
 import os.path
 import tarfile
@@ -17,7 +18,7 @@ import zipfile
 import zipstream
 
 # config
-nomad_url = 'http://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/testing/api'
+nomad_url = 'http://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/mp/api'
 user = 'leonard.hofstadter@nomad-fairdi.tests.de'
 password = 'password'
 approx_upload_size = 32 * 1024 * 1024 * 1024  # you can make it really small for testing
@@ -30,25 +31,28 @@ http_client.set_basic_auth(host, user, password)
 client = SwaggerClient.from_url('%s/swagger.json' % nomad_url, http_client=http_client)
 
 
-def source_generator() -> Iterable[Tuple[str, Union[str, None]]]:
+def source_generator() -> Iterable[Tuple[str, Union[str, None], Union[str, None]]]:
     """
-    Yields all data sources. Yields tuples (path to .tgz, prefix). Prefix denotes
-    a subdirectory to put the contents in. Use None for no prefix.
+    Yields all data sources. Yields tuples (path to .tgz, prefix, external_id). Prefix denotes
+    a subdirectory to put the contents in. Use None for no prefix. The external_id is
+    used when "publishing" the data to populate the external_id field.
     """
-    yield os.path.join(os.path.dirname(__file__), 'example-1.tar.gz'), 'example_1'
-    yield os.path.join(os.path.dirname(__file__), 'example-2.tar.gz'), 'example_2'
-    yield os.path.join(os.path.dirname(__file__), 'example-3.tar.gz'), 'example_3'
+    yield os.path.join(os.path.dirname(__file__), 'example-1.tar.gz'), 'example_1', 'external_1'
+    yield os.path.join(os.path.dirname(__file__), 'example-2.tar.gz'), 'example_2', 'external_2'
+    yield os.path.join(os.path.dirname(__file__), 'example-3.tar.gz'), 'example_3', 'external_3'
 
 
-def upload_next_data(sources: Iterator[Tuple[str, str]], upload_name='next upload'):
+def upload_next_data(sources: Iterator[Tuple[str, str, str]], upload_name='next upload'):
     """
     Reads data from the given sources iterator. Creates and uploads a .zip-stream of
-    approx. size. Returns the upload, or raises StopIteration if the sources iterator
-    was empty. Should be used repeatedly on the same iterator until it is empty.
+    approx. size. Returns the upload and corresponding metadata, or raises StopIteration
+    if the sources iterator was empty. Should be used repeatedly on the same iterator
+    until it is empty.
     """
 
     # potentially raises StopIteration before being streamed
     first_source = next(sources)
+    calc_metadata = []
 
     def iterator():
         """
@@ -59,11 +63,11 @@ def upload_next_data(sources: Iterator[Tuple[str, str]], upload_name='next uploa
         first = True
         while(True):
             if first:
-                source_file, prefix = first_source
+                source_file, prefix, external_id = first_source
                 first = False
             else:
                 try:
-                    source_file, prefix = next(sources)
+                    source_file, prefix, external_id = next(sources)
                 except StopIteration:
                     break
 
@@ -93,7 +97,15 @@ def upload_next_data(sources: Iterator[Tuple[str, str]], upload_name='next uploa
                 if prefix is not None:
                     name = os.path.join(prefix, name)
 
-                yield dict(arcname=source_member.name, iterable=iter_content())
+                if re.search(r'vasp(run)?\.xml(.gz)?$', name):
+                    calc_metadata.append(dict(
+                        mainfile=name,
+                        external_id=external_id
+                        # references=['http://external.project.eu/.../<your_id>']
+                    ))
+
+                # there was bug using the wrong name (source_member.name) here
+                yield dict(arcname=name, iterable=iter_content())
 
             if size > approx_upload_size:
                 break
@@ -121,17 +133,22 @@ def upload_next_data(sources: Iterator[Tuple[str, str]], upload_name='next uploa
 
     upload_id = response.json()['upload_id']
 
-    return client.uploads.get_upload(upload_id=upload_id).response().result
+    return client.uploads.get_upload(upload_id=upload_id).response().result, calc_metadata
 
 
-def publish_upload(upload):
+def publish_upload(upload, calc_metadata):
+    metadata = {
+        # these metadata are applied to all calcs in the upload
+        'comment': 'Data from a cool external project',
+        'references': ['http://external.project.eu'],
+        # '_uploader': <nomad_user_id>,  # only works if the admin user is publishing
+        # 'co_authors': [<nomad_user_id>, <nomad_user_id>, <nomad_user_id>]
+        # these are calc specific metadata that supercede any upload metadata
+        'calculations': calc_metadata}
+
     client.uploads.exec_upload_operation(upload_id=upload.upload_id, payload={
         'operation': 'publish',
-        'metadata': {
-            # these metadata are applied to all calcs in the upload
-            'comment': 'Data from a cool external project',
-            'references': ['http://external.project.eu']
-        }
+        'metadata': metadata
     }).response()
 
 
@@ -139,17 +156,23 @@ if __name__ == '__main__':
     source_iter = iter(source_generator())
     all_uploaded = False
     processing_completed = False
+    all_calc_metadata: Dict[str, Any] = {}
 
     # run until there are no more uploads and everything is processed (and published)
     while not (all_uploaded and processing_completed):
         # process existing uploads
         while True:
             uploads = client.uploads.get_uploads().response().result
+
             for upload in uploads.results:
+                calc_metadata = all_calc_metadata.get(upload.upload_id, None)
+                if calc_metadata is None:
+                    continue
+
                 if not upload.process_running:
                     if upload.tasks_status == 'SUCCESS':
                         print('publish %s(%s)' % (upload.name, upload.upload_id))
-                        publish_upload(upload)
+                        publish_upload(upload, calc_metadata)
                     elif upload.tasks_status == 'FAILURE':
                         print('could not process %s(%s)' % (upload.name, upload.upload_id))
                         client.uploads.delete_upload(upload_id=upload.upload_id).response().result
@@ -166,7 +189,8 @@ if __name__ == '__main__':
             processing_completed = uploads.pagination.total == 0
 
         try:
-            upload = upload_next_data(source_iter)
+            upload, calc_metadata = upload_next_data(source_iter)
+            all_calc_metadata[upload.upload_id] = calc_metadata
             processing_completed = False
             print('uploaded %s(%s)' % (upload.name, upload.upload_id))
         except StopIteration:
