@@ -147,6 +147,7 @@ class CalcWithMetadata():
         self.datasets = [
             utils.POPO(id=int(ds['id']), doi=utils.POPO(value=ds.get('_doi')), name=ds.get('_name'))
             for ds in metadata.get('datasets', [])]
+        self.external_id = metadata.get('external_id')
 
     def apply_domain_metadata(self, backend):
         raise NotImplementedError()
