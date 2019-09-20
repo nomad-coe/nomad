@@ -21,7 +21,7 @@ from flask import Flask, Blueprint, jsonify, url_for, abort, request
 from flask_restplus import Api
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
-from werkzeug.wsgi import DispatcherMiddleware
+from werkzeug.wsgi import DispatcherMiddleware  # pylint: disable=E0611
 import os.path
 import random
 from structlog import BoundLogger
