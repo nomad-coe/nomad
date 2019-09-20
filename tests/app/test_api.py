@@ -312,6 +312,7 @@ class TestUploads:
         assert rv.status_code == 200
         data = json.loads(rv.data)
         assert 'upload_command' in data
+        assert '/api/uploads' in data['upload_command']
         assert 'upload_url' in data
 
     def test_get_empty(self, api, test_user_auth, no_warn):
