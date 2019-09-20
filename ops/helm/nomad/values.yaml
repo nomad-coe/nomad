@@ -46,6 +46,7 @@ api:
   disableReset: "true"
   ## Limit of unpublished uploads per user, except admin user
   uploadLimit: 10
+  nomadNodeType: "public"
 
 ## Everything concerning the nomad worker
 worker:
@@ -60,6 +61,7 @@ worker:
   # will send all tasks related to an upload to the same worker
   routing: "queue"
   storage: "disk"
+  nomadNodeType: "worker"
 
 ## Everthing concerning the nomad gui
 gui:
