@@ -99,6 +99,7 @@ class CalcWithMetadata():
         self.comment: str = None
         self.references: List[utils.POPO] = []
         self.datasets: List[utils.POPO] = []
+        self.external_id: str = None
 
         # parser related general (not domain specific) metadata
         self.parser_name = None
@@ -267,6 +268,7 @@ class Domain:
         calc_id=DomainQuantity(description='Search for the calc_id.'),
         pid=DomainQuantity(description='Search for the pid.'),
         mainfile=DomainQuantity(description='Search for the mainfile.'),
+        external_id=DomainQuantity(description='External user provided id. Does not have to be unique necessarily.'),
         dataset=DomainQuantity(
             elastic_field='datasets.name', multi=True, elastic_search_type='match',
             description='Search for a particular dataset by name.'),

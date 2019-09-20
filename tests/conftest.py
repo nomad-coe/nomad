@@ -514,7 +514,8 @@ def example_user_metadata(other_test_user, test_user) -> dict:
         '_uploader': other_test_user.user_id,
         'coauthors': [test_user.user_id],
         '_upload_time': datetime.datetime.utcnow(),
-        '_pid': 256
+        '_pid': 256,
+        'external_id': 'external_test_id'
     }
 
 

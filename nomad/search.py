@@ -130,6 +130,7 @@ class Entry(Document, metaclass=WithDomain):
     comment = Text()
     references = Keyword()
     datasets = Object(Dataset)
+    external_id = Keyword()
 
     @classmethod
     def from_calc_with_metadata(cls, source: datamodel.CalcWithMetadata) -> 'Entry':
@@ -171,6 +172,7 @@ class Entry(Document, metaclass=WithDomain):
         self.comment = source.comment
         self.references = [ref.value for ref in source.references]
         self.datasets = [Dataset.from_dataset_popo(ds) for ds in source.datasets]
+        self.external_id = source.external_id
 
         for quantity in datamodel.Domain.instance.domain_quantities.values():
             setattr(
