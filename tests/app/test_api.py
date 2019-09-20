@@ -265,7 +265,10 @@ class TestUploads:
         assert upload['current_process'] == 'publish_upload'
         assert upload['process_running']
 
-        additional_keys = ['with_embargo', 'external_id']
+        additional_keys = ['with_embargo']
+        if publish_with_metadata and 'external_id' in metadata:
+            additional_keys.append('external_id')
+
         if with_coe_repo:
             additional_keys.append('pid')
 
