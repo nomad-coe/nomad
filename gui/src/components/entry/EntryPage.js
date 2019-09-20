@@ -5,7 +5,7 @@ import ArchiveEntryView from './ArchiveEntryView'
 import ArchiveLogView from './ArchiveLogView'
 import RepoEntryView from './RepoEntryView'
 
-class Calc extends React.Component {
+class EntryPage extends React.Component {
   static styles = theme => ({
     root: {
     },
@@ -61,4 +61,4 @@ class Calc extends React.Component {
   }
 }
 
-export default withStyles(Calc.styles)(Calc)
+export default withStyles(EntryPage.styles)(EntryPage)
