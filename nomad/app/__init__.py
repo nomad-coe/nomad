@@ -98,12 +98,13 @@ def handle(error: Exception):
     response = jsonify(data)
     response.status_code = status_code
     if status_code == 500:
+        local_logger = logger
         # the logger is created in before_request, if the error was created before that
         # logger can be None
-        if logger is None:
-            logger = nomad_utils.get_logger(__name__)
+        if local_logger is None:
+            local_logger = nomad_utils.get_logger(__name__)
 
-        logger.error('internal server error', exc_info=error)
+        local_logger.error('internal server error', exc_info=error)
 
     return response
 
