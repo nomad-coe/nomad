@@ -1,6 +1,10 @@
 Reference
 =========
 
+nomad.metainfo
+--------------
+.. automodule:: nomad.metainfo.metainfo
+
 nomad.config
 ------------
 .. automodule:: nomad.config

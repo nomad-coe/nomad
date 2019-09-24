@@ -12,19 +12,134 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+The NOMAD meta-info allows to define physics data quantities. These definitions are
+necessary for all computer representations of respective data (e.g. in Python,
+search engines, data-bases, and files).
+
+This modules provides various Python interfaces for
+
+- defining meta-info data
+- to create and manipulate data that follows these definitions
+- to (de-)serialize meta-info data in JSON (i.e. represent data in JSON formatted files)
+
+Here is a simple example that demonstrates the definition of System related quantities:
+
+.. code-block:: python
+
+    class Run(MObject):
+        pass
+
+    class System(MObject):
+        \"\"\"
+        A system section includes all quantities that describe a single a simulated
+        system (a.k.a. geometry).
+        \"\"\"
+
+        m_section = Section(repeats=True, parent=Run.m_section)
+
+        n_atoms = Quantity(type=int)
+        \"\"\" A Defines the number of atoms in the system. \"\"\"
+
+        atom_labels = Quantity(type=Enum(ase.data.chemical_symbols), shape['n_atoms'])
+        atom_positions = Quantity(type=float, shape=['n_atoms', 3], unit=Units.m)
+        simulation_cell = Quantity(type=float, shape=[3, 3], unit=Units.m)
+        pbc = Quantity(type=bool, shape=[3])
+
+Here, we define a `section` called ``System``. The section mechanism allows to organize
+related data into, well, sections. Sections form containment hierarchies. Here
+containment is a parent-child (whole-part) relationship. In this example many ``Systems``,
+are part of one ``Run``. Each ``System`` can contain values for the defined quantities:
+``n_atoms``, ``atom_labels``, ``atom_positions``, ``simulation_cell``, and ``pbc``.
+Quantities allow to state type, shape, and physics unit to specify possible quantity
+values.
+
+Here is an example, were we use the above definition to create, read, and manipulate
+data that follows these definitions:
+
+.. code-bock:: python
+
+    run = Run()
+    system = run.m_create(System)
+    system.n_atoms = 3
+    system.atom_labels = ['H', 'H', 'O']
+
+    print(system.atom_labels)
+    print(run.m_to_json(ident=2))
+
+This last statement, will produce the following JSON:
+
+.. code-block:: JSON
+
+    {
+        "m_section" = "Run",
+        "System": [
+            {
+                "m_section" = "System",
+                "m_parent_index" = 0,
+                "n_atoms" = 3,
+                "atom_labels" = [
+                    "H",
+                    "H",
+                    "O"
+                ]
+            }
+        ]
+    }
+
+This is the JSON representation, a serialized version of the Python representation in
+the example above.
+
+Sections can be extended with new quantities outside the original section definition.
+This provides the key mechanism to extend commonly defined parts with (code) specific
+quantities:
+
+.. code-block:: Python
+
+    class Method(nomad.metainfo.common.Method):
+        x_vasp_incar_ALGO=Quantity(
+            type=Enum(['Normal', 'VeryFast', ...]),
+            links=['https://cms.mpi.univie.ac.at/wiki/index.php/ALGO'])
+        \"\"\"
+        A convenient option to specify the electronic minimisation algorithm (as of VASP.4.5)
+        and/or to select the type of GW calculations.
+        \"\"\"
+
+
+All meta-info definitions and classes for meta-info data objects (i.e. section instances)
+inherit from :class:` MObject`. This base-class provides common functions and attributes
+for all meta-info data objects. Names of these common parts are prefixed with ``m_``
+to distinguish them from user defined quantities. This also constitute's the `reflection`
+interface (in addition to Python's build in ``getattr``, ``setattr``) that allows to
+create and manipulate meta-info data, without prior program time knowledge of the underlying
+definitions.
+
+.. autoclass:: MObject
+
+The following classes can be used to define and structure meta-info data:
+
+- sections are defined by sub-classes :class:`MObject` and using :class:`Section` to
+  populate the classattribute `m_section`
+- quantities are defined by assigning classattributes of a section with :class:`Quantity`
+  instances
+- references (from one section to another) can be defined with quantities that use
+  section definitions as type
+- dimensions can use defined by simply using quantity names in shapes
+- categories (former `abstract type definitions`) can be given in quantity definitions
+  to assign quantities to additional specialization-generalization hierarchies
+
+See the reference of classes :class:`Section` and :class:`Quantities` for details.
+
+.. autoclass:: Section
+.. autoclass:: Quantity
+"""
+
 from typing import Type, TypeVar, Union, Tuple, Iterable, List, Any, Dict, cast
 import sys
 
 
 __module__ = sys.modules[__name__]
 MObjectBound = TypeVar('MObjectBound', bound='MObject')
-
-"""
-
-Discussion:
------------
-
-"""
 
 
 # Reflection
@@ -66,11 +181,11 @@ class MObject(metaclass=MObjectMeta):
     Sub-sections and parent sections can be read and manipulated with :data:`m_parent`,
     :func:`m_sub_section`, :func:`m_create`.
 
-    ```
-    system = run.m_create(System)
-    assert system.m_parent == run
-    assert run.m_sub_section(System, system.m_parent_index) == system
-    ```
+    .. code-block:: python
+
+        system = run.m_create(System)
+        assert system.m_parent == run
+        assert run.m_sub_section(System, system.m_parent_index) == system
 
     Attributes:
         m_section: The section definition that defines this sections, its possible
@@ -407,3 +522,13 @@ class Definition(MObject):
     m_section = Section(extends=[Section.m_section, Quantity.m_section, Package.m_section])
 
     description = Quantity(type=str)
+
+
+class Unit:
+    pass
+
+
+class Units:
+
+    Angstrom = Unit()
+    amu = Unit()
