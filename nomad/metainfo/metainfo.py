@@ -136,7 +136,9 @@ See the reference of classes :class:`Section` and :class:`Quantities` for detail
 
 from typing import Type, TypeVar, Union, Tuple, Iterable, List, Any, Dict, cast
 import sys
-
+import inspect
+from pint.unit import _Unit
+from pint import UnitRegistry
 
 __module__ = sys.modules[__name__]
 MObjectBound = TypeVar('MObjectBound', bound='MObject')
@@ -200,16 +202,20 @@ class MObject(metaclass=MObjectMeta):
             if possible.
     """
 
+    m_section: 'Section' = None
+
     def __init__(self, m_section: 'Section' = None, m_parent: 'MObject' = None, **kwargs):
         self.m_section: 'Section' = m_section
         self.m_parent: 'MObject' = m_parent
         self.m_parent_index = -1
         self.m_data = dict(**kwargs)
 
+        cls = self.__class__
         if self.m_section is None:
-            self.m_section = getattr(self.__class__, 'm_section', None)
-        else:
-            assert self.m_section == getattr(self.__class__, 'm_section', self.m_section), \
+            self.m_section = cls.m_section
+
+        if cls.m_section is not None:
+            assert self.m_section == cls.m_section, \
                 'Section class and section definition must match'
 
     @classmethod
@@ -218,36 +224,45 @@ class MObject(metaclass=MObjectMeta):
             # no initialization during bootstrapping, will be done maunally
             return
 
-        m_section = getattr(cls, 'm_section', None)
-        if m_section is None:
+        m_section = cls.m_section
+        if m_section is None and cls != MObject:
             m_section = Section()
             setattr(cls, 'm_section', m_section)
+
         m_section.name = cls.__name__
+        if cls.__doc__ is not None:
+            m_section.description = inspect.cleandoc(cls.__doc__)
         m_section.section_cls = cls
 
-        for name, value in cls.__dict__.items():
-            if isinstance(value, Quantity):
-                value.name = name
+        for name, attr in cls.__dict__.items():
+            if isinstance(attr, Quantity):
+                attr.name = name
+                if attr.__doc__ is not None:
+                    attr.description = inspect.cleandoc(attr.__doc__)
                 # manual manipulation of m_data due to bootstrapping
-                m_section.m_data.setdefault('Quantity', []).append(value)
+                m_section.m_data.setdefault('Quantity', []).append(attr)
 
     @staticmethod
-    def __type_check(definition: 'Quantity', value: Any, check_item: bool = False):
+    def m_type_check(definition: 'Quantity', value: Any, check_item: bool = False):
         """Checks if the value fits the given quantity in type and shape; raises
-        ValueError if not."""
+        TypeError if not."""
+
+        if value is None and not check_item and definition.default is None:
+            # Allow the default None value even if it would violate the type
+            return
 
         def check_value(value):
             if isinstance(definition.type, Enum):
                 if value not in definition.type:
-                    raise ValueError('Not one of the enum values.')
+                    raise TypeError('Not one of the enum values.')
 
             elif isinstance(definition.type, type):
                 if not isinstance(value, definition.type):
-                    raise ValueError('Value has wrong type.')
+                    raise TypeError('Value has wrong type.')
 
             elif isinstance(definition.type, Section):
                 if not isinstance(value, MObject) or value.m_section != definition.type:
-                    raise ValueError('The value is not a section of wrong section definition')
+                    raise TypeError('The value is not a section of wrong section definition')
 
             else:
                 raise Exception('Invalid quantity type: %s' % str(definition.type))
@@ -263,7 +278,7 @@ class MObject(metaclass=MObjectMeta):
 
         elif len(shape) == 1:
             if not isinstance(value, list):
-                raise ValueError('Wrong shape')
+                raise TypeError('Wrong shape')
 
             for item in value:
                 check_value(item)
@@ -369,7 +384,7 @@ class MObject(metaclass=MObjectMeta):
 
         quantity = self.__resolve_quantity(definition)
 
-        MObject.__type_check(quantity, value, check_item=True)
+        MObject.m_type_check(quantity, value, check_item=True)
 
         m_data_values = self.m_data.setdefault(quantity.name, [])
         m_data_values.append(value)
@@ -380,7 +395,7 @@ class MObject(metaclass=MObjectMeta):
         quantity = self.__resolve_quantity(definition)
 
         for value in values:
-            MObject.__type_check(quantity, value, check_item=True)
+            MObject.m_type_check(quantity, value, check_item=True)
 
         m_data_values = self.m_data.setdefault(quantity.name, [])
         for value in values:
@@ -422,40 +437,143 @@ class MObject(metaclass=MObjectMeta):
         return '%s:%s' % (name, m_section_name)
 
 
-# M3
+# M3, the definitions that are used to write definitions. These are the section definitions
+# for sections Section and Quantity.They define themselves; i.e. the section definition
+# for Section is the same section definition.
+# Due to this circular nature (hen-egg-problem), the classes for sections Section and
+# Quantity do only contain placeholder for their own section and quantity definitions.
+# These placeholder are replaced, once the necessary classes are defined. This process
+# is referred to as 'bootstrapping'.
 
 class Quantity(MObject):
-    m_section: 'Section' = None
+    """Used to define quantities that store a certain piece of (meta-)data.
+
+    Quantities are the basic building block with meta-info data. The Quantity class is
+    used to define quantities within sections. A quantity definition
+    is a (physics) quantity with name, type, shape, and potentially a unit.
+
+    In Python terms, quantities are descriptors. Descriptors define how to get, set, and
+    delete values for a object attribute. Meta-info descriptors ensure that
+    type and shape fit the set values.
+    """
+
     name: 'Quantity' = None
+    """ The name of the quantity. Must be unique within a section. """
+
+    description: 'Quantity' = None
+    """ An optional human readable description. """
+
+    links: 'Quantity' = None
+    """ A list of URLs to external resource that describe this definition. """
+
     type: 'Quantity' = None
+    """ The type of the quantity.
+
+    Can be one of the following:
+
+    - a build-in Python type, e.g. ``int``, ``str``, ``any``
+    - an instance of :class:`Enum`, e.g. ``Enum(['one', 'two', 'three'])
+    - a instance of Section, i.e. a section definition. This will define a reference
+    - the Python typing ``Any`` to denote an arbitrary type
+    - a Python class, e.g. ``datetime``
+
+    In the NOMAD CoE meta-info this was basically the ``dTypeStr``.
+    """
+
     shape: 'Quantity' = None
+    """ The shape of the quantity that defines its dimensionality.
 
+    A shape is a list, where each item defines a dimension. Each dimension can be:
+
+    - an integer that defines the exact size of the dimension, e.g. ``[3]`` is the
+      shape of a spacial vector
+    - the name of an int typed quantity in the same section
+    - a range specification as string build from a lower bound (i.e. int number),
+      and an upper bound (int or ``*`` denoting arbitrary large), e.g. ``'0..*'``, ``'1..3'``
+    """
+
+    unit: 'Quantity' = None
+    """ The optional physics unit for this quantity.
+
+    Units are given in `pint` units. Pint is a Python package that defines units and
+    their algebra. There is a default registry :data:`units` that you can use.
+    Example units are: ``units.m``, ``units.m / units.s ** 2``.
+    """
+
+    default: 'Quantity' = None
+    """ The default value for this quantity. """
+
+    # Some quantities of Quantity cannot be read as normal quantities due to bootstraping.
+    # Those can be accessed internally through the following replacement properties that
+    # read directly from m_data.
     __name = property(lambda self: self.m_data['name'])
-
-    default = property(lambda self: None)
+    __default = property(lambda self: self.m_data.get('default', None))
 
     def __get__(self, obj, type=None):
-        return obj.m_data[self.__name]
+        if obj is None:
+            # class (def) attribute case
+            return self
+
+        # object (instance) attribute case
+        try:
+            return obj.m_data[self.__name]
+        except KeyError:
+            return self.__default
 
     def __set__(self, obj, value):
-        MObject.__dict__['_MObject__type_check'].__get__(MObject)(self, value)
+        if obj is None:
+            # class (def) case
+            raise KeyError('Cannot overwrite quantity definition. Only values can be set.')
+
+        # object (instance) case
+        MObject.m_type_check(self, value)
         obj.m_data[self.__name] = value
 
     def __delete__(self, obj):
+        if obj is None:
+            # class (def) case
+            raise KeyError('Cannot delete quantity definition. Only values can be deleted.')
+
+        # object (instance) case
         del obj.m_data[self.__name]
 
 
 class Section(MObject):
-    m_section: 'Section' = None
+    """Used to define section that organize meta-info data into containment hierarchies.
+
+    Section definitions determine what quantities and sub-sections can appear in a section
+    instance. A section instance itself can appear potentially many times in its parent
+    section. See :data:`repeats` and :data:`parent`.
+
+    In Python terms, sections are classes. Sub-sections and quantities are attribute of
+    respective instantiating objects. For each section class there is a corresponding
+    :class:`Section` instance that describes this class as a section. This instance
+    is referred to as 'section definition' in contrast to the Python class that we call
+    'section class'.
+    """
+
     section_cls: Type[MObject] = None
+    """ The section class that corresponse to this section definition. """
+
     name: 'Quantity' = None
+    """ The name of the section. """
+
+    description: 'Quantity' = None
+    """ A human readable description of the section. """
+
+    links: 'Quantity' = None
+    """ A list of URLs to external resource that describe this definition. """
+
     repeats: 'Quantity' = None
+    """ Wether instances of this section can occur repeatedly in the parent section. """
+
     parent: 'Quantity' = None
-    extends: 'Quantity' = None
+    """ The section definition for parents.
+
+    Instances of this section can only occur in instances of the given parent.
+    """
 
     __all_instances: List['Section'] = []
-
-    default = property(lambda self: [] if self.repeats else None)
 
     def __init__(self, **kwargs):
         # The mechanism that produces default values, depends on parent. Without setting
@@ -493,21 +611,48 @@ class Section(MObject):
             for sub_section in Section.__all_instances
             if sub_section.parent == self}
 
+    def add_quantity(self, quantity: Quantity):
+        """
+        Adds the given quantity to this section.
+
+        Allows to add a quantity to a section definition outside the corresponding
+        section class.
+
+        .. code-block:: Python
+
+        class System(MObject):
+            pass
+
+        System.m_section.add_quantity(Quantity(name='n_atoms', type=int))
+
+        This will add the quantity definition to this section definition,
+        and add the respective Python descriptor as an attribute to this class.
+        """
+        quantities = self.m_data.setdefault('Quantity', [])
+        quantities.append(quantity)
+
+        setattr(self.section_cls, quantity.name, quantity)
+
 
 Section.m_section = Section(repeats=True, name='Section')
 Section.m_section.m_section = Section.m_section
 Section.m_section.section_cls = Section
 
 Section.name = Quantity(type=str, name='name')
-Section.repeats = Quantity(type=bool, name='repeats')
+Section.description = Quantity(type=str, name='description')
+Section.links = Quantity(type=str, shape=['0..*'], name='links')
+Section.repeats = Quantity(type=bool, name='repeats', default=False)
 Section.parent = Quantity(type=Section.m_section, name='parent')
-Section.extends = Quantity(type=Section.m_section, shape=['0..*'], name='extends')
 
 Quantity.m_section = Section(repeats=True, parent=Section.m_section, name='Quantity')
 Quantity.m_section.section_cls = Quantity
 Quantity.name = Quantity(type=str, name='name')
+Quantity.description = Quantity(type=str, name='description')
+Quantity.links = Quantity(type=str, shape=['0..*'], name='links')
 Quantity.type = Quantity(type=Union[type, Enum, Section], name='type')
 Quantity.shape = Quantity(type=Union[str, int], shape=['0..*'], name='shape')
+Quantity.unit = Quantity(type=_Unit)
+Quantity.default = Quantity(type=Any, default=None)
 
 
 class Package(MObject):
@@ -517,18 +662,5 @@ class Package(MObject):
 
 Section.m_section.parent = Package.m_section
 
-
-class Definition(MObject):
-    m_section = Section(extends=[Section.m_section, Quantity.m_section, Package.m_section])
-
-    description = Quantity(type=str)
-
-
-class Unit:
-    pass
-
-
-class Units:
-
-    Angstrom = Unit()
-    amu = Unit()
+units = UnitRegistry()
+""" The default pint unit registry that should be used to give units to quantity definitions. """
