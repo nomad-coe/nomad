@@ -21,28 +21,35 @@ class Optimade():
 
 
 class StructureEntry(MObject):
-    m_section = Section(a_flask=dict(skip_none=True), a_elastic=dict(type=InnerDoc))
+    m_section = Section(
+        links=['https://github.com/Materials-Consortia/OPTiMaDe/blob/develop/optimade.md#h.6.2'],
+        a_flask=dict(skip_none=True),
+        a_elastic=dict(type=InnerDoc))
 
     elements = Quantity(
         type=Enum(chemical_symbols), shape=['1..*'],
+        links=['https://github.com/Materials-Consortia/OPTiMaDe/blob/develop/optimade.md#h.6.2.1'],
         a_elastic=dict(type=Keyword),
         a_optimade=Optimade(query=True, entry=True))
     """ Names of the different elements present in the structure. """
 
     nelements = Quantity(
         type=int,
+        links=['https://github.com/Materials-Consortia/OPTiMaDe/blob/develop/optimade.md#h.6.2.2'],
         a_elastic=dict(type=Integer),
         a_optimade=Optimade(query=True, entry=True))
     """ Number of different elements in the structure as an integer. """
 
     elements_ratios = Quantity(
         type=float, shape=['nelements'],
+        links=['https://github.com/Materials-Consortia/OPTiMaDe/blob/develop/optimade.md#h.6.2.3'],
         a_elastic=dict(type=lambda: Nested(ElementRatio), mapping=ElementRatio.from_structure_entry),
         a_optimade=Optimade(query=True, entry=True))
     """ Relative proportions of different elements in the structure. """
 
     chemical_formula_descriptive = Quantity(
         type=str,
+        links=['https://github.com/Materials-Consortia/OPTiMaDe/blob/develop/optimade.md#h.6.2.4'],
         a_elastic=dict(type=Text, other_types=dict(keyword=Keyword)),
         a_optimade=Optimade(query=True, entry=True))
     """
@@ -52,6 +59,7 @@ class StructureEntry(MObject):
 
     chemical_formula_reduced = Quantity(
         type=str,
+        links=['https://github.com/Materials-Consortia/OPTiMaDe/blob/develop/optimade.md#h.6.2.5'],
         a_elastic=dict(type=Text, other_types=dict(keyword=Keyword)),
         a_optimade=Optimade(query=True, entry=True))
     """
@@ -61,6 +69,7 @@ class StructureEntry(MObject):
 
     chemical_formula_hill = Quantity(
         type=str,
+        links=['https://github.com/Materials-Consortia/OPTiMaDe/blob/develop/optimade.md#h.6.2.6'],
         a_elastic=dict(type=Text, other_types=dict(keyword=Keyword)),
         a_optimade=Optimade(query=True, entry=False))
     """
@@ -70,6 +79,7 @@ class StructureEntry(MObject):
 
     chemical_formula_anonymous = Quantity(
         type=str,
+        links=['https://github.com/Materials-Consortia/OPTiMaDe/blob/develop/optimade.md#h.6.2.7'],
         a_elastic=dict(type=Text, other_types=dict(keyword=Keyword)),
         a_optimade=Optimade(query=True, entry=True))
     """
@@ -81,6 +91,7 @@ class StructureEntry(MObject):
 
     dimension_types = Quantity(
         type=int, shape=[3],
+        links=['https://github.com/Materials-Consortia/OPTiMaDe/blob/develop/optimade.md#h.6.2.8'],
         a_elastic=dict(type=Integer, mapping=lambda a: sum(a.dimension_types)),
         a_optimade=Optimade(query=True, entry=True))
     """
@@ -93,11 +104,13 @@ class StructureEntry(MObject):
 
     lattice_vectors = Quantity(
         type=float, shape=[3, 3], unit=Units.Angstrom,
+        links=['https://github.com/Materials-Consortia/OPTiMaDe/blob/develop/optimade.md#h.6.2.9'],
         a_optimade=Optimade(query=False, entry=True))
     """ The three lattice vectors in Cartesian coordinates, in ångström (Å). """
 
     cartesian_site_positions = Quantity(
         type=float, shape=['nsites', 3], unit=Units.Angstrom,
+        links=['https://github.com/Materials-Consortia/OPTiMaDe/blob/develop/optimade.md#h.6.2.10'],
         a_optimade=Optimade(query=False, entry=True))
     """
     Cartesian positions of each site. A site is an atom, a site potentially occupied by
@@ -107,12 +120,14 @@ class StructureEntry(MObject):
 
     nsites = Quantity(
         type=int,
+        links=['https://github.com/Materials-Consortia/OPTiMaDe/blob/develop/optimade.md#h.6.2.11'],
         a_elastic=dict(type=Integer),
         a_optimade=Optimade(query=True, entry=True))
     """ An integer specifying the length of the cartesian_site_positions property. """
 
     species_at_sites = Quantity(
         type=str, shape=['nsites'],
+        links=['https://github.com/Materials-Consortia/OPTiMaDe/blob/develop/optimade.md#h.6.2.12'],
         a_optimade=Optimade(query=False, entry=True))
     """
     Name of the species at each site (where values for sites are specified with the same
@@ -124,6 +139,7 @@ class StructureEntry(MObject):
 
     structure_features = Quantity(
         type=Enum(['disorder', 'unknown_positions', 'assemblies']), shape=['1..*'],
+        links=['https://github.com/Materials-Consortia/OPTiMaDe/blob/develop/optimade.md#h.6.2.15'],
         a_elastic=dict(type=Keyword),
         a_optimade=Optimade(query=True, entry=True))
     """
@@ -144,7 +160,9 @@ class Species(MObject):
     given site by multiple chemical elements.
     """
 
-    m_section = Section(repeats=True, parent=StructureEntry.m_section)
+    m_section = Section(
+        repeats=True, parent=StructureEntry.m_section,
+        links=['https://github.com/Materials-Consortia/OPTiMaDe/blob/develop/optimade.md#h.6.2.13'])
 
     name = Quantity(
         type=str,
