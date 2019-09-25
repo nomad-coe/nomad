@@ -1,0 +1,96 @@
+# Copyright 2018 Markus Scheidgen
+#
+# Licensed under the Apache License, Version 2.0 (the 'License');
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an'AS IS' BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from typing import Any, Dict, cast
+import numpy as np
+
+from nomad import config
+from nomad.parsing import LocalBackend
+from nomad.normalizing.normalizer import SystemBasedNormalizer
+from nomad.metainfo.optimade import StructureEntry as Optimade
+
+
+class OptimadeNormalizer(SystemBasedNormalizer):
+
+    """
+    This normalizer performs all produces a section all data necessary for the Optimade API.
+    It assumes that the :class:`SystemNormalizer` was run before.
+    """
+    def __init__(self, backend):
+        super().__init__(backend, all_sections=config.normalize.all_systems)
+
+    def get_optimade_data(self, index) -> Optimade:
+        """
+        The 'main' method of this :class:`SystemBasedNormalizer`.
+        Normalizes the section with the given `index`.
+        Normalizes geometry, classifies, system_type, and runs symmetry analysis.
+        """
+        optimade = Optimade()
+
+        def get_value(key: str, default: Any = None, nonp: bool = False) -> Any:
+            try:
+                value = self._backend.get_value(key, index)
+                if nonp and type(value).__module__ == np.__name__:
+                    value = value.tolist()
+                return value
+            except KeyError:
+                return default
+
+        from nomad.normalizing.system import normalized_atom_labels
+
+        nomad_species = get_value('atom_labels', nonp=True)
+
+        # elements
+        atoms = normalized_atom_labels(nomad_species)
+        atom_counts: Dict[str, int] = {}
+        for atom in atoms:
+            current = atom_counts.setdefault(atom, 0)
+            current += 1
+            atom_counts[atom] = current
+
+        optimade.elements = list(set(atoms))
+        optimade.elements.sort()
+        optimade.nelements = len(optimade.elements)
+        optimade.elements_ratios = [
+            optimade.nelements / atom_counts[element]
+            for element in optimade.elements]
+
+        # formulas
+        optimade.chemical_formula_reduced = get_value('chemical_composition_reduced')
+        optimade.chemical_formula_hill = get_value('chemical_composition_bulk_reduced')
+        optimade.chemical_formula_descriptive = optimade.chemical_formula_hill
+        optimade.chemical_formula_anonymous = ''.join([
+            '%s' % element + (str(atom_counts[element]) if atom_counts[element] > 1 else '')
+            for element in optimade.elements])
+
+        # sites
+        optimade.nsites = len(nomad_species)
+        optimade.species_at_sites = nomad_species
+        optimade.lattice_vectors = get_value('lattice_vectors', nonp=True)
+        optimade.cartesian_site_positions = get_value('atom_positions', nonp=True)
+        optimade.dimension_types = [
+            1 if value else 0
+            for value in get_value('configuration_periodic_dimensions', nonp=True)]
+
+        # TODO subsections with species def
+        # TODO optimade.structure_features
+
+        return optimade
+
+    def normalize_system(self, index):
+        try:
+            optimade = self.get_optimade_data(index)
+            self._backend.add_mi2_section(optimade)
+        except Exception as e:
+            self.logger.warn('could not acquire optimade data', exc_info=e)

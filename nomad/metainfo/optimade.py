@@ -230,3 +230,38 @@ class Species(MObject):
         databases that use species names, containing characters that are not allowed (see
         description of the species_at_sites list).
         ''')
+
+
+def elastic_mapping(section: Section, base_cls: type) -> type:
+    """ Creates an elasticsearch_dsl document class from a section definition. """
+
+    dct = {
+        name: quantity.m_annotations['elastic']['type']()
+        for name, quantity in section.quantities.items()
+        if 'elastic' in quantity.m_annotations}
+
+    return type(section.name, (base_cls,), dct)
+
+
+def elastic_obj(source: MObject, target_cls: type):
+    if source is None:
+        return None
+
+    target = target_cls()
+
+    for name, quantity in source.m_section.quantities.items():
+        elastic_annotation = quantity.m_annotations.get('elastic')
+        if elastic_annotation is None:
+            continue
+
+        if 'mapping' in elastic_annotation:
+            value = elastic_annotation['mapping'](source)
+        else:
+            value = getattr(source, name)
+
+        setattr(target, name, value)
+
+    return target
+
+
+ESStructureEntry = elastic_mapping(StructureEntry.m_section, InnerDoc)

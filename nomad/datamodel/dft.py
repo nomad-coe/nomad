@@ -18,12 +18,13 @@ DFT specific metadata
 
 from typing import List
 import re
-from elasticsearch_dsl import Integer
+from elasticsearch_dsl import Integer, Object
 import ase.data
 
 from nomadcore.local_backend import ParserEvent
 
 from nomad import utils, config
+from nomad.metainfo import optimade
 
 from .base import CalcWithMetadata, DomainQuantity, Domain, get_optional_backend_value
 
@@ -90,6 +91,8 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.quantities = []
         self.geometries = []
         self.group_hash: str = None
+
+        self.optimade: optimade.StructureEntry = None
 
         super().__init__(**kwargs)
 
@@ -222,7 +225,14 @@ Domain(
         n_geometries=DomainQuantity(
             'Number of unique geometries',
             elastic_mapping=Integer()),
-        n_atoms=DomainQuantity('Number of atoms in the simulated system', elastic_mapping=Integer())),
+        n_atoms=DomainQuantity(
+            'Number of atoms in the simulated system',
+            elastic_mapping=Integer()),
+        optimade=DomainQuantity(
+            'Data for the optimade API',
+            elastic_mapping=Object(optimade.ESStructureEntry),
+            elastic_value=lambda entry: optimade.elastic_obj(entry, optimade.ESStructureEntry)
+        )),
     metrics=dict(
         total_energies=('n_total_energies', 'sum'),
         calculations=('n_calculations', 'sum'),

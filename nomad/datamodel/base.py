@@ -181,7 +181,7 @@ class DomainQuantity:
             self, description: str = None, multi: bool = False, aggregations: int = 0,
             order_default: bool = False, metric: Tuple[str, str] = None,
             zero_aggs: bool = True, metadata_field: str = None,
-            elastic_mapping: str = None,
+            elastic_mapping: type = None,
             elastic_search_type: str = 'term', elastic_field: str = None,
             elastic_value: Callable[[Any], Any] = None):
 

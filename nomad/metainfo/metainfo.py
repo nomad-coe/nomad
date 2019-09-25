@@ -274,7 +274,14 @@ class MObject(metaclass=MObjectMeta):
             assert self.m_section == cls.m_section, \
                 'Section class and section definition must match'
 
-        self.m_data = dict(**kwargs)
+        self.m_annotations: Dict[str, Any] = {}
+        self.m_data: Dict[str, Any] = {}
+        for key, value in kwargs.items():
+            if key.startswith('a_'):
+                self.m_annotations[key[2:]] = value
+            else:
+                self.m_data[key] = value
+
         # TODO
         # self.m_data = {}
         # if _bs:
@@ -366,7 +373,8 @@ class MObject(metaclass=MObjectMeta):
 
         else:
             # TODO
-            raise Exception('Higher shapes not implemented')
+            # raise Exception('Higher shapes not implemented')
+            pass
 
         # TODO check dimension
 
