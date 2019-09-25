@@ -136,6 +136,10 @@ See the reference of classes :class:`Section` and :class:`Quantities` for detail
 .. autoclass:: Quantity
 """
 
+# TODO validation
+# TODO serialization/deserialization
+# TODO packages
+
 from typing import Type, TypeVar, Union, Tuple, Iterable, List, Any, Dict, cast
 import sys
 import inspect
