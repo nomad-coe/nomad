@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import numpy as np
 
 from nomad.metainfo.metainfo import MObject, Section, Quantity, Definition, sub_section
 
@@ -92,6 +93,7 @@ class System(MObject):
     m_section = Section(repeats=True, parent=Run.m_section)
     n_atoms = Quantity(type=int, default=0)
     atom_label = Quantity(type=str, shape=['n_atoms'])
+    atom_positions = Quantity(type=np.dtype('f8'), shape=['n_atoms', 3])
 
 
 class Parsing(MObject):
@@ -251,3 +253,8 @@ class TestM1:
             pass
         else:
             assert False, 'Expected TypeError'
+
+    def test_np(self):
+        system = System()
+        system.atom_positions = [[1, 2, 3]]
+        assert type(system.atom_positions) == np.ndarray

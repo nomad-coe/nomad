@@ -355,7 +355,7 @@ class LocalBackend(LegacyParserBackend):
 
     def get_mi2_section(self, section_def: MI2Section):
         """ Allows to mix a metainfo2 style section into backend. """
-        self.mi2_data.get(section_def.name, None)
+        return self.mi2_data.get(section_def.name, None)
 
     def __getattr__(self, name):
         """ Support for unimplemented and unexpected methods. """

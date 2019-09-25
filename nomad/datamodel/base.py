@@ -17,6 +17,7 @@ import datetime
 from elasticsearch_dsl import Keyword
 
 from nomad import utils, config
+from nomad.metainfo import MObject
 
 
 class UploadWithMetadata():
@@ -106,10 +107,17 @@ class CalcWithMetadata():
         self.update(**kwargs)
 
     def to_dict(self):
-        return {
-            key: value for key, value in self.__dict__.items()
-            if value is not None and key not in ['backend']
-        }
+        def items():
+            for key, value in self.__dict__.items():
+                if value is None or key in ['backend']:
+                    continue
+
+                if isinstance(value, MObject):
+                    value = value.m_to_dict()
+
+                yield key, value
+
+        return {key: value for key, value in items()}
 
     def update(self, **kwargs):
         for key, value in kwargs.items():

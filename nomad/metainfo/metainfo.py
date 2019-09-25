@@ -145,6 +145,7 @@ import sys
 import inspect
 import re
 
+import numpy as np
 from pint.unit import _Unit
 from pint import UnitRegistry
 import inflection
@@ -364,17 +365,22 @@ class MObject(metaclass=MObjectMeta):
         if shape is None or len(shape) == 0 or check_item:
             check_value(value)
 
-        elif len(shape) == 1:
-            if not isinstance(value, list):
-                raise TypeError('Wrong shape')
-
-            for item in value:
-                check_value(item)
-
         else:
-            # TODO
-            # raise Exception('Higher shapes not implemented')
-            pass
+            if type(definition.type) == np.dtype:
+                if len(shape) != len(value.shape):
+                    raise TypeError('Wrong shape')
+            else:
+                if len(shape) == 1:
+                    if not isinstance(value, list):
+                        raise TypeError('Wrong shape')
+
+                    for item in value:
+                        check_value(item)
+
+                else:
+                    # TODO
+                    # raise Exception('Higher shapes not implemented')
+                    pass
 
         # TODO check dimension
 
@@ -525,7 +531,29 @@ class MObject(metaclass=MObjectMeta):
 
     def m_to_dict(self) -> Dict[str, Any]:
         """Returns the data of this section as a json serializeable dictionary. """
-        pass
+
+        def items() -> Iterable[Tuple[str, Any]]:
+            yield 'm_section', self.m_section.name
+            if self.m_parent_index != -1:
+                yield 'm_parnet_index', self.m_parent_index
+
+            for name, sub_section in self.m_section.sub_sections.items():
+                if name not in self.m_data:
+                    continue
+
+                if sub_section.repeats:
+                    yield name, [item.m_to_dict() for item in self.m_data[name]]
+                else:
+                    yield name, self.m_data[name].m_to_dict()
+
+            for name in self.m_section.quantities:
+                if name in self.m_data:
+                    value = getattr(self, name)
+                    if hasattr(value, 'tolist'):
+                        value = value.tolist()
+                    yield name, value
+
+        return {key: value for key, value in items()}
 
     def m_to_json(self):
         """Returns the data of this section as a json string. """
@@ -620,6 +648,15 @@ class Quantity(Definition):
             raise KeyError('Cannot overwrite quantity definition. Only values can be set.')
 
         # object (instance) case
+        if type(self.type) == np.dtype:
+            if type(value) != np.ndarray:
+                value = np.array(value, dtype=self.type)
+            elif self.type != value.dtype:
+                value = np.array(value, dtype=self.type)
+
+        elif type(value) == np.ndarray:
+            value = value.tolist()
+
         MObject.m_type_check(self, value)
         obj.m_data[self.__name] = value
 
@@ -792,7 +829,7 @@ Section.parent = Quantity(
 
 Quantity.m_section.section_cls = Quantity
 Quantity.type = Quantity(
-    type=Union[type, Enum, Section], name='type', _bs=True, description='''
+    type=Union[type, Enum, Section, np.dtype], name='type', _bs=True, description='''
     The type of the quantity.
 
     Can be one of the following:
@@ -802,6 +839,12 @@ Quantity.type = Quantity(
     - an instance of :class:`Enum`, e.g. ``Enum(['one', 'two', 'three'])
     - a instance of Section, i.e. a section definition. This will define a reference
     - a custom meta-info DataType
+    - a numpy dtype,
+
+    If set to a dtype, this quantity will use a numpy array to store values. It will use
+    the given dtype. If not set, this quantity will use (nested) Python lists to store values.
+    If values are set to the property, they will be converted to the respective
+    representation.
 
     In the NOMAD CoE meta-info this was basically the ``dTypeStr``.
     ''')

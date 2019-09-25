@@ -92,7 +92,7 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.geometries = []
         self.group_hash: str = None
 
-        self.optimade: optimade.StructureEntry = None
+        self.optimade: optimade.OptimadeStructureEntry = None
 
         super().__init__(**kwargs)
 
@@ -176,6 +176,8 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.n_total_energies = n_total_energies
         self.n_geometries = n_geometries
 
+        self.optimade = backend.get_mi2_section(optimade.OptimadeStructureEntry.m_section)
+
 
 def only_atoms(atoms):
     numbers = [ase.data.atomic_numbers[atom] for atom in atoms]
@@ -230,8 +232,8 @@ Domain(
             elastic_mapping=Integer()),
         optimade=DomainQuantity(
             'Data for the optimade API',
-            elastic_mapping=Object(optimade.ESStructureEntry),
-            elastic_value=lambda entry: optimade.elastic_obj(entry, optimade.ESStructureEntry)
+            elastic_mapping=Object(optimade.ESOptimadeEntry),
+            elastic_value=lambda entry: optimade.elastic_obj(entry, optimade.ESOptimadeEntry)
         )),
     metrics=dict(
         total_energies=('n_total_energies', 'sum'),

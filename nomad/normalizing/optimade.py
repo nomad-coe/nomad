@@ -18,7 +18,8 @@ import numpy as np
 from nomad import config
 from nomad.parsing import LocalBackend
 from nomad.normalizing.normalizer import SystemBasedNormalizer
-from nomad.metainfo.optimade import StructureEntry as Optimade
+from nomad.metainfo import units
+from nomad.metainfo.optimade import OptimadeStructureEntry
 
 
 class OptimadeNormalizer(SystemBasedNormalizer):
@@ -30,26 +31,29 @@ class OptimadeNormalizer(SystemBasedNormalizer):
     def __init__(self, backend):
         super().__init__(backend, all_sections=config.normalize.all_systems)
 
-    def get_optimade_data(self, index) -> Optimade:
+    def get_optimade_data(self, index) -> OptimadeStructureEntry:
         """
         The 'main' method of this :class:`SystemBasedNormalizer`.
         Normalizes the section with the given `index`.
         Normalizes geometry, classifies, system_type, and runs symmetry analysis.
         """
-        optimade = Optimade()
+        optimade = OptimadeStructureEntry()
 
-        def get_value(key: str, default: Any = None, nonp: bool = False) -> Any:
+        def get_value(key: str, default: Any = None, numpy: bool = False) -> Any:
             try:
                 value = self._backend.get_value(key, index)
-                if nonp and type(value).__module__ == np.__name__:
-                    value = value.tolist()
+                if type(value) == np.ndarray and not numpy:
+                    return value.tolist()
+                if isinstance(value, list) and numpy:
+                    return np.array(value)
+
                 return value
             except KeyError:
                 return default
 
         from nomad.normalizing.system import normalized_atom_labels
 
-        nomad_species = get_value('atom_labels', nonp=True)
+        nomad_species = get_value('atom_labels')
 
         # elements
         atoms = normalized_atom_labels(nomad_species)
@@ -63,7 +67,7 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         optimade.elements.sort()
         optimade.nelements = len(optimade.elements)
         optimade.elements_ratios = [
-            optimade.nelements / atom_counts[element]
+            atom_counts[element] / optimade.nelements
             for element in optimade.elements]
 
         # formulas
@@ -77,11 +81,11 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         # sites
         optimade.nsites = len(nomad_species)
         optimade.species_at_sites = nomad_species
-        optimade.lattice_vectors = get_value('lattice_vectors', nonp=True)
-        optimade.cartesian_site_positions = get_value('atom_positions', nonp=True)
+        optimade.lattice_vectors = (get_value('lattice_vectors', numpy=True) * units.m).to(units.angstrom).magnitude
+        optimade.cartesian_site_positions = (get_value('atom_positions', numpy=True) * units.m).to(units.angstrom).magnitude
         optimade.dimension_types = [
             1 if value else 0
-            for value in get_value('configuration_periodic_dimensions', nonp=True)]
+            for value in get_value('configuration_periodic_dimensions')]
 
         # TODO subsections with species def
         # TODO optimade.structure_features
@@ -93,4 +97,6 @@ class OptimadeNormalizer(SystemBasedNormalizer):
             optimade = self.get_optimade_data(index)
             self._backend.add_mi2_section(optimade)
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             self.logger.warn('could not acquire optimade data', exc_info=e)

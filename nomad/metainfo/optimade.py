@@ -1,5 +1,6 @@
 from ase.data import chemical_symbols
 from elasticsearch_dsl import Keyword, Integer, Float, Text, InnerDoc, Nested
+import numpy as np
 
 from nomad.metainfo import MObject, Section, Quantity, Enum, units
 
@@ -15,7 +16,7 @@ class ElementRatio(InnerDoc):
     ratio = Float()
 
     @staticmethod
-    def from_structure_entry(entry: 'StructureEntry'):
+    def from_structure_entry(entry: 'OptimadeStructureEntry'):
         return [
             ElementRatio(element=entry.elements[i], ratio=entry.elements_ratios[i])
             for i in range(0, entry.nelements)]
@@ -26,7 +27,7 @@ class Optimade():
         pass
 
 
-class StructureEntry(MObject):
+class OptimadeStructureEntry(MObject):
     m_section = Section(
         links=optimade_links('h.6.2'),
         a_flask=dict(skip_none=True),
@@ -115,7 +116,7 @@ class StructureEntry(MObject):
         ''')
 
     lattice_vectors = Quantity(
-        type=float, shape=[3, 3], unit=units.angstrom,
+        type=np.dtype('f8'), shape=[3, 3], unit=units.angstrom,
         links=optimade_links('h.6.2.9'),
         a_optimade=Optimade(query=False, entry=True),
         description='''
@@ -123,7 +124,7 @@ class StructureEntry(MObject):
         ''')
 
     cartesian_site_positions = Quantity(
-        type=float, shape=['nsites', 3], unit=units.angstrom,
+        type=np.dtype('f8'), shape=['nsites', 3], unit=units.angstrom,
         links=optimade_links('h.6.2.10'),
         a_optimade=Optimade(query=False, entry=True), description='''
             Cartesian positions of each site. A site is an atom, a site potentially occupied by
@@ -173,7 +174,7 @@ class Species(MObject):
     """
 
     m_section = Section(
-        repeats=True, parent=StructureEntry.m_section,
+        repeats=True, parent=OptimadeStructureEntry.m_section,
         links=optimade_links('h.6.2.13'))
 
     name = Quantity(
@@ -264,4 +265,4 @@ def elastic_obj(source: MObject, target_cls: type):
     return target
 
 
-ESStructureEntry = elastic_mapping(StructureEntry.m_section, InnerDoc)
+ESOptimadeEntry = elastic_mapping(OptimadeStructureEntry.m_section, InnerDoc)
