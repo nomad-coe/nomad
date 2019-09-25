@@ -12,7 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from nomad.metainfo.metainfo import MObject, Section, Quantity
+from nomad.metainfo.metainfo import MObject, Section, Quantity, Definition, sub_section
+
+
+def assert_section_def(section_def: Section):
+    assert isinstance(section_def, Section)
+    assert section_def.m_section is not None
+    assert isinstance(section_def.m_section, Section)
+    assert section_def.m_section.name is not None
+    assert section_def.m_section.m_section == Section.m_section
+
+    assert section_def.name is not None
+
+    if section_def.parent is not None:
+        if section_def.parent != section_def:
+            assert_section_def(section_def.parent)
+
+    if section_def.repeats:
+        assert section_def.parent is not None
+
+
+def assert_section_instance(section: MObject):
+    assert_section_def(section.m_section)
+
+    if section.m_parent is not None:
+        assert section.m_parent.m_sub_section(section.m_section, section.m_parent_index) == section
 
 
 class TestM3:
@@ -21,11 +45,21 @@ class TestM3:
     def test_section(self):
         assert Section.m_section == Section.m_section.m_section
         assert Section.m_section.name == 'Section'
+        assert Section.name is not None
+        assert Section.name == Definition.name
+        assert Section.name.m_section == Quantity.m_section
+        assert Section.description.description is not None
+
+        assert Section.m_section.m_sub_section(Quantity, 0).name in Section.m_section.attributes
+
+        assert_section_instance(Section.m_section)
 
     def test_quantity(self):
         assert Quantity.m_section.m_section == Section.m_section
         assert Quantity.m_section.name == 'Quantity'
         assert Quantity.m_section.parent == Section.m_section
+
+        assert_section_instance(Quantity.m_section)
 
 
 class TestPureReflection:
@@ -48,8 +82,10 @@ class Run(MObject):
     And some more description.
     """
 
-    code_name = Quantity(type=str)
-    """ The code_name description. """
+    code_name = Quantity(
+        type=str, description='''
+        The code_name description.
+        ''')
 
 
 class System(MObject):
@@ -64,6 +100,10 @@ class Parsing(MObject):
 
 class TestM2:
     """ Test for meta-info definitions. """
+
+    def test_basics(self):
+        assert_section_def(Run.m_section)
+        assert_section_def(System.m_section)
 
     def test_default_section_def(self):
         """ A section class without an explicit section def must set a default section def. """
@@ -110,6 +150,7 @@ class TestM2:
 
     def test_quantity_description(self):
         assert Run.code_name.description is not None
+        assert Run.code_name.description == 'The code_name description.'
         assert Run.code_name.description.strip() == Run.code_name.description.strip()
 
 
@@ -126,6 +167,8 @@ class TestM1:
         assert run.m_section.name == 'Run'
         assert len(run.m_data) == 0
 
+        assert_section_instance(run)
+
     def test_system(self):
         class System(MObject):
             m_section = Section()
@@ -135,6 +178,8 @@ class TestM1:
         system.atom_labels = ['H']
         assert len(system.atom_labels) == 1
         assert len(system.m_data) == 1
+
+        assert_section_instance(system)
 
     def test_defaults(self):
         assert System().n_atoms == 0
@@ -149,6 +194,22 @@ class TestM1:
 
     def test_m_section(self):
         assert Run().m_section == Run.m_section
+
+    def test_children_parent(self):
+        run = Run()
+        system = run.m_create(System)
+
+        assert run.system[0] == system  # pylint: disable=E1101
+        assert run.m_sub_section(System, 0) == system
+
+    def test_children_sub_section(self):
+        setattr(Run, 'a_system_sub_section', sub_section(System))
+        run = Run()
+        system = run.m_create(System)
+
+        assert run.a_system_sub_section[0] == system  # pylint: disable=E1101
+        assert run.system[0] == system  # pylint: disable=E1101
+        assert run.m_sub_section(System, 0) == system
 
     def test_parent_repeats(self):
         run = Run()
