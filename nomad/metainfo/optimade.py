@@ -12,13 +12,13 @@ def optimade_links(section: str):
 
 
 class ElementRatio(InnerDoc):
-    element = Keyword()
-    ratio = Float()
+    elements = Keyword()
+    elements_ratios = Float()
 
     @staticmethod
     def from_structure_entry(entry: 'OptimadeStructureEntry'):
         return [
-            ElementRatio(element=entry.elements[i], ratio=entry.elements_ratios[i])
+            ElementRatio(elements=entry.elements[i], elements_ratios=entry.elements_ratios[i])
             for i in range(0, entry.nelements)]
 
 
@@ -63,7 +63,7 @@ class OptimadeStructureEntry(MObject):
     chemical_formula_descriptive = Quantity(
         type=str,
         links=optimade_links('h.6.2.4'),
-        a_elastic=dict(type=Text, other_types=dict(keyword=Keyword)),
+        a_elastic=dict(type=Text),
         a_optimade=Optimade(query=True, entry=True),
         description='''
             The chemical formula for a structure as a string in a form chosen by the API
@@ -73,7 +73,7 @@ class OptimadeStructureEntry(MObject):
     chemical_formula_reduced = Quantity(
         type=str,
         links=optimade_links('h.6.2.5'),
-        a_elastic=dict(type=Text, other_types=dict(keyword=Keyword)),
+        a_elastic=dict(type=Text),
         a_optimade=Optimade(query=True, entry=True),
         description='''
             The reduced chemical formula for a structure as a string with element symbols and
@@ -83,7 +83,7 @@ class OptimadeStructureEntry(MObject):
     chemical_formula_hill = Quantity(
         type=str,
         links=optimade_links('h.6.2.6'),
-        a_elastic=dict(type=Text, other_types=dict(keyword=Keyword)),
+        a_elastic=dict(type=Text),
         a_optimade=Optimade(query=True, entry=False),
         description='''
             The chemical formula for a structure in Hill form with element symbols followed by
@@ -93,7 +93,7 @@ class OptimadeStructureEntry(MObject):
     chemical_formula_anonymous = Quantity(
         type=str,
         links=optimade_links('h.6.2.7'),
-        a_elastic=dict(type=Text, other_types=dict(keyword=Keyword)),
+        a_elastic=dict(type=Text),
         a_optimade=Optimade(query=True, entry=True),
         description='''
             The anonymous formula is the chemical_formula_reduced, but where the elements are
