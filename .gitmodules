@@ -155,4 +155,4 @@
 	branch = nomad-fair
 [submodule "dependencies/optimade-python-tools"]
 	path = dependencies/optimade-python-tools
-	url = git@github.com:markus1978/optimade-python-tools.git
+	url = https://github.com/markus1978/optimade-python-tools.git

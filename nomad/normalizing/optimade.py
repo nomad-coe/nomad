@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict, cast
+from typing import Any, Dict
 import numpy as np
 
 from nomad import config
-from nomad.parsing import LocalBackend
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 from nomad.metainfo import units
 from nomad.metainfo.optimade import OptimadeStructureEntry
@@ -97,6 +96,4 @@ class OptimadeNormalizer(SystemBasedNormalizer):
             optimade = self.get_optimade_data(index)
             self._backend.add_mi2_section(optimade)
         except Exception as e:
-            import traceback
-            traceback.print_exc()
             self.logger.warn('could not acquire optimade data', exc_info=e)

@@ -436,8 +436,8 @@ class MObject(metaclass=MObjectMeta):
         else:
             if parent_index != -1:
                 raise IndexError('Not a repeatable sub section.')
-            else:
-                return m_data_value
+
+            return m_data_value
 
     def m_add_sub_section(self, sub_section: MObjectBound) -> MObjectBound:
         """Adds the given section instance as a sub section to this section."""
@@ -535,7 +535,7 @@ class MObject(metaclass=MObjectMeta):
         def items() -> Iterable[Tuple[str, Any]]:
             yield 'm_section', self.m_section.name
             if self.m_parent_index != -1:
-                yield 'm_parnet_index', self.m_parent_index
+                yield 'm_parent_index', self.m_parent_index
 
             for name, sub_section in self.m_section.sub_sections.items():
                 if name not in self.m_data:
@@ -554,6 +554,33 @@ class MObject(metaclass=MObjectMeta):
                     yield name, value
 
         return {key: value for key, value in items()}
+
+    @classmethod
+    def m_from_dict(cls: Type[MObjectBound], dct: Dict[str, Any]) -> MObjectBound:
+        section_def = cls.m_section
+
+        # remove m_section and m_parent_index, they set themselves automatically
+        assert section_def.name == dct.pop('m_section', None)
+        dct.pop('m_parent_index', -1)
+
+        def items():
+            for name, sub_section_def in section_def.sub_sections.items():
+                if name in dct:
+                    sub_section_value = dct.pop(name)
+                    if sub_section_def.repeats:
+                        yield name, [
+                            sub_section_def.section_cls.m_from_dict(sub_section_dct)
+                            for sub_section_dct in sub_section_value]
+                    else:
+                        yield name, sub_section_def.section_cls.m_from_dict(sub_section_value)
+
+            for key, value in dct.items():
+                yield key, value
+
+        dct = {key: value for key, value in items()}
+        section_instance = cast(MObjectBound, section_def.section_cls())
+        section_instance.m_update(**dct)
+        return section_instance
 
     def m_to_json(self):
         """Returns the data of this section as a json string. """

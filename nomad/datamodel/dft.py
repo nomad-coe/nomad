@@ -96,6 +96,12 @@ class DFTCalcWithMetadata(CalcWithMetadata):
 
         super().__init__(**kwargs)
 
+    def update(self, **kwargs):
+        super().update(**kwargs)
+
+        if self.optimade is not None and isinstance(self.optimade, dict):
+            self.optimade = optimade.OptimadeStructureEntry.m_from_dict(self.optimade)
+
     def apply_domain_metadata(self, backend):
         from nomad.normalizing.system import normalized_atom_labels
 

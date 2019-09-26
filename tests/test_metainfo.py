@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+import pytest
 import numpy as np
 
 from nomad.metainfo.metainfo import MObject, Section, Quantity, Definition, sub_section
@@ -258,3 +260,31 @@ class TestM1:
         system = System()
         system.atom_positions = [[1, 2, 3]]
         assert type(system.atom_positions) == np.ndarray
+
+    @pytest.fixture(scope='function')
+    def example_data(self):
+        run = Run()
+        run.code_name = 'test code name'
+        system: System = run.m_create(System)
+        system.n_atoms = 3
+        system.atom_label = ['H', 'H', 'O']
+        system.atom_positions = np.array([[1.2e-10, 0, 0], [0, 1.2e-10, 0], [0, 0, 1.2e-10]])
+
+        return run
+
+    def assert_example_data(self, data: Run):
+        assert_section_instance(data)
+        assert data.m_section == Run.m_section
+        assert data.code_name == 'test code name'
+        system: System = data.m_sub_section(System, 0)
+        assert_section_instance(system)
+        assert system.m_section == System.m_section
+        assert system.n_atoms == 3
+        assert system.atom_label == ['H', 'H', 'O']
+        assert type(system.atom_positions) == np.ndarray
+
+    def test_to_dict(self, example_data):
+        dct = example_data.m_to_dict()
+        new_example_data = Run.m_from_dict(dct)
+
+        self.assert_example_data(new_example_data)

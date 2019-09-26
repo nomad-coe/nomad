@@ -248,6 +248,8 @@ def elastic_obj(source: MObject, target_cls: type):
     if source is None:
         return None
 
+    assert isinstance(source, MObject)
+
     target = target_cls()
 
     for name, quantity in source.m_section.quantities.items():

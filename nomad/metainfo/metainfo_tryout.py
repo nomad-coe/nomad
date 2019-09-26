@@ -54,8 +54,7 @@ class Quantity(Property):
             if derive_method is None:
                 raise KeyError('Derived quantity %s is not implemented' % self.name)
 
-            else:
-                return derive_method()
+            return derive_method()
 
         elif self.synonym is not None:
             return getattr(obj, self.synonym)
@@ -158,7 +157,8 @@ class MetainfoObject(metaclass=MetainfoObjectMeta):
         descriptor = getattr(type(self), name)
         if descriptor is None:
             raise KeyError
-        elif not isinstance(descriptor, Property):
+
+        if not isinstance(descriptor, Property):
             raise KeyError
 
         return descriptor
