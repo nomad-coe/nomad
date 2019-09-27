@@ -677,6 +677,16 @@ class Definition(MObject):
         """ Returns all definitions of this definition class. """
         return cast(Iterable[MObjectBound], Definition.__all_definitions.get(cls, []))
 
+    @cached_property
+    def all_categories(self):
+        """ All categories of this definition and its categories. """
+        all_categories = list(self.categories)
+        for category in self.categories:
+            for super_category in category.all_categories:
+                all_categories.append(super_category)
+
+        return all_categories
+
 
 class Quantity(Definition):
     """Used to define quantities that store a certain piece of (meta-)data.
@@ -865,26 +875,17 @@ class Category(Definition):
 
     Each definition, including categories themselves, can belong to a set of categories.
     Categories therefore form a hierarchy of concepts that definitions can belong to, i.e.
-    they form a `is a` relationship."""
+    they form a `is a` relationship.
 
-    __all_instances: Dict[str, 'Category'] = {}
-
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name=name, **kwargs)
-        Category.__all_instances[name] = self
+    In the old meta-info this was known as `abstract types`.
+    """
 
     @cached_property
     def definitions(self) -> Iterable[Definition]:
         """ All definitions that are directly or indirectly in this category. """
         return list([
             definition for definition in Definition.all_definitions()
-            if self in definition.categories])
-
-    # TODO this should be done differently
-    @classmethod
-    def get(cls, name: str) -> 'Category':
-        """ Returns the category with the given name. """
-        return cls.__all_instances.get(name, None)
+            if self in definition.all_categories])
 
 
 Section.m_section = Section(repeats=True, name='Section', _bs=True)

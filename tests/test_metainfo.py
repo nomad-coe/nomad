@@ -79,7 +79,7 @@ class TestPureReflection:
         assert getattr(obj, 'test_quantity') == 'test_value'
 
 
-Category(
+material_defining = Category(
     name='material_defining',
     description='Quantities that add to what constitutes a different material.')
 
@@ -98,8 +98,8 @@ class Run(MObject):
 
 class System(MObject):
     m_section = Section(repeats=True, parent=Run.m_section)
-    n_atoms = Quantity(type=int, default=0, categories=[Category.get('material_defining')])
-    atom_label = Quantity(type=str, shape=['n_atoms'], categories=[Category.get('material_defining')])
+    n_atoms = Quantity(type=int, default=0, categories=[material_defining])
+    atom_label = Quantity(type=str, shape=['n_atoms'], categories=[material_defining])
     atom_positions = Quantity(type=np.dtype('f8'), shape=['n_atoms', 3])
 
 
@@ -164,8 +164,8 @@ class TestM2:
 
     def test_direct_category(self):
         assert len(System.atom_label.categories)
-        assert Category.get('material_defining') in System.atom_label.categories
-        assert System.atom_label in Category.get('material_defining').definitions
+        assert material_defining in System.atom_label.categories
+        assert System.atom_label in material_defining.definitions
 
 
 class TestM1:
