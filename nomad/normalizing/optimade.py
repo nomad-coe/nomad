@@ -56,6 +56,7 @@ class OptimadeNormalizer(SystemBasedNormalizer):
 
         # elements
         atoms = normalized_atom_labels(nomad_species)
+        atom_count = len(atoms)
         atom_counts: Dict[str, int] = {}
         for atom in atoms:
             current = atom_counts.setdefault(atom, 0)
@@ -66,7 +67,7 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         optimade.elements.sort()
         optimade.nelements = len(optimade.elements)
         optimade.elements_ratios = [
-            atom_counts[element] / optimade.nelements
+            atom_counts[element] / atom_count
             for element in optimade.elements]
 
         # formulas

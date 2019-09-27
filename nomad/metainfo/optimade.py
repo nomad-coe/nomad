@@ -1,5 +1,5 @@
 from ase.data import chemical_symbols
-from elasticsearch_dsl import Keyword, Integer, Float, Text, InnerDoc, Nested
+from elasticsearch_dsl import Keyword, Integer, Float, InnerDoc, Nested
 import numpy as np
 
 from nomad.metainfo import MObject, Section, Quantity, Enum, units
@@ -63,7 +63,7 @@ class OptimadeStructureEntry(MObject):
     chemical_formula_descriptive = Quantity(
         type=str,
         links=optimade_links('h.6.2.4'),
-        a_elastic=dict(type=Text),
+        a_elastic=dict(type=Keyword),
         a_optimade=Optimade(query=True, entry=True),
         description='''
             The chemical formula for a structure as a string in a form chosen by the API
@@ -73,7 +73,7 @@ class OptimadeStructureEntry(MObject):
     chemical_formula_reduced = Quantity(
         type=str,
         links=optimade_links('h.6.2.5'),
-        a_elastic=dict(type=Text),
+        a_elastic=dict(type=Keyword),
         a_optimade=Optimade(query=True, entry=True),
         description='''
             The reduced chemical formula for a structure as a string with element symbols and
@@ -83,7 +83,7 @@ class OptimadeStructureEntry(MObject):
     chemical_formula_hill = Quantity(
         type=str,
         links=optimade_links('h.6.2.6'),
-        a_elastic=dict(type=Text),
+        a_elastic=dict(type=Keyword),
         a_optimade=Optimade(query=True, entry=False),
         description='''
             The chemical formula for a structure in Hill form with element symbols followed by
@@ -93,7 +93,7 @@ class OptimadeStructureEntry(MObject):
     chemical_formula_anonymous = Quantity(
         type=str,
         links=optimade_links('h.6.2.7'),
-        a_elastic=dict(type=Text),
+        a_elastic=dict(type=Keyword),
         a_optimade=Optimade(query=True, entry=True),
         description='''
             The anonymous formula is the chemical_formula_reduced, but where the elements are

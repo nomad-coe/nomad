@@ -15,6 +15,8 @@
 from flask import Blueprint
 from flask_restplus import Api
 
+from .filterparser import parse_filter
+
 """
 The optimade implementation of NOMAD.
 """
