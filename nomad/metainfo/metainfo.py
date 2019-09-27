@@ -681,7 +681,7 @@ class Definition(MObject):
     def all_categories(self):
         """ All categories of this definition and its categories. """
         all_categories = list(self.categories)
-        for category in self.categories:
+        for category in self.categories:  # pylint: disable=not-an-iterable
             for super_category in category.all_categories:
                 all_categories.append(super_category)
 
