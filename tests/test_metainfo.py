@@ -15,7 +15,7 @@
 import pytest
 import numpy as np
 
-from nomad.metainfo.metainfo import MObject, Section, Quantity, Definition, sub_section
+from nomad.metainfo.metainfo import MObject, Section, Quantity, Definition, Category, sub_section
 
 
 def assert_section_def(section_def: Section):
@@ -79,6 +79,11 @@ class TestPureReflection:
         assert getattr(obj, 'test_quantity') == 'test_value'
 
 
+Category(
+    name='material_defining',
+    description='Quantities that add to what constitutes a different material.')
+
+
 class Run(MObject):
     """ This is the description.
 
@@ -93,8 +98,8 @@ class Run(MObject):
 
 class System(MObject):
     m_section = Section(repeats=True, parent=Run.m_section)
-    n_atoms = Quantity(type=int, default=0)
-    atom_label = Quantity(type=str, shape=['n_atoms'])
+    n_atoms = Quantity(type=int, default=0, categories=[Category.get('material_defining')])
+    atom_label = Quantity(type=str, shape=['n_atoms'], categories=[Category.get('material_defining')])
     atom_positions = Quantity(type=np.dtype('f8'), shape=['n_atoms', 3])
 
 
@@ -156,6 +161,11 @@ class TestM2:
         assert Run.code_name.description is not None
         assert Run.code_name.description == 'The code_name description.'
         assert Run.code_name.description.strip() == Run.code_name.description.strip()
+
+    def test_direct_category(self):
+        assert len(System.atom_label.categories)
+        assert Category.get('material_defining') in System.atom_label.categories
+        assert System.atom_label in Category.get('material_defining').definitions
 
 
 class TestM1:

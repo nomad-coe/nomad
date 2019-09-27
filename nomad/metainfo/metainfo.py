@@ -625,38 +625,57 @@ class MObject(metaclass=MObjectMeta):
 _definition_change_counter = 0
 
 
-def cached(f):
-    """ A decorator that allows to cache the results of metainfo definition methods.
+class cached_property:
+    """ A property that allows to cache the property value.
 
     The cache will be invalidated whenever a new definition is added. Once all definitions
     are loaded, the cache becomes stable and complex derived results become available
     instantaneous.
     """
-    cache = dict(change=-1, value=None)
+    def __init__(self, f):
+        self.__doc__ = getattr(f, "__doc__")
+        self.f = f
+        self.change = -1
+        self.values: Dict[type(self), Any] = {}
 
-    def wrapper(*args, **kwargs):
-        if cache['change'] == _definition_change_counter:
-            return cache['value']
+    def __get__(self, obj, cls):
+        if obj is None:
+            return self
 
-        value = f(*args, **kwargs)
-        cache['change'] == _definition_change_counter
-        cache['value'] == value
+        global _definition_change_counter
+        if self.change != _definition_change_counter:
+            self.values = {}
+
+        value = self.values.get(obj, None)
+        if value is None:
+            value = self.f(obj)
+            self.values[obj] = value
 
         return value
-
-    return wrapper
 
 
 class Definition(MObject):
 
+    __all_definitions: Dict[Type[MObject], List[MObject]] = {}
+
     name: 'Quantity' = None
     description: 'Quantity' = None
     links: 'Quantity' = None
+    categories: 'Quantity' = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         global _definition_change_counter
         _definition_change_counter += 1
+
+        for cls in self.__class__.mro() + [self.__class__]:
+            definitions = Definition.__all_definitions.setdefault(cls, [])
+            definitions.append(self)
+
+    @classmethod
+    def all_definitions(cls: Type[MObjectBound]) -> Iterable[MObjectBound]:
+        """ Returns all definitions of this definition class. """
+        return cast(Iterable[MObjectBound], Definition.__all_definitions.get(cls, []))
 
 
 class Quantity(Definition):
@@ -752,18 +771,14 @@ class Section(Definition):
     # TODO extends = Quantity(type=bool), denotes this section as a container for
     #      new quantities that belong to the base-class section definitions
 
-    __all_instances: List['Section'] = []
-
     def __init__(self, **kwargs):
         # The mechanism that produces default values, depends on parent. Without setting
         # the parent default manually, an endless recursion will occur.
         kwargs.setdefault('parent', None)
 
         super().__init__(**kwargs)
-        Section.__all_instances.append(self)
 
-    @property  # type: ignore
-    @cached
+    @cached_property
     def attributes(self) -> Dict[str, Union['Section', Quantity]]:
         """ All attribute (sub section and quantity) definitions. """
 
@@ -771,8 +786,7 @@ class Section(Definition):
         attributes.update(**self.sub_sections)
         return attributes
 
-    @property  # type: ignore
-    @cached
+    @cached_property
     def quantities(self) -> Dict[str, Quantity]:
         """ All quantity definition in the given section definition. """
 
@@ -780,14 +794,13 @@ class Section(Definition):
             quantity.name: quantity
             for quantity in self.m_data.get('Quantity', [])}
 
-    @property  # type: ignore
-    @cached
+    @cached_property
     def sub_sections(self) -> Dict[str, 'Section']:
         """ All sub section definitions for this section definition. """
 
         return {
             sub_section.name: sub_section
-            for sub_section in Section.__all_instances
+            for sub_section in Section.all_definitions()
             if sub_section.parent == self}
 
     def add_quantity(self, quantity: Quantity):
@@ -814,11 +827,7 @@ class Section(Definition):
 
 
 class Package(Definition):
-    name: 'Quantity' = None
-    """ The name of the package. """
-
-    description: 'Quantity' = None
-    """ A human readable description of this package. """
+    pass
 
 
 class sub_section:
@@ -851,8 +860,31 @@ class sub_section:
         raise NotImplementedError('Sub sections cannot be deleted directly.')
 
 
-# TODO Category(MObject), a definition kind for "abstract type declarations" and a
-#      separate generalization/specialization/is-a hierarchy.
+class Category(Definition):
+    """Can be used to define categories for definitions.
+
+    Each definition, including categories themselves, can belong to a set of categories.
+    Categories therefore form a hierarchy of concepts that definitions can belong to, i.e.
+    they form a `is a` relationship."""
+
+    __all_instances: Dict[str, 'Category'] = {}
+
+    def __init__(self, name: str, **kwargs):
+        super().__init__(name=name, **kwargs)
+        Category.__all_instances[name] = self
+
+    @cached_property
+    def definitions(self) -> Iterable[Definition]:
+        """ All definitions that are directly or indirectly in this category. """
+        return list([
+            definition for definition in Definition.all_definitions()
+            if self in definition.categories])
+
+    # TODO this should be done differently
+    @classmethod
+    def get(cls, name: str) -> 'Category':
+        """ Returns the category with the given name. """
+        return cls.__all_instances.get(name, None)
 
 
 Section.m_section = Section(repeats=True, name='Section', _bs=True)
@@ -872,6 +904,11 @@ Definition.description = Quantity(
 Definition.links = Quantity(
     type=str, shape=['0..*'], name='links', _bs=True, description='''
     A list of URLs to external resource that describe this definition.
+    ''')
+Definition.categories = Quantity(
+    type=Category.m_section, shape=['0..*'], default=[], name='categories', _bs=True,
+    description='''
+    The categories that this definition belongs to. See :class:`Category`.
     ''')
 
 Section.repeats = Quantity(
@@ -936,7 +973,10 @@ Package.m_section.parent = Package.m_section
 
 Section.m_section.parent = Package.m_section
 
+Category.m_section = Section(repeats=True, parent=Package.m_section)
+
 Package.__init_section_cls__()
+Category.__init_section_cls__()
 Section.__init_section_cls__()
 Quantity.__init_section_cls__()
 
