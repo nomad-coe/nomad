@@ -157,10 +157,10 @@ tests = NomadConfig(
 
 
 def api_url(ssl: bool = True):
-    return '%s://%s%s' % (
+    return '%s://%s/%s/api' % (
         'https' if services.https and ssl else 'http',
-        services.api_host,
-        services.api_base_path)
+        services.api_host.strip('/'),
+        services.api_base_path.strip('/'))
 
 
 migration_source_db = NomadConfig(

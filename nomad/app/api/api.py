@@ -23,4 +23,4 @@ api = Api(
     version='1.0', title='NOMAD API',
     description='Official NOMAD API',
     validate=True)
-""" Provides the flask restplust api instance for the regular NOMAD api"""
+""" Provides the flask restplus api instance for the regular NOMAD api"""

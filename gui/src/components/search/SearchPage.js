@@ -6,7 +6,8 @@ import { compose } from 'recompose'
 import { withErrors } from '../errors'
 import { withApi, DisableOnLoading } from '../api'
 import { appBase } from '../../config'
-import Search from './Search';
+import Search from './Search'
+import qs from 'qs'
 
 export const help = `
 This page allows you to **search** in NOMAD's data. The upper part of this page
@@ -52,6 +53,7 @@ class SearchPage extends React.Component {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
     user: PropTypes.object,
+    location: PropTypes.object,
     raiseError: PropTypes.func.isRequired
   }
 
@@ -68,8 +70,13 @@ class SearchPage extends React.Component {
   }
 
   render() {
-    const { classes, user } = this.props
+    const { classes, user, location } = this.props
     const { owner } = this.state
+
+    let queryParams = null
+    if (location && location.search) {
+      queryParams = qs.parse(location.search.substring(1))
+    }
 
     const ownerLabel = {
       all: 'All entries',
@@ -110,7 +117,7 @@ class SearchPage extends React.Component {
             </FormControl>
           </div>
         </DisableOnLoading>
-        <Search searchParameters={{owner: owner}} showDetails />
+        <Search searchParameters={{owner: owner}} searchValues={queryParams} showDetails={!queryParams} />
       </div>
     )
   }

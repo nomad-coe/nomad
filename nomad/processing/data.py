@@ -1051,7 +1051,7 @@ class Upload(Proc):
             compressed_calc: Dict[str, Any] = {}
             calculations.append(compressed_calc)
             for key, value in calc.items():
-                if key in ['_pid', 'mainfile']:
+                if key in ['_pid', 'mainfile', 'external_id']:
                     # these quantities are explicitly calc specific and have to stay with
                     # the calc
                     compressed_calc[key] = value

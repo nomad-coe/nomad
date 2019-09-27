@@ -144,7 +144,7 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
       nodeSelector:
-        nomadtype: public
+        nomadtype: {{ .Values.api.nomadNodeType }}
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
       imagePullPolicy: always

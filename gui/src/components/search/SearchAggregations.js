@@ -4,7 +4,7 @@ import { withStyles, FormControl, FormLabel, FormGroup, FormControlLabel, Checkb
 import { withDomain } from '../domains'
 import { compose } from 'recompose'
 
-class SearchAggregationsUnstyled extends React.Component {
+class SearchAggregations extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     onChange: PropTypes.func.isRequired,
@@ -77,12 +77,4 @@ class SearchAggregationsUnstyled extends React.Component {
   }
 }
 
-const SearchAggregations = compose(withDomain, withStyles(SearchAggregationsUnstyled.styles))(SearchAggregationsUnstyled)
-Object.assign(SearchAggregations, {
-  defaultState: {
-    metrics: [],
-    searchValues: {}
-  }
-})
-
-export default SearchAggregations
+export default compose(withDomain, withStyles(SearchAggregations.styles))(SearchAggregations)

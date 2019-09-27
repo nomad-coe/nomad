@@ -266,6 +266,9 @@ class TestUploads:
         assert upload['process_running']
 
         additional_keys = ['with_embargo']
+        if publish_with_metadata and 'external_id' in metadata:
+            additional_keys.append('external_id')
+
         if with_coe_repo:
             additional_keys.append('pid')
 
@@ -309,6 +312,7 @@ class TestUploads:
         assert rv.status_code == 200
         data = json.loads(rv.data)
         assert 'upload_command' in data
+        assert '/api/uploads' in data['upload_command']
         assert 'upload_url' in data
 
     def test_get_empty(self, api, test_user_auth, no_warn):
@@ -662,19 +666,19 @@ class TestRepo():
 
         calc_with_metadata.update(
             calc_id='2', uploader=other_test_user.to_popo(), published=True,
-            with_embargo=False, pid=2, upload_time=today - datetime.timedelta(days=5))
+            with_embargo=False, pid=2, upload_time=today - datetime.timedelta(days=5), external_id='external_id')
         calc_with_metadata.update(
             atoms=['Fe'], comment='this is a specific word', formula='AAA', basis_set='zzz')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(
             calc_id='3', uploader=other_test_user.to_popo(), published=False,
-            with_embargo=False, pid=3)
+            with_embargo=False, pid=3, external_id='external_id')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(
             calc_id='4', uploader=other_test_user.to_popo(), published=True,
-            with_embargo=True, pid=4)
+            with_embargo=True, pid=4, external_id='external_id')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
     def assert_search(self, rv: Any, number_of_calcs: int) -> dict:
@@ -789,7 +793,9 @@ class TestRepo():
         (2, 'paths', 'mainfile.txt'),
         (2, 'paths', 'test'),
         (2, 'quantities', ['wyckoff_letters_primitive', 'hall_number']),
-        (0, 'quantities', 'dos')
+        (0, 'quantities', 'dos'),
+        (1, 'external_id', 'external_id'),
+        (0, 'external_id', 'external')
     ])
     def test_search_parameters(self, api, example_elastic_calcs, no_warn, test_user_auth, calcs, quantity, value):
         query_string = urlencode({quantity: value, 'statistics': True}, doseq=True)
