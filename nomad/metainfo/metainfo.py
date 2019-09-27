@@ -622,10 +622,41 @@ class MObject(metaclass=MObjectMeta):
 # These placeholder are replaced, once the necessary classes are defined. This process
 # is referred to as 'bootstrapping'.
 
+_definition_change_counter = 0
+
+
+def cached(f):
+    """ A decorator that allows to cache the results of metainfo definition methods.
+
+    The cache will be invalidated whenever a new definition is added. Once all definitions
+    are loaded, the cache becomes stable and complex derived results become available
+    instantaneous.
+    """
+    cache = dict(change=-1, value=None)
+
+    def wrapper(*args, **kwargs):
+        if cache['change'] == _definition_change_counter:
+            return cache['value']
+
+        value = f(*args, **kwargs)
+        cache['change'] == _definition_change_counter
+        cache['value'] == value
+
+        return value
+
+    return wrapper
+
+
 class Definition(MObject):
+
     name: 'Quantity' = None
     description: 'Quantity' = None
     links: 'Quantity' = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        global _definition_change_counter
+        _definition_change_counter += 1
 
 
 class Quantity(Definition):
@@ -731,8 +762,8 @@ class Section(Definition):
         super().__init__(**kwargs)
         Section.__all_instances.append(self)
 
-    # TODO cache
-    @property
+    @property  # type: ignore
+    @cached
     def attributes(self) -> Dict[str, Union['Section', Quantity]]:
         """ All attribute (sub section and quantity) definitions. """
 
@@ -740,8 +771,8 @@ class Section(Definition):
         attributes.update(**self.sub_sections)
         return attributes
 
-    # TODO cache
-    @property
+    @property  # type: ignore
+    @cached
     def quantities(self) -> Dict[str, Quantity]:
         """ All quantity definition in the given section definition. """
 
@@ -749,8 +780,8 @@ class Section(Definition):
             quantity.name: quantity
             for quantity in self.m_data.get('Quantity', [])}
 
-    # TODO cache
-    @property
+    @property  # type: ignore
+    @cached
     def sub_sections(self) -> Dict[str, 'Section']:
         """ All sub section definitions for this section definition. """
 
