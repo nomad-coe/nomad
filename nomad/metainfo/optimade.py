@@ -2,7 +2,7 @@ from ase.data import chemical_symbols
 from elasticsearch_dsl import Keyword, Integer, Float, InnerDoc, Nested
 import numpy as np
 
-from nomad.metainfo import MObject, Section, Quantity, Enum, units
+from nomad.metainfo import MSection, Section, Quantity, Enum, units
 
 
 def optimade_links(section: str):
@@ -27,7 +27,7 @@ class Optimade():
         pass
 
 
-class OptimadeStructureEntry(MObject):
+class OptimadeStructureEntry(MSection):
     m_def = Section(
         links=optimade_links('h.6.2'),
         a_flask=dict(skip_none=True),
@@ -166,7 +166,7 @@ class OptimadeStructureEntry(MObject):
         ''')
 
 
-class Species(MObject):
+class Species(MSection):
     """
     Used to describe the species of the sites of this structure. Species can be pure
     chemical elements, or virtual-crystal atoms representing a statistical occupation of a
@@ -244,11 +244,11 @@ def elastic_mapping(section: Section, base_cls: type) -> type:
     return type(section.name, (base_cls,), dct)
 
 
-def elastic_obj(source: MObject, target_cls: type):
+def elastic_obj(source: MSection, target_cls: type):
     if source is None:
         return None
 
-    assert isinstance(source, MObject)
+    assert isinstance(source, MSection)
 
     target = target_cls()
 

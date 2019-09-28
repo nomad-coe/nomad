@@ -23,7 +23,7 @@ from nomadcore.local_backend import LocalBackend as LegacyLocalBackend
 from nomadcore.local_backend import Section, Results
 
 from nomad.utils import get_logger
-from nomad.metainfo import MObject, Section as MI2Section
+from nomad.metainfo import MSection, Section as MI2Section
 
 logger = get_logger(__name__)
 
@@ -337,7 +337,7 @@ class LocalBackend(LegacyParserBackend):
         delegate = LegacyLocalBackend(*args, **kwargs)
         super().__init__(delegate)
 
-        self.mi2_data: Dict[str, MObject] = {}
+        self.mi2_data: Dict[str, MSection] = {}
 
         self.reset_status()
 
@@ -349,7 +349,7 @@ class LocalBackend(LegacyParserBackend):
         self._known_attributes = ['results']
         self.fileOut = io.StringIO()
 
-    def add_mi2_section(self, section: MObject):
+    def add_mi2_section(self, section: MSection):
         """ Allows to mix a metainfo2 style section into backend. """
         self.mi2_data[section.m_def.name] = section
 

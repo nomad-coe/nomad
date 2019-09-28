@@ -15,7 +15,7 @@
 import pytest
 import numpy as np
 
-from nomad.metainfo.metainfo import MObject, Section, Quantity, Definition, Category, Package, sub_section
+from nomad.metainfo.metainfo import MSection, MCategory, Section, Quantity, Definition, Category, Package, sub_section
 
 
 def assert_section_def(section_def: Section):
@@ -35,7 +35,7 @@ def assert_section_def(section_def: Section):
         assert section_def.parent is not None
 
 
-def assert_section_instance(section: MObject):
+def assert_section_instance(section: MSection):
     assert_section_def(section.m_def)
 
     if section.m_parent is not None:
@@ -72,7 +72,7 @@ class TestPureReflection:
         test_section_def = Section(name='TestSection')
         test_section_def.m_create(Quantity, name='test_quantity')
 
-        obj = MObject(m_def=test_section_def)
+        obj = MSection(m_def=test_section_def)
         assert obj.m_def.name == 'TestSection'
         # FIXME assert obj.m_get('test_quantity') is None
         setattr(obj, 'test_quantity', 'test_value')
@@ -81,12 +81,13 @@ class TestPureReflection:
 
 m_package = Package(description='package doc')
 
-material_defining = Category(
-    __name__, name='material_defining',
-    description='Quantities that add to what constitutes a different material.')
+
+class MaterialDefining(MCategory):
+    """Quantities that add to what constitutes a different material."""
+    pass
 
 
-class Run(MObject):
+class Run(MSection):
     """ This is the description.
 
     And some more description.
@@ -98,14 +99,14 @@ class Run(MObject):
         ''')
 
 
-class System(MObject):
+class System(MSection):
     m_def = Section(repeats=True, parent=Run.m_def)
-    n_atoms = Quantity(type=int, default=0, categories=[material_defining])
-    atom_label = Quantity(type=str, shape=['n_atoms'], categories=[material_defining])
+    n_atoms = Quantity(type=int, default=0, categories=[MaterialDefining.m_def])
+    atom_label = Quantity(type=str, shape=['n_atoms'], categories=[MaterialDefining.m_def])
     atom_positions = Quantity(type=np.dtype('f8'), shape=['n_atoms', 3])
 
 
-class Parsing(MObject):
+class Parsing(MSection):
     m_def = Section(parent=Run.m_def)
 
 
@@ -166,8 +167,8 @@ class TestM2:
 
     def test_direct_category(self):
         assert len(System.atom_label.categories)
-        assert material_defining in System.atom_label.categories
-        assert System.atom_label in material_defining.definitions
+        assert MaterialDefining.m_def in System.atom_label.categories
+        assert System.atom_label in MaterialDefining.m_def.definitions
 
     def test_package(self):
         assert m_package.name == __name__
@@ -180,7 +181,7 @@ class TestM1:
     """ Test for meta-info instances. """
 
     def test_run(self):
-        class Run(MObject):
+        class Run(MSection):
             pass
 
         run = Run()
@@ -192,7 +193,7 @@ class TestM1:
         assert_section_instance(run)
 
     def test_system(self):
-        class System(MObject):
+        class System(MSection):
             m_def = Section()
             atom_labels = Quantity(type=str, shape=['1..*'])
 

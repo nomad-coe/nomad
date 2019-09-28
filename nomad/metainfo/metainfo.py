@@ -27,10 +27,10 @@ Here is a simple example that demonstrates the definition of System related quan
 
 .. code-block:: python
 
-    class Run(MObject):
+    class Run(MSection):
         pass
 
-    class System(MObject):
+    class System(MSection):
         \"\"\"
         A system section includes all quantities that describe a single a simulated
         system (a.k.a. geometry).
@@ -109,18 +109,18 @@ quantities:
 
 
 All meta-info definitions and classes for meta-info data objects (i.e. section instances)
-inherit from :class:` MObject`. This base-class provides common functions and attributes
+inherit from :class:` MSection`. This base-class provides common functions and attributes
 for all meta-info data objects. Names of these common parts are prefixed with ``m_``
 to distinguish them from user defined quantities. This also constitute's the `reflection`
 interface (in addition to Python's build in ``getattr``, ``setattr``) that allows to
 create and manipulate meta-info data, without prior program time knowledge of the underlying
 definitions.
 
-.. autoclass:: MObject
+.. autoclass:: MSection
 
 The following classes can be used to define and structure meta-info data:
 
-- sections are defined by sub-classes :class:`MObject` and using :class:`Section` to
+- sections are defined by sub-classes :class:`MSection` and using :class:`Section` to
   populate the classattribute `m_def`
 - quantities are defined by assigning classattributes of a section with :class:`Quantity`
   instances
@@ -150,8 +150,8 @@ from pint.unit import _Unit
 from pint import UnitRegistry
 import inflection
 
-__module__ = sys.modules[__name__]
-MObjectBound = TypeVar('MObjectBound', bound='MObject')
+is_bootstrapping = True
+MSectionBound = TypeVar('MSectionBound', bound='MSection')
 
 
 # Reflection
@@ -212,22 +212,22 @@ class MObjectMeta(type):
 
     def __new__(self, cls_name, bases, dct):
         cls = super().__new__(self, cls_name, bases, dct)
-        init = getattr(cls, '__init_section_cls__')
-        if init is not None:
+        init = getattr(cls, '__init_cls__')
+        if init is not None and not is_bootstrapping:
             init()
         return cls
 
 
-Content = Tuple[MObjectBound, Union[List[MObjectBound], MObjectBound], str, MObjectBound]
-SectionDef = Union[str, 'Section', Type[MObjectBound]]
+Content = Tuple[MSectionBound, Union[List[MSectionBound], MSectionBound], str, MSectionBound]
+SectionDef = Union[str, 'Section', Type[MSectionBound]]
 
 
-class MObject(metaclass=MObjectMeta):
-    """Base class for all section objects on all meta-info levels.
+class MSection(metaclass=MObjectMeta):
+    """Base class for all section instances on all meta-info levels.
 
-    All metainfo objects instantiate classes that inherit from ``MObject``. Each
-    section or quantity definition is an ``MObject``, each actual (meta-)data carrying
-    section is an ``MObject``. This class consitutes the reflection interface of the
+    All metainfo objects instantiate classes that inherit from ``MSection``. Each
+    section or quantity definition is an ``MSection``, each actual (meta-)data carrying
+    section is an ``MSection``. This class consitutes the reflection interface of the
     meta-info, since it allows to manipulate sections (and therefore all meta-info data)
     without having to know the specific sub-class.
 
@@ -262,9 +262,9 @@ class MObject(metaclass=MObjectMeta):
 
     m_def: 'Section' = None
 
-    def __init__(self, m_def: 'Section' = None, m_parent: 'MObject' = None, _bs: bool = False, **kwargs):
+    def __init__(self, m_def: 'Section' = None, m_parent: 'MSection' = None, _bs: bool = False, **kwargs):
         self.m_def: 'Section' = m_def
-        self.m_parent: 'MObject' = m_parent
+        self.m_parent: 'MSection' = m_parent
         self.m_parent_index = -1
 
         cls = self.__class__
@@ -291,14 +291,10 @@ class MObject(metaclass=MObjectMeta):
         #     self.m_update(**kwargs)
 
     @classmethod
-    def __init_section_cls__(cls):
-        # only works after bootstrapping, since functionality is still missing
-        if not all([hasattr(__module__, cls) for cls in ['Quantity', 'Section', 'Package', 'Category', 'sub_section']]):
-            return
-
+    def __init_cls__(cls):
         # ensure that the m_def is defined
         m_def = cls.m_def
-        if m_def is None and cls != MObject:
+        if m_def is None:
             m_def = Section()
             setattr(cls, 'm_def', m_def)
 
@@ -353,7 +349,7 @@ class MObject(metaclass=MObjectMeta):
                     raise TypeError('Value has wrong type.')
 
             elif isinstance(definition.type, Section):
-                if not isinstance(value, MObject) or value.m_def != definition.type:
+                if not isinstance(value, MSection) or value.m_def != definition.type:
                     raise TypeError('The value is not a section of wrong section definition')
 
             else:
@@ -404,7 +400,7 @@ class MObject(metaclass=MObjectMeta):
 
         return section
 
-    def m_sub_sections(self, definition: SectionDef) -> List[MObjectBound]:
+    def m_sub_sections(self, definition: SectionDef) -> List[MSectionBound]:
         """Returns all sub sections for the given section definition
 
         Args:
@@ -425,7 +421,7 @@ class MObject(metaclass=MObjectMeta):
         else:
             return [m_data_value]
 
-    def m_sub_section(self, definition: SectionDef, parent_index: int = -1) -> MObjectBound:
+    def m_sub_section(self, definition: SectionDef, parent_index: int = -1) -> MSectionBound:
         """Returns the sub section for the given section definition and possible
            parent_index (for repeatable sections).
 
@@ -465,7 +461,7 @@ class MObject(metaclass=MObjectMeta):
 
             return m_data_value
 
-    def m_add_sub_section(self, sub_section: MObjectBound) -> MObjectBound:
+    def m_add_sub_section(self, sub_section: MSectionBound) -> MSectionBound:
         """Adds the given section instance as a sub section to this section."""
 
         section_def = sub_section.m_def
@@ -480,7 +476,7 @@ class MObject(metaclass=MObjectMeta):
 
         return sub_section
 
-    def m_create(self, definition: SectionDef, **kwargs) -> 'MObject':
+    def m_create(self, definition: SectionDef, **kwargs) -> 'MSection':
         """Creates a subsection and adds it this this section
 
         Args:
@@ -518,7 +514,7 @@ class MObject(metaclass=MObjectMeta):
 
         quantity = self.__resolve_quantity(definition)
 
-        MObject.m_type_check(quantity, value, check_item=True)
+        MSection.m_type_check(quantity, value, check_item=True)
 
         m_data_values = self.m_data.setdefault(quantity.name, [])
         m_data_values.append(value)
@@ -529,7 +525,7 @@ class MObject(metaclass=MObjectMeta):
         quantity = self.__resolve_quantity(definition)
 
         for value in values:
-            MObject.m_type_check(quantity, value, check_item=True)
+            MSection.m_type_check(quantity, value, check_item=True)
 
         m_data_values = self.m_data.setdefault(quantity.name, [])
         for value in values:
@@ -582,7 +578,7 @@ class MObject(metaclass=MObjectMeta):
         return {key: value for key, value in items()}
 
     @classmethod
-    def m_from_dict(cls: Type[MObjectBound], dct: Dict[str, Any]) -> MObjectBound:
+    def m_from_dict(cls: Type[MSectionBound], dct: Dict[str, Any]) -> MSectionBound:
         section_def = cls.m_def
 
         # remove m_def and m_parent_index, they set themselves automatically
@@ -604,7 +600,7 @@ class MObject(metaclass=MObjectMeta):
                 yield key, value
 
         dct = {key: value for key, value in items()}
-        section_instance = cast(MObjectBound, section_def.section_cls())
+        section_instance = cast(MSectionBound, section_def.section_cls())
         section_instance.m_update(**dct)
         return section_instance
 
@@ -625,10 +621,10 @@ class MObject(metaclass=MObjectMeta):
         for name, attr in self.m_data.items():
             if isinstance(attr, list):
                 for value in attr:
-                    if isinstance(value, MObject):
+                    if isinstance(value, MSection):
                         yield value, attr, name, self
 
-            elif isinstance(attr, MObject):
+            elif isinstance(attr, MSection):
                 yield value, value, name, self
 
     def __repr__(self):
@@ -638,6 +634,29 @@ class MObject(metaclass=MObjectMeta):
             name = self.m_data['name']
 
         return '%s:%s' % (name, m_section_name)
+
+
+class MCategory(metaclass=MObjectMeta):
+
+    m_def: 'Category' = None
+
+    @classmethod
+    def __init_cls__(cls):
+        # ensure that the m_def is defined
+        m_def = cls.m_def
+        if m_def is None:
+            m_def = Category()
+            setattr(cls, 'm_def', m_def)
+
+        # transfer name and description to m_def
+        m_def.name = cls.__name__
+        if cls.__doc__ is not None:
+            m_def.description = inspect.cleandoc(cls.__doc__)
+
+        # add section cls' section to the module's package
+        module_name = cls.__module__
+        pkg = Package.from_module(module_name)
+        pkg.m_add_sub_section(cls.m_def)
 
 
 # M3, the definitions that are used to write definitions. These are the section definitions
@@ -680,9 +699,9 @@ class cached_property:
         return value
 
 
-class Definition(MObject):
+class Definition(MSection):
 
-    __all_definitions: Dict[Type[MObject], List[MObject]] = {}
+    __all_definitions: Dict[Type[MSection], List[MSection]] = {}
 
     name: 'Quantity' = None
     description: 'Quantity' = None
@@ -699,9 +718,9 @@ class Definition(MObject):
             definitions.append(self)
 
     @classmethod
-    def all_definitions(cls: Type[MObjectBound]) -> Iterable[MObjectBound]:
+    def all_definitions(cls: Type[MSectionBound]) -> Iterable[MSectionBound]:
         """ Returns all definitions of this definition class. """
-        return cast(Iterable[MObjectBound], Definition.__all_definitions.get(cls, []))
+        return cast(Iterable[MSectionBound], Definition.__all_definitions.get(cls, []))
 
     @cached_property
     def all_categories(self):
@@ -770,7 +789,7 @@ class Quantity(Definition):
         elif type(value) == np.ndarray:
             value = value.tolist()
 
-        MObject.m_type_check(self, value)
+        MSection.m_type_check(self, value)
         obj.m_data[self.__name] = value
 
     def __delete__(self, obj):
@@ -796,7 +815,7 @@ class Section(Definition):
     'section class'.
     """
 
-    section_cls: Type[MObject] = None
+    section_cls: Type[MSection] = None
     """ The section class that corresponse to this section definition. """
 
     repeats: 'Quantity' = None
@@ -848,7 +867,7 @@ class Section(Definition):
 
         .. code-block:: Python
 
-        class System(MObject):
+        class System(MSection):
             pass
 
         System.m_def.add_quantity(Quantity(name='n_atoms', type=int))
@@ -885,11 +904,11 @@ class sub_section:
 
     def __init__(self, section: SectionDef, **kwargs):
         if isinstance(section, type):
-            self.section_def = cast(MObject, section).m_def
+            self.section_def = cast(MSection, section).m_def
         else:
             self.section_def = cast(Section, section)
 
-    def __get__(self, obj: MObject, type=None) -> Union[MObject, Section]:
+    def __get__(self, obj: MSection, type=None) -> Union[MSection, Section]:
         if obj is None:
             # the class attribute case
             return self.section_def
@@ -903,7 +922,7 @@ class sub_section:
 
             return m_data_value
 
-    def __set__(self, obj: MObject, value: Union[MObject, List[MObject]]):
+    def __set__(self, obj: MSection, value: Union[MSection, List[MSection]]):
         raise NotImplementedError('Sub sections cannot be set directly. Use m_create.')
 
     def __delete__(self, obj):
@@ -919,11 +938,6 @@ class Category(Definition):
 
     In the old meta-info this was known as `abstract types`.
     """
-
-    def __init__(self, module_name, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        Package.from_module(module_name).m_add_sub_section(self)
 
     @cached_property
     def definitions(self) -> Iterable[Definition]:
@@ -1021,10 +1035,12 @@ Section.m_def.parent = Package.m_def
 
 Category.m_def = Section(repeats=True, parent=Package.m_def)
 
-Package.__init_section_cls__()
-Category.__init_section_cls__()
-Section.__init_section_cls__()
-Quantity.__init_section_cls__()
+is_bootstrapping = False
+
+Package.__init_cls__()
+Category.__init_cls__()
+Section.__init_cls__()
+Quantity.__init_cls__()
 
 units = UnitRegistry()
 """ The default pint unit registry that should be used to give units to quantity definitions. """

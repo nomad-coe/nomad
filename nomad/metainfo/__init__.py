@@ -1,1 +1,1 @@
-from .metainfo import MObject, Section, Quantity, Enum, units
+from .metainfo import MSection, Section, Quantity, Enum, units

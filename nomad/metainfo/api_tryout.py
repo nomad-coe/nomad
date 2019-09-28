@@ -3,7 +3,7 @@ Some playground to try the API_CONCEPT.md ideas.
 """
 
 
-class MObject:
+class MSection:
     def __init__(self, m_definition: 'MElementDef', m_def: 'MSection' = None):
         self.m_definition = m_definition
         self.m_def = m_def
@@ -26,7 +26,7 @@ class MObject:
             subsection.append(self)
 
 
-class MSection(MObject):
+class MSection(MSection):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -60,7 +60,7 @@ class MSection(MObject):
         return ':%s' % self.m_definition.name
 
 
-class MProperty(MObject):
+class MProperty(MSection):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

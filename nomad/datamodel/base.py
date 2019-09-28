@@ -17,7 +17,7 @@ import datetime
 from elasticsearch_dsl import Keyword
 
 from nomad import utils, config
-from nomad.metainfo import MObject
+from nomad.metainfo import MSection
 
 
 class UploadWithMetadata():
@@ -113,7 +113,7 @@ class CalcWithMetadata():
                 if value is None or key in ['backend']:
                     continue
 
-                if isinstance(value, MObject):
+                if isinstance(value, MSection):
                     value = value.m_to_dict()
 
                 yield key, value
