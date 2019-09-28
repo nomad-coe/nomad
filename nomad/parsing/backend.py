@@ -351,7 +351,7 @@ class LocalBackend(LegacyParserBackend):
 
     def add_mi2_section(self, section: MObject):
         """ Allows to mix a metainfo2 style section into backend. """
-        self.mi2_data[section.m_section.name] = section
+        self.mi2_data[section.m_def.name] = section
 
     def get_mi2_section(self, section_def: MI2Section):
         """ Allows to mix a metainfo2 style section into backend. """

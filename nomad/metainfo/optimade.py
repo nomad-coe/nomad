@@ -28,7 +28,7 @@ class Optimade():
 
 
 class OptimadeStructureEntry(MObject):
-    m_section = Section(
+    m_def = Section(
         links=optimade_links('h.6.2'),
         a_flask=dict(skip_none=True),
         a_elastic=dict(type=InnerDoc))
@@ -173,8 +173,8 @@ class Species(MObject):
     given site by multiple chemical elements.
     """
 
-    m_section = Section(
-        repeats=True, parent=OptimadeStructureEntry.m_section,
+    m_def = Section(
+        repeats=True, parent=OptimadeStructureEntry.m_def,
         links=optimade_links('h.6.2.13'))
 
     name = Quantity(
@@ -252,7 +252,7 @@ def elastic_obj(source: MObject, target_cls: type):
 
     target = target_cls()
 
-    for name, quantity in source.m_section.quantities.items():
+    for name, quantity in source.m_def.quantities.items():
         elastic_annotation = quantity.m_annotations.get('elastic')
         if elastic_annotation is None:
             continue
@@ -267,4 +267,4 @@ def elastic_obj(source: MObject, target_cls: type):
     return target
 
 
-ESOptimadeEntry = elastic_mapping(OptimadeStructureEntry.m_section, InnerDoc)
+ESOptimadeEntry = elastic_mapping(OptimadeStructureEntry.m_def, InnerDoc)

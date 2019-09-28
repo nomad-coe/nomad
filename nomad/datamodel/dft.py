@@ -182,7 +182,7 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.n_total_energies = n_total_energies
         self.n_geometries = n_geometries
 
-        self.optimade = backend.get_mi2_section(optimade.OptimadeStructureEntry.m_section)
+        self.optimade = backend.get_mi2_section(optimade.OptimadeStructureEntry.m_def)
 
 
 def only_atoms(atoms):

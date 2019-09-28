@@ -36,7 +36,7 @@ Here is a simple example that demonstrates the definition of System related quan
         system (a.k.a. geometry).
         \"\"\"
 
-        m_section = Section(repeats=True, parent=Run)
+        m_def = Section(repeats=True, parent=Run)
 
         n_atoms = Quantity(
             type=int, description='''
@@ -74,10 +74,10 @@ This last statement, will produce the following JSON:
 .. code-block:: JSON
 
     {
-        "m_section" = "Run",
+        "m_def" = "Run",
         "System": [
             {
-                "m_section" = "System",
+                "m_def" = "System",
                 "m_parent_index" = 0,
                 "n_atoms" = 3,
                 "atom_labels" = [
@@ -121,7 +121,7 @@ definitions.
 The following classes can be used to define and structure meta-info data:
 
 - sections are defined by sub-classes :class:`MObject` and using :class:`Section` to
-  populate the classattribute `m_section`
+  populate the classattribute `m_def`
 - quantities are defined by assigning classattributes of a section with :class:`Quantity`
   instances
 - references (from one section to another) can be defined with quantities that use
@@ -196,7 +196,7 @@ class Dimension(DataType):
         if isinstance(value, Section):
             return
 
-        if isinstance(value, type) and hasattr(value, 'm_section'):
+        if isinstance(value, type) and hasattr(value, 'm_def'):
             return
 
         raise TypeError('%s is not a valid dimension' % str(value))
@@ -248,7 +248,7 @@ class MObject(metaclass=MObjectMeta):
         assert run.m_sub_section(System, system.m_parent_index) == system
 
     Attributes:
-        m_section: The section definition that defines this sections, its possible
+        m_def: The section definition that defines this sections, its possible
             sub-sections and quantities.
         m_parent: The parent section instance that this section is a sub-section of.
         m_parent_index: For repeatable sections, parent keep a list of sub-sections for
@@ -260,19 +260,19 @@ class MObject(metaclass=MObjectMeta):
             if possible.
     """
 
-    m_section: 'Section' = None
+    m_def: 'Section' = None
 
-    def __init__(self, m_section: 'Section' = None, m_parent: 'MObject' = None, _bs: bool = False, **kwargs):
-        self.m_section: 'Section' = m_section
+    def __init__(self, m_def: 'Section' = None, m_parent: 'MObject' = None, _bs: bool = False, **kwargs):
+        self.m_def: 'Section' = m_def
         self.m_parent: 'MObject' = m_parent
         self.m_parent_index = -1
 
         cls = self.__class__
-        if self.m_section is None:
-            self.m_section = cls.m_section
+        if self.m_def is None:
+            self.m_def = cls.m_def
 
-        if cls.m_section is not None:
-            assert self.m_section == cls.m_section, \
+        if cls.m_def is not None:
+            assert self.m_def == cls.m_def, \
                 'Section class and section definition must match'
 
         self.m_annotations: Dict[str, Any] = {}
@@ -296,22 +296,22 @@ class MObject(metaclass=MObjectMeta):
         if not all([hasattr(__module__, cls) for cls in ['Quantity', 'Section', 'Package', 'Category', 'sub_section']]):
             return
 
-        # ensure that the m_section is defined
-        m_section = cls.m_section
-        if m_section is None and cls != MObject:
-            m_section = Section()
-            setattr(cls, 'm_section', m_section)
+        # ensure that the m_def is defined
+        m_def = cls.m_def
+        if m_def is None and cls != MObject:
+            m_def = Section()
+            setattr(cls, 'm_def', m_def)
 
-        # transfer name and description to m_section
-        m_section.name = cls.__name__
+        # transfer name and description to m_def
+        m_def.name = cls.__name__
         if cls.__doc__ is not None:
-            m_section.description = inspect.cleandoc(cls.__doc__)
-        m_section.section_cls = cls
+            m_def.description = inspect.cleandoc(cls.__doc__)
+        m_def.section_cls = cls
 
         # add sub_section to parent section
-        if m_section.parent is not None:
-            sub_section_name = inflection.underscore(m_section.name)
-            setattr(m_section.parent.section_cls, sub_section_name, sub_section(m_section))
+        if m_def.parent is not None:
+            sub_section_name = inflection.underscore(m_def.name)
+            setattr(m_def.parent.section_cls, sub_section_name, sub_section(m_def))
 
         for name, attr in cls.__dict__.items():
             # transfer names and descriptions for quantities
@@ -321,18 +321,18 @@ class MObject(metaclass=MObjectMeta):
                     attr.description = inspect.cleandoc(attr.description)
                     attr.__doc__ = attr.description
                 # manual manipulation of m_data due to bootstrapping
-                m_section.m_data.setdefault('Quantity', []).append(attr)
+                m_def.m_data.setdefault('Quantity', []).append(attr)
 
             # set names and parent on sub-sections
             elif isinstance(attr, sub_section):
-                attr.section_def.parent = m_section
+                attr.section_def.parent = m_def
                 if attr.section_def.name is None:
                     attr.section_def.name = inflection.camelize(name)
 
         # add section cls' section to the module's package
         module_name = cls.__module__
         pkg = Package.from_module(module_name)
-        pkg.m_add_sub_section(cls.m_section)
+        pkg.m_add_sub_section(cls.m_def)
 
     @staticmethod
     def m_type_check(definition: 'Quantity', value: Any, check_item: bool = False):
@@ -353,7 +353,7 @@ class MObject(metaclass=MObjectMeta):
                     raise TypeError('Value has wrong type.')
 
             elif isinstance(definition.type, Section):
-                if not isinstance(value, MObject) or value.m_section != definition.type:
+                if not isinstance(value, MObject) or value.m_def != definition.type:
                     raise TypeError('The value is not a section of wrong section definition')
 
             else:
@@ -392,14 +392,14 @@ class MObject(metaclass=MObjectMeta):
     def _resolve_section(self, definition: SectionDef) -> 'Section':
         """Resolves and checks the given section definition. """
         if isinstance(definition, str):
-            section = self.m_section.sub_sections[definition]
+            section = self.m_def.sub_sections[definition]
 
         else:
             if isinstance(definition, type):
-                section = getattr(definition, 'm_section')
+                section = getattr(definition, 'm_def')
             else:
                 section = definition
-            if section.name not in self.m_section.sub_sections:
+            if section.name not in self.m_def.sub_sections:
                 raise KeyError('Not a sub section.')
 
         return section
@@ -468,7 +468,7 @@ class MObject(metaclass=MObjectMeta):
     def m_add_sub_section(self, sub_section: MObjectBound) -> MObjectBound:
         """Adds the given section instance as a sub section to this section."""
 
-        section_def = sub_section.m_section
+        section_def = sub_section.m_def
 
         if section_def.repeats:
             m_data_sections = self.m_data.setdefault(section_def.name, [])
@@ -497,17 +497,17 @@ class MObject(metaclass=MObjectMeta):
         section_def: 'Section' = self._resolve_section(definition)
 
         section_cls = section_def.section_cls
-        section_instance = section_cls(m_section=section_def, m_parent=self, **kwargs)
+        section_instance = section_cls(m_def=section_def, m_parent=self, **kwargs)
 
         return self.m_add_sub_section(section_instance)
 
     def __resolve_quantity(self, definition: Union[str, 'Quantity']) -> 'Quantity':
         """Resolves and checks the given quantity definition. """
         if isinstance(definition, str):
-            quantity = self.m_section.quantities[definition]
+            quantity = self.m_def.quantities[definition]
 
         else:
-            if definition.m_parent != self.m_section:
+            if definition.m_parent != self.m_def:
                 raise KeyError('Quantity is not a quantity of this section.')
             quantity = definition
 
@@ -538,7 +538,7 @@ class MObject(metaclass=MObjectMeta):
     def m_update(self, **kwargs):
         """ Updates all quantities and sub-sections with the given arguments. """
         for name, value in kwargs.items():
-            attribute = self.m_section.attributes.get(name, None)
+            attribute = self.m_def.attributes.get(name, None)
             if attribute is None:
                 raise KeyError('%s is not an attribute of this section' % name)
 
@@ -559,11 +559,11 @@ class MObject(metaclass=MObjectMeta):
         """Returns the data of this section as a json serializeable dictionary. """
 
         def items() -> Iterable[Tuple[str, Any]]:
-            yield 'm_section', self.m_section.name
+            yield 'm_def', self.m_def.name
             if self.m_parent_index != -1:
                 yield 'm_parent_index', self.m_parent_index
 
-            for name, sub_section in self.m_section.sub_sections.items():
+            for name, sub_section in self.m_def.sub_sections.items():
                 if name not in self.m_data:
                     continue
 
@@ -572,7 +572,7 @@ class MObject(metaclass=MObjectMeta):
                 else:
                     yield name, self.m_data[name].m_to_dict()
 
-            for name in self.m_section.quantities:
+            for name in self.m_def.quantities:
                 if name in self.m_data:
                     value = getattr(self, name)
                     if hasattr(value, 'tolist'):
@@ -583,10 +583,10 @@ class MObject(metaclass=MObjectMeta):
 
     @classmethod
     def m_from_dict(cls: Type[MObjectBound], dct: Dict[str, Any]) -> MObjectBound:
-        section_def = cls.m_section
+        section_def = cls.m_def
 
-        # remove m_section and m_parent_index, they set themselves automatically
-        assert section_def.name == dct.pop('m_section', None)
+        # remove m_def and m_parent_index, they set themselves automatically
+        assert section_def.name == dct.pop('m_def', None)
         dct.pop('m_parent_index', -1)
 
         def items():
@@ -632,7 +632,7 @@ class MObject(metaclass=MObjectMeta):
                 yield value, value, name, self
 
     def __repr__(self):
-        m_section_name = self.m_section.name
+        m_section_name = self.m_def.name
         name = ''
         if 'name' in self.m_data:
             name = self.m_data['name']
@@ -851,7 +851,7 @@ class Section(Definition):
         class System(MObject):
             pass
 
-        System.m_section.add_quantity(Quantity(name='n_atoms', type=int))
+        System.m_def.add_quantity(Quantity(name='n_atoms', type=int))
 
         This will add the quantity definition to this section definition,
         and add the respective Python descriptor as an attribute to this class.
@@ -885,7 +885,7 @@ class sub_section:
 
     def __init__(self, section: SectionDef, **kwargs):
         if isinstance(section, type):
-            self.section_def = cast(MObject, section).m_section
+            self.section_def = cast(MObject, section).m_def
         else:
             self.section_def = cast(Section, section)
 
@@ -933,11 +933,11 @@ class Category(Definition):
             if self in definition.all_categories])
 
 
-Section.m_section = Section(repeats=True, name='Section', _bs=True)
-Section.m_section.m_section = Section.m_section
-Section.m_section.section_cls = Section
+Section.m_def = Section(repeats=True, name='Section', _bs=True)
+Section.m_def.m_def = Section.m_def
+Section.m_def.section_cls = Section
 
-Quantity.m_section = Section(repeats=True, parent=Section.m_section, name='Quantity', _bs=True)
+Quantity.m_def = Section(repeats=True, parent=Section.m_def, name='Quantity', _bs=True)
 
 Definition.name = Quantity(
     type=str, name='name', _bs=True, description='''
@@ -952,7 +952,7 @@ Definition.links = Quantity(
     A list of URLs to external resource that describe this definition.
     ''')
 Definition.categories = Quantity(
-    type=Category.m_section, shape=['0..*'], default=[], name='categories', _bs=True,
+    type=Category.m_def, shape=['0..*'], default=[], name='categories', _bs=True,
     description='''
     The categories that this definition belongs to. See :class:`Category`.
     ''')
@@ -963,12 +963,12 @@ Section.repeats = Quantity(
     Wether instances of this section can occur repeatedly in the parent section.
     ''')
 Section.parent = Quantity(
-    type=Section.m_section, name='parent', _bs=True, description='''
+    type=Section.m_def, name='parent', _bs=True, description='''
     The section definition of parent sections. Only section instances of this definition
     can contain section instances of this definition.
     ''')
 
-Quantity.m_section.section_cls = Quantity
+Quantity.m_def.section_cls = Quantity
 Quantity.type = Quantity(
     type=Union[type, Enum, Section, np.dtype], name='type', _bs=True, description='''
     The type of the quantity.
@@ -1014,18 +1014,17 @@ Quantity.default = Quantity(
     The default value for this quantity.
     ''')
 
-Package.m_section = Section(repeats=True, name='Package', _bs=True)
-Package.m_section.parent = Package.m_section
+Package.m_def = Section(repeats=True, name='Package', _bs=True)
+Package.m_def.parent = Package.m_def
 
-Section.m_section.parent = Package.m_section
+Section.m_def.parent = Package.m_def
 
-Category.m_section = Section(repeats=True, parent=Package.m_section)
+Category.m_def = Section(repeats=True, parent=Package.m_def)
 
 Package.__init_section_cls__()
 Category.__init_section_cls__()
 Section.__init_section_cls__()
 Quantity.__init_section_cls__()
-
 
 units = UnitRegistry()
 """ The default pint unit registry that should be used to give units to quantity definitions. """

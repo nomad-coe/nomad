@@ -20,10 +20,10 @@ from nomad.metainfo.metainfo import MObject, Section, Quantity, Definition, Cate
 
 def assert_section_def(section_def: Section):
     assert isinstance(section_def, Section)
-    assert section_def.m_section is not None
-    assert isinstance(section_def.m_section, Section)
-    assert section_def.m_section.name is not None
-    assert section_def.m_section.m_section == Section.m_section
+    assert section_def.m_def is not None
+    assert isinstance(section_def.m_def, Section)
+    assert section_def.m_def.name is not None
+    assert section_def.m_def.m_def == Section.m_def
 
     assert section_def.name is not None
 
@@ -36,33 +36,33 @@ def assert_section_def(section_def: Section):
 
 
 def assert_section_instance(section: MObject):
-    assert_section_def(section.m_section)
+    assert_section_def(section.m_def)
 
     if section.m_parent is not None:
-        assert section.m_parent.m_sub_section(section.m_section, section.m_parent_index) == section
+        assert section.m_parent.m_sub_section(section.m_def, section.m_parent_index) == section
 
 
 class TestM3:
     """ Test for meta-info definition that are used to define other definitions. """
 
     def test_section(self):
-        assert Section.m_section == Section.m_section.m_section
-        assert Section.m_section.name == 'Section'
+        assert Section.m_def == Section.m_def.m_def
+        assert Section.m_def.name == 'Section'
         assert Section.name is not None
         assert Section.name == Definition.name
-        assert Section.name.m_section == Quantity.m_section
+        assert Section.name.m_def == Quantity.m_def
         assert Section.description.description is not None
 
-        assert Section.m_section.m_sub_section(Quantity, 0).name in Section.m_section.attributes
+        assert Section.m_def.m_sub_section(Quantity, 0).name in Section.m_def.attributes
 
-        assert_section_instance(Section.m_section)
+        assert_section_instance(Section.m_def)
 
     def test_quantity(self):
-        assert Quantity.m_section.m_section == Section.m_section
-        assert Quantity.m_section.name == 'Quantity'
-        assert Quantity.m_section.parent == Section.m_section
+        assert Quantity.m_def.m_def == Section.m_def
+        assert Quantity.m_def.name == 'Quantity'
+        assert Quantity.m_def.parent == Section.m_def
 
-        assert_section_instance(Quantity.m_section)
+        assert_section_instance(Quantity.m_def)
 
 
 class TestPureReflection:
@@ -72,8 +72,8 @@ class TestPureReflection:
         test_section_def = Section(name='TestSection')
         test_section_def.m_create(Quantity, name='test_quantity')
 
-        obj = MObject(m_section=test_section_def)
-        assert obj.m_section.name == 'TestSection'
+        obj = MObject(m_def=test_section_def)
+        assert obj.m_def.name == 'TestSection'
         # FIXME assert obj.m_get('test_quantity') is None
         setattr(obj, 'test_quantity', 'test_value')
         assert getattr(obj, 'test_quantity') == 'test_value'
@@ -99,65 +99,65 @@ class Run(MObject):
 
 
 class System(MObject):
-    m_section = Section(repeats=True, parent=Run.m_section)
+    m_def = Section(repeats=True, parent=Run.m_def)
     n_atoms = Quantity(type=int, default=0, categories=[material_defining])
     atom_label = Quantity(type=str, shape=['n_atoms'], categories=[material_defining])
     atom_positions = Quantity(type=np.dtype('f8'), shape=['n_atoms', 3])
 
 
 class Parsing(MObject):
-    m_section = Section(parent=Run.m_section)
+    m_def = Section(parent=Run.m_def)
 
 
 class TestM2:
     """ Test for meta-info definitions. """
 
     def test_basics(self):
-        assert_section_def(Run.m_section)
-        assert_section_def(System.m_section)
+        assert_section_def(Run.m_def)
+        assert_section_def(System.m_def)
 
     def test_default_section_def(self):
         """ A section class without an explicit section def must set a default section def. """
-        assert Run.m_section is not None
-        assert Run.m_section.name == 'Run'
-        assert not Run.m_section.repeats
-        assert Run.m_section.parent is None
+        assert Run.m_def is not None
+        assert Run.m_def.name == 'Run'
+        assert not Run.m_def.repeats
+        assert Run.m_def.parent is None
 
     def test_quantities(self):
-        assert len(Run.m_section.quantities) == 1
-        assert Run.m_section.quantities['code_name'] == Run.__dict__['code_name']
+        assert len(Run.m_def.quantities) == 1
+        assert Run.m_def.quantities['code_name'] == Run.__dict__['code_name']
 
     def test_sub_sections(self):
-        assert len(Run.m_section.sub_sections) == 2
-        assert Run.m_section.sub_sections['System'] == System.m_section
+        assert len(Run.m_def.sub_sections) == 2
+        assert Run.m_def.sub_sections['System'] == System.m_def
 
     def test_attributes(self):
-        assert len(Run.m_section.attributes) == 3
-        assert Run.m_section.attributes['System'] == System.m_section
-        assert Run.m_section.attributes['code_name'] == Run.__dict__['code_name']
+        assert len(Run.m_def.attributes) == 3
+        assert Run.m_def.attributes['System'] == System.m_def
+        assert Run.m_def.attributes['code_name'] == Run.__dict__['code_name']
 
     def test_get_quantity_def(self):
-        assert System.n_atoms == System.m_section.attributes['n_atoms']
+        assert System.n_atoms == System.m_def.attributes['n_atoms']
 
     def test_add_quantity(self):
-        System.m_section.add_quantity(Quantity(name='test', type=str))
+        System.m_def.add_quantity(Quantity(name='test', type=str))
 
         system = System()
         system.test = 'test_value'
 
         assert 'test' in system.m_data
         assert system.test == 'test_value'
-        assert getattr(System, 'test') == System.m_section.quantities['test']
+        assert getattr(System, 'test') == System.m_def.quantities['test']
 
     def test_section_name(self):
-        assert Run.m_section.name == 'Run'
+        assert Run.m_def.name == 'Run'
 
     def test_quantity_name(self):
         assert Run.code_name.name == 'code_name'
 
     def test_section_description(self):
-        assert Run.m_section.description is not None
-        assert Run.m_section.description.strip() == Run.m_section.description.strip()
+        assert Run.m_def.description is not None
+        assert Run.m_def.description.strip() == Run.m_def.description.strip()
 
     def test_quantity_description(self):
         assert Run.code_name.description is not None
@@ -185,15 +185,15 @@ class TestM1:
 
         run = Run()
 
-        assert run.m_section == Run.m_section
-        assert run.m_section.name == 'Run'
+        assert run.m_def == Run.m_def
+        assert run.m_def.name == 'Run'
         assert len(run.m_data) == 0
 
         assert_section_instance(run)
 
     def test_system(self):
         class System(MObject):
-            m_section = Section()
+            m_def = Section()
             atom_labels = Quantity(type=str, shape=['1..*'])
 
         system = System()
@@ -215,7 +215,7 @@ class TestM1:
             assert False, 'Expected AttributeError'
 
     def test_m_section(self):
-        assert Run().m_section == Run.m_section
+        assert Run().m_def == Run.m_def
 
     def test_children_parent(self):
         run = Run()
@@ -292,11 +292,11 @@ class TestM1:
 
     def assert_example_data(self, data: Run):
         assert_section_instance(data)
-        assert data.m_section == Run.m_section
+        assert data.m_def == Run.m_def
         assert data.code_name == 'test code name'
         system: System = data.m_sub_section(System, 0)
         assert_section_instance(system)
-        assert system.m_section == System.m_section
+        assert system.m_def == System.m_def
         assert system.n_atoms == 3
         assert system.atom_label == ['H', 'H', 'O']
         assert type(system.atom_positions) == np.ndarray

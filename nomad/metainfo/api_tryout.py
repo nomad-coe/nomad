@@ -4,24 +4,24 @@ Some playground to try the API_CONCEPT.md ideas.
 
 
 class MObject:
-    def __init__(self, m_definition: 'MElementDef', m_section: 'MSection' = None):
+    def __init__(self, m_definition: 'MElementDef', m_def: 'MSection' = None):
         self.m_definition = m_definition
-        self.m_section = m_section
+        self.m_def = m_def
 
     @property
-    def m_section(self):
+    def m_def(self):
         return self._section
 
-    @m_section.setter
-    def m_section(self, m_section: 'MSection'):
-        self._section = m_section
+    @m_def.setter
+    def m_def(self, m_def: 'MSection'):
+        self._section = m_def
 
         # add yourself to the parent section
-        if m_section is not None:
-            subsection = m_section.subsections.get(self.m_definition.name)
+        if m_def is not None:
+            subsection = m_def.subsections.get(self.m_definition.name)
             if subsection is None:
                 subsection = []
-                m_section.subsections[self.m_definition.name] = subsection
+                m_def.subsections[self.m_definition.name] = subsection
 
             subsection.append(self)
 
@@ -42,7 +42,7 @@ class MSection(MObject):
                 raise KeyError('Section "%s" does not have subsection "%s", available subsections are %s' % (self.m_definition.name, name, '?'))
 
             def constructor(**kwargs):
-                new_section = subsection.impl(m_definition=subsection, m_section=self)
+                new_section = subsection.impl(m_definition=subsection, m_def=self)
                 for key, value in kwargs.items():
                     setattr(new_section, key, value)
 
@@ -84,13 +84,13 @@ class MSectionDef(MElementDef):
         self.impl = impl
 
     def get_subsection(self, name: str):
-        return self.m_section.get_section(name)
+        return self.m_def.get_section(name)
 
 
-m_section = MSectionDef(m_definition=None, name='section', repeats=True, impl=MSectionDef)
-m_section.m_definition = m_section
-m_element = MSectionDef(m_definition=m_section, name='element', abstract=True, impl=None)
-m_package = MSectionDef(m_definition=m_section, name='package')
+m_def = MSectionDef(m_definition=None, name='section', repeats=True, impl=MSectionDef)
+m_def.m_definition = m_def
+m_element = MSectionDef(m_definition=m_def, name='element', abstract=True, impl=None)
+m_package = MSectionDef(m_definition=m_def, name='package')
 
 
 class MPackageDef(MElementDef):
@@ -107,9 +107,9 @@ class MPackageDef(MElementDef):
 
 
 metainfo = MPackageDef(name='metainfo')
-m_element.m_section = metainfo
-m_section.m_section = metainfo
-m_package.m_section = metainfo
+m_element.m_def = metainfo
+m_def.m_def = metainfo
+m_package.m_def = metainfo
 
 m_property = metainfo.new_section(name='property', repeats=True, extends=m_element, section=m_package)
 print(metainfo.subsections['section'])
