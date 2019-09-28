@@ -15,7 +15,8 @@
 import pytest
 import numpy as np
 
-from nomad.metainfo.metainfo import MSection, MCategory, Section, Quantity, Definition, Category, Package, sub_section
+from nomad.metainfo.metainfo import MSection, MCategory, Section, Quantity, Definition, Category, sub_section
+from nomad.metainfo.example import Run, System, SystemHash, Parsing, m_package as example_package
 
 
 def assert_section_def(section_def: Section):
@@ -79,35 +80,9 @@ class TestPureReflection:
         assert getattr(obj, 'test_quantity') == 'test_value'
 
 
-m_package = Package(description='package doc')
-
-
 class MaterialDefining(MCategory):
     """Quantities that add to what constitutes a different material."""
     pass
-
-
-class Run(MSection):
-    """ This is the description.
-
-    And some more description.
-    """
-
-    code_name = Quantity(
-        type=str, description='''
-        The code_name description.
-        ''')
-
-
-class System(MSection):
-    m_def = Section(repeats=True, parent=Run.m_def)
-    n_atoms = Quantity(type=int, default=0, categories=[MaterialDefining.m_def])
-    atom_label = Quantity(type=str, shape=['n_atoms'], categories=[MaterialDefining.m_def])
-    atom_positions = Quantity(type=np.dtype('f8'), shape=['n_atoms', 3])
-
-
-class Parsing(MSection):
-    m_def = Section(parent=Run.m_def)
 
 
 class TestM2:
@@ -125,7 +100,7 @@ class TestM2:
         assert Run.m_def.parent is None
 
     def test_quantities(self):
-        assert len(Run.m_def.quantities) == 1
+        assert len(Run.m_def.quantities) == 2
         assert Run.m_def.quantities['code_name'] == Run.__dict__['code_name']
 
     def test_sub_sections(self):
@@ -133,7 +108,7 @@ class TestM2:
         assert Run.m_def.sub_sections['System'] == System.m_def
 
     def test_attributes(self):
-        assert len(Run.m_def.attributes) == 3
+        assert len(Run.m_def.attributes) == 4
         assert Run.m_def.attributes['System'] == System.m_def
         assert Run.m_def.attributes['code_name'] == Run.__dict__['code_name']
 
@@ -162,19 +137,19 @@ class TestM2:
 
     def test_quantity_description(self):
         assert Run.code_name.description is not None
-        assert Run.code_name.description == 'The code_name description.'
+        assert Run.code_name.description == 'The name of the code that was run.'
         assert Run.code_name.description.strip() == Run.code_name.description.strip()
 
     def test_direct_category(self):
-        assert len(System.atom_label.categories)
-        assert MaterialDefining.m_def in System.atom_label.categories
-        assert System.atom_label in MaterialDefining.m_def.definitions
+        assert len(System.atom_labels.categories) == 1
+        assert SystemHash.m_def in System.atom_labels.categories
+        assert System.atom_labels in SystemHash.m_def.definitions
 
     def test_package(self):
-        assert m_package.name == __name__
-        assert m_package.description is not None
-        assert len(m_package.m_sub_sections(Section)) == 3
-        assert len(m_package.m_sub_sections(Category)) == 1
+        assert example_package.name == 'nomad.metainfo.example'
+        assert example_package.description == 'An example metainfo package.'
+        assert len(example_package.m_sub_sections(Section)) == 4
+        assert len(example_package.m_sub_sections(Category)) == 1
 
 
 class TestM1:
@@ -206,7 +181,7 @@ class TestM1:
 
     def test_defaults(self):
         assert System().n_atoms == 0
-        assert System().atom_label is None
+        assert System().atom_labels is None
         try:
             System().does_not_exist
             assert False, 'Supposed unreachable'
@@ -268,7 +243,7 @@ class TestM1:
 
     def test_wrong_shape_2(self):
         try:
-            System().atom_label = 'label'
+            System().atom_labels = 'label'
             assert False, 'Supposed unreachable'
         except TypeError:
             pass
@@ -286,7 +261,7 @@ class TestM1:
         run.code_name = 'test code name'
         system: System = run.m_create(System)
         system.n_atoms = 3
-        system.atom_label = ['H', 'H', 'O']
+        system.atom_labels = ['H', 'H', 'O']
         system.atom_positions = np.array([[1.2e-10, 0, 0], [0, 1.2e-10, 0], [0, 0, 1.2e-10]])
 
         return run
@@ -299,7 +274,7 @@ class TestM1:
         assert_section_instance(system)
         assert system.m_def == System.m_def
         assert system.n_atoms == 3
-        assert system.atom_label == ['H', 'H', 'O']
+        assert system.atom_labels == ['H', 'H', 'O']
         assert type(system.atom_positions) == np.ndarray
 
     def test_to_dict(self, example_data):

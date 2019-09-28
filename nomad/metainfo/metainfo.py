@@ -137,13 +137,12 @@ See the reference of classes :class:`Section` and :class:`Quantities` for detail
 """
 
 # TODO validation
-# TODO serialization/deserialization
-# TODO packages
 
 from typing import Type, TypeVar, Union, Tuple, Iterable, List, Any, Dict, cast
 import sys
 import inspect
 import re
+import json
 
 import numpy as np
 from pint.unit import _Unit
@@ -301,7 +300,7 @@ class MSection(metaclass=MObjectMeta):
         # transfer name and description to m_def
         m_def.name = cls.__name__
         if cls.__doc__ is not None:
-            m_def.description = inspect.cleandoc(cls.__doc__)
+            m_def.description = inspect.cleandoc(cls.__doc__).strip()
         m_def.section_cls = cls
 
         # add sub_section to parent section
@@ -314,7 +313,7 @@ class MSection(metaclass=MObjectMeta):
             if isinstance(attr, Quantity):
                 attr.name = name
                 if attr.description is not None:
-                    attr.description = inspect.cleandoc(attr.description)
+                    attr.description = inspect.cleandoc(attr.description).strip()
                     attr.__doc__ = attr.description
                 # manual manipulation of m_data due to bootstrapping
                 m_def.m_data.setdefault('Quantity', []).append(attr)
@@ -476,7 +475,8 @@ class MSection(metaclass=MObjectMeta):
 
         return sub_section
 
-    def m_create(self, definition: SectionDef, **kwargs) -> 'MSection':
+    # TODO this should work with the section constructor
+    def m_create(self, definition: Type[MSectionBound], **kwargs) -> MSectionBound:
         """Creates a subsection and adds it this this section
 
         Args:
@@ -495,7 +495,7 @@ class MSection(metaclass=MObjectMeta):
         section_cls = section_def.section_cls
         section_instance = section_cls(m_def=section_def, m_parent=self, **kwargs)
 
-        return self.m_add_sub_section(section_instance)
+        return cast(MSectionBound, self.m_add_sub_section(section_instance))
 
     def __resolve_quantity(self, definition: Union[str, 'Quantity']) -> 'Quantity':
         """Resolves and checks the given quantity definition. """
@@ -568,11 +568,25 @@ class MSection(metaclass=MObjectMeta):
                 else:
                     yield name, self.m_data[name].m_to_dict()
 
-            for name in self.m_def.quantities:
+            for name, quantity in self.m_def.quantities.items():
                 if name in self.m_data:
                     value = getattr(self, name)
                     if hasattr(value, 'tolist'):
                         value = value.tolist()
+
+                    # TODO
+                    if isinstance(quantity.type, Section):
+                        value = str(value)
+                    # TODO
+                    if isinstance(value, type):
+                        value = str(value)
+                    # TODO
+                    if isinstance(value, np.dtype):
+                        value = str(value)
+                    # TODO
+                    if isinstance(value, _Unit):
+                        value = str(value)
+
                     yield name, value
 
         return {key: value for key, value in items()}
@@ -604,9 +618,9 @@ class MSection(metaclass=MObjectMeta):
         section_instance.m_update(**dct)
         return section_instance
 
-    def m_to_json(self):
+    def m_to_json(self, **kwargs):
         """Returns the data of this section as a json string. """
-        pass
+        return json.dumps(self.m_to_dict(), **kwargs)
 
     def m_all_contents(self) -> Iterable[Content]:
         """Returns an iterable over all sub and sub subs sections. """
@@ -651,7 +665,7 @@ class MCategory(metaclass=MObjectMeta):
         # transfer name and description to m_def
         m_def.name = cls.__name__
         if cls.__doc__ is not None:
-            m_def.description = inspect.cleandoc(cls.__doc__)
+            m_def.description = inspect.cleandoc(cls.__doc__).strip()
 
         # add section cls' section to the module's package
         module_name = cls.__module__
@@ -894,7 +908,7 @@ class Package(Definition):
 
         pkg.name = module_name
         if pkg.description is None and module.__doc__ is not None:
-            pkg.description = inspect.cleandoc(module.__doc__)
+            pkg.description = inspect.cleandoc(module.__doc__).strip()
 
         return pkg
 
