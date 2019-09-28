@@ -293,7 +293,7 @@ class MObject(metaclass=MObjectMeta):
     @classmethod
     def __init_section_cls__(cls):
         # only works after bootstrapping, since functionality is still missing
-        if not all([hasattr(__module__, cls) for cls in ['Quantity', 'Section', 'sub_section']]):
+        if not all([hasattr(__module__, cls) for cls in ['Quantity', 'Section', 'Package', 'Category', 'sub_section']]):
             return
 
         # ensure that the m_section is defined
@@ -328,6 +328,11 @@ class MObject(metaclass=MObjectMeta):
                 attr.section_def.parent = m_section
                 if attr.section_def.name is None:
                     attr.section_def.name = inflection.camelize(name)
+
+        # add section cls' section to the module's package
+        module_name = cls.__module__
+        pkg = Package.from_module(module_name)
+        pkg.m_add_sub_section(cls.m_section)
 
     @staticmethod
     def m_type_check(definition: 'Quantity', value: Any, check_item: bool = False):
@@ -398,6 +403,27 @@ class MObject(metaclass=MObjectMeta):
                 raise KeyError('Not a sub section.')
 
         return section
+
+    def m_sub_sections(self, definition: SectionDef) -> List[MObjectBound]:
+        """Returns all sub sections for the given section definition
+
+        Args:
+            definition: The definition of the section.
+
+        Raises:
+            KeyError: If the definition is not for a sub section
+        """
+        section_def = self._resolve_section(definition)
+
+        m_data_value = self.m_data.get(section_def.name, None)
+
+        if m_data_value is None:
+            return []
+
+        if section_def.repeats:
+            return m_data_value
+        else:
+            return [m_data_value]
 
     def m_sub_section(self, definition: SectionDef, parent_index: int = -1) -> MObjectBound:
         """Returns the sub section for the given section definition and possible
@@ -837,7 +863,21 @@ class Section(Definition):
 
 
 class Package(Definition):
-    pass
+
+    @staticmethod
+    def from_module(module_name: str):
+        module = sys.modules[module_name]
+
+        pkg: 'Package' = getattr(module, 'm_package', None)
+        if pkg is None:
+            pkg = Package()
+            setattr(module, 'm_package', pkg)
+
+        pkg.name = module_name
+        if pkg.description is None and module.__doc__ is not None:
+            pkg.description = inspect.cleandoc(module.__doc__)
+
+        return pkg
 
 
 class sub_section:
@@ -879,6 +919,11 @@ class Category(Definition):
 
     In the old meta-info this was known as `abstract types`.
     """
+
+    def __init__(self, module_name, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        Package.from_module(module_name).m_add_sub_section(self)
 
     @cached_property
     def definitions(self) -> Iterable[Definition]:

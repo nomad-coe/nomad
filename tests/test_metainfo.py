@@ -15,7 +15,7 @@
 import pytest
 import numpy as np
 
-from nomad.metainfo.metainfo import MObject, Section, Quantity, Definition, Category, sub_section
+from nomad.metainfo.metainfo import MObject, Section, Quantity, Definition, Category, Package, sub_section
 
 
 def assert_section_def(section_def: Section):
@@ -79,8 +79,10 @@ class TestPureReflection:
         assert getattr(obj, 'test_quantity') == 'test_value'
 
 
+m_package = Package(description='package doc')
+
 material_defining = Category(
-    name='material_defining',
+    __name__, name='material_defining',
     description='Quantities that add to what constitutes a different material.')
 
 
@@ -166,6 +168,12 @@ class TestM2:
         assert len(System.atom_label.categories)
         assert material_defining in System.atom_label.categories
         assert System.atom_label in material_defining.definitions
+
+    def test_package(self):
+        assert m_package.name == __name__
+        assert m_package.description is not None
+        assert len(m_package.m_sub_sections(Section)) == 3
+        assert len(m_package.m_sub_sections(Category)) == 1
 
 
 class TestM1:
