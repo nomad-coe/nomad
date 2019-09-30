@@ -17,6 +17,7 @@ import datetime
 from elasticsearch_dsl import Keyword
 
 from nomad import utils, config
+from nomad.metainfo import MSection
 
 
 class UploadWithMetadata():
@@ -107,10 +108,17 @@ class CalcWithMetadata():
         self.update(**kwargs)
 
     def to_dict(self):
-        return {
-            key: value for key, value in self.__dict__.items()
-            if value is not None and key not in ['backend']
-        }
+        def items():
+            for key, value in self.__dict__.items():
+                if value is None or key in ['backend']:
+                    continue
+
+                if isinstance(value, MSection):
+                    value = value.m_to_dict()
+
+                yield key, value
+
+        return {key: value for key, value in items()}
 
     def update(self, **kwargs):
         for key, value in kwargs.items():
@@ -183,7 +191,7 @@ class DomainQuantity:
             self, description: str = None, multi: bool = False, aggregations: int = 0,
             order_default: bool = False, metric: Tuple[str, str] = None,
             zero_aggs: bool = True, metadata_field: str = None,
-            elastic_mapping: str = None,
+            elastic_mapping: type = None,
             elastic_search_type: str = 'term', elastic_field: str = None,
             elastic_value: Callable[[Any], Any] = None):
 

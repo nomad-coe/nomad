@@ -188,7 +188,7 @@ Section object need to support:
 - access to subsection via subsection name
 - access of properties via property name
 - array access for repeatable sections
-- navigation to its containing section: `.m_section`
+- navigation to its containing section: `.m_def`
 - allow to create/(re-)open subsections via calling the subsection name as a method: `.system()`
 - close a section so that the underlying resource implementation can potentially remove the section from memory and write it to a database/.hdf5 file
 - the *GraphQL* like access methods with dictionary to specify multiple sub-sections

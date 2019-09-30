@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import TextIO, Tuple, List, Any, Callable
+from typing import TextIO, Tuple, List, Any, Callable, Dict
 from abc import ABCMeta, abstractmethod
 from io import StringIO
 import json
@@ -23,6 +23,7 @@ from nomadcore.local_backend import LocalBackend as LegacyLocalBackend
 from nomadcore.local_backend import Section, Results
 
 from nomad.utils import get_logger
+from nomad.metainfo import MSection, Section as MI2Section
 
 logger = get_logger(__name__)
 
@@ -336,6 +337,8 @@ class LocalBackend(LegacyParserBackend):
         delegate = LegacyLocalBackend(*args, **kwargs)
         super().__init__(delegate)
 
+        self.mi2_data: Dict[str, MSection] = {}
+
         self.reset_status()
 
         self._open_context: Tuple[str, int] = None
@@ -345,6 +348,14 @@ class LocalBackend(LegacyParserBackend):
         self._unknown_attributes = {}
         self._known_attributes = ['results']
         self.fileOut = io.StringIO()
+
+    def add_mi2_section(self, section: MSection):
+        """ Allows to mix a metainfo2 style section into backend. """
+        self.mi2_data[section.m_def.name] = section
+
+    def get_mi2_section(self, section_def: MI2Section):
+        """ Allows to mix a metainfo2 style section into backend. """
+        return self.mi2_data.get(section_def.name, None)
 
     def __getattr__(self, name):
         """ Support for unimplemented and unexpected methods. """
@@ -557,6 +568,9 @@ class LocalBackend(LegacyParserBackend):
         for root_section in root_sections:
             json_writer.key(root_section)
             self._write(json_writer, self._delegate.results[root_section], filter=filter)
+
+        for name, section in self.mi2_data.items():
+            json_writer.key_value(name, section.m_to_dict())
 
         json_writer.close_object()
         json_writer.close()

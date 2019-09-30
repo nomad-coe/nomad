@@ -48,6 +48,7 @@ pyyaml
 tabulate
 cachetools
 zipfile37
+inflection
 
 # dev/ops related
 setuptools

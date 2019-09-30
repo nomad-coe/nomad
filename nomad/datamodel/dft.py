@@ -18,12 +18,13 @@ DFT specific metadata
 
 from typing import List
 import re
-from elasticsearch_dsl import Integer
+from elasticsearch_dsl import Integer, Object
 import ase.data
 
 from nomadcore.local_backend import ParserEvent
 
 from nomad import utils, config
+from nomad.metainfo import optimade
 
 from .base import CalcWithMetadata, DomainQuantity, Domain, get_optional_backend_value
 
@@ -91,7 +92,15 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.geometries = []
         self.group_hash: str = None
 
+        self.optimade: optimade.OptimadeStructureEntry = None
+
         super().__init__(**kwargs)
+
+    def update(self, **kwargs):
+        super().update(**kwargs)
+
+        if self.optimade is not None and isinstance(self.optimade, dict):
+            self.optimade = optimade.OptimadeStructureEntry.m_from_dict(self.optimade)
 
     def apply_domain_metadata(self, backend):
         from nomad.normalizing.system import normalized_atom_labels
@@ -173,6 +182,8 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.n_total_energies = n_total_energies
         self.n_geometries = n_geometries
 
+        self.optimade = backend.get_mi2_section(optimade.OptimadeStructureEntry.m_def)
+
 
 def only_atoms(atoms):
     numbers = [ase.data.atomic_numbers[atom] for atom in atoms]
@@ -222,7 +233,14 @@ Domain(
         n_geometries=DomainQuantity(
             'Number of unique geometries',
             elastic_mapping=Integer()),
-        n_atoms=DomainQuantity('Number of atoms in the simulated system', elastic_mapping=Integer())),
+        n_atoms=DomainQuantity(
+            'Number of atoms in the simulated system',
+            elastic_mapping=Integer()),
+        optimade=DomainQuantity(
+            'Data for the optimade API',
+            elastic_mapping=Object(optimade.ESOptimadeEntry),
+            elastic_value=lambda entry: optimade.elastic_obj(entry, optimade.ESOptimadeEntry)
+        )),
     metrics=dict(
         total_energies=('n_total_energies', 'sum'),
         calculations=('n_calculations', 'sum'),

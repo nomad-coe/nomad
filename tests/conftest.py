@@ -30,6 +30,9 @@ import base64
 from bravado.client import SwaggerClient
 import elasticsearch.exceptions
 
+from nomadcore.local_meta_info import loadJsonFile
+import nomad_meta_info
+
 from nomad import config, infrastructure, parsing, processing, coe_repo, app
 
 from tests import test_parsing, test_normalizing
@@ -279,6 +282,14 @@ def postgres(postgres_infra):
     postgres_infra.execute('DELETE FROM sessions WHERE user_id >= 3;')
     postgres_infra.execute('DELETE FROM users WHERE user_id >= 3;')
     yield postgres_infra
+
+
+@pytest.fixture(scope='session')
+def meta_info():
+    file_dir = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
+    path = os.path.join(file_dir, 'all.nomadmetainfo.json')
+    meta_info, _ = loadJsonFile(path)
+    return meta_info
 
 
 @pytest.fixture(scope='module')

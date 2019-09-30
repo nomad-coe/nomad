@@ -12,18 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from flask import Blueprint
-from flask_restplus import Api
-
 """
 The optimade implementation of NOMAD.
 """
 
-blueprint = Blueprint('optimade', __name__)
+from flask import Blueprint
+from flask_restplus import Api
 
-api = Api(
-    blueprint,
-    version='1.0', title='NOMAD optimade PI',
-    description='The NOMAD optimade API',
-    validate=True)
-""" Provides the flask restplust api instance for the optimade api"""
+from .api import blueprint, url
+from .endpoints import CalculationList, Calculation
+from .filterparser import parse_filter

@@ -18,9 +18,6 @@ import numpy as np
 import pytest
 import os
 
-from nomadcore.local_meta_info import loadJsonFile
-import nomad_meta_info
-
 from nomad import utils, files
 from nomad.parsing import JSONStreamWriter, parser_dict, match_parser, BrokenParser
 from nomad.parsing import LocalBackend, BadContextURI
@@ -81,13 +78,6 @@ correct_num_output_files = 43
 
 
 class TestLocalBackend(object):
-
-    @pytest.fixture(scope='session')
-    def meta_info(self):
-        file_dir = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
-        path = os.path.join(file_dir, 'all.nomadmetainfo.json')
-        meta_info, _ = loadJsonFile(path)
-        return meta_info
 
     @pytest.fixture(scope='function')
     def backend(self, meta_info):
@@ -298,7 +288,6 @@ def parsed_template_example() -> LocalBackend:
         'parsers/template', 'tests/data/parsers/template.json')
 
 
-# Function used by normalizer tests.
 def parse_file(parser_name_and_mainfile) -> LocalBackend:
     parser_name, mainfile = parser_name_and_mainfile
     return run_parser(parser_name, mainfile)
