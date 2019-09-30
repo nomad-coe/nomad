@@ -22,10 +22,16 @@ from nomad import search
 from nomad.parsing import LocalBackend
 from nomad.datamodel import CalcWithMetadata
 
-from nomad.app.optimade import parse_filter
+from nomad.app.optimade import parse_filter, url
 
+from tests.app.test_app import BlueprintClient
 from tests.test_normalizing import run_normalize
 from tests.conftest import clear_elastic
+
+
+@pytest.fixture(scope='function')
+def api(client):
+    return BlueprintClient(client, '/optimade')
 
 
 def test_get_entry(published: Upload):
@@ -62,7 +68,8 @@ def create_test_structure(meta_info, id: int, h: int, o: int, extra: List[str], 
 
     backend = run_normalize(backend)
     calc = CalcWithMetadata(
-        upload_id='test_uload_id', calc_id='test_calc_id_%d' % id, mainfile='test_mainfile')
+        upload_id='test_uload_id', calc_id='test_calc_id_%d' % id, mainfile='test_mainfile',
+        published=True, with_embargo=False)
     calc.apply_domain_metadata(backend)
     search.Entry.from_calc_with_metadata(calc).save()
 
@@ -124,3 +131,52 @@ def test_optimade_parser(example_structures, query, results):
     query = parse_filter(query)
     result = search.SearchRequest(query=query).execute_paginated()
     assert result['pagination']['total'] == results
+
+
+def test_url():
+    assert url('endpoint', param='value').endswith('/optimade/endpoint?param=value')
+
+
+def test_list_endpoint(api, example_structures):
+    rv = api.get('/calculations')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    # TODO replace with real assertions
+    # print(json.dumps(data, indent=2))
+
+
+def test_list_endpoint_request_fields(api, example_structures):
+    rv = api.get('/calculations?request_fields=nelements,elements')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    # TODO replace with real assertions
+    # print(json.dumps(data, indent=2))
+
+
+def test_single_endpoint(api, example_structures):
+    rv = api.get('/calculations/%s' % 'test_calc_id_1')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    # TODO replace with real assertions
+    # print(json.dumps(data, indent=2))
+
+
+def test_base_info_endpoint(api):
+    rv = api.get('/info')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    # TODO replace with real assertions
+    # print(json.dumps(data, indent=2))
+
+
+def test_calculation_info_endpoint(api):
+    rv = api.get('/info/calculation')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    # TODO replace with real assertions
+    # print(json.dumps(data, indent=2))
+
+
+# TODO test single with request_fields
+# TODO test errors
+# TODO test response format (deny everything but json)

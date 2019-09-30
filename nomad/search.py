@@ -353,6 +353,10 @@ class SearchRequest:
 
         return self
 
+    def query(self, query):
+        """ Adds the given query as a 'and' (i.e. 'must') clause to the request. """
+        self._query &= query
+
     def time_range(self, start: datetime, end: datetime):
         """ Adds a time range to the query. """
         if start is None and end is None:

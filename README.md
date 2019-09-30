@@ -83,6 +83,7 @@ Omitted versions are plain bugfix releases with only minor changes and fixes.
 - Support for datasets in the GUI
 - more flexible search python module and repo API
 - support for external_id
+- Optimade API 0.10.0
 - minor bugfixes
 
 ### v0.5.2
