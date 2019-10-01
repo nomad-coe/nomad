@@ -58,8 +58,8 @@ sphinx_rtd_theme
 gitpython
 mypy
 pylint==2.3.1
-pylint_plugin_utils
-pylint_mongoengine
+pylint_plugin_utils==0.5
+pylint_mongoengine==0.3.3
 pycodestyle
 pytest==3.10.0  # celery fixtures not compatible with 4.x
 pytest-timeout
