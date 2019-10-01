@@ -144,6 +144,12 @@ class TestM2:
         assert len(example_package.m_sub_sections(Section)) == 4
         assert len(example_package.m_sub_sections(Category)) == 1
 
+    def test_base_sections(self):
+        assert Definition.m_def in Section.m_def.base_sections
+        print(Section.m_def.base_sections)
+        assert 'name' in Section.m_def.all_quantities
+        assert 'name' in Quantity.m_def.all_quantities
+
 
 class TestM1:
     """ Test for meta-info instances. """
@@ -238,6 +244,11 @@ class TestM1:
         system = System()
         system.atom_positions = [[1, 2, 3]]
         assert type(system.atom_positions) == np.ndarray
+
+    def test_synonym(self):
+        system = System()
+        system.lattice_vectors = [[1.2e-10, 0, 0], [0, 1.2e-10, 0], [0, 0, 1.2e-10]]
+        assert system.unit_cell == system.lattice_vectors
 
     @pytest.fixture(scope='function')
     def example_data(self):

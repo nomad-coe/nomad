@@ -121,7 +121,7 @@ A `Quantity` definition is a special and concrete `Property` definition:
 
 A `Section` is a special and concrete `Definition`.
 
-- `adds_to`, a reference to another section definition. All quantities of this *pseudo* section are added to the given section.
+- `adds_to`, a reference to another section definition. All quantities of this *pseudo* section are added to the given section. (Might not be necessary)
 - `repeats`, a boolean
 - `extends`, list of reference to other section definitions. This section automatically inherits all quantities of the other sections. (Might not be necessary)
 

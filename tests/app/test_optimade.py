@@ -142,7 +142,7 @@ def test_list_endpoint(api, example_structures):
     assert rv.status_code == 200
     data = json.loads(rv.data)
     # TODO replace with real assertions
-    # print(json.dumps(data, indent=2))
+    print(json.dumps(data, indent=2))
 
 
 def test_list_endpoint_request_fields(api, example_structures):
@@ -150,7 +150,7 @@ def test_list_endpoint_request_fields(api, example_structures):
     assert rv.status_code == 200
     data = json.loads(rv.data)
     # TODO replace with real assertions
-    # print(json.dumps(data, indent=2))
+    print(json.dumps(data, indent=2))
 
 
 def test_single_endpoint(api, example_structures):
@@ -158,7 +158,7 @@ def test_single_endpoint(api, example_structures):
     assert rv.status_code == 200
     data = json.loads(rv.data)
     # TODO replace with real assertions
-    # print(json.dumps(data, indent=2))
+    print(json.dumps(data, indent=2))
 
 
 def test_base_info_endpoint(api):
@@ -166,7 +166,7 @@ def test_base_info_endpoint(api):
     assert rv.status_code == 200
     data = json.loads(rv.data)
     # TODO replace with real assertions
-    # print(json.dumps(data, indent=2))
+    print(json.dumps(data, indent=2))
 
 
 def test_calculation_info_endpoint(api):
@@ -174,7 +174,7 @@ def test_calculation_info_endpoint(api):
     assert rv.status_code == 200
     data = json.loads(rv.data)
     # TODO replace with real assertions
-    # print(json.dumps(data, indent=2))
+    print(json.dumps(data, indent=2))
 
 
 # TODO test single with request_fields

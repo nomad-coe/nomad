@@ -39,6 +39,8 @@ class System(MSection):
         type=np.dtype('f'), shape=[3, 3], unit=units.m, categories=[SystemHash.m_def],
         description='The lattice vectors of the simulated unit cell.')
 
+    unit_cell = Quantity(synonym_for='lattice_vectors')
+
     periodic_dimensions = Quantity(
         type=bool, shape=[3], categories=[SystemHash.m_def],
         description='A vector of booleans indicating in which dimensions the unit cell is repeated.')
