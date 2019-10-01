@@ -18,7 +18,7 @@ import numpy as np
 from nomad import config
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 from nomad.metainfo import units
-from nomad.metainfo.optimade import OptimadeStructureEntry
+from nomad.metainfo.optimade import OptimadeEntry
 
 
 class OptimadeNormalizer(SystemBasedNormalizer):
@@ -30,13 +30,13 @@ class OptimadeNormalizer(SystemBasedNormalizer):
     def __init__(self, backend):
         super().__init__(backend, all_sections=config.normalize.all_systems)
 
-    def get_optimade_data(self, index) -> OptimadeStructureEntry:
+    def get_optimade_data(self, index) -> OptimadeEntry:
         """
         The 'main' method of this :class:`SystemBasedNormalizer`.
         Normalizes the section with the given `index`.
         Normalizes geometry, classifies, system_type, and runs symmetry analysis.
         """
-        optimade = OptimadeStructureEntry()
+        optimade = OptimadeEntry()
 
         def get_value(key: str, default: Any = None, numpy: bool = False) -> Any:
             try:

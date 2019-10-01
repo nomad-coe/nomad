@@ -92,7 +92,7 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.geometries = []
         self.group_hash: str = None
 
-        self.optimade: optimade.OptimadeStructureEntry = None
+        self.optimade: optimade.OptimadeEntry = None
 
         super().__init__(**kwargs)
 
@@ -100,7 +100,7 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         super().update(**kwargs)
 
         if self.optimade is not None and isinstance(self.optimade, dict):
-            self.optimade = optimade.OptimadeStructureEntry.m_from_dict(self.optimade)
+            self.optimade = optimade.OptimadeEntry.m_from_dict(self.optimade)
 
     def apply_domain_metadata(self, backend):
         from nomad.normalizing.system import normalized_atom_labels
@@ -182,7 +182,7 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.n_total_energies = n_total_energies
         self.n_geometries = n_geometries
 
-        self.optimade = backend.get_mi2_section(optimade.OptimadeStructureEntry.m_def)
+        self.optimade = backend.get_mi2_section(optimade.OptimadeEntry.m_def)
 
 
 def only_atoms(atoms):

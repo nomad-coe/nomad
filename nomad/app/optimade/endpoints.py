@@ -16,7 +16,7 @@ from flask_restplus import Resource, abort
 from flask import request
 
 from nomad import search
-from nomad.metainfo.optimade import OptimadeStructureEntry
+from nomad.metainfo.optimade import OptimadeEntry
 
 from .api import api, url
 from .models import json_api_single_response_model, entry_listing_endpoint_parser, Meta, \
@@ -128,11 +128,11 @@ class CalculationInfo(Resource):
                 # TODO non optimade, nomad specific properties
                 'properties': {
                     attr.name: dict(description=attr.description)
-                    for attr in OptimadeStructureEntry.m_def.all_properties.values()
+                    for attr in OptimadeEntry.m_def.all_properties.values()
                 },
                 'formats': ['json'],
                 'output_fields_by_format': {
-                    'json': OptimadeStructureEntry.m_def.all_properties.keys()
+                    'json': OptimadeEntry.m_def.all_properties.keys()
                 }
             }
         }

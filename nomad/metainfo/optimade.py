@@ -16,7 +16,7 @@ class ElementRatio(InnerDoc):
     elements_ratios = Float()
 
     @staticmethod
-    def from_structure_entry(entry: 'OptimadeStructureEntry'):
+    def from_structure_entry(entry: 'OptimadeEntry'):
         return [
             ElementRatio(elements=entry.elements[i], elements_ratios=entry.elements_ratios[i])
             for i in range(0, entry.nelements)]
@@ -27,7 +27,7 @@ class Optimade():
         pass
 
 
-class OptimadeStructureEntry(MSection):
+class OptimadeEntry(MSection):
     m_def = Section(
         links=optimade_links('h.6.2'),
         a_flask=dict(skip_none=True),
@@ -174,7 +174,7 @@ class Species(MSection):
     """
 
     m_def = Section(
-        repeats=True, parent=OptimadeStructureEntry.m_def,
+        repeats=True, parent=OptimadeEntry.m_def,
         links=optimade_links('h.6.2.13'))
 
     name = Quantity(
@@ -267,4 +267,4 @@ def elastic_obj(source: MSection, target_cls: type):
     return target
 
 
-ESOptimadeEntry = elastic_mapping(OptimadeStructureEntry.m_def, InnerDoc)
+ESOptimadeEntry = elastic_mapping(OptimadeEntry.m_def, InnerDoc)

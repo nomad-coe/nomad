@@ -16,7 +16,7 @@ from typing import Dict
 from optimade.filterparser import LarkParser
 from optimade.filtertransformers.elasticsearch import Transformer, Quantity
 from elasticsearch_dsl import Q
-from nomad.metainfo.optimade import OptimadeStructureEntry
+from nomad.metainfo.optimade import OptimadeEntry
 
 
 class FilterException(Exception):
@@ -29,7 +29,7 @@ quantities: Dict[str, Quantity] = {
         q.name, es_field='optimade.%s' % q.name,
         elastic_mapping_type=q.m_annotations['elastic']['type'])
 
-    for q in OptimadeStructureEntry.m_def.all_quantities.values()
+    for q in OptimadeEntry.m_def.all_quantities.values()
     if 'elastic' in q.m_annotations}
 
 quantities['elements'].length_quantity = quantities['nelements']

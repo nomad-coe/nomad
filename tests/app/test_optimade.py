@@ -40,7 +40,7 @@ def test_get_entry(published: Upload):
     with published.upload_files.archive_file(calc_id) as f:
         data = json.load(f)
 
-    assert 'OptimadeStructureEntry' in data
+    assert 'OptimadeEntry' in data
     search_result = search.SearchRequest().search_parameter('calc_id', calc_id).execute_paginated()['results'][0]
     assert 'optimade' in search_result
 
