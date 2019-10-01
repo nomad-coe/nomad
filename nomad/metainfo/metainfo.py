@@ -27,16 +27,11 @@ Here is a simple example that demonstrates the definition of System related quan
 
 .. code-block:: python
 
-    class Run(MSection):
-        pass
-
     class System(MSection):
         \"\"\"
         A system section includes all quantities that describe a single a simulated
         system (a.k.a. geometry).
         \"\"\"
-
-        m_def = Section(repeats=True, parent=Run)
 
         n_atoms = Quantity(
             type=int, description='''
@@ -47,6 +42,9 @@ Here is a simple example that demonstrates the definition of System related quan
         atom_positions = Quantity(type=float, shape=['n_atoms', 3], unit=Units.m)
         simulation_cell = Quantity(type=float, shape=[3, 3], unit=Units.m)
         pbc = Quantity(type=bool, shape=[3])
+
+    class Run(MSection):
+        systems = SubSection(sub_section=System, repeats=True)
 
 Here, we define a `section` called ``System``. The section mechanism allows to organize
 related data into, well, sections. Sections form containment hierarchies. Here
@@ -109,7 +107,7 @@ quantities:
 
 
 All meta-info definitions and classes for meta-info data objects (i.e. section instances)
-inherit from :class:` MSection`. This base-class provides common functions and attributes
+inherit from :class:` MSection`. This base-class provides common functions and properties
 for all meta-info data objects. Names of these common parts are prefixed with ``m_``
 to distinguish them from user defined quantities. This also constitute's the `reflection`
 interface (in addition to Python's build in ``getattr``, ``setattr``) that allows to
@@ -147,7 +145,6 @@ import json
 import numpy as np
 from pint.unit import _Unit
 from pint import UnitRegistry
-import inflection
 
 is_bootstrapping = True
 MSectionBound = TypeVar('MSectionBound', bound='MSection')
@@ -218,7 +215,17 @@ class MObjectMeta(type):
 
 
 Content = Tuple[MSectionBound, Union[List[MSectionBound], MSectionBound], str, MSectionBound]
-SectionDef = Union[str, 'Section', Type[MSectionBound]]
+
+SectionDef = Union[str, 'Section', 'SubSection', Type[MSectionBound]]
+""" Type for section definition references.
+
+This can either be :
+
+- the name of the section
+- the section definition itself
+- the definition of a sub section
+- or the section definition Python class
+"""
 
 
 class MSection(metaclass=MObjectMeta):
@@ -303,26 +310,24 @@ class MSection(metaclass=MObjectMeta):
             m_def.description = inspect.cleandoc(cls.__doc__).strip()
         m_def.section_cls = cls
 
-        # add sub_section to parent section
-        if m_def.parent is not None:
-            sub_section_name = inflection.underscore(m_def.name)
-            setattr(m_def.parent.section_cls, sub_section_name, sub_section(m_def))
-
         for name, attr in cls.__dict__.items():
-            # transfer names and descriptions for quantities
-            if isinstance(attr, Quantity):
+            # transfer names and descriptions for properties
+            if isinstance(attr, Property):
                 attr.name = name
                 if attr.description is not None:
                     attr.description = inspect.cleandoc(attr.description).strip()
                     attr.__doc__ = attr.description
-                # manual manipulation of m_data due to bootstrapping
-                m_def.m_data.setdefault('Quantity', []).append(attr)
 
-            # set names and parent on sub-sections
-            elif isinstance(attr, sub_section):
-                attr.section_def.parent = m_def
-                if attr.section_def.name is None:
-                    attr.section_def.name = inflection.camelize(name)
+                # TODO manual manipulation of m_data due to bootstrapping
+                if isinstance(attr, Quantity):
+                    properties = m_def.m_data.setdefault('quantities', [])
+                elif isinstance(attr, SubSection):
+                    properties = m_def.m_data.setdefault('sub_sections', [])
+                else:
+                    raise NotImplementedError('Unknown property kind.')
+                properties.append(attr)
+                attr.m_parent = m_def
+                attr.m_parent_index = len(properties) - 1
 
         # add section cls' section to the module's package
         module_name = cls.__module__
@@ -384,20 +389,46 @@ class MSection(metaclass=MObjectMeta):
 
         # TODO check dimension
 
-    def _resolve_section(self, definition: SectionDef) -> 'Section':
-        """Resolves and checks the given section definition. """
-        if isinstance(definition, str):
-            section = self.m_def.sub_sections[definition]
+    def _resolve_sub_section(self, definition: SectionDef) -> 'SubSection':
+        """ Resolves and checks the given section definition. """
+
+        if isinstance(definition, type):
+            definition = getattr(definition, 'm_def', None)
+            if definition is None:
+                raise TypeError(
+                    'The type/class %s is not definining a section, i.e. not derived from '
+                    'MSection.' % str(definition))
+
+        if isinstance(definition, Section):
+            sub_section = self.m_def.all_sub_sections_by_section.get(definition, None)
+            if sub_section is None:
+                raise KeyError(
+                    'The section %s is not a sub section of %s.' %
+                    (definition.name, self.m_def.name))
+
+        elif isinstance(definition, str):
+            sub_section = self.m_def.all_sub_sections[definition]
+
+        elif isinstance(definition, SubSection):
+            sub_section = definition
 
         else:
-            if isinstance(definition, type):
-                section = getattr(definition, 'm_def')
-            else:
-                section = definition
-            if section.name not in self.m_def.sub_sections:
-                raise KeyError('Not a sub section.')
+            raise TypeError(
+                '%s does not refer to a section definition. Either use the section '
+                'definition, sub section definition, section class, or name.' %
+                str(definition))
 
-        return section
+        if sub_section is None:
+            raise KeyError(
+                'The section %s is not a sub section of %s.' %
+                (cast(Definition, definition).name, self.m_def.name))
+
+        if sub_section.m_parent is not self.m_def:
+            raise KeyError(
+                'The section %s is not a sub section of %s.' %
+                (cast(Definition, definition).name, self.m_def.name))
+
+        return sub_section
 
     def m_sub_sections(self, definition: SectionDef) -> List[MSectionBound]:
         """Returns all sub sections for the given section definition
@@ -408,17 +439,8 @@ class MSection(metaclass=MObjectMeta):
         Raises:
             KeyError: If the definition is not for a sub section
         """
-        section_def = self._resolve_section(definition)
-
-        m_data_value = self.m_data.get(section_def.name, None)
-
-        if m_data_value is None:
-            return []
-
-        if section_def.repeats:
-            return m_data_value
-        else:
-            return [m_data_value]
+        sub_section = self._resolve_sub_section(definition)
+        return getattr(self, sub_section.name)
 
     def m_sub_section(self, definition: SectionDef, parent_index: int = -1) -> MSectionBound:
         """Returns the sub section for the given section definition and possible
@@ -435,12 +457,12 @@ class MSection(metaclass=MObjectMeta):
             IndexError: If the given index is wrong, or if an index is given for a non
                 repeatable section
         """
-        section_def = self._resolve_section(definition)
+        sub_section = self._resolve_sub_section(definition)
 
-        m_data_value = self.m_data.get(section_def.name, None)
+        m_data_value = getattr(self, sub_section.name)
 
         if m_data_value is None:
-            if section_def.repeats:
+            if sub_section.repeats:
                 m_data_value = []
             else:
                 m_data_value = None
@@ -463,15 +485,16 @@ class MSection(metaclass=MObjectMeta):
     def m_add_sub_section(self, sub_section: MSectionBound) -> MSectionBound:
         """Adds the given section instance as a sub section to this section."""
 
-        section_def = sub_section.m_def
+        sub_section_def = self._resolve_sub_section(sub_section.m_def.section_cls)
+        sub_section.m_parent = self
+        if sub_section_def.repeats:
+            values = getattr(self, sub_section_def.name)
+            sub_section.m_parent_index = len(values)
+            values.append(sub_section)
 
-        if section_def.repeats:
-            m_data_sections = self.m_data.setdefault(section_def.name, [])
-            section_index = len(m_data_sections)
-            m_data_sections.append(sub_section)
-            sub_section.m_parent_index = section_index
         else:
-            self.m_data[section_def.name] = sub_section
+            self.m_data[sub_section_def.name] = sub_section
+            sub_section.m_parent_index = -1
 
         return sub_section
 
@@ -490,17 +513,17 @@ class MSection(metaclass=MObjectMeta):
         Raises:
             KeyError: If the given section is not a subsection of this section.
         """
-        section_def: 'Section' = self._resolve_section(definition)
+        sub_section: 'SubSection' = self._resolve_sub_section(definition)
 
-        section_cls = section_def.section_cls
-        section_instance = section_cls(m_def=section_def, m_parent=self, **kwargs)
+        section_cls = sub_section.sub_section.section_cls
+        section_instance = section_cls(m_def=section_cls.m_def, m_parent=self, **kwargs)
 
         return cast(MSectionBound, self.m_add_sub_section(section_instance))
 
     def __resolve_quantity(self, definition: Union[str, 'Quantity']) -> 'Quantity':
         """Resolves and checks the given quantity definition. """
         if isinstance(definition, str):
-            quantity = self.m_def.quantities[definition]
+            quantity = self.m_def.all_quantities[definition]
 
         else:
             if definition.m_parent != self.m_def:
@@ -534,17 +557,17 @@ class MSection(metaclass=MObjectMeta):
     def m_update(self, **kwargs):
         """ Updates all quantities and sub-sections with the given arguments. """
         for name, value in kwargs.items():
-            attribute = self.m_def.attributes.get(name, None)
-            if attribute is None:
+            prop = self.m_def.all_properties.get(name, None)
+            if prop is None:
                 raise KeyError('%s is not an attribute of this section' % name)
 
-            if isinstance(attribute, Section):
-                if attribute.repeats:
+            if isinstance(prop, SubSection):
+                if prop.repeats:
                     if isinstance(value, List):
                         for item in value:
                             self.m_add_sub_section(item)
                     else:
-                        raise TypeError('Sub section %s repeats, but no list was given' % attribute.name)
+                        raise TypeError('Sub section %s repeats, but no list was given' % prop.name)
                 else:
                     self.m_add_sub_section(item)
 
@@ -559,7 +582,7 @@ class MSection(metaclass=MObjectMeta):
             if self.m_parent_index != -1:
                 yield 'm_parent_index', self.m_parent_index
 
-            for name, sub_section in self.m_def.sub_sections.items():
+            for name, sub_section in self.m_def.all_sub_sections.items():
                 if name not in self.m_data:
                     continue
 
@@ -568,7 +591,7 @@ class MSection(metaclass=MObjectMeta):
                 else:
                     yield name, self.m_data[name].m_to_dict()
 
-            for name, quantity in self.m_def.quantities.items():
+            for name, quantity in self.m_def.all_quantities.items():
                 if name in self.m_data:
                     value = getattr(self, name)
                     if hasattr(value, 'tolist'):
@@ -600,15 +623,15 @@ class MSection(metaclass=MObjectMeta):
         dct.pop('m_parent_index', -1)
 
         def items():
-            for name, sub_section_def in section_def.sub_sections.items():
+            for name, sub_section_def in section_def.all_sub_sections.items():
                 if name in dct:
                     sub_section_value = dct.pop(name)
                     if sub_section_def.repeats:
                         yield name, [
-                            sub_section_def.section_cls.m_from_dict(sub_section_dct)
+                            sub_section_def.sub_section.section_cls.m_from_dict(sub_section_dct)
                             for sub_section_dct in sub_section_value]
                     else:
-                        yield name, sub_section_def.section_cls.m_from_dict(sub_section_value)
+                        yield name, sub_section_def.sub_section.section_cls.m_from_dict(sub_section_value)
 
             for key, value in dct.items():
                 yield key, value
@@ -747,7 +770,11 @@ class Definition(MSection):
         return all_categories
 
 
-class Quantity(Definition):
+class Property(Definition):
+    pass
+
+
+class Quantity(Property):
     """Used to define quantities that store a certain piece of (meta-)data.
 
     Quantities are the basic building block with meta-info data. The Quantity class is
@@ -815,14 +842,41 @@ class Quantity(Definition):
         del obj.m_data[self.__name]
 
 
+class SubSection(Property):
+    """ Allows to assign a section class as a sub-section to another section class. """
+
+    sub_section: 'Quantity' = None
+    repeats: 'Quantity' = None
+
+    def __get__(self, obj: MSection, type=None) -> Union[MSection, 'Section']:
+        if obj is None:
+            # the class attribute case
+            return self
+
+        else:
+            # the object attribute case
+            m_data_value = obj.m_data.get(self.name, None)
+            if m_data_value is None:
+                if self.repeats:
+                    m_data_value = []
+                    obj.m_data[self.name] = m_data_value
+
+            return m_data_value
+
+    def __set__(self, obj: MSection, value: Union[MSection, List[MSection]]):
+        raise NotImplementedError('Sub sections cannot be set directly. Use m_create.')
+
+    def __delete__(self, obj):
+        raise NotImplementedError('Sub sections cannot be deleted directly.')
+
+
 class Section(Definition):
     """Used to define section that organize meta-info data into containment hierarchies.
 
     Section definitions determine what quantities and sub-sections can appear in a section
-    instance. A section instance itself can appear potentially many times in its parent
-    section. See :data:`repeats` and :data:`parent`.
+    instance.
 
-    In Python terms, sections are classes. Sub-sections and quantities are attribute of
+    In Python terms, sections are classes. Sub-sections and quantities are attributes of
     respective instantiating objects. For each section class there is a corresponding
     :class:`Section` instance that describes this class as a section. This instance
     is referred to as 'section definition' in contrast to the Python class that we call
@@ -832,70 +886,50 @@ class Section(Definition):
     section_cls: Type[MSection] = None
     """ The section class that corresponse to this section definition. """
 
-    repeats: 'Quantity' = None
-    parent: 'Quantity' = None
+    quantities: 'SubSection' = None
+    sub_sections: 'SubSection' = None
 
     # TODO super = Quantity(type=Section, shape=['0..*']), inherit all quantity definition
     #      from the given sections, derived from Python base classes
     # TODO extends = Quantity(type=bool), denotes this section as a container for
     #      new quantities that belong to the base-class section definitions
 
-    def __init__(self, **kwargs):
-        # The mechanism that produces default values, depends on parent. Without setting
-        # the parent default manually, an endless recursion will occur.
-        kwargs.setdefault('parent', None)
-
-        super().__init__(**kwargs)
-
     @cached_property
-    def attributes(self) -> Dict[str, Union['Section', Quantity]]:
+    def all_properties(self) -> Dict[str, Union['SubSection', Quantity]]:
         """ All attribute (sub section and quantity) definitions. """
 
-        attributes: Dict[str, Union[Section, Quantity]] = dict(**self.quantities)
-        attributes.update(**self.sub_sections)
-        return attributes
+        properties: Dict[str, Union[SubSection, Quantity]] = dict(**self.all_quantities)
+        properties.update(**self.all_sub_sections)
+        return properties
 
     @cached_property
-    def quantities(self) -> Dict[str, Quantity]:
+    def all_quantities(self) -> Dict[str, Quantity]:
         """ All quantity definition in the given section definition. """
 
         return {
             quantity.name: quantity
-            for quantity in self.m_data.get('Quantity', [])}
+            for quantity in self.m_data.get('quantities', [])}
 
     @cached_property
-    def sub_sections(self) -> Dict[str, 'Section']:
-        """ All sub section definitions for this section definition. """
+    def all_sub_sections(self) -> Dict[str, 'SubSection']:
+        """ All sub section definitions for this section definition by name. """
 
         return {
             sub_section.name: sub_section
-            for sub_section in Section.all_definitions()
-            if sub_section.parent == self}
+            for sub_section in self.m_data.get('sub_sections', [])}
 
-    def add_quantity(self, quantity: Quantity):
-        """
-        Adds the given quantity to this section.
-
-        Allows to add a quantity to a section definition outside the corresponding
-        section class.
-
-        .. code-block:: Python
-
-        class System(MSection):
-            pass
-
-        System.m_def.add_quantity(Quantity(name='n_atoms', type=int))
-
-        This will add the quantity definition to this section definition,
-        and add the respective Python descriptor as an attribute to this class.
-        """
-        quantities = self.m_data.setdefault('Quantity', [])
-        quantities.append(quantity)
-
-        setattr(self.section_cls, quantity.name, quantity)
+    @cached_property
+    def all_sub_sections_by_section(self) -> Dict['Section', 'SubSection']:
+        """ All sub section definitions for this section definition by their section definition. """
+        return {
+            sub_section.sub_section: sub_section
+            for sub_section in self.m_data.get('sub_sections', [])}
 
 
 class Package(Definition):
+
+    section_definitions: 'SubSection'
+    category_definitions: 'SubSection'
 
     @staticmethod
     def from_module(module_name: str):
@@ -911,36 +945,6 @@ class Package(Definition):
             pkg.description = inspect.cleandoc(module.__doc__).strip()
 
         return pkg
-
-
-class sub_section:
-    """ Allows to assign a section class as a sub-section to another section class. """
-
-    def __init__(self, section: SectionDef, **kwargs):
-        if isinstance(section, type):
-            self.section_def = cast(MSection, section).m_def
-        else:
-            self.section_def = cast(Section, section)
-
-    def __get__(self, obj: MSection, type=None) -> Union[MSection, Section]:
-        if obj is None:
-            # the class attribute case
-            return self.section_def
-
-        else:
-            # the object attribute case
-            m_data_value = obj.m_data.get(self.section_def.name, None)
-            if m_data_value is None:
-                if self.section_def.repeats:
-                    m_data_value = []
-
-            return m_data_value
-
-    def __set__(self, obj: MSection, value: Union[MSection, List[MSection]]):
-        raise NotImplementedError('Sub sections cannot be set directly. Use m_create.')
-
-    def __delete__(self, obj):
-        raise NotImplementedError('Sub sections cannot be deleted directly.')
 
 
 class Category(Definition):
@@ -961,11 +965,12 @@ class Category(Definition):
             if self in definition.all_categories])
 
 
-Section.m_def = Section(repeats=True, name='Section', _bs=True)
+Section.m_def = Section(name='Section', _bs=True)
 Section.m_def.m_def = Section.m_def
 Section.m_def.section_cls = Section
 
-Quantity.m_def = Section(repeats=True, parent=Section.m_def, name='Quantity', _bs=True)
+Quantity.m_def = Section(name='Quantity', _bs=True)
+SubSection.m_def = Section(name='SubSection', _bs=True)
 
 Definition.name = Quantity(
     type=str, name='name', _bs=True, description='''
@@ -985,15 +990,22 @@ Definition.categories = Quantity(
     The categories that this definition belongs to. See :class:`Category`.
     ''')
 
-Section.repeats = Quantity(
+Section.quantities = SubSection(
+    sub_section=Quantity.m_def, repeats=True,
+    description='''The quantities of this section.''')
+
+Section.sub_sections = SubSection(
+    sub_section=SubSection.m_def, repeats=True,
+    description='''The sub sections of this section.''')
+
+SubSection.repeats = Quantity(
     type=bool, name='repeats', default=False, _bs=True,
-    description='''
-    Wether instances of this section can occur repeatedly in the parent section.
-    ''')
-Section.parent = Quantity(
-    type=Section.m_def, name='parent', _bs=True, description='''
-    The section definition of parent sections. Only section instances of this definition
-    can contain section instances of this definition.
+    description='''Wether this sub section can appear only once or multiple times. ''')
+
+SubSection.sub_section = Quantity(
+    type=Section.m_def, name='sub_section', _bs=True, description='''
+    The section definition for the sub section. Only section instances of this definition
+    can be contained as sub sections.
     ''')
 
 Quantity.m_def.section_cls = Quantity
@@ -1042,18 +1054,24 @@ Quantity.default = Quantity(
     The default value for this quantity.
     ''')
 
-Package.m_def = Section(repeats=True, name='Package', _bs=True)
-Package.m_def.parent = Package.m_def
+Package.m_def = Section(name='Package', _bs=True)
 
-Section.m_def.parent = Package.m_def
+Category.m_def = Section(name='Category', _bs=True)
 
-Category.m_def = Section(repeats=True, parent=Package.m_def)
+Package.section_definitions = SubSection(
+    sub_section=Section.m_def, name='section_definitions', repeats=True,
+    description=''' The sections defined in this package. ''')
+
+Package.category_definitions = SubSection(
+    sub_section=Category.m_def, name='category_definitions', repeats=True,
+    description=''' The categories defined in this package. ''')
 
 is_bootstrapping = False
 
 Package.__init_cls__()
 Category.__init_cls__()
 Section.__init_cls__()
+SubSection.__init_cls__()
 Quantity.__init_cls__()
 
 units = UnitRegistry()

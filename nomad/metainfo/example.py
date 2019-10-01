@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from nomad.metainfo import MSection, MCategory, Section, Quantity, Enum, Package, units
+from nomad.metainfo import MSection, MCategory, Section, Quantity, Enum, Package, SubSection, units
 
 m_package = Package(links=['http://metainfo.nomad-coe.eu'])
 
@@ -11,25 +11,8 @@ class SystemHash(MCategory):
     """ All quantities that contribute to what makes a system unique. """
 
 
-class Run(MSection):
-    """ All data that belongs to a single code run. """
-
-    code_name = Quantity(type=str, description='The name of the code that was run.')
-    code_version = Quantity(type=str, description='The version of the code that was run.')
-
-
-class VaspRun(MSection):
-    """ All VASP specific quantities for section Run. """
-    m_def = Section(extends=Run.m_def)
-
-    x_vasp_raw_format = Quantity(
-        type=Enum(['xml', 'outcar']),
-        description='The file format of the parsed VASP mainfile.')
-
-
 class Parsing(MSection):
     """ All data that describes the NOMAD parsing of this run. """
-    m_def = Section(parent=Run.m_def)
 
     parser_name = Quantity(type=str)
     parser_version = Quantity(type=str)
@@ -39,7 +22,6 @@ class Parsing(MSection):
 
 class System(MSection):
     """ All data that describes a simulated system. """
-    m_def = Section(repeats=True, parent=Run.m_def)
 
     n_atoms = Quantity(
         type=int, default=0,
@@ -62,6 +44,25 @@ class System(MSection):
         description='A vector of booleans indicating in which dimensions the unit cell is repeated.')
 
 
+class Run(MSection):
+    """ All data that belongs to a single code run. """
+
+    code_name = Quantity(type=str, description='The name of the code that was run.')
+    code_version = Quantity(type=str, description='The version of the code that was run.')
+
+    systems = SubSection(sub_section=System.m_def, repeats=True)
+    parsing = SubSection(sub_section=Parsing.m_def)
+
+
+class VaspRun(MSection):
+    """ All VASP specific quantities for section Run. """
+    m_def = Section(extends=Run.m_def)
+
+    x_vasp_raw_format = Quantity(
+        type=Enum(['xml', 'outcar']),
+        description='The file format of the parsed VASP mainfile.')
+
+
 if __name__ == '__main__':
     # Demonstration of how to reflect on the definitions
 
@@ -76,7 +77,7 @@ if __name__ == '__main__':
 
     # There are also some definition specific helper methods.
     # For example to get all attributes (Quantities and possible sub-sections) of a section.
-    print(Run.m_def.attributes)
+    print(Run.m_def.all_properties)
 
     # Demonstration on how to use the definitions, e.g. to create a run with system:
     run = Run()

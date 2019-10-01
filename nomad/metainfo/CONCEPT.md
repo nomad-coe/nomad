@@ -79,6 +79,8 @@ the *backend*s for data were designed for creating data only and not very *pytho
 - `categories`, a list of references to category definitions
 - `annotations`, a list of `Annotations`
 
+- *derived*: `qualified_name`
+
 
 ### Property
 
@@ -123,6 +125,10 @@ A `Section` is a special and concrete `Definition`.
 - `repeats`, a boolean
 - `extends`, list of reference to other section definitions. This section automatically inherits all quantities of the other sections. (Might not be necessary)
 
+- *derived*: `all_sub_sections`, all sub sections, included added and inherited ones, by name
+- *derived*: `all_quantities`, all quantities, included added and inherited ones, by name
+- *derived*: `all_properties`, all properties, included added and inherited ones, by name
+
 - *constraint*: `extends` is not circular
 - *constraint*: `adds_to` is not circular
 - *constraint*: all quantities that have *this* (or an `extends`) section as `section` have unique names
@@ -142,10 +148,28 @@ A `Category` is a special `Definition`.
 A `Package` is a special `Definition` that contains definitions. `Packages` are mapped
 to Python modules.
 
+- *derived*: `definitions`, all definitions in this package
+- *derived*: `sections`, all sections in this package
+- *derived*: `categories`, all categories in this package
+
 
 ### Annotations
 
 Arbitrary serializable objects that can contain additional information.
+
+
+### MSection
+
+`MSection` is a Python base-class for all sections and provides additional reflection.
+
+- `m_def`: Python variable with the definition of this section
+- `m_data`: container for all the section data
+- `m_parent`: Python variable with the parent section instance
+- `m_parent_index`: Python variable with the index in the parent's repeatable sub section
+- `m_contents()`: all sub section instances
+- `m_all_contents()`: traverse all sub and sub sub section instances
+- `m_to_dict()`: serializable dict form
+- `m_to_json()`
 
 
 ## Examples (of the Python interface)

@@ -1,1 +1,2 @@
-from .metainfo import MSection, MCategory, Definition, Section, Quantity, Category, Package, Enum, units
+from .metainfo import MSection, MCategory, Definition, Property, Quantity, SubSection, \
+    Section, Category, Package, Enum, units

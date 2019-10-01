@@ -29,7 +29,7 @@ quantities: Dict[str, Quantity] = {
         q.name, es_field='optimade.%s' % q.name,
         elastic_mapping_type=q.m_annotations['elastic']['type'])
 
-    for q in OptimadeStructureEntry.m_def.quantities.values()
+    for q in OptimadeStructureEntry.m_def.all_quantities.values()
     if 'elastic' in q.m_annotations}
 
 quantities['elements'].length_quantity = quantities['nelements']

@@ -128,11 +128,11 @@ class CalculationInfo(Resource):
                 # TODO non optimade, nomad specific properties
                 'properties': {
                     attr.name: dict(description=attr.description)
-                    for attr in OptimadeStructureEntry.m_def.attributes.values()
+                    for attr in OptimadeStructureEntry.m_def.all_properties.values()
                 },
                 'formats': ['json'],
                 'output_fields_by_format': {
-                    'json': OptimadeStructureEntry.m_def.attributes.keys()
+                    'json': OptimadeStructureEntry.m_def.all_properties.keys()
                 }
             }
         }

@@ -15,7 +15,7 @@
 import pytest
 import numpy as np
 
-from nomad.metainfo.metainfo import MSection, MCategory, Section, Quantity, Definition, Category, sub_section
+from nomad.metainfo.metainfo import MSection, MCategory, Section, Quantity, Definition, Category, SubSection
 from nomad.metainfo.example import Run, System, SystemHash, Parsing, m_package as example_package
 
 
@@ -27,13 +27,6 @@ def assert_section_def(section_def: Section):
     assert section_def.m_def.m_def == Section.m_def
 
     assert section_def.name is not None
-
-    if section_def.parent is not None:
-        if section_def.parent != section_def:
-            assert_section_def(section_def.parent)
-
-    if section_def.repeats:
-        assert section_def.parent is not None
 
 
 def assert_section_instance(section: MSection):
@@ -54,14 +47,25 @@ class TestM3:
         assert Section.name.m_def == Quantity.m_def
         assert Section.description.description is not None
 
-        assert Section.m_def.m_sub_section(Quantity, 0).name in Section.m_def.attributes
+        for quantity in Section.m_def.quantities:
+            assert quantity.name in Section.m_def.all_properties
+            assert quantity.name in Section.m_def.all_quantities
+            assert quantity.m_parent == Section.m_def
+
+        for sub_section in Section.m_def.sub_sections:
+            assert sub_section.name in Section.m_def.all_properties
+            assert sub_section.name in Section.m_def.all_sub_sections
+            assert sub_section.sub_section in Section.m_def.all_sub_sections_by_section
+            assert sub_section.m_parent == Section.m_def
+
+        assert 'quantities' in Section.m_def.all_sub_sections
+        assert 'sub_sections' in Section.m_def.all_sub_sections
 
         assert_section_instance(Section.m_def)
 
     def test_quantity(self):
         assert Quantity.m_def.m_def == Section.m_def
         assert Quantity.m_def.name == 'Quantity'
-        assert Quantity.m_def.parent == Section.m_def
 
         assert_section_instance(Quantity.m_def)
 
@@ -96,34 +100,23 @@ class TestM2:
         """ A section class without an explicit section def must set a default section def. """
         assert Run.m_def is not None
         assert Run.m_def.name == 'Run'
-        assert not Run.m_def.repeats
-        assert Run.m_def.parent is None
 
     def test_quantities(self):
         assert len(Run.m_def.quantities) == 2
-        assert Run.m_def.quantities['code_name'] == Run.__dict__['code_name']
+        assert Run.m_def.all_quantities['code_name'] in Run.m_def.quantities
+        assert Run.m_def.all_quantities['code_name'] == Run.__dict__['code_name']
 
     def test_sub_sections(self):
         assert len(Run.m_def.sub_sections) == 2
-        assert Run.m_def.sub_sections['System'] == System.m_def
+        assert Run.m_def.all_sub_sections['systems'] in Run.m_def.sub_sections
+        assert Run.m_def.all_sub_sections['systems'].sub_section == System.m_def
+        assert Run.m_def.all_sub_sections_by_section[System.m_def].sub_section == System.m_def
 
-    def test_attributes(self):
-        assert len(Run.m_def.attributes) == 4
-        assert Run.m_def.attributes['System'] == System.m_def
-        assert Run.m_def.attributes['code_name'] == Run.__dict__['code_name']
+    def test_properties(self):
+        assert len(Run.m_def.all_properties) == 4
 
     def test_get_quantity_def(self):
-        assert System.n_atoms == System.m_def.attributes['n_atoms']
-
-    def test_add_quantity(self):
-        System.m_def.add_quantity(Quantity(name='test', type=str))
-
-        system = System()
-        system.test = 'test_value'
-
-        assert 'test' in system.m_data
-        assert system.test == 'test_value'
-        assert getattr(System, 'test') == System.m_def.quantities['test']
+        assert System.n_atoms == System.m_def.all_properties['n_atoms']
 
     def test_section_name(self):
         assert Run.m_def.name == 'Run'
@@ -197,16 +190,7 @@ class TestM1:
         run = Run()
         system = run.m_create(System)
 
-        assert run.system[0] == system  # pylint: disable=E1101
-        assert run.m_sub_section(System, 0) == system
-
-    def test_children_sub_section(self):
-        setattr(Run, 'a_system_sub_section', sub_section(System))
-        run = Run()
-        system = run.m_create(System)
-
-        assert run.a_system_sub_section[0] == system  # pylint: disable=E1101
-        assert run.system[0] == system  # pylint: disable=E1101
+        assert run.systems[0] == system  # pylint: disable=E1101
         assert run.m_sub_section(System, 0) == system
 
     def test_parent_repeats(self):

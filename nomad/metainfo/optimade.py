@@ -238,7 +238,7 @@ def elastic_mapping(section: Section, base_cls: type) -> type:
 
     dct = {
         name: quantity.m_annotations['elastic']['type']()
-        for name, quantity in section.quantities.items()
+        for name, quantity in section.all_quantities.items()
         if 'elastic' in quantity.m_annotations}
 
     return type(section.name, (base_cls,), dct)
@@ -252,7 +252,7 @@ def elastic_obj(source: MSection, target_cls: type):
 
     target = target_cls()
 
-    for name, quantity in source.m_def.quantities.items():
+    for name, quantity in source.m_def.all_quantities.items():
         elastic_annotation = quantity.m_annotations.get('elastic')
         if elastic_annotation is None:
             continue
