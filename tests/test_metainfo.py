@@ -47,12 +47,12 @@ class TestM3:
         assert Section.name.m_def == Quantity.m_def
         assert Section.description.description is not None
 
-        for quantity in Section.m_def.quantities:
+        for quantity in iter(Section.m_def.quantities):
             assert quantity.name in Section.m_def.all_properties
             assert quantity.name in Section.m_def.all_quantities
             assert quantity.m_parent == Section.m_def
 
-        for sub_section in Section.m_def.sub_sections:
+        for sub_section in iter(Section.m_def.sub_sections):
             assert sub_section.name in Section.m_def.all_properties
             assert sub_section.name in Section.m_def.all_sub_sections
             assert sub_section.sub_section in Section.m_def.all_sub_sections_by_section
@@ -141,11 +141,11 @@ class TestM2:
     def test_package(self):
         assert example_package.name == 'nomad.metainfo.example'
         assert example_package.description == 'An example metainfo package.'
-        assert len(example_package.m_sub_sections(Section)) == 4
+        assert len(example_package.m_sub_sections(Section)) == 3
         assert len(example_package.m_sub_sections(Category)) == 1
 
     def test_base_sections(self):
-        assert Definition.m_def in Section.m_def.base_sections
+        assert Definition.m_def in iter(Section.m_def.base_sections)
         print(Section.m_def.base_sections)
         assert 'name' in Section.m_def.all_quantities
         assert 'name' in Quantity.m_def.all_quantities
@@ -248,7 +248,7 @@ class TestM1:
     def test_synonym(self):
         system = System()
         system.lattice_vectors = [[1.2e-10, 0, 0], [0, 1.2e-10, 0], [0, 0, 1.2e-10]]
-        assert system.unit_cell == system.lattice_vectors
+        assert np.array_equal(system.unit_cell, system.lattice_vectors)
 
     @pytest.fixture(scope='function')
     def example_data(self):

@@ -136,11 +136,12 @@ See the reference of classes :class:`Section` and :class:`Quantities` for detail
 
 # TODO validation
 
-from typing import Type, TypeVar, Union, Tuple, Iterable, List, Any, Dict, cast
+from typing import Type, TypeVar, Union, Tuple, Iterable, List, Any, Dict, Set, cast
 import sys
 import inspect
 import re
 import json
+import itertools
 
 import numpy as np
 from pint.unit import _Unit
@@ -148,6 +149,7 @@ from pint import UnitRegistry
 
 is_bootstrapping = True
 MSectionBound = TypeVar('MSectionBound', bound='MSection')
+T = TypeVar('T')
 
 
 # Reflection
@@ -176,7 +178,7 @@ class DataType:
 
 
 class Dimension(DataType):
-    def type_check(self, value):
+    def type_check(self, section, value):
         if isinstance(value, int):
             return value
 
@@ -206,28 +208,6 @@ class Reference(DataType):
     def __init__(self, section: 'Section'):
         self.section = section
 
-
-class QuantityReference(Reference):
-    """ Instances represent a special reference type to reference other Quantities.
-
-    It will allow quantity names as values and resolve them to the actual quantitiy
-    definition. Only works for quantities defined within the same section.
-    """
-
-    def __init__(self):
-        super().__init__(Quantity.m_def)
-
-    def normalize(self, section: 'MSection', value: Union[str, 'Quantity']):
-        if isinstance(value, Quantity):
-            if value.m_parent != section.m_def:
-                raise TypeError('Must be a quantity of the same section.')
-            return value
-
-        value = section.m_def.all_quantities[value]
-        if value is not None:
-            raise TypeError('Must be the name of a quantity in the same section.')
-
-        return value
 
 # TODO class Unit(DataType)
 # TODO class Datetime(DataType)
@@ -325,11 +305,11 @@ class MSection(metaclass=MObjectMeta):
                 self.m_data[key] = value
 
         else:
-            # self.m_data = {}
-            # self.m_update(**rest)
             self.m_data = {}
-            for key, value in rest.items():
-                self.m_data[key] = value
+            self.m_update(**rest)
+            # self.m_data = {}
+            # for key, value in rest.items():
+            #     self.m_data[key] = value
 
     @classmethod
     def __init_cls__(cls):
@@ -386,7 +366,7 @@ class MSection(metaclass=MObjectMeta):
 
         if value is None and not check_item and definition.default is None:
             # Allow the default None value even if it would violate the type
-            return
+            return value
 
         def check_value(value):
             if isinstance(definition.type, Enum):
@@ -395,11 +375,15 @@ class MSection(metaclass=MObjectMeta):
 
             elif isinstance(definition.type, type):
                 if not isinstance(value, definition.type):
-                    raise TypeError('Value has wrong type.')
+                    raise TypeError(
+                        'Value %s is not of type %s, required by quantity %s.' %
+                        (value, definition.type, definition))
 
             elif isinstance(definition.type, Section):
-                if not isinstance(value, MSection) or value.m_def != definition.type:
-                    raise TypeError('The value is not a section of wrong section definition')
+                if not isinstance(value, MSection) or not value.m_follows(definition.type):
+                    raise TypeError(
+                        'The section %s is not of section definition %s, required by quantity %s.' %
+                        (value, definition.type, definition))
 
             elif isinstance(definition.type, DataType):
                 value = definition.type.type_check(self, value)
@@ -606,7 +590,7 @@ class MSection(metaclass=MObjectMeta):
         for name, value in kwargs.items():
             prop = self.m_def.all_properties.get(name, None)
             if prop is None:
-                raise KeyError('%s is not an attribute of this section' % name)
+                raise KeyError('%s is not an attribute of this section %s' % (name, self))
 
             if isinstance(prop, SubSection):
                 if prop.repeats:
@@ -620,6 +604,9 @@ class MSection(metaclass=MObjectMeta):
 
             else:
                 setattr(self, name, value)
+
+    def m_follows(self, definition: 'Section') -> bool:
+        return self.m_def == definition or self.m_def in definition.all_base_sections
 
     def m_to_dict(self) -> Dict[str, Any]:
         """Returns the data of this section as a json serializeable dictionary. """
@@ -851,14 +838,14 @@ class Quantity(Property):
     __synonym_for = property(lambda self: self.m_data.get('synonym_for', None))
     __default = property(lambda self: self.m_data.get('default', None))
 
-    def __get__(self, obj, type=None):
+    def __get__(self, obj, cls):
         if obj is None:
             # class (def) attribute case
             return self
 
         # object (instance) attribute case
         if self.__synonym_for is not None:
-            return getattr(obj, self.__synonym_for.name)
+            return getattr(obj, self.__synonym_for)
 
         try:
             return obj.m_data[self.__name]
@@ -872,7 +859,7 @@ class Quantity(Property):
 
         # object (instance) case
         if self.__synonym_for is not None:
-            return setattr(obj, self.__synonym_for.name, value)
+            return setattr(obj, self.__synonym_for, value)
 
         if type(self.type) == np.dtype:
             if type(value) != np.ndarray:
@@ -884,6 +871,7 @@ class Quantity(Property):
             value = value.tolist()
 
         value = obj.m_type_check(self, value)
+
         obj.m_data[self.__name] = value
 
     def __delete__(self, obj):
@@ -904,7 +892,7 @@ class SubSection(Property):
     sub_section: 'Quantity' = None
     repeats: 'Quantity' = None
 
-    def __get__(self, obj: MSection, type=None) -> Union[MSection, 'Section']:
+    def __get__(self, obj, type=None):
         if obj is None:
             # the class attribute case
             return self
@@ -919,7 +907,7 @@ class SubSection(Property):
 
             return m_data_value
 
-    def __set__(self, obj: MSection, value: Union[MSection, List[MSection]]):
+    def __set__(self, obj, value):
         raise NotImplementedError('Sub sections cannot be set directly. Use m_create.')
 
     def __delete__(self, obj):
@@ -948,6 +936,15 @@ class Section(Definition):
     base_sections: 'Quantity' = None
     # TODO extends = Quantity(type=bool), denotes this section as a container for
     #      new quantities that belong to the base-class section definitions
+    @cached_property
+    def all_base_sections(self) -> Set['Section']:
+        all_base_sections: Set['Section'] = set()
+        for base_section in self.base_sections:  # pylint: disable=not-an-iterable
+            for base_base_section in base_section.all_base_sections:
+                all_base_sections.add(base_base_section)
+
+            all_base_sections.add(base_section)
+        return all_base_sections
 
     @cached_property
     def all_properties(self) -> Dict[str, Union['SubSection', Quantity]]:
@@ -962,7 +959,7 @@ class Section(Definition):
         """ All quantity definition in the given section definition. """
 
         all_quantities: Dict[str, Quantity] = {}
-        for section in self.base_sections + [self]:
+        for section in itertools.chain(self.all_base_sections, [self]):
             for quantity in section.m_data.get('quantities', []):
                 all_quantities[quantity.name] = quantity
 
@@ -1031,6 +1028,8 @@ Definition.m_def = Section(name='Definition')
 Property.m_def = Section(name='Property')
 Quantity.m_def = Section(name='Quantity')
 SubSection.m_def = Section(name='SubSection')
+Category.m_def = Section(name='Category')
+Package.m_def = Section(name='Package')
 
 Definition.name = Quantity(
     type=str, name='name', description='''
@@ -1097,7 +1096,7 @@ Quantity.type = Quantity(
     In the NOMAD CoE meta-info this was basically the ``dTypeStr``.
     ''')
 Quantity.shape = Quantity(
-    type=Dimension, shape=['0..*'], name='shape', description='''
+    type=Dimension(), shape=['0..*'], name='shape', description='''
     The shape of the quantity that defines its dimensionality.
 
     A shape is a list, where each item defines a dimension. Each dimension can be:
@@ -1121,14 +1120,11 @@ Quantity.default = Quantity(
     The default value for this quantity.
     ''')
 Quantity.synonym_for = Quantity(
-    type=QuantityReference(), description='''
+    type=str, description='''
     With this set, the quantitiy will become a virtual quantity and its data is not stored
-    directly. Setting and getting quantity, will change the *synonym* quantity instead.
+    directly. Setting and getting quantity, will change the *synonym* quantity instead. Use
+    the name of the quantity as value.
     ''')
-
-Package.m_def = Section(name='Package')
-
-Category.m_def = Section(name='Category')
 
 Package.section_definitions = SubSection(
     sub_section=Section.m_def, name='section_definitions', repeats=True,

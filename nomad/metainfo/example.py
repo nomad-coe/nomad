@@ -56,13 +56,13 @@ class Run(MSection):
     parsing = SubSection(sub_section=Parsing.m_def)
 
 
-class VaspRun(MSection):
-    """ All VASP specific quantities for section Run. """
-    m_def = Section(extends=Run.m_def)
+# class VaspRun(MSection):
+#     """ All VASP specific quantities for section Run. """
+#     m_def = Section(extends=Run.m_def)
 
-    x_vasp_raw_format = Quantity(
-        type=Enum(['xml', 'outcar']),
-        description='The file format of the parsed VASP mainfile.')
+#     x_vasp_raw_format = Quantity(
+#         type=Enum(['xml', 'outcar']),
+#         description='The file format of the parsed VASP mainfile.')
 
 
 if __name__ == '__main__':

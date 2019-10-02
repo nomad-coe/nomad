@@ -2,7 +2,7 @@ from ase.data import chemical_symbols
 from elasticsearch_dsl import Keyword, Integer, Float, InnerDoc, Nested
 import numpy as np
 
-from nomad.metainfo import MSection, Section, Quantity, Enum, units
+from nomad.metainfo import MSection, Section, Quantity, SubSection, Enum, units
 
 
 def optimade_links(section: str):
@@ -25,6 +25,71 @@ class ElementRatio(InnerDoc):
 class Optimade():
     def __init__(self, query: bool = False, entry: bool = False):
         pass
+
+
+class Species(MSection):
+    """
+    Used to describe the species of the sites of this structure. Species can be pure
+    chemical elements, or virtual-crystal atoms representing a statistical occupation of a
+    given site by multiple chemical elements.
+    """
+
+    m_def = Section(links=optimade_links('h.6.2.13'))
+
+    name = Quantity(
+        type=str, a_optimade=Optimade(entry=True), description='''
+            The name of the species; the name value MUST be unique in the species list.
+        ''')
+
+    chemical_symbols = Quantity(
+        type=Enum(chemical_symbols + ['x', 'vacancy']), shape=['1..*'],
+        a_optimade=Optimade(entry=True), description='''
+            A list of strings of all chemical elements composing this species.
+
+            It MUST be one of the following:
+
+            - a valid chemical-element name, or
+            - the special value "X" to represent a non-chemical element, or
+            - the special value "vacancy" to represent that this site has a non-zero probability
+            of having a vacancy (the respective probability is indicated in the concentration
+            list, see below).
+
+            If any one entry in the species list has a chemical_symbols list that is longer than 1
+            element, the correct flag MUST be set in the list structure_features (see
+            structure_features)
+        ''')
+
+    concentration = Quantity(
+        type=float, shape=['1..*'],
+        a_optimade=Optimade(entry=True), description='''
+            A list of floats, with same length as chemical_symbols. The numbers represent the
+            relative concentration of the corresponding chemical symbol in this species. The
+            numbers SHOULD sum to one. Cases in which the numbers do not sum to one typically fall
+            only in the following two categories:
+
+            - Numerical errors when representing float numbers in fixed precision, e.g. for two
+            chemical symbols with concentrations 1/3 and 2/3, the concentration might look
+            something like [0.33333333333, 0.66666666666]. If the client is aware that the sum
+            is not one because of numerical precision, it can renormalize the values so that the
+            sum is exactly one.
+            - Experimental errors in the data present in the database. In this case, it is the
+            responsibility of the client to decide how to process the data.
+
+            Note that concentrations are uncorrelated between different sites (even of the same
+            species).
+        ''')
+
+    mass = Quantity(type=float, unit=units.amu, a_optimade=dict(entry='optional'))
+
+    original_name = Quantity(type=str, a_optimade=dict(entry='optional'), description='''
+        Can be any valid Unicode string, and SHOULD contain (if specified) the name of the
+        species that is used internally in the source database.
+
+        Note: With regards to "source database", we refer to the immediate source being
+        queried via the OPTiMaDe API implementation. The main use of this field is for source
+        databases that use species names, containing characters that are not allowed (see
+        description of the species_at_sites list).
+        ''')
 
 
 class OptimadeEntry(MSection):
@@ -165,72 +230,7 @@ class OptimadeEntry(MSection):
             - assemblies: This flag MUST be present if the assemblies list is present.
         ''')
 
-
-class Species(MSection):
-    """
-    Used to describe the species of the sites of this structure. Species can be pure
-    chemical elements, or virtual-crystal atoms representing a statistical occupation of a
-    given site by multiple chemical elements.
-    """
-
-    m_def = Section(
-        repeats=True, parent=OptimadeEntry.m_def,
-        links=optimade_links('h.6.2.13'))
-
-    name = Quantity(
-        type=str, a_optimade=Optimade(entry=True), description='''
-            The name of the species; the name value MUST be unique in the species list.
-        ''')
-
-    chemical_symbols = Quantity(
-        type=Enum(chemical_symbols + ['x', 'vacancy']), shape=['1..*'],
-        a_optimade=Optimade(entry=True), description='''
-            A list of strings of all chemical elements composing this species.
-
-            It MUST be one of the following:
-
-            - a valid chemical-element name, or
-            - the special value "X" to represent a non-chemical element, or
-            - the special value "vacancy" to represent that this site has a non-zero probability
-            of having a vacancy (the respective probability is indicated in the concentration
-            list, see below).
-
-            If any one entry in the species list has a chemical_symbols list that is longer than 1
-            element, the correct flag MUST be set in the list structure_features (see
-            structure_features)
-        ''')
-
-    concentration = Quantity(
-        type=float, shape=['1..*'],
-        a_optimade=Optimade(entry=True), description='''
-            A list of floats, with same length as chemical_symbols. The numbers represent the
-            relative concentration of the corresponding chemical symbol in this species. The
-            numbers SHOULD sum to one. Cases in which the numbers do not sum to one typically fall
-            only in the following two categories:
-
-            - Numerical errors when representing float numbers in fixed precision, e.g. for two
-            chemical symbols with concentrations 1/3 and 2/3, the concentration might look
-            something like [0.33333333333, 0.66666666666]. If the client is aware that the sum
-            is not one because of numerical precision, it can renormalize the values so that the
-            sum is exactly one.
-            - Experimental errors in the data present in the database. In this case, it is the
-            responsibility of the client to decide how to process the data.
-
-            Note that concentrations are uncorrelated between different sites (even of the same
-            species).
-        ''')
-
-    mass = Quantity(type=float, unit=units.amu, a_optimade=dict(entry='optional'))
-
-    original_name = Quantity(type=str, a_optimade=dict(entry='optional'), description='''
-        Can be any valid Unicode string, and SHOULD contain (if specified) the name of the
-        species that is used internally in the source database.
-
-        Note: With regards to "source database", we refer to the immediate source being
-        queried via the OPTiMaDe API implementation. The main use of this field is for source
-        databases that use species names, containing characters that are not allowed (see
-        description of the species_at_sites list).
-        ''')
+    species = SubSection(sub_section=Species.m_def, repeats=True)
 
 
 def elastic_mapping(section: Section, base_cls: type) -> type:
