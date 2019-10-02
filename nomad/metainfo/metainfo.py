@@ -168,6 +168,7 @@ class DataType:
     However, in some occasions you need to add custom data types.
     """
     def type_check(self, section, value):
+        """ Checks the given value before it is set to the given section. Can modify the value. """
         return value
 
     def to_json_serializable(self, section, value):
@@ -209,7 +210,22 @@ class Reference(DataType):
         self.section = section
 
 
-# TODO class Unit(DataType)
+class Unit(DataType):
+    def type_check(self, section, value):
+        if isinstance(value, str):
+            value = units.parse_units(value)
+
+        elif not isinstance(value, _Unit):
+            raise TypeError('Units must be given as str or pint Unit instances.')
+
+        return value
+
+    def to_json_serializable(self, section, value):
+        return value.__str__()
+
+    def from_json_serializable(self, section, value):
+        return units.parse_units(value)
+
 # TODO class Datetime(DataType)
 
 
@@ -606,6 +622,7 @@ class MSection(metaclass=MObjectMeta):
                 setattr(self, name, value)
 
     def m_follows(self, definition: 'Section') -> bool:
+        """ Determines if this section's definition is or is derived from the given definition. """
         return self.m_def == definition or self.m_def in definition.all_base_sections
 
     def m_to_dict(self) -> Dict[str, Any]:
@@ -627,29 +644,43 @@ class MSection(metaclass=MObjectMeta):
 
             for name, quantity in self.m_def.all_quantities.items():
                 if name in self.m_data:
+                    to_json_serializable = str
+                    if isinstance(quantity.type, DataType):
+                        to_json_serializable = lambda v: quantity.type.to_json_serializable(self, v)
+
+                    elif isinstance(quantity.type, Section):
+                        # TODO
+                        to_json_serializable = str
+                    else:
+                        # TODO
+                        pass
+
                     value = getattr(self, name)
+
                     if hasattr(value, 'tolist'):
-                        value = value.tolist()
+                        serializable_value = value.tolist()
 
-                    # TODO
-                    if isinstance(quantity.type, Section):
-                        value = str(value)
-                    # TODO
-                    if isinstance(value, type):
-                        value = str(value)
-                    # TODO
-                    if isinstance(value, np.dtype):
-                        value = str(value)
-                    # TODO
-                    if isinstance(value, _Unit):
-                        value = str(value)
+                    else:
+                        if len(quantity.shape) == 0:
+                            serializable_value = to_json_serializable(value)
+                        elif len(quantity.shape) == 1:
+                            serializable_value = [to_json_serializable(i) for i in value]
+                        else:
+                            raise NotImplementedError('Higher shapes (%s) not supported: %s' % (quantity.shape, quantity))
 
-                    yield name, value
+                    yield name, serializable_value
 
         return {key: value for key, value in items()}
 
     @classmethod
     def m_from_dict(cls: Type[MSectionBound], dct: Dict[str, Any]) -> MSectionBound:
+        """ Creates a section from the given data dictionary.
+
+        This is the 'oposite' of :func:`m_to_dict`. It takes a deserialized dict, e.g
+        loaded from JSON, and turns it into a proper section, i.e. instance of the given
+        section class.
+        """
+
         section_def = cls.m_def
 
         # remove m_def and m_parent_index, they set themselves automatically
@@ -1096,7 +1127,7 @@ Quantity.type = Quantity(
     In the NOMAD CoE meta-info this was basically the ``dTypeStr``.
     ''')
 Quantity.shape = Quantity(
-    type=Dimension(), shape=['0..*'], name='shape', description='''
+    type=Dimension(), shape=['0..*'], name='shape', default=[], description='''
     The shape of the quantity that defines its dimensionality.
 
     A shape is a list, where each item defines a dimension. Each dimension can be:
@@ -1108,7 +1139,7 @@ Quantity.shape = Quantity(
       and an upper bound (int or ``*`` denoting arbitrary large), e.g. ``'0..*'``, ``'1..3'``
     ''')
 Quantity.unit = Quantity(
-    type=_Unit, description='''
+    type=Unit(), description='''
     The optional physics unit for this quantity.
 
     Units are given in `pint` units. Pint is a Python package that defines units and

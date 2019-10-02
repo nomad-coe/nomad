@@ -15,7 +15,7 @@
 import pytest
 import numpy as np
 
-from nomad.metainfo.metainfo import MSection, MCategory, Section, Quantity, Definition, Category, SubSection
+from nomad.metainfo.metainfo import MSection, MCategory, Section, Quantity, Definition, Category
 from nomad.metainfo.example import Run, System, SystemHash, Parsing, m_package as example_package
 
 
@@ -149,6 +149,9 @@ class TestM2:
         print(Section.m_def.base_sections)
         assert 'name' in Section.m_def.all_quantities
         assert 'name' in Quantity.m_def.all_quantities
+
+    def test_unit(self):
+        assert System.lattice_vectors.unit is not None
 
 
 class TestM1:

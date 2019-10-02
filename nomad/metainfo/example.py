@@ -96,4 +96,4 @@ if __name__ == '__main__':
     # To serialize the data:
     print(run.m_to_json(indent=2))
 
-    # print(m_package.m_to_json(indent=2))  # type: ignore, pylint: disable=undefined-variable
+    print(m_package.m_to_json(indent=2))  # type: ignore, pylint: disable=undefined-variable
