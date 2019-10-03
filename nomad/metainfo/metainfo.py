@@ -136,20 +136,28 @@ See the reference of classes :class:`Section` and :class:`Quantities` for detail
 
 # TODO validation
 
-from typing import Type, TypeVar, Union, Tuple, Iterable, List, Any, Dict, Set, cast
+from typing import Type, TypeVar, Union, Tuple, Iterable, List, Any, Dict, Set, Callable, cast
+from collections.abc import Iterable as IterableABC
 import sys
 import inspect
 import re
 import json
 import itertools
+import time
 
 import numpy as np
 from pint.unit import _Unit
 from pint import UnitRegistry
 
+start_time = time.time()
 is_bootstrapping = True
 MSectionBound = TypeVar('MSectionBound', bound='MSection')
 T = TypeVar('T')
+
+
+class MetainfoError(Exception):
+    """ An error within the definition for metainfo data. """
+    pass
 
 
 # Reflection
@@ -240,7 +248,7 @@ class MObjectMeta(type):
         return cls
 
 
-Content = Tuple[MSectionBound, Union[List[MSectionBound], MSectionBound], str, MSectionBound]
+Content = Tuple['MSection', int, 'SubSection', 'MSection']
 
 SectionDef = Union[str, 'Section', 'SubSection', Type[MSectionBound]]
 """ Type for section definition references.
@@ -252,6 +260,267 @@ This can either be :
 - the definition of a sub section
 - or the section definition Python class
 """
+
+
+class MData:
+    """ An interface for low-level metainfo data objects.
+
+    Metainfo data objects store the data of a single section instance. This interface
+    constitutes the minimal functionality for accessing and modifying section data.
+    Different implementations of this interface, can realize different storage backends,
+    or include different rigorosity of type and shape checks.
+
+    All section instances will implement this interface, usually be delegating calls to
+    a standalone implementation of this interface. This allows to configure various
+    data backends on section instance creation.
+    """
+
+    def __getitem__(self, key):
+        raise NotImplementedError()
+
+    def __setitem__(self, key, value):
+        raise NotImplementedError()
+
+    def m_set(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> None:
+        """ Set the given value for the given quantity. """
+        raise NotImplementedError()
+
+    def m_get(self, section: 'MSection', quantity_def: 'Quantity') -> Any:
+        """ Retrieve the given value for the given quantity. """
+        raise NotImplementedError()
+
+    def m_is_set(self, section: 'MSection', quantity_def: 'Quantity') -> bool:
+        """ True iff this quantity was explicitely set. """
+        raise NotImplementedError()
+
+    def m_add_values(
+            self, section: 'MSection', quantity_def: 'Quantity', values: Any,
+            offset: int) -> None:
+        """ Add (partial) values for the given quantity of higher dimensionality. """
+        raise NotImplementedError()
+
+    def m_add_sub_section(
+            self, section: 'MSection', sub_section_def: 'SubSection',
+            sub_section: 'MSection') -> None:
+        """ Adds the given section instance as a sub section of the given sub section definition. """
+        raise NotImplementedError()
+
+    def m_get_sub_section(
+            self, section: 'MSection', sub_section_def: 'SubSection',
+            index: int) -> 'MSection':
+        """ Retrieves a single sub section of the given sub section definition. """
+        raise NotImplementedError()
+
+    def m_get_sub_sections(
+            self, section: 'MSection', sub_section_def: 'SubSection') -> Iterable['MSection']:
+        """ Retrieves  all sub sections of the given sub section definition. """
+        raise NotImplementedError()
+
+    def m_sub_section_count(self, section: 'MSection', sub_section_def: 'SubSection') -> int:
+        """ Returns the number of sub sections for the given sub section definition. """
+        raise NotImplementedError()
+
+
+class MDataDelegating(MData):
+    """ A simple delgating implementation of :class:`MData`. """
+    def __init__(self, m_data: MData):
+        self.m_data = m_data
+
+    def __getitem__(self, key):
+        return self.m_data[key]
+
+    def __setitem__(self, key, value):
+        self.m_data[key] = value
+
+    def m_set(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> None:
+        self.m_data.m_set(section, quantity_def, value)
+
+    def m_get(self, section: 'MSection', quantity_def: 'Quantity') -> Any:
+        return self.m_data.m_get(section, quantity_def)
+
+    def m_is_set(self, section: 'MSection', quantity_def: 'Quantity') -> bool:
+        return self.m_data.m_is_set(section, quantity_def)
+
+    def m_add_values(
+            self, section: 'MSection', quantity_def: 'Quantity', values: Any,
+            offset: int) -> None:
+        self.m_data.m_add_values(section, quantity_def, values, offset)
+
+    def m_add_sub_section(
+            self, section: 'MSection', sub_section_def: 'SubSection',
+            sub_section: 'MSection') -> None:
+        self.m_data.m_add_sub_section(section, sub_section_def, sub_section)
+
+    def m_get_sub_section(
+            self, section: 'MSection', sub_section_def: 'SubSection',
+            index: int) -> 'MSection':
+        return self.m_data.m_get_sub_section(section, sub_section_def, index)
+
+    def m_get_sub_sections(
+            self, section: 'MSection', sub_section_def: 'SubSection') -> Iterable['MSection']:
+        return self.m_data.m_get_sub_sections(section, sub_section_def)
+
+    def m_sub_section_count(self, section: 'MSection', sub_section_def: 'SubSection') -> int:
+        return self.m_data.m_sub_section_count(section, sub_section_def)
+
+
+class MDataDict(MData):
+    """ A simple dict backed implementaton of :class:`MData`. """
+
+    def __init__(self, dct: Dict[str, Any] = None):
+        if dct is None:
+            dct = {}
+
+        self.dct = dct
+
+    def __getitem__(self, key):
+        return self.dct[key]
+
+    def __setitem__(self, key, value):
+        self.dct[key] = value
+
+    def m_set(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> None:
+        self.dct[quantity_def.name] = value
+
+    def m_get(self, section: 'MSection', quantity_def: 'Quantity') -> Any:
+        quantity_name = quantity_def.name
+        if quantity_name not in self.dct:
+            return quantity_def.default
+        else:
+            return self.dct[quantity_name]
+
+    def m_is_set(self, section: 'MSection', quantity_def: 'Quantity') -> bool:
+        return quantity_def.name in self.dct
+
+    def m_add_values(
+            self, section: 'MSection', quantity_def: 'Quantity', values: Any,
+            offset: int) -> None:
+
+        # TODO
+        raise NotImplementedError()
+
+    def m_add_sub_section(
+            self, section: 'MSection', sub_section_def: 'SubSection',
+            sub_section: 'MSection') -> None:
+
+        sub_section_name = sub_section_def.name
+        if sub_section_def.repeats:
+            sub_section_lst = self.dct.get(sub_section_name, None)
+            if sub_section_lst is None:
+                sub_section_lst = self.dct.setdefault(sub_section_name, [])
+
+            sub_section_lst.append(sub_section)
+
+        else:
+            self.dct[sub_section_name] = sub_section
+
+    def m_get_sub_section(
+            self, section: 'MSection', sub_section_def: 'SubSection',
+            index: int) -> 'MSection':
+
+        if sub_section_def.repeats:
+            return self.dct[sub_section_def.name][index]
+
+        else:
+            return self.dct.get(sub_section_def.name, None)
+
+    def m_get_sub_sections(
+            self, section: 'MSection', sub_section_def: 'SubSection') -> Iterable['MSection']:
+        return self.dct.get(sub_section_def.name, [])
+
+    def m_sub_section_count(self, section: 'MSection', sub_section_def: 'SubSection') -> int:
+        sub_section_name = sub_section_def.name
+        if sub_section_name not in self.dct:
+            return 0
+
+        if not sub_section_def.repeats:
+            return 1
+
+        return len(self.dct[sub_section_name])
+
+
+class MDataTypeAndShapeChecks(MDataDelegating):
+    """ A :class:`MData` implementation that delegates to another :class:`MData`
+    instance after applying rigorous type/checks. It might also resolve potential
+    duck typed values, depending on quantity :class:`DataType`s.
+    """
+
+    def __init__(self, m_data: MData):
+        self.m_data = m_data
+
+    def __check_np(self, quantity_ref: 'Quantity', value: np.ndarray) -> np.ndarray:
+        # TODO
+        return value
+
+    def __check_single(
+            self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+
+        if isinstance(quantity_def.type, DataType):
+            return quantity_def.type.type_check(section, value)
+
+        elif isinstance(quantity_def.type, Section):
+            if not isinstance(value, MSection):
+                raise TypeError(
+                    'The value %s for reference quantity %s is not a section instance.' %
+                    (value, quantity_def))
+
+            if not value.m_follows(quantity_def.type):
+                raise TypeError(
+                    'The value %s for quantity %s does not follow %s' %
+                    (value, quantity_def, quantity_def.type))
+
+        elif isinstance(quantity_def.type, Enum):
+            if value not in quantity_def.type:
+                raise TypeError(
+                    'The value %s is not an enum value for quantity %s.' %
+                    (value, quantity_def))
+
+        elif quantity_def == Quantity.type:
+            # TODO check this special case of values used as quantity types
+            pass
+
+        elif quantity_def.type == Any:
+            pass
+
+        else:
+            if type(value) != quantity_def.type:
+                raise TypeError(
+                    'The value %s with type %s for quantity %s is not of type %s' %
+                    (value, type(value), quantity_def, quantity_def.type))
+
+        return value
+
+    def m_set(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> None:
+        if type(quantity_def.type) == np.dtype:
+            if type(value) != np.ndarray:
+                try:
+                    value = np.asarray(value)
+                except TypeError:
+                    raise TypeError(
+                        'Could not convert value %s of %s to a numpy array' %
+                        (value, quantity_def))
+
+            value = self.__check_np(quantity_def, value)
+
+        else:
+            dimensions = len(quantity_def.shape)
+            if dimensions == 0:
+                value = self.__check_single(section, quantity_def, value)
+
+            elif dimensions == 1:
+                if type(value) == str or not isinstance(value, IterableABC):
+                    raise TypeError(
+                        'The shape of %s requires an iterable value, but %s is not iterable.' %
+                        (quantity_def, value))
+
+                value = list(self.__check_single(section, quantity_def, item) for item in value)
+
+            else:
+                raise MetainfoError(
+                    'Only numpy arrays and dtypes can be used for higher dimensional '
+                    'quantities.')
+
+        self.m_data.m_set(section, quantity_def, value)
 
 
 class MSection(metaclass=MObjectMeta):
@@ -283,6 +552,7 @@ class MSection(metaclass=MObjectMeta):
         m_def: The section definition that defines this sections, its possible
             sub-sections and quantities.
         m_parent: The parent section instance that this section is a sub-section of.
+        m_parent_sub_section: The sub section definition that holds this section in the parent.
         m_parent_index: For repeatable sections, parent keep a list of sub-sections for
             each section definition. This is the index of this section in the respective
             parent sub-section list.
@@ -294,11 +564,14 @@ class MSection(metaclass=MObjectMeta):
 
     m_def: 'Section' = None
 
-    def __init__(self, m_def: 'Section' = None, m_parent: 'MSection' = None, **kwargs):
+    def __init__(self, m_def: 'Section' = None, m_data: MData = None, **kwargs):
+
         self.m_def: 'Section' = m_def
-        self.m_parent: 'MSection' = m_parent
+        self.m_parent: 'MSection' = None
+        self.m_parent_sub_section: 'SubSection' = None
         self.m_parent_index = -1
 
+        # get missing m_def from class
         cls = self.__class__
         if self.m_def is None:
             self.m_def = cls.m_def
@@ -307,6 +580,7 @@ class MSection(metaclass=MObjectMeta):
             assert self.m_def == cls.m_def, \
                 'Section class and section definition must match'
 
+        # get annotations from kwargs
         self.m_annotations: Dict[str, Any] = {}
         rest = {}
         for key, value in kwargs.items():
@@ -315,17 +589,16 @@ class MSection(metaclass=MObjectMeta):
             else:
                 rest[key] = value
 
-        if is_bootstrapping:
-            self.m_data: Dict[str, Any] = {}
-            for key, value in rest.items():
-                self.m_data[key] = value
+        # initialize data
+        self.m_data = m_data
+        if self.m_data is None:
+            self.m_data = MDataTypeAndShapeChecks(MDataDict())
 
+        # set remaining kwargs
+        if is_bootstrapping:
+            self.m_data.m_data.dct.update(**rest)  # type: ignore
         else:
-            self.m_data = {}
             self.m_update(**rest)
-            # self.m_data = {}
-            # for key, value in rest.items():
-            #     self.m_data[key] = value
 
     @classmethod
     def __init_cls__(cls):
@@ -349,257 +622,92 @@ class MSection(metaclass=MObjectMeta):
                     attr.description = inspect.cleandoc(attr.description).strip()
                     attr.__doc__ = attr.description
 
-                # manual manipulation of m_data due to bootstrapping
                 if isinstance(attr, Quantity):
-                    properties = m_def.m_data.setdefault('quantities', [])
+                    m_def.m_add_sub_section(Section.quantities, attr)
                 elif isinstance(attr, SubSection):
-                    properties = m_def.m_data.setdefault('sub_sections', [])
+                    m_def.m_add_sub_section(Section.sub_sections, attr)
                 else:
                     raise NotImplementedError('Unknown property kind.')
-                properties.append(attr)
-                attr.m_parent = m_def
-                attr.m_parent_index = len(properties) - 1
 
         # add base sections
         for base_cls in cls.__bases__:
             if base_cls != MSection:
-                section = getattr(base_cls, 'm_def')
-                if section is None:
+                base_section = getattr(base_cls, 'm_def')
+                if base_section is None:
                     raise TypeError(
                         'Section defining classes must have MSection or a decendant as '
                         'base classes.')
 
-                # manual manipulation of m_data due to bootstrapping
-                m_def.m_data.setdefault('base_sections', []).append(section)
+                base_sections = list(m_def.m_get(Section.base_sections))
+                base_sections.append(base_section)
+                m_def.m_set(Section.base_sections, base_sections)
 
         # add section cls' section to the module's package
         module_name = cls.__module__
         pkg = Package.from_module(module_name)
-        pkg.m_add_sub_section(cls.m_def)
+        pkg.m_add_sub_section(Package.section_definitions, cls.m_def)
 
-    def m_type_check(self, definition: 'Quantity', value: Any, check_item: bool = False):
-        """ Checks and normalized the given value according to the quantity type. """
+    def __resolve_synonym(self, quantity_def: 'Quantity') -> 'Quantity':
+        if quantity_def.synonym_for is not None:
+            return self.m_def.all_quantities[quantity_def.synonym_for]
+        return quantity_def
 
-        if value is None and not check_item and definition.default is None:
-            # Allow the default None value even if it would violate the type
-            return value
+    def m_set(self, quantity_def: 'Quantity', value: Any) -> None:
+        """ Set the given value for the given quantity. """
+        quantity_def = self.__resolve_synonym(quantity_def)
+        self.m_data.m_set(self, quantity_def, value)
 
-        def check_value(value):
-            if isinstance(definition.type, Enum):
-                if value not in definition.type:
-                    raise TypeError('Not one of the enum values.')
+    def m_get(self, quantity_def: 'Quantity') -> Any:
+        """ Retrieve the given value for the given quantity. """
+        quantity_def = self.__resolve_synonym(quantity_def)
+        return self.m_data.m_get(self, quantity_def)
 
-            elif isinstance(definition.type, type):
-                if not isinstance(value, definition.type):
-                    raise TypeError(
-                        'Value %s is not of type %s, required by quantity %s.' %
-                        (value, definition.type, definition))
+    def m_is_set(self, quantity_def: 'Quantity') -> bool:
+        quantity_def = self.__resolve_synonym(quantity_def)
+        return self.m_data.m_is_set(self, quantity_def)
 
-            elif isinstance(definition.type, Section):
-                if not isinstance(value, MSection) or not value.m_follows(definition.type):
-                    raise TypeError(
-                        'The section %s is not of section definition %s, required by quantity %s.' %
-                        (value, definition.type, definition))
+    def m_add_values(self, quantity_def: 'Quantity', values: Any, offset: int) -> None:
+        """ Add (partial) values for the given quantity of higher dimensionality. """
+        self.m_data.m_add_values(self, quantity_def, values, offset)
 
-            elif isinstance(definition.type, DataType):
-                value = definition.type.type_check(self, value)
+    def m_add_sub_section(self, sub_section_def: 'SubSection', sub_section: 'MSection') -> None:
+        """ Adds the given section instance as a sub section of the given sub section definition. """
 
-            else:
-                # TODO
-                # raise Exception('Invalid quantity type: %s' % str(definition.type))
-                pass
-
-            return value
-
-        shape = None
-        try:
-            shape = definition.shape
-        except KeyError:
-            pass
-
-        if shape is None or len(shape) == 0 or check_item:
-            value = check_value(value)
-
-        else:
-            if type(definition.type) == np.dtype:
-                if len(shape) != len(value.shape):
-                    raise TypeError('Wrong shape')
-            else:
-                if len(shape) == 1:
-                    if not isinstance(value, list):
-                        raise TypeError('Wrong shape')
-
-                    value = [check_value(item) for item in value]
-
-                else:
-                    raise NotImplementedError('Checking types is not available for complex shapes.')
-
-        # TODO check dimension
-
-        return value
-
-    def _resolve_sub_section(self, definition: SectionDef) -> 'SubSection':
-        """ Resolves and checks the given section definition. """
-
-        if isinstance(definition, type):
-            definition = getattr(definition, 'm_def', None)
-            if definition is None:
-                raise TypeError(
-                    'The type/class %s is not definining a section, i.e. not derived from '
-                    'MSection.' % str(definition))
-
-        if isinstance(definition, Section):
-            sub_section = self.m_def.all_sub_sections_by_section.get(definition, None)
-            if sub_section is None:
-                raise KeyError(
-                    'The section %s is not a sub section of %s.' %
-                    (definition.name, self.m_def.name))
-
-        elif isinstance(definition, str):
-            sub_section = self.m_def.all_sub_sections[definition]
-
-        elif isinstance(definition, SubSection):
-            sub_section = definition
-
-        else:
-            raise TypeError(
-                '%s does not refer to a section definition. Either use the section '
-                'definition, sub section definition, section class, or name.' %
-                str(definition))
-
-        if sub_section is None:
-            raise KeyError(
-                'The section %s is not a sub section of %s.' %
-                (cast(Definition, definition).name, self.m_def.name))
-
-        if sub_section.m_parent is not self.m_def:
-            raise KeyError(
-                'The section %s is not a sub section of %s.' %
-                (cast(Definition, definition).name, self.m_def.name))
-
-        return sub_section
-
-    def m_sub_sections(self, definition: SectionDef) -> List[MSectionBound]:
-        """Returns all sub sections for the given section definition
-
-        Args:
-            definition: The definition of the section.
-
-        Raises:
-            KeyError: If the definition is not for a sub section
-        """
-        sub_section = self._resolve_sub_section(definition)
-        return getattr(self, sub_section.name)
-
-    def m_sub_section(self, definition: SectionDef, parent_index: int = -1) -> MSectionBound:
-        """Returns the sub section for the given section definition and possible
-           parent_index (for repeatable sections).
-
-        Args:
-            definition: The definition of the section.
-            parent_index: The index of the desired section. This can be omitted for non
-                repeatable sections. If omitted for repeatable sections a exception
-                will be raised, if more then one sub-section exists. Likewise, if the given
-                index is out of range.
-        Raises:
-            KeyError: If the definition is not for a sub section
-            IndexError: If the given index is wrong, or if an index is given for a non
-                repeatable section
-        """
-        sub_section = self._resolve_sub_section(definition)
-
-        m_data_value = getattr(self, sub_section.name)
-
-        if m_data_value is None:
-            if sub_section.repeats:
-                m_data_value = []
-            else:
-                m_data_value = None
-
-        if isinstance(m_data_value, list):
-            m_data_values = m_data_value
-            if parent_index == -1:
-                if len(m_data_values) == 1:
-                    return m_data_values[0]
-                else:
-                    raise IndexError()
-            else:
-                return m_data_values[parent_index]
-        else:
-            if parent_index != -1:
-                raise IndexError('Not a repeatable sub section.')
-
-            return m_data_value
-
-    def m_add_sub_section(self, sub_section: MSectionBound) -> MSectionBound:
-        """Adds the given section instance as a sub section to this section."""
-
-        sub_section_def = self._resolve_sub_section(sub_section.m_def.section_cls)
-        sub_section.m_parent = self
+        parent_index = -1
         if sub_section_def.repeats:
-            values = getattr(self, sub_section_def.name)
-            sub_section.m_parent_index = len(values)
-            values.append(sub_section)
+            parent_index = self.m_sub_section_count(sub_section_def)
+        sub_section.m_parent = self
+        sub_section.m_parent_sub_section = sub_section_def
+        sub_section.m_parent_index = parent_index
 
-        else:
-            self.m_data[sub_section_def.name] = sub_section
-            sub_section.m_parent_index = -1
+        self.m_data.m_add_sub_section(self, sub_section_def, sub_section)
 
-        return sub_section
+    def m_get_sub_section(self, sub_section_def: 'SubSection', index: int) -> 'MSection':
+        """ Retrieves a single sub section of the given sub section definition. """
+        return self.m_data.m_get_sub_section(self, sub_section_def, index)
 
-    def m_create(self, definition: Type[MSectionBound], **kwargs) -> MSectionBound:
-        """Creates a subsection and adds it this this section
+    def m_get_sub_sections(self, sub_section_def: 'SubSection') -> Iterable['MSection']:
+        """ Retrieves  all sub sections of the given sub section definition. """
+        return self.m_data.m_get_sub_sections(self, sub_section_def)
 
-        Args:
-            section: The section definition of the subsection. It is either the
-                definition itself, or the python class representing the section definition.
-            **kwargs: Are used to initialize the subsection.
+    def m_sub_section_count(self, sub_section_def: 'SubSection') -> int:
+        """ Returns the number of sub sections for the given sub section definition. """
+        return self.m_data.m_sub_section_count(self, sub_section_def)
 
-        Returns:
-            The created subsection
-
-        Raises:
-            KeyError: If the given section is not a subsection of this section.
+    def m_create(self, section_cls: Type[MSectionBound], **kwargs) -> MSectionBound:
+        """ Creates a section instance and adds it to this section provided there is a
+        corresponding sub section.
         """
-        sub_section: 'SubSection' = self._resolve_sub_section(definition)
 
-        section_cls = sub_section.sub_section.section_cls
-        section_instance = section_cls(m_def=section_cls.m_def, m_parent=self, **kwargs)
+        section_def = section_cls.m_def
+        sub_section_def = self.m_def.all_sub_sections_by_section.get(section_def, None)
+        if sub_section_def is None:
+            raise TypeError('There is not sub section for %s in %s.' % (section_def, self))
 
-        return cast(MSectionBound, self.m_add_sub_section(section_instance))
+        sub_section = section_cls(**kwargs)
+        self.m_add_sub_section(sub_section_def, sub_section)
 
-    def __resolve_quantity(self, definition: Union[str, 'Quantity']) -> 'Quantity':
-        """Resolves and checks the given quantity definition. """
-        if isinstance(definition, str):
-            quantity = self.m_def.all_quantities[definition]
-
-        else:
-            if definition.m_parent != self.m_def:
-                raise KeyError('Quantity is not a quantity of this section.')
-            quantity = definition
-
-        return quantity
-
-    def m_add(self, definition: Union[str, 'Quantity'], value: Any):
-        """Adds the given value to the given quantity."""
-
-        quantity = self.__resolve_quantity(definition)
-
-        value = self.m_type_check(quantity, value, check_item=True)
-
-        m_data_values = self.m_data.setdefault(quantity.name, [])
-        m_data_values.append(value)
-
-    def m_add_values(self, definition: Union[str, 'Quantity'], values: Iterable[Any]):
-        """Adds the given values to the given quantity."""
-
-        quantity = self.__resolve_quantity(definition)
-
-        values = [self.m_type_check(quantity, value, check_item=True) for value in values]
-
-        m_data_values = self.m_data.setdefault(quantity.name, [])
-        for value in values:
-            m_data_values.append(value)
+        return cast(MSectionBound, sub_section)
 
     def m_update(self, **kwargs):
         """ Updates all quantities and sub-sections with the given arguments. """
@@ -612,14 +720,14 @@ class MSection(metaclass=MObjectMeta):
                 if prop.repeats:
                     if isinstance(value, List):
                         for item in value:
-                            self.m_add_sub_section(item)
+                            self.m_add_sub_section(prop, item)
                     else:
                         raise TypeError('Sub section %s repeats, but no list was given' % prop.name)
                 else:
-                    self.m_add_sub_section(item)
+                    self.m_add_sub_section(prop, item)
 
             else:
-                setattr(self, name, value)
+                self.m_set(prop, value)
 
     def m_follows(self, definition: 'Section') -> bool:
         """ Determines if this section's definition is or is derived from the given definition. """
@@ -633,24 +741,33 @@ class MSection(metaclass=MObjectMeta):
             if self.m_parent_index != -1:
                 yield 'm_parent_index', self.m_parent_index
 
-            for name, sub_section in self.m_def.all_sub_sections.items():
-                if name not in self.m_data:
-                    continue
-
-                if sub_section.repeats:
-                    yield name, [item.m_to_dict() for item in self.m_data[name]]
+            for name, sub_section_def in self.m_def.all_sub_sections.items():
+                if sub_section_def.repeats:
+                    if self.m_sub_section_count(sub_section_def) > 0:
+                        yield name, [
+                            item.m_to_dict()
+                            for item in self.m_get_sub_sections(sub_section_def)]
                 else:
-                    yield name, self.m_data[name].m_to_dict()
+                    sub_section = self.m_get_sub_section(sub_section_def, -1)
+                    if sub_section is not None:
+                        yield name, sub_section.m_to_dict()
 
             for name, quantity in self.m_def.all_quantities.items():
-                if name in self.m_data:
-                    to_json_serializable = str
+                if self.m_is_set(quantity):
+                    to_json_serializable: Callable[[Any], Any] = str
                     if isinstance(quantity.type, DataType):
-                        to_json_serializable = lambda v: quantity.type.to_json_serializable(self, v)
+
+                        def serialize(v):
+                            quantity.type.to_json_serializable(self, v)
+
+                        to_json_serializable = serialize
 
                     elif isinstance(quantity.type, Section):
                         # TODO
                         to_json_serializable = str
+                    elif quantity.type in [str, int, float, bool]:
+                        to_json_serializable = quantity.type
+
                     else:
                         # TODO
                         pass
@@ -720,20 +837,26 @@ class MSection(metaclass=MObjectMeta):
 
     def m_contents(self) -> Iterable[Content]:
         """Returns an iterable over all direct subs sections. """
-        for name, attr in self.m_data.items():
-            if isinstance(attr, list):
-                for value in attr:
-                    if isinstance(value, MSection):
-                        yield value, attr, name, self
+        for sub_section_def in self.m_def.all_sub_sections.values():
+            if sub_section_def.repeats:
+                index = 0
+                for sub_section in self.m_get_sub_sections(sub_section_def):
+                    yield sub_section, index, sub_section_def, self
+                    index += 1
 
-            elif isinstance(attr, MSection):
-                yield value, value, name, self
+            else:
+                sub_section = self.m_get_sub_section(sub_section_def, -1)
+                yield sub_section, -1, sub_section_def, self
 
     def __repr__(self):
         m_section_name = self.m_def.name
-        name = ''
-        if 'name' in self.m_data:
+        # name_quantity_def = self.m_def.all_quantities.get('name', None)
+        # if name_quantity_def is not None:
+        #     name = self.m_get(name_quantity_def)
+        try:
             name = self.m_data['name']
+        except KeyError:
+            name = '<noname>'
 
         return '%s:%s' % (name, m_section_name)
 
@@ -758,7 +881,7 @@ class MCategory(metaclass=MObjectMeta):
         # add section cls' section to the module's package
         module_name = cls.__module__
         pkg = Package.from_module(module_name)
-        pkg.m_add_sub_section(cls.m_def)
+        pkg.m_add_sub_section(Package.category_definitions, cls.m_def)
 
 
 # M3, the definitions that are used to write definitions. These are the section definitions
@@ -862,21 +985,42 @@ class Quantity(Property):
     # TODO converter = Quantity(type=Converter), a class with set of functions for
     #      normalizing, (de-)serializing values.
 
-    # Some quantities of Quantity cannot be read as normal quantities due to bootstraping.
-    # Those can be accessed internally through the following replacement properties that
-    # read directly from m_data.
-    __name = property(lambda self: self.m_data['name'])
-    __synonym_for = property(lambda self: self.m_data.get('synonym_for', None))
-    __default = property(lambda self: self.m_data.get('default', None))
-
     def __get__(self, obj, cls):
         if obj is None:
             # class (def) attribute case
             return self
 
-        # object (instance) attribute case
-        if self.__synonym_for is not None:
-            return getattr(obj, self.__synonym_for)
+        return obj.m_get(self)
+
+    def __set__(self, obj, value):
+        if obj is None:
+            # class (def) case
+            raise KeyError('Cannot overwrite quantity definition. Only values can be set.')
+
+        # object (instance) case
+        obj.m_set(self, value)
+
+    def __delete__(self, obj):
+        if obj is None:
+            # class (def) case
+            raise KeyError('Cannot delete quantity definition. Only values can be deleted.')
+
+        # object (instance) case
+        raise NotImplementedError('Deleting quantity values is not supported.')
+
+
+class DirectQuantity(Quantity):
+    """ Used for quantities that would cause indefinite loops due to bootstrapping. """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.__name = kwargs.get('name')
+        self.__default = kwargs.get('default')
+
+    def __get__(self, obj, cls):
+        if obj is None:
+            # class (def) attribute case
+            return self
 
         try:
             return obj.m_data[self.__name]
@@ -889,32 +1033,7 @@ class Quantity(Property):
             raise KeyError('Cannot overwrite quantity definition. Only values can be set.')
 
         # object (instance) case
-        if self.__synonym_for is not None:
-            return setattr(obj, self.__synonym_for, value)
-
-        if type(self.type) == np.dtype:
-            if type(value) != np.ndarray:
-                value = np.array(value, dtype=self.type)
-            elif self.type != value.dtype:
-                value = np.array(value, dtype=self.type)
-
-        elif type(value) == np.ndarray:
-            value = value.tolist()
-
-        value = obj.m_type_check(self, value)
-
         obj.m_data[self.__name] = value
-
-    def __delete__(self, obj):
-        if obj is None:
-            # class (def) case
-            raise KeyError('Cannot delete quantity definition. Only values can be deleted.')
-
-        # object (instance) case
-        if self.__synonym_for is not None:
-            return self.__synonym_for.__delete__(obj)
-
-        del obj.m_data[self.__name]
 
 
 class SubSection(Property):
@@ -930,19 +1049,16 @@ class SubSection(Property):
 
         else:
             # the object attribute case
-            m_data_value = obj.m_data.get(self.name, None)
-            if m_data_value is None:
-                if self.repeats:
-                    m_data_value = []
-                    obj.m_data[self.name] = m_data_value
-
-            return m_data_value
+            if self.repeats:
+                return obj.m_get_sub_sections(self)
+            else:
+                return obj.m_get_sub_section(self, -1)
 
     def __set__(self, obj, value):
         raise NotImplementedError('Sub sections cannot be set directly. Use m_create.')
 
     def __delete__(self, obj):
-        raise NotImplementedError('Sub sections cannot be deleted directly.')
+        raise NotImplementedError('Deleting sub sections is not supported.')
 
 
 class Section(Definition):
@@ -971,10 +1087,11 @@ class Section(Definition):
     def all_base_sections(self) -> Set['Section']:
         all_base_sections: Set['Section'] = set()
         for base_section in self.base_sections:  # pylint: disable=not-an-iterable
+            all_base_sections.add(base_section)
+
             for base_base_section in base_section.all_base_sections:
                 all_base_sections.add(base_base_section)
 
-            all_base_sections.add(base_section)
         return all_base_sections
 
     @cached_property
@@ -991,7 +1108,7 @@ class Section(Definition):
 
         all_quantities: Dict[str, Quantity] = {}
         for section in itertools.chain(self.all_base_sections, [self]):
-            for quantity in section.m_data.get('quantities', []):
+            for quantity in section.m_get_sub_sections(Section.quantities):
                 all_quantities[quantity.name] = quantity
 
         return all_quantities
@@ -1000,22 +1117,29 @@ class Section(Definition):
     def all_sub_sections(self) -> Dict[str, 'SubSection']:
         """ All sub section definitions for this section definition by name. """
 
-        return {
-            sub_section.name: sub_section
-            for sub_section in self.m_data.get('sub_sections', [])}
+        all_sub_sections: Dict[str, SubSection] = {}
+        for section in itertools.chain(self.all_base_sections, [self]):
+            for sub_section in section.m_get_sub_sections(Section.sub_sections):
+                all_sub_sections[sub_section.name] = sub_section
+
+        return all_sub_sections
 
     @cached_property
     def all_sub_sections_by_section(self) -> Dict['Section', 'SubSection']:
         """ All sub section definitions for this section definition by their section definition. """
-        return {
-            sub_section.sub_section: sub_section
-            for sub_section in self.m_data.get('sub_sections', [])}
+
+        all_sub_sections: Dict[Section, SubSection] = {}
+        for section in itertools.chain(self.all_base_sections, [self]):
+            for sub_section in section.m_get_sub_sections(Section.sub_sections):
+                all_sub_sections[sub_section.sub_section] = sub_section
+
+        return all_sub_sections
 
 
 class Package(Definition):
 
-    section_definitions: 'SubSection'
-    category_definitions: 'SubSection'
+    section_definitions: 'SubSection' = None
+    category_definitions: 'SubSection' = None
 
     @staticmethod
     def from_module(module_name: str):
@@ -1062,7 +1186,7 @@ SubSection.m_def = Section(name='SubSection')
 Category.m_def = Section(name='Category')
 Package.m_def = Section(name='Package')
 
-Definition.name = Quantity(
+Definition.name = DirectQuantity(
     type=str, name='name', description='''
     The name of the quantity. Must be unique within a section.
     ''')
@@ -1081,11 +1205,11 @@ Definition.categories = Quantity(
     ''')
 
 Section.quantities = SubSection(
-    sub_section=Quantity.m_def, repeats=True,
+    sub_section=Quantity.m_def, name='quantities', repeats=True,
     description='''The quantities of this section.''')
 
 Section.sub_sections = SubSection(
-    sub_section=SubSection.m_def, repeats=True,
+    sub_section=SubSection.m_def, name='sub_sections', repeats=True,
     description='''The sub sections of this section.''')
 Section.base_sections = Quantity(
     type=Section, shape=['0..*'], default=[], name='base_sections',
@@ -1139,19 +1263,19 @@ Quantity.shape = Quantity(
       and an upper bound (int or ``*`` denoting arbitrary large), e.g. ``'0..*'``, ``'1..3'``
     ''')
 Quantity.unit = Quantity(
-    type=Unit(), description='''
+    type=Unit(), name='unit', description='''
     The optional physics unit for this quantity.
 
     Units are given in `pint` units. Pint is a Python package that defines units and
     their algebra. There is a default registry :data:`units` that you can use.
     Example units are: ``units.m``, ``units.m / units.s ** 2``.
     ''')
-Quantity.default = Quantity(
-    type=None, default=None, description='''
+Quantity.default = DirectQuantity(
+    type=Any, default=None, name='default', description='''
     The default value for this quantity.
     ''')
-Quantity.synonym_for = Quantity(
-    type=str, description='''
+Quantity.synonym_for = DirectQuantity(
+    type=str, name='synonym_for', description='''
     With this set, the quantitiy will become a virtual quantity and its data is not stored
     directly. Setting and getting quantity, will change the *synonym* quantity instead. Use
     the name of the quantity as value.
@@ -1174,6 +1298,8 @@ Category.__init_cls__()
 Section.__init_cls__()
 SubSection.__init_cls__()
 Quantity.__init_cls__()
+
+print('Metainfo initialization took %d ms' % ((time.time() - start_time) * 1000))
 
 units = UnitRegistry()
 """ The default pint unit registry that should be used to give units to quantity definitions. """

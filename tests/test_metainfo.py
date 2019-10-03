@@ -15,7 +15,7 @@
 import pytest
 import numpy as np
 
-from nomad.metainfo.metainfo import MSection, MCategory, Section, Quantity, Definition, Category
+from nomad.metainfo.metainfo import MSection, MCategory, Section, Quantity, Definition, Package
 from nomad.metainfo.example import Run, System, SystemHash, Parsing, m_package as example_package
 
 
@@ -33,7 +33,7 @@ def assert_section_instance(section: MSection):
     assert_section_def(section.m_def)
 
     if section.m_parent is not None:
-        assert section.m_parent.m_sub_section(section.m_def, section.m_parent_index) == section
+        assert section.m_parent.m_get_sub_section(section.m_parent_sub_section, section.m_parent_index) == section
 
 
 class TestM3:
@@ -141,8 +141,8 @@ class TestM2:
     def test_package(self):
         assert example_package.name == 'nomad.metainfo.example'
         assert example_package.description == 'An example metainfo package.'
-        assert len(example_package.m_sub_sections(Section)) == 3
-        assert len(example_package.m_sub_sections(Category)) == 1
+        assert example_package.m_sub_section_count(Package.section_definitions) == 3
+        assert example_package.m_sub_section_count(Package.category_definitions) == 1
 
     def test_base_sections(self):
         assert Definition.m_def in iter(Section.m_def.base_sections)
@@ -165,7 +165,6 @@ class TestM1:
 
         assert run.m_def == Run.m_def
         assert run.m_def.name == 'Run'
-        assert len(run.m_data) == 0
 
         assert_section_instance(run)
 
@@ -177,7 +176,6 @@ class TestM1:
         system = System()
         system.atom_labels = ['H']
         assert len(system.atom_labels) == 1
-        assert len(system.m_data) == 1
 
         assert_section_instance(system)
 
@@ -200,7 +198,7 @@ class TestM1:
         system = run.m_create(System)
 
         assert run.systems[0] == system  # pylint: disable=E1101
-        assert run.m_sub_section(System, 0) == system
+        assert run.m_get_sub_section(Run.systems, 0) == system
 
     def test_parent_repeats(self):
         run = Run()
@@ -251,6 +249,8 @@ class TestM1:
     def test_synonym(self):
         system = System()
         system.lattice_vectors = [[1.2e-10, 0, 0], [0, 1.2e-10, 0], [0, 0, 1.2e-10]]
+        assert type(system.lattice_vectors) == np.ndarray
+        assert type(system.unit_cell) == np.ndarray
         assert np.array_equal(system.unit_cell, system.lattice_vectors)
 
     @pytest.fixture(scope='function')
@@ -268,7 +268,7 @@ class TestM1:
         assert_section_instance(data)
         assert data.m_def == Run.m_def
         assert data.code_name == 'test code name'
-        system: System = data.m_sub_section(System, 0)
+        system: System = data.systems[0]
         assert_section_instance(system)
         assert system.m_def == System.m_def
         assert system.n_atoms == 3

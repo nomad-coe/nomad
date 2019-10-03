@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from nomad.metainfo import MSection, MCategory, Section, Quantity, Enum, Package, SubSection, units
+from nomad.metainfo import MSection, MCategory, Section, Quantity, Package, SubSection, units
 
 m_package = Package(links=['http://metainfo.nomad-coe.eu'])
 
@@ -72,10 +72,10 @@ if __name__ == '__main__':
     # metainfo data. E.g. all section definitions are sections themselves.
 
     # To get quantities of a given section
-    print(Run.m_def.m_sub_sections(Quantity))
+    print(Run.m_def.m_get_sub_sections(Section.quantities))
 
     # Or all Sections in the package
-    print(m_package.m_sub_sections(Section))  # type: ignore, pylint: disable=undefined-variable
+    print(m_package.m_get_sub_sections(Package.section_definitions))  # type: ignore, pylint: disable=undefined-variable
 
     # There are also some definition specific helper methods.
     # For example to get all attributes (Quantities and possible sub-sections) of a section.
@@ -96,4 +96,5 @@ if __name__ == '__main__':
     # To serialize the data:
     print(run.m_to_json(indent=2))
 
+    print('###########')
     print(m_package.m_to_json(indent=2))  # type: ignore, pylint: disable=undefined-variable
