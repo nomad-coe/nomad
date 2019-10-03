@@ -160,6 +160,11 @@ class MetainfoError(Exception):
     pass
 
 
+class DeriveError(MetainfoError):
+    """ An error occurred while computing a derived value. """
+    pass
+
+
 # Reflection
 
 class Enum(list):
@@ -475,8 +480,8 @@ class MDataTypeAndShapeChecks(MDataDelegating):
                     'The value %s is not an enum value for quantity %s.' %
                     (value, quantity_def))
 
-        elif quantity_def == Quantity.type:
-            # TODO check this special case of values used as quantity types
+        elif quantity_def in [Quantity.type, Quantity.derived]:
+            # TODO check these special cases for Quantity quantities
             pass
 
         elif quantity_def.type == Any:
@@ -576,9 +581,17 @@ class MSection(metaclass=MObjectMeta):
         if self.m_def is None:
             self.m_def = cls.m_def
 
+        # check m_def
         if cls.m_def is not None:
-            assert self.m_def == cls.m_def, \
-                'Section class and section definition must match'
+            if self.m_def != cls.m_def:
+                MetainfoError('Section class and section definition must match.')
+
+            if self.m_def.extends_base_section:
+                MetainfoError('Section extends another section and cannot be instantiated.')
+
+        else:
+            if not is_bootstrapping:
+                MetainfoError('Section has not m_def.')
 
         # get annotations from kwargs
         self.m_annotations: Dict[str, Any] = {}
@@ -614,6 +627,43 @@ class MSection(metaclass=MObjectMeta):
             m_def.description = inspect.cleandoc(cls.__doc__).strip()
         m_def.section_cls = cls
 
+        # add base sections
+        if m_def.extends_base_section:
+            base_sections_count = len(cls.__bases__)
+            if base_sections_count == 0:
+                raise MetainfoError(
+                    'Section %s extend the base section, but has no base section.' % m_def)
+
+            elif base_sections_count > 1:
+                raise MetainfoError(
+                    'Section %s extend the base section, but has more than one base section' % m_def)
+
+            base_section_cls = cls.__bases__[0]
+            base_section = getattr(base_section_cls, 'm_def', None)
+            if base_section is None:
+                raise MetainfoError(
+                    'The base section of %s is not a section class.' % m_def)
+
+            for name, attr in cls.__dict__.items():
+                if isinstance(attr, Property):
+                    setattr(base_section_cls, name, attr)
+
+            section_to_add_properties_to = base_section
+        else:
+            for base_cls in cls.__bases__:
+                if base_cls != MSection:
+                    base_section = getattr(base_cls, 'm_def')
+                    if base_section is None:
+                        raise TypeError(
+                            'Section defining classes must have MSection or a decendant as '
+                            'base classes.')
+
+                    base_sections = list(m_def.m_get(Section.base_sections))
+                    base_sections.append(base_section)
+                    m_def.m_set(Section.base_sections, base_sections)
+
+            section_to_add_properties_to = m_def
+
         for name, attr in cls.__dict__.items():
             # transfer names and descriptions for properties
             if isinstance(attr, Property):
@@ -623,24 +673,11 @@ class MSection(metaclass=MObjectMeta):
                     attr.__doc__ = attr.description
 
                 if isinstance(attr, Quantity):
-                    m_def.m_add_sub_section(Section.quantities, attr)
+                    section_to_add_properties_to.m_add_sub_section(Section.quantities, attr)
                 elif isinstance(attr, SubSection):
-                    m_def.m_add_sub_section(Section.sub_sections, attr)
+                    section_to_add_properties_to.m_add_sub_section(Section.sub_sections, attr)
                 else:
                     raise NotImplementedError('Unknown property kind.')
-
-        # add base sections
-        for base_cls in cls.__bases__:
-            if base_cls != MSection:
-                base_section = getattr(base_cls, 'm_def')
-                if base_section is None:
-                    raise TypeError(
-                        'Section defining classes must have MSection or a decendant as '
-                        'base classes.')
-
-                base_sections = list(m_def.m_get(Section.base_sections))
-                base_sections.append(base_section)
-                m_def.m_set(Section.base_sections, base_sections)
 
         # add section cls' section to the module's package
         module_name = cls.__module__
@@ -655,15 +692,26 @@ class MSection(metaclass=MObjectMeta):
     def m_set(self, quantity_def: 'Quantity', value: Any) -> None:
         """ Set the given value for the given quantity. """
         quantity_def = self.__resolve_synonym(quantity_def)
+        if quantity_def.derived is not None:
+            raise MetainfoError('The quantity %s is derived and cannot be set.' % quantity_def)
         self.m_data.m_set(self, quantity_def, value)
 
     def m_get(self, quantity_def: 'Quantity') -> Any:
         """ Retrieve the given value for the given quantity. """
         quantity_def = self.__resolve_synonym(quantity_def)
+        if quantity_def.derived is not None:
+            try:
+                return quantity_def.derived(self)
+            except Exception as e:
+                raise DeriveError('Could not derive value for %s: %s' % (quantity_def, str(e)))
+
         return self.m_data.m_get(self, quantity_def)
 
     def m_is_set(self, quantity_def: 'Quantity') -> bool:
         quantity_def = self.__resolve_synonym(quantity_def)
+        if quantity_def.derived is not None:
+            return True
+
         return self.m_data.m_is_set(self, quantity_def)
 
     def m_add_values(self, quantity_def: 'Quantity', values: Any, offset: int) -> None:
@@ -729,6 +777,10 @@ class MSection(metaclass=MObjectMeta):
             else:
                 self.m_set(prop, value)
 
+    def m_as(self, section_cls: Type[MSectionBound]) -> MSectionBound:
+        """ 'Casts' this section to the given extending sections. """
+        return cast(MSectionBound, self)
+
     def m_follows(self, definition: 'Section') -> bool:
         """ Determines if this section's definition is or is derived from the given definition. """
         return self.m_def == definition or self.m_def in definition.all_base_sections
@@ -753,7 +805,7 @@ class MSection(metaclass=MObjectMeta):
                         yield name, sub_section.m_to_dict()
 
             for name, quantity in self.m_def.all_quantities.items():
-                if self.m_is_set(quantity):
+                if self.m_is_set(quantity) and quantity.derived is None:
                     to_json_serializable: Callable[[Any], Any] = str
                     if isinstance(quantity.type, DataType):
 
@@ -979,6 +1031,7 @@ class Quantity(Property):
     unit: 'Quantity' = None
     default: 'Quantity' = None
     synonym_for: 'Quantity' = None
+    derived: 'Quantity' = None
 
     # TODO derived_from = Quantity(type=Quantity, shape=['0..*'])
     # TODO categories = Quantity(type=Category, shape=['0..*'])
@@ -1081,8 +1134,8 @@ class Section(Definition):
     sub_sections: 'SubSection' = None
 
     base_sections: 'Quantity' = None
-    # TODO extends = Quantity(type=bool), denotes this section as a container for
-    #      new quantities that belong to the base-class section definitions
+    extends_base_section: 'Quantity' = None
+
     @cached_property
     def all_base_sections(self) -> Set['Section']:
         all_base_sections: Set['Section'] = set()
@@ -1217,7 +1270,12 @@ Section.base_sections = Quantity(
     Inherit all quantity and sub section definitions from the given sections.
     Will be derived from Python base classes.
     ''')
-
+Section.extends_base_section = Quantity(
+    type=bool, default=False, name='extends_base_section',
+    description='''
+    If True, the quantity definitions of this section will be added to the base section.
+    Only one base section is allowed.
+    ''')
 
 SubSection.repeats = Quantity(
     type=bool, name='repeats', default=False,
@@ -1276,9 +1334,14 @@ Quantity.default = DirectQuantity(
     ''')
 Quantity.synonym_for = DirectQuantity(
     type=str, name='synonym_for', description='''
-    With this set, the quantitiy will become a virtual quantity and its data is not stored
+    With this set, the quantity will become a virtual quantity and its data is not stored
     directly. Setting and getting quantity, will change the *synonym* quantity instead. Use
     the name of the quantity as value.
+    ''')
+Quantity.derived = DirectQuantity(
+    type=Callable, default=None, name='derived', description='''
+    Derived quantities are computed from other quantities of the same section. The value
+    of derived needs to be a callable that takes the section and returns a value.
     ''')
 
 Package.section_definitions = SubSection(
