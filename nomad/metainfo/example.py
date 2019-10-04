@@ -65,6 +65,10 @@ class Run(MSection):
     systems = SubSection(sub_section=System, repeats=True)
     sccs = SubSection(sub_section=SCC, repeats=True)
 
+    def c_one_scc_per_system(self):
+        assert self.m_sub_section_count(Run.systems) == self.m_sub_section_count(Run.sccs),\
+            'Numbers of system does not match numbers of calculations.'
+
 
 class VaspRun(Run):
     """ All VASP specific quantities for section Run. """
@@ -113,6 +117,9 @@ if __name__ == '__main__':
     # Or to read data from existing metainfo data:
     print(system.atom_labels)
     print(system.n_atoms)
+
+    # To validate dimensions and custom constraints
+    print('errors: %s' % run.m_all_validate())
 
     # To serialize the data:
     serializable = run.m_to_dict()

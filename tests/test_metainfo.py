@@ -161,6 +161,9 @@ class TestM2:
         assert getattr(Run, 'x_vasp_raw_format', None) is not None
         assert 'x_vasp_raw_format' in Run.m_def.all_quantities
 
+    def test_constraints(self):
+        assert len(Run.m_def.constraints) > 0
+
 
 class TestM1:
     """ Test for meta-info instances. """
@@ -314,3 +317,10 @@ class TestM1:
 
         assert run.m_resolve('/systems/0') == system
         assert system.m_resolve('/systems/0') == system
+
+    def test_validate(self):
+        run = Run()
+        run.m_create(System)
+
+        errors = run.m_validate()
+        assert len(errors) == 1

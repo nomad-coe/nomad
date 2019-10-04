@@ -135,7 +135,6 @@ See the reference of classes :class:`Section` and :class:`Quantities` for detail
 """
 
 # TODO event mechanism
-# TODO validation and constraints
 
 from typing import Type, TypeVar, Union, Tuple, Iterable, List, Any, Dict, Set, \
     Callable as TypingCallable, cast
@@ -731,6 +730,7 @@ class MSection(metaclass=MObjectMeta):
 
             section_to_add_properties_to = m_def
 
+        constraints: List[str] = []
         for name, attr in cls.__dict__.items():
             # transfer names and descriptions for properties
             if isinstance(attr, Property):
@@ -745,6 +745,13 @@ class MSection(metaclass=MObjectMeta):
                     section_to_add_properties_to.m_add_sub_section(Section.sub_sections, attr)
                 else:
                     raise NotImplementedError('Unknown property kind.')
+
+            # transfer constraints
+            if inspect.isfunction(attr) and attr.__name__.startswith('c_'):
+                constraint = attr.__name__[2:]
+                constraints.append(constraint)
+
+        m_def.constraints = constraints
 
         # add section cls' section to the module's package
         module_name = cls.__module__
@@ -1081,7 +1088,7 @@ class MSection(metaclass=MObjectMeta):
         return json.dumps(self.m_to_dict(), **kwargs)
 
     def m_all_contents(self) -> Iterable[Content]:
-        """Returns an iterable over all sub and sub subs sections. """
+        """ Returns an iterable over all sub and sub subs sections. """
         for content in self.m_contents():
             for sub_content in content[0].m_all_contents():
                 yield sub_content
@@ -1172,6 +1179,34 @@ class MSection(metaclass=MObjectMeta):
                 return context.m_get(prop_def)
 
         return cast(MSectionBound, context)
+
+    def m_validate(self):
+        """ Evaluates all constraints of this section and returns a list of errors. """
+        errors: List[str] = []
+        for constraint_name in self.m_def.constraints:
+            constraint = getattr(self, 'c_%s' % constraint_name, None)
+            if constraint is None:
+                raise MetainfoError(
+                    'Could not find implementation for contraint %s of section %s.' %
+                    (constraint_name, self.m_def))
+
+            try:
+                constraint()
+            except AssertionError as e:
+                error_str = str(e).strip()
+                if error_str == '':
+                    error_str = 'Constraint %s violated.' % constraint_name
+                errors.append(error_str)
+
+        return errors
+
+    def m_all_validate(self):
+        errors: List[str] = []
+        for section, _, _, _ in itertools.chain([(self, None, None, None)], self.m_all_contents()):
+            for error in section.m_validate():
+                errors.append(error)
+
+        return errors
 
     def __repr__(self):
         m_section_name = self.m_def.name
@@ -1408,6 +1443,7 @@ class Section(Definition):
 
     base_sections: 'Quantity' = None
     extends_base_section: 'Quantity' = None
+    constraints: 'Quantity' = None
 
     @cached_property
     def all_base_sections(self) -> Set['Section']:
@@ -1548,6 +1584,17 @@ Section.extends_base_section = Quantity(
     description='''
     If True, the quantity definitions of this section will be added to the base section.
     Only one base section is allowed.
+    ''')
+Section.constraints = Quantity(
+    type=str, shape=['0..*'], name='constraints', description='''
+    Constraints are rules that a section must fulfil to be valid. This allows to implement
+    semantic checks that goes behind mere type or shape checks. This quantity takes
+    the names of constraints. Constraints have to be implemented as methods of the
+    section definition class. These constraints functions must be named ``c_<constraint name>```
+    and have no additional parameters. They can raise :class:`ConstraintVialated` or
+    an AssertionError to indicate that the constraint is not fulfilled for the ``self``
+    section. This quantity will be set automatically from all ``c_`` methods in the
+    respective section class.
     ''')
 
 SubSection.repeats = Quantity(
