@@ -28,21 +28,21 @@ class System(MSection):
         description='Number of atoms in the simulated system.')
 
     atom_labels = Quantity(
-        type=str, shape=['n_atoms'], categories=[SystemHash.m_def],
+        type=str, shape=['n_atoms'], categories=[SystemHash],
         description='The atoms in the simulated systems.')
 
     atom_positions = Quantity(
-        type=np.dtype('f'), shape=['n_atoms', 3], unit=units.m, categories=[SystemHash.m_def],
+        type=np.dtype('f'), shape=['n_atoms', 3], unit=units.m, categories=[SystemHash],
         description='The atom positions in the simulated system.')
 
     lattice_vectors = Quantity(
-        type=np.dtype('f'), shape=[3, 3], unit=units.m, categories=[SystemHash.m_def],
+        type=np.dtype('f'), shape=[3, 3], unit=units.m, categories=[SystemHash],
         description='The lattice vectors of the simulated unit cell.')
 
     unit_cell = Quantity(synonym_for='lattice_vectors')
 
     periodic_dimensions = Quantity(
-        type=bool, shape=[3], default=[False, False, False], categories=[SystemHash.m_def],
+        type=bool, shape=[3], default=[False, False, False], categories=[SystemHash],
         description='A vector of booleans indicating in which dimensions the unit cell is repeated.')
 
 
@@ -50,7 +50,7 @@ class SCC(MSection):
 
     energy_total = Quantity(type=float, default=0.0, unit=units.J)
 
-    system = Quantity(type=System.m_def, description='The system that this calculation is based on.')
+    system = Quantity(type=System, description='The system that this calculation is based on.')
 
 
 class Run(MSection):
@@ -59,9 +59,9 @@ class Run(MSection):
     code_name = Quantity(type=str, description='The name of the code that was run.')
     code_version = Quantity(type=str, description='The version of the code that was run.')
 
-    parsing = SubSection(sub_section=Parsing.m_def)
-    systems = SubSection(sub_section=System.m_def, repeats=True)
-    sccs = SubSection(sub_section=SCC.m_def, repeats=True)
+    parsing = SubSection(sub_section=Parsing)
+    systems = SubSection(sub_section=System, repeats=True)
+    sccs = SubSection(sub_section=SCC, repeats=True)
 
 
 class VaspRun(Run):
@@ -117,4 +117,4 @@ if __name__ == '__main__':
     run = Run.m_from_dict(serializable)
     print(run.sccs[0].system)
 
-    # print(m_package.m_to_json(indent=2))  # type: ignore, pylint: disable=undefined-variable
+    print(m_package.m_to_dict())  # type: ignore, pylint: disable=undefined-variable

@@ -69,6 +69,11 @@ class TestM3:
 
         assert_section_instance(Quantity.m_def)
 
+    def test_definition(self):
+        assert len(Section.m_def.base_sections) == 1
+        assert len(Section.m_def.all_base_sections) == 1
+        assert Section.m_def.m_follows(Definition.m_def)
+
 
 class TestPureReflection:
     """ Test for using meta-info instances without knowing/using the respective definitions. """
