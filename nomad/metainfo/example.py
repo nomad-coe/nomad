@@ -1,8 +1,9 @@
 """ An example metainfo package. """
 
 import numpy as np
+from datetime import datetime
 
-from nomad.metainfo import MSection, MCategory, Section, Quantity, Package, SubSection, Enum, units
+from nomad.metainfo import MSection, MCategory, Section, Quantity, Package, SubSection, Enum, Datetime, units
 
 m_package = Package(links=['http://metainfo.nomad-coe.eu'])
 
@@ -18,6 +19,7 @@ class Parsing(MSection):
     parser_version = Quantity(type=str)
     nomad_version = Quantity(type=str)
     warnings = Quantity(type=str, shape=['0..*'])
+    parse_time = Quantity(type=Datetime)
 
 
 class System(MSection):
@@ -93,6 +95,10 @@ if __name__ == '__main__':
     run = Run()
     run.code_name = 'VASP'
     run.code_version = '1.0.0'
+
+    parsing = run.m_create(Parsing)
+    parsing.parse_time = datetime.now()
+
     run.m_as(VaspRun).x_vasp_raw_format = 'outcar'
     # The same as
     run.x_vasp_raw_format = 'outcar'  # type: ignore
@@ -117,4 +123,4 @@ if __name__ == '__main__':
     run = Run.m_from_dict(serializable)
     print(run.sccs[0].system)
 
-    print(m_package.m_to_dict())  # type: ignore, pylint: disable=undefined-variable
+    # print(m_package.m_to_json(indent=2))  # type: ignore, pylint: disable=undefined-variable

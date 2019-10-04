@@ -134,7 +134,7 @@ See the reference of classes :class:`Section` and :class:`Quantities` for detail
 .. autoclass:: Quantity
 """
 
-# TODO validation
+# TODO validation and constraints
 
 from typing import Type, TypeVar, Union, Tuple, Iterable, List, Any, Dict, Set, \
     Callable as TypingCallable, cast
@@ -148,6 +148,9 @@ import itertools
 import numpy as np
 from pint.unit import _Unit
 from pint import UnitRegistry
+import aniso8601
+from datetime import datetime
+import pytz
 
 
 m_package: 'Package' = None
@@ -384,13 +387,40 @@ class Reference(DataType):
         return MProxy(value)
 
 
+class __Datetime(DataType):
+
+    def __parse(self, datetime_str: str) -> datetime:
+        try:
+            try:
+                return aniso8601.parse_datetime(datetime_str)
+            except ValueError:
+                date = aniso8601.parse_date(datetime_str)
+                return datetime(date.year, date.month, date.day)
+        except Exception:
+            raise TypeError('Invalid date literal "{0}"'.format(datetime_str))
+
+    def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        if isinstance(value, str):
+            value = self.__parse(value)
+
+        if not isinstance(value, datetime):
+            raise TypeError('%s is not a datetime.' % value)
+
+        return value
+
+    def serialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        value.replace(tzinfo=pytz.utc)
+        return value.isoformat()
+
+    def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        return self.__parse(value)
+
+
 Dimension = __Dimension()
 Unit = __Unit()
 QuantityType = __QuantityType()
 Callable = __Callable()
-
-
-# TODO class Datetime(DataType)
+Datetime = __Datetime()
 
 
 class MObjectMeta(type):
@@ -737,10 +767,6 @@ class MSection(metaclass=MObjectMeta):
                     'The value %s is not an enum value for quantity %s.' %
                     (value, quantity_def))
 
-        elif quantity_def in [Quantity.type, Quantity.derived]:
-            # TODO check these special cases for Quantity quantities
-            pass
-
         elif quantity_def.type == Any:
             pass
 
@@ -999,45 +1025,43 @@ class MSection(metaclass=MObjectMeta):
         dct.pop('m_parent_index', None)
         dct.pop('m_parent_sub_section', None)
 
-        def items():
-            for name, sub_section_def in section_def.all_sub_sections.items():
-                if name in dct:
-                    sub_section_value = dct.pop(name)
-                    if sub_section_def.repeats:
-                        yield name, [
-                            sub_section_def.sub_section.section_cls.m_from_dict(sub_section_dct)
-                            for sub_section_dct in sub_section_value]
+        section = cls()
+
+        for name, sub_section_def in section_def.all_sub_sections.items():
+            if name in dct:
+                sub_section_value = dct.pop(name)
+                if sub_section_def.repeats:
+                    for sub_section_dct in sub_section_value:
+                        sub_section = sub_section_def.sub_section.section_cls.m_from_dict(sub_section_dct)
+                        section.m_add_sub_section(sub_section_def, sub_section)
+
+                else:
+                    sub_section = sub_section_def.sub_section.section_cls.m_from_dict(sub_section_value)
+                    section.m_add_sub_section(sub_section_def, sub_section)
+
+        for name, quantity_def in section_def.all_quantities.items():
+            if name in dct:
+                quantity_value = dct[name]
+
+                if type(quantity_def.type) == np.dtype:
+                    quantity_value = np.asarray(quantity_value)
+
+                if isinstance(quantity_def.type, DataType):
+                    dimensions = len(quantity_def.shape)
+                    if dimensions == 0:
+                        quantity_value = quantity_def.type.deserialize(
+                            section, quantity_def, quantity_value)
+                    elif dimensions == 1:
+                        quantity_value = list(
+                            quantity_def.type.deserialize(section, quantity_def, item)
+                            for item in quantity_value)
                     else:
-                        yield name, sub_section_def.sub_section.section_cls.m_from_dict(sub_section_value)
+                        raise MetainfoError(
+                            'Only numpy quantities can have more than 1 dimension.')
 
-            for name, quantity_def in section_def.all_quantities.items():
-                if name in dct:
-                    quantity_value = dct[name]
+                section.m_data.dct[name] = quantity_value  # type: ignore
 
-                    if type(quantity_def.type) == np.dtype:
-                        quantity_value = np.asarray(quantity_value)
-
-                    if isinstance(quantity_def.type, DataType):
-                        dimensions = len(quantity_def.shape)
-                        # TODO hand in the context, which is currently create after!
-                        if dimensions == 0:
-                            quantity_value = quantity_def.type.deserialize(
-                                None, quantity_def, quantity_value)
-                        elif dimensions == 1:
-                            quantity_value = list(
-                                quantity_def.type.deserialize(None, quantity_def, item)
-                                for item in quantity_value)
-                        else:
-                            raise MetainfoError(
-                                'Only numpy quantities can have more than 1 dimension.')
-
-                    yield name, quantity_value
-
-        dct = {key: value for key, value in items()}
-        section_instance = cast(MSectionBound, section_def.section_cls())
-        # TODO !do not update, but set directly!
-        section_instance.m_update(**dct)
-        return section_instance
+        return section
 
     def m_to_json(self, **kwargs):
         """Returns the data of this section as a json string. """
@@ -1271,9 +1295,6 @@ class Quantity(Property):
     virtual: 'Quantity' = None
 
     # TODO derived_from = Quantity(type=Quantity, shape=['0..*'])
-    # TODO categories = Quantity(type=Category, shape=['0..*'])
-    # TODO converter = Quantity(type=Converter), a class with set of functions for
-    #      normalizing, (de-)serializing values.
 
     def __get__(self, obj, cls):
         if obj is None:
