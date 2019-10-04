@@ -107,13 +107,13 @@ class TestM2:
         assert Run.m_def.all_quantities['code_name'] == Run.__dict__['code_name']
 
     def test_sub_sections(self):
-        assert len(Run.m_def.sub_sections) == 2
+        assert len(Run.m_def.sub_sections) == 3
         assert Run.m_def.all_sub_sections['systems'] in Run.m_def.sub_sections
         assert Run.m_def.all_sub_sections['systems'].sub_section == System.m_def
         assert Run.m_def.all_sub_sections_by_section[System.m_def].sub_section == System.m_def
 
     def test_properties(self):
-        assert len(Run.m_def.all_properties) == 5
+        assert len(Run.m_def.all_properties) == 6
 
     def test_get_quantity_def(self):
         assert System.n_atoms == System.m_def.all_properties['n_atoms']
@@ -141,7 +141,7 @@ class TestM2:
     def test_package(self):
         assert example_package.name == 'nomad.metainfo.example'
         assert example_package.description == 'An example metainfo package.'
-        assert example_package.m_sub_section_count(Package.section_definitions) == 4
+        assert example_package.m_sub_section_count(Package.section_definitions) == 5
         assert example_package.m_sub_section_count(Package.category_definitions) == 1
 
     def test_base_sections(self):
@@ -302,3 +302,10 @@ class TestM1:
         run = Run()
         run.m_as(VaspRun).x_vasp_raw_format = 'outcar'
         assert run.m_as(VaspRun).x_vasp_raw_format == 'outcar'
+
+    def test_resolve(self):
+        run = Run()
+        system = run.m_create(System)
+
+        assert run.m_resolve('/systems/0') == system
+        assert system.m_resolve('/systems/0') == system

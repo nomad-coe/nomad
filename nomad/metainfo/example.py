@@ -46,14 +46,22 @@ class System(MSection):
         description='A vector of booleans indicating in which dimensions the unit cell is repeated.')
 
 
+class SCC(MSection):
+
+    energy_total = Quantity(type=float, default=0.0, unit=units.J)
+
+    system = Quantity(type=System.m_def, description='The system that this calculation is based on.')
+
+
 class Run(MSection):
     """ All data that belongs to a single code run. """
 
     code_name = Quantity(type=str, description='The name of the code that was run.')
     code_version = Quantity(type=str, description='The version of the code that was run.')
 
-    systems = SubSection(sub_section=System.m_def, repeats=True)
     parsing = SubSection(sub_section=Parsing.m_def)
+    systems = SubSection(sub_section=System.m_def, repeats=True)
+    sccs = SubSection(sub_section=SCC.m_def, repeats=True)
 
 
 class VaspRun(Run):
@@ -92,11 +100,21 @@ if __name__ == '__main__':
     system = run.m_create(System)
     system.atom_labels = ['H', 'H', 'O']
 
+    calc = run.m_create(SCC)
+    calc.energy_total = 1.23e-10
+    calc.system = system
+
     # Or to read data from existing metainfo data:
     print(system.atom_labels)
     print(system.n_atoms)
 
     # To serialize the data:
+    serializable = run.m_to_dict()
+    # or
     print(run.m_to_json(indent=2))
+
+    # To deserialize data
+    run = Run.m_from_dict(serializable)
+    print(run.sccs[0].system)
 
     # print(m_package.m_to_json(indent=2))  # type: ignore, pylint: disable=undefined-variable

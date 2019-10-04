@@ -172,6 +172,13 @@ class Enum(list):
     pass
 
 
+class MProxy():
+    """ A placeholder object that acts as reference to a value that is not yet resolved. """
+
+    def __init__(self, url: str):
+        self.url = url
+
+
 class DataType:
     """
     Allows to define custom data types that can be used in the meta-info.
@@ -219,6 +226,7 @@ class Reference(DataType):
     is actually a reference (or references, depending on shape) to a section of the
     given definition.
     """
+    # TODO not used yet
     def __init__(self, section: 'Section'):
         self.section = section
 
@@ -464,6 +472,9 @@ class MDataTypeAndShapeChecks(MDataDelegating):
             return quantity_def.type.type_check(section, value)
 
         elif isinstance(quantity_def.type, Section):
+            if isinstance(value, MProxy):
+                return value
+
             if not isinstance(value, MSection):
                 raise TypeError(
                     'The value %s for reference quantity %s is not a section instance.' %
@@ -705,7 +716,14 @@ class MSection(metaclass=MObjectMeta):
             except Exception as e:
                 raise DeriveError('Could not derive value for %s: %s' % (quantity_def, str(e)))
 
-        return self.m_data.m_get(self, quantity_def)
+        value = self.m_data.m_get(self, quantity_def)
+
+        if isinstance(quantity_def.type, Section):
+            if isinstance(value, MProxy):
+                value = self.m_resolve(value.url)
+                self.m_data.m_set(self, quantity_def, value)
+
+        return value
 
     def m_is_set(self, quantity_def: 'Quantity') -> bool:
         quantity_def = self.__resolve_synonym(quantity_def)
@@ -750,32 +768,36 @@ class MSection(metaclass=MObjectMeta):
         section_def = section_cls.m_def
         sub_section_def = self.m_def.all_sub_sections_by_section.get(section_def, None)
         if sub_section_def is None:
-            raise TypeError('There is not sub section for %s in %s.' % (section_def, self))
+            raise TypeError('There is no sub section to hold a %s in %s.' % (section_def, self.m_def))
 
         sub_section = section_cls(**kwargs)
         self.m_add_sub_section(sub_section_def, sub_section)
 
         return cast(MSectionBound, sub_section)
 
-    def m_update(self, **kwargs):
+    def m_update(self, safe: bool = True, **kwargs):
         """ Updates all quantities and sub-sections with the given arguments. """
-        for name, value in kwargs.items():
-            prop = self.m_def.all_properties.get(name, None)
-            if prop is None:
-                raise KeyError('%s is not an attribute of this section %s' % (name, self))
+        if safe:
+            for name, value in kwargs.items():
+                prop = self.m_def.all_properties.get(name, None)
+                if prop is None:
+                    raise KeyError('%s is not an attribute of this section %s' % (name, self))
 
-            if isinstance(prop, SubSection):
-                if prop.repeats:
-                    if isinstance(value, List):
-                        for item in value:
-                            self.m_add_sub_section(prop, item)
+                if isinstance(prop, SubSection):
+                    if prop.repeats:
+                        if isinstance(value, List):
+                            for item in value:
+                                self.m_add_sub_section(prop, item)
+                        else:
+                            raise TypeError('Sub section %s repeats, but no list was given' % prop.name)
                     else:
-                        raise TypeError('Sub section %s repeats, but no list was given' % prop.name)
-                else:
-                    self.m_add_sub_section(prop, item)
+                        self.m_add_sub_section(prop, item)
 
-            else:
-                self.m_set(prop, value)
+                else:
+                    self.m_set(prop, value)
+
+        else:
+            self.m_data.m_data.dct.update(**kwargs)  # type: ignore
 
     def m_as(self, section_cls: Type[MSectionBound]) -> MSectionBound:
         """ 'Casts' this section to the given extending sections. """
@@ -806,19 +828,15 @@ class MSection(metaclass=MObjectMeta):
 
             for name, quantity in self.m_def.all_quantities.items():
                 if self.m_is_set(quantity) and quantity.derived is None:
-                    to_json_serializable: Callable[[Any], Any] = str
+                    serialize: Callable[[Any], Any] = str
                     if isinstance(quantity.type, DataType):
-
-                        def serialize(v):
-                            quantity.type.to_json_serializable(self, v)
-
-                        to_json_serializable = serialize
+                        serialize = lambda v: quantity.type.to_json_serializable(self, v)
 
                     elif isinstance(quantity.type, Section):
-                        # TODO
-                        to_json_serializable = str
+                        serialize = lambda s: s.m_path()
+
                     elif quantity.type in [str, int, float, bool]:
-                        to_json_serializable = quantity.type
+                        serialize = quantity.type
 
                     else:
                         # TODO
@@ -831,9 +849,9 @@ class MSection(metaclass=MObjectMeta):
 
                     else:
                         if len(quantity.shape) == 0:
-                            serializable_value = to_json_serializable(value)
+                            serializable_value = serialize(value)
                         elif len(quantity.shape) == 1:
-                            serializable_value = [to_json_serializable(i) for i in value]
+                            serializable_value = [serialize(i) for i in value]
                         else:
                             raise NotImplementedError('Higher shapes (%s) not supported: %s' % (quantity.shape, quantity))
 
@@ -845,7 +863,7 @@ class MSection(metaclass=MObjectMeta):
     def m_from_dict(cls: Type[MSectionBound], dct: Dict[str, Any]) -> MSectionBound:
         """ Creates a section from the given data dictionary.
 
-        This is the 'oposite' of :func:`m_to_dict`. It takes a deserialized dict, e.g
+        This is the 'opposite' of :func:`m_to_dict`. It takes a deserialised dict, e.g
         loaded from JSON, and turns it into a proper section, i.e. instance of the given
         section class.
         """
@@ -867,8 +885,14 @@ class MSection(metaclass=MObjectMeta):
                     else:
                         yield name, sub_section_def.sub_section.section_cls.m_from_dict(sub_section_value)
 
-            for key, value in dct.items():
-                yield key, value
+            for name, quantity_def in section_def.all_quantities.items():
+                if name in dct:
+                    quantity_value = dct[name]
+
+                    if isinstance(quantity_def.type, Section):
+                        quantity_value = MProxy(quantity_value)
+
+                    yield name, quantity_value
 
         dct = {key: value for key, value in items()}
         section_instance = cast(MSectionBound, section_def.section_cls())
@@ -899,6 +923,78 @@ class MSection(metaclass=MObjectMeta):
             else:
                 sub_section = self.m_get_sub_section(sub_section_def, -1)
                 yield sub_section, -1, sub_section_def, self
+
+    def m_path(self, quantity_def: 'Quantity' = None) -> str:
+        """ Returns the path of this section or the given quantity within the section hierarchy. """
+        if self.m_parent is None:
+            return '/'
+
+        if self.m_parent_index == -1:
+            segment = self.m_parent_sub_section.name
+        else:
+            segment = '%s/%d' % (self.m_parent_sub_section.name, self.m_parent_index)
+
+        if quantity_def is not None:
+            segment = '%s/%s' % (segment, quantity_def.name)
+
+        return '%s/%s' % (self.m_parent.m_path().rstrip('/'), segment)
+
+    def m_root(self, cls: Type[MSectionBound] = None) -> MSectionBound:
+        if self.m_parent is None:
+            return cast(MSectionBound, self)
+        else:
+            return self.m_parent.m_root(cls)
+
+    def m_resolve(self, path: str, cls: Type[MSectionBound] = None) -> MSectionBound:
+        """ Resolves the given path using this section as context. """
+
+        if path.startswith('/'):
+            context: 'MSection' = self.m_root()
+        else:
+            context = self
+
+        path_stack = path.strip('/').split('/')
+        path_stack.reverse()
+        while len(path_stack) > 1:
+            prop_name = path_stack.pop()
+            prop_def = context.m_def.all_properties.get(prop_name, None)
+
+            if prop_def is None:
+                raise ReferenceError(
+                    'Could not resolve %s, property %s does not exist in %s' %
+                    (path, prop_name, context.m_def))
+
+            if isinstance(prop_def, SubSection):
+                if prop_def.repeats:
+                    try:
+                        index = int(path_stack.pop())
+                    except ValueError:
+                        raise ReferenceError(
+                            'Could not resolve %s, %s repeats but there is no index in the path' %
+                            (path, prop_name))
+
+                    try:
+                        context = context.m_get_sub_section(prop_def, index)
+                    except Exception:
+                        raise ReferenceError(
+                            'Could not resolve %s, there is no sub section for %s at %d' %
+                            (path, prop_name, index))
+
+                else:
+                    context = context.m_get_sub_section(prop_def, -1)
+                    if context is None:
+                        raise ReferenceError(
+                            'Could not resolve %s, there is no sub section for %s' %
+                            (path, prop_name))
+
+            elif isinstance(prop_def, Quantity):
+                if len(path_stack) > 0:
+                    raise ReferenceError(
+                        'Could not resolve %s, %s is not a sub section' % (path, prop_name))
+
+                return context.m_get(prop_def)
+
+        return cast(MSectionBound, context)
 
     def __repr__(self):
         m_section_name = self.m_def.name
@@ -1288,7 +1384,7 @@ SubSection.sub_section = Quantity(
     ''')
 
 Quantity.m_def.section_cls = Quantity
-Quantity.type = Quantity(
+Quantity.type = DirectQuantity(
     type=Union[type, Enum, Section, np.dtype], name='type', description='''
     The type of the quantity.
 
