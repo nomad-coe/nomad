@@ -134,8 +134,6 @@ See the reference of classes :class:`Section` and :class:`Quantities` for detail
 .. autoclass:: Quantity
 """
 
-# TODO event mechanism
-
 from typing import Type, TypeVar, Union, Tuple, Iterable, List, Any, Dict, Set, \
     Callable as TypingCallable, cast
 from collections.abc import Iterable as IterableABC
@@ -730,7 +728,8 @@ class MSection(metaclass=MObjectMeta):
 
             section_to_add_properties_to = m_def
 
-        constraints: List[str] = []
+        constraints: Set[str] = set()
+        event_handlers: Set[Callable] = set(m_def.event_handlers)
         for name, attr in cls.__dict__.items():
             # transfer names and descriptions for properties
             if isinstance(attr, Property):
@@ -746,12 +745,28 @@ class MSection(metaclass=MObjectMeta):
                 else:
                     raise NotImplementedError('Unknown property kind.')
 
-            # transfer constraints
-            if inspect.isfunction(attr) and attr.__name__.startswith('c_'):
-                constraint = attr.__name__[2:]
-                constraints.append(constraint)
+            if inspect.isfunction(attr):
+                method_name = attr.__name__
 
-        m_def.constraints = constraints
+                # transfer constraints
+                if method_name.startswith('c_'):
+                    constraint = method_name[2:]
+                    constraints.add(constraint)
+
+                # register event_handlers from event_handler methods
+                if method_name.startswith('on_set') or method_name.startswith('on_add_sub_section'):
+                    if attr not in event_handlers:
+                        event_handlers.add(attr)
+
+        # add handler and constraints from base sections
+        for base_section in m_def.all_base_sections:
+            for constraint in base_section.constraints:
+                constraints.add(constraint)
+            for event_handler in base_section.event_handlers:
+                event_handlers.add(event_handler)
+
+        m_def.constraints = list(constraints)
+        m_def.event_handlers = list(event_handlers)
 
         # add section cls' section to the module's package
         module_name = cls.__module__
@@ -841,6 +856,10 @@ class MSection(metaclass=MObjectMeta):
 
         self.m_data.m_set(self, quantity_def, value)
 
+        for handler in self.m_def.event_handlers:
+            if handler.__name__.startswith('on_set'):
+                handler(self, quantity_def, value)
+
     def m_get(self, quantity_def: 'Quantity') -> Any:
         """ Retrieve the given value for the given quantity. """
         quantity_def = self.__resolve_synonym(quantity_def)
@@ -891,6 +910,10 @@ class MSection(metaclass=MObjectMeta):
         sub_section.m_parent_index = parent_index
 
         self.m_data.m_add_sub_section(self, sub_section_def, sub_section)
+
+        for handler in self.m_def.event_handlers:
+            if handler.__name__.startswith('on_add_sub_section'):
+                handler(self, sub_section_def, sub_section)
 
     def m_get_sub_section(self, sub_section_def: 'SubSection', index: int) -> 'MSection':
         """ Retrieves a single sub section of the given sub section definition. """
@@ -971,7 +994,11 @@ class MSection(metaclass=MObjectMeta):
                 if self.m_is_set(quantity) and quantity.derived is None:
                     serialize: TypingCallable[[Any], Any] = str
                     if isinstance(quantity.type, DataType):
-                        serialize = lambda v: quantity.type.serialize(self, quantity, v)
+
+                        def data_type_serialize(value):
+                            return quantity.type.serialize(self, quantity, v)
+
+                        serialize = data_type_serialize
 
                     elif quantity.type in [str, int, float, bool]:
                         serialize = quantity.type
@@ -1244,46 +1271,6 @@ class MCategory(metaclass=MObjectMeta):
         pkg.m_add_sub_section(Package.category_definitions, cls.m_def)
 
 
-# M3, the definitions that are used to write definitions. These are the section definitions
-# for sections Section and Quantity.They define themselves; i.e. the section definition
-# for Section is the same section definition.
-# Due to this circular nature (hen-egg-problem), the classes for sections Section and
-# Quantity do only contain placeholder for their own section and quantity definitions.
-# These placeholder are replaced, once the necessary classes are defined. This process
-# is referred to as 'bootstrapping'.
-
-_definition_change_counter = 0
-
-
-class cached_property:
-    """ A property that allows to cache the property value.
-
-    The cache will be invalidated whenever a new definition is added. Once all definitions
-    are loaded, the cache becomes stable and complex derived results become available
-    instantaneous.
-    """
-    def __init__(self, f):
-        self.__doc__ = getattr(f, "__doc__")
-        self.f = f
-        self.change = -1
-        self.values: Dict[type(self), Any] = {}
-
-    def __get__(self, obj, cls):
-        if obj is None:
-            return self
-
-        global _definition_change_counter
-        if self.change != _definition_change_counter:
-            self.values = {}
-
-        value = self.values.get(obj, None)
-        if value is None:
-            value = self.f(obj)
-            self.values[obj] = value
-
-        return value
-
-
 # Metainfo M3 (i.e. definitions of definitions)
 
 class Definition(MSection):
@@ -1296,9 +1283,9 @@ class Definition(MSection):
     categories: 'Quantity' = None
 
     def __init__(self, *args, **kwargs):
+        self.all_categories: Set[Category] = set()
+
         super().__init__(*args, **kwargs)
-        global _definition_change_counter
-        _definition_change_counter += 1
 
         for cls in self.__class__.mro() + [self.__class__]:
             definitions = Definition.__all_definitions.setdefault(cls, [])
@@ -1309,15 +1296,13 @@ class Definition(MSection):
         """ Returns all definitions of this definition class. """
         return cast(Iterable[MSectionBound], Definition.__all_definitions.get(cls, []))
 
-    @cached_property
-    def all_categories(self):
-        """ All categories of this definition and its categories. """
-        all_categories = list(self.categories)
-        for category in self.categories:  # pylint: disable=not-an-iterable
-            for super_category in category.all_categories:
-                all_categories.append(super_category)
-
-        return all_categories
+    def on_set(self, quantity_def, value):
+        if quantity_def == Definition.categories:
+            for category in value:
+                category.definitions.add(self)
+                self.all_categories.add(category)
+                for base_category in category.all_categories:
+                    self.all_categories.add(base_category)
 
 
 class Property(Definition):
@@ -1433,6 +1418,14 @@ class Section(Definition):
     :class:`Section` instance that describes this class as a section. This instance
     is referred to as 'section definition' in contrast to the Python class that we call
     'section class'.
+
+    Attributes:
+        all_base_sections: All direct and indirect base sections.
+        all_properties: All attribute (sub section and quantity) definitions.
+        all_quantities: All quantity definition in the given section definition.
+        all_sub_sections:  All sub section definitions for this section definition by name.
+        all_sub_sections_by_section: All sub section definitions for this section definition
+            by their section definition.
     """
 
     section_cls: Type[MSection] = None
@@ -1444,58 +1437,39 @@ class Section(Definition):
     base_sections: 'Quantity' = None
     extends_base_section: 'Quantity' = None
     constraints: 'Quantity' = None
+    event_handlers: 'Quantity' = None
 
-    @cached_property
-    def all_base_sections(self) -> Set['Section']:
-        all_base_sections: Set['Section'] = set()
-        for base_section in self.base_sections:  # pylint: disable=not-an-iterable
-            all_base_sections.add(base_section)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-            for base_base_section in base_section.all_base_sections:
-                all_base_sections.add(base_base_section)
+        self.all_base_sections: Set['Section'] = set()
+        self.all_properties: Dict[str, Union['SubSection', Quantity]] = dict()
+        self.all_quantities: Dict[str, Quantity] = dict()
+        self.all_sub_sections: Dict[str, SubSection] = dict()
+        self.all_sub_sections_by_section: Dict['Section', 'SubSection'] = dict()
 
-        return all_base_sections
+    def on_add_sub_section(self, sub_section_def, sub_section):
+        if sub_section_def == Section.quantities:
+            self.all_properties[sub_section.name] = sub_section
+            self.all_quantities[sub_section.name] = sub_section
 
-    @cached_property
-    def all_properties(self) -> Dict[str, Union['SubSection', Quantity]]:
-        """ All attribute (sub section and quantity) definitions. """
+        if sub_section_def == Section.sub_sections:
+            self.all_properties[sub_section.name] = sub_section
+            self.all_sub_sections[sub_section.name] = sub_section
+            self.all_sub_sections_by_section[sub_section.sub_section] = sub_section
 
-        properties: Dict[str, Union[SubSection, Quantity]] = dict(**self.all_quantities)
-        properties.update(**self.all_sub_sections)
-        return properties
+    def on_set(self, quantity_def, value):
+        if quantity_def == Section.base_sections:
+            for base_section in value:
+                self.all_base_sections.add(base_section)
+                for base_base_section in base_section.all_base_sections:
+                    self.all_base_sections.add(base_base_section)
 
-    @cached_property
-    def all_quantities(self) -> Dict[str, Quantity]:
-        """ All quantity definition in the given section definition. """
-
-        all_quantities: Dict[str, Quantity] = {}
-        for section in itertools.chain(self.all_base_sections, [self]):
-            for quantity in section.m_get_sub_sections(Section.quantities):
-                all_quantities[quantity.name] = quantity
-
-        return all_quantities
-
-    @cached_property
-    def all_sub_sections(self) -> Dict[str, 'SubSection']:
-        """ All sub section definitions for this section definition by name. """
-
-        all_sub_sections: Dict[str, SubSection] = {}
-        for section in itertools.chain(self.all_base_sections, [self]):
-            for sub_section in section.m_get_sub_sections(Section.sub_sections):
-                all_sub_sections[sub_section.name] = sub_section
-
-        return all_sub_sections
-
-    @cached_property
-    def all_sub_sections_by_section(self) -> Dict['Section', 'SubSection']:
-        """ All sub section definitions for this section definition by their section definition. """
-
-        all_sub_sections: Dict[Section, SubSection] = {}
-        for section in itertools.chain(self.all_base_sections, [self]):
-            for sub_section in section.m_get_sub_sections(Section.sub_sections):
-                all_sub_sections[sub_section.sub_section] = sub_section
-
-        return all_sub_sections
+                if not self.extends_base_section:
+                    self.all_properties.update(**base_section.all_properties)
+                    self.all_quantities.update(**base_section.all_quantities)
+                    self.all_sub_sections.update(**base_section.all_sub_sections)
+                    self.all_sub_sections_by_section.update(**base_section.all_sub_sections_by_section)
 
 
 class Package(Definition):
@@ -1527,14 +1501,15 @@ class Category(Definition):
     they form a `is a` relationship.
 
     In the old meta-info this was known as `abstract types`.
+
+    Attributes:
+        definitions: All definitions that are directly or indirectly in this category.
     """
 
-    @cached_property
-    def definitions(self) -> Iterable[Definition]:
-        """ All definitions that are directly or indirectly in this category. """
-        return list([
-            definition for definition in Definition.all_definitions()
-            if self in definition.all_categories])
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.definitions: Set[Definition] = set()
 
 
 Section.m_def = Section(name='Section')
@@ -1595,6 +1570,17 @@ Section.constraints = Quantity(
     an AssertionError to indicate that the constraint is not fulfilled for the ``self``
     section. This quantity will be set automatically from all ``c_`` methods in the
     respective section class.
+    ''')
+Section.event_handlers = Quantity(
+    type=Callable, shape=['0..*'], name='event_handlers', virtual=True, default=[], description='''
+    Event handler are functions that get called when the section data is changed.
+    There are two types of events: ``set`` and ``add_sub_section``. The handler type
+    is determined by the handler (i.e. function) name: ``on_set`` and ``on_add_sub_section``.
+    The handler arguments correspond to ``m_set`` (section, quantity_def, value) and
+    ``m_add_sub_section``(section, sub_section_def, sub_section). Handler are called after
+    the respective action was performed. This quantity is automatically populated with
+    handler from the section classes methods. If there is a method ``on_set`` or
+    ``on_add_sub_section``, it will be added as handler.
     ''')
 
 SubSection.repeats = Quantity(
@@ -1679,10 +1665,12 @@ Package.category_definitions = SubSection(
 
 is_bootstrapping = False
 
-Package.__init_cls__()
+Section.m_def.event_handlers = [Section.on_add_sub_section, Section.on_set]
+
 Definition.__init_cls__()
 Property.__init_cls__()
-Category.__init_cls__()
+Package.__init_cls__()
 Section.__init_cls__()
-SubSection.__init_cls__()
+Category.__init_cls__()
 Quantity.__init_cls__()
+SubSection.__init_cls__()
