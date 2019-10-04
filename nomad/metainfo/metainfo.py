@@ -698,7 +698,7 @@ class MSection(metaclass=MObjectMeta):
                 raise MetainfoError(
                     'Section %s extend the base section, but has no base section.' % m_def)
 
-            elif base_sections_count > 1:
+            if base_sections_count > 1:
                 raise MetainfoError(
                     'Section %s extend the base section, but has more than one base section' % m_def)
 
@@ -996,7 +996,7 @@ class MSection(metaclass=MObjectMeta):
                     if isinstance(quantity.type, DataType):
 
                         def data_type_serialize(value):
-                            return quantity.type.serialize(self, quantity, v)
+                            return quantity.type.serialize(self, quantity, value)
 
                         serialize = data_type_serialize
 
