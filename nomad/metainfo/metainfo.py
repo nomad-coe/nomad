@@ -134,6 +134,7 @@ See the reference of classes :class:`Section` and :class:`Quantities` for detail
 .. autoclass:: Quantity
 """
 
+# TODO event mechanism
 # TODO validation and constraints
 
 from typing import Type, TypeVar, Union, Tuple, Iterable, List, Any, Dict, Set, \
@@ -160,6 +161,8 @@ MSectionBound = TypeVar('MSectionBound', bound='MSection')
 T = TypeVar('T')
 
 
+# Metainfo errors
+
 class MetainfoError(Exception):
     """ An error within the definition for metainfo data. """
     pass
@@ -170,7 +173,7 @@ class DeriveError(MetainfoError):
     pass
 
 
-# Reflection
+# Metainfo quantity data types
 
 class Enum(list):
     """ Allows to define str types with values limited to a pre-set list of possible values. """
@@ -254,6 +257,10 @@ class __Unit(DataType):
 
     def deserialize(self, section, quantity_def: 'Quantity', value):
         return units.parse_units(value)
+
+
+units = UnitRegistry()
+""" The default pint unit registry that should be used to give units to quantity definitions. """
 
 
 class __Callable(DataType):
@@ -422,6 +429,8 @@ QuantityType = __QuantityType()
 Callable = __Callable()
 Datetime = __Datetime()
 
+
+# Metainfo data storage and reflection interface
 
 class MObjectMeta(type):
 
@@ -1236,6 +1245,8 @@ class cached_property:
         return value
 
 
+# Metainfo M3 (i.e. definitions of definitions)
+
 class Definition(MSection):
 
     __all_definitions: Dict[Type[MSection], List[MSection]] = {}
@@ -1624,6 +1635,3 @@ Category.__init_cls__()
 Section.__init_cls__()
 SubSection.__init_cls__()
 Quantity.__init_cls__()
-
-units = UnitRegistry()
-""" The default pint unit registry that should be used to give units to quantity definitions. """
