@@ -164,13 +164,17 @@ T = TypeVar('T')
 # Metainfo errors
 
 class MetainfoError(Exception):
-    """ An error within the definition for metainfo data. """
+    """ Metainfo related errors. """
     pass
 
 
 class DeriveError(MetainfoError):
     """ An error occurred while computing a derived value. """
     pass
+
+
+class MetainfoReferenceError(MetainfoError):
+    """ An error indicating that a reference could not be resolved. """
 
 
 # Metainfo quantity data types
