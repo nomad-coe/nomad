@@ -15,8 +15,8 @@
 import pytest
 import numpy as np
 
-from nomad.metainfo.metainfo import MSection, MCategory, Section, Quantity, Definition, Category
-from nomad.metainfo.example import Run, System, SystemHash, Parsing, m_package as example_package
+from nomad.metainfo.metainfo import MSection, MCategory, Section, Quantity, Definition, Package, DeriveError
+from nomad.metainfo.example import Run, VaspRun, System, SystemHash, Parsing, m_package as example_package
 
 
 def assert_section_def(section_def: Section):
@@ -33,7 +33,7 @@ def assert_section_instance(section: MSection):
     assert_section_def(section.m_def)
 
     if section.m_parent is not None:
-        assert section.m_parent.m_sub_section(section.m_def, section.m_parent_index) == section
+        assert section.m_parent.m_get_sub_section(section.m_parent_sub_section, section.m_parent_index) == section
 
 
 class TestM3:
@@ -102,7 +102,7 @@ class TestM2:
         assert Run.m_def.name == 'Run'
 
     def test_quantities(self):
-        assert len(Run.m_def.quantities) == 2
+        assert len(Run.m_def.quantities) == 3
         assert Run.m_def.all_quantities['code_name'] in Run.m_def.quantities
         assert Run.m_def.all_quantities['code_name'] == Run.__dict__['code_name']
 
@@ -113,7 +113,7 @@ class TestM2:
         assert Run.m_def.all_sub_sections_by_section[System.m_def].sub_section == System.m_def
 
     def test_properties(self):
-        assert len(Run.m_def.all_properties) == 4
+        assert len(Run.m_def.all_properties) == 5
 
     def test_get_quantity_def(self):
         assert System.n_atoms == System.m_def.all_properties['n_atoms']
@@ -141,17 +141,20 @@ class TestM2:
     def test_package(self):
         assert example_package.name == 'nomad.metainfo.example'
         assert example_package.description == 'An example metainfo package.'
-        assert len(example_package.m_sub_sections(Section)) == 3
-        assert len(example_package.m_sub_sections(Category)) == 1
+        assert example_package.m_sub_section_count(Package.section_definitions) == 4
+        assert example_package.m_sub_section_count(Package.category_definitions) == 1
 
     def test_base_sections(self):
         assert Definition.m_def in iter(Section.m_def.base_sections)
-        print(Section.m_def.base_sections)
         assert 'name' in Section.m_def.all_quantities
         assert 'name' in Quantity.m_def.all_quantities
 
     def test_unit(self):
         assert System.lattice_vectors.unit is not None
+
+    def test_extension(self):
+        assert getattr(Run, 'x_vasp_raw_format', None) is not None
+        assert 'x_vasp_raw_format' in Run.m_def.all_quantities
 
 
 class TestM1:
@@ -165,7 +168,6 @@ class TestM1:
 
         assert run.m_def == Run.m_def
         assert run.m_def.name == 'Run'
-        assert len(run.m_data) == 0
 
         assert_section_instance(run)
 
@@ -177,12 +179,11 @@ class TestM1:
         system = System()
         system.atom_labels = ['H']
         assert len(system.atom_labels) == 1
-        assert len(system.m_data) == 1
 
         assert_section_instance(system)
 
     def test_defaults(self):
-        assert System().n_atoms == 0
+        assert len(System().periodic_dimensions) == 3
         assert System().atom_labels is None
         try:
             System().does_not_exist
@@ -200,7 +201,7 @@ class TestM1:
         system = run.m_create(System)
 
         assert run.systems[0] == system  # pylint: disable=E1101
-        assert run.m_sub_section(System, 0) == system
+        assert run.m_get_sub_section(Run.systems, 0) == system
 
     def test_parent_repeats(self):
         run = Run()
@@ -251,6 +252,8 @@ class TestM1:
     def test_synonym(self):
         system = System()
         system.lattice_vectors = [[1.2e-10, 0, 0], [0, 1.2e-10, 0], [0, 0, 1.2e-10]]
+        assert type(system.lattice_vectors) == np.ndarray
+        assert type(system.unit_cell) == np.ndarray
         assert np.array_equal(system.unit_cell, system.lattice_vectors)
 
     @pytest.fixture(scope='function')
@@ -258,7 +261,6 @@ class TestM1:
         run = Run()
         run.code_name = 'test code name'
         system: System = run.m_create(System)
-        system.n_atoms = 3
         system.atom_labels = ['H', 'H', 'O']
         system.atom_positions = np.array([[1.2e-10, 0, 0], [0, 1.2e-10, 0], [0, 0, 1.2e-10]])
 
@@ -268,7 +270,7 @@ class TestM1:
         assert_section_instance(data)
         assert data.m_def == Run.m_def
         assert data.code_name == 'test code name'
-        system: System = data.m_sub_section(System, 0)
+        system: System = data.systems[0]
         assert_section_instance(system)
         assert system.m_def == System.m_def
         assert system.n_atoms == 3
@@ -280,3 +282,23 @@ class TestM1:
         new_example_data = Run.m_from_dict(dct)
 
         self.assert_example_data(new_example_data)
+
+    def test_derived(self):
+        system = System()
+
+        try:
+            assert system.n_atoms == 3
+            assert False, 'supposed unreachable'
+        except DeriveError:
+            pass
+        else:
+            assert False, 'supposed unreachable'
+
+        system.atom_labels = ['H', 'H', 'O']
+        assert system.n_atoms == 3
+        pass
+
+    def test_extension(self):
+        run = Run()
+        run.m_as(VaspRun).x_vasp_raw_format = 'outcar'
+        assert run.m_as(VaspRun).x_vasp_raw_format == 'outcar'

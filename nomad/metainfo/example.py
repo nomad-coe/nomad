@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from nomad.metainfo import MSection, MCategory, Section, Quantity, Enum, Package, SubSection, units
+from nomad.metainfo import MSection, MCategory, Section, Quantity, Package, SubSection, Enum, units
 
 m_package = Package(links=['http://metainfo.nomad-coe.eu'])
 
@@ -24,7 +24,7 @@ class System(MSection):
     """ All data that describes a simulated system. """
 
     n_atoms = Quantity(
-        type=int, default=0,
+        type=int, derived=lambda system: len(system.atom_labels),
         description='Number of atoms in the simulated system.')
 
     atom_labels = Quantity(
@@ -42,7 +42,7 @@ class System(MSection):
     unit_cell = Quantity(synonym_for='lattice_vectors')
 
     periodic_dimensions = Quantity(
-        type=bool, shape=[3], categories=[SystemHash.m_def],
+        type=bool, shape=[3], default=[False, False, False], categories=[SystemHash.m_def],
         description='A vector of booleans indicating in which dimensions the unit cell is repeated.')
 
 
@@ -56,13 +56,13 @@ class Run(MSection):
     parsing = SubSection(sub_section=Parsing.m_def)
 
 
-# class VaspRun(MSection):
-#     """ All VASP specific quantities for section Run. """
-#     m_def = Section(extends=Run.m_def)
+class VaspRun(Run):
+    """ All VASP specific quantities for section Run. """
+    m_def = Section(extends_base_section=True)
 
-#     x_vasp_raw_format = Quantity(
-#         type=Enum(['xml', 'outcar']),
-#         description='The file format of the parsed VASP mainfile.')
+    x_vasp_raw_format = Quantity(
+        type=Enum(['xml', 'outcar']),
+        description='The file format of the parsed VASP mainfile.')
 
 
 if __name__ == '__main__':
@@ -72,10 +72,10 @@ if __name__ == '__main__':
     # metainfo data. E.g. all section definitions are sections themselves.
 
     # To get quantities of a given section
-    print(Run.m_def.m_sub_sections(Quantity))
+    print(Run.m_def.m_get_sub_sections(Section.quantities))
 
     # Or all Sections in the package
-    print(m_package.m_sub_sections(Section))  # type: ignore, pylint: disable=undefined-variable
+    print(m_package.m_get_sub_sections(Package.section_definitions))  # type: ignore, pylint: disable=undefined-variable
 
     # There are also some definition specific helper methods.
     # For example to get all attributes (Quantities and possible sub-sections) of a section.
@@ -85,15 +85,18 @@ if __name__ == '__main__':
     run = Run()
     run.code_name = 'VASP'
     run.code_version = '1.0.0'
+    run.m_as(VaspRun).x_vasp_raw_format = 'outcar'
+    # The same as
+    run.x_vasp_raw_format = 'outcar'  # type: ignore
 
     system = run.m_create(System)
-    system.n_atoms = 3
     system.atom_labels = ['H', 'H', 'O']
 
     # Or to read data from existing metainfo data:
     print(system.atom_labels)
+    print(system.n_atoms)
 
     # To serialize the data:
     print(run.m_to_json(indent=2))
 
-    print(m_package.m_to_json(indent=2))  # type: ignore, pylint: disable=undefined-variable
+    # print(m_package.m_to_json(indent=2))  # type: ignore, pylint: disable=undefined-variable
