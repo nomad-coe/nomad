@@ -177,6 +177,18 @@ Categories
 
 .. autoclass:: Quantity
 
+In the old meta-info this was known as `abstract types`.
+
+Categories are defined with Python classes that have :class:`MCategory` as base class.
+Their name and description is taken from the class's name and docstring. An example
+category looks like this:
+
+.. code-block:: python
+
+    class CategoryName(MCategory):
+        ''' Category description '''
+        m_def = Category(links=['http://further.explanation.eu'], categories=[ParentCategory])
+
 Packages
 --------
 

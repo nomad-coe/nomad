@@ -13,7 +13,14 @@ class SystemHash(MCategory):
 
 
 class Parsing(MSection):
-    """ All data that describes the NOMAD parsing of this run. """
+    """ All data that describes the NOMAD parsing of this run.
+
+    Quantities can also be documented like this:
+
+    Args:
+        parser_name: 'Name of the used parser'
+        parser_version: 'Version of the used parser'
+    """
 
     parser_name = Quantity(type=str)
     parser_version = Quantity(type=str)

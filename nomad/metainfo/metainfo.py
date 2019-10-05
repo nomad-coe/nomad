@@ -20,13 +20,13 @@ import inspect
 import re
 import json
 import itertools
-
 import numpy as np
 from pint.unit import _Unit
 from pint import UnitRegistry
 import aniso8601
 from datetime import datetime
 import pytz
+import docstring_parser
 
 
 m_package: 'Package' = None
@@ -561,10 +561,8 @@ class MSection(metaclass=MObjectMeta):
             m_def = Section()
             setattr(cls, 'm_def', m_def)
 
-        # transfer name and description to m_def
+        # transfer name m_def
         m_def.name = cls.__name__
-        if cls.__doc__ is not None:
-            m_def.description = inspect.cleandoc(cls.__doc__).strip()
         m_def.section_cls = cls
 
         # add base sections
@@ -648,6 +646,37 @@ class MSection(metaclass=MObjectMeta):
         module_name = cls.__module__
         pkg = Package.from_module(module_name)
         pkg.m_add_sub_section(Package.section_definitions, cls.m_def)
+
+        # apply_google_docstrings
+        # Parses the google doc string of the given class and properly updates the
+        # definition descriptions.
+
+        # This allows to document quantities and sub-sections with 'Args:' in the section
+        # class. It will remove the 'Args' section from the section definition and will
+        # set the respective pieces to the quantity and sub-section descriptions.
+        docstring = cls.__doc__
+        if docstring is not None:
+            parsed_docstring = docstring_parser.parse(docstring)
+            short = parsed_docstring.short_description
+            dsc = parsed_docstring.long_description
+
+            if short and dsc:
+                description = '%s %s' % (short.strip(), dsc.strip())
+            elif short:
+                description = short.strip()
+            elif dsc:
+                description = dsc.strip()
+            else:
+                description = None
+
+            if m_def.description is None:
+                m_def.description = description
+
+            for param in parsed_docstring.params:
+                prop = m_def.all_properties.get(param.arg_name)
+                if prop is not None:
+                    if prop.description is None:
+                        prop.description = param.description
 
     def __check_np(self, quantity_ref: 'Quantity', value: np.ndarray) -> np.ndarray:
         # TODO
@@ -1159,7 +1188,7 @@ class Definition(MSection):
     some common attributes. These are defined in a common base: all
     metainfo items extend this common base and inherit from ``Definition``.
 
-    Attributes:
+    Args:
         name: Each `definition` has a name. Names have to be valid Python identifier.
             They can contain letters, numbers and _, but must not start with a number.
             This also qualifies them as identifier in most storage formats, databases,
@@ -1240,7 +1269,7 @@ class Quantity(Property):
     Beyond basic :class:`Definition` attributes, Quantities are defined with the following
     attributes.
 
-    Attributes:
+    Args:
         type:
             Defines the datatype of quantity values. This is the type of individual elements
             in a potentially complex shape. If you define a list of integers for example,
@@ -1394,7 +1423,7 @@ class SubSection(Property):
     and sub-section the property. This allows to use on child `section definition` as
     sub-section of many different parent `section definitions`.
 
-    Attributes:
+    Args:
         sub_section: A :class:`Section` or Python class object for a `section class`. This
             will be the child `section definition`. The defining section the child
             `section definition`.
@@ -1431,7 +1460,7 @@ class Section(Definition):
     Section definitions determine what quantities and sub-sections can appear in a
     following section instance.
 
-    Attributes:
+    Args:
         quantities:
             The quantities definitions of this section definition as list of :class:`Quantity`.
             Will be automatically set from the `section class`.
@@ -1557,7 +1586,7 @@ class Package(Definition):
     Besides the regular :class:`Defintion` attributes, packages can have the following
     attributes:
 
-    Attributes:
+    Args:
         section_definitions: All `section definitions` in this package as :class:`Section`
             objects.
 
@@ -1591,21 +1620,9 @@ class Category(Definition):
     Categories therefore form a hierarchy of concepts that definitions can belong to, i.e.
     they form a `is a` relationship.
 
-    In the old meta-info this was known as `abstract types`.
-
-    Categories are defined with Python classes that have :class:`MCategory` as base class.
-    Their name and description is taken from the class's name and docstring. An example
-    category looks like this:
-
-    .. codeblock:: python
-
-        class CategoryName(MCategory):
-            ''' Category description '''
-            m_def = Category(links=['http://further.explanation.eu'], categories=[ParentCategory])
-
-    Attributes:
+    Args:
         definitions: A helper property that gives all definitions that are directly or
-        indirectly in this category.
+            indirectly in this category.
     """
 
     def __init__(self, *args, **kwargs):
@@ -1625,145 +1642,42 @@ SubSection.m_def = Section(name='SubSection')
 Category.m_def = Section(name='Category')
 Package.m_def = Section(name='Package')
 
-Definition.name = DirectQuantity(
-    type=str, name='name', description='''
-    The name of the quantity. Must be unique within a section.
-    ''')
-Definition.description = Quantity(
-    type=str, name='description', description='''
-    An optional human readable description.
-    ''')
-Definition.links = Quantity(
-    type=str, shape=['0..*'], name='links', description='''
-    A list of URLs to external resource that describe this definition.
-    ''')
+Definition.name = DirectQuantity(type=str, name='name')
+Definition.description = Quantity(type=str, name='description')
+Definition.links = Quantity(type=str, shape=['0..*'], name='links')
 Definition.categories = Quantity(
-    type=Reference(Category.m_def), shape=['0..*'], default=[], name='categories',
-    description='''
-    The categories that this definition belongs to. See :class:`Category`.
-    ''')
+    type=Reference(Category.m_def), shape=['0..*'], default=[], name='categories')
 
 Section.quantities = SubSection(
-    sub_section=Quantity.m_def, name='quantities', repeats=True,
-    description='''The quantities of this section.''')
+    sub_section=Quantity.m_def, name='quantities', repeats=True)
 
 Section.sub_sections = SubSection(
-    sub_section=SubSection.m_def, name='sub_sections', repeats=True,
-    description='''The sub sections of this section.''')
+    sub_section=SubSection.m_def, name='sub_sections', repeats=True)
 Section.base_sections = Quantity(
-    type=Reference(Section.m_def), shape=['0..*'], default=[], name='base_sections',
-    description='''
-    Inherit all quantity and sub section definitions from the given sections.
-    Will be derived from Python base classes.
-    ''')
-Section.extends_base_section = Quantity(
-    type=bool, default=False, name='extends_base_section',
-    description='''
-    If True, the quantity definitions of this section will be added to the base section.
-    Only one base section is allowed.
-    ''')
-Section.constraints = Quantity(
-    type=str, shape=['0..*'], name='constraints', description='''
-    Constraints are rules that a section must fulfil to be valid. This allows to implement
-    semantic checks that goes behind mere type or shape checks. This quantity takes
-    the names of constraints. Constraints have to be implemented as methods of the
-    section definition class. These constraints functions must be named ``c_<constraint name>```
-    and have no additional parameters. They can raise :class:`ConstraintVialated` or
-    an AssertionError to indicate that the constraint is not fulfilled for the ``self``
-    section. This quantity will be set automatically from all ``c_`` methods in the
-    respective section class.
-    ''')
+    type=Reference(Section.m_def), shape=['0..*'], default=[], name='base_sections')
+Section.extends_base_section = Quantity(type=bool, default=False, name='extends_base_section')
+Section.constraints = Quantity(type=str, shape=['0..*'], name='constraints')
 Section.event_handlers = Quantity(
-    type=Callable, shape=['0..*'], name='event_handlers', virtual=True, default=[], description='''
-    Event handler are functions that get called when the section data is changed.
-    There are two types of events: ``set`` and ``add_sub_section``. The handler type
-    is determined by the handler (i.e. function) name: ``on_set`` and ``on_add_sub_section``.
-    The handler arguments correspond to ``m_set`` (section, quantity_def, value) and
-    ``m_add_sub_section``(section, sub_section_def, sub_section). Handler are called after
-    the respective action was performed. This quantity is automatically populated with
-    handler from the section classes methods. If there is a method ``on_set`` or
-    ``on_add_sub_section``, it will be added as handler.
-    ''')
+    type=Callable, shape=['0..*'], name='event_handlers', virtual=True, default=[])
 
-SubSection.repeats = Quantity(
-    type=bool, name='repeats', default=False,
-    description='''Wether this sub section can appear only once or multiple times. ''')
+SubSection.repeats = Quantity(type=bool, name='repeats', default=False)
 
-SubSection.sub_section = Quantity(
-    type=Reference(Section.m_def), name='sub_section', description='''
-    The section definition for the sub section. Only section instances of this definition
-    can be contained as sub sections.
-    ''')
+SubSection.sub_section = Quantity(type=Reference(Section.m_def), name='sub_section')
 
 Quantity.m_def.section_cls = Quantity
-Quantity.type = DirectQuantity(
-    type=QuantityType, name='type', description='''
-    The type of the quantity.
-
-    Can be one of the following:
-
-    - none to support any value
-    - a build-in primitive Python type, e.g. ``int``, ``str``
-    - an instance of :class:`Enum`, e.g. ``Enum(['one', 'two', 'three'])
-    - a instance of Section, i.e. a section definition. This will define a reference
-    - a custom meta-info DataType
-    - a numpy dtype,
-
-    If set to a dtype, this quantity will use a numpy array to store values. It will use
-    the given dtype. If not set, this quantity will use (nested) Python lists to store values.
-    If values are set to the property, they will be converted to the respective
-    representation.
-
-    In the NOMAD CoE meta-info this was basically the ``dTypeStr``.
-    ''')
-Quantity.shape = DirectQuantity(
-    type=Dimension, shape=['0..*'], name='shape', default=[], description='''
-    The shape of the quantity that defines its dimensionality.
-
-    A shape is a list, where each item defines a dimension. Each dimension can be:
-
-    - an integer that defines the exact size of the dimension, e.g. ``[3]`` is the
-      shape of a spacial vector
-    - the name of an int typed quantity in the same section
-    - a range specification as string build from a lower bound (i.e. int number),
-      and an upper bound (int or ``*`` denoting arbitrary large), e.g. ``'0..*'``, ``'1..3'``
-    ''')
-Quantity.unit = Quantity(
-    type=Unit, name='unit', description='''
-    The optional physics unit for this quantity.
-
-    Units are given in `pint` units. Pint is a Python package that defines units and
-    their algebra. There is a default registry :data:`units` that you can use.
-    Example units are: ``units.m``, ``units.m / units.s ** 2``.
-    ''')
-Quantity.default = DirectQuantity(
-    type=Any, default=None, name='default', description='''
-    The default value for this quantity.
-    ''')
-Quantity.synonym_for = DirectQuantity(
-    type=str, name='synonym_for', description='''
-    With this set, the quantity will become a virtual quantity and its data is not stored
-    directly. Setting and getting quantity, will change the *synonym* quantity instead. Use
-    the name of the quantity as value.
-    ''')
-Quantity.derived = DirectQuantity(
-    type=Callable, default=None, name='derived', virtual=True, description='''
-    Derived quantities are computed from other quantities of the same section. The value
-    of derived needs to be a callable that takes the section and returns a value.
-    ''')
-Quantity.virtual = DirectQuantity(
-    type=bool, default=False, name='virtual', description='''
-    Virtual quantities exist in memory, but are not serialized. This is useful for
-    purely derived quantities, or in situations where serialization is not required.
-    ''')
+Quantity.type = DirectQuantity(type=QuantityType, name='type')
+Quantity.shape = DirectQuantity(type=Dimension, shape=['0..*'], name='shape', default=[])
+Quantity.unit = Quantity(type=Unit, name='unit')
+Quantity.default = DirectQuantity(type=Any, default=None, name='default')
+Quantity.synonym_for = DirectQuantity(type=str, name='synonym_for')
+Quantity.derived = DirectQuantity(type=Callable, default=None, name='derived', virtual=True)
+Quantity.virtual = DirectQuantity(type=bool, default=False, name='virtual')
 
 Package.section_definitions = SubSection(
-    sub_section=Section.m_def, name='section_definitions', repeats=True,
-    description=''' The sections defined in this package. ''')
+    sub_section=Section.m_def, name='section_definitions', repeats=True)
 
 Package.category_definitions = SubSection(
-    sub_section=Category.m_def, name='category_definitions', repeats=True,
-    description=''' The categories defined in this package. ''')
+    sub_section=Category.m_def, name='category_definitions', repeats=True)
 
 is_bootstrapping = False
 
