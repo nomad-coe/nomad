@@ -40,7 +40,7 @@ def url(endpoint: str = None, **kwargs):
 
 api = Api(
     blueprint,
-    version='1.0', title='NOMAD optimade PI',
-    description='The NOMAD optimade API',
+    version='1.0', title='NOMAD\'s OPTiMaDe API implementation',
+    description='NOMAD\'s OPTiMaDe API implementation, version 0.10.0.',
     validate=True)
 """ Provides the flask restplust api instance for the optimade api"""

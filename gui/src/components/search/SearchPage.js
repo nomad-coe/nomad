@@ -5,7 +5,7 @@ import { FormControl, FormControlLabel, Checkbox, FormGroup, FormLabel, Tooltip 
 import { compose } from 'recompose'
 import { withErrors } from '../errors'
 import { withApi, DisableOnLoading } from '../api'
-import { appBase } from '../../config'
+import { guiBase } from '../../config'
 import Search from './Search'
 import qs from 'qs'
 
@@ -44,7 +44,7 @@ The results table gives you a quick overview of all entries that fit your search
 You can click entries to see more details, download data, see the archive, etc.
 The *raw files* tab, will show you all files that belong to the entry and offers a download
 on individual, or all files. The *archive* tab, shows you the parsed data as a tree
-data structure. This view is connected to NOMAD's [meta-info](${appBase}/metainfo), which acts a schema for
+data structure. This view is connected to NOMAD's [meta-info](${guiBase}/metainfo), which acts a schema for
 all parsed data. The *log* tab, will show you a log of the entry's processing.
 `
 

@@ -16,7 +16,7 @@ data:
       location {{ .Values.proxy.external.path }} {
         proxy_set_header Host $host;
         proxy_pass_request_headers on;
-        proxy_pass http://{{ include "nomad.fullname" . }}-api:8000;
+        proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
         proxy_connect_timeout {{ .Values.proxy.timeout }};
         proxy_send_timeout {{ .Values.proxy.timeout }};
         proxy_read_timeout {{ .Values.proxy.timeout }};
@@ -44,7 +44,7 @@ data:
         proxy_request_buffering off;
         proxy_set_header Host $host;
         proxy_pass_request_headers on;
-        proxy_pass http://{{ include "nomad.fullname" . }}-api:8000;
+        proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
         proxy_connect_timeout {{ .Values.proxy.timeout }};
       }
 
@@ -52,13 +52,13 @@ data:
         proxy_buffering off;
         proxy_set_header Host $host;
         proxy_pass_request_headers on;
-        proxy_pass http://{{ include "nomad.fullname" . }}-api:8000;
+        proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
         proxy_connect_timeout {{ .Values.proxy.timeout }};
       }
     }
   env.js: |
     window.nomadEnv = {
-      "apiBase": "{{ .Values.proxy.external.path }}/api",
+      "appBase": "{{ .Values.proxy.external.path }}",
       "kibanaBase": "{{ .Values.proxy.external.kibanaPath }}",
       "matomoSiteId": {{ .Values.gui.matomoSiteId }},
       "matomoUrl": "{{ .Values.gui.matomoUrl }}",

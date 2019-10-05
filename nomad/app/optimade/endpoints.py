@@ -34,8 +34,9 @@ def base_request_args():
         return properties_str.split(',')
     return None
 
+ns = api.namespace('optimade', description='The (only) API namespace with all OPTiMaDe endpoints.')
 
-@api.route('/calculations')
+@ns.route('/calculations')
 class CalculationList(Resource):
     @api.doc('list_calculations')
     @api.response(400, 'Invalid requests, e.g. bad parameter.')
@@ -84,7 +85,7 @@ class CalculationList(Resource):
         ), 200
 
 
-@api.route('/calculations/<string:id>')
+@ns.route('/calculations/<string:id>')
 class Calculation(Resource):
     @api.doc('retrieve_calculation')
     @api.response(400, 'Invalid requests, e.g. bad parameter.')
@@ -110,7 +111,7 @@ class Calculation(Resource):
         ), 200
 
 
-@api.route('/info/calculation')
+@ns.route('/info/calculation')
 class CalculationInfo(Resource):
     @api.doc('calculations_info')
     @api.response(400, 'Invalid requests, e.g. bad parameter.')
@@ -143,7 +144,7 @@ class CalculationInfo(Resource):
         ), 200
 
 
-@api.route('/info')
+@ns.route('/info')
 class Info(Resource):
     @api.doc('info')
     @api.response(400, 'Invalid requests, e.g. bad parameter.')
