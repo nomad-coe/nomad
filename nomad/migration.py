@@ -43,7 +43,7 @@ import io
 import json
 
 from nomad import utils, infrastructure, files, config
-from nomad.coe_repo import User, Calc, LoginException
+from nomad.coe_repo import User, Calc
 from nomad.datamodel import CalcWithMetadata
 from nomad.processing import FAILURE
 

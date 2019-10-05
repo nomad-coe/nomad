@@ -53,7 +53,7 @@ def run_worker():
 
 
 @run.command(help='Run both app and worker.')
-def apiworker():
+def appworker():
     executor = ProcessPoolExecutor(2)
     loop = asyncio.get_event_loop()
     loop.run_in_executor(executor, run_app)

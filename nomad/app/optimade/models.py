@@ -29,8 +29,8 @@ from .api import api, base_url, url
 
 # TODO error/warning objects
 
-json_api_meta_object_model = api.model('JsonApiMetaObject', {
-    'query': fields.Nested(model=api.model('JsonApiQuery', {
+json_api_meta_object_model = api.model('MetaObject', {
+    'query': fields.Nested(model=api.model('Query', {
         'representation': fields.String(
             required=True,
             description='A string with the part of the URL following the base URL')
@@ -55,7 +55,7 @@ json_api_meta_object_model = api.model('JsonApiMetaObject', {
     'provider': fields.Nested(
         required=True, skip_none=True,
         description='Information on the database provider of the implementation.',
-        model=api.model('JsonApiProvider', {
+        model=api.model('Provider', {
             'name': fields.String(
                 required=True,
                 description='A short name for the database provider.'),
@@ -89,7 +89,7 @@ json_api_meta_object_model = api.model('JsonApiMetaObject', {
     'implementation': fields.Nested(
         required=False, skip_none=True,
         description='Server implementation details.',
-        model=api.model('JsonApiImplementation', {
+        model=api.model('Implementation', {
             'name': fields.String(
                 description='Name of the implementation'),
             'version': fields.String(
@@ -99,7 +99,7 @@ json_api_meta_object_model = api.model('JsonApiMetaObject', {
             'maintainer': fields.Nested(
                 skip_none=True,
                 description='Details about the maintainer of the implementation',
-                model=api.model('JsonApiMaintainer', {
+                model=api.model('Maintainer', {
                     'email': fields.String()
                 })
             )
@@ -132,7 +132,7 @@ class Meta():
             maintainer=dict(email='markus.scheidgen@physik.hu-berlin.de'))
 
 
-json_api_links_model = api.model('JsonApiLinks', {
+json_api_links_model = api.model('Links', {
     'base_url': fields.String(
         description='The base URL of the implementation'),
 
@@ -172,7 +172,7 @@ def Links(endpoint: str, available: int, page_number: int, page_limit: int, **kw
     return result
 
 
-json_api_response_model = api.model('JsonApiResponse', {
+json_api_response_model = api.model('Response', {
     'links': fields.Nested(
         required=False,
         description='Links object with pagination links.',
@@ -192,7 +192,7 @@ json_api_response_model = api.model('JsonApiResponse', {
                      'included are known as compound documents in the JSON API.'))
 })
 
-json_api_data_object_model = api.model('JsonApiDataObject', {
+json_api_data_object_model = api.model('DataObject', {
     'type': fields.String(
         description='The type of the object [structure or calculations].'),
 
@@ -254,7 +254,7 @@ class Property:
 
 
 json_api_single_response_model = api.inherit(
-    'JsonApiSingleResponse', json_api_response_model, {
+    'SingleResponse', json_api_response_model, {
         'data': fields.Nested(
             model=json_api_data_object_model,
             required=True,
@@ -262,7 +262,7 @@ json_api_single_response_model = api.inherit(
     })
 
 json_api_list_response_model = api.inherit(
-    'JsonApiSingleResponse', json_api_response_model, {
+    'SingleResponse', json_api_response_model, {
         'data': fields.List(
             fields.Nested(json_api_data_object_model),
             required=True,

@@ -45,7 +45,10 @@ def test_get_entry(published: Upload):
     assert 'optimade' in search_result
 
 
-def create_test_structure(meta_info, id: int, h: int, o: int, extra: List[str], periodicity: int):
+def create_test_structure(
+        meta_info, id: int, h: int, o: int, extra: List[str], periodicity: int,
+        without_optimade: bool = False):
+
     atom_labels = ['H' for i in range(0, h)] + ['O' for i in range(0, o)] + extra
     test_vector = np.array([0, 0, 0])
 
@@ -71,7 +74,23 @@ def create_test_structure(meta_info, id: int, h: int, o: int, extra: List[str], 
         upload_id='test_uload_id', calc_id='test_calc_id_%d' % id, mainfile='test_mainfile',
         published=True, with_embargo=False)
     calc.apply_domain_metadata(backend)
+
+    if without_optimade:
+        calc.optimade = None
+
     search.Entry.from_calc_with_metadata(calc).save()
+
+
+def test_no_optimade(meta_info, elastic, api):
+    create_test_structure(meta_info, 1, 2, 1, [], 0)
+    create_test_structure(meta_info, 2, 2, 1, [], 0, without_optimade=True)
+    search.refresh()
+
+    rv = api.get('/calculations')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+
+    assert data['meta']['data_returned'] == 1
 
 
 @pytest.fixture(scope='module')
@@ -142,7 +161,7 @@ def test_list_endpoint(api, example_structures):
     assert rv.status_code == 200
     data = json.loads(rv.data)
     # TODO replace with real assertions
-    print(json.dumps(data, indent=2))
+    # print(json.dumps(data, indent=2))
 
 
 def test_list_endpoint_request_fields(api, example_structures):
@@ -150,7 +169,7 @@ def test_list_endpoint_request_fields(api, example_structures):
     assert rv.status_code == 200
     data = json.loads(rv.data)
     # TODO replace with real assertions
-    print(json.dumps(data, indent=2))
+    # print(json.dumps(data, indent=2))
 
 
 def test_single_endpoint(api, example_structures):
@@ -158,7 +177,7 @@ def test_single_endpoint(api, example_structures):
     assert rv.status_code == 200
     data = json.loads(rv.data)
     # TODO replace with real assertions
-    print(json.dumps(data, indent=2))
+    # print(json.dumps(data, indent=2))
 
 
 def test_base_info_endpoint(api):
@@ -166,7 +185,7 @@ def test_base_info_endpoint(api):
     assert rv.status_code == 200
     data = json.loads(rv.data)
     # TODO replace with real assertions
-    print(json.dumps(data, indent=2))
+    # print(json.dumps(data, indent=2))
 
 
 def test_calculation_info_endpoint(api):
@@ -174,7 +193,7 @@ def test_calculation_info_endpoint(api):
     assert rv.status_code == 200
     data = json.loads(rv.data)
     # TODO replace with real assertions
-    print(json.dumps(data, indent=2))
+    # print(json.dumps(data, indent=2))
 
 
 # TODO test single with request_fields

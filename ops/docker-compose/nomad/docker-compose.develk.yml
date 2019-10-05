@@ -56,8 +56,8 @@ services:
         links:
             - elk
 
-    # nomad api
-    api:
+    # nomad app
+    app:
         restart: 'no'
         image: nomad/backend
         environment:

@@ -14,6 +14,7 @@
 
 from flask_restplus import Resource, abort
 from flask import request
+from elasticsearch_dsl import Q
 
 from nomad import search
 from nomad.metainfo.optimade import OptimadeEntry
@@ -22,6 +23,9 @@ from .api import api, url
 from .models import json_api_single_response_model, entry_listing_endpoint_parser, Meta, \
     Links, CalculationDataObject, single_entry_endpoint_parser, base_endpoint_parser
 from .filterparser import parse_filter, FilterException
+
+
+ns = api.namespace('', description='The (only) API namespace with all OPTiMaDe endpoints.')
 
 
 # TODO replace with decorator that filters response_fields
@@ -34,7 +38,12 @@ def base_request_args():
         return properties_str.split(',')
     return None
 
-ns = api.namespace('optimade', description='The (only) API namespace with all OPTiMaDe endpoints.')
+
+def base_search_request():
+    """ Creates a search request for all public and optimade enabled data. """
+    return search.SearchRequest().owner('all', None).query(
+        Q('exists', field='optimade.nelements'))  # TODO use the elastic annotations when done
+
 
 @ns.route('/calculations')
 class CalculationList(Resource):
@@ -55,7 +64,8 @@ class CalculationList(Resource):
         except Exception:
             abort(400, message='bad parameter types')  # TODO Specific json API error handling
 
-        search_request = search.SearchRequest().owner('all', None)
+        search_request = base_search_request()
+
         if filter is not None:
             try:
                 search_request.query(parse_filter(filter))
@@ -95,7 +105,7 @@ class Calculation(Resource):
     def get(self, id: str):
         """ Retrieve a single calculation for the given id. """
         request_fields = base_request_args()
-        search_request = search.SearchRequest().owner('all', None).search_parameters(calc_id=id)
+        search_request = base_search_request().search_parameters(calc_id=id)
 
         result = search_request.execute_paginated(
             page=1,
