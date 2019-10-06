@@ -21,8 +21,9 @@ import re
 import json
 import itertools
 import numpy as np
-from pint.unit import _Unit
-from pint import UnitRegistry
+import pint
+import pint.unit
+import pint.quantity
 import aniso8601
 from datetime import datetime
 import pytz
@@ -131,7 +132,7 @@ class __Unit(DataType):
         if isinstance(value, str):
             value = units.parse_units(value)
 
-        elif not isinstance(value, _Unit):
+        elif not isinstance(value, pint.unit._Unit):
             raise TypeError('Units must be given as str or pint Unit instances.')
 
         return value
@@ -143,7 +144,7 @@ class __Unit(DataType):
         return units.parse_units(value)
 
 
-units = UnitRegistry()
+units = pint.UnitRegistry()
 """ The default pint unit registry that should be used to give units to quantity definitions. """
 
 
@@ -723,6 +724,24 @@ class MSection(metaclass=MObjectMeta):
             return self.m_def.all_quantities[quantity_def.synonym_for]
         return quantity_def
 
+    def __to_np(self, quantity_def: 'Quantity', value):
+        if isinstance(value, pint.quantity._Quantity):
+            if quantity_def.unit is None:
+                raise MetainfoError(
+                    'The quantity %s has not a unit, but value %s has.' %
+                    (quantity_def, value))
+            value = value.to(quantity_def.unit).magnitude
+
+        if type(value) != np.ndarray:
+            try:
+                value = np.asarray(value)
+            except TypeError:
+                raise TypeError(
+                    'Could not convert value %s of %s to a numpy array' %
+                    (value, quantity_def))
+
+        return self.__check_np(quantity_def, value)
+
     def m_set(self, quantity_def: 'Quantity', value: Any) -> None:
         """ Set the given value for the given quantity. """
         quantity_def = self.__resolve_synonym(quantity_def)
@@ -732,12 +751,7 @@ class MSection(metaclass=MObjectMeta):
 
         if type(quantity_def.type) == np.dtype:
             if type(value) != np.ndarray:
-                try:
-                    value = np.asarray(value)
-                except TypeError:
-                    raise TypeError(
-                        'Could not convert value %s of %s to a numpy array' %
-                        (value, quantity_def))
+                value = self.__to_np(quantity_def, value)
 
             value = self.__check_np(quantity_def, value)
 
@@ -790,6 +804,10 @@ class MSection(metaclass=MObjectMeta):
                 raise MetainfoError(
                     'Only numpy arrays and dtypes can be used for higher dimensional '
                     'quantities.')
+
+        elif type(quantity_def.type) == np.dtype:
+            if quantity_def.unit is not None:
+                value = value * quantity_def.unit
 
         return value
 
@@ -894,7 +912,7 @@ class MSection(metaclass=MObjectMeta):
 
             # quantities
             for name, quantity in self.m_def.all_quantities.items():
-                if quantity.virtual:
+                if quantity.virtual or not self.m_is_set(quantity):
                     continue
 
                 if self.m_is_set(quantity) and quantity.derived is None:
@@ -932,7 +950,7 @@ class MSection(metaclass=MObjectMeta):
                             'Do not know how to serialize data with type %s for quantity %s' %
                             (quantity.type, quantity))
 
-                    value = getattr(self, name)
+                    value = self.m_data.dct[name]
 
                     if type(quantity.type) == np.dtype:
                         serializable_value = value.tolist()

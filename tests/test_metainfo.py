@@ -14,8 +14,9 @@
 
 import pytest
 import numpy as np
+import pint.quantity
 
-from nomad.metainfo.metainfo import MSection, MCategory, Section, Quantity, Definition, Package, DeriveError
+from nomad.metainfo.metainfo import MSection, MCategory, Section, Quantity, Definition, Package, DeriveError, units
 from nomad.metainfo.example import Run, VaspRun, System, SystemHash, Parsing, m_package as example_package
 
 
@@ -255,13 +256,19 @@ class TestM1:
     def test_np(self):
         system = System()
         system.atom_positions = [[1, 2, 3]]
-        assert type(system.atom_positions) == np.ndarray
+        assert isinstance(system.atom_positions, pint.quantity._Quantity)
+
+    def test_unit_conversion(self):
+        system = System()
+        system.atom_positions = [[1, 2, 3]] * units.angstrom
+        assert system.atom_positions.units == units.meter
+        assert system.atom_positions[0][0] < 0.1 * units.meter
 
     def test_synonym(self):
         system = System()
         system.lattice_vectors = [[1.2e-10, 0, 0], [0, 1.2e-10, 0], [0, 0, 1.2e-10]]
-        assert type(system.lattice_vectors) == np.ndarray
-        assert type(system.unit_cell) == np.ndarray
+        assert isinstance(system.lattice_vectors, pint.quantity._Quantity)
+        assert isinstance(system.unit_cell, pint.quantity._Quantity)
         assert np.array_equal(system.unit_cell, system.lattice_vectors)
 
     @pytest.fixture(scope='function')
@@ -283,7 +290,7 @@ class TestM1:
         assert system.m_def == System.m_def
         assert system.n_atoms == 3
         assert system.atom_labels == ['H', 'H', 'O']
-        assert type(system.atom_positions) == np.ndarray
+        assert isinstance(system.atom_positions, pint.quantity._Quantity)
 
     def test_to_dict(self, example_data):
         dct = example_data.m_to_dict()
