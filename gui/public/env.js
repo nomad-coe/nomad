@@ -1,5 +1,5 @@
 window.nomadEnv = {
-  'apiBase': 'http://localhost:8000/fairdi/nomad/latest/api',
+  'appBase': 'http://localhost:8000/fairdi/nomad/latest',
   'kibanaBase': '/fairdi/kibana',
   'debug': false
 }
