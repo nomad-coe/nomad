@@ -29,13 +29,6 @@ data:
         try_files $uri {{ .Values.proxy.external.path }}/gui/index.html;
       }
 
-      location {{ .Values.proxy.external.path }}/docs {
-        proxy_set_header Host $host;
-        proxy_pass_request_headers on;
-        proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
-        try_files $uri {{ .Values.proxy.external.path }}/docs/index.html;
-      }
-
       location {{ .Values.proxy.external.path }}/gui/service-worker.js {
         add_header Last-Modified $date_gmt;
         add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
