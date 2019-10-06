@@ -16,8 +16,10 @@ import pytest
 import numpy as np
 import pint.quantity
 
-from nomad.metainfo.metainfo import MSection, MCategory, Section, Quantity, Definition, Package, DeriveError, units
+from nomad.metainfo.metainfo import MSection, MCategory, Section, Quantity, SubSection, Definition, Package, DeriveError, MetainfoError, units
 from nomad.metainfo.example import Run, VaspRun, System, SystemHash, Parsing, m_package as example_package
+
+from tests.utils import assert_exception
 
 
 def assert_section_def(section_def: Section):
@@ -164,6 +166,56 @@ class TestM2:
 
     def test_constraints(self):
         assert len(Run.m_def.constraints) > 0
+
+    def test_unique_names(self):
+        class TestBase(MSection):
+            name = Quantity(type=str)
+
+        with assert_exception(MetainfoError):
+            class TestSection(TestBase):  # pylint: disable=unused-variable
+                name = Quantity(type=int)
+
+    def test_unique_names_extends(self):
+        class TestBase(MSection):
+            name = Quantity(type=str)
+
+        with assert_exception(MetainfoError):
+            class TestSection(TestBase):  # pylint: disable=unused-variable
+                m_def = Section(extends_base_section=True)
+                name = Quantity(type=int)
+
+    def test_unique_sub_sections(self):
+        with assert_exception(MetainfoError):
+            class TestSection(MSection):  # pylint: disable=unused-variable
+                one = SubSection(sub_section=System)
+                two = SubSection(sub_section=System)
+
+    def test_dimension_exists(self):
+        with assert_exception(MetainfoError):
+            class TestSection(MSection):  # pylint: disable=unused-variable
+                test = Quantity(type=str, shape=['does_not_exist'])
+
+    def test_dimension_is_int(self):
+        with assert_exception(MetainfoError):
+            class TestSection(MSection):  # pylint: disable=unused-variable
+                dim = Quantity(type=str)
+                test = Quantity(type=str, shape=['dim'])
+
+    def test_dimension_is_shapeless(self):
+        with assert_exception(MetainfoError):
+            class TestSection(MSection):  # pylint: disable=unused-variable
+                dim = Quantity(type=int, shape=[1])
+                test = Quantity(type=str, shape=['dim'])
+
+    def test_higher_shapes_require_dtype(self):
+        with assert_exception(MetainfoError):
+            class TestSection(MSection):  # pylint: disable=unused-variable
+                test = Quantity(type=int, shape=[3, 3])
+
+    def test_only_extends_one_base(self):
+        with assert_exception(MetainfoError):
+            class TestSection(Run, System):  # pylint: disable=unused-variable
+                m_def = Section(extends_base_section=True)
 
 
 class TestM1:
@@ -331,3 +383,9 @@ class TestM1:
 
         errors = run.m_validate()
         assert len(errors) == 1
+
+    def test_validate_dimension(self):
+        system = System()
+        system.atom_labels = ['H']
+        system.atom_positions = []
+        assert len(system.m_validate()) > 0
