@@ -383,6 +383,13 @@ def get_optional_backend_value(backend, key, section, unavailable_value=None, lo
     val = None  # Initialize to None, so we can compare section values.
     # Loop over the sections with the name section in the backend.
     for section_index in backend.get_sections(section):
+        if section == 'section_system':
+            try:
+                if not backend.get_value('is_representative', section_index):
+                    continue
+            except KeyError:
+                continue
+
         try:
             new_val = backend.get_value(key, section_index)
         except KeyError:

@@ -15,7 +15,6 @@
 from typing import Any, Dict
 import numpy as np
 
-from nomad import config
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 from nomad.metainfo import units
 from nomad.metainfo.optimade import OptimadeEntry
@@ -28,7 +27,7 @@ class OptimadeNormalizer(SystemBasedNormalizer):
     It assumes that the :class:`SystemNormalizer` was run before.
     """
     def __init__(self, backend):
-        super().__init__(backend, all_sections=config.normalize.all_systems)
+        super().__init__(backend, only_representatives=True)
 
     def get_optimade_data(self, index) -> OptimadeEntry:
         """
@@ -92,7 +91,10 @@ class OptimadeNormalizer(SystemBasedNormalizer):
 
         return optimade
 
-    def normalize_system(self, index):
+    def normalize_system(self, index, is_representative):
+        if not is_representative:
+            return False
+
         try:
             optimade = self.get_optimade_data(index)
             self._backend.add_mi2_section(optimade)
