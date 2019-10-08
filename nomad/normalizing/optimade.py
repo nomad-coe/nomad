@@ -14,10 +14,14 @@
 
 from typing import Any, Dict
 import numpy as np
+import re
+import ase.data
 
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 from nomad.metainfo import units
-from nomad.metainfo.optimade import OptimadeEntry
+from nomad.metainfo.optimade import OptimadeEntry, Species
+
+species_re = re.compile(r'^([A-Z][a-z]?)(\d*)$')
 
 
 class OptimadeNormalizer(SystemBasedNormalizer):
@@ -86,8 +90,22 @@ class OptimadeNormalizer(SystemBasedNormalizer):
             1 if value else 0
             for value in get_value('configuration_periodic_dimensions')]
 
-        # TODO subsections with species def
-        # TODO optimade.structure_features
+        # species
+        for species_label in set(nomad_species):
+            match = re.match(species_re, species_label)
+
+            element_label, index = match.groups(1), match.groups(2)
+
+            species = optimade.m_create(Species)
+            species.name = species_label
+            if element_label in ase.data.chemical_symbols:
+                chemical_symbol = element_label
+            else:
+                chemical_symbol = 'x'
+            species.chemical_symbols = [chemical_symbol]
+            species.concentration = [1.0]
+
+        optimade.structure_features = []
 
         return optimade
 
@@ -99,4 +117,6 @@ class OptimadeNormalizer(SystemBasedNormalizer):
             optimade = self.get_optimade_data(index)
             self._backend.add_mi2_section(optimade)
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             self.logger.warn('could not acquire optimade data', exc_info=e)
