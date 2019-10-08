@@ -886,15 +886,36 @@ class MSection(metaclass=MObjectMeta):
         """ Returns the number of sub sections for the given sub section definition. """
         return self.m_data.m_sub_section_count(self, sub_section_def)
 
-    def m_create(self, section_cls: Type[MSectionBound], **kwargs) -> MSectionBound:
+    def m_create(
+            self, section_cls: Type[MSectionBound], sub_section_def: 'SubSection' = None,
+            **kwargs) -> MSectionBound:
         """ Creates a section instance and adds it to this section provided there is a
         corresponding sub section.
+
+        Args:
+            section_cls: The section class for the sub-secton to create
+            sub_section_def: If there are multiple sub-sections for the given class,
+                this must be used to explicitely state the sub-section definition.
         """
 
         section_def = section_cls.m_def
-        sub_section_def = self.m_def.all_sub_sections_by_section.get(section_def, None)
-        if sub_section_def is None:
+        sub_section_defs = self.m_def.all_sub_sections_by_section.get(section_def, [])
+        n_sub_section_defs = len(sub_section_defs)
+        if n_sub_section_defs == 0:
             raise TypeError('There is no sub section to hold a %s in %s.' % (section_def, self.m_def))
+
+        if n_sub_section_defs > 1 and sub_section_def is None:
+            raise MetainfoError(
+                'There are multiple sub section to hold a %s in %s, '
+                'but no sub-section was explicitely given.' % (section_def, self.m_def))
+
+        if sub_section_def is not None and sub_section_def not in sub_section_defs:
+            raise MetainfoError(
+                'The given sub-section class %s does not match the given sub-section '
+                'definition %s.' % (section_cls, sub_section_def))
+
+        if sub_section_def is None:
+            sub_section_def = sub_section_defs[0]
 
         sub_section = section_cls(**kwargs)
         self.m_add_sub_section(sub_section_def, sub_section)
@@ -1620,7 +1641,7 @@ class Section(Definition):
         all_sub_sections_by_section:
             A helper property that gives all sub-section definition including inherited ones
             as a dictionary that maps section classes (i.e. Python class objects) to
-            :class:`SubSection`.
+            lists of :class:`SubSection`.
     """
 
     section_cls: Type[MSection] = None
@@ -1640,7 +1661,7 @@ class Section(Definition):
         self.all_properties: Dict[str, Union['SubSection', Quantity]] = dict()
         self.all_quantities: Dict[str, Quantity] = dict()
         self.all_sub_sections: Dict[str, SubSection] = dict()
-        self.all_sub_sections_by_section: Dict['Section', 'SubSection'] = dict()
+        self.all_sub_sections_by_section: Dict['Section', List['SubSection']] = dict()
 
     def on_add_sub_section(self, sub_section_def, sub_section):
         if sub_section_def == Section.quantities:
@@ -1650,7 +1671,8 @@ class Section(Definition):
         if sub_section_def == Section.sub_sections:
             self.all_properties[sub_section.name] = sub_section
             self.all_sub_sections[sub_section.name] = sub_section
-            self.all_sub_sections_by_section[sub_section.sub_section] = sub_section
+            self.all_sub_sections_by_section.setdefault(
+                sub_section.sub_section, []).append(sub_section)
 
     def on_set(self, quantity_def, value):
         if quantity_def == Section.base_sections:
@@ -1676,13 +1698,6 @@ class Section(Definition):
             for definition in def_list:
                 assert definition.name not in names, 'All names in a section must be unique.'
                 names.add(definition.name)
-
-    def c_unique_sub_sections(self):
-        sub_sections = set()
-        for sub_section in self.all_sub_sections.values():
-            assert sub_section.sub_section not in sub_sections, \
-                'The same section definition can only be used in one sub-section'
-            sub_sections.add(sub_section.sub_section)
 
 
 class Package(Definition):

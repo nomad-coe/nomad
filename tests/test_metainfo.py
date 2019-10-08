@@ -118,7 +118,8 @@ class TestM2:
         assert len(Run.m_def.sub_sections) == 3
         assert Run.m_def.all_sub_sections['systems'] in Run.m_def.sub_sections
         assert Run.m_def.all_sub_sections['systems'].sub_section == System.m_def
-        assert Run.m_def.all_sub_sections_by_section[System.m_def].sub_section == System.m_def
+        assert len(Run.m_def.all_sub_sections_by_section[System.m_def]) == 1
+        assert Run.m_def.all_sub_sections_by_section[System.m_def][0].sub_section == System.m_def
 
     def test_properties(self):
         assert len(Run.m_def.all_properties) == 6
@@ -184,11 +185,12 @@ class TestM2:
                 m_def = Section(extends_base_section=True)
                 name = Quantity(type=int)
 
-    def test_unique_sub_sections(self):
-        with assert_exception(MetainfoError):
-            class TestSection(MSection):  # pylint: disable=unused-variable
-                one = SubSection(sub_section=System)
-                two = SubSection(sub_section=System)
+    def test_multiple_sub_sections(self):
+        class TestSection(MSection):  # pylint: disable=unused-variable
+            one = SubSection(sub_section=System)
+            two = SubSection(sub_section=System)
+
+        assert len(TestSection.m_def.all_sub_sections_by_section[System.m_def]) == 2
 
     def test_dimension_exists(self):
         with assert_exception(MetainfoError):
@@ -246,13 +248,9 @@ class TestM1:
     def test_defaults(self):
         assert len(System().periodic_dimensions) == 3
         assert System().atom_labels is None
-        try:
+
+        with assert_exception(AttributeError):
             System().does_not_exist
-            assert False, 'Supposed unreachable'
-        except AttributeError:
-            pass
-        else:
-            assert False, 'Expected AttributeError'
 
     def test_m_section(self):
         assert Run().m_def == Run.m_def
@@ -279,31 +277,16 @@ class TestM1:
         assert parsing.m_parent_index == -1
 
     def test_wrong_type(self):
-        try:
+        with assert_exception(TypeError):
             Run().code_name = 1
-            assert False, 'Supposed unreachable'
-        except TypeError:
-            pass
-        else:
-            assert False, 'Expected TypeError'
 
     def test_wrong_shape_1(self):
-        try:
+        with assert_exception(TypeError):
             Run().code_name = ['name']
-            assert False, 'Supposed unreachable'
-        except TypeError:
-            pass
-        else:
-            assert False, 'Expected TypeError'
 
     def test_wrong_shape_2(self):
-        try:
+        with assert_exception(TypeError):
             System().atom_labels = 'label'
-            assert False, 'Supposed unreachable'
-        except TypeError:
-            pass
-        else:
-            assert False, 'Expected TypeError'
 
     def test_np(self):
         system = System()
@@ -353,13 +336,8 @@ class TestM1:
     def test_derived(self):
         system = System()
 
-        try:
+        with assert_exception(DeriveError):
             assert system.n_atoms == 3
-            assert False, 'supposed unreachable'
-        except DeriveError:
-            pass
-        else:
-            assert False, 'supposed unreachable'
 
         system.atom_labels = ['H', 'H', 'O']
         assert system.n_atoms == 3
@@ -389,3 +367,16 @@ class TestM1:
         system.atom_labels = ['H']
         system.atom_positions = []
         assert len(system.m_validate()) > 0
+
+    def test_multiple_sub_sections(self):
+        class TestSection(MSection):  # pylint: disable=unused-variable
+            one = SubSection(sub_section=System)
+            two = SubSection(sub_section=System)
+
+        test_section = TestSection()
+        with assert_exception():
+            test_section.m_create(System)
+
+        test_section.m_create(System, TestSection.one)
+
+        assert test_section.one is not None
