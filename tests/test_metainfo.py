@@ -250,7 +250,7 @@ class TestM1:
         assert System().atom_labels is None
 
         with assert_exception(AttributeError):
-            System().does_not_exist
+            getattr(System(), 'does_not_exist')
 
     def test_m_section(self):
         assert Run().m_def == Run.m_def
