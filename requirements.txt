@@ -69,3 +69,4 @@ rope
 mongomock
 names
 essential_generators
+jinja2

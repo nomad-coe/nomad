@@ -218,7 +218,7 @@ class _QuantityType(DataType):
             (value, quantity_def))
 
     def serialize(self, section, quantity_def, value):
-        if value in [str, int, float, bool]:
+        if value is str or value is int or value is float or value is bool:
             return dict(type_kind='python', type_data=value.__name__)
 
         if isinstance(value, Enum):
@@ -767,12 +767,19 @@ class MSection(metaclass=MObjectMeta):
                     (quantity_def, value))
             value = value.to(quantity_def.unit).magnitude
 
-        if type(value) != np.ndarray:
+        if len(quantity_def.shape) > 0 and type(value) != np.ndarray:
             try:
                 value = np.asarray(value)
             except TypeError:
                 raise TypeError(
                     'Could not convert value %s of %s to a numpy array' %
+                    (value, quantity_def))
+        elif type(value) != quantity_def.type.type:
+            try:
+                value = quantity_def.type.type(value)
+            except TypeError:
+                raise TypeError(
+                    'Could not convert value %s of %s to a numpy scalar' %
                     (value, quantity_def))
 
         return self.__check_np(quantity_def, value)
@@ -785,10 +792,7 @@ class MSection(metaclass=MObjectMeta):
             raise MetainfoError('The quantity %s is derived and cannot be set.' % quantity_def)
 
         if type(quantity_def.type) == np.dtype:
-            if type(value) != np.ndarray:
-                value = self.__to_np(quantity_def, value)
-
-            value = self.__check_np(quantity_def, value)
+            value = self.__to_np(quantity_def, value)
 
         else:
             dimensions = len(quantity_def.shape)
@@ -1387,9 +1391,9 @@ class Quantity(Property):
             - a numpy `dtype`, e.g. ``np.dtype('float32')``
             - ``typing.Any`` to support any value
 
-            If set to `dtype`, this quantity will use a numpy array to store values internally.
-            If a regular (nested) Python list is given, it will be automatically converted.
-            The given `dtype` will be used in the numpy array.
+            If set to `dtype`, this quantity will use a numpy array or scalar to store values
+            internally. If a regular (nested) Python list or Python scalar is given, it will
+            be automatically converted. The given `dtype` will be used in the numpy value.
 
             To define a reference, either a `section class` or instance of :class:`Section`
             can be given. See :ref:`metainfo-sections` for details. Instances of the given section
@@ -1489,14 +1493,21 @@ class Quantity(Property):
             if isinstance(dimension, str):
                 if dimension.isidentifier():
                     dim_quantity = self.m_parent.all_quantities.get(dimension, None)
-                    assert dim_quantity is not None, 'Dimensions must be quantities of the same section.'
-                    assert len(dim_quantity.shape) == 0 and dim_quantity.type == int, \
-                        'Dimensions must be shapeless and int typed.'
+
+                    assert dim_quantity is not None, \
+                        'Dimensions (%s) must be quantities of the same section (%s).' % (
+                            dimension, self.m_parent)
+
+                    assert len(dim_quantity.shape) == 0 and \
+                        dim_quantity.type in [int, np.int16, np.int32, np.int8, np.uint8], \
+                        'Dimensions (%s) must be shapeless (%s) and int (%s) typed.' % (
+                            dimension, dim_quantity.shape, dim_quantity.type)
 
     def c_higher_shapes_require_dtype(self):
         if len(self.shape) > 1:
             assert type(self.type) == np.dtype, \
-                'Higher dimensional quantities need a dtype and will be treated as numpy arrays.'
+                'Higher dimensional quantities (%s) need a dtype and will be treated as ' \
+                'numpy arrays.' % self
 
 
 class DirectQuantity(Quantity):

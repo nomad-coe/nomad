@@ -117,6 +117,4 @@ class OptimadeNormalizer(SystemBasedNormalizer):
             optimade = self.get_optimade_data(index)
             self._backend.add_mi2_section(optimade)
         except Exception as e:
-            import traceback
-            traceback.print_exc()
             self.logger.warn('could not acquire optimade data', exc_info=e)

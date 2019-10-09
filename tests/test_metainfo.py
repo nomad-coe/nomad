@@ -291,10 +291,19 @@ class TestM1:
         with assert_exception(TypeError):
             System().atom_labels = 'label'
 
-    def test_np(self):
+    def test_np_array(self):
         system = System()
         system.atom_positions = [[1, 2, 3]]
         assert isinstance(system.atom_positions, pint.quantity._Quantity)
+
+    def test_np_scalar(self):
+        class TestSection(MSection):
+            test_quantity = Quantity(type=np.dtype('int16'))
+
+        test_section = TestSection()
+        test_section.test_quantity = 12
+        assert test_section.test_quantity == 12
+        assert type(test_section.test_quantity) == np.int16
 
     def test_unit_conversion(self):
         system = System()

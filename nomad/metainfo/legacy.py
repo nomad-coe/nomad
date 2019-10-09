@@ -1,11 +1,15 @@
-from typing import Tuple, Dict, List, Type, TypeVar
+from typing import Tuple, Dict, List, Type, TypeVar, Any
 import os.path
+import numpy as np
+import json
+from jinja2 import Environment, PackageLoader, select_autoescape
+import textwrap
 
 from nomadcore.local_meta_info import loadJsonFile, InfoKindEl
 import nomad_meta_info
 
 from nomad import utils
-from nomad.metainfo import Definition, Package, Category, Section, Quantity, SubSection
+from nomad.metainfo import Definition, Package, Category, Section, Quantity, SubSection, Reference, units
 
 
 def load_legacy_metainfo(
@@ -28,13 +32,12 @@ def load_legacy_metainfo(
     return defs, packages
 
 
-legacy_defs, legacy_packages = load_legacy_metainfo(['common.nomadmetainfo.json', 'public.nomadmetainfo.json'])
+legacy_defs, legacy_packages = load_legacy_metainfo(['common.nomadmetainfo.json', 'public.nomadmetainfo.json', 'vasp.nomadmetainfo.json'])
 
 logger = utils.get_logger(__name__)
 all_defs: Dict[str, Definition] = dict()
 
 T = TypeVar('T', bound=Definition)
-dtype_strs = set()
 
 
 def convert_package(legacy_definitions: List[InfoKindEl], **kwargs) -> Package:
@@ -48,7 +51,8 @@ def convert_package(legacy_definitions: List[InfoKindEl], **kwargs) -> Package:
 
         definition = package.all_definitions.get(legacy_name)
         if definition is None:
-            definition = package.m_create(section_cls, name=legacy_name)
+            definition = package.m_create(
+                section_cls, name=legacy_name, description=legacy_def.description)
 
         if is_new:
             all_defs[legacy_def.name] = definition
@@ -63,9 +67,38 @@ def convert_package(legacy_definitions: List[InfoKindEl], **kwargs) -> Package:
             definition = flux_box(legacy_def.name, Section, is_new=True)
 
         elif legacy_def.kindStr in ['type_dimension', 'type_document_content']:
-            definition = Quantity(name=legacy_def.name, type=int)
-            # map shape, map type
-            dtype_strs.add(legacy_def.dtypeStr)
+            definition = Quantity(
+                name=legacy_def.name, description=legacy_def.description)
+            referenced_sections = legacy_def.extra_args.get('referencedSections')
+            if referenced_sections is not None and len(referenced_sections) > 0:
+                if len(referenced_sections) == 1:
+                    definition.type = Reference(flux_box(referenced_sections[0], Section))
+
+                else:
+                    logger.error('Could not map non higher dimensional reference quantity %s.' % definition.name)
+                    definition.type = np.dtype(int)
+
+            elif legacy_def.kindStr == 'type_dimension':
+                definition.type = int
+            elif legacy_def.dtypeStr == 'D':
+                definition.type = Any
+            elif legacy_def.dtypeStr == 'C':
+                definition.type = str
+            elif legacy_def.dtypeStr == 'r':
+                definition.type = int
+            elif legacy_def.dtypeStr == 'i64':
+                definition.type = np.dtype(np.int64)
+            else:
+                definition.type = np.dtype(legacy_def.dtypeStr)
+
+            legacy_shape = legacy_def.shape
+            if legacy_shape is None:
+                legacy_shape = []
+
+            definition.shape = legacy_shape
+
+            if legacy_def.units is not None:
+                definition.unit = units.parse_units(legacy_def.units)
 
         else:
             logger.error(
@@ -82,8 +115,9 @@ def convert_package(legacy_definitions: List[InfoKindEl], **kwargs) -> Package:
             if legacy_super_def.kindStr == 'type_section':
                 parent_def = flux_box(legacy_super_name, Section)
                 if isinstance(definition, Section):
-                    parent_def.m_create(
+                    sub_section = parent_def.m_create(
                         SubSection, name=legacy_def.name, sub_section=definition)
+                    sub_section.repeats = legacy_def.repeats is not None and legacy_def.repeats
 
                 elif isinstance(definition, Quantity):
                     parent_def.m_add_sub_section(Section.quantities, definition)
@@ -103,5 +137,50 @@ common_pkg = convert_package(
     legacy_packages['common.nomadmetainfo.json'] + legacy_packages['public.nomadmetainfo.json'],
     name='common')
 
-# print(common_pkg.m_to_json(indent=2))
-print(dtype_strs)
+vasp_pkg = convert_package(legacy_packages['vasp.nomadmetainfo.json'], name='vasp')
+
+for error in common_pkg.m_all_validate() + vasp_pkg.m_all_validate():
+    print(error)
+
+json.dumps([common_pkg.m_to_dict(), vasp_pkg.m_to_dict()], indent=2)
+
+
+def format_description(description, indent=0, width=90):
+    paragraphs = [paragraph.strip() for paragraph in description.split('\n')]
+
+    def format_paragraph(paragraph, first):
+        lines = textwrap.wrap(text=paragraph, width=width - indent * 4)
+        lines = [l.replace('\\', '\\\\') for l in lines]
+        return textwrap.indent(
+            '\n'.join(lines), ' ' * 4 * indent, lambda x: not (first and x.startswith(lines[0])))
+
+    return '\n\n'.join([
+        format_paragraph(p, i == 0)
+        for i, p in enumerate(paragraphs) if p != ''])
+
+
+def format_type(mi_type):
+    if type(mi_type) == np.dtype:
+        return 'np.dtype(np.%s)' % mi_type
+    if mi_type in [int, float, str, bool]:
+        return mi_type.__name__
+    if isinstance(mi_type, Reference):
+        return "MProxy('%s')" % mi_type.target_section_def.name
+    else:
+        return str(mi_type)
+
+
+def format_unit(unit):
+    return "'%s'" % unit
+
+
+env = Environment(
+    loader=PackageLoader('nomad.metainfo', 'templates'),
+    autoescape=select_autoescape(['python']))
+env.globals.update(
+    format_description=format_description,
+    format_type=format_type,
+    format_unit=format_unit)
+
+with open(os.path.join(os.path.dirname(__file__), 'common.py'), 'wt') as f:
+    f.write(env.get_template('package.j2').render(pkg=common_pkg))

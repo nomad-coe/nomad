@@ -264,4 +264,4 @@ A more complex example
 
 from .metainfo import MSection, MCategory, Definition, Property, Quantity, SubSection, \
     Section, Category, Package, Enum, Datetime, MProxy, MetainfoError, DeriveError, \
-    MetainfoReferenceError, DataType, MData, MDataDict, m_package, units
+    MetainfoReferenceError, DataType, MData, MDataDict, Reference, m_package, units
