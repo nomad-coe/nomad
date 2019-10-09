@@ -152,6 +152,7 @@ class TestM2:
         assert example_package.description == 'An example metainfo package.'
         assert example_package.m_sub_section_count(Package.section_definitions) == 5
         assert example_package.m_sub_section_count(Package.category_definitions) == 1
+        assert len(example_package.all_definitions) == 6
 
     def test_base_sections(self):
         assert Definition.m_def in iter(Section.m_def.base_sections)
@@ -257,10 +258,12 @@ class TestM1:
 
     def test_children_parent(self):
         run = Run()
-        system = run.m_create(System)
+        system1 = run.m_create(System)
+        run.m_create(System)
 
-        assert run.systems[0] == system  # pylint: disable=E1101
-        assert run.m_get_sub_section(Run.systems, 0) == system
+        assert run.systems[0] == system1  # pylint: disable=E1101
+        assert run.m_get_sub_section(Run.systems, 0) == system1
+        assert run.m_sub_section_count(Run.systems) == 2
 
     def test_parent_repeats(self):
         run = Run()

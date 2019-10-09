@@ -1621,25 +1621,25 @@ class Section(Definition):
             is a method ``on_set`` or ``on_add_sub_section``, it will be added as handler.
 
         section_cls:
-            A helper property that gives the `section class` as a Python class object.
+            A helper attribute that gives the `section class` as a Python class object.
 
         all_base_sections:
-            A helper property that gives direct and indirect base sections.
+            A helper attribute that gives direct and indirect base sections.
 
         all_properties:
-            A helper property that gives all properties (sub section and quantity) definitions
+            A helper attribute that gives all properties (sub section and quantity) definitions
             including inherited properties as a dictionary with names and definitions.
 
         all_quantities:
-            A helper property that gives all quantity definition including inherited ones
+            A helper attribute that gives all quantity definition including inherited ones
             as a dictionary that maps names (strings) to :class:`Quantity`.
 
         all_sub_sections:
-            A helper property that gives all sub-section definition including inherited ones
+            A helper attribute that gives all sub-section definition including inherited ones
             as a dictionary that maps names (strings) to :class:`SubSection`.
 
         all_sub_sections_by_section:
-            A helper property that gives all sub-section definition including inherited ones
+            A helper attribute that gives all sub-section definition including inherited ones
             as a dictionary that maps section classes (i.e. Python class objects) to
             lists of :class:`SubSection`.
     """
@@ -1721,10 +1721,18 @@ class Package(Definition):
 
         category_definitions: All `category definitions` in this package as :class:`Category`
             objects.
+
+        all_definitions: A helper attribute that provides all section definitions
+            by name.
     """
 
     section_definitions: 'SubSection' = None
     category_definitions: 'SubSection' = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.all_definitions: Dict[str, 'Section'] = dict()
 
     @staticmethod
     def from_module(module_name: str):
@@ -1741,6 +1749,10 @@ class Package(Definition):
 
         return pkg
 
+    def on_add_sub_section(self, sub_section_def, sub_section):
+        if sub_section_def in [Package.section_definitions, Package.category_definitions]:
+            self.all_definitions[sub_section.name] = sub_section
+
 
 class Category(Definition):
     """ Categories allow to organize metainfo definitions (not metainfo data like sections do)
@@ -1750,7 +1762,7 @@ class Category(Definition):
     they form a `is a` relationship.
 
     Args:
-        definitions: A helper property that gives all definitions that are directly or
+        definitions: A helper attribute that gives all definitions that are directly or
             indirectly in this category.
     """
 
