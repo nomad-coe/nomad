@@ -83,6 +83,7 @@ class CalcWithMetadata(Mapping):
         self.calc_hash: str = None
         self.mainfile: str = None
         self.pid: int = None
+        self.raw_id: str = None
 
         # basic upload and processing related metadata
         self.upload_time: datetime.datetime = None
@@ -294,6 +295,7 @@ class Domain:
         upload_id=DomainQuantity(description='Search for the upload_id.'),
         calc_id=DomainQuantity(description='Search for the calc_id.'),
         pid=DomainQuantity(description='Search for the pid.'),
+        raw_id=DomainQuantity(description='Search for the raw_id.'),
         mainfile=DomainQuantity(description='Search for the mainfile.'),
         external_id=DomainQuantity(description='External user provided id. Does not have to be unique necessarily.'),
         dataset=DomainQuantity(
