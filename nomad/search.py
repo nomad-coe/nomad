@@ -25,7 +25,7 @@ from elasticsearch.exceptions import NotFoundError
 from datetime import datetime
 import json
 
-from nomad import config, datamodel, infrastructure, datamodel, coe_repo, utils
+from nomad import config, datamodel, infrastructure, datamodel, coe_repo, utils, processing as proc
 
 
 path_analyzer = analyzer(
@@ -695,3 +695,11 @@ class SearchRequest:
 
     def __str__(self):
         return json.dumps(self._search.to_dict(), indent=2)
+
+
+def to_calc_with_metadata(results: List[Dict[str, Any]]):
+    """ Translates search results into :class:`CalcWithMetadata` objects read from mongo. """
+    ids = [result['calc_id'] for result in results]
+    return [
+        datamodel.CalcWithMetadata(**calc.metadata)
+        for calc in proc.Calc.objects(calc_id__in=ids)]

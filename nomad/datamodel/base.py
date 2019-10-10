@@ -15,6 +15,7 @@
 from typing import Iterable, List, Dict, Type, Tuple, Callable, Any
 import datetime
 from elasticsearch_dsl import Keyword
+from collections.abc import Mapping
 
 from nomad import utils, config
 from nomad.metainfo import MSection
@@ -40,7 +41,7 @@ class UploadWithMetadata():
         return {calc.calc_id: calc for calc in self.calcs}
 
 
-class CalcWithMetadata():
+class CalcWithMetadata(Mapping):
     """
     A dict/POPO class that can be used for mapping calc representations with calc metadata.
     We have multi representations of calcs and their calc metadata. To avoid implement
@@ -107,18 +108,35 @@ class CalcWithMetadata():
 
         self.update(**kwargs)
 
+    def __getitem__(self, key):
+        value = getattr(self, key, None)
+
+        if value is None or key in ['backend']:
+            raise KeyError()
+
+        if isinstance(value, MSection):
+            value = value.m_to_dict()
+
+        return value
+
+    def __iter__(self):
+        for key, value in self.__dict__.items():
+            if value is None or key in ['backend']:
+                continue
+
+            yield key
+
+    def __len__(self):
+        count = 0
+        for key, value in self.__dict__.items():
+            if value is None or key in ['backend']:
+                continue
+            count += 1
+
+        return count
+
     def to_dict(self):
-        def items():
-            for key, value in self.__dict__.items():
-                if value is None or key in ['backend']:
-                    continue
-
-                if isinstance(value, MSection):
-                    value = value.m_to_dict()
-
-                yield key, value
-
-        return {key: value for key, value in items()}
+        return {key: value for key, value in self.items()}
 
     def update(self, **kwargs):
         for key, value in kwargs.items():

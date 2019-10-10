@@ -78,20 +78,22 @@ class CalculationList(Resource):
         # order_by='optimade.%s' % sort)  # TODO map the Optimade property
 
         available = result['pagination']['total']
+        results = search.to_calc_with_metadata(result['results'])
+        assert len(results) == len(result['results']), 'Mongodb and elasticsearch are not consistent'
 
         return dict(
             meta=Meta(
                 query=request.url,
-                returned=len(result['results']),
+                returned=len(results),
                 available=available,
-                last_id=result['results'][-1]['calc_id'] if available > 0 else None),
+                last_id=results[-1].calc_id if available > 0 else None),
             links=Links(
                 'calculations',
                 available=available,
                 page_number=page_number,
                 page_limit=page_limit,
                 sort=sort, filter=filter),
-            data=[CalculationDataObject(d, request_fields=request_fields) for d in result['results']]
+            data=[CalculationDataObject(d, request_fields=request_fields) for d in results]
         ), 200
 
 
@@ -112,12 +114,15 @@ class Calculation(Resource):
             per_page=1)
 
         available = result['pagination']['total']
+        results = search.to_calc_with_metadata(result['results'])
+        assert len(results) == len(result['results']), 'Mongodb and elasticsearch are not consistent'
+
         if available == 0:
             abort(404, 'The calculation with id %s does not exist' % id)
 
         return dict(
             meta=Meta(query=request.url, returned=1),
-            data=CalculationDataObject(result['results'][0], request_fields=request_fields)
+            data=CalculationDataObject(results[0], request_fields=request_fields)
         ), 200
 
 

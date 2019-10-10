@@ -87,6 +87,16 @@ class Calc(Proc):
         self._calc_proc_logwriter_ctx: ContextManager = None
 
     @classmethod
+    def from_calc_with_metadata(cls, calc_with_metadata):
+        calc = Calc.create(
+            calc_id=calc_with_metadata.calc_id,
+            upload_id=calc_with_metadata.upload_id,
+            mainfile=calc_with_metadata.mainfile,
+            metadata=calc_with_metadata.to_dict())
+
+        return calc
+
+    @classmethod
     def get(cls, id):
         return cls.get_by_id(id, 'calc_id')
 

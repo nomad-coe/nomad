@@ -16,13 +16,14 @@
 All the API flask restplus models.
 """
 
-from typing import Dict, Any, Set
+from typing import Set
 from flask_restplus import fields
 import datetime
 import math
 
 from nomad import config
 from nomad.app.utils import RFC3339DateTime
+from nomad.datamodel import CalcWithMetadata
 
 from .api import api, base_url, url
 
@@ -213,27 +214,23 @@ json_api_data_object_model = api.model('DataObject', {
 
 
 class CalculationDataObject:
-    def __init__(self, search_entry_dict: Dict[str, Any], request_fields: Set[str] = None):
-        attrs = search_entry_dict
+    def __init__(self, calc: CalcWithMetadata, request_fields: Set[str] = None):
 
-        attrs = {
-            key: value for key, value in search_entry_dict['optimade'].items()
-            if key is not 'elements_ratios' and (request_fields is None or key in request_fields)
-        }
-        if request_fields is None or 'elements_ratios' in request_fields:
-            attrs['elements_ratios'] = [
-                d['elements_ratios'] for d in search_entry_dict['optimade']['elements_ratios']
-            ]
-        attrs.update(**{
-            '_nomad_%s' % key: value for key, value in search_entry_dict.items()
-            if key != 'optimade' and (request_fields is None or '_nomad_%s' % key in request_fields)
-        })
+        def include(key):
+            if request_fields is None or \
+                    (key == 'optimade' and key in request_fields) or \
+                    (key != 'optimade' and '_nomad_%s' % key in request_fields):
+
+                return True
+
+            return False
+
+        attrs = {key: value for key, value in calc['optimade'].items() if include(key)}
 
         self.type = 'calculation'
-        self.id = search_entry_dict['calc_id']
-        self.immutable_id = search_entry_dict['calc_id']
-        self.last_modified = search_entry_dict.get(
-            'last_processing', search_entry_dict.get('upload_time', None))
+        self.id = calc.calc_id
+        self.immutable_id = calc.calc_id
+        self.last_modified = calc.last_processing if calc.last_processing is not None else calc.upload_time
         self.attributes = attrs
 
 

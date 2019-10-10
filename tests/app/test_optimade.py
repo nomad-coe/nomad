@@ -18,7 +18,7 @@ import numpy as np
 import pytest
 
 from nomad.processing import Upload
-from nomad import search
+from nomad import search, processing as proc
 from nomad.parsing import LocalBackend
 from nomad.datamodel import CalcWithMetadata
 
@@ -29,9 +29,9 @@ from tests.test_normalizing import run_normalize
 from tests.conftest import clear_elastic
 
 
-@pytest.fixture(scope='function')
-def api(client):
-    return BlueprintClient(client, '/optimade')
+@pytest.fixture(scope='session')
+def api(nomad_app):
+    return BlueprintClient(nomad_app, '/optimade')
 
 
 def test_get_entry(published: Upload):
@@ -70,15 +70,19 @@ def create_test_structure(
     backend.closeSection('section_run', 0)
 
     backend = run_normalize(backend)
+    calc_id = 'test_calc_id_%d' % id
     calc = CalcWithMetadata(
-        upload_id='test_uload_id', calc_id='test_calc_id_%d' % id, mainfile='test_mainfile',
+        upload_id='test_uload_id', calc_id=calc_id, mainfile='test_mainfile',
         published=True, with_embargo=False)
     calc.apply_domain_metadata(backend)
 
     if without_optimade:
         calc.optimade = None
 
+    proc.Calc.from_calc_with_metadata(calc).save()
     search.Entry.from_calc_with_metadata(calc).save()
+
+    assert proc.Calc.objects(calc_id__in=[calc_id]).count() == 1
 
 
 def test_no_optimade(meta_info, elastic, api):
@@ -94,8 +98,10 @@ def test_no_optimade(meta_info, elastic, api):
 
 
 @pytest.fixture(scope='module')
-def example_structures(meta_info, elastic_infra):
+def example_structures(meta_info, elastic_infra, mongo_infra):
     clear_elastic(elastic_infra)
+    mongo_infra.drop_database('test_db')
+
     create_test_structure(meta_info, 1, 2, 1, [], 0)
     create_test_structure(meta_info, 2, 2, 1, ['C'], 0)
     create_test_structure(meta_info, 3, 2, 1, [], 1)
