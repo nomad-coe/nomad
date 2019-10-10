@@ -79,10 +79,15 @@ class DomainProviderBase extends React.Component {
           tooltip: 'Counts duplicates only once.',
           renderResultString: count => (<span> and <b>{count.toLocaleString()}</b> unique entr{count === 1 ? 'y' : 'ies'}</span>)
         },
-        total_energies: {
-          label: 'Total energy calculations',
-          tooltip: 'Aggregates the number of total energy calculations as each entry can contain many calculations.',
-          renderResultString: count => (<span> with <b>{count.toLocaleString()}</b> total energy calculation{count === 1 ? '' : 's'}</span>)
+        // total_energies: {
+        //   label: 'Total energy calculations',
+        //   tooltip: 'Aggregates the number of total energy calculations as each entry can contain many calculations.',
+        //   renderResultString: count => (<span> with <b>{count.toLocaleString()}</b> total energy calculation{count === 1 ? '' : 's'}</span>)
+        // },
+        calculations: {
+          label: 'Single configuration calculations',
+          tooltip: 'Aggregates the number of single configuration calculations (e.g. total energy calculations) as each entry can contain many calculations.',
+          renderResultString: count => (<span> with <b>{count.toLocaleString()}</b> single configuration calculation{count === 1 ? '' : 's'}</span>)
         },
         unique_geometries: {
           label: 'Unique geometries',
