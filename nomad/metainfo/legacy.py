@@ -1,4 +1,4 @@
-from typing import Tuple, Dict, List, Type, TypeVar, Any
+from typing import Tuple, Dict, List, Type, TypeVar, Any, cast
 import os.path
 import numpy as np
 import json
@@ -49,7 +49,7 @@ def convert_package(legacy_definitions: List[InfoKindEl], **kwargs) -> Package:
                 'double definition in legacy metainfo',
                 def_name=legacy_def.name, def_type='section')
 
-        definition = package.all_definitions.get(legacy_name)
+        definition: Definition = package.all_definitions.get(legacy_name)
         if definition is None:
             definition = package.m_create(
                 section_cls, name=legacy_name, description=legacy_def.description)
@@ -57,8 +57,9 @@ def convert_package(legacy_definitions: List[InfoKindEl], **kwargs) -> Package:
         if is_new:
             all_defs[legacy_def.name] = definition
 
-        return definition
+        return cast(T, definition)
 
+    definition: Definition = None
     for legacy_def in legacy_definitions:
         if legacy_def.kindStr == 'type_abstract_document_content':
             definition = flux_box(legacy_def.name, Category, is_new=True)
