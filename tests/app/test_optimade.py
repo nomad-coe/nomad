@@ -20,7 +20,7 @@ import pytest
 from nomad.processing import Upload
 from nomad import search, processing as proc
 from nomad.parsing import LocalBackend
-from nomad.datamodel import CalcWithMetadata
+from nomad.datamodel.dft import CalcWithMetadata
 
 from nomad.app.optimade import parse_filter, url
 
