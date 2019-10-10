@@ -214,7 +214,7 @@ json_api_data_object_model = api.model('JsonApiDataObject', {
 
 class CalculationDataObject:
     def __init__(self, search_entry_dict: Dict[str, Any], request_fields: Set[str] = None):
-        attrs = search_entry_dict
+        #attrs = search_entry_dict
 
         attrs = {
             key: value for key, value in search_entry_dict['optimade'].items()
@@ -231,6 +231,9 @@ class CalculationDataObject:
 
         self.type = 'calculation'
         self.id = search_entry_dict['calc_id']
+        #attrs['immutable_id'] = search_entry_dict['calc_id']
+        #attrs['last_modified'] = search_entry_dict.get(
+        #    'last_processing', search_entry_dict.get('upload_time', None))
         self.immutable_id = search_entry_dict['calc_id']
         self.last_modified = search_entry_dict.get(
             'last_processing', search_entry_dict.get('upload_time', None))

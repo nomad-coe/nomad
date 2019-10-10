@@ -29,7 +29,7 @@ def base_request_args():
     if request.args.get('response_format', 'json') != 'json':
         abort(400, 'Response format is not supported.')
 
-    properties_str = request.args.get('response_fields', None)
+    properties_str = request.args.get('request_fields', None)
     if properties_str is not None:
         return properties_str.split(',')
     return None
@@ -67,6 +67,9 @@ class CalculationList(Resource):
         # order_by='optimade.%s' % sort)  # TODO map the Optimade property
 
         available = result['pagination']['total']
+       
+        print(result['results'][0]['optimade'].keys())
+        raise 
 
         return dict(
             meta=Meta(
@@ -104,6 +107,8 @@ class Calculation(Resource):
         if available == 0:
             abort(404, 'The calculation with id %s does not exist' % id)
 
+        print('================', result['results'][0])
+        raise
         return dict(
             meta=Meta(query=request.url, returned=1),
             data=CalculationDataObject(result['results'][0], request_fields=request_fields)

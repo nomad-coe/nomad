@@ -32,11 +32,16 @@ quantities: Dict[str, Quantity] = {
     for q in OptimadeStructureEntry.m_def.quantities.values()
     if 'elastic' in q.m_annotations}
 
+#for q in OptimadeStructureEntry.m_def.quantities.values():
+#    print(q.name, '-------------',q.m_annotations.keys(),'optimade' in q.m_annotations)
+#print('IIIIIIIIIIIIIIIIIIIIIIIIIIII',type(quantities['elements']))
+#raise
 quantities['elements'].length_quantity = quantities['nelements']
 quantities['dimension_types'].length_quantity = quantities['dimension_types']
 quantities['elements'].has_only_quantity = Quantity(name='only_atoms')
 quantities['elements'].nested_quantity = quantities['elements_ratios']
 quantities['elements_ratios'].nested_quantity = quantities['elements_ratios']
+
 
 _parser = LarkParser(version=(0, 10, 0))
 _transformer = Transformer(quantities=quantities.values())

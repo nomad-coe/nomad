@@ -20,6 +20,7 @@ from nomad.normalizing.normalizer import SystemBasedNormalizer
 from nomad.metainfo import units
 from nomad.metainfo.optimade import OptimadeStructureEntry
 
+from string import ascii_uppercase
 
 class OptimadeNormalizer(SystemBasedNormalizer):
 
@@ -74,9 +75,12 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         optimade.chemical_formula_reduced = get_value('chemical_composition_reduced')
         optimade.chemical_formula_hill = get_value('chemical_composition_bulk_reduced')
         optimade.chemical_formula_descriptive = optimade.chemical_formula_hill
+        #optimade.chemical_formula_anonymous = ''.join([
+        #    '%s' % element + (str(atom_counts[element]) if atom_counts[element] > 1 else '')
+        #    for element in optimade.elements])
         optimade.chemical_formula_anonymous = ''.join([
-            '%s' % element + (str(atom_counts[element]) if atom_counts[element] > 1 else '')
-            for element in optimade.elements])
+            '%s' % ascii_uppercase[i%len(ascii_uppercase)] + (str(atom_counts[optimade.elements[i]]) if atom_counts[optimade.elements[i]] > 1 else '')
+            for i in range(len(optimade.elements))])
 
         # sites
         optimade.nsites = len(nomad_species)
@@ -91,6 +95,13 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         # TODO optimade.structure_features
 
         return optimade
+
+    #AL
+    #def gen_species(self,elements):
+    #    species  = []
+    #    for i in range(len(elements)):
+    #        specie = {'name':'%s%d'%(elements[i])} 
+            
 
     def normalize_system(self, index):
         try:
