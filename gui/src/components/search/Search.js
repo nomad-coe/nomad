@@ -199,13 +199,17 @@ class Search extends React.Component {
     const { searchValues } = searchState
     const { pagination: { total }, statistics } = data
 
-    const helperText = <span>
-      There are {Object.keys(domain.searchMetrics).filter(key => statistics.total.all[key]).map(key => {
+    let helperText = <span>
+      There {total === 1 ? 'is' : 'are'} {Object.keys(domain.searchMetrics).filter(key => statistics.total.all[key]).map(key => {
         return <span key={key}>
-          {domain.searchMetrics[key].renderResultString(!loading && statistics.total.all[key] !== undefined ? statistics.total.all[key] : '...')}
+          {domain.searchMetrics[key].renderResultString(!loading ? statistics.total.all[key] : '...')}
         </span>
       })}{Object.keys(searchValues).length ? ' left' : ''}.
     </span>
+
+    if (total === 0) {
+      helperText = <span>There are no more entries matching your criteria.</span>
+    }
 
     return (
       <div className={classes.root}>
