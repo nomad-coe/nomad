@@ -212,15 +212,32 @@ json_api_data_object_model = api.model('DataObject', {
     # further optional fields: links, meta, relationships
 })
 
+json_api_calculation_info_model = api.model('CalculationInfo', {
+    'description': fields.String(
+        description='Description of the entry'),
+
+    'properties': fields.Raw(
+        description=('A dictionary describing queryable properties for this '
+                     'entry type, where each key is a property name')),
+
+    'formats': fields.List(
+        fields.String(),
+        required=True,
+        description='List of output formats available for this type of entry'),
+
+    'output_fields_by_format': fields.Raw(
+        description=('Dictionary of available output fields for this entry'
+                     'type, where the keys are the values of the formats list'
+                     'and the values are the keys of the properties dictionary'))
+
+})
+
 
 class CalculationDataObject:
     def __init__(self, calc: CalcWithMetadata, request_fields: Set[str] = None):
 
         def include(key):
-            if request_fields is None or \
-                    (key == 'optimade' and key in request_fields) or \
-                    (key != 'optimade' and '_nomad_%s' % key in request_fields):
-
+            if request_fields is None or (key in request_fields):
                 return True
 
             return False
@@ -264,6 +281,14 @@ json_api_list_response_model = api.inherit(
             fields.Nested(json_api_data_object_model),
             required=True,
             description=('The list of returned response objects.'))
+    })
+
+json_api_info_response_model = api.inherit(
+    'SingleResponse', json_api_response_model, {
+        'data': fields.Nested(
+            model=json_api_calculation_info_model,
+            required=True,
+            description=('The returned response object.'))
     })
 
 
