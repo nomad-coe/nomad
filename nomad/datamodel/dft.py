@@ -239,7 +239,7 @@ Domain(
             'Number of atoms in the simulated system',
             elastic_mapping=Integer()),
         optimade=DomainQuantity(
-            'Data for the optimade API',
+            'Search based on optimade\'s filter query language',
             elastic_mapping=Object(optimade.ESOptimadeEntry),
             elastic_value=lambda entry: optimade.elastic_obj(entry, optimade.ESOptimadeEntry)
         )),

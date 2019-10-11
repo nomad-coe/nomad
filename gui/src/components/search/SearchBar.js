@@ -200,7 +200,7 @@ class SearchBar extends React.Component {
 
     let key, value
     if (chip.includes('=')) {
-      const parts = chip.split('=')
+      const parts = chip.split(/=(.+)/)
       key = parts[0]
       value = parts[1]
     } else {

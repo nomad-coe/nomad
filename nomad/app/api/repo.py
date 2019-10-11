@@ -24,6 +24,7 @@ from elasticsearch.exceptions import NotFoundError
 
 from nomad import search, utils, datamodel
 from nomad.app.utils import rfc3339DateTime
+from nomad.app.optimade import filterparser
 
 from .api import api
 from .auth import login_if_available
@@ -161,11 +162,20 @@ def add_query(search_request: search.SearchRequest):
     except Exception:
         abort(400, message='bad datetime format')
 
+    # optimade
+    try:
+        optimade = request.args.get('optimade', None)
+        if optimade is not None:
+            q = filterparser.parse_filter(optimade)
+            search_request.query(q)
+    except filterparser.FilterException:
+        abort(400, message='could not parse optimade query')
+
     # search parameter
     search_request.search_parameters(**{
         key: request.args.getlist(key) if search.quantities[key] else request.args.get(key)
         for key in request.args.keys()
-        if key in search.quantities})
+        if key not in ['optimade'] and key in search.quantities})
 
 
 @ns.route('/')

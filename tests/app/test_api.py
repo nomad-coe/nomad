@@ -987,6 +987,14 @@ class TestRepo():
         assert data['pagination']['total'] == 1
         assert data['results'][0]['raw_id'] == 'C61A2F88-A0EA-4F0B-AA47-A715868B2E26'
 
+    def test_optimade(self, api, non_empty_processed, test_user_auth):
+        rv = api.get(
+            '/repo/?%s' % urlencode(dict(owner='all', optimade='nelements >= 1')),
+            headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert data['pagination']['total'] > 0
+
 
 class TestRaw(UploadFilesBasedTests):
 

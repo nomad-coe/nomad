@@ -109,7 +109,8 @@ class DomainProviderBase extends React.Component {
         pid: {},
         mainfile: {},
         calc_hash: {},
-        formula: {}
+        formula: {},
+        optimade: {}
       },
       /**
        * An dict where each object represents a column. Possible keys are label, render.
