@@ -16,21 +16,22 @@
 All the API flask restplus models.
 """
 
-from typing import Dict, Any, Set
+from typing import Set
 from flask_restplus import fields
 import datetime
 import math
 
 from nomad import config
 from nomad.app.utils import RFC3339DateTime
+from nomad.datamodel import CalcWithMetadata
 
 from .api import api, base_url, url
 
 
 # TODO error/warning objects
 
-json_api_meta_object_model = api.model('JsonApiMetaObject', {
-    'query': fields.Nested(model=api.model('JsonApiQuery', {
+json_api_meta_object_model = api.model('MetaObject', {
+    'query': fields.Nested(model=api.model('Query', {
         'representation': fields.String(
             required=True,
             description='A string with the part of the URL following the base URL')
@@ -55,7 +56,7 @@ json_api_meta_object_model = api.model('JsonApiMetaObject', {
     'provider': fields.Nested(
         required=True, skip_none=True,
         description='Information on the database provider of the implementation.',
-        model=api.model('JsonApiProvider', {
+        model=api.model('Provider', {
             'name': fields.String(
                 required=True,
                 description='A short name for the database provider.'),
@@ -89,7 +90,7 @@ json_api_meta_object_model = api.model('JsonApiMetaObject', {
     'implementation': fields.Nested(
         required=False, skip_none=True,
         description='Server implementation details.',
-        model=api.model('JsonApiImplementation', {
+        model=api.model('Implementation', {
             'name': fields.String(
                 description='Name of the implementation'),
             'version': fields.String(
@@ -99,7 +100,7 @@ json_api_meta_object_model = api.model('JsonApiMetaObject', {
             'maintainer': fields.Nested(
                 skip_none=True,
                 description='Details about the maintainer of the implementation',
-                model=api.model('JsonApiMaintainer', {
+                model=api.model('Maintainer', {
                     'email': fields.String()
                 })
             )
@@ -132,7 +133,7 @@ class Meta():
             maintainer=dict(email='markus.scheidgen@physik.hu-berlin.de'))
 
 
-json_api_links_model = api.model('JsonApiLinks', {
+json_api_links_model = api.model('Links', {
     'base_url': fields.String(
         description='The base URL of the implementation'),
 
@@ -172,7 +173,7 @@ def Links(endpoint: str, available: int, page_number: int, page_limit: int, **kw
     return result
 
 
-json_api_response_model = api.model('JsonApiResponse', {
+json_api_response_model = api.model('Response', {
     'links': fields.Nested(
         required=False,
         description='Links object with pagination links.',
@@ -192,7 +193,7 @@ json_api_response_model = api.model('JsonApiResponse', {
                      'included are known as compound documents in the JSON API.'))
 })
 
-json_api_data_object_model = api.model('JsonApiDataObject', {
+json_api_data_object_model = api.model('DataObject', {
     'type': fields.String(
         description='The type of the object [structure or calculations].'),
 
@@ -211,32 +212,42 @@ json_api_data_object_model = api.model('JsonApiDataObject', {
     # further optional fields: links, meta, relationships
 })
 
+json_api_calculation_info_model = api.model('CalculationInfo', {
+    'description': fields.String(
+        description='Description of the entry'),
+
+    'properties': fields.Raw(
+        description=('A dictionary describing queryable properties for this '
+                     'entry type, where each key is a property name')),
+
+    'formats': fields.List(
+        fields.String(),
+        required=True,
+        description='List of output formats available for this type of entry'),
+
+    'output_fields_by_format': fields.Raw(
+        description=('Dictionary of available output fields for this entry'
+                     'type, where the keys are the values of the formats list'
+                     'and the values are the keys of the properties dictionary'))
+
+})
+
 
 class CalculationDataObject:
-    def __init__(self, search_entry_dict: Dict[str, Any], request_fields: Set[str] = None):
-        #attrs = search_entry_dict
+    def __init__(self, calc: CalcWithMetadata, request_fields: Set[str] = None):
 
-        attrs = {
-            key: value for key, value in search_entry_dict['optimade'].items()
-            if key is not 'elements_ratios' and (request_fields is None or key in request_fields)
-        }
-        if request_fields is None or 'elements_ratios' in request_fields:
-            attrs['elements_ratios'] = [
-                d['elements_ratios'] for d in search_entry_dict['optimade']['elements_ratios']
-            ]
-        attrs.update(**{
-            '_nomad_%s' % key: value for key, value in search_entry_dict.items()
-            if key != 'optimade' and (request_fields is None or '_nomad_%s' % key in request_fields)
-        })
+        def include(key):
+            if request_fields is None or (key in request_fields):
+                return True
+
+            return False
+
+        attrs = {key: value for key, value in calc['optimade'].items() if include(key)}
 
         self.type = 'calculation'
-        self.id = search_entry_dict['calc_id']
-        #attrs['immutable_id'] = search_entry_dict['calc_id']
-        #attrs['last_modified'] = search_entry_dict.get(
-        #    'last_processing', search_entry_dict.get('upload_time', None))
-        self.immutable_id = search_entry_dict['calc_id']
-        self.last_modified = search_entry_dict.get(
-            'last_processing', search_entry_dict.get('upload_time', None))
+        self.id = calc.calc_id
+        self.immutable_id = calc.calc_id
+        self.last_modified = calc.last_processing if calc.last_processing is not None else calc.upload_time
         self.attributes = attrs
 
 
@@ -257,7 +268,7 @@ class Property:
 
 
 json_api_single_response_model = api.inherit(
-    'JsonApiSingleResponse', json_api_response_model, {
+    'SingleResponse', json_api_response_model, {
         'data': fields.Nested(
             model=json_api_data_object_model,
             required=True,
@@ -265,11 +276,19 @@ json_api_single_response_model = api.inherit(
     })
 
 json_api_list_response_model = api.inherit(
-    'JsonApiSingleResponse', json_api_response_model, {
+    'SingleResponse', json_api_response_model, {
         'data': fields.List(
             fields.Nested(json_api_data_object_model),
             required=True,
             description=('The list of returned response objects.'))
+    })
+
+json_api_info_response_model = api.inherit(
+    'SingleResponse', json_api_response_model, {
+        'data': fields.Nested(
+            model=json_api_calculation_info_model,
+            required=True,
+            description=('The returned response object.'))
     })
 
 

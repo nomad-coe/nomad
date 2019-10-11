@@ -36,6 +36,7 @@ from tests.test_files import example_file, example_file_mainfile, example_file_c
 from tests.test_files import create_staging_upload, create_public_upload, assert_upload_files
 from tests.test_coe_repo import assert_coe_upload
 from tests.test_search import assert_search_upload
+from tests.processing import test_data as test_processing
 
 from tests.app.test_app import BlueprintClient
 
@@ -971,6 +972,20 @@ class TestRepo():
         if success:
             assert json.loads(rv.data)['calc_id'] == '%d' % pid
             assert json.loads(rv.data)['upload_id'] == '0'
+
+    @pytest.mark.timeout(config.tests.default_timeout)
+    def test_raw_id(self, api, test_user, test_user_auth, proc_infra):
+        example_upload_file = 'tests/data/proc/with_raw_id.zip'
+        example_upload_id = os.path.basename(example_upload_file).replace('.zip', '')
+        test_processing.run_processing((example_upload_id, example_upload_file), test_user)
+
+        rv = api.get(
+            '/repo/?%s' % urlencode(dict(owner='all', raw_id='C61A2F88-A0EA-4F0B-AA47-A715868B2E26')),
+            headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert data['pagination']['total'] == 1
+        assert data['results'][0]['raw_id'] == 'C61A2F88-A0EA-4F0B-AA47-A715868B2E26'
 
 
 class TestRaw(UploadFilesBasedTests):

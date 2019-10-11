@@ -1,0 +1,1000 @@
+   26  cd ..
+   27  ls
+   28  pytest -sxv tests/app/test_optimade.py 
+   29  ls
+   30  vi nomad/app/optimade/api.py 
+   31  vi nomad/app/optimade/endpoints.py 
+   32  vi nomad/app/optimade/filterparser.py 
+   33  python
+   34  vi nomad/app/optimade/filterparser.py 
+   35  ls
+   36  vi nomad/app/optimade/models.py 
+   37  vi tests/app/test_optimade.py 
+   38  pytest -sxv tests/app/test_optimade.py 
+   39  vi tests/app/test_optimade.py 
+   40  pytest -sxv tests/app/test_optimade.py 
+   41  vi tests/app/test_optimade.py 
+   42  pytest -sxv tests/app/test_optimade.py 
+   43  vi tests/app/test_optimade.py 
+   44  pytest -sxv tests/app/test_optimade.py 
+   45  vi tests/app/test_optimade.py 
+   46  pytest -sxv tests/app/test_optimade.py 
+   47  vi tests/app/test_optimade.py 
+   48  pytest -sxv tests/app/test_optimade.py 
+   49  vi tests/app/test_optimade.py 
+   50  pytest -sxv tests/app/test_optimade.py 
+   51  vi tests/app/test_optimade.py 
+   52  pytest -sxv tests/app/test_optimade.py 
+   53  vi tests/app/test_optimade.py 
+   54  pytest -sxv tests/app/test_optimade.py 
+   55  vi tests/app/test_optimade.py 
+   56  pytest -sxv tests/app/test_optimade.py 
+   57  vi tests/app/test_optimade.py 
+   58  pytest -sxv tests/app/test_optimade.py 
+   59  vi tests/app/test_optimade.py 
+   60  ls
+   61  vi tests/app/test_
+   62  vi tests/app/test_optimade.py 
+   63  vi nomad/metainfo/optimade.py 
+   64  vi nomad/metainfo/metainfo.py 
+   65  vi nomad/metainfo/API_CONCEPT.md 
+   66  vi nomad/metainfo/metainfo.py 
+   67  vi nomad/metainfo/example.py 
+   68  vi nomad/metainfo/optimade.py 
+   69  vi nomad/metainfo/optimade.py
+   70  vi nomad/metainfo/metainfo.py 
+   71  vi nomad/metainfo/optimade.py
+   72  vi nomad/metainfo/metainfo.py 
+   73  vi nomad/metainfo/optimade.py
+   74  ls
+   75  vi tests/app/test_optimade.py 
+   76  pwd
+   77  ls
+   78  vi tests/app/resource.py 
+   79  vi tests/app/test_optimade.py 
+   80  vi nomad/metainfo/optimade.py
+   81  vi tests/app/test_optimade.py 
+   82  pytest -sxv tests/app/test_optimade.py 
+   83  vi tests/app/test_optimade.py 
+   84  pytest -sxv tests/app/test_optimade.py 
+   85  vi tests/app/test_optimade.py 
+   86  pytest -sxv tests/app/test_optimade.py 
+   87  vi tests/app/test_optimade.py 
+   88  pytest -sxv tests/app/test_optimade.py 
+   89  vi tests/app/test_optimade.py 
+   90  pytest -sxv tests/app/test_optimade.py 
+   91  vi tests/app/test_optimade.py 
+   92  pytest -sxv tests/app/test_optimade.py 
+   93  vi tests/app/test_optimade.py 
+   94  pytest -sxv tests/app/test_optimade.py 
+   95  vi tests/app/test_optimade.py 
+   96  pytest -sxv tests/app/test_optimade.py 
+   97  vi tests/app/test_optimade.py 
+   98  pytest -sxv tests/app/test_optimade.py 
+   99  ls
+  100  vi tests/app/test_optimade.py 
+  101  ls
+  102  vi tests/app/test_optimade.py 
+  103  vi nomad/app/optimade/endpoints.py 
+  104  vi nomad/normalizing/optimade.py 
+  105  pytest -sxv tests/app/test_optimade.py 
+  106  vi nomad/normalizing/optimade.py 
+  107  pytest -sxv tests/app/test_optimade.py 
+  108  vi nomad/normalizing/optimade.py 
+  109  pytest -sxv tests/app/test_optimade.py 
+  110  vi nomad/normalizing/optimade.py 
+  111  pytest -sxv tests/app/test_optimade.py 
+  112  vi tests/app/test_optimade.py 
+  113  pytest -sxv tests/app/test_optimade.py 
+  114  vi tests/app/test_optimade.py 
+  115  pytest -sxv tests/app/test_optimade.py 
+  116  vi tests/app/test_optimade.py 
+  117  pytest -sxv tests/app/test_optimade.py 
+  118  vi tests/app/test_optimade.py 
+  119  pytest -sxv tests/app/test_optimade.py 
+  120  vi nomad/normalizing/optimade.py 
+  121  pytest -sxv tests/app/test_optimade.py 
+  122  vi nomad/normalizing/optimade.py 
+  123  vi tests/app/test_optimade.py 
+  124  pytest -sxv tests/app/test_optimade.py 
+  125  vi tests/app/test_optimade.py 
+  126  pytest -sxv tests/app/test_optimade.py 
+  127  vi tests/app/test_optimade.py 
+  128  pytest -sxv tests/app/test_optimade.py 
+  129  vi tests/app/test_optimade.py 
+  130  pytest -sxv tests/app/test_optimade.py 
+  131  vi tests/app/test_optimade.py 
+  132  vi nomad/app/optimade/
+  133  vi nomad/app/optimade/filterparser.py 
+  134  vi tests/app/test_optimade.py 
+  135  pytest -sxv tests/app/test_optimade.py 
+  136  vi tests/app/test_optimade.py 
+  137  pytest -sxv tests/app/test_optimade.py 
+  138  vi tests/app/test_optimade.py 
+  139  top
+  140  ls
+  141  vi tests/app/test_optimade.py 
+  142  vi tests/app/test_api.py 
+  143  vi tests/app/test_optimade.py 
+  144  ls
+  145  vi nomad/app/optimade/endpoints.py 
+  146  vi nomad/app/optimade/filterparser.py 
+  147  ls
+  148  vi nomad/normalizing/optimade.py 
+  149  ls
+  150  vi tests/app/test_optimade.py 
+  151  pytest -sxv tests/app/test_optimade.py 
+  152  :q
+  153  vi nomad/normalizing/optimade.py 
+  154  ls
+  155  vi nomad/app/optimade/filterparser.py 
+  156  vi tests/app/test_optimade.py 
+  157  pytest -sxv tests/app/test_optimade.py 
+  158  vi tests/app/test_optimade.py 
+  159  vi nomad/app/optimade/filterparser.py 
+  160  vi tests/app/test_optimade.py 
+  161  pytest -sxv tests/app/test_optimade.py 
+  162  vi tests/app/test_optimade.py 
+  163  pytest -sxv tests/app/test_optimade.py 
+  164  vi tests/app/test_optimade.py 
+  165  vi nomad/app/optimade/filterparser.py 
+  166  vi nomad/app/optimade/api.py 
+  167  vi nomad/app/optimade/endpoints.py 
+  168  vi nomad/parsing/parser.py 
+  169  vi nomad/parsing/backend.py 
+  170  ls
+  171  vi nomad/infrastructure.py 
+  172  vi nomad/normalizing/optimade.py 
+  173  ls
+  174  vi nomad/app/optimade/models.py 
+  175  vi nomad/app/optimade/api.py 
+  176  vi nomad/app/optimade/filterparser.py 
+  177  pytest -sxv tests/app/test_optimade.py 
+  178  vi nomad/app/optimade/filterparser.py 
+  179  pytest -sxv tests/app/test_optimade.py 
+  180  vi nomad/app/optimade/filterparser.py 
+  181  pytest -sxv tests/app/test_optimade.py 
+  182  vi nomad/app/optimade/filterparser.py 
+  183  pytest -sxv tests/app/test_optimade.py 
+  184  vi nomad/app/optimade/filterparser.py 
+  185  pytest -sxv tests/app/test_optimade.py 
+  186  vi nomad/app/optimade/filterparser.py 
+  187  pytest -sxv tests/app/test_optimade.py 
+  188  vi nomad/app/optimade/filterparser.py 
+  189  pytest -sxv tests/app/test_optimade.py 
+  190  vi nomad/app/optimade/filterparser.py 
+  191  pytest -sxv tests/app/test_optimade.py 
+  192  python
+  193  vi nomad/app/optimade/filterparser.py 
+  194  python
+  195  vi nomad/app/optimade/f
+  196  vi /scratch/u/ladinesa/nomad/nomad-FAIR/.pyenv/lib/python3.6/site-packages/optimade/filtertransformers/elasticsearch.py 
+  197  vi nomad/app/optimade/filterparser.py 
+  198  pytest -sxv tests/app/test_optimade.py 
+  199  vi nomad/app/optimade/filterparser.py 
+  200  pytest -sxv tests/app/test_optimade.py 
+  201  vi nomad/app/optimade/filterparser.py 
+  202  pytest -sxv tests/app/test_optimade.py 
+  203  vi nomad/app/optimade/filterparser.py 
+  204  pytest -sxv tests/app/test_optimade.py 
+  205  vi nomad/app/optimade/filterparser.py 
+  206  vi tests/app/test_optimade.py 
+  207  vi nomad/app/optimade/filterparser.py 
+  208  pytest -sxv tests/app/test_optimade.py 
+  209  vi nomad/app/optimade/filterparser.py
+  210  pytest -sxv tests/app/test_optimade.py 
+  211  ls
+  212  vi nomad/parsing/parser.py 
+  213  vi nomad/parsing/random_template.json 
+  214  vi nomad/parsing/parser.py 
+  215  ls
+  216  vi tests/test_search.py 
+  217  vi tests/test_parsing.py 
+  218  vi tests/app/test_app.py 
+  219  vi tests/app/test_api.py 
+  220  l
+  221  ls
+  222  vi tests/test_normalizing.py 
+  223  vi tests/data/normalizers/fcc_crystal_structure.json 
+  224  ls
+  225  vi nomad/normalizing/optimade.py 
+  226  vi nomad/app/optimade/filterparser.py 
+  227  vi nomad/normalizing/optimade.py 
+  228  vi nomad/app/optimade/filterparser.py 
+  229  vi nomad/normalizing/optimade.py 
+  230  vi nomad/app/optimade/filterparser.py 
+  231  pytest -sxv tests/app/test_optimade.py 
+  232  ls
+  233  vi nomad/app/api/api.py 
+  234  vi nomad/app/api/common.py 
+  235  vi nomad/parsing/artificial.py 
+  236  vi nomad/parsing/random_template.json 
+  237  ls
+  238  vi nomad/app/optimade/filterparser.py 
+  239  python
+  240  vi /scratch/u/ladinesa/nomad/nomad-FAIR/.pyenv/lib/python3.6/site-packages/optimade/filterparser/tests/test_filterparser.py 
+  241  vi /scratch/u/ladinesa/nomad/nomad-FAIR/.pyenv/lib/python3.6/site-packages/optimade/filterparser/lark_parser.py 
+  242  vi /scratch/u/ladinesa/nomad/nomad-FAIR/.pyenv/lib/python3.6/site-packages/optimade/filtertransformers/elasticsearch.py 
+  243  vi nomad/normalizing/optimade.py 
+  244  vi nomad/app/optimade/filterparser.py 
+  245  vi /scratch/u/ladinesa/nomad/nomad-FAIR/.pyenv/lib/python3.6/site-packages/optimade/filtertransformers/elasticsearch.py 
+  246  vi nomad/app/optimade/filterparser.py 
+  247  pytest -sxv tests/app/test_optimade.py 
+  248  vi nomad/app/optimade/filterparser.py 
+  249  pytest -sxv tests/app/test_optimade.py 
+  250  vi nomad/app/optimade/filterparser.py 
+  251  pytest -sxv tests/app/test_optimade.py 
+  252  vi nomad/app/optimade/filterparser.py 
+  253  vi /scratch/u/ladinesa/nomad/nomad-FAIR/.pyenv/lib/python3.6/site-packages/optimade/filtertransformers/elasticsearch.py 
+  254  vi nomad/app/optimade/filterparser.py 
+  255  vi /scratch/u/ladinesa/nomad/nomad-FAIR/.pyenv/lib/python3.6/site-packages/optimade/filtertransformers/elasticsearch.py 
+  256  python
+  257  vi /scratch/u/ladinesa/nomad/nomad-FAIR/.pyenv/lib/python3.6/site-packages/elasticsearch_dsl/search.py 
+  258  vi /scratch/u/ladinesa/nomad/nomad-FAIR/.pyenv/lib/python3.6/site-packages/optimade/filtertransformers/m
+  259  vi /scratch/u/ladinesa/nomad/nomad-FAIR/.pyenv/lib/python3.6/site-packages/elasticsearch_dsl/mapping.py 
+  260  ls
+  261  vi nomad/metainfo/optimade.py 
+  262  vi nomad/app/optimade/filterparser.py 
+  263  pytest -sxv tests/app/test_optimade.py 
+  264  vi tests/app/test_optimade.py 
+  265  pytest -sxv tests/app/test_optimade.py 
+  266  vi tests/app/test_optimade.py 
+  267  pytest -sxv tests/app/test_optimade.py 
+  268  vi nomad/app/optimade/filterparser.py 
+  269  pytest -sxv tests/app/test_optimade.py 
+  270  vi nomad/app/optimade/filterparser.py 
+  271  vi tests/app/test_optimade.py 
+  272  pytest -sxv tests/app/test_optimade.py 
+  273  ls
+  274  vi tests/app/test_optimade.py 
+  275  pytest -sxv tests/app/test_optimade.py 
+  276  vi tests/app/test_optimade.py 
+  277  pytest -sxv tests/app/test_optimade.py 
+  278  vi tests/app/test_optimade.py 
+  279  pytest -sxv tests/app/test_optimade.py 
+  280  vi tests/app/test_optimade.py 
+  281  pytest -sxv tests/app/test_optimade.py 
+  282  vi tests/app/test_optimade.py 
+  283  pytest -sxv tests/app/test_optimade.py 
+  284  vi tests/app/test_optimade.py 
+  285  pytest -sxv tests/app/test_optimade.py 
+  286  python
+  287  pytest -sxv tests/app/test_optimade.py 
+  288  :q
+  289  vi tests/app/test_optimade.py 
+  290  pytest -sxv tests/app/test_optimade.py 
+  291  vi tests/app/test_optimade.py 
+  292  pytest -sxv tests/app/test_optimade.py 
+  293  vi tests/app/test_optimade.py 
+  294  pytest -sxv tests/app/test_optimade.py 
+  295  vi tests/app/test_optimade.py 
+  296  pytest -sxv tests/app/test_optimade.py 
+  297  vi tests/app/test_optimade.py 
+  298  pytest -sxv tests/app/test_optimade.py 
+  299  vi tests/app/test_optimade.py 
+  300  pytest -sxv tests/app/test_optimade.py 
+  301  vi tests/app/test_optimade.py 
+  302  pytest -sxv tests/app/test_optimade.py 
+  303  vi tests/app/test_optimade.py 
+  304  pytest -sxv tests/app/test_optimade.py 
+  305  vi tests/app/test_optimade.py 
+  306  pytest -sxv tests/app/test_optimade.py 
+  307  vi tests/app/test_optimade.py 
+  308  pytest -sxv tests/app/test_optimade.py 
+  309  vi tests/app/test_optimade.py 
+  310  pytest -sxv tests/app/test_optimade.py 
+  311  vi tests/app/test_optimade.py 
+  312  pytest -sxv tests/app/test_optimade.py 
+  313  vi tests/app/test_optimade.py 
+  314  pytest -sxv tests/app/test_optimade.py 
+  315  vi tests/app/test_optimade.py 
+  316  pytest -sxv tests/app/test_optimade.py 
+  317  vi tests/app/test_optimade.py 
+  318  pytest -sxv tests/app/test_optimade.py 
+  319  vi tests/app/test_optimade.py 
+  320  pytest -sxv tests/app/test_optimade.py 
+  321  vi tests/app/test_optimade.py 
+  322  pytest -sxv tests/app/test_optimade.py 
+  323  vi tests/app/test_optimade.py 
+  324  pytest -sxv tests/app/test_optimade.py 
+  325  vi tests/app/test_optimade.py 
+  326  pytest -sxv tests/app/test_optimade.py 
+  327  vi tests/app/test_optimade.py 
+  328  pytest -sxv tests/app/test_optimade.py 
+  329  vi tests/app/test_optimade.py 
+  330  pytest -sxv tests/app/test_optimade.py 
+  331  vi tests/app/test_optimade.py 
+  332  pytest -sxv tests/app/test_optimade.py 
+  333  vi tests/app/test_optimade.py 
+  334  pytest -sxv tests/app/test_optimade.py 
+  335  vi tests/app/test_optimade.py 
+  336  pytest -sxv tests/app/test_optimade.py 
+  337  vi tests/app/test_optimade.py 
+  338  pytest -sxv tests/app/test_optimade.py 
+  339  vi tests/app/test_optimade.py 
+  340  pytest -sxv tests/app/test_optimade.py 
+  341  vi tests/app/test_optimade.py 
+  342  pytest -sxv tests/app/test_optimade.py 
+  343  vi tests/app/test_optimade.py 
+  344  pytest -sxv tests/app/test_optimade.py 
+  345  vi tests/app/test_optimade.py 
+  346  pytest -sxv tests/app/test_optimade.py 
+  347  vi tests/app/test_optimade.py 
+  348  pytest -sxv tests/app/test_optimade.py 
+  349  vi tests/app/test_optimade.py 
+  350  pytest -sxv tests/app/test_optimade.py 
+  351  vi tests/app/test_optimade.py 
+  352  pytest -sxv tests/app/test_optimade.py 
+  353  vi tests/app/test_optimade.py 
+  354  pytest -sxv tests/app/test_optimade.py 
+  355  vi tests/app/test_optimade.py 
+  356  pytest -sxv tests/app/test_optimade.py 
+  357  vi tests/app/test_optimade.py 
+  358  pytest -sxv tests/app/test_optimade.py 
+  359  vi tests/app/test_optimade.py 
+  360  pytest -sxv tests/app/test_optimade.py 
+  361  vi tests/app/test_optimade.py 
+  362  pytest -sxv tests/app/test_optimade.py 
+  363  vi tests/app/test_optimade.py 
+  364  pytest -sxv tests/app/test_optimade.py 
+  365  vi tests/app/test_optimade.py 
+  366  pytest -sxv tests/app/test_optimade.py 
+  367  vi tests/app/test_optimade.py 
+  368  pytest -sxv tests/app/test_optimade.py 
+  369  vi tests/app/test_optimade.py 
+  370  pytest -sxv tests/app/test_optimade.py 
+  371  vi tests/app/test_optimade.py 
+  372  pytest -sxv tests/app/test_optimade.py 
+  373  vi tests/app/test_optimade.py 
+  374  pytest -sxv tests/app/test_optimade.py 
+  375  vi tests/app/test_optimade.py 
+  376  pytest -sxv tests/app/test_optimade.py 
+  377  vi tests/app/test_optimade.py 
+  378  pytest -sxv tests/app/test_optimade.py 
+  379  vi tests/app/test_optimade.py 
+  380  pytest -sxv tests/app/test_optimade.py 
+  381  vi tests/app/test_optimade.py 
+  382  pytest -sxv tests/app/test_optimade.py 
+  383  vi tests/app/test_optimade.py 
+  384  pytest -sxv tests/app/test_optimade.py 
+  385  vi tests/app/test_optimade.py 
+  386  pytest -sxv tests/app/test_optimade.py 
+  387  vi tests/app/test_optimade.py 
+  388  pytest -sxv tests/app/test_optimade.py 
+  389  vi tests/app/test_optimade.py 
+  390  pytest -sxv tests/app/test_optimade.py 
+  391  vi tests/app/test_optimade.py 
+  392  pytest -sxv tests/app/test_optimade.py 
+  393  vi tests/app/test_optimade.py 
+  394  pytest -sxv tests/app/test_optimade.py 
+  395  vi tests/app/test_optimade.py 
+  396  pytest -sxv tests/app/test_optimade.py 
+  397  vi tests/app/test_optimade.py 
+  398  pytest -sxv tests/app/test_optimade.py 
+  399  vi tests/app/test_optimade.py 
+  400  pytest -sxv tests/app/test_optimade.py 
+  401  vi tests/app/test_optimade.py 
+  402  pytest -sxv tests/app/test_optimade.py 
+  403  vi tests/app/test_optimade.py 
+  404  pytest -sxv tests/app/test_optimade.py 
+  405  vi tests/app/test_optimade.py 
+  406  pytest -sxv tests/app/test_optimade.py 
+  407  vi tests/app/test_optimade.py 
+  408  pytest -sxv tests/app/test_optimade.py 
+  409  vi tests/app/test_optimade.py 
+  410  pytest -sxv tests/app/test_optimade.py 
+  411  vi tests/app/test_optimade.py 
+  412  pytest -sxv tests/app/test_optimade.py 
+  413  vi tests/app/test_optimade.py 
+  414  pytest -sxv tests/app/test_optimade.py 
+  415  vi tests/app/test_optimade.py 
+  416  pytest -sxv tests/app/test_optimade.py 
+  417  vi tests/app/test_optimade.py 
+  418  pytest -sxv tests/app/test_optimade.py 
+  419  vi tests/app/test_optimade.py 
+  420  pytest -sxv tests/app/test_optimade.py 
+  421  vi tests/app/test_optimade.py 
+  422  pytest -sxv tests/app/test_optimade.py 
+  423  vi tests/app/test_optimade.py 
+  424  pytest -sxv tests/app/test_optimade.py 
+  425  vi tests/app/test_optimade.py 
+  426  pytest -sxv tests/app/test_optimade.py 
+  427  vi tests/app/test_optimade.py 
+  428  pytest -sxv tests/app/test_optimade.py 
+  429  vi tests/app/test_optimade.py 
+  430  pytest -sxv tests/app/test_optimade.py 
+  431  vi tests/app/test_optimade.py 
+  432  pytest -sxv tests/app/test_optimade.py 
+  433  vi tests/app/test_optimade.py 
+  434  pytest -sxv tests/app/test_optimade.py 
+  435  vi tests/app/test_optimade.py 
+  436  vi tests/app/test_app.py 
+  437  vi tests/app/test_ap
+  438  vi tests/app/test_api.py 
+  439  vi tests/app/test_optimade.py 
+  440  pytest -sxv tests/app/test_optimade.py 
+  441  vi tests/app/test_optimade.py 
+  442  python
+  443  ls
+  444  vi tests/app/test_optimade.py 
+  445  pytest -sxv tests/app/test_optimade.py 
+  446  vi tests/app/test_optimade.py 
+  447  pytest -sxv tests/app/test_optimade.py 
+  448  vi tests/app/test_optimade.py 
+  449  pytest -sxv tests/app/test_optimade.py 
+  450  vi tests/app/test_optimade.py 
+  451  pytest -sxv tests/app/test_optimade.py 
+  452  vi tests/app/test_optimade.py 
+  453  pytest -sxv tests/app/test_optimade.py 
+  454  vi tests/app/test_optimade.py 
+  455  pytest -sxv tests/app/test_optimade.py 
+  456  vi tests/app/test_optimade.py 
+  457  pytest -sxv tests/app/test_optimade.py 
+  458  pytest -sxv tests/app/test_optimade.py :: test_list_endpoint_request_field
+  459  pytest -sxv tests/app/test_optimade.py 
+  460  vi tests/app/test_optimade.py 
+  461  pytest -sxv tests/app/test_optimade.py 
+  462  vi tests/app/test_optimade.py 
+  463  pytest -sxv tests/app/test_optimade.py 
+  464  vi tests/app/test_optimade.py 
+  465  pytest -sxv tests/app/test_optimade.py 
+  466  vi tests/app/test_optimade.py 
+  467  pytest -sxv tests/app/test_optimade.py 
+  468  vi tests/app/test_optimade.py 
+  469  pytest -sxv tests/app/test_optimade.py 
+  470  vi tests/app/test_optimade.py 
+  471  pytest -sxv tests/app/test_optimade.py 
+  472  vi tests/app/test_optimade.py 
+  473  pytest -sxv tests/app/test_optimade.py 
+  474  vi tests/app/test_optimade.py 
+  475  pytest -sxv tests/app/test_optimade.py 
+  476  vi tests/app/test_optimade.py 
+  477  pytest -sxv tests/app/test_optimade.py 
+  478  vi tests/app/test_optimade.py 
+  479  pytest -sxv tests/app/test_optimade.py 
+  480  vi tests/app/test_optimade.py 
+  481  pytest -sxv tests/app/test_optimade.py 
+  482  vi tests/app/test_optimade.py 
+  483  pytest -sxv tests/app/test_optimade.py 
+  484  vi tests/app/test_optimade.py 
+  485  pytest -sxv tests/app/test_optimade.py 
+  486  vi tests/app/test_optimade.py 
+  487  pytest -sxv tests/app/test_optimade.py 
+  488  vi tests/app/test_optimade.py 
+  489  pytest -sxv tests/app/test_optimade.py 
+  490  vi tests/app/test_optimade.py 
+  491  pytest -sxv tests/app/test_optimade.py 
+  492  vi tests/app/test_optimade.py 
+  493  pytest -sxv tests/app/test_optimade.py 
+  494  vi tests/app/test_optimade.py 
+  495  pytest -sxv tests/app/test_optimade.py 
+  496  vi tests/app/test_optimade.py 
+  497  pytest -sxv tests/app/test_optimade.py 
+  498  vi tests/app/test_optimade.py 
+  499  pytest -sxv tests/app/test_optimade.py 
+  500  vi tests/app/test_optimade.py 
+  501  pytest -sxv tests/app/test_optimade.py 
+  502  ls
+  503  pytest -sxv tests/app/test_optimade.py 
+  504  vi tests/app/test_optimade.py 
+  505  pytest -sxv tests/app/test_optimade.py 
+  506  pytest -sv tests/app/test_optimade.py 
+  507  vi tests/app/test_optimade.py 
+  508  pytest -sv tests/app/test_optimade.py 
+  509  pytest -svx tests/app/test_optimade.py::test_optimade_parser[elements HAS ONLY "H", "O"-3] 
+  510  pytest -svx 'tests/app/test_optimade.py::test_optimade_parser[elements HAS ONLY "H", "O"-3]'
+  511  vi tests/app/test_optimade.py 
+  512  pytest -svx 'tests/app/test_optimade.py::test_optimade_parser[elements HAS ONLY "H", "O"-3]'
+  513  vi tests/app/test_optimade.py 
+  514  pytest -svx 'tests/app/test_optimade.py::test_optimade_parser[elements HAS ONLY "H", "O"-3]'
+  515  vi tests/app/test_optimade.py 
+  516  pytest -svx 'tests/app/test_optimade.py::test_optimade_parser[elements HAS ONLY "H", "O"-3]'
+  517  vi tests/app/test_optimade.py 
+  518  pytest -svx 'tests/app/test_optimade.py::test_optimade_parser[elements HAS ONLY "H", "O"-3]'
+  519  vi tests/app/test_optimade.py 
+  520  pytest -svx 'tests/app/test_optimade.py::test_optimade_parser[elements HAS ONLY "H", "O"-3]'
+  521  vi tests/app/test_optimade.py 
+  522  pytest -sxv tests/app/test_optimade.py 
+  523  vi tests/app/test_optimade.py 
+  524  pytest -sxv tests/app/test_optimade.py 
+  525  python
+  526  pytest -sxv tests/app/test_optimade.py 
+  527  vi tests/app/test_optimade.py 
+  528  pytest -sxv tests/app/test_optimade.py 
+  529  vi tests/app/test_optimade.py 
+  530  pytest -sxv tests/app/test_optimade.py 
+  531  vi tests/app/test_optimade.py 
+  532  pytest -sxv tests/app/test_optimade.py 
+  533  vi tests/app/test_optimade.py 
+  534  pytest -sxv tests/app/test_optimade.py 
+  535  vi tests/app/test_optimade.py 
+  536  pytest -sxv tests/app/test_optimade.py 
+  537  :q
+  538  vi tests/app/test_optimade.py 
+  539  :q
+  540  pytest -sxv tests/app/test_optimade.py 
+  541  vi tests/app/test_optimade.py 
+  542  :q
+  543  vi tests/app/test_optimade.py 
+  544  :q
+  545  vi tests/app/test_optimade.py 
+  546  pytest -sxv tests/app/test_optimade.py 
+  547  vi tests/app/test_optimade.py 
+  548  pytest -sxv tests/app/test_optimade.py 
+  549  vi tests/app/test_optimade.py 
+  550  pytest -sxv tests/app/test_optimade.py 
+  551  vi tests/app/test_optimade.py 
+  552  pytest -sxv tests/app/test_optimade.py 
+  553  vi tests/app/test_optimade.py 
+  554  pytest -sxv tests/app/test_optimade.py 
+  555  vi tests/app/test_optimade.py 
+  556  pytest -sxv tests/app/test_optimade.py 
+  557  vi tests/app/test_optimade.py 
+  558  pytest -sxv tests/app/test_optimade.py 
+  559  vi tests/app/test_optimade.py 
+  560  pytest -sxv tests/app/test_optimade.py 
+  561  vi tests/app/test_optimade.py 
+  562  pytest -sxv tests/app/test_optimade.py 
+  563  :q
+  564  pytest -sxv tests/app/test_optimade.py 
+  565  vi tests/app/test_optimade.py 
+  566  pytest -sxv tests/app/test_optimade.py 
+  567  vi tests/app/test_optimade.py 
+  568  pytest -sxv tests/app/test_optimade.py 
+  569  vi tests/app/test_optimade.py 
+  570  pytest -sxv tests/app/test_optimade.py 
+  571  vi tests/app/test_optimade.py 
+  572  pytest -sxv tests/app/test_optimade.py 
+  573  vi tests/app/test_optimade.py 
+  574  pytest -sxv tests/app/test_optimade.py 
+  575  vi tests/app/test_optimade.py 
+  576  pytest -sxv tests/app/test_optimade.py 
+  577  vi tests/app/test_optimade.py 
+  578  pytest -sxv tests/app/test_optimade.py 
+  579  vi tests/app/test_optimade.py 
+  580  pytest -sxv tests/app/test_optimade.py 
+  581  vi tests/app/test_optimade.py 
+  582  pytest -sxv tests/app/test_optimade.py 
+  583  vi tests/app/test_optimade.py 
+  584  pytest -sxv tests/app/test_optimade.py 
+  585  vi tests/app/test_optimade.py 
+  586  pytest -sxv tests/app/test_optimade.py 
+  587  vi tests/app/test_optimade.py 
+  588  pytest -sxv tests/app/test_optimade.py 
+  589  vi tests/app/test_optimade.py 
+  590  pytest -sxv tests/app/test_optimade.py 
+  591  vi tests/app/test_optimade.py 
+  592  pytest -sxv tests/app/test_optimade.py 
+  593  vi tests/app/test_optimade.py 
+  594  ls
+  595  cd /scratch/u/ladinesa/
+  596  ls
+  597  cd nomad/
+  598  ls
+  599  cd nomad-FAIR/
+  600  ls
+  601  vi nomad/app/optimade/filterparser.py 
+  602  ls
+  603  vi nomad/normalizing/optimade.py 
+  604  vi nomad/search.py 
+  605  vi nomad/app/optimade/filterparser.py 
+  606  ls
+  607  vi nomad/normalizing/normalizer.py 
+  608  vi nomad/normalizing/optimade.py 
+  609  ls
+  610  vi nomad/app/optimade/api.py 
+  611  vi nomad/app/optimade/endpoints.py 
+  612  vi nomad/app/optimade/filterparser.py 
+  613  vi nomad/metainfo/optimade.py 
+  614  vi nomad/app/optimade/endpoints.py 
+  615  ls
+  616  cd ..
+  617  ls
+  618  cd ..
+  619  ls
+  620  mkdir nomad2
+  621  cd nomad2/
+  622  ls
+  623  git pull origin v0.6.0
+  624  cd ..
+  625  ls
+  626  cd nomad
+  627  ls
+  628  cd nomad-FAIR/
+  629  ls
+  630  git status
+  631  git checkout -b
+  632  git checkout -b dev-alvin0
+  633  git commit -a -m "test optimade"
+  634  git checkout v0.6.0
+  635  ls
+  636  git pull origin v0.6.0
+  637  ls
+  638  git submodule update
+  639  ls
+  640  git branch
+  641  git checkout dev-alvin0 
+  642  git merge v0.6.0 
+  643  vi tests/app/test_optimade.py
+  644  git log
+  645  git branch
+  646  git log
+  647  vi tests/app/test_optimade.py 
+  648  vi nomad/normalizing/optimade.py 
+  649  vi nomad/app/optimade/models.py 
+  650  vi nomad/app/optimade/endpoints.py 
+  651  ls
+  652  git submodule update
+  653  pip install -e requirements.txt 
+  654  pip install -r requirements.txt 
+  655  vi ../history.txt 
+  656  source .pyenv/bin/activate
+  657  pip install -r requirements.txt 
+  658  ls
+  659  vi nomad/normalizing/optimade.py 
+  660  vi dependencies/optimade-python-tools/optimade/filtertransformers/elasticsearch.py 
+  661  vi nomad/search.py 
+  662  ls
+  663  vi nomad/datamodel/dft.py 
+  664  vi tests/app/test_optimade.py 
+  665  vi nomad/datamodel/dft.py 
+  666  vi nomad/datamodel/base.py
+  667  vi dependencies/nomad-meta-info/meta_info/nomad_meta_info
+  668  cd dependencies/nomad-meta-info/meta_info/
+  669  ls
+  670  cd nomad_meta_info
+  671  ls
+  672  grep 'is_represent' *
+  673  cd 
+  674  cd /scratch/u/ladinesa/nomad/nomad-FAIR/
+  675  cd
+  676  cd /scratch/u/ladinesa/nomad/nomad-FAIR/dependencies/nomad-meta-info/meta_info/nomad_meta_info
+  677  cd /scratch/u/ladinesa/nomad/nomad-FAIR
+  678  ls
+  679  cd .pyenv/
+  680  ls
+  681  cd lib/
+  682  ls
+  683  cd python3.6/
+  684  ls
+  685  cd site-packages/
+  686  ls
+  687  cd nomad_meta_info/
+  688  ls
+  689  grep 'is_represe' *
+  690  cd ..
+  691  cd //
+  692  cd
+  693  cd /scratch/u/ladinesa/
+  694  cd nomad/nomad-FAIR/dependencies/nomad-meta-info/
+  695  ls
+  696  pip install -e .
+  697  ls
+  698  cd ..
+  699  ls
+  700  vi nomad/app/optimade/endpoints.py 
+  701  vi nomad/app/optimade/filterparser.py 
+  702  vi nomad/app/optimade/models.py 
+  703  ls
+  704  vi dependencies/optimade-python-tools/optimade/filtertransformers/elasticsearch.py 
+  705  ls
+  706  vi nomad/metainfo/optimade.py 
+  707  vi nomad/metainfo/metainfo.py 
+  708  ls
+  709  vi nomad/datamodel/dft.py 
+  710  ls
+  711  vi nomad/normalizing/optimade.py 
+  712  ls
+  713  vi nomad/app/optimade/models.py 
+  714  vi nomad/app/optimade/fitl
+  715  vi nomad/app/optimade/filterparser.py 
+  716  vi nomad/app/optimade/endpoints.py 
+  717  vi nomad/metainfo/optimade.py 
+  718  ls
+  719  vi nomad/normalizing/optimade.py 
+  720  ls
+  721  vi nomad/metainfo/optimade.py 
+  722  ls
+  723  vi nomad/normalizing/optimade.py 
+  724  ls
+  725  vi nomad/metainfo/metainfo.py 
+  726  vi nomad/metainfo/optimade.py 
+  727  vi nomad/metainfo/metainfo.py 
+  728  grep "Calc" nomad/*/*py
+  729  grep "CalcW" nomad/*/*py
+  730  vi nomad/datamodel/dft.py 
+  731  grep 'request_field' nomad/*/*py
+  732  grep 'request_field' nomad/*/*/*py
+  733  vi nomad/app/optimade/models.py 
+  734  vi nomad/app/optimade/endpoints.py 
+  735  vi nomad/app/optimade/models.py 
+  736  grep 'CalcData' nomad/*/*py
+  737  grep 'CalcData' nomad/*/*/*py
+  738  grep 'CalcData' */*/*/*py
+  739  grep 'CalcData' */*/*py
+  740  grep 'CalcData' */*/*/*py
+  741  grep 'CalculationData' */*/*/*py
+  742  vi nomad/app/optimade/endpoints.py
+  743  vi nomad/app/optimade/models.py 
+  744  ls
+  745  docker-proxy 
+  746  docker ps
+  747  ls
+  748  cd nom
+  749  cd /scratch/u/ladinesa/
+  750  ls
+  751  cd nomad/
+  752  ls
+  753  cd nomad-FAIR/
+  754  ls
+  755  ./dependencies.sh 
+  756  git submodule update --init
+  757  ./dependencies
+  758  ./dependencies.sh 
+  759  source .pyenv/bin/activate
+  760  ./dependencies.sh 
+  761  source ~/.bashrc 
+  762  ./dependencies.sh 
+  763  ls
+  764  pip installl -e .
+  765  pip install -e .
+  766  ls
+  767  nomad --help
+  768  ls
+  769  git branch 
+  770  git fetch --all
+  771  git checkout v0.6.0
+  772  ls
+  773  git pull origin v0.6.0
+  774  ls
+  775  pytest -sxv tests/app/test_optimade.py 
+  776  pip install inflection
+  777  pytest -sxv tests/app/test_optimade.py 
+  778  git submodule update --init
+  779  pip install dependencies/optimade-python-tools/
+  780  pip install --ignore-requirespython dependencies/optimade-python-tools/
+  781  pip install --help
+  782  pip install --ignore-requires-python dependencies/optimade-python-tools/
+  783  pytest -sxv tests/app/test_optimade.py 
+  784  vi tests/app/test_optimade.py 
+  785  history 
+  786  history > /scratch/u/ladinesa/nomad/history.txt
+  787  ls
+  788  vi tests/app/test_optimade.py 
+  789  ls
+  790  vi Dockerfile 
+  791  vi gui/Dockerfile 
+  792  docker --version
+  793  docker info
+  794  docker run hello-world
+  795  docker image ls
+  796  cd
+  797  cd /scratch/
+  798  ls
+  799  cd u/ladinesa/
+  800  ls
+  801  mkdir delme
+  802  cd delme/
+  803  vi Dockerfile
+  804  vi requirements.txt
+  805  vi app.pz
+  806  vi app.py
+  807  python
+  808  vi app.py
+  809  ls
+  810  docker build --tag=friendlyhello .
+  811  docker image ls
+  812  vi Dockerfile 
+  813  docker run -p 4000:80 friendlyhello
+  814  vi Dockerfile 
+  815  vi app.py 
+  816  vi requirements.txt 
+  817  docker container ls
+  818  docker run -p 4000:80 friendlyhello
+  819  python
+  820  pwd
+  821  cp /scratch/u/ladinesa/nomad/nomad-FAIR/examples/external_project_upload/external_project_example.zip .
+  822  ls
+  823  python
+  824  vi ../nomad/history.txt 
+  825  cd ..
+  826  ls
+  827  cd nomad/
+  828  ls
+  829  cd nomad-FAIR/
+  830  ls
+  831  cd nomad
+  832  ls
+  833  cd app/
+  834  ls
+  835  vi api/upload.py 
+  836  ls
+  837  cd api/
+  838  ls
+  839  vi api.py 
+  840  ls
+  841  cd ..
+  842  ls
+  843  cd ..
+  844  ls
+  845  cd ../tests/
+  846  ls
+  847  cd app/
+  848  ls
+  849  vi test_optimade.py 
+  850  pytest -sxv test_optimade.py 
+  851  pwd
+  852  vi ../../../history.txt 
+  853  ls
+  854  vi test_optimade.py 
+  855  python
+  856  ls
+  857  cd ..
+  858  ls
+  859  cd ../nomad
+  860  ls
+  861  vi parsing/backend.py 
+  862  ls
+  863  cd ..
+  864  ls
+  865  cd ops/
+  866  ls
+  867  vi kubernetes/nomad-analytics-namespace.json 
+  868  cd ..
+  869  ls
+  870  cd nomad
+  871  ls
+  872  cd parsing/
+  873  ls
+  874  vi backend.py 
+  875  python
+  876  vi /scratch/u/ladinesa/nomad/nomad-FAIR/.pyenv/lib/python3.6/site-packages/nomadcore/parser_backend.py 
+  877  vi backend.py 
+  878  vi /scratch/u/ladinesa/nomad/nomad-FAIR/.pyenv/lib/python3.6/site-packages/nomadcore/local_backend.py 
+  879  vi backend.py 
+  880  cd ..
+  881  ls
+  882  vi datamodel/base.py
+  883  vi search.py 
+  884  ls
+  885  vi app/optimade/filterparser.py 
+  886  python
+  887  ls
+  888  vi metainfo/metainfo.py 
+  889  python
+  890  vi metainfo/metainfo.py 
+  891  vi metainfo/optimade.py 
+  892  vi metainfo/metainfo.py
+  893  vi metainfo/optimade.py 
+  894  python
+  895  vi /scratch/u/ladinesa/nomad/nomad-FAIR/.pyenv/lib/python3.6/site-packages/optimade/filterparser/lark_parser.py 
+  896  vi /scratch/u/ladinesa/nomad/nomad-FAIR/.pyenv/lib/python3.6/site-packages/optimade/filtertransformers/elasticsearch.py 
+  897  vi app/optimade/filterparser.py 
+  898  vi /scratch/u/ladinesa/nomad/nomad-FAIR/.pyenv/lib/python3.6/site-packages/optimade/filtertransformers/elasticsearch.py 
+  899  vi app/optimade/filterparser.py 
+  900  vi /scratch/u/ladinesa/nomad/nomad-FAIR/.pyenv/lib/python3.6/site-packages/optimade/filtertransformers/elasticsearch.py 
+  901  vi app/optimade/filterparser.py 
+  902  vi /scratch/u/ladinesa/nomad/nomad-FAIR/.pyenv/lib/python3.6/site-packages/optimade/filtertransformers/elasticsearch.py 
+  903  vi app/optimade/filterparser.py 
+  904  vi /scratch/u/ladinesa/nomad/nomad-FAIR/.pyenv/lib/python3.6/site-packages/optimade/filtertransformers/elasticsearch.py 
+  905  vi app/optimade/filterparser.py 
+  906  vi /scratch/u/ladinesa/nomad/nomad-FAIR/.pyenv/lib/python3.6/site-packages/optimade/filtertransformers/elasticsearch.py 
+  907  vi app/optimade/filterparser.py 
+  908  vi search.py 
+  909  vi app/optimade/filterparser.py 
+  910  vi metainfo/optimade.py 
+  911  vi app/optimade/filterparser.py 
+  912  vi app/optimade/endpoints.py 
+  913  ls
+  914  vi normalizing/optimade.py 
+  915  vi app/optimade/filterparser.py 
+  916  vi normalizing/optimade.py 
+  917  grep 'get_optimade_data' */*/*py
+  918  grep 'get_optimade_data' */*py
+  919  vi normalizing/optimade.py 
+  920  vi normalizing/normalizer.py 
+  921  python
+  922  vi normalizing/normalizer.py 
+  923  python
+  924  vi /scratch/u/ladinesa/nomad/nomad-FAIR/.pyenv/lib/python3.6/abc.py
+  925  vi normalizing/normalizer.py 
+  926  vi normalizing/optimade.py 
+  927  vi normalizing/system.py 
+  928  vi normalizing/optimade.py 
+  929  vi normalizing/system.py 
+  930  grep 'add_mi2_section' */*py
+  931  vi parsing/backend.py 
+  932  vi parsing/artificial.py 
+  933  vi parsing/parser.py 
+  934  vi parsing/backend.py 
+  935  vi parsing/parser.py 
+  936  vi parsing/artificial.py 
+  937  ls
+  938  vi normalizing/system.py 
+  939  vi normalizing/optimade.py 
+  940  vi normalizing/system.py 
+  941  python
+  942  vi normalizing/system.py 
+  943  ls
+  944  vi metainfo/metainfo.py 
+  945  python
+  946  vi metainfo/metainfo.py 
+  947  python
+  948  vi metainfo/metainfo.py 
+  949  vi metainfo/optimade.py 
+  950  vi metainfo/metainfo.py 
+  951  vi metainfo/API_CONCEPT.md 
+  952  vi metainfo/CONCEPT.md 
+  953  vi metainfo/API_CONCEPT.md 
+  954  vi metainfo/example.py 
+  955  ls
+  956  vi app/api/api.py 
+  957  vi app/api/repo.py 
+  958  vi app/api/api.py 
+  959  ls
+  960  vi app/api/common.py 
+  961  vi app/api/archive.py 
+  962  vi app/api/api.py 
+  963  vi app/api/info.py 
+  964  vi app/api/common.py 
+  965  vi normalizing/optimade.py 
+  966  vi metainfo/optimade.py 
+  967  ls
+  968  vi app/optimade/endpoints.py 
+  969  python
+  970  ls
+  971  vi  app/utils.py 
+  972  ls
+  973  cd ..
+  974  v
+  975  vi tests/utils.py 
+  976  cd ..
+  977  cd nomad-FAIR/
+  978  vi tests/utils.py 
+  979  ls
+  980  vi nomad/normalizing/optimade.py 
+  981  vi nomad/app/optimade/endpoints.py 
+  982  vi nomad/metainfo/optimade.py 
+  983  vi nomad/normalizing/optimade.py 
+  984  vi nomad/app/optimade/filterparser.py 
+  985  ls
+  986  vi nomad/app/optimade/endpoints.py 
+  987  vi nomad/search.py 
+  988  vi nomad/app/optimade/endpoints.py 
+  989  ls
+  990  vi nomad/app/optimade/endpoints.py 
+  991  ls
+  992  vi nomad/app/optimade/models.py 
+  993  vi nomad/app/optimade/endpoints.py 
+  994  vi nomad/app/optimade/models.py 
+  995  vi nomad/search.py 
+  996  ls
+  997  cd nomad
+  998  vi metainfo/optimade.py 
+  999  vi nomad/app/optimade/models.py 
+ 1000  vi app/optimade/models.py 
+ 1001  cd /scratch/u/ladinesa/nomad
+ 1002  ls
+ 1003  cd nomad-FAIR/
+ 1004  ls
+ 1005  vi nomad/app/optimade/endpoints.py 
+ 1006  vi nomad/app/optimade/models.py 
+ 1007  rm nomad/app/optimade/.endpoints.py.swp
+ 1008  vi nomad/app/optimade/endpoints.py 
+ 1009  vi nomad/app/optimade/me
+ 1010  vi nomad/app/optimade/models.py 
+ 1011  nomad dev qa --help
+ 1012  source .pyenv/bin/activate
+ 1013  nomad dev qa --help
+ 1014  nomad dev qa --skip-tests
+ 1015  ls
+ 1016  rm -r tests/app/.pyenv/
+ 1017  nomad dev qa --skip-tests
+ 1018  vi nomad/app/optimade/models.py 
+ 1019  ls
+ 1020  git branch
+ 1021  git commit
+ 1022  vi nomad/app/optimade/endpoints.py
+ 1023  git merge
+ 1024  history
+ 1025  history > temp.txt

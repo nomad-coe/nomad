@@ -14,13 +14,16 @@
 
 from typing import Any, Dict
 import numpy as np
+import re
+import ase.data
+from string import ascii_uppercase
 
-from nomad import config
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 from nomad.metainfo import units
-from nomad.metainfo.optimade import OptimadeStructureEntry
+from nomad.metainfo.optimade import OptimadeEntry, Species
 
-from string import ascii_uppercase
+species_re = re.compile(r'^([A-Z][a-z]?)(\d*)$')
+
 
 class OptimadeNormalizer(SystemBasedNormalizer):
 
@@ -29,15 +32,15 @@ class OptimadeNormalizer(SystemBasedNormalizer):
     It assumes that the :class:`SystemNormalizer` was run before.
     """
     def __init__(self, backend):
-        super().__init__(backend, all_sections=config.normalize.all_systems)
+        super().__init__(backend, only_representatives=True)
 
-    def get_optimade_data(self, index) -> OptimadeStructureEntry:
+    def get_optimade_data(self, index) -> OptimadeEntry:
         """
         The 'main' method of this :class:`SystemBasedNormalizer`.
         Normalizes the section with the given `index`.
         Normalizes geometry, classifies, system_type, and runs symmetry analysis.
         """
-        optimade = OptimadeStructureEntry()
+        optimade = OptimadeEntry()
 
         def get_value(key: str, default: Any = None, numpy: bool = False) -> Any:
             try:
@@ -75,12 +78,12 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         optimade.chemical_formula_reduced = get_value('chemical_composition_reduced')
         optimade.chemical_formula_hill = get_value('chemical_composition_bulk_reduced')
         optimade.chemical_formula_descriptive = optimade.chemical_formula_hill
-        #optimade.chemical_formula_anonymous = ''.join([
-        #    '%s' % element + (str(atom_counts[element]) if atom_counts[element] > 1 else '')
-        #    for element in optimade.elements])
-        optimade.chemical_formula_anonymous = ''.join([
-            '%s' % ascii_uppercase[i%len(ascii_uppercase)] + (str(atom_counts[optimade.elements[i]]) if atom_counts[optimade.elements[i]] > 1 else '')
-            for i in range(len(optimade.elements))])
+        optimade.chemical_formula_anonymous = ''
+        for i in range(len(optimade.elements)):
+            part = '%s' % ascii_uppercase[i % len(ascii_uppercase)]
+            if atom_counts[optimade.elements[i]] > 1:
+                part += str(atom_counts[optimade.elements[i]])
+            optimade.chemical_formula_anonymous += part
 
         # sites
         optimade.nsites = len(nomad_species)
@@ -91,19 +94,29 @@ class OptimadeNormalizer(SystemBasedNormalizer):
             1 if value else 0
             for value in get_value('configuration_periodic_dimensions')]
 
-        # TODO subsections with species def
-        # TODO optimade.structure_features
+        # species
+        for species_label in set(nomad_species):
+            match = re.match(species_re, species_label)
+
+            element_label = match.group(1)
+
+            species = optimade.m_create(Species)
+            species.name = species_label
+            if element_label in ase.data.chemical_symbols:
+                chemical_symbol = element_label
+            else:
+                chemical_symbol = 'x'
+            species.chemical_symbols = [chemical_symbol]
+            species.concentration = [1.0]
+
+        optimade.structure_features = []
 
         return optimade
 
-    #AL
-    #def gen_species(self,elements):
-    #    species  = []
-    #    for i in range(len(elements)):
-    #        specie = {'name':'%s%d'%(elements[i])} 
-            
+    def normalize_system(self, index, is_representative):
+        if not is_representative:
+            return False
 
-    def normalize_system(self, index):
         try:
             optimade = self.get_optimade_data(index)
             self._backend.add_mi2_section(optimade)

@@ -12,6 +12,7 @@ and infrastructure with a simplyfied architecture and consolidated code base.
    dev_guidelines
    api_tutorial
    api
-   ops
+   metainfo
    parser_tutorial
    reference
+   ops

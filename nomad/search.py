@@ -25,7 +25,7 @@ from elasticsearch.exceptions import NotFoundError
 from datetime import datetime
 import json
 
-from nomad import config, datamodel, infrastructure, datamodel, coe_repo, utils
+from nomad import config, datamodel, infrastructure, datamodel, coe_repo, utils, processing as proc
 
 
 path_analyzer = analyzer(
@@ -113,6 +113,7 @@ class Entry(Document, metaclass=WithDomain):
     calc_id = Keyword()
     calc_hash = Keyword()
     pid = Keyword()
+    raw_id = Keyword()
     mainfile = Keyword()
     files = Text(multi=True, analyzer=path_analyzer, fields={'keyword': Keyword()})
     uploader = Object(User)
@@ -144,6 +145,7 @@ class Entry(Document, metaclass=WithDomain):
         self.calc_id = source.calc_id
         self.calc_hash = source.calc_hash
         self.pid = None if source.pid is None else str(source.pid)
+        self.raw_id = None if source.raw_id is None else str(source.raw_id)
 
         self.processed = source.processed
         self.last_processing = source.last_processing
@@ -356,6 +358,8 @@ class SearchRequest:
     def query(self, query):
         """ Adds the given query as a 'and' (i.e. 'must') clause to the request. """
         self._query &= query
+
+        return self
 
     def time_range(self, start: datetime, end: datetime):
         """ Adds a time range to the query. """
@@ -693,3 +697,11 @@ class SearchRequest:
 
     def __str__(self):
         return json.dumps(self._search.to_dict(), indent=2)
+
+
+def to_calc_with_metadata(results: List[Dict[str, Any]]):
+    """ Translates search results into :class:`CalcWithMetadata` objects read from mongo. """
+    ids = [result['calc_id'] for result in results]
+    return [
+        datamodel.CalcWithMetadata(**calc.metadata)
+        for calc in proc.Calc.objects(calc_id__in=ids)]

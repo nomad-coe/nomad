@@ -49,6 +49,7 @@ tabulate
 cachetools
 zipfile37
 inflection
+docstring-parser
 
 # dev/ops related
 setuptools
@@ -68,3 +69,4 @@ rope
 mongomock
 names
 essential_generators
+jinja2

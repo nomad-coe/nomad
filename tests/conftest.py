@@ -86,8 +86,16 @@ def raw_files(raw_files_infra):
                 pass
 
 
+@pytest.fixture(scope='session')
+def nomad_app():
+    app.app.config['TESTING'] = True
+    client = app.app.test_client()
+
+    yield client
+
+
 @pytest.fixture(scope='function')
-def client(mongo):
+def client(mongo, nomad_app):
     app.app.config['TESTING'] = True
     client = app.app.test_client()
 

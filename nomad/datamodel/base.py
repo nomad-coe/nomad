@@ -15,6 +15,7 @@
 from typing import Iterable, List, Dict, Type, Tuple, Callable, Any
 import datetime
 from elasticsearch_dsl import Keyword
+from collections.abc import Mapping
 
 from nomad import utils, config
 from nomad.metainfo import MSection
@@ -40,7 +41,7 @@ class UploadWithMetadata():
         return {calc.calc_id: calc for calc in self.calcs}
 
 
-class CalcWithMetadata():
+class CalcWithMetadata(Mapping):
     """
     A dict/POPO class that can be used for mapping calc representations with calc metadata.
     We have multi representations of calcs and their calc metadata. To avoid implement
@@ -82,6 +83,7 @@ class CalcWithMetadata():
         self.calc_hash: str = None
         self.mainfile: str = None
         self.pid: int = None
+        self.raw_id: str = None
 
         # basic upload and processing related metadata
         self.upload_time: datetime.datetime = None
@@ -107,18 +109,35 @@ class CalcWithMetadata():
 
         self.update(**kwargs)
 
+    def __getitem__(self, key):
+        value = getattr(self, key, None)
+
+        if value is None or key in ['backend']:
+            raise KeyError()
+
+        if isinstance(value, MSection):
+            value = value.m_to_dict()
+
+        return value
+
+    def __iter__(self):
+        for key, value in self.__dict__.items():
+            if value is None or key in ['backend']:
+                continue
+
+            yield key
+
+    def __len__(self):
+        count = 0
+        for key, value in self.__dict__.items():
+            if value is None or key in ['backend']:
+                continue
+            count += 1
+
+        return count
+
     def to_dict(self):
-        def items():
-            for key, value in self.__dict__.items():
-                if value is None or key in ['backend']:
-                    continue
-
-                if isinstance(value, MSection):
-                    value = value.m_to_dict()
-
-                yield key, value
-
-        return {key: value for key, value in items()}
+        return {key: value for key, value in self.items()}
 
     def update(self, **kwargs):
         for key, value in kwargs.items():
@@ -276,6 +295,7 @@ class Domain:
         upload_id=DomainQuantity(description='Search for the upload_id.'),
         calc_id=DomainQuantity(description='Search for the calc_id.'),
         pid=DomainQuantity(description='Search for the pid.'),
+        raw_id=DomainQuantity(description='Search for the raw_id.'),
         mainfile=DomainQuantity(description='Search for the mainfile.'),
         external_id=DomainQuantity(description='External user provided id. Does not have to be unique necessarily.'),
         dataset=DomainQuantity(
@@ -383,6 +403,13 @@ def get_optional_backend_value(backend, key, section, unavailable_value=None, lo
     val = None  # Initialize to None, so we can compare section values.
     # Loop over the sections with the name section in the backend.
     for section_index in backend.get_sections(section):
+        if section == 'section_system':
+            try:
+                if not backend.get_value('is_representative', section_index):
+                    continue
+            except KeyError:
+                continue
+
         try:
             new_val = backend.get_value(key, section_index)
         except KeyError:

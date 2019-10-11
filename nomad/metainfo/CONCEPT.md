@@ -7,21 +7,20 @@ been defined in this *old MetaInfo*. The experience with this system revealed th
 
 - The Python libraries that allow to use the MetaInfo are non pythonic and incomplete.
 - The MetaInfo is only used for the archive, not for the encyclopedia and repository data.
-- There is direct support to map MetaInfo definitions to DI technologies (databases, search indices, APIs).
-- There is no support for namespaces. MetaInfo names are cumbersome. This will not scale
-to expected levels of FAIRmat metadata.
+- There is no direct support to map MetaInfo definitions to DI technologies (databases, search indices, APIs).
+- There is no support for namespaces. MetaInfo names are cumbersome. This will not scale to expected levels of FAIRmat metadata.
 - MetaInfo packages are not version controlled. They are part of the same git and do not belong to the independently evolving parsers. This does not allow for "external" parser development and makes it hard to keep versions consistent.
 - The MetaInfo is defined in JSON. The syntax is inadequate, checks are not immediate.
-
-Attempts to revise the MetaInfo have failed in the past.
+- Attempts to revise the MetaInfo have failed in the past.
 
 ## Goals
 
 ### Common language to define physics (meta-)data quantities and their relationships
 
 The *physics quantities* part includes
-- each quantity has a physics *unit*
-- *shapes* that precisely define vectors, matrices, tensors, and their dimensions
+- each quantity MAY have a physics *unit*
+- each quantity MUST have a *shape* that precisely define vectors, matrices, tensors, and their dimensions
+- each quantity MAY have a numpy dtype that allows to map physics data to numpy arrays
 
 The *relationship* parts entails:
 - hierarchies for quantity *values* (e.g. *sections*)
@@ -29,14 +28,16 @@ The *relationship* parts entails:
 - *derived* quantities that can be computed from other quantities
 - *synonyms* as a special trivial case for derived quantities
 - *shapes* might also define a type of relationship through one quantity being the dimension of another
+- *references* between sections, via quantities that have a section definition as type
 
 In addition there are the *typical* data-type definition (schema, ontology, ...) features:
 - names/namespaces
 - modularization (i.e. Metainfo packages)
+- extensions: section inheritance, sections that add to other sections after definition
 - documentation
 - basic primitive types (int, string, bool)
 - simple compound types (lists, dictionaries, unions)
-- references between data objects
+- MAYBE an event mechanism
 
 ### Complex, evolving, extendable packages of quantities
 
@@ -67,85 +68,108 @@ the *backend*s for data were designed for creating data only and not very *pytho
 
 ## Concepts for a new NOMAD MetaInfo
 
+
 ### Definition
 
 `Definition` is the abstract base for all definitions in the MetaInfo.
 
-### Attributes:
 - `name`, a string
 - `description`, a string
 - `links`, a list of URLs
+- `categories`, a list of references to category definitions
 - `annotations`, a list of `Annotations`
+
+- *derived*: `qualified_name`
+
 
 ### Property
 
 `Property` is a special `Definition` and an abstract base for section properties.
+Properties define what data a section instance can hold. Properties are mapped to Python
+*descriptors*.
 
-#### Attributes
-- `section`, a reference to a section definition
+- `section` specialized `parant` relation with the containing `Section`
 
-### Quantities (incl. dimensions)
+
+#### SubSections
+
+`SubSection` is a special `Property` that defines that a section instance can **contain**
+the instances of a sub section.
+
+- `sub_section` reference to the `Section` definition for the children
+- `repeats` is a boolean that determines if this sub section can be contain only once of multiple times
+
+- *constraint*: sub sections are not circular
+
+
+### Quantities (incl. dimensions, incl. references)
 
 A `Quantity` definition is a special and concrete `Property` definition:
 
-#### Attributes
 - `shape`, a list of either `int`, references to a dimension (quantity definition), or limits definitions (e.g. `'1..n'`, `'0..n'`.)
 - `type`, a primitive or Enum type
-- `categories`, a list of references to category definitions
-- `section`, a reference to the parent section definition
 - `unit`, a (computed) units, e.g. `units.F * units.m`
 - `derived_from`, a list of references to other quantity definitions
 - `synonym`, a reference to another quantity definition
 
-A `Quantity`s are mapped to Python *descriptors*. *Dimensions* are quantity definitions
-with empty shape and int type.
+*Dimensions* are quantity definitions with empty shape and int type.
 
-#### Contrains
-- `synonym`, `derived_from`, and dimensions come from the same section
+- *constraint*: `synonym`, `derived_from`, and dimensions come from the same section
+
 
 ### Sections (incl. references)
 
 A `Section` is a special and concrete `Definition`.
 
-#### Attributes
-- `adds_to`, a reference to another section definition. All quantities of this *pseudo* section are added to the given section.
-- `parent_section`, a reference to another section definition
+- `adds_to`, a reference to another section definition. All quantities of this *pseudo* section are added to the given section. (Might not be necessary)
 - `repeats`, a boolean
 - `extends`, list of reference to other section definitions. This section automatically inherits all quantities of the other sections. (Might not be necessary)
 
-#### Contrains
-- `parent_section` is not circular
-- `extends` is not circular
-- `adds_to` is not circular
-- all quantities that have *this* (or an `extends`) section as `section` have unique names
+- *derived*: `all_sub_sections`, all sub sections, included added and inherited ones, by name
+- *derived*: `all_quantities`, all quantities, included added and inherited ones, by name
+- *derived*: `all_properties`, all properties, included added and inherited ones, by name
 
-`Section`s are mapped to Python classes/objects.
+- *constraint*: `extends` is not circular
+- *constraint*: `adds_to` is not circular
+- *constraint*: all quantities that have *this* (or an `extends`) section as `section` have unique names
+
+`Section`s are mapped to Python classes/objects. `extends` is mapped to Python inheritance.
+
 
 ### Categories
 
 A `Category` is a special `Definition`.
 
-#### Attributes
-- `super_categories`, a list of references to other category definitions
+- *constraint:* `Category` definition and its `categories` attribute do not form circles
 
-#### Contrains
-- `super_categories` is not circular
 
 ### Packages
 
 A `Package` is a special `Definition` that contains definitions. `Packages` are mapped
 to Python modules.
 
-### References
+- *derived*: `definitions`, all definitions in this package
+- *derived*: `sections`, all sections in this package
+- *derived*: `categories`, all categories in this package
 
-A `Reference` is a special `Property`.
-
-#### Attributes
-- `referenced_section`, reference to a section definition
 
 ### Annotations
 
 Arbitrary serializable objects that can contain additional information.
+
+
+### MSection
+
+`MSection` is a Python base-class for all sections and provides additional reflection.
+
+- `m_def`: Python variable with the definition of this section
+- `m_data`: container for all the section data
+- `m_parent`: Python variable with the parent section instance
+- `m_parent_index`: Python variable with the index in the parent's repeatable sub section
+- `m_contents()`: all sub section instances
+- `m_all_contents()`: traverse all sub and sub sub section instances
+- `m_to_dict()`: serializable dict form
+- `m_to_json()`
 
 
 ## Examples (of the Python interface)
@@ -154,11 +178,10 @@ Arbitrary serializable objects that can contain additional information.
 
 This could be code, from a python module that represents the NOMAD *common* package `nomad.metainfo.common`:
 ```python
-class System(MetainfoObject):
+class System(MSection):
     """
     The system is ...
     """
-    m_definition = Section(parent_section=Run, repeats=True)
 
     n_atoms = Quantity(type=int, derived_from='atom_labels')
 
@@ -190,11 +213,16 @@ class System(MetainfoObject):
 
     def m_derive_n_atoms(self) -> int:
         return len(self.atom_labels)
+
+
+class Run(MSection):
+
+    systems = SubSection(System, repeats=True)
 ```
 
 This could be part of the VASP source code:
 ```python
-class Method(MetainfoObject):
+class Method(MSection):
     m_definition = Section(adds_to=nomad.metainfo.common.Method)
 
     incar_nbands = Quantity(
@@ -208,8 +236,7 @@ from nomad.metainfo.common import Run, System
 
 run = Run()
 
-system = run.m_create(System)
-system.atom_labels = ['H', 'H', 'O']
+system = run.systems.create(atom_labels=['H', 'H', 'O'])
 system.atom_positions = [[0, 0, 0], [1, 0, 0], [0.5, 0.5, 0]]
 system.cell = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 system.pbc = [False, False, False]
@@ -217,6 +244,8 @@ system.pbc = [False, False, False]
 print(system.atom_species)  # [1, 1, 96]
 print(system.lattice_vectors)
 print(system.n_atoms)
+
+print(run.m_to_json(indent=2))
 ```
 
 # Glossary

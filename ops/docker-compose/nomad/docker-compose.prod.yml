@@ -50,7 +50,7 @@ services:
             - 5000:5000
             - 9201:9200  # allows metricbeat config to access es
 
-    api:
+    app:
         environment:
             NOMAD_LOGSTASH_LEVEL: INFO
         links:

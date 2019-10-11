@@ -21,7 +21,7 @@ import { ErrorSnacks, withErrors } from './errors'
 import EntryPage from './entry/EntryPage'
 import About from './About'
 import LoginLogout from './LoginLogout'
-import { genTheme, repoTheme, archiveTheme, appBase } from '../config'
+import { genTheme, repoTheme, archiveTheme, guiBase } from '../config'
 import { DomainProvider, withDomain } from './domains'
 import {help as metainfoHelp, default as MetaInfoBrowser} from './metaInfoBrowser/MetaInfoBrowser'
 import packageJson from '../../package.json'
@@ -40,8 +40,6 @@ export class VersionMismatch extends Error {
 }
 
 const drawerWidth = 200
-
-
 
 class NavigationUnstyled extends React.Component {
   static propTypes = {
@@ -185,7 +183,7 @@ class NavigationUnstyled extends React.Component {
   }
 
   componentDidMount() {
-    fetch(`${appBase}/meta.json`)
+    fetch(`${guiBase}/meta.json`)
       .then((response) => response.json())
       .then((meta) => {
         if (meta.version !== packageJson.version) {

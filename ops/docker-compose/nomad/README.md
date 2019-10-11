@@ -15,7 +15,7 @@ We use docker-compose overrides to extend a base configuration for different sce
 Example docker-compose usage:
 
 ```
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d api
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d app
 ```
 
 The different overrides are:
@@ -25,7 +25,7 @@ The different overrides are:
 - *.example.yml, an example production configuration
 
 To run your own NOMAD mirror or oasis, you should override the `example.yml` to fit your needs.
-Within the overrides you can configure the NOMAD containers (api, worker, gui).
+Within the overrides you can configure the NOMAD containers (app, worker, gui).
 
 ### Configuring the API and worker
 

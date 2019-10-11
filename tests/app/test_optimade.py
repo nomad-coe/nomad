@@ -18,7 +18,7 @@ import numpy as np
 import pytest
 
 from nomad.processing import Upload
-from nomad import search
+from nomad import search, processing as proc
 from nomad.parsing import LocalBackend
 from nomad.datamodel import CalcWithMetadata
 
@@ -29,23 +29,25 @@ from tests.test_normalizing import run_normalize
 from tests.conftest import clear_elastic
 from tests.utils import assert_exception
 
-@pytest.fixture(scope='function')
-def api(client):
-    return BlueprintClient(client, '/optimade')
+
+@pytest.fixture(scope='session')
+def api(nomad_app):
+    return BlueprintClient(nomad_app, '/optimade')
 
 
 def test_get_entry(published: Upload):
     calc_id = list(published.calcs)[0].calc_id
     with published.upload_files.archive_file(calc_id) as f:
         data = json.load(f)
-    assert 'OptimadeStructureEntry' in data
+    assert 'OptimadeEntry' in data
     search_result = search.SearchRequest().search_parameter('calc_id', calc_id).execute_paginated()['results'][0]
-    #print(search_result['optimade'].values())
-    #raise
     assert 'optimade' in search_result
 
 
-def create_test_structure(meta_info, id: int, h: int, o: int, extra: List[str], periodicity: int):
+def create_test_structure(
+        meta_info, id: int, h: int, o: int, extra: List[str], periodicity: int,
+        without_optimade: bool = False):
+
     atom_labels = ['H' for i in range(0, h)] + ['O' for i in range(0, o)] + extra
     test_vector = np.array([0, 0, 0])
 
@@ -67,17 +69,39 @@ def create_test_structure(meta_info, id: int, h: int, o: int, extra: List[str], 
     backend.closeSection('section_run', 0)
 
     backend = run_normalize(backend)
+    calc_id = 'test_calc_id_%d' % id
     calc = CalcWithMetadata(
-        upload_id='test_uload_id', calc_id='test_calc_id_%d' % id, mainfile='test_mainfile',
+        upload_id='test_uload_id', calc_id=calc_id, mainfile='test_mainfile',
         published=True, with_embargo=False)
     calc.apply_domain_metadata(backend)
-    search.Entry.from_calc_with_metadata(calc).save()
+
+    if without_optimade:
+        calc.optimade = None
+
+    proc.Calc.from_calc_with_metadata(calc).save()
+    search_entry = search.Entry.from_calc_with_metadata(calc)
+    search_entry.save()
+
+    assert proc.Calc.objects(calc_id__in=[calc_id]).count() == 1
+
+
+def test_no_optimade(meta_info, elastic, api):
+    create_test_structure(meta_info, 1, 2, 1, [], 0)
+    create_test_structure(meta_info, 2, 2, 1, [], 0, without_optimade=True)
+    search.refresh()
+
+    rv = api.get('/calculations')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+
+    assert data['meta']['data_returned'] == 1
 
 
 @pytest.fixture(scope='module')
-def example_structures(meta_info, elastic_infra):
-    print('>>>>>>>>>>>>>>>>>>>>>>>>>>METAINFO',meta_info)
+def example_structures(meta_info, elastic_infra, mongo_infra):
     clear_elastic(elastic_infra)
+    mongo_infra.drop_database('test_db')
+
     create_test_structure(meta_info, 1, 2, 1, [], 0)
     create_test_structure(meta_info, 2, 2, 1, ['C'], 0)
     create_test_structure(meta_info, 3, 2, 1, [], 1)
@@ -104,13 +128,11 @@ def example_structures(meta_info, elastic_infra):
     ('elements HAS ANY "C"', 1),
     ('elements HAS ONLY "C"', 0),
     ('elements HAS ONLY "H", "O"', 3),
-#AL
     ('nelements >= 2 AND elements HAS ONLY "H", "O"', 3),
     ('nelements >= 2 AND elements HAS ALL "H", "O", "C"', 1),
     ('nelements >= 2 AND NOT elements HAS ALL "H", "O", "C"', 3),
     ('NOT nelements = 2 AND elements HAS ANY "H", "O", "C"', 1),
     ('NOT nelements = 3 AND NOT elements HAS ONLY "H", "O"', 0),
-#
     ('elements:elements_ratios HAS "H":>0.66', 2),
     ('elements:elements_ratios HAS ALL "O":>0.33', 3),
     ('elements:elements_ratios HAS ALL "O":>0.33,"O":<0.34', 2),
@@ -124,7 +146,6 @@ def example_structures(meta_info, elastic_infra):
     ('chemical_formula_reduced STARTS WITH "H2"', 3),
     ('chemical_formula_reduced ENDS WITH "C"', 1),
     ('chemical_formula_reduced ENDS "C"', 1),
-#AL
     ('chemical_formula_hill CONTAINS "1"', 0),
     ('chemical_formula_hill STARTS WITH "H" AND chemical_formula_hill ENDS WITH "O"', 3),
     ('NOT chemical_formula_descriptive ENDS WITH "1"', 4),
@@ -132,7 +153,6 @@ def example_structures(meta_info, elastic_infra):
     ('NOT chemical_formula_anonymous STARTS WITH "A"', 0),
     ('chemical_formula_anonymous CONTAINS "AB2" AND chemical_formula_anonymous ENDS WITH "C"', 1),
     ('nsites >=3 AND LENGTH elements = 2', 2),
-#
     ('LENGTH elements = 2', 3),
     ('LENGTH elements = 3', 1),
     ('LENGTH dimension_types = 0', 3),
@@ -143,12 +163,9 @@ def example_structures(meta_info, elastic_infra):
     ('nelements > 1 OR LENGTH dimension_types = 1 AND nelements = 2', 4),
     ('(nelements > 1 OR LENGTH dimension_types = 1) AND nelements = 2', 3),
     ('NOT LENGTH dimension_types = 1', 3),
-#AL
     ('LENGTH nelements = 1', -1),
     ('chemical_formula_anonymous starts with "A"', -1),
     ('elements HAS ONY "H", "O"', -1)
-#    ('elements > 3', -1),
-#    ('chemical_formula_hill HAS "C"', -1)
 ])
 def test_optimade_parser(example_structures, query, results):
     if results >= 0:
@@ -158,68 +175,82 @@ def test_optimade_parser(example_structures, query, results):
     else:
         with assert_exception():
             query = parse_filter(query)
-            #result = search.SearchRequest(query=query).execute_paginated()
+
 
 def test_url():
     assert url('endpoint', param='value').endswith('/optimade/endpoint?param=value')
+
 
 def test_list_endpoint(api, example_structures):
     rv = api.get('/calculations')
     assert rv.status_code == 200
     data = json.loads(rv.data)
-#AL 
-    for entry in ['data','links','meta']:
+    for entry in ['data', 'links', 'meta']:
         assert entry in data
-    assert len(data['data']) == 4 
-    # TODO replace with real assertions
-    print(json.dumps(data, indent=2))
-    raise
+    assert len(data['data']) == 4
+
+
+def assert_eq_attrib(data, key, ref, item=None):
+    if item is None:
+        assert data['data']['attributes'][key] == ref
+    else:
+        assert data['data'][item]['attributes'][key] == ref
+
 
 def test_list_endpoint_request_fields(api, example_structures):
     rv = api.get('/calculations?request_fields=nelements,elements')
     assert rv.status_code == 200
     data = json.loads(rv.data)
-    #print('-----------------------',data['data'][1]['attributes'].keys())
-    # TODO replace with real assertions
-    #print(json.dumps(data, indent=2))
-    for i in range(4):
+    ref_elements = [['H', 'O'], ['C', 'H', 'O'], ['H', 'O'], ['H', 'O']]
+    for i in range(len(data['data'])):
         rf = list(data['data'][i]['attributes'].keys())
         rf.sort()
-        assert rf == ['elements','nelements']
+        assert rf == ['elements', 'nelements']
+        assert_eq_attrib(data, 'elements', ref_elements[i], i)
+        assert_eq_attrib(data, 'nelements', len(ref_elements[i]), i)
+
+
+def test_single_endpoint_request_fields(api, example_structures):
+    rv = api.get('/calculations/%s?request_fields=nelements,elements' % 'test_calc_id_1')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    ref_elements = ['H', 'O']
+    rf = list(data['data']['attributes'].keys())
+    assert rf == ['elements', 'nelements']
+    assert_eq_attrib(data, 'elements', ref_elements)
+    assert_eq_attrib(data, 'nelements', len(ref_elements))
+
 
 def test_single_endpoint(api, example_structures):
     rv = api.get('/calculations/%s' % 'test_calc_id_1')
     assert rv.status_code == 200
     data = json.loads(rv.data)
-    # TODO replace with real assertions
-    for key in ['type','id','attributes']:
+    for key in ['type', 'id', 'attributes']:
         assert key in data['data']
-    #print('-----------------------',data['data'].keys())
-    #print(json.dumps(data, indent=2))
+    fields = ['elements', 'nelements', 'elements_ratios',
+              'chemical_formula_descriptive', 'chemical_formula_reduced',
+              'chemical_formula_hill', 'chemical_formula_anonymous',
+              'dimension_types', 'lattice_vectors', 'cartesian_site_positions',
+              'nsites', 'species_at_sites', 'species']
+    for field in fields:
+        assert field in data['data']['attributes']
 
 
 def test_base_info_endpoint(api):
     rv = api.get('/info')
     assert rv.status_code == 200
     data = json.loads(rv.data)
-    print('-----------------------',data.keys())
-    # TODO replace with real assertions
-    for key in ['type','id','attributes']:
+    for key in ['type', 'id', 'attributes']:
         assert key in data['data']
     assert data['data']['type'] == 'info'
     assert data['data']['id'] == '/'
-    #assert 'meta' in data
-    #print(json.dumps(data, indent=2))
 
 
 def test_calculation_info_endpoint(api):
     rv = api.get('/info/calculation')
     assert rv.status_code == 200
     data = json.loads(rv.data)
-    # TODO replace with real assertions
-    #print(json.dumps(data, indent=2))
+    for key in ['description', 'properties', 'formats', 'output_fields_by_format']:
+        assert key in data['data']
 
-
-# TODO test single with request_fields
-# TODO test errors
 # TODO test response format (deny everything but json)

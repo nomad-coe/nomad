@@ -48,8 +48,6 @@ class SystemNormalizer(SystemBasedNormalizer):
     This normalizer performs all system (atoms, cells, etc.) related normalizations
     of the legacy NOMAD-coe *stats* normalizer.
     """
-    def __init__(self, backend):
-        super().__init__(backend, all_sections=config.normalize.all_systems)
 
     @staticmethod
     def atom_label_to_num(atom_label):
@@ -63,7 +61,7 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         return 0
 
-    def normalize_system(self, index) -> None:
+    def normalize_system(self, index, is_representative) -> None:
         """
         The 'main' method of this :class:`SystemBasedNormalizer`.
         Normalizes the section with the given `index`.
@@ -188,25 +186,28 @@ class SystemNormalizer(SystemBasedNormalizer):
         configuration_id = utils.hash(json.dumps(configuration).encode('utf-8'))
         set_value('configuration_raw_gid', configuration_id)
 
-        # system type analysis
-        if atom_positions is not None:
-            with utils.timer(
-                    self.logger, 'system classification executed',
-                    system_size=atoms.get_number_of_atoms()):
+        if is_representative:
+            self._backend.addValue('is_representative', is_representative)
 
-                self.system_type_analysis(atoms)
+            # system type analysis
+            if atom_positions is not None:
+                with utils.timer(
+                        self.logger, 'system classification executed',
+                        system_size=atoms.get_number_of_atoms()):
 
-        # symmetry analysis
-        if atom_positions is not None and (lattice_vectors is not None or not any(pbc)):
-            with utils.timer(
-                    self.logger, 'symmetry analysis executed',
-                    system_size=atoms.get_number_of_atoms()):
+                    self.system_type_analysis(atoms)
 
-                self.symmetry_analysis(atoms)
+            # symmetry analysis
+            if atom_positions is not None and (lattice_vectors is not None or not any(pbc)):
+                with utils.timer(
+                        self.logger, 'symmetry analysis executed',
+                        system_size=atoms.get_number_of_atoms()):
+
+                    self.symmetry_analysis(atoms)
 
     def system_type_analysis(self, atoms) -> None:
         """
-        Determine the dimensioality and hence the system type of the system with
+        Determine the dimensionality and hence the system type of the system with
         Matid. Write the system type to the backend.
         """
         system_type = config.services.unavailable_value

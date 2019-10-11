@@ -3,7 +3,7 @@
 ## Introduction
 The nomad infrastructure consists of a series of nomad and 3rd party services:
 - nomad worker (python): task worker that will do the processing
-- nomad api (python): the nomad REST API
+- nomad app (python): the nomad app and it's REST APIs
 - nomad gui: a small server serving the web-based react gui
 - proxy: an nginx server that reverse proxyies all services under one port
 - elastic search: nomad's search and analytics engine
@@ -140,7 +140,7 @@ There are currently two different images and respectively two different docker f
 `Dockerfile`, and `gui/Dockerfile`.
 
 Nomad comprises currently two services,
-the *worker* (does the actual processing), and the *api*. Those services can be
+the *worker* (does the actual processing), and the *app*. Those services can be
 run from one image that have the nomad python code and all dependencies installed. This
 is covered by the `Dockerfile`.
 
@@ -170,7 +170,7 @@ It is sufficient to use the implicit `docker-compose.yml` only (like in the comm
 The `override` will be used automatically.
 
 Now we can build the *docker-compose* that contains all external services (rabbitmq,
-mongo, elastic, elk) and nomad services (worker, api, gui).
+mongo, elastic, elk) and nomad services (worker, app, gui).
 ```
 docker-compose build
 ```
@@ -198,7 +198,7 @@ docker-compose down
 ### Run containers selectively
 The following services/containers are managed via our docker-compose:
 - rabbitmq, mongo, elastic, (elk, only for production)
-- worker, api
+- worker, app
 - gui
 - proxy
 
@@ -209,7 +209,7 @@ You can also run services selectively, e.g.
 ```
 docker-compose up -d rabbitmq, mongo, elastic
 docker-compose up worker
-docker-compose up api gui proxy
+docker-compose up app gui proxy
 ```
 
 ## Accessing 3'rd party services
@@ -237,7 +237,7 @@ to use the right ports (see above).
 
 ## Run nomad services manually
 
-You can run the worker, api, and gui as part of the docker infrastructure, like
+You can run the worker, app, and gui as part of the docker infrastructure, like
 seen above. But, of course there are always reasons to run them manually during
 development, like running them in a debugger, profiler, etc.
 
@@ -253,14 +253,14 @@ To run it directly with celery, do (from the root)
 celery -A nomad.processing worker -l info
 ```
 
-Run the api via docker, or (from the root):
+Run the app via docker, or (from the root):
 ```
-nomad admin run api
+nomad admin run app
 ```
 
-You can also run worker and api together:
+You can also run worker and app together:
 ```
-nomad admin run apiworker
+nomad admin run appworker
 ```
 
 ### GUI
@@ -376,7 +376,7 @@ Here are some example launch configs for VSCode:
       "request": "launch",
       "module": "flask",
       "env": {
-        "FLASK_APP": "nomad/api/__init__.py"
+        "FLASK_APP": "nomad/app/__init__.py"
       },
       "args": [
         "run",

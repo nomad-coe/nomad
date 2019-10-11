@@ -1,7 +1,7 @@
 version: '3.4'
 
 services:
-    api:
+    app:
         image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:v0.5.3
         volumes:
             - "./example_nomad/nomad.yaml:/app/nomad.yaml"

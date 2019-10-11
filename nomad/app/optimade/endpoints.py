@@ -14,14 +14,19 @@
 
 from flask_restplus import Resource, abort
 from flask import request
+from elasticsearch_dsl import Q
 
 from nomad import search
-from nomad.metainfo.optimade import OptimadeStructureEntry
+from nomad.metainfo.optimade import OptimadeEntry
 
 from .api import api, url
 from .models import json_api_single_response_model, entry_listing_endpoint_parser, Meta, \
-    Links, CalculationDataObject, single_entry_endpoint_parser, base_endpoint_parser
+    Links, CalculationDataObject, single_entry_endpoint_parser, base_endpoint_parser,\
+    json_api_info_response_model
 from .filterparser import parse_filter, FilterException
+
+
+ns = api.namespace('', description='The (only) API namespace with all OPTiMaDe endpoints.')
 
 
 # TODO replace with decorator that filters response_fields
@@ -35,7 +40,13 @@ def base_request_args():
     return None
 
 
-@api.route('/calculations')
+def base_search_request():
+    """ Creates a search request for all public and optimade enabled data. """
+    return search.SearchRequest().owner('all', None).query(
+        Q('exists', field='optimade.nelements'))  # TODO use the elastic annotations when done
+
+
+@ns.route('/calculations')
 class CalculationList(Resource):
     @api.doc('list_calculations')
     @api.response(400, 'Invalid requests, e.g. bad parameter.')
@@ -54,7 +65,8 @@ class CalculationList(Resource):
         except Exception:
             abort(400, message='bad parameter types')  # TODO Specific json API error handling
 
-        search_request = search.SearchRequest().owner('all', None)
+        search_request = base_search_request()
+
         if filter is not None:
             try:
                 search_request.query(parse_filter(filter))
@@ -67,27 +79,26 @@ class CalculationList(Resource):
         # order_by='optimade.%s' % sort)  # TODO map the Optimade property
 
         available = result['pagination']['total']
-       
-        print(result['results'][0]['optimade'].keys())
-        raise 
+        results = search.to_calc_with_metadata(result['results'])
+        assert len(results) == len(result['results']), 'Mongodb and elasticsearch are not consistent'
 
         return dict(
             meta=Meta(
                 query=request.url,
-                returned=len(result['results']),
+                returned=len(results),
                 available=available,
-                last_id=result['results'][-1]['calc_id'] if available > 0 else None),
+                last_id=results[-1].calc_id if available > 0 else None),
             links=Links(
                 'calculations',
                 available=available,
                 page_number=page_number,
                 page_limit=page_limit,
                 sort=sort, filter=filter),
-            data=[CalculationDataObject(d, request_fields=request_fields) for d in result['results']]
+            data=[CalculationDataObject(d, request_fields=request_fields) for d in results]
         ), 200
 
 
-@api.route('/calculations/<string:id>')
+@ns.route('/calculations/<string:id>')
 class Calculation(Resource):
     @api.doc('retrieve_calculation')
     @api.response(400, 'Invalid requests, e.g. bad parameter.')
@@ -97,49 +108,43 @@ class Calculation(Resource):
     def get(self, id: str):
         """ Retrieve a single calculation for the given id. """
         request_fields = base_request_args()
-        search_request = search.SearchRequest().owner('all', None).search_parameters(calc_id=id)
+        search_request = base_search_request().search_parameters(calc_id=id)
 
         result = search_request.execute_paginated(
             page=1,
             per_page=1)
 
         available = result['pagination']['total']
+        results = search.to_calc_with_metadata(result['results'])
+        assert len(results) == len(result['results']), 'Mongodb and elasticsearch are not consistent'
+
         if available == 0:
             abort(404, 'The calculation with id %s does not exist' % id)
 
-        print('================', result['results'][0])
-        raise
         return dict(
             meta=Meta(query=request.url, returned=1),
-            data=CalculationDataObject(result['results'][0], request_fields=request_fields)
+            data=CalculationDataObject(results[0], request_fields=request_fields)
         ), 200
 
 
-@api.route('/info/calculation')
+@ns.route('/info/calculation')
 class CalculationInfo(Resource):
     @api.doc('calculations_info')
     @api.response(400, 'Invalid requests, e.g. bad parameter.')
     @api.expect(base_endpoint_parser, validate=True)
-    @api.marshal_with(json_api_single_response_model, skip_none=True, code=200)
+    @api.marshal_with(json_api_info_response_model, skip_none=True, code=200)
     def get(self):
         """ Returns information relating to the API implementation- """
         base_request_args()
 
         result = {
-            'type': 'info',
-            'id': 'calculation',
-            'attributes': {
-                'description': 'A calculations entry.',
-                # TODO non optimade, nomad specific properties
-                'properties': {
-                    attr.name: dict(description=attr.description)
-                    for attr in OptimadeStructureEntry.m_def.attributes.values()
-                },
-                'formats': ['json'],
-                'output_fields_by_format': {
-                    'json': OptimadeStructureEntry.m_def.attributes.keys()
-                }
-            }
+            'description': 'a calculation entry',
+            'properties': {
+                attr.name: dict(description=attr.description)
+                for attr in OptimadeEntry.m_def.all_properties.values()},
+            'formats': ['json'],
+            'output_fields_by_format': {
+                'json': OptimadeEntry.m_def.all_properties.keys()}
         }
 
         return dict(
@@ -148,7 +153,7 @@ class CalculationInfo(Resource):
         ), 200
 
 
-@api.route('/info')
+@ns.route('/info')
 class Info(Resource):
     @api.doc('info')
     @api.response(400, 'Invalid requests, e.g. bad parameter.')

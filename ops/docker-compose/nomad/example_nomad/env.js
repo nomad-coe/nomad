@@ -1,5 +1,5 @@
 window.nomadEnv = {
-  "apiBase": "/example-nomad/api",
+  "appBase": "/example-nomad",
   "kibanaBase": "/fairdi/kibana",
   "debug": false
 };

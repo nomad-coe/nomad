@@ -15,7 +15,7 @@ worker:
   replicas: 3
   routing: "worker"
 
-dbname: fairdi_nomad_migration
+dbname: fairdi_nomad_mp
 
 postgres:
   publish_enabled: false
