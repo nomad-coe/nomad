@@ -38,7 +38,6 @@ quantities['elements'].has_only_quantity = Quantity(name='only_atoms')
 quantities['elements'].nested_quantity = quantities['elements_ratios']
 quantities['elements_ratios'].nested_quantity = quantities['elements_ratios']
 
-
 _parser = LarkParser(version=(0, 10, 0))
 _transformer = Transformer(quantities=quantities.values())
 

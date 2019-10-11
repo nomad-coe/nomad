@@ -183,7 +183,7 @@ class OptimadeEntry(MSection):
     lattice_vectors = Quantity(
         type=np.dtype('f8'), shape=[3, 3], unit=units.angstrom,
         links=optimade_links('h.6.2.9'),
-        a_optimade=Optimade(query=True, entry=True),
+        a_optimade=Optimade(query=False, entry=True),
         description='''
             The three lattice vectors in Cartesian coordinates, in ångström (Å).
         ''')
