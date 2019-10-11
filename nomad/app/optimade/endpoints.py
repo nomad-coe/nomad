@@ -21,7 +21,8 @@ from nomad.metainfo.optimade import OptimadeEntry
 
 from .api import api, url
 from .models import json_api_single_response_model, entry_listing_endpoint_parser, Meta, \
-    Links, CalculationDataObject, single_entry_endpoint_parser, base_endpoint_parser
+    Links, CalculationDataObject, single_entry_endpoint_parser, base_endpoint_parser,\
+    json_api_info_response_model
 from .filterparser import parse_filter, FilterException
 
 
@@ -33,7 +34,7 @@ def base_request_args():
     if request.args.get('response_format', 'json') != 'json':
         abort(400, 'Response format is not supported.')
 
-    properties_str = request.args.get('response_fields', None)
+    properties_str = request.args.get('request_fields', None)
     if properties_str is not None:
         return properties_str.split(',')
     return None
@@ -131,26 +132,19 @@ class CalculationInfo(Resource):
     @api.doc('calculations_info')
     @api.response(400, 'Invalid requests, e.g. bad parameter.')
     @api.expect(base_endpoint_parser, validate=True)
-    @api.marshal_with(json_api_single_response_model, skip_none=True, code=200)
+    @api.marshal_with(json_api_info_response_model, skip_none=True, code=200)
     def get(self):
         """ Returns information relating to the API implementation- """
         base_request_args()
 
         result = {
-            'type': 'info',
-            'id': 'calculation',
-            'attributes': {
-                'description': 'A calculations entry.',
-                # TODO non optimade, nomad specific properties
-                'properties': {
-                    attr.name: dict(description=attr.description)
-                    for attr in OptimadeEntry.m_def.all_properties.values()
-                },
-                'formats': ['json'],
-                'output_fields_by_format': {
-                    'json': OptimadeEntry.m_def.all_properties.keys()
-                }
-            }
+            'description': 'a calculation entry',
+            'properties': {
+                attr.name: dict(description=attr.description)
+                for attr in OptimadeEntry.m_def.all_properties.values()},
+            'formats': ['json'],
+            'output_fields_by_format': {
+                'json': OptimadeEntry.m_def.all_properties.keys()}
         }
 
         return dict(

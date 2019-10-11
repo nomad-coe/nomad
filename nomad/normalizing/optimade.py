@@ -16,6 +16,7 @@ from typing import Any, Dict
 import numpy as np
 import re
 import ase.data
+from string import ascii_uppercase
 
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 from nomad.metainfo import units
@@ -77,9 +78,12 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         optimade.chemical_formula_reduced = get_value('chemical_composition_reduced')
         optimade.chemical_formula_hill = get_value('chemical_composition_bulk_reduced')
         optimade.chemical_formula_descriptive = optimade.chemical_formula_hill
-        optimade.chemical_formula_anonymous = ''.join([
-            '%s' % element + (str(atom_counts[element]) if atom_counts[element] > 1 else '')
-            for element in optimade.elements])
+        optimade.chemical_formula_anonymous = ''
+        for i in range(len(optimade.elements)):
+            part = '%s' % ascii_uppercase[i % len(ascii_uppercase)]
+            if atom_counts[optimade.elements[i]] > 1:
+                part += str(atom_counts[optimade.elements[i]])
+            optimade.chemical_formula_anonymous += part
 
         # sites
         optimade.nsites = len(nomad_species)
@@ -94,7 +98,7 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         for species_label in set(nomad_species):
             match = re.match(species_re, species_label)
 
-            element_label, index = match.groups(1), match.groups(2)
+            element_label = match.group(1)
 
             species = optimade.m_create(Species)
             species.name = species_label
