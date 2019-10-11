@@ -20,7 +20,7 @@ import pytest
 from nomad.processing import Upload
 from nomad import search, processing as proc
 from nomad.parsing import LocalBackend
-from nomad.datamodel.dft import CalcWithMetadata
+from nomad.datamodel import CalcWithMetadata
 
 from nomad.app.optimade import parse_filter, url
 
@@ -77,7 +77,7 @@ def create_test_structure(
     calc.apply_domain_metadata(backend)
 
     if without_optimade:
-        calc.optimade = None
+        calc.optimade = None  # type: ignore
 
     proc.Calc.from_calc_with_metadata(calc).save()
     search.Entry.from_calc_with_metadata(calc).save()
