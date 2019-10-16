@@ -6,7 +6,7 @@ import { compose } from 'recompose'
 import classNames from 'classnames'
 import { MuiThemeProvider, withStyles } from '@material-ui/core/styles'
 import { IconButton, LinearProgress, ListItemIcon, ListItemText,
-  MenuList, MenuItem, Typography, Drawer, AppBar, Toolbar, Divider, Button, DialogContent, DialogTitle, DialogActions, Dialog, Tooltip } from '@material-ui/core'
+  MenuList, MenuItem, Typography, Drawer, AppBar, Toolbar, Divider, Button, DialogContent, DialogTitle, DialogActions, Dialog, Tooltip, Snackbar, SnackbarContent } from '@material-ui/core'
 import { Switch, Route, Link, withRouter } from 'react-router-dom'
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
@@ -31,12 +31,30 @@ import {help as uploadHelp, default as Uploads} from './uploads/Uploads'
 import ResolvePID from './entry/ResolvePID'
 import DatasetPage from './DatasetPage'
 import { capitalize } from '../utils'
+import { makeStyles } from '@material-ui/core/styles'
+import { amber } from '@material-ui/core/colors'
 
 export class VersionMismatch extends Error {
   constructor(msg) {
     super(msg)
     this.name = 'VersionMismatch'
   }
+}
+
+
+function ReloadSnack() {
+  return <Snackbar
+      anchorOrigin={{
+        vertical: 'bottom',
+        horizontal: 'left',
+      }}
+      open
+  >
+    <SnackbarContent
+      style={{backgroundColor: amber[700]}}
+      message={<span>There is a new NOMAD version. Please press your browser's reload (or even shift+reload) button.</span>}
+    />
+  </Snackbar>
 }
 
 const drawerWidth = 200
@@ -187,8 +205,8 @@ class NavigationUnstyled extends React.Component {
       .then((response) => response.json())
       .then((meta) => {
         if (meta.version !== packageJson.version) {
-          // this should not happen, if we setup the web servers correctly
-          console.error('GUI API version mismatch')
+          console.log('GUI API version mismatch')
+          this.setState({showReloadSnack: true})
         }
       })
       .catch(() => {
@@ -203,6 +221,7 @@ class NavigationUnstyled extends React.Component {
   render() {
     const { classes, children, location: { pathname }, loading } = this.props
     const { toolbarThemes, toolbarHelp, toolbarTitles } = this
+    const { showReloadSnack } = this.state
 
     const selected = dct => {
       const key = Object.keys(dct).find(key => {
@@ -218,6 +237,7 @@ class NavigationUnstyled extends React.Component {
       <div className={classes.root}>
         <div className={classes.appFrame}>
           <MuiThemeProvider theme={theme}>
+            { showReloadSnack ? <ReloadSnack/> : ''}
             <AppBar
               position="absolute"
               className={classNames(classes.appBar, this.state.open && classes.appBarShift)}
