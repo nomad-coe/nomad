@@ -80,6 +80,7 @@ import os.path
 from nomad import files, config
 
 from nomad.parsing.backend import AbstractParserBackend, LocalBackend, LegacyLocalBackend, JSONStreamWriter, BadContextURI, WrongContextState
+from nomad.parsing.metainfo import MetainfoBackend
 from nomad.parsing.parser import Parser, LegacyParser, VaspOutcarParser, BrokenParser, MissingParser, MatchingParser
 from nomad.parsing.artificial import TemplateParser, GenerateRandomParser, ChaosParser, EmptyParser
 

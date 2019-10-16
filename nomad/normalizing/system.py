@@ -68,11 +68,15 @@ class SystemNormalizer(SystemBasedNormalizer):
         Normalizes geometry, classifies, system_type, and runs symmetry analysis.
         """
 
-        def get_value(key: str, default: Any = None, nonp: bool = False) -> Any:
+        def get_value(key: str, default: Any = None, numpy: bool = True) -> Any:
             try:
                 value = self._backend.get_value(key, index)
-                if nonp and type(value).__module__ == np.__name__:
+                if not numpy and type(value).__module__ == np.__name__:
                     value = value.tolist()
+
+                elif numpy and isinstance(value, list):
+                    value = np.array(value)
+
                 return value
             except KeyError:
                 return default
@@ -80,12 +84,15 @@ class SystemNormalizer(SystemBasedNormalizer):
         def set_value(key: str, value: Any):
             self._backend.addValue(key, value)
 
+        if is_representative:
+            self._backend.addValue('is_representative', is_representative)
+
         # analyze atoms labels
-        atom_labels = get_value('atom_labels', nonp=True)
+        atom_labels = get_value('atom_labels', numpy=False)
         if atom_labels is not None:
             atom_labels = normalized_atom_labels(atom_labels)
 
-        atom_species = get_value('atom_species', nonp=True)
+        atom_species = get_value('atom_species', numpy=False)
         if atom_labels is None and atom_species is None:
             self.logger.error('calculation has neither atom species nor labels')
             return
@@ -127,7 +134,7 @@ class SystemNormalizer(SystemBasedNormalizer):
             set_value('atom_species', atom_species)
 
         # periodic boundary conditions
-        pbc = get_value('configuration_periodic_dimensions', nonp=True)
+        pbc = get_value('configuration_periodic_dimensions', numpy=False)
         if pbc is None:
             pbc = [False, False, False]
             self.logger.warning('missing configuration_periodic_dimensions')
@@ -145,7 +152,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         set_value('chemical_composition_bulk_reduced', atoms.get_chemical_formula(mode='hill'))
 
         # positions
-        atom_positions = get_value('atom_positions', None)
+        atom_positions = get_value('atom_positions', None, numpy=True)
         if atom_positions is None:
             self.logger.warning('no atom positions, skip further system analysis')
             return
@@ -162,9 +169,9 @@ class SystemNormalizer(SystemBasedNormalizer):
             return
 
         # lattice vectors
-        lattice_vectors = get_value('lattice_vectors')
+        lattice_vectors = get_value('lattice_vectors', numpy=True)
         if lattice_vectors is None:
-            lattice_vectors = get_value('simulation_cell')
+            lattice_vectors = get_value('simulation_cell', numpy=True)
             if lattice_vectors is not None:
                 set_value('lattice_vectors', lattice_vectors)
         if lattice_vectors is None:
@@ -187,8 +194,6 @@ class SystemNormalizer(SystemBasedNormalizer):
         set_value('configuration_raw_gid', configuration_id)
 
         if is_representative:
-            self._backend.addValue('is_representative', is_representative)
-
             # system type analysis
             if atom_positions is not None:
                 with utils.timer(

@@ -1,11 +1,12 @@
 from typing import Union, Callable, cast
 import os.path
-import ujson
+import json
 import click
 import sys
 
 from nomad import config, utils, files
-from nomad.parsing import LocalBackend, parser_dict, match_parser, MatchingParser
+from nomad.parsing import LocalBackend, parser_dict, match_parser, MatchingParser, MetainfoBackend
+from nomad.metainfo.legacy import LegacyMetainfoEnvironment
 from nomad.normalizing import normalizers
 from nomad.datamodel import CalcWithMetadata
 
@@ -14,7 +15,9 @@ from .cli import cli
 
 def parse(
         mainfile: str, upload_files: Union[str, files.StagingUploadFiles],
-        parser_name: str = None, strict: bool = True, logger=None) -> LocalBackend:
+        parser_name: str = None,
+        backend_factory: Callable = None,
+        strict: bool = True, logger=None) -> LocalBackend:
     """
     Run the given parser on the downloaded calculation. If no parser is given,
     do parser matching and use the respective parser.
@@ -34,6 +37,8 @@ def parse(
     assert parser is not None, 'there is no parser matching %s' % mainfile
     logger = logger.bind(parser=parser.name)  # type: ignore
     logger.info('identified parser')
+    if hasattr(parser, 'backend_factory'):
+        setattr(parser, 'backend_factory', backend_factory)
 
     if isinstance(upload_files, str):
         mainfile_path = os.path.join(upload_files, mainfile)
@@ -96,10 +101,19 @@ def normalize_all(parser_backend: LocalBackend = None, logger=None) -> LocalBack
 @click.option('--skip-normalizers', is_flag=True, default=False, help='Do not run the normalizer.')
 @click.option('--not-strict', is_flag=True, help='Do also match artificial parsers.')
 @click.option('--parser', help='Skip matching and use the provided parser')
-def _parse(mainfile, show_backend, show_metadata, skip_normalizers, not_strict, parser):
+@click.option('--metainfo', is_flag=True, help='Use the new metainfo instead of the legacy metainfo.')
+def _parse(mainfile, show_backend, show_metadata, skip_normalizers, not_strict, parser, metainfo):
     utils.configure_logging()
+    kwargs = dict(strict=not not_strict, parser_name=parser)
 
-    backend = parse(mainfile, '.', strict=not not_strict, parser_name=parser)
+    if metainfo:
+
+        def backend_factory(env, logger):
+            return MetainfoBackend(LegacyMetainfoEnvironment(env), logger=logger)
+
+        kwargs.update(backend_factory=backend_factory)
+
+    backend = parse(mainfile, '.', **kwargs)
 
     if not skip_normalizers:
         normalize_all(backend)
@@ -109,4 +123,4 @@ def _parse(mainfile, show_backend, show_metadata, skip_normalizers, not_strict, 
     if show_metadata:
         metadata = CalcWithMetadata()
         metadata.apply_domain_metadata(backend)
-        ujson.dump(metadata.to_dict(), sys.stdout, indent=4)
+        json.dump(metadata.to_dict(), sys.stdout, indent=4)

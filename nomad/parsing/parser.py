@@ -170,17 +170,22 @@ class LegacyParser(MatchingParser):
 
     Arguments:
         parser_class_name: the main parser class that implements NOMAD-coe's
+        backend_factory: a callable that returns a backend, takes meta_info and logger as argument
     """
-    def __init__(self, parser_class_name: str, *args, **kwargs) -> None:
+    def __init__(self, parser_class_name: str, *args, backend_factory=None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self.parser_class_name = parser_class_name
+        self.backend_factory = backend_factory
 
     def run(self, mainfile: str, logger=None) -> LocalBackend:
         # TODO we need a homogeneous interface to parsers, but we dont have it right now.
         # There are some hacks to distringuish between ParserInterface parser and simple_parser
         # using hasattr, kwargs, etc.
-        def create_backend(meta_info, logger=None):
+        def create_backend(meta_info):
+            if self.backend_factory is not None:
+                return self.backend_factory(meta_info, logger=logger)
+
             return LocalBackend(meta_info, debug=False, logger=logger)
 
         module_name = self.parser_class_name.split('.')[:-1]
@@ -189,9 +194,7 @@ class LegacyParser(MatchingParser):
         Parser = getattr(module, parser_class)
 
         init_signature = inspect.getargspec(Parser.__init__)
-        kwargs = dict(
-            backend=lambda meta_info: create_backend(meta_info, logger=logger),
-            log_level=logging.DEBUG, debug=True)
+        kwargs = dict(backend=create_backend, log_level=logging.DEBUG, debug=True)
         kwargs = {key: value for key, value in kwargs.items() if key in init_signature.args}
 
         with utils.legacy_logger(logger):

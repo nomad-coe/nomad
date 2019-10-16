@@ -16,8 +16,13 @@ import pytest
 import numpy as np
 import pint.quantity
 
-from nomad.metainfo.metainfo import MSection, MCategory, Section, Quantity, SubSection, Definition, Package, DeriveError, MetainfoError, units
+from nomadcore.local_meta_info import InfoKindEl, InfoKindEnv
+
+from nomad.metainfo.metainfo import MSection, MCategory, Section, Quantity, SubSection, \
+    Definition, Package, DeriveError, MetainfoError, Environment, MResource, units
 from nomad.metainfo.example import Run, VaspRun, System, SystemHash, Parsing, m_package as example_package
+from nomad.metainfo.legacy import LegacyMetainfoEnvironment
+from nomad.parsing.metainfo import MetainfoBackend
 
 from tests.utils import assert_exception
 
@@ -220,6 +225,9 @@ class TestM2:
             class TestSection(Run, System):  # pylint: disable=unused-variable
                 m_def = Section(extends_base_section=True)
 
+    def test_parent_section_sub_section_defs(self):
+        len(System.m_def.parent_section_sub_section_defs) > 0
+
 
 class TestM1:
     """ Test for meta-info instances. """
@@ -392,3 +400,126 @@ class TestM1:
         test_section.m_create(System, TestSection.one)
 
         assert test_section.one is not None
+
+    def test_resource(self):
+        resource = MResource()
+        run = resource.create(Run)
+        run.m_create(System)
+        run.m_create(System)
+
+        assert len(resource.all(System)) == 2
+
+
+class TestEnvironment:
+
+    @pytest.fixture
+    def env(self) -> Environment:
+        env = Environment()
+        env.m_add_sub_section(Environment.packages, example_package)
+        return env
+
+    def test_create(self, env):
+        assert env is not None
+
+    def test_resolve(self, env: Environment):
+        sub_section_system = env.resolve_definition('systems', SubSection)
+        assert sub_section_system.m_def == SubSection.m_def
+        assert sub_section_system.name == 'systems'
+
+
+class TestLegacy:
+
+    @pytest.fixture(scope='session')
+    def legacy_example(self):
+        return {
+            'type': 'nomad_meta_info_1_0',
+            'metaInfos': [
+                dict(name='section_run', kindStr='type_section'),
+                dict(
+                    name='program_name', dtypeStr='C', superNames=['program_info']),
+                dict(name='bool_test', dtypeStr='b', superNames=['section_run']),
+
+                dict(name='section_system', kindStr='type_section', superNames=['section_run']),
+                dict(
+                    name='atom_labels', dtypeStr='C', shape=['number_of_atoms'],
+                    superNames=['section_system']),
+                dict(
+                    name='atom_positions', dtypeStr='f', shape=['number_of_atoms', 3],
+                    superNames=['section_system']),
+                dict(
+                    name='number_of_atoms', dtypeStr='i', kindStr='type_dimension',
+                    superNames=['section_system', 'system_info']),
+
+                dict(name='section_method', kindStr='type_section', superNames=['section_run']),
+                dict(
+                    name='method_system_ref', dtypeStr='i',
+                    referencedSections=['section_system'],
+                    superNames=['section_method']),
+
+                dict(
+                    name='program_info', kindStr='type_abstract_document_content',
+                    superNames=['section_run']),
+                dict(name='system_info', kindStr='type_abstract_document_content')
+            ]
+        }
+
+    @pytest.fixture(scope='session')
+    def legacy_env(self, legacy_example):
+        env = InfoKindEnv()
+        for definition in legacy_example.get('metaInfos'):
+            env.addInfoKindEl(InfoKindEl(
+                description='test_description', package='test_package', **definition))
+        return env
+
+    @pytest.fixture(scope='session')
+    def env(self, legacy_env):
+        return LegacyMetainfoEnvironment(legacy_env)
+
+    def test_environment(self, env, no_warn):
+        assert env.all_defs.get('section_system') is not None
+        assert env.all_defs.get('section_run') is not None
+        assert env.all_defs.get('section_method') is not None
+        assert env.all_defs.get('method_system_ref').type.target_section_def == \
+            env.all_defs.get('section_system')
+        assert env.all_defs.get('atom_labels').type == str
+        assert env.all_defs.get('atom_positions').type == np.dtype('f')
+
+        assert env.env.resolve_definition('section_system', Section) == \
+            env.all_defs.get('section_system', '<does not exist>')
+        assert env.env.resolve_definition('section_system', SubSection) is not None
+
+        assert env.env.resolve_definition('bool_test', Quantity).type == bool
+        assert env.env.resolve_definition('program_name', Quantity).m_parent.name == 'section_run'
+
+    def test_backend(self, env, no_warn):
+        backend = MetainfoBackend(env)
+        run = backend.openSection('section_run')
+        backend.addValue('program_name', 'vasp')
+
+        system_0 = backend.openSection('section_system')
+        assert system_0 == 0
+
+        backend.addArrayValues('atom_labels', np.array(['H', 'H', 'O']))
+        backend.addValue('number_of_atoms', 3)
+        backend.addArrayValues('atom_positions', [[0, 0, 0], [0, 0, 0], [0, 0, 0]])
+        backend.closeSection('section_system', system_0)
+
+        system_1 = backend.openSection('section_system')
+        assert system_1 == 1
+        backend.closeSection('section_system', system_1)
+
+        method = backend.openSection('section_method')
+        backend.addValue('method_system_ref', system_0)
+        backend.closeSection('section_method', method)
+
+        backend.closeSection('section_run', run)
+
+        assert backend.get_sections('section_system') == [0, 1]
+        assert len(backend.get_value('atom_labels', 0)) == 3
+        assert backend.get_value('method_system_ref', 0) == 0
+        assert backend.get_value('program_name', 0) == 'vasp'
+
+        backend.openContext('section_run/0/section_system/1')
+        backend.addValue('number_of_atoms', 10)
+        backend.closeContext('section_run/0/section_system/1')
+        assert backend.get_value('number_of_atoms', 1) == 10

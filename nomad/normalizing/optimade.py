@@ -17,6 +17,7 @@ import numpy as np
 import re
 import ase.data
 from string import ascii_uppercase
+import pint.quantity
 
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 from nomad.metainfo import units
@@ -42,13 +43,19 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         """
         optimade = OptimadeEntry()
 
-        def get_value(key: str, default: Any = None, numpy: bool = False) -> Any:
+        def get_value(key: str, default: Any = None, numpy: bool = False, unit=None) -> Any:
             try:
                 value = self._backend.get_value(key, index)
                 if type(value) == np.ndarray and not numpy:
                     return value.tolist()
                 if isinstance(value, list) and numpy:
                     return np.array(value)
+
+                if numpy and unit is not None:
+                    if isinstance(value, pint.quantity._Quantity):
+                        value = value.to(unit)
+                    else:
+                        value = value * unit
 
                 return value
             except KeyError:
@@ -88,8 +95,8 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         # sites
         optimade.nsites = len(nomad_species)
         optimade.species_at_sites = nomad_species
-        optimade.lattice_vectors = (get_value('lattice_vectors', numpy=True) * units.m).to(units.angstrom).magnitude
-        optimade.cartesian_site_positions = (get_value('atom_positions', numpy=True) * units.m).to(units.angstrom).magnitude
+        optimade.lattice_vectors = get_value('lattice_vectors', numpy=True, unit=units.angstrom).magnitude
+        optimade.cartesian_site_positions = get_value('atom_positions', numpy=True, unit=units.angstrom).magnitude
         optimade.dimension_types = [
             1 if value else 0
             for value in get_value('configuration_periodic_dimensions')]

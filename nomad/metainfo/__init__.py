@@ -196,6 +196,13 @@ Packages
 
 .. _metainfo-custom-types:
 
+
+Environments
+------------
+
+.. autoclass:: Environment
+
+
 Custom data types
 -----------------
 
@@ -254,6 +261,11 @@ object when a respective quantity is accessed.
 
 .. autoclass:: MProxy
 
+Resources
+_________
+
+.. autoclass:: MResource
+
 A more complex example
 ----------------------
 
@@ -263,5 +275,6 @@ A more complex example
 """
 
 from .metainfo import MSection, MCategory, Definition, Property, Quantity, SubSection, \
-    Section, Category, Package, Enum, Datetime, MProxy, MetainfoError, DeriveError, \
-    MetainfoReferenceError, DataType, MData, MDataDict, Reference, m_package, units
+    Section, Category, Package, Environment, Enum, Datetime, MProxy, MetainfoError, DeriveError, \
+    MetainfoReferenceError, DataType, MData, MDataDict, Reference, MResource, m_package, \
+    units

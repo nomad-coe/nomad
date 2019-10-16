@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import TextIO, Tuple, List, Any, Callable, Dict
+from typing import TextIO, Tuple, List, Any, Callable, Dict, Iterable
 from abc import ABCMeta, abstractmethod
 from io import StringIO
 import json
@@ -196,6 +196,25 @@ class AbstractParserBackend(metaclass=ABCMeta):
         """
         pass
 
+    def write_json(
+            self, out: TextIO, pretty=True, filter: Callable[[str, Any], Any] = None,
+            root_sections: List[str] = ['section_run', 'section_entry_info']):
+        """ Writes the backend contents. """
+        pass
+
+    def add_mi2_section(self, section: MSection):
+        """ Allows to mix a metainfo2 style section into backend. """
+        pass
+
+    def get_mi2_section(self, section_def: MI2Section):
+        """ Allows to mix a metainfo2 style section into backend. """
+        pass
+
+    def traverse(self, *args, **kwargs) -> Iterable[Tuple[str, str, Any]]:
+        """ Traverses the backend data and yiels tuples with metainfo name, event type,
+        and value """
+        pass
+
 
 class JSONStreamWriter():
     START = 0
@@ -315,59 +334,26 @@ class JSONStreamWriter():
         assert self._states[-1] == JSONStreamWriter.START, "Something was not closed."
 
 
-class LegacyParserBackend(AbstractParserBackend, metaclass=DelegatingMeta):
+class LegacyParserBackend(AbstractParserBackend):
     """
-    Simple implementation of :class:`AbstractParserBackend` that delegates all calls to
-    another parser object that not necessarely need to decend from the abstract base class.
+    Partial implementation of :class:`AbstractParserBackend` that implements some
+    methods that are independent from the core backend implementation.
     """
-    def __init__(self, legacy_backend):
-        self._delegate = legacy_backend
-
-
-class LocalBackend(LegacyParserBackend):
-    """
-    This implementation of :class:`AbstractParserBackend` is a extended version of
-    NOMAD-coe's ``LocalBackend`` that allows to write the results in an *archive*-style .json.
-    It can be used like the original thing, but also allows to output archive JSON
-    after parsing via :func:`write_json`.
-    """
-    def __init__(self, *args, **kwargs):
-        self.logger = kwargs.pop('logger', logger)
-
-        delegate = LegacyLocalBackend(*args, **kwargs)
-        super().__init__(delegate)
-
-        self.mi2_data: Dict[str, MSection] = {}
+    def __init__(self, logger):
+        self.logger = logger if logger is not None else get_logger(__name__)
 
         self.reset_status()
-
-        self._open_context: Tuple[str, int] = None
-        self._context_section = None
 
         # things that have no real purpos, but are required by some legacy code
         self._unknown_attributes = {}
         self._known_attributes = ['results']
         self.fileOut = io.StringIO()
 
-    def add_mi2_section(self, section: MSection):
-        """ Allows to mix a metainfo2 style section into backend. """
-        self.mi2_data[section.m_def.name] = section
-
-    def get_mi2_section(self, section_def: MI2Section):
-        """ Allows to mix a metainfo2 style section into backend. """
-        return self.mi2_data.get(section_def.name, None)
-
-    def __getattr__(self, name):
-        """ Support for unimplemented and unexpected methods. """
-        if name not in self._known_attributes and self._unknown_attributes.get(name) is None:
-            self.logger.debug('Access of unexpected backend attribute/method', attribute=name)
-            self._unknown_attributes[name] = name
-
-        return getattr(self._delegate, name)
-        # return lambda *args, **kwargs: None
+    def startedParsingSession(
+            self, mainFileUri, parserInfo, parserStatus=None, parserErrors=None):
+        self.reset_status()
 
     def finishedParsingSession(self, parserStatus, parserErrors, *args, **kwargs):
-        self._delegate.finishedParsingSession(parserStatus, parserErrors, *args, **kwargs)
         self._status = parserStatus
         self._errors = parserErrors
 
@@ -400,9 +386,56 @@ class LocalBackend(LegacyParserBackend):
 
         return meta_name, index
 
+    @property
+    def status(self) -> ParserStatus:
+        """ Returns status and potential errors. """
+        return (self._status, self._errors)
+
+    def reset_status(self) -> None:
+        self._status = 'ParseSuccess'
+        self._errors = None
+        self._warnings: List[str] = []
+
+
+class LocalBackend(LegacyParserBackend, metaclass=DelegatingMeta):
+    """
+    This implementation of :class:`AbstractParserBackend` is a extended version of
+    NOMAD-coe's ``LocalBackend`` that allows to write the results in an *archive*-style .json.
+    It can be used like the original thing, but also allows to output archive JSON
+    after parsing via :func:`write_json`.
+    """
+    def __init__(self, *args, **kwargs):
+        logger = kwargs.pop('logger', None)
+        super().__init__(logger=logger)
+
+        self._delegate = LegacyLocalBackend(*args, **kwargs)
+        self.mi2_data: Dict[str, MSection] = {}
+        self._open_context: Tuple[str, int] = None
+        self._context_section = None
+
+    def __getattr__(self, name):
+        """ Support for unimplemented and unexpected methods. """
+        if name not in self._known_attributes and self._unknown_attributes.get(name) is None:
+            self.logger.debug('Access of unexpected backend attribute/method', attribute=name)
+            self._unknown_attributes[name] = name
+
+        return getattr(self._delegate, name)
+
+    def add_mi2_section(self, section: MSection):
+        """ Allows to mix a metainfo2 style section into backend. """
+        self.mi2_data[section.m_def.name] = section
+
+    def get_mi2_section(self, section_def: MI2Section):
+        """ Allows to mix a metainfo2 style section into backend. """
+        return self.mi2_data.get(section_def.name, None)
+
+    def finishedParsingSession(self, *args, **kwargs):
+        super().finishedParsingSession(*args, **kwargs)
+        self._delegate.finishedParsingSession(*args, **kwargs)
+
     def openSection(self, metaName: str) -> int:
         if self._open_context is None:
-            return super().openSection(metaName)
+            return self._delegate.openSection(metaName)
         else:
             assert self._context_section is not None
 
@@ -418,7 +451,7 @@ class LocalBackend(LegacyParserBackend):
             find_child_sections(self._context_section)
 
             if len(child_sections) == 0:
-                return super().openSection(metaName)
+                return self._delegate.openSection(metaName)
             elif len(child_sections) == 1:
                 index = child_sections[0].gIndex  # TODO  this also needs to be reversed, on closing sections
                 self._delegate.sectionManagers[metaName].lastSectionGIndex = index
@@ -539,16 +572,6 @@ class LocalBackend(LegacyParserBackend):
         else:
             return JSONStreamWriter._json_serializable_value(value)
 
-    @property
-    def status(self) -> ParserStatus:
-        """ Returns status and potential errors. """
-        return (self._status, self._errors)
-
-    def reset_status(self) -> None:
-        self._status = 'ParseSuccess'
-        self._errors = None
-        self._warnings: List[str] = []
-
     def write_json(
             self, out: TextIO, pretty=True, filter: Callable[[str, Any], Any] = None,
             root_sections: List[str] = ['section_run', 'section_entry_info']):
@@ -574,6 +597,9 @@ class LocalBackend(LegacyParserBackend):
 
         json_writer.close_object()
         json_writer.close()
+
+    def traverse(self, *args, **kwargs):
+        return self._delegate.results.traverse(*args, **kwargs)
 
     def __repr__(self):
         def filter(name, value):

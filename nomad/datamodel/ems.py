@@ -105,7 +105,7 @@ class EMSEntryWithMetadata(CalcWithMetadata):
 
         quantities = set()
 
-        for meta_info, _, _ in backend._delegate.results.traverse(root_section='section_experiment'):
+        for meta_info, _, _ in backend.traverse(root_section='section_experiment'):
             quantities.add(meta_info)
 
         self.quantities = list(quantities)

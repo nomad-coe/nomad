@@ -16,6 +16,7 @@ from typing import Iterable, List, Dict, Type, Tuple, Callable, Any
 import datetime
 from elasticsearch_dsl import Keyword
 from collections.abc import Mapping
+import numpy as np
 
 from nomad import utils, config
 from nomad.metainfo import MSection
@@ -429,4 +430,7 @@ def get_optional_backend_value(backend, key, section, unavailable_value=None, lo
             'The values for %s where not available in any %s' % (key, section))
         return unavailable_value if unavailable_value is not None else config.services.unavailable_value
     else:
+        if isinstance(val, np.generic):
+            return val.item()
+
         return val

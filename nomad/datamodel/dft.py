@@ -158,7 +158,7 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         n_total_energies = 0
         n_geometries = 0
 
-        for meta_info, event, value in backend._delegate.results.traverse():
+        for meta_info, event, value in backend.traverse():
             quantities.add(meta_info)
 
             if event == ParserEvent.add_value or event == ParserEvent.add_array_value:

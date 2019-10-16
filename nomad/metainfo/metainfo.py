@@ -337,15 +337,19 @@ Datetime = _Datetime()
 class MObjectMeta(type):
 
     def __new__(self, cls_name, bases, dct):
+        do_init = dct.get('do_init', None)
+        if do_init is not None:
+            del(dct['do_init'])
+        else:
+            do_init = True
+
         cls = super().__new__(self, cls_name, bases, dct)
 
         init = getattr(cls, '__init_cls__')
-        if init is not None and not is_bootstrapping:
+        if init is not None and do_init and not is_bootstrapping:
             init()
         return cls
 
-
-Content = Tuple['MSection', int, 'SubSection', 'MSection']
 
 SectionDef = Union[str, 'Section', 'SubSection', Type[MSectionBound]]
 """ Type for section definition references.
@@ -492,6 +496,49 @@ class MDataDict(MData):
         return len(self.dct[sub_section_name])
 
 
+class MResource():
+    """Represents a collection of related metainfo data, i.e. a set of :class:`MSection` instances.
+
+    MResource allows to keep related objects together and resolve sections of certain
+    section definitions.
+    """
+    def __init__(self):
+        self.__data: Dict['Section', List['MSection']] = dict()
+        self.contents: List['MSection'] = []
+
+    def create(self, section_cls: Type[MSectionBound], *args, **kwargs) -> MSectionBound:
+        """ Create an instance of the given section class and adds it to this resource. """
+        result = section_cls(*args, **kwargs)
+        self.add(result)
+        return cast(MSectionBound, result)
+
+    def add(self, section):
+        section.m_resource = self
+        self.__data.setdefault(section.m_def, []).append(section)
+        if section.m_parent is None:
+            self.contents.append(section)
+
+    def remove(self, section):
+        assert section.m_resource == self, 'Can only remove section from the resource that contains it.'
+        section.m_resource = None
+        self.__data.get(section.m_def).remove(section)
+        if section.m_parent is not None:
+            self.contents.remove(section)
+
+    def all(self, section_cls: Type[MSectionBound]) -> List[MSectionBound]:
+        """ Returns all instances of the given section class in this resource. """
+        return cast(List[MSectionBound], self.__data.get(section_cls.m_def, []))
+
+    def unload(self):
+        """ Breaks all references among the contain metainfo sections to allow GC. """
+        for collections in self.__data.values():
+            for section in collections:
+                section.m_parent = None
+            collections.clear()
+
+        # TODO break actual references via quantities
+
+
 class MSection(metaclass=MObjectMeta):
     """Base class for all section instances on all meta-info levels.
 
@@ -523,16 +570,21 @@ class MSection(metaclass=MObjectMeta):
             the quantity values and sub-section. It should only be read directly
             (and never manipulated).
 
+        m_resource: The :class:`MResource` that contains and manages this section.
+
     """
 
     m_def: 'Section' = None
 
-    def __init__(self, m_def: 'Section' = None, m_data: MData = None, **kwargs):
+    def __init__(
+            self, m_def: 'Section' = None, m_data: MData = None,
+            m_resource: MResource = None, **kwargs):
 
         self.m_def: 'Section' = m_def
         self.m_parent: 'MSection' = None
         self.m_parent_sub_section: 'SubSection' = None
         self.m_parent_index = -1
+        self.m_resource = m_resource
 
         # get missing m_def from class
         cls = self.__class__
@@ -746,6 +798,12 @@ class MSection(metaclass=MObjectMeta):
         elif quantity_def.type == Any:
             pass
 
+        elif quantity_def.type == str and type(value) == np.str_:
+            return str(value)
+
+        elif quantity_def.type == bool and type(value) == np.bool_:
+            return bool(value)
+
         else:
             if type(value) != quantity_def.type:
                 raise TypeError(
@@ -829,6 +887,9 @@ class MSection(metaclass=MObjectMeta):
 
         value = self.m_data.m_get(self, quantity_def)
 
+        if value is None:
+            return value
+
         if isinstance(quantity_def.type, DataType) and quantity_def.type.get_normalize != DataType.get_normalize:
             dimensions = len(quantity_def.shape)
             if dimensions == 0:
@@ -871,6 +932,10 @@ class MSection(metaclass=MObjectMeta):
         sub_section.m_parent = self
         sub_section.m_parent_sub_section = sub_section_def
         sub_section.m_parent_index = parent_index
+        if sub_section.m_resource is not None:
+            sub_section.m_resource.remove(sub_section)
+        if self.m_resource is not None:
+            self.m_resource.add(sub_section)
 
         self.m_data.m_add_sub_section(self, sub_section_def, sub_section)
 
@@ -1098,26 +1163,26 @@ class MSection(metaclass=MObjectMeta):
         """ Returns the data of this section as a json string. """
         return json.dumps(self.m_to_dict(), **kwargs)
 
-    def m_all_contents(self) -> Iterable[Content]:
+    def m_all_contents(self) -> Iterable['MSection']:
         """ Returns an iterable over all sub and sub subs sections. """
         for content in self.m_contents():
-            for sub_content in content[0].m_all_contents():
+            for sub_content in content.m_all_contents():
                 yield sub_content
 
             yield content
 
-    def m_contents(self) -> Iterable[Content]:
+    def m_contents(self) -> Iterable['MSection']:
         """ Returns an iterable over all direct subs sections. """
         for sub_section_def in self.m_def.all_sub_sections.values():
             if sub_section_def.repeats:
                 index = 0
                 for sub_section in self.m_get_sub_sections(sub_section_def):
-                    yield sub_section, index, sub_section_def, self
+                    yield sub_section
                     index += 1
 
             else:
                 sub_section = self.m_get_sub_section(sub_section_def, -1)
-                yield sub_section, -1, sub_section_def, self
+                yield sub_section
 
     def m_path(self, quantity_def: 'Quantity' = None) -> str:
         """ Returns the path of this section or the given quantity within the section hierarchy. """
@@ -1140,6 +1205,10 @@ class MSection(metaclass=MObjectMeta):
             return cast(MSectionBound, self)
         else:
             return self.m_parent.m_root(cls)
+
+    def m_parent_as(self, cls: Type[MSectionBound] = None) -> MSectionBound:
+        """ Returns the parent section with the given section class type. """
+        return cast(MSectionBound, self.m_parent)
 
     def m_resolve(self, path: str, cls: Type[MSectionBound] = None) -> MSectionBound:
         """ Resolves the given path using this section as context. """
@@ -1243,7 +1312,7 @@ class MSection(metaclass=MObjectMeta):
     def m_all_validate(self):
         """ Evaluates all constraints in the whole section hierarchy, incl. this section. """
         errors: List[str] = []
-        for section, _, _, _ in itertools.chain([(self, None, None, None)], self.m_all_contents()):
+        for section in itertools.chain([self], self.m_all_contents()):
             for error in section.m_validate():
                 errors.append(error)
 
@@ -1653,6 +1722,10 @@ class Section(Definition):
             A helper attribute that gives all sub-section definition including inherited ones
             as a dictionary that maps section classes (i.e. Python class objects) to
             lists of :class:`SubSection`.
+
+        parent_section_sub_section_defs:
+            A helper attribute that gives all sub-section definitions that this section
+            is used in.
     """
 
     section_cls: Type[MSection] = None
@@ -1673,6 +1746,7 @@ class Section(Definition):
         self.all_quantities: Dict[str, Quantity] = dict()
         self.all_sub_sections: Dict[str, SubSection] = dict()
         self.all_sub_sections_by_section: Dict['Section', List['SubSection']] = dict()
+        self.parent_section_sub_section_defs: List['SubSection'] = list()
 
     def on_add_sub_section(self, sub_section_def, sub_section):
         if sub_section_def == Section.quantities:
@@ -1684,6 +1758,9 @@ class Section(Definition):
             self.all_sub_sections[sub_section.name] = sub_section
             self.all_sub_sections_by_section.setdefault(
                 sub_section.sub_section, []).append(sub_section)
+
+            if isinstance(sub_section, SubSection):
+                sub_section.sub_section.parent_section_sub_section_defs.append(sub_section)
 
     def on_set(self, quantity_def, value):
         if quantity_def == Section.base_sections:
@@ -1707,7 +1784,8 @@ class Section(Definition):
 
         for def_list in [self.quantities, self.sub_sections]:
             for definition in def_list:
-                assert definition.name not in names, 'All names in a section must be unique.'
+                assert definition.name not in names, 'All names in a section must be unique. ' \
+                    'Name %s of %s in %s already exists in %s.' % (definition.name, definition, definition.m_parent, self)
                 names.add(definition.name)
 
 
@@ -1842,3 +1920,48 @@ Section.__init_cls__()
 Category.__init_cls__()
 Quantity.__init_cls__()
 SubSection.__init_cls__()
+
+
+class Environment(MSection):
+    """ Environments allow to manage many metainfo packages and quickly access all definitions.
+
+    Environments provide a name-table for large-sets of metainfo definitions that span
+    multiple packages. It provides various functions to resolve metainfo definitions by
+    their names, legacy names, and qualified names.
+
+    Args:
+        packages: Packages in this environment.
+    """
+
+    packages = SubSection(sub_section=Package, repeats=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.all_definitions_by_name: Dict[str, List[Definition]] = dict()
+
+    def resolve_definitions(  # type: ignore
+            self, name: str, cls: Type[MSectionBound] = Definition) -> List[MSectionBound]:
+
+        return [
+            cast(MSectionBound, definition)
+            for definition in self.all_definitions_by_name.get(name, [])
+            if isinstance(definition, cls)]
+
+    def resolve_definition(  # type: ignore
+            self, name, cls: Type[MSectionBound] = Definition) -> MSectionBound:
+
+        defs = self.resolve_definitions(name, cls)
+        if len(defs) == 1:
+            return defs[0]
+        elif len(defs) > 1:
+            raise KeyError('Could not uniquely identify %s' % name)
+        else:
+            raise KeyError('Could not resolve %s' % name)
+
+    def on_add_sub_section(self, sub_section_def: SubSection, sub_section: MSection):
+        if sub_section_def == Environment.packages:
+            package = sub_section.m_as(Package)
+            for definition in package.m_all_contents():
+                if isinstance(definition, Definition):
+                    definitions = self.all_definitions_by_name.setdefault(definition.name, [])
+                    definitions.append(definition)
