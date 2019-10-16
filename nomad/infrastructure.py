@@ -278,10 +278,11 @@ class Keycloak():
             user_id = user.user_id
 
         if email is not None and user_id is None:
-            try:
+            with utils.lnr(logger, 'Could not use keycloak admin client'):
                 user_id = self._admin_client.get_user_id(email)
-            except Exception:
-                raise KeyError('User does not exist')
+
+            if user_id is None:
+                raise KeyError('User %s does not exist' % email)
 
         assert user_id is not None, 'Could not determine user from given kwargs'
 

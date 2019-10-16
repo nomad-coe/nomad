@@ -192,13 +192,8 @@ class Api {
     this.onStartLoading = () => null
     this.onFinishLoading = () => null
 
+    this._swaggerClient = Swagger(`${apiBase}/swagger.json`)
     this.keycloak = keycloak
-    this.isLoggedIn = true && user
-    user = user || {}
-    this.auth_headers = {
-      'X-Token': user.token
-    }
-    this.swaggerPromise = Api.createSwaggerClient(user.token).catch(handleApiError)
 
     // keep a list of localUploads, these are uploads that are currently uploaded through
     // the browser and that therefore not yet returned by the backend

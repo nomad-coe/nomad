@@ -286,7 +286,7 @@ class SearchRequest:
                 raise ValueError('Authentication required for owner value user')
             q = Q('term', published=False) & Q('term', owners__user_id=user_id)
         elif owner_type == 'admin':
-            if user_id is None or not coe_repo.User.from_user_id(user_id).is_admin:
+            if user_id is None or not datamodel.User.get(user_id=user_id).is_admin:
                 raise ValueError('This can only be used by the admin user.')
             q = None
         else:

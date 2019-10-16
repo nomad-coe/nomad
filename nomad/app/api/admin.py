@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from flask import request
-from flask_restplus import abort, Resource, fields
+from flask_restplus import abort, Resource
 
 from nomad import infrastructure, config
 
 from .api import api
-from .auth import admin_login_required
+from .auth import authenticate
 
 
 ns = api.namespace('admin', description='Administrative operations')
@@ -29,7 +28,7 @@ class AdminResetResource(Resource):
     @api.doc('exec_reset_command')
     @api.response(200, 'Reset performed')
     @api.response(400, 'Reset not available/disabled')
-    @admin_login_required
+    @authenticate(admin_only=True)
     def post(self):
         """
         The ``reset`` command will attempt to clear the contents of all databased and
@@ -40,7 +39,7 @@ class AdminResetResource(Resource):
         if config.services.disable_reset:
             abort(400, message='Operation is disabled')
 
-        infrastructure.reset(repo_content_only=True)
+        infrastructure.reset()
 
         return dict(messager='Reset performed.'), 200
 
@@ -50,7 +49,7 @@ class AdminRemoveResource(Resource):
     @api.doc('exec_remove_command')
     @api.response(200, 'Remove performed')
     @api.response(400, 'Remove not available/disabled')
-    @admin_login_required
+    @authenticate(admin_only=True)
     def post(self):
         """
         The ``remove``command will attempt to remove all databases. Expect the
@@ -65,28 +64,3 @@ class AdminRemoveResource(Resource):
         infrastructure.remove()
 
         return dict(messager='Remove performed.'), 200
-
-
-pidprefix_model = api.model('PidPrefix', {
-    'prefix': fields.Integer(description='The prefix. All new calculations will get an id that is greater.', required=True)
-})
-
-
-# TODO remove after migration
-@ns.route('/pidprefix')
-class AdminPidPrefixResource(Resource):
-    @api.doc('exec_pidprefix_command')
-    @api.response(200, 'Pid prefix set')
-    @api.response(400, 'Bad pid prefix data')
-    @api.expect(pidprefix_model)
-    @admin_login_required
-    def post(self):
-        """
-        The ``pidprefix``command will set the pid counter to the given value.
-
-        This might be useful while migrating data with old pids.
-        """
-
-        infrastructure.set_pid_prefix(**request.get_json())
-
-        return dict(messager='PID prefix set.'), 200

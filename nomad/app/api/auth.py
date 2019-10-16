@@ -41,7 +41,7 @@ import uuid
 
 from nomad import config, processing, utils, infrastructure, datamodel
 
-from .app import api
+from .api import api
 
 
 # Authentication scheme definitions, for swagger

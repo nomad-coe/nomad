@@ -26,7 +26,7 @@ from nomad import search, utils, datamodel
 from nomad.app.utils import rfc3339DateTime
 from nomad.app.optimade import filterparser
 
-from .api import api, rfc3339DateTime
+from .api import api
 from .auth import authenticate
 from .common import pagination_model, pagination_request_parser, calc_route
 
@@ -357,7 +357,7 @@ class RepoPidResource(Resource):
     @api.doc('resolve_pid')
     @api.response(404, 'Entry with PID does not exist')
     @api.marshal_with(repo_calc_id_model, skip_none=True, code=200, description='Entry resolved')
-    @login_if_available
+    @authenticate()
     def get(self, pid: int):
         search_request = search.SearchRequest()
 

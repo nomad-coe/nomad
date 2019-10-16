@@ -15,7 +15,6 @@
 import click
 import datetime
 import elasticsearch.helpers
-import json
 
 from nomad import processing as proc, search, datamodel, infrastructure, utils, config
 

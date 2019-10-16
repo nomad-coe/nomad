@@ -25,7 +25,7 @@ from urllib.parse import urlencode
 import base64
 
 from nomad.app.utils import rfc3339DateTime
-from nomad.app.auth import generate_upload_token
+from nomad.app.api.auth import generate_upload_token
 from nomad import search, parsing, files, config, utils, infrastructure
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
@@ -196,7 +196,7 @@ class TestUploads:
         assert upload['process_running']
 
         additional_keys = ['with_embargo']
-        if publish_with_metadata and 'external_id' in metadata:
+        if 'external_id' in metadata:
             additional_keys.append('external_id')
 
         self.block_until_completed(api, upload_id, test_user_auth)
@@ -597,18 +597,21 @@ class TestRepo():
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(
-            calc_id='2', uploader=other_test_user.user_id, published=True, with_embargo=False,
-            upload_time=today - datetime.timedelta(days=5))
+            calc_id='2', uploader=other_test_user.user_id, published=True,
+            with_embargo=False, pid=2, upload_time=today - datetime.timedelta(days=5),
+            external_id='external_id')
         calc_with_metadata.update(
             atoms=['Fe'], comment='this is a specific word', formula='AAA', basis_set='zzz')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(
-            calc_id='3', uploader=other_test_user.user_id, published=False, with_embargo=False)
+            calc_id='3', uploader=other_test_user.user_id, published=False,
+            with_embargo=False, pid=3, external_id='external_id')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(
-            calc_id='4', uploader=other_test_user.user_id, published=True, with_embargo=True)
+            calc_id='4', uploader=other_test_user.user_id, published=True,
+            with_embargo=True, pid=4, external_id='external_id')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
     def assert_search(self, rv: Any, number_of_calcs: int) -> dict:
