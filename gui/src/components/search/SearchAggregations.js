@@ -4,7 +4,7 @@ import { withStyles, FormControl, FormLabel, FormGroup, FormControlLabel, Checkb
 import { withDomain } from '../domains'
 import { compose } from 'recompose'
 
-class SearchAggregationsUnstyled extends React.Component {
+class SearchAggregations extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     onChange: PropTypes.func.isRequired,
@@ -36,9 +36,20 @@ class SearchAggregationsUnstyled extends React.Component {
 
   render() {
     const { classes, data, metrics, searchValues, domain, onChange, showDetails } = this.props
-    const { quantities } = data
+    const { statistics } = data
     const selectedMetric = metrics.length === 0 ? 'code_runs' : metrics[0]
-    const useMetric = Object.keys(quantities.total.all).find(metric => metric !== 'code_runs') || 'code_runs'
+
+    // first the first statistic to determine which metric is used
+    let useMetric = 'code_runs'
+    const firstRealQuantitiy = Object.keys(statistics).find(key => key !== 'total')
+    if (firstRealQuantitiy) {
+      const firstValue = Object.keys(statistics[firstRealQuantitiy])[0]
+      if (firstValue) {
+        useMetric = Object.keys(statistics[firstRealQuantitiy][firstValue])
+          .find(metric => metric !== 'code_runs') || 'code_runs'
+      }
+    }
+
     const metricsDefinitions = domain.searchMetrics
 
     return (
@@ -59,19 +70,11 @@ class SearchAggregationsUnstyled extends React.Component {
               ))}
             </FormGroup>
           </FormControl>
-          <domain.SearchAggregations quantities={quantities} searchValues={searchValues} metric={useMetric} onChange={onChange} />
+          <domain.SearchAggregations statistics={statistics} searchValues={searchValues} metric={useMetric} onChange={onChange} />
         </div>
       </div>
     )
   }
 }
 
-const SearchAggregations = compose(withDomain, withStyles(SearchAggregationsUnstyled.styles))(SearchAggregationsUnstyled)
-Object.assign(SearchAggregations, {
-  defaultState: {
-    metrics: [],
-    searchValues: {}
-  }
-})
-
-export default SearchAggregations
+export default compose(withDomain, withStyles(SearchAggregations.styles))(SearchAggregations)

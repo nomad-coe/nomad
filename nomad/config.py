@@ -136,7 +136,7 @@ logstash = NomadConfig(
 services = NomadConfig(
     api_host='localhost',
     api_port=8000,
-    api_base_path='/fairdi/nomad/latest/api',
+    api_base_path='/fairdi/nomad/latest',
     api_secret='defaultApiSecret',
     api_chaos=0,
     admin_user_id='00000000-0000-0000-0000-000000000000',
@@ -152,10 +152,10 @@ tests = NomadConfig(
 
 
 def api_url(ssl: bool = True):
-    return '%s://%s%s' % (
+    return '%s://%s/%s/api' % (
         'https' if services.https and ssl else 'http',
-        services.api_host,
-        services.api_base_path)
+        services.api_host.strip('/'),
+        services.api_base_path.strip('/'))
 
 
 migration_source_db = NomadConfig(
@@ -178,7 +178,6 @@ mail = NomadConfig(
 )
 
 normalize = NomadConfig(
-    all_systems=False,
     system_classification_with_clusters_threshold=50
 )
 

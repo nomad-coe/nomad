@@ -14,6 +14,7 @@ worker:
   replicas: 1
   routing: "queue"
   processes: 10
+  nomadNodeType: "prod-worker"
 
 dbname: fairdi_nomad_prod
 

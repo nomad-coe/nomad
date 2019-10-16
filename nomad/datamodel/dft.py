@@ -18,12 +18,13 @@ DFT specific metadata
 
 from typing import List
 import re
-from elasticsearch_dsl import Integer
+from elasticsearch_dsl import Integer, Object
 import ase.data
 
 from nomadcore.local_backend import ParserEvent
 
 from nomad import utils, config
+from nomad.metainfo import optimade
 
 from .base import CalcWithMetadata, DomainQuantity, Domain, get_optional_backend_value
 
@@ -91,7 +92,15 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.geometries = []
         self.group_hash: str = None
 
+        self.optimade: optimade.OptimadeEntry = None
+
         super().__init__(**kwargs)
+
+    def update(self, **kwargs):
+        super().update(**kwargs)
+
+        if self.optimade is not None and isinstance(self.optimade, dict):
+            self.optimade = optimade.OptimadeEntry.m_from_dict(self.optimade)
 
     def apply_domain_metadata(self, backend):
         from nomad.normalizing.system import normalized_atom_labels
@@ -104,6 +113,8 @@ class DFTCalcWithMetadata(CalcWithMetadata):
             self.code_version = simplify_version(backend.get_value('program_version', 0))
         except KeyError:
             self.code_version = config.services.unavailable_value
+
+        self.raw_id = get_optional_backend_value(backend, 'raw_id', 'section_run', 0)
 
         self.atoms = get_optional_backend_value(backend, 'atom_labels', 'section_system', [], logger=logger)
         if hasattr(self.atoms, 'tolist'):
@@ -147,7 +158,7 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         n_total_energies = 0
         n_geometries = 0
 
-        for meta_info, event, value in backend._delegate.results.traverse():
+        for meta_info, event, value in backend.traverse():
             quantities.add(meta_info)
 
             if event == ParserEvent.add_value or event == ParserEvent.add_array_value:
@@ -173,6 +184,8 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.n_total_energies = n_total_energies
         self.n_geometries = n_geometries
 
+        self.optimade = backend.get_mi2_section(optimade.OptimadeEntry.m_def)
+
 
 def only_atoms(atoms):
     numbers = [ase.data.atomic_numbers[atom] for atom in atoms]
@@ -180,50 +193,62 @@ def only_atoms(atoms):
     return ''.join(only_atoms)
 
 
-Domain('DFT', DFTCalcWithMetadata, quantities=dict(
-    formula=DomainQuantity(
-        'The chemical (hill) formula of the simulated system.',
-        order_default=True),
-    atoms=DomainQuantity(
-        'The atom labels of all atoms in the simulated system.',
-        aggregations=len(ase.data.chemical_symbols), multi=True, zero_aggs=False),
-    only_atoms=DomainQuantity(
-        'The atom labels concatenated in species-number order. Used with keyword search '
-        'to facilitate exclusive searches.',
-        elastic_value=only_atoms, metadata_field='atoms', multi=True),
-    basis_set=DomainQuantity(
-        'The used basis set functions.', aggregations=20),
-    xc_functional=DomainQuantity(
-        'The xc functional type used for the simulation.', aggregations=20),
-    system=DomainQuantity(
-        'The system type of the simulated system.', aggregations=10),
-    crystal_system=DomainQuantity(
-        'The crystal system type of the simulated system.', aggregations=10),
-    code_name=DomainQuantity(
-        'The code name.', aggregations=40),
-    spacegroup=DomainQuantity('The spacegroup of the simulated system as number'),
-    spacegroup_symbol=DomainQuantity('The spacegroup as international short symbol'),
-    geometries=DomainQuantity(
-        'Hashes that describe unique geometries simulated by this code run.',
-        metric=('geometries', 'cardinality')
+Domain(
+    'DFT', DFTCalcWithMetadata,
+    quantities=dict(
+        formula=DomainQuantity(
+            'The chemical (hill) formula of the simulated system.',
+            order_default=True),
+        atoms=DomainQuantity(
+            'The atom labels of all atoms in the simulated system.',
+            aggregations=len(ase.data.chemical_symbols), multi=True, zero_aggs=False),
+        only_atoms=DomainQuantity(
+            'The atom labels concatenated in species-number order. Used with keyword search '
+            'to facilitate exclusive searches.',
+            elastic_value=only_atoms, metadata_field='atoms', multi=True),
+        basis_set=DomainQuantity(
+            'The used basis set functions.', aggregations=20),
+        xc_functional=DomainQuantity(
+            'The xc functional type used for the simulation.', aggregations=20),
+        system=DomainQuantity(
+            'The system type of the simulated system.', aggregations=10),
+        crystal_system=DomainQuantity(
+            'The crystal system type of the simulated system.', aggregations=10),
+        code_name=DomainQuantity(
+            'The code name.', aggregations=40),
+        spacegroup=DomainQuantity('The spacegroup of the simulated system as number'),
+        spacegroup_symbol=DomainQuantity('The spacegroup as international short symbol'),
+        geometries=DomainQuantity(
+            'Hashes that describe unique geometries simulated by this code run.', multi=True),
+        quantities=DomainQuantity(
+            'All quantities that are used by this calculation',
+            metric=('quantities', 'value_count'), multi=True),
+        n_total_energies=DomainQuantity(
+            'Number of total energy calculations',
+            elastic_mapping=Integer()),
+        n_calculations=DomainQuantity(
+            'Number of single configuration calculation sections',
+            elastic_mapping=Integer()),
+        n_quantities=DomainQuantity(
+            'Number of overall parsed quantities',
+            elastic_mapping=Integer()),
+        n_geometries=DomainQuantity(
+            'Number of unique geometries',
+            elastic_mapping=Integer()),
+        n_atoms=DomainQuantity(
+            'Number of atoms in the simulated system',
+            elastic_mapping=Integer()),
+        optimade=DomainQuantity(
+            'Search based on optimade\'s filter query language',
+            elastic_mapping=Object(optimade.ESOptimadeEntry),
+            elastic_value=lambda entry: optimade.elastic_obj(entry, optimade.ESOptimadeEntry)
+        )),
+    metrics=dict(
+        total_energies=('n_total_energies', 'sum'),
+        calculations=('n_calculations', 'sum'),
+        quantities=('n_quantities', 'sum'),
+        geometries=('n_geometries', 'sum'),
+        unique_geometries=('geometries', 'cardinality')
     ),
-    quantities=DomainQuantity(
-        'All quantities that are used by this calculation',
-        metric=('quantities', 'value_count'), multi=True
-    ),
-    n_total_energies=DomainQuantity(
-        'Number of total energy calculations',
-        metric=('total_energies', 'sum'),
-        elastic_mapping=Integer()),
-    n_calculations=DomainQuantity(
-        'Number of single configuration calculation sections',
-        metric=('calculations', 'sum'),
-        elastic_mapping=Integer()),
-    n_quantities=DomainQuantity(
-        'Number of overall parsed quantities',
-        metric=('parsed_quantities', 'sum'),
-        elastic_mapping=Integer()),
-    n_geometries=DomainQuantity(
-        'Number of unique geometries',
-        elastic_mapping=Integer()),
-    n_atoms=DomainQuantity('Number of atoms in the simulated system', elastic_mapping=Integer())))
+    default_statistics=[
+        'atoms', 'basis_set', 'xc_functional', 'system', 'crystal_system', 'code_name'])

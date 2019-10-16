@@ -16,15 +16,16 @@
 This module represents calculations in elastic search.
 """
 
-from typing import Iterable, Dict, Tuple, List, Any
+from typing import Iterable, Dict, List, Any
 from elasticsearch_dsl import Document, InnerDoc, Keyword, Text, Date, \
     Object, Boolean, Search, Q, A, analyzer, tokenizer
 from elasticsearch_dsl.document import IndexMeta
 import elasticsearch.helpers
 from elasticsearch.exceptions import NotFoundError
 from datetime import datetime
+import json
 
-from nomad import config, datamodel, infrastructure, datamodel, utils
+from nomad import config, datamodel, infrastructure, datamodel, utils, processing as proc
 
 
 path_analyzer = analyzer(
@@ -71,7 +72,7 @@ class Dataset(InnerDoc):
 class WithDomain(IndexMeta):
     """ Override elasticsearch_dsl metaclass to sneak in domain specific mappings """
     def __new__(cls, name, bases, attrs):
-        for quantity in datamodel.Domain.instance.quantities.values():
+        for quantity in datamodel.Domain.instance.domain_quantities.values():
             attrs[quantity.name] = quantity.elastic_mapping
         return super(WithDomain, cls).__new__(cls, name, bases, attrs)
 
@@ -86,6 +87,7 @@ class Entry(Document, metaclass=WithDomain):
     calc_id = Keyword()
     calc_hash = Keyword()
     pid = Keyword()
+    raw_id = Keyword()
     mainfile = Keyword()
     files = Text(multi=True, analyzer=path_analyzer, fields={'keyword': Keyword()})
     uploader = Object(User)
@@ -103,6 +105,7 @@ class Entry(Document, metaclass=WithDomain):
     comment = Text()
     references = Keyword()
     datasets = Object(Dataset)
+    external_id = Keyword()
 
     @classmethod
     def from_calc_with_metadata(cls, source: datamodel.CalcWithMetadata) -> 'Entry':
@@ -116,6 +119,7 @@ class Entry(Document, metaclass=WithDomain):
         self.calc_id = source.calc_id
         self.calc_hash = source.calc_hash
         self.pid = None if source.pid is None else str(source.pid)
+        self.raw_id = None if source.raw_id is None else str(source.raw_id)
 
         self.processed = source.processed
         self.last_processing = source.last_processing
@@ -132,7 +136,7 @@ class Entry(Document, metaclass=WithDomain):
 
         self.uploader = User.from_user_id(source.uploader) if source.uploader is not None else None
 
-        self.with_embargo = source.with_embargo
+        self.with_embargo = bool(source.with_embargo)
         self.published = source.published
         self.authors = [User.from_user_id(user_id) for user_id in source.coauthors]
         self.owners = [User.from_user_id(user_id) for user_id in source.shared_with]
@@ -144,8 +148,9 @@ class Entry(Document, metaclass=WithDomain):
         self.comment = source.comment
         self.references = [ref.value for ref in source.references]
         self.datasets = [Dataset.from_dataset_popo(ds) for ds in source.datasets]
+        self.external_id = source.external_id
 
-        for quantity in datamodel.Domain.instance.quantities.values():
+        for quantity in datamodel.Domain.instance.domain_quantities.values():
             setattr(
                 self, quantity.name,
                 quantity.elastic_value(getattr(source, quantity.metadata_field)))
@@ -196,27 +201,18 @@ def refresh():
     infrastructure.elastic_client.indices.refresh(config.elastic.index_name)
 
 
-aggregations = datamodel.Domain.instance.aggregations
-""" The available aggregations in :func:`aggregate_search` and their maximum aggregation size """
-
-search_quantities = datamodel.Domain.instance.search_quantities
+quantities = datamodel.Domain.instance.quantities
 """The available search quantities """
 
-metrics = {
-    'datasets': ('cardinality', 'datasets.id'),
-    'unique_code_runs': ('cardinality', 'calc_hash'),
-    'users': ('cardinality', 'uploader.name.keyword')
-}
+metrics = datamodel.Domain.instance.metrics
 """
 The available search metrics. Metrics are integer values given for each entry that can
-be used in aggregations, e.g. the sum of all total energy calculations or cardinality of
+be used in statistics (aggregations), e.g. the sum of all total energy calculations or cardinality of
 all unique geometries.
 """
 
-metrics.update(**datamodel.Domain.instance.metrics)
-
-metrics_names = list(metric for metric in metrics.keys())
-
+metrics_names = datamodel.Domain.instance.metrics_names
+""" Names of all available metrics """
 
 order_default_quantity = None
 for quantity in datamodel.Domain.instance.quantities.values():
@@ -224,25 +220,99 @@ for quantity in datamodel.Domain.instance.quantities.values():
         order_default_quantity = quantity.name
 
 
-def _construct_search(
-        q: Q = None, time_range: Tuple[datetime, datetime] = None,
-        search_parameters: Dict[str, Any] = {}, **kwargs) -> Search:
+class SearchRequest:
+    '''
+    Represents a search request and allows to execute that request.
+    It allows to compose the following features: a query;
+    statistics (metrics and aggregations); quantity values; scrolling, pagination for entries;
+    scrolling for quantity values.
 
-    search = Search(index=config.elastic.index_name)
+    The query part filters NOMAD data before the other features come into effect. There
+    are specialized methods for configuring the :func:`owner` and :func:`time_range` queries.
+    Quantity's can be search for by setting them as attributes.
 
-    if q is not None:
-        search = search.query(q)
+    The aggregations for statistics can be requested for pre-configured quantities. These
+    bucket aggregations come with a metric calculated for each each possible
+    quantity value.
 
-    if time_range is not None:
-        search = search.query('range', upload_time=dict(gte=time_range[0], lte=time_range[1]))
+    The other possible form of aggregations, allows to get quantity values as results
+    (e.g. get all datasets, get all users, etc.). Each value can be accompanied by metrics
+    (over all entries with that value) and an example value.
 
-    for key, value in search_parameters.items():
-        quantity = search_quantities.get(key, None)
+    Of course, searches can return a set of search results. Search objects can be
+    configured with pagination or scrolling for these results. Pagination is the default
+    and also allows ordering of results. Scrolling can be used if all entries need to be
+    'scrolled through'. This might be necessary, since elastic search has limits on
+    possible pages (e.g. 'from' must by smaller than 10000). On the downside, there is no
+    ordering on scrolling.
+
+    There is also scrolling for quantities to go through all quantity values. There is no
+    paging for aggregations.
+    '''
+    def __init__(self, query=None):
+        self._query = query
+        self._search = Search(index=config.elastic.index_name)
+
+    def owner(self, owner_type: str = 'all', user_id: str = None):
+        """
+        Uses the query part of the search to restrict the results based on the owner.
+        The possible types are: ``all`` for all calculations; ``public`` for
+        caclulations visible by everyone, excluding entries only visible to the given user;
+        ``user`` for all calculations of to the given user; ``staging`` for all
+        calculations in staging of the given user.
+
+        Arguments:
+            owner_type: The type of the owner query, see above.
+            user_id: The 'owner' given as the user's unique id.
+
+        Raises:
+            KeyError: If the given owner_type is not supported
+            ValueError: If the owner_type requires a user but none is given, or the
+                given user is not allowed to use the given owner_type.
+        """
+        if owner_type == 'all':
+            q = Q('term', published=True) & Q('term', with_embargo=False)
+            if user_id is not None:
+                q = q | Q('term', owners__user_id=user_id)
+        elif owner_type == 'public':
+            q = Q('term', published=True) & Q('term', with_embargo=False)
+        elif owner_type == 'user':
+            if user_id is None:
+                raise ValueError('Authentication required for owner value user.')
+
+            q = Q('term', owners__user_id=user_id)
+        elif owner_type == 'staging':
+            if user_id is None:
+                raise ValueError('Authentication required for owner value user')
+            q = Q('term', published=False) & Q('term', owners__user_id=user_id)
+        elif owner_type == 'admin':
+            if user_id is None or not coe_repo.User.from_user_id(user_id).is_admin:
+                raise ValueError('This can only be used by the admin user.')
+            q = None
+        else:
+            raise KeyError('Unsupported owner value')
+
+        if q is not None:
+            self.q = self.q & q
+
+        return self
+
+    def search_parameters(self, **kwargs):
+        """
+        Configures the existing query with additional search parameters. Kwargs are
+        interpreted as key value pairs. Keys have to coresspond to valid entry quantities
+        in the domain's (DFT calculations) datamodel. Alternatively search parameters
+        can be set via attributes.
+        """
+        for name, value in kwargs.items():
+            self.search_parameter(name, value)
+
+        return self
+
+    def search_parameter(self, name, value):
+        quantity = quantities.get(name, None)
         if quantity is None:
-            if key in ['page', 'per_page', 'order', 'order_by']:
-                continue
-            else:
-                raise KeyError('Unknown quantity %s' % key)
+            raise KeyError('Unknown quantity %s' % name)
 
         if quantity.multi and not isinstance(value, list):
             value = [value]
@@ -255,322 +325,357 @@ def _construct_search(
             values = [value]
 
         for item in values:
-            search = search.query(Q(quantity.elastic_search_type, **{quantity.elastic_field: item}))
+            self.q &= Q(quantity.elastic_search_type, **{quantity.elastic_field: item})
 
-    search = search.source(exclude=['quantities'])
-    return search
+        return self
 
+    def query(self, query):
+        """ Adds the given query as a 'and' (i.e. 'must') clause to the request. """
+        self._query &= query
 
-def _execute_paginated_search(
-        search: Search,
-        page: int = 1, per_page: int = 10,
-        order_by: str = order_default_quantity, order: int = -1,
-        **kwargs) -> Tuple[Any, Dict[str, Any]]:
+        return self
 
-    if order_by not in search_quantities:
-        raise KeyError('Unknown order quantity %s' % order_by)
+    def time_range(self, start: datetime, end: datetime):
+        """ Adds a time range to the query. """
+        if start is None and end is None:
+            return self
 
-    order_by_quantity = search_quantities[order_by]
+        if start is None:
+            start = datetime.fromtimestamp(0)
+        if end is None:
+            end = datetime.utcnow()
 
-    if order == 1:
-        search = search.sort(order_by_quantity.elastic_field)
-    else:
-        search = search.sort('-%s' % order_by_quantity.elastic_field)
-    paginated_search = search[(page - 1) * per_page: page * per_page]
+        self.q &= Q('range', upload_time=dict(gte=start, lte=end))
 
-    response = paginated_search.execute()  # pylint: disable=E1101
+        return self
 
-    total_results = response.hits.total
-    search_results = [hit.to_dict() for hit in response.hits]
+    @property
+    def q(self):
+        """ The underlying elasticsearch_dsl query object """
+        if self._query is None:
+            return Q('match_all')
+        else:
+            return self._query
 
-    return response, {
-        'pagination': {
-            'page': page,
-            'per_page': per_page,
-            'total': total_results
-        },
-        'results': search_results
-    }
+    @q.setter
+    def q(self, q):
+        self._query = q
 
+    def totals(self, metrics_to_use: List[str] = []):
+        """
+        Configure the request to return overall totals for the given metrics.
 
-def scroll_search(
-        scroll_id: str = None, size: int = 1000, scroll: str = u'5m',
-        q: Q = None,
-        time_range: Tuple[datetime, datetime] = None,
-        search_parameters: Dict[str, Any] = {}) -> Dict[str, Any]:
-    """
-    Alternative search based on ES scroll API. Can be used similar to
-    :func:`aggregate_search`, but pagination is replaced with scrolling, no ordering,
-    no property, and no metrics information is available.
+        The statics are returned with the other quantity statistics under the pseudo
+        quantity name 'total'. 'total' contains the pseudo value 'all'. It is used to
+        store the metrics aggregated over all entries in the search results.
+        """
+        self._add_metrics(self._search.aggs, metrics_to_use)
+        return self
 
-    he search is limited to parameters ``q`` and ``search_parameters``,
-    which work exactly as in :func:`entry_search`.
+    def default_statistics(self, metrics_to_use: List[str] = []):
+        """
+        Configures the domain's default statistics.
+        """
+        for name in datamodel.Domain.instance.default_statistics:
+            self.statistic(
+                name,
+                quantities[name].aggregations,
+                metrics_to_use=metrics_to_use)
 
-    Scrolling is done by calling this function again and again with the same ``scroll_id``.
-    Each time, this function will return the next batch of search results. If the
-    ``scroll_id`` is not available anymore, a new ``scroll_id`` is assigned and scrolling
-    starts from the beginning again.
+        return self
 
-    Arguments:
-        scroll_id: The scroll id to receive the next batch from. None will create a new
-            scroll.
-        size: The batch size in number of hits.
-        scroll: The time the scroll should be kept alive (i.e. the time between requests
-            to this method) in ES time units. Default is 5 minutes.
-        time_range: A tuple to filter for uploads within with start, end ``upload_time``.
-        search_parameters: Adds a ``and`` search for each key, value pair. Where the key corresponds
-            to a quantity and the value is the value to search for in this quantity.
+    def statistic(self, quantity_name: str, size: int, metrics_to_use: List[str] = []):
+        """
+        This can be used to display statistics over the searched entries and allows to
+        implement faceted search on the top values for each quantity.
 
-    Returns:
-        A dict with keys 'scroll' and 'results'. The key 'scroll' holds a dict with
-        'total', 'scroll_id', 'size'.
-    """
-    es = infrastructure.elastic_client
+        The metrics contain overall and per quantity value sums of code runs (calcs),
+        unique code runs, datasets, and additional domain specific metrics
+        (e.g. total energies, and unique geometries for DFTcalculations). The quantities
+        that can be aggregated to metrics are defined in module:`datamodel`. Aggregations
+        and respective metrics are calculated for aggregations given in ``aggregations``
+        and metrics in ``aggregation_metrics``. As a pseudo aggregation ``total_metrics``
+        are calculation over all search results. The ``aggregations`` gives tuples of
+        quantities and default aggregation sizes.
 
-    if scroll_id is None:
-        # initiate scroll
-        search = _construct_search(q, time_range, search_parameters=search_parameters)
-        resp = es.search(body=search.to_dict(), scroll=scroll, size=size, index=config.elastic.index_name)  # pylint: disable=E1123
-
-        scroll_id = resp.get('_scroll_id')
-        if scroll_id is None:
-            # no results for search query
-            return dict(scroll=dict(total=0, size=size), results=[])
-
-    else:
-        try:
-            resp = es.scroll(scroll_id, scroll=scroll)  # pylint: disable=E1123
-        except NotFoundError:
-            raise ScrollIdNotFound()
-
-    total = resp['hits']['total']
-    results = list(hit['_source'] for hit in resp['hits']['hits'])
-
-    # since we are using the low level api here, we should check errors
-    if resp["_shards"]["successful"] < resp["_shards"]["total"]:
-        utils.get_logger(__name__).error('es operation was unsuccessful on at least one shard')
-        raise ElasticSearchError('es operation was unsuccessful on at least one shard')
-
-    if len(results) == 0:
-        es.clear_scroll(body={'scroll_id': [scroll_id]}, ignore=(404, ))  # pylint: disable=E1123
-        scroll_id = None
-
-    scroll_info = dict(total=total, size=size)
-    if scroll_id is not None:
-        scroll_info.update(scroll_id=scroll_id)
-
-    return dict(scroll=scroll_info, results=results)
-
-
-def entry_search(
-        q: Q = None,
-        page: int = 1, per_page: int = 10,
-        order_by: str = order_default_quantity, order: int = -1,
-        time_range: Tuple[datetime, datetime] = None,
-        search_parameters: Dict[str, Any] = {}) -> Dict[str, Any]:
-    """
-    Performs a search and returns a paginated list of search results.
-
-    The search is determimed by the given elasticsearch_dsl query ``q``,
-    ``time_range`` and additional ``search_parameters``.
-    The search_parameters have to match general or domain specific metadata quantities.
-    See module:`datamodel`.
-
-    The search results are paginated. Pagination is controlled by the pagination parameters
-    ``page`` and ``per_page``. The results are ordered.
-
-    Arguments:
-        page: The page to return starting with page 1
-        per_page: Results per page
-        q: An *elasticsearch_dsl* query used to further filter the results (via ``and``)
-        time_range: A tuple to filter for uploads within with start, end ``upload_time``.
-        search_parameters: Adds a ``and`` search for each key, value pair. Where the key corresponds
-            to a quantity and the value is the value to search for in this quantity.
-
-    Returns:
-        A dict with keys 'pagination' and 'results' (similar to pagination in the REST API).
-        The pagination key holds a dict with keys 'total', 'page', 'per_page'. The
-        results key holds an array with the found entries.
-    """
-    search = _construct_search(q, time_range, search_parameters=search_parameters)
-    _, results = _execute_paginated_search(search, page, per_page, order_by, order)
-
-    return results
-
-
-def entry_scan(**kwargs):
-    """
-    Like fund:`entry_search` put directly generates results without pagination.
-    """
-    search = _construct_search(**kwargs)
-    for hit in search.scan():
-        yield hit.to_dict()
-
-
-def quantity_search(
-        quantities: Dict[str, Any], with_entries: bool = True, size: int = 100,
-        **kwargs) -> Dict[str, Any]:
-    """
-    Performs a search like :func:`entry_search`, but instead of entries, returns the values
-    of the given quantities that are exhibited by the entries in the search results.
-    In contrast to :func:`metrics_search` it allows to scroll through all values via
-    elasticsearch's composite aggregations.
-    Optionally, it will also return the entries.
-
-    This can be used to implement continues scrolling through authors, datasets, or uploads
-    within the searched entries.
-
-    Arguments:
-        quantities: A dict, where the keys are quantity names, and the values are either
-            None, or the 'after' value. This allows to scroll over various requests, by
-            providing the 'after' value of the last search. The 'after' value is
-            part of the return.
-        with_entries: If True, the method will also return the entry search results. See
-            :func:`entry_search`.
-        size: The size of the quantity lists to return with each call.
-        **kwargs: Additional arguments are passed to the underlying entry search.
-
-    Returns:
-        A dictionary with key 'quantities' (and optionally the keys of the
-        return of :func:`entry_search` ). The 'quantities' key will hold a dict
-        of quantities, each quantity is a dictionary with 'after' and 'values' key.
-        The 'values' key holds a dict with actual values as keys and their entry count
-        as values (i.e. number of entries with that value).
-    """
-
-    search = _construct_search(**kwargs)
-    for quantity_name, after in quantities.items():
-        quantity = search_quantities[quantity_name]
-        terms = A('terms', field=quantity.elastic_field)
-
-        composite = dict(sources={quantity_name: terms}, size=size)
-        if after is not None:
-            composite['after'] = {quantity_name: after}
-
-        search.aggs.bucket(quantity_name, 'composite', **composite)
-
-    response, entry_results = _execute_paginated_search(search, **kwargs)
-
-    def create_quantity_result(quantity):
-        values = getattr(response.aggregations, quantity)
-        result = dict(values={
-            getattr(bucket.key, quantity): bucket.doc_count
-            for bucket in values.buckets})
-
-        if hasattr(values, 'after_key'):
-            result.update(after=getattr(values.after_key, quantity))
-
-        return result
-
-    quantity_results = {
-        quantity: create_quantity_result(quantity)
-        for quantity in quantities.keys()
-    }
-
-    results = dict(quantities=quantity_results)
-    if with_entries:
-        results.update(**entry_results)
-
-    return results
-
-
-def metrics_search(
-        quantities: Dict[str, int] = aggregations, metrics_to_use: List[str] = [],
-        with_entries: bool = True, with_date_histogram: bool = False, **kwargs) -> Dict[str, Any]:
-    """
-    Performs a search like :func:`entry_search`, but instead of entries, returns the given
-    metrics aggregated for (a limited set of values) of the given quantities calculated
-    from the entries in the search results.
-    In contrast to :func:`property_search` the amount of values for each quantity is
-    limited.
-    Optionally, it will also return the entries.
-
-    This can be used to display statistics over the searched entries and allows to
-    implement faceted search on the top values for each quantity.
-
-    The metrics contain overall and per quantity value sums of code runs (calcs), unique code runs,
-    datasets, and additional domain specific metrics (e.g. total energies, and unique geometries for DFT
-    calculations). The quantities that can be aggregated to metrics are defined
-    in module:`datamodel`. Aggregations and respective metrics are calculated for
-    aggregations given in ``aggregations`` and metrics in ``aggregation_metrics``.
-    As a pseudo aggregation ``total_metrics`` are calculation over all search results.
-    The ``aggregations`` gives tuples of quantities and default aggregation sizes.
-
-    Arguments:
-        aggregations: A customized list of aggregations to perform. Keys are index fields,
-            and values the amount of buckets to return. Only works on *keyword* field.
-        metrics_to_use: The metrics used to aggregate over. Can be ``unique_code_runs``, ``datasets``,
-            other domain specific metrics. The basic doc_count metric ``code_runs`` is always given.
-        **kwargs: Additional arguments are passed to the underlying entry search.
-
-    Returns:
-        A dictionary with key 'quantities' (and optionally the keys of the
-        return of :func:`entry_search`). The 'quantities' key will hold a dict with a key
-        for each quantity and an extra key 'total'. Each quantity key will hold a dict
+        The search results will contain a dictionary ``statistics``. This has a key
+        for each configured quantity. Each quantity key will hold a dict
         with a key for each quantity value. Each quantity value key will hold a dict
         with a key for each metric. The values will be the actual aggregated metric values.
-        The pseudo quantity 'total' contains a pseudo value 'all'. It is used to
-        store the metrics aggregated over all entries in the search results.
-    """
 
-    search = _construct_search(**kwargs)
-
-    def add_metrics(parent):
-        for metric in metrics_to_use:
-            metric_kind, field = metrics[metric]
-            parent.metric(metric, A(metric_kind, field=field))
-
-    for quantity_name, size in quantities.items():
-        # We are using elastic searchs 'composite aggregations' here. We do not really
-        # compose aggregations, but only those pseudo composites allow us to use the
-        # 'after' feature that allows to scan through all aggregation values.
-        quantity = search_quantities[quantity_name]
+        Arguments:
+            quantity_name: The quantity to aggregate statistics for. Only works on *keyword* field.
+            metrics_to_use: The metrics calculated over the aggregations. Can be
+                ``unique_code_runs``, ``datasets``, other domain specific metrics.
+                The basic doc_count metric ``code_runs`` is always given.
+        """
+        quantity = quantities[quantity_name]
         min_doc_count = 0 if quantity.zero_aggs else 1
         terms = A(
             'terms', field=quantity.elastic_field, size=size, min_doc_count=min_doc_count,
             order=dict(_key='asc'))
 
-        buckets = search.aggs.bucket(quantity_name, terms)
-        if quantity_name not in ['authors']:
-            add_metrics(buckets)
+        buckets = self._search.aggs.bucket('statistics:%s' % quantity_name, terms)
+        self._add_metrics(buckets, metrics_to_use)
 
-    if with_date_histogram:
+        return self
+
+    def _add_metrics(self, parent=None, metrics_to_use: List[str] = []):
+        if parent is None:
+            parent = self._search.aggs
+
+        for metric in metrics_to_use:
+            field, metric_kind = metrics[metric]
+            parent.metric('metric:%s' % metric, A(metric_kind, field=field))
+
+    def date_histogram(self, metrics_to_use: List[str] = []):
+        """
+        Adds a date histogram on the given metrics to the statistics part.
+        """
         histogram = A('date_histogram', field='upload_time', interval='1M', format='yyyy-MM-dd')
-        add_metrics(search.aggs.bucket('date_histogram', histogram))
+        self._add_metrics(self._search.aggs.bucket('statistics:date_histogram', histogram), metrics_to_use)
 
-    add_metrics(search.aggs)
+        return self
 
-    response, entry_results = _execute_paginated_search(search, **kwargs)
+    def quantities(self, **kwargs):
+        """
+        Shorthand for adding multiple quantities. See :func:`quantity`. Keywork argument
+        keys are quantity name, values are tuples of size and after value.
+        """
+        for name, spec in kwargs:
+            size, after = spec
+            self.quantity(name, after=after, size=size)
 
-    def get_metrics(bucket, code_runs):
-        result = {
-            metric: bucket[metric]['value']
-            for metric in metrics_to_use
-            if hasattr(bucket, metric)
-        }
-        result.update(code_runs=code_runs)
+        return self
+
+    def quantity(self, name, size=100, after=None, examples=0, examples_source=None):
+        """
+        Adds a requests for values of the given quantity.
+        It allows to scroll through all values via elasticsearch's
+        composite aggregations. The response will contain the quantity values and
+        an example entry for each value.
+
+        This can be used to implement continues scrolling through authors, datasets,
+        or uploads within the searched entries.
+
+        If one or more quantities are specified,
+        the search results will contain a dictionary ``quantities``. The keys are quantity
+        name the values dictionary with 'after' and 'values' key.
+        The 'values' key holds a dict with all the values as keys and their entry count
+        as values (i.e. number of entries with that value).
+
+        Arguments:
+            name: The quantity name. Must be in :data:`quantities`.
+            after: The 'after' value allows to scroll over various requests, by providing
+                the 'after' value of the last search. The 'after' value is part of the
+                response. Use ``None`` in the first request.
+            size:
+                The size gives the ammount of maximum values in the next scroll window.
+                If the size is None, a maximum of 100 quantity values will be requested.
+        """
+        if size is None:
+            size = 100
+
+        quantity = quantities[name]
+        terms = A('terms', field=quantity.elastic_field)
+
+        # We are using elastic searchs 'composite aggregations' here. We do not really
+        # compose aggregations, but only those pseudo composites allow us to use the
+        # 'after' feature that allows to scan through all aggregation values.
+        composite = dict(sources={name: terms}, size=size)
+        if after is not None:
+            composite['after'] = {name: after}
+
+        composite = self._search.aggs.bucket('quantity:%s' % name, 'composite', **composite)
+        if examples > 0:
+            kwargs = {}
+            if examples_source is not None:
+                kwargs.update(_source=dict(includes=examples_source))
+
+            composite.metric('examples', A('top_hits', size=examples, **kwargs))
+
+        return self
+
+    def execute(self):
+        """
+        Exectutes without returning actual results. Only makes sense if the request
+        was configured for statistics or quantity values.
+        """
+        return self._response(self._search.query(self.q)[0:0].execute())
+
+    def execute_scan(self):
+        """
+        This execute the search as scan. The result will be a generator over the found
+        entries. Everything but the query part of this object, will be ignored.
+        """
+        for hit in self._search.query(self.q).scan():
+            yield hit.to_dict()
+
+    def execute_paginated(
+            self, page: int = 1, per_page=10, order_by: str = order_default_quantity,
+            order: int = -1):
+        """
+        Executes the search and returns paginated results. Those are sorted.
+
+        Arguments:
+            page: The requested page, starts with 1.
+            per_page: The number of entries per page.
+            order_by: The quantity to order by.
+            order: -1 or 1 for descending or ascending order.
+        """
+        search = self._search.query(self.q)
+
+        if order_by not in quantities:
+            raise KeyError('Unknown order quantity %s' % order_by)
+
+        order_by_quantity = quantities[order_by]
+
+        if order == 1:
+            search = search.sort(order_by_quantity.elastic_field)
+        else:
+            search = search.sort('-%s' % order_by_quantity.elastic_field)
+        search = search[(page - 1) * per_page: page * per_page]
+
+        result = self._response(search.execute(), with_hits=True)
+        result.update(pagination=dict(total=result['total'], page=page, per_page=per_page))
         return result
 
-    metrics_results = {
-        quantity_name: {
-            bucket.key: get_metrics(bucket, bucket.doc_count)
-            for bucket in getattr(response.aggregations, quantity_name).buckets
+    def execute_scrolled(self, scroll_id: str = None, size: int = 1000, scroll: str = u'5m'):
+        """
+        Executes a scrolling search. based on ES scroll API. Pagination is replaced with
+        scrolling, no ordering is available, no statistics, no quantities will be provided.
+
+        Scrolling is done by calling this function again and again with the same ``scroll_id``.
+        Each time, this function will return the next batch of search results. If the
+        ``scroll_id`` is not available anymore, a new ``scroll_id`` is assigned and scrolling
+        starts from the beginning again.
+
+        The response will contain a 'scroll' part with attributes 'total', 'scroll_id',
+        and 'size'.
+
+        Arguments:
+            scroll_id: The scroll id to receive the next batch from. None will create a new
+                scroll.
+            size: The batch size in number of hits.
+            scroll: The time the scroll should be kept alive (i.e. the time between requests
+                to this method) in ES time units. Default is 5 minutes.
+        """
+        es = infrastructure.elastic_client
+
+        if scroll_id is None:
+            # initiate scroll
+            resp = es.search(  # pylint: disable=E1123
+                body=self._search.query(self.q).to_dict(), scroll=scroll, size=size,
+                index=config.elastic.index_name)
+
+            scroll_id = resp.get('_scroll_id')
+            if scroll_id is None:
+                # no results for search query
+                return dict(scroll=dict(total=0, size=size), results=[])
+
+        else:
+            try:
+                resp = es.scroll(scroll_id, scroll=scroll)  # pylint: disable=E1123
+            except NotFoundError:
+                raise ScrollIdNotFound()
+
+        total = resp['hits']['total']
+        results = list(hit['_source'] for hit in resp['hits']['hits'])
+
+        # since we are using the low level api here, we should check errors
+        if resp["_shards"]["successful"] < resp["_shards"]["total"]:
+            utils.get_logger(__name__).error('es operation was unsuccessful on at least one shard')
+            raise ElasticSearchError('es operation was unsuccessful on at least one shard')
+
+        if len(results) == 0:
+            es.clear_scroll(body={'scroll_id': [scroll_id]}, ignore=(404, ))  # pylint: disable=E1123
+            scroll_id = None
+
+        scroll_info = dict(total=total, size=size)
+        if scroll_id is not None:
+            scroll_info.update(scroll_id=scroll_id)
+
+        return dict(scroll=scroll_info, results=results)
+
+    def _response(self, response, with_hits: bool = False) -> Dict[str, Any]:
+        """
+        Prepares a response object covering the total number of resutls, hits, statistics,
+        and quantities. Other aspects like pagination and scrolling have to be added
+        elsewhere.
+        """
+        result: Dict[str, Any] = dict()
+        aggs = response.aggregations.to_dict()
+
+        # total
+        total = response.hits.total if hasattr(response, 'hits') else 0
+        result.update(total=total)
+
+        # hits
+        if len(response.hits) > 0 or with_hits:
+            result.update(results=[hit.to_dict() for hit in response.hits])
+
+        # statistics
+        def get_metrics(bucket, code_runs):
+            result = {}
+            for metric in metrics_names:
+                agg_name = 'metric:%s' % metric
+                if agg_name in bucket:
+                    result[metric] = bucket[agg_name]['value']
+                result.update(code_runs=code_runs)
+            return result
+
+        statistics_results = {
+            quantity_name[11:]: {
+                bucket['key']: get_metrics(bucket, bucket['doc_count'])
+                for bucket in quantity['buckets']
+            }
+            for quantity_name, quantity in aggs.items()
+            if quantity_name.startswith('statistics:')
         }
-        for quantity_name in quantities.keys()
-        if quantity_name not in metrics_names  # ES aggs for total metrics, and aggs for quantities stand side by side
-    }
 
-    if with_date_histogram:
-        metrics_results['date_histogram'] = {
-            bucket.key_as_string: get_metrics(bucket, bucket.doc_count)
-            for bucket in response.aggregations.date_histogram.buckets
+        # totals
+        totals_result = get_metrics(aggs, total)
+        statistics_results['total'] = dict(all=totals_result)
+
+        if len(statistics_results) > 0:
+            result.update(statistics=statistics_results)
+
+        # quantities
+        def create_quantity_result(quantity_name, quantity):
+            values = {}
+            for bucket in quantity['buckets']:
+                value = dict(
+                    total=bucket['doc_count'])
+                if 'examples' in bucket:
+                    examples = [hit['_source'] for hit in bucket['examples']['hits']['hits']]
+                    value.update(examples=examples)
+
+                values[bucket['key'][quantity_name]] = value
+
+            result = dict(values=values)
+            if 'after_key' in quantity:
+                result.update(after=quantity['after_key'][quantity_name])
+
+            return result
+
+        quantity_results = {
+            quantity_name[9:]: create_quantity_result(quantity_name[9:], quantity)
+            for quantity_name, quantity in aggs.items()
+            if quantity_name.startswith('quantity:')
         }
 
-    total_metrics_result = get_metrics(response.aggregations, entry_results['pagination']['total'])
-    metrics_results['total'] = dict(all=total_metrics_result)
+        if len(quantity_results) > 0:
+            result.update(quantities=quantity_results)
 
-    results = dict(quantities=metrics_results)
-    if with_entries:
-        results.update(**entry_results)
+        return result
 
-    return results
+    def __str__(self):
+        return json.dumps(self._search.to_dict(), indent=2)
+
+
+def to_calc_with_metadata(results: List[Dict[str, Any]]):
+    """ Translates search results into :class:`CalcWithMetadata` objects read from mongo. """
+    ids = [result['calc_id'] for result in results]
+    return [
+        datamodel.CalcWithMetadata(**calc.metadata)
+        for calc in proc.Calc.objects(calc_id__in=ids)]

@@ -105,7 +105,7 @@ class EMSEntryWithMetadata(CalcWithMetadata):
 
         quantities = set()
 
-        for meta_info, _, _ in backend._delegate.results.traverse(root_section='section_experiment'):
+        for meta_info, _, _ in backend.traverse(root_section='section_experiment'):
             quantities.add(meta_info)
 
         self.quantities = list(quantities)
@@ -131,6 +131,8 @@ Domain(
         sample_constituents=DomainQuantity(
             'The sample constituents.', aggregations=10),
         quantities=DomainQuantity(
-            'All quantities that are used by this calculation',
-            metric=('quantities', 'value_count')
-        )))
+            'All quantities that are used by this calculation')),
+    metrics=dict(
+        quantities=('quantities', 'value_count')),
+    default_statistics=[
+        'method', 'probing_method', 'sample_microstructure', 'sample_constituents'])

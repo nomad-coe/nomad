@@ -36,7 +36,7 @@ services:
     # broker for celery
     rabbitmq:
         restart: always
-        image: rabbitmq
+        image: rabbitmq:3.7.17
         container_name: nomad_rabbitmq
         environment:
             - RABBITMQ_ERLANG_COOKIE=SWQOKODSQALRPCLNMEQG
@@ -57,7 +57,7 @@ services:
     # the user data db
     mongo:
         restart: always
-        image: mongo:latest
+        image: mongo:3.6.14
         container_name: nomad_mongo
         environment:
             - MONGO_DATA_DIR=/data/db
@@ -83,8 +83,8 @@ services:
             - nomad_files:/app/.volumes/fs
         command: python -m celery worker -l info -A nomad.processing -Q celery,cacls,uploads
 
-    # nomad api
-    api:
+    # nomad app
+    app:
         restart: always
         image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
         container_name: nomad_api
@@ -98,7 +98,7 @@ services:
             - mongo
         volumes:
             - nomad_files:/app/.volumes/fs
-        command: python -m gunicorn.app.wsgiapp -w 4 --log-config ops/gunicorn.log.conf -b 0.0.0.0:8000 --timeout 300 nomad.api:app
+        command: python -m gunicorn.app.wsgiapp -w 4 --log-config ops/gunicorn.log.conf -b 0.0.0.0:8000 --timeout 300 nomad.app:app
 
     # nomad gui
     gui:
@@ -107,7 +107,7 @@ services:
         container_name: nomad_gui
         command: nginx -g 'daemon off;'
         links:
-            - api
+            - app
 
 volumes:
     nomad_keycloak:

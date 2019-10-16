@@ -5,7 +5,7 @@ The NOMAD chart is part of the
 [NOMAD source code](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR)
 and can be found under `ops/helm/nomad`.
 
-This chart allows to run the nomad api, worker, gui, and proxy in a kubernetes cluster.
+This chart allows to run the nomad app, worker, gui, and proxy in a kubernetes cluster.
 The `values.yaml` contains more documentation on the different values.
 
 The chart can be used to run multiple nomad instances in parallel on the same cluster,

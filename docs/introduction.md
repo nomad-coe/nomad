@@ -122,7 +122,7 @@ The component library [Material-UI](https://material-ui.com/)
 ### docker
 
 To run a **nomad@FAIRDI** instance, many services have to be orchestrated:
-the nomad api, nomad worker, mongodb, Elasticsearch, Keycloak, RabbitMQ,
+the nomad app, nomad worker, mongodb, Elasticsearch, Keycloak, RabbitMQ,
 Elasticstack (logging), the nomad GUI, and a reverse proxy to keep everything together.
 Further services might be needed (e.g. JypiterHUB), when nomad grows.
 The container platform [Docker](https://docs.docker.com/) allows us to provide all services

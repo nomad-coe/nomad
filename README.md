@@ -78,9 +78,19 @@ your browser.
 ## Change log
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
-### v0.6.0
+### v0.7.0
 - Keycloak based user management
 - no dependencies with the NOMAD CeE Repository
+
+### v0.6.0
+- GUI URL, and API endpoint that resolves NOMAD CoE legacy PIDs
+- Support for datasets in the GUI
+- more flexible search python module and repo API
+- support for external_id
+- support for code-based raw_id
+- Optimade API 0.10.0
+- GUI supports Optimade filter query and other quantities
+- minor bugfixes
 
 ### v0.5.2
 - allows to download large files over longer time period

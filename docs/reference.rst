@@ -1,6 +1,10 @@
 Reference
 =========
 
+nomad.metainfo
+--------------
+.. automodule:: nomad.metainfo.metainfo
+
 nomad.config
 ------------
 .. automodule:: nomad.config
@@ -38,9 +42,9 @@ nomad.search
 .. automodule:: nomad.search
     :members:
 
-nomad.api
+nomad.app
 ---------
-.. automodule:: nomad.api
+.. automodule:: nomad.app
 
 nomad.cli
 ------------

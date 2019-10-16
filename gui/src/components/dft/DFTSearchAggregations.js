@@ -9,7 +9,7 @@ import { withApi } from '../api'
 class DFTSearchAggregations extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    quantities: PropTypes.object.isRequired,
+    statistics: PropTypes.object.isRequired,
     metric: PropTypes.string.isRequired,
     searchValues: PropTypes.object.isRequired,
     onChange: PropTypes.func.isRequired,
@@ -73,9 +73,9 @@ class DFTSearchAggregations extends React.Component {
   }
 
   render() {
-    const { classes, quantities, metric, searchValues, info } = this.props
+    const { classes, statistics, metric, searchValues, info } = this.props
 
-    if (quantities.code_name && info) {
+    if (statistics.code_name && info) {
       // filter based on known codes, since elastic search might return 0 aggregations on
       // obsolete code names
       const filteredCodeNames = {}
@@ -84,14 +84,14 @@ class DFTSearchAggregations extends React.Component {
       }
       defaultValue[metric] = 0
       info.codes.forEach(key => {
-        filteredCodeNames[key] = quantities.code_name[key] || defaultValue
+        filteredCodeNames[key] = statistics.code_name[key] || defaultValue
       })
-      quantities.code_name = filteredCodeNames
+      statistics.code_name = filteredCodeNames
     }
 
     const quantity = (key, title, scale) => (<QuantityHistogram
       classes={{root: classes.quantity}} title={title || key} width={300}
-      data={quantities[key]} metric={metric}
+      data={statistics[key]} metric={metric}
       value={searchValues[key]} defaultScale={scale}
       onChanged={(selection) => this.handleQuantityChanged(key, selection)}/>)
 
@@ -100,7 +100,7 @@ class DFTSearchAggregations extends React.Component {
         <Card>
           <CardContent>
             <PeriodicTable
-              aggregations={quantities.atoms} metric={metric}
+              aggregations={statistics.atoms} metric={metric}
               exclusive={this.state.exclusive}
               values={searchValues.atoms || searchValues.only_atoms || []}
               onChanged={(selection) => this.handleAtomsChanged(selection)}

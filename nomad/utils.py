@@ -225,7 +225,6 @@ class ConsoleFormatter(LogstashFormatter):
 
         for key in keys:
             out.write('\n  - %s: %s' % (key, str(message_dict.get(key, None))))
-
         return out.getvalue()
 
 

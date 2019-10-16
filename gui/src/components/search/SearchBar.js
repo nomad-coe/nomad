@@ -9,6 +9,9 @@ import Paper from '@material-ui/core/Paper'
 import MenuItem from '@material-ui/core/MenuItem'
 import { Chip } from '@material-ui/core'
 import { repoPrimaryColor } from '../../config'
+import { withDomain } from '../domains'
+import { compose } from 'recompose'
+
 
 function renderInput(inputProps) {
   const { classes, autoFocus, value, onChange, onAdd, onDelete, chips, ref, ...other } = inputProps
@@ -88,7 +91,8 @@ class SearchBar extends React.Component {
     classes: PropTypes.object.isRequired,
     data: PropTypes.object.isRequired,
     searchValues: PropTypes.object.isRequired,
-    onChanged: PropTypes.func.isRequired
+    onChanged: PropTypes.func.isRequired,
+    domain: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
@@ -121,14 +125,21 @@ class SearchBar extends React.Component {
     textFieldInput: ''
   }
 
-  getSuggestions(value) {
-    value = value.toLowerCase()
+  constructor(props) {
+    super(props)
+    const { domain } = props
+    const reStr = `^(${Object.keys(domain.additionalSearchKeys).join('|')})=`
+    this.additionalSearchKeyRE = new RegExp(reStr)
+  }
 
-    const { data: { quantities } } = this.props
+  getSuggestions(valueWithCase) {
+    const value = valueWithCase.toLowerCase()
+
+    const { data: { statistics } } = this.props
     const suggestions = []
 
     // filter out pseudo quantity total
-    const quantityKeys = Object.keys(quantities).filter(quantity => quantity !== 'total')
+    const quantityKeys = Object.keys(statistics).filter(quantity => quantity !== 'total')
 
     // put authors to the end
     const authorIndex = quantityKeys.indexOf('authors')
@@ -137,7 +148,7 @@ class SearchBar extends React.Component {
     }
 
     quantityKeys.forEach(quantity => {
-      Object.keys(quantities[quantity]).forEach(quantityValue => {
+      Object.keys(statistics[quantity]).forEach(quantityValue => {
         const quantityValueLower = quantityValue.toLowerCase()
         if (quantityValueLower.startsWith(value) || (quantity === 'authors' && quantityValueLower.includes(value))) {
           suggestions.push({
@@ -147,6 +158,15 @@ class SearchBar extends React.Component {
         }
       })
     })
+
+    // Add additional quantities to the end
+    const match = value.match(this.additionalSearchKeyRE)
+    if (match && this.props.domain.additionalSearchKeys[match[1]]) {
+      suggestions.push({
+        key: match[1],
+        value: valueWithCase.substring(match[0].length)
+      })
+    }
 
     // Always add as comment to the end of suggestions
     suggestions.push({
@@ -180,7 +200,7 @@ class SearchBar extends React.Component {
 
     let key, value
     if (chip.includes('=')) {
-      const parts = chip.split('=')
+      const parts = chip.split(/=(.+)/)
       key = parts[0]
       value = parts[1]
     } else {
@@ -198,7 +218,6 @@ class SearchBar extends React.Component {
     this.setState({
       textFieldInput: ''
     })
-
     this.props.onChanged(values)
   }
 
@@ -269,4 +288,4 @@ class SearchBar extends React.Component {
   }
 }
 
-export default withStyles(SearchBar.styles)(SearchBar)
+export default compose(withDomain, withStyles(SearchBar.styles))(SearchBar)

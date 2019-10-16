@@ -38,7 +38,7 @@ systems = ['atom', 'molecule/cluster', '2D/surface', 'bulk']
 comments = [gen.sentence() for _ in range(0, number_of)]
 references = [(i + 1, gen.url()) for i in range(0, number_of)]
 datasets = [(i + 1, gen.slug()) for i in range(0, number_of)]
-codes = [parser[8:] for parser in parsing.parser_dict.keys()]
+codes = list(set([parser.code_name for parser in parsing.parser_dict.values() if hasattr(parser, 'code_name')]))  # type: ignore
 filepaths = ['/'.join(gen.url().split('/')[3:]) for _ in range(0, number_of)]
 
 low_numbers_for_atoms = [1, 1, 2, 2, 2, 2, 2, 3, 3, 4]
@@ -101,6 +101,9 @@ def generate_calc(pid: int = 0, calc_id: str = None, upload_id: str = None) -> d
     self.spacegroup_symbol = Spacegroup(spacegroup).symbol
     self.code_name = random.choice(codes)
     self.code_version = '1.0.0'
+
+    self.n_total_energies = random.choice(range(0, 5))
+    self.geometries = ['%d' % random.randint(1, 500), '%d' % random.randint(1, 500)]
 
     return self
 

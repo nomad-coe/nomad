@@ -14,9 +14,10 @@
 
 from typing import List
 from elasticsearch_dsl import Q
+import pytest
 
-from nomad import datamodel, search, processing, parsing, infrastructure, config
-from nomad.search import Entry, metrics_search, quantity_search, scroll_search, entry_search
+from nomad import datamodel, search, processing, parsing, infrastructure, config, coe_repo
+from nomad.search import Entry, SearchRequest
 
 
 def test_init_mapping(elastic):
@@ -50,79 +51,108 @@ def test_index_upload(elastic, processed: processing.Upload):
     pass
 
 
-def test_entry_search(elastic, normalized: parsing.LocalBackend):
+@pytest.fixture()
+def example_search_data(elastic, normalized: parsing.LocalBackend):
     calc_with_metadata = datamodel.CalcWithMetadata(upload_id='test upload id', calc_id='test id')
     calc_with_metadata.apply_domain_metadata(normalized)
     create_entry(calc_with_metadata)
     refresh_index()
 
-    results = entry_search()
+    return normalized
+
+
+def test_search_entry(example_search_data):
+    results = SearchRequest().execute()
+    assert results['total'] > 0
+
+
+def test_search_scan(elastic, example_search_data):
+    results = list(SearchRequest().execute_scan())
+    assert len(results) > 0
+
+
+def test_search_paginated(elastic, example_search_data):
+    results = SearchRequest().execute_paginated()
+    assert results['total'] > 0
     assert len(results['results']) > 0
+    pagination = results['pagination']
+    assert pagination['total'] > 0
+    assert 'page' in pagination
+    assert 'per_page' in pagination
 
 
-def test_metrics_search(elastic, normalized: parsing.LocalBackend):
-    calc_with_metadata = datamodel.CalcWithMetadata(upload_id='test upload id', calc_id='test id')
-    calc_with_metadata.apply_domain_metadata(normalized)
-    create_entry(calc_with_metadata)
-    refresh_index()
-
-    assert 'users' in search.metrics_names
-    assert 'datasets' in search.metrics_names
-    assert 'unique_code_runs' in search.metrics_names
-
-    use_metrics = search.metrics_names
-
-    results = metrics_search(metrics_to_use=use_metrics, with_entries=True, with_date_histogram=True)
-    quantities = results['quantities']
-    hits = results['results']
-    assert results['pagination']['total'] == 1
-    assert hits[0]['calc_id'] == calc_with_metadata.calc_id
-    assert 'bulk' in quantities['system']
-
-    example_quantity = quantities['system']['bulk']
-
-    def assert_metrics(container, metrics_names):
-        assert container['code_runs'] == 1
-        for metric in metrics_names:
-            assert metric in container
-
-    assert_metrics(example_quantity, use_metrics)
-    assert_metrics(quantities['total']['all'], use_metrics)
-
-    assert 'quantities' not in hits[0]
-
-
-def test_scroll_search(elastic, normalized: parsing.LocalBackend):
-    calc_with_metadata = datamodel.CalcWithMetadata(upload_id='test upload id', calc_id='test id')
-    calc_with_metadata.apply_domain_metadata(normalized)
-    create_entry(calc_with_metadata)
-    refresh_index()
-
-    results = scroll_search()
+def test_search_scroll(elastic, example_search_data):
+    request = SearchRequest()
+    results = request.execute_scrolled()
     scroll_id = results['scroll']['scroll_id']
     assert results['scroll']['total'] == 1
     assert len(results['results']) == 1
     assert scroll_id is not None
 
-    results = scroll_search(scroll_id=scroll_id)
+    results = request.execute_scrolled(scroll_id=scroll_id)
     assert results['scroll']['total'] == 1
     assert len(results['results']) == 0
     assert 'scroll_id' not in results['scroll']
 
 
-def test_quantity_search(elastic, normalized: parsing.LocalBackend, test_user: datamodel.User, other_test_user: datamodel.User):
+def assert_metrics(container, metrics_names):
+    assert container['code_runs'] == 1
+    for metric in metrics_names:
+        assert metric in container
+
+
+def test_search_statistics(elastic, example_search_data):
+    assert 'authors' in search.metrics_names
+    assert 'datasets' in search.metrics_names
+    assert 'unique_entries' in search.metrics_names
+
+    use_metrics = search.metrics_names
+
+    request = SearchRequest().statistic('system', size=10, metrics_to_use=use_metrics).date_histogram()
+    results = request.execute()
+
+    statistics = results['statistics']
+    assert 'results' not in results
+    assert 'bulk' in statistics['system']
+
+    example_statistic = statistics['system']['bulk']
+    assert_metrics(example_statistic, use_metrics)
+    assert_metrics(statistics['total']['all'], [])
+
+    assert 'quantities' not in results
+
+
+def test_search_totals(elastic, example_search_data):
+    use_metrics = search.metrics_names
+
+    request = SearchRequest().totals(metrics_to_use=use_metrics)
+    results = request.execute()
+
+    statistics = results['statistics']
+    assert 'results' not in results
+    assert len(statistics) == 1
+
+    assert_metrics(statistics['total']['all'], [])
+
+    assert 'quantities' not in results
+
+
+def test_search_quantity(elastic, normalized: parsing.LocalBackend, test_user: coe_repo.User, other_test_user: coe_repo.User):
     calc_with_metadata = datamodel.CalcWithMetadata(upload_id='test upload id', calc_id='test id')
     calc_with_metadata.apply_domain_metadata(normalized)
     calc_with_metadata.uploader = test_user.user_id
     create_entry(calc_with_metadata)
+
     calc_with_metadata.calc_id = 'other test id'
     calc_with_metadata.uploader = other_test_user.user_id
     create_entry(calc_with_metadata)
     refresh_index()
 
-    results = quantity_search(quantities=dict(authors=None), size=1, with_entries=False)
+    request = SearchRequest().quantity(name='authors', size=1, examples=1)
+    results = request.execute()
     assert len(results['quantities']['authors']['values'].keys()) == 1
     name = list(results['quantities']['authors']['values'].keys())[0]
+    assert len(results['quantities']['authors']['values'][name]['examples']) == 1
     assert results['quantities']['authors']['after'] == name
 
 

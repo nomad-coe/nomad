@@ -89,16 +89,67 @@ def restore(path_to_dump):
         config.mongo.host, config.mongo.port, config.mongo.db_name, path_to_dump))
 
 
-@ops.command(help=(
-    'Generate a proxy pass config for apache2 reverse proxy servers. This can be used to '
-    'generate partial apache2 configs, e.g. via ... > /etc/https/conf.d/nomad.conf.'))
-@click.option('--nginx', is_flag=True, help='Provide config for apache2, default is apache.')
+@ops.command(help=('Generate an nginx.conf to serve the GUI and proxy pass to API container.'))
+@click.option('--prefix', type=str, default='/example_nomad', help='Url path prefix. Default is /example_nomd, can be empty str.')
+def nginx_conf(prefix):
+    prefix = prefix.rstrip('/')
+    prefix = '/%s' % prefix.lstrip('/')
+
+    print('''\
+server {{
+    listen        80;
+    server_name   www.example.com;
+
+    location /{0} {{
+        return 301 /example-nomad/gui;
+    }}
+
+    location {1}/gui {{
+        root      /app/;
+        rewrite ^{1}/gui/(.*)$ /nomad/$1 break;
+        try_files $uri {1}/gui/index.html;
+    }}
+
+    location {1}/gui/service-worker.js {{
+        add_header Last-Modified $date_gmt;
+        add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
+        if_modified_since off;
+        expires off;
+        etag off;
+        root      /app/;
+        rewrite ^{1}/gui/service-worker.js /nomad/service-worker.js break;
+    }}
+
+    location {1}/api {{
+        proxy_set_header Host $host;
+        proxy_pass_request_headers on;
+        proxy_pass http://api:8000;
+    }}
+
+    location {1}/api/uploads {{
+        client_max_body_size 35g;
+        proxy_request_buffering off;
+        proxy_set_header Host $host;
+        proxy_pass_request_headers on;
+        proxy_pass http://api:8000;
+    }}
+
+    location {1}/api/raw {{
+        proxy_buffering off;
+        proxy_set_header Host $host;
+        proxy_pass_request_headers on;
+        proxy_pass http://api:8000;
+    }}
+}}
+    '''.format(prefix.lstrip('/'), prefix))
+
+
+@ops.command(help=('Generate a proxy pass config for apache2 reverse proxy servers.'))
 @click.option('--prefix', type=str, default='uploads', help='The path prefix under which everything is proxy passed.')
 @click.option('--host', type=str, default='130.183.207.104', help='The host to proxy to.')
 @click.option('--port', type=str, default='30001', help='The port to proxy to.')
-def proxy_pass(nginx, prefix, host, port):
-    if not nginx:
-        print('''\
+def apache_conf(prefix, host, port):
+    print('''\
 ProxyPass "/{0}" "http://{1}:{2}/{0}"
 ProxyPassReverse "/{0}" "http://{1}:{2}/{0}"
 <Proxy http://{1}:{2}/{0}>
@@ -106,50 +157,3 @@ ProxyPassReverse "/{0}" "http://{1}:{2}/{0}"
     Order deny,allow
     Allow from all
 </Proxy>'''.format(prefix, host, port))
-    else:
-        print('''\
-    location /{0} {{
-        client_max_body_size 35g;
-        proxy_pass http://{1}:{2};
-        proxy_set_header Host $host;
-        proxy_pass_request_headers on;
-        proxy_buffering off;
-        proxy_request_buffering off;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_connect_timeout 600;
-        proxy_send_timeout 3600;
-        proxy_read_timeout 600;
-        send_timeout 3600;
-    }}'''.format(prefix, host, port))
-
-
-@admin.command(help='Resets all databases, indices, and files')
-@click.option('--i-know-what-i-am-doing', is_flag=True, help='Only works with this')
-@click.option('--remove', is_flag=True, help='Will also remove all databases')
-def reset(i_know_what_i_am_doing, remove):
-    if 'prod' in config.fs.public or 'prod' in config.mongo.db_name:
-        print('No, I wont do anything')
-
-    if i_know_what_i_am_doing:
-        if remove:
-            infrastructure.remove()
-        else:
-            infrastructure.reset()
-    else:
-        print('Did nothing')
-
-
-@admin.command(help='Imports users to the configures keycloak realm')
-@click.argument('INPUT_FILE', type=str, nargs=1)
-def import_users(input_file):
-    with open(input_file, 'rt') as f:
-        users = json.load(f)
-
-    for user in users:
-        bcrypt_password = user.pop('bcrypt_password', None)
-        try:
-            infrastructure.keycloak.add_user(user, bcrypt_password)
-            print('Added user %s' % user['email'])
-        except KeyError as e:
-            print('Could not add user: %s' % str(e))

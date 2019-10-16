@@ -7,7 +7,7 @@ import QuantityHistogram from '../search/QuantityHistogram'
 class EMSSearchAggregations extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    quantities: PropTypes.object.isRequired,
+    statistics: PropTypes.object.isRequired,
     metric: PropTypes.string.isRequired,
     searchValues: PropTypes.object.isRequired,
     onChange: PropTypes.func.isRequired
@@ -43,11 +43,11 @@ class EMSSearchAggregations extends React.Component {
   }
 
   render() {
-    const { classes, quantities, metric, searchValues } = this.props
+    const { classes, statistics, metric, searchValues } = this.props
 
     const quantity = (key, title) => (<QuantityHistogram
       classes={{root: classes.quantity}} title={title || key} width={300}
-      data={quantities[key]} metric={metric}
+      data={statistics[key]} metric={metric}
       value={searchValues[key]}
       onChanged={(selection) => this.handleQuantityChanged(key, selection)}/>)
 
@@ -56,7 +56,7 @@ class EMSSearchAggregations extends React.Component {
         <Card>
           <CardContent>
             <PeriodicTable
-              aggregations={quantities.atoms} metric={metric}
+              aggregations={statistics.atoms} metric={metric}
               values={searchValues.atoms || []}
               onChanged={(selection) => this.handleAtomsChanged(selection)}
             />

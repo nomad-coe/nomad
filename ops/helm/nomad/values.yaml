@@ -24,8 +24,9 @@ images:
     tag: latest
     pullPolicy: IfNotPresent
 
-## Everthing concerning the nomad api
-api:
+
+## Everything concerning the nomad app
+app:
   replicas: 1
   https: true
   ## Number of gunicorn worker.
@@ -36,6 +37,10 @@ api:
   workerClass: 'gthread'
   console_loglevel: INFO
   logstash_loglevel: INFO
+  nomadNodeType: "public"
+
+## Everything concerning the nomad api
+api:
   ## Secret used as cryptographic seed
   secret: "defaultApiSecret"
   ## The adminstrator password (only way to ever set/change it)
@@ -58,6 +63,7 @@ worker:
   # will send all tasks related to an upload to the same worker
   routing: "queue"
   storage: "disk"
+  nomadNodeType: "worker"
 
 ## Everthing concerning the nomad gui
 gui:

@@ -36,9 +36,11 @@ from typing import List, Any, Iterable, Type
 from .normalizer import Normalizer
 from .system import SystemNormalizer
 from .fhiaims import FhiAimsBaseNormalizer
+from .optimade import OptimadeNormalizer
 
 
 normalizers: Iterable[Type[Normalizer]] = [
     SystemNormalizer,
+    OptimadeNormalizer,
     FhiAimsBaseNormalizer
 ]

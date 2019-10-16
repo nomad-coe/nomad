@@ -54,7 +54,7 @@ class DomainProviderBase extends React.Component {
         still be missing when you are exploring Nomad data using the new search and data
         exploring capabilities (menu items on the left).
       `,
-      entryLabel: 'calculation',
+      entryLabel: 'code run',
       searchPlaceholder: 'enter atoms, codes, functionals, or other quantity values',
       /**
        * A component that is used to render the search aggregations. The components needs
@@ -72,28 +72,45 @@ class DomainProviderBase extends React.Component {
         code_runs: {
           label: 'Entries',
           tooltip: 'The statistics will show the number of database entry. Each set of input/output files that represents a code run is an entry.',
-          renderResultString: count => (<span><b>{count.toLocaleString()}</b> entries</span>)
+          renderResultString: count => (<span><b>{count.toLocaleString()}</b> entr{count === 1 ? 'y' : 'ies'}</span>)
         },
-        unique_code_runs: {
+        unique_entries: {
           label: 'Unique entries',
           tooltip: 'Counts duplicates only once.',
-          renderResultString: count => (<span> and <b>{count.toLocaleString()}</b> unique entries</span>)
+          renderResultString: count => (<span> and <b>{count.toLocaleString()}</b> unique entr{count === 1 ? 'y' : 'ies'}</span>)
         },
-        total_energies: {
-          label: 'Total energy calculations',
-          tooltip: 'Aggregates the number of total energy calculations as each entry can contain many calculations.',
-          renderResultString: count => (<span> with <b>{count.toLocaleString()}</b> total energy calculations</span>)
+        // total_energies: {
+        //   label: 'Total energy calculations',
+        //   tooltip: 'Aggregates the number of total energy calculations as each entry can contain many calculations.',
+        //   renderResultString: count => (<span> with <b>{count.toLocaleString()}</b> total energy calculation{count === 1 ? '' : 's'}</span>)
+        // },
+        calculations: {
+          label: 'Single configuration calculations',
+          tooltip: 'Aggregates the number of single configuration calculations (e.g. total energy calculations) as each entry can contain many calculations.',
+          renderResultString: count => (<span> with <b>{count.toLocaleString()}</b> single configuration calculation{count === 1 ? '' : 's'}</span>)
         },
-        geometries: {
+        unique_geometries: {
           label: 'Unique geometries',
           tooltip: 'Aggregates the number of unique simulated system geometries in all entries.',
-          renderResultString: count => (<span> that simulate <b>{count.toLocaleString()}</b> unique geometries</span>)
+          renderResultString: count => (<span> that simulate <b>{count.toLocaleString()}</b> unique geometrie{count === 1 ? '' : 's'}</span>)
         },
         datasets: {
           label: 'Datasets',
           tooltip: 'Shows statistics in terms of datasets that entries belong to.',
-          renderResultString: count => (<span> curated in <b>{count.toLocaleString()}</b> datasets</span>)
+          renderResultString: count => (<span> curated in <b>{count.toLocaleString()}</b> dataset{count === 1 ? '' : 's'}</span>)
         }
+      },
+      additionalSearchKeys: {
+        raw_id: {},
+        upload_id: {},
+        calc_id: {},
+        paths: {},
+        external_id: {},
+        pid: {},
+        mainfile: {},
+        calc_hash: {},
+        formula: {},
+        optimade: {}
       },
       /**
        * An dict where each object represents a column. Possible keys are label, render.

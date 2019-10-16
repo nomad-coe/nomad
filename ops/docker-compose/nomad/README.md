@@ -15,7 +15,7 @@ We use docker-compose overrides to extend a base configuration for different sce
 Example docker-compose usage:
 
 ```
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d api
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d app
 ```
 
 The different overrides are:
@@ -25,7 +25,7 @@ The different overrides are:
 - *.example.yml, an example production configuration
 
 To run your own NOMAD mirror or oasis, you should override the `example.yml` to fit your needs.
-Within the overrides you can configure the NOMAD containers (api, worker, gui).
+Within the overrides you can configure the NOMAD containers (app, worker, gui).
 
 ### Configuring the API and worker
 
@@ -42,9 +42,15 @@ This encompasses to parts a `env.js` file for the client side GUI code. And an
 `nginx.conf` for the web server running the GUI (and reverse proxying the API).
 
 Both need to be mounted to the respective containers. The `env.js` under `/app/nomad/env.js`
-and the `nginx.conf` under `/etc/nginx/conf.d/default.conf`.
+and the `nginx.conf` under `/etc/nginx/conf.d/default.conf`. Usually the only configuration
+item for the `nginx.conf` is the desired URL path prefix. You can generate an `nginx.conf`
+with:
 
-Example files can be found here `ops/docker-compose/nomad/example/`.
+```
+nomad admin nginx-conf --prefix /example-nomad
+```
+
+Or use the example files can be found here `ops/docker-compose/nomad/example/`.
 
 
 ### Example *.prod.yml override:
@@ -61,7 +67,7 @@ docker login
 docker-compose -f docker-compose.yml -f docker-compose.example.yml up
 ```
 
-If everything goes well, NOMAD should be available at `http://your-host/my_example_nomad/gui/`.
+If everything goes well, NOMAD should be available at `http://your-host/example-nomad/gui/`.
 
 We recommend to either change the nginx.conf to use SSL or put this behind a reverse-proxy
 that supports SSL. If you use a reverse-proxy, you should disable any buffering to support

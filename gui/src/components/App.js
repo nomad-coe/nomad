@@ -6,7 +6,7 @@ import { compose } from 'recompose'
 import classNames from 'classnames'
 import { MuiThemeProvider, withStyles } from '@material-ui/core/styles'
 import { IconButton, LinearProgress, ListItemIcon, ListItemText,
-  MenuList, MenuItem, Typography, Drawer, AppBar, Toolbar, Divider, Button, DialogContent, DialogTitle, DialogActions, Dialog, Tooltip } from '@material-ui/core'
+  MenuList, MenuItem, Typography, Drawer, AppBar, Toolbar, Divider, Button, DialogContent, DialogTitle, DialogActions, Dialog, Tooltip, Snackbar, SnackbarContent } from '@material-ui/core'
 import { Switch, Route, Link, withRouter } from 'react-router-dom'
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
@@ -18,16 +18,21 @@ import {help as searchHelp, default as SearchPage} from './search/SearchPage'
 import HelpDialog from './Help'
 import { ApiProvider, withApi } from './api'
 import { ErrorSnacks, withErrors } from './errors'
-import Calc from './entry/Calc'
+import EntryPage from './entry/EntryPage'
 import About from './About'
 import LoginLogout from './LoginLogout'
-import { genTheme, repoTheme, archiveTheme, appBase } from '../config'
-import { DomainProvider } from './domains'
+import { genTheme, repoTheme, archiveTheme, guiBase } from '../config'
+import { DomainProvider, withDomain } from './domains'
 import {help as metainfoHelp, default as MetaInfoBrowser} from './metaInfoBrowser/MetaInfoBrowser'
 import packageJson from '../../package.json'
 import { Cookies, withCookies } from 'react-cookie'
 import Markdown from './Markdown'
 import {help as uploadHelp, default as Uploads} from './uploads/Uploads'
+import ResolvePID from './entry/ResolvePID'
+import DatasetPage from './DatasetPage'
+import { capitalize } from '../utils'
+import { makeStyles } from '@material-ui/core/styles'
+import { amber } from '@material-ui/core/colors'
 
 export class VersionMismatch extends Error {
   constructor(msg) {
@@ -36,28 +41,23 @@ export class VersionMismatch extends Error {
   }
 }
 
+
+function ReloadSnack() {
+  return <Snackbar
+      anchorOrigin={{
+        vertical: 'bottom',
+        horizontal: 'left',
+      }}
+      open
+  >
+    <SnackbarContent
+      style={{backgroundColor: amber[700]}}
+      message={<span>There is a new NOMAD version. Please press your browser's reload (or even shift+reload) button.</span>}
+    />
+  </Snackbar>
+}
+
 const drawerWidth = 200
-
-const toolbarTitles = {
-  '/': 'About, Documentation, Getting Help',
-  '/search': 'Find and Download Data',
-  '/uploads': 'Upload and Publish Data',
-  '/metainfo': 'The NOMAD Meta Info'
-}
-
-const toolbarThemes = {
-  '/': genTheme,
-  '/search': repoTheme,
-  '/uploads': repoTheme,
-  '/metainfo': archiveTheme
-}
-
-const toolbarHelp = {
-  '/': null,
-  '/search': {title: 'How to find and download data', content: searchHelp},
-  '/uploads': {title: 'How to upload data', content: uploadHelp},
-  '/metainfo': {title: 'About the NOMAD meta-info', content: metainfoHelp}
-}
 
 class NavigationUnstyled extends React.Component {
   static propTypes = {
@@ -172,14 +172,38 @@ class NavigationUnstyled extends React.Component {
     }
   }
 
+  toolbarTitles = {
+    '/': 'About, Documentation, Getting Help',
+    '/search': 'Find and Download Data',
+    '/uploads': 'Upload and Publish Data',
+    '/metainfo': 'The NOMAD Meta Info',
+    '/entry': capitalize(this.props.domain.entryLabel),
+    '/dataset': 'Dataset'
+  }
+
+  toolbarThemes = {
+    '/': genTheme,
+    '/search': repoTheme,
+    '/uploads': repoTheme,
+    '/entry': repoTheme,
+    '/dataset': repoTheme,
+    '/metainfo': archiveTheme
+  }
+
+  toolbarHelp = {
+    '/': null,
+    '/search': {title: 'How to find and download data', content: searchHelp},
+    '/uploads': {title: 'How to upload data', content: uploadHelp},
+    '/metainfo': {title: 'About the NOMAD meta-info', content: metainfoHelp}
+  }
+
   componentDidMount() {
-    fetch(`${appBase}/meta.json`)
+    fetch(`${guiBase}/meta.json`)
       .then((response) => response.json())
       .then((meta) => {
         if (meta.version !== packageJson.version) {
-          // this should not happen, if we setup the web servers correctly
-          console.log('Different version, ask for hard reloading...')
-          this.props.raiseError(new VersionMismatch())
+          console.log('GUI API version mismatch')
+          this.setState({showReloadSnack: true})
         }
       })
       .catch(() => {
@@ -193,6 +217,8 @@ class NavigationUnstyled extends React.Component {
 
   render() {
     const { classes, children, location: { pathname }, loading } = this.props
+    const { toolbarThemes, toolbarHelp, toolbarTitles } = this
+    const { showReloadSnack } = this.state
 
     const selected = dct => {
       const key = Object.keys(dct).find(key => {
@@ -208,6 +234,7 @@ class NavigationUnstyled extends React.Component {
       <div className={classes.root}>
         <div className={classes.appFrame}>
           <MuiThemeProvider theme={theme}>
+            { showReloadSnack ? <ReloadSnack/> : ''}
             <AppBar
               position="absolute"
               className={classNames(classes.appBar, this.state.open && classes.appBarShift)}
@@ -294,7 +321,7 @@ class NavigationUnstyled extends React.Component {
   }
 }
 
-const Navigation = compose(withRouter, withErrors, withApi(false), withStyles(NavigationUnstyled.styles))(NavigationUnstyled)
+const Navigation = compose(withRouter, withErrors, withApi(false), withDomain, withStyles(NavigationUnstyled.styles))(NavigationUnstyled)
 
 class LicenseAgreementUnstyled extends React.Component {
   static propTypes = {
@@ -385,13 +412,37 @@ export default class App extends React.Component {
       path: '/search',
       render: props => <SearchPage {...props} />
     },
-    'searchEntry': {
-      path: '/search/:uploadId/:calcId',
-      key: (props) => `searchEntry/${props.match.params.uploadId}/${props.match.params.uploadId}`,
+    'entry': {
+      path: '/entry/id/:uploadId/:calcId',
+      key: (props) => `entry/id/${props.match.params.uploadId}/${props.match.params.uploadId}`,
       render: props => {
         const { match, ...rest } = props
         if (match && match.params.uploadId && match.params.calcId) {
-          return (<Calc {...rest} uploadId={match.params.uploadId} calcId={match.params.calcId} />)
+          return (<EntryPage {...rest} uploadId={match.params.uploadId} calcId={match.params.calcId} />)
+        } else {
+          return ''
+        }
+      }
+    },
+    'dataset': {
+      path: '/dataset/id/:datasetId',
+      key: (props) => `dataset/id/${props.match.params.datasetId}`,
+      render: props => {
+        const { match, ...rest } = props
+        if (match && match.params.datasetId) {
+          return (<DatasetPage {...rest} datasetId={match.params.datasetId} />)
+        } else {
+          return ''
+        }
+      }
+    },
+    'entry_pid': {
+      path: '/entry/pid/:pid',
+      key: (props) => `entry/pid/${props.match.params.pid}`,
+      render: props => {
+        const { match, ...rest } = props
+        if (match && match.params.pid) {
+          return (<ResolvePID {...rest} pid={match.params.pid} />)
         } else {
           return ''
         }
@@ -402,18 +453,6 @@ export default class App extends React.Component {
       singleton: true,
       path: '/uploads',
       render: props => <Uploads {...props} />
-    },
-    'uploadedEntry': {
-      path: '/uploads/:uploadId/:calcId',
-      key: (props) => `uploadedEntry/${props.match.params.uploadId}/${props.match.params.uploadId}`,
-      render: props => {
-        const { match, ...rest } = props
-        if (match && match.params.uploadId && match.params.calcId) {
-          return (<Calc {...rest} uploadId={match.params.uploadId} calcId={match.params.calcId} />)
-        } else {
-          return ''
-        }
-      }
     },
     'metainfo': {
       exact: true,

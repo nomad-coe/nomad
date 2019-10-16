@@ -32,7 +32,7 @@ class TestAdmin:
         Upload.objects(upload_id=upload_id).delete()
         assert published.upload_files.exists()
         assert Calc.objects(upload_id=upload_id).first() is not None
-        assert search.entry_search(search_parameters=dict(upload_id=upload_id))['pagination']['total'] > 0
+        assert search.SearchRequest().search_parameter('upload_id', upload_id).execute()['total'] > 0
 
         result = click.testing.CliRunner().invoke(
             cli, ['admin', 'clean', '--force', '--skip-es'], catch_exceptions=False, obj=utils.POPO())
@@ -40,7 +40,7 @@ class TestAdmin:
         assert result.exit_code == 0
         assert not published.upload_files.exists()
         assert Calc.objects(upload_id=upload_id).first() is None
-        assert search.entry_search(search_parameters=dict(upload_id=upload_id))['pagination']['total'] > 0
+        assert search.SearchRequest().search_parameter('upload_id', upload_id).execute()['total'] > 0
 
     def test_index(self, published):
         upload_id = published.upload_id
@@ -48,14 +48,14 @@ class TestAdmin:
         calc.metadata['comment'] = 'specific'
         calc.save()
 
-        assert search.entry_search(search_parameters=dict(comment='specific'))['pagination']['total'] == 0
+        assert search.SearchRequest().search_parameter('comment', 'specific').execute()['total'] == 0
 
         result = click.testing.CliRunner().invoke(
             cli, ['admin', 'index', '--threads', '2'], catch_exceptions=False, obj=utils.POPO())
         assert result.exit_code == 0
         assert 'index' in result.stdout
 
-        assert search.entry_search(search_parameters=dict(comment='specific'))['pagination']['total'] == 1
+        assert search.SearchRequest().search_parameter('comment', 'specific').execute()['total'] == 1
 
 
 @pytest.mark.usefixtures('reset_config', 'no_warn')
@@ -102,14 +102,14 @@ class TestAdminUploads:
         calc.metadata['comment'] = 'specific'
         calc.save()
 
-        assert search.entry_search(search_parameters=dict(comment='specific'))['pagination']['total'] == 0
+        assert search.SearchRequest().search_parameters(comment='specific').execute()['total'] == 0
 
         result = click.testing.CliRunner().invoke(
             cli, ['admin', 'uploads', 'index', upload_id], catch_exceptions=False, obj=utils.POPO())
         assert result.exit_code == 0
         assert 'index' in result.stdout
 
-        assert search.entry_search(search_parameters=dict(comment='specific'))['pagination']['total'] == 1
+        assert search.SearchRequest().search_parameters(comment='specific').execute()['total'] == 1
 
     def test_re_process(self, published, monkeypatch):
         monkeypatch.setattr('nomad.config.version', 'test_version')
@@ -142,7 +142,7 @@ class TestClient:
     def test_local(self, client, published, admin_user_bravado_client, monkeypatch):
         def requests_get(url, stream, headers):
             assert stream
-            rv = client.get(url[url.index('/raw'):], headers=headers)
+            rv = client.get(url[url.index('/api/raw'):], headers=headers)
             assert rv.status_code == 200
             return utils.POPO(iter_content=lambda *args, **kwargs: [bytes(rv.data)])
 
@@ -166,8 +166,7 @@ class TestClient:
 
     @pytest.mark.parametrize('move', [True, False])
     def test_mirror(self, published, admin_user_bravado_client, monkeypatch, move):
-        ref_search_results = search.entry_search(
-            search_parameters=dict(upload_id=published.upload_id))['results'][0]
+        ref_search_results = search.SearchRequest().search_parameters(upload_id=published.upload_id).execute_paginated()['results'][0]
 
         monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
 
@@ -183,7 +182,7 @@ class TestClient:
         assert published.upload_files.os_path in result.output
         assert proc.Upload.objects(upload_id=published.upload_id).count() == 1
         assert proc.Calc.objects(upload_id=published.upload_id).count() == 1
-        new_search = search.entry_search(search_parameters=dict(upload_id=published.upload_id))
+        new_search = search.SearchRequest().search_parameters(upload_id=published.upload_id).execute_paginated()
         calcs_in_search = new_search['pagination']['total']
         assert calcs_in_search == 1
 

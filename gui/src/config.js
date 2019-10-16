@@ -6,8 +6,10 @@ import secondary from '@material-ui/core/colors/blueGrey'
 import { createMuiTheme } from '@material-ui/core'
 
 window.nomadEnv = window.nomadEnv || {}
-export const apiBase = window.nomadEnv.apiBase
-export const appBase = process.env.PUBLIC_URL
+export const appBase = window.nomadEnv.appBase.replace(/\/$/, '')
+export const apiBase = `${appBase}/api`
+export const optimadeBase = `${appBase}/optimade`
+export const guiBase = process.env.PUBLIC_URL
 export const kibanaBase = window.nomadEnv.kibanaBase
 export const matomoUrl = window.nomadEnv.matomoUrl
 export const matomoSiteId = window.nomadEnv.matomoSiteId

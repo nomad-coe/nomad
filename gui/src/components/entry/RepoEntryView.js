@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Divider, Card, CardContent, Grid, CardHeader, Fab, Typography } from '@material-ui/core'
+import { withStyles, Divider, Card, CardContent, Grid, CardHeader, Fab, Typography, Link } from '@material-ui/core'
 import { withApi } from '../api'
 import { compose } from 'recompose'
 import Download from './Download'
@@ -8,6 +8,7 @@ import DownloadIcon from '@material-ui/icons/CloudDownload'
 import ApiDialogButton from '../ApiDialogButton'
 import Quantity from '../Quantity'
 import { withDomain } from '../domains'
+import { Link as RouterLink } from 'react-router-dom'
 
 class RepoEntryView extends React.Component {
   static styles = theme => ({
@@ -109,9 +110,11 @@ class RepoEntryView extends React.Component {
                   <Quantity column>
                     <Quantity quantity='comment' placeholder='no comment' {...quantityProps} />
                     <Quantity quantity='references' placeholder='no references' {...quantityProps}>
-                      {(calcData.references || []).map(ref => <Typography key={ref} noWrap>
-                        <a href={ref}>{ref}</a>
-                      </Typography>)}
+                      <div>
+                        {(calcData.references || []).map(ref => <Typography key={ref} noWrap>
+                          <a href={ref}>{ref}</a>
+                        </Typography>)}
+                      </div>
                     </Quantity>
                     <Quantity quantity='authors' {...quantityProps}>
                       <Typography>
@@ -119,9 +122,13 @@ class RepoEntryView extends React.Component {
                       </Typography>
                     </Quantity>
                     <Quantity quantity='datasets' placeholder='no datasets' {...quantityProps}>
-                      <Typography>
-                        {(calcData.datasets || []).map(ds => `${ds.name}${ds.doi ? ` (${ds.doi})` : ''}`).join(', ')}
-                      </Typography>
+                      <div>
+                        {(calcData.datasets || []).map(ds => (
+                          <Typography key={ds.id}>
+                            <Link component={RouterLink} to={`/dataset/id/${ds.id}`}>{ds.name}</Link>
+                            {ds.doi ? <span>&nbsp; (<Link href={ds.doi}>{ds.doi}</Link>)</span> : ''}
+                          </Typography>))}
+                      </div>
                     </Quantity>
                   </Quantity>
                 </CardContent>
@@ -143,6 +150,7 @@ class RepoEntryView extends React.Component {
                     <Quantity quantity="calc_id" label={`${domain.entryLabel} id`} noWrap withClipboard {...quantityProps} />
                     <Quantity quantity='mainfile' loading={loading} noWrap {...quantityProps} withClipboard />
                     <Quantity quantity="calc_hash" label={`${domain.entryLabel} hash`} loading={loading} noWrap {...quantityProps} />
+                    <Quantity quantity="raw_id" label='raw id' loading={loading} noWrap {...quantityProps} withClipboard />
                     <Quantity quantity="last_processing" label='last processing' loading={loading} placeholder="not processed" noWrap {...quantityProps}>
                       <Typography noWrap>
                         {new Date(calcData.last_processing * 1000).toLocaleString()}

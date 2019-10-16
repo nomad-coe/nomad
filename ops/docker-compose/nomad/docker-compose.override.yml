@@ -17,16 +17,19 @@ version: '3.4'
 services:
     # broker for celery
     rabbitmq:
+        restart: 'no'
         ports:
             - 5672:5672
 
     # the search engine
     elastic:
+        restart: 'no'
         ports:
             - 9200:9200
 
     # the user data db
     mongo:
+        restart: 'no'
         ports:
             - 27017:27017
 
@@ -36,8 +39,8 @@ services:
         build: ../../../
         image: nomad/backend
 
-    # nomad api
-    api:
+    # nomad app
+    app:
         restart: 'no'
         image: nomad/backend
         depends_on:
