@@ -45,8 +45,8 @@ services:
         build: ../../../
         image: nomad/backend
 
-    # nomad api
-    api:
+    # nomad app
+    app:
         restart: 'no'
         image: nomad/backend
         depends_on:

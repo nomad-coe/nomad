@@ -156,7 +156,9 @@
               "C", "O", "H", "H", "C", "O", "H", "H",
               "C", "O", "H", "H", "C", "O", "H", "H",
               "C", "O", "H", "H", "C", "O", "H", "H"
-            ]
+            ],
+            "lattice_vectors": [
+              [0, 0.5, 0.5],[0.5, 0 , 0.5],[0.5, 0.5, 0]]
           }
         ],
         "section_single_configuration_calculation": [

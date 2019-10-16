@@ -25,7 +25,7 @@ from elasticsearch.exceptions import NotFoundError
 from datetime import datetime
 import json
 
-from nomad import config, datamodel, infrastructure, datamodel, coe_repo, utils
+from nomad import config, datamodel, infrastructure, datamodel, coe_repo, utils, processing as proc
 
 
 path_analyzer = analyzer(
@@ -113,6 +113,7 @@ class Entry(Document, metaclass=WithDomain):
     calc_id = Keyword()
     calc_hash = Keyword()
     pid = Keyword()
+    raw_id = Keyword()
     mainfile = Keyword()
     files = Text(multi=True, analyzer=path_analyzer, fields={'keyword': Keyword()})
     uploader = Object(User)
@@ -130,6 +131,7 @@ class Entry(Document, metaclass=WithDomain):
     comment = Text()
     references = Keyword()
     datasets = Object(Dataset)
+    external_id = Keyword()
 
     @classmethod
     def from_calc_with_metadata(cls, source: datamodel.CalcWithMetadata) -> 'Entry':
@@ -143,6 +145,7 @@ class Entry(Document, metaclass=WithDomain):
         self.calc_id = source.calc_id
         self.calc_hash = source.calc_hash
         self.pid = None if source.pid is None else str(source.pid)
+        self.raw_id = None if source.raw_id is None else str(source.raw_id)
 
         self.processed = source.processed
         self.last_processing = source.last_processing
@@ -159,7 +162,7 @@ class Entry(Document, metaclass=WithDomain):
 
         self.uploader = User.from_user_popo(source.uploader) if source.uploader is not None else None
 
-        self.with_embargo = source.with_embargo
+        self.with_embargo = bool(source.with_embargo)
         self.published = source.published
         self.authors = [User.from_user_popo(user) for user in source.coauthors]
         self.owners = [User.from_user_popo(user) for user in source.shared_with]
@@ -171,6 +174,7 @@ class Entry(Document, metaclass=WithDomain):
         self.comment = source.comment
         self.references = [ref.value for ref in source.references]
         self.datasets = [Dataset.from_dataset_popo(ds) for ds in source.datasets]
+        self.external_id = source.external_id
 
         for quantity in datamodel.Domain.instance.domain_quantities.values():
             setattr(
@@ -348,6 +352,12 @@ class SearchRequest:
 
         for item in values:
             self.q &= Q(quantity.elastic_search_type, **{quantity.elastic_field: item})
+
+        return self
+
+    def query(self, query):
+        """ Adds the given query as a 'and' (i.e. 'must') clause to the request. """
+        self._query &= query
 
         return self
 
@@ -687,3 +697,11 @@ class SearchRequest:
 
     def __str__(self):
         return json.dumps(self._search.to_dict(), indent=2)
+
+
+def to_calc_with_metadata(results: List[Dict[str, Any]]):
+    """ Translates search results into :class:`CalcWithMetadata` objects read from mongo. """
+    ids = [result['calc_id'] for result in results]
+    return [
+        datamodel.CalcWithMetadata(**calc.metadata)
+        for calc in proc.Calc.objects(calc_id__in=ids)]

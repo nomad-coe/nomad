@@ -18,10 +18,10 @@ import {help as searchHelp, default as SearchPage} from './search/SearchPage'
 import HelpDialog from './Help'
 import { ApiProvider, withApi } from './api'
 import { ErrorSnacks, withErrors } from './errors'
-import Calc from './entry/Calc'
+import EntryPage from './entry/EntryPage'
 import About from './About'
 import LoginLogout from './LoginLogout'
-import { genTheme, repoTheme, archiveTheme, appBase } from '../config'
+import { genTheme, repoTheme, archiveTheme, guiBase } from '../config'
 import { DomainProvider, withDomain } from './domains'
 import {help as metainfoHelp, default as MetaInfoBrowser} from './metaInfoBrowser/MetaInfoBrowser'
 import packageJson from '../../package.json'
@@ -40,8 +40,6 @@ export class VersionMismatch extends Error {
 }
 
 const drawerWidth = 200
-
-
 
 class NavigationUnstyled extends React.Component {
   static propTypes = {
@@ -185,7 +183,7 @@ class NavigationUnstyled extends React.Component {
   }
 
   componentDidMount() {
-    fetch(`${appBase}/meta.json`)
+    fetch(`${guiBase}/meta.json`)
       .then((response) => response.json())
       .then((meta) => {
         if (meta.version !== packageJson.version) {
@@ -403,7 +401,7 @@ export default class App extends React.Component {
       render: props => {
         const { match, ...rest } = props
         if (match && match.params.uploadId && match.params.calcId) {
-          return (<Calc {...rest} uploadId={match.params.uploadId} calcId={match.params.calcId} />)
+          return (<EntryPage {...rest} uploadId={match.params.uploadId} calcId={match.params.calcId} />)
         } else {
           return ''
         }

@@ -142,7 +142,7 @@ class TestClient:
     def test_local(self, client, published, admin_user_bravado_client, monkeypatch):
         def requests_get(url, stream, headers):
             assert stream
-            rv = client.get(url[url.index('/raw'):], headers=headers)
+            rv = client.get(url[url.index('/api/raw'):], headers=headers)
             assert rv.status_code == 200
             return utils.POPO(iter_content=lambda *args, **kwargs: [bytes(rv.data)])
 

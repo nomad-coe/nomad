@@ -2,7 +2,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
 import Markdown from './Markdown'
-import { kibanaBase, apiBase, debug } from '../config'
+import { kibanaBase, appBase, optimadeBase, apiBase, debug } from '../config'
 import { compose } from 'recompose'
 import { withApi } from './api'
 import { withDomain } from './domains'
@@ -39,18 +39,25 @@ class About extends React.Component {
           system](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/issues).
 
           ### Developer Documentation
-          You find in depth developer documentation [here](${apiBase}/docs/index.html).
-          It contains a general introduction to NOMAD, the underlying architecture,
+          The [in-depth developer documentation](${appBase}/docs/index.html)
+          contains a general introduction to NOMAD, the underlying architecture,
           is (meta)data, and processing. You will also find some information on how to use
           the NOMAD ReST API. It contains information about how to develop NOMAD, how to
-          operate it, how to contribute parser, and much more.
+          operate it, how to contribute parsers, and much more.
 
-          ### ReST API
-          NOMAD services can also be accessed programmatically via NOMAD's
-          ReST API. The API is described via [swagger](https://swagger.io/), therefore
-          you can use your favorite swagger client library (e.g.
-          [bravado](https://github.com/Yelp/bravado) for Python).
-          Here is [our API's swagger UI](${apiBase}/) as reference documentation.
+          ### ReST APIs
+          NOMAD services can also be accessed programmatically via ReST APIs.
+          There is the proprietary NOMAD API and an implementation of the
+          [OPTiMaDe API (0.10.0)](https://github.com/Materials-Consortia/OPTiMaDe/tree/master)
+          standardized by the [OPTiMaDe consortium](https://www.optimade.org/)
+
+          Both APIs are described via [swagger](https://swagger.io/) (also known as OpenAPI spec.),
+          therefore you can use your favorite swagger client library
+          (e.g. [bravado](https://github.com/Yelp/bravado) for Python).
+
+          There are also web-based GUIs that allow to explore the APIs and their documentation:
+          - [NOMAD API](${apiBase}/)
+          - [OPTiMaDe API](${optimadeBase}/)
 
           ### Source code
           The source-code for this new version of NOMAD (dubbed *nomad@FAIRDI*) is maintained

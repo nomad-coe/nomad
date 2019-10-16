@@ -153,3 +153,6 @@
 	path = dependencies/parsers/onetep
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-onetep.git
 	branch = nomad-fair
+[submodule "dependencies/optimade-python-tools"]
+	path = dependencies/optimade-python-tools
+	url = https://github.com/markus1978/optimade-python-tools.git

@@ -1,0 +1,37 @@
+import numpy as np
+import typing
+from nomad.metainfo import MSection, Package, Quantity, SubSection, MProxy
+
+m_package = Package(name='{{ pkg.name }}', description='{{ pkg.description }}')
+{% for section in pkg.section_definitions %}
+
+class {{ section.name }}(MSection):
+    {% if section.description is not none -%}
+    '''
+    {{ format_description(section.description, indent=1) }}
+    '''
+    {% endif %}
+
+    {%- for quantity in section.quantities %}
+    {{ quantity.name }} = Quantity(
+        type={{ format_type(quantity.type) }},
+        shape={{ quantity.shape }}
+        {%- if quantity.unit is not none -%},
+        unit={{ format_unit(quantity.unit) }}
+        {%- endif -%}
+        {%- if quantity.description is not none -%},
+        description='''
+        {{ format_description(quantity.description, indent=2) }}
+        '''{%- endif -%})
+    {% endfor -%}
+
+    {%- for sub_section in section.sub_sections %}
+    {{ sub_section.name }} = SubSection(
+        sub_section=MProxy('{{ sub_section.sub_section.name }}'),
+        repeats={{ sub_section.repeats }}
+        {%- if sub_section.description is not none -%},
+        description='''
+        {{ format_description(sub_section.description, indent=2) }}
+        '''{%- endif -%})
+    {% endfor -%}
+{%- endfor %}

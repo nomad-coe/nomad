@@ -27,6 +27,7 @@ class Search extends React.Component {
     domain: PropTypes.object,
     loading: PropTypes.number,
     searchParameters: PropTypes.object,
+    searchValues: PropTypes.object,
     showDetails: PropTypes.bool
   }
 
@@ -89,7 +90,10 @@ class Search extends React.Component {
   state = {
     data: Search.emptySearchData,
     searchState: {
-      ...SearchAggregations.defaultState
+      metrics: [],
+      searchValues: {
+        ...(this.props.searchValues || {})
+      }
     },
     entryListState: {
       ...EntryList.defaultState
@@ -144,7 +148,7 @@ class Search extends React.Component {
     const { searchValues, ...searchStateRest } = searchState
     this.setState({...changes})
 
-    this.props.api.search({
+    const search = {
       datasets: true,
       statistics: true,
       ...entryListState,
@@ -152,18 +156,21 @@ class Search extends React.Component {
       ...searchValues,
       ...searchStateRest,
       ...searchParameters
-    }).then(data => {
-      this.setState({
-        data: data || Search.emptySearchData
+    }
+
+    this.props.api.search(search)
+      .then(data => {
+        this.setState({
+          data: data || Search.emptySearchData
+        })
+      }).catch(error => {
+        if (error.name === 'NotAuthorized' && this.props.searchParameters.owner !== 'all') {
+          this.setState({data: Search.emptySearchData})
+        } else {
+          this.setState({data: Search.emptySearchData})
+          this.props.raiseError(error)
+        }
       })
-    }).catch(error => {
-      if (error.name === 'NotAuthorized' && this.props.searchParameters.owner !== 'all') {
-        this.setState({data: Search.emptySearchData})
-      } else {
-        this.setState({data: Search.emptySearchData})
-        this.props.raiseError(error)
-      }
-    })
   }
 
   componentDidMount() {
@@ -192,13 +199,17 @@ class Search extends React.Component {
     const { searchValues } = searchState
     const { pagination: { total }, statistics } = data
 
-    const helperText = <span>
-      There are {Object.keys(domain.searchMetrics).filter(key => statistics.total.all[key]).map(key => {
+    let helperText = <span>
+      There {total === 1 ? 'is' : 'are'} {Object.keys(domain.searchMetrics).filter(key => statistics.total.all[key]).map(key => {
         return <span key={key}>
-          {domain.searchMetrics[key].renderResultString(!loading && statistics.total.all[key] !== undefined ? statistics.total.all[key] : '...')}
+          {domain.searchMetrics[key].renderResultString(!loading ? statistics.total.all[key] : '...')}
         </span>
       })}{Object.keys(searchValues).length ? ' left' : ''}.
     </span>
+
+    if (total === 0) {
+      helperText = <span>There are no more entries matching your criteria.</span>
+    }
 
     return (
       <div className={classes.root}>

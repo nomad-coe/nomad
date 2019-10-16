@@ -18,9 +18,6 @@ import numpy as np
 import pytest
 import os
 
-from nomadcore.local_meta_info import loadJsonFile
-import nomad_meta_info
-
 from nomad import utils, files
 from nomad.parsing import JSONStreamWriter, parser_dict, match_parser, BrokenParser
 from nomad.parsing import LocalBackend, BadContextURI
@@ -42,7 +39,7 @@ parser_examples = [
     ('parsers/nwchem', 'tests/data/parsers/nwchem/single_point/output.out'),
     ('parsers/bigdft', 'tests/data/parsers/bigdft/n2_output.out'),
     ('parsers/wien2k', 'tests/data/parsers/wien2k/AlN/AlN_ZB.scf'),
-    ('parsers/band', 'tests/data/parsers/band_adf.out'),  # causes spglib to segfault
+    ('parsers/band', 'tests/data/parsers/band_adf.out'),
     ('parsers/gaussian', 'tests/data/parsers/gaussian/aniline.out'),
     ('parsers/abinit', 'tests/data/parsers/abinit/Fe.out'),
     ('parsers/quantumespresso', 'tests/data/parsers/quantum-espresso/benchmark.out'),
@@ -77,17 +74,10 @@ for parser, mainfile in parser_examples:
 parser_examples = fixed_parser_examples
 
 
-correct_num_output_files = 41
+correct_num_output_files = 43
 
 
 class TestLocalBackend(object):
-
-    @pytest.fixture(scope='session')
-    def meta_info(self):
-        file_dir = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
-        path = os.path.join(file_dir, 'all.nomadmetainfo.json')
-        meta_info, _ = loadJsonFile(path)
-        return meta_info
 
     @pytest.fixture(scope='function')
     def backend(self, meta_info):
@@ -298,7 +288,6 @@ def parsed_template_example() -> LocalBackend:
         'parsers/template', 'tests/data/parsers/template.json')
 
 
-# Function used by normalizer tests.
 def parse_file(parser_name_and_mainfile) -> LocalBackend:
     parser_name, mainfile = parser_name_and_mainfile
     return run_parser(parser_name, mainfile)

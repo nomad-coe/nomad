@@ -30,18 +30,18 @@ def worker():
     run_worker()
 
 
-@run.command(help='Run the nomad development api.')
+@run.command(help='Run the nomad development app with all apis.')
 @click.option('--debug', help='Does run flask in debug.', is_flag=True)
 @click.option('--with-chaos', type=int, default=0, help='Enable a certain percentage of chaos.')
-def api(debug: bool, with_chaos: int):
+def app(debug: bool, with_chaos: int):
     config.services.api_chaos = with_chaos
-    run_api(debug=debug)
+    run_app(debug=debug)
 
 
-def run_api(**kwargs):
-    config.service = 'api'
+def run_app(**kwargs):
+    config.service = 'app'
     from nomad import infrastructure
-    from nomad.api.__main__ import run_dev_server
+    from nomad.app.__main__ import run_dev_server
     infrastructure.setup()
     run_dev_server(port=8000, **kwargs)
 
@@ -52,9 +52,9 @@ def run_worker():
     processing.app.worker_main(['worker', '--loglevel=INFO', '-Q', 'celery,uploads,calcs'])
 
 
-@run.command(help='Run both api and worker.')
-def apiworker():
+@run.command(help='Run both app and worker.')
+def appworker():
     executor = ProcessPoolExecutor(2)
     loop = asyncio.get_event_loop()
-    loop.run_in_executor(executor, run_api)
+    loop.run_in_executor(executor, run_app)
     loop.run_in_executor(executor, run_worker)

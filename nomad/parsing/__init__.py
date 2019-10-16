@@ -80,6 +80,7 @@ import os.path
 from nomad import files, config
 
 from nomad.parsing.backend import AbstractParserBackend, LocalBackend, LegacyLocalBackend, JSONStreamWriter, BadContextURI, WrongContextState
+from nomad.parsing.metainfo import MetainfoBackend
 from nomad.parsing.parser import Parser, LegacyParser, VaspOutcarParser, BrokenParser, MissingParser, MatchingParser
 from nomad.parsing.artificial import TemplateParser, GenerateRandomParser, ChaosParser, EmptyParser
 
@@ -313,18 +314,19 @@ parsers = [
         # We decided to use the octopus eyes instead of
         # r'\*{32} Grid \*{32}Simulation Box:' since it was so far down in the file.
     ),
+    # match gpaw2 first, other .gpw files are then considered to be "gpaw1"
+    LegacyParser(
+        name='parsers/gpaw2', code_name='GPAW',
+        parser_class_name='gpawparser.GPAWParser2Wrapper',
+        mainfile_binary_header=b'GPAW',
+        mainfile_name_re=(r'^.*\.(gpw2|gpw)$'),
+        mainfile_mime_re=r'application/(x-tar|octet-stream)'
+    ),
     LegacyParser(
         name='parsers/gpaw', code_name='GPAW',
         parser_class_name='gpawparser.GPAWParserWrapper',
         mainfile_name_re=(r'^.*\.gpw$'),
-        mainfile_mime_re=r'application/x-tar'
-    ),
-    LegacyParser(
-        name='parsers/gpaw2', code_name='GPAW',
-        parser_class_name='gpawparser.GPAWParser2Wrapper',
-        # mainfile_contents_re=r'',  # We can't read .gpw2 to match AFFormatGPAW'
-        mainfile_name_re=(r'^.*\.gpw2$'),
-        mainfile_mime_re=r'application/x-tar'
+        mainfile_mime_re=r'application/(x-tar|octet-stream)'
     ),
     LegacyParser(
         name='parsers/atk', code_name='ATK',

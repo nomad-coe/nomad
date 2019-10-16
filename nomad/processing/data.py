@@ -87,6 +87,16 @@ class Calc(Proc):
         self._calc_proc_logwriter_ctx: ContextManager = None
 
     @classmethod
+    def from_calc_with_metadata(cls, calc_with_metadata):
+        calc = Calc.create(
+            calc_id=calc_with_metadata.calc_id,
+            upload_id=calc_with_metadata.upload_id,
+            mainfile=calc_with_metadata.mainfile,
+            metadata=calc_with_metadata.to_dict())
+
+        return calc
+
+    @classmethod
     def get(cls, id):
         return cls.get_by_id(id, 'calc_id')
 
@@ -1051,7 +1061,7 @@ class Upload(Proc):
             compressed_calc: Dict[str, Any] = {}
             calculations.append(compressed_calc)
             for key, value in calc.items():
-                if key in ['_pid', 'mainfile']:
+                if key in ['_pid', 'mainfile', 'external_id']:
                     # these quantities are explicitly calc specific and have to stay with
                     # the calc
                     compressed_calc[key] = value

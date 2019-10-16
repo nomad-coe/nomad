@@ -15,8 +15,11 @@
 from typing import Iterable, List, Dict, Type, Tuple, Callable, Any
 import datetime
 from elasticsearch_dsl import Keyword
+from collections.abc import Mapping
+import numpy as np
 
 from nomad import utils, config
+from nomad.metainfo import MSection
 
 
 class UploadWithMetadata():
@@ -39,7 +42,7 @@ class UploadWithMetadata():
         return {calc.calc_id: calc for calc in self.calcs}
 
 
-class CalcWithMetadata():
+class CalcWithMetadata(Mapping):
     """
     A dict/POPO class that can be used for mapping calc representations with calc metadata.
     We have multi representations of calcs and their calc metadata. To avoid implement
@@ -81,6 +84,7 @@ class CalcWithMetadata():
         self.calc_hash: str = None
         self.mainfile: str = None
         self.pid: int = None
+        self.raw_id: str = None
 
         # basic upload and processing related metadata
         self.upload_time: datetime.datetime = None
@@ -99,17 +103,42 @@ class CalcWithMetadata():
         self.comment: str = None
         self.references: List[utils.POPO] = []
         self.datasets: List[utils.POPO] = []
+        self.external_id: str = None
 
         # parser related general (not domain specific) metadata
         self.parser_name = None
 
         self.update(**kwargs)
 
+    def __getitem__(self, key):
+        value = getattr(self, key, None)
+
+        if value is None or key in ['backend']:
+            raise KeyError()
+
+        if isinstance(value, MSection):
+            value = value.m_to_dict()
+
+        return value
+
+    def __iter__(self):
+        for key, value in self.__dict__.items():
+            if value is None or key in ['backend']:
+                continue
+
+            yield key
+
+    def __len__(self):
+        count = 0
+        for key, value in self.__dict__.items():
+            if value is None or key in ['backend']:
+                continue
+            count += 1
+
+        return count
+
     def to_dict(self):
-        return {
-            key: value for key, value in self.__dict__.items()
-            if value is not None and key not in ['backend']
-        }
+        return {key: value for key, value in self.items()}
 
     def update(self, **kwargs):
         for key, value in kwargs.items():
@@ -146,6 +175,7 @@ class CalcWithMetadata():
         self.datasets = [
             utils.POPO(id=int(ds['id']), doi=utils.POPO(value=ds.get('_doi')), name=ds.get('_name'))
             for ds in metadata.get('datasets', [])]
+        self.external_id = metadata.get('external_id')
 
     def apply_domain_metadata(self, backend):
         raise NotImplementedError()
@@ -181,7 +211,7 @@ class DomainQuantity:
             self, description: str = None, multi: bool = False, aggregations: int = 0,
             order_default: bool = False, metric: Tuple[str, str] = None,
             zero_aggs: bool = True, metadata_field: str = None,
-            elastic_mapping: str = None,
+            elastic_mapping: type = None,
             elastic_search_type: str = 'term', elastic_field: str = None,
             elastic_value: Callable[[Any], Any] = None):
 
@@ -266,7 +296,9 @@ class Domain:
         upload_id=DomainQuantity(description='Search for the upload_id.'),
         calc_id=DomainQuantity(description='Search for the calc_id.'),
         pid=DomainQuantity(description='Search for the pid.'),
+        raw_id=DomainQuantity(description='Search for the raw_id.'),
         mainfile=DomainQuantity(description='Search for the mainfile.'),
+        external_id=DomainQuantity(description='External user provided id. Does not have to be unique necessarily.'),
         dataset=DomainQuantity(
             elastic_field='datasets.name', multi=True, elastic_search_type='match',
             description='Search for a particular dataset by name.'),
@@ -372,6 +404,13 @@ def get_optional_backend_value(backend, key, section, unavailable_value=None, lo
     val = None  # Initialize to None, so we can compare section values.
     # Loop over the sections with the name section in the backend.
     for section_index in backend.get_sections(section):
+        if section == 'section_system':
+            try:
+                if not backend.get_value('is_representative', section_index):
+                    continue
+            except KeyError:
+                continue
+
         try:
             new_val = backend.get_value(key, section_index)
         except KeyError:
@@ -391,4 +430,7 @@ def get_optional_backend_value(backend, key, section, unavailable_value=None, lo
             'The values for %s where not available in any %s' % (key, section))
         return unavailable_value if unavailable_value is not None else config.services.unavailable_value
     else:
+        if isinstance(val, np.generic):
+            return val.item()
+
         return val

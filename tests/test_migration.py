@@ -28,7 +28,6 @@ from nomad.infrastructure import repository_db_connection
 
 from tests.conftest import create_postgres_infra, create_auth_headers
 from tests.bravado_flask import FlaskTestHttpClient
-from tests.test_api import create_auth_headers
 import tests.utils as test_utils
 from tests.test_search import assert_search_upload
 from tests.test_files import assert_upload_files
@@ -194,7 +193,7 @@ def migrate_infra(migration, target_repo, proc_infra, client, monkeypatch):
 
     def create_client_for_user(auth):
         http_client = FlaskTestHttpClient(client, headers=auth)
-        return SwaggerClient.from_url('/swagger.json', http_client=http_client)
+        return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
 
     def create_client():
         return create_client_for_user(infra.admin_auth)

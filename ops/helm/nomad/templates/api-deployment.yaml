@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "nomad.fullname" . }}-api-gunicorn-log-config
+  name: {{ include "nomad.fullname" . }}-app-gunicorn-log-config
   labels:
-    app.kubernetes.io/name: {{ include "nomad.name" . }}-api-gunicorn-log-config
+    app.kubernetes.io/name: {{ include "nomad.name" . }}-app-gunicorn-log-config
     helm.sh/chart: {{ include "nomad.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
@@ -55,43 +55,43 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "nomad.fullname" . }}-api-gunicorn-config
+  name: {{ include "nomad.fullname" . }}-app-gunicorn-config
   labels:
-    app.kubernetes.io/name: {{ include "nomad.name" . }}-api-gunicorn-config
+    app.kubernetes.io/name: {{ include "nomad.name" . }}-app-gunicorn-config
     helm.sh/chart: {{ include "nomad.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 data:
   gunicorn.conf: |
     secure_scheme_headers = {'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}
-    worker_class = '{{ .Values.api.workerClass }}'
-    threads = {{ .Values.api.threads }}
+    worker_class = '{{ .Values.app.workerClass }}'
+    threads = {{ .Values.app.threads }}
     worker_connections = 1000
-    worker = {{ .Values.api.worker }}
+    worker = {{ .Values.app.worker }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "nomad.fullname" . }}-api
+  name: {{ include "nomad.fullname" . }}-app
   labels:
-    app.kubernetes.io/name: {{ include "nomad.name" . }}-api
+    app.kubernetes.io/name: {{ include "nomad.name" . }}-app
     helm.sh/chart: {{ include "nomad.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
-  replicas: {{ .Values.api.replicas }}
+  replicas: {{ .Values.app.replicas }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "nomad.name" . }}-api
+      app.kubernetes.io/name: {{ include "nomad.name" . }}-app
       app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "nomad.name" . }}-api
+        app.kubernetes.io/name: {{ include "nomad.name" . }}-app
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       containers:
-      - name: {{ include "nomad.name" . }}-api
+      - name: {{ include "nomad.name" . }}-app
         image: "{{ .Values.images.nomad.name }}:{{ .Values.images.nomad.tag }}"
         volumeMounts:
         - mountPath: /app/nomad.yaml
@@ -111,11 +111,11 @@ spec:
           name: nomad-volume
         env:
         - name: NOMAD_SERVICE
-          value: "api"
+          value: "app"
         - name: NOMAD_CONSOLE_LOGLEVEL
-          value: "{{ .Values.api.console_loglevel }}"
+          value: "{{ .Values.app.console_loglevel }}"
         - name: NOMAD_LOGSTASH_LEVEL
-          value: "{{ .Values.api.logstash_loglevel }}"
+          value: "{{ .Values.app.logstash_loglevel }}"
         {{ if .Values.postgres.password_secret }}
         - name: NOMAD_REPOSITORY_DB_PASSWORD
           valueFrom:
@@ -130,31 +130,31 @@ spec:
               name: {{ .Values.api.adminPasswordSecret }}
               key: password
         {{ end }}
-        command: ["python", "-m", "gunicorn.app.wsgiapp", "--config", "gunicorn.conf", "--log-config", "gunicorn.log.conf", "-b 0.0.0.0:8000", "nomad.api:app"]
+        command: ["python", "-m", "gunicorn.app.wsgiapp", "--config", "gunicorn.conf", "--log-config", "gunicorn.log.conf", "-b 0.0.0.0:8000", "nomad.app:app"]
         livenessProbe:
           httpGet:
-            path: "{{ .Values.proxy.external.path }}/api/alive"
+            path: "{{ .Values.proxy.external.path }}/alive"
             port: 8000
           initialDelaySeconds: 15
           periodSeconds: 15
         readinessProbe:
           httpGet:
-            path: "{{ .Values.proxy.external.path }}/api/alive"
+            path: "{{ .Values.proxy.external.path }}/alive"
             port: 8000
           initialDelaySeconds: 5
           periodSeconds: 5
       nodeSelector:
-        nomadtype: public
+        nomadtype: {{ .Values.app.nomadNodeType }}
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
       imagePullPolicy: always
       volumes:
       - name: gunicorn-log-conf
         configMap:
-          name: {{ include "nomad.fullname" . }}-api-gunicorn-log-config
+          name: {{ include "nomad.fullname" . }}-app-gunicorn-log-config
       - name: gunicorn-conf
         configMap:
-          name: {{ include "nomad.fullname" . }}-api-gunicorn-config
+          name: {{ include "nomad.fullname" . }}-app-gunicorn-config
       - name: nomad-conf
         configMap:
           name: {{ include "nomad.fullname" . }}-configmap

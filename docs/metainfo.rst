@@ -1,0 +1,4 @@
+Metainfo
+========
+
+.. automodule:: nomad.metainfo

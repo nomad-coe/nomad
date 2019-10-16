@@ -48,8 +48,6 @@ class SystemNormalizer(SystemBasedNormalizer):
     This normalizer performs all system (atoms, cells, etc.) related normalizations
     of the legacy NOMAD-coe *stats* normalizer.
     """
-    def __init__(self, backend):
-        super().__init__(backend, all_sections=config.normalize.all_systems)
 
     @staticmethod
     def atom_label_to_num(atom_label):
@@ -63,18 +61,22 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         return 0
 
-    def normalize_system(self, index) -> None:
+    def normalize_system(self, index, is_representative) -> None:
         """
         The 'main' method of this :class:`SystemBasedNormalizer`.
         Normalizes the section with the given `index`.
         Normalizes geometry, classifies, system_type, and runs symmetry analysis.
         """
 
-        def get_value(key: str, default: Any = None, nonp: bool = False) -> Any:
+        def get_value(key: str, default: Any = None, numpy: bool = True) -> Any:
             try:
                 value = self._backend.get_value(key, index)
-                if nonp and type(value).__module__ == np.__name__:
+                if not numpy and type(value).__module__ == np.__name__:
                     value = value.tolist()
+
+                elif numpy and isinstance(value, list):
+                    value = np.array(value)
+
                 return value
             except KeyError:
                 return default
@@ -82,12 +84,15 @@ class SystemNormalizer(SystemBasedNormalizer):
         def set_value(key: str, value: Any):
             self._backend.addValue(key, value)
 
+        if is_representative:
+            self._backend.addValue('is_representative', is_representative)
+
         # analyze atoms labels
-        atom_labels = get_value('atom_labels', nonp=True)
+        atom_labels = get_value('atom_labels', numpy=False)
         if atom_labels is not None:
             atom_labels = normalized_atom_labels(atom_labels)
 
-        atom_species = get_value('atom_species', nonp=True)
+        atom_species = get_value('atom_species', numpy=False)
         if atom_labels is None and atom_species is None:
             self.logger.error('calculation has neither atom species nor labels')
             return
@@ -129,7 +134,7 @@ class SystemNormalizer(SystemBasedNormalizer):
             set_value('atom_species', atom_species)
 
         # periodic boundary conditions
-        pbc = get_value('configuration_periodic_dimensions', nonp=True)
+        pbc = get_value('configuration_periodic_dimensions', numpy=False)
         if pbc is None:
             pbc = [False, False, False]
             self.logger.warning('missing configuration_periodic_dimensions')
@@ -147,7 +152,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         set_value('chemical_composition_bulk_reduced', atoms.get_chemical_formula(mode='hill'))
 
         # positions
-        atom_positions = get_value('atom_positions', None)
+        atom_positions = get_value('atom_positions', None, numpy=True)
         if atom_positions is None:
             self.logger.warning('no atom positions, skip further system analysis')
             return
@@ -164,9 +169,9 @@ class SystemNormalizer(SystemBasedNormalizer):
             return
 
         # lattice vectors
-        lattice_vectors = get_value('lattice_vectors')
+        lattice_vectors = get_value('lattice_vectors', numpy=True)
         if lattice_vectors is None:
-            lattice_vectors = get_value('simulation_cell')
+            lattice_vectors = get_value('simulation_cell', numpy=True)
             if lattice_vectors is not None:
                 set_value('lattice_vectors', lattice_vectors)
         if lattice_vectors is None:
@@ -188,25 +193,26 @@ class SystemNormalizer(SystemBasedNormalizer):
         configuration_id = utils.hash(json.dumps(configuration).encode('utf-8'))
         set_value('configuration_raw_gid', configuration_id)
 
-        # system type analysis
-        if atom_positions is not None:
-            with utils.timer(
-                    self.logger, 'system classification executed',
-                    system_size=atoms.get_number_of_atoms()):
+        if is_representative:
+            # system type analysis
+            if atom_positions is not None:
+                with utils.timer(
+                        self.logger, 'system classification executed',
+                        system_size=atoms.get_number_of_atoms()):
 
-                self.system_type_analysis(atoms)
+                    self.system_type_analysis(atoms)
 
-        # symmetry analysis
-        if atom_positions is not None and (lattice_vectors is not None or not any(pbc)):
-            with utils.timer(
-                    self.logger, 'symmetry analysis executed',
-                    system_size=atoms.get_number_of_atoms()):
+            # symmetry analysis
+            if atom_positions is not None and (lattice_vectors is not None or not any(pbc)):
+                with utils.timer(
+                        self.logger, 'symmetry analysis executed',
+                        system_size=atoms.get_number_of_atoms()):
 
-                self.symmetry_analysis(atoms)
+                    self.symmetry_analysis(atoms)
 
     def system_type_analysis(self, atoms) -> None:
         """
-        Determine the dimensioality and hence the system type of the system with
+        Determine the dimensionality and hence the system type of the system with
         Matid. Write the system type to the backend.
         """
         system_type = config.services.unavailable_value

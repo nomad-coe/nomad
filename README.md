@@ -79,9 +79,13 @@ your browser.
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
 ### v0.6.0
-- GUI URL, and API endpoint that resolves NOMAD CoE legary PIDs
+- GUI URL, and API endpoint that resolves NOMAD CoE legacy PIDs
 - Support for datasets in the GUI
 - more flexible search python module and repo API
+- support for external_id
+- support for code-based raw_id
+- Optimade API 0.10.0
+- GUI supports Optimade filter query and other quantities
 - minor bugfixes
 
 ### v0.5.2
