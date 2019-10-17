@@ -71,10 +71,11 @@ based on NOMAD-coe's *python-common* module.
     :members:
 """
 
-from typing import Callable, IO, Union
+from typing import Callable, IO, Union, Dict
 import magic
 import gzip
 import bz2
+import lzma
 import os.path
 
 from nomad import files, config
@@ -87,7 +88,8 @@ from nomad.parsing.artificial import TemplateParser, GenerateRandomParser, Chaos
 
 _compressions = {
     b'\x1f\x8b\x08': ('gz', gzip.open),
-    b'\x42\x5a\x68': ('bz2', bz2.open)
+    b'\x42\x5a\x68': ('bz2', bz2.open),
+    b'\xfd\x37\x7a': ('xz', lzma.open)
 }
 
 
@@ -116,7 +118,7 @@ def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFile
     with open(mainfile_path, 'rb') as f:
         compression, open_compressed = _compressions.get(f.read(3), (None, open))
 
-    with open_compressed(mainfile_path, 'rb') as cf:
+    with open_compressed(mainfile_path, 'rb') as cf:  # type: ignore
         buffer = cf.read(config.parser_matching_size)
 
     mime_type = magic.from_buffer(buffer, mime=True)
@@ -147,14 +149,14 @@ parsers = [
     LegacyParser(
         name='parsers/vasp', code_name='VASP',
         parser_class_name='vaspparser.VASPRunParserInterface',
-        mainfile_mime_re=r'(application/xml)|(text/.*)',
+        mainfile_mime_re=r'(application/.*)|(text/.*)',
         mainfile_contents_re=(
             r'^\s*<\?xml version="1\.0" encoding="ISO-8859-1"\?>\s*'
             r'?\s*<modeling>'
             r'?\s*<generator>'
             r'?\s*<i name="program" type="string">\s*vasp\s*</i>'
             r'?'),
-        supported_compressions=['gz', 'bz2']
+        supported_compressions=['gz', 'bz2', 'xz']
     ),
     VaspOutcarParser(
         name='parsers/vasp-outcar', code_name='VASP',
