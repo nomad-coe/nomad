@@ -71,7 +71,7 @@ based on NOMAD-coe's *python-common* module.
     :members:
 """
 
-from typing import Callable, IO, Union
+from typing import Callable, IO, Union, Dict
 import magic
 import gzip
 import bz2
@@ -118,7 +118,7 @@ def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFile
     with open(mainfile_path, 'rb') as f:
         compression, open_compressed = _compressions.get(f.read(3), (None, open))
 
-    with open_compressed(mainfile_path, 'rb') as cf:
+    with open_compressed(mainfile_path, 'rb') as cf:  # type: ignore
         buffer = cf.read(config.parser_matching_size)
 
     mime_type = magic.from_buffer(buffer, mime=True)
