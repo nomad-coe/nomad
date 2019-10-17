@@ -30,6 +30,7 @@ from nomad import search, parsing, files, config, utils, infrastructure
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
 from nomad.datamodel import UploadWithMetadata, CalcWithMetadata, User
+from nomad.app.api.dataset import DatasetME
 
 from tests.conftest import create_auth_headers, clear_elastic
 from tests.test_files import example_file, example_file_mainfile, example_file_contents
@@ -1151,3 +1152,80 @@ class TestMirror:
 
         data = json.loads(rv.data)
         assert data[0]['upload_id'] == published.upload_id
+
+
+class TestDataset:
+
+    @pytest.fixture()
+    def example_datasets(self, mongo, test_user):
+        DatasetME(dataset_id='1', user_id=test_user.user_id, name='ds1').save()
+        DatasetME(dataset_id='2', user_id=test_user.user_id, name='ds2', doi='test_doi').save()
+
+    def assert_dataset(self, dataset, name: str = None, doi: bool = False):
+        assert 'dataset_id' in dataset
+        assert 'user_id' in dataset
+        assert ('doi' in dataset) == doi
+        assert dataset.get('name') is not None
+        if name is not None:
+            assert dataset.get('name') == name
+
+    def test_create_dataset(self, api, test_user_auth):
+        rv = api.put(
+            '/datasets/', headers=test_user_auth,
+            data=json.dumps(dict(name='test_dataset')),
+            content_type='application/json')
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        self.assert_dataset(data, 'test_dataset')
+
+    @pytest.mark.parametrize('data', [
+        dict(name='test_name', doi='something'),
+        dict(name='test_name', dataset_id='something'),
+        dict(name='test_name', user_id='something'),
+        dict(name='test_name', unknown_key='something'),
+        dict()])
+    def test_create_dataset_bad_data(self, api, test_user_auth, data):
+        rv = api.put(
+            '/datasets/', headers=test_user_auth,
+            data=json.dumps(data),
+            content_type='application/json')
+        assert rv.status_code >= 400
+
+    def test_get_datasets(self, api, test_user_auth, example_datasets):
+        rv = api.get('/datasets/', headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert 'pagination' in data
+        assert data['pagination']['total'] == 2
+        assert len(data['results']) == 2
+        for dataset in data['results']:
+            if dataset['name'] == 'ds2':
+                self.assert_dataset(dataset, doi=True)
+            else:
+                self.assert_dataset(dataset)
+
+    def test_get_dataset(self, api, test_user_auth, example_datasets):
+        rv = api.get('/datasets/ds1', headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        self.assert_dataset(data, name='ds1')
+
+    def test_get_dataset_missing(self, api, other_test_user_auth, example_datasets):
+        rv = api.get('/datasets/ds1', headers=other_test_user_auth)
+        assert rv.status_code == 404
+
+    def test_post_dataset(self, api, test_user_auth, example_datasets):
+        rv = api.post('/datasets/ds1', headers=test_user_auth)
+        # TODO the actual DOI part needs to be implemented
+        assert rv.status_code == 200
+
+    def test_delete_dataset(self, api, test_user_auth, example_datasets):
+        rv = api.delete('/datasets/ds1', headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        self.assert_dataset(data, name='ds1')
+        api.get('/datasets/ds1', headers=test_user_auth).status_code == 404
+
+    def test_get_dataset_with_doi(self, api, test_user_auth, example_datasets):
+        rv = api.delete('/datasets/ds2', headers=test_user_auth)
+        assert rv.status_code == 400
