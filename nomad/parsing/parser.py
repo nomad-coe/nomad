@@ -139,7 +139,8 @@ class MatchingParser(Parser):
         if self._mainfile_contents_re is not None:
             try:  # Try to open the file as a string for regex matching.
                 decoded_buffer = buffer.decode('utf-8')
-            except UnicodeDecodeError:
+                print('DECODED',decoded_buffer)
+            except UnicodeDecodeError as e:
                 return False  # We're looking for a string match in a file that can't be converted to string.
             if self._mainfile_contents_re.search(decoded_buffer) is None:
                 return False
