@@ -600,19 +600,19 @@ class TestRepo():
         calc_with_metadata.update(
             calc_id='2', uploader=other_test_user.user_id, published=True,
             with_embargo=False, pid=2, upload_time=today - datetime.timedelta(days=5),
-            external_id='external_id')
+            external_id='external_2')
         calc_with_metadata.update(
             atoms=['Fe'], comment='this is a specific word', formula='AAA', basis_set='zzz')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(
             calc_id='3', uploader=other_test_user.user_id, published=False,
-            with_embargo=False, pid=3, external_id='external_id')
+            with_embargo=False, pid=3, external_id='external_3')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(
             calc_id='4', uploader=other_test_user.user_id, published=True,
-            with_embargo=True, pid=4, external_id='external_id')
+            with_embargo=True, pid=4, external_id='external_4')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
     def assert_search(self, rv: Any, number_of_calcs: int) -> dict:
@@ -711,30 +711,35 @@ class TestRepo():
         rv = api.get('/repo/%s' % query_string)
         self.assert_search(rv, calcs)
 
-    @pytest.mark.parametrize('calcs, quantity, value', [
-        (2, 'system', 'bulk'),
-        (0, 'system', 'atom'),
-        (1, 'atoms', 'Br'),
-        (1, 'atoms', 'Fe'),
-        (0, 'atoms', ['Fe', 'Br', 'A', 'B']),
-        (0, 'only_atoms', ['Br', 'Si']),
-        (1, 'only_atoms', ['Fe']),
-        (1, 'only_atoms', ['Br', 'K', 'Si']),
-        (1, 'only_atoms', ['Br', 'Si', 'K']),
-        (1, 'comment', 'specific'),
-        (1, 'authors', 'Leonard Hofstadter'),
-        (2, 'files', 'test/mainfile.txt'),
-        (2, 'paths', 'mainfile.txt'),
-        (2, 'paths', 'test'),
-        (2, 'quantities', ['wyckoff_letters_primitive', 'hall_number']),
-        (0, 'quantities', 'dos'),
-        (1, 'external_id', 'external_id'),
-        (0, 'external_id', 'external')
+    @pytest.mark.parametrize('calcs, quantity, value, user', [
+        (2, 'system', 'bulk', 'test_user'),
+        (0, 'system', 'atom', 'test_user'),
+        (1, 'atoms', 'Br', 'test_user'),
+        (1, 'atoms', 'Fe', 'test_user'),
+        (0, 'atoms', ['Fe', 'Br', 'A', 'B'], 'test_user'),
+        (0, 'only_atoms', ['Br', 'Si'], 'test_user'),
+        (1, 'only_atoms', ['Fe'], 'test_user'),
+        (1, 'only_atoms', ['Br', 'K', 'Si'], 'test_user'),
+        (1, 'only_atoms', ['Br', 'Si', 'K'], 'test_user'),
+        (1, 'comment', 'specific', 'test_user'),
+        (1, 'authors', 'Hofstadter, Leonard', 'test_user'),
+        (2, 'files', 'test/mainfile.txt', 'test_user'),
+        (2, 'paths', 'mainfile.txt', 'test_user'),
+        (2, 'paths', 'test', 'test_user'),
+        (2, 'quantities', ['wyckoff_letters_primitive', 'hall_number'], 'test_user'),
+        (0, 'quantities', 'dos', 'test_user'),
+        (2, 'external_id', 'external_2,external_3', 'other_test_user'),
+        (1, 'external_id', 'external_2', 'test_user'),
+        (1, 'external_id', 'external_2,external_3', 'test_user'),
+        (0, 'external_id', 'external_x', 'test_user')
     ])
-    def test_search_parameters(self, api, example_elastic_calcs, no_warn, test_user_auth, calcs, quantity, value):
+    def test_search_parameters(
+            self, api, example_elastic_calcs, no_warn, test_user_auth,
+            other_test_user_auth, calcs, quantity, value, user):
+        user_auth = test_user_auth if user == 'test_user' else other_test_user_auth
         query_string = urlencode({quantity: value, 'statistics': True}, doseq=True)
 
-        rv = api.get('/repo/?%s' % query_string, headers=test_user_auth)
+        rv = api.get('/repo/?%s' % query_string, headers=user_auth)
         logger.debug('run search quantities test', query_string=query_string)
         data = self.assert_search(rv, calcs)
 

@@ -198,8 +198,14 @@ class NavigationUnstyled extends React.Component {
   }
 
   componentDidMount() {
-    fetch(`${guiBase}/meta.json`)
-      .then((response) => response.json())
+    fetch(`${guiBase}/meta.json`, {
+      method: 'GET',
+      cache: 'no-cache',
+      headers: {
+        'Pragma': 'no-cache',
+        'Cache-Control': 'no-cache, no-store'
+      }
+    }).then((response) => response.json())
       .then((meta) => {
         if (meta.version !== packageJson.version) {
           console.log('GUI API version mismatch')

@@ -319,6 +319,13 @@ class SearchRequest:
 
         value = quantity.elastic_value(value)
 
+        if quantity.elastic_search_type == 'terms':
+            if not isinstance(value, list):
+                value = [value]
+            self.q &= Q('terms', **{quantity.elastic_field: value})
+
+            return self
+
         if isinstance(value, list):
             values = value
         else:

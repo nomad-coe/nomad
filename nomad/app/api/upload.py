@@ -222,6 +222,7 @@ class UploadListResource(Resource):
             pagination=dict(total=total, page=page, per_page=per_page),
             results=results), 200
 
+    @api.doc(security=list(api.authorizations.keys()))  # weird bug, this should not be necessary
     @api.doc('upload')
     @api.expect(upload_metadata_parser)
     @api.response(400, 'To many uploads')
