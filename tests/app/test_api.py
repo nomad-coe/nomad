@@ -722,7 +722,7 @@ class TestRepo():
         (1, 'only_atoms', ['Br', 'K', 'Si'], 'test_user'),
         (1, 'only_atoms', ['Br', 'Si', 'K'], 'test_user'),
         (1, 'comment', 'specific', 'test_user'),
-        (1, 'authors', 'Hofstadter, Leonard', 'test_user'),
+        (1, 'authors', 'Leonard Hofstadter', 'test_user'),
         (2, 'files', 'test/mainfile.txt', 'test_user'),
         (2, 'paths', 'mainfile.txt', 'test_user'),
         (2, 'paths', 'test', 'test_user'),
