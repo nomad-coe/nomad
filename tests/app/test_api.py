@@ -933,6 +933,19 @@ class TestRepo():
         data = json.loads(rv.data)
         assert data['pagination']['total'] > 0
 
+    def test_edit(self, api, non_empty_processed, test_user_auth):
+        rv = api.post('/repo/', headers=test_user_auth, content_type='application/json',
+            data=json.dumps(dict(metadata=dict(comment='updated_comment'))))
+        assert rv.status_code == 200
+
+        rv = api.get('/repo/?owner=user', headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+
+        assert data['pagination']['total'] > 0
+        for result in data['results']:
+            assert result['comment'] == 'updated_comment'
+
 
 class TestRaw(UploadFilesBasedTests):
 

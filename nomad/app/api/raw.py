@@ -366,7 +366,7 @@ class RawFileQueryResource(Resource):
             abort(400, message='bad parameter types')
 
         search_request = search.SearchRequest()
-        add_query(search_request, search_request_parser)
+        add_query(search_request, search_request_parser.parse_args())
 
         calcs = sorted([
             (entry['upload_id'], entry['mainfile'])

@@ -17,18 +17,19 @@ The repository API of the nomad@FAIRDI APIs. Currently allows to resolve reposit
 meta-data.
 """
 
-from typing import List
+from typing import List, Dict, Any
 from flask_restplus import Resource, abort, fields
 from flask import request, g
 from elasticsearch.exceptions import NotFoundError
+import elasticsearch.helpers
 
-from nomad import search, utils, datamodel
-from nomad.app.utils import rfc3339DateTime
+from nomad import search, utils, datamodel, processing as proc, infrastructure
+from nomad.app.utils import rfc3339DateTime, RFC3339DateTime, with_logger
 from nomad.app.optimade import filterparser
 
 from .api import api
 from .auth import authenticate
-from .common import pagination_model, pagination_request_parser, calc_route
+from .common import pagination_model, pagination_request_parser, calc_route, metadata_model
 
 ns = api.namespace('repo', description='Access repository metadata.')
 
@@ -128,12 +129,33 @@ repo_request_parser.add_argument(
 search_request_parser = api.parser()
 add_common_parameters(search_request_parser)
 
+query_model_parameters = {
+    'owner': fields.String(description='Specify which calcs to return: ``all``, ``public``, ``user``, ``staging``, default is ``all``'),
+    'from_time': RFC3339DateTime(description='A yyyy-MM-ddTHH:mm:ss (RFC3339) minimum entry time (e.g. upload time)'),
+    'until_time': RFC3339DateTime(description='A yyyy-MM-ddTHH:mm:ss (RFC3339) maximum entry time (e.g. upload time)')
+}
 
-def add_query(search_request: search.SearchRequest, parser=repo_request_parser):
+for quantity in search.quantities.values():
+    if quantity.multi:
+        def field(**kwargs):
+            return fields.List(fields.String(**kwargs))
+    else:
+        field = fields.String
+    query_model_parameters[quantity.name] = field(description=quantity.description)
+
+
+repo_query_model = api.model('RepoQuery', query_model_parameters, skip_none=True)
+repo_edit_model = api.model('RepoEdit', {
+    'query': fields.Nested(repo_query_model, skip_none=True, description='New metadata will be applied to query results.'),
+    'metadata': fields.Nested(metadata_model, skip_none=True, description='New metadata that should be used on all query results.')
+})
+
+
+def add_query(search_request: search.SearchRequest, args: Dict[str, Any]):
     """
-    Help that adds query relevant request parameters to the given SearchRequest.
+    Help that adds query relevant request args to the given SearchRequest.
     """
-    args = {key: value for key, value in parser.parse_args().items() if value is not None}
+    args = {key: value for key, value in args.items() if value is not None}
 
     # owner
     try:
@@ -211,7 +233,7 @@ class RepoCalcsResource(Resource):
         """
 
         search_request = search.SearchRequest()
-        add_query(search_request, repo_request_parser)
+        add_query(search_request, repo_request_parser.parse_args())
 
         try:
             scroll = bool(request.args.get('scroll', False))
@@ -283,6 +305,63 @@ class RepoCalcsResource(Resource):
             traceback.print_exc()
             abort(400, str(e))
 
+    @api.doc('edit_repo')
+    @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
+    @api.expect(repo_edit_model)
+    @api.response(code=200, description='Search results send')
+    @authenticate()
+    @with_logger
+    def post(self, logger):
+        """ Edit repository metadata. """
+        json_data = request.get_json()
+        if json_data is None:
+            json_data = {}
+        query = json_data.get('query', {})
+
+        owner = query.get('owner', 'user')
+        if owner not in ['user', 'staging']:
+            abort(400, 'Not a valid owner for edit %s. Edit can only be performed in user or staging' % owner)
+        query['owner'] = owner
+
+        search_request = search.SearchRequest()
+        add_query(search_request, query)
+
+        if 'metadata' not in json_data:
+            abort(400, 'Missing key metadata in edit repo payload')
+        metadata = json_data['metadata']
+        if metadata.get('with_embargo', False):
+            abort(400, 'Cannot raise an embargo, you can only lift the embargo')
+
+        mongo_update = {}
+        # TODO admin keys _uploader, _upload_time and datasets
+        for key in ['with_embargo', 'shared_with', 'coauthors', 'references', 'comment']:
+            if key in metadata:
+                mongo_update['metadata__%s' % key] = metadata[key]
+
+        calc_ids = list(hit['calc_id'] for hit in search_request.execute_scan())
+
+        n_updated = proc.Calc.objects(calc_id__in=calc_ids).update(multi=True, **mongo_update)
+        if n_updated != len(calc_ids):
+            logger.error('edit repo did not update all entries', payload=json_data)
+
+        def elastic_updates():
+            for calc in proc.Calc.objects(calc_id__in=calc_ids):
+                entry = search.Entry.from_calc_with_metadata(
+                    datamodel.CalcWithMetadata(**calc['metadata']))
+                entry = entry.to_dict(include_meta=True)
+                entry['_op_type'] = 'index'
+                yield entry
+
+        _, failed = elasticsearch.helpers.bulk(
+            infrastructure.elastic_client, elastic_updates(), stats_only=True)
+        search.refresh()
+        if failed > 0:
+            logger.error(
+                'edit repo with failed elastic updates',
+                payload=json_data, nfailed=len(failed))
+
+        return 'metadata updated', 200
+
 
 repo_quantity_values_model = api.model('RepoQuantityValues', {
     'quantity': fields.Nested(api.model('RepoQuantity', {
@@ -326,7 +405,7 @@ class RepoQuantityResource(Resource):
         """
 
         search_request = search.SearchRequest()
-        add_query(search_request, repo_quantity_search_request_parser)
+        add_query(search_request, repo_quantity_search_request_parser.parse_args())
 
         try:
             after = request.args.get('after', None)
