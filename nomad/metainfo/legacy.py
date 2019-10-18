@@ -280,7 +280,12 @@ class LegacyMetainfoEnvironment:
 
         return env
 
-    def generate_metainfo_code(self, package: Package, directory: str):
+    def generate_metainfo_code(
+            self, package: Package, directory: str = None, package_name: str = None):
+
+        if directory is None:
+            directory = '.'
+
         def format_description(description, indent=0, width=90):
             paragraphs = [paragraph.strip() for paragraph in description.split('\n')]
 
@@ -315,8 +320,14 @@ class LegacyMetainfoEnvironment:
             format_type=format_type,
             format_unit=format_unit)
 
-        with open(os.path.join(directory, '%s.py' % package.name), 'wt') as f:
-            f.write(env.get_template('package.j2').render(pkg=package))
+        with open(os.path.join(
+                directory, '%s.py' % package_name
+                if package_name is not None else package.name), 'wt') as f:
+            code = env.get_template('package.j2').render(pkg=package)
+            code = '\n'.join([
+                line.rstrip() if line.strip() != '' else ''
+                for line in code.split('\n')])
+            f.write(code)
 
 
 if __name__ == '__main__':
@@ -326,3 +337,4 @@ if __name__ == '__main__':
         package_names=['%s.nomadmetainfo.json' % pkg for pkg in ['common', 'public', 'vasp']])
 
     legacy_env = env.legacy_info_env()
+    env.generate_metainfo_code(env.env.all_packages['public.nomadmetainfo.json'], package_name='public')

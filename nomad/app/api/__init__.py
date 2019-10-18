@@ -26,4 +26,4 @@ There is a separate documentation for the API endpoints from a client perspectiv
 """
 
 from .api import blueprint
-from . import info, auth, admin, upload, repo, archive, raw, mirror
+from . import info, auth, admin, upload, repo, archive, raw, mirror, dataset

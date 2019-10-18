@@ -30,6 +30,7 @@ from nomad import search, parsing, files, config, utils, infrastructure
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
 from nomad.datamodel import UploadWithMetadata, CalcWithMetadata, User
+from nomad.app.api.dataset import DatasetME
 
 from tests.conftest import create_auth_headers, clear_elastic
 from tests.test_files import example_file, example_file_mainfile, example_file_contents
@@ -599,19 +600,19 @@ class TestRepo():
         calc_with_metadata.update(
             calc_id='2', uploader=other_test_user.user_id, published=True,
             with_embargo=False, pid=2, upload_time=today - datetime.timedelta(days=5),
-            external_id='external_id')
+            external_id='external_2')
         calc_with_metadata.update(
             atoms=['Fe'], comment='this is a specific word', formula='AAA', basis_set='zzz')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(
             calc_id='3', uploader=other_test_user.user_id, published=False,
-            with_embargo=False, pid=3, external_id='external_id')
+            with_embargo=False, pid=3, external_id='external_3')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
         calc_with_metadata.update(
             calc_id='4', uploader=other_test_user.user_id, published=True,
-            with_embargo=True, pid=4, external_id='external_id')
+            with_embargo=True, pid=4, external_id='external_4')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
 
     def assert_search(self, rv: Any, number_of_calcs: int) -> dict:
@@ -710,30 +711,35 @@ class TestRepo():
         rv = api.get('/repo/%s' % query_string)
         self.assert_search(rv, calcs)
 
-    @pytest.mark.parametrize('calcs, quantity, value', [
-        (2, 'system', 'bulk'),
-        (0, 'system', 'atom'),
-        (1, 'atoms', 'Br'),
-        (1, 'atoms', 'Fe'),
-        (0, 'atoms', ['Fe', 'Br', 'A', 'B']),
-        (0, 'only_atoms', ['Br', 'Si']),
-        (1, 'only_atoms', ['Fe']),
-        (1, 'only_atoms', ['Br', 'K', 'Si']),
-        (1, 'only_atoms', ['Br', 'Si', 'K']),
-        (1, 'comment', 'specific'),
-        (1, 'authors', 'Leonard Hofstadter'),
-        (2, 'files', 'test/mainfile.txt'),
-        (2, 'paths', 'mainfile.txt'),
-        (2, 'paths', 'test'),
-        (2, 'quantities', ['wyckoff_letters_primitive', 'hall_number']),
-        (0, 'quantities', 'dos'),
-        (1, 'external_id', 'external_id'),
-        (0, 'external_id', 'external')
+    @pytest.mark.parametrize('calcs, quantity, value, user', [
+        (2, 'system', 'bulk', 'test_user'),
+        (0, 'system', 'atom', 'test_user'),
+        (1, 'atoms', 'Br', 'test_user'),
+        (1, 'atoms', 'Fe', 'test_user'),
+        (0, 'atoms', ['Fe', 'Br', 'A', 'B'], 'test_user'),
+        (0, 'only_atoms', ['Br', 'Si'], 'test_user'),
+        (1, 'only_atoms', ['Fe'], 'test_user'),
+        (1, 'only_atoms', ['Br', 'K', 'Si'], 'test_user'),
+        (1, 'only_atoms', ['Br', 'Si', 'K'], 'test_user'),
+        (1, 'comment', 'specific', 'test_user'),
+        (1, 'authors', 'Hofstadter, Leonard', 'test_user'),
+        (2, 'files', 'test/mainfile.txt', 'test_user'),
+        (2, 'paths', 'mainfile.txt', 'test_user'),
+        (2, 'paths', 'test', 'test_user'),
+        (2, 'quantities', ['wyckoff_letters_primitive', 'hall_number'], 'test_user'),
+        (0, 'quantities', 'dos', 'test_user'),
+        (2, 'external_id', 'external_2,external_3', 'other_test_user'),
+        (1, 'external_id', 'external_2', 'test_user'),
+        (1, 'external_id', 'external_2,external_3', 'test_user'),
+        (0, 'external_id', 'external_x', 'test_user')
     ])
-    def test_search_parameters(self, api, example_elastic_calcs, no_warn, test_user_auth, calcs, quantity, value):
+    def test_search_parameters(
+            self, api, example_elastic_calcs, no_warn, test_user_auth,
+            other_test_user_auth, calcs, quantity, value, user):
+        user_auth = test_user_auth if user == 'test_user' else other_test_user_auth
         query_string = urlencode({quantity: value, 'statistics': True}, doseq=True)
 
-        rv = api.get('/repo/?%s' % query_string, headers=test_user_auth)
+        rv = api.get('/repo/?%s' % query_string, headers=user_auth)
         logger.debug('run search quantities test', query_string=query_string)
         data = self.assert_search(rv, calcs)
 
@@ -1151,3 +1157,80 @@ class TestMirror:
 
         data = json.loads(rv.data)
         assert data[0]['upload_id'] == published.upload_id
+
+
+class TestDataset:
+
+    @pytest.fixture()
+    def example_datasets(self, mongo, test_user):
+        DatasetME(dataset_id='1', user_id=test_user.user_id, name='ds1').save()
+        DatasetME(dataset_id='2', user_id=test_user.user_id, name='ds2', doi='test_doi').save()
+
+    def assert_dataset(self, dataset, name: str = None, doi: bool = False):
+        assert 'dataset_id' in dataset
+        assert 'user_id' in dataset
+        assert ('doi' in dataset) == doi
+        assert dataset.get('name') is not None
+        if name is not None:
+            assert dataset.get('name') == name
+
+    def test_create_dataset(self, api, test_user_auth):
+        rv = api.put(
+            '/datasets/', headers=test_user_auth,
+            data=json.dumps(dict(name='test_dataset')),
+            content_type='application/json')
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        self.assert_dataset(data, 'test_dataset')
+
+    @pytest.mark.parametrize('data', [
+        dict(name='test_name', doi='something'),
+        dict(name='test_name', dataset_id='something'),
+        dict(name='test_name', user_id='something'),
+        dict(name='test_name', unknown_key='something'),
+        dict()])
+    def test_create_dataset_bad_data(self, api, test_user_auth, data):
+        rv = api.put(
+            '/datasets/', headers=test_user_auth,
+            data=json.dumps(data),
+            content_type='application/json')
+        assert rv.status_code >= 400
+
+    def test_get_datasets(self, api, test_user_auth, example_datasets):
+        rv = api.get('/datasets/', headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert 'pagination' in data
+        assert data['pagination']['total'] == 2
+        assert len(data['results']) == 2
+        for dataset in data['results']:
+            if dataset['name'] == 'ds2':
+                self.assert_dataset(dataset, doi=True)
+            else:
+                self.assert_dataset(dataset)
+
+    def test_get_dataset(self, api, test_user_auth, example_datasets):
+        rv = api.get('/datasets/ds1', headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        self.assert_dataset(data, name='ds1')
+
+    def test_get_dataset_missing(self, api, other_test_user_auth, example_datasets):
+        rv = api.get('/datasets/ds1', headers=other_test_user_auth)
+        assert rv.status_code == 404
+
+    def test_post_dataset(self, api, test_user_auth, example_datasets):
+        rv = api.post('/datasets/ds1', headers=test_user_auth)
+        # TODO the actual DOI part needs to be implemented
+        assert rv.status_code == 200
+
+    def test_delete_dataset(self, api, test_user_auth, example_datasets):
+        rv = api.delete('/datasets/ds1', headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        self.assert_dataset(data, name='ds1')
+        api.get('/datasets/ds1', headers=test_user_auth).status_code == 404
+
+    def test_get_dataset_with_doi(self, api, test_user_auth, example_datasets):
+        rv = api.delete('/datasets/ds2', headers=test_user_auth)
+        assert rv.status_code == 400
