@@ -119,6 +119,16 @@ server {{
         rewrite ^{1}/gui/service-worker.js /nomad/service-worker.js break;
     }}
 
+    location {1}/gui/meta.json {{
+        add_header Last-Modified $date_gmt;
+        add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
+        if_modified_since off;
+        expires off;
+        etag off;
+        root      /app/;
+        rewrite ^{1}/gui/meta.json /nomad/meta.json break;
+    }}
+
     location {1}/api {{
         proxy_set_header Host $host;
         proxy_pass_request_headers on;
