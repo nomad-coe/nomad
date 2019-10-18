@@ -205,6 +205,7 @@ class DomainQuantity:
         elastic_field: An optional elasticsearch key. Default is the name of the quantity.
         elastic_value: A collable that takes a :class:`CalcWithMetadata` as input and produces the
             value for the elastic search index.
+        argparse_action: Action to use on argparse, either append or split for multi values. Append is default.
     """
 
     def __init__(
@@ -213,7 +214,8 @@ class DomainQuantity:
             zero_aggs: bool = True, metadata_field: str = None,
             elastic_mapping: type = None,
             elastic_search_type: str = 'term', elastic_field: str = None,
-            elastic_value: Callable[[Any], Any] = None):
+            elastic_value: Callable[[Any], Any] = None,
+            argparse_action: str = 'append'):
 
         self._name: str = None
         self.description = description
@@ -226,6 +228,7 @@ class DomainQuantity:
         self.elastic_search_type = elastic_search_type
         self.metadata_field = metadata_field
         self.elastic_field = elastic_field
+        self.argparse_action = argparse_action
 
         self.elastic_value = elastic_value
         if self.elastic_value is None:
@@ -298,7 +301,9 @@ class Domain:
         pid=DomainQuantity(description='Search for the pid.'),
         raw_id=DomainQuantity(description='Search for the raw_id.'),
         mainfile=DomainQuantity(description='Search for the mainfile.'),
-        external_id=DomainQuantity(description='External user provided id. Does not have to be unique necessarily.'),
+        external_id=DomainQuantity(
+            description='External user provided id. Does not have to be unique necessarily.',
+            multi=True, argparse_action='split', elastic_search_type='terms'),
         dataset=DomainQuantity(
             elastic_field='datasets.name', multi=True, elastic_search_type='match',
             description='Search for a particular dataset by name.'),
