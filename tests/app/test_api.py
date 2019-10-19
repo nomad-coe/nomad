@@ -934,7 +934,8 @@ class TestRepo():
         assert data['pagination']['total'] > 0
 
     def test_edit(self, api, non_empty_processed, test_user_auth):
-        rv = api.post('/repo/', headers=test_user_auth, content_type='application/json',
+        rv = api.post(
+            '/repo/', headers=test_user_auth, content_type='application/json',
             data=json.dumps(dict(metadata=dict(comment='updated_comment'))))
         assert rv.status_code == 200
 
