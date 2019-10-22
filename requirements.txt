@@ -17,7 +17,7 @@ enum34
 requests
 celery[redis]
 elasticsearch-dsl>=6.0.0,<7.0.0
-mongoengine
+mongoengine=0.18.2
 flask
 flask-restplus
 flask-cors
@@ -66,7 +66,7 @@ pytest==3.10.0  # celery fixtures not compatible with 4.x
 pytest-timeout
 pytest-cov
 rope
-mongomock
+mongomock==3.17.0
 names
 essential_generators
 jinja2
