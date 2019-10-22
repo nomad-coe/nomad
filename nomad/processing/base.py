@@ -441,7 +441,7 @@ def unwarp_task(task, cls_name, self_id, *args, **kwargs):
         try:
             self = cls.get(self_id)
         except KeyError as e:
-            logger.info('called object is missing, retry')
+            logger.warning('called object is missing, retry')
             raise task.retry(exc=e, countdown=3)
     except KeyError:
         logger.critical('called object is missing, retries exeeded', proc_id=self_id)

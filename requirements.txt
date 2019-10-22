@@ -17,7 +17,7 @@ enum34
 requests
 celery[redis]
 elasticsearch-dsl>=6.0.0,<7.0.0
-mongoengine=0.18.2
+mongoengine==0.18.2
 flask
 flask-restplus
 flask-cors
