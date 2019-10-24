@@ -808,7 +808,8 @@ class PublicUploadFiles(UploadFiles):
                     content_path = path[directory_len + (0 if directory_len == 0 else 1):]
                     if path.startswith(directory) and '/' not in content_path:
                         if '/' not in content_path:
-                            results.append((content_path, zf.getinfo(path).file_size))
+                            if not always_restricted(content_path) or self._is_authorized:
+                                results.append((content_path, zf.getinfo(path).file_size))
                         else:
                             # this asserts that sub directories are always behind their
                             # parents and file siblings
