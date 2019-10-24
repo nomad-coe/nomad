@@ -80,7 +80,8 @@ def always_restricted(path: str):
     Used to put general restrictions on files, e.g. due to licensing issues. Will be
     called during packing and while accessing public files.
     """
-    if os.path.basename(path) == 'POTCAR':
+    basename = os.path.basename(path)
+    if basename.startswith('POTCAR') and not basename.endswith('.stripped'):
         return True
 
 
