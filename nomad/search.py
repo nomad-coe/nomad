@@ -58,11 +58,9 @@ class User(InnerDoc):
 class Dataset(InnerDoc):
 
     @classmethod
-    def from_dataset_popo(cls, dataset):
-        return cls(
-            id=dataset.id,
-            doi=dataset.doi['value'] if dataset.doi is not None else None,
-            name=dataset.name)
+    def from_dataset_id(cls, dataset_id):
+        dataset = datamodel.Dataset.get(dataset_id=dataset_id)
+        return cls(id=dataset.dataset_id, doi=dataset.doi, name=dataset.name)
 
     id = Keyword()
     doi = Keyword()
@@ -147,7 +145,7 @@ class Entry(Document, metaclass=WithDomain):
                 self.owners.append(self.uploader)
         self.comment = source.comment
         self.references = [ref.value for ref in source.references]
-        self.datasets = [Dataset.from_dataset_popo(ds) for ds in source.datasets]
+        self.datasets = [Dataset.from_dataset_id(dataset_id) for dataset_id in source.datasets]
         self.external_id = source.external_id
 
         for quantity in datamodel.Domain.instance.domain_quantities.values():

@@ -23,6 +23,8 @@ from nomad import utils, config
 from nomad.metainfo import MSection
 from nomad import utils, config, infrastructure
 
+from .dataset import Dataset
+
 
 class User:
     """
@@ -122,8 +124,7 @@ class CalcWithMetadata(Mapping):
         shared_with: List of users this calcs ownership is shared with, objects with at ``user_id``.
         comment: String comment.
         references: Objects describing user provided references, keys are ``id`` and ``value``.
-        datasets: Objects describing the datasets, keys are ``id``, ``name``, ``doi``.
-            DOI is optional, is an object with key ``id``, ``value``.
+        datasets: A list of dataset ids. The corresponding :class:`Dataset`s must exist.
     """
     def __init__(self, **kwargs):
         # id relevant metadata
@@ -150,7 +151,7 @@ class CalcWithMetadata(Mapping):
         self.shared_with: List[str] = []
         self.comment: str = None
         self.references: List[utils.POPO] = []
-        self.datasets: List[utils.POPO] = []
+        self.datasets: List[str] = []
         self.external_id: str = None
 
         # parser related general (not domain specific) metadata
@@ -226,10 +227,9 @@ class CalcWithMetadata(Mapping):
         self.shared_with = [
             user_id for user_id in metadata.get('shared_with', self.shared_with)
             if User.get(user_id=user_id) is not None]
-        if 'datasets' in metadata:
-            self.datasets = [
-                utils.POPO(id=int(ds['id']), doi=utils.POPO(value=ds.get('_doi')), name=ds.get('_name'))
-                for ds in metadata['datasets']]
+        self.datasets = [
+            dataset_id for dataset_id in metadata.get('datasets', self.datasets)
+            if Dataset.get(dataset_id=dataset_id) is not None]
         self.external_id = metadata.get('external_id')
 
     def apply_domain_metadata(self, backend):

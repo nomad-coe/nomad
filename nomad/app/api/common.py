@@ -23,12 +23,6 @@ from nomad.app.utils import RFC3339DateTime
 from .api import api
 
 
-dataset_model = api.model('DataSet', {
-    'id': fields.Integer(required=True, description='The repository db dataset id'),
-    '_doi': fields.String(description='The DOI of the dataset'),
-    '_name': fields.String(description='The unique dataset name')
-})
-
 metadata_model = api.model('MetaData', {
     'with_embargo': fields.Boolean(default=False, description='Data with embargo is only visible to the upload until the embargo period ended.'),
     'comment': fields.String(description='The comment are shown in the repository for each calculation.'),
@@ -37,7 +31,7 @@ metadata_model = api.model('MetaData', {
     'shared_with': fields.List(fields.String, description='A list of users to share calculations with given by user_id.'),
     '_upload_time': RFC3339DateTime(description='Overrride the upload time.'),
     '_uploader': fields.String(description='Override the uploader with the given user id.'),
-    'datasets': fields.List(fields.Nested(model=dataset_model, skip_none=True), description='A list of datasets.')
+    'datasets': fields.List(fields.String, description='A list of dataset ids.')
 })
 
 pagination_model = api.model('Pagination', {

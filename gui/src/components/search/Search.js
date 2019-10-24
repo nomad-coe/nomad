@@ -1,7 +1,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
-import { IconButton, Typography, Divider, Tooltip, Tabs, Tab } from '@material-ui/core'
+import { IconButton, Divider, Tooltip, Tabs, Tab, Paper } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withErrors } from '../errors'
 import { withApi, DisableOnLoading } from '../api'
@@ -11,9 +11,8 @@ import SearchAggregations from './SearchAggregations'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ExpandLessIcon from '@material-ui/icons/ExpandLess'
 import { withDomain } from '../domains'
-import DatasetList from './DatasetList';
-import { isEquivalent } from '../../utils';
-
+import DatasetList from './DatasetList'
+import { isEquivalent } from '../../utils'
 
 /**
  * Component that comprises all search views: SearchBar, SearchAggregations (aka statistics),
@@ -23,6 +22,7 @@ class Search extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
+    keycloak: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired,
     domain: PropTypes.object,
     loading: PropTypes.number,
@@ -33,8 +33,6 @@ class Search extends React.Component {
 
   static styles = theme => ({
     root: {
-    },
-    searchContainer: {
       padding: theme.spacing.unit * 3
     },
     resultsContainer: {
@@ -92,7 +90,7 @@ class Search extends React.Component {
     searchState: {
       metrics: [],
       searchValues: {
-        ...(this.props.searchValues || {})
+        ...(this.props.searchValues || {})
       }
     },
     entryListState: {
@@ -194,7 +192,7 @@ class Search extends React.Component {
   }
 
   render() {
-    const { classes, domain, loading } = this.props
+    const { classes, domain, loading, keycloak } = this.props
     const { data, searchState, entryListState, datasetListState, showDetails, resultTab } = this.state
     const { searchValues } = searchState
     const { pagination: { total }, statistics } = data
@@ -213,36 +211,35 @@ class Search extends React.Component {
 
     return (
       <div className={classes.root}>
-        <div className={classes.searchContainer}>
-          <DisableOnLoading>
-            <div className={classes.search}>
-              <SearchBar classes={{autosuggestRoot: classes.searchBar}}
-                fullWidth fullWidthInput={false} helperText={helperText}
-                label="search"
-                placeholder={domain.searchPlaceholder}
-                data={data} searchValues={searchValues}
-                InputLabelProps={{
-                  shrink: true
-                }}
-                onChanged={values => this.updateSearch({searchValues: values})}
-              />
-              <Divider className={classes.searchDivider} />
-              <Tooltip title={showDetails ? 'Hide statistics' : 'Show statistics'}>
-                <IconButton className={classes.searchButton} color="secondary" onClick={this.handleClickExpand}>
-                  {showDetails ? <ExpandLessIcon/> : <ExpandMoreIcon/>}
-                </IconButton>
-              </Tooltip>
-            </div>
+        <DisableOnLoading>
+          <div className={classes.search}>
+            <SearchBar classes={{autosuggestRoot: classes.searchBar}}
+              fullWidth fullWidthInput={false} helperText={helperText}
+              label="search"
+              placeholder={domain.searchPlaceholder}
+              data={data} searchValues={searchValues}
+              InputLabelProps={{
+                shrink: true
+              }}
+              onChanged={values => this.updateSearch({searchValues: values})}
+            />
+            <Divider className={classes.searchDivider} />
+            <Tooltip title={showDetails ? 'Hide statistics' : 'Show statistics'}>
+              <IconButton className={classes.searchButton} color="secondary" onClick={this.handleClickExpand}>
+                {showDetails ? <ExpandLessIcon/> : <ExpandMoreIcon/>}
+              </IconButton>
+            </Tooltip>
+          </div>
 
-            <div className={classes.searchEntry}>
-              <SearchAggregations
-                data={data} {...searchState} onChange={this.updateSearch}
-                showDetails={showDetails}
-              />
-            </div>
-          </DisableOnLoading>
-        </div>
-        <div className={classes.resultsContainer}>
+          <div className={classes.searchEntry}>
+            <SearchAggregations
+              data={data} {...searchState} onChange={this.updateSearch}
+              showDetails={showDetails}
+            />
+          </div>
+        </DisableOnLoading>
+
+        <Paper className={classes.resultsContainer}>
           <Tabs
             value={resultTab}
             indicatorColor="primary"
@@ -254,27 +251,20 @@ class Search extends React.Component {
           </Tabs>
 
           <div className={classes.searchResults} hidden={resultTab !== 'entries'}>
-            <Typography variant="caption" style={{margin: 12}}>
-              About {total.toLocaleString()} results:
-            </Typography>
-
             <EntryList
+              editable={keycloak.authenticated}
               data={data} total={total}
               onChange={this.updateEntryList}
               {...entryListState}
             />
           </div>
           <div className={classes.searchResults} hidden={resultTab !== 'datasets'}>
-            <Typography variant="caption" style={{margin: 12}}>
-              About {statistics.total.all.datasets.toLocaleString()} datasets:
-            </Typography>
-
             <DatasetList data={data} total={statistics.total.all.datasets}
               onChange={this.updateDatasetList}
               {...datasetListState}
             />
           </div>
-        </div>
+        </Paper>
       </div>
     )
   }

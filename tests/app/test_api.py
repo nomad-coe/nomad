@@ -29,10 +29,10 @@ from nomad.app.api.auth import generate_upload_token
 from nomad import search, parsing, files, config, utils, infrastructure
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
-from nomad.datamodel import UploadWithMetadata, CalcWithMetadata, User
+from nomad.datamodel import UploadWithMetadata, CalcWithMetadata, User, Dataset
 from nomad.app.api.dataset import DatasetME
 
-from tests.conftest import create_auth_headers, clear_elastic
+from tests.conftest import create_auth_headers, clear_elastic, create_test_structure
 from tests.test_files import example_file, example_file_mainfile, example_file_contents
 from tests.test_files import create_staging_upload, create_public_upload, assert_upload_files
 from tests.test_search import assert_search_upload
@@ -586,12 +586,15 @@ class TestRepo():
             test_user: User, other_test_user: User):
         clear_elastic(elastic_infra)
 
+        example_dataset = DatasetME(
+            dataset_id='ds_id', name='ds_name', user_id=test_user.user_id, doi='ds_doi')
+        example_dataset.save()
+
         calc_with_metadata = CalcWithMetadata(upload_id=0, calc_id=0, upload_time=today)
         calc_with_metadata.files = ['test/mainfile.txt']
         calc_with_metadata.apply_domain_metadata(normalized)
 
-        calc_with_metadata.update(datasets=[
-            utils.POPO(id='ds_id', doi=dict(value='ds_doi'), name='ds_name')])
+        calc_with_metadata.update(datasets=[example_dataset.dataset_id])
 
         calc_with_metadata.update(
             calc_id='1', uploader=test_user.user_id, published=True, with_embargo=False)
@@ -614,6 +617,10 @@ class TestRepo():
             calc_id='4', uploader=other_test_user.user_id, published=True,
             with_embargo=True, pid=4, external_id='external_4')
         search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
+
+        yield
+
+        example_dataset.delete()
 
     def assert_search(self, rv: Any, number_of_calcs: int) -> dict:
         if rv.status_code != 200:
@@ -933,19 +940,93 @@ class TestRepo():
         data = json.loads(rv.data)
         assert data['pagination']['total'] > 0
 
-    def test_edit(self, api, non_empty_processed, test_user_auth):
-        rv = api.post(
+
+class TestEditRepo():
+    @pytest.fixture(scope='class')
+    def session_api(self, session_client, elastic_infra, mongo_infra):
+        clear_elastic(elastic_infra)
+        mongo_infra.drop_database('test_db')
+
+        yield BlueprintClient(session_client, '/api')
+
+        mongo_infra.drop_database('test_db')
+        clear_elastic(elastic_infra)
+
+    @pytest.fixture(scope='class')
+    def example_dataset(self, test_user):
+        ds = DatasetME(dataset_id='ds1', name='ds1', user_id=test_user.user_id)
+        ds.save()
+        yield ds
+        ds.delete()
+
+    @pytest.fixture(scope='class')
+    def example_data(self, meta_info, session_api, test_user, other_test_user):
+        def create_entry(id, user, **kwargs):
+            metadata = dict(uploader=user.user_id, **kwargs)
+            create_test_structure(meta_info, id, 2, 1, [], 0, metadata=metadata)
+
+        entries = [
+            dict(upload_id='upload_1', user=test_user, published=True, embargo=False),
+            dict(upload_id='upload_2', user=test_user, published=True, embargo=True),
+            dict(upload_id='upload_2', user=test_user, published=False, embargo=False),
+            dict(upload_id='upload_3', user=other_test_user, published=True, embargo=False)
+        ]
+
+        i = 0
+        for entry in entries:
+            create_entry(i, **entry)
+            i += 1
+
+        search.refresh()
+
+    def test_edit_all(self, session_api, example_data, test_user_auth, no_warn):
+        rv = session_api.post(
             '/repo/', headers=test_user_auth, content_type='application/json',
-            data=json.dumps(dict(metadata=dict(comment='updated_comment'))))
+            data=json.dumps(dict(metadata=dict(comment='test_edit_all'))))
         assert rv.status_code == 200
 
-        rv = api.get('/repo/?owner=user', headers=test_user_auth)
+        rv = session_api.get('/repo/?owner=user', headers=test_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)
 
-        assert data['pagination']['total'] > 0
+        assert data['pagination']['total'] == 3
+        assert len(data['results']) == 3
         for result in data['results']:
-            assert result['comment'] == 'updated_comment'
+            assert result['comment'] == 'test_edit_all'
+
+    def test_edit_some(self, session_api, example_data, test_user_auth, no_warn):
+        rv = session_api.post(
+            '/repo/', headers=test_user_auth, content_type='application/json',
+            data=json.dumps(dict(
+                query=dict(upload_id='upload_1'),
+                metadata=dict(comment='test_edit_some'))))
+        assert rv.status_code == 200
+
+        rv = session_api.get('/repo/?owner=user', headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+
+        assert data['pagination']['total'] == 3
+        assert len(data['results']) == 3
+        for result in data['results']:
+            assert (result['comment'] == 'test_edit_some') == (result['upload_id'] == 'upload_1')
+
+    def test_edit_ds(self, session_api, example_data, example_dataset, test_user_auth, no_warn):
+        rv = session_api.post(
+            '/repo/', headers=test_user_auth, content_type='application/json',
+            data=json.dumps(dict(
+                query=dict(upload_id='upload_1'),
+                metadata=dict(datasets=[example_dataset.dataset_id]))))
+        assert rv.status_code == 200
+
+        rv = session_api.get('/repo/?owner=user&upload_id=upload_1', headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+
+        assert data['pagination']['total'] == 1
+        assert len(data['results']) == 1
+        for result in data['results']:
+            assert result['datasets'][0]['name'] == 'ds1'
 
 
 class TestRaw(UploadFilesBasedTests):

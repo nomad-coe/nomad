@@ -332,11 +332,16 @@ class RepoCalcsResource(Resource):
         if metadata.get('with_embargo', False):
             abort(400, 'Cannot raise an embargo, you can only lift the embargo')
 
+        if '_uploader' in metadata or '_upload_time' in metadata:
+            if not g.user.is_admin():
+                abort(400, 'Only the admin user can set uploader or upload_time.')
+
         mongo_update = {}
-        # TODO admin keys _uploader, _upload_time and datasets
-        for key in ['with_embargo', 'shared_with', 'coauthors', 'references', 'comment']:
+        for key in [
+                'with_embargo', 'shared_with', 'coauthors', 'references', 'comment',
+                'datasets', '_uploader', '_upload_time']:
             if key in metadata:
-                mongo_update['metadata__%s' % key] = metadata[key]
+                mongo_update['metadata__%s' % key.lstrip('_')] = metadata[key]
 
         calc_ids = list(hit['calc_id'] for hit in search_request.execute_scan())
 

@@ -9,6 +9,7 @@
     "autosuggest-highlight": "^3.1.1",
     "base-64": "^0.1.0",
     "chroma-js": "^2.0.3",
+    "clsx": "^1.0.4",
     "d3": "^5.9.1",
     "fetch": "^1.1.0",
     "file-saver": "^2.0.0",

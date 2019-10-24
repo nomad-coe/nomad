@@ -327,12 +327,15 @@ class Keycloak():
 keycloak = Keycloak()
 
 
-def reset():
+def reset(remove: bool):
     """
     Resets the databases mongo, elastic/calcs, and all files. Be careful.
     In contrast to :func:`remove`, it will only remove the contents of dbs and indicies.
     This function just attempts to remove everything, there is no exception handling
     or any warranty it will succeed.
+
+    Args:
+        remove: Do not try to recreate empty databases, remove entirely.
     """
     try:
         if not mongo_client:
@@ -347,7 +350,8 @@ def reset():
             setup_elastic()
         elastic_client.indices.delete(index=config.elastic.index_name)
         from nomad.search import Entry
-        Entry.init(index=config.elastic.index_name)
+        if not remove:
+            Entry.init(index=config.elastic.index_name)
         logger.info('elastic index resetted')
     except Exception as e:
         logger.error('exception resetting elastic', exc_info=e)
@@ -355,48 +359,19 @@ def reset():
     try:
         shutil.rmtree(config.fs.staging, ignore_errors=True)
         shutil.rmtree(config.fs.public, ignore_errors=True)
+
         # delete tmp without the folder
-        for sub_path in os.listdir(config.fs.tmp):
-            path = os.path.join(config.fs.tmp, sub_path)
-            try:
-                if os.path.isfile(path):
-                    os.unlink(path)
-                elif os.path.isdir(path): shutil.rmtree(path, ignore_errors=True)
-            except Exception:
-                pass
+        if os.path.isdir(config.fs.tmp):
+            for sub_path in os.listdir(config.fs.tmp):
+                path = os.path.join(config.fs.tmp, sub_path)
+                try:
+                    if os.path.isfile(path):
+                        os.unlink(path)
+                    elif os.path.isdir(path): shutil.rmtree(path, ignore_errors=True)
+                except Exception:
+                    pass
 
         logger.info('files resetted')
-    except Exception as e:
-        logger.error('exception deleting files', exc_info=e)
-
-
-def remove():
-    """
-    Removes the databases mongo, elastic, and all files. Be careful.
-    This function just attempts to remove everything, there is no exception handling
-    or any warranty it will succeed.
-    """
-    try:
-        if not mongo_client:
-            setup_mongo()
-        mongo_client.drop_database(config.mongo.db_name)
-        logger.info('mongodb deleted')
-    except Exception as e:
-        logger.error('exception deleting mongodb', exc_info=e)
-
-    try:
-        if not elastic_client:
-            setup_elastic()
-        elastic_client.indices.delete(index=config.elastic.index_name)
-        logger.info('elastic index')
-    except Exception as e:
-        logger.error('exception deleting elastic', exc_info=e)
-
-    logger.info('reset files')
-    try:
-        shutil.rmtree(config.fs.staging, ignore_errors=True)
-        shutil.rmtree(config.fs.public, ignore_errors=True)
-        shutil.rmtree(config.fs.tmp, ignore_errors=True)
     except Exception as e:
         logger.error('exception deleting files', exc_info=e)
 

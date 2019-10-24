@@ -118,27 +118,39 @@ class DomainProviderBase extends React.Component {
        */
       searchResultColumns: {
         formula: {
-          label: 'Formula'
+          label: 'Formula',
+          supportsSort: true
         },
         code_name: {
-          label: 'Code'
+          label: 'Code',
+          supportsSort: true
         },
         basis_set: {
-          label: 'Basis set'
+          label: 'Basis set',
+          supportsSort: true
         },
         xc_functional: {
-          label: 'XT treatment'
+          label: 'XT treatment',
+          supportsSort: true
         },
         system: {
-          label: 'System'
+          label: 'System',
+          supportsSort: true
         },
         crystal_system: {
-          label: 'Crystal system'
+          label: 'Crystal system',
+          supportsSort: true
         },
         spacegroup_symbol: {
-          label: 'Spacegroup'
+          label: 'Spacegroup',
+          supportsSort: true
+        },
+        spacegroup: {
+          label: 'Spacegroup (number)',
+          supportsSort: true
         }
       },
+      defaultSearchResultColumns: ['formula', 'code_name', 'system', 'crystal_system', 'spacegroup_symbol'],
       /**
        * A component to render the domain specific quantities in the metadata card of
        * the entry view. Needs to work with props: data (the entry data from the API),

@@ -31,7 +31,6 @@ import {help as uploadHelp, default as Uploads} from './uploads/Uploads'
 import ResolvePID from './entry/ResolvePID'
 import DatasetPage from './DatasetPage'
 import { capitalize } from '../utils'
-import { makeStyles } from '@material-ui/core/styles'
 import { amber } from '@material-ui/core/colors'
 
 export class VersionMismatch extends Error {
@@ -41,14 +40,13 @@ export class VersionMismatch extends Error {
   }
 }
 
-
 function ReloadSnack() {
   return <Snackbar
-      anchorOrigin={{
-        vertical: 'bottom',
-        horizontal: 'left',
-      }}
-      open
+    anchorOrigin={{
+      vertical: 'bottom',
+      horizontal: 'left'
+    }}
+    open
   >
     <SnackbarContent
       style={{backgroundColor: amber[700]}}

@@ -15,6 +15,7 @@
 import click
 import datetime
 import elasticsearch.helpers
+import sys
 
 from nomad import processing as proc, search, datamodel, infrastructure, utils, config
 
@@ -26,6 +27,21 @@ from nomad.cli.cli import cli
 @click.pass_context
 def admin(ctx):
     pass
+
+
+@admin.command(help='Reset/remove all databases.')
+@click.option('--remove', is_flag=True, help='Do not just reset all dbs, but also remove them.')
+@click.option('--i-am-really-sure', is_flag=True, help='Must be set for the command to to anything.')
+def reset(remove, i_am_really_sure):
+    if not i_am_really_sure:
+        print('You do not seem to be really sure about what you are doing.')
+        sys.exit(1)
+
+    infrastructure.setup_logging()
+    infrastructure.setup_mongo()
+    infrastructure.setup_elastic()
+
+    infrastructure.reset(remove)
 
 
 @admin.command(help='(Re-)index all calcs.')

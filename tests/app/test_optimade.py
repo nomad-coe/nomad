@@ -12,27 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List
 import json
-import numpy as np
 import pytest
 
 from nomad.processing import Upload
-from nomad import search, processing as proc
-from nomad.parsing import LocalBackend
-from nomad.datamodel import CalcWithMetadata
+from nomad import search
 
 from nomad.app.optimade import parse_filter, url
 
 from tests.app.test_app import BlueprintClient
-from tests.test_normalizing import run_normalize
-from tests.conftest import clear_elastic
+from tests.conftest import clear_elastic, create_test_structure
 from tests.utils import assert_exception
 
 
 @pytest.fixture(scope='session')
-def api(nomad_app):
-    return BlueprintClient(nomad_app, '/optimade')
+def api(session_client):
+    return BlueprintClient(session_client, '/optimade')
 
 
 def test_get_entry(published: Upload):
@@ -44,50 +39,9 @@ def test_get_entry(published: Upload):
     assert 'optimade' in search_result
 
 
-def create_test_structure(
-        meta_info, id: int, h: int, o: int, extra: List[str], periodicity: int,
-        without_optimade: bool = False):
-
-    atom_labels = ['H' for i in range(0, h)] + ['O' for i in range(0, o)] + extra
-    test_vector = np.array([0, 0, 0])
-
-    backend = LocalBackend(meta_info, False, True)  # type: ignore
-    backend.openSection('section_run')
-    backend.addValue('program_name', 'test_code')
-    backend.openSection('section_system')
-
-    backend.addArrayValues('atom_labels', np.array(atom_labels))
-    backend.addArrayValues(
-        'atom_positions', np.array([test_vector for i in range(0, len(atom_labels))]))
-    backend.addArrayValues(
-        'lattice_vectors', np.array([test_vector, test_vector, test_vector]))
-    backend.addArrayValues(
-        'configuration_periodic_dimensions',
-        np.array([True for _ in range(0, periodicity)] + [False for _ in range(periodicity, 3)]))
-
-    backend.closeSection('section_system', 0)
-    backend.closeSection('section_run', 0)
-
-    backend = run_normalize(backend)
-    calc_id = 'test_calc_id_%d' % id
-    calc = CalcWithMetadata(
-        upload_id='test_uload_id', calc_id=calc_id, mainfile='test_mainfile',
-        published=True, with_embargo=False)
-    calc.apply_domain_metadata(backend)
-
-    if without_optimade:
-        calc.optimade = None  # type: ignore
-
-    proc.Calc.from_calc_with_metadata(calc).save()
-    search_entry = search.Entry.from_calc_with_metadata(calc)
-    search_entry.save()
-
-    assert proc.Calc.objects(calc_id__in=[calc_id]).count() == 1
-
-
 def test_no_optimade(meta_info, elastic, api):
     create_test_structure(meta_info, 1, 2, 1, [], 0)
-    create_test_structure(meta_info, 2, 2, 1, [], 0, without_optimade=True)
+    create_test_structure(meta_info, 2, 2, 1, [], 0, optimade=False)
     search.refresh()
 
     rv = api.get('/calculations')
@@ -252,5 +206,3 @@ def test_calculation_info_endpoint(api):
     data = json.loads(rv.data)
     for key in ['description', 'properties', 'formats', 'output_fields_by_format']:
         assert key in data['data']
-
-# TODO test response format (deny everything but json)

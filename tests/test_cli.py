@@ -16,6 +16,7 @@
 import pytest
 import click.testing
 import json
+import mongoengine
 
 from nomad import utils, search, processing as proc
 from nomad.cli import cli
@@ -26,6 +27,27 @@ from nomad.processing import Upload, Calc
 
 @pytest.mark.usefixtures('reset_config', 'no_warn')
 class TestAdmin:
+    def test_reset(self):
+        result = click.testing.CliRunner().invoke(
+            cli, ['admin', 'reset', '--i-am-really-sure'], catch_exceptions=False, obj=utils.POPO())
+        assert result.exit_code == 0
+
+        # allow other test to re-establish a connection
+        mongoengine.disconnect_all()
+
+    def test_reset_not_sure(self):
+        result = click.testing.CliRunner().invoke(
+            cli, ['admin', 'reset'], catch_exceptions=False, obj=utils.POPO())
+        assert result.exit_code == 1
+
+    def test_remove(self):
+        result = click.testing.CliRunner().invoke(
+            cli, ['admin', 'reset', '--remove', '--i-am-really-sure'], catch_exceptions=False, obj=utils.POPO())
+        assert result.exit_code == 0
+
+        # allow other test to re-establish a connection
+        mongoengine.disconnect_all()
+
     def test_clean(self, published):
         upload_id = published.upload_id
 

@@ -50,6 +50,11 @@ The class :class:`User` is used to represent users and their attributes.
 
 .. autoclass:: nomad.datamodel.User
     :members:
+
+The class :class:`Dataset` is used to represent datasets and their attributes.
+
+.. autoclass:: nomad.datamodel.Dataset
+    :members:
 """
 
 import sys
@@ -58,6 +63,7 @@ from nomad.datamodel.base import UploadWithMetadata, CalcWithMetadata, Domain, D
 from nomad.datamodel import ems, dft
 from nomad.datamodel.dft import DFTCalcWithMetadata
 from nomad.datamodel.ems import EMSEntryWithMetadata
+from nomad.datamodel.dataset import Dataset, DatasetME
 
 # Override the CalcWithMetadata with the domain specific decendant
 setattr(sys.modules['nomad.datamodel'], 'CalcWithMetadata', Domain.instance.domain_entry_class)
