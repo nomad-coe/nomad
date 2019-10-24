@@ -202,7 +202,7 @@ def bar_plot(
     ax1.set_xticklabels([format_xlabel(value) if value != 'Quantum Espresso' else 'Q. Espresso' for value in x_values])
     ax1.margins(x=0.01)
     ax1.set_xlim(**xlim)
-    i = 0
+    # i = 0
     # for label in ax1.xaxis.get_ticklabels():
     #     label.set_visible(i % 4 == 0)
     #     i += 1
