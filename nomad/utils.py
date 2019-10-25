@@ -432,3 +432,35 @@ class ETA:
 
     def __exit__(self, *args, **kwargs):
         print('')
+
+
+def common_prefix(paths):
+    """
+    Computes the longest common file path prefix (with respect to '/' separated segments).
+    Returns empty string is ne common prefix exists.
+    """
+    common_prefix = None
+
+    for path in paths:
+        if common_prefix is None:
+            common_prefix = path
+
+        index = 0
+        index_last_slash = -1
+        for a, b in zip(path, common_prefix):
+            if a != b:
+                break
+            if a == '/':
+                index_last_slash = index
+            index += 1
+
+        if index_last_slash == -1:
+            common_prefix = ''
+            break
+
+        common_prefix = common_prefix[:index_last_slash + 1]
+
+    if common_prefix is None:
+        common_prefix = ''
+
+    return common_prefix

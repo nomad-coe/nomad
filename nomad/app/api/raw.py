@@ -16,7 +16,7 @@
 The raw API of the nomad@FAIRDI APIs. Can be used to retrieve raw calculation files.
 """
 
-from typing import IO, Any, Union, Iterable, Tuple, Set
+from typing import IO, Any, Union, Iterable, Tuple, Set, List
 import os.path
 import zipstream
 from flask import Response, request, send_file, stream_with_context
@@ -24,6 +24,7 @@ from flask_restplus import abort, Resource, fields
 import magic
 import sys
 import contextlib
+import fnmatch
 
 from nomad import search, utils
 from nomad.files import UploadFiles, Restricted
@@ -346,16 +347,25 @@ class RawFilesResource(Resource):
 
 
 raw_file_from_query_parser = search_request_parser.copy()
-raw_file_from_query_parser = dict(
+raw_file_from_query_parser.add_argument(
     name='compress', type=bool, help='Use compression on .zip files, default is not.',
     location='args')
+raw_file_from_query_parser.add_argument(
+    name='strip', type=bool, help='Removes a potential common path prefix from all file paths.',
+    location='args')
+raw_file_from_query_parser.add_argument(
+    name='file_pattern', type=str,
+    help=(
+        'A wildcard pattern. Only filenames that match this pattern will be in the '
+        'download. Multiple patterns will be combined with logical or'),
+    location='args', action='append')
 
 
 @ns.route('/query')
 class RawFileQueryResource(Resource):
     @api.doc('raw_files_from_query')
     @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
-    @api.expect(search_request_parser, validate=True)
+    @api.expect(raw_file_from_query_parser, validate=True)
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
     @login_if_available
     def get(self):
@@ -366,8 +376,17 @@ class RawFileQueryResource(Resource):
         Zip files are streamed; instead of 401 errors, the zip file will just not contain
         any files that the user is not authorized to access.
         """
+        patterns: List[str] = None
         try:
             compress = bool(request.args.get('compress', False))
+            strip = bool(request.args.get('strip', False))
+            pattern = request.args.get('file_pattern', None)
+            if isinstance(pattern, str):
+                patterns = [pattern]
+            elif pattern is None:
+                patterns = []
+            else:
+                patterns = pattern
         except Exception:
             abort(400, message='bad parameter types')
 
@@ -377,6 +396,12 @@ class RawFileQueryResource(Resource):
         calcs = sorted([
             (entry['upload_id'], entry['mainfile'])
             for entry in search_request.execute_scan()], key=lambda x: x[0])
+
+        paths = ['%s/%s' % (upload_id, mainfile) for upload_id, mainfile in calcs]
+        if strip:
+            common_prefix_len = len(utils.common_prefix(paths))
+        else:
+            common_prefix_len = 0
 
         def generator():
             for upload_id, mainfile in calcs:
@@ -392,8 +417,16 @@ class RawFileQueryResource(Resource):
                     zipfile_cache = contextlib.suppress()
 
                 with zipfile_cache:
-                    for filename in list(upload_files.raw_file_manifest(path_prefix=os.path.dirname(mainfile))):
-                        yield os.path.join(upload_id, filename), filename, upload_files
+                    filenames = upload_files.raw_file_manifest(
+                        path_prefix=os.path.dirname(mainfile))
+                    for filename in filenames:
+                        filename_w_upload = os.path.join(upload_files.upload_id, filename)
+                        filename_wo_prefix = filename_w_upload[common_prefix_len:]
+                        if len(patterns) == 0 or any(
+                                fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
+                                for pattern in patterns):
+
+                            yield filename_wo_prefix, filename, upload_files
 
         return _streamed_zipfile(generator(), zipfile_name='nomad_raw_files.zip', compress=compress)
 

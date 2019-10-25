@@ -78,6 +78,11 @@ your browser.
 ## Change log
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v0.6.2
+- API /raw/query endpoint takes file pattern to further filter download contents and
+  strips potential shared path prefixes for a cleaner download .zip
+- minor bugfixes
+
 ### v0.6.0
 - GUI URL, and API endpoint that resolves NOMAD CoE legacy PIDs
 - Support for datasets in the GUI
