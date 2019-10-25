@@ -378,9 +378,10 @@ class RawFileQueryResource(Resource):
         """
         patterns: List[str] = None
         try:
-            compress = bool(request.args.get('compress', False))
-            strip = bool(request.args.get('strip', False))
-            pattern = request.args.get('file_pattern', None)
+            args = raw_file_from_query_parser.parse_args()
+            compress = args.get('compress', False)
+            strip = args.get('strip', False)
+            pattern = args.get('file_pattern', None)
             if isinstance(pattern, str):
                 patterns = [pattern]
             elif pattern is None:
