@@ -7,14 +7,15 @@ import { withDomain } from '../domains'
 import DataTable from '../DataTable'
 import Quantity from '../Quantity'
 import { Link as RouterLink } from 'react-router-dom'
-import EditIcon from '@material-ui/icons/Edit'
 import MoreIcon from '@material-ui/icons/MoreHoriz'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
+import EditUserMetadataDialog from '../EditUserMetadataDialog'
 
 class EntryListUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     data: PropTypes.object.isRequired,
+    query: PropTypes.object.isRequired,
     total: PropTypes.number.isRequired,
     onChange: PropTypes.func,
     history: PropTypes.any.isRequired,
@@ -111,6 +112,17 @@ class EntryListUnstyled extends React.Component {
     }
   }
 
+  selectionQuery() {
+    const { selected } = this.state
+    if (selected) {
+      return {
+        'calc_id': selected.join(',')
+      }
+    } else {
+      return this.props.query
+    }
+  }
+
   renderEntryDetails(row) {
     const { classes, domain } = this.props
     return (<div className={classes.entryDetails}>
@@ -196,11 +208,7 @@ class EntryListUnstyled extends React.Component {
 
   renderEntryActions(row) {
     return <React.Fragment>
-      <Tooltip title="Edit user metadata">
-        <IconButton>
-          <EditIcon />
-        </IconButton>
-      </Tooltip>
+      <EditUserMetadataDialog query={{calc_id: row.calc_id}}/>
       <Tooltip title="Download raw files">
         <IconButton>
           <DownloadIcon />
@@ -236,11 +244,7 @@ class EntryListUnstyled extends React.Component {
     />
 
     const selectActions = editable ? <React.Fragment>
-      <Tooltip title="Edit user metadata">
-        <IconButton color="primary">
-          <EditIcon />
-        </IconButton>
-      </Tooltip>
+      <EditUserMetadataDialog color="primary" query={this.selectionQuery()}/>
       <Tooltip title="Download raw files">
         <IconButton color="primary">
           <DownloadIcon />

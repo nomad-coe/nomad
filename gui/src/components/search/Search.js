@@ -192,7 +192,7 @@ class Search extends React.Component {
   }
 
   render() {
-    const { classes, domain, loading, keycloak } = this.props
+    const { classes, domain, loading, keycloak, searchParameters } = this.props
     const { data, searchState, entryListState, datasetListState, showDetails, resultTab } = this.state
     const { searchValues } = searchState
     const { pagination: { total }, statistics } = data
@@ -252,6 +252,7 @@ class Search extends React.Component {
 
           <div className={classes.searchResults} hidden={resultTab !== 'entries'}>
             <EntryList
+              query={{...searchParameters, ...searchValues}}
               editable={keycloak.authenticated}
               data={data} total={total}
               onChange={this.updateEntryList}
