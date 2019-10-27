@@ -208,7 +208,7 @@ class EntryListUnstyled extends React.Component {
 
   renderEntryActions(row) {
     return <React.Fragment>
-      <EditUserMetadataDialog query={{calc_id: row.calc_id}}/>
+      <EditUserMetadataDialog example={row} total={1} />
       <Tooltip title="Download raw files">
         <IconButton>
           <DownloadIcon />
@@ -225,6 +225,7 @@ class EntryListUnstyled extends React.Component {
   render() {
     const { classes, data, order, order_by, page, per_page, domain, editable } = this.props
     const { results, pagination: { total } } = data
+    const { selected } = this.state
 
     const columns = {
       ...domain.searchResultColumns,
@@ -243,8 +244,12 @@ class EntryListUnstyled extends React.Component {
       onChangeRowsPerPage={this.handleChangeRowsPerPage}
     />
 
+    const example = selected ? data.results.find(d => d.calc_id === selected[0]) : data.results[0]
     const selectActions = editable ? <React.Fragment>
-      <EditUserMetadataDialog color="primary" query={this.selectionQuery()}/>
+      <EditUserMetadataDialog
+        buttonProps={{color: 'primary'}}
+        example={example} total={total}
+      />
       <Tooltip title="Download raw files">
         <IconButton color="primary">
           <DownloadIcon />

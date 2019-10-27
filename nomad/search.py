@@ -47,11 +47,14 @@ class User(InnerDoc):
     @classmethod
     def from_user_id(cls, user_id):
         self = cls(user_id=user_id)
-        self.name = datamodel.User.get(user_id=user_id).name
+        user = datamodel.User.get(user_id=user_id)
+        self.name = user.name
+        self.email = user.email
 
         return self
 
     user_id = Keyword()
+    email = Keyword()
     name = Text(fields={'keyword': Keyword()})
 
 

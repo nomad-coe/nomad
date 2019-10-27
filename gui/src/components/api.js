@@ -326,6 +326,33 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
+  async getDatasets(prefix) {
+    this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.datasets.list_datasets({prefix: prefix}))
+      .catch(handleApiError)
+      .then(response => response.body)
+      .finally(this.onFinishLoading)
+  }
+
+  async getUsers(query) {
+    this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.auth.get_users({query: query}))
+      .catch(handleApiError)
+      .then(response => response.body)
+      .finally(this.onFinishLoading)
+  }
+
+  async quantities_search(search) {
+    this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.repo.quantities_search(search))
+      .catch(handleApiError)
+      .then(response => response.body)
+      .finally(this.onFinishLoading)
+  }
+
   async deleteUpload(uploadId) {
     this.onStartLoading()
     return this.swagger()

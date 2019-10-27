@@ -220,6 +220,31 @@ class AuthResource(Resource):
             abort(401, 'The authenticated user does not exist')
 
 
+users_model = api.model('UsersModel', {
+    'users': fields.Nested(api.model('UserModel', {
+        'name': fields.String(description='The full name of the user as presented in the UI.'),
+        'user_id': fields.String(description='The unique user UUID.'),
+        'email': fields.String(description='The email.')
+    }))
+})
+
+users_parser = api.parser()
+users_parser.add_argument(
+    'query', default='',
+    help='Only return users that contain this string in their names, usernames, or emails.')
+
+
+@ns.route('/users')
+class UsersResource(Resource):
+    @api.doc('get_users')
+    @api.marshal_with(users_model, code=200, description='User suggestions send')
+    @api.expect(users_parser, validate=True)
+    def get(self):
+        args = users_parser.parse_args()
+
+        return dict(users=infrastructure.keycloak.search_user(args.get('query')))
+
+
 def with_signature_token(func):
     """
     A decorator for API endpoint implementations that validates signed URLs. Token to

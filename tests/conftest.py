@@ -227,6 +227,11 @@ class KeycloakMock:
         else:
             assert False, 'no token based get_user during tests'
 
+    def search_user(self, query):
+        return [
+            User(**test_user) for test_user in test_users.values()
+            if query in ' '.join(test_user.values())]
+
     @property
     def access_token(self):
         return g.oidc_access_token

@@ -57,7 +57,7 @@ def _gen_dataset():
     try:
         datamodel.Dataset.get(dataset_id=id_str)
     except KeyError:
-        datamodel.DatasetME(dataset_id=id_str, name=name, doi=_gen_ref().value).save()
+        datamodel.DatasetME(user_id=random.choice(users), dataset_id=id_str, name=name, doi=_gen_ref().value).save()
     return id_str
 
 

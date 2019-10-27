@@ -95,8 +95,7 @@ class TestKeycloak:
         rv = api.get('/auth/', headers=auth_headers)
         assert rv.status_code == 200
 
-    def test_get_user(self, keycloak):
-        user = infrastructure.keycloak.get_user(email='sheldon.cooper@nomad-coe.eu')
+    def assert_sheldon(self, user):
         assert user.email is not None
         assert user.name == 'Sheldon Cooper'
         assert user.first_name == 'Sheldon'
@@ -104,6 +103,15 @@ class TestKeycloak:
         assert user.created is not None
         assert user.affiliation is not None
         assert user.affiliation_address is not None
+
+    def test_get_user(self, keycloak):
+        user = infrastructure.keycloak.get_user(email='sheldon.cooper@nomad-coe.eu')
+        self.assert_sheldon(user)
+
+    def test_search_user(self, keycloak):
+        users = infrastructure.keycloak.search_user(query='Sheldon')
+        assert len(users) == 1
+        self.assert_sheldon(users[0])
 
 
 class TestAuth:
@@ -124,6 +132,18 @@ class TestAuth:
 
     def test_signature_token(self, test_user_signature_token, no_warn):
         assert test_user_signature_token is not None
+
+    def test_users(self, api):
+        rv = api.get('/auth/users?query=Sheldon')
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert len(data['users'])
+        keys = data['users'][0].keys()
+        required_keys = ['name', 'email', 'user_id']
+        assert len(keys) == len(required_keys)
+        assert all(key in keys for key in required_keys)
+        for key in keys:
+            assert data['users'][0].get(key) is not None
 
 
 class TestUploads:
@@ -867,7 +887,7 @@ class TestRepo():
         (0, 'quantities', 'dos')
     ])
     def test_quantity_search(self, api, example_elastic_calcs, no_warn, test_user_auth, calcs, quantity, value):
-        rv = api.get('/repo/%s' % quantity, headers=test_user_auth)
+        rv = api.get('/repo/quantity/%s' % quantity, headers=test_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)
         values = data['quantity']['values']
@@ -878,7 +898,7 @@ class TestRepo():
             assert 0 == calcs
 
     def test_quantity_search_after(self, api, example_elastic_calcs, no_warn, test_user_auth):
-        rv = api.get('/repo/atoms?size=1')
+        rv = api.get('/repo/quantity/atoms?size=1')
         assert rv.status_code == 200
         data = json.loads(rv.data)
 
@@ -889,7 +909,7 @@ class TestRepo():
         value = list(quantity['values'].keys())[0]
 
         while True:
-            rv = api.get('/repo/atoms?size=1&after=%s' % after)
+            rv = api.get('/repo/quantity/atoms?size=1&after=%s' % after)
             assert rv.status_code == 200
             data = json.loads(rv.data)
 
@@ -902,6 +922,12 @@ class TestRepo():
             assert value != list(quantity['values'].keys())[0]
             assert after != quantity['after']
             after = quantity['after']
+
+    def test_quantities_search(self, api, example_elastic_calcs, no_warn, test_user_auth):
+        rv = api.get('/repo/quantities?%s' % urlencode(dict(quantities=['system', 'atoms'], size=1), doseq=True), headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        # TODO actual assertions
 
     @pytest.mark.parametrize('pid, with_login, success', [
         (2, True, True), (2, False, True),
@@ -1303,6 +1329,15 @@ class TestDataset:
                 self.assert_dataset(dataset, doi=True)
             else:
                 self.assert_dataset(dataset)
+
+    def test_get_datasets_prefix(self, api, test_user_auth, example_datasets):
+        rv = api.get('/datasets/?prefix=ds1', headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert 'pagination' in data
+        assert data['pagination']['total'] == 1
+        assert len(data['results']) == 1
+        assert data['results'][0]['name'] == 'ds1'
 
     def test_get_dataset(self, api, test_user_auth, example_datasets):
         rv = api.get('/datasets/ds1', headers=test_user_auth)

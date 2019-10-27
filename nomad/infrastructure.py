@@ -265,6 +265,30 @@ class Keycloak():
 
         return None
 
+    def __user_from_keycloak_user(self, keycloak_user):
+        from nomad import datamodel
+
+        kwargs = {key: value[0] for key, value in keycloak_user.get('attributes', {}).items()}
+        return datamodel.User(
+            user_id=keycloak_user['id'],
+            email=keycloak_user['email'],
+            name=keycloak_user.get('username', None),
+            first_name=keycloak_user.get('firstName', None),
+            last_name=keycloak_user.get('lastName', None),
+            created=datetime.fromtimestamp(keycloak_user['createdTimestamp'] / 1000),
+            **kwargs)
+
+    def search_user(self, query: str):
+        try:
+            keycloak_results = self._admin_client.get_users(query=dict(search=query))
+        except Exception as e:
+            logger.error('Could not retrieve users from keycloak', exc_info=e)
+            raise e
+
+        return [
+            self.__user_from_keycloak_user(keycloak_user)
+            for keycloak_user in keycloak_results]
+
     def get_user(self, user_id: str = None, email: str = None, user=None) -> object:
         """
         Retrives all available information about a user from the keycloak admin
@@ -272,7 +296,6 @@ class Keycloak():
         the info solely gathered from tokens (i.e. for the authenticated user ``g.user``)
         is generally incomplete.
         """
-        from nomad import datamodel
 
         if user is not None and user_id is None:
             user_id = user.user_id
@@ -296,19 +319,11 @@ class Keycloak():
             logger.error('Could not retrieve user from keycloak', exc_info=e)
             raise e
 
-        kwargs = {key: value[0] for key, value in keycloak_user.get('attributes', {}).items()}
-        return datamodel.User(
-            user_id=keycloak_user['id'],
-            email=keycloak_user['email'],
-            name=keycloak_user.get('username', None),
-            first_name=keycloak_user.get('firstName', None),
-            last_name=keycloak_user.get('lastName', None),
-            created=datetime.fromtimestamp(keycloak_user['createdTimestamp'] / 1000),
-            **kwargs)
+        return self.__user_from_keycloak_user(keycloak_user)
 
     @property
     def _admin_client(self):
-        if self.__admin_client is None:
+        if True:  # TODO (self.__admin_client is None:), client becomes unusable after 60s
             self.__admin_client = KeycloakAdmin(
                 server_url=config.keycloak.server_url,
                 username=config.keycloak.username,

@@ -15,51 +15,17 @@ import ReactJson from 'react-json-view'
 import Autosuggest from 'react-autosuggest'
 import match from 'autosuggest-highlight/match'
 import parse from 'autosuggest-highlight/parse'
-import deburr from 'lodash/deburr'
+import { compose } from 'recompose'
+import { withApi } from './api'
 
-// TODO replace with the actual authors
-const suggestions = [
-  { label: 'Afghanistan' },
-  { label: 'Aland Islands' },
-  { label: 'Albania' },
-  { label: 'Algeria' },
-  { label: 'American Samoa' },
-  { label: 'Andorra' },
-  { label: 'Angola' },
-  { label: 'Anguilla' },
-  { label: 'Antarctica' },
-  { label: 'Antigua and Barbuda' },
-  { label: 'Argentina' },
-  { label: 'Armenia' },
-  { label: 'Aruba' },
-  { label: 'Australia' },
-  { label: 'Austria' },
-  { label: 'Azerbaijan' },
-  { label: 'Bahamas' },
-  { label: 'Bahrain' },
-  { label: 'Bangladesh' },
-  { label: 'Barbados' },
-  { label: 'Belarus' },
-  { label: 'Belgium' },
-  { label: 'Belize' },
-  { label: 'Benin' },
-  { label: 'Bermuda' },
-  { label: 'Bhutan' },
-  { label: 'Bolivia, Plurinational State of' },
-  { label: 'Bonaire, Sint Eustatius and Saba' },
-  { label: 'Bosnia and Herzegovina' },
-  { label: 'Botswana' },
-  { label: 'Bouvet Island' },
-  { label: 'Brazil' },
-  { label: 'British Indian Ocean Territory' },
-  { label: 'Brunei Darussalam' }
-]
-
-class AuthorTextFieldUnstyled extends React.Component {
+class SuggestionsTextFieldUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     value: PropTypes.string.isRequired,
-    onChange: PropTypes.func.isRequired
+    onChange: PropTypes.func.isRequired,
+    suggestions: PropTypes.func.isRequired,
+    suggestionValue: PropTypes.func.isRequired,
+    suggestionRendered: PropTypes.func.isRequired
   }
 
   static styles = theme => ({
@@ -79,8 +45,37 @@ class AuthorTextFieldUnstyled extends React.Component {
     }
   })
 
+  constructor(props) {
+    super(props)
+    this.lastRequestId = null
+  }
+
+  loadSuggestions(value) {
+    if (this.state.isLoading) {
+      return
+    }
+
+    if (this.lastRequestId !== null) {
+      clearTimeout(this.lastRequestId)
+    }
+
+    this.setState({
+      isLoading: true
+    })
+
+    this.lastRequestId = setTimeout(() => {
+      this.props.suggestions(value).then(suggestions => {
+        this.setState({
+          isLoading: false,
+          suggestions: suggestions
+        })
+      })
+    }, 1000)
+  }
+
   state = {
     suggestions: [],
+    isLoading: false,
     anchorEl: null
   }
 
@@ -105,8 +100,9 @@ class AuthorTextFieldUnstyled extends React.Component {
   }
 
   renderSuggestion(suggestion, { query, isHighlighted }) {
-    const matches = match(suggestion.label, query)
-    const parts = parse(suggestion.label, matches)
+    suggestion = this.props.suggestionRendered(suggestion)
+    const matches = match(suggestion, query)
+    const parts = parse(suggestion, matches)
 
     return (
       <MenuItem selected={isHighlighted} component="div">
@@ -121,35 +117,12 @@ class AuthorTextFieldUnstyled extends React.Component {
     )
   }
 
-  getSuggestions(value) {
-    const inputValue = deburr(value.trim()).toLowerCase()
-    const inputLength = inputValue.length
-    let count = 0
-
-    return inputLength === 0
-      ? []
-      : suggestions.filter(suggestion => {
-        const keep =
-            count < 5 && suggestion.label.slice(0, inputLength).toLowerCase() === inputValue
-
-        if (keep) {
-          count += 1
-        }
-
-        return keep
-      })
-  }
-
-  getSuggestionValue(suggestion) {
-    return suggestion.label
-  }
-
   render() {
-    const { classes, onChange, value, ...props } = this.props
-    const { suggestions, anchorEl } = this.state
+    const { classes, onChange, value, suggestions, suggestionValue, suggestionRendered, ...props } = this.props
+    const { anchorEl } = this.state
 
     const handleSuggestionsFetchRequested = ({ value }) => {
-      this.setState({suggestions: this.getSuggestions(value)})
+      this.loadSuggestions(value)
     }
 
     const handleSuggestionsClearRequested = () => {
@@ -162,10 +135,10 @@ class AuthorTextFieldUnstyled extends React.Component {
 
     const autosuggestProps = {
       renderInputComponent: this.renderInputComponent.bind(this),
-      suggestions,
+      suggestions: this.state.suggestions,
       onSuggestionsFetchRequested: handleSuggestionsFetchRequested,
       onSuggestionsClearRequested: handleSuggestionsClearRequested,
-      getSuggestionValue: this.getSuggestionValue.bind(this),
+      getSuggestionValue: suggestionValue,
       renderSuggestion: this.renderSuggestion.bind(this)
     }
 
@@ -206,7 +179,7 @@ class AuthorTextFieldUnstyled extends React.Component {
   }
 }
 
-const AuthorTextField = withStyles(AuthorTextFieldUnstyled.styles)(AuthorTextFieldUnstyled)
+const SuggestionsTextField = withStyles(SuggestionsTextFieldUnstyled.styles)(SuggestionsTextFieldUnstyled)
 
 var urlPattern = new RegExp('^(https?:\\/\\/)?' + // protocol
   '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|' + // domain name
@@ -216,7 +189,7 @@ var urlPattern = new RegExp('^(https?:\\/\\/)?' + // protocol
   '(\\#[-a-z\\d_]*)?$', 'i') // fragment locator
 
 function isURL(str) {
-  return urlPattern.test(str)
+  return str === '' || urlPattern.test(str.trim())
 }
 
 class ListTextInputUnstyled extends React.Component {
@@ -308,55 +281,113 @@ class ListTextInputUnstyled extends React.Component {
 
 const ListTextInput = withStyles(ListTextInputUnstyled.styles)(ListTextInputUnstyled)
 
-class AuthorsListTextInput extends React.Component {
+class SuggestionsListTextInput extends React.Component {
   render() {
-    return <ListTextInput component={AuthorTextField} {...this.props} />
+    return <ListTextInput component={SuggestionsTextField} {...this.props} />
   }
 }
 
-class EditUserMetadataDialog extends React.Component {
+class EditUserMetadataDialogUnstyled extends React.Component {
   static propTypes = {
-    query: PropTypes.object
+    classes: PropTypes.object.isRequired,
+    total: PropTypes.number,
+    example: PropTypes.object,
+    buttonProps: PropTypes.object,
+    api: PropTypes.object.isRequired
+  }
+
+  static styles = theme => ({
+    dialog: {
+      width: '100%'
+    }
+  })
+
+  constructor(props) {
+    super(props)
+    this.handleButtonClick = this.handleButtonClick.bind(this)
   }
 
   state = {
     open: false,
-    comment: 'This is the existing comment and it is very long. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.',
-    references: ['http://reference1', 'http://reference2'],
-    coAuthors: ['Scheidgen, Markus'],
-    sharedWith: [],
-    datasets: [],
-    withEmbargo: true
+    editData: {
+      comment: '',
+      references: [],
+      coAuthors: [],
+      sharedWith: [],
+      datasets: [],
+      withEmbargo: true
+    }
   }
 
-  handleChange(key, value) {
-    this.setState({[key]: value})
+  update() {
+    const { example } = this.props
+    const editData = {
+      comment: example.comment || '',
+      references: example.references || [],
+      coAuthors: example.authors.filter(author => author.user_id !== example.uploader.user_id).map(author => author.email),
+      sharedWith: example.owners.filter(author => author.user_id !== example.uploader.user_id).map(author => author.email),
+      datasets: (example.datasets || []).map(ds => ds.name),
+      withEmbargo: example.with_embargo
+    }
+    this.setState({editData: editData})
+  }
+
+  componentDidMount() {
+    this.update()
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.example.calc_id !== this.props.example.calc_id) {
+      this.update()
+    }
+  }
+
+  handleButtonClick() {
+    const { open } = this.state
+    if (!open) {
+      this.update()
+    }
+
+    this.setState({open: !open})
   }
 
   render() {
-    const { query, ...buttonProps } = this.props
+    const { classes, buttonProps, total, api } = this.props
     const { open } = this.state
     const close = () => this.setState({open: false})
+
+    const handleChange = (key, value) => {
+      this.setState({editData: {...this.state.editData, [key]: value}})
+    }
+    const value = key => this.state.editData[key]
+
+    const userSuggestions = query => {
+      return api.getUsers(query)
+        .then(result => result.users)
+        .catch((err) => {
+          console.log(err)
+          return []
+        })
+    }
 
     return (
       <React.Fragment>
         <Tooltip title="Edit user metadata">
-          <IconButton {...buttonProps} onClick={() => this.setState({open: true})}>
+          <IconButton {...(buttonProps || {})} onClick={this.handleButtonClick}>
             <EditIcon />
           </IconButton>
         </Tooltip>
-        <Dialog open={open} onClose={close} disableBackdropClick disableEscapeKeyDown>
-          <DialogTitle>Edit the user metadata of X entries</DialogTitle>
+        <Dialog classes={{paper: classes.dialog}} open={open} onClose={close} disableBackdropClick disableEscapeKeyDown>
+          <DialogTitle>Edit the user metadata of {total} entries</DialogTitle>
           <DialogContent>
             <DialogContentText>
-              To subscribe to this website, please enter your email address here. We will send updates
-              occasionally.
+              TODO better text
             </DialogContentText>
             <TextField
               id="comment"
               label="Comment"
-              value={this.state.comment}
-              onChange={event => this.handleChange('comment', event.target.value)}
+              value={value('comment')}
+              onChange={event => handleChange('comment', event.target.value)}
               margin="normal"
               multiline
               fullWidth
@@ -366,45 +397,66 @@ class EditUserMetadataDialog extends React.Component {
               label="References"
               errorLabel="References must be valid URLs"
               placeholder="Add a URL reference"
-              values={this.state.references}
-              onChange={values => this.handleChange('references', values)}
+              values={value('references')}
+              onChange={values => handleChange('references', values)}
               validate={isURL}
               fullWidth
             />
-            <AuthorsListTextInput
+            <SuggestionsListTextInput
+              suggestions={userSuggestions}
+              suggestionValue={v => v.email}
+              suggestionRendered={v => `${v.name} (${v.email})`}
               id="coAuthors"
               label="Co-authors"
               placeholder="Add a co-author by name"
-              values={this.state.coAuthors}
-              onChange={values => this.handleChange('coAuthors', values)}
+              values={value('coAuthors')}
+              onChange={values => handleChange('coAuthors', values)}
               fullWidth
             />
-            <AuthorsListTextInput
+            <SuggestionsListTextInput
+              suggestions={userSuggestions}
+              suggestionValue={v => v.email}
+              suggestionRendered={v => `${v.name} (${v.email})`}
               id="sharedWith"
               label="Shared with"
               placeholder="Add a user by name to share with"
-              values={this.state.sharedWith}
-              onChange={values => this.handleChange('sharedWith', values)}
+              values={value('sharedWith')}
+              onChange={values => handleChange('sharedWith', values)}
               fullWidth
             />
-            <ListTextInput
+            <SuggestionsListTextInput
+              suggestions={prefix => {
+                console.log(prefix)
+                return api.getDatasets(prefix)
+                  .then(result => result.results.map(ds => ds.name))
+                  .catch((err) => {
+                    console.log(err)
+                    return []
+                  })
+              }}
+              suggestionValue={v => v}
+              suggestionRendered={v => v}
               id="datasets"
               label="Datasets"
               placeholder="Add a dataset"
-              values={this.state.datasets}
-              onChange={values => this.handleChange('datasets', values)}
+              values={value('datasets')}
+              onChange={values => handleChange('datasets', values)}
               fullWidth
             />
           </DialogContent>
           <DialogContent>
-            <ReactJson src={this.props.query} enableClipboard={false} collapsed={0} />
+            <ReactJson
+              src={this.state.editData}
+              enableClipboard={false}
+              collapsed={0}
+            />
           </DialogContent>
           <DialogActions>
             <Button onClick={close} color="primary">
               Cancel
             </Button>
             <Button onClick={close} color="primary">
-              Subscribe
+              Submit
             </Button>
           </DialogActions>
         </Dialog>
@@ -413,4 +465,4 @@ class EditUserMetadataDialog extends React.Component {
   }
 }
 
-export default EditUserMetadataDialog
+export default compose(withApi(false, false), withStyles(EditUserMetadataDialogUnstyled.styles))(EditUserMetadataDialogUnstyled)

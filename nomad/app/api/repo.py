@@ -77,7 +77,7 @@ repo_calcs_model = api.model('RepoCalculations', {
         'value and quantity value as key. The possible metrics are code runs(calcs), %s. '
         'There is a pseudo quantity "total" with a single value "all" that contains the '
         ' metrics over all results. ' % ', '.join(datamodel.Domain.instance.metrics_names))),
-    'datasets': fields.Raw(api.model('RepoDatasets', {
+    'datasets': fields.Nested(api.model('RepoDatasets', {
         'after': fields.String(description='The after value that can be used to retrieve the next datasets.'),
         'values': fields.Raw(description='A dict with names as key. The values are dicts with "total" and "examples" keys.')
     }), skip_none=True)
@@ -232,29 +232,34 @@ class RepoCalcsResource(Resource):
         Ordering is determined by ``order_by`` and ``order`` parameters.
         """
 
-        search_request = search.SearchRequest()
-        add_query(search_request, repo_request_parser.parse_args())
-
         try:
-            scroll = bool(request.args.get('scroll', False))
-            scroll_id = request.args.get('scroll_id', None)
-            page = int(request.args.get('page', 1))
-            per_page = int(request.args.get('per_page', 10 if not scroll else 1000))
-            order = int(request.args.get('order', -1))
-            order_by = request.args.get('order_by', 'formula')
+            args = {
+                key: value for key, value in repo_request_parser.parse_args().items()
+                if value is not None}
 
-            if bool(request.args.get('date_histogram', False)):
-                search_request.date_histogram()
+            scroll = args.get('scroll', False)
+            scroll_id = args.get('scroll_id', None)
+            page = args.get('page', 1)
+            per_page = args.get('per_page', 10 if not scroll else 1000)
+            order = args.get('order', -1)
+            order_by = args.get('order_by', 'formula')
+
+            date_histogram = args.get('date_histogram', False)
             metrics: List[str] = request.args.getlist('metrics')
 
-            with_datasets = request.args.get('datasets', False)
-            with_statistics = request.args.get('statistics', False)
-        except Exception:
-            abort(400, message='bad parameter types')
+            with_datasets = args.get('datasets', False)
+            with_statistics = args.get('statistics', False)
+        except Exception as e:
+            abort(400, message='bad parameters: %s' % str(e))
+
+        search_request = search.SearchRequest()
+        add_query(search_request, args)
+        if date_histogram:
+            search_request.date_histogram()
 
         try:
             assert page >= 1
-            assert per_page > 0
+            assert per_page >= 0
         except AssertionError:
             abort(400, message='invalid pagination')
 
@@ -368,22 +373,28 @@ class RepoCalcsResource(Resource):
         return 'metadata updated', 200
 
 
+repo_quantity_model = api.model('RepoQuantity', {
+    'after': fields.String(description='The after value that can be used to retrieve the next set of values.'),
+    'values': fields.Raw(description='A dict with values as key. Values are dicts with "total" and "examples" keys.')
+})
+
 repo_quantity_values_model = api.model('RepoQuantityValues', {
-    'quantity': fields.Nested(api.model('RepoQuantity', {
-        'after': fields.String(description='The after value that can be used to retrieve the next set of values.'),
-        'values': fields.Raw(description='A dict with values as key. Values are dicts with "total" and "examples" keys.')
-    }), allow_null=True)
+    'quantity': fields.Nested(repo_quantity_model, allow_null=True)
+})
+
+repo_quantities_model = api.model('RepoQuantities', {
+    'quantities': fields.List(fields.Nested(repo_quantity_model))
 })
 
 repo_quantity_search_request_parser = api.parser()
 add_common_parameters(repo_quantity_search_request_parser)
 repo_quantity_search_request_parser.add_argument(
     'after', type=str, help='The after value to use for "scrolling".')
-repo_request_parser.add_argument(
+repo_quantity_search_request_parser.add_argument(
     'size', type=int, help='The max size of the returned values.')
 
 
-@ns.route('/<string:quantity>')
+@ns.route('/quantity/<string:quantity>')
 class RepoQuantityResource(Resource):
     @api.doc('quantity_search')
     @api.response(400, 'Invalid requests, e.g. wrong owner type, bad quantity, bad search parameters')
@@ -410,13 +421,14 @@ class RepoQuantityResource(Resource):
         """
 
         search_request = search.SearchRequest()
-        add_query(search_request, repo_quantity_search_request_parser.parse_args())
+        args = {
+            key: value
+            for key, value in repo_quantity_search_request_parser.parse_args().items()
+            if value is not None}
 
-        try:
-            after = request.args.get('after', None)
-            size = int(request.args.get('size', 100))
-        except Exception:
-            abort(400, message='bad parameter types')
+        add_query(search_request, args)
+        after = args.get('after', None)
+        size = args.get('size', 100)
 
         try:
             assert size >= 0
@@ -435,6 +447,66 @@ class RepoQuantityResource(Resource):
             import traceback
             traceback.print_exc()
             abort(400, 'Given quantity does not exist: %s' % str(e))
+
+
+repo_quantities_search_request_parser = api.parser()
+add_common_parameters(repo_quantities_search_request_parser)
+repo_quantities_search_request_parser.add_argument(
+    'quantities', type=str, action='append',
+    help='The quantities to retrieve values from')
+repo_quantities_search_request_parser.add_argument(
+    'size', type=int, help='The max size of the returned values.')
+
+
+@ns.route('/quantities')
+class RepoQuantitiesResource(Resource):
+    @api.doc('quantities_search')
+    @api.response(400, 'Invalid requests, e.g. wrong owner type, bad quantity, bad search parameters')
+    @api.expect(repo_quantities_search_request_parser, validate=True)
+    @api.marshal_with(repo_quantities_model, skip_none=True, code=200, description='Search results send')
+    @authenticate()
+    def get(self):
+        """
+        Retrieve quantity values for multiple quantities at once.
+
+        You can use the various quantities to search/filter for. For some of the
+        indexed quantities this endpoint returns aggregation information. This means
+        you will be given a list of all possible values and the number of entries
+        that have the certain value. You can also use these aggregations on an empty
+        search to determine the possible values.
+
+        There is no ordering and no pagination and not after key based scrolling. Instead
+        there is an 'after' key based scrolling.
+
+        The result will contain a 'quantities' key with a dict of quantity names and the
+        retrieved values as values.
+        """
+
+        search_request = search.SearchRequest()
+        args = {
+            key: value
+            for key, value in repo_quantities_search_request_parser.parse_args().items()
+            if value is not None}
+
+        add_query(search_request, args)
+        quantities = args.get('quantities', [])
+        size = args.get('size', 5)
+
+        print('A ', quantities)
+        try:
+            assert size >= 0
+        except AssertionError:
+            abort(400, message='invalid size')
+
+        for quantity in quantities:
+            try:
+                search_request.quantity(quantity, size=size)
+            except KeyError as e:
+                import traceback
+                traceback.print_exc()
+                abort(400, 'Given quantity does not exist: %s' % str(e))
+
+        return search_request.execute(), 200
 
 
 @ns.route('/pid/<int:pid>')

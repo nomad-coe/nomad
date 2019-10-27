@@ -14,6 +14,7 @@
 
 from flask import request, g
 from flask_restplus import Resource, fields, abort
+import re
 
 from nomad import utils
 from nomad.app.utils import with_logger
@@ -35,22 +36,32 @@ dataset_list_model = api.model('DatasetList', {
     'results': fields.List(fields.Nested(model=dataset_model, skip_none=True))
 })
 
+list_datasets_parser = pagination_request_parser.copy()
+list_datasets_parser.add_argument('prefix', help='Only return dataset with names that start with prefix.')
+
 
 @ns.route('/')
 class DatasetListResource(Resource):
     @api.doc('list_datasets')
     @api.marshal_with(dataset_list_model, skip_none=True, code=200, description='Dateset send')
-    @api.expect(pagination_request_parser)
+    @api.expect(list_datasets_parser)
     @authenticate(required=True)
     def get(self):
         """ Retrieve a list of all datasets of the authenticated user. """
-        try:
-            page = int(request.args.get('page', 1))
-            per_page = int(request.args.get('per_page', 10))
-        except Exception:
-            abort(400, message='bad parameter types')
+        args = {
+            key: value for key, value in list_datasets_parser.parse_args().items()
+            if value is not None}
 
-        result_query = DatasetME.objects(user_id=g.user.user_id)
+        page = args.get('page', 1)
+        per_page = args.get('per_page', 10)
+        prefix = args.get('prefix', '')
+
+        query_params = dict(user_id=g.user.user_id)
+        if prefix is not '':
+            query_params.update(name=re.compile('^%s.*' % prefix))
+
+        result_query = DatasetME.objects(**query_params)
+
         return dict(
             pagination=dict(total=result_query.count(), page=page, per_page=per_page),
             results=result_query[(page - 1) * per_page: page * per_page]), 200
