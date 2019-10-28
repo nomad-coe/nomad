@@ -208,6 +208,7 @@ json_api_data_object_model = api.model('DataObject', {
 
     'attributes': fields.Raw(
         description='A dictionary, containing key-value pairs representing the entries properties')
+    # TODO
 
     # further optional fields: links, meta, relationships
 })
@@ -276,7 +277,7 @@ json_api_single_response_model = api.inherit(
     })
 
 json_api_list_response_model = api.inherit(
-    'SingleResponse', json_api_response_model, {
+    'ListResponse', json_api_response_model, {
         'data': fields.List(
             fields.Nested(json_api_data_object_model),
             required=True,
@@ -284,7 +285,7 @@ json_api_list_response_model = api.inherit(
     })
 
 json_api_info_response_model = api.inherit(
-    'SingleResponse', json_api_response_model, {
+    'InfoResponse', json_api_response_model, {
         'data': fields.Nested(
             model=json_api_calculation_info_model,
             required=True,
