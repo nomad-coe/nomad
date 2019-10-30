@@ -1134,24 +1134,26 @@ class TestRaw(UploadFilesBasedTests):
             assert zip_file.testzip() is None
             assert len(zip_file.namelist()) == 0
 
-    @pytest.mark.parametrize('strip', [False, True])
-    def test_raw_query_pattern(self, api, non_empty_processed, test_user_auth, strip):
-        params = dict(file_pattern='*.json')
+    @pytest.mark.parametrize('files, pattern, strip', [
+        (1, '*.json', False),
+        (1, '*.json', True),
+        (5, ['*.json', '*.aux'], False)])
+    def test_raw_query_pattern(self, api, non_empty_processed, test_user_auth, files, pattern, strip):
+        params = dict(file_pattern=pattern)
         if strip:
             params.update(strip=True)
-        url = '/raw/query?%s' % urlencode(params)
+        url = '/raw/query?%s' % urlencode(params, doseq=True)
         rv = api.get(url, headers=test_user_auth)
         assert rv.status_code == 200
         assert len(rv.data) > 0
         with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
             assert zip_file.testzip() is None
-            files = zip_file.namelist()
-            assert len(files) == 1
-            assert all(name.endswith('.json') for name in files)
+            zip_files = zip_file.namelist()
+            assert len(zip_files) == files
             if strip:
-                assert all(os.path.basename(name) == name for name in files)
+                assert all(os.path.basename(name) == name for name in zip_files)
             else:
-                assert all(os.path.basename(name) != name for name in files)
+                assert all(os.path.basename(name) != name for name in zip_files)
 
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_files_signed(self, api, upload, _, test_user_signature_token):
