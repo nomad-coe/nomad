@@ -433,6 +433,11 @@ export default class App extends React.Component {
         }
       }
     },
+    'entry_query': {
+      exact: true,
+      path: '/entry/query',
+      render: props => <EntryPage {...props} query />
+    },
     'dataset': {
       path: '/dataset/id/:datasetId',
       key: (props) => `dataset/id/${props.match.params.datasetId}`,

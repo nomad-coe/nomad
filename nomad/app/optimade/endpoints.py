@@ -21,8 +21,8 @@ from nomad.metainfo.optimade import OptimadeEntry
 
 from .api import api, url
 from .models import json_api_single_response_model, entry_listing_endpoint_parser, Meta, \
-    Links, CalculationDataObject, single_entry_endpoint_parser, base_endpoint_parser,\
-    json_api_info_response_model
+    Links, CalculationDataObject, single_entry_endpoint_parser, base_endpoint_parser, \
+    json_api_info_response_model, json_api_list_response_model
 from .filterparser import parse_filter, FilterException
 
 
@@ -51,7 +51,7 @@ class CalculationList(Resource):
     @api.doc('list_calculations')
     @api.response(400, 'Invalid requests, e.g. bad parameter.')
     @api.expect(entry_listing_endpoint_parser, validate=True)
-    @api.marshal_with(json_api_single_response_model, skip_none=True, code=200)
+    @api.marshal_with(json_api_list_response_model, skip_none=True, code=200)
     def get(self):
         """ Retrieve a list of calculations that match the given Optimade filter expression. """
         request_fields = base_request_args()

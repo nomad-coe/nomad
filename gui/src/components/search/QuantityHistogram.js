@@ -66,6 +66,7 @@ class QuantityHistogram extends React.Component {
     const selected = this.props.value
 
     const width = this.container.current.offsetWidth
+    console.log('B ' + width)
     const height = Object.keys(this.props.data).length * 32
 
     const data = Object.keys(this.props.data)
@@ -102,9 +103,10 @@ class QuantityHistogram extends React.Component {
     const heatmapScale = chroma.scale(['#ffcdd2', '#d50000'])
 
     // we use at least the domain 0..1, because an empty domain causes a weird layout
-    x.domain([0, d3.max(data, d => d.value) || 1])
+    const max = d3.max(data, d => d.value) || 1
+    x.domain([0, max])
     y.domain(data.map(d => d.name))
-    heatmapScale.domain([0, d3.max(data, d => d.value)], 10, 'log')
+    heatmapScale.domain([0, max], 10, 'log')
 
     let svg = d3.select(this.svgEl.current)
     svg.attr('width', width)
@@ -148,7 +150,7 @@ class QuantityHistogram extends React.Component {
       .attr('class', 'value')
       .attr('dy', y.bandwidth())
       .attr('y', d => y(d.name) - 4)
-      .attr('x', d => x(d.value || 1) - 4)
+      .attr('x', d => width - 4)
       .attr('text-anchor', 'end')
       .style('fill', textColor)
       .text(d => formatQuantity(d.value))
