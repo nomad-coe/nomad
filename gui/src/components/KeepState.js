@@ -1,5 +1,5 @@
 import React from 'react'
-import PropTypes, { instanceOf } from 'prop-types'
+import PropTypes from 'prop-types'
 
 /**
  * This is a kinda-HOC that allows to keep a component alive while not being visible.

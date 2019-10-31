@@ -67,12 +67,14 @@ class ArchiveEntryView extends React.Component {
 
   static defaultState = {
     data: null,
-    metaInfo: null,
     showMetaInfo: false,
     doesNotExist: false
   }
 
-  state = {...ArchiveEntryView.defaultState}
+  state = {
+    metaInfo: null,
+    ...ArchiveEntryView.defaultState
+  }
 
   constructor(props) {
     super(props)
@@ -90,7 +92,6 @@ class ArchiveEntryView extends React.Component {
 
   componentDidUpdate(prevProps) {
     if (prevProps.api !== this.props.api || prevProps.info !== this.props.info) {
-      this.setState(ArchiveEntryView.defaultState)
       this.updateMetaInfo()
     }
 
@@ -103,7 +104,7 @@ class ArchiveEntryView extends React.Component {
   }
 
   updateMetaInfo() {
-    if (this.props.api && this.props.info) {
+    if (this.props.api && this.props.info && !this.state.metaInfo) {
       this.props.api.getMetaInfo(this.props.info.domain.metainfo.all_package).then(metaInfo => {
         if (!this.unmounted) {
           this.setState({metaInfo: metaInfo})
