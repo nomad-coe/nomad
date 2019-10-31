@@ -1130,7 +1130,7 @@ class TestRaw(UploadFilesBasedTests):
         assert rv.status_code == 200
         self.assert_zip_file(rv, files=len(example_file_contents) * len(processeds) + 1)
         with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
-            with zip_file.open('manifest.json', 'rt') as f:
+            with zip_file.open('manifest.json', 'r') as f:
                 manifest = json.load(f)
                 assert len(manifest) == len(processeds)
 

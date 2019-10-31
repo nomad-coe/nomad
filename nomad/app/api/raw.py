@@ -149,6 +149,7 @@ def get_raw_file_from_upload_path(
             raw_file_view,
             mimetype=mime_type,
             as_attachment=True,
+            cache_timeout=0,
             attachment_filename=os.path.basename(upload_filepath))
     except Restricted:
         abort(401, message='Not authorized to access all files in %s.' % upload_files.upload_id)
