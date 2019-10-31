@@ -23,19 +23,24 @@ class RawFiles extends React.Component {
     }
   })
 
-  state = {
+  static defaultState = {
     selectedFiles: [],
     uploadDirectory: null,
     files: null,
     doesNotExist: false
   }
 
+  state = {...RawFiles.defaultState}
+
   componentDidMount() {
     this.update()
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.api !== this.props.api) {
+    if (prevProps.api !== this.props.api ||
+        prevProps.data.uploadId !== this.props.data.uploadId ||
+        prevProps.data.calcId !== this.props.data.calcId) {
+      this.setState({...RawFiles.defaultState})
       this.update()
     }
   }

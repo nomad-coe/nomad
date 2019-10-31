@@ -31,8 +31,8 @@ import {help as uploadHelp, default as Uploads} from './uploads/Uploads'
 import ResolvePID from './entry/ResolvePID'
 import DatasetPage from './DatasetPage'
 import { capitalize } from '../utils'
-import { makeStyles } from '@material-ui/core/styles'
 import { amber } from '@material-ui/core/colors'
+import KeepState from './KeepState'
 
 export class VersionMismatch extends Error {
   constructor(msg) {
@@ -471,6 +471,7 @@ export default class App extends React.Component {
     'metainfo': {
       exact: true,
       path: '/metainfo',
+      singleton: true,
       render: props => <MetaInfoBrowser {...props} />
     },
     'metainfoEntry': {
@@ -481,21 +482,13 @@ export default class App extends React.Component {
   }
 
   renderChildren(routeKey, props) {
-    // const { match, ...rest } = props
-
     return (
-      <div>
-        {Object.keys(this.routes)
-          .filter(route => this.routes[route].singleton || route === routeKey)
-          .map(route => (
-            <div
-              key={route.key ? route.key(props) : route}
-              style={{display: routeKey === route ? 'block' : 'none'}}
-            >
-              {this.routes[route].render(props)}
-            </div>
-          ))}
-      </div>
+      <React.Fragment>
+        {Object.keys(this.routes).map(route => <KeepState key={route}
+          visible={routeKey === route}
+          render={(props) => this.routes[route].render(props)}
+          {...props} />)}
+      </React.Fragment>
     )
   }
 

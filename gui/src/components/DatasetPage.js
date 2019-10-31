@@ -40,7 +40,7 @@ class DatasetPage extends React.Component {
     dataset: {}
   }
 
-  componentDidMount() {
+  update() {
     const {datasetId, raiseError, api} = this.props
     api.search({
       owner: 'all',
@@ -54,6 +54,16 @@ class DatasetPage extends React.Component {
         this.setState({dataset: {}})
         raiseError(error)
     })
+  }
+
+  componentDidMount() {
+    this.update()
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.api !== this.props.api || prevProps.datasetId !== this.props.datasetId) {
+      this.update()
+    }
   }
 
   render() {

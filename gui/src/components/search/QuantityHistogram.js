@@ -66,7 +66,6 @@ class QuantityHistogram extends React.Component {
     const selected = this.props.value
 
     const width = this.container.current.offsetWidth
-    console.log('B ' + width)
     const height = Object.keys(this.props.data).length * 32
 
     const data = Object.keys(this.props.data)

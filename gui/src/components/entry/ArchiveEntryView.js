@@ -63,16 +63,19 @@ class ArchiveEntryView extends React.Component {
       bottom: 32,
       position: 'fixed !important'
     }
-  });
+  })
+
+  static defaultState = {
+    data: null,
+    metaInfo: null,
+    showMetaInfo: false,
+    doesNotExist: false
+  }
+
+  state = {...ArchiveEntryView.defaultState}
 
   constructor(props) {
     super(props)
-    this.state = {
-      data: null,
-      metaInfo: null,
-      showMetaInfo: false,
-      doesNotExist: false
-    }
     this.unmounted = false
   }
 
@@ -87,8 +90,15 @@ class ArchiveEntryView extends React.Component {
 
   componentDidUpdate(prevProps) {
     if (prevProps.api !== this.props.api || prevProps.info !== this.props.info) {
-      this.updateArchive()
+      this.setState(ArchiveEntryView.defaultState)
       this.updateMetaInfo()
+    }
+
+    if (prevProps.api !== this.props.api ||
+        prevProps.uploadId !== this.props.uploadId ||
+        prevProps.calcId !== this.props.calcId) {
+      this.setState({...ArchiveEntryView.defaultState})
+      this.updateArchive()
     }
   }
 
