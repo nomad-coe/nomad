@@ -1098,17 +1098,19 @@ class TestRaw(UploadFilesBasedTests):
         rv = api.get(url, headers=auth_headers)
         assert rv.status_code == 404
 
-    @pytest.mark.parametrize('compress', [True, False])
+    @pytest.mark.parametrize('compress, strip', [(True, False), (False, False), (False, True)])
     @UploadFilesBasedTests.check_authorization
-    def test_raw_files(self, api, upload, auth_headers, compress):
+    def test_raw_files(self, api, upload, auth_headers, compress, strip):
         url = '/raw/%s?files=%s' % (
             upload, ','.join(example_file_contents))
         if compress:
             url = '%s&compress=1' % url
+        if strip:
+            url = '%s&strip=1' % url
         rv = api.get(url, headers=auth_headers)
 
         assert rv.status_code == 200
-        self.assert_zip_file(rv, files=len(example_file_contents))
+        self.assert_zip_file(rv, files=len(example_file_contents), basename=strip)
 
     @pytest.mark.parametrize('compress', [False, True])
     def test_raw_files_from_query_upload_id(self, api, non_empty_processed, test_user_auth, compress):

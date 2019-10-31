@@ -28,7 +28,6 @@ class RawFiles extends React.Component {
 
   static defaultState = {
     selectedFiles: [],
-    uploadDirectory: null,
     files: null,
     doesNotExist: false
   }
@@ -52,7 +51,8 @@ class RawFiles extends React.Component {
     }
 
     this.props.api.getRawFileListFromCalc(uploadId, calcId).then(data => {
-      this.setState({files: data.contents, uploadDirectory: data.directory})
+      const files = data.contents.map(file => `${data.directory}/${file.name}`)
+      this.setState({files: files})
     }).catch(error => {
       this.setState({files: null})
       if (error.name === 'DoesNotExist') {
@@ -64,7 +64,7 @@ class RawFiles extends React.Component {
   }
 
   label(file) {
-    return file
+    return file.split('/').reverse()[0]
   }
 
   onSelectFile(file) {
@@ -80,9 +80,9 @@ class RawFiles extends React.Component {
 
   render() {
     const {classes, uploadId, calcId, loading, data} = this.props
-    const {selectedFiles, files, uploadDirectory, doesNotExist} = this.state
+    const {selectedFiles, files, doesNotExist} = this.state
 
-    const availableFiles = files ? files.map(file => file.name) : data.files || []
+    const availableFiles = files || data.files || []
 
     const someSelected = selectedFiles.length > 0
     const allSelected = availableFiles.length === selectedFiles.length && someSelected
@@ -118,7 +118,7 @@ class RawFiles extends React.Component {
           </FormLabel>
           <Download component={IconButton} disabled={selectedFiles.length === 0}
             tooltip="download selected files"
-            url={(selectedFiles.length === 1) ? `raw/${uploadId}/${uploadDirectory}/${selectedFiles[0]}` : `raw/${uploadId}?files=${encodeURIComponent(selectedFiles.map(file => `${uploadDirectory}/${file}`).join(','))}`}
+            url={(selectedFiles.length === 1) ? `raw/${uploadId}/${selectedFiles[0]}` : `raw/${uploadId}?files=${encodeURIComponent(selectedFiles.join(','))}&strip=true`}
             fileName={selectedFiles.length === 1 ? this.label(selectedFiles[0]) : `${calcId}.zip`}
           >
             <DownloadIcon />

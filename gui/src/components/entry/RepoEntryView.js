@@ -179,7 +179,7 @@ class RepoEntryView extends React.Component {
             disabled={!mainfile} tooltip="download all raw files for calculation"
             classes={{root: classes.downloadFab}}
             component={Fab} className={classes.downloadFab} color="primary" size="medium"
-            url={`raw/${uploadId}/${calcPath}/*`} fileName={`${calcId}.zip`}
+            url={`raw/${uploadId}/${calcPath}/*?strip=true`} fileName={`${calcId}.zip`}
           >
             <DownloadIcon />
           </Download>
