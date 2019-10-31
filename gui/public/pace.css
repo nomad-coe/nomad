@@ -7,6 +7,30 @@
   user-select: none;
 }
 
+html, body {
+  background: url('nomad.png') no-repeat center center;
+  min-height: 100%;
+  height: 100%;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+img.bg {
+  /* Set rules to fill background */
+  min-height: 100%;
+  min-width: 1920px;
+
+  /* Set up proportionate scaling */
+  width: 100%;
+  height: 100%;
+
+  /* Set up positioning */
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
 .pace-inactive {
   display: none;
 }

@@ -23,6 +23,7 @@ import matplotlib.ticker as ticker
 import numpy as np
 import click
 import json
+from datetime import datetime
 
 from .client import client
 
@@ -31,19 +32,19 @@ def codes(client, minimum=1, **kwargs):
     data = client.repo.search(per_page=1, **kwargs).response().result
 
     x_values = sorted([
-        code for code, values in data.quantities['code_name'].items()
+        code for code, values in data.statistics['code_name'].items()
         if code != 'not processed' and values.get('calculations', 1000) >= minimum], key=lambda x: x.lower())
 
-    return data.quantities, x_values, 'code_name', 'code'
+    return data.statistics, x_values, 'code_name', 'code'
 
 
 def dates(client, minimum=1, **kwargs):
     data = client.repo.search(per_page=1, date_histogram=True, **kwargs).response().result
 
     x_values = list([
-        x for x in data.quantities['date_histogram'].keys()])
+        x for x in data.statistics['date_histogram'].keys()])
 
-    return data.quantities, x_values, 'date_histogram', 'month'
+    return data.statistics, x_values, 'date_histogram', 'month'
 
 
 def error_fig(client):
@@ -175,17 +176,22 @@ class Metric:
         # axis.add_line(line)
 
 
-def bar_plot(client, retrieve, metric1, metric2=None, title=None, **kwargs):
+def bar_plot(
+        client, retrieve, metric1, metric2=None, title=None, format_xlabel=None,
+        xlim={}, ylim=dict(bottom=1), **kwargs):
+    if format_xlabel is None:
+        format_xlabel = lambda x: x
+
     metrics = [] if metric1.metric == 'code_runs' else [metric1.metric]
     if metric2 is not None:
         metrics += [] if metric2.metric == 'code_runs' else [metric2.metric]
 
-    data, x_values, agg, agg_label = retrieve(client, metrics=metrics, **kwargs)
+    data, x_values, agg, agg_label = retrieve(client, metrics=metrics, statistics=True, **kwargs)
     metric1.agg = agg
     if metric2 is not None:
         metric2.agg = agg
 
-    fig, ax1 = plt.subplots(figsize=(8, 6), dpi=72)
+    fig, ax1 = plt.subplots(figsize=(5, 4), dpi=72)
     x = np.arange(len(x_values))
     width = 0.8 / 2
     if metric2 is None:
@@ -193,17 +199,27 @@ def bar_plot(client, retrieve, metric1, metric2=None, title=None, **kwargs):
     plt.sca(ax1)
     plt.xticks(rotation=90)
     ax1.set_xticks(x)
-    ax1.set_xticklabels([value if value != 'Quantum Espresso' else 'Q. Espresso' for value in x_values])
+    ax1.set_xticklabels([format_xlabel(value) if value != 'Quantum Espresso' else 'Q. Espresso' for value in x_values])
     ax1.margins(x=0.01)
+    ax1.set_xlim(**xlim)
+    # i = 0
+    # for label in ax1.xaxis.get_ticklabels():
+    #     label.set_visible(i % 4 == 0)
+    #     i += 1
+
     if title is None:
         title = 'Number of %s' % metric1.label
         if metric2 is not None:
             title += ' and %s' % metric2.label
         title += ' per %s' % agg_label
         ax1.set_title(title)
+    elif title != '':
+        ax1.set_title(title)
 
     metric1.draw_axis(ax1, data, x_values, x - (width / 2), width, 'tab:blue', only=metric2 is None)
-    ax1.set_ylim(bottom=1)
+    ax1.set_ylim(**ylim)
+    ax1.set_yticks([40, 30, 20, 10, 5, 1, 0.5, 0.1])
+    ax1.grid(which='major', axis='y', linestyle='--')
 
     if metric2:
         ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
@@ -309,16 +325,22 @@ def statistics(errors, title, x_axis, y_axis, cumulate, total, save, power, open
     if x_axis is not None:
         assert 1 <= len(y_axis) <= 2, 'Need 1 or 2 y axis'
 
+        kwargs = {}
         if x_axis == 'code':
             x_axis = codes
+            kwargs.update(ylim=dict(bottom=0))
         elif x_axis == 'time':
             x_axis = dates
+            kwargs.update(
+                ylim=dict(bottom=0),
+                format_xlabel=lambda x: datetime.fromtimestamp(int(x) / 1000).strftime('%b %y'))
         else:
             assert False, 'x axis can only be "code" or "time"'
 
         y_axis = [metrics[y] for y in y_axis]
 
-        fig, plt = bar_plot(client, x_axis, *y_axis, title=title, owner=owner, minimum=minimum)
+        fig, plt = bar_plot(
+            client, x_axis, *y_axis, title=title, owner=owner, minimum=minimum, **kwargs)
 
     if errors or x_axis is not None:
         if save is not None:
@@ -328,6 +350,6 @@ def statistics(errors, title, x_axis, y_axis, cumulate, total, save, power, open
 
     if total:
         data = client.repo.search(
-            per_page=1, owner=owner,
-            metrics=['total_energies', 'calculations', 'users', 'datasets']).response().result
-        print(json.dumps(data.quantities['total'], indent=4))
+            per_page=1, owner=owner, statistics=True,
+            metrics=['total_energies', 'calculations', 'uploaders', 'authors', 'datasets']).response().result
+        print(json.dumps(data.statistics['total'], indent=4))

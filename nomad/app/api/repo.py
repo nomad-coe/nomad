@@ -110,7 +110,7 @@ def add_common_parameters(request_parser):
     for quantity in search.quantities.values():
         request_parser.add_argument(
             quantity.name, help=quantity.description,
-            action='append' if quantity.multi else None)
+            action=quantity.argparse_action if quantity.multi else None)
 
 
 repo_request_parser = pagination_request_parser.copy()
@@ -137,14 +137,16 @@ search_request_parser = api.parser()
 add_common_parameters(search_request_parser)
 
 
-def add_query(search_request: search.SearchRequest):
+def add_query(search_request: search.SearchRequest, parser=repo_request_parser):
     """
     Help that adds query relevant request parameters to the given SearchRequest.
     """
+    args = {key: value for key, value in parser.parse_args().items() if value is not None}
+
     # owner
     try:
         search_request.owner(
-            request.args.get('owner', 'all'),
+            args.get('owner', 'all'),
             g.user.user_id if g.user is not None else None)
     except ValueError as e:
         abort(401, getattr(e, 'message', 'Invalid owner parameter'))
@@ -152,8 +154,8 @@ def add_query(search_request: search.SearchRequest):
         abort(400, getattr(e, 'message', 'Invalid owner parameter'))
 
     # time range
-    from_time_str = request.args.get('from_time', None)
-    until_time_str = request.args.get('until_time', None)
+    from_time_str = args.get('from_time', None)
+    until_time_str = args.get('until_time', None)
 
     try:
         from_time = rfc3339DateTime.parse(from_time_str) if from_time_str is not None else None
@@ -164,7 +166,7 @@ def add_query(search_request: search.SearchRequest):
 
     # optimade
     try:
-        optimade = request.args.get('optimade', None)
+        optimade = args.get('optimade', None)
         if optimade is not None:
             q = filterparser.parse_filter(optimade)
             search_request.query(q)
@@ -173,8 +175,7 @@ def add_query(search_request: search.SearchRequest):
 
     # search parameter
     search_request.search_parameters(**{
-        key: request.args.getlist(key) if search.quantities[key] else request.args.get(key)
-        for key in request.args.keys()
+        key: value for key, value in args.items()
         if key not in ['optimade'] and key in search.quantities})
 
 
@@ -218,7 +219,7 @@ class RepoCalcsResource(Resource):
         """
 
         search_request = search.SearchRequest()
-        add_query(search_request)
+        add_query(search_request, repo_request_parser)
 
         try:
             scroll = bool(request.args.get('scroll', False))
@@ -333,7 +334,7 @@ class RepoQuantityResource(Resource):
         """
 
         search_request = search.SearchRequest()
-        add_query(search_request)
+        add_query(search_request, repo_quantity_search_request_parser)
 
         try:
             after = request.args.get('after', None)

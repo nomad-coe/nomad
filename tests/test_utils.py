@@ -54,3 +54,12 @@ def test_logging(no_warn):
         assert data['event'] == 'test msg'
         received_test_event = True
     assert received_test_event
+
+
+def test_common_prefix():
+    assert utils.common_prefix(['aa/bb/cc', 'aa/bb/dd']) == 'aa/bb/'
+    assert utils.common_prefix(['aa/bb/dc', 'aa/bb/d']) == 'aa/bb/'
+    assert utils.common_prefix(['aa/b/dc', 'aa/bb/d']) == 'aa/'
+    assert utils.common_prefix(['a', 'a']) == ''
+    assert utils.common_prefix(['a', 'ab']) == ''
+    assert utils.common_prefix(['/a', '/a']) == '/'

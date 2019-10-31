@@ -1938,6 +1938,7 @@ class Environment(MSection):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.all_definitions_by_name: Dict[str, List[Definition]] = dict()
+        self.all_packages: Dict[str, Package] = dict()
 
     def resolve_definitions(  # type: ignore
             self, name: str, cls: Type[MSectionBound] = Definition) -> List[MSectionBound]:
@@ -1961,6 +1962,7 @@ class Environment(MSection):
     def on_add_sub_section(self, sub_section_def: SubSection, sub_section: MSection):
         if sub_section_def == Environment.packages:
             package = sub_section.m_as(Package)
+            self.all_packages[package.name] = package
             for definition in package.m_all_contents():
                 if isinstance(definition, Definition):
                     definitions = self.all_definitions_by_name.setdefault(definition.name, [])
