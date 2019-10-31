@@ -7,6 +7,7 @@ import RepoEntryView from './RepoEntryView'
 import { withApi, DoesNotExist } from '../api'
 import { compose } from 'recompose'
 import qs from 'qs'
+import KeepState from '../KeepState'
 
 class EntryPage extends React.Component {
   static styles = theme => ({
@@ -22,28 +23,33 @@ class EntryPage extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
+    raiseError: PropTypes.func.isRequired,
     uploadId: PropTypes.string,
     calcId: PropTypes.string,
     location: PropTypes.object,
     query: PropTypes.bool
   }
 
-  state = {
+  static defaultState = {
     viewIndex: 0,
     calcId: null,
     uploadId: null
   }
+
+  state = {...EntryPage.defaultState}
 
   componentDidMount() {
     this.update()
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.query !== this.props.query
-        || prevProps.location !== this.props.location
-        || prevProps.uploadId !== this.props.uploadId
-        || prevProps.calcId !== this.props.calcId
-        || prevProps.api !== this.props.api) {
+    if (prevProps.query !== this.props.query ||
+        prevProps.location.key !== this.props.location.key ||
+        prevProps.uploadId !== this.props.uploadId ||
+        prevProps.calcId !== this.props.calcId ||
+        prevProps.query !== this.props.query ||
+        prevProps.api !== this.props.api) {
+      this.setState({ ...EntryPage.defaultState })
       this.update()
     }
   }
@@ -58,14 +64,14 @@ class EntryPage extends React.Component {
       this.props.api.search({...queryParams}).then(data => {
         if (data.results && data.results.length > 0) {
           const { calc_id, upload_id } = data.results[0]
-          this.setState({uploadId: upload_id, calcId: calc_id})
+          this.setState({uploadId: upload_id, calcId: calc_id, viewIndex: 0})
         } else {
           this.props.raiseError(new DoesNotExist())
         }
       }).catch(this.props.raiseError)
     } else {
       if (calcId && uploadId) {
-        this.setState({calcId: calcId, uploadId: uploadId})
+        this.setState({calcId: calcId, uploadId: uploadId, viewIndex: 0})
       } else {
         // this should be unreachable
         this.props.raiseError(new DoesNotExist())
@@ -95,15 +101,9 @@ class EntryPage extends React.Component {
           </Tabs>
 
           <div className={classes.content}>
-            <div style={viewIndex !== 0 ? {display: 'none'} : {}} >
-              <RepoEntryView {...calcProps} />
-            </div>
-            <div style={viewIndex !== 1 ? {display: 'none'} : {}} >
-              <ArchiveEntryView {...calcProps} />
-            </div>
-            <div style={viewIndex !== 2 ? {display: 'none'} : {}} >
-              <ArchiveLogView {...calcProps} />
-            </div>
+            <KeepState visible={viewIndex === 0} render={props => <RepoEntryView {...props} />} {...calcProps} />
+            <KeepState visible={viewIndex === 1} render={props => <ArchiveEntryView {...props} />} {...calcProps} />
+            <KeepState visible={viewIndex === 2} render={props => <ArchiveLogView {...props} />} {...calcProps} />
           </div>
         </div>
       )

@@ -5,9 +5,7 @@ import RawFiles from '../entry/RawFiles'
 
 class DFTEntryCards extends React.Component {
   static propTypes = {
-    classes: PropTypes.object.isRequired,
-    data: PropTypes.object.isRequired,
-    loading: PropTypes.bool
+    classes: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
@@ -15,13 +13,13 @@ class DFTEntryCards extends React.Component {
   })
 
   render() {
-    const { classes, data } = this.props
+    const { classes, ...props } = this.props
 
     return (
       <Card className={classes.root}>
         <CardHeader title="Raw files" />
         <CardContent classes={{root: classes.cardContent}}>
-          <RawFiles data={data} />
+          <RawFiles {...props} />
         </CardContent>
       </Card>
     )

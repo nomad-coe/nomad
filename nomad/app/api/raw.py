@@ -25,6 +25,7 @@ import magic
 import sys
 import contextlib
 import fnmatch
+import json
 
 from nomad import search, utils
 from nomad.files import UploadFiles, Restricted
@@ -148,6 +149,7 @@ def get_raw_file_from_upload_path(
             raw_file_view,
             mimetype=mime_type,
             as_attachment=True,
+            cache_timeout=0,
             attachment_filename=os.path.basename(upload_filepath))
     except Restricted:
         abort(401, message='Not authorized to access all files in %s.' % upload_files.upload_id)
@@ -180,8 +182,7 @@ class RawFileFromUploadPathResource(Resource):
     @login_if_available
     @with_signature_token
     def get(self, upload_id: str, path: str):
-        """
-        Get a single raw calculation file, directory contents, or whole directory sub-tree
+        """ Get a single raw calculation file, directory contents, or whole directory sub-tree
         from a given upload.
 
         The 'upload_id' parameter needs to identify an existing upload.
@@ -239,8 +240,7 @@ class RawFileFromCalcPathResource(Resource):
     @login_if_available
     @with_signature_token
     def get(self, upload_id: str, calc_id: str, path: str):
-        """
-        Get a single raw calculation file, calculation contents, or all files for a
+        """ Get a single raw calculation file, calculation contents, or all files for a
         given calculation.
 
         The 'upload_id' parameter needs to identify an existing upload.
@@ -277,8 +277,7 @@ class RawFileFromCalcEmptyPathResource(RawFileFromCalcPathResource):
     @login_if_available
     @with_signature_token
     def get(self, upload_id: str, calc_id: str):
-        """
-        Get calculation contents.
+        """ Get calculation contents.
 
         This is basically /raw/calc/<upload_id>/<calc_id>/<path> with an empty path, since
         having an empty path parameter is not possible.
@@ -312,8 +311,8 @@ class RawFilesResource(Resource):
     @api.expect(raw_files_request_model, validate=True)
     @login_if_available
     def post(self, upload_id):
-        """
-        Download multiple raw calculation files in a .zip file.
+        """ Download multiple raw calculation files in a .zip file.
+
         Zip files are streamed; instead of 401 errors, the zip file will just not contain
         any files that the user is not authorized to access.
         """
@@ -363,18 +362,24 @@ raw_file_from_query_parser.add_argument(
 
 @ns.route('/query')
 class RawFileQueryResource(Resource):
+    manifest_quantities = ['upload_id', 'calc_id', 'external_id', 'raw_id', 'pid', 'calc_hash']
+
     @api.doc('raw_files_from_query')
     @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
     @api.expect(raw_file_from_query_parser, validate=True)
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
     @login_if_available
     def get(self):
-        """
-        Download a .zip file with all raw-files for all entries that match the given
-        search parameters. See ``/repo`` endpoint for documentation on the search
+        """ Download a .zip file with all raw-files for all entries that match the given
+        search parameters.
+
+        See ``/repo`` endpoint for documentation on the search
         parameters.
+
         Zip files are streamed; instead of 401 errors, the zip file will just not contain
         any files that the user is not authorized to access.
+
+        The zip file will contain a ``manifest.json`` with the repository meta data.
         """
         patterns: List[str] = None
         try:
@@ -394,18 +399,23 @@ class RawFileQueryResource(Resource):
         search_request = search.SearchRequest()
         add_query(search_request, search_request_parser)
 
-        calcs = sorted([
-            (entry['upload_id'], entry['mainfile'])
-            for entry in search_request.execute_scan()], key=lambda x: x[0])
+        def path(entry):
+            return '%s/%s' % (entry['upload_id'], entry['mainfile'])
 
-        paths = ['%s/%s' % (upload_id, mainfile) for upload_id, mainfile in calcs]
+        calcs = sorted(
+            [entry for entry in search_request.execute_scan()],
+            key=lambda x: x['upload_id'])
+
+        paths = [path(entry) for entry in calcs]
         if strip:
             common_prefix_len = len(utils.common_prefix(paths))
         else:
             common_prefix_len = 0
 
         def generator():
-            for upload_id, mainfile in calcs:
+            for entry in calcs:
+                upload_id = entry['upload_id']
+                mainfile = entry['mainfile']
                 upload_files = UploadFiles.get(
                     upload_id, create_authorization_predicate(upload_id))
                 if upload_files is None:
@@ -429,7 +439,24 @@ class RawFileQueryResource(Resource):
 
                             yield filename_wo_prefix, filename, upload_files
 
-        return _streamed_zipfile(generator(), zipfile_name='nomad_raw_files.zip', compress=compress)
+        try:
+            manifest = {
+                path(entry): {
+                    key: entry[key]
+                    for key in RawFileQueryResource.manifest_quantities
+                    if entry.get(key) is not None
+                }
+                for entry in calcs
+            }
+            manifest_contents = json.dumps(manifest)
+        except Exception as e:
+            manifest_contents = dict(error='Could not create the manifest: %s' % (e))
+            utils.get_logger(__name__).error(
+                'could not create raw query manifest', exc_info=e)
+
+        return _streamed_zipfile(
+            generator(), zipfile_name='nomad_raw_files.zip', compress=compress,
+            manifest=manifest_contents)
 
 
 def respond_to_get_raw_files(upload_id, files, compress=False):
@@ -453,7 +480,7 @@ def respond_to_get_raw_files(upload_id, files, compress=False):
 
 def _streamed_zipfile(
         files: Iterable[Tuple[str, str, UploadFiles]], zipfile_name: str,
-        compress: bool = False):
+        compress: bool = False, manifest: str = None):
     """
     Creates a response that streams the given files as a streamed zip file. Ensures that
     each given file is only streamed once, based on its filename in the resulting zipfile.
@@ -465,6 +492,7 @@ def _streamed_zipfile(
         zipfile_name: A name that will be used in the content disposition attachment
             used as an HTTP respone.
         compress: Uses compression. Default is stored only.
+        manifest: Add a ``manifest.json`` with the given content.
     """
 
     streamed_files: Set[str] = set()
@@ -476,6 +504,11 @@ def _streamed_zipfile(
             Replace the directory based iter of zipstream with an iter over all given
             files.
             """
+            # first the manifest
+            if manifest is not None:
+                yield dict(arcname='manifest.json', iterable=(manifest.encode('utf-8'),))
+
+            # now the actual contents
             for zipped_filename, upload_filename, upload_files in files:
                 if zipped_filename in streamed_files:
                     continue
