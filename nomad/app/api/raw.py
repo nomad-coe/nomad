@@ -56,8 +56,13 @@ raw_file_list_model = api.model('RawFileList', {
 raw_file_compress_argument = dict(
     name='compress', type=bool, help='Use compression on .zip files, default is not.',
     location='args')
+raw_file_strip_argument = dict(
+    name='strip', type=bool, help='Removes a potential common path prefix from all file paths.',
+    location='args')
+
 raw_file_from_path_parser = api.parser()
 raw_file_from_path_parser.add_argument(**raw_file_compress_argument)
+raw_file_from_path_parser.add_argument(**raw_file_strip_argument)
 raw_file_from_path_parser.add_argument(**signature_token_argument)
 raw_file_from_path_parser.add_argument(
     name='length', type=int, help='Download only x bytes from the given file.',
@@ -120,7 +125,9 @@ def get_raw_file_from_upload_path(
             abort(404, message='There are no files for %s.' % upload_filepath)
         else:
             compress = request.args.get('compress', None) is not None
-            return respond_to_get_raw_files(upload_files.upload_id, wildcarded_files, compress)
+            strip = request.args.get('strip', None) is not None
+            return respond_to_get_raw_files(
+                upload_files.upload_id, wildcarded_files, compress=compress, strip=strip)
 
     try:
         with upload_files.raw_file(upload_filepath, 'br') as raw_file:
@@ -296,6 +303,7 @@ raw_files_request_model = api.model('RawFilesRequest', {
 raw_files_request_parser = api.parser()
 raw_files_request_parser.add_argument(
     'files', required=True, type=str, help='Comma separated list of files to download.', location='args')
+raw_files_request_parser.add_argument(**raw_file_strip_argument)
 raw_files_request_parser.add_argument(**raw_file_compress_argument)
 raw_file_from_path_parser.add_argument(**signature_token_argument)
 
@@ -335,23 +343,23 @@ class RawFilesResource(Resource):
         Zip files are streamed; instead of 401 errors, the zip file will just not contain
         any files that the user is not authorized to access.
         """
-        files_str = request.args.get('files', None)
-        compress = request.args.get('compress', 'false') == 'true'
+        args = raw_files_request_parser.parse_args()
+        files_str = args.get('files')
+        compress = args.get('compress', False)
+        strip = args.get('strip', False)
 
         if files_str is None:
             abort(400, message="No files argument given.")
         files = [file.strip() for file in files_str.split(',')]
 
-        return respond_to_get_raw_files(upload_id, files, compress)
+        return respond_to_get_raw_files(upload_id, files, compress=compress, strip=strip)
 
 
 raw_file_from_query_parser = search_request_parser.copy()
 raw_file_from_query_parser.add_argument(
     name='compress', type=bool, help='Use compression on .zip files, default is not.',
     location='args')
-raw_file_from_query_parser.add_argument(
-    name='strip', type=bool, help='Removes a potential common path prefix from all file paths.',
-    location='args')
+raw_file_from_query_parser.add_argument(**raw_file_strip_argument)
 raw_file_from_query_parser.add_argument(
     name='file_pattern', type=str,
     help=(
@@ -459,7 +467,7 @@ class RawFileQueryResource(Resource):
             manifest=manifest_contents)
 
 
-def respond_to_get_raw_files(upload_id, files, compress=False):
+def respond_to_get_raw_files(upload_id, files, compress=False, strip=False):
     upload_files = UploadFiles.get(
         upload_id, create_authorization_predicate(upload_id))
     if upload_files is None:
@@ -472,9 +480,14 @@ def respond_to_get_raw_files(upload_id, files, compress=False):
     else:
         zipfile_cache = contextlib.suppress()
 
+    if strip:
+        common_prefix_len = len(utils.common_prefix(files))
+    else:
+        common_prefix_len = 0
+
     with zipfile_cache:
         return _streamed_zipfile(
-            [(filename, filename, upload_files) for filename in files],
+            [(filename[common_prefix_len:], filename, upload_files) for filename in files],
             zipfile_name='%s.zip' % upload_id, compress=compress)
 
 

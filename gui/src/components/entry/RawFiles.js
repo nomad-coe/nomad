@@ -118,7 +118,7 @@ class RawFiles extends React.Component {
           </FormLabel>
           <Download component={IconButton} disabled={selectedFiles.length === 0}
             tooltip="download selected files"
-            url={(selectedFiles.length === 1) ? `raw/${uploadId}/${selectedFiles[0]}` : `raw/${uploadId}?files=${encodeURIComponent(selectedFiles.map(file => `$${file}`).join(','))}`}
+            url={(selectedFiles.length === 1) ? `raw/${uploadId}/${selectedFiles[0]}` : `raw/${uploadId}?files=${encodeURIComponent(selectedFiles.join(','))}&strip=true`}
             fileName={selectedFiles.length === 1 ? this.label(selectedFiles[0]) : `${calcId}.zip`}
           >
             <DownloadIcon />
