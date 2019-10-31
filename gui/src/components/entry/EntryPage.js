@@ -23,6 +23,7 @@ class EntryPage extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
+    raiseError: PropTypes.func.isRequired,
     uploadId: PropTypes.string,
     calcId: PropTypes.string,
     location: PropTypes.object,
@@ -42,19 +43,18 @@ class EntryPage extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.query !== this.props.query
-        || prevProps.location.key !== this.props.location.key
-        || prevProps.uploadId !== this.props.uploadId
-        || prevProps.calcId !== this.props.calcId
-        || prevProps.query !== this.props.query
-        || prevProps.api !== this.props.api) {
-      this.setState({...EntryPage.defaultState})
+    if (prevProps.query !== this.props.query ||
+        prevProps.location.key !== this.props.location.key ||
+        prevProps.uploadId !== this.props.uploadId ||
+        prevProps.calcId !== this.props.calcId ||
+        prevProps.query !== this.props.query ||
+        prevProps.api !== this.props.api) {
+      this.setState({ ...EntryPage.defaultState })
       this.update()
     }
   }
 
   update() {
-    console.log('update entry page')
     const { calcId, uploadId, query, location } = this.props
     if (query) {
       let queryParams = null

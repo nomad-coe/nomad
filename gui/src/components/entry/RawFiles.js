@@ -1,15 +1,18 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, FormGroup, FormControlLabel, Checkbox, FormLabel, IconButton, Divider, Typography } from '@material-ui/core'
+import { withStyles, FormGroup, FormControlLabel, Checkbox, FormLabel, IconButton, Divider, Typography, Tooltip } from '@material-ui/core'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { withApi } from '../api'
 import { compose } from 'recompose'
 import Download from './Download'
+import ReloadIcon from '@material-ui/icons/Cached'
 
 class RawFiles extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    data: PropTypes.object.isRequired,
+    uploadId: PropTypes.string.isRequired,
+    calcId: PropTypes.string.isRequired,
+    data: PropTypes.object,
     api: PropTypes.object.isRequired,
     user: PropTypes.object,
     loading: PropTypes.number.isRequired,
@@ -32,21 +35,16 @@ class RawFiles extends React.Component {
 
   state = {...RawFiles.defaultState}
 
-  componentDidMount() {
-    this.update()
-  }
-
   componentDidUpdate(prevProps) {
     if (prevProps.api !== this.props.api ||
-        prevProps.data.uploadId !== this.props.data.uploadId ||
-        prevProps.data.calcId !== this.props.data.calcId) {
+        prevProps.uploadId !== this.props.uploadId ||
+        prevProps.calcId !== this.props.calcId) {
       this.setState({...RawFiles.defaultState})
-      this.update()
     }
   }
 
   update() {
-    const {data: {uploadId, calcId}} = this.props
+    const { uploadId, calcId } = this.props
     // this might accidentally happen, when the user logs out and the ids aren't
     // necessarily available anymore, but the component is still mounted
     if (!uploadId || !calcId) {
@@ -81,10 +79,10 @@ class RawFiles extends React.Component {
   }
 
   render() {
-    const {classes, data: {upload_id, calc_id}, loading} = this.props
+    const {classes, uploadId, calcId, loading, data} = this.props
     const {selectedFiles, files, uploadDirectory, doesNotExist} = this.state
 
-    const availableFiles = files ? files.map(file => file.name) : []
+    const availableFiles = files ? files.map(file => file.name) : data.files || []
 
     const someSelected = selectedFiles.length > 0
     const allSelected = availableFiles.length === selectedFiles.length && someSelected
@@ -108,13 +106,20 @@ class RawFiles extends React.Component {
               />
             }
           />
+          {!files
+            ? <Tooltip title="check for more files">
+              <IconButton onClick={() => this.update()}>
+                <ReloadIcon />
+              </IconButton>
+            </Tooltip> : ''
+          }
           <FormLabel className={classes.formLabel}>
             {selectedFiles.length}/{availableFiles.length} files selected
           </FormLabel>
           <Download component={IconButton} disabled={selectedFiles.length === 0}
             tooltip="download selected files"
-            url={(selectedFiles.length === 1) ? `raw/${upload_id}/${uploadDirectory}/${selectedFiles[0]}` : `raw/${upload_id}?files=${encodeURIComponent(selectedFiles.map(file => `${uploadDirectory}/${file}`).join(','))}`}
-            fileName={selectedFiles.length === 1 ? this.label(selectedFiles[0]) : `${calc_id}.zip`}
+            url={(selectedFiles.length === 1) ? `raw/${uploadId}/${uploadDirectory}/${selectedFiles[0]}` : `raw/${uploadId}?files=${encodeURIComponent(selectedFiles.map(file => `${uploadDirectory}/${file}`).join(','))}`}
+            fileName={selectedFiles.length === 1 ? this.label(selectedFiles[0]) : `${calcId}.zip`}
           >
             <DownloadIcon />
           </Download>

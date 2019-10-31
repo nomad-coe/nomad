@@ -59,8 +59,7 @@ class RepoEntryView extends React.Component {
   componentDidUpdate(prevProps) {
     if (prevProps.api !== this.props.api ||
         prevProps.uploadId !== this.props.uploadId ||
-        prevProps.calcId !== this.props.calcId
-      ) {
+        prevProps.calcId !== this.props.calcId) {
       this.setState({...RepoEntryView.defaultState})
       this.update()
     }
@@ -174,7 +173,7 @@ class RepoEntryView extends React.Component {
             </Grid>
           </Grid>
 
-          <domain.EntryCards data={calcData} classes={{root: classes.entryCards}} />
+          <domain.EntryCards data={calcData} calcId={calcId} uploadId={uploadId} classes={{root: classes.entryCards}} />
 
           <Download
             disabled={!mainfile} tooltip="download all raw files for calculation"
