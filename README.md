@@ -79,8 +79,17 @@ your browser.
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
 ### v0.7.0
+- User metadata editing and datasets with DOI
+- Revised GUI lists (search results, datasets, uploads)
 - Keycloak based user management
-- no dependencies with the NOMAD CeE Repository
+- no dependencies with the NOMAD CoE Repository
+
+### v0.6.2
+- GUI performance enhancements
+- API /raw/query endpoint takes file pattern to further filter download contents and
+  strips potential shared path prefixes for a cleaner download .zip
+- Stipped common path prefixes in raw file downloads
+- minor bugfixes
 
 ### v0.6.0
 - GUI URL, and API endpoint that resolves NOMAD CoE legacy PIDs

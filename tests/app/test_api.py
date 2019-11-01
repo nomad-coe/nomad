@@ -30,7 +30,6 @@ from nomad import search, parsing, files, config, utils, infrastructure
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
 from nomad.datamodel import UploadWithMetadata, CalcWithMetadata, User, Dataset
-from nomad.app.api.dataset import DatasetME
 
 from tests.conftest import create_auth_headers, clear_elastic, create_test_structure
 from tests.test_files import example_file, example_file_mainfile, example_file_contents
@@ -444,20 +443,23 @@ class TestUploads:
     #         content_type='application/json')
     #     assert rv.status_code == 400
 
-    def test_potcar(self, api, proc_infra, test_user_auth):
+    @pytest.mark.parametrize('upload_file, ending', [
+        ('examples_potcar.zip', ''),
+        ('examples_potcar_gz.tgz', '.gz')])
+    def test_potcar(self, api, proc_infra, test_user_auth, upload_file, ending):
         # only the owner, shared with people are supposed to download the original potcar file
-        example_file = 'tests/data/proc/examples_potcar.zip'
+        example_file = 'tests/data/proc/%s' % upload_file
         rv = api.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
 
         upload = self.assert_upload(rv.data)
         upload_id = upload['upload_id']
         self.assert_processing(api, test_user_auth, upload_id)
         self.assert_published(api, test_user_auth, upload_id, proc_infra)
-        rv = api.get('/raw/%s/examples_potcar/POTCAR' % upload_id)
+        rv = api.get('/raw/%s/examples_potcar/POTCAR%s' % (upload_id, ending))
         assert rv.status_code == 401
-        rv = api.get('/raw/%s/examples_potcar/POTCAR' % upload_id, headers=test_user_auth)
+        rv = api.get('/raw/%s/examples_potcar/POTCAR%s' % (upload_id, ending), headers=test_user_auth)
         assert rv.status_code == 200
-        rv = api.get('/raw/%s/examples_potcar/POTCAR.stripped' % upload_id)
+        rv = api.get('/raw/%s/examples_potcar/POTCAR%s.stripped' % (upload_id, ending))
         assert rv.status_code == 200
 
 
@@ -475,7 +477,7 @@ class UploadFilesBasedTests:
         wrapper.__signature__ = wrapper_sig
 
     @staticmethod
-    def check_authorizaton(func):
+    def check_authorization(func):
         @pytest.mark.parametrize('test_data', [
             [True, None, True],      # in staging for upload
             [True, None, False],     # in staging for different user
@@ -496,7 +498,7 @@ class UploadFilesBasedTests:
             except AssertionError as assertion:
                 assertion_str = str(assertion)
                 if not authorized:
-                    if '0 == 5' in assertion_str and 'ZipFile' in assertion_str:
+                    if '0 == 5' in assertion_str:
                         # the user is not authorized an gets an empty zip as expected
                         return
                     if '401' in assertion_str:
@@ -558,7 +560,7 @@ class UploadFilesBasedTests:
 
 
 class TestArchive(UploadFilesBasedTests):
-    @UploadFilesBasedTests.check_authorizaton
+    @UploadFilesBasedTests.check_authorization
     def test_get(self, api, upload, auth_headers):
         rv = api.get('/archive/%s/0' % upload, headers=auth_headers)
         assert rv.status_code == 200
@@ -570,7 +572,7 @@ class TestArchive(UploadFilesBasedTests):
         assert rv.status_code == 200
         assert json.loads(rv.data) is not None
 
-    @UploadFilesBasedTests.check_authorizaton
+    @UploadFilesBasedTests.check_authorization
     def test_get_calc_proc_log(self, api, upload, auth_headers):
         rv = api.get('/archive/logs/%s/0' % upload, headers=auth_headers)
         assert rv.status_code == 200
@@ -606,9 +608,9 @@ class TestRepo():
             test_user: User, other_test_user: User):
         clear_elastic(elastic_infra)
 
-        example_dataset = DatasetME(
+        example_dataset = Dataset(
             dataset_id='ds_id', name='ds_name', user_id=test_user.user_id, doi='ds_doi')
-        example_dataset.save()
+        example_dataset.m_x('me').create()
 
         calc_with_metadata = CalcWithMetadata(upload_id=0, calc_id=0, upload_time=today)
         calc_with_metadata.files = ['test/mainfile.txt']
@@ -640,7 +642,7 @@ class TestRepo():
 
         yield
 
-        example_dataset.delete()
+        example_dataset.m_x('me').me_obj.delete()
 
     def assert_search(self, rv: Any, number_of_calcs: int) -> dict:
         if rv.status_code != 200:
@@ -926,7 +928,6 @@ class TestRepo():
     def test_quantities_search(self, api, example_elastic_calcs, no_warn, test_user_auth):
         rv = api.get('/repo/quantities?%s' % urlencode(dict(quantities=['system', 'atoms'], size=1), doseq=True), headers=test_user_auth)
         assert rv.status_code == 200
-        data = json.loads(rv.data)
         # TODO actual assertions
 
     @pytest.mark.parametrize('pid, with_login, success', [
@@ -968,35 +969,50 @@ class TestRepo():
 
 
 class TestEditRepo():
-    @pytest.fixture(scope='class')
-    def session_api(self, session_client, elastic_infra, mongo_infra):
+
+    @pytest.fixture(autouse=True)
+    def class_api(self, session_client, elastic_infra, mongo_infra):
         clear_elastic(elastic_infra)
         mongo_infra.drop_database('test_db')
 
-        yield BlueprintClient(session_client, '/api')
+        self.api = BlueprintClient(session_client, '/api')
+        yield
 
         mongo_infra.drop_database('test_db')
         clear_elastic(elastic_infra)
 
-    @pytest.fixture(scope='class')
-    def example_dataset(self, test_user):
-        ds = DatasetME(dataset_id='ds1', name='ds1', user_id=test_user.user_id)
-        ds.save()
-        yield ds
-        ds.delete()
+    @pytest.fixture(autouse=True)
+    def example_datasets(self, test_user, other_test_user):
+        self.example_dataset = Dataset(
+            dataset_id='example_ds', name='example_ds', user_id=test_user.user_id)
+        self.example_dataset.m_x('me').create()
 
-    @pytest.fixture(scope='class')
-    def example_data(self, meta_info, session_api, test_user, other_test_user):
+        self.other_example_dataset = Dataset(
+            dataset_id='other_example_ds', name='other_example_ds',
+            user_id=other_test_user.user_id)
+        self.other_example_dataset.m_x('me').create()
+
+        yield
+
+        self.example_dataset.m_x('me').me_obj.delete()
+        self.other_example_dataset.m_x('me').me_obj.delete()
+
+    @pytest.fixture(autouse=True)
+    def remove_new_dataset(self):
+        yield 'new_ds'
+        Dataset.m_def.m_x('me').objects(name='new_ds').delete()
+
+    @pytest.fixture(autouse=True)
+    def example_data(self, meta_info, class_api, test_user, other_test_user):
         def create_entry(id, user, **kwargs):
             metadata = dict(uploader=user.user_id, **kwargs)
             create_test_structure(meta_info, id, 2, 1, [], 0, metadata=metadata)
 
         entries = [
-            dict(upload_id='upload_1', user=test_user, published=True, embargo=False),
-            dict(upload_id='upload_2', user=test_user, published=True, embargo=True),
-            dict(upload_id='upload_2', user=test_user, published=False, embargo=False),
-            dict(upload_id='upload_3', user=other_test_user, published=True, embargo=False)
-        ]
+            dict(calc_id='1', upload_id='upload_1', user=test_user, published=True, embargo=False),
+            dict(calc_id='2', upload_id='upload_2', user=test_user, published=True, embargo=True),
+            dict(calc_id='3', upload_id='upload_2', user=test_user, published=False, embargo=False),
+            dict(calc_id='4', upload_id='upload_3', user=other_test_user, published=True, embargo=False)]
 
         i = 0
         for entry in entries:
@@ -1005,57 +1021,173 @@ class TestEditRepo():
 
         search.refresh()
 
-    def test_edit_all(self, session_api, example_data, test_user_auth, no_warn):
-        rv = session_api.post(
-            '/repo/', headers=test_user_auth, content_type='application/json',
-            data=json.dumps(dict(metadata=dict(comment='test_edit_all'))))
-        assert rv.status_code == 200
+    @pytest.fixture(autouse=True)
+    def auth(self, test_user_auth):
+        self.test_user_auth = test_user_auth
 
-        rv = session_api.get('/repo/?owner=user', headers=test_user_auth)
-        assert rv.status_code == 200
+    def perform_edit(self, query=None, verify=False, **kwargs):
+        actions = {}
+        for key, value in kwargs.items():
+            if isinstance(value, list):
+                actions[key] = [dict(value=i) for i in value]
+            else:
+                actions[key] = dict(value=value)
+
+        data = dict(actions=actions)
+        if query is not None:
+            data.update(query=query)
+        if verify:
+            data.update(verify=verify)
+
+        return self.api.post(
+            '/repo/edit', headers=self.test_user_auth, content_type='application/json',
+            data=json.dumps(data))
+
+    def assert_edit(self, rv, quantity: str, success: bool, message: bool, status_code: int = 200):
+        assert rv.status_code == status_code, rv.data
         data = json.loads(rv.data)
+        actions = data.get('actions')
+        assert actions is not None
+        assert [quantity] == list(actions.keys())
+        quantity_actions = actions[quantity]
+        if not isinstance(quantity_actions, list):
+            quantity_actions = [quantity_actions]
+        for action in quantity_actions:
+            assert action['success'] == success
+            assert ('message' in action) == message
 
-        assert data['pagination']['total'] == 3
-        assert len(data['results']) == 3
-        for result in data['results']:
-            assert result['comment'] == 'test_edit_all'
+    def mongo(self, *args, **kwargs):
+        for calc_id in args:
+            calc = Calc.objects(calc_id=str(calc_id)).first()
+            assert calc is not None
+            metadata = calc.metadata
+            for key, value in kwargs.items():
+                if metadata.get(key) != value:
+                    return False
+        return True
 
-    def test_edit_some(self, session_api, example_data, test_user_auth, no_warn):
-        rv = session_api.post(
-            '/repo/', headers=test_user_auth, content_type='application/json',
-            data=json.dumps(dict(
-                query=dict(upload_id='upload_1'),
-                metadata=dict(comment='test_edit_some'))))
-        assert rv.status_code == 200
+    def elastic(self, *args, **kwargs):
+        for calc_id in args:
+            for calc in search.SearchRequest().search_parameters(calc_id=str(calc_id)).execute_scan():
+                for key, value in kwargs.items():
+                    if key in ['authors', 'owners']:
+                        ids = [user['user_id'] for user in calc.get(key)]
+                        if ids != value:
+                            return False
+                    else:
+                        if calc.get(key) != value:
+                            return False
+        return True
 
-        rv = session_api.get('/repo/?owner=user', headers=test_user_auth)
-        assert rv.status_code == 200
-        data = json.loads(rv.data)
+    def test_edit_all_properties(self, test_user, other_test_user):
+        edit_data = dict(
+            comment='test_edit_props',
+            references=['http://test', 'http://test2'],
+            coauthors=[other_test_user.email],
+            shared_with=[other_test_user.email])
+        rv = self.perform_edit(**edit_data, query=dict(upload_id='upload_1'))
+        result = json.loads(rv.data)
+        actions = result.get('actions')
+        for key in edit_data:
+            assert key in actions
+            quantity_actions = actions.get(key)
+            if not isinstance(quantity_actions, list):
+                quantity_actions = [quantity_actions]
+            for quantity_action in quantity_actions:
+                assert quantity_action['success']
 
-        assert data['pagination']['total'] == 3
-        assert len(data['results']) == 3
-        for result in data['results']:
-            assert (result['comment'] == 'test_edit_some') == (result['upload_id'] == 'upload_1')
+        assert self.mongo(1, comment='test_edit_props')
+        assert self.mongo(1, references=['http://test', 'http://test2'])
+        assert self.mongo(1, coauthors=[other_test_user.user_id])
+        assert self.mongo(1, shared_with=[other_test_user.user_id])
 
-    def test_edit_ds(self, session_api, example_data, example_dataset, test_user_auth, no_warn):
-        rv = session_api.post(
-            '/repo/', headers=test_user_auth, content_type='application/json',
-            data=json.dumps(dict(
-                query=dict(upload_id='upload_1'),
-                metadata=dict(datasets=[example_dataset.dataset_id]))))
-        assert rv.status_code == 200
+        assert self.elastic(1, comment='test_edit_props')
+        assert self.elastic(1, references=['http://test', 'http://test2'])
+        assert self.elastic(1, authors=[other_test_user.user_id, test_user.user_id])
+        assert self.elastic(1, owners=[other_test_user.user_id, test_user.user_id])
 
-        rv = session_api.get('/repo/?owner=user&upload_id=upload_1', headers=test_user_auth)
-        assert rv.status_code == 200
-        data = json.loads(rv.data)
+    def test_edit_all(self):
+        rv = self.perform_edit(comment='test_edit_all')
+        self.assert_edit(rv, quantity='comment', success=True, message=False)
+        assert self.mongo(1, 2, 3, comment='test_edit_all')
+        assert self.elastic(1, 2, 3, comment='test_edit_all')
+        assert not self.mongo(4, comment='test_edit_all')
+        assert not self.elastic(4, comment='test_edit_all')
 
-        assert data['pagination']['total'] == 1
-        assert len(data['results']) == 1
-        for result in data['results']:
-            assert result['datasets'][0]['name'] == 'ds1'
+    def test_edit_some(self):
+        rv = self.perform_edit(comment='test_edit_some', query=dict(upload_id='upload_1'))
+        self.assert_edit(rv, quantity='comment', success=True, message=False)
+        assert self.mongo(1, comment='test_edit_some')
+        assert self.elastic(1, comment='test_edit_some')
+        assert not self.mongo(2, 3, 4, comment='test_edit_some')
+        assert not self.elastic(2, 3, 4, comment='test_edit_some')
+
+    def test_edit_verify(self):
+        rv = self.perform_edit(
+            comment='test_edit_verify', verify=True, query=dict(upload_id='upload_1'))
+        self.assert_edit(rv, quantity='comment', success=True, message=False)
+        assert not self.mongo(1, comment='test_edit_verify')
+
+    def test_edit_ds(self):
+        rv = self.perform_edit(
+            datasets=[self.example_dataset.name], query=dict(upload_id='upload_1'))
+        self.assert_edit(rv, quantity='datasets', success=True, message=False)
+        assert self.mongo(1, datasets=[self.example_dataset.dataset_id])
+
+    def test_edit_ds_user_namespace(self, test_user):
+        assert Dataset.m_def.m_x('me').objects(
+            name=self.other_example_dataset.name).first() is not None
+
+        rv = self.perform_edit(
+            datasets=[self.other_example_dataset.name], query=dict(upload_id='upload_1'))
+
+        self.assert_edit(rv, quantity='datasets', success=True, message=True)
+        new_dataset = Dataset.m_def.m_x('me').objects(
+            name=self.other_example_dataset.name,
+            user_id=test_user.user_id).first()
+        assert new_dataset is not None
+        assert self.mongo(1, datasets=[new_dataset.dataset_id])
+
+    def test_edit_new_ds(self, test_user):
+        rv = self.perform_edit(datasets=['new_dataset'], query=dict(upload_id='upload_1'))
+        self.assert_edit(rv, quantity='datasets', success=True, message=True)
+        new_dataset = Dataset.m_def.m_x('me').objects(name='new_dataset').first()
+        assert new_dataset is not None
+        assert new_dataset.user_id == test_user.user_id
+        assert self.mongo(1, datasets=[new_dataset.dataset_id])
+
+    def test_edit_bad_user(self):
+        rv = self.perform_edit(coauthors=['bad_user'], query=dict(upload_id='upload_1'))
+        self.assert_edit(rv, status_code=400, quantity='coauthors', success=False, message=True)
+
+    def test_edit_user(self, other_test_user):
+        rv = self.perform_edit(coauthors=[other_test_user.email], query=dict(upload_id='upload_1'))
+        self.assert_edit(rv, quantity='coauthors', success=True, message=False)
+
+    def test_admin_only(self, other_test_user):
+        rv = self.perform_edit(uploader=other_test_user.user_id)
+        assert rv.status_code != 200
 
 
 class TestRaw(UploadFilesBasedTests):
+
+    def assert_zip_file(self, rv, files: int = -1, basename: bool = None):
+        assert rv.status_code == 200
+        assert len(rv.data) > 0
+        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
+            assert zip_file.testzip() is None
+            zip_files = zip_file.namelist()
+            if files >= 0:
+                assert len(zip_files) == files
+            if basename is not None:
+                if basename:
+                    assert all(
+                        os.path.basename(name) == name
+                        for name in zip_files if name != 'manifest.json')
+                else:
+                    assert all(
+                        os.path.basename(name) != name
+                        for name in zip_files for name in zip_files if name != 'manifest.json')
 
     def test_raw_file_from_calc(self, api, non_empty_processed, test_user_auth):
         calc = list(non_empty_processed.calcs)[0]
@@ -1071,14 +1203,14 @@ class TestRaw(UploadFilesBasedTests):
         result = json.loads(rv.data)
         assert len(result['contents']) > 0
 
-    @UploadFilesBasedTests.check_authorizaton
+    @UploadFilesBasedTests.check_authorization
     def test_raw_file(self, api, upload, auth_headers):
         url = '/raw/%s/%s' % (upload, example_file_mainfile)
         rv = api.get(url, headers=auth_headers)
         assert rv.status_code == 200
         assert len(rv.data) > 0
 
-    @UploadFilesBasedTests.check_authorizaton
+    @UploadFilesBasedTests.check_authorization
     def test_raw_file_partial(self, api, upload, auth_headers):
         url = '/raw/%s/%s?offset=0&length=20' % (upload, example_file_mainfile)
         rv = api.get(url, headers=auth_headers)
@@ -1117,10 +1249,7 @@ class TestRaw(UploadFilesBasedTests):
         rv = api.get(url, headers=auth_headers)
 
         assert rv.status_code == 200
-        assert len(rv.data) > 0
-        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
-            assert zip_file.testzip() is None
-            assert len(zip_file.namelist()) == len(example_file_contents)
+        self.assert_zip_file(rv, files=len(example_file_contents))
 
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_file_wildcard_missing(self, api, upload, auth_headers):
@@ -1134,20 +1263,19 @@ class TestRaw(UploadFilesBasedTests):
         rv = api.get(url, headers=auth_headers)
         assert rv.status_code == 404
 
-    @pytest.mark.parametrize('compress', [True, False])
-    @UploadFilesBasedTests.check_authorizaton
-    def test_raw_files(self, api, upload, auth_headers, compress):
+    @pytest.mark.parametrize('compress, strip', [(True, False), (False, False), (False, True)])
+    @UploadFilesBasedTests.check_authorization
+    def test_raw_files(self, api, upload, auth_headers, compress, strip):
         url = '/raw/%s?files=%s' % (
             upload, ','.join(example_file_contents))
         if compress:
             url = '%s&compress=1' % url
+        if strip:
+            url = '%s&strip=1' % url
         rv = api.get(url, headers=auth_headers)
 
         assert rv.status_code == 200
-        assert len(rv.data) > 0
-        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
-            assert zip_file.testzip() is None
-            assert len(zip_file.namelist()) == len(example_file_contents)
+        self.assert_zip_file(rv, files=len(example_file_contents), basename=strip)
 
     @pytest.mark.parametrize('compress', [False, True])
     def test_raw_files_from_query_upload_id(self, api, non_empty_processed, test_user_auth, compress):
@@ -1155,10 +1283,7 @@ class TestRaw(UploadFilesBasedTests):
         rv = api.get(url, headers=test_user_auth)
 
         assert rv.status_code == 200
-        assert len(rv.data) > 0
-        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
-            assert zip_file.testzip() is None
-            assert len(zip_file.namelist()) == len(example_file_contents)
+        self.assert_zip_file(rv, files=len(example_file_contents) + 1)
 
     @pytest.mark.parametrize('query_params', [
         {'atoms': 'Si'},
@@ -1170,20 +1295,31 @@ class TestRaw(UploadFilesBasedTests):
         rv = api.get(url, headers=test_user_auth)
 
         assert rv.status_code == 200
-        assert len(rv.data) > 0
+        self.assert_zip_file(rv, files=len(example_file_contents) * len(processeds) + 1)
         with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
-            assert zip_file.testzip() is None
-            assert len(zip_file.namelist()) == len(example_file_contents) * len(processeds)
+            with zip_file.open('manifest.json', 'r') as f:
+                manifest = json.load(f)
+                assert len(manifest) == len(processeds)
 
     def test_raw_files_from_empty_query(self, api, elastic):
         url = '/raw/query?upload_id=doesNotExist'
         rv = api.get(url)
 
         assert rv.status_code == 200
-        assert len(rv.data) > 0
-        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
-            assert zip_file.testzip() is None
-            assert len(zip_file.namelist()) == 0
+        self.assert_zip_file(rv, files=1)
+
+    @pytest.mark.parametrize('files, pattern, strip', [
+        (1, '*.json', False),
+        (1, '*.json', True),
+        (5, ['*.json', '*.aux'], False)])
+    def test_raw_query_pattern(self, api, non_empty_processed, test_user_auth, files, pattern, strip):
+        params = dict(file_pattern=pattern)
+        if strip:
+            params.update(strip=True)
+        url = '/raw/query?%s' % urlencode(params, doseq=True)
+        rv = api.get(url, headers=test_user_auth)
+        assert rv.status_code == 200
+        self.assert_zip_file(rv, files=(files + 1), basename=strip)
 
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_files_signed(self, api, upload, _, test_user_signature_token):
@@ -1192,13 +1328,10 @@ class TestRaw(UploadFilesBasedTests):
         rv = api.get(url)
 
         assert rv.status_code == 200
-        assert len(rv.data) > 0
-        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
-            assert zip_file.testzip() is None
-            assert len(zip_file.namelist()) == len(example_file_contents)
+        self.assert_zip_file(rv, files=len(example_file_contents))
 
     @pytest.mark.parametrize('compress', [True, False, None])
-    @UploadFilesBasedTests.check_authorizaton
+    @UploadFilesBasedTests.check_authorization
     def test_raw_files_post(self, api, upload, auth_headers, compress):
         url = '/raw/%s' % upload
         data = dict(files=example_file_contents)
@@ -1207,10 +1340,7 @@ class TestRaw(UploadFilesBasedTests):
         rv = api.post(url, data=json.dumps(data), content_type='application/json', headers=auth_headers)
 
         assert rv.status_code == 200
-        assert len(rv.data) > 0
-        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
-            assert zip_file.testzip() is None
-            assert len(zip_file.namelist()) == len(example_file_contents)
+        self.assert_zip_file(rv, files=len(example_file_contents))
 
     @pytest.mark.parametrize('compress', [True, False])
     @UploadFilesBasedTests.ignore_authorization
@@ -1221,10 +1351,7 @@ class TestRaw(UploadFilesBasedTests):
         rv = api.get(url, headers=auth_headers)
 
         assert rv.status_code == 200
-        assert len(rv.data) > 0
-        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
-            assert zip_file.testzip() is None
-            assert len(zip_file.namelist()) == 1
+        self.assert_zip_file(rv, files=1)
 
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_files_missing_upload(self, api, upload, auth_headers):
@@ -1284,8 +1411,8 @@ class TestDataset:
 
     @pytest.fixture()
     def example_datasets(self, mongo, test_user):
-        DatasetME(dataset_id='1', user_id=test_user.user_id, name='ds1').save()
-        DatasetME(dataset_id='2', user_id=test_user.user_id, name='ds2', doi='test_doi').save()
+        Dataset(dataset_id='1', user_id=test_user.user_id, name='ds1').m_x('me').create()
+        Dataset(dataset_id='2', user_id=test_user.user_id, name='ds2', doi='test_doi').m_x('me').create()
 
     def assert_dataset(self, dataset, name: str = None, doi: bool = False):
         assert 'dataset_id' in dataset

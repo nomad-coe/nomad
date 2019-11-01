@@ -45,17 +45,22 @@ class RepoEntryView extends React.Component {
     domain: PropTypes.object.isRequired
   }
 
-  state = {
+  static defaultState = {
     calcData: null,
     doesNotExist: false
   }
+
+  state = {...RepoEntryView.defaultState}
 
   componentDidMount() {
     this.update()
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.api !== this.props.api) {
+    if (prevProps.api !== this.props.api ||
+        prevProps.uploadId !== this.props.uploadId ||
+        prevProps.calcId !== this.props.calcId) {
+      this.setState({...RepoEntryView.defaultState})
       this.update()
     }
   }
@@ -151,6 +156,7 @@ class RepoEntryView extends React.Component {
                     <Quantity quantity='mainfile' loading={loading} noWrap {...quantityProps} withClipboard />
                     <Quantity quantity="calc_hash" label={`${domain.entryLabel} hash`} loading={loading} noWrap {...quantityProps} />
                     <Quantity quantity="raw_id" label='raw id' loading={loading} noWrap {...quantityProps} withClipboard />
+                    <Quantity quantity="external_id" label='external id' loading={loading} noWrap {...quantityProps} withClipboard />
                     <Quantity quantity="last_processing" label='last processing' loading={loading} placeholder="not processed" noWrap {...quantityProps}>
                       <Typography noWrap>
                         {new Date(calcData.last_processing * 1000).toLocaleString()}
@@ -167,13 +173,13 @@ class RepoEntryView extends React.Component {
             </Grid>
           </Grid>
 
-          <domain.EntryCards data={calcData} classes={{root: classes.entryCards}} />
+          <domain.EntryCards data={calcData} calcId={calcId} uploadId={uploadId} classes={{root: classes.entryCards}} />
 
           <Download
             disabled={!mainfile} tooltip="download all raw files for calculation"
             classes={{root: classes.downloadFab}}
             component={Fab} className={classes.downloadFab} color="primary" size="medium"
-            url={`raw/${uploadId}/${calcPath}/*`} fileName={`${calcId}.zip`}
+            url={`raw/${uploadId}/${calcPath}/*?strip=true`} fileName={`${calcId}.zip`}
           >
             <DownloadIcon />
           </Download>

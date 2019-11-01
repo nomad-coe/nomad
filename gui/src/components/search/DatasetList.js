@@ -71,13 +71,14 @@ class DatasetListUnstyled extends React.Component {
 
   render() {
     const { classes, data, total, datasets_after, onChange } = this.props
-    const results = Object.keys(data.datasets.values).map(id => ({
+    const datasets = data.datasets || {values: []}
+    const results = Object.keys(datasets.values).map(id => ({
       id: id,
-      total: data.datasets.values[id].total,
-      example: data.datasets.values[id].examples[0]
+      total: datasets.values[id].total,
+      example: datasets.values[id].examples[0]
     }))
     const per_page = 10
-    const after = data.datasets.after
+    const after = datasets.after
 
     let paginationText
     if (datasets_after) {

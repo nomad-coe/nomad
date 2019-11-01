@@ -7,11 +7,10 @@ import DialogContent from '@material-ui/core/DialogContent'
 import DialogContentText from '@material-ui/core/DialogContentText'
 import DialogTitle from '@material-ui/core/DialogTitle'
 import PropTypes from 'prop-types'
-import { IconButton, Tooltip, withStyles, Paper, MenuItem, Popper } from '@material-ui/core'
+import { IconButton, Tooltip, withStyles, Paper, MenuItem, Popper, CircularProgress } from '@material-ui/core'
 import EditIcon from '@material-ui/icons/Edit'
 import AddIcon from '@material-ui/icons/Add'
 import RemoveIcon from '@material-ui/icons/Delete'
-import ReactJson from 'react-json-view'
 import Autosuggest from 'react-autosuggest'
 import match from 'autosuggest-highlight/match'
 import parse from 'autosuggest-highlight/parse'
@@ -48,6 +47,15 @@ class SuggestionsTextFieldUnstyled extends React.Component {
   constructor(props) {
     super(props)
     this.lastRequestId = null
+    this.unmounted = false
+  }
+
+  componentWillUnmount() {
+    this.unmounted = true
+  }
+
+  componentDidMount() {
+    this.unmounted = false
   }
 
   loadSuggestions(value) {
@@ -65,12 +73,14 @@ class SuggestionsTextFieldUnstyled extends React.Component {
 
     this.lastRequestId = setTimeout(() => {
       this.props.suggestions(value).then(suggestions => {
-        this.setState({
-          isLoading: false,
-          suggestions: suggestions
-        })
+        if (!this.unmounted) {
+          this.setState({
+            isLoading: false,
+            suggestions: suggestions
+          })
+        }
       })
-    }, 1000)
+    }, 200)
   }
 
   state = {
@@ -195,7 +205,7 @@ function isURL(str) {
 class ListTextInputUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    values: PropTypes.arrayOf(PropTypes.string).isRequired,
+    values: PropTypes.arrayOf(PropTypes.object).isRequired,
     validate: PropTypes.func,
     label: PropTypes.string,
     errorLabel: PropTypes.string,
@@ -223,13 +233,19 @@ class ListTextInputUnstyled extends React.Component {
     const handleChange = (index, value) => {
       // TODO
       if (onChange) {
-        onChange([...values.slice(0, index), value, ...values.slice(index + 1)])
+        const newValues = [...values]
+        if (newValues[index]) {
+          newValues[index].value = value
+        } else {
+          newValues[index] = {value: value}
+        }
+        onChange(newValues)
       }
     }
 
     const handleAdd = () => {
       if (onChange) {
-        onChange([...values, ''])
+        onChange([...values, {value: ''}])
       }
     }
 
@@ -240,14 +256,20 @@ class ListTextInputUnstyled extends React.Component {
     }
 
     const Component = component || TextField
-    const normalizedValues = values.length === 0 ? [''] : values
+    const normalizedValues = values.length === 0 ? [{value: ''}] : values
 
     return <React.Fragment>
-      {normalizedValues.map((value, index) => {
-        const error = validate && !validate(value)
-        let labelValue = index === 0 ? label : null
+      {normalizedValues.map(({value, message, success}, index) => {
+        let error = validate && !validate(value)
+        let labelValue
+        if (index === 0) {
+          labelValue = label
+        }
         if (error) {
           labelValue = errorLabel || 'Bad value'
+        } else if (message) {
+          labelValue = message
+          error = !success
         }
         return <div key={index} className={classes.row}>
           <Component
@@ -268,7 +290,7 @@ class ListTextInputUnstyled extends React.Component {
               </IconButton> : ''}
           </div>
           <div className={classes.buttonContainer}>
-            {index + 1 === normalizedValues.length && normalizedValues[index] !== ''
+            {index + 1 === normalizedValues.length && normalizedValues[index].value !== ''
               ? <IconButton className={classes.button} size="tiny" onClick={handleAdd}>
                 <AddIcon fontSize="inherit" />
               </IconButton> : ''}
@@ -293,46 +315,74 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     total: PropTypes.number,
     example: PropTypes.object,
     buttonProps: PropTypes.object,
-    api: PropTypes.object.isRequired
+    api: PropTypes.object.isRequired,
+    raiseError: PropTypes.func.isRequired,
+    user: PropTypes.object,
+    onEditComplete: PropTypes.func,
+    disabled: PropTypes.bool
   }
 
   static styles = theme => ({
     dialog: {
       width: '100%'
+    },
+    submitWrapper: {
+      margin: theme.spacing.unit,
+      position: 'relative'
+    },
+    submitProgress: {
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      marginTop: -12,
+      marginLeft: -12
     }
   })
 
   constructor(props) {
     super(props)
     this.handleButtonClick = this.handleButtonClick.bind(this)
-  }
-
-  state = {
-    open: false,
-    editData: {
+    this.handleClose = this.handleClose.bind(this)
+    this.handleSubmit = this.handleSubmit.bind(this)
+    this.verifyTimer = null
+    this.state = {...this.defaultState}
+    this.editData = {
       comment: '',
       references: [],
-      coAuthors: [],
-      sharedWith: [],
+      coauthors: [],
+      shared_with: [],
       datasets: [],
-      withEmbargo: true
+      with_embargo: true
     }
+    this.unmounted = false
+  }
+
+  defaultState = {
+    open: false,
+    actions: {},
+    isVerifying: false,
+    verified: true,
+    submitting: false
+  }
+
+  componentWillUnmount() {
+    this.unmounted = true
   }
 
   update() {
     const { example } = this.props
-    const editData = {
+    this.editData = {
       comment: example.comment || '',
       references: example.references || [],
-      coAuthors: example.authors.filter(author => author.user_id !== example.uploader.user_id).map(author => author.email),
-      sharedWith: example.owners.filter(author => author.user_id !== example.uploader.user_id).map(author => author.email),
+      coauthors: example.authors.filter(author => author.user_id !== example.uploader.user_id).map(author => author.email),
+      shared_with: example.owners.filter(author => author.user_id !== example.uploader.user_id).map(author => author.email),
       datasets: (example.datasets || []).map(ds => ds.name),
-      withEmbargo: example.with_embargo
+      with_embargo: example.with_embargo
     }
-    this.setState({editData: editData})
   }
 
   componentDidMount() {
+    this.unmounted = false
     this.update()
   }
 
@@ -340,6 +390,59 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     if (prevProps.example.calc_id !== this.props.example.calc_id) {
       this.update()
     }
+  }
+
+  verify() {
+    if (this.state.isVerifying) {
+      return
+    }
+
+    if (this.verifyTimer !== null) {
+      clearTimeout(this.verifyTimer)
+    }
+
+    this.setState({
+      isVerifying: true, verified: false
+    })
+
+    this.verifyTimer = setTimeout(() => {
+      this.submitPromise(true).then(newState => {
+        this.setState(newState)
+      }).catch(error => {
+        this.setState({verified: false, isVerifying: false})
+        return this.props.raiseError(error)
+      })
+    }, 200)
+  }
+
+  submitPromise(verify) {
+    const { actions } = this.state
+
+    const editRequest = {
+      verify: verify,
+      actions: actions
+    }
+    return this.props.api.edit(editRequest).then(data => {
+      if (this.unmounted) {
+        return
+      }
+
+      const newActions = {...this.state.actions}
+      let verified = true
+      if (data.actions) {
+        Object.keys(newActions).forEach(key => {
+          if (Array.isArray(newActions[key])) {
+            newActions[key] = newActions[key].map((action, i) => {
+              verified &= !data.actions[key] || data.actions[key].success !== false
+              return data.actions[key]
+                ? {...(data.actions[key][i] || {}), value: action.value}
+                : action
+            })
+          }
+        })
+      }
+      return {actions: newActions, isVerifying: false, verified: verified}
+    })
   }
 
   handleButtonClick() {
@@ -351,115 +454,150 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     this.setState({open: !open})
   }
 
-  render() {
-    const { classes, buttonProps, total, api } = this.props
-    const { open } = this.state
-    const close = () => this.setState({open: false})
+  handleClose() {
+    this.setState({submitting: true})
+    this.setState({...this.defaultState})
+  }
 
-    const handleChange = (key, value) => {
-      this.setState({editData: {...this.state.editData, [key]: value}})
+  handleSubmit() {
+    this.setState({submitting: true})
+
+    this.submitPromise(false).then(newState => {
+      if (this.props.onEditComplete) {
+        this.props.onEditComplete()
+      }
+      this.setState({...newState, submitting: false})
+      this.handleClose()
+    }).catch(error => {
+      this.setState({verified: false, isVerifying: false, submitting: false})
+      return this.props.raiseError(error)
+    })
+  }
+
+  render() {
+    const { classes, buttonProps, total, api, user, example, disabled } = this.props
+    const { open, actions, verified, submitting } = this.state
+
+    const dialogEnabled = user && example.uploader.user_id === user.sub && !disabled
+    const submitEnabled = Object.keys(actions).length && !submitting && verified
+
+    const listTextInputProps = (key, verify) => {
+      const values = actions[key] ? actions[key] : this.editData[key].map(value => ({value: value}))
+      return {
+        id: key,
+        fullWidth: true,
+        values: values,
+        onChange: values => {
+          this.setState({actions: {...actions, [key]: values}})
+          if (verify) {
+            this.verify()
+          }
+        }
+      }
     }
-    const value = key => this.state.editData[key]
 
     const userSuggestions = query => {
       return api.getUsers(query)
         .then(result => result.users)
-        .catch((err) => {
-          console.log(err)
+        .catch(err => {
+          console.error(err)
           return []
         })
     }
 
     return (
       <React.Fragment>
-        <Tooltip title="Edit user metadata">
-          <IconButton {...(buttonProps || {})} onClick={this.handleButtonClick}>
+        <IconButton {...(buttonProps || {})} onClick={this.handleButtonClick} disabled={!dialogEnabled}>
+          <Tooltip title={`Edit user metadata${dialogEnabled ? '' : '. You can only edit your data.'}`}>
             <EditIcon />
-          </IconButton>
-        </Tooltip>
-        <Dialog classes={{paper: classes.dialog}} open={open} onClose={close} disableBackdropClick disableEscapeKeyDown>
-          <DialogTitle>Edit the user metadata of {total} entries</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              TODO better text
-            </DialogContentText>
-            <TextField
-              id="comment"
-              label="Comment"
-              value={value('comment')}
-              onChange={event => handleChange('comment', event.target.value)}
-              margin="normal"
-              multiline
-              fullWidth
-            />
-            <ListTextInput
-              id="references"
-              label="References"
-              errorLabel="References must be valid URLs"
-              placeholder="Add a URL reference"
-              values={value('references')}
-              onChange={values => handleChange('references', values)}
-              validate={isURL}
-              fullWidth
-            />
-            <SuggestionsListTextInput
-              suggestions={userSuggestions}
-              suggestionValue={v => v.email}
-              suggestionRendered={v => `${v.name} (${v.email})`}
-              id="coAuthors"
-              label="Co-authors"
-              placeholder="Add a co-author by name"
-              values={value('coAuthors')}
-              onChange={values => handleChange('coAuthors', values)}
-              fullWidth
-            />
-            <SuggestionsListTextInput
-              suggestions={userSuggestions}
-              suggestionValue={v => v.email}
-              suggestionRendered={v => `${v.name} (${v.email})`}
-              id="sharedWith"
-              label="Shared with"
-              placeholder="Add a user by name to share with"
-              values={value('sharedWith')}
-              onChange={values => handleChange('sharedWith', values)}
-              fullWidth
-            />
-            <SuggestionsListTextInput
-              suggestions={prefix => {
-                console.log(prefix)
-                return api.getDatasets(prefix)
-                  .then(result => result.results.map(ds => ds.name))
-                  .catch((err) => {
-                    console.log(err)
-                    return []
-                  })
-              }}
-              suggestionValue={v => v}
-              suggestionRendered={v => v}
-              id="datasets"
-              label="Datasets"
-              placeholder="Add a dataset"
-              values={value('datasets')}
-              onChange={values => handleChange('datasets', values)}
-              fullWidth
-            />
-          </DialogContent>
-          <DialogContent>
-            <ReactJson
-              src={this.state.editData}
-              enableClipboard={false}
-              collapsed={0}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={close} color="primary">
-              Cancel
-            </Button>
-            <Button onClick={close} color="primary">
-              Submit
-            </Button>
-          </DialogActions>
-        </Dialog>
+          </Tooltip>
+        </IconButton>
+        {dialogEnabled
+          ? <Dialog classes={{paper: classes.dialog}} open={open} onClose={this.handleClose} disableBackdropClick disableEscapeKeyDown>
+            <DialogTitle>Edit the user metadata of {total} entries</DialogTitle>
+            <DialogContent>
+              <DialogContentText>
+                You are editing {total} {total === 1 ? 'entry' : 'entries'}. {total > 1
+                  ? 'The fields are pre-filled with data from the first entry for.' : ''
+                } Only the fields that you change will be updated.
+                Be aware that all references, co-authors, shared_with, or datasets count as
+                one field.
+              </DialogContentText>
+              <TextField
+                // id="comment"
+                label="Comment"
+                value={actions.comment !== undefined ? actions.comment.value : this.editData.comment}
+                onChange={event => this.setState({actions: {...actions, comment: {value: event.target.value}}})}
+                margin="normal"
+                multiline rows="4"
+                fullWidth
+                placeholder="Add a comment"
+                InputLabelProps={{ shrink: true }}
+              />
+              <ListTextInput
+                label="References"
+                {...listTextInputProps('references')}
+                errorLabel="References must be valid URLs"
+                placeholder="Add a URL reference"
+                validate={isURL}
+              />
+              <SuggestionsListTextInput
+                label="Co-authors"
+                suggestions={userSuggestions}
+                suggestionValue={v => {
+                  return v.email
+                }}
+                suggestionRendered={v => `${v.name} (${v.email})`}
+                placeholder="Add a co-author by name"
+                {...listTextInputProps('coauthors', true)}
+              />
+              <SuggestionsListTextInput
+                {...listTextInputProps('shared_with', true)}
+                suggestions={userSuggestions}
+                suggestionValue={v => v.email}
+                suggestionRendered={v => `${v.name} (${v.email})`}
+                label="Shared with"
+                placeholder="Add a user by name to share with"
+              />
+              <SuggestionsListTextInput
+                {...listTextInputProps('datasets', true)}
+                suggestions={prefix => {
+                  return api.getDatasets(prefix)
+                    .then(result => result.results.map(ds => ds.name))
+                    .catch(err => {
+                      console.error(err)
+                      return []
+                    })
+                }}
+                suggestionValue={v => v}
+                suggestionRendered={v => v}
+                label="Datasets"
+                placeholder="Add a dataset"
+              />
+            </DialogContent>
+            {Object.keys(actions).length
+              ? <DialogContent>
+                <DialogContentText>
+                    The following fields will be updated with the given values: <i>
+                    {Object.keys(actions).map(action => action).join(', ')}</i>.
+                    Updating many entries might take a few seconds.
+                </DialogContentText>
+              </DialogContent>
+              : ''}
+            <DialogActions>
+              <Button onClick={this.handleClose} color="primary" disabled={submitting}>
+                Cancel
+              </Button>
+              <div className={classes.submitWrapper}>
+                <Button onClick={this.handleSubmit} color="primary" disabled={!submitEnabled}>
+                  Submit
+                </Button>
+                {submitting && <CircularProgress size={24} className={classes.submitProgress} />}
+              </div>
+            </DialogActions>
+          </Dialog>
+          : ''
+        }
       </React.Fragment>
     )
   }

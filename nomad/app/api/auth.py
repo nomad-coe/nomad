@@ -129,7 +129,7 @@ def authenticate(
                 if token is not None:
                     try:
                         decoded = jwt.decode(token, config.services.api_secret, algorithms=['HS256'])
-                        user = datamodel.User(user_id=decoded['user'], email=None)
+                        user = datamodel.User(user_id=decoded['user'])
                         if user is None:
                             abort(401, 'User for the given signature does not exist')
                         else:

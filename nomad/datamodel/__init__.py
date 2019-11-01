@@ -59,11 +59,11 @@ The class :class:`Dataset` is used to represent datasets and their attributes.
 
 import sys
 
-from nomad.datamodel.base import UploadWithMetadata, CalcWithMetadata, Domain, DomainQuantity, User
+from nomad.datamodel.base import UploadWithMetadata, CalcWithMetadata, Domain, DomainQuantity
 from nomad.datamodel import ems, dft
 from nomad.datamodel.dft import DFTCalcWithMetadata
 from nomad.datamodel.ems import EMSEntryWithMetadata
-from nomad.datamodel.dataset import Dataset, DatasetME
+from nomad.datamodel.metainfo import Dataset, User, UserMetadata
 
 # Override the CalcWithMetadata with the domain specific decendant
 setattr(sys.modules['nomad.datamodel'], 'CalcWithMetadata', Domain.instance.domain_entry_class)

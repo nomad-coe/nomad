@@ -15,61 +15,14 @@
 from typing import Iterable, List, Dict, Type, Tuple, Callable, Any
 import datetime
 from elasticsearch_dsl import Keyword
-from cachetools import cached, TTLCache
 from collections.abc import Mapping
 import numpy as np
 
 from nomad import utils, config
 from nomad.metainfo import MSection
-from nomad import utils, config, infrastructure
+from nomad import utils, config
 
-from .dataset import Dataset
-
-
-class User:
-    """
-    A data class that holds all information for a single user. This can be the logged in
-    and authenticated user, or other users (i.e. co-authors, etc.).
-
-    # TODO legacy ids
-    """
-    def __init__(
-            self, user_id: str, email: str, name: str = None, first_name: str = None,
-            last_name: str = None, affiliation: str = None, affiliation_address: str = None,
-            created: datetime.datetime = None, repo_user_id: str = None):
-
-        assert user_id is not None, 'Users must have a unique id'
-
-        name = '' if name is None else name.strip()
-        self.first_name = '' if first_name is None else first_name.strip()
-        self.last_name = '' if last_name is None else last_name.strip()
-
-        self.user_id = user_id
-        self.email = email
-        if len(self.last_name) > 0 and len(self.first_name) > 0:
-            self.name = '%s %s' % (self.first_name, self.last_name)
-        elif len(name) != 0:
-            self.name = name
-        elif len(self.last_name) != 0:
-            self.name = self.last_name
-        elif len(self.first_name) != 0:
-            self.name = self.first_name
-        else:
-            self.name = 'unnamed user'
-
-        self.created = created
-        self.affiliation = affiliation
-        self.affiliation_address = affiliation_address
-        self.repo_user_id = repo_user_id
-
-    @staticmethod
-    @cached(cache=TTLCache(maxsize=2048, ttl=24 * 3600))
-    def get(*args, **kwargs) -> 'User':
-        return infrastructure.keycloak.get_user(*args, **kwargs)  # type: ignore
-
-    @property
-    def is_admin(self):
-        return self.user_id == config.services.admin_user_id
+from .metainfo import Dataset, User
 
 
 class UploadWithMetadata():
@@ -218,8 +171,7 @@ class CalcWithMetadata(Mapping):
         uploader_id = metadata.get('_uploader')
         if uploader_id is not None:
             self.uploader = uploader_id
-        if 'references' in metadata:
-            self.references = [utils.POPO(value=ref) for ref in metadata['references']]
+        self.references = metadata.get('references', [])
         self.with_embargo = metadata.get('with_embargo', self.with_embargo)
         self.coauthors = [
             user_id for user_id in metadata.get('coauthors', self.coauthors)
@@ -229,7 +181,7 @@ class CalcWithMetadata(Mapping):
             if User.get(user_id=user_id) is not None]
         self.datasets = [
             dataset_id for dataset_id in metadata.get('datasets', self.datasets)
-            if Dataset.get(dataset_id=dataset_id) is not None]
+            if Dataset.m_def.m_x('me').get(dataset_id=dataset_id) is not None]
         self.external_id = metadata.get('external_id')
 
     def apply_domain_metadata(self, backend):

@@ -18,8 +18,8 @@ import re
 
 from nomad import utils
 from nomad.app.utils import with_logger
-from nomad.datamodel import Dataset, DatasetME
-from nomad.datamodel.dataset import generate_flask_restplus_model
+from nomad.datamodel import Dataset
+from nomad.metainfo.flask_restplus import generate_flask_restplus_model
 
 from .api import api
 from .auth import authenticate
@@ -60,11 +60,13 @@ class DatasetListResource(Resource):
         if prefix is not '':
             query_params.update(name=re.compile('^%s.*' % prefix))
 
-        result_query = DatasetME.objects(**query_params)
+        result_query = Dataset.m_def.m_x('me').objects(**query_params)
 
         return dict(
             pagination=dict(total=result_query.count(), page=page, per_page=per_page),
-            results=result_query[(page - 1) * per_page: page * per_page]), 200
+            results=[
+                Dataset.m_def.m_x('me').to_metainfo(result)
+                for result in result_query[(page - 1) * per_page: page * per_page]]), 200
 
     @api.doc('create_dataset')
     @api.response(400, 'The provided data is malformed or a dataset with the name already exists')
@@ -82,7 +84,7 @@ class DatasetListResource(Resource):
         if name is None:
             abort(400, 'Must provide a dataset name.')
 
-        if DatasetME.objects(user_id=g.user.user_id, name=name).count() > 0:
+        if Dataset.m_def.m_x('me').objects(user_id=g.user.user_id, name=name).count() > 0:
             abort(400, 'A dataset with name %s does already exist for the current user.' % name)
 
         # only admin can set user or doi
@@ -97,7 +99,7 @@ class DatasetListResource(Resource):
         if 'user_id' not in data:
             data['user_id'] = g.user.user_id
         dataset_id = data.pop('dataset_id', utils.create_uuid())
-        return DatasetME(dataset_id=dataset_id, **data).save(), 200
+        return Dataset(dataset_id=dataset_id, **data).m_x('me').create(), 200
 
 
 @ns.route('/<string:name>')
@@ -109,8 +111,9 @@ class DatasetResource(Resource):
     @authenticate(required=True)
     def get(self, name: str):
         """ Retrieve a dataset by name. """
-        result = DatasetME.objects(user_id=g.user.user_id, name=name).first()
-        if result is None:
+        try:
+            result = Dataset.m_def.m_x('me').get(user_id=g.user.user_id, name=name)
+        except KeyError:
             abort(404, 'Dataset with name %s does not exist for current user' % name)
 
         return result
@@ -123,8 +126,9 @@ class DatasetResource(Resource):
     @with_logger
     def post(self, name: str, logger):
         """ Assign a DOI to the dataset. """
-        result = DatasetME.objects(user_id=g.user.user_id, name=name).first()
-        if result is None:
+        try:
+            result = Dataset(user_id=g.user.user_id, name=name)
+        except KeyError:
             abort(404, 'Dataset with name %s does not exist for current user' % name)
 
         logger.error('assign datasets is not implemented', user_id=g.user.user_id)
@@ -138,7 +142,8 @@ class DatasetResource(Resource):
     @authenticate(required=True)
     def delete(self, name: str):
         """ Assign a DOI to the dataset. """
-        result = DatasetME.objects(user_id=g.user.user_id, name=name).first()
+        result = Dataset.m_def.m_x('me').objects(user_id=g.user.user_id, name=name).first()
+
         if result is None:
             abort(404, 'Dataset with name %s does not exist for current user' % name)
         if result.doi is not None:
@@ -146,4 +151,4 @@ class DatasetResource(Resource):
 
         result.delete()
 
-        return result
+        return Dataset.m_def.m_x('me').to_metainfo(result)

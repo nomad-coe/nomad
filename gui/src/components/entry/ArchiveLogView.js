@@ -32,20 +32,22 @@ class ArchiveLogView extends React.Component {
     }
   });
 
-  constructor(props) {
-    super(props)
-    this.state = {
+  static defaultState = {
       data: null,
       doesNotExist: false
     }
-  }
+
+  state = {...ArchiveLogView.defaultState}
 
   componentDidMount() {
     this.update()
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.api !== this.props.api) {
+    if (prevProps.api !== this.props.api ||
+        prevProps.uploadId !== this.props.uploadId ||
+        prevProps.calcId !== this.props.calcId) {
+      this.setState({...ArchiveLogView.defaultState})
       this.update()
     }
   }

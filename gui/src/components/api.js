@@ -121,11 +121,11 @@ function handleApiError(e) {
     throw e
   }
 
+  let error = null
   if (e.response) {
     const body = e.response.body
     const message = (body && body.message) ? body.message : e.response.statusText
     const errorMessage = `${message} (${e.response.status})`
-    let error = null
     if (e.response.status === 404) {
       error = new DoesNotExist(errorMessage)
     } else if (e.response.status === 401) {
@@ -136,11 +136,16 @@ function handleApiError(e) {
       error = new Error(errorMessage)
     }
     error.status = e.response.status
-    throw error
   } else {
-    const errorMessage = e.status ? `${e} (${e.status})` : '' + e
-    throw new Error(errorMessage)
+    if (e.message === 'Failed to fetch') {
+      error = new ApiError(e.message)
+      error.status = 400
+    } else {
+      const errorMessage = e.status ? `${e} (${e.status})` : '' + e
+      error = new Error(errorMessage)
+    }
   }
+  throw error
 }
 
 class Api {
@@ -308,6 +313,15 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
+  async edit(edit) {
+    // this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.repo.edit_repo({payload: edit}))
+      .catch(handleApiError)
+      .then(response => response.body)
+      // .finally(this.onFinishLoading)
+  }
+
   async resolvePid(pid) {
     this.onStartLoading()
     return this.swaggerPromise
@@ -327,21 +341,21 @@ class Api {
   }
 
   async getDatasets(prefix) {
-    this.onStartLoading()
+    // this.onStartLoading()
     return this.swagger()
       .then(client => client.apis.datasets.list_datasets({prefix: prefix}))
       .catch(handleApiError)
       .then(response => response.body)
-      .finally(this.onFinishLoading)
+      // .finally(this.onFinishLoading)
   }
 
   async getUsers(query) {
-    this.onStartLoading()
+    // this.onStartLoading()
     return this.swagger()
       .then(client => client.apis.auth.get_users({query: query}))
       .catch(handleApiError)
       .then(response => response.body)
-      .finally(this.onFinishLoading)
+      // .finally(this.onFinishLoading)
   }
 
   async quantities_search(search) {
@@ -496,9 +510,12 @@ export class ApiProviderComponent extends React.Component {
       this.setState(state => ({loading: Math.max(0, state.loading - 1)}))
     }
 
-    api.getInfo().then(info => {
+    api.getInfo()
+    .catch(handleApiError)
+    .then(info => {
       this.setState({info: info})
-    }).catch(error => {
+    })
+    .catch(error => {
       this.props.raiseError(error)
     })
 

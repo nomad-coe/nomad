@@ -54,16 +54,15 @@ def _gen_user():
 def _gen_dataset():
     id, name = random.choice(datasets)
     id_str = str(id)
-    try:
-        datamodel.Dataset.get(dataset_id=id_str)
-    except KeyError:
-        datamodel.DatasetME(user_id=random.choice(users), dataset_id=id_str, name=name, doi=_gen_ref().value).save()
+    if datamodel.Dataset.m_def.m_x('me').objects(dataset_id=id_str).first() is None:
+        datamodel.Dataset(
+            user_id=random.choice(users), dataset_id=id_str, name=name,
+            doi=_gen_ref().value).m_x('me').create()
     return id_str
 
 
 def _gen_ref():
-    id, value = random.choice(references)
-    return utils.POPO(id=id, value=value)
+    return random.choice(references)
 
 
 def generate_calc(pid: int = 0, calc_id: str = None, upload_id: str = None) -> datamodel.CalcWithMetadata:

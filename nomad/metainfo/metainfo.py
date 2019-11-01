@@ -1261,6 +1261,10 @@ class MSection(metaclass=MObjectMeta):
 
         return cast(MSectionBound, context)
 
+    def m_x(self, key: str, default=None):
+        """ Convinience method for get the annotation with name ``key``. """
+        return self.m_annotations.get(key, default)
+
     def __validate_shape(self, quantity_def: 'Quantity', value):
         if quantity_def == Quantity.default:
             return True
@@ -1413,6 +1417,15 @@ class Definition(MSection):
         """
         return cast(Iterable[MSectionBound], Definition.__all_definitions.get(cls, []))
 
+    def qualified_name(self):
+        names = []
+        current = self
+        while current is not None and current.m_follows(Definition.m_def):
+            names.append(current.name)
+            current = current.m_parent
+
+        return '.'.join(reversed(names))
+
     def on_set(self, quantity_def, value):
         if quantity_def == Definition.categories:
             for category in value:
@@ -1522,6 +1535,9 @@ class Quantity(Property):
             A boolean that determines if this quantity is virtual. Virtual quantities can
             be get/set like regular quantities, but their values are not (de-)serialized,
             hence never permanently stored.
+
+        is_scalar:
+            Derived quantity that is True, iff this quantity has shape of length 0
         """
 
     type: 'Quantity' = None
@@ -1531,6 +1547,7 @@ class Quantity(Property):
     synonym_for: 'Quantity' = None
     derived: 'Quantity' = None
     virtual: 'Quantity' = None
+    is_scalar: 'Quantity' = None
 
     # TODO derived_from = Quantity(type=Quantity, shape=['0..*'])
 
@@ -1902,6 +1919,8 @@ Quantity.default = DirectQuantity(type=Any, default=None, name='default')
 Quantity.synonym_for = DirectQuantity(type=str, name='synonym_for')
 Quantity.derived = DirectQuantity(type=Callable, default=None, name='derived', virtual=True)
 Quantity.virtual = DirectQuantity(type=bool, default=False, name='virtual')
+Quantity.is_scalar = Quantity(
+    type=bool, name='is_scalar', derived=lambda quantity: len(quantity.shape) == 0)
 
 Package.section_definitions = SubSection(
     sub_section=Section.m_def, name='section_definitions', repeats=True)

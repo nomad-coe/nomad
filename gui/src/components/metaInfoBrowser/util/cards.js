@@ -183,7 +183,8 @@ class CardCompartmentUnstyled extends React.Component {
     },
     minHeader: {
       position: 'relative',
-      minHeight: 16 + theme.spacing.unit
+      minHeight: 16 + theme.spacing.unit,
+      overflowY: 'hidden'
     },
     foldButton: {
       position: 'absolute',

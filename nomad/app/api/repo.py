@@ -26,10 +26,11 @@ import elasticsearch.helpers
 from nomad import search, utils, datamodel, processing as proc, infrastructure
 from nomad.app.utils import rfc3339DateTime, RFC3339DateTime, with_logger
 from nomad.app.optimade import filterparser
+from nomad.datamodel import UserMetadata, Dataset, User
 
 from .api import api
 from .auth import authenticate
-from .common import pagination_model, pagination_request_parser, calc_route, metadata_model
+from .common import pagination_model, pagination_request_parser, calc_route
 
 ns = api.namespace('repo', description='Access repository metadata.')
 
@@ -115,7 +116,7 @@ repo_request_parser.add_argument(
 repo_request_parser.add_argument(
     'date_histogram', type=bool, help='Add an additional aggregation over the upload time')
 repo_request_parser.add_argument(
-    'datasets_after', type=str, help='The last dataset id of the last scroll window for the dataset quantitiy')
+    'datasets_after', type=str, help='The last dataset id of the last scroll window for the dataset quantity')
 repo_request_parser.add_argument(
     'metrics', type=str, action='append', help=(
         'Metrics to aggregate over all quantities and their values as comma separated list. '
@@ -128,27 +129,6 @@ repo_request_parser.add_argument(
 
 search_request_parser = api.parser()
 add_common_parameters(search_request_parser)
-
-query_model_parameters = {
-    'owner': fields.String(description='Specify which calcs to return: ``all``, ``public``, ``user``, ``staging``, default is ``all``'),
-    'from_time': RFC3339DateTime(description='A yyyy-MM-ddTHH:mm:ss (RFC3339) minimum entry time (e.g. upload time)'),
-    'until_time': RFC3339DateTime(description='A yyyy-MM-ddTHH:mm:ss (RFC3339) maximum entry time (e.g. upload time)')
-}
-
-for quantity in search.quantities.values():
-    if quantity.multi:
-        def field(**kwargs):
-            return fields.List(fields.String(**kwargs))
-    else:
-        field = fields.String
-    query_model_parameters[quantity.name] = field(description=quantity.description)
-
-
-repo_query_model = api.model('RepoQuery', query_model_parameters, skip_none=True)
-repo_edit_model = api.model('RepoEdit', {
-    'query': fields.Nested(repo_query_model, skip_none=True, description='New metadata will be applied to query results.'),
-    'metadata': fields.Nested(metadata_model, skip_none=True, description='New metadata that should be used on all query results.')
-})
 
 
 def add_query(search_request: search.SearchRequest, args: Dict[str, Any]):
@@ -310,14 +290,62 @@ class RepoCalcsResource(Resource):
             traceback.print_exc()
             abort(400, str(e))
 
+
+query_model_parameters = {
+    'owner': fields.String(description='Specify which calcs to return: ``all``, ``public``, ``user``, ``staging``, default is ``all``'),
+    'from_time': RFC3339DateTime(description='A yyyy-MM-ddTHH:mm:ss (RFC3339) minimum entry time (e.g. upload time)'),
+    'until_time': RFC3339DateTime(description='A yyyy-MM-ddTHH:mm:ss (RFC3339) maximum entry time (e.g. upload time)')
+}
+
+for quantity in search.quantities.values():
+    if quantity.multi:
+        def field(**kwargs):
+            return fields.List(fields.String(**kwargs))
+    else:
+        field = fields.String
+    query_model_parameters[quantity.name] = field(description=quantity.description)
+
+repo_query_model = api.model('RepoQuery', query_model_parameters, skip_none=True)
+
+
+def repo_edit_action_field(quantity):
+    if quantity.is_scalar:
+        return fields.Nested(repo_edit_action_model, description=quantity.description, skip_none=True)
+    else:
+        return fields.List(
+            fields.Nested(repo_edit_action_model, skip_none=True), description=quantity.description)
+
+
+repo_edit_action_model = api.model('RepoEditAction', {
+    'value': fields.String(description='The value/values that is set as a string.'),
+    'success': fields.Boolean(description='If this can/could be done. Only in API response.'),
+    'message': fields.String(descriptin='A message that details the action result. Only in API response.')
+})
+
+repo_edit_model = api.model('RepoEdit', {
+    'verify': fields.Boolean(description='If true, no action is performed.'),
+    'query': fields.Nested(repo_query_model, skip_none=True, description='New metadata will be applied to query results.'),
+    'actions': fields.Nested(
+        api.model('RepoEditActions', {
+            quantity.name: repo_edit_action_field(quantity)
+            for quantity in UserMetadata.m_def.all_quantities.values()
+        }), skip_none=True,
+        description='Each action specifies a single value (even for multi valued quantities).')
+})
+
+
+@ns.route('/edit')
+class EditRepoCalcsResource(Resource):
     @api.doc('edit_repo')
     @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
     @api.expect(repo_edit_model)
-    @api.response(code=200, description='Search results send')
+    @api.marshal_with(repo_edit_model, skip_none=True, code=200, description='Edit verified/performed')
     @authenticate()
     @with_logger
     def post(self, logger):
         """ Edit repository metadata. """
+
+        # basic body parsing and some semantic checks
         json_data = request.get_json()
         if json_data is None:
             json_data = {}
@@ -328,32 +356,94 @@ class RepoCalcsResource(Resource):
             abort(400, 'Not a valid owner for edit %s. Edit can only be performed in user or staging' % owner)
         query['owner'] = owner
 
+        if 'actions' not in json_data:
+            abort(400, 'Missing key actions in edit data')
+        actions = json_data['actions']
+        verify = json_data.get('verify', False)
+
+        # checking the edit actions and preparing a mongo update on the fly
+        mongo_update = {}
+        for action_quantity_name, quantity_actions in actions.items():
+            quantity = UserMetadata.m_def.all_quantities.get(action_quantity_name)
+            if quantity is None:
+                abort(400, 'Unknown quantity %s' % action_quantity_name)
+
+            quantity_flask = quantity.m_x('flask', {})
+            if quantity_flask.get('admin_only', False):
+                if not g.user.is_admin():
+                    abort(404, 'Only the admin user can set %s' % quantity.name)
+
+            if quantity.name == 'Embargo':
+                abort(400, 'Cannot raise an embargo, you can only lift the embargo')
+
+            if isinstance(quantity_actions, list) == quantity.is_scalar:
+                abort(400, 'Wrong shape for quantity %s' % action_quantity_name)
+
+            if not isinstance(quantity_actions, list):
+                quantity_actions = [quantity_actions]
+
+            flask_verify = quantity_flask.get('verify', None)
+            has_error = False
+            for action in quantity_actions:
+                action['success'] = True
+                action['message'] = None
+                action_value = action['value'].strip()
+                if action_value == '':
+                    mongo_value = None
+
+                elif flask_verify == datamodel.User:
+                    try:
+                        mongo_value = User.get(email=action_value).user_id
+                    except KeyError:
+                        action['success'] = False
+                        has_error = True
+                        action['message'] = 'User does not exist'
+                        continue
+
+                elif flask_verify == datamodel.Dataset:
+                    try:
+                        mongo_value = Dataset.m_def.m_x('me').get(
+                            user_id=g.user.user_id, name=action_value).dataset_id
+                    except KeyError:
+                        action['message'] = 'Dataset does not exist and will be created'
+                        mongo_value = None
+                        if not verify:
+                            dataset = Dataset(
+                                dataset_id=utils.create_uuid(), user_id=g.user.user_id,
+                                name=action_value)
+                            dataset.m_x('me').create()
+                            mongo_value = dataset.dataset_id
+
+                else:
+                    mongo_value = action_value
+
+                mongo_key = 'metadata__%s' % quantity.name
+                if len(quantity.shape) == 0:
+                    mongo_update[mongo_key] = mongo_value
+                else:
+                    mongo_values = mongo_update.setdefault(mongo_key, [])
+                    if mongo_value is not None:
+                        mongo_values.append(mongo_value)
+
+        # stop here, if client just wants to verify its actions
+        if verify:
+            return json_data, 200
+
+        # stop if the action were not ok
+        if has_error:
+            return json_data, 400
+
+        # get all calculations that have to change
         search_request = search.SearchRequest()
         add_query(search_request, query)
-
-        if 'metadata' not in json_data:
-            abort(400, 'Missing key metadata in edit repo payload')
-        metadata = json_data['metadata']
-        if metadata.get('with_embargo', False):
-            abort(400, 'Cannot raise an embargo, you can only lift the embargo')
-
-        if '_uploader' in metadata or '_upload_time' in metadata:
-            if not g.user.is_admin():
-                abort(400, 'Only the admin user can set uploader or upload_time.')
-
-        mongo_update = {}
-        for key in [
-                'with_embargo', 'shared_with', 'coauthors', 'references', 'comment',
-                'datasets', '_uploader', '_upload_time']:
-            if key in metadata:
-                mongo_update['metadata__%s' % key.lstrip('_')] = metadata[key]
-
         calc_ids = list(hit['calc_id'] for hit in search_request.execute_scan())
 
+        # perform the update on the mongo db
         n_updated = proc.Calc.objects(calc_id__in=calc_ids).update(multi=True, **mongo_update)
         if n_updated != len(calc_ids):
             logger.error('edit repo did not update all entries', payload=json_data)
 
+        # re-index the affected entries in elastic search
         def elastic_updates():
             for calc in proc.Calc.objects(calc_id__in=calc_ids):
                 entry = search.Entry.from_calc_with_metadata(
@@ -370,7 +460,7 @@ class RepoCalcsResource(Resource):
                 'edit repo with failed elastic updates',
                 payload=json_data, nfailed=len(failed))
 
-        return 'metadata updated', 200
+        return json_data, 200
 
 
 repo_quantity_model = api.model('RepoQuantity', {

@@ -223,7 +223,7 @@ class KeycloakMock:
             for user_id, user_values in test_users.items():
                 if user_values['email'] == email:
                     return User(**user_values)
-            assert False, 'only test user emails are recognized'
+            raise KeyError('Only test user emails are recognized')
         else:
             assert False, 'no token based get_user during tests'
 
@@ -621,9 +621,8 @@ def create_test_structure(
     backend.closeSection('section_run', 0)
 
     backend = run_normalize(backend)
-    calc_id = 'test_calc_id_%d' % id
     calc = CalcWithMetadata(
-        upload_id='test_uload_id', calc_id=calc_id, mainfile='test_mainfile',
+        upload_id='test_uload_id', calc_id='test_calc_id_%d' % id, mainfile='test_mainfile',
         published=True, with_embargo=False)
     calc.apply_domain_metadata(backend)
     if metadata is not None:
@@ -637,4 +636,4 @@ def create_test_structure(
     search_entry = search.Entry.from_calc_with_metadata(calc)
     search_entry.save()
 
-    assert processing.Calc.objects(calc_id__in=[calc_id]).count() == 1
+    assert processing.Calc.objects(calc_id__in=[calc.calc_id]).count() == 1

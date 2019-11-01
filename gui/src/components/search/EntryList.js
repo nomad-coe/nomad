@@ -85,6 +85,12 @@ class EntryListUnstyled extends React.Component {
     }
   }
 
+  componentWillUpdate(prevProps) {
+    if (prevProps.data !== this.props.data) {
+      this.setState({selected: []})
+    }
+  }
+
   handleChange(changes) {
     if (this.props.onChange) {
       this.props.onChange(changes)
@@ -208,7 +214,7 @@ class EntryListUnstyled extends React.Component {
 
   renderEntryActions(row) {
     return <React.Fragment>
-      <EditUserMetadataDialog example={row} total={1} />
+      <EditUserMetadataDialog example={row} total={1} onEditComplete={() => this.props.onChange()} />
       <Tooltip title="Download raw files">
         <IconButton>
           <DownloadIcon />
@@ -245,17 +251,19 @@ class EntryListUnstyled extends React.Component {
     />
 
     const example = selected ? data.results.find(d => d.calc_id === selected[0]) : data.results[0]
-    const selectActions = editable ? <React.Fragment>
+    const selectActions = <React.Fragment>
       <EditUserMetadataDialog
         buttonProps={{color: 'primary'}}
         example={example} total={total}
+        disabled={!editable}
+        onEditComplete={() => this.props.onChange()}
       />
       <Tooltip title="Download raw files">
         <IconButton color="primary">
           <DownloadIcon />
         </IconButton>
       </Tooltip>
-    </React.Fragment> : null
+    </React.Fragment>
 
     return (
       <div className={classes.root}>

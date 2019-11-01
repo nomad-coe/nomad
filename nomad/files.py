@@ -80,7 +80,8 @@ def always_restricted(path: str):
     Used to put general restrictions on files, e.g. due to licensing issues. Will be
     called during packing and while accessing public files.
     """
-    if os.path.basename(path) == 'POTCAR':
+    basename = os.path.basename(path)
+    if basename.startswith('POTCAR') and not basename.endswith('.stripped'):
         return True
 
 
@@ -800,7 +801,8 @@ class PublicUploadFiles(UploadFiles):
                     content_path = path[directory_len + (0 if directory_len == 0 else 1):]
                     if path.startswith(directory) and '/' not in content_path:
                         if '/' not in content_path:
-                            results.append((content_path, zf.getinfo(path).file_size))
+                            if not always_restricted(content_path) or self._is_authorized():
+                                results.append((content_path, zf.getinfo(path).file_size))
                         else:
                             # this asserts that sub directories are always behind their
                             # parents and file siblings

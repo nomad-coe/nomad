@@ -62,7 +62,7 @@ class Dataset(InnerDoc):
 
     @classmethod
     def from_dataset_id(cls, dataset_id):
-        dataset = datamodel.Dataset.get(dataset_id=dataset_id)
+        dataset = datamodel.Dataset.m_def.m_x('me').get(dataset_id=dataset_id)
         return cls(id=dataset.dataset_id, doi=dataset.doi, name=dataset.name)
 
     id = Keyword()
@@ -146,8 +146,9 @@ class Entry(Document, metaclass=WithDomain):
                 self.authors.append(self.uploader)
             if self.uploader not in self.owners:
                 self.owners.append(self.uploader)
+
         self.comment = source.comment
-        self.references = [ref.value for ref in source.references]
+        self.references = source.references
         self.datasets = [Dataset.from_dataset_id(dataset_id) for dataset_id in source.datasets]
         self.external_id = source.external_id
 

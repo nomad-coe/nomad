@@ -194,7 +194,6 @@ class Keycloak():
                 g.user = datamodel.User(
                     user_id=payload.get('sub', None),
                     email=payload.get('email', None),
-                    name=payload.get('name', None),
                     first_name=payload.get('given_name', None),
                     last_name=payload.get('family_name', None))
 
@@ -272,7 +271,7 @@ class Keycloak():
         return datamodel.User(
             user_id=keycloak_user['id'],
             email=keycloak_user['email'],
-            name=keycloak_user.get('username', None),
+            username=keycloak_user.get('username', None),
             first_name=keycloak_user.get('firstName', None),
             last_name=keycloak_user.get('lastName', None),
             created=datetime.fromtimestamp(keycloak_user['createdTimestamp'] / 1000),
