@@ -79,8 +79,10 @@ your browser.
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
 ### v0.6.2
+- GUI performance enhancements
 - API /raw/query endpoint takes file pattern to further filter download contents and
   strips potential shared path prefixes for a cleaner download .zip
+- Stipped common path prefixes in raw file downloads
 - minor bugfixes
 
 ### v0.6.0
