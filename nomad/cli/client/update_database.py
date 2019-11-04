@@ -15,17 +15,16 @@ import time
 
 class DbUpdater:
     def __init__(self, *args, **kwargs):
-        self.db_name = args[0].strip()
-        self.root_url = args[1].strip()
-        self.user = 'admin'
-        self.password = 'password'
+        self.db_name = 'aflowlib'
+        self.root_url = 'http://aflowlib.duke.edu/AFLOWDATA/LIB1_LIB'
         self.local_path = '/nomad/fairdi/external'
-        self.nomad_server = 'http://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/testing/api/uploads/'
-        self.max_zip_size = 32000000000
+        self.dbfile = None
+        self.nomadfile = None
+        self.outfile = None
         self.do_download = False
         self.do_upload = False
         self.do_publish = False
-        self.nproc = 2
+        self.parallel = 2
         self.uids = []
         self._set(**kwargs)
         self._set_db()
@@ -34,42 +33,14 @@ class DbUpdater:
 
     def _set(self, **kwargs):
         for key, val in kwargs.items():
-            if key.lower() == 'user':
-                self.user = val
-            elif key.lower() == 'password':
-                self.password = val
-            elif key.lower() == 'local_path':
-                self.local_path = val
-            elif key.lower() == 'nomad_server':
-                self.nomad_server = val
-            elif key.lower() == 'outfile':
-                self.outfile = val
-            elif key.lower() == 'nomadfile':
-                self.nomadfile = val
-            elif key.lower() == 'dbfile':
-                self.dbfile = val
-            elif key.lower() == 'nproc':
-                self.nproc = val
-            elif key.lower() == 'download':
-                self.do_download = val
-            elif key.lower() == 'upload':
-                self.do_upload = val
-            elif key.lower() == 'publish':
-                self.do_publish = val
+            key = key.lower()
+            if hasattr(self, key):
+                setattr(self, key, val)
             else:
                 raise KeyError('Invalid key %s' % key)
 
     def configure_client(self, **kwargs):
         from nomad.cli.client import create_client
-        i = self.nomad_server.index('api')
-        with open('nomad.yaml', 'w') as f:
-            f.write('client:\n')
-            f.write('    user: %s\n' % self.user)
-            f.write('    password: %s\n' % self.password)
-            f.write('    url: %s\n' % self.nomad_server[:i + 3])
-        config.client.url = self.nomad_server[:i + 3]
-        config.client.user = self.user
-        config.client.password = self.password
         self.client = create_client()
 
     def _set_local_path(self):
@@ -108,11 +79,11 @@ class DbUpdater:
     def _filter_files(self, files):
         new = []
         for f in files:
-            if self._is_file(f):
+            if self._is_mainfile(f):
                 new.append(f)
         return new
 
-    def _is_file(self, path):
+    def _is_mainfile(self, path):
         if 'vasprun.xml' in path:
             return True
         return False
@@ -128,7 +99,7 @@ class DbUpdater:
 
     def _rules_ok(self, path):
         ok = False
-        if self._is_file(path):
+        if self._is_mainfile(path):
             ok = True
         if self._depth(path) >= self.max_depth:
             ok = True
@@ -355,12 +326,13 @@ class DbUpdater:
 
     def aggregate_procs(self):
         data = []
-        for i in range(self.nproc):
+        for i in range(self.parallel):
             data += self._read_from_file(self.outfile + '_%d' % i)
         self._write_to_file(data, self.outfile + '_updated')
 
     def download_proc(self, plist, pn):
         size = 0.0
+        max_zip_size = config.max_upload_size
         dirs = []
         done = []
         for i in range(len(plist)):
@@ -370,7 +342,7 @@ class DbUpdater:
             size += s
             dirs.append(d)
             done.append(plist[i])
-            if size > self.max_zip_size or i == (len(plist) - 1):
+            if size > max_zip_size or i == (len(plist) - 1):
                 tstamp = datetime.datetime.now().strftime('_%y%m%d%H%M%S%f')
                 tname = self._to_string(dirs[0].lstrip(self._local_path))
                 tname = os.path.join(self._local_path, tname + '%s.tar' % tstamp)
@@ -388,15 +360,15 @@ class DbUpdater:
     def download(self):
         print('Downloading from %s' % self.root_url)
         s = time.time()
-        plist = [[] for i in range(self.nproc)]
+        plist = [[] for i in range(self.parallel)]
         cur = 0
         for i in range(len(self.update_list)):
             if self.is_updated_list[i]:
                 continue
-            plist[cur % self.nproc].append(i)
+            plist[cur % self.parallel].append(i)
             cur += 1
         procs = []
-        for i in range(self.nproc):
+        for i in range(self.parallel):
             p = threading.Thread(target=self.download_proc, args=(plist[i], i,))
             procs.append(p)
         [p.start() for p in procs]
@@ -433,8 +405,8 @@ class DbUpdater:
 
 @client.command(
     help='Synchronizes the NOMAD database with the given external database.')
-@click.argument('database', nargs=1, required=True)
-@click.argument('url', nargs=1, required=True)
+@click.argument('db_name', nargs=1, required=True)
+@click.argument('root_url', nargs=1, required=True)
 @click.option(
     '--outfile', default=None,
     help='File to read/write files missing in NOMAD database')
@@ -445,17 +417,17 @@ class DbUpdater:
     '--dbfile', default=None,
     help='File to read/write files in given database')
 @click.option(
-    '--nproc', default=2,
+    '--parallel', default=2,
     help='Number of processes to spawn to download/upload files')
 @click.option(
-    '--download', is_flag=True, default=False,
+    '--do_download', is_flag=True, default=False,
     help='Flag to automatically download downloaded files')
 @click.option(
-    '--upload', is_flag=True, default=False,
+    '--do_upload', is_flag=True, default=False,
     help='Flag to automatically upload downloaded files')
 @click.option(
-    '--publish', is_flag=True, default=False,
+    '--do_publish', is_flag=True, default=False,
     help='Flag to automatically publish upload')
-def synchdb(database, url, outfile=None, nomadfile=None, dbfile=None, nproc=2, download=False, upload=False, publish=False):
-    db = DbUpdater(database, url, outfile=outfile, nomadfile=nomadfile, dbfile=dbfile, nproc=nproc, download=download, upload=upload, publish=publish)
+def synchdb(**kwargs):
+    db = DbUpdater(**kwargs)
     db.update()
