@@ -420,13 +420,13 @@ class DbUpdater:
     '--parallel', default=2,
     help='Number of processes to spawn to download/upload files')
 @click.option(
-    '--do_download', is_flag=True, default=False,
+    '--do-download', is_flag=True, default=False,
     help='Flag to automatically download downloaded files')
 @click.option(
-    '--do_upload', is_flag=True, default=False,
+    '--do-upload', is_flag=True, default=False,
     help='Flag to automatically upload downloaded files')
 @click.option(
-    '--do_publish', is_flag=True, default=False,
+    '--do-publish', is_flag=True, default=False,
     help='Flag to automatically publish upload')
 def synchdb(**kwargs):
     db = DbUpdater(**kwargs)
