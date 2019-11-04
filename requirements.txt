@@ -32,7 +32,7 @@ recommonmark
 m2r
 requests
 click
-zipstream
+zipstream-new==1.1.5
 bagit
 psycopg2-binary
 sqlalchemy
