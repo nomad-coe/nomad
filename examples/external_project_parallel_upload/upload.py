@@ -105,7 +105,7 @@ def upload_next_data(sources: Iterator[Tuple[str, str, str]], upload_name='next 
                     ))
 
                 # there was bug using the wrong name (source_member.name) here
-                yield dict(arcname=name, iterable=iter_content())
+                yield dict(arcname=name, iterable=iter_content(), buffer_size=source_member.size)
 
             if size > approx_upload_size:
                 break

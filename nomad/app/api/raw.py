@@ -530,7 +530,9 @@ def _streamed_zipfile(
                                     break
                                 yield data
 
-                        yield dict(arcname=zipped_filename, iterable=iter_content())
+                        yield dict(
+                            arcname=zipped_filename, iterable=iter_content(),
+                            buffer_size=upload_files.raw_file_size(upload_filename))
                 except KeyError:
                     # files that are not found, will not be returned
                     pass

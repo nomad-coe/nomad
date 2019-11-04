@@ -374,7 +374,7 @@ class LicenseAgreementUnstyled extends React.Component {
               [terms of use](https://www.nomad-coe.eu/the-project/nomad-repository/nomad-repository-terms).
 
               Uploaded data is licensed under the Creative Commons Attribution license
-              ([CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)). You can publish
+              ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). You can publish
               uploaded data with an *embargo*. Data with an *embargo* is only visible to
               you and users you share your data with. The *embargo period* lasts up to 36 month.
               After the *embargo* your published data will be public. **Note that public data
