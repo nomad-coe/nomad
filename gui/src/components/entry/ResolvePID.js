@@ -5,7 +5,7 @@ import { compose } from 'recompose'
 import { withApi } from '../api'
 import { withRouter } from 'react-router'
 
-class ResovlePID extends React.Component {
+class ResolvePID extends React.Component {
   static styles = theme => ({
     root: {
       padding: theme.spacing.unit * 3
@@ -20,11 +20,13 @@ class ResovlePID extends React.Component {
     raiseError: PropTypes.func.isRequired
   }
 
-  state = {
+  static defaultState = {
     doesNotExist: false
   }
 
-  componentDidMount() {
+  state = {...ResolvePID.defaultState}
+
+  update() {
     const { pid, api, history } = this.props
     api.resolvePid(pid).then(entry => {
       history.push(`/entry/id/${entry.upload_id}/${entry.calc_id}`)
@@ -36,6 +38,17 @@ class ResovlePID extends React.Component {
         this.props.raiseError(error)
       }
     })
+  }
+
+  componentDidMount() {
+    this.update()
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.pid !== this.props.pid || prevProps.api !== this.props.api) {
+      this.setState({...ResolvePID.defaultState})
+      this.update()
+    }
   }
 
   render() {
@@ -62,4 +75,4 @@ class ResovlePID extends React.Component {
   }
 }
 
-export default compose(withRouter, withApi(false), withStyles(ResovlePID.styles))(ResovlePID)
+export default compose(withRouter, withApi(false), withStyles(ResolvePID.styles))(ResolvePID)

@@ -45,17 +45,23 @@ class RepoEntryView extends React.Component {
     domain: PropTypes.object.isRequired
   }
 
-  state = {
+  static defaultState = {
     calcData: null,
     doesNotExist: false
   }
+
+  state = {...RepoEntryView.defaultState}
 
   componentDidMount() {
     this.update()
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.api !== this.props.api) {
+    if (prevProps.api !== this.props.api ||
+        prevProps.uploadId !== this.props.uploadId ||
+        prevProps.calcId !== this.props.calcId
+      ) {
+      this.setState({...RepoEntryView.defaultState})
       this.update()
     }
   }

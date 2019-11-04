@@ -70,6 +70,7 @@ class ArchiveCalcLogResource(Resource):
                 upload_files.archive_log_file(calc_id, 'rb'),
                 mimetype='text/plain',
                 as_attachment=True,
+                cache_timeout=0,
                 attachment_filename='%s.log' % archive_id)
         except Restricted:
             abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
@@ -105,6 +106,7 @@ class ArchiveCalcResource(Resource):
                 upload_file.archive_file(calc_id, 'rb'),
                 mimetype='application/json',
                 as_attachment=True,
+                cache_timeout=0,
                 attachment_filename='%s.json' % archive_id)
         except Restricted:
             abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
