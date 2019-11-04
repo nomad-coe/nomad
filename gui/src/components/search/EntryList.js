@@ -11,12 +11,11 @@ import MoreIcon from '@material-ui/icons/MoreHoriz'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import EditUserMetadataDialog from '../EditUserMetadataDialog'
 
-class EntryListUnstyled extends React.Component {
+export class EntryListUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     data: PropTypes.object.isRequired,
     query: PropTypes.object.isRequired,
-    total: PropTypes.number.isRequired,
     onChange: PropTypes.func,
     history: PropTypes.any.isRequired,
     order_by: PropTypes.string.isRequired,
@@ -24,7 +23,9 @@ class EntryListUnstyled extends React.Component {
     page: PropTypes.number.isRequired,
     per_page: PropTypes.number.isRequired,
     domain: PropTypes.object.isRequired,
-    editable: PropTypes.bool
+    editable: PropTypes.bool,
+    columns: PropTypes.object,
+    selectedColumns: PropTypes.arrayOf(PropTypes.string)
   }
 
   static styles = theme => ({
@@ -46,7 +47,7 @@ class EntryListUnstyled extends React.Component {
     selected: []
   }
 
-  defaultRowConfig = {
+  static defaultColumns = {
     authors: {
       label: 'Authors',
       render: entry => entry.authors.map(author => author.name).join('; '),
@@ -233,12 +234,12 @@ class EntryListUnstyled extends React.Component {
     const { results, pagination: { total } } = data
     const { selected } = this.state
 
-    const columns = {
+    const columns = this.props.columns || {
       ...domain.searchResultColumns,
-      ...this.defaultRowConfig
+      ...EntryListUnstyled.defaultColumns
     }
 
-    const defaultSelectedColumns = [
+    const defaultSelectedColumns = this.props.selectedColumns || [
       ...domain.defaultSearchResultColumns,
       'datasets', 'authors']
 

@@ -254,7 +254,7 @@ class Search extends React.Component {
             <EntryList
               query={{...searchParameters, ...searchValues}}
               editable={keycloak.authenticated && (searchParameters.owner === 'staging' || searchParameters.owner === 'user')}
-              data={data} total={total}
+              data={data}
               onChange={this.updateEntryList}
               {...entryListState}
             />

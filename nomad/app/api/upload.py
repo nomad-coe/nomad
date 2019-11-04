@@ -26,7 +26,7 @@ import os
 import io
 from functools import wraps
 
-from nomad import config, utils, files
+from nomad import config, utils, files, search, datamodel
 from nomad.processing import Upload, FAILURE
 from nomad.processing import ProcessAlreadyRunning
 
@@ -39,6 +39,12 @@ from .common import pagination_request_parser, pagination_model, upload_route, m
 ns = api.namespace(
     'uploads',
     description='Uploading data and tracing uploaded data and its processing.')
+
+
+class CalcMetadata(fields.Raw):
+    def format(self, value):
+        calc_with_metadata = datamodel.CalcWithMetadata(**value)
+        return search.Entry.from_calc_with_metadata(calc_with_metadata).to_dict()
 
 
 proc_model = api.model('Processing', {
@@ -86,7 +92,8 @@ calc_model = api.inherit('UploadCalculationProcessing', proc_model, {
     'calc_id': fields.String,
     'mainfile': fields.String,
     'upload_id': fields.String,
-    'parser': fields.String
+    'parser': fields.String,
+    'metadata': CalcMetadata(description='The repository metadata for this entry.')
 })
 
 upload_with_calcs_model = api.inherit('UploadWithPaginatedCalculations', upload_model, {
