@@ -25,6 +25,8 @@ export class EntryListUnstyled extends React.Component {
     domain: PropTypes.object.isRequired,
     editable: PropTypes.bool,
     columns: PropTypes.object,
+    title: PropTypes.string,
+    actions: PropTypes.element,
     selectedColumns: PropTypes.arrayOf(PropTypes.string)
   }
 
@@ -38,9 +40,6 @@ export class EntryListUnstyled extends React.Component {
     entryDetailsRow: {
       paddingRight: theme.spacing.unit * 3
     },
-    clickableRow: {
-      cursor: 'pointer'
-    }
   })
 
   state = {
@@ -230,7 +229,7 @@ export class EntryListUnstyled extends React.Component {
   }
 
   render() {
-    const { classes, data, order, order_by, page, per_page, domain, editable } = this.props
+    const { classes, data, order, order_by, page, per_page, domain, editable, title, ...rest } = this.props
     const { results, pagination: { total } } = data
     const { selected } = this.state
 
@@ -269,7 +268,7 @@ export class EntryListUnstyled extends React.Component {
     return (
       <div className={classes.root}>
         <DataTable
-          title={`${total.toLocaleString()} ${domain.entryLabel}s`}
+          title={title || `${total.toLocaleString()} ${domain.entryLabel}s`}
           selectActions={selectActions}
           id={row => row.calc_id}
           total={total}
@@ -285,6 +284,7 @@ export class EntryListUnstyled extends React.Component {
           onOrderChanged={(order, orderBy) => this.handleChange({order: order === 'asc' ? -1 : 1, order_by: orderBy})}
           rows={per_page}
           pagination={pagination}
+          {...rest}
         />
       </div>
     )

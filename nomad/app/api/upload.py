@@ -206,7 +206,7 @@ class UploadListResource(Resource):
 
         results = [
             upload
-            for upload in uploads.order_by('-upload_time')[(page - 1) * per_page: page * per_page]]
+            for upload in uploads.order_by('published', '-upload_time')[(page - 1) * per_page: page * per_page]]
 
         return dict(
             pagination=dict(total=total, page=page, per_page=per_page),

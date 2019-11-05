@@ -68,7 +68,9 @@ class NavigationUnstyled extends React.Component {
   }
 
   static styles = theme => ({
-    root: {},
+    root: {
+      minWidth: 1024,
+    },
     title: {
       marginLeft: theme.spacing.unit,
       flexGrow: 1,

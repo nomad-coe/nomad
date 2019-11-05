@@ -32,8 +32,7 @@ class DataTableToolbarUnStyled extends React.Component {
 
   static styles = theme => ({
     root: {
-      paddingLeft: theme.spacing.unit * 2,
-      paddingRight: theme.spacing.unit
+      paddingLeft: theme.spacing.unit * 3
     },
     selected: {
       color: theme.palette.secondary.main

@@ -3,7 +3,8 @@ import PropTypes from 'prop-types'
 import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography,
   ExpansionPanelDetails, Stepper, Step, StepLabel,
   Checkbox, FormControlLabel, Tooltip,
-  CircularProgress} from '@material-ui/core'
+  CircularProgress,
+  IconButton} from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
 import { compose } from 'recompose'
@@ -12,17 +13,21 @@ import { withRouter } from 'react-router'
 import { debug } from '../../config'
 import EntryList, { EntryListUnstyled } from '../search/EntryList'
 import { withDomain } from '../domains'
+import DeleteIcon from '@material-ui/icons/Delete'
+import PublishIcon from '@material-ui/icons/Publish'
+import ConfirmDialog from './ConfirmDialog'
+import PublishedIcon from '@material-ui/icons/Visibility'
+import UnPublishedIcon from '@material-ui/icons/Lock'
+import { withApi } from '../api'
 
 class Upload extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired,
+    api: PropTypes.func.isRequired,
     upload: PropTypes.object.isRequired,
-    checked: PropTypes.bool,
-    onCheckboxChanged: PropTypes.func,
     onDoesNotExist: PropTypes.func,
     onPublished: PropTypes.func,
-    history: PropTypes.any.isRequired,
     domain: PropTypes.object.isRequired,
   }
 
@@ -37,9 +42,6 @@ class Upload extends React.Component {
     details: {
       padding: 0,
       display: 'block',
-      overflowX: 'auto'
-    },
-    summary: {
       overflowX: 'auto'
     },
     detailsContent: {
@@ -75,7 +77,7 @@ class Upload extends React.Component {
       whiteSpace: 'nowrap',
       textAlign: 'right'
     },
-    progress: {
+    icon: {
       marginLeft: -theme.spacing.unit * 0.5,
       width: theme.spacing.unit * 13 - 2,
       alignItems: 'center',
@@ -105,6 +107,10 @@ class Upload extends React.Component {
   constructor(props) {
     super(props)
     this.handleChange = this.handleChange.bind(this)
+    this.handleDelete = this.handleDelete.bind(this)
+    this.handlePublishCancel = this.handlePublishCancel.bind(this)
+    this.handlePublishOpen = this.handlePublishOpen.bind(this)
+    this.handlePublishSubmit = this.handlePublishSubmit.bind(this)
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -234,6 +240,38 @@ class Upload extends React.Component {
 
   handleChange(changes) {
     this.setState({params: {...this.state.params, ...changes}})
+  }
+
+  handleDelete() {
+    const { api, upload } = this.props
+    api.deleteUpload(upload.upload_id)
+      .then(() => this.update())
+      .catch(error => {
+        this.props.raiseError(error)
+        this.update()
+      })
+  }
+
+  handlePublishOpen() {
+    this.setState({showPublishDialog: true})
+  }
+
+  handlePublishSubmit(withEmbargo) {
+    const { api, upload } = this.props
+    api.publishUpload(upload.upload_id, withEmbargo)
+      .then(() => {
+        this.setState({showPublishDialog: false})
+        this.update()
+      })
+      .catch(error => {
+        this.props.raiseError(error)
+        this.setState({showPublishDialog: false})
+        this.update()
+      })
+  }
+
+  handlePublishCancel() {
+    this.setState({showPublishDialog: false})
   }
 
   onCheckboxChanged(_, checked) {
@@ -400,7 +438,7 @@ class Upload extends React.Component {
 
   renderCalcTable() {
     const { classes } = this.props
-    const { columns } = this.state
+    const { columns, upload } = this.state
     const { calcs, tasks_status, waiting } = this.state.upload
     const { pagination, results } = calcs
 
@@ -435,53 +473,68 @@ class Upload extends React.Component {
       }))
     }
 
+    const running = upload.tasks_running || upload.process_running
+
+    const actions = upload.published ? '' : <React.Fragment>
+      <IconButton>
+        <Tooltip title="Delete upload" disable={running} onClick={this.handleDelete}>
+          <DeleteIcon />
+        </Tooltip>
+      </IconButton>
+      <IconButton disable={running || tasks_status !== 'SUCCESS'} onClick={this.handlePublishOpen}>
+        <Tooltip title="Publish upload">
+          <PublishIcon />
+        </Tooltip>
+      </IconButton>
+    </React.Fragment>
+
     return <EntryList
+      title={`Upload with ${data.pagination.total} detected entries`}
       query={{upload_id: this.props.upload_id}}
       columns={columns}
       selectedColumns={Upload.defaultSelectedColumns}
-      editable
+      editable={tasks_status === 'SUCCESS'}
       data={data}
       onChange={this.handleChange}
+      actions={actions}
       {...this.state.params}
     />
   }
 
-  renderCheckBox() {
+  renderStatusIcon() {
     const { classes } = this.props
     const { upload } = this.state
 
-    if (upload.tasks_running || upload.process_running) {
-      return <div className={classes.progress}>
-        <CircularProgress size={32}/>
+    const render = (icon, tooltip) => (
+      <div className={classes.icon}>
+        <Tooltip title={tooltip}>
+          {icon}
+        </Tooltip>
       </div>
-    } else if (!upload.published) {
-      return <FormControlLabel control={(
-        <Checkbox
-          checked={this.props.checked}
-          className={classes.checkbox}
-          onClickCapture={(e) => e.stopPropagation()}
-          onChange={this.onCheckboxChanged.bind(this)}
-        />
-      )}/>
+    )
+
+    if (upload.tasks_running || upload.process_running) {
+      return render(<CircularProgress size={32}/>, '')
+    } else if (upload.published) {
+      return render(<PublishedIcon size={32} color="action"/>, 'This upload is published')
     } else {
-      return ''
+      return render(<UnPublishedIcon size={32} color="primary"/>, 'This upload is not published yet, and only visible to you')
     }
   }
 
   render() {
     const { classes } = this.props
-    const { upload } = this.state
+    const { upload, showPublishDialog } = this.state
     const { errors } = upload
 
     if (this.state.upload) {
       return (
         <div className={classes.root}>
           <ExpansionPanel>
-            <ExpansionPanelSummary
-              expandIcon={<ExpandMoreIcon/>}
-              classes={{root: classes.summary}}>
-
-              {this.renderCheckBox()} {this.renderTitle()} {this.renderStepper()}
+            <ExpansionPanelSummary expandIcon={<ExpandMoreIcon/>} >
+              {this.renderStatusIcon()}
+              {this.renderTitle()}
+              {this.renderStepper()}
             </ExpansionPanelSummary>
             <ExpansionPanelDetails style={{width: '100%'}} classes={{root: classes.details}}>
               {errors && errors.length > 0
@@ -496,6 +549,11 @@ class Upload extends React.Component {
                 </div> : ''}
             </ExpansionPanelDetails>
           </ExpansionPanel>
+          <ConfirmDialog
+            open={showPublishDialog}
+            onClose={this.handlePublishCancel}
+            onPublish={this.handlePublishSubmit}
+          />
         </div>
       )
     } else {
@@ -504,4 +562,4 @@ class Upload extends React.Component {
   }
 }
 
-export default compose(withRouter, withErrors, withDomain, withStyles(Upload.styles))(Upload)
+export default compose(withRouter, withErrors, withApi(true, false), withDomain, withStyles(Upload.styles))(Upload)

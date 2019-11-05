@@ -217,10 +217,14 @@ class Api {
     return upload
   }
 
-  async getUnpublishedUploads() {
+  async getUploads(state, page, perPage) {
+    state = state || 'all'
+    page = page || 1
+    perPage = perPage || 10
+
     this.onStartLoading()
     return this.swagger()
-      .then(client => client.apis.uploads.get_uploads({state: 'unpublished', page: 1, per_page: 1000}))
+      .then(client => client.apis.uploads.get_uploads({state: state, page: page, per_page: perPage}))
       .catch(handleApiError)
       .then(response => ({
         ...response.body,
@@ -233,20 +237,12 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
+  async getUnpublishedUploads() {
+    return this.getUploads('unpublished', 1, 1000)
+  }
+
   async getPublishedUploads(page, perPage) {
-    this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis.uploads.get_uploads({state: 'published', page: page || 1, per_page: perPage || 10}))
-      .catch(handleApiError)
-      .then(response => ({
-        ...response.body,
-        results: response.body.results.map(uploadJson => {
-          const upload = new Upload(uploadJson, this)
-          upload.uploading = 100
-          return upload
-        })
-      }))
-      .finally(this.onFinishLoading)
+    return this.getUploads('published', 1, 10)
   }
 
   async archive(uploadId, calcId) {

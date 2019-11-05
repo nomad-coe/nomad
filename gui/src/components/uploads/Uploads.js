@@ -7,8 +7,8 @@ import Dropzone from 'react-dropzone'
 import Upload from './Upload'
 import { compose } from 'recompose'
 import DeleteIcon from '@material-ui/icons/Delete'
-import ReloadIcon from '@material-ui/icons/Cached'
 import CheckIcon from '@material-ui/icons/Check'
+import ReloadIcon from '@material-ui/icons/Cached'
 import MoreIcon from '@material-ui/icons/MoreHoriz'
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import ConfirmDialog from './ConfirmDialog'
@@ -139,16 +139,15 @@ class Uploads extends React.Component {
       marginRight: theme.spacing.unit,
       overflow: 'hidden'
     },
-    selectFormGroup: {
-      paddingLeft: theme.spacing.unit * 3
+    formGroup: {
+      paddingLeft: 0
     },
-    selectLabel: {
+    uploadsLabel: {
+      flexGrow: 1,
+      paddingLeft: 0,
       padding: theme.spacing.unit * 2
     },
     uploads: {
-      marginTop: theme.spacing.unit * 2
-    },
-    uploadsContainer: {
       marginTop: theme.spacing.unit * 4
     },
     pagination: {
@@ -156,18 +155,23 @@ class Uploads extends React.Component {
     }
   })
 
+  defaultData = {
+    results: [],
+    pagination: {
+      total: 0,
+      per_page: 10,
+      page: 1
+    }
+  }
+
   state = {
-    unpublishedUploads: null,
-    publishedUploads: null,
-    publishedUploadsPage: 1,
-    publishedUploadsTotal: 0,
     uploadCommand: {
       upload_command: 'loading ...',
       upload_tar_command: 'loading ...',
       upload_progress_command: 'loading ...'
     },
-    selectedUnpublishedUploads: [],
-    showPublishDialog: false
+    data: {...this.defaultData},
+    uploading: []
   }
 
   componentDidMount() {
@@ -181,77 +185,33 @@ class Uploads extends React.Component {
       })
   }
 
-  update(publishedUploadsPage) {
-    this.props.api.getUnpublishedUploads()
+  update(newPage) {
+    const { data: { pagination: { page, per_page }}} = this.state
+    this.props.api.getUploads('all', newPage || page, per_page)
       .then(uploads => {
-        // const filteredUploads = uploads.filter(upload => !upload.is_state)
-        this.setState({unpublishedUploads: uploads.results, selectedUnpublishedUploads: []})
+        this.setState({data: uploads})
       })
       .catch(error => {
-        this.setState({unpublishedUploads: [], selectedUnpublishedUploads: []})
+        this.setState({data: {...this.defaultData}})
         this.props.raiseError(error)
       })
-    this.props.api.getPublishedUploads(publishedUploadsPage, publishedUploadsPageSize)
-      .then(uploads => {
-        this.setState({
-          publishedUploads: uploads.results,
-          publishedUploadsTotal: uploads.pagination.total,
-          publishedUploadsPage: uploads.pagination.page})
-      })
-      .catch(error => {
-        this.setState({publishedUploads: []})
-        this.props.raiseError(error)
-      })
-  }
-
-  onDeleteClicked() {
-    Promise.all(this.state.selectedUnpublishedUploads.map(upload => this.props.api.deleteUpload(upload.upload_id)))
-      .then(() => this.update())
-      .catch(error => {
-        this.props.raiseError(error)
-        this.update()
-      })
-  }
-
-  onPublishClicked() {
-    this.setState({showPublishDialog: true})
-  }
-
-  onPublish(withEmbargo) {
-    Promise.all(this.state.selectedUnpublishedUploads
-      .map(upload => this.props.api.publishUpload(upload.upload_id, withEmbargo)))
-      .then(() => {
-        this.setState({showPublishDialog: false})
-        return this.update()
-      })
-      .catch(error => {
-        this.props.raiseError(error)
-        this.update()
-      })
-  }
-
-  sortedUnpublishedUploads(order) {
-    order = order || -1
-    return this.state.unpublishedUploads.concat()
-      .sort((a, b) => (a.gui_upload_id === b.gui_upload_id)
-        ? 0
-        : ((a.gui_upload_id < b.gui_upload_id) ? -1 : 1) * order)
   }
 
   handleDoesNotExist(nonExistingUpload) {
-    this.setState({
-      unpublishedUploads: this.state.unpublishedUploads.filter(upload => upload !== nonExistingUpload)
-    })
+    // this.setState({
+    //   unpublishedUploads: this.state.unpublishedUploads.filter(upload => upload !== nonExistingUpload)
+    // })
+    this.update()
   }
 
-  handlePublished(publishedUpload) {
+  handlePublished() {
     this.update()
   }
 
   onDrop(files, rejectedFiles) {
     const upload = file => {
       const upload = this.props.api.createUpload(file.name)
-      this.setState({unpublishedUploads: [...this.state.unpublishedUploads, upload]})
+      this.setState({uploading: [...this.state.uploading, upload]})
       upload.uploadFile(file).catch(this.props.raiseError)
     }
 
@@ -261,129 +221,38 @@ class Uploads extends React.Component {
       .forEach(upload)
   }
 
-  onSelectionChanged(upload, checked) {
-    if (checked) {
-      this.setState({selectedUnpublishedUploads: [upload, ...this.state.selectedUnpublishedUploads]})
-    } else {
-      const selectedUnpublishedUploads = [...this.state.selectedUnpublishedUploads]
-      selectedUnpublishedUploads.splice(selectedUnpublishedUploads.indexOf(upload), 1)
-      this.setState({selectedUnpublishedUploads: selectedUnpublishedUploads})
-    }
-  }
-
-  onSelectionAllChanged(checked) {
-    if (checked) {
-      this.setState({selectedUnpublishedUploads: [...this.state.unpublishedUploads.filter(upload => !upload.tasks_running)]})
-    } else {
-      this.setState({selectedUnpublishedUploads: []})
-    }
-  }
-
-  renderPublishedUploads() {
+  renderUploads() {
     const { classes } = this.props
-    const { publishedUploadsTotal, publishedUploadsPage, publishedUploads } = this.state
+    const { data: { results, pagination: { total, per_page, page }}, uploading } = this.state
 
-    if (!publishedUploads || publishedUploads.length === 0) {
+    if (total === 0) {
       return ''
     }
 
-    return (<div className={classes.uploadsContainer}>
-      <FormLabel className={classes.uploadsLabel}>Your published uploads: </FormLabel>
-      <div className={classes.uploads}>
-        <div>
-          {
-            publishedUploads.map(upload => (
-              <Upload key={upload.gui_upload_id} upload={upload}
-                checked={false}
-                onCheckboxChanged={checked => true}/>
-            ))
-          }
-          {
-            (publishedUploadsTotal > publishedUploadsPageSize)
-              ? <Pagination classes={{root: classes.pagination}}
-                limit={publishedUploadsPageSize}
-                offset={(publishedUploadsPage - 1) * publishedUploadsPageSize}
-                total={publishedUploadsTotal}
-                onClick={(_, offset) => this.update((offset / publishedUploadsPageSize) + 1)}
-                previousPageLabel={'prev'}
-                nextPageLabel={'next'}
-              /> : ''
-          }
-        </div>
-      </div>
-    </div>)
-  }
+    const renderUpload = upload => <Upload
+      key={upload.gui_upload_id} upload={upload}
+      onDoesNotExist={() => this.handleDoesNotExist(upload)}
+      onPublished={() => this.handlePublished(upload)}
+    />
 
-  renderUnpublishedUploads() {
-    const { classes } = this.props
-    const { selectedUnpublishedUploads, showPublishDialog } = this.state
-    const unpublishedUploads = this.state.unpublishedUploads || []
-
-    const reloadButton = <Tooltip title="Reload uploads, e.g. after using the curl upload" >
-      <IconButton onClick={() => this.update()}><ReloadIcon /></IconButton>
-    </Tooltip>
-
-    return (<div className={classes.uploadsContainer}>
-      <div style={{width: '100%'}}>
-        {(unpublishedUploads.length === 0) ? ''
-          : <FormLabel className={classes.uploadsLabel}>Your unpublished uploads: </FormLabel>
-        }
-        <FormGroup className={classes.selectFormGroup} style={{alignItems: 'center'}}row>
-          {(unpublishedUploads.length === 0) ? <FormLabel label="all" style={{flexGrow: 1}}>You have currently no unpublished uploads</FormLabel>
-            : <FormControlLabel label="all" style={{flexGrow: 1}} control={(
-              <Checkbox
-                checked={selectedUnpublishedUploads.length === unpublishedUploads.length && unpublishedUploads.length !== 0}
-                onChange={(_, checked) => this.onSelectionAllChanged(checked)}
-              />
-            )} />
-          }
-          {reloadButton}
-          <FormLabel classes={{root: classes.selectLabel}}>
-            {`selected uploads ${selectedUnpublishedUploads.length}/${unpublishedUploads.length}`}
-          </FormLabel>
-          <Tooltip title="Delete selected uploads" >
-            <div>
-              <IconButton
-                disabled={selectedUnpublishedUploads.length === 0}
-                onClick={this.onDeleteClicked.bind(this)}
-              >
-                <DeleteIcon />
-              </IconButton>
-            </div>
-          </Tooltip>
-
-          <Tooltip title="Publish selected uploads" >
-            <div>
-              <IconButton
-                disabled={selectedUnpublishedUploads.length === 0 || selectedUnpublishedUploads.some(upload => upload.tasks_status !== 'SUCCESS' || upload.total_calcs === 0)}
-                onClick={() => this.onPublishClicked()}>
-                <CheckIcon />
-              </IconButton>
-            </div>
-          </Tooltip>
-
-          <ConfirmDialog
-            open={showPublishDialog}
-            onClose={() => this.setState({showPublishDialog: false})}
-            onPublish={(withEmbargo) => this.onPublish(withEmbargo)}
-          />
-
-        </FormGroup>
-      </div>
-      {
-        (unpublishedUploads.length === 0)
-          ? ''
-          : <div className={classes.uploads}>
-            { this.sortedUnpublishedUploads().map(upload => (
-              <Upload key={upload.gui_upload_id} upload={upload}
-                checked={selectedUnpublishedUploads.indexOf(upload) !== -1}
-                onDoesNotExist={() => this.handleDoesNotExist(upload)}
-                onPublished={() => this.handlePublished(upload)}
-                onCheckboxChanged={checked => this.onSelectionChanged(upload, checked)}/>
-            ))
-            }
-          </div>
-      }
+    return (<div className={classes.uploads}>
+       <FormGroup className={classes.formGroup} row>
+        <FormLabel className={classes.uploadsLabel}>Your uploads: </FormLabel>
+        <Tooltip title="Reload uploads, e.g. after using the curl upload" >
+          <IconButton onClick={() => this.update()}><ReloadIcon /></IconButton>
+        </Tooltip>
+      </FormGroup>
+      {uploading.map(renderUpload)}
+      {results.map(renderUpload)}
+      {(total > per_page)
+        ? <Pagination classes={{root: classes.pagination}}
+          limit={per_page}
+          offset={(page - 1) * per_page}
+          total={total}
+          onClick={(_, offset) => this.update((offset / per_page) + 1)}
+          previousPageLabel={'prev'}
+          nextPageLabel={'next'}
+        /> : ''}
     </div>)
   }
 
@@ -471,8 +340,7 @@ class Uploads extends React.Component {
           `}/>
         </div>
 
-        {this.renderUnpublishedUploads()}
-        {this.renderPublishedUploads()}
+        {this.renderUploads()}
       </div>
     )
   }
