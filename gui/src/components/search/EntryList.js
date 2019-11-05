@@ -10,6 +10,8 @@ import { Link as RouterLink } from 'react-router-dom'
 import MoreIcon from '@material-ui/icons/MoreHoriz'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import EditUserMetadataDialog from '../EditUserMetadataDialog'
+import DownloadButton from '../DownloadButton'
+import { create } from 'jss'
 
 export class EntryListUnstyled extends React.Component {
   static propTypes = {
@@ -213,13 +215,13 @@ export class EntryListUnstyled extends React.Component {
   }
 
   renderEntryActions(row) {
+    const query= {
+      calc_id: row.calc_id
+    }
+
     return <React.Fragment>
-      <EditUserMetadataDialog example={row} total={1} onEditComplete={() => this.props.onChange()} />
-      <Tooltip title="Download raw files">
-        <IconButton>
-          <DownloadIcon />
-        </IconButton>
-      </Tooltip>
+      <EditUserMetadataDialog example={row} query={query} total={1} onEditComplete={() => this.props.onChange()} />
+      <DownloadButton query={query} tooltip="Download raw files" />
       <Tooltip title="View entry page">
         <IconButton onClick={() => this.props.history.push(`/entry/id/${row.upload_id}/${row.calc_id}`)}>
           <MoreIcon />
@@ -229,7 +231,7 @@ export class EntryListUnstyled extends React.Component {
   }
 
   render() {
-    const { classes, data, order, order_by, page, per_page, domain, editable, title, ...rest } = this.props
+    const { classes, data, order, order_by, page, per_page, domain, editable, title, query, actions, ...rest } = this.props
     const { results, pagination: { total } } = data
     const { selected } = this.state
 
@@ -250,20 +252,22 @@ export class EntryListUnstyled extends React.Component {
       onChangeRowsPerPage={this.handleChangeRowsPerPage}
     />
 
-    const example = selected ? data.results.find(d => d.calc_id === selected[0]) : data.results[0]
-    const selectActions = <React.Fragment>
-      <EditUserMetadataDialog
-        buttonProps={{color: 'primary'}}
+    const example = selected && selected.length > 0 ? results.find(d => d.calc_id === selected[0]) : results[0]
+    const selectQuery = selected ? {calc_id: selected.join(',')} : query
+    const createActions = (props, moreActions) => <React.Fragment>
+      {example ? <EditUserMetadataDialog
         example={example} total={total}
         disabled={!editable}
         onEditComplete={() => this.props.onChange()}
-      />
-      <Tooltip title="Download raw files">
-        <IconButton color="primary">
-          <DownloadIcon />
-        </IconButton>
-      </Tooltip>
+        {...props}
+      /> : ''}
+      <DownloadButton
+        tooltip="Download raw files"
+        {...props}/>
+      {moreActions}
     </React.Fragment>
+    const selectActions = createActions({query: selectQuery, buttonProps: {color: 'primary'}})
+    const allActions = createActions({query: query}, actions)
 
     return (
       <div className={classes.root}>
@@ -284,6 +288,7 @@ export class EntryListUnstyled extends React.Component {
           onOrderChanged={(order, orderBy) => this.handleChange({order: order === 'asc' ? -1 : 1, order_by: orderBy})}
           rows={per_page}
           pagination={pagination}
+          actions={allActions}
           {...rest}
         />
       </div>

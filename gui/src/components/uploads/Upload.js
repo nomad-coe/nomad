@@ -485,7 +485,7 @@ class Upload extends React.Component {
 
     return <EntryList
       title={`Upload with ${data.pagination.total} detected entries`}
-      query={{upload_id: this.props.upload_id}}
+      query={{upload_id: upload.upload_id}}
       columns={columns}
       selectedColumns={Upload.defaultSelectedColumns}
       editable={tasks_status === 'SUCCESS'}

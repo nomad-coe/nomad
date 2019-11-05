@@ -312,6 +312,7 @@ class SuggestionsListTextInput extends React.Component {
 class EditUserMetadataDialogUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
+    query: PropTypes.object.isRequired,
     total: PropTypes.number,
     example: PropTypes.object,
     buttonProps: PropTypes.object,
@@ -416,13 +417,15 @@ class EditUserMetadataDialogUnstyled extends React.Component {
   }
 
   submitPromise(verify) {
+    const { query, api } = this.props
     const { actions } = this.state
 
     const editRequest = {
+      query: query,
       verify: verify,
       actions: actions
     }
-    return this.props.api.edit(editRequest).then(data => {
+    return api.edit(editRequest).then(data => {
       if (this.unmounted) {
         return
       }
