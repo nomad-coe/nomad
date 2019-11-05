@@ -189,7 +189,9 @@ class Uploads extends React.Component {
     const { data: { pagination: { page, per_page }}} = this.state
     this.props.api.getUploads('all', newPage || page, per_page)
       .then(uploads => {
-        this.setState({data: uploads})
+        this.setState({
+          data: uploads,
+          uploading: this.state.uploading.filter(upload => upload.current_task === 'uploading')})
       })
       .catch(error => {
         this.setState({data: {...this.defaultData}})
@@ -197,21 +199,16 @@ class Uploads extends React.Component {
       })
   }
 
-  handleDoesNotExist(nonExistingUpload) {
-    // this.setState({
-    //   unpublishedUploads: this.state.unpublishedUploads.filter(upload => upload !== nonExistingUpload)
-    // })
-    this.update()
-  }
-
-  handlePublished() {
+  handleDoesNotExist(removedUpload) {
+    const { uploading } = this.state
+    this.setState({uploading: uploading.filter(upload => upload !== removedUpload)})
     this.update()
   }
 
   onDrop(files, rejectedFiles) {
     const upload = file => {
       const upload = this.props.api.createUpload(file.name)
-      this.setState({uploading: [...this.state.uploading, upload]})
+      this.setState({uploading: [upload, ...this.state.uploading]})
       upload.uploadFile(file).catch(this.props.raiseError)
     }
 
@@ -225,18 +222,13 @@ class Uploads extends React.Component {
     const { classes } = this.props
     const { data: { results, pagination: { total, per_page, page }}, uploading } = this.state
 
-    if (total === 0) {
-      return ''
-    }
-
     const renderUpload = upload => <Upload
       key={upload.gui_upload_id} upload={upload}
       onDoesNotExist={() => this.handleDoesNotExist(upload)}
-      onPublished={() => this.handlePublished(upload)}
     />
 
     return (<div className={classes.uploads}>
-       <FormGroup className={classes.formGroup} row>
+      <FormGroup className={classes.formGroup} row>
         <FormLabel className={classes.uploadsLabel}>Your uploads: </FormLabel>
         <Tooltip title="Reload uploads, e.g. after using the curl upload" >
           <IconButton onClick={() => this.update()}><ReloadIcon /></IconButton>

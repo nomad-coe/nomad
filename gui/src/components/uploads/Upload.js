@@ -24,10 +24,9 @@ class Upload extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired,
-    api: PropTypes.func.isRequired,
+    api: PropTypes.object.isRequired,
     upload: PropTypes.object.isRequired,
     onDoesNotExist: PropTypes.func,
-    onPublished: PropTypes.func,
     domain: PropTypes.object.isRequired,
   }
 
@@ -99,6 +98,7 @@ class Upload extends React.Component {
       order: 1
     },
     updating: true, // it is still not complete and continuously looking for updates
+    showPublishDialog: false,
     columns: {}
   }
 
@@ -204,11 +204,6 @@ class Upload extends React.Component {
       .then(upload => {
         const {tasks_running, process_running, current_task, published} = upload
         if (!this._unmounted) {
-          if (published && !wasPublished) {
-            if (this.props.onPublished) {
-              this.props.onPublished()
-            }
-          }
           const continueUpdating = tasks_running || process_running || current_task === 'uploading'
           this.setState({upload: upload, updating: continueUpdating})
           if (continueUpdating) {
@@ -475,13 +470,13 @@ class Upload extends React.Component {
 
     const running = upload.tasks_running || upload.process_running
 
-    const actions = upload.published ? '' : <React.Fragment>
-      <IconButton>
-        <Tooltip title="Delete upload" disable={running} onClick={this.handleDelete}>
+    const actions = upload.published ? <React.Fragment /> : <React.Fragment>
+      <IconButton onClick={this.handleDelete} disabled={running}>
+        <Tooltip title="Delete upload">
           <DeleteIcon />
         </Tooltip>
       </IconButton>
-      <IconButton disable={running || tasks_status !== 'SUCCESS'} onClick={this.handlePublishOpen}>
+      <IconButton disabled={running || tasks_status !== 'SUCCESS'} onClick={this.handlePublishOpen}>
         <Tooltip title="Publish upload">
           <PublishIcon />
         </Tooltip>

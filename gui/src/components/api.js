@@ -200,13 +200,12 @@ class Api {
     this._swaggerClient = Swagger(`${apiBase}/swagger.json`)
     this.keycloak = keycloak
 
-    // keep a list of localUploads, these are uploads that are currently uploaded through
-    // the browser and that therefore not yet returned by the backend
-    this.localUploads = []
+    Api.uploadIds = 0
   }
 
   createUpload(name) {
     const upload = new Upload({
+      upload_id: Api.uploadIds++,
       name: name,
       tasks: ['uploading', 'extract', 'parse_all', 'cleanup'],
       current_task: 'uploading',
