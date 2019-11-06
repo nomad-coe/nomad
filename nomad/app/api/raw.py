@@ -369,7 +369,7 @@ class RawFileQueryResource(Resource):
     @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
     @api.expect(raw_file_from_query_parser, validate=True)
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
-    @authenticate()
+    @authenticate(signature_token=True)
     def get(self):
         """ Download a .zip file with all raw-files for all entries that match the given
         search parameters.
