@@ -10,7 +10,8 @@ import { IconButton, LinearProgress, ListItemIcon, ListItemText,
 import { Switch, Route, Link, withRouter } from 'react-router-dom'
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
-import AboutIcon from '@material-ui/icons/Help'
+import UserDataIcon from '@material-ui/icons/AccountCircle'
+import AboutIcon from '@material-ui/icons/Home'
 import MetainfoIcon from '@material-ui/icons/Info'
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft'
 import MenuIcon from '@material-ui/icons/Menu'
@@ -21,7 +22,7 @@ import { ErrorSnacks, withErrors } from './errors'
 import EntryPage from './entry/EntryPage'
 import About from './About'
 import LoginLogout from './LoginLogout'
-import { genTheme, repoTheme, archiveTheme, guiBase } from '../config'
+import { genTheme, repoTheme, archiveTheme, guiBase, consent } from '../config'
 import { DomainProvider, withDomain } from './domains'
 import {help as metainfoHelp, default as MetaInfoBrowser} from './metaInfoBrowser/MetaInfoBrowser'
 import packageJson from '../../package.json'
@@ -279,14 +280,15 @@ class NavigationUnstyled extends React.Component {
               </div>
 
               <MenuList>
-                <Tooltip title="Upload and publish data">
-                  <MenuItem className={classes.menuItem} component={Link} to="/uploads" selected={ pathname === '/uploads' }>
+                <Tooltip title="NOMAD Repository and Archive">
+                  <MenuItem className={classes.menuItem} component={Link} to="/" selected={ pathname === '/' }>
                     <ListItemIcon>
-                      <BackupIcon style={{fill: repoTheme.palette.primary.main}}/>
+                      <AboutIcon style={{fill: genTheme.palette.primary.main}}/>
                     </ListItemIcon>
-                    <ListItemText inset primary="Upload"/>
+                    <ListItemText inset primary="Home"/>
                   </MenuItem>
                 </Tooltip>
+                <Divider/>
                 <Tooltip title="Find and download data">
                   <MenuItem className={classes.menuItem} component={Link} to="/search" selected={ pathname.startsWith('/repo') }>
                     <ListItemIcon>
@@ -296,21 +298,29 @@ class NavigationUnstyled extends React.Component {
                   </MenuItem>
                 </Tooltip>
                 <Divider />
+                <Tooltip title="Upload and publish data">
+                  <MenuItem className={classes.menuItem} component={Link} to="/uploads" selected={ pathname === '/uploads' }>
+                    <ListItemIcon>
+                      <BackupIcon style={{fill: repoTheme.palette.primary.main}}/>
+                    </ListItemIcon>
+                    <ListItemText inset primary="Upload"/>
+                  </MenuItem>
+                </Tooltip>
+                <Tooltip title="Manage your data">
+                  <MenuItem className={classes.menuItem} component={Link} to="/user_data" selected={ pathname.startsWith('/repo') }>
+                    <ListItemIcon>
+                      <UserDataIcon style={{fill: repoTheme.palette.primary.main}}/>
+                    </ListItemIcon>
+                    <ListItemText inset primary="Your data"/>
+                  </MenuItem>
+                </Tooltip>
+                <Divider />
                 <Tooltip title="Browse the archive schema">
                   <MenuItem className={classes.menuItem} component={Link} to="/metainfo" selected={ pathname === '/metainfo' }>
                     <ListItemIcon>
                       <MetainfoIcon style={{fill: archiveTheme.palette.primary.main}}/>
                     </ListItemIcon>
                     <ListItemText inset primary="Meta Info"/>
-                  </MenuItem>
-                </Tooltip>
-                <Divider />
-                <Tooltip title="About, Documentation, Getting Help">
-                  <MenuItem className={classes.menuItem} component={Link} to="/" selected={ pathname === '/' }>
-                    <ListItemIcon>
-                      <AboutIcon />
-                    </ListItemIcon>
-                    <ListItemText inset primary="Help"/>
                   </MenuItem>
                 </Tooltip>
               </MenuList>
@@ -371,21 +381,7 @@ class LicenseAgreementUnstyled extends React.Component {
         >
           <DialogTitle>Terms of Use</DialogTitle>
           <DialogContent>
-            <Markdown>{`
-              By uploading and downloading data, you agree to the
-              [terms of use](https://www.nomad-coe.eu/the-project/nomad-repository/nomad-repository-terms).
-
-              Uploaded data is licensed under the Creative Commons Attribution license
-              ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). You can publish
-              uploaded data with an *embargo*. Data with an *embargo* is only visible to
-              you and users you share your data with. The *embargo period* lasts up to 36 month.
-              After the *embargo* your published data will be public. **Note that public data
-              is visible to others and files become downloadable by everyone.**
-
-              This web-site uses *cookies*. By using this web-site you agree to our use
-              of *cookies*. [Learn more](https://www.cookiesandyou.com/).
-              `}
-            </Markdown>
+            <Markdown>{consent}</Markdown>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => this.handleClosed(true)} color="primary">
@@ -414,6 +410,12 @@ export default class App extends React.Component {
       render: props => <About {...props} />
     },
     'search': {
+      exact: true,
+      singleton: true,
+      path: '/search',
+      render: props => <SearchPage {...props} />
+    },
+    'user_data': {
       exact: true,
       singleton: true,
       path: '/search',

@@ -24,31 +24,24 @@ class DomainProviderBase extends React.Component {
     DFT: {
       name: 'DFT',
       about: `
-        ### The New Nomad Data Upload
+        ### The NOMAD Repository and Archive
 
-        This web-page was created to complement to the original
-        [NOMAD Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1).
-        You upload, process, inspect, and publish your data here. Here you will be able
-        to search and explore uploaded data. However, to add comments, co-authors, and references,
-        create data-sets, and manage your account, you will still have to use the original
-        [NOMAD Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1).
+        This web-page is the graphical user interface (GUI) for the NOMAD Repository and
+        Archive. It allows you to search, access, and download all NOMAD data in its
+        raw (Repository) and processed (Archive) form. You can upload and manage your own
+        raw computational material science data. Learn more about what data can be uploaded
+        and how to prepare your data on the [NOMAD Repository homepage](https://repository.nomad-coe.eu/).
+        You can access all published data without an account. If you want to provide
+        your own data, please login or register for an account.
 
         In the future, this web-page will include more and more features of other NOMAD
         components as an effort to consolidate the various web applications from the
         NOMAD Repository, Archive, Metainfo, Encyclopedia, and Analytics Toolkit.
 
-        ### Limitations
-        You can only login with users that already exist in the NOMAD Repository. If you
-        are new to NOMAD, visit the [NOMAD Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1)
-        or register for a user account [here](http://nomad-repository.eu:8080/NomadRepository-1.1/register/).
+        ### This looks different, what about the old NOMAD interface?
 
-        When you have published your data with the new upload process (menu item on the
-        left of this page) you will still have to wait about a day for indexing to
-        take place and have your calculation show up in the Nomad Repository GUI.
-        Therefore, you should not expect your data to appear in the NOMAD Repository immediately.
-
-        We have migrated all data from the NOMAD Repository to this new system. However, not
-        all of the data was successfully processed by the new and more powerful parsers.
+        We have migrated all data from the original NOMAD Repository to this new system.
+        However, not all of the data was successfully processed by the new and more powerful parsers.
         We will continue to improve the parsers to raise the quality of archive data overtime.
         For some entries, no archive data might be currently available and some metadata might
         still be missing when you are exploring Nomad data using the new search and data

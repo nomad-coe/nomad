@@ -2,7 +2,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
 import Markdown from './Markdown'
-import { kibanaBase, appBase, optimadeBase, apiBase, debug } from '../config'
+import { kibanaBase, appBase, optimadeBase, apiBase, debug, consent } from '../config'
 import { compose } from 'recompose'
 import { withApi } from './api'
 import { withDomain } from './domains'
@@ -31,19 +31,15 @@ class About extends React.Component {
         <Markdown>{`
           ${domain.about}
 
+          ### Terms of use and licenses
+          ${consent}
+
           ### Getting Help
           If you encounter any difficulties, please write to
           [webmaster@nomad-repository.eu](mailto:webmaster@nomad-repository.eu). If you think
           that this web-page is not working as expected, or if you want to start a discussion
           about possible features, feel free to open an issue on our [issue tracking
           system](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/issues).
-
-          ### Developer Documentation
-          The [in-depth developer documentation](${appBase}/docs/index.html)
-          contains a general introduction to NOMAD, the underlying architecture,
-          is (meta)data, and processing. You will also find some information on how to use
-          the NOMAD ReST API. It contains information about how to develop NOMAD, how to
-          operate it, how to contribute parsers, and much more.
 
           ### ReST APIs
           NOMAD services can also be accessed programmatically via ReST APIs.
@@ -58,6 +54,13 @@ class About extends React.Component {
           There are also web-based GUIs that allow to explore the APIs and their documentation:
           - [NOMAD API](${apiBase}/)
           - [OPTiMaDe API](${optimadeBase}/)
+
+          ### Developer Documentation
+          The [in-depth developer documentation](${appBase}/docs/index.html)
+          contains a general introduction to NOMAD, the underlying architecture,
+          is (meta)data, and processing. You will also find some information on how to use
+          the NOMAD ReST API. It contains information about how to develop NOMAD, how to
+          operate it, how to contribute parsers, and much more.
 
           ### Source code
           The source-code for this new version of NOMAD (dubbed *nomad@FAIRDI*) is maintained
