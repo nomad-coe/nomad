@@ -303,11 +303,21 @@ class Domain:
         quantities=DomainQuantity(
             multi=True,
             description='Search for the existence of a certain meta-info quantity'),
-        upload_id=DomainQuantity(description='Search for the upload_id.'),
-        calc_id=DomainQuantity(description='Search for the calc_id.'),
-        pid=DomainQuantity(description='Search for the pid.'),
-        raw_id=DomainQuantity(description='Search for the raw_id.'),
-        mainfile=DomainQuantity(description='Search for the mainfile.'),
+        upload_id=DomainQuantity(
+            description='Search for the upload_id.',
+            multi=True, argparse_action='split', elastic_search_type='terms'),
+        calc_id=DomainQuantity(
+            description='Search for the calc_id.',
+            multi=True, argparse_action='split', elastic_search_type='terms'),
+        pid=DomainQuantity(
+            description='Search for the pid.',
+            multi=True, argparse_action='split', elastic_search_type='terms'),
+        raw_id=DomainQuantity(
+            description='Search for the raw_id.',
+            multi=True, argparse_action='split', elastic_search_type='terms'),
+        mainfile=DomainQuantity(
+            description='Search for the mainfile.',
+            multi=True, argparse_action='append', elastic_search_type='terms'),
         external_id=DomainQuantity(
             description='External user provided id. Does not have to be unique necessarily.',
             multi=True, argparse_action='split', elastic_search_type='terms'),

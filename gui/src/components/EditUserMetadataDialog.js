@@ -481,7 +481,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     const { classes, buttonProps, total, api, user, example, disabled } = this.props
     const { open, actions, verified, submitting } = this.state
 
-    const dialogEnabled = user && example.uploader.user_id === user.sub && !disabled
+    const dialogEnabled = user && example.uploader && example.uploader.user_id === user.sub && !disabled
     const submitEnabled = Object.keys(actions).length && !submitting && verified
 
     const listTextInputProps = (key, verify) => {

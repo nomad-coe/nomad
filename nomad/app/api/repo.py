@@ -138,12 +138,13 @@ def add_query(search_request: search.SearchRequest, args: Dict[str, Any]):
     args = {key: value for key, value in args.items() if value is not None}
 
     # owner
+    owner = args.get('owner', 'all')
     try:
         search_request.owner(
-            args.get('owner', 'all'),
+            owner,
             g.user.user_id if g.user is not None else None)
     except ValueError as e:
-        abort(401, getattr(e, 'message', 'Invalid owner parameter'))
+        abort(401, getattr(e, 'message', 'Invalid owner parameter: %s' % owner))
     except Exception as e:
         abort(400, getattr(e, 'message', 'Invalid owner parameter'))
 
@@ -298,7 +299,7 @@ query_model_parameters = {
 }
 
 for quantity in search.quantities.values():
-    if quantity.multi:
+    if quantity.multi and quantity.argparse_action is None:
         def field(**kwargs):
             return fields.List(fields.String(**kwargs))
     else:
@@ -434,8 +435,16 @@ class EditRepoCalcsResource(Resource):
             return json_data, 400
 
         # get all calculations that have to change
+        parsed_query = {}
+        for quantity_name, quantity in search.quantities.items():
+            if quantity_name in query:
+                value = query[quantity_name]
+                if quantity.multi and quantity.argparse_action == 'split' and not isinstance(value, list):
+                    value = value.split(',')
+                parsed_query[quantity_name] = value
+
         search_request = search.SearchRequest()
-        add_query(search_request, query)
+        add_query(search_request, parsed_query)
         calc_ids = list(hit['calc_id'] for hit in search_request.execute_scan())
 
         # perform the update on the mongo db
