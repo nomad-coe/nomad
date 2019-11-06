@@ -442,6 +442,7 @@ class EditRepoCalcsResource(Resource):
                 if quantity.multi and quantity.argparse_action == 'split' and not isinstance(value, list):
                     value = value.split(',')
                 parsed_query[quantity_name] = value
+        parsed_query['owner'] = owner
 
         search_request = search.SearchRequest()
         add_query(search_request, parsed_query)
