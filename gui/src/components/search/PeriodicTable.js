@@ -119,7 +119,6 @@ class PeriodicTable extends React.Component {
 
   static styles = theme => ({
     root: {
-      overflowX: 'scroll',
       position: 'relative'
     },
     table: {
