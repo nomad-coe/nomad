@@ -116,11 +116,11 @@ spec:
           value: "{{ .Values.app.console_loglevel }}"
         - name: NOMAD_LOGSTASH_LEVEL
           value: "{{ .Values.api.logstash_loglevel }}"
-       {{ if .Values.services.apiSecret }}
+       {{ if .Values.api.apiSecret }}
         - name: NOMAD_SERVICES_API_SECRET
           valueFrom:
             secretKeyRef:
-              name: {{ .Values.services.apiSecret}}
+              name: {{ .Values.api.apiSecret}}
               key: password
         {{ end }}
         {{ if .Values.keycloak.clientSecret }}
