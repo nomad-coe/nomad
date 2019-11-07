@@ -127,7 +127,7 @@ class Calculation(Resource):
         ), 200
 
 
-@ns.route('/info/calculation')
+@ns.route('/info/calculations')
 class CalculationInfo(Resource):
     @api.doc('calculations_info')
     @api.response(400, 'Invalid requests, e.g. bad parameter.')
