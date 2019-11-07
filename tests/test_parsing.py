@@ -74,7 +74,7 @@ for parser, mainfile in parser_examples:
 parser_examples = fixed_parser_examples
 
 
-correct_num_output_files = 43
+correct_num_output_files = 44
 
 
 class TestLocalBackend(object):
@@ -259,10 +259,13 @@ def test_stream_generator(pretty, no_warn):
     assert create_reference(example_data, pretty) == out.getvalue()
 
 
-def assert_parser_result(backend):
+def assert_parser_result(backend, error=False):
     status, errors = backend.status
     assert status == 'ParseSuccess'
-    assert errors is None or len(errors) == 0
+    if error:
+        assert len(errors) > 0
+    else:
+        assert errors is None or len(errors) == 0
 
 
 def assert_parser_dir_unchanged(previous_wd, current_wd):
@@ -317,6 +320,15 @@ def test_parser(parser_name, mainfile):
     previous_wd = os.getcwd()  # Get Working directory before parsing.
     parsed_example = run_parser(parser_name, mainfile)
     assert_parser_result(parsed_example)
+    # Check that cwd has not changed.
+    assert_parser_dir_unchanged(previous_wd, current_wd=os.getcwd())
+
+
+def test_broken_xml_vasp():
+    parser_name, mainfile = 'parsers/vasp', 'tests/data/parsers/vasp/broken.xml'
+    previous_wd = os.getcwd()  # Get Working directory before parsing.
+    parsed_example = run_parser(parser_name, mainfile)
+    assert_parser_result(parsed_example, error=True)
     # Check that cwd has not changed.
     assert_parser_dir_unchanged(previous_wd, current_wd=os.getcwd())
 
