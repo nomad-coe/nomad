@@ -117,7 +117,7 @@ class SearchPage extends React.Component {
             </FormControl>
           </div>
         </DisableOnLoading>
-        <Search searchParameters={{owner: owner}} searchValues={queryParams} showDetails={!queryParams} />
+        <Search query={{...queryParams, owner: owner}} showDetails={!queryParams} />
       </div>
     )
   }

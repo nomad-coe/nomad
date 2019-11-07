@@ -1,24 +1,19 @@
 import React from 'react'
 import PropTypes, { instanceOf } from 'prop-types'
 import Markdown from '../Markdown'
-import { withStyles, Paper, IconButton, FormGroup, Checkbox, FormControlLabel, FormLabel, Tooltip } from '@material-ui/core'
+import { withStyles, Paper, IconButton, FormGroup, FormLabel, Tooltip } from '@material-ui/core'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import Dropzone from 'react-dropzone'
 import Upload from './Upload'
 import { compose } from 'recompose'
-import DeleteIcon from '@material-ui/icons/Delete'
-import CheckIcon from '@material-ui/icons/Check'
 import ReloadIcon from '@material-ui/icons/Cached'
 import MoreIcon from '@material-ui/icons/MoreHoriz'
 import ClipboardIcon from '@material-ui/icons/Assignment'
-import ConfirmDialog from './ConfirmDialog'
 import HelpDialog from '../Help'
 import { withApi } from '../api'
 import { withCookies, Cookies } from 'react-cookie'
 import Pagination from 'material-ui-flat-pagination'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
-
-const publishedUploadsPageSize = 10
 
 export const help = `
 NOMAD now provides a two step upload process. After you upload your files, you

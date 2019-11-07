@@ -8,10 +8,8 @@ import DataTable from '../DataTable'
 import Quantity from '../Quantity'
 import { Link as RouterLink } from 'react-router-dom'
 import MoreIcon from '@material-ui/icons/MoreHoriz'
-import DownloadIcon from '@material-ui/icons/CloudDownload'
 import EditUserMetadataDialog from '../EditUserMetadataDialog'
 import DownloadButton from '../DownloadButton'
-import { create } from 'jss'
 
 export class EntryListUnstyled extends React.Component {
   static propTypes = {
@@ -297,13 +295,5 @@ export class EntryListUnstyled extends React.Component {
 }
 
 const EntryList = compose(withRouter, withDomain, withStyles(EntryListUnstyled.styles))(EntryListUnstyled)
-Object.assign(EntryList, {
-  defaultState: {
-    order_by: 'formula',
-    order: 1,
-    page: 1,
-    per_page: 10
-  }
-})
 
 export default EntryList

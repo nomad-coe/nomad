@@ -1,9 +1,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography,
-  ExpansionPanelDetails, Stepper, Step, StepLabel,
-  Checkbox, FormControlLabel, Tooltip,
-  CircularProgress,
+  ExpansionPanelDetails, Stepper, Step, StepLabel, Tooltip, CircularProgress,
   IconButton} from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
@@ -114,7 +112,7 @@ class Upload extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (prevProps.domain != this.props.domain) {
+    if (prevProps.domain !== this.props.domain) {
       this.updateColumns()
     }
 
@@ -199,10 +197,9 @@ class Upload extends React.Component {
     }
 
     const {page, per_page, order_by, order} = this.state.params
-    const wasPublished = this.state.published
     this.state.upload.get(page, per_page, order_by, order)
       .then(upload => {
-        const {tasks_running, process_running, current_task, published} = upload
+        const {tasks_running, process_running, current_task} = upload
         if (!this._unmounted) {
           const continueUpdating = tasks_running || process_running || current_task === 'uploading'
           this.setState({upload: upload, updating: continueUpdating})
@@ -435,7 +432,7 @@ class Upload extends React.Component {
     const { classes } = this.props
     const { columns, upload } = this.state
     const { calcs, tasks_status, waiting } = this.state.upload
-    const { pagination, results } = calcs
+    const { pagination } = calcs
 
     if (pagination.total === 0) {
       if (!this.state.upload.tasks_running) {

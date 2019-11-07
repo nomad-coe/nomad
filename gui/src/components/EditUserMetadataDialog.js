@@ -375,8 +375,8 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     this.editData = {
       comment: example.comment || '',
       references: example.references || [],
-      coauthors: example.authors.filter(author => author.user_id !== example.uploader.user_id).map(author => author.email),
-      shared_with: example.owners.filter(author => author.user_id !== example.uploader.user_id).map(author => author.email),
+      coauthors: (example.authors || []).filter(author => author.user_id !== example.uploader.user_id).map(author => author.email),
+      shared_with: (example.owners || []).filter(author => author.user_id !== example.uploader.user_id).map(author => author.email),
       datasets: (example.datasets || []).map(ds => ds.name),
       with_embargo: example.with_embargo
     }

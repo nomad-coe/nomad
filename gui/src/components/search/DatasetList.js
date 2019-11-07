@@ -118,10 +118,4 @@ class DatasetListUnstyled extends React.Component {
 
 const DatasetList = compose(withRouter, withDomain, withStyles(DatasetListUnstyled.styles))(DatasetListUnstyled)
 
-Object.assign(DatasetList, {
-  defaultState: {
-    datasets_after: null
-  }
-})
-
 export default DatasetList

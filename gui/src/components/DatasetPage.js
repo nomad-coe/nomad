@@ -78,7 +78,7 @@ class DatasetPage extends React.Component {
             dataset{dataset.doi ? <span>, with DOI <Link href={dataset.doi}>{dataset.doi}</Link></span> : ''}
           </Typography>
         </div>
-        <Search searchParameters={{owner: 'all', dataset_id: datasetId}} />
+        <Search query={{owner: 'all', dataset_id: datasetId}} />
         <Download
           classes={{root: classes.downloadFab}} tooltip="download all rawfiles"
           component={Fab} className={classes.downloadFab} color="primary" size="medium"

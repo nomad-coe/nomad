@@ -3,14 +3,11 @@ import PropTypes from 'prop-types'
 import { withStyles, FormControl, FormLabel, FormGroup, FormControlLabel, Checkbox, Tooltip } from '@material-ui/core'
 import { withDomain } from '../domains'
 import { compose } from 'recompose'
+import SearchContext from '../search/SearchContext'
 
 class SearchAggregations extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    onChange: PropTypes.func.isRequired,
-    data: PropTypes.object.isRequired,
-    metrics: PropTypes.arrayOf(PropTypes.string).isRequired,
-    searchValues: PropTypes.object.isRequired,
     domain: PropTypes.object.isRequired,
     showDetails: PropTypes.bool
   }
@@ -24,20 +21,12 @@ class SearchAggregations extends React.Component {
     }
   })
 
-  handleMetricChange(metric) {
-    const metrics = metric === 'code_runs' ? [] : [metric]
-    this.setState({metric: metric})
-    this.props.onChange({metrics: metrics})
-  }
-
-  handleSearchChanged(searchValues) {
-    this.props.onChange({searchValues: searchValues})
-  }
+  static contextType = SearchContext.type
 
   render() {
-    const { classes, data, metrics, searchValues, domain, onChange, showDetails } = this.props
-    const { statistics } = data
-    const selectedMetric = metrics.length === 0 ? 'code_runs' : metrics[0]
+    const {classes, domain, showDetails} = this.props
+    const {state: {response: {statistics}, metric}, setMetric} = this.context
+    const selectedMetric = metric
 
     // first the first statistic to determine which metric is used
     let useMetric = 'code_runs'
@@ -62,7 +51,7 @@ class SearchAggregations extends React.Component {
                 <Tooltip key={metric} title={metricsDefinitions[metric].tooltip}>
                   <FormControlLabel
                     control={
-                      <Checkbox checked={selectedMetric === metric} onChange={() => this.handleMetricChange(metric)} value={metric} />
+                      <Checkbox checked={selectedMetric === metric} onChange={() => setMetric(metric)} value={metric} />
                     }
                     label={metricsDefinitions[metric].label}
                   />
@@ -70,7 +59,7 @@ class SearchAggregations extends React.Component {
               ))}
             </FormGroup>
           </FormControl>
-          <domain.SearchAggregations statistics={statistics} searchValues={searchValues} metric={useMetric} onChange={onChange} />
+          <domain.SearchAggregations metric={useMetric} />
         </div>
       </div>
     )
