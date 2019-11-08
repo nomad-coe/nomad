@@ -1115,12 +1115,12 @@ class TestEditRepo():
         assert not self.elastic(4, comment='test_edit_all')
 
     def test_edit_multi(self):
-        rv = self.perform_edit(comment='test_edit_multi', query=dict(upload_id='upload_1,upload_3'))
+        rv = self.perform_edit(comment='test_edit_multi', query=dict(upload_id='upload_1,upload_2'))
         self.assert_edit(rv, quantity='comment', success=True, message=False)
-        assert self.mongo(1, 4, comment='test_edit_multi')
-        assert self.elastic(1, 4, comment='test_edit_multi')
-        assert not self.mongo(2, 3, comment='test_edit_multi')
-        assert not self.elastic(2, 3, comment='test_edit_multi')
+        assert self.mongo(1, 2, 3, comment='test_edit_multi')
+        assert self.elastic(1, 2, 3, comment='test_edit_multi')
+        assert not self.mongo(4, comment='test_edit_multi')
+        assert not self.elastic(4, comment='test_edit_multi')
 
     def test_edit_some(self):
         rv = self.perform_edit(comment='test_edit_some', query=dict(upload_id='upload_1'))
