@@ -17,9 +17,13 @@ import ase
 import numpy as np
 import json
 import re
+import functools
+import fractions
 
 from matid import SymmetryAnalyzer
 from matid.geometry import get_dimensionality
+
+from nomadcore.structure_types import structure_types_by_spacegroup as str_types_by_spg
 
 from nomad import utils, config
 from nomad.normalizing.normalizer import SystemBasedNormalizer
@@ -338,4 +342,108 @@ class SystemNormalizer(SystemBasedNormalizer):
         self._backend.addArrayValues('equivalent_atoms_original', orig_equivalent_atoms)
         self._backend.closeSection('section_original_system', orig_gid)
 
+        self.prototypes(prim_num, prim_wyckoff, space_group_number)
+
         self._backend.closeSection('section_symmetry', symmetry_gid)
+
+    def prototypes(self, atomSpecies, wyckoffs, spg_nr):
+        try:
+            norm_wyckoff = SystemNormalizer.get_normalized_wyckoff(atomSpecies, wyckoffs)
+            protoDict = SystemNormalizer.get_structure_type(spg_nr, norm_wyckoff)
+
+            if protoDict is None:
+                proto = "%d-_" % spg_nr
+                labels = dict(prototype_label=proto)
+            else:
+                proto = '%d-%s-%s' % (spg_nr, protoDict.get("Prototype", "-"),
+                                      protoDict.get("Pearsons Symbol", "-"))
+                aflow_prototype_id = protoDict.get("aflow_prototype_id", "-")
+                aflow_prototype_url = protoDict.get("aflow_prototype_url", "-")
+                labels = dict(
+                    prototype_label=proto,
+                    prototype_aflow_id=aflow_prototype_id,
+                    prototype_aflow_url=aflow_prototype_url)
+        except Exception as e:
+            self.logger.error("cannot create AFLOW prototype", exc_info=e)
+            return
+
+        pSect = self._backend.openSection("section_prototype")
+        self._backend.addValue(
+            "prototype_assignement_method", "normalized-wyckoff")
+        self._backend.addValue("prototype_label", labels['prototype_label'])
+        aid = labels.get("prototype_aflow_id")
+        if aid:
+            self._backend.addValue("prototype_aflow_id", aid)
+        aurl = labels.get("prototype_aflow_url")
+        if aurl:
+            self._backend.addValue("prototype_aflow_url", aurl)
+        self._backend.closeSection("section_prototype", pSect)
+
+    @staticmethod
+    def get_normalized_wyckoff(atomic_number, wyckoff):
+        """ Returns a normalized Wyckoff sequence """
+        atomCount = {}
+        for nr in atomic_number:
+            atomCount[nr] = atomCount.get(nr, 0) + 1
+        wycDict = {}
+
+        for i, wk in enumerate(wyckoff):
+            oldVal = wycDict.get(wk, {})
+            nr = atomic_number[i]
+            oldVal[nr] = oldVal.get(nr, 0) + 1
+            wycDict[wk] = oldVal
+        sortedWyc = list(wycDict.keys())
+        sortedWyc.sort()
+
+        def cmpp(a, b):
+            return ((a < b) - (a > b))
+
+        def compareAtNr(at1, at2):
+            c = cmpp(atomCount[at1], atomCount[at2])
+            if (c != 0):
+                return c
+            for wk in sortedWyc:
+                p = wycDict[wk]
+                c = cmpp(p.get(at1, 0), p.get(at2, 0))
+                if c != 0:
+                    return c
+            return 0
+
+        sortedAt = list(atomCount.keys())
+        sortedAt.sort(key=functools.cmp_to_key(compareAtNr))
+        standardAtomNames = {}
+        for i, at in enumerate(sortedAt):
+            standardAtomNames[at] = ("X_%d" % i)
+        standardWyc = {}
+        for wk, ats in wycDict.items():
+            stdAts = {}
+            for at, count in ats.items():
+                stdAts[standardAtomNames[at]] = count
+            standardWyc[wk] = stdAts
+        if standardWyc:
+            counts = [c for x in standardWyc.values() for c in x.values()]
+            gcd = counts[0]
+            for c in counts[1:]:
+                gcd = fractions.gcd(gcd, c)
+            if gcd != 1:
+                for wk, d in standardWyc.items():
+                    for at, c in d.items():
+                        d[at] = c // gcd
+        return standardWyc
+
+    @staticmethod
+    def get_structure_type(space_group, norm_wyckoff):
+        """Returns the information on the prototype.
+        """
+        structure_type_info = {}
+
+        type_descriptions = str_types_by_spg.get(space_group, [])
+        for type_description in type_descriptions:
+            current_norm_wyckoffs = type_description.get("normalized_wysytax")
+            if current_norm_wyckoffs and current_norm_wyckoffs == norm_wyckoff:
+                structure_type_info = type_description
+                break
+        if structure_type_info:
+            return structure_type_info
+        else:
+            return None
