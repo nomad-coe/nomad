@@ -244,7 +244,7 @@ class SearchBar extends React.Component {
   }
 
   getChips() {
-    const {state: {query: {...values}}} = this.context
+    const {state: {query: {owner, ...values}}} = this.context
     return Object.keys(values).filter(key => values[key]).map(key => {
       if (key === 'atoms') {
         return `atoms=[${values[key].join(',')}]`

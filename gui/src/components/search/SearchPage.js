@@ -1,12 +1,12 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
-import { FormControl, FormControlLabel, Checkbox, FormGroup, FormLabel, Tooltip } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withErrors } from '../errors'
-import { withApi, DisableOnLoading } from '../api'
+import { withApi } from '../api'
 import { guiBase } from '../../config'
 import Search from './Search'
+import SearchContext from './SearchContext'
 import qs from 'qs'
 
 export const help = `
@@ -65,59 +65,29 @@ class SearchPage extends React.Component {
     }
   })
 
-  state = {
-    owner: 'all'
-  }
-
   render() {
     const { classes, user, location } = this.props
-    const { owner } = this.state
 
-    let queryParams = null
+    let query = {
+      owner: 'all'
+    }
     if (location && location.search) {
-      queryParams = qs.parse(location.search.substring(1))
-    }
-
-    const ownerLabel = {
-      all: 'All entries',
-      public: 'Only public entries',
-      user: 'Only your entries',
-      staging: 'Staging area only'
-    }
-
-    const ownerTooltips = {
-      all: 'This will show all entries in the database.',
-      public: 'Do not show entries that are only visible to you.',
-      user: 'Do only show entries visible to you.',
-      staging: 'Will only show entries that you uploaded, but not yet published.'
+      query = {
+        ...query,
+        ...(qs.parse(location.search.substring(1)) || {})
+      }
     }
 
     const withoutLogin = ['all']
 
     return (
       <div className={classes.root}>
-        <DisableOnLoading>
-          <div className={classes.searchEntry}>
-            <FormControl>
-              <FormLabel>Filter entries and show: </FormLabel>
-              <FormGroup row>
-                {['all', 'public', 'user', 'staging']
-                  .filter(key => user || withoutLogin.indexOf(key) !== -1)
-                  .map(owner => (
-                    <Tooltip key={owner} title={ownerTooltips[owner] + (user ? '' : 'You need to be logged-in for more options.')}>
-                      <FormControlLabel
-                        control={
-                          <Checkbox checked={this.state.owner === owner} onChange={() => this.setState({owner: owner})} value="owner" />
-                        }
-                        label={ownerLabel[owner]}
-                      />
-                    </Tooltip>
-                  ))}
-              </FormGroup>
-            </FormControl>
-          </div>
-        </DisableOnLoading>
-        <Search query={{...queryParams, owner: owner}} showDetails={!queryParams} />
+        <SearchContext
+          initialQuery={query}
+          ownerTypes={['all', 'public'].filter(key => user || withoutLogin.indexOf(key) !== -1)}
+        >
+          <Search visualization="elements" />
+        </SearchContext>
       </div>
     )
   }

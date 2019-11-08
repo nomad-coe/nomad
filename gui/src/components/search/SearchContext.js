@@ -2,13 +2,17 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withApi } from '../api'
 import { isEquivalent } from '../../utils'
+import { compose } from 'recompose'
+import { withDomain } from '../domains'
 
 /**
  * A non visible component that keeps shared search state between all child components.
  */
 class SearchContext extends React.Component {
   static propTypes = {
-    query: PropTypes.object
+    query: PropTypes.object,
+    initialQuery: PropTypes.object,
+    ownerTypes: PropTypes.arrayOf(PropTypes.string)
   }
 
   static emptyResponse = {
@@ -36,7 +40,10 @@ class SearchContext extends React.Component {
     this.handleRequestChange = this.handleRequestChange.bind(this)
     this.handleQueryChange = this.handleQueryChange.bind(this)
     this.handleMetricChange = this.handleMetricChange.bind(this)
+    this.state.query = this.props.initialQuery || {}
   }
+
+  defaultMetric = this.props.domain.defaultSearchMetric
 
   state = {
     response: SearchContext.emptyResponse,
@@ -49,7 +56,8 @@ class SearchContext extends React.Component {
       datasets: true,
       datasets_after: null
     },
-    metric: 'code_runs',
+    metric: this.defaultMetric,
+    usedMetric: this.defaultMetric,
     query: {}
   }
 
@@ -76,13 +84,24 @@ class SearchContext extends React.Component {
   }
 
   update() {
-    const {api, raiseError} = this.props
+    const {api, raiseError, ownerTypes} = this.props
     const {request, query, metric} = this.state
-    const search = {...(this.props.query || {}), ...request, ...query, metrics: metric === 'code_runs' ? [] : [metric]}
+    const search = {...request, ...query, metrics: metric === this.defaultMetric ? [] : [metric], ...(this.props.query || {})}
 
     api.search(search)
       .then(response => {
-        this.setState({response: response || SearchContext.emptyResponse})
+        // find the first statistic to determine which metric is used
+        const {statistics} = response
+        let usedMetric = this.defaultMetric
+        const firstRealQuantitiy = Object.keys(statistics).find(key => key !== 'total')
+        if (firstRealQuantitiy) {
+          const firstValue = Object.keys(statistics[firstRealQuantitiy])[0]
+          if (firstValue) {
+            usedMetric = Object.keys(statistics[firstRealQuantitiy][firstValue])
+              .find(metric => metric !== this.defaultMetric) || this.defaultMetric
+          }
+        }
+        this.setState({response: response || SearchContext.emptyResponse, usedMetric: usedMetric})
       }).catch(error => {
         this.setState({response: SearchContext.emptyResponse})
         if (error.name !== 'NotAuthorized' || this.props.searchParameters.owner === 'all') {
@@ -101,7 +120,7 @@ class SearchContext extends React.Component {
         prevState.query !== query ||
         prevState.request !== request ||
         prevState.metric !== metric ||
-        !isEquivalent(prevProps.query, this.props.query)) {
+        !isEquivalent(prevProps.query || {}, this.props.query || {})) {
       this.update()
     }
   }
@@ -110,6 +129,7 @@ class SearchContext extends React.Component {
     const {children} = this.props
     const value = {
       state: this.state,
+      props: this.props,
       setRequest: this.handleRequestChange,
       setQuery: this.handleQueryChange,
       setMetric: this.handleMetricChange
@@ -120,7 +140,7 @@ class SearchContext extends React.Component {
   }
 }
 
-const withHoc = withApi(false, false)(SearchContext)
+const withHoc = compose(withDomain, withApi(false, false))(SearchContext)
 Object.assign(withHoc, {type: SearchContext.type})
 
 export default withHoc

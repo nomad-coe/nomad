@@ -79,11 +79,13 @@ class DomainProviderBase extends React.Component {
         // },
         calculations: {
           label: 'Single configuration calculations',
+          shortLabel: 'SCC',
           tooltip: 'Aggregates the number of single configuration calculations (e.g. total energy calculations) as each entry can contain many calculations.',
           renderResultString: count => (<span> with <b>{count.toLocaleString()}</b> single configuration calculation{count === 1 ? '' : 's'}</span>)
         },
         unique_geometries: {
           label: 'Unique geometries',
+          shortLabel: 'Geometries',
           tooltip: 'Aggregates the number of unique simulated system geometries in all entries.',
           renderResultString: count => (<span> that simulate <b>{count.toLocaleString()}</b> unique geometrie{count === 1 ? '' : 's'}</span>)
         },
@@ -93,6 +95,7 @@ class DomainProviderBase extends React.Component {
           renderResultString: count => (<span> curated in <b>{count.toLocaleString()}</b> dataset{count === 1 ? '' : 's'}</span>)
         }
       },
+      defaultSearchMetric: 'code_runs',
       additionalSearchKeys: {
         raw_id: {},
         upload_id: {},
@@ -200,6 +203,7 @@ class DomainProviderBase extends React.Component {
           renderResultString: count => (<span> curated in <b>{count}</b> datasets</span>)
         }
       },
+      defaultSearchMetric: 'code_runs',
       /**
        * An dict where each object represents a column. Possible keys are label, render.
        * Default render

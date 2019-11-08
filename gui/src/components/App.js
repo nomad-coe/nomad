@@ -34,6 +34,7 @@ import DatasetPage from './DatasetPage'
 import { capitalize } from '../utils'
 import { amber } from '@material-ui/core/colors'
 import KeepState from './KeepState'
+import {help as userdataHelp, default as UserdataPage} from './UserdataPage'
 
 export class VersionMismatch extends Error {
   constructor(msg) {
@@ -178,6 +179,7 @@ class NavigationUnstyled extends React.Component {
     '/': 'About, Documentation, Getting Help',
     '/search': 'Find and Download Data',
     '/uploads': 'Upload and Publish Data',
+    '/userdata': 'Manage Your Data',
     '/metainfo': 'The NOMAD Meta Info',
     '/entry': capitalize(this.props.domain.entryLabel),
     '/dataset': 'Dataset'
@@ -187,6 +189,7 @@ class NavigationUnstyled extends React.Component {
     '/': genTheme,
     '/search': repoTheme,
     '/uploads': repoTheme,
+    '/userdata': repoTheme,
     '/entry': repoTheme,
     '/dataset': repoTheme,
     '/metainfo': archiveTheme
@@ -196,6 +199,7 @@ class NavigationUnstyled extends React.Component {
     '/': null,
     '/search': {title: 'How to find and download data', content: searchHelp},
     '/uploads': {title: 'How to upload data', content: uploadHelp},
+    '/userdata': {title: 'How to manage your data', content: userdataHelp},
     '/metainfo': {title: 'About the NOMAD meta-info', content: metainfoHelp}
   }
 
@@ -307,7 +311,7 @@ class NavigationUnstyled extends React.Component {
                   </MenuItem>
                 </Tooltip>
                 <Tooltip title="Manage your data">
-                  <MenuItem className={classes.menuItem} component={Link} to="/user_data" selected={ pathname.startsWith('/repo') }>
+                  <MenuItem className={classes.menuItem} component={Link} to="/userdata" selected={ pathname.startsWith('/repo') }>
                     <ListItemIcon>
                       <UserDataIcon style={{fill: repoTheme.palette.primary.main}}/>
                     </ListItemIcon>
@@ -415,11 +419,11 @@ export default class App extends React.Component {
       path: '/search',
       render: props => <SearchPage {...props} />
     },
-    'user_data': {
+    'userdata': {
       exact: true,
       singleton: true,
-      path: '/search',
-      render: props => <SearchPage {...props} />
+      path: '/userdata',
+      render: props => <UserdataPage {...props} />
     },
     'entry': {
       path: '/entry/id/:uploadId/:calcId',

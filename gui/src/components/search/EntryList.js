@@ -253,9 +253,8 @@ export class EntryListUnstyled extends React.Component {
     const example = selected && selected.length > 0 ? results.find(d => d.calc_id === selected[0]) : results[0]
     const selectQuery = selected ? {calc_id: selected.join(',')} : query
     const createActions = (props, moreActions) => <React.Fragment>
-      {example ? <EditUserMetadataDialog
+      {example && editable ? <EditUserMetadataDialog
         example={example} total={total}
-        disabled={!editable}
         onEditComplete={() => this.props.onChange()}
         {...props}
       /> : ''}

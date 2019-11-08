@@ -5,9 +5,8 @@ import { compose } from 'recompose'
 import { withErrors } from './errors'
 import { withApi } from './api'
 import Search from './search/Search'
-import { Typography, Link, Fab } from '@material-ui/core'
-import Download from './entry/Download'
-import DownloadIcon from '@material-ui/icons/CloudDownload'
+import SearchContext from './search/SearchContext'
+import { Typography, Link } from '@material-ui/core'
 
 export const help = `
 This page allows you to **inspect** and **download** NOMAD datasets. It alsow allows you
@@ -23,16 +22,8 @@ class DatasetPage extends React.Component {
   }
 
   static styles = theme => ({
-    root: {
-    },
     description: {
       padding: theme.spacing.unit * 3
-    },
-    downloadFab: {
-      zIndex: 1,
-      right: 32,
-      top: 56 + 32,
-      position: 'fixed !important'
     }
   })
 
@@ -71,21 +62,17 @@ class DatasetPage extends React.Component {
     const { dataset } = this.state
 
     return (
-      <div className={classes.root}>
+      <div>
         <div className={classes.description}>
           <Typography variant="h4">{dataset.name || 'loading ...'}</Typography>
           <Typography>
             dataset{dataset.doi ? <span>, with DOI <Link href={dataset.doi}>{dataset.doi}</Link></span> : ''}
           </Typography>
         </div>
-        <Search query={{owner: 'all', dataset_id: datasetId}} />
-        <Download
-          classes={{root: classes.downloadFab}} tooltip="download all rawfiles"
-          component={Fab} className={classes.downloadFab} color="primary" size="medium"
-          url={`raw/query?dataset_id=${datasetId}`} fileName={`${dataset.name}.json`}
-        >
-          <DownloadIcon />
-        </Download>
+
+        <SearchContext query={{dataset_id: datasetId}} ownerTypes={['all', 'public']} >
+          <Search resultTab="entries"/>
+        </SearchContext>
       </div>
     )
   }

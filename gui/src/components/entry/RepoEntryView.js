@@ -1,10 +1,8 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Divider, Card, CardContent, Grid, CardHeader, Fab, Typography, Link } from '@material-ui/core'
+import { withStyles, Divider, Card, CardContent, Grid, CardHeader, Typography, Link } from '@material-ui/core'
 import { withApi } from '../api'
 import { compose } from 'recompose'
-import Download from './Download'
-import DownloadIcon from '@material-ui/icons/CloudDownload'
 import ApiDialogButton from '../ApiDialogButton'
 import Quantity from '../Quantity'
 import { withDomain } from '../domains'
@@ -21,12 +19,6 @@ class RepoEntryView extends React.Component {
     },
     content: {
       marginTop: theme.spacing.unit * 3
-    },
-    downloadFab: {
-      zIndex: 1,
-      right: 32,
-      bottom: 32,
-      position: 'fixed !important'
     },
     cardContent: {
       paddingTop: 0
@@ -174,16 +166,6 @@ class RepoEntryView extends React.Component {
           </Grid>
 
           <domain.EntryCards data={calcData} calcId={calcId} uploadId={uploadId} classes={{root: classes.entryCards}} />
-
-          <Download
-            disabled={!mainfile} tooltip="download all raw files for calculation"
-            classes={{root: classes.downloadFab}}
-            component={Fab} className={classes.downloadFab} color="primary" size="medium"
-            url={`raw/${uploadId}/${calcPath}/*?strip=true`} fileName={`${calcId}.zip`}
-          >
-            <DownloadIcon />
-          </Download>
-
         </div>
       </div>
     )
