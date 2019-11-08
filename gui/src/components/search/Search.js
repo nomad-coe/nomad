@@ -395,7 +395,8 @@ class SearchDatasetList extends React.Component {
   render() {
     const {state: {response}, setRequest} = this.context
 
-    return <DatasetList data={response} total={response.statistics.total.all.datasets}
+    return <DatasetList data={response}
+      total={response.statistics.total.all.datasets}
       onChange={setRequest}
       {...response}
     />

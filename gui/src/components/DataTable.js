@@ -219,6 +219,11 @@ class DataTableUnStyled extends React.Component {
     checkboxCell: {
       width: 64
     },
+    actionsCell: {
+      textAlign: 'right',
+      width: 1,
+      whiteSpace: 'nowrap'
+    },
     cell: {
       overflow: 'hidden',
       textOverflow: 'ellipsis',
@@ -371,7 +376,7 @@ class DataTableUnStyled extends React.Component {
   render() {
     const {
       classes, data, total, order, orderBy, id, rows, selectActions, actions,
-      entryDetails, columns, title, pagination } = this.props
+      entryDetails, entryActions, columns, title, pagination } = this.props
     const { selectedColumns, selectedEntry } = this.state
 
     const isSelected = row => (!selected) || selected.indexOf(id(row)) !== -1
@@ -383,6 +388,8 @@ class DataTableUnStyled extends React.Component {
     if (!withSelect) {
       selected = []
     }
+
+    const hasEntryActionsInRow = entryActions && !entryDetails
 
     return (
       <div>
@@ -435,6 +442,7 @@ class DataTableUnStyled extends React.Component {
                     </TableCell>
                   )
                 })}
+                {hasEntryActionsInRow && <TableCell className={classes.actionsCell}/>}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -468,6 +476,7 @@ class DataTableUnStyled extends React.Component {
                           </TableCell>
                         )
                       })}
+                      {hasEntryActionsInRow && <TableCell className={classes.actionsCell}>{entryActions(row)}</TableCell>}
                     </TableRow>
                     {this.renderDetails(row)}
                   </React.Fragment>

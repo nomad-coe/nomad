@@ -1,12 +1,80 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, TableCell, Toolbar, IconButton } from '@material-ui/core'
+import { withStyles, TableCell, Toolbar, IconButton, Button, FormGroup, Tooltip } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withRouter } from 'react-router'
 import { withDomain } from '../domains'
 import NextIcon from '@material-ui/icons/ChevronRight'
 import StartIcon from '@material-ui/icons/SkipPrevious'
 import DataTable from '../DataTable'
+import SearchIcon from '@material-ui/icons/Search'
+import DOIIcon from '@material-ui/icons/Bookmark'
+import DeleteIcon from '@material-ui/icons/Delete'
+import { withApi } from '../api'
+
+class DatasetActionsUnstyled extends React.Component {
+
+  static propTypes = {
+    classes: PropTypes.object.isRequired,
+    dataset: PropTypes.object.isRequired,
+    history: PropTypes.object.isRequired,
+    search: PropTypes.bool,
+    user: PropTypes.object
+  }
+
+  static styles = theme => ({
+    group: {
+      flexWrap: 'nowrap',
+      flexDirection: 'row-reverse'
+    }
+  })
+
+  constructor(props) {
+    super(props)
+    this.handleClickDOI = this.handleClickDOI.bind(this)
+    this.handleClickDataset = this.handleClickDataset.bind(this)
+  }
+
+  handleClickDataset() {
+    const {dataset: {id}} = this.props
+    this.props.history.push(`/dataset/id/${id}`)
+  }
+
+  handleClickDOI() {
+    console.log('DOI')
+  }
+
+
+  render() {
+    const {dataset, search, user, classes} = this.props
+    const {doi} = dataset
+    const editable = user && dataset.example &&
+      dataset.example.authors.find(author => author.user_id === user.sub)
+
+    const canAssignDOI = !doi
+    const canDelete = !doi
+
+    return <FormGroup row classes={{root: classes.group}}>
+      {search && <Tooltip title="Open a search page with entries from this dataset only.">
+        <IconButton onClick={this.handleClickDataset}>
+          <SearchIcon />
+        </IconButton>
+      </Tooltip>}
+      {editable && canDelete && <Tooltip title="Delete this dataset.">
+        <IconButton onClick={this.handleClickDOI}>
+          <DeleteIcon />
+        </IconButton>
+      </Tooltip>}
+      {editable && canAssignDOI && <Tooltip title="Assign a DOI to this dataset.">
+        <IconButton onClick={this.handleClickDOI}>
+          <DOIIcon />
+        </IconButton>
+      </Tooltip>}
+    </FormGroup>
+  }
+}
+
+export const DatasetActions = compose(withRouter, withApi(false), withStyles(DatasetActionsUnstyled.styles))(DatasetActionsUnstyled)
 
 class DatasetListUnstyled extends React.Component {
   static propTypes = {
@@ -39,6 +107,11 @@ class DatasetListUnstyled extends React.Component {
     }
   })
 
+  constructor(props) {
+    super(props)
+    this.renderEntryActions = this.renderEntryActions.bind(this)
+  }
+
   columns = {
     name: {
       label: 'Dataset name',
@@ -65,8 +138,8 @@ class DatasetListUnstyled extends React.Component {
     }
   }
 
-  handleClickDataset(datasetId) {
-    this.props.history.push(`/dataset/id/${datasetId}`)
+  renderEntryActions(entry) {
+    return <DatasetActions search dataset={entry} />
   }
 
   render() {
@@ -107,8 +180,7 @@ class DatasetListUnstyled extends React.Component {
       columns={this.columns}
       // selectedColumns={defaultSelectedColumns}
       // entryDetails={this.renderEntryDetails.bind(this)}
-      // entryActions={this.renderEntryActions.bind(this)}
-      onEntryClicked={this.handleClickDataset.bind(this)}
+      entryActions={this.renderEntryActions}
       data={results}
       rows={per_page}
       pagination={pagination}
@@ -116,6 +188,6 @@ class DatasetListUnstyled extends React.Component {
   }
 }
 
-const DatasetList = compose(withRouter, withDomain, withStyles(DatasetListUnstyled.styles))(DatasetListUnstyled)
+const DatasetList = compose(withRouter, withDomain, withApi(false), withStyles(DatasetListUnstyled.styles))(DatasetListUnstyled)
 
 export default DatasetList
