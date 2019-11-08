@@ -201,7 +201,7 @@ def test_base_info_endpoint(api):
 
 
 def test_calculation_info_endpoint(api):
-    rv = api.get('/info/calculation')
+    rv = api.get('/info/calculations')
     assert rv.status_code == 200
     data = json.loads(rv.data)
     for key in ['description', 'properties', 'formats', 'output_fields_by_format']:
