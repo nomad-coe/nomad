@@ -12,7 +12,7 @@ gui:
   debug: true
 
 worker:
-  replicas: 3
+  replicas: 2
   routing: "worker"
 
 dbname: fairdi_nomad_prod
