@@ -344,12 +344,12 @@ class DataTableUnStyled extends React.Component {
   }
 
   renderDetails(row) {
-    const { classes, entryDetails, id } = this.props
+    const { classes, entryDetails, id, entryActions } = this.props
     const { selectedColumns, selectedEntry } = this.state
     if (entryDetails) {
       return (
         <tr>
-          <td colSpan={selectedColumns.length + 1} style={{padding: 0}}>
+          <td colSpan={selectedColumns.length + 1 + (entryActions ? 1 : 0)} style={{padding: 0}}>
             <Collapse
               in={selectedEntry === id(row)} timeout="auto"
               mountOnEnter unmountOnExit
@@ -475,7 +475,7 @@ class DataTableUnStyled extends React.Component {
               })}
               {emptyRows > 0 && (
                 <TableRow style={{ height: 49 * emptyRows }}>
-                  <TableCell colSpan={6} />
+                  <TableCell colSpan={selectedColumns.length + 1 + (entryActions ? 1 : 0)} />
                 </TableRow>
               )}
               {pagination ? <TableRow>{pagination}</TableRow> : <React.Fragment/>}

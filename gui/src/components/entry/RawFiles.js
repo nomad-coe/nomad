@@ -6,6 +6,7 @@ import { withApi } from '../api'
 import { compose } from 'recompose'
 import Download from './Download'
 import ReloadIcon from '@material-ui/icons/Cached'
+import ViewIcon from '@material-ui/icons/Search'
 
 class RawFiles extends React.Component {
   static propTypes = {
@@ -23,13 +24,31 @@ class RawFiles extends React.Component {
     root: {},
     formLabel: {
       padding: theme.spacing.unit * 2
+    },
+    shownFile: {
+      color: theme.palette.primary.main
+    },
+    fileContents: {
+      width: '85%',
+      overflowX: 'auto',
+      color: 'white',
+      background: '#222',
+      marginTop: 16,
+      padding: 8
     }
   })
 
   static defaultState = {
     selectedFiles: [],
+    fileContents: null,
+    shownFile: null,
     files: null,
     doesNotExist: false
+  }
+
+  constructor(props) {
+    super(props)
+    this.handleFileClicked = this.handleFileClicked.bind(this)
   }
 
   state = {...RawFiles.defaultState}
@@ -78,9 +97,17 @@ class RawFiles extends React.Component {
     }
   }
 
+  handleFileClicked(file) {
+    const {api, uploadId, raiseError} = this.props
+    this.setState({shownFile: file})
+    api.getRawFile(uploadId, file)
+      .then(contents => this.setState({fileContents: contents}))
+      .catch(raiseError)
+  }
+
   render() {
     const {classes, uploadId, calcId, loading, data} = this.props
-    const {selectedFiles, files, doesNotExist} = this.state
+    const {selectedFiles, files, doesNotExist, fileContents, shownFile} = this.state
 
     const availableFiles = files || data.files || []
 
@@ -125,19 +152,34 @@ class RawFiles extends React.Component {
           </Download>
         </FormGroup>
         <Divider />
-        <FormGroup row>
-          {availableFiles.map((file, index) => (
-            <FormControlLabel key={index} label={this.label(file)}
-              control={
-                <Checkbox
-                  disabled={loading > 0}
-                  checked={selectedFiles.indexOf(file) !== -1}
-                  onChange={() => this.onSelectFile(file)} value={file}
+        <div style={{display: 'flex', flexDirection: 'row'}}>
+          <div style={{width: '25%'}}>
+            {availableFiles.map((file, index) => (
+              <FormGroup row key={index}>
+                <FormControlLabel label={this.label(file)} classes={{label: file === shownFile ? classes.shownFile : null}}
+                  control={
+                    <Checkbox
+                      disabled={loading > 0}
+                      checked={selectedFiles.indexOf(file) !== -1}
+                      onChange={() => this.onSelectFile(file)} value={file}
+                    />
+                  }
                 />
-              }
-            />
-          ))}
-        </FormGroup>
+                <Tooltip title='Show contents'>
+                  <IconButton onClick={() => this.handleFileClicked(file)}>
+                    <ViewIcon />
+                  </IconButton>
+                </Tooltip>
+              </FormGroup>
+            ))}
+          </div>
+          {fileContents &&
+            <div className={classes.fileContents}>
+              <pre style={{margin: 0}}>
+                {`${fileContents}`}
+              </pre>
+            </div>}
+        </div>
       </div>
     )
   }

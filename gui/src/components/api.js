@@ -296,6 +296,20 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
+  async getRawFile(uploadId, path) {
+    this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.raw.get({
+        upload_id: uploadId,
+        path: path
+      }))
+      .catch(handleApiError)
+      .then(response => {
+        return response.data
+      })
+      .finally(this.onFinishLoading)
+  }
+
   async repo(uploadId, calcId) {
     this.onStartLoading()
     return this.swagger()
@@ -522,13 +536,13 @@ export class ApiProviderComponent extends React.Component {
     }
 
     api.getInfo()
-    .catch(handleApiError)
-    .then(info => {
-      this.setState({info: info})
-    })
-    .catch(error => {
-      this.props.raiseError(error)
-    })
+      .catch(handleApiError)
+      .then(info => {
+        this.setState({info: info})
+      })
+      .catch(error => {
+        this.props.raiseError(error)
+      })
 
     return api
   }

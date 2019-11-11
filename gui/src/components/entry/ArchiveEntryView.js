@@ -54,8 +54,8 @@ class ArchiveEntryView extends React.Component {
       margin: `${theme.spacing.unit}px 0`
     },
     data: {
-      height: '60vh',
-      overflowY: 'auto'
+      height: '65vh',
+      overflowX: 'auto'
     },
     downloadFab: {
       zIndex: 1,

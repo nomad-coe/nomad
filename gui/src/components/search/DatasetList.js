@@ -13,7 +13,6 @@ import DeleteIcon from '@material-ui/icons/Delete'
 import { withApi } from '../api'
 
 class DatasetActionsUnstyled extends React.Component {
-
   static propTypes = {
     classes: PropTypes.object.isRequired,
     dataset: PropTypes.object.isRequired,
@@ -21,7 +20,8 @@ class DatasetActionsUnstyled extends React.Component {
     search: PropTypes.bool,
     user: PropTypes.object,
     onChange: PropTypes.func,
-    api: PropTypes.object.isRequired
+    api: PropTypes.object.isRequired,
+    raiseError: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
@@ -68,7 +68,6 @@ class DatasetActionsUnstyled extends React.Component {
       })
       .catch(raiseError)
   }
-
 
   render() {
     const {dataset, search, user, classes} = this.props
