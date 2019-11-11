@@ -35,6 +35,7 @@ class DatasetActionsUnstyled extends React.Component {
     super(props)
     this.handleClickDOI = this.handleClickDOI.bind(this)
     this.handleClickDataset = this.handleClickDataset.bind(this)
+    this.handleClickDelete = this.handleClickDelete.bind(this)
   }
 
   handleClickDataset() {
@@ -50,6 +51,19 @@ class DatasetActionsUnstyled extends React.Component {
       .then(dataset => {
         if (onChange) {
           onChange(dataset)
+        }
+      })
+      .catch(raiseError)
+  }
+
+  handleClickDelete() {
+    const {api, dataset, onChange, raiseError} = this.props
+    const datasetName = dataset.name
+
+    api.deleteDataset(datasetName)
+      .then(dataset => {
+        if (onChange) {
+          onChange(null)
         }
       })
       .catch(raiseError)
@@ -72,7 +86,7 @@ class DatasetActionsUnstyled extends React.Component {
         </IconButton>
       </Tooltip>}
       {editable && canDelete && <Tooltip title="Delete this dataset.">
-        <IconButton onClick={this.handleClickDOI}>
+        <IconButton onClick={this.handleClickDelete}>
           <DeleteIcon />
         </IconButton>
       </Tooltip>}
@@ -94,7 +108,8 @@ class DatasetListUnstyled extends React.Component {
     total: PropTypes.number.isRequired,
     onChange: PropTypes.func.isRequired,
     history: PropTypes.any.isRequired,
-    datasets_after: PropTypes.string
+    datasets_after: PropTypes.string,
+    actions: PropTypes.element
   }
 
   static styles = theme => ({
@@ -155,7 +170,7 @@ class DatasetListUnstyled extends React.Component {
   }
 
   render() {
-    const { classes, data, total, datasets_after, onChange } = this.props
+    const { classes, data, total, datasets_after, onChange, actions } = this.props
     const datasets = data.datasets || {values: []}
     const results = Object.keys(datasets.values).map(id => {
       const exampleDataset = datasets.values[id].examples[0].datasets.find(ds => ds.id === id)
@@ -199,6 +214,7 @@ class DatasetListUnstyled extends React.Component {
       entryActions={this.renderEntryActions}
       data={results}
       rows={per_page}
+      actions={actions}
       pagination={pagination}
     />
   }

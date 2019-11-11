@@ -8,6 +8,7 @@ import Search from './search/Search'
 import SearchContext from './search/SearchContext'
 import { Typography, Link } from '@material-ui/core'
 import { DatasetActions } from './search/DatasetList'
+import { withRouter } from 'react-router'
 
 export const help = `
 This page allows you to **inspect** and **download** NOMAD datasets. It alsow allows you
@@ -19,7 +20,8 @@ class DatasetPage extends React.Component {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
     datasetId: PropTypes.string.isRequired,
-    raiseError: PropTypes.func.isRequired
+    raiseError: PropTypes.func.isRequired,
+    history: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
@@ -34,6 +36,11 @@ class DatasetPage extends React.Component {
     },
     actions: {}
   })
+
+  constructor(props) {
+    super(props)
+    this.handleChange = this.handleChange.bind(this)
+  }
 
   state = {
     dataset: {},
@@ -72,6 +79,14 @@ class DatasetPage extends React.Component {
     }
   }
 
+  handleChange(dataset) {
+    if (dataset) {
+      this.setState({dataset: dataset, update: this.state.update + 1})
+    } else {
+      this.props.history.goBack()
+    }
+  }
+
   render() {
     const { classes, datasetId } = this.props
     const { dataset, update } = this.state
@@ -89,7 +104,7 @@ class DatasetPage extends React.Component {
           <div className={classes.actions}>
             {dataset && dataset.example && <DatasetActions
               dataset={dataset}
-              onChange={dataset => this.setState({dataset: dataset, update: this.state.update + 1})}/>
+              onChange={this.handleChange}/>
             }
           </div>
         </div>
@@ -102,4 +117,4 @@ class DatasetPage extends React.Component {
   }
 }
 
-export default compose(withApi(false), withErrors, withStyles(DatasetPage.styles))(DatasetPage)
+export default compose(withRouter, withApi(false), withErrors, withStyles(DatasetPage.styles))(DatasetPage)

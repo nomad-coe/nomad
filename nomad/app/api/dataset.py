@@ -15,9 +15,8 @@
 from flask import request, g
 from flask_restplus import Resource, fields, abort
 import re
-import elasticsearch
 
-from nomad import utils, search, processing as proc, datamodel, infrastructure
+from nomad import utils
 from nomad.app.utils import with_logger
 from nomad.datamodel import Dataset
 from nomad.metainfo.flask_restplus import generate_flask_restplus_model
@@ -25,6 +24,7 @@ from nomad.metainfo.flask_restplus import generate_flask_restplus_model
 from .api import api
 from .auth import authenticate
 from .common import pagination_model, pagination_request_parser
+from .repo import edit
 
 
 ns = api.namespace(
@@ -142,24 +142,7 @@ class DatasetResource(Resource):
         logger.warning('real DOI assign is not implemented yet', user_id=g.user.user_id)
 
         # update all affected calcs in the search index
-        search_request = search.SearchRequest().search_parameter('dataset_id', result.dataset_id)
-        calc_ids = list(hit['calc_id'] for hit in search_request.execute_scan())
-
-        def elastic_updates():
-            for calc in proc.Calc.objects(calc_id__in=calc_ids):
-                entry = search.Entry.from_calc_with_metadata(
-                    datamodel.CalcWithMetadata(**calc['metadata']))
-                entry = entry.to_dict(include_meta=True)
-                entry['_op_type'] = 'index'
-                yield entry
-
-        _, failed = elasticsearch.helpers.bulk(
-            infrastructure.elastic_client, elastic_updates(), stats_only=True)
-        search.refresh()
-        if failed > 0:
-            logger.error(
-                'update index after assign DOI with failed elastic updates',
-                dataset_id=result.dataset_id, nfailed=len(failed))
+        edit(dict(dataset_id=result.dataset_id), logger)
 
         return result
 
@@ -168,15 +151,24 @@ class DatasetResource(Resource):
     @api.response(400, 'The dataset has a DOI and cannot be deleted')
     @api.marshal_with(dataset_model, skip_none=True, code=200, description='Dateset deleted')
     @authenticate(required=True)
-    def delete(self, name: str):
+    @with_logger
+    def delete(self, name: str, logger):
         """ Assign a DOI to the dataset. """
-        result = Dataset.m_def.m_x('me').objects(user_id=g.user.user_id, name=name).first()
-
-        if result is None:
+        try:
+            result = Dataset.m_def.m_x('me').get(user_id=g.user.user_id, name=name)
+        except KeyError:
             abort(404, 'Dataset with name %s does not exist for current user' % name)
+
         if result.doi is not None:
             abort(400, 'Dataset with name %s has a DOI and cannot be deleted' % name)
 
-        result.delete()
+        # edit all affected entries
+        edit(
+            dict(dataset_id=result.dataset_id),
+            logger,
+            {'__raw__': {'$pull': {'metadata.datasets': result.dataset_id}}})
 
-        return Dataset.m_def.m_x('me').to_metainfo(result)
+        # delete the dataset
+        result.m_x('me').delete()
+
+        return result

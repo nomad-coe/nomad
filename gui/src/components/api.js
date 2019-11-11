@@ -352,6 +352,15 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
+  async deleteDataset(datasetName) {
+    this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.datasets.delete_dataset({name: datasetName}))
+      .catch(handleApiError)
+      .then(response => response.body)
+      .finally(this.onFinishLoading)
+  }
+
   async getUsers(query) {
     // no loading indicator, because this is only used in the background of the edit dialog
     return this.swagger()

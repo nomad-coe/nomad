@@ -96,6 +96,11 @@ class MEInstance():
         self.me_obj = self.me_section.me_cls()
         return self.save()
 
+    def delete(self):
+        self.me_obj.delete()
+        self.me_obj = None
+        return self.metainfo
+
 
 def generate_mongoengine(section_def: Section):
     def generate_field(quantity: Quantity):
