@@ -95,8 +95,8 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         # sites
         optimade.nsites = len(nomad_species)
         optimade.species_at_sites = nomad_species
-        optimade.lattice_vectors = get_value('lattice_vectors', numpy=True, unit=units.angstrom).magnitude
-        optimade.cartesian_site_positions = get_value('atom_positions', numpy=True, unit=units.angstrom).magnitude
+        optimade.lattice_vectors = get_value('lattice_vectors', numpy=True, unit=units.m)
+        optimade.cartesian_site_positions = get_value('atom_positions', numpy=True, unit=units.m)
         optimade.dimension_types = [
             1 if value else 0
             for value in get_value('configuration_periodic_dimensions')]
