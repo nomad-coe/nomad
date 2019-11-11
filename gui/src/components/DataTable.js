@@ -250,9 +250,7 @@ class DataTableUnStyled extends React.Component {
       width: 1
     },
     details: {
-      borderBottom: '1px solid rgba(224, 224, 224, 1)'
-    },
-    detailsContents: {
+      borderBottom: '1px solid rgba(224, 224, 224, 1)',
       padding: theme.spacing.unit * 3
     },
     detailsContentsWithActions: {
@@ -346,7 +344,7 @@ class DataTableUnStyled extends React.Component {
   }
 
   renderDetails(row) {
-    const { classes, entryDetails, id, entryActions } = this.props
+    const { classes, entryDetails, id } = this.props
     const { selectedColumns, selectedEntry } = this.state
     if (entryDetails) {
       return (
@@ -357,12 +355,7 @@ class DataTableUnStyled extends React.Component {
               mountOnEnter unmountOnExit
             >
               <div className={classes.details}>
-                <div className={entryActions ? classes.detailsContentsWithActions : classes.detailsContents}>
-                  {entryDetails(row)}
-                </div>
-                { entryActions ? <div className={classes.detailsActions}>
-                  {entryActions(row)}
-                </div> : <React.Fragment/>}
+                {entryDetails(row)}
               </div>
             </Collapse>
           </td>
@@ -388,8 +381,6 @@ class DataTableUnStyled extends React.Component {
     if (!withSelect) {
       selected = []
     }
-
-    const hasEntryActionsInRow = entryActions && !entryDetails
 
     return (
       <div>
@@ -442,7 +433,7 @@ class DataTableUnStyled extends React.Component {
                     </TableCell>
                   )
                 })}
-                {hasEntryActionsInRow && <TableCell className={classes.actionsCell}/>}
+                {entryActions && <TableCell className={classes.actionsCell}/>}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -476,7 +467,7 @@ class DataTableUnStyled extends React.Component {
                           </TableCell>
                         )
                       })}
-                      {hasEntryActionsInRow && <TableCell className={classes.actionsCell}>{entryActions(row)}</TableCell>}
+                      {entryActions && <TableCell className={classes.actionsCell}>{entryActions(row)}</TableCell>}
                     </TableRow>
                     {this.renderDetails(row)}
                   </React.Fragment>

@@ -39,7 +39,7 @@ export class EntryListUnstyled extends React.Component {
     },
     entryDetailsRow: {
       paddingRight: theme.spacing.unit * 3
-    },
+    }
   })
 
   state = {
@@ -184,8 +184,8 @@ export class EntryListUnstyled extends React.Component {
         </Quantity>
       </div>
 
-      <div>
-        <Quantity column style={{maxWidth: 350}}>
+      <div className={classes.entryDetailsRow} style={{maxWidth: '33%'}}>
+        <Quantity column >
           {/* <Quantity quantity="pid" label='PID' placeholder="not yet assigned" noWrap data={row} withClipboard /> */}
           <Quantity quantity="upload_id" label='upload id' data={row} noWrap withClipboard />
           <Quantity quantity="calc_id" label={`${domain.entryLabel} id`} noWrap withClipboard data={row} />
@@ -213,19 +213,11 @@ export class EntryListUnstyled extends React.Component {
   }
 
   renderEntryActions(row) {
-    const query= {
-      calc_id: row.calc_id
-    }
-
-    return <React.Fragment>
-      <EditUserMetadataDialog example={row} query={query} total={1} onEditComplete={() => this.props.onChange()} />
-      <DownloadButton query={query} tooltip="Download raw files" />
-      <Tooltip title="View entry page">
-        <IconButton onClick={() => this.props.history.push(`/entry/id/${row.upload_id}/${row.calc_id}`)}>
-          <MoreIcon />
-        </IconButton>
-      </Tooltip>
-    </React.Fragment>
+    return <Tooltip title="View entry page">
+      <IconButton onClick={() => this.props.history.push(`/entry/id/${row.upload_id}/${row.calc_id}`)}>
+        <MoreIcon />
+      </IconButton>
+    </Tooltip>
   }
 
   render() {
