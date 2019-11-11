@@ -15,8 +15,9 @@
 from flask import request, g
 from flask_restplus import Resource, fields, abort
 import re
+import elasticsearch
 
-from nomad import utils
+from nomad import utils, search, processing as proc, datamodel, infrastructure
 from nomad.app.utils import with_logger
 from nomad.datamodel import Dataset
 from nomad.metainfo.flask_restplus import generate_flask_restplus_model
@@ -127,11 +128,38 @@ class DatasetResource(Resource):
     def post(self, name: str, logger):
         """ Assign a DOI to the dataset. """
         try:
-            result = Dataset(user_id=g.user.user_id, name=name)
+            result = Dataset.m_def.m_x('me').get(user_id=g.user.user_id, name=name)
         except KeyError:
             abort(404, 'Dataset with name %s does not exist for current user' % name)
 
-        logger.error('assign datasets is not implemented', user_id=g.user.user_id)
+        if result.doi is not None:
+            abort(400, 'Dataset with name %s already has a DOI' % name)
+
+        # set the DOI
+        mock_doi = 'https://doi.org/NOMAD/%s' % result.dataset_id
+        result.doi = mock_doi
+        result.m_x('me').save()
+        logger.warning('real DOI assign is not implemented yet', user_id=g.user.user_id)
+
+        # update all affected calcs in the search index
+        search_request = search.SearchRequest().search_parameter('dataset_id', result.dataset_id)
+        calc_ids = list(hit['calc_id'] for hit in search_request.execute_scan())
+
+        def elastic_updates():
+            for calc in proc.Calc.objects(calc_id__in=calc_ids):
+                entry = search.Entry.from_calc_with_metadata(
+                    datamodel.CalcWithMetadata(**calc['metadata']))
+                entry = entry.to_dict(include_meta=True)
+                entry['_op_type'] = 'index'
+                yield entry
+
+        _, failed = elasticsearch.helpers.bulk(
+            infrastructure.elastic_client, elastic_updates(), stats_only=True)
+        search.refresh()
+        if failed > 0:
+            logger.error(
+                'update index after assign DOI with failed elastic updates',
+                dataset_id=result.dataset_id, nfailed=len(failed))
 
         return result
 

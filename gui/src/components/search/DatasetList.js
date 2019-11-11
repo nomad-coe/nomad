@@ -19,7 +19,9 @@ class DatasetActionsUnstyled extends React.Component {
     dataset: PropTypes.object.isRequired,
     history: PropTypes.object.isRequired,
     search: PropTypes.bool,
-    user: PropTypes.object
+    user: PropTypes.object,
+    onChange: PropTypes.func,
+    api: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
@@ -41,7 +43,16 @@ class DatasetActionsUnstyled extends React.Component {
   }
 
   handleClickDOI() {
-    console.log('DOI')
+    const {api, dataset, onChange, raiseError} = this.props
+    const datasetName = dataset.name
+
+    api.assignDatasetDOI(datasetName)
+      .then(dataset => {
+        if (onChange) {
+          onChange(dataset)
+        }
+      })
+      .catch(raiseError)
   }
 
 
@@ -115,11 +126,11 @@ class DatasetListUnstyled extends React.Component {
   columns = {
     name: {
       label: 'Dataset name',
-      render: (dataset) => dataset.example.datasets.find(d => d.id + '' === dataset.id).name
+      render: (dataset) => dataset.name
     },
     DOI: {
       label: 'Dataset DOI',
-      render: (dataset) => dataset.example.datasets.find(d => d.id + '' === dataset.id).doi
+      render: (dataset) => dataset.doi
     },
     entries: {
       label: 'Entries',
@@ -139,17 +150,22 @@ class DatasetListUnstyled extends React.Component {
   }
 
   renderEntryActions(entry) {
-    return <DatasetActions search dataset={entry} />
+    const {onChange} = this.props
+    return <DatasetActions search dataset={entry} onChange={() => onChange({})} />
   }
 
   render() {
     const { classes, data, total, datasets_after, onChange } = this.props
     const datasets = data.datasets || {values: []}
-    const results = Object.keys(datasets.values).map(id => ({
-      id: id,
-      total: datasets.values[id].total,
-      example: datasets.values[id].examples[0]
-    }))
+    const results = Object.keys(datasets.values).map(id => {
+      const exampleDataset = datasets.values[id].examples[0].datasets.find(ds => ds.id === id)
+      return {
+        ...exampleDataset,
+        id: id,
+        total: datasets.values[id].total,
+        example: datasets.values[id].examples[0]
+      }
+    })
     const per_page = 10
     const after = datasets.after
 

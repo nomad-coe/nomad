@@ -12,6 +12,7 @@ class SearchContext extends React.Component {
   static propTypes = {
     query: PropTypes.object,
     initialQuery: PropTypes.object,
+    update: PropTypes.number,
     ownerTypes: PropTypes.arrayOf(PropTypes.string)
   }
 
@@ -120,6 +121,7 @@ class SearchContext extends React.Component {
         prevState.query !== query ||
         prevState.request !== request ||
         prevState.metric !== metric ||
+        prevProps.update !== this.props.update ||
         !isEquivalent(prevProps.query || {}, this.props.query || {})) {
       this.update()
     }

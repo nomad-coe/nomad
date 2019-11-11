@@ -36,7 +36,8 @@ class DatasetPage extends React.Component {
   })
 
   state = {
-    dataset: {}
+    dataset: {},
+    update: 0
   }
 
   update() {
@@ -73,7 +74,7 @@ class DatasetPage extends React.Component {
 
   render() {
     const { classes, datasetId } = this.props
-    const { dataset } = this.state
+    const { dataset, update } = this.state
 
     return (
       <div>
@@ -86,11 +87,14 @@ class DatasetPage extends React.Component {
           </div>
 
           <div className={classes.actions}>
-            {dataset && dataset.example && <DatasetActions dataset={dataset} />}
+            {dataset && dataset.example && <DatasetActions
+              dataset={dataset}
+              onChange={dataset => this.setState({dataset: dataset, update: this.state.update + 1})}/>
+            }
           </div>
         </div>
 
-        <SearchContext query={{dataset_id: datasetId}} ownerTypes={['all', 'public']} >
+        <SearchContext query={{dataset_id: datasetId}} ownerTypes={['all', 'public']} update={update}>
           <Search resultTab="entries"/>
         </SearchContext>
       </div>

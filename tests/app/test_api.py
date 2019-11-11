@@ -1499,3 +1499,26 @@ class TestDataset:
     def test_get_dataset_with_doi(self, api, test_user_auth, example_datasets):
         rv = api.delete('/datasets/ds2', headers=test_user_auth)
         assert rv.status_code == 400
+
+    def test_assign_doi(self, api, elastic, test_user_auth, example_datasets):
+        # create a calc entry to observe its re-indexing after DOI was assigned
+        calc = CalcWithMetadata(
+            calc_id='1', upload_id='1', published=True, with_embargo=False, datasets=['1'])
+        Calc(
+            calc_id='1', upload_id='1', create_time=datetime.datetime.now(),
+            metadata=calc.to_dict()).save()
+        search.Entry.from_calc_with_metadata(calc).save()
+        search.refresh()
+
+        # assign doi
+        rv = api.post('/datasets/ds1', headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        self.assert_dataset(data, name='ds1', doi=True)
+
+        # assert if index has changed
+        rv = api.get('/repo/?dataset_id=1', headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert data['pagination']['total'] > 0
+        assert data['results'][0]['datasets'][0]['doi'] is not None

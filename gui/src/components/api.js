@@ -336,21 +336,28 @@ class Api {
   }
 
   async getDatasets(prefix) {
-    // this.onStartLoading()
+    // no loading indicator, because this is only used in the background of the edit dialog
     return this.swagger()
       .then(client => client.apis.datasets.list_datasets({prefix: prefix}))
       .catch(handleApiError)
       .then(response => response.body)
-      // .finally(this.onFinishLoading)
+  }
+
+  async assignDatasetDOI(datasetName) {
+    this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.datasets.assign_doi({name: datasetName}))
+      .catch(handleApiError)
+      .then(response => response.body)
+      .finally(this.onFinishLoading)
   }
 
   async getUsers(query) {
-    // this.onStartLoading()
+    // no loading indicator, because this is only used in the background of the edit dialog
     return this.swagger()
       .then(client => client.apis.auth.get_users({query: query}))
       .catch(handleApiError)
       .then(response => response.body)
-      // .finally(this.onFinishLoading)
   }
 
   async quantities_search(search) {
