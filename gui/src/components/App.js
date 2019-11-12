@@ -295,7 +295,7 @@ class NavigationUnstyled extends React.Component {
                 </Tooltip>
                 <Divider/>
                 <Tooltip title="Find and download data">
-                  <MenuItem className={classes.menuItem} component={Link} to="/search" selected={ pathname.startsWith('/repo') }>
+                  <MenuItem className={classes.menuItem} component={Link} to="/search" selected={ pathname.startsWith('/search') }>
                     <ListItemIcon>
                       <SearchIcon style={{fill: repoTheme.palette.primary.main}}/>
                     </ListItemIcon>
@@ -312,7 +312,7 @@ class NavigationUnstyled extends React.Component {
                   </MenuItem>
                 </Tooltip>
                 <Tooltip title="Manage your data">
-                  <MenuItem className={classes.menuItem} component={Link} to="/userdata" selected={ pathname.startsWith('/repo') }>
+                  <MenuItem className={classes.menuItem} component={Link} to="/userdata" selected={ pathname.startsWith('/userdata') }>
                     <ListItemIcon>
                       <UserDataIcon style={{fill: repoTheme.palette.primary.main}}/>
                     </ListItemIcon>
