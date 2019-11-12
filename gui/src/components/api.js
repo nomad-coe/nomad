@@ -333,8 +333,18 @@ class Api {
 
   async resolvePid(pid) {
     this.onStartLoading()
-    return this.swaggerPromise
+    return this.swagger()
       .then(client => client.apis.repo.resolve_pid({pid: pid}))
+      .catch(handleApiError)
+      .then(response => response.body)
+      .finally(this.onFinishLoading)
+  }
+
+  async resolveDoi(doi) {
+    this.onStartLoading()
+    console.log(doi)
+    return this.swagger()
+      .then(client => client.apis.datasets.resolve_doi({doi: doi}))
       .catch(handleApiError)
       .then(response => response.body)
       .finally(this.onFinishLoading)

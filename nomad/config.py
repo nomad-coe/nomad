@@ -158,13 +158,12 @@ def api_url(ssl: bool = True):
         services.api_base_path.strip('/'))
 
 
-migration_source_db = NomadConfig(
-    host='db-repository.nomad.esc',
-    port=5432,
-    dbname='nomad_prod',
-    user='nomadlab',
-    password='*'
-)
+def gui_url():
+    base = api_url(True)[:-3]
+    if base.endswith('/'):
+        base = base[:-1]
+    return '%s/gui' % base
+
 
 mail = NomadConfig(
     enabled=False,

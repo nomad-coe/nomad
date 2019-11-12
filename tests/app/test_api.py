@@ -1512,7 +1512,6 @@ class TestDataset:
         search.refresh()
 
     def test_delete_dataset(self, api, test_user_auth, example_dataset_with_entry):
-        # delete dataset
         rv = api.delete('/datasets/ds1', headers=test_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)
@@ -1525,9 +1524,14 @@ class TestDataset:
         assert rv.status_code == 400
 
     def test_assign_doi(self, api, test_user_auth, example_dataset_with_entry):
-        # assign doi
         rv = api.post('/datasets/ds1', headers=test_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)
         self.assert_dataset(data, name='ds1', doi=True)
         self.assert_dataset_entry(api, '1', True, True, headers=test_user_auth)
+
+    def test_resolve_doi(self, api, example_dataset_with_entry):
+        rv = api.get('/datasets/doi/test_doi')
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        self.assert_dataset(data, name='ds2', doi=True)

@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, TableCell, Toolbar, IconButton, FormGroup, Tooltip } from '@material-ui/core'
+import { withStyles, TableCell, Toolbar, IconButton, FormGroup, Tooltip, Link } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withRouter } from 'react-router'
 import { withDomain } from '../domains'
@@ -13,6 +13,42 @@ import DeleteIcon from '@material-ui/icons/Delete'
 import { withApi } from '../api'
 import EditUserMetadataDialog from '../EditUserMetadataDialog'
 import DownloadButton from '../DownloadButton'
+import ClipboardIcon from '@material-ui/icons/Assignment'
+import { CopyToClipboard } from 'react-copy-to-clipboard'
+
+class DOIUnstyled extends React.Component {
+  static propTypes = {
+    doi: PropTypes.string.isRequired
+  }
+
+  static styles = theme => ({
+    root: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      flexDirection: 'row',
+      flexWrap: 'nowrap'
+    }
+  })
+
+  render() {
+    const {classes, doi} = this.props
+    const url = `https://dx.doi.org/${doi}`
+    return <span className={classes.root}>
+      <Link href={url}>{doi}</Link>
+      <CopyToClipboard
+        text={url} onCopy={() => null}
+      >
+        <Tooltip title={`Copy DOI to clipboard`}>
+          <IconButton style={{margin: 3, marginRight: 0, padding: 4}}>
+            <ClipboardIcon style={{fontSize: 16}} />
+          </IconButton>
+        </Tooltip>
+      </CopyToClipboard>
+    </span>
+  }
+}
+
+export const DOI = withStyles(DOIUnstyled.styles)(DOIUnstyled)
 
 class DatasetActionsUnstyled extends React.Component {
   static propTypes = {
@@ -102,6 +138,7 @@ class DatasetActionsUnstyled extends React.Component {
         </IconButton>
       </Tooltip>}
       {editable && <EditUserMetadataDialog
+        title="Edit metadata of all dataset entries"
         example={dataset.example} query={query}
         total={dataset.total} onEditComplete={this.handleEdit}
       />}
@@ -160,7 +197,7 @@ class DatasetListUnstyled extends React.Component {
     },
     DOI: {
       label: 'Dataset DOI',
-      render: (dataset) => dataset.doi
+      render: (dataset) => dataset.doi && <DOI doi={dataset.doi} />
     },
     entries: {
       label: 'Entries',

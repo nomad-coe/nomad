@@ -35,6 +35,7 @@ import { capitalize } from '../utils'
 import { amber } from '@material-ui/core/colors'
 import KeepState from './KeepState'
 import {help as userdataHelp, default as UserdataPage} from './UserdataPage'
+import ResolveDOI from './dataset/ResolveDOI'
 
 export class VersionMismatch extends Error {
   constructor(msg) {
@@ -461,6 +462,18 @@ export default class App extends React.Component {
         const { match, ...rest } = props
         if (match && match.params.pid) {
           return (<ResolvePID {...rest} pid={match.params.pid} />)
+        } else {
+          return ''
+        }
+      }
+    },
+    'dataset_doi': {
+      path: '/dataset/doi/:doi*',
+      key: (props) => `dataset/doi/${props.match.params.doi}`,
+      render: props => {
+        const { match, ...rest } = props
+        if (match && match.params.doi) {
+          return (<ResolveDOI {...rest} doi={match.params.doi} />)
         } else {
           return ''
         }

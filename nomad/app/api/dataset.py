@@ -138,7 +138,11 @@ class DatasetResource(Resource):
 
         # set the DOI
         doi = DOI.create(title='NOMAD dataset: %s' % result.name, user=g.user)
+        doi.create_draft()
+        doi.make_findable()
+
         result.doi = doi.doi
+
         result.m_x('me').save()
         if doi.state != 'findable':
             logger.warning(
@@ -176,3 +180,17 @@ class DatasetResource(Resource):
         result.m_x('me').delete()
 
         return result
+
+
+@ns.route('/doi/<path:doi>')
+class RepoPidResource(Resource):
+    @api.doc('resolve_doi')
+    @api.response(404, 'Dataset with DOI does not exist')
+    @api.marshal_with(dataset_model, skip_none=True, code=200, description='DOI resolved')
+    @authenticate()
+    def get(self, doi: str):
+        dataset_me = Dataset.m_def.m_x('me').objects(doi=doi).first()
+        if dataset_me is None:
+            abort(404, 'Dataset with DOI %s does not exist' % doi)
+
+        return dataset_me, 200

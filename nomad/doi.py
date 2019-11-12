@@ -76,6 +76,7 @@ class DOI(Document):
         doi.doi_url = '%s/doi/%s' % (config.datacite.mds_host, doi_str)
         doi.state = 'created'
         doi.create_time = create_time
+        doi.url = '%s/dataset/doi/%s' % (config.gui_url(), doi_str)
 
         affiliation = ''
         if user.affiliation is not None:

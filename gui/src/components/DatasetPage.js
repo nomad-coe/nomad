@@ -6,8 +6,8 @@ import { withErrors } from './errors'
 import { withApi, DoesNotExist } from './api'
 import Search from './search/Search'
 import SearchContext from './search/SearchContext'
-import { Typography, Link } from '@material-ui/core'
-import { DatasetActions } from './search/DatasetList'
+import { Typography } from '@material-ui/core'
+import { DatasetActions, DOI } from './search/DatasetList'
 import { withRouter } from 'react-router'
 
 export const help = `
@@ -97,7 +97,7 @@ class DatasetPage extends React.Component {
           <div className={classes.description}>
             <Typography variant="h4">{dataset.name || 'loading ...'}</Typography>
             <Typography>
-              dataset{dataset.doi ? <span>, with DOI <Link href={dataset.doi}>{dataset.doi}</Link></span> : ''}
+              dataset{dataset.doi ? <span>, with DOI <DOI doi={dataset.doi} /></span> : ''}
             </Typography>
           </div>
 

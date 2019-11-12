@@ -7,6 +7,7 @@ import ApiDialogButton from '../ApiDialogButton'
 import Quantity from '../Quantity'
 import { withDomain } from '../domains'
 import { Link as RouterLink } from 'react-router-dom'
+import { DOI } from '../search/DatasetList'
 
 class RepoEntryView extends React.Component {
   static styles = theme => ({
@@ -120,7 +121,7 @@ class RepoEntryView extends React.Component {
                         {(calcData.datasets || []).map(ds => (
                           <Typography key={ds.id}>
                             <Link component={RouterLink} to={`/dataset/id/${ds.id}`}>{ds.name}</Link>
-                            {ds.doi ? <span>&nbsp; (<Link href={ds.doi}>{ds.doi}</Link>)</span> : ''}
+                            {ds.doi ? <span>&nbsp; (<DOI doi={ds.doi}/>)</span> : ''}
                           </Typography>))}
                       </div>
                     </Quantity>

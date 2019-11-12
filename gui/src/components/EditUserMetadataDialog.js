@@ -320,7 +320,8 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     raiseError: PropTypes.func.isRequired,
     user: PropTypes.object,
     onEditComplete: PropTypes.func,
-    disabled: PropTypes.bool
+    disabled: PropTypes.bool,
+    title: PropTypes.string
   }
 
   static styles = theme => ({
@@ -478,7 +479,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
   }
 
   render() {
-    const { classes, buttonProps, total, api, user, example, disabled } = this.props
+    const { classes, buttonProps, total, api, user, example, disabled, title } = this.props
     const { open, actions, verified, submitting } = this.state
 
     const dialogEnabled = user && example.uploader && example.uploader.user_id === user.sub && !disabled
@@ -511,7 +512,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     return (
       <React.Fragment>
         <IconButton {...(buttonProps || {})} onClick={this.handleButtonClick} disabled={!dialogEnabled}>
-          <Tooltip title={`Edit user metadata${dialogEnabled ? '' : '. You can only edit your data.'}`}>
+          <Tooltip title={title || `Edit user metadata${dialogEnabled ? '' : '. You can only edit your data.'}`}>
             <EditIcon />
           </Tooltip>
         </IconButton>
