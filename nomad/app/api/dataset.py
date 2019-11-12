@@ -20,6 +20,7 @@ from nomad import utils
 from nomad.app.utils import with_logger
 from nomad.datamodel import Dataset
 from nomad.metainfo.flask_restplus import generate_flask_restplus_model
+from nomad.doi import DOI
 
 from .api import api
 from .auth import authenticate
@@ -136,10 +137,13 @@ class DatasetResource(Resource):
             abort(400, 'Dataset with name %s already has a DOI' % name)
 
         # set the DOI
-        mock_doi = 'https://doi.org/NOMAD/%s' % result.dataset_id
-        result.doi = mock_doi
+        doi = DOI.create(title='NOMAD dataset: %s' % result.name, user=g.user)
+        result.doi = doi.doi
         result.m_x('me').save()
-        logger.warning('real DOI assign is not implemented yet', user_id=g.user.user_id)
+        if doi.state != 'findable':
+            logger.warning(
+                'doi was created, but is not findable', doi=doi.doi, doi_state=doi.state,
+                dataset=result.dataset_id)
 
         # update all affected calcs in the search index
         edit(dict(dataset_id=result.dataset_id), logger)
@@ -159,7 +163,7 @@ class DatasetResource(Resource):
         except KeyError:
             abort(404, 'Dataset with name %s does not exist for current user' % name)
 
-        if result.doi is not None:
+        if result.doi is not None and len(result.doi) > 0:
             abort(400, 'Dataset with name %s has a DOI and cannot be deleted' % name)
 
         # edit all affected entries

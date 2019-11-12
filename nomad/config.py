@@ -187,6 +187,14 @@ client = NomadConfig(
     url='http://localhost:8000/fairdi/nomad/latest/api'
 )
 
+datacite = NomadConfig(
+    mds_host='https://mds.datacite.org',
+    enabled=False,
+    prefix='10.17172',
+    user='*',
+    password='*'
+)
+
 version = '0.7.0'
 commit = gitinfo.commit
 release = 'devel'
