@@ -78,9 +78,6 @@ class RepoEntryView extends React.Component {
     const { uploadId, calcId } = calcProps
     const quantityProps = {data: calcData, loading: loading}
 
-    const mainfile = calcData.mainfile
-    const calcPath = mainfile ? mainfile.substring(0, mainfile.lastIndexOf('/')) : null
-
     const authors = loading ? null : calcData.authors
 
     if (this.state.doesNotExist) {

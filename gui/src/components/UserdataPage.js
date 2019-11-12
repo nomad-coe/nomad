@@ -2,13 +2,9 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
 import { compose } from 'recompose'
-import { withErrors } from './errors'
 import { withApi } from './api'
 import Search from './search/Search'
 import SearchContext from './search/SearchContext'
-import { Typography, Link, Fab } from '@material-ui/core'
-import Download from './entry/Download'
-import DownloadIcon from '@material-ui/icons/CloudDownload'
 
 export const help = `
 This page allows you to **inspect** and **manage** you own data.

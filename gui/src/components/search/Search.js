@@ -380,7 +380,7 @@ class ReRunSearchButton extends React.PureComponent {
   render() {
     const {setRequest} = this.context
 
-    return <Tooltip title="Re-execute the search.">
+    return <Tooltip title="Re-execute the search">
       <IconButton onClick={() => setRequest({})}>
         <ReloadIcon />
       </IconButton>

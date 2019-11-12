@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, TableCell, Toolbar, IconButton, Button, FormGroup, Tooltip } from '@material-ui/core'
+import { withStyles, TableCell, Toolbar, IconButton, FormGroup, Tooltip } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withRouter } from 'react-router'
 import { withDomain } from '../domains'
@@ -11,6 +11,8 @@ import SearchIcon from '@material-ui/icons/Search'
 import DOIIcon from '@material-ui/icons/Bookmark'
 import DeleteIcon from '@material-ui/icons/Delete'
 import { withApi } from '../api'
+import EditUserMetadataDialog from '../EditUserMetadataDialog'
+import DownloadButton from '../DownloadButton'
 
 class DatasetActionsUnstyled extends React.Component {
   static propTypes = {
@@ -21,7 +23,7 @@ class DatasetActionsUnstyled extends React.Component {
     user: PropTypes.object,
     onChange: PropTypes.func,
     api: PropTypes.object.isRequired,
-    raiseError: PropTypes.object.isRequired
+    raiseError: PropTypes.func.isRequired
   }
 
   static styles = theme => ({
@@ -36,6 +38,7 @@ class DatasetActionsUnstyled extends React.Component {
     this.handleClickDOI = this.handleClickDOI.bind(this)
     this.handleClickDataset = this.handleClickDataset.bind(this)
     this.handleClickDelete = this.handleClickDelete.bind(this)
+    this.handleEdit = this.handleEdit.bind(this)
   }
 
   handleClickDataset() {
@@ -54,6 +57,13 @@ class DatasetActionsUnstyled extends React.Component {
         }
       })
       .catch(raiseError)
+  }
+
+  handleEdit() {
+    const {onChange, dataset} = this.props
+    if (onChange) {
+      onChange(dataset)
+    }
   }
 
   handleClickDelete() {
@@ -77,6 +87,7 @@ class DatasetActionsUnstyled extends React.Component {
 
     const canAssignDOI = !doi
     const canDelete = !doi
+    const query = {dataset_id: dataset.id}
 
     return <FormGroup row classes={{root: classes.group}}>
       {search && <Tooltip title="Open a search page with entries from this dataset only.">
@@ -84,11 +95,16 @@ class DatasetActionsUnstyled extends React.Component {
           <SearchIcon />
         </IconButton>
       </Tooltip>}
+      {<DownloadButton query={query} tooltip="Download dataset" />}
       {editable && canDelete && <Tooltip title="Delete this dataset.">
         <IconButton onClick={this.handleClickDelete}>
           <DeleteIcon />
         </IconButton>
       </Tooltip>}
+      {editable && <EditUserMetadataDialog
+        example={dataset.example} query={query}
+        total={dataset.total} onEditComplete={this.handleEdit}
+      />}
       {editable && canAssignDOI && <Tooltip title="Assign a DOI to this dataset.">
         <IconButton onClick={this.handleClickDOI}>
           <DOIIcon />
