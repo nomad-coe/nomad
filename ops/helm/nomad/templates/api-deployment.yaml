@@ -115,7 +115,7 @@ spec:
         - name: NOMAD_CONSOLE_LOGLEVEL
           value: "{{ .Values.app.console_loglevel }}"
         - name: NOMAD_LOGSTASH_LEVEL
-          value: "{{ .Values.api.logstash_loglevel }}"
+          value: "{{ .Values.app.logstash_loglevel }}"
        {{ if .Values.api.apiSecret }}
         - name: NOMAD_SERVICES_API_SECRET
           valueFrom:
