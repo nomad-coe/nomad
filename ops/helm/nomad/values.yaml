@@ -137,6 +137,7 @@ keycloak:
   username: "admin"
   clientId: "nomad_api_dev"
   guiClientId: "nomad_gui_dev"
+  admin_user_id: "00000000-0000-0000-0000-000000000000"
 
 ## Everything concerning the data that is used by the service
 volumes:
