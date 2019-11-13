@@ -79,7 +79,7 @@ def handle_common_errors(func):
 @click.option('-u', '--user', default=None, help='the user name to login, default is "%s" login.' % nomad_config.client.user)
 @click.option('-w', '--password', default=nomad_config.client.password, help='the password used to login.')
 @click.option('--no-ssl-verify', help='disables SSL verificaton when talking to nomad.', is_flag=True)
-@click.option('--no-token', help='replaces token with basic auth, e.g. to work with v0.6.x or older API versions')
+@click.option('--no-token', is_flag=True, help='replaces token with basic auth, e.g. to work with v0.6.x or older API versions')
 def client(url: str, user: str, password: str, no_ssl_verify: bool, no_token: bool):
     logger = utils.get_logger(__name__)
 
