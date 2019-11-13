@@ -18,6 +18,7 @@ import { CopyToClipboard } from 'react-copy-to-clipboard'
 
 class DOIUnstyled extends React.Component {
   static propTypes = {
+    classes: PropTypes.object.isRequired,
     doi: PropTypes.string.isRequired
   }
 

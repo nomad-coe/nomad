@@ -11,6 +11,7 @@ import { withDomain } from '../domains'
 import KeepState from '../KeepState'
 import PeriodicTable from './PeriodicTable'
 import ReloadIcon from '@material-ui/icons/Cached'
+import UploadList from './UploadsList'
 
 class Search extends React.Component {
   static propTypes = {
@@ -41,7 +42,7 @@ class Search extends React.Component {
       maxWidth: 900,
       margin: 'auto',
       marginTop: theme.spacing.unit * 2,
-      marginBottom: theme.spacing.unit * 2,
+      marginBottom: theme.spacing.unit * 2
     },
     searchResults: {
       marginTop: theme.spacing.unit * 4
@@ -58,6 +59,8 @@ class Search extends React.Component {
       label: 'Meta data'
     }
   }
+
+  static contextType = SearchContext.type
 
   state = {
     resultTab: this.resultTab || 'entries',
@@ -81,6 +84,7 @@ class Search extends React.Component {
   render() {
     const {classes} = this.props
     const {resultTab, openVisualization} = this.state
+    const {state: {request: {uploads, datasets}}} = this.context
 
     return <DisableOnLoading>
       <div className={classes.root}>
@@ -104,9 +108,9 @@ class Search extends React.Component {
         <div className={classes.visalizations}>
           {Object.keys(Search.visalizations).map(key => {
             return Search.visalizations[key].render({
-                key: key, open: openVisualization === key
-              })
+              key: key, open: openVisualization === key
             })
+          })
           }
         </div>
 
@@ -119,17 +123,22 @@ class Search extends React.Component {
               onChange={(event, value) => this.setState({resultTab: value})}
             >
               <Tab label="Entries" value="entries" />
-              <Tab label="Datasets" value="datasets" />
+              {datasets && <Tab label="Datasets" value="datasets" />}
+              {uploads && <Tab label="Uploads" value="uploads" />}
             </Tabs>
 
             <KeepState
               visible={resultTab === 'entries'}
               render={() => <SearchEntryList />}
             />
-            <KeepState
+            {datasets && <KeepState
               visible={resultTab === 'datasets'}
               render={() => <SearchDatasetList />}
-            />
+            />}
+            {uploads && <KeepState
+              visible={resultTab === 'uploads'}
+              render={() => <SearchUploadList />}
+            />}
           </Paper>
         </div>
       </div>
@@ -212,7 +221,6 @@ class ElementsVisualization extends React.Component {
 }
 
 class MetricSelectUnstyled extends React.Component {
-
   static propTypes = {
     classes: PropTypes.object.isRequired,
     domain: PropTypes.object.isRequired
@@ -394,7 +402,7 @@ class SearchEntryList extends React.Component {
   render() {
     const {state: {response, request, query}, props, setRequest} = this.context
 
-    return  <EntryList
+    return <EntryList
       query={{...query, ...props.query}}
       editable={query.owner === 'staging' || query.owner === 'user'}
       data={response}
@@ -413,6 +421,21 @@ class SearchDatasetList extends React.Component {
 
     return <DatasetList data={response}
       total={response.statistics.total.all.datasets}
+      onChange={setRequest}
+      actions={<ReRunSearchButton/>}
+      {...response}
+    />
+  }
+}
+
+class SearchUploadList extends React.Component {
+  static contextType = SearchContext.type
+
+  render() {
+    const {state: {response}, setRequest} = this.context
+
+    return <UploadList data={response}
+      total={response.statistics.total.all.uploads}
       onChange={setRequest}
       actions={<ReRunSearchButton/>}
       {...response}
