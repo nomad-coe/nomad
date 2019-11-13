@@ -20,6 +20,7 @@ keycloak:
   realmName: 'fairdi_nomad_prod'
   clientId: 'nomad_api_dev'
   clientSecret: 'nomad-keycloak-prod-api-secret'
+  admin_user_id: '82efac55-6187-408c-8027-b98580c0e1c5'
 
 volumes:
   prefixSize: 1

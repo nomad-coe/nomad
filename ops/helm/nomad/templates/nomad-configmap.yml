@@ -26,6 +26,7 @@ data:
       api_secret: "{{ .Values.api.secret }}"
       https: {{ .Values.app.https }}
       upload_limit: {{ .Values.api.uploadLimit }}
+      admin_user_id: {{ .Values.keycloak.admin_user_id }}
     rabbitmq:
       host: "{{ .Release.Name }}-rabbitmq"
     elastic:
