@@ -186,8 +186,8 @@ class TestClient:
         assert published.upload_id in result.output
         assert published.upload_files.os_path in result.output
 
-    @pytest.mark.parametrize('move', [True, False])
-    def test_mirror(self, published, admin_user_bravado_client, monkeypatch, move):
+    @pytest.mark.parametrize('move, link', [(True, False), (False, True), (False, False)])
+    def test_mirror(self, published, admin_user_bravado_client, monkeypatch, move, link):
         ref_search_results = search.SearchRequest().search_parameters(upload_id=published.upload_id).execute_paginated()['results'][0]
 
         monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
@@ -195,6 +195,9 @@ class TestClient:
         if move:
             result = click.testing.CliRunner().invoke(
                 cli, ['client', 'mirror', '--move'], catch_exceptions=False, obj=utils.POPO())
+        elif link:
+            result = click.testing.CliRunner().invoke(
+                cli, ['client', 'mirror', '--link'], catch_exceptions=False, obj=utils.POPO())
         else:
             result = click.testing.CliRunner().invoke(
                 cli, ['client', 'mirror', '--source-mapping', '.volumes/test_fs:.volumes/test_fs'], catch_exceptions=False, obj=utils.POPO())

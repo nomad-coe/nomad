@@ -238,8 +238,6 @@ def mirror(
         target_upload_files_path = target_mapping_obj.apply(target_upload_files_path)
 
         if not os.path.exists(target_upload_files_path):
-            os.makedirs(target_upload_files_path)
-
             if move:
                 os.rename(upload_files_path, target_upload_files_path)
                 os.symlink(os.path.abspath(target_upload_files_path), upload_files_path)
@@ -248,6 +246,7 @@ def mirror(
                 os.symlink(os.path.abspath(upload_files_path), target_upload_files_path)
 
             else:
+                os.makedirs(target_upload_files_path)
                 for to_copy in os.listdir(upload_files_path):
                     shutil.copyfile(
                         os.path.join(upload_files_path, to_copy),
