@@ -239,8 +239,10 @@ def mirror(
             if move:
                 os.rename(upload_files_path, target_upload_files_path)
                 os.symlink(os.path.abspath(target_upload_files_path), upload_files_path)
-            if link:
+
+            elif link:
                 os.symlink(os.path.abspath(upload_files_path), target_upload_files_path)
+
             else:
                 for to_copy in os.listdir(upload_files_path):
                     shutil.copyfile(
