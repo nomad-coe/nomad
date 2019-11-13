@@ -61,6 +61,10 @@ def v0Dot6(upload_data):
 
         return target_dataset.dataset_id
 
+    upload = json.loads(upload_data.upload)
+    upload['user_id'] = tarnsform_user_id(upload['user_id'])
+    upload_data.upload = json.dumps(upload)
+
     for calc_data_json, i in enumerate(upload_data.calcs):
         calc_data = json.loads(calc_data_json)
         metadata = calc_data['metadata']
