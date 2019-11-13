@@ -17,10 +17,12 @@ uploadurl: 'https://labdev-nomad.rzg.mpg.de/fairdi/nomad/testing-major/upload'
 
 keycloak:
   passwordSecret: 'nomad-keycloak-password'
+  realmName: 'fairdi_nomad_prod'
+  clientId: 'nomad_api_dev'
   clientSecret: 'nomad-keycloak-prod-api-secret'
 
 volumes:
-  prefixSize: 2
+  prefixSize: 1
   public: /nomad/fairdi/testing_major/fs/public
   staging: /nomad/fairdi/testing_major/fs/staging
   tmp: /nomad/fairdi/testing_major/fs/tmp

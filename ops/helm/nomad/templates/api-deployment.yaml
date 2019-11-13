@@ -142,14 +142,16 @@ spec:
           httpGet:
             path: "{{ .Values.proxy.external.path }}/alive"
             port: 8000
-          initialDelaySeconds: 15
-          periodSeconds: 15
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
         readinessProbe:
           httpGet:
             path: "{{ .Values.proxy.external.path }}/alive"
             port: 8000
-          initialDelaySeconds: 5
-          periodSeconds: 5
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          timeoutSeconds: 5
       nodeSelector:
         nomadtype: {{ .Values.app.nomadNodeType }}
       imagePullSecrets:

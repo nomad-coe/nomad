@@ -335,6 +335,37 @@ repo_edit_model = api.model('RepoEdit', {
 })
 
 
+def edit(parsed_query: Dict[str, Any], logger, mongo_update: Dict[str, Any] = None, re_index=True):
+    # get all calculations that have to change
+    search_request = search.SearchRequest()
+    add_query(search_request, parsed_query)
+    calc_ids = list(hit['calc_id'] for hit in search_request.execute_scan())
+
+    # perform the update on the mongo db
+    if mongo_update is not None:
+        n_updated = proc.Calc.objects(calc_id__in=calc_ids).update(multi=True, **mongo_update)
+        if n_updated != len(calc_ids):
+            logger.error('edit repo did not update all entries', payload=mongo_update)
+
+    # re-index the affected entries in elastic search
+    if re_index:
+        def elastic_updates():
+            for calc in proc.Calc.objects(calc_id__in=calc_ids):
+                entry = search.Entry.from_calc_with_metadata(
+                    datamodel.CalcWithMetadata(**calc['metadata']))
+                entry = entry.to_dict(include_meta=True)
+                entry['_op_type'] = 'index'
+                yield entry
+
+        _, failed = elasticsearch.helpers.bulk(
+            infrastructure.elastic_client, elastic_updates(), stats_only=True)
+        search.refresh()
+        if failed > 0:
+            logger.error(
+                'edit repo with failed elastic updates',
+                payload=mongo_update, nfailed=len(failed))
+
+
 @ns.route('/edit')
 class EditRepoCalcsResource(Resource):
     @api.doc('edit_repo')
@@ -444,31 +475,8 @@ class EditRepoCalcsResource(Resource):
                 parsed_query[quantity_name] = value
         parsed_query['owner'] = owner
 
-        search_request = search.SearchRequest()
-        add_query(search_request, parsed_query)
-        calc_ids = list(hit['calc_id'] for hit in search_request.execute_scan())
-
-        # perform the update on the mongo db
-        n_updated = proc.Calc.objects(calc_id__in=calc_ids).update(multi=True, **mongo_update)
-        if n_updated != len(calc_ids):
-            logger.error('edit repo did not update all entries', payload=json_data)
-
-        # re-index the affected entries in elastic search
-        def elastic_updates():
-            for calc in proc.Calc.objects(calc_id__in=calc_ids):
-                entry = search.Entry.from_calc_with_metadata(
-                    datamodel.CalcWithMetadata(**calc['metadata']))
-                entry = entry.to_dict(include_meta=True)
-                entry['_op_type'] = 'index'
-                yield entry
-
-        _, failed = elasticsearch.helpers.bulk(
-            infrastructure.elastic_client, elastic_updates(), stats_only=True)
-        search.refresh()
-        if failed > 0:
-            logger.error(
-                'edit repo with failed elastic updates',
-                payload=json_data, nfailed=len(failed))
+        # perform the change
+        edit(parsed_query, logger, mongo_update, True)
 
         return json_data, 200
 

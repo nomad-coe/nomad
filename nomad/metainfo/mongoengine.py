@@ -69,7 +69,9 @@ class MESection():
         dct = me_obj.to_mongo().to_dict()
         del(dct['_id'])
         dct[self.id_quantity] = getattr(me_obj, self.id_quantity)
-        return self.section_cls.m_from_dict(dct)  # pylint: disable=no-member
+        section = self.section_cls.m_from_dict(dct)  # pylint: disable=no-member
+        section.m_x('me').me_obj = me_obj
+        return section
 
 
 class MEInstance():
@@ -93,6 +95,11 @@ class MEInstance():
     def create(self):
         self.me_obj = self.me_section.me_cls()
         return self.save()
+
+    def delete(self):
+        self.me_obj.delete()
+        self.me_obj = None
+        return self.metainfo
 
 
 def generate_mongoengine(section_def: Section):

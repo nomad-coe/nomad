@@ -277,9 +277,12 @@ class Keycloak():
             created=datetime.fromtimestamp(keycloak_user['createdTimestamp'] / 1000),
             **kwargs)
 
-    def search_user(self, query: str):
+    def search_user(self, query: str = None):
+        kwargs = {}
+        if query is not None:
+            kwargs['query'] = dict(search=query)
         try:
-            keycloak_results = self._admin_client.get_users(query=dict(search=query))
+            keycloak_results = self._admin_client.get_users(**kwargs)
         except Exception as e:
             logger.error('Could not retrieve users from keycloak', exc_info=e)
             raise e

@@ -20,10 +20,12 @@ from nomad import utils
 from nomad.app.utils import with_logger
 from nomad.datamodel import Dataset
 from nomad.metainfo.flask_restplus import generate_flask_restplus_model
+from nomad.doi import DOI
 
 from .api import api
 from .auth import authenticate
 from .common import pagination_model, pagination_request_parser
+from .repo import edit
 
 
 ns = api.namespace(
@@ -127,11 +129,28 @@ class DatasetResource(Resource):
     def post(self, name: str, logger):
         """ Assign a DOI to the dataset. """
         try:
-            result = Dataset(user_id=g.user.user_id, name=name)
+            result = Dataset.m_def.m_x('me').get(user_id=g.user.user_id, name=name)
         except KeyError:
             abort(404, 'Dataset with name %s does not exist for current user' % name)
 
-        logger.error('assign datasets is not implemented', user_id=g.user.user_id)
+        if result.doi is not None:
+            abort(400, 'Dataset with name %s already has a DOI' % name)
+
+        # set the DOI
+        doi = DOI.create(title='NOMAD dataset: %s' % result.name, user=g.user)
+        doi.create_draft()
+        doi.make_findable()
+
+        result.doi = doi.doi
+
+        result.m_x('me').save()
+        if doi.state != 'findable':
+            logger.warning(
+                'doi was created, but is not findable', doi=doi.doi, doi_state=doi.state,
+                dataset=result.dataset_id)
+
+        # update all affected calcs in the search index
+        edit(dict(dataset_id=result.dataset_id), logger)
 
         return result
 
@@ -140,15 +159,38 @@ class DatasetResource(Resource):
     @api.response(400, 'The dataset has a DOI and cannot be deleted')
     @api.marshal_with(dataset_model, skip_none=True, code=200, description='Dateset deleted')
     @authenticate(required=True)
-    def delete(self, name: str):
+    @with_logger
+    def delete(self, name: str, logger):
         """ Assign a DOI to the dataset. """
-        result = Dataset.m_def.m_x('me').objects(user_id=g.user.user_id, name=name).first()
-
-        if result is None:
+        try:
+            result = Dataset.m_def.m_x('me').get(user_id=g.user.user_id, name=name)
+        except KeyError:
             abort(404, 'Dataset with name %s does not exist for current user' % name)
-        if result.doi is not None:
+
+        if result.doi is not None and len(result.doi) > 0:
             abort(400, 'Dataset with name %s has a DOI and cannot be deleted' % name)
 
-        result.delete()
+        # edit all affected entries
+        edit(
+            dict(dataset_id=result.dataset_id),
+            logger,
+            {'__raw__': {'$pull': {'metadata.datasets': result.dataset_id}}})
 
-        return Dataset.m_def.m_x('me').to_metainfo(result)
+        # delete the dataset
+        result.m_x('me').delete()
+
+        return result
+
+
+@ns.route('/doi/<path:doi>')
+class RepoPidResource(Resource):
+    @api.doc('resolve_doi')
+    @api.response(404, 'Dataset with DOI does not exist')
+    @api.marshal_with(dataset_model, skip_none=True, code=200, description='DOI resolved')
+    @authenticate()
+    def get(self, doi: str):
+        dataset_me = Dataset.m_def.m_x('me').objects(doi=doi).first()
+        if dataset_me is None:
+            abort(404, 'Dataset with DOI %s does not exist' % doi)
+
+        return dataset_me, 200

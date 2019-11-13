@@ -320,7 +320,7 @@ class UploadListResource(Resource):
 Thanks for uploading your data to nomad.
 Go back to %s and press reload to see the progress on your upload and publish your data.
 
-''' % upload.gui_url,
+''' % config.gui_url(),
                 200, {'Content-Type': 'text/plain; charset=utf-8'})
 
         return upload, 200

@@ -16,6 +16,7 @@
 This duplicates functionality for .base.py. It represents first pieces of a transition
 towards using the new metainfo system for all repository metadata.
 """
+from typing import Dict
 from cachetools import cached, TTLCache
 from elasticsearch_dsl import Keyword
 
@@ -64,6 +65,16 @@ class User(metainfo.MSection):
         from nomad import infrastructure
         return infrastructure.keycloak.get_user(*args, **kwargs)  # type: ignore
 
+    @staticmethod
+    @cached(cache=TTLCache(maxsize=1, ttl=24 * 3600))
+    def repo_users() -> Dict[str, 'User']:
+        from nomad import infrastructure
+        return {
+            user.repo_user_id: user
+            for user in infrastructure.keycloak.search_user()
+            if user.repo_user_id is not None
+        }
+
 
 class Dataset(metainfo.MSection):
     """ A Dataset is attached to one or many entries to form a set of data.
@@ -78,7 +89,10 @@ class Dataset(metainfo.MSection):
         doi: The optional Document Object Identifier (DOI) associated with this dataset.
             Nomad can register DOIs that link back to the respective representation of
             the dataset in the nomad UI. This quantity holds the string representation of
-            this DOI. There is only one per dataset.
+            this DOI. There is only one per dataset. The DOI is just the DOI name, not its
+            full URL, e.g. "10.17172/nomad/2019.10.29-1".
+        legacy_id: The original NOMAD CoE Repository dataset PID. Old DOIs still reference
+            datasets based on this id. Is not used for new datasets.
     """
     dataset_id = metainfo.Quantity(
         type=str,
@@ -90,6 +104,9 @@ class Dataset(metainfo.MSection):
         type=str,
         a_me=dict(index=True))
     doi = metainfo.Quantity(
+        type=str,
+        a_me=dict(index=True))
+    legacy_id = metainfo.Quantity(
         type=str,
         a_me=dict(index=True))
 

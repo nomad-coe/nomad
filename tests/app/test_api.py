@@ -1430,6 +1430,23 @@ class TestDataset:
         if name is not None:
             assert dataset.get('name') == name
 
+    def assert_dataset_entry(self, api, dataset_id: str, exists: bool, with_doi: bool, **kwargs):
+        rv = api.get('/repo/?dataset_id=%s' % dataset_id, **kwargs)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        total = data['pagination']['total']
+        if exists:
+            assert total > 0
+        else:
+            assert total == 0
+
+        if exists:
+            doi = data['results'][0]['datasets'][0]['doi']
+            if with_doi:
+                assert doi is not None
+            else:
+                assert doi is None
+
     def test_create_dataset(self, api, test_user_auth):
         rv = api.put(
             '/datasets/', headers=test_user_auth,
@@ -1484,18 +1501,37 @@ class TestDataset:
         rv = api.get('/datasets/ds1', headers=other_test_user_auth)
         assert rv.status_code == 404
 
-    def test_post_dataset(self, api, test_user_auth, example_datasets):
-        rv = api.post('/datasets/ds1', headers=test_user_auth)
-        # TODO the actual DOI part needs to be implemented
-        assert rv.status_code == 200
+    @pytest.fixture()
+    def example_dataset_with_entry(self, mongo, elastic, example_datasets):
+        calc = CalcWithMetadata(
+            calc_id='1', upload_id='1', published=True, with_embargo=False, datasets=['1'])
+        Calc(
+            calc_id='1', upload_id='1', create_time=datetime.datetime.now(),
+            metadata=calc.to_dict()).save()
+        search.Entry.from_calc_with_metadata(calc).save()
+        search.refresh()
 
-    def test_delete_dataset(self, api, test_user_auth, example_datasets):
+    def test_delete_dataset(self, api, test_user_auth, example_dataset_with_entry):
         rv = api.delete('/datasets/ds1', headers=test_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)
         self.assert_dataset(data, name='ds1')
         api.get('/datasets/ds1', headers=test_user_auth).status_code == 404
+        self.assert_dataset_entry(api, '1', False, False, headers=test_user_auth)
 
     def test_get_dataset_with_doi(self, api, test_user_auth, example_datasets):
         rv = api.delete('/datasets/ds2', headers=test_user_auth)
         assert rv.status_code == 400
+
+    def test_assign_doi(self, api, test_user_auth, example_dataset_with_entry):
+        rv = api.post('/datasets/ds1', headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        self.assert_dataset(data, name='ds1', doi=True)
+        self.assert_dataset_entry(api, '1', True, True, headers=test_user_auth)
+
+    def test_resolve_doi(self, api, example_dataset_with_entry):
+        rv = api.get('/datasets/doi/test_doi')
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        self.assert_dataset(data, name='ds2', doi=True)

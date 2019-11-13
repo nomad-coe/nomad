@@ -158,13 +158,12 @@ def api_url(ssl: bool = True):
         services.api_base_path.strip('/'))
 
 
-migration_source_db = NomadConfig(
-    host='db-repository.nomad.esc',
-    port=5432,
-    dbname='nomad_prod',
-    user='nomadlab',
-    password='*'
-)
+def gui_url():
+    base = api_url(True)[:-3]
+    if base.endswith('/'):
+        base = base[:-1]
+    return '%s/gui' % base
+
 
 mail = NomadConfig(
     enabled=False,
@@ -185,6 +184,14 @@ client = NomadConfig(
     user='leonard.hofstadter@nomad-fairdi.tests.de',
     password='password',
     url='http://localhost:8000/fairdi/nomad/latest/api'
+)
+
+datacite = NomadConfig(
+    mds_host='https://mds.datacite.org',
+    enabled=False,
+    prefix='10.17172',
+    user='*',
+    password='*'
 )
 
 version = '0.7.0'

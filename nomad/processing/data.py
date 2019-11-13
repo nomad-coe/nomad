@@ -841,13 +841,6 @@ class Upload(Proc):
         self.joined = False
         super().reset()
 
-    @property
-    def gui_url(self):
-        base = config.api_url()[:-3]
-        if base.endswith('/'):
-            base = base[:-1]
-        return '%s/gui/uploads/' % base
-
     def _cleanup_after_processing(self):
         # send email about process finish
         user = self.uploader
@@ -857,7 +850,7 @@ class Upload(Proc):
             '',
             'your data %suploaded at %s has completed processing.' % (
                 '"%s" ' % self.name if self.name else '', self.upload_time.isoformat()),  # pylint: disable=no-member
-            'You can review your data on your upload page: %s' % self.gui_url,
+            'You can review your data on your upload page: %s' % config.gui_url(),
             '',
             'If you encouter any issues with your upload, please let us know and replay to this email.',
             '',

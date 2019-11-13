@@ -35,6 +35,7 @@ import { capitalize } from '../utils'
 import { amber } from '@material-ui/core/colors'
 import KeepState from './KeepState'
 import {help as userdataHelp, default as UserdataPage} from './UserdataPage'
+import ResolveDOI from './dataset/ResolveDOI'
 
 export class VersionMismatch extends Error {
   constructor(msg) {
@@ -294,7 +295,7 @@ class NavigationUnstyled extends React.Component {
                 </Tooltip>
                 <Divider/>
                 <Tooltip title="Find and download data">
-                  <MenuItem className={classes.menuItem} component={Link} to="/search" selected={ pathname.startsWith('/repo') }>
+                  <MenuItem className={classes.menuItem} component={Link} to="/search" selected={ pathname.startsWith('/search') }>
                     <ListItemIcon>
                       <SearchIcon style={{fill: repoTheme.palette.primary.main}}/>
                     </ListItemIcon>
@@ -311,7 +312,7 @@ class NavigationUnstyled extends React.Component {
                   </MenuItem>
                 </Tooltip>
                 <Tooltip title="Manage your data">
-                  <MenuItem className={classes.menuItem} component={Link} to="/userdata" selected={ pathname.startsWith('/repo') }>
+                  <MenuItem className={classes.menuItem} component={Link} to="/userdata" selected={ pathname.startsWith('/userdata') }>
                     <ListItemIcon>
                       <UserDataIcon style={{fill: repoTheme.palette.primary.main}}/>
                     </ListItemIcon>
@@ -461,6 +462,18 @@ export default class App extends React.Component {
         const { match, ...rest } = props
         if (match && match.params.pid) {
           return (<ResolvePID {...rest} pid={match.params.pid} />)
+        } else {
+          return ''
+        }
+      }
+    },
+    'dataset_doi': {
+      path: '/dataset/doi/:doi*',
+      key: (props) => `dataset/doi/${props.match.params.doi}`,
+      render: props => {
+        const { match, ...rest } = props
+        if (match && match.params.doi) {
+          return (<ResolveDOI {...rest} doi={match.params.doi} />)
         } else {
           return ''
         }

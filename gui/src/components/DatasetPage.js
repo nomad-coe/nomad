@@ -3,10 +3,12 @@ import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
-import { withApi } from './api'
+import { withApi, DoesNotExist } from './api'
 import Search from './search/Search'
 import SearchContext from './search/SearchContext'
-import { Typography, Link } from '@material-ui/core'
+import { Typography } from '@material-ui/core'
+import { DatasetActions, DOI } from './search/DatasetList'
+import { withRouter } from 'react-router'
 
 export const help = `
 This page allows you to **inspect** and **download** NOMAD datasets. It alsow allows you
@@ -18,17 +20,31 @@ class DatasetPage extends React.Component {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
     datasetId: PropTypes.string.isRequired,
-    raiseError: PropTypes.func.isRequired
+    raiseError: PropTypes.func.isRequired,
+    history: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
     description: {
-      padding: theme.spacing.unit * 3
-    }
+      flexGrow: 1,
+      marginRight: theme.spacing.unit
+    },
+    header: {
+      display: 'flex',
+      flexDirection: 'row',
+      padding: theme.spacing.unit * 3,
+    },
+    actions: {}
   })
 
+  constructor(props) {
+    super(props)
+    this.handleChange = this.handleChange.bind(this)
+  }
+
   state = {
-    dataset: {}
+    dataset: {},
+    update: 0
   }
 
   update() {
@@ -39,8 +55,14 @@ class DatasetPage extends React.Component {
       page: 1, per_page: 1
     }).then(data => {
       const entry = data.results[0]
-      const dataset = entry ? entry.datasets.find(ds => ds.id + '' === datasetId) : {}
-      this.setState({dataset: dataset || {}})
+      const dataset = entry && entry.datasets.find(ds => ds.id + '' === datasetId)
+      if (!dataset) {
+        this.setState({dataset: {}})
+        raiseError(new DoesNotExist('Dataset does not exist any more or is not visible to you.'))
+      }
+      this.setState({dataset: {
+        ...dataset, example: entry
+      }})
     }).catch(error => {
         this.setState({dataset: {}})
         raiseError(error)
@@ -53,24 +75,41 @@ class DatasetPage extends React.Component {
 
   componentDidUpdate(prevProps) {
     if (prevProps.api !== this.props.api || prevProps.datasetId !== this.props.datasetId) {
-      this.update()
+      this.setState({dataset: {}}, () => this.update())
+    }
+  }
+
+  handleChange(dataset) {
+    if (dataset) {
+      this.setState({dataset: dataset, update: this.state.update + 1})
+    } else {
+      this.props.history.goBack()
     }
   }
 
   render() {
     const { classes, datasetId } = this.props
-    const { dataset } = this.state
+    const { dataset, update } = this.state
 
     return (
       <div>
-        <div className={classes.description}>
-          <Typography variant="h4">{dataset.name || 'loading ...'}</Typography>
-          <Typography>
-            dataset{dataset.doi ? <span>, with DOI <Link href={dataset.doi}>{dataset.doi}</Link></span> : ''}
-          </Typography>
+        <div className={classes.header}>
+          <div className={classes.description}>
+            <Typography variant="h4">{dataset.name || 'loading ...'}</Typography>
+            <Typography>
+              dataset{dataset.doi ? <span>, with DOI <DOI doi={dataset.doi} /></span> : ''}
+            </Typography>
+          </div>
+
+          <div className={classes.actions}>
+            {dataset && dataset.example && <DatasetActions
+              dataset={dataset}
+              onChange={this.handleChange}/>
+            }
+          </div>
         </div>
 
-        <SearchContext query={{dataset_id: datasetId}} ownerTypes={['all', 'public']} >
+        <SearchContext query={{dataset_id: datasetId}} ownerTypes={['all', 'public']} update={update}>
           <Search resultTab="entries"/>
         </SearchContext>
       </div>
@@ -78,4 +117,4 @@ class DatasetPage extends React.Component {
   }
 }
 
-export default compose(withApi(false), withErrors, withStyles(DatasetPage.styles))(DatasetPage)
+export default compose(withRouter, withApi(false), withErrors, withStyles(DatasetPage.styles))(DatasetPage)

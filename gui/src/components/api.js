@@ -296,6 +296,20 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
+  async getRawFile(uploadId, path) {
+    this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.raw.get({
+        upload_id: uploadId,
+        path: path
+      }))
+      .catch(handleApiError)
+      .then(response => {
+        return response.data
+      })
+      .finally(this.onFinishLoading)
+  }
+
   async repo(uploadId, calcId) {
     this.onStartLoading()
     return this.swagger()
@@ -319,8 +333,18 @@ class Api {
 
   async resolvePid(pid) {
     this.onStartLoading()
-    return this.swaggerPromise
+    return this.swagger()
       .then(client => client.apis.repo.resolve_pid({pid: pid}))
+      .catch(handleApiError)
+      .then(response => response.body)
+      .finally(this.onFinishLoading)
+  }
+
+  async resolveDoi(doi) {
+    this.onStartLoading()
+    console.log(doi)
+    return this.swagger()
+      .then(client => client.apis.datasets.resolve_doi({doi: doi}))
       .catch(handleApiError)
       .then(response => response.body)
       .finally(this.onFinishLoading)
@@ -336,21 +360,37 @@ class Api {
   }
 
   async getDatasets(prefix) {
-    // this.onStartLoading()
+    // no loading indicator, because this is only used in the background of the edit dialog
     return this.swagger()
       .then(client => client.apis.datasets.list_datasets({prefix: prefix}))
       .catch(handleApiError)
       .then(response => response.body)
-      // .finally(this.onFinishLoading)
+  }
+
+  async assignDatasetDOI(datasetName) {
+    this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.datasets.assign_doi({name: datasetName}))
+      .catch(handleApiError)
+      .then(response => response.body)
+      .finally(this.onFinishLoading)
+  }
+
+  async deleteDataset(datasetName) {
+    this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.datasets.delete_dataset({name: datasetName}))
+      .catch(handleApiError)
+      .then(response => response.body)
+      .finally(this.onFinishLoading)
   }
 
   async getUsers(query) {
-    // this.onStartLoading()
+    // no loading indicator, because this is only used in the background of the edit dialog
     return this.swagger()
       .then(client => client.apis.auth.get_users({query: query}))
       .catch(handleApiError)
       .then(response => response.body)
-      // .finally(this.onFinishLoading)
   }
 
   async quantities_search(search) {
@@ -506,13 +546,13 @@ export class ApiProviderComponent extends React.Component {
     }
 
     api.getInfo()
-    .catch(handleApiError)
-    .then(info => {
-      this.setState({info: info})
-    })
-    .catch(error => {
-      this.props.raiseError(error)
-    })
+      .catch(handleApiError)
+      .then(info => {
+        this.setState({info: info})
+      })
+      .catch(error => {
+        this.props.raiseError(error)
+      })
 
     return api
   }

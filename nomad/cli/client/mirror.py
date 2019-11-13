@@ -21,12 +21,60 @@ import os.path
 from bravado.exception import HTTPBadRequest
 
 from nomad import utils, processing as proc, search, config, files, infrastructure
+from nomad.datamodel import Dataset, User
 
 from .client import client
 
 
 __in_test = False
 """ Will be monkeypatched by tests to alter behavior for testing. """
+
+__Dataset = Dataset.m_def.m_x('me')
+__logger = utils.get_logger(__name__)
+
+
+def v0Dot6(upload_data):
+    """ Inplace transforms v0.6.x upload data into v0.7.x upload data. """
+
+    def tarnsform_user_id(source_user_id):
+        target_user = User.repo_users.get(source_user_id)
+        if target_user is None:
+            __logger.error('user does not exist in target', source_user_id=source_user_id)
+            raise KeyError
+
+        return target_user.user_id
+
+    def transform_dataset(source_dataset):
+        legacy_id = source_dataset['id']
+        target_dataset = __Dataset.objects(legacy_id=legacy_id).first()
+        if target_dataset is not None:
+            return target_dataset.dataset_id
+
+        target_dataset = __Dataset(
+            dataset_id=utils.create_uuid(),
+            legacy_id=source_dataset['id'],
+            name=source_dataset['name'])
+        if 'doi' in source_dataset and len(source_dataset['doi']) > 0:
+            source_doi = source_dataset['doi'][0]
+            target_dataset.doi = source_doi.replace('http://dx.doi.org/', '')
+        target_dataset.save()
+
+        return target_dataset.dataset_id
+
+    for calc_data_json, i in enumerate(upload_data.calcs):
+        calc_data = json.loads(calc_data_json)
+        metadata = calc_data['metadata']
+
+        # transform users
+        metadata['uploader'] = tarnsform_user_id(metadata['uploader']['id'])
+        metadata['coauthors'] = [tarnsform_user_id(user['id']) for user in metadata['coauthors']]
+        metadata['shared_with'] = [tarnsform_user_id(user['id']) for user in metadata['shared_with']]
+
+        # transform datasets
+        metadata['datasets'] = [transform_dataset(dataset) for dataset in metadata['datasets']]
+
+        upload_data.calcs[i] = json.dumps(calc_data)
+    return upload_data
 
 
 class Mapping:
@@ -62,6 +110,10 @@ class Mapping:
     '--move', is_flag=True, default=False,
     help='Instead of copying the underlying upload files, we move it and replace it with a symlink.')
 @click.option(
+    '--link', is_flag=True, default=False,
+    help='Instead of copying the underlying upload files, we create symlinks in the target.'
+)
+@click.option(
     '--source-mapping', type=str, default=None,
     help=(
         'A mapping in the form "dir:mapped" that replaces path prefix "dir" with '
@@ -81,14 +133,27 @@ class Mapping:
     help=(
         'Will only copy/move files and not even look at the calculations. Useful, '
         'when moving metadata via mongo dump/restore.'))
+@click.option(
+    '--migration', type=str, default=None,
+    help='The name of a migration script used to transform the metadata.'
+)
 def mirror(
-        query, move: bool, dry: bool, files_only: bool, source_mapping, target_mapping):
+        query, move: bool, link: bool, dry: bool, files_only: bool, source_mapping: str,
+        target_mapping: str, migration: str):
+
+    migration_func = None
+    if migration is not None:
+        if migration == 'v0.6.x':
+            migration_func = v0Dot6
+        else:
+            print('Migration %s does not exist.' % migration)
+            sys.exit(1)
 
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
-    source_mapping = Mapping(source_mapping)
-    target_mapping = Mapping(target_mapping)
+    source_mapping_obj = Mapping(source_mapping)
+    target_mapping_obj = Mapping(target_mapping)
 
     if query is not None:
         try:
@@ -146,18 +211,27 @@ def mirror(
                 (upload_id, n_calcs, upload_data.upload_files_path))
             continue
 
-        # copy/mv file
+        if not files_only:
+            # migrate
+            if migration_func is not None:
+                try:
+                    upload_data = migration_func(upload_data)
+                except Exception as e:
+                    __logger.error('could not migrate upload_data', exc_info=e)
+                    continue
+
+        # copy/link/mv file
         upload_files_path = upload_data.upload_files_path
         if __in_test:
             tmp = os.path.join(config.fs.tmp, 'to_mirror')
             os.rename(upload_files_path, tmp)
             upload_files_path = tmp
 
-        upload_files_path = source_mapping.apply(upload_files_path)
+        upload_files_path = source_mapping_obj.apply(upload_files_path)
 
         target_upload_files_path = files.PathObject(
             config.fs.public, upload_id, create_prefix=False, prefix=True).os_path
-        target_upload_files_path = target_mapping.apply(target_upload_files_path)
+        target_upload_files_path = target_mapping_obj.apply(target_upload_files_path)
 
         if not os.path.exists(target_upload_files_path):
             os.makedirs(target_upload_files_path)
@@ -165,6 +239,10 @@ def mirror(
             if move:
                 os.rename(upload_files_path, target_upload_files_path)
                 os.symlink(os.path.abspath(target_upload_files_path), upload_files_path)
+
+            elif link:
+                os.symlink(os.path.abspath(upload_files_path), target_upload_files_path)
+
             else:
                 for to_copy in os.listdir(upload_files_path):
                     shutil.copyfile(

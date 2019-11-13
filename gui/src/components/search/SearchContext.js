@@ -12,7 +12,7 @@ class SearchContext extends React.Component {
   static propTypes = {
     query: PropTypes.object,
     initialQuery: PropTypes.object,
-    ownerTypes: PropTypes.arrayOf(PropTypes.string)
+    update: PropTypes.number
   }
 
   static emptyResponse = {
@@ -84,7 +84,7 @@ class SearchContext extends React.Component {
   }
 
   update() {
-    const {api, raiseError, ownerTypes} = this.props
+    const {api, raiseError} = this.props
     const {request, query, metric} = this.state
     const search = {...request, ...query, metrics: metric === this.defaultMetric ? [] : [metric], ...(this.props.query || {})}
 
@@ -120,6 +120,7 @@ class SearchContext extends React.Component {
         prevState.query !== query ||
         prevState.request !== request ||
         prevState.metric !== metric ||
+        prevProps.update !== this.props.update ||
         !isEquivalent(prevProps.query || {}, this.props.query || {})) {
       this.update()
     }

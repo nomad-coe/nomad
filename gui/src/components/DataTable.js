@@ -219,6 +219,11 @@ class DataTableUnStyled extends React.Component {
     checkboxCell: {
       width: 64
     },
+    actionsCell: {
+      textAlign: 'right',
+      width: 1,
+      whiteSpace: 'nowrap'
+    },
     cell: {
       overflow: 'hidden',
       textOverflow: 'ellipsis',
@@ -245,9 +250,7 @@ class DataTableUnStyled extends React.Component {
       width: 1
     },
     details: {
-      borderBottom: '1px solid rgba(224, 224, 224, 1)'
-    },
-    detailsContents: {
+      borderBottom: '1px solid rgba(224, 224, 224, 1)',
       padding: theme.spacing.unit * 3
     },
     detailsContentsWithActions: {
@@ -346,18 +349,13 @@ class DataTableUnStyled extends React.Component {
     if (entryDetails) {
       return (
         <tr>
-          <td colSpan={selectedColumns.length + 1} style={{padding: 0}}>
+          <td colSpan={selectedColumns.length + 1 + (entryActions ? 1 : 0)} style={{padding: 0}}>
             <Collapse
               in={selectedEntry === id(row)} timeout="auto"
               mountOnEnter unmountOnExit
             >
               <div className={classes.details}>
-                <div className={entryActions ? classes.detailsContentsWithActions : classes.detailsContents}>
-                  {entryDetails(row)}
-                </div>
-                { entryActions ? <div className={classes.detailsActions}>
-                  {entryActions(row)}
-                </div> : <React.Fragment/>}
+                {entryDetails(row)}
               </div>
             </Collapse>
           </td>
@@ -371,7 +369,7 @@ class DataTableUnStyled extends React.Component {
   render() {
     const {
       classes, data, total, order, orderBy, id, rows, selectActions, actions,
-      entryDetails, columns, title, pagination } = this.props
+      entryDetails, entryActions, columns, title, pagination } = this.props
     const { selectedColumns, selectedEntry } = this.state
 
     const isSelected = row => (!selected) || selected.indexOf(id(row)) !== -1
@@ -435,6 +433,7 @@ class DataTableUnStyled extends React.Component {
                     </TableCell>
                   )
                 })}
+                {entryActions && <TableCell className={classes.actionsCell}/>}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -468,6 +467,7 @@ class DataTableUnStyled extends React.Component {
                           </TableCell>
                         )
                       })}
+                      {entryActions && <TableCell className={classes.actionsCell}>{entryActions(row)}</TableCell>}
                     </TableRow>
                     {this.renderDetails(row)}
                   </React.Fragment>
@@ -475,7 +475,7 @@ class DataTableUnStyled extends React.Component {
               })}
               {emptyRows > 0 && (
                 <TableRow style={{ height: 49 * emptyRows }}>
-                  <TableCell colSpan={6} />
+                  <TableCell colSpan={selectedColumns.length + 1 + (entryActions ? 1 : 0)} />
                 </TableRow>
               )}
               {pagination ? <TableRow>{pagination}</TableRow> : <React.Fragment/>}
