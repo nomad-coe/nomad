@@ -270,17 +270,18 @@ class Keycloak():
         kwargs = {key: value[0] for key, value in keycloak_user.get('attributes', {}).items()}
         return datamodel.User(
             user_id=keycloak_user['id'],
-            email=keycloak_user['email'],
-            username=keycloak_user.get('username', None),
-            first_name=keycloak_user.get('firstName', None),
-            last_name=keycloak_user.get('lastName', None),
+            email=keycloak_user.get('email'),
+            username=keycloak_user.get('username'),
+            first_name=keycloak_user.get('firstName'),
+            last_name=keycloak_user.get('lastName'),
             created=datetime.fromtimestamp(keycloak_user['createdTimestamp'] / 1000),
             **kwargs)
 
-    def search_user(self, query: str = None):
-        kwargs = {}
+    def search_user(self, query: str = None, **kwargs):
         if query is not None:
             kwargs['query'] = dict(search=query)
+        else:
+            kwargs['query'] = dict(max=1000)
         try:
             keycloak_results = self._admin_client.get_users(**kwargs)
         except Exception as e:

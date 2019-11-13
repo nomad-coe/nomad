@@ -37,7 +37,7 @@ def v0Dot6(upload_data):
     """ Inplace transforms v0.6.x upload data into v0.7.x upload data. """
 
     def tarnsform_user_id(source_user_id):
-        target_user = User.repo_users.get(source_user_id)
+        target_user = User.repo_users().get(str(source_user_id))
         if target_user is None:
             __logger.error('user does not exist in target', source_user_id=source_user_id)
             raise KeyError
@@ -61,11 +61,14 @@ def v0Dot6(upload_data):
 
         return target_dataset.dataset_id
 
+    def transform_reference(reference):
+        return reference['value']
+
     upload = json.loads(upload_data.upload)
     upload['user_id'] = tarnsform_user_id(upload['user_id'])
     upload_data.upload = json.dumps(upload)
 
-    for calc_data_json, i in enumerate(upload_data.calcs):
+    for i, calc_data_json in enumerate(upload_data.calcs):
         calc_data = json.loads(calc_data_json)
         metadata = calc_data['metadata']
 
@@ -76,6 +79,9 @@ def v0Dot6(upload_data):
 
         # transform datasets
         metadata['datasets'] = [transform_dataset(dataset) for dataset in metadata['datasets']]
+
+        # transform references
+        metadata['references'] = [transform_reference(reference) for reference in metadata['references']]
 
         upload_data.calcs[i] = json.dumps(calc_data)
     return upload_data

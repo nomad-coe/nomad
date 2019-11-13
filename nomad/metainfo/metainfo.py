@@ -805,7 +805,7 @@ class MSection(metaclass=MObjectMeta):
             return bool(value)
 
         else:
-            if type(value) != quantity_def.type:
+            if value is not None and type(value) != quantity_def.type:
                 raise TypeError(
                     'The value %s with type %s for quantity %s is not of type %s' %
                     (value, type(value), quantity_def, quantity_def.type))
