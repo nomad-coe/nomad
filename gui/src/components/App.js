@@ -19,7 +19,7 @@ import {help as searchHelp, default as SearchPage} from './search/SearchPage'
 import HelpDialog from './Help'
 import { ApiProvider, withApi } from './api'
 import { ErrorSnacks, withErrors } from './errors'
-import EntryPage from './entry/EntryPage'
+import { help as entryHelp, default as EntryPage } from './entry/EntryPage'
 import About from './About'
 import LoginLogout from './LoginLogout'
 import { genTheme, repoTheme, archiveTheme, guiBase, consent } from '../config'
@@ -201,7 +201,8 @@ class NavigationUnstyled extends React.Component {
     '/search': {title: 'How to find and download data', content: searchHelp},
     '/uploads': {title: 'How to upload data', content: uploadHelp},
     '/userdata': {title: 'How to manage your data', content: userdataHelp},
-    '/metainfo': {title: 'About the NOMAD meta-info', content: metainfoHelp}
+    '/metainfo': {title: 'About the NOMAD meta-info', content: metainfoHelp},
+    '/entry': {title: 'The entry page', content: entryHelp}
   }
 
   componentDidMount() {

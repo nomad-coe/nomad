@@ -14,57 +14,64 @@ import { withApi } from '../api'
 import { withCookies, Cookies } from 'react-cookie'
 import Pagination from 'material-ui-flat-pagination'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
+import { guiBase } from '../../config'
 
 export const help = `
-NOMAD now provides a two step upload process. After you upload your files, you
-check NOMAD's processing of your files before you publish your data. This gives you
-more control about how NOMAD will present your data.
+NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
+identify the main output files of [supported codes](https://www.nomad-coe.eu/the-project/nomad-repository/nomad-repository-howtoupload)
+and then it will parse these files. The result will be a list of entries (one per each identified mainfile).
+Each entry is associated with metadata. This is data that NOMAD acquired from your files and that
+describe your calculations (e.g. chemical formula, used code, system type and symmetry, etc.).
+Furthermore, you can provide your own metadata (comments, references, co-authors, etc.).
+First uploaded data is only visible to you. Before others can actually see and download
+your data, you need to publish your upload.
 
 #### Prepare and upload files
 
-To upload your own data, please put all the relevant files of all the calculations
+Please put all the relevant files of all the calculations
 you want to upload into a single \`*.zip\` or \`*.tar.gz\` archive.
 We encourage you to add all code input and
 output files, as well as any other auxiliary files that you might have created.
-You can put data from multiple calculations, using your preferred directory
-structure, into your archives. Drop your archive file(s) below. You can also
-click the dropbox to select the file from your hard drive.
+You can put data from multiple calculations into one file using as many directories as
+you like. NOMAD will consider all files on a single directory to form a single entry.
+Ideally, you put only files related to a single code run into each directory. If users
+want to download an entry, they will download all files in the respective directory.
+The directory structure can be nested.
 
-Alternatively, you can upload files via the given shell command.
+Drop your archive file(s) below. You can also click the dropbox to select the file from
+your hard drive. Alternatively, you can upload files via the given shell command.
 Replace \`<local_file>\` with your archive file. After executing the command,
 return here and press the reload button below).
 
-There is a limit of 32 GB per upload. Please upload multiple archives, if
-you have more than 32 GB of data to upload.
+There is a limit of 10 unpublished uploads per user. Please accumulate all data into as
+few uploads as possible. But, there is a also an upper limit of 32 GB per upload.
+Please upload multiple archives, if you have more than 32 GB of data to upload.
 
 #### The staging area
 
-Uploaded data will not be public immediately. We call this *staging area*.
-
-Below you will find all your unpublished and published uploads.
-The unpublished uploads are in the *staging area*. You can see the
+Uploaded data will not be public immediately. Below you will find all your unpublished and
+published uploads. The unpublished uploads are only visible to you. You can see the
 progress on the processing, you can review your uploads, and publish or delete them again.
 
 Click on an upload to see more details about its contents. Click on processed calculations
-to see their metadata, archive data, and a processing log. Select uploads to *delete*
-or *publish* them.
+to see their metadata, archive data, and a processing log. In the details view, you also
+find buttons for editing user metadata, deleting uploads, and publishing uploads. Only
+full uploads can be deleted or published.
+
+#### Publishing and embargo
 
 If you press publish, a dialog will appear that allows you to set an
-*embargo* or publish your data as *Open Access* right away. The *embargo* allows you to shared
-it with selected users, create a DOI for your data, and later publish the data.
-The *embargo* might last up to 36 month before it becomes public automatically.
-During an *embargo* some meta-data will be available.
-
-When you publish your upload, it will take a night before it will appear in the
-[NOMAD Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/).
-We are working on expediting this process.
+*embargo* or publish your data as *Open Access* right away. The *embargo* allows you to share
+data with selected users, create a DOI for your data, and later publish the data.
+The *embargo* might last up to 36 month before data becomes public automatically.
+During an *embargo* the data (and datasets created from this data) are only visible to you.
 
 #### Processing errors
 
 We distinguish between uploads that fail processing completely and uploads that contain
 entries that could not be processed. The former might be caused by issues during the
 upload, bad file formats, etc. The latter (for more common) case means that not all of the provided
-code input/output files could not be parsed by our parsers for various reasons.
+code output files could not be parsed by our parsers for various reasons.
 The processing logs of the failed entries might provide some insight.
 
 We do not allow the publishing of uploads that fail processing completely. Frankly, in most
@@ -72,14 +79,16 @@ cases there won't be any data to publish anyways. In the case of failed processi
 some entries, the data can still be published. You will be able to share it and create
 DOIs for it, etc. The only shortcomings will be missing metadata (labeled *not processed*
 or *unavailable*) and missing archive data. We continuously improve our parsers and
-the missing information might be made available in the future.
+the now missing information might become available in the future automatically.
 
-#### Co-Authors, References, Comments, Datasets
+#### Co-Authors, References, Comments, Datasets, DOIs
 
-Currently, this web-page is only about uploading your calculations. To further edit
-comments, references, co-authors, share with other authors, or curate datasets, use
-the [NOMAD Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/) on
-your published data (as usual).
+You can edit additional *user metadata*. This data is assigned to individual entries, but
+you can select and edit many entries at once. Edit buttons for user metadata are available
+in many views on this web-page. For example, you can edit user metadata when you click on
+an upload to open its details, and press the edit button there. User metadata can also
+be changed after publishing data. The documentation on the [user data page](${guiBase}/userdata) contains more
+information.
 `
 
 class Uploads extends React.Component {

@@ -8,6 +8,19 @@ import { withApi, DoesNotExist } from '../api'
 import { compose } from 'recompose'
 import qs from 'qs'
 import KeepState from '../KeepState'
+import { guiBase } from '../../config'
+
+export const help=`
+The *raw files* tab, will show you all files that belong to the entry and offers a download
+on individual, or all files. The files can be selected and downloaded. You can also
+view the contents of some files directly here on this page.
+
+The *archive* tab, shows you the parsed data as a tree
+data structure. This view is connected to NOMAD's [meta-info](${guiBase}/metainfo), which acts a schema for
+all parsed data.
+
+The *log* tab, will show you a log of the entry's processing.
+`
 
 class EntryPage extends React.Component {
   static styles = theme => ({
