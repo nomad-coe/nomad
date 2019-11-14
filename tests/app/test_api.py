@@ -1117,8 +1117,8 @@ class TestEditRepo():
 
         assert self.elastic(1, comment='test_edit_props')
         assert self.elastic(1, references=['http://test', 'http://test2'])
-        assert self.elastic(1, authors=[other_test_user.user_id, test_user.user_id])
-        assert self.elastic(1, owners=[other_test_user.user_id, test_user.user_id])
+        assert self.elastic(1, authors=[test_user.user_id, other_test_user.user_id])
+        assert self.elastic(1, owners=[test_user.user_id, other_test_user.user_id])
 
     def test_edit_all(self):
         rv = self.perform_edit(comment='test_edit_all')

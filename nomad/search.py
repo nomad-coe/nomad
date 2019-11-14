@@ -45,12 +45,10 @@ class ScrollIdNotFound(Exception): pass
 class User(InnerDoc):
 
     @classmethod
-    def from_user_id(cls, user_id):
-        self = cls(user_id=user_id)
-        user = datamodel.User.get(user_id=user_id)
+    def from_user(cls, user):
+        self = cls(user_id=user.user_id)
         self.name = user.name
         self.email = user.email
-        self.sort_name = '%s %s' % (user.last_name, user.first_name)
 
         return self
 
@@ -136,20 +134,21 @@ class Entry(Document, metaclass=WithDomain):
         else:
             self.files = source.files
 
-        self.uploader = User.from_user_id(source.uploader) if source.uploader is not None else None
-
         self.with_embargo = bool(source.with_embargo)
         self.published = source.published
-        self.authors = [User.from_user_id(user_id) for user_id in source.coauthors]
-        self.owners = [User.from_user_id(user_id) for user_id in source.shared_with]
-        if self.uploader is not None:
-            if self.uploader not in self.authors:
-                self.authors.append(self.uploader)
-            if self.uploader not in self.owners:
-                self.owners.append(self.uploader)
 
-        self.authors.sort(key=lambda user: user.sort_name)
-        self.owners.sort(key=lambda user: user.sort_name)
+        uploader = datamodel.User.get(user_id=source.uploader) if source.uploader is not None else None
+        authors = [datamodel.User.get(user_id) for user_id in source.coauthors]
+        owners = [datamodel.User.get(user_id) for user_id in source.shared_with]
+        if uploader is not None:
+            authors.append(uploader)
+            owners.append(uploader)
+        authors.sort(key=lambda user: user.last_name + ' ' + user.first_name)
+        owners.sort(key=lambda user: user.last_name + ' ' + user.first_name)
+
+        self.uploader = User.from_user(uploader)
+        self.authors = [User.from_user(user) for user in authors]
+        self.owners = [User.from_user(user) for user in owners]
 
         self.comment = source.comment
         self.references = source.references
