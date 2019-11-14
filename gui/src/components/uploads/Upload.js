@@ -154,7 +154,7 @@ class Upload extends React.Component {
         label: 'Processing',
         supportsSort: false,
         description: 'Details on the processing of this entry.',
-        render: entry => `${entry.current_task} [${entry.tasks.indexOf(entry.current_task) + 1}/${entry.tasks.length}]`
+        render: entry => `${entry.current_task || 'waiting'} [${entry.tasks.indexOf(entry.current_task) + 1}/${entry.tasks.length}]`
       },
       tasks_status: {
         label: 'Status',
