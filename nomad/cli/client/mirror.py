@@ -54,7 +54,7 @@ def v0Dot6(upload_data):
             dataset_id=utils.create_uuid(),
             legacy_id=source_dataset['id'],
             name=source_dataset['name'])
-        if 'doi' in source_dataset and len(source_dataset['doi']) > 0:
+        if 'doi' in source_dataset and source_dataset['doi'] is not None:
             source_doi = source_dataset['doi'][0]
             target_dataset.doi = source_doi.replace('http://dx.doi.org/', '')
         target_dataset.save()
