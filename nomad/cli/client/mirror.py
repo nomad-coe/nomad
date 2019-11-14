@@ -29,7 +29,7 @@ from .client import client
 __in_test = False
 """ Will be monkeypatched by tests to alter behavior for testing. """
 
-__Dataset = Dataset.m_def.m_x('me')
+__Dataset = Dataset.m_def.m_x('me').me_cls
 __logger = utils.get_logger(__name__)
 
 
@@ -249,6 +249,7 @@ def mirror(
                 os.symlink(os.path.abspath(target_upload_files_path), upload_files_path)
 
             elif link:
+                os.makedirs(os.path.dirname(target_upload_files_path.rstrip('/'), exist_ok=True)
                 os.symlink(os.path.abspath(upload_files_path), target_upload_files_path)
 
             else:
