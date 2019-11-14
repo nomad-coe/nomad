@@ -17,6 +17,7 @@ class Search extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     resultTab: PropTypes.string,
+    entryListProps: PropTypes.object,
     visualization: PropTypes.string
   }
 
@@ -84,7 +85,7 @@ class Search extends React.Component {
   }
 
   render() {
-    const {classes} = this.props
+    const {classes, entryListProps} = this.props
     const {resultTab, openVisualization} = this.state
     const {state: {request: {uploads, datasets}}} = this.context
 
@@ -131,7 +132,7 @@ class Search extends React.Component {
 
             <KeepState
               visible={resultTab === 'entries'}
-              render={() => <SearchEntryList />}
+              render={() => <SearchEntryList {...(entryListProps || {})}/>}
             />
             {datasets && <KeepState
               visible={resultTab === 'datasets'}
@@ -317,8 +318,8 @@ class VisualizationSelect extends React.Component {
     return <React.Fragment>
       {Object.keys(Search.visalizations).map(key => {
         const visualization = Search.visalizations[key]
-        return <Tooltip title={visualization.description}>
-          <Button key={key}
+        return <Tooltip key={key} title={visualization.description}>
+          <Button
             size="small" variant="outlined" className={classes.button}
             color={value === key ? 'primary' : null}
             onClick={() => onChange(key)}
@@ -417,6 +418,7 @@ class SearchEntryList extends React.Component {
       onChange={setRequest}
       actions={<ReRunSearchButton/>}
       {...request}
+      {...this.props}
     />
   }
 }

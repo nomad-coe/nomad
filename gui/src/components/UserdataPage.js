@@ -69,9 +69,9 @@ class UserdataPage extends React.Component {
       <div>
         <SearchContext
           ownerTypes={['user', 'staging']} initialQuery={{owner: 'user'}}
-          initialRequest={{uploads: true, datasets: true}}
+          initialRequest={{uploads: true, datasets: true, order_by: 'upload_time'}}
         >
-          <Search resultTab="entries"/>
+          <Search resultTab="entries" entryListProps={{selectedColumns: ['formula', 'upload_time', 'mainfile', 'co_authors', 'references', 'datasets']}} />
         </SearchContext>
       </div>
     )

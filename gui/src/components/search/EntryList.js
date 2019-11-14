@@ -47,11 +47,47 @@ export class EntryListUnstyled extends React.Component {
   }
 
   static defaultColumns = {
+    mainfile: {
+      label: 'Mainfile',
+      render: entry => entry.mainfile,
+      supportsSort: true,
+      description: 'The mainfile of this entry.'
+    },
+    upload_time: {
+      label: 'Upload time',
+      render: entry => new Date(entry.upload_time).toLocaleString(),
+      supportsSort: true,
+      description: 'The time this entry was uploaded.'
+    },
     authors: {
       label: 'Authors',
       render: entry => entry.authors.map(author => author.name).join('; '),
-      supportsSort: true,
+      supportsSort: false,
       description: 'The authors of this entry. This includes the uploader and its co-authors.'
+    },
+    co_authors: {
+      label: 'co-Authors',
+      render: entry => entry.authors.filter(user => user.user_id !== entry.uploader.user_id).map(author => author.name).join('; '),
+      supportsSort: false,
+      description: 'The people that this entry was co authored with'
+    },
+    shared_with: {
+      label: 'Shared with',
+      render: entry => entry.owners.filter(user => user.user_id !== entry.uploader.user_id).map(author => author.name).join('; '),
+      supportsSort: false,
+      description: 'The people that this entry was shared with'
+    },
+    uploader: {
+      label: 'Uploader',
+      render: entry => entry.uploader.name,
+      supportsSort: true,
+      description: 'The uploader of this entry.'
+    },
+    comment: {
+      label: 'Comment',
+      render: entry => entry.comment,
+      supportsSort: false,
+      description: 'User provided comment on this entry'
     },
     references: {
       label: 'References',
