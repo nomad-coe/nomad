@@ -279,6 +279,10 @@ class Domain:
             domain specific quantities.
         quantities: Additional specifications for the quantities in ``domain_entry_class`` as
             instances of :class:`DomainQuantity`.
+        metrics: Tuples of elastic field name and elastic aggregation operation that
+            can be used to create statistic values.
+        group_quantities: Tuple of quantity name and metric that describes quantities that
+            can be used to group entries by quantity values.
         root_sections: The name of the possible root sections for this domain.
         metainfo_all_package: The name of the full metainfo package for this domain.
     """
@@ -340,16 +344,22 @@ class Domain:
         authors=('authors.name.keyword', 'cardinality'),
         unique_entries=('calc_hash', 'cardinality'))
 
+    base_groups = dict(
+        datasets=('dataset_id', 'datasets'),
+        uploads=('upload_id', 'uploads'))
+
     def __init__(
             self, name: str, domain_entry_class: Type[CalcWithMetadata],
             quantities: Dict[str, DomainQuantity],
             metrics: Dict[str, Tuple[str, str]],
+            groups: Dict[str, Tuple[str, str]],
             default_statistics: List[str],
             root_sections=['section_run', 'section_entry_info'],
             metainfo_all_package='all.nomadmetainfo.json') -> None:
 
         domain_quantities = quantities
         domain_metrics = metrics
+        domain_groups = groups
 
         if name == config.domain:
             assert Domain.instance is None, 'you can only define one domain.'
@@ -400,6 +410,8 @@ class Domain:
         # construct metrics from base and domain metrics
         self.metrics = dict(**Domain.base_metrics)
         self.metrics.update(**domain_metrics)
+        self.groups = dict(**Domain.base_groups)
+        self.groups.update(**domain_groups)
 
     @property
     def metrics_names(self) -> Iterable[str]:

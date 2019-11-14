@@ -146,7 +146,7 @@ class Entry(Document, metaclass=WithDomain):
         authors.sort(key=lambda user: user.last_name + ' ' + user.first_name)
         owners.sort(key=lambda user: user.last_name + ' ' + user.first_name)
 
-        self.uploader = User.from_user(uploader)
+        self.uploader = User.from_user(uploader) if uploader is not None else None
         self.authors = [User.from_user(user) for user in authors]
         self.owners = [User.from_user(user) for user in owners]
 
@@ -218,6 +218,9 @@ all unique geometries.
 
 metrics_names = datamodel.Domain.instance.metrics_names
 """ Names of all available metrics """
+
+groups = datamodel.Domain.instance.groups
+"""The available groupable quantities"""
 
 order_default_quantity = None
 for quantity in datamodel.Domain.instance.quantities.values():

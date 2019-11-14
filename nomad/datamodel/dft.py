@@ -220,6 +220,8 @@ Domain(
         spacegroup_symbol=DomainQuantity('The spacegroup as international short symbol'),
         geometries=DomainQuantity(
             'Hashes that describe unique geometries simulated by this code run.', multi=True),
+        group_hash=DomainQuantity(
+            'A hash from key metadata used to group similar entries.'),
         quantities=DomainQuantity(
             'All quantities that are used by this calculation',
             metric=('quantities', 'value_count'), multi=True),
@@ -248,7 +250,10 @@ Domain(
         calculations=('n_calculations', 'sum'),
         quantities=('n_quantities', 'sum'),
         geometries=('n_geometries', 'sum'),
-        unique_geometries=('geometries', 'cardinality')
+        unique_geometries=('geometries', 'cardinality'),
+        groups=('group_hash', 'cardinality')
     ),
+    groups=dict(
+        groups=('group_hash', 'groups')),
     default_statistics=[
         'atoms', 'basis_set', 'xc_functional', 'system', 'crystal_system', 'code_name'])

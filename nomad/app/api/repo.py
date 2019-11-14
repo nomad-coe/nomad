@@ -64,7 +64,7 @@ class RepoCalcResource(Resource):
         return calc.to_dict(), 200
 
 
-repo_calcs_model = api.model('RepoCalculations', {
+repo_calcs_model_fields = {
     'pagination': fields.Nested(pagination_model, skip_none=True),
     'scroll': fields.Nested(allow_null=True, skip_none=True, model=api.model('Scroll', {
         'total': fields.Integer(description='The total amount of hits for the search.'),
@@ -78,15 +78,13 @@ repo_calcs_model = api.model('RepoCalculations', {
         'value and quantity value as key. The possible metrics are code runs(calcs), %s. '
         'There is a pseudo quantity "total" with a single value "all" that contains the '
         ' metrics over all results. ' % ', '.join(datamodel.Domain.instance.metrics_names))),
-    'datasets': fields.Nested(api.model('RepoDatasets', {
-        'after': fields.String(description='The after value that can be used to retrieve the next datasets.'),
-        'values': fields.Raw(description='A dict with dataset id as key. The values are dicts with "total" and "examples" keys.')
-    }), skip_none=True),
-    'uploads': fields.Nested(api.model('RepoUploads', {
-        'after': fields.String(description='The after value that can be used to retrieve the next uploads.'),
-        'values': fields.Raw(description='A dict with upload ids as key. The values are dicts with "total" and "examples" keys.')
+}
+for group_name, (group_quantity, _) in search.groups.items():
+    repo_calcs_model_fields[group_name] = fields.Nested(api.model('RepoDatasets', {
+        'after': fields.String(description='The after value that can be used to retrieve the next %s.' % group_name),
+        'values': fields.Raw(description='A dict with %s as key. The values are dicts with "total" and "examples" keys.' % group_quantity)
     }), skip_none=True)
-})
+repo_calcs_model = api.model('RepoCalculations', repo_calcs_model_fields)
 
 
 repo_calc_id_model = api.model('RepoCalculationId', {
@@ -120,19 +118,18 @@ repo_request_parser.add_argument(
 repo_request_parser.add_argument(
     'date_histogram', type=bool, help='Add an additional aggregation over the upload time')
 repo_request_parser.add_argument(
-    'datasets_after', type=str, help='The last dataset id of the last scroll window for the dataset quantity')
-repo_request_parser.add_argument(
-    'uploads_after', type=str, help='The last upload id of the last scroll window for the upload quantity')
-repo_request_parser.add_argument(
     'metrics', type=str, action='append', help=(
         'Metrics to aggregate over all quantities and their values as comma separated list. '
         'Possible values are %s.' % ', '.join(datamodel.Domain.instance.metrics_names)))
 repo_request_parser.add_argument(
-    'datasets', type=bool, help=('Return dataset information.'))
-repo_request_parser.add_argument(
-    'uploads', type=bool, help=('Return upload information.'))
-repo_request_parser.add_argument(
     'statistics', type=bool, help=('Return statistics.'))
+
+for group_name in search.groups:
+    repo_request_parser.add_argument(
+        group_name, type=bool, help=('Return %s group data.' % group_name))
+    repo_request_parser.add_argument(
+        '%s_after' % group_name, type=str,
+        help='The last %s id of the last scroll window for the %s group' % (group_name, group_name))
 
 
 search_request_parser = api.parser()
@@ -236,9 +233,8 @@ class RepoCalcsResource(Resource):
             date_histogram = args.get('date_histogram', False)
             metrics: List[str] = request.args.getlist('metrics')
 
-            with_datasets = args.get('datasets', False)
-            with_uploads = args.get('uploads', False)
-            with_statistics = args.get('statistics', False) or with_datasets or with_uploads
+            with_statistics = args.get('statistics', False) or \
+                any(args.get(group_name, False) for group_name in search.groups)
         except Exception as e:
             abort(400, message='bad parameters: %s' % str(e))
 
@@ -263,11 +259,10 @@ class RepoCalcsResource(Resource):
         if with_statistics:
             search_request.default_statistics(metrics_to_use=metrics)
 
-            additional_metrics = []
-            if with_datasets and 'datasets' not in metrics:
-                additional_metrics.append('datasets')
-            if with_uploads and 'uploads' not in metrics:
-                additional_metrics.append('uploads')
+            additional_metrics = [
+                metric
+                for group_name, (_, metric) in search.groups.items()
+                if args.get(group_name, False)]
 
             total_metrics = metrics + additional_metrics
 
@@ -279,15 +274,11 @@ class RepoCalcsResource(Resource):
                 results = search_request.execute_scrolled(scroll_id=scroll_id, size=per_page)
 
             else:
-                if with_datasets:
-                    search_request.quantity(
-                        'dataset_id', size=per_page, examples=1,
-                        after=request.args.get('datasets_after', None))
-
-                if with_uploads:
-                    search_request.quantity(
-                        'upload_id', size=per_page, examples=1,
-                        after=request.args.get('uploads_after', None))
+                for group_name, (group_quantity, _) in search.groups.items():
+                    if args.get(group_name, False):
+                        search_request.quantity(
+                            group_quantity, size=per_page, examples=1,
+                            after=request.args.get('%s_after' % group_name, None))
 
                 results = search_request.execute_paginated(
                     per_page=per_page, page=page, order=order, order_by=order_by)
@@ -301,13 +292,9 @@ class RepoCalcsResource(Resource):
                 if 'quantities' in results:
                     quantities = results.pop('quantities')
 
-                if with_datasets:
-                    datasets = quantities['dataset_id']
-                    results['datasets'] = datasets
-
-                if with_uploads:
-                    uploads = quantities['upload_id']
-                    results['uploads'] = uploads
+                for group_name, (group_quantity, _) in search.groups.items():
+                    if args.get(group_name, False):
+                        results[group_name] = quantities[group_quantity]
 
             return results, 200
         except search.ScrollIdNotFound:

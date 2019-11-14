@@ -12,6 +12,7 @@ import KeepState from '../KeepState'
 import PeriodicTable from './PeriodicTable'
 import ReloadIcon from '@material-ui/icons/Cached'
 import UploadList from './UploadsList'
+import GroupList from './GroupList'
 
 class Search extends React.Component {
   static propTypes = {
@@ -87,7 +88,7 @@ class Search extends React.Component {
   render() {
     const {classes, entryListProps} = this.props
     const {resultTab, openVisualization} = this.state
-    const {state: {request: {uploads, datasets}}} = this.context
+    const {state: {request: {uploads, datasets, groups}}} = this.context
 
     return <DisableOnLoading>
       <div className={classes.root}>
@@ -126,6 +127,7 @@ class Search extends React.Component {
               onChange={(event, value) => this.setState({resultTab: value})}
             >
               <Tab label="Entries" value="entries" />
+              {groups && <Tab label="Grouped entries" value="groups" />}
               {datasets && <Tab label="Datasets" value="datasets" />}
               {uploads && <Tab label="Uploads" value="uploads" />}
             </Tabs>
@@ -134,6 +136,10 @@ class Search extends React.Component {
               visible={resultTab === 'entries'}
               render={() => <SearchEntryList {...(entryListProps || {})}/>}
             />
+            {groups && <KeepState
+              visible={resultTab === 'groups'}
+              render={() => <SearchGroupList />}
+            />}
             {datasets && <KeepState
               visible={resultTab === 'datasets'}
               render={() => <SearchDatasetList />}
@@ -431,6 +437,23 @@ class SearchDatasetList extends React.Component {
 
     return <DatasetList data={response}
       total={response.statistics.total.all.datasets}
+      datasets_after={response.datasets && response.datasets.after}
+      onChange={setRequest}
+      actions={<ReRunSearchButton/>}
+      {...response}
+    />
+  }
+}
+
+class SearchGroupList extends React.Component {
+  static contextType = SearchContext.type
+
+  render() {
+    const {state: {response}, setRequest} = this.context
+
+    return <GroupList data={response}
+      total={response.statistics.total.all.groups}
+      groups_after={response.groups && response.groups.after}
       onChange={setRequest}
       actions={<ReRunSearchButton/>}
       {...response}
@@ -446,6 +469,7 @@ class SearchUploadList extends React.Component {
 
     return <UploadList data={response}
       total={response.statistics.total.all.uploads}
+      uploads_after={response.uploads && response.uploads.after}
       onChange={setRequest}
       actions={<ReRunSearchButton/>}
       {...response}
