@@ -249,7 +249,7 @@ def mirror(
                 os.symlink(os.path.abspath(target_upload_files_path), upload_files_path)
 
             elif link:
-                os.makedirs(os.path.dirname(target_upload_files_path.rstrip('/'), exist_ok=True)
+                os.makedirs(os.path.dirname(target_upload_files_path.rstrip('/')), exist_ok=True)
                 os.symlink(os.path.abspath(upload_files_path), target_upload_files_path)
 
             else:
