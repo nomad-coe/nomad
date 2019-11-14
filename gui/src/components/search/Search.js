@@ -52,11 +52,13 @@ class Search extends React.Component {
   static visalizations = {
     'elements': {
       render: props => <ElementsVisualization {...props}/>,
-      label: 'Elements'
+      label: 'Elements',
+      description: 'Shows data as a heatmap over the periodic table'
     },
     'domain': {
       render: props => <DomainVisualization {...props}/>,
-      label: 'Meta data'
+      label: 'Meta data',
+      description: 'Shows histograms on key metadata'
     }
   }
 
@@ -263,9 +265,11 @@ class MetricSelectUnstyled extends React.Component {
     const metricsDefinitions = domain.searchMetrics
     const {label, shortLabel} = metricsDefinitions[metric]
     return <React.Fragment>
-      <Button size="small" className={classes.button} onClick={this.handleClick}>
-        {shortLabel || label}
-      </Button>
+      <Tooltip title="Select the metric used to represent data">
+        <Button size="small" className={classes.button} onClick={this.handleClick}>
+          {shortLabel || label}
+        </Button>
+      </Tooltip>
       <Popover
         open={anchorEl !== null}
         anchorEl={anchorEl}
@@ -313,11 +317,15 @@ class VisualizationSelect extends React.Component {
     return <React.Fragment>
       {Object.keys(Search.visalizations).map(key => {
         const visualization = Search.visalizations[key]
-        return <Button key={key}
-          size="small" variant="outlined" className={classes.button}
-          color={value === key ? 'primary' : null}
-          onClick={() => onChange(key)}
-        >{visualization.label}</Button>
+        return <Tooltip title={visualization.description}>
+          <Button key={key}
+            size="small" variant="outlined" className={classes.button}
+            color={value === key ? 'primary' : null}
+            onClick={() => onChange(key)}
+          >
+            {visualization.label}
+          </Button>
+        </Tooltip>
       })}
     </React.Fragment>
   }
