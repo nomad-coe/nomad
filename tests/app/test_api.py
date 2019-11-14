@@ -612,7 +612,8 @@ class TestRepo():
             dataset_id='ds_id', name='ds_name', user_id=test_user.user_id, doi='ds_doi')
         example_dataset.m_x('me').create()
 
-        calc_with_metadata = CalcWithMetadata(upload_id=0, calc_id=0, upload_time=today)
+        calc_with_metadata = CalcWithMetadata(
+            upload_id='example_upload_id', calc_id='0', upload_time=today)
         calc_with_metadata.files = ['test/mainfile.txt']
         calc_with_metadata.apply_domain_metadata(normalized)
 
@@ -696,6 +697,19 @@ class TestRepo():
         assert values['ds_id']['total'] == 4
         assert values['ds_id']['examples'][0]['datasets'][0]['id'] == 'ds_id'
         assert 'after' in datasets
+        assert 'datasets' in data['statistics']['total']['all']
+
+    def test_search_uploads(self, api, example_elastic_calcs, no_warn, other_test_user_auth):
+        rv = api.get('/repo/?owner=all&uploads=true', headers=other_test_user_auth)
+        data = self.assert_search(rv, 4)
+
+        uploads = data.get('uploads', None)
+        assert uploads is not None
+        values = uploads['values']
+        assert values['example_upload_id']['total'] == 4
+        assert values['example_upload_id']['examples'][0]['upload_id'] == 'example_upload_id'
+        assert 'after' in uploads
+        assert 'uploads' in data['statistics']['total']['all']
 
     @pytest.mark.parametrize('calcs, owner, auth', [
         (2, 'all', 'none'),
@@ -795,7 +809,7 @@ class TestRepo():
 
     @pytest.mark.parametrize('metrics', metrics_permutations)
     def test_search_total_metrics(self, api, example_elastic_calcs, no_warn, metrics):
-        rv = api.get('/repo/?%s' % urlencode(dict(metrics=metrics, statistics=True, datasets=True), doseq=True))
+        rv = api.get('/repo/?%s' % urlencode(dict(metrics=metrics, statistics=True, datasets=True, uploads=True), doseq=True))
         assert rv.status_code == 200, str(rv.data)
         data = json.loads(rv.data)
         total_metrics = data.get('statistics', {}).get('total', {}).get('all', None)
@@ -806,7 +820,7 @@ class TestRepo():
 
     @pytest.mark.parametrize('metrics', metrics_permutations)
     def test_search_aggregation_metrics(self, api, example_elastic_calcs, no_warn, metrics):
-        rv = api.get('/repo/?%s' % urlencode(dict(metrics=metrics, statistics=True, datasets=True), doseq=True))
+        rv = api.get('/repo/?%s' % urlencode(dict(metrics=metrics, statistics=True, datasets=True, uploads=True), doseq=True))
         assert rv.status_code == 200
         data = json.loads(rv.data)
         for name, quantity in data.get('statistics').items():
@@ -943,7 +957,7 @@ class TestRepo():
         assert rv.status_code == 200 if success else 404
         if success:
             assert json.loads(rv.data)['calc_id'] == '%d' % pid
-            assert json.loads(rv.data)['upload_id'] == '0'
+            assert json.loads(rv.data)['upload_id'] == 'example_upload_id'
 
     @pytest.mark.timeout(config.tests.default_timeout)
     def test_raw_id(self, api, test_user, test_user_auth, proc_infra):

@@ -69,7 +69,7 @@ class SearchPage extends React.Component {
     return (
       <div className={classes.root}>
         <SearchContext
-          initialQuery={query}
+          initialQuery={query} initialRequest={{datasets: true}}
           ownerTypes={['all', 'public'].filter(key => user || withoutLogin.indexOf(key) !== -1)}
         >
           <Search visualization="elements" />

@@ -32,7 +32,7 @@ class DatasetPage extends React.Component {
     header: {
       display: 'flex',
       flexDirection: 'row',
-      padding: theme.spacing.unit * 3,
+      padding: theme.spacing.unit * 3
     },
     actions: {}
   })
@@ -52,7 +52,8 @@ class DatasetPage extends React.Component {
     api.search({
       owner: 'all',
       dataset_id: datasetId,
-      page: 1, per_page: 1
+      page: 1,
+per_page: 1
     }).then(data => {
       const entry = data.results[0]
       const dataset = entry && entry.datasets.find(ds => ds.id + '' === datasetId)
@@ -64,8 +65,8 @@ class DatasetPage extends React.Component {
         ...dataset, example: entry
       }})
     }).catch(error => {
-        this.setState({dataset: {}})
-        raiseError(error)
+      this.setState({dataset: {}})
+      raiseError(error)
     })
   }
 
@@ -109,7 +110,10 @@ class DatasetPage extends React.Component {
           </div>
         </div>
 
-        <SearchContext query={{dataset_id: datasetId}} ownerTypes={['all', 'public']} update={update}>
+        <SearchContext
+          query={{dataset_id: datasetId}} ownerTypes={['all', 'public']} update={update}
+          initialRequest={{datasets: true}}
+        >
           <Search resultTab="entries"/>
         </SearchContext>
       </div>

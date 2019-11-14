@@ -70,7 +70,7 @@ class User(metainfo.MSection):
     def repo_users() -> Dict[str, 'User']:
         from nomad import infrastructure
         return {
-            user.repo_user_id: user
+            str(user.repo_user_id): user
             for user in infrastructure.keycloak.search_user()
             if user.repo_user_id is not None
         }

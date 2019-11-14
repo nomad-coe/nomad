@@ -12,7 +12,12 @@ class SearchContext extends React.Component {
   static propTypes = {
     query: PropTypes.object,
     initialQuery: PropTypes.object,
-    update: PropTypes.number
+    initialRequest: PropTypes.object,
+    update: PropTypes.number,
+    domain: PropTypes.object.isRequired,
+    api: PropTypes.object.isRequired,
+    raiseError: PropTypes.func.isRequired,
+    children: PropTypes.any
   }
 
   static emptyResponse = {
@@ -21,6 +26,10 @@ class SearchContext extends React.Component {
       total: 0
     },
     datasets: {
+      after: null,
+      values: []
+    },
+    uploads: {
       after: null,
       values: []
     },
@@ -41,6 +50,9 @@ class SearchContext extends React.Component {
     this.handleQueryChange = this.handleQueryChange.bind(this)
     this.handleMetricChange = this.handleMetricChange.bind(this)
     this.state.query = this.props.initialQuery || {}
+    if (this.props.initialRequest) {
+      this.state.request = {...this.state.request, ...this.props.initialRequest}
+    }
   }
 
   defaultMetric = this.props.domain.defaultSearchMetric
@@ -52,9 +64,7 @@ class SearchContext extends React.Component {
       order_by: 'formula',
       order: 1,
       page: 1,
-      per_page: 10,
-      datasets: true,
-      datasets_after: null
+      per_page: 10
     },
     metric: this.defaultMetric,
     usedMetric: this.defaultMetric,
@@ -104,7 +114,7 @@ class SearchContext extends React.Component {
         this.setState({response: response || SearchContext.emptyResponse, usedMetric: usedMetric})
       }).catch(error => {
         this.setState({response: SearchContext.emptyResponse})
-        if (error.name !== 'NotAuthorized' || this.props.searchParameters.owner === 'all') {
+        if (error.name !== 'NotAuthorized') {
           raiseError(error)
         }
       })
@@ -117,7 +127,7 @@ class SearchContext extends React.Component {
   componentDidUpdate(prevProps, prevState) {
     const {query, request, metric} = this.state
     if (
-        prevState.query !== query ||
+      prevState.query !== query ||
         prevState.request !== request ||
         prevState.metric !== metric ||
         prevProps.update !== this.props.update ||

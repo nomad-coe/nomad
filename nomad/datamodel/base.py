@@ -333,6 +333,7 @@ class Domain:
 
     base_metrics = dict(
         datasets=('datasets.id', 'cardinality'),
+        uploads=('upload_id', 'cardinality'),
         uploaders=('uploader.name.keyword', 'cardinality'),
         authors=('authors.name.keyword', 'cardinality'),
         unique_entries=('calc_hash', 'cardinality'))

@@ -67,7 +67,10 @@ class UserdataPage extends React.Component {
   render() {
     return (
       <div>
-        <SearchContext ownerTypes={['user', 'staging']} initialQuery={{owner: 'user'}} >
+        <SearchContext
+          ownerTypes={['user', 'staging']} initialQuery={{owner: 'user'}}
+          initialRequest={{uploads: true, datasets: true}}
+        >
           <Search resultTab="entries"/>
         </SearchContext>
       </div>

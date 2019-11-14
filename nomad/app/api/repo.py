@@ -80,7 +80,11 @@ repo_calcs_model = api.model('RepoCalculations', {
         ' metrics over all results. ' % ', '.join(datamodel.Domain.instance.metrics_names))),
     'datasets': fields.Nested(api.model('RepoDatasets', {
         'after': fields.String(description='The after value that can be used to retrieve the next datasets.'),
-        'values': fields.Raw(description='A dict with names as key. The values are dicts with "total" and "examples" keys.')
+        'values': fields.Raw(description='A dict with dataset id as key. The values are dicts with "total" and "examples" keys.')
+    }), skip_none=True),
+    'uploads': fields.Nested(api.model('RepoUploads', {
+        'after': fields.String(description='The after value that can be used to retrieve the next uploads.'),
+        'values': fields.Raw(description='A dict with upload ids as key. The values are dicts with "total" and "examples" keys.')
     }), skip_none=True)
 })
 
@@ -118,11 +122,15 @@ repo_request_parser.add_argument(
 repo_request_parser.add_argument(
     'datasets_after', type=str, help='The last dataset id of the last scroll window for the dataset quantity')
 repo_request_parser.add_argument(
+    'uploads_after', type=str, help='The last upload id of the last scroll window for the upload quantity')
+repo_request_parser.add_argument(
     'metrics', type=str, action='append', help=(
         'Metrics to aggregate over all quantities and their values as comma separated list. '
         'Possible values are %s.' % ', '.join(datamodel.Domain.instance.metrics_names)))
 repo_request_parser.add_argument(
     'datasets', type=bool, help=('Return dataset information.'))
+repo_request_parser.add_argument(
+    'uploads', type=bool, help=('Return upload information.'))
 repo_request_parser.add_argument(
     'statistics', type=bool, help=('Return statistics.'))
 
@@ -229,7 +237,8 @@ class RepoCalcsResource(Resource):
             metrics: List[str] = request.args.getlist('metrics')
 
             with_datasets = args.get('datasets', False)
-            with_statistics = args.get('statistics', False)
+            with_uploads = args.get('uploads', False)
+            with_statistics = args.get('statistics', False) or with_datasets or with_uploads
         except Exception as e:
             abort(400, message='bad parameters: %s' % str(e))
 
@@ -253,10 +262,15 @@ class RepoCalcsResource(Resource):
 
         if with_statistics:
             search_request.default_statistics(metrics_to_use=metrics)
-            if 'datasets' not in metrics:
-                total_metrics = metrics + ['datasets']
-            else:
-                total_metrics = metrics
+
+            additional_metrics = []
+            if with_datasets and 'datasets' not in metrics:
+                additional_metrics.append('datasets')
+            if with_uploads and 'uploads' not in metrics:
+                additional_metrics.append('uploads')
+
+            total_metrics = metrics + additional_metrics
+
             search_request.totals(metrics_to_use=total_metrics)
             search_request.statistic('authors', 1000)
 
@@ -270,6 +284,11 @@ class RepoCalcsResource(Resource):
                         'dataset_id', size=per_page, examples=1,
                         after=request.args.get('datasets_after', None))
 
+                if with_uploads:
+                    search_request.quantity(
+                        'upload_id', size=per_page, examples=1,
+                        after=request.args.get('uploads_after', None))
+
                 results = search_request.execute_paginated(
                     per_page=per_page, page=page, order=order, order_by=order_by)
 
@@ -279,9 +298,16 @@ class RepoCalcsResource(Resource):
                     if 'code_name' in statistics and 'currupted mainfile' in statistics['code_name']:
                         del(statistics['code_name']['currupted mainfile'])
 
+                if 'quantities' in results:
+                    quantities = results.pop('quantities')
+
                 if with_datasets:
-                    datasets = results.pop('quantities')['dataset_id']
+                    datasets = quantities['dataset_id']
                     results['datasets'] = datasets
+
+                if with_uploads:
+                    uploads = quantities['upload_id']
+                    results['uploads'] = uploads
 
             return results, 200
         except search.ScrollIdNotFound:
