@@ -50,6 +50,7 @@ class User(InnerDoc):
         user = datamodel.User.get(user_id=user_id)
         self.name = user.name
         self.email = user.email
+        self.sort_name = '%s %s' % (user.last_name, user.first_name)
 
         return self
 
@@ -146,6 +147,9 @@ class Entry(Document, metaclass=WithDomain):
                 self.authors.append(self.uploader)
             if self.uploader not in self.owners:
                 self.owners.append(self.uploader)
+
+        self.authors.sort(key=lambda user: user.sort_name)
+        self.owners.sort(key=lambda user: user.sort_name)
 
         self.comment = source.comment
         self.references = source.references

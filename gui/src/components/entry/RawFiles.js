@@ -2,7 +2,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, FormGroup, FormControlLabel, Checkbox, FormLabel, IconButton, Divider, Typography, Tooltip } from '@material-ui/core'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
-import { withApi } from '../api'
+import { withApi, BinaryContent } from '../api'
 import { compose } from 'recompose'
 import Download from './Download'
 import ReloadIcon from '@material-ui/icons/Cached'
@@ -33,6 +33,10 @@ class RawFiles extends React.Component {
       overflowX: 'auto',
       color: 'white',
       background: '#222',
+      marginTop: 16,
+      padding: 8
+    },
+    fileError: {
       marginTop: 16,
       padding: 8
     }
@@ -173,12 +177,19 @@ class RawFiles extends React.Component {
               </FormGroup>
             ))}
           </div>
-          {fileContents &&
+          {fileContents && fileContents.contents &&
             <div className={classes.fileContents}>
               <pre style={{margin: 0}}>
-                {`${fileContents}`}
+                {`${fileContents.contents}`}
               </pre>
             </div>}
+          {fileContents && !fileContents.contents &&
+            <div className={classes.fileError}>
+              <Typography color="error">
+                Cannot display file due to unsupported file format.
+              </Typography>
+            </div>
+          }
         </div>
       </div>
     )

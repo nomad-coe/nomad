@@ -1247,6 +1247,14 @@ class TestRaw(UploadFilesBasedTests):
         assert len(rv.data) == 10
         assert start_data[10:] == next_data
 
+    def test_raw_file_compressed(self, api, raw_files, admin_user_auth):
+        upload = files.ArchiveBasedStagingUploadFiles(
+            'upload_id', upload_path='tests/data/api/example_with_compressed.zip', create=True)
+        upload.extract()
+        rv = api.get('raw/upload_id/example_with_compressed/mainfile.gz?decompress=true&offset=5&length=3', headers=admin_user_auth)
+        assert rv.status_code == 200
+        assert rv.data == b'con'
+
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_file_signed(self, api, upload, _, test_user_signature_token):
         url = '/raw/%s/%s?signature_token=%s' % (upload, example_file_mainfile, test_user_signature_token)

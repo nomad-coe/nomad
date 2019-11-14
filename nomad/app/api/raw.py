@@ -26,6 +26,7 @@ import sys
 import contextlib
 import fnmatch
 import json
+import gzip
 
 from nomad import search, utils
 from nomad.files import UploadFiles, Restricted
@@ -67,6 +68,9 @@ raw_file_from_path_parser.add_argument(
     location='args')
 raw_file_from_path_parser.add_argument(
     name='offset', type=int, help='Start downloading a file\' content from the given offset.',
+    location='args')
+raw_file_from_path_parser.add_argument(
+    name='decompress', type=int, help='Automatically decompress the file if compressed. Only supports .gz',
     location='args')
 
 
@@ -128,10 +132,6 @@ def get_raw_file_from_upload_path(
                 upload_files.upload_id, wildcarded_files, compress=compress, strip=strip)
 
     try:
-        with upload_files.raw_file(upload_filepath, 'br') as raw_file:
-            buffer = raw_file.read(2048)
-        mime_type = magic.from_buffer(buffer, mime=True)
-
         try:
             offset = int(request.args.get('offset', 0))
             length = int(request.args.get('length', -1))
@@ -144,6 +144,16 @@ def get_raw_file_from_upload_path(
             abort(400, message='bad offset, length values')
 
         raw_file = upload_files.raw_file(upload_filepath, 'br')
+
+        if request.args.get('decompress') is not None and upload_filepath.endswith('.gz'):
+            filename = upload_filepath[:3]
+            upload_filepath = filename
+            raw_file = gzip.GzipFile(filename=filename, mode='rb', fileobj=raw_file)
+
+        buffer = raw_file.read(2048)
+        raw_file.seek(0)
+        mime_type = magic.from_buffer(buffer, mime=True)
+
         raw_file_view: Union[FileView, IO[Any]] = None
         if length > 0:
             raw_file_view = FileView(raw_file, offset, length)

@@ -301,11 +301,22 @@ class Api {
     return this.swagger()
       .then(client => client.apis.raw.get({
         upload_id: uploadId,
-        path: path
+        path: path,
+        decompress: true,
+        length: 4096
       }))
       .catch(handleApiError)
       .then(response => {
-        return response.data
+        if (response.data instanceof Blob) {
+          return {
+            contents: null,
+            mimeType: response.data.type
+          }
+        }
+        return {
+          contents: response.data,
+          mimeType: 'plain/text'
+        }
       })
       .finally(this.onFinishLoading)
   }
