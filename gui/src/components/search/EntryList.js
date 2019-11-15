@@ -7,7 +7,7 @@ import { withDomain } from '../domains'
 import DataTable from '../DataTable'
 import Quantity from '../Quantity'
 import { Link as RouterLink } from 'react-router-dom'
-import MoreIcon from '@material-ui/icons/MoreHoriz'
+import DetailsIcon from '@material-ui/icons/MoreHoriz'
 import EditUserMetadataDialog from '../EditUserMetadataDialog'
 import DownloadButton from '../DownloadButton'
 
@@ -251,7 +251,7 @@ export class EntryListUnstyled extends React.Component {
   renderEntryActions(row) {
     return <Tooltip title="View entry page">
       <IconButton onClick={() => this.props.history.push(`/entry/id/${row.upload_id}/${row.calc_id}`)}>
-        <MoreIcon />
+        <DetailsIcon />
       </IconButton>
     </Tooltip>
   }

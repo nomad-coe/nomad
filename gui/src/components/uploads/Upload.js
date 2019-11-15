@@ -26,6 +26,8 @@ class Upload extends React.Component {
     upload: PropTypes.object.isRequired,
     onDoesNotExist: PropTypes.func,
     domain: PropTypes.object.isRequired,
+    open: PropTypes.bool,
+    history: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
@@ -97,7 +99,8 @@ class Upload extends React.Component {
     },
     updating: true, // it is still not complete and continuously looking for updates
     showPublishDialog: false,
-    columns: {}
+    columns: {},
+    expanded: null
   }
 
   _unmounted = false
@@ -112,6 +115,10 @@ class Upload extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
+    if (prevProps.open !== this.props.open && this.props.open) {
+      this.setState({expanded: null})
+    }
+
     if (prevProps.domain !== this.props.domain) {
       this.updateColumns()
     }
@@ -515,14 +522,22 @@ class Upload extends React.Component {
   }
 
   render() {
-    const { classes } = this.props
-    const { upload, showPublishDialog } = this.state
+    const { classes, open } = this.props
+    const { upload, showPublishDialog, expanded } = this.state
     const { errors } = upload
 
     if (this.state.upload) {
       return (
         <div className={classes.root}>
-          <ExpansionPanel>
+          <ExpansionPanel
+            expanded={expanded === null ? open : expanded}
+            onChange={(event, expanded) => {
+              this.setState({expanded: expanded})
+              if (open) {
+                this.props.history.push('/uploads')
+              }
+            }}
+          >
             <ExpansionPanelSummary expandIcon={<ExpandMoreIcon/>} >
               {this.renderStatusIcon()}
               {this.renderTitle()}

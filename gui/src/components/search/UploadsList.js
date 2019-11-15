@@ -12,11 +12,12 @@ import EditUserMetadataDialog from '../EditUserMetadataDialog'
 import DownloadButton from '../DownloadButton'
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
+import DetailsIcon from '@material-ui/icons/MoreHoriz'
 
 class UploadIdUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    uploadId: PropTypes.string.isRequired
+    uploadId: PropTypes.string.isRequired,
   }
 
   static styles = theme => ({
@@ -52,7 +53,8 @@ class UploadActionsUnstyled extends React.Component {
     classes: PropTypes.object.isRequired,
     upload: PropTypes.object.isRequired,
     user: PropTypes.object,
-    onChange: PropTypes.func
+    onChange: PropTypes.func,
+    history: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
@@ -65,6 +67,7 @@ class UploadActionsUnstyled extends React.Component {
   constructor(props) {
     super(props)
     this.handleEdit = this.handleEdit.bind(this)
+    this.handleClickDetails = this.handleClickDetails.bind(this)
   }
 
   handleEdit() {
@@ -72,6 +75,10 @@ class UploadActionsUnstyled extends React.Component {
     if (onChange) {
       onChange(upload)
     }
+  }
+
+  handleClickDetails() {
+    this.props.history.push(`/uploads?open=${this.props.upload.example.upload_id}`)
   }
 
   render() {
@@ -82,6 +89,11 @@ class UploadActionsUnstyled extends React.Component {
     const query = {upload_id: upload.example.upload_id}
 
     return <FormGroup row classes={{root: classes.group}}>
+      <Tooltip title="Open this upload on the uploads page">
+        <IconButton onClick={this.handleClickDetails}>
+          <DetailsIcon />
+        </IconButton>
+      </Tooltip>
       {<DownloadButton query={query} tooltip="Download upload" />}
       {editable && <EditUserMetadataDialog
         title="Edit metadata of all entries in this upload"
@@ -92,7 +104,7 @@ class UploadActionsUnstyled extends React.Component {
   }
 }
 
-export const UploadActions = compose(withApi(false), withStyles(UploadActionsUnstyled.styles))(UploadActionsUnstyled)
+export const UploadActions = compose(withRouter, withApi(false), withStyles(UploadActionsUnstyled.styles))(UploadActionsUnstyled)
 
 class UploadListUnstyled extends React.Component {
   static propTypes = {

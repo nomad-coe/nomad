@@ -15,6 +15,7 @@ import { withCookies, Cookies } from 'react-cookie'
 import Pagination from 'material-ui-flat-pagination'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import { guiBase } from '../../config'
+import qs from 'qs'
 
 export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
@@ -96,7 +97,8 @@ class Uploads extends React.Component {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired,
-    cookies: instanceOf(Cookies).isRequired
+    cookies: instanceOf(Cookies).isRequired,
+    location: PropTypes.object
   }
 
   static styles = theme => ({
@@ -222,11 +224,12 @@ class Uploads extends React.Component {
       .forEach(upload)
   }
 
-  renderUploads() {
+  renderUploads(openUpload) {
     const { classes } = this.props
     const { data: { results, pagination: { total, per_page, page }}, uploading } = this.state
 
     const renderUpload = upload => <Upload
+      open={openUpload === upload.upload_id}
       key={upload.gui_upload_id} upload={upload}
       onDoesNotExist={() => this.handleDoesNotExist(upload)}
     />
@@ -253,8 +256,13 @@ class Uploads extends React.Component {
   }
 
   render() {
-    const { classes } = this.props
+    const { classes, location } = this.props
     const { uploadCommand } = this.state
+
+    let openUpload = null
+    if (location && location.search) {
+      openUpload = (qs.parse(location.search.substring(1)) || {}).open
+    }
 
     return (
       <div className={classes.root}>
@@ -336,7 +344,7 @@ class Uploads extends React.Component {
           `}/>
         </div>
 
-        {this.renderUploads()}
+        {this.renderUploads(openUpload)}
       </div>
     )
   }
