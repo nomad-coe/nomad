@@ -57,17 +57,12 @@ Once you assigned a DOI to a dataset, not entries can be removed or added to the
 `
 
 class UserdataPage extends React.Component {
-  static propTypes = {
-    classes: PropTypes.object.isRequired
-  }
-
-  static styles = theme => ({
-  })
 
   render() {
     return (
       <div>
         <SearchContext
+          {...this.props}
           ownerTypes={['user', 'staging']} initialQuery={{owner: 'user'}}
           initialRequest={{uploads: true, datasets: true, order_by: 'upload_time'}}
         >
@@ -78,4 +73,4 @@ class UserdataPage extends React.Component {
   }
 }
 
-export default compose(withApi(true, false, 'To manage you data, you must log in.'), withStyles(UserdataPage.styles))(UserdataPage)
+export default withApi(true, false, 'To manage you data, you must log in.')(UserdataPage)

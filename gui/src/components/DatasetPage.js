@@ -53,7 +53,7 @@ class DatasetPage extends React.Component {
       owner: 'all',
       dataset_id: datasetId,
       page: 1,
-per_page: 1
+      per_page: 1
     }).then(data => {
       const entry = data.results[0]
       const dataset = entry && entry.datasets.find(ds => ds.id + '' === datasetId)

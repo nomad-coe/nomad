@@ -11,13 +11,14 @@ export default class KeepState extends React.Component {
   }
 
   state = {
-    props: null
+    props: null,
+    update: 0
   }
 
-  update() {
+  update(becameVisible) {
     const { visible, render, ...props } = this.props
-    if (this.props.visible) {
-      this.setState({props: props})
+    if (visible) {
+      this.setState({props: props, update: this.state.update + (this.state.props ? 1 : 0)})
     }
   }
 
@@ -36,6 +37,7 @@ export default class KeepState extends React.Component {
     const props = visible ? other : this.state.props
 
     if (props) {
+      props.update = this.state.update
       return <div style={{display: visible ? 'block' : 'none'}}>
         {render(props)}
       </div>

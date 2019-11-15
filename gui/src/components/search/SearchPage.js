@@ -40,7 +40,8 @@ class SearchPage extends React.Component {
     api: PropTypes.object.isRequired,
     user: PropTypes.object,
     location: PropTypes.object,
-    raiseError: PropTypes.func.isRequired
+    raiseError: PropTypes.func.isRequired,
+    update: PropTypes.number
   }
 
   static styles = theme => ({
@@ -52,7 +53,7 @@ class SearchPage extends React.Component {
   })
 
   render() {
-    const { classes, user, location } = this.props
+    const { classes, user, location, update } = this.props
 
     let query = {
       owner: 'all'
@@ -69,6 +70,7 @@ class SearchPage extends React.Component {
     return (
       <div className={classes.root}>
         <SearchContext
+          update={update}
           initialQuery={query} initialRequest={{datasets: true, groups: true}}
           ownerTypes={['all', 'public'].filter(key => user || withoutLogin.indexOf(key) !== -1)}
         >
