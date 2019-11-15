@@ -323,7 +323,6 @@ class Api {
             mimeType: response.data.type
           }
         }
-        console.log(response.data)
         return {
           contents: response.data,
           hasMore: response.data.length === length,
@@ -365,7 +364,6 @@ class Api {
 
   async resolveDoi(doi) {
     this.onStartLoading()
-    console.log(doi)
     return this.swagger()
       .then(client => client.apis.datasets.resolve_doi({doi: doi}))
       .catch(handleApiError)
@@ -532,7 +530,7 @@ export class ApiProviderComponent extends React.Component {
   }
 
   onToken(token) {
-    console.log(token)
+    // console.log(token)
   }
 
   update() {

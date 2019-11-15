@@ -54,7 +54,6 @@ class DownloadButton extends React.Component {
         raiseError(e)
       }
     }
-    console.log(url.href)
     FileSaver.saveAs(url.href, fileName || 'nomad-download.zip')
     this.setState({preparingDownload: false})
   }

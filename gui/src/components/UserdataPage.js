@@ -1,7 +1,4 @@
 import React from 'react'
-import PropTypes from 'prop-types'
-import { withStyles } from '@material-ui/core/styles'
-import { compose } from 'recompose'
 import { withApi } from './api'
 import Search from './search/Search'
 import SearchContext from './search/SearchContext'
