@@ -37,6 +37,8 @@ import KeepState from './KeepState'
 import {help as userdataHelp, default as UserdataPage} from './UserdataPage'
 import ResolveDOI from './dataset/ResolveDOI'
 
+export const ScrollContext = React.createContext({scrollParentRef: null});
+
 export class VersionMismatch extends Error {
   constructor(msg) {
     super(msg)
@@ -170,7 +172,9 @@ class NavigationUnstyled extends React.Component {
 
   constructor(props) {
     super(props)
-
+    this.scroll = {
+      scrollParentRef: null
+    }
     this.state = {
       open: false
     }
@@ -332,9 +336,11 @@ class NavigationUnstyled extends React.Component {
               </MenuList>
             </Drawer>
 
-            <main className={classes.content}>
+            <main className={classes.content} ref={(ref) => this.scroll.scrollParentRef = ref}>
               <div className={classes.toolbar} />
-              {children}
+              <ScrollContext.Provider value={this.scroll}>
+                {children}
+              </ScrollContext.Provider>
             </main>
 
           </MuiThemeProvider>

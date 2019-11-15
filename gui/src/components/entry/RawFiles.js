@@ -7,6 +7,8 @@ import { compose } from 'recompose'
 import Download from './Download'
 import ReloadIcon from '@material-ui/icons/Cached'
 import ViewIcon from '@material-ui/icons/Search'
+import InfiniteScroll from 'react-infinite-scroller'
+import { ScrollContext } from '../App'
 
 class RawFiles extends React.Component {
   static propTypes = {
@@ -90,7 +92,7 @@ class RawFiles extends React.Component {
     return file.split('/').reverse()[0]
   }
 
-  onSelectFile(file) {
+  handleSelectFile(file) {
     const {selectedFiles} = this.state
     const index = selectedFiles.indexOf(file)
     if (index === -1) {
@@ -103,10 +105,44 @@ class RawFiles extends React.Component {
 
   handleFileClicked(file) {
     const {api, uploadId, raiseError} = this.props
-    this.setState({shownFile: file})
-    api.getRawFile(uploadId, file)
+    this.setState({shownFile: file, fileContents: null})
+    api.getRawFile(uploadId, file, {length: 16 * 1024})
       .then(contents => this.setState({fileContents: contents}))
       .catch(raiseError)
+  }
+
+  handleLoadMore(page) {
+    const {api, uploadId, raiseError} = this.props
+    const {fileContents, shownFile} = this.state
+
+    // The infinite scroll component has the issue if calling load more whenever it
+    // gets updates, therefore calling this infinitely before it gets any chances of
+    // receiving the results (https://github.com/CassetteRocks/react-infinite-scroller/issues/163).
+    // Therefore, we have to set hasMore to false first and set it to true again after
+    // receiving actual results.
+    this.setState({
+      fileContents: {
+        ...fileContents,
+        hasMore: false
+      }
+    })
+
+    if (fileContents.contents.length < (page + 1) * 16 * 1024) {
+      api.getRawFile(uploadId, shownFile, {offset: page * 16 * 1024, length: 16 * 1024})
+        .then(contents => {
+          const {fileContents} = this.state
+          this.setState({
+            fileContents: {
+              ...contents,
+              contents: ((fileContents && fileContents.contents) || '') + contents.contents
+            }
+          })
+        })
+        .catch(error => {
+          this.setState({fileContents: null, shownFile: null})
+          raiseError(error)
+        })
+    }
   }
 
   render() {
@@ -165,7 +201,7 @@ class RawFiles extends React.Component {
                     <Checkbox
                       disabled={loading > 0}
                       checked={selectedFiles.indexOf(file) !== -1}
-                      onChange={() => this.onSelectFile(file)} value={file}
+                      onChange={() => this.handleSelectFile(file)} value={file}
                     />
                   }
                 />
@@ -177,13 +213,26 @@ class RawFiles extends React.Component {
               </FormGroup>
             ))}
           </div>
-          {fileContents && fileContents.contents &&
-            <div className={classes.fileContents}>
-              <pre style={{margin: 0}}>
-                {`${fileContents.contents}`}
-              </pre>
-            </div>}
-          {fileContents && !fileContents.contents &&
+          {fileContents && fileContents.contents !== null &&
+            <ScrollContext.Consumer>
+              {scroll =>
+                <InfiniteScroll
+                  className={classes.fileContents}
+                  pageStart={0}
+                  loadMore={this.handleLoadMore.bind(this)}
+                  hasMore={fileContents.hasMore}
+                  useWindow={false}
+                  getScrollParent={() => scroll.scrollParentRef}
+                >
+                  <pre style={{margin: 0}}>
+                    {`${fileContents.contents}`}
+                    &nbsp;
+                  </pre>
+                </InfiniteScroll>
+              }
+            </ScrollContext.Consumer>
+          }
+          {fileContents && fileContents.contents === null &&
             <div className={classes.fileError}>
               <Typography color="error">
                 Cannot display file due to unsupported file format.

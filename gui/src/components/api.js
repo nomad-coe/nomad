@@ -296,25 +296,37 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
-  async getRawFile(uploadId, path) {
+  async getRawFile(uploadId, path, kwargs) {
     this.onStartLoading()
+    const length = (kwargs && kwargs.length) || 4096
     return this.swagger()
       .then(client => client.apis.raw.get({
         upload_id: uploadId,
         path: path,
         decompress: true,
-        length: 4096
+        ...(kwargs || {}),
+        length: length
       }))
       .catch(handleApiError)
       .then(response => {
         if (response.data instanceof Blob) {
+          if (response.data.type.endsWith('empty')) {
+            return {
+              contents: '',
+              hasMore: false,
+              mimeType: 'plain/text'
+            }
+          }
           return {
             contents: null,
+            hasMore: false,
             mimeType: response.data.type
           }
         }
+        console.log(response.data)
         return {
           contents: response.data,
+          hasMore: response.data.length === length,
           mimeType: 'plain/text'
         }
       })
