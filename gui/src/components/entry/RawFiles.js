@@ -28,7 +28,12 @@ class RawFiles extends React.Component {
       padding: theme.spacing.unit * 2
     },
     shownFile: {
-      color: theme.palette.primary.main
+      color: theme.palette.primary.main,
+      overflowX: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+      direction: 'rtl',
+      textAlign: 'left'
     },
     fileContents: {
       width: '85%',
@@ -41,6 +46,22 @@ class RawFiles extends React.Component {
     fileError: {
       marginTop: 16,
       padding: 8
+    },
+    fileNameFormGroup: {
+      display: 'flex',
+      flexWrap: 'nowrap'
+    },
+    fileNameFormGroupLabel: {
+      flexGrow: 1,
+      overflowX: 'hidden',
+      marginRight: 0
+    },
+    fileNameLabel: {
+      overflowX: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+      direction: 'rtl',
+      textAlign: 'left'
     }
   })
 
@@ -195,16 +216,22 @@ class RawFiles extends React.Component {
         <div style={{display: 'flex', flexDirection: 'row'}}>
           <div style={{width: '25%'}}>
             {availableFiles.map((file, index) => (
-              <FormGroup row key={index}>
-                <FormControlLabel label={this.label(file)} classes={{label: file === shownFile ? classes.shownFile : null}}
-                  control={
-                    <Checkbox
-                      disabled={loading > 0}
-                      checked={selectedFiles.indexOf(file) !== -1}
-                      onChange={() => this.handleSelectFile(file)} value={file}
-                    />
-                  }
-                />
+              <FormGroup row key={index} className={classes.fileNameFormGroup}>
+                <Tooltip title={file}>
+                  <FormControlLabel
+                    style={{flexGrow: 1, overflowX: 'hidden', textOverflow: 'ellipsis'}}
+                    label={this.label(file)}
+                    classes={{
+                        root: classes.fileNameFormGroupLabel,
+                        label: file === shownFile ? classes.shownFile : classes.fileNameLabel}}
+                    control={
+                      <Checkbox
+                        disabled={loading > 0}
+                        checked={selectedFiles.indexOf(file) !== -1}
+                        onChange={() => this.handleSelectFile(file)} value={file}
+                      />}
+                  />
+                </Tooltip>
                 <Tooltip title='Show contents'>
                   <IconButton onClick={() => this.handleFileClicked(file)}>
                     <ViewIcon />
