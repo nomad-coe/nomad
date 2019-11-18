@@ -45,14 +45,14 @@ def v0Dot6(upload_data):
         return target_user.user_id
 
     def transform_dataset(source_dataset):
-        legacy_id = source_dataset['id']
-        target_dataset = __Dataset.objects(legacy_id=legacy_id).first()
+        pid = str(source_dataset['id'])
+        target_dataset = __Dataset.objects(pid=pid).first()
         if target_dataset is not None:
             return target_dataset.dataset_id
 
         target_dataset = __Dataset(
             dataset_id=utils.create_uuid(),
-            legacy_id=source_dataset['id'],
+            pid=pid,
             name=source_dataset['name'])
 
         if 'doi' in source_dataset and source_dataset['doi'] is not None:

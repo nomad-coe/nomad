@@ -91,7 +91,7 @@ class Dataset(metainfo.MSection):
             the dataset in the nomad UI. This quantity holds the string representation of
             this DOI. There is only one per dataset. The DOI is just the DOI name, not its
             full URL, e.g. "10.17172/nomad/2019.10.29-1".
-        legacy_id: The original NOMAD CoE Repository dataset PID. Old DOIs still reference
+        pid: The original NOMAD CoE Repository dataset PID. Old DOIs still reference
             datasets based on this id. Is not used for new datasets.
     """
     dataset_id = metainfo.Quantity(
@@ -106,7 +106,7 @@ class Dataset(metainfo.MSection):
     doi = metainfo.Quantity(
         type=str,
         a_me=dict(index=True))
-    legacy_id = metainfo.Quantity(
+    pid = metainfo.Quantity(
         type=str,
         a_me=dict(index=True))
 
