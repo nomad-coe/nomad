@@ -173,11 +173,15 @@ class Keycloak():
             auth_error: str = None
             try:
                 kid = jwt.get_unverified_header(g.oidc_access_token)['kid']
-                key = self._public_keys[kid]
-                options = dict(verify_aud=False, verify_exp=True, verify_iss=True)
-                payload = jwt.decode(
-                    g.oidc_access_token, key=key, algorithms=['RS256'], options=options,
-                    issuer='%s/realms/%s' % (config.keycloak.server_url.rstrip('/'), config.keycloak.realm_name))
+                key = self._public_keys.get(kid)
+                if key is None:
+                    logger.error('The user provided keycloak public key does not exist. Does the UI use the right realm?')
+                    auth_error = 'Could not verify JWT token: public key does not exist'
+                else:
+                    options = dict(verify_aud=False, verify_exp=True, verify_iss=True)
+                    payload = jwt.decode(
+                        g.oidc_access_token, key=key, algorithms=['RS256'], options=options,
+                        issuer='%s/realms/%s' % (config.keycloak.server_url.rstrip('/'), config.keycloak.realm_name))
 
             except jwt.InvalidTokenError as e:
                 auth_error = str(e)
