@@ -24,7 +24,8 @@ class SuggestionsTextFieldUnstyled extends React.Component {
     onChange: PropTypes.func.isRequired,
     suggestions: PropTypes.func.isRequired,
     suggestionValue: PropTypes.func.isRequired,
-    suggestionRendered: PropTypes.func.isRequired
+    suggestionRendered: PropTypes.func.isRequired,
+    autosuggestProps: PropTypes.object
   }
 
   static styles = theme => ({
@@ -46,7 +47,8 @@ class SuggestionsTextFieldUnstyled extends React.Component {
 
   constructor(props) {
     super(props)
-    this.lastRequestId = null
+    this.lastRequestTimeout = null
+    this.lastRequested = null
     this.unmounted = false
   }
 
@@ -59,23 +61,27 @@ class SuggestionsTextFieldUnstyled extends React.Component {
   }
 
   loadSuggestions(value) {
-    if (this.state.isLoading) {
+    this.lastRequested = value
+
+    if (this.state.loading) {
       return
     }
 
-    if (this.lastRequestId !== null) {
-      clearTimeout(this.lastRequestId)
+    if (this.lastRequestTimeout !== null) {
+      clearTimeout(this.lastRequestTimeout)
     }
 
-    this.setState({
-      isLoading: true
-    })
-
-    this.lastRequestId = setTimeout(() => {
+    this.lastRequestTimeout = setTimeout(() => {
+      this.setState({
+        loading: this.lastRequested
+      })
       this.props.suggestions(value).then(suggestions => {
         if (!this.unmounted) {
+          if (this.lastRequested !== this.state.loading) {
+            this.loadSuggestions(this.lastRequested)
+          }
           this.setState({
-            isLoading: false,
+            loading: null,
             suggestions: suggestions
           })
         }
@@ -85,7 +91,7 @@ class SuggestionsTextFieldUnstyled extends React.Component {
 
   state = {
     suggestions: [],
-    isLoading: false,
+    loading: false,
     anchorEl: null
   }
 
@@ -113,12 +119,11 @@ class SuggestionsTextFieldUnstyled extends React.Component {
     suggestion = this.props.suggestionRendered(suggestion)
     const matches = match(suggestion, query)
     const parts = parse(suggestion, matches)
-
     return (
       <MenuItem selected={isHighlighted} component="div">
         <div>
-          {parts.map(part => (
-            <span key={part.text} style={{ fontWeight: part.highlight ? 500 : 400 }}>
+          {parts.map((part, i) => (
+            <span key={i} style={{ fontWeight: part.highlight ? 500 : 400 }}>
               {part.text}
             </span>
           ))}
@@ -128,7 +133,7 @@ class SuggestionsTextFieldUnstyled extends React.Component {
   }
 
   render() {
-    const { classes, onChange, value, suggestions, suggestionValue, suggestionRendered, ...props } = this.props
+    const { classes, onChange, value, suggestions, suggestionValue, suggestionRendered, autosuggestProps, ...props } = this.props
     const { anchorEl } = this.state
 
     const handleSuggestionsFetchRequested = ({ value }) => {
@@ -143,19 +148,20 @@ class SuggestionsTextFieldUnstyled extends React.Component {
       onChange({target: {value: newValue}})
     }
 
-    const autosuggestProps = {
+    const allAutosuggestProps = {
       renderInputComponent: this.renderInputComponent.bind(this),
       suggestions: this.state.suggestions,
       onSuggestionsFetchRequested: handleSuggestionsFetchRequested,
       onSuggestionsClearRequested: handleSuggestionsClearRequested,
       getSuggestionValue: suggestionValue,
-      renderSuggestion: this.renderSuggestion.bind(this)
+      renderSuggestion: this.renderSuggestion.bind(this),
+      ...(autosuggestProps || {})
     }
 
     return (
       <div className={classes.root}>
         <Autosuggest
-          {...autosuggestProps}
+          {...allAutosuggestProps}
           inputProps={{
             classes,
             value: value,
@@ -487,6 +493,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
 
     const listTextInputProps = (key, verify) => {
       const values = actions[key] ? actions[key] : this.editData[key].map(value => ({value: value}))
+
       return {
         id: key,
         fullWidth: true,
@@ -501,8 +508,25 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     }
 
     const userSuggestions = query => {
+      query = query.toLowerCase()
       return api.getUsers(query)
-        .then(result => result.users)
+        .then(result => {
+          console.log(query)
+          const withQueryInName = result.users.filter(
+              user => user.name.toLowerCase().indexOf(query) !== -1)
+            withQueryInName.sort((a, b) => {
+              const aValue = a.name.toLowerCase()
+              const bValue = b.name.toLowerCase()
+              if (aValue.startsWith(query)) {
+                return -1
+              } else if (bValue.startsWith(query)) {
+                return 1
+              } else {
+                return 0 // aValue.localeCompare(bValue)
+              }
+            })
+          return withQueryInName.slice(0, 5)
+        })
         .catch(err => {
           console.error(err)
           return []
@@ -553,18 +577,24 @@ class EditUserMetadataDialogUnstyled extends React.Component {
                 }}
                 suggestionRendered={v => `${v.name} (${v.email})`}
                 placeholder="Add a co-author by name"
-                {...listTextInputProps('coauthors', true)}
+                {...listTextInputProps('coauthors', true, 2)}
+                autosuggestProps={{
+                  shouldRenderSuggestions: (value) => value.trim().length >= 2
+                }}
               />
               <SuggestionsListTextInput
-                {...listTextInputProps('shared_with', true)}
+                {...listTextInputProps('shared_with', true, 2)}
                 suggestions={userSuggestions}
                 suggestionValue={v => v.email}
                 suggestionRendered={v => `${v.name} (${v.email})`}
                 label="Shared with"
                 placeholder="Add a user by name to share with"
+                autosuggestProps={{
+                  shouldRenderSuggestions: (value) => value.trim().length >= 2
+                }}
               />
               <SuggestionsListTextInput
-                {...listTextInputProps('datasets', true)}
+                {...listTextInputProps('datasets', true, 0)}
                 suggestions={prefix => {
                   return api.getDatasets(prefix)
                     .then(result => result.results.map(ds => ds.name))
@@ -577,6 +607,9 @@ class EditUserMetadataDialogUnstyled extends React.Component {
                 suggestionRendered={v => v}
                 label="Datasets"
                 placeholder="Add a dataset"
+                autosuggestProps={{
+                  shouldRenderSuggestions: () => true
+                }}
               />
             </DialogContent>
             {Object.keys(actions).length
