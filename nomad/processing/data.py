@@ -706,6 +706,21 @@ class Upload(Proc):
         # the 'cleanup' task after processing all calcs
 
     @process
+    def re_pack(self):
+        """ A *process* that repacks the raw and archive data based on the current embargo data. """
+        assert self.published
+
+        # mock the steps of actual processing
+        self._continue_with('uploading')
+        self._continue_with('extracting')
+        self._continue_with('parse_all')
+        self._continue_with('cleanup')
+
+        self.upload_files.re_pack(self.to_upload_with_metadata())
+        self.joined = True
+        self._complete()
+
+    @process
     def process_upload(self):
         """ A *process* that performs the initial upload processing. """
         self.extracting()
