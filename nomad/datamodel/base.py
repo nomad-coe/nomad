@@ -295,6 +295,9 @@ class Domain:
             description=(
                 'Search for the given author. Exact keyword matches in the form "Lastname, '
                 'Firstname".')),
+        uploader_id=DomainQuantity(
+            elastic_field='uploader.user_id', multi=False, aggregations=5,
+            description=('Search for the given uploader id.')),
         comment=DomainQuantity(
             elastic_search_type='match', multi=True,
             description='Search within the comments. This is a text search ala google.'),

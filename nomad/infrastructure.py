@@ -208,7 +208,7 @@ class Keycloak():
             # Do not return an error. This is the case were there are no credentials
             return None
 
-    def add_user(self, user, bcrypt_password=None):
+    def add_user(self, user, bcrypt_password=None, invite=False):
         """
         Adds the given :class:`nomad.datamodel.User` instance to the configured keycloak
         realm using the keycloak admin API.
@@ -241,6 +241,10 @@ class Keycloak():
             enabled=True,
             emailVerified=True)
 
+        if invite:
+            keycloak_user['requiredActions'] = [
+                'UPDATE_PASSWORD', 'UPDATE_PROFILE', 'VERIFY_EMAIL']
+
         if bcrypt_password is not None:
             keycloak_user['credentials'] = [dict(
                 type='password',
@@ -265,6 +269,10 @@ class Keycloak():
             self._admin_client.create_user(keycloak_user)
         except Exception as e:
             return str(e)
+
+        if invite:
+            # TODO send invite
+            pass
 
         return None
 

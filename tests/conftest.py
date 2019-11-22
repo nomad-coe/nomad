@@ -210,17 +210,27 @@ test_users = {
 
 
 class KeycloakMock:
+    def __init__(self):
+        self.id_counter = 2
+        self.users = dict(**test_users)
+
     def authorize_flask(self, *args, **kwargs):
         if 'Authorization' in request.headers and request.headers['Authorization'].startswith('Bearer '):
             user_id = request.headers['Authorization'].split(None, 1)[1].strip()
             g.oidc_access_token = user_id
-            g.user = User(**test_users[user_id])
+            g.user = User(**self.users[user_id])
+
+    def add_user(self, user, *args, **kwargs):
+        self.id_counter += 1
+        user.user_id = test_user_uuid(self.id_counter)
+        self.users[user.user_id] = dict(email=user.email, first_name=user.first_name, last_name=user.last_name, user_id=user.user_id)
+        return None
 
     def get_user(self, user_id=None, email=None):
         if user_id is not None:
-            return User(**test_users[user_id])
+            return User(**self.users[user_id])
         elif email is not None:
-            for user_id, user_values in test_users.items():
+            for user_id, user_values in self.users.items():
                 if user_values['email'] == email:
                     return User(**user_values)
             raise KeyError('Only test user emails are recognized')
@@ -229,7 +239,7 @@ class KeycloakMock:
 
     def search_user(self, query):
         return [
-            User(**test_user) for test_user in test_users.values()
+            User(**test_user) for test_user in self.users.values()
             if query in ' '.join(test_user.values())]
 
     @property
@@ -240,9 +250,9 @@ class KeycloakMock:
 _keycloak = infrastructure.keycloak
 
 
-@pytest.fixture(scope='session', autouse=True)
-def mocked_keycloak(monkeysession):
-    monkeysession.setattr('nomad.infrastructure.keycloak', KeycloakMock())
+@pytest.fixture(scope='function', autouse=True)
+def mocked_keycloak(monkeypatch):
+    monkeypatch.setattr('nomad.infrastructure.keycloak', KeycloakMock())
 
 
 @pytest.fixture(scope='function')

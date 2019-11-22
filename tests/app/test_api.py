@@ -139,10 +139,24 @@ class TestAuth:
         assert len(data['users'])
         keys = data['users'][0].keys()
         required_keys = ['name', 'email', 'user_id']
-        assert len(keys) == len(required_keys)
         assert all(key in keys for key in required_keys)
         for key in keys:
             assert data['users'][0].get(key) is not None
+
+    def test_invite(self, api, test_user_auth):
+        rv = api.put(
+            '/auth/users', headers=test_user_auth, content_type='application/json',
+            data=json.dumps({
+                'first_name': 'John',
+                'last_name': 'Doe',
+                'affiliation': 'Affiliation',
+                'email': 'john.doe@affiliation.edu'
+            }))
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        keys = data.keys()
+        required_keys = ['name', 'email', 'user_id']
+        assert all(key in keys for key in required_keys)
 
 
 class TestUploads:
@@ -1066,9 +1080,13 @@ class TestEditRepo():
         quantity_actions = actions[quantity]
         if not isinstance(quantity_actions, list):
             quantity_actions = [quantity_actions]
+        has_failure = False
+        has_message = False
         for action in quantity_actions:
-            assert action['success'] == success
-            assert ('message' in action) == message
+            has_failure = has_failure or not action['success']
+            has_message = has_message or ('message' in action)
+        assert not has_failure == success
+        assert has_message == message
 
     def mongo(self, *args, **kwargs):
         for calc_id in args:
@@ -1097,8 +1115,8 @@ class TestEditRepo():
         edit_data = dict(
             comment='test_edit_props',
             references=['http://test', 'http://test2'],
-            coauthors=[other_test_user.email],
-            shared_with=[other_test_user.email])
+            coauthors=[other_test_user.user_id],
+            shared_with=[other_test_user.user_id])
         rv = self.perform_edit(**edit_data, query=dict(upload_id='upload_1'))
         result = json.loads(rv.data)
         actions = result.get('actions')
@@ -1150,6 +1168,21 @@ class TestEditRepo():
         self.assert_edit(rv, quantity='comment', success=True, message=False)
         assert not self.mongo(1, comment='test_edit_verify')
 
+    def test_edit_empty_list(self, other_test_user):
+        rv = self.perform_edit(coauthors=[other_test_user.user_id], query=dict(upload_id='upload_1'))
+        self.assert_edit(rv, quantity='coauthors', success=True, message=False)
+        rv = self.perform_edit(coauthors=[], query=dict(upload_id='upload_1'))
+        self.assert_edit(rv, quantity='coauthors', success=True, message=False)
+        assert self.mongo(1, coauthors=[])
+
+    def test_edit_duplicate_value(self, other_test_user):
+        rv = self.perform_edit(coauthors=[other_test_user.user_id, other_test_user.user_id], query=dict(upload_id='upload_1'))
+        self.assert_edit(rv, status_code=400, quantity='coauthors', success=False, message=True)
+
+    def test_edit_uploader_as_coauthor(self, test_user):
+        rv = self.perform_edit(coauthors=[test_user.user_id], query=dict(upload_id='upload_1'))
+        self.assert_edit(rv, status_code=400, quantity='coauthors', success=False, message=True)
+
     def test_edit_ds(self):
         rv = self.perform_edit(
             datasets=[self.example_dataset.name], query=dict(upload_id='upload_1'))
@@ -1183,7 +1216,7 @@ class TestEditRepo():
         self.assert_edit(rv, status_code=400, quantity='coauthors', success=False, message=True)
 
     def test_edit_user(self, other_test_user):
-        rv = self.perform_edit(coauthors=[other_test_user.email], query=dict(upload_id='upload_1'))
+        rv = self.perform_edit(coauthors=[other_test_user.user_id], query=dict(upload_id='upload_1'))
         self.assert_edit(rv, quantity='coauthors', success=True, message=False)
 
     def test_admin_only(self, other_test_user):

@@ -1,6 +1,8 @@
 from flask_restplus import fields
 
-from .metainfo import Section, Quantity
+from nomad.app.utils import RFC3339DateTime
+
+from .metainfo import Section, Quantity, Datetime
 
 
 def field(quantity: Quantity):
@@ -14,6 +16,8 @@ def field(quantity: Quantity):
         field = fields.String
     elif quantity.type == bool:
         field = fields.Boolean
+    elif quantity.type == Datetime:
+        field = RFC3339DateTime
     else:
         raise NotImplementedError
 

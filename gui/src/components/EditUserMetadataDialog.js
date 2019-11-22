@@ -17,15 +17,23 @@ import parse from 'autosuggest-highlight/parse'
 import { compose } from 'recompose'
 import { withApi } from './api'
 
-class SuggestionsTextFieldUnstyled extends React.Component {
+const local_users = {}
+
+function update_local_user(user) {
+  local_users[user.user_id] = user
+}
+
+class MyAutosuggestUnstyled extends React.PureComponent {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    value: PropTypes.string.isRequired,
-    onChange: PropTypes.func.isRequired,
+    shouldRenderSuggestions: PropTypes.func,
     suggestions: PropTypes.func.isRequired,
-    suggestionValue: PropTypes.func.isRequired,
-    suggestionRendered: PropTypes.func.isRequired,
-    autosuggestProps: PropTypes.object
+    getSuggestionValue: PropTypes.func.isRequired,
+    getSuggestionRenderValue: PropTypes.func,
+    inputProps: PropTypes.object,
+    value: PropTypes.any,
+    onChange: PropTypes.func,
+    allowNew: PropTypes.bool
   }
 
   static styles = theme => ({
@@ -45,12 +53,22 @@ class SuggestionsTextFieldUnstyled extends React.Component {
     }
   })
 
-  constructor(props) {
-    super(props)
-    this.lastRequestTimeout = null
-    this.lastRequested = null
-    this.unmounted = false
+  state = {
+    suggestions: [],
+    loadingRequest: null,
+    inputValue: this.props.getSuggestionValue(this.props.value)
   }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.value !== this.props.value && this.props.value !== undefined) {
+      this.setState({inputValue: this.props.getSuggestionValue(this.props.value)})
+    }
+  }
+
+  popperNode = null
+  unmounted = false
+  lastRequested = null
+  lastRequestTimeout = null
 
   componentWillUnmount() {
     this.unmounted = true
@@ -60,10 +78,11 @@ class SuggestionsTextFieldUnstyled extends React.Component {
     this.unmounted = false
   }
 
-  loadSuggestions(value) {
+  handleSuggestionsFetchRequested({value}) {
+    value = value.trim()
     this.lastRequested = value
 
-    if (this.state.loading) {
+    if (this.state.loadingRequest) {
       return
     }
 
@@ -73,26 +92,76 @@ class SuggestionsTextFieldUnstyled extends React.Component {
 
     this.lastRequestTimeout = setTimeout(() => {
       this.setState({
-        loading: this.lastRequested
+        loadingRequest: this.lastRequested
       })
       this.props.suggestions(value).then(suggestions => {
         if (!this.unmounted) {
-          if (this.lastRequested !== this.state.loading) {
-            this.loadSuggestions(this.lastRequested)
+          if (this.lastRequested !== this.state.loadingRequest) {
+            this.handleSuggestionsFetchRequested({value: this.lastRequested})
           }
           this.setState({
-            loading: null,
+            loadingRequest: null,
             suggestions: suggestions
-          })
+          }, () => this.handleChangedInputValue(this.state.inputValue))
         }
       })
     }, 200)
   }
 
-  state = {
-    suggestions: [],
-    loading: false,
-    anchorEl: null
+  handleSuggestionsClearRequested() {
+    this.setState({suggestions: []})
+  }
+
+  handleChangedInputValue(value) {
+    const {allowNew} = this.props
+    const normalizedValue = value.trim().toLowerCase()
+    const {getSuggestionValue, onChange} = this.props
+    const event = value => ({target: {value: value}})
+    if (onChange) {
+      if (normalizedValue.length === 0) {
+        onChange(event(null))
+      } else {
+        const {suggestions} = this.state
+        const matchingSuggestion = suggestions
+          .find(suggestion => getSuggestionValue(suggestion).toLowerCase() === normalizedValue)
+        if (matchingSuggestion) {
+          const matchingSuggestionValue = getSuggestionValue(matchingSuggestion)
+          if (getSuggestionValue(matchingSuggestionValue) !== normalizedValue) {
+            this.setState({inputValue: matchingSuggestionValue + value.trimLeft().slice(matchingSuggestionValue.length)})
+          }
+          onChange(event(matchingSuggestion))
+        } else {
+          if (allowNew) {
+            onChange(event(value.trim()))
+          } else {
+            onChange(event(undefined))
+          }
+        }
+      }
+    }
+  }
+
+  handleChange(event, { newValue }) {
+    this.setState({inputValue: newValue})
+    this.handleChangedInputValue(newValue)
+  }
+
+  renderSuggestion(suggestion, { query, isHighlighted }) {
+    const getValue = this.props.getSuggestionRenderValue || this.props.getSuggestionValue
+    const inputValue = getValue(suggestion)
+    const matches = match(inputValue, query)
+    const parts = parse(inputValue, matches)
+    return (
+      <MenuItem selected={isHighlighted} component="div">
+        <div>
+          {parts.map((part, i) => (
+            <span key={i} style={{ fontWeight: part.highlight ? 500 : 400 }}>
+              {part.text}
+            </span>
+          ))}
+        </div>
+      </MenuItem>
+    )
   }
 
   renderInputComponent(inputProps) {
@@ -115,87 +184,262 @@ class SuggestionsTextFieldUnstyled extends React.Component {
     )
   }
 
-  renderSuggestion(suggestion, { query, isHighlighted }) {
-    suggestion = this.props.suggestionRendered(suggestion)
-    const matches = match(suggestion, query)
-    const parts = parse(suggestion, matches)
-    return (
-      <MenuItem selected={isHighlighted} component="div">
-        <div>
-          {parts.map((part, i) => (
-            <span key={i} style={{ fontWeight: part.highlight ? 500 : 400 }}>
-              {part.text}
-            </span>
-          ))}
-        </div>
-      </MenuItem>
-    )
+  renderSuggestionsContainer(options) {
+    const {classes} = this.props
+    return <Popper anchorEl={this.popperNode} open={Boolean(options.children)} className={classes.popper}>
+      <Paper
+        square
+        {...options.containerProps}
+        style={{ width: this.popperNode ? this.popperNode.clientWidth : null }}
+      >
+        {options.children}
+      </Paper>
+    </Popper>
   }
 
   render() {
-    const { classes, onChange, value, suggestions, suggestionValue, suggestionRendered, autosuggestProps, ...props } = this.props
-    const { anchorEl } = this.state
+    const {
+      classes, shouldRenderSuggestions, getSuggestionValue, suggestions, allowNew,
+      getSuggestionRenderValue, value, onChange, ...inputProps} = this.props
 
-    const handleSuggestionsFetchRequested = ({ value }) => {
-      this.loadSuggestions(value)
-    }
-
-    const handleSuggestionsClearRequested = () => {
-      this.setState({suggestions: []})
-    }
-
-    const handleChange = (event, { newValue }) => {
-      onChange({target: {value: newValue}})
-    }
-
-    const allAutosuggestProps = {
-      renderInputComponent: this.renderInputComponent.bind(this),
-      suggestions: this.state.suggestions,
-      onSuggestionsFetchRequested: handleSuggestionsFetchRequested,
-      onSuggestionsClearRequested: handleSuggestionsClearRequested,
-      getSuggestionValue: suggestionValue,
-      renderSuggestion: this.renderSuggestion.bind(this),
-      ...(autosuggestProps || {})
-    }
-
-    return (
-      <div className={classes.root}>
-        <Autosuggest
-          {...allAutosuggestProps}
-          inputProps={{
-            classes,
-            value: value,
-            onChange: handleChange,
-            inputRef: node => {
-              this.setState({anchorEl: node})
-            },
-            InputLabelProps: {
-              shrink: true
-            },
-            ...props
-          }}
-          theme={{
-            suggestionsList: classes.suggestionsList,
-            suggestion: classes.suggestion
-          }}
-          renderSuggestionsContainer={options => (
-            <Popper anchorEl={anchorEl} open={Boolean(options.children)} className={classes.popper}>
-              <Paper
-                square
-                {...options.containerProps}
-                style={{ width: anchorEl ? anchorEl.clientWidth : undefined }}
-              >
-                {options.children}
-              </Paper>
-            </Popper>
-          )}
-        />
-      </div>
-    )
+    return <div className={classes.root}>
+      <Autosuggest
+        renderInputComponent={this.renderInputComponent.bind(this)}
+        renderSuggestion={this.renderSuggestion.bind(this)}
+        suggestions={this.state.suggestions}
+        onSuggestionsFetchRequested={this.handleSuggestionsFetchRequested.bind(this)}
+        onSuggestionsClearRequested={this.handleSuggestionsClearRequested.bind(this)}
+        getSuggestionValue={getSuggestionValue}
+        shouldRenderSuggestions={shouldRenderSuggestions}
+        inputProps={{
+          classes,
+          value: this.state.inputValue,
+          onChange: this.handleChange.bind(this),
+          inputRef: node => {
+            this.popperNode = node
+          },
+          InputLabelProps: {
+            shrink: true
+          },
+          ...inputProps
+        }}
+        theme={{
+          suggestionsList: classes.suggestionsList,
+          suggestion: classes.suggestion
+        }}
+        renderSuggestionsContainer={this.renderSuggestionsContainer.bind(this)}
+      />
+    </div>
   }
 }
 
-const SuggestionsTextField = withStyles(SuggestionsTextFieldUnstyled.styles)(SuggestionsTextFieldUnstyled)
+const MyAutosuggest = withStyles(MyAutosuggestUnstyled.styles)(MyAutosuggestUnstyled)
+
+class UserInputUnstyled extends React.Component {
+  static propTypes = {
+    value: PropTypes.string,  // user_id
+    label: PropTypes.string,
+    error: PropTypes.bool,
+    api: PropTypes.object.isRequired,
+    onChange: PropTypes.func,
+    margin: PropTypes.any
+  }
+
+  suggestions(query) {
+    const {api} = this.props
+    query = query.toLowerCase()
+    return api.getUsers(query)
+      .then(result => {
+        result.users.forEach(user => update_local_user(user))
+        const withQueryInName = result.users.filter(
+          user => user.name.toLowerCase().indexOf(query) !== -1)
+        withQueryInName.sort((a, b) => {
+          const aValue = a.name.toLowerCase()
+          const bValue = b.name.toLowerCase()
+          if (aValue.startsWith(query)) {
+            return -1
+          } else if (bValue.startsWith(query)) {
+            return 1
+          } else {
+            return 0 // aValue.localeCompare(bValue)
+          }
+        })
+        return withQueryInName.slice(0, 5)
+      })
+      .catch(err => {
+        console.error(err)
+        return []
+      })
+  }
+
+  getSuggestionRenderValue(suggestion) {
+    const affiliation = suggestion.affiliation && suggestion.affiliation.trim()
+    return suggestion.name + (affiliation && ' (' + affiliation + ')')
+  }
+
+  getSuggestionValue(suggestion) {
+    return (suggestion && suggestion.name) || ''
+  }
+
+  handleChange(event) {
+    const value = event.target.value
+    this.props.onChange({target: {value: value ? value.user_id : value}})
+  }
+
+  render() {
+    const {label, error, onChange, value, margin} = this.props
+    const errorLabel = (value === undefined) && 'This user does not exist, you can invite new users'
+    return <MyAutosuggest onChange={this.handleChange.bind(this)} value={value ? local_users[value] : value}
+      suggestions={this.suggestions.bind(this)}
+      getSuggestionValue={this.getSuggestionValue.bind(this)}
+      getSuggestionRenderValue={this.getSuggestionRenderValue.bind(this)}
+      shouldRenderSuggestions={value => value.trim().length > 2}
+      margin={margin}
+      label={errorLabel || label}
+      error={!!(error || errorLabel)}
+      placeholder={`Type ${label}'s name and select a user from the list`}
+    />
+  }
+}
+
+const UserInput = withApi(false)(UserInputUnstyled)
+
+class DatasetInputUnstyled extends React.Component {
+  static propTypes = {
+    value: PropTypes.string,  // name
+    label: PropTypes.string,
+    error: PropTypes.bool,
+    api: PropTypes.object.isRequired,
+    onChange: PropTypes.func,
+    margin: PropTypes.any
+  }
+
+  suggestions(query) {
+    const {api} = this.props
+    query = query.toLowerCase()
+    return api.getDatasets(query)
+      .then(result => result.results.map(ds => ds.name))
+      .catch(err => {
+        console.error(err)
+        return []
+      })
+  }
+
+  getSuggestionRenderValue(suggestion) {
+    return suggestion
+  }
+
+  getSuggestionValue(suggestion) {
+    return suggestion || ''
+  }
+
+  render() {
+    const {label, error, onChange, value, margin} = this.props
+    let usedLabel = label
+    if (value === undefined) {
+      usedLabel = 'This dataset does not exist, it will be created'
+    }
+
+    return <MyAutosuggest onChange={onChange} value={value}
+      allowNew
+      suggestions={this.suggestions.bind(this)}
+      getSuggestionValue={this.getSuggestionValue.bind(this)}
+      getSuggestionRenderValue={this.getSuggestionRenderValue.bind(this)}
+      shouldRenderSuggestions={() => true}
+      margin={margin}
+      label={usedLabel}
+      placeholder={`Type the dataset's name`}
+    />
+  }
+}
+
+const DatasetInput = withApi(false)(DatasetInputUnstyled)
+
+class ReferenceInput extends React.Component {
+  static propTypes = {
+    onChange: PropTypes.func.isRequired,
+    value: PropTypes.string,
+    label: PropTypes.string
+  }
+
+  state = {
+    inputValue: this.props.value || ''
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.value !== this.props.value && this.props.value !== undefined) {
+      this.setState({inputValue: this.props.value || ''})
+    }
+  }
+
+  handleChange(event) {
+    const inputValue = event.target.value
+    this.setState({inputValue: inputValue})
+    const trimmedInputValue = inputValue.trim()
+    let value = null
+    if (trimmedInputValue.length !== 0) {
+      if (isURL(trimmedInputValue)) {
+        value = trimmedInputValue
+      } else {
+        value = undefined
+      }
+    }
+    if (value !== this.props.value) {
+      this.props.onChange({target: {value: value}})
+    }
+  }
+
+  render() {
+    const {value, onChange, label, ...rest} = this.props
+    return <TextField
+      fullWidth
+      {...rest}
+      value={this.state.inputValue}
+      onChange={this.handleChange.bind(this)}
+      error={value === undefined}
+      label={value === undefined ? 'A reference must be a valid url' : label}
+    />
+  }
+}
+
+class ActionInput extends React.PureComponent {
+  static propTypes = {
+    value: PropTypes.object.isRequired,
+    onChange: PropTypes.func.isRequired,
+    label: PropTypes.string,
+    component: PropTypes.func
+  }
+
+  handleChange(event) {
+    const value = event.target.value
+    if (value !== this.props.value.value) {
+      this.props.onChange({massage: null, success: true, value: value})
+    }
+  }
+
+  render() {
+    const {value, onChange, component, label, ...rest} = this.props
+    const Component = component || TextField
+
+    const {message, success} = value
+    let labelWithMessageAndError = label
+    let error = false
+    if (success === false) {
+      labelWithMessageAndError = message || 'Bad value'
+      error = true
+    } else if (message) {
+      labelWithMessageAndError = message
+    }
+
+    return <Component
+      value={value.value}
+      label={labelWithMessageAndError}
+      error={error}
+      onChange={this.handleChange.bind(this)}
+      {...rest} />
+  }
+}
+
 
 var urlPattern = new RegExp('^(https?:\\/\\/)?' + // protocol
   '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|' + // domain name
@@ -205,16 +449,14 @@ var urlPattern = new RegExp('^(https?:\\/\\/)?' + // protocol
   '(\\#[-a-z\\d_]*)?$', 'i') // fragment locator
 
 function isURL(str) {
-  return str === '' || urlPattern.test(str.trim())
+  return !str || str === '' || urlPattern.test(str.trim())
 }
 
 class ListTextInputUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     values: PropTypes.arrayOf(PropTypes.object).isRequired,
-    validate: PropTypes.func,
     label: PropTypes.string,
-    errorLabel: PropTypes.string,
     onChange: PropTypes.func,
     component: PropTypes.func
   }
@@ -235,23 +477,19 @@ class ListTextInputUnstyled extends React.Component {
   })
 
   render() {
-    const { classes, values, onChange, label, errorLabel, validate, component, ...fieldProps } = this.props
+    const { classes, values, onChange, label, errorLabel, validate, component, emptyValue, ...fieldProps } = this.props
+
     const handleChange = (index, value) => {
-      // TODO
       if (onChange) {
         const newValues = [...values]
-        if (newValues[index]) {
-          newValues[index].value = value
-        } else {
-          newValues[index] = {value: value}
-        }
+        newValues[index] = value
         onChange(newValues)
       }
     }
 
     const handleAdd = () => {
       if (onChange) {
-        onChange([...values, {value: ''}])
+        onChange([...values, {value: null}])
       }
     }
 
@@ -262,26 +500,18 @@ class ListTextInputUnstyled extends React.Component {
     }
 
     const Component = component || TextField
-    const normalizedValues = values.length === 0 ? [{value: ''}] : values
+    const normalizedValues = values.length === 0 ? [{value: null}] : values
 
     return <React.Fragment>
-      {normalizedValues.map(({value, message, success}, index) => {
-        let error = validate && !validate(value)
+      {normalizedValues.map((value, index) => {
         let labelValue
         if (index === 0) {
           labelValue = label
         }
-        if (error) {
-          labelValue = errorLabel || 'Bad value'
-        } else if (message) {
-          labelValue = message
-          error = !success
-        }
         return <div key={index} className={classes.row}>
-          <Component
+          <ActionInput component={Component}
             value={value}
-            error={error}
-            onChange={(event) => handleChange(index, event.target.value)}
+            onChange={value => handleChange(index, value)}
             label={labelValue}
             margin={index === 0 ? 'normal' : 'dense'}
             InputLabelProps={{
@@ -296,7 +526,7 @@ class ListTextInputUnstyled extends React.Component {
               </IconButton> : ''}
           </div>
           <div className={classes.buttonContainer}>
-            {index + 1 === normalizedValues.length && normalizedValues[index].value !== ''
+            {index + 1 === normalizedValues.length && value.value
               ? <IconButton className={classes.button} size="tiny" onClick={handleAdd}>
                 <AddIcon fontSize="inherit" />
               </IconButton> : ''}
@@ -309,11 +539,6 @@ class ListTextInputUnstyled extends React.Component {
 
 const ListTextInput = withStyles(ListTextInputUnstyled.styles)(ListTextInputUnstyled)
 
-class SuggestionsListTextInput extends React.Component {
-  render() {
-    return <ListTextInput component={SuggestionsTextField} {...this.props} />
-  }
-}
 
 class EditUserMetadataDialogUnstyled extends React.Component {
   static propTypes = {
@@ -370,7 +595,13 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     actions: {},
     isVerifying: false,
     verified: true,
-    submitting: false
+    submitting: false,
+    testCoauthors: [],
+    testUser: {
+      message: null,
+      success: true,
+      value: null
+    }
   }
 
   componentWillUnmount() {
@@ -379,11 +610,17 @@ class EditUserMetadataDialogUnstyled extends React.Component {
 
   update() {
     const { example } = this.props
+    example.authors.forEach(user => update_local_user(user))
+    example.owners.forEach(user => update_local_user(user))
     this.editData = {
       comment: example.comment || '',
       references: example.references || [],
-      coauthors: (example.authors || []).filter(author => author.user_id !== example.uploader.user_id).map(author => author.email),
-      shared_with: (example.owners || []).filter(author => author.user_id !== example.uploader.user_id).map(author => author.email),
+      coauthors: (example.authors || [])
+        .filter(user => user.user_id !== example.uploader.user_id)
+        .map(user => user.user_id),
+      shared_with: (example.owners || [])
+        .filter(user => user.user_id !== example.uploader.user_id)
+        .map(user => user.user_id),
       datasets: (example.datasets || []).map(ds => ds.name),
       with_embargo: example.with_embargo
     }
@@ -403,6 +640,20 @@ class EditUserMetadataDialogUnstyled extends React.Component {
   verify() {
     if (this.state.isVerifying) {
       return
+    }
+
+    const { actions } = this.state
+
+    for (let key of Object.keys(actions)) {
+      const actionValues = actions[key]
+      if (Array.isArray(actionValues)) {
+        if (actionValues.find(action => action.value === undefined)) {
+          this.setState({
+            isVerifying: false, verified: false
+          })
+          return
+        }
+      }
     }
 
     if (this.verifyTimer !== null) {
@@ -432,6 +683,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
       verify: verify,
       actions: actions
     }
+
     return api.edit(editRequest).then(data => {
       if (this.unmounted) {
         return
@@ -443,7 +695,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
         Object.keys(newActions).forEach(key => {
           if (Array.isArray(newActions[key])) {
             newActions[key] = newActions[key].map((action, i) => {
-              verified &= !data.actions[key] || data.actions[key].success !== false
+              verified &= !data.actions[key] || data.actions[key][i].success !== false
               return data.actions[key]
                 ? {...(data.actions[key][i] || {}), value: action.value}
                 : action
@@ -495,42 +747,15 @@ class EditUserMetadataDialogUnstyled extends React.Component {
       const values = actions[key] ? actions[key] : this.editData[key].map(value => ({value: value}))
 
       return {
-        id: key,
-        fullWidth: true,
         values: values,
         onChange: values => {
-          this.setState({actions: {...actions, [key]: values}})
-          if (verify) {
-            this.verify()
-          }
+          this.setState({actions: {...actions, [key]: values}}, () => {
+            if (verify) {
+              this.verify()
+            }
+          })
         }
       }
-    }
-
-    const userSuggestions = query => {
-      query = query.toLowerCase()
-      return api.getUsers(query)
-        .then(result => {
-          console.log(query)
-          const withQueryInName = result.users.filter(
-              user => user.name.toLowerCase().indexOf(query) !== -1)
-            withQueryInName.sort((a, b) => {
-              const aValue = a.name.toLowerCase()
-              const bValue = b.name.toLowerCase()
-              if (aValue.startsWith(query)) {
-                return -1
-              } else if (bValue.startsWith(query)) {
-                return 1
-              } else {
-                return 0 // aValue.localeCompare(bValue)
-              }
-            })
-          return withQueryInName.slice(0, 5)
-        })
-        .catch(err => {
-          console.error(err)
-          return []
-        })
     }
 
     return (
@@ -551,11 +776,10 @@ class EditUserMetadataDialogUnstyled extends React.Component {
                 Be aware that all references, co-authors, shared_with, or datasets count as
                 one field.
               </DialogContentText>
-              <TextField
-                // id="comment"
+              <ActionInput component={TextField}
                 label="Comment"
-                value={actions.comment !== undefined ? actions.comment.value : this.editData.comment}
-                onChange={event => this.setState({actions: {...actions, comment: {value: event.target.value}}})}
+                value={actions.comment !== undefined ? actions.comment : {value: this.editData.comment}}
+                onChange={value => this.setState({actions: {...actions, comment: value}})}
                 margin="normal"
                 multiline rows="4"
                 fullWidth
@@ -563,53 +787,24 @@ class EditUserMetadataDialogUnstyled extends React.Component {
                 InputLabelProps={{ shrink: true }}
               />
               <ListTextInput
+                component={ReferenceInput}
+                {...listTextInputProps('references', true)}
                 label="References"
-                {...listTextInputProps('references')}
-                errorLabel="References must be valid URLs"
-                placeholder="Add a URL reference"
-                validate={isURL}
               />
-              <SuggestionsListTextInput
-                label="Co-authors"
-                suggestions={userSuggestions}
-                suggestionValue={v => {
-                  return v.email
-                }}
-                suggestionRendered={v => `${v.name} (${v.email})`}
-                placeholder="Add a co-author by name"
-                {...listTextInputProps('coauthors', true, 2)}
-                autosuggestProps={{
-                  shouldRenderSuggestions: (value) => value.trim().length >= 2
-                }}
+              <ListTextInput
+                component={UserInput}
+                {...listTextInputProps('coauthors', true)}
+                label="Co-author"
               />
-              <SuggestionsListTextInput
-                {...listTextInputProps('shared_with', true, 2)}
-                suggestions={userSuggestions}
-                suggestionValue={v => v.email}
-                suggestionRendered={v => `${v.name} (${v.email})`}
+              <ListTextInput
+                component={UserInput}
+                {...listTextInputProps('shared_with', true)}
                 label="Shared with"
-                placeholder="Add a user by name to share with"
-                autosuggestProps={{
-                  shouldRenderSuggestions: (value) => value.trim().length >= 2
-                }}
               />
-              <SuggestionsListTextInput
-                {...listTextInputProps('datasets', true, 0)}
-                suggestions={prefix => {
-                  return api.getDatasets(prefix)
-                    .then(result => result.results.map(ds => ds.name))
-                    .catch(err => {
-                      console.error(err)
-                      return []
-                    })
-                }}
-                suggestionValue={v => v}
-                suggestionRendered={v => v}
+              <ListTextInput
+                component={DatasetInput}
+                {...listTextInputProps('datasets', true)}
                 label="Datasets"
-                placeholder="Add a dataset"
-                autosuggestProps={{
-                  shouldRenderSuggestions: () => true
-                }}
               />
             </DialogContent>
             {Object.keys(actions).length

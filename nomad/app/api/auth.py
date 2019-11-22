@@ -40,6 +40,7 @@ import hashlib
 import uuid
 
 from nomad import config, processing, utils, infrastructure, datamodel
+from nomad.metainfo.flask_restplus import generate_flask_restplus_model
 
 from .api import api
 
@@ -220,13 +221,11 @@ class AuthResource(Resource):
             abort(401, 'The authenticated user does not exist')
 
 
+user_model = generate_flask_restplus_model(api, datamodel.User.m_def)
 users_model = api.model('UsersModel', {
-    'users': fields.Nested(api.model('UserModel', {
-        'name': fields.String(description='The full name of the user as presented in the UI.'),
-        'user_id': fields.String(description='The unique user UUID.'),
-        'email': fields.String(description='The email.')
-    }))
+    'users': fields.Nested(user_model, skip_none=True)
 })
+
 
 users_parser = api.parser()
 users_parser.add_argument(
@@ -240,9 +239,34 @@ class UsersResource(Resource):
     @api.marshal_with(users_model, code=200, description='User suggestions send')
     @api.expect(users_parser, validate=True)
     def get(self):
+        """ Get existing users. """
         args = users_parser.parse_args()
 
         return dict(users=infrastructure.keycloak.search_user(args.get('query')))
+
+    @api.doc('invite_user')
+    @api.marshal_with(user_model, code=200, skip_none=True, description='User invited')
+    @api.expect(user_model, validate=True)
+    def put(self):
+        """ Invite a new user. """
+        json_data = request.get_json()
+        try:
+            user = datamodel.User.m_from_dict(json_data)
+        except Exception as e:
+            abort(400, 'Invalid user data: %s' % str(e))
+
+        if user.email is None:
+            abort(400, 'Invalid user data: email is required')
+
+        try:
+            error = infrastructure.keycloak.add_user(user, invite=True)
+        except KeyError as e:
+            abort(400, 'Invalid user data: %s' % str(e))
+
+        if error is not None:
+            abort(400, 'Could not invite user: %s' % error)
+
+        return datamodel.User.get(email=user.email), 200
 
 
 def with_signature_token(func):

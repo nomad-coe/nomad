@@ -330,8 +330,13 @@ def repo_edit_action_field(quantity):
             fields.Nested(repo_edit_action_model, skip_none=True), description=quantity.description)
 
 
+class NullableString(fields.String):
+    __schema_type__ = ['string', 'null']
+    __schema_example__ = 'nullable string'
+
+
 repo_edit_action_model = api.model('RepoEditAction', {
-    'value': fields.String(description='The value/values that is set as a string.'),
+    'value': NullableString(description='The value/values that is set as a string.'),
     'success': fields.Boolean(description='If this can/could be done. Only in API response.'),
     'message': fields.String(descriptin='A message that details the action result. Only in API response.')
 })
@@ -379,6 +384,14 @@ def edit(parsed_query: Dict[str, Any], logger, mongo_update: Dict[str, Any] = No
                 payload=mongo_update, nfailed=len(failed))
 
 
+def get_uploader_ids(query):
+    """ Get all the uploader from the query, to check coauthers and shared_with for uploaders. """
+    search_request = search.SearchRequest()
+    add_query(search_request, query)
+    search_request.quantity(name='uploader_id')
+    return search_request.execute()['quantities']['uploader_id']['values']
+
+
 @ns.route('/edit')
 class EditRepoCalcsResource(Resource):
     @api.doc('edit_repo')
@@ -406,8 +419,19 @@ class EditRepoCalcsResource(Resource):
         actions = json_data['actions']
         verify = json_data.get('verify', False)
 
+        # preparing the query of entries that are edited
+        parsed_query = {}
+        for quantity_name, quantity in search.quantities.items():
+            if quantity_name in query:
+                value = query[quantity_name]
+                if quantity.multi and quantity.argparse_action == 'split' and not isinstance(value, list):
+                    value = value.split(',')
+                parsed_query[quantity_name] = value
+        parsed_query['owner'] = owner
+
         # checking the edit actions and preparing a mongo update on the fly
         mongo_update = {}
+        uploader_ids = None
         for action_quantity_name, quantity_actions in actions.items():
             quantity = UserMetadata.m_def.all_quantities.get(action_quantity_name)
             if quantity is None:
@@ -428,21 +452,36 @@ class EditRepoCalcsResource(Resource):
                 quantity_actions = [quantity_actions]
 
             flask_verify = quantity_flask.get('verify', None)
+            mongo_key = 'metadata__%s' % quantity.name
             has_error = False
             for action in quantity_actions:
                 action['success'] = True
                 action['message'] = None
-                action_value = action['value'].strip()
+                action_value = action.get('value')
+
+                if action_value is None:
+                    continue
+
+                action_value = action_value.strip()
+
                 if action_value == '':
                     mongo_value = None
 
                 elif flask_verify == datamodel.User:
                     try:
-                        mongo_value = User.get(email=action_value).user_id
+                        mongo_value = User.get(user_id=action_value).user_id
                     except KeyError:
                         action['success'] = False
                         has_error = True
                         action['message'] = 'User does not exist'
+                        continue
+
+                    if uploader_ids is None:
+                        uploader_ids = get_uploader_ids(parsed_query)
+                    if action_value in uploader_ids:
+                        action['success'] = False
+                        has_error = True
+                        action['message'] = 'This user is already an uploader of one entry in the query'
                         continue
 
                 elif flask_verify == datamodel.Dataset:
@@ -462,13 +501,20 @@ class EditRepoCalcsResource(Resource):
                 else:
                     mongo_value = action_value
 
-                mongo_key = 'metadata__%s' % quantity.name
                 if len(quantity.shape) == 0:
                     mongo_update[mongo_key] = mongo_value
                 else:
                     mongo_values = mongo_update.setdefault(mongo_key, [])
                     if mongo_value is not None:
+                        if mongo_value in mongo_values:
+                            action['success'] = False
+                            has_error = True
+                            action['message'] = 'Duplicate values are not allowed'
+                            continue
                         mongo_values.append(mongo_value)
+
+            if len(quantity_actions) == 0 and len(quantity.shape) > 0:
+                mongo_update[mongo_key] = []
 
         # stop here, if client just wants to verify its actions
         if verify:
@@ -477,16 +523,6 @@ class EditRepoCalcsResource(Resource):
         # stop if the action were not ok
         if has_error:
             return json_data, 400
-
-        # get all calculations that have to change
-        parsed_query = {}
-        for quantity_name, quantity in search.quantities.items():
-            if quantity_name in query:
-                value = query[quantity_name]
-                if quantity.multi and quantity.argparse_action == 'split' and not isinstance(value, list):
-                    value = value.split(',')
-                parsed_query[quantity_name] = value
-        parsed_query['owner'] = owner
 
         # perform the change
         edit(parsed_query, logger, mongo_update, True)
