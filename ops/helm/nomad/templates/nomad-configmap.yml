@@ -67,4 +67,5 @@ data:
     celery:
       routing: "{{ .Values.worker.routing }}"
       timeout: 7200
+    springer_db_path: "{{ .Values.springerDbPath }}"
 

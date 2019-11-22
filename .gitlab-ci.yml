@@ -98,8 +98,10 @@ tests:
     NOMAD_RABBITMQ_HOST: rabbitmq
     NOMAD_ELASTIC_HOST: elastic
     NOMAD_MONGO_HOST: mongo
+    NOMAD_SPRINGER_DB_PATH: /nomad/fairdi/db/data/springer.db
   script:
     - cd /app
+    - ls /builds
     - python -m pytest --cov=nomad -sv tests
   except:
     refs:
