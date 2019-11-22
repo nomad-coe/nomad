@@ -414,6 +414,13 @@ class Api {
       .then(response => response.body)
   }
 
+  async inviteUser(user) {
+    return this.swagger()
+      .then(client => client.apis.auth.invite_user({payload: user}))
+      .catch(handleApiError)
+      .then(response => response.body)
+  }
+
   async quantities_search(search) {
     this.onStartLoading()
     return this.swagger()

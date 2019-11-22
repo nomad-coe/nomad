@@ -539,6 +539,131 @@ class ListTextInputUnstyled extends React.Component {
 
 const ListTextInput = withStyles(ListTextInputUnstyled.styles)(ListTextInputUnstyled)
 
+class InviteUserDialogUnstyled extends React.Component {
+  static propTypes = {
+    classes: PropTypes.object.isRequired,
+    api: PropTypes.object.isRequired
+  }
+
+  static styles = theme => ({
+    button: {
+      marginLeft: theme.spacing.unit
+    },
+    dialog: {
+      width: '100%'
+    },
+    submitWrapper: {
+      margin: theme.spacing.unit,
+      position: 'relative'
+    },
+    submitProgress: {
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      marginTop: -12,
+      marginLeft: -12
+    }
+  })
+
+  defaultState = {
+    open: false,
+    data: {
+      first_name: '',
+      last_name: '',
+      email: '',
+      affiliation: ''
+    },
+    error: null,
+    submitting: false,
+    submitEnabled: false
+  }
+
+  state = this.defaultState
+
+  handleClose() {
+    this.setState({open: false})
+  }
+
+  handleSubmit() {
+    this.setState({submitting: true})
+
+    this.props.api.inviteUser(this.state.data).then(() => {
+      this.handleClose()
+    }).catch(error => {
+      // get message in quotes
+      const message = ('' + error).match(/'([^']+)'/)[1]
+      this.setState({error: message, submitting: false, submitEnabled: false})
+    })
+  }
+
+  handleChange(key, value) {
+    const {data} = this.state
+    const valid = value && !Object.keys(data).find(dataKey => !(key === dataKey || data[dataKey]))
+    this.setState({submitEnabled: valid, data: {...data, [key]: value}})
+  }
+
+  handleOpen() {
+    this.setState({
+      ...this.defaultState, open: true
+    })
+  }
+
+  render() {
+    const {classes} = this.props
+    const {open, data, submitting, submitEnabled, error} = this.state
+    const input = (key, label) => <TextField
+      label={label}
+      value={data[key]}
+      onChange={event => this.handleChange(key, event.target.value)}
+      margin="normal"
+      fullWidth
+    />
+    return <React.Fragment>
+      <Button className={classes.button}
+        onClick={this.handleOpen.bind(this)}
+        color="secondary" disabled={submitting}
+      >
+        Invite new user
+      </Button>
+      <Dialog
+        classes={{paper: classes.dialog}}
+        open={open}
+        onClose={this.handleClose.bind(this)} disableBackdropClick disableEscapeKeyDown>
+        <DialogTitle>Invite a new user to NOMAD</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            If you want to add a user as co-author or share your data with someone that
+            is not already a NOMAD user, you can invite this person here. We need just a few
+            details about this person. After your invite, the new user will receive an
+            Email that allows him to set a password and further details. Anyhow, you will
+            be able to add the user as co-author or someone to share with immediately after the
+            invite.
+          </DialogContentText>
+          {error && <DialogContentText color="error">
+            {error}
+          </DialogContentText>}
+          {input('email', 'Email')}
+          {input('first_name', 'First name')}
+          {input('last_name', 'Last name')}
+          {input('affiliation', 'Affiliation')}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={this.handleClose.bind(this)} color="primary" disabled={submitting}>
+            Cancel
+          </Button>
+          <div className={classes.submitWrapper}>
+            <Button onClick={this.handleSubmit.bind(this)} color="primary" disabled={!submitEnabled}>
+              Submit
+            </Button>
+            {submitting && <CircularProgress size={24} className={classes.submitProgress} />}
+          </div>
+        </DialogActions>
+      </Dialog>
+    </React.Fragment>
+  }
+}
+
+const InviteUserDialog = compose(withApi(true, false), withStyles(InviteUserDialogUnstyled.styles))(InviteUserDialogUnstyled)
 
 class EditUserMetadataDialogUnstyled extends React.Component {
   static propTypes = {
@@ -831,6 +956,8 @@ class EditUserMetadataDialogUnstyled extends React.Component {
               </DialogContent>
               : ''}
             <DialogActions>
+              <InviteUserDialog />
+              <span style={{flexGrow: 1}} />
               <Button onClick={this.handleClose} color="primary" disabled={submitting}>
                 Cancel
               </Button>
