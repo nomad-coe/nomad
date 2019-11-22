@@ -330,13 +330,8 @@ def repo_edit_action_field(quantity):
             fields.Nested(repo_edit_action_model, skip_none=True), description=quantity.description)
 
 
-class NullableString(fields.String):
-    __schema_type__ = ['string', 'null']
-    __schema_example__ = 'nullable string'
-
-
 repo_edit_action_model = api.model('RepoEditAction', {
-    'value': NullableString(description='The value/values that is set as a string.'),
+    'value': fields.String(description='The value/values that is set as a string.'),
     'success': fields.Boolean(description='If this can/could be done. Only in API response.'),
     'message': fields.String(descriptin='A message that details the action result. Only in API response.')
 })
@@ -458,13 +453,12 @@ class EditRepoCalcsResource(Resource):
                 action['success'] = True
                 action['message'] = None
                 action_value = action.get('value')
+                action_value = action_value if action_value is None else action_value.strip()
 
                 if action_value is None:
-                    continue
+                    mongo_value = None
 
-                action_value = action_value.strip()
-
-                if action_value == '':
+                elif action_value == '':
                     mongo_value = None
 
                 elif flask_verify == datamodel.User:

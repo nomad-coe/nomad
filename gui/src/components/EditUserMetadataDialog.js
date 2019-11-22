@@ -678,10 +678,24 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     const { query, api } = this.props
     const { actions } = this.state
 
+    // remove null values to allow swagger validation
+    const actionsCopy = {...this.state.actions}
+    Object.keys(actionsCopy).forEach(key => {
+      if (Array.isArray(actionsCopy[key])) {
+        actionsCopy[key] = actionsCopy[key].map(action => {
+          const actionCopy = {...action}
+          if (!actionCopy.value) {
+            delete actionCopy.value
+          }
+          return actionCopy
+        })
+      }
+    })
+
     const editRequest = {
       query: query,
       verify: verify,
-      actions: actions
+      actions: actionsCopy
     }
 
     return api.edit(editRequest).then(data => {
@@ -689,8 +703,8 @@ class EditUserMetadataDialogUnstyled extends React.Component {
         return
       }
 
-      const newActions = {...this.state.actions}
       let verified = true
+      const newActions = {...this.state.actions}
       if (data.actions) {
         Object.keys(newActions).forEach(key => {
           if (Array.isArray(newActions[key])) {
