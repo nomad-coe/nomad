@@ -17,7 +17,6 @@ export class Definition extends React.Component {
     } else if (schema.isProperty(definition)) {
       return <ValueCard {...this.props}/>
     } else {
-      console.log(definition)
       return <div>{definition.mType}</div>
     }
   }

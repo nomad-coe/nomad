@@ -5,8 +5,9 @@ import { FormControl, FormControlLabel, Checkbox, FormGroup, FormLabel, Tooltip 
 import { compose } from 'recompose'
 import { withErrors } from '../errors'
 import { withApi, DisableOnLoading } from '../api'
-import { appBase } from '../../config'
-import Search from './Search';
+import { guiBase } from '../../config'
+import Search from './Search'
+import qs from 'qs'
 
 export const help = `
 This page allows you to **search** in NOMAD's data. The upper part of this page
@@ -43,7 +44,7 @@ The results table gives you a quick overview of all entries that fit your search
 You can click entries to see more details, download data, see the archive, etc.
 The *raw files* tab, will show you all files that belong to the entry and offers a download
 on individual, or all files. The *archive* tab, shows you the parsed data as a tree
-data structure. This view is connected to NOMAD's [meta-info](${appBase}/metainfo), which acts a schema for
+data structure. This view is connected to NOMAD's [meta-info](${guiBase}/metainfo), which acts a schema for
 all parsed data. The *log* tab, will show you a log of the entry's processing.
 `
 
@@ -52,6 +53,7 @@ class SearchPage extends React.Component {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
     user: PropTypes.object,
+    location: PropTypes.object,
     raiseError: PropTypes.func.isRequired
   }
 
@@ -68,8 +70,13 @@ class SearchPage extends React.Component {
   }
 
   render() {
-    const { classes, user } = this.props
+    const { classes, user, location } = this.props
     const { owner } = this.state
+
+    let queryParams = null
+    if (location && location.search) {
+      queryParams = qs.parse(location.search.substring(1))
+    }
 
     const ownerLabel = {
       all: 'All entries',
@@ -110,7 +117,7 @@ class SearchPage extends React.Component {
             </FormControl>
           </div>
         </DisableOnLoading>
-        <Search searchParameters={{owner: owner}} showDetails />
+        <Search searchParameters={{owner: owner}} searchValues={queryParams} showDetails={!queryParams} />
       </div>
     )
   }

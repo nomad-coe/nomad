@@ -112,6 +112,7 @@ class MatchingParser(Parser):
     def __init__(
             self, name: str, code_name: str,
             mainfile_contents_re: str = None,
+            mainfile_binary_header: bytes = None,
             mainfile_mime_re: str = r'text/.*',
             mainfile_name_re: str = r'.*',
             domain='DFT',
@@ -121,6 +122,7 @@ class MatchingParser(Parser):
         self.name = name
         self.code_name = code_name
         self.domain = domain
+        self._mainfile_binary_header = mainfile_binary_header
         self._mainfile_mime_re = re.compile(mainfile_mime_re)
         self._mainfile_name_re = re.compile(mainfile_name_re)
         # Assign private variable this way to avoid static check issue.
@@ -131,6 +133,9 @@ class MatchingParser(Parser):
         self._supported_compressions = supported_compressions
 
     def is_mainfile(self, filename: str, mime: str, buffer: bytes, compression: str = None) -> bool:
+        if self._mainfile_binary_header is not None:
+            if self._mainfile_binary_header not in buffer:
+                return False
         if self._mainfile_contents_re is not None:
             try:  # Try to open the file as a string for regex matching.
                 decoded_buffer = buffer.decode('utf-8')
@@ -165,17 +170,22 @@ class LegacyParser(MatchingParser):
 
     Arguments:
         parser_class_name: the main parser class that implements NOMAD-coe's
+        backend_factory: a callable that returns a backend, takes meta_info and logger as argument
     """
-    def __init__(self, parser_class_name: str, *args, **kwargs) -> None:
+    def __init__(self, parser_class_name: str, *args, backend_factory=None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self.parser_class_name = parser_class_name
+        self.backend_factory = backend_factory
 
     def run(self, mainfile: str, logger=None) -> LocalBackend:
         # TODO we need a homogeneous interface to parsers, but we dont have it right now.
         # There are some hacks to distringuish between ParserInterface parser and simple_parser
         # using hasattr, kwargs, etc.
-        def create_backend(meta_info, logger=None):
+        def create_backend(meta_info):
+            if self.backend_factory is not None:
+                return self.backend_factory(meta_info, logger=logger)
+
             return LocalBackend(meta_info, debug=False, logger=logger)
 
         module_name = self.parser_class_name.split('.')[:-1]
@@ -184,9 +194,7 @@ class LegacyParser(MatchingParser):
         Parser = getattr(module, parser_class)
 
         init_signature = inspect.getargspec(Parser.__init__)
-        kwargs = dict(
-            backend=lambda meta_info: create_backend(meta_info, logger=logger),
-            log_level=logging.DEBUG, debug=True)
+        kwargs = dict(backend=create_backend, log_level=logging.DEBUG, debug=True)
         kwargs = {key: value for key, value in kwargs.items() if key in init_signature.args}
 
         with utils.legacy_logger(logger):

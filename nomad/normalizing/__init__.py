@@ -37,10 +37,12 @@ from .normalizer import Normalizer
 from .system import SystemNormalizer
 from .fhiaims import FhiAimsBaseNormalizer
 from .dos import DosNormalizer
+from .optimade import OptimadeNormalizer
 
 
 normalizers: Iterable[Type[Normalizer]] = [
-    SystemNormalizer,
+    SystemNormalizer,    
+    OptimadeNormalizer,
     FhiAimsBaseNormalizer,
     DosNormalizer
 ]

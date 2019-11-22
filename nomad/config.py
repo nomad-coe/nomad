@@ -140,7 +140,7 @@ logstash = NomadConfig(
 services = NomadConfig(
     api_host='localhost',
     api_port=8000,
-    api_base_path='/fairdi/nomad/latest/api',
+    api_base_path='/fairdi/nomad/latest',
     api_secret='defaultApiSecret',
     api_chaos=0,
     admin_password='password',
@@ -157,10 +157,10 @@ tests = NomadConfig(
 
 
 def api_url(ssl: bool = True):
-    return '%s://%s%s' % (
+    return '%s://%s/%s/api' % (
         'https' if services.https and ssl else 'http',
-        services.api_host,
-        services.api_base_path)
+        services.api_host.strip('/'),
+        services.api_base_path.strip('/'))
 
 
 migration_source_db = NomadConfig(
@@ -183,7 +183,6 @@ mail = NomadConfig(
 )
 
 normalize = NomadConfig(
-    all_systems=False,
     system_classification_with_clusters_threshold=50
 )
 
@@ -193,7 +192,7 @@ client = NomadConfig(
     url='http://localhost:8000/fairdi/nomad/latest/api'
 )
 
-version = '0.6.0'
+version = '0.6.4'
 commit = gitinfo.commit
 release = 'devel'
 domain = 'DFT'
@@ -201,6 +200,7 @@ service = 'unknown nomad service'
 auxfile_cutoff = 100
 parser_matching_size = 9128
 console_log_level = logging.WARNING
+max_upload_size = 32 * (1024 ** 3)
 
 
 springer_db_relative_path = 'normalizing/data/SM_all08.db'

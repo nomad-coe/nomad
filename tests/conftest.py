@@ -28,8 +28,12 @@ import os.path
 import datetime
 import base64
 from bravado.client import SwaggerClient
+import elasticsearch.exceptions
 
-from nomad import config, infrastructure, parsing, processing, coe_repo, api
+from nomadcore.local_meta_info import loadJsonFile
+import nomad_meta_info
+
+from nomad import config, infrastructure, parsing, processing, coe_repo, app
 
 from tests import test_parsing, test_normalizing
 from tests.processing import test_data as test_processing
@@ -82,10 +86,18 @@ def raw_files(raw_files_infra):
                 pass
 
 
+@pytest.fixture(scope='session')
+def nomad_app():
+    app.app.config['TESTING'] = True
+    client = app.app.test_client()
+
+    yield client
+
+
 @pytest.fixture(scope='function')
-def client(mongo):
-    api.app.config['TESTING'] = True
-    client = api.app.test_client()
+def client(mongo, nomad_app):
+    app.app.config['TESTING'] = True
+    client = app.app.test_client()
 
     yield client
 
@@ -168,9 +180,9 @@ def mongo(mongo_infra):
 
 
 @pytest.fixture(scope='session')
-def elastic_infra():
+def elastic_infra(monkeysession):
     """ Provides elastic infrastructure to the session """
-    config.elastic.index_name = 'test_nomad_fairdi_calcs'
+    monkeysession.setattr('nomad.config.elastic.index_name', 'test_nomad_fairdi_calcs')
     try:
         return infrastructure.setup_elastic()
     except Exception:
@@ -182,14 +194,14 @@ def elastic_infra():
 
 
 def clear_elastic(elastic):
-    while True:
-        try:
-            elastic.delete_by_query(
-                index='test_nomad_fairdi_calcs', body=dict(query=dict(match_all={})),
-                wait_for_completion=True, refresh=True)
-            break
-        except Exception:
-            time.sleep(0.1)
+    try:
+        elastic.delete_by_query(
+            index='test_nomad_fairdi_calcs', body=dict(query=dict(match_all={})),
+            wait_for_completion=True, refresh=True)
+    except elasticsearch.exceptions.NotFoundError:
+        # it is unclear why this happens, but it happens at least once, when all tests
+        # are executed
+        infrastructure.setup_elastic()
 
 
 @pytest.fixture(scope='function')
@@ -280,6 +292,14 @@ def postgres(postgres_infra):
     yield postgres_infra
 
 
+@pytest.fixture(scope='session')
+def meta_info():
+    file_dir = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
+    path = os.path.join(file_dir, 'all.nomadmetainfo.json')
+    meta_info, _ = loadJsonFile(path)
+    return meta_info
+
+
 @pytest.fixture(scope='module')
 def test_user(postgres_infra):
     from nomad import coe_repo
@@ -325,14 +345,14 @@ def admin_user_auth(admin_user: coe_repo.User):
 @pytest.fixture(scope='function')
 def bravado(client, postgres, test_user_auth):
     http_client = FlaskTestHttpClient(client, headers=test_user_auth)
-    return SwaggerClient.from_url('/swagger.json', http_client=http_client)
+    return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
 
 
 @pytest.fixture(scope='function')
 def admin_user_bravado_client(client, admin_user_auth, monkeypatch):
     def create_client():
         http_client = FlaskTestHttpClient(client, headers=admin_user_auth)
-        return SwaggerClient.from_url('/swagger.json', http_client=http_client)
+        return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
 
     monkeypatch.setattr('nomad.cli.client.create_client', create_client)
 
@@ -341,7 +361,7 @@ def admin_user_bravado_client(client, admin_user_auth, monkeypatch):
 def test_user_bravado_client(client, test_user_auth, monkeypatch):
     def create_client():
         http_client = FlaskTestHttpClient(client, headers=test_user_auth)
-        return SwaggerClient.from_url('/swagger.json', http_client=http_client)
+        return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
 
     monkeypatch.setattr('nomad.cli.client.create_client', create_client)
 
@@ -513,7 +533,8 @@ def example_user_metadata(other_test_user, test_user) -> dict:
         '_uploader': other_test_user.user_id,
         'coauthors': [test_user.user_id],
         '_upload_time': datetime.datetime.utcnow(),
-        '_pid': 256
+        '_pid': 256,
+        'external_id': 'external_test_id'
     }
 
 

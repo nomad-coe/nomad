@@ -125,11 +125,14 @@ class User(Base):  # type: ignore
     def from_user_id(user_id) -> 'User':
         return infrastructure.repository_db.query(User).get(user_id)
 
-    def get_auth_token(self):
+    def get_auth_token(self, create=True):
         repo_db = infrastructure.repository_db
         session = repo_db.query(Session).filter_by(user_id=self.user_id).first()
 
         if not session:
+            if not create:
+                return None
+
             repo_db.begin()
             try:
                 # TODO this has to change, e.g. trade for JWTs

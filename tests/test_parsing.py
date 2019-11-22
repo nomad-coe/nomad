@@ -18,9 +18,6 @@ import numpy as np
 import pytest
 import os
 
-from nomadcore.local_meta_info import loadJsonFile
-import nomad_meta_info
-
 from nomad import utils, files
 from nomad.parsing import JSONStreamWriter, parser_dict, match_parser, BrokenParser
 from nomad.parsing import LocalBackend, BadContextURI
@@ -42,7 +39,7 @@ parser_examples = [
     ('parsers/nwchem', 'tests/data/parsers/nwchem/single_point/output.out'),
     ('parsers/bigdft', 'tests/data/parsers/bigdft/n2_output.out'),
     ('parsers/wien2k', 'tests/data/parsers/wien2k/AlN/AlN_ZB.scf'),
-    ('parsers/band', 'tests/data/parsers/band_adf.out'),  # causes spglib to segfault
+    ('parsers/band', 'tests/data/parsers/band_adf.out'),
     ('parsers/gaussian', 'tests/data/parsers/gaussian/aniline.out'),
     ('parsers/abinit', 'tests/data/parsers/abinit/Fe.out'),
     ('parsers/quantumespresso', 'tests/data/parsers/quantum-espresso/benchmark.out'),
@@ -77,17 +74,10 @@ for parser, mainfile in parser_examples:
 parser_examples = fixed_parser_examples
 
 
-correct_num_output_files = 41
+correct_num_output_files = 44
 
 
 class TestLocalBackend(object):
-
-    @pytest.fixture(scope='session')
-    def meta_info(self):
-        file_dir = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
-        path = os.path.join(file_dir, 'all.nomadmetainfo.json')
-        meta_info, _ = loadJsonFile(path)
-        return meta_info
 
     @pytest.fixture(scope='function')
     def backend(self, meta_info):
@@ -117,6 +107,28 @@ class TestLocalBackend(object):
         assert backend.get_sections('section_run') == [0, 1, 2]
         for i in range(0, 3):
             assert backend.get_value('program_name', i) == 't%d' % i
+
+    def test_sub_section(self, backend, no_warn):
+        backend.openSection('section_run')
+
+        backend.openNonOverlappingSection('section_system')
+        assert backend.openSection('section_symmetry') == 0
+        backend.closeSection('section_symmetry', 0)
+        backend.closeNonOverlappingSection('section_system')
+
+        backend.openNonOverlappingSection('section_system')
+        backend.closeNonOverlappingSection('section_system')
+
+        backend.openNonOverlappingSection('section_system')
+        assert backend.openSection('section_symmetry') == 1
+        backend.closeSection('section_symmetry', 1)
+        backend.closeNonOverlappingSection('section_system')
+
+        assert backend.get_sections('section_system') == [0, 1, 2]
+        assert backend.get_sections('section_symmetry') == [0, 1]
+        assert backend.get_sections('section_symmetry', 0) == [0]
+        assert backend.get_sections('section_symmetry', 1) == []
+        assert backend.get_sections('section_symmetry', 2) == [1]
 
     def test_section_override(self, backend, no_warn):
         """ Test whether we can overwrite values already in the backend."""
@@ -269,10 +281,13 @@ def test_stream_generator(pretty, no_warn):
     assert create_reference(example_data, pretty) == out.getvalue()
 
 
-def assert_parser_result(backend):
+def assert_parser_result(backend, error=False):
     status, errors = backend.status
     assert status == 'ParseSuccess'
-    assert errors is None or len(errors) == 0
+    if error:
+        assert len(errors) > 0
+    else:
+        assert errors is None or len(errors) == 0
 
 
 def assert_parser_dir_unchanged(previous_wd, current_wd):
@@ -298,7 +313,6 @@ def parsed_template_example() -> LocalBackend:
         'parsers/template', 'tests/data/parsers/template.json')
 
 
-# Function used by normalizer tests.
 def parse_file(parser_name_and_mainfile) -> LocalBackend:
     parser_name, mainfile = parser_name_and_mainfile
     return run_parser(parser_name, mainfile)
@@ -328,6 +342,15 @@ def test_parser(parser_name, mainfile):
     previous_wd = os.getcwd()  # Get Working directory before parsing.
     parsed_example = run_parser(parser_name, mainfile)
     assert_parser_result(parsed_example)
+    # Check that cwd has not changed.
+    assert_parser_dir_unchanged(previous_wd, current_wd=os.getcwd())
+
+
+def test_broken_xml_vasp():
+    parser_name, mainfile = 'parsers/vasp', 'tests/data/parsers/vasp/broken.xml'
+    previous_wd = os.getcwd()  # Get Working directory before parsing.
+    parsed_example = run_parser(parser_name, mainfile)
+    assert_parser_result(parsed_example, error=True)
     # Check that cwd has not changed.
     assert_parser_dir_unchanged(previous_wd, current_wd=os.getcwd())
 

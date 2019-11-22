@@ -17,7 +17,7 @@ import pytest
 import click.testing
 import json
 
-from nomad import utils, search, processing as proc
+from nomad import utils, search, processing as proc, files
 from nomad.cli import cli
 from nomad.processing import Upload, Calc
 
@@ -125,6 +125,27 @@ class TestAdminUploads:
         calc.reload()
         assert calc.metadata['nomad_version'] == 'test_version'
 
+    def test_re_pack(self, published, monkeypatch):
+        upload_id = published.upload_id
+        calc = Calc.objects(upload_id=upload_id).first()
+        assert calc.metadata['with_embargo']
+        calc.metadata['with_embargo'] = False
+        calc.save()
+
+        result = click.testing.CliRunner().invoke(
+            cli, ['admin', 'uploads', 're-pack', '--parallel', '2', upload_id], catch_exceptions=False, obj=utils.POPO())
+
+        assert result.exit_code == 0
+        assert 're-pack' in result.stdout
+        calc.reload()
+        upload_files = files.PublicUploadFiles(upload_id)
+        for raw_file in upload_files.raw_file_manifest():
+            with upload_files.raw_file(raw_file) as f:
+                f.read()
+        for calc in Calc.objects(upload_id=upload_id):
+            with upload_files.archive_file(calc.calc_id) as f:
+                f.read()
+
 
 @pytest.mark.usefixtures('reset_config')
 class TestClient:
@@ -142,7 +163,7 @@ class TestClient:
     def test_local(self, client, published, admin_user_bravado_client, monkeypatch):
         def requests_get(url, stream, headers):
             assert stream
-            rv = client.get(url[url.index('/raw'):], headers=headers)
+            rv = client.get(url[url.index('/api/raw'):], headers=headers)
             assert rv.status_code == 200
             return utils.POPO(iter_content=lambda *args, **kwargs: [bytes(rv.data)])
 

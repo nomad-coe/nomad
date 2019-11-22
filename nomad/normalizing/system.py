@@ -21,11 +21,16 @@ import re
 import os
 import sqlite3
 import sys
+import functools
+import fractions
+
 from matid import SymmetryAnalyzer
 from matid.geometry import get_dimensionality
 from ase.data import chemical_symbols
 
 from nomadcore.parser_backend import JsonParseEventsWriterBackend
+from nomadcore.structure_types import structure_types_by_spacegroup as str_types_by_spg
+
 from nomad import utils, config
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 
@@ -90,8 +95,6 @@ class SystemNormalizer(SystemBasedNormalizer):
     This normalizer performs all system (atoms, cells, etc.) related normalizations
     of the legacy NOMAD-coe *stats* normalizer.
     """
-    def __init__(self, backend):
-        super().__init__(backend, all_sections=config.normalize.all_systems)
 
     @staticmethod
     def atom_label_to_num(atom_label):
@@ -105,18 +108,22 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         return 0
 
-    def normalize_system(self, index) -> None:
+    def normalize_system(self, index, is_representative) -> None:
         """
         The 'main' method of this :class:`SystemBasedNormalizer`.
         Normalizes the section with the given `index`.
         Normalizes geometry, classifies, system_type, and runs symmetry analysis.
         """
 
-        def get_value(key: str, default: Any = None, nonp: bool = False) -> Any:
+        def get_value(key: str, default: Any = None, numpy: bool = True) -> Any:
             try:
                 value = self._backend.get_value(key, index)
-                if nonp and type(value).__module__ == np.__name__:
+                if not numpy and type(value).__module__ == np.__name__:
                     value = value.tolist()
+
+                elif numpy and isinstance(value, list):
+                    value = np.array(value)
+
                 return value
             except KeyError:
                 return default
@@ -124,12 +131,15 @@ class SystemNormalizer(SystemBasedNormalizer):
         def set_value(key: str, value: Any):
             self._backend.addValue(key, value)
 
+        if is_representative:
+            self._backend.addValue('is_representative', is_representative)
+
         # analyze atoms labels
-        atom_labels = get_value('atom_labels', nonp=True)
+        atom_labels = get_value('atom_labels', numpy=False)
         if atom_labels is not None:
             atom_labels = normalized_atom_labels(atom_labels)
 
-        atom_species = get_value('atom_species', nonp=True)
+        atom_species = get_value('atom_species', numpy=False)
         if atom_labels is None and atom_species is None:
             self.logger.error('calculation has neither atom species nor labels')
             return
@@ -171,7 +181,7 @@ class SystemNormalizer(SystemBasedNormalizer):
             set_value('atom_species', atom_species)
 
         # periodic boundary conditions
-        pbc = get_value('configuration_periodic_dimensions', nonp=True)
+        pbc = get_value('configuration_periodic_dimensions', numpy=False)
         if pbc is None:
             pbc = [False, False, False]
             self.logger.warning('missing configuration_periodic_dimensions')
@@ -189,7 +199,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         set_value('chemical_composition_bulk_reduced', atoms.get_chemical_formula(mode='hill'))
 
         # positions
-        atom_positions = get_value('atom_positions', None)
+        atom_positions = get_value('atom_positions', None, numpy=True)
         if atom_positions is None:
             self.logger.warning('no atom positions, skip further system analysis')
             return
@@ -206,9 +216,9 @@ class SystemNormalizer(SystemBasedNormalizer):
             return
 
         # lattice vectors
-        lattice_vectors = get_value('lattice_vectors')
+        lattice_vectors = get_value('lattice_vectors', numpy=True)
         if lattice_vectors is None:
-            lattice_vectors = get_value('simulation_cell')
+            lattice_vectors = get_value('simulation_cell', numpy=True)
             if lattice_vectors is not None:
                 set_value('lattice_vectors', lattice_vectors)
         if lattice_vectors is None:
@@ -230,25 +240,26 @@ class SystemNormalizer(SystemBasedNormalizer):
         configuration_id = utils.hash(json.dumps(configuration).encode('utf-8'))
         set_value('configuration_raw_gid', configuration_id)
 
-        # system type analysis
-        if atom_positions is not None:
-            with utils.timer(
-                    self.logger, 'system classification executed',
-                    system_size=atoms.get_number_of_atoms()):
+        if is_representative:
+            # system type analysis
+            if atom_positions is not None:
+                with utils.timer(
+                        self.logger, 'system classification executed',
+                        system_size=atoms.get_number_of_atoms()):
 
-                self.system_type_analysis(atoms)
+                    self.system_type_analysis(atoms)
 
-        # symmetry analysis
-        if atom_positions is not None and (lattice_vectors is not None or not any(pbc)):
-            with utils.timer(
-                    self.logger, 'symmetry analysis executed',
-                    system_size=atoms.get_number_of_atoms()):
+            # symmetry analysis
+            if atom_positions is not None and (lattice_vectors is not None or not any(pbc)):
+                with utils.timer(
+                        self.logger, 'symmetry analysis executed',
+                        system_size=atoms.get_number_of_atoms()):
 
-                self.symmetry_analysis(atoms)
+                    self.symmetry_analysis(atoms)
 
     def system_type_analysis(self, atoms) -> None:
         """
-        Determine the dimensioality and hence the system type of the system with
+        Determine the dimensionality and hence the system type of the system with
         Matid. Write the system type to the backend.
         """
         system_type = config.services.unavailable_value
@@ -377,7 +388,9 @@ class SystemNormalizer(SystemBasedNormalizer):
         
         self.springer_classification(atoms, space_group_number) # Springer Normalizer
 
+        self.prototypes(prim_num, prim_wyckoff, space_group_number)
 
+        self._backend.closeSection('section_symmetry', symmetry_gid)
     
     def springer_classification(self, atoms, space_group_number):
         # SPRINGER NORMALIZER
@@ -460,3 +473,104 @@ class SystemNormalizer(SystemBasedNormalizer):
             if (class_test or comp_test) is False:
                 self.logger.warning('Mismatch in Springer classification or compounds')
             
+    def prototypes(self, atomSpecies, wyckoffs, spg_nr):
+        try:
+            norm_wyckoff = SystemNormalizer.get_normalized_wyckoff(atomSpecies, wyckoffs)
+            protoDict = SystemNormalizer.get_structure_type(spg_nr, norm_wyckoff)
+
+            if protoDict is None:
+                proto = "%d-_" % spg_nr
+                labels = dict(prototype_label=proto)
+            else:
+                proto = '%d-%s-%s' % (spg_nr, protoDict.get("Prototype", "-"),
+                                      protoDict.get("Pearsons Symbol", "-"))
+                aflow_prototype_id = protoDict.get("aflow_prototype_id", "-")
+                aflow_prototype_url = protoDict.get("aflow_prototype_url", "-")
+                labels = dict(
+                    prototype_label=proto,
+                    prototype_aflow_id=aflow_prototype_id,
+                    prototype_aflow_url=aflow_prototype_url)
+        except Exception as e:
+            self.logger.error("cannot create AFLOW prototype", exc_info=e)
+            return
+
+        pSect = self._backend.openSection("section_prototype")
+        self._backend.addValue(
+            "prototype_assignement_method", "normalized-wyckoff")
+        self._backend.addValue("prototype_label", labels['prototype_label'])
+        aid = labels.get("prototype_aflow_id")
+        if aid:
+            self._backend.addValue("prototype_aflow_id", aid)
+        aurl = labels.get("prototype_aflow_url")
+        if aurl:
+            self._backend.addValue("prototype_aflow_url", aurl)
+        self._backend.closeSection("section_prototype", pSect)
+
+    @staticmethod
+    def get_normalized_wyckoff(atomic_number, wyckoff):
+        """ Returns a normalized Wyckoff sequence """
+        atomCount = {}
+        for nr in atomic_number:
+            atomCount[nr] = atomCount.get(nr, 0) + 1
+        wycDict = {}
+
+        for i, wk in enumerate(wyckoff):
+            oldVal = wycDict.get(wk, {})
+            nr = atomic_number[i]
+            oldVal[nr] = oldVal.get(nr, 0) + 1
+            wycDict[wk] = oldVal
+        sortedWyc = list(wycDict.keys())
+        sortedWyc.sort()
+
+        def cmpp(a, b):
+            return ((a < b) - (a > b))
+
+        def compareAtNr(at1, at2):
+            c = cmpp(atomCount[at1], atomCount[at2])
+            if (c != 0):
+                return c
+            for wk in sortedWyc:
+                p = wycDict[wk]
+                c = cmpp(p.get(at1, 0), p.get(at2, 0))
+                if c != 0:
+                    return c
+            return 0
+
+        sortedAt = list(atomCount.keys())
+        sortedAt.sort(key=functools.cmp_to_key(compareAtNr))
+        standardAtomNames = {}
+        for i, at in enumerate(sortedAt):
+            standardAtomNames[at] = ("X_%d" % i)
+        standardWyc = {}
+        for wk, ats in wycDict.items():
+            stdAts = {}
+            for at, count in ats.items():
+                stdAts[standardAtomNames[at]] = count
+            standardWyc[wk] = stdAts
+        if standardWyc:
+            counts = [c for x in standardWyc.values() for c in x.values()]
+            gcd = counts[0]
+            for c in counts[1:]:
+                gcd = fractions.gcd(gcd, c)
+            if gcd != 1:
+                for wk, d in standardWyc.items():
+                    for at, c in d.items():
+                        d[at] = c // gcd
+        return standardWyc
+
+    @staticmethod
+    def get_structure_type(space_group, norm_wyckoff):
+        """Returns the information on the prototype.
+        """
+        structure_type_info = {}
+
+        type_descriptions = str_types_by_spg.get(space_group, [])
+        for type_description in type_descriptions:
+            current_norm_wyckoffs = type_description.get("normalized_wysytax")
+            if current_norm_wyckoffs and current_norm_wyckoffs == norm_wyckoff:
+                structure_type_info = type_description
+                break
+        if structure_type_info:
+            return structure_type_info
+        else:
+            return None

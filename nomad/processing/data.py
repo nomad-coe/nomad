@@ -87,6 +87,16 @@ class Calc(Proc):
         self._calc_proc_logwriter_ctx: ContextManager = None
 
     @classmethod
+    def from_calc_with_metadata(cls, calc_with_metadata):
+        calc = Calc.create(
+            calc_id=calc_with_metadata.calc_id,
+            upload_id=calc_with_metadata.upload_id,
+            mainfile=calc_with_metadata.mainfile,
+            metadata=calc_with_metadata.to_dict())
+
+        return calc
+
+    @classmethod
     def get(cls, id):
         return cls.get_by_id(id, 'calc_id')
 
@@ -696,6 +706,21 @@ class Upload(Proc):
         # the 'cleanup' task after processing all calcs
 
     @process
+    def re_pack(self):
+        """ A *process* that repacks the raw and archive data based on the current embargo data. """
+        assert self.published
+
+        # mock the steps of actual processing
+        self._continue_with('uploading')
+        self._continue_with('extracting')
+        self._continue_with('parse_all')
+        self._continue_with('cleanup')
+
+        self.upload_files.re_pack(self.to_upload_with_metadata())
+        self.joined = True
+        self._complete()
+
+    @process
     def process_upload(self):
         """ A *process* that performs the initial upload processing. """
         self.extracting()
@@ -757,7 +782,7 @@ class Upload(Proc):
         Some files need preprocessing. Currently we need to add a stripped POTCAR version
         and always restrict/embargo the original.
         """
-        if os.path.basename(path) == 'POTCAR':
+        if os.path.basename(path).startswith('POTCAR'):
             # create checksum
             hash = hashlib.sha224()
             with open(self.staging_upload_files.raw_file_object(path).os_path, 'rb') as orig_f:
@@ -1051,7 +1076,7 @@ class Upload(Proc):
             compressed_calc: Dict[str, Any] = {}
             calculations.append(compressed_calc)
             for key, value in calc.items():
-                if key in ['_pid', 'mainfile']:
+                if key in ['_pid', 'mainfile', 'external_id']:
                     # these quantities are explicitly calc specific and have to stay with
                     # the calc
                     compressed_calc[key] = value

@@ -120,11 +120,11 @@ function handleApiError(e) {
     throw e
   }
 
+  let error = null
   if (e.response) {
     const body = e.response.body
     const message = (body && body.message) ? body.message : e.response.statusText
     const errorMessage = `${message} (${e.response.status})`
-    let error = null
     if (e.response.status === 404) {
       error = new DoesNotExist(errorMessage)
     } else if (e.response.status === 401) {
@@ -135,11 +135,16 @@ function handleApiError(e) {
       error = new Error(errorMessage)
     }
     error.status = e.response.status
-    throw error
   } else {
-    const errorMessage = e.status ? `${e} (${e.status})` : '' + e
-    throw new Error(errorMessage)
+    if (e.message === 'Failed to fetch') {
+      error = new ApiError(e.message)
+      error.status = 400
+    } else {
+      const errorMessage = e.status ? `${e} (${e.status})` : '' + e
+      error = new Error(errorMessage)
+    }
   }
+  throw error
 }
 
 class Api {

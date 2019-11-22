@@ -52,7 +52,9 @@
                 3.0
               ]
             ],
-            "atom_labels": ["Br", "Si", "Si", "Za"]
+            "atom_labels": ["Br", "Si", "Si", "Za"],
+            "lattice_vectors": [
+              [0, 0.5, 0.5],[0.5, 0 , 0.5],[0.5, 0.5, 0]]
           }
         ],
         "section_single_configuration_calculation": [

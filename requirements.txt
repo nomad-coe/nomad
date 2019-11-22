@@ -32,7 +32,7 @@ recommonmark
 m2r
 requests
 click
-zipstream
+zipstream-new==1.1.5
 bagit
 psycopg2-binary
 sqlalchemy
@@ -48,6 +48,8 @@ pyyaml
 tabulate
 cachetools
 zipfile37
+inflection
+docstring-parser
 
 # dev/ops related
 setuptools
@@ -55,10 +57,10 @@ sphinx
 sphinxcontrib.httpdomain
 sphinx_rtd_theme
 gitpython
-mypy
-pylint
-pylint_plugin_utils
-pylint_mongoengine
+mypy==0.730
+pylint==2.3.1
+pylint_plugin_utils==0.5
+pylint_mongoengine==0.3.3
 pycodestyle
 pytest==3.10.0  # celery fixtures not compatible with 4.x
 pytest-timeout
@@ -67,3 +69,4 @@ rope
 mongomock
 names
 essential_generators
+jinja2

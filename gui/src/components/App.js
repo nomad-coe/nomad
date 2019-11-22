@@ -6,7 +6,7 @@ import { compose } from 'recompose'
 import classNames from 'classnames'
 import { MuiThemeProvider, withStyles } from '@material-ui/core/styles'
 import { IconButton, LinearProgress, ListItemIcon, ListItemText,
-  MenuList, MenuItem, Typography, Drawer, AppBar, Toolbar, Divider, Button, DialogContent, DialogTitle, DialogActions, Dialog, Tooltip } from '@material-ui/core'
+  MenuList, MenuItem, Typography, Drawer, AppBar, Toolbar, Divider, Button, DialogContent, DialogTitle, DialogActions, Dialog, Tooltip, Snackbar, SnackbarContent } from '@material-ui/core'
 import { Switch, Route, Link, withRouter } from 'react-router-dom'
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
@@ -18,10 +18,10 @@ import {help as searchHelp, default as SearchPage} from './search/SearchPage'
 import HelpDialog from './Help'
 import { ApiProvider, withApi } from './api'
 import { ErrorSnacks, withErrors } from './errors'
-import Calc from './entry/Calc'
+import EntryPage from './entry/EntryPage'
 import About from './About'
 import LoginLogout from './LoginLogout'
-import { genTheme, repoTheme, archiveTheme, appBase } from '../config'
+import { genTheme, repoTheme, archiveTheme, guiBase } from '../config'
 import { DomainProvider, withDomain } from './domains'
 import {help as metainfoHelp, default as MetaInfoBrowser} from './metaInfoBrowser/MetaInfoBrowser'
 import packageJson from '../../package.json'
@@ -31,6 +31,8 @@ import {help as uploadHelp, default as Uploads} from './uploads/Uploads'
 import ResolvePID from './entry/ResolvePID'
 import DatasetPage from './DatasetPage'
 import { capitalize } from '../utils'
+import { amber } from '@material-ui/core/colors'
+import KeepState from './KeepState'
 
 export class VersionMismatch extends Error {
   constructor(msg) {
@@ -39,9 +41,23 @@ export class VersionMismatch extends Error {
   }
 }
 
+
+function ReloadSnack() {
+  return <Snackbar
+      anchorOrigin={{
+        vertical: 'bottom',
+        horizontal: 'left',
+      }}
+      open
+  >
+    <SnackbarContent
+      style={{backgroundColor: amber[700]}}
+      message={<span>There is a new NOMAD version. Please press your browser's reload (or even shift+reload) button.</span>}
+    />
+  </Snackbar>
+}
+
 const drawerWidth = 200
-
-
 
 class NavigationUnstyled extends React.Component {
   static propTypes = {
@@ -185,12 +201,18 @@ class NavigationUnstyled extends React.Component {
   }
 
   componentDidMount() {
-    fetch(`${appBase}/meta.json`)
-      .then((response) => response.json())
+    fetch(`${guiBase}/meta.json`, {
+      method: 'GET',
+      cache: 'no-cache',
+      headers: {
+        'Pragma': 'no-cache',
+        'Cache-Control': 'no-cache, no-store'
+      }
+    }).then((response) => response.json())
       .then((meta) => {
         if (meta.version !== packageJson.version) {
-          // this should not happen, if we setup the web servers correctly
-          console.error('GUI API version mismatch')
+          console.log('GUI API version mismatch')
+          this.setState({showReloadSnack: true})
         }
       })
       .catch(() => {
@@ -205,6 +227,7 @@ class NavigationUnstyled extends React.Component {
   render() {
     const { classes, children, location: { pathname }, loading } = this.props
     const { toolbarThemes, toolbarHelp, toolbarTitles } = this
+    const { showReloadSnack } = this.state
 
     const selected = dct => {
       const key = Object.keys(dct).find(key => {
@@ -220,6 +243,7 @@ class NavigationUnstyled extends React.Component {
       <div className={classes.root}>
         <div className={classes.appFrame}>
           <MuiThemeProvider theme={theme}>
+            { showReloadSnack ? <ReloadSnack/> : ''}
             <AppBar
               position="absolute"
               className={classNames(classes.appBar, this.state.open && classes.appBarShift)}
@@ -354,7 +378,7 @@ class LicenseAgreementUnstyled extends React.Component {
               [terms of use](https://www.nomad-coe.eu/the-project/nomad-repository/nomad-repository-terms).
 
               Uploaded data is licensed under the Creative Commons Attribution license
-              ([CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)). You can publish
+              ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). You can publish
               uploaded data with an *embargo*. Data with an *embargo* is only visible to
               you and users you share your data with. The *embargo period* lasts up to 36 month.
               After the *embargo* your published data will be public. **Note that public data
@@ -403,11 +427,16 @@ export default class App extends React.Component {
       render: props => {
         const { match, ...rest } = props
         if (match && match.params.uploadId && match.params.calcId) {
-          return (<Calc {...rest} uploadId={match.params.uploadId} calcId={match.params.calcId} />)
+          return (<EntryPage {...rest} uploadId={match.params.uploadId} calcId={match.params.calcId} />)
         } else {
           return ''
         }
       }
+    },
+    'entry_query': {
+      exact: true,
+      path: '/entry/query',
+      render: props => <EntryPage {...props} query />
     },
     'dataset': {
       path: '/dataset/id/:datasetId',
@@ -442,6 +471,7 @@ export default class App extends React.Component {
     'metainfo': {
       exact: true,
       path: '/metainfo',
+      singleton: true,
       render: props => <MetaInfoBrowser {...props} />
     },
     'metainfoEntry': {
@@ -452,21 +482,13 @@ export default class App extends React.Component {
   }
 
   renderChildren(routeKey, props) {
-    // const { match, ...rest } = props
-
     return (
-      <div>
-        {Object.keys(this.routes)
-          .filter(route => this.routes[route].singleton || route === routeKey)
-          .map(route => (
-            <div
-              key={route.key ? route.key(props) : route}
-              style={{display: routeKey === route ? 'block' : 'none'}}
-            >
-              {this.routes[route].render(props)}
-            </div>
-          ))}
-      </div>
+      <React.Fragment>
+        {Object.keys(this.routes).map(route => <KeepState key={route}
+          visible={routeKey === route}
+          render={(props) => this.routes[route].render(props)}
+          {...props} />)}
+      </React.Fragment>
     )
   }
 

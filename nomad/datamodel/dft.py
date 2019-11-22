@@ -18,12 +18,13 @@ DFT specific metadata
 
 from typing import List
 import re
-from elasticsearch_dsl import Integer
+from elasticsearch_dsl import Integer, Object
 import ase.data
 
 from nomadcore.local_backend import ParserEvent
 
 from nomad import utils, config
+from nomad.metainfo import optimade
 
 from .base import CalcWithMetadata, DomainQuantity, Domain, get_optional_backend_value
 
@@ -91,7 +92,15 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.geometries = []
         self.group_hash: str = None
 
+        self.optimade: optimade.OptimadeEntry = None
+
         super().__init__(**kwargs)
+
+    def update(self, **kwargs):
+        super().update(**kwargs)
+
+        if self.optimade is not None and isinstance(self.optimade, dict):
+            self.optimade = optimade.OptimadeEntry.m_from_dict(self.optimade)
 
     def apply_domain_metadata(self, backend):
         from nomad.normalizing.system import normalized_atom_labels
@@ -104,6 +113,8 @@ class DFTCalcWithMetadata(CalcWithMetadata):
             self.code_version = simplify_version(backend.get_value('program_version', 0))
         except KeyError:
             self.code_version = config.services.unavailable_value
+
+        self.raw_id = get_optional_backend_value(backend, 'raw_id', 'section_run', 0)
 
         self.atoms = get_optional_backend_value(backend, 'atom_labels', 'section_system', [], logger=logger)
         if hasattr(self.atoms, 'tolist'):
@@ -147,7 +158,7 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         n_total_energies = 0
         n_geometries = 0
 
-        for meta_info, event, value in backend._delegate.results.traverse():
+        for meta_info, event, value in backend.traverse():
             quantities.add(meta_info)
 
             if event == ParserEvent.add_value or event == ParserEvent.add_array_value:
@@ -172,6 +183,8 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.n_calculations = n_calculations
         self.n_total_energies = n_total_energies
         self.n_geometries = n_geometries
+
+        self.optimade = backend.get_mi2_section(optimade.OptimadeEntry.m_def)
 
 
 def only_atoms(atoms):
@@ -222,7 +235,14 @@ Domain(
         n_geometries=DomainQuantity(
             'Number of unique geometries',
             elastic_mapping=Integer()),
-        n_atoms=DomainQuantity('Number of atoms in the simulated system', elastic_mapping=Integer())),
+        n_atoms=DomainQuantity(
+            'Number of atoms in the simulated system',
+            elastic_mapping=Integer()),
+        optimade=DomainQuantity(
+            'Search based on optimade\'s filter query language',
+            elastic_mapping=Object(optimade.ESOptimadeEntry),
+            elastic_value=lambda entry: optimade.elastic_obj(entry, optimade.ESOptimadeEntry)
+        )),
     metrics=dict(
         total_energies=('n_total_energies', 'sum'),
         calculations=('n_calculations', 'sum'),

@@ -22,27 +22,29 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
 import click
+import json
+from datetime import datetime
 
 from .client import client
 
 
-def codes(client, metrics=[]):
-    data = client.repo.search(per_page=1, owner='admin', metrics=metrics).response().result
+def codes(client, minimum=1, **kwargs):
+    data = client.repo.search(per_page=1, **kwargs).response().result
 
     x_values = sorted([
-        code for code, values in data.quantities['code_name'].items()
-        if code != 'not processed' and values['code_runs'] > 0], key=lambda x: x.lower())
+        code for code, values in data.statistics['code_name'].items()
+        if code != 'not processed' and values.get('calculations', 1000) >= minimum], key=lambda x: x.lower())
 
-    return data.quantities, x_values, 'code_name', 'code'
+    return data.statistics, x_values, 'code_name', 'code'
 
 
-def dates(client, metrics=[]):
-    data = client.repo.search(per_page=1, owner='admin', metrics=metrics, date_histogram=True).response().result
+def dates(client, minimum=1, **kwargs):
+    data = client.repo.search(per_page=1, date_histogram=True, **kwargs).response().result
 
     x_values = list([
-        x for x in data.quantities['date_histogram'].keys()])
+        x for x in data.statistics['date_histogram'].keys()])
 
-    return data.quantities, x_values, 'date_histogram', 'month'
+    return data.statistics, x_values, 'date_histogram', 'month'
 
 
 def error_fig(client):
@@ -128,9 +130,11 @@ def error_fig(client):
 
     plt.show()
 
+    return fig, plt
+
 
 class Metric:
-    def __init__(self, metric, label=None, power=1, multiplier=1, format=None, cumulate=False):
+    def __init__(self, metric, label=None, power=None, multiplier=1, format=None, cumulate=False):
         if label is None:
             label = metric
 
@@ -142,14 +146,18 @@ class Metric:
         self.format = format
         self.cumulate = cumulate
 
-    def draw_axis(self, axis, data, x_values, x_positions, width, color):
+    def draw_axis(self, axis, data, x_values, x_positions, width, color, only=False):
+        label_color = 'black' if only else color
         value_map = {
             x: values[self.metric]
             for x, values in data[self.agg].items()
             if x in x_values}
 
-        axis.set_yscale('power', exponent=self.power)
-        axis.set_ylabel(self.label, color=color)
+        if self.power is not None:
+            axis.set_yscale('power', exponent=self.power)
+        else:
+            axis.set_yscale('log')
+        axis.set_ylabel(self.label, color=label_color)
 
         if self.format is not None:
             axis.yaxis.set_major_formatter(ticker.StrMethodFormatter(self.format))
@@ -157,44 +165,71 @@ class Metric:
         y_values = [value_map[x] * self.multiplier for x in x_values]
         if self.cumulate:
             y_values = np.array(y_values).cumsum()
-        axis.bar(x_positions, y_values, width, label=self.label, color=color)
-        axis.tick_params(axis='y', labelcolor=color)
+        axis.bar(x_positions, y_values, width, label=self.label, color=color, align='edge')
+        axis.tick_params(axis='y', labelcolor=label_color)
+
+        # TODO remove
+        # for x, v in zip(x_positions, y_values):
+        #     axis.text(x + .1, v, ' {:,}'.format(int(v)), color=color, fontweight='bold', rotation=90)
+        # import matplotlib.lines as mlines
+        # line = mlines.Line2D([min(x_positions), max(x_positions)], [72, 72], color=color)
+        # axis.add_line(line)
 
 
-def bar_plot(client, retrieve, metric1, metric2=None, title=None):
+def bar_plot(
+        client, retrieve, metric1, metric2=None, title=None, format_xlabel=None,
+        xlim={}, ylim=dict(bottom=1), **kwargs):
+    if format_xlabel is None:
+        format_xlabel = lambda x: x
+
     metrics = [] if metric1.metric == 'code_runs' else [metric1.metric]
     if metric2 is not None:
         metrics += [] if metric2.metric == 'code_runs' else [metric2.metric]
 
-    data, x_values, agg, agg_label = retrieve(client, metrics)
+    data, x_values, agg, agg_label = retrieve(client, metrics=metrics, statistics=True, **kwargs)
     metric1.agg = agg
     if metric2 is not None:
         metric2.agg = agg
 
-    fig, ax1 = plt.subplots(figsize=(15, 6), dpi=72)
+    fig, ax1 = plt.subplots(figsize=(5, 4), dpi=72)
     x = np.arange(len(x_values))
-    width = 0.7 / 2
+    width = 0.8 / 2
     if metric2 is None:
-        width = 0.7
+        width = 0.8
     plt.sca(ax1)
     plt.xticks(rotation=90)
     ax1.set_xticks(x)
-    ax1.set_xticklabels(x_values)
+    ax1.set_xticklabels([format_xlabel(value) if value != 'Quantum Espresso' else 'Q. Espresso' for value in x_values])
+    ax1.margins(x=0.01)
+    ax1.set_xlim(**xlim)
+    # i = 0
+    # for label in ax1.xaxis.get_ticklabels():
+    #     label.set_visible(i % 4 == 0)
+    #     i += 1
+
     if title is None:
         title = 'Number of %s' % metric1.label
         if metric2 is not None:
             title += ' and %s' % metric2.label
         title += ' per %s' % agg_label
         ax1.set_title(title)
+    elif title != '':
+        ax1.set_title(title)
 
-    metric1.draw_axis(ax1, data, x_values, x - (width / 2 if metric2 is not None else 0), width, 'tab:red')
+    metric1.draw_axis(ax1, data, x_values, x - (width / 2), width, 'tab:blue', only=metric2 is None)
+    ax1.set_ylim(**ylim)
+    ax1.set_yticks([40, 30, 20, 10, 5, 1, 0.5, 0.1])
+    ax1.grid(which='major', axis='y', linestyle='--')
 
     if metric2:
         ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-        metric2.draw_axis(ax2, data, x_values, x + width / 2, width, 'tab:blue')
+        metric2.draw_axis(
+            ax2, data, x_values, x + width / 2, width, 'tab:red')
+        ax2.set_ylim(bottom=1)
 
     fig.tight_layout()
-    plt.show()
+
+    return fig, plt
 
 
 @client.command(help='Generate various matplotlib charts')
@@ -204,7 +239,11 @@ def bar_plot(client, retrieve, metric1, metric2=None, title=None):
 @click.option('--cumulate', is_flag=True, help='Cumulate over x-axis.')
 @click.option('--title', type=str, help='Override chart title with given value.')
 @click.option('--total', is_flag=True, help='Provide total sums of key metrics.')
-def statistics(errors, title, x_axis, y_axis, cumulate, total):
+@click.option('--save', type=str, help='Save to given file instead of showing the plot.')
+@click.option('--power', type=float, help='User power scale instead of log with the given inverse power.')
+@click.option('--open-access', is_flag=True, help='Only consider Open-Access data.')
+@click.option('--minimum', type=int, default=1, help='Only consider codes with at least the given ammount of entries.')
+def statistics(errors, title, x_axis, y_axis, cumulate, total, save, power, open_access, minimum):
     from .client import create_client
     client = create_client()
 
@@ -244,12 +283,24 @@ def statistics(errors, title, x_axis, y_axis, cumulate, total):
 
     mscale.register_scale(PowerScale)
 
+    kwargs = {}
+    if cumulate:
+        kwargs.update(
+            power=1,
+            multiplier=1e-6,
+            format='{x:,.1f}M')
+    elif power is not None:
+        kwargs.update(
+            power=1 / power,
+            multiplier=1e-6,
+            format='{x:,.1f}M')
+
     metrics = {
         'entries': Metric(
             'code_runs',
             label='entries (code runs)',
             cumulate=cumulate,
-            power=0.25 if not cumulate else 1, multiplier=1e-6, format='{x:,.1f}M'),
+            **kwargs),
         'users': Metric(
             'users',
             cumulate=cumulate,
@@ -258,31 +309,47 @@ def statistics(errors, title, x_axis, y_axis, cumulate, total):
             'total_energies',
             label='total energy calculations',
             cumulate=cumulate,
-            power=0.25 if not cumulate else 1, multiplier=1e-6, format='{x:,.1f}M'),
+            **kwargs),
         'calculations': Metric(
             'calculations',
-            label='single configuration calculations',
+            label='calculations (e.g. total energy)',
             cumulate=cumulate,
-            power=0.25 if not cumulate else 1, multiplier=1e-6, format='{x:,.1f}M')
+            **kwargs)
     }
 
     if errors:
-        error_fig(client)
+        fig, plt = error_fig(client)
+
+    owner = 'all' if open_access else 'admin'
 
     if x_axis is not None:
         assert 1 <= len(y_axis) <= 2, 'Need 1 or 2 y axis'
 
+        kwargs = {}
         if x_axis == 'code':
             x_axis = codes
+            kwargs.update(ylim=dict(bottom=0))
         elif x_axis == 'time':
             x_axis = dates
+            kwargs.update(
+                ylim=dict(bottom=0),
+                format_xlabel=lambda x: datetime.fromtimestamp(int(x) / 1000).strftime('%b %y'))
         else:
             assert False, 'x axis can only be "code" or "time"'
 
         y_axis = [metrics[y] for y in y_axis]
 
-        bar_plot(client, x_axis, *y_axis, title=title)
+        fig, plt = bar_plot(
+            client, x_axis, *y_axis, title=title, owner=owner, minimum=minimum, **kwargs)
+
+    if errors or x_axis is not None:
+        if save is not None:
+            fig.savefig(save, bbox_inches='tight')
+        else:
+            plt.show()
 
     if total:
-        data = client.repo.search(per_page=1, owner='admin', metrics=['total_energies', 'calculations', 'users', 'datasets']).response().result
-        print(data.quantities['total'])
+        data = client.repo.search(
+            per_page=1, owner=owner, statistics=True,
+            metrics=['total_energies', 'calculations', 'uploaders', 'authors', 'datasets']).response().result
+        print(json.dumps(data.statistics['total'], indent=4))
