@@ -184,8 +184,8 @@ class AbstractParserBackend(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_sections(self, meta_name: str) -> List[int]:
-        """ Return all gIndices for existing sections of the given meta_name. """
+    def get_sections(self, meta_name: str, g_index: int = -1) -> List[int]:
+        """ Return all gIndices for existing sections of the given meta_name and parent section index. """
         pass
 
     @abstractmethod
@@ -513,9 +513,11 @@ class LocalBackend(LegacyParserBackend, metaclass=DelegatingMeta):
 
             return section[meta_name]
 
-    def get_sections(self, meta_name):
+    def get_sections(self, meta_name, g_index=-1):
         sections = self._delegate.results[meta_name]
-        return [section.gIndex for section in sections]
+        return [
+            section.gIndex for section in sections
+            if g_index == -1 or section.parents[0].gIndex == g_index]
 
     def _write(
             self, json_writer: JSONStreamWriter, value: Any,
