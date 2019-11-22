@@ -188,6 +188,11 @@ class AbstractParserBackend(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def get_parent_section(self, meta_name: str, index: int) -> int:
+        """ Return gIndices of parent sections for given child section name and index. """
+        pass
+
+    @abstractmethod
     def get_value(self, metaName: str, g_index=-1) -> Any:
         """
         Return the value set to the given meta_name in its parent section of the given index.
@@ -472,6 +477,9 @@ class LocalBackend(LegacyParserBackend):
     def get_sections(self, meta_name):
         sections = self._delegate.results[meta_name]
         return [section.gIndex for section in sections]
+
+    def get_parent_section(self, meta_name: str, index: int) -> int:
+        # FIXME
 
     def _write(
             self, json_writer: JSONStreamWriter, value: Any,

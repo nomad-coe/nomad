@@ -12,24 +12,46 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import Counter
 from typing import Any
 import ase
 import numpy as np
 import json
 import re
-
+import os
+import sqlite3
+import sys
 from matid import SymmetryAnalyzer
 from matid.geometry import get_dimensionality
+from ase.data import chemical_symbols
 
+from nomadcore.parser_backend import JsonParseEventsWriterBackend
 from nomad import utils, config
 from nomad.normalizing.normalizer import SystemBasedNormalizer
-
 
 # use a regular expression to check atom labels; expression is build from list of
 # all labels sorted desc to find Br and not B when searching for Br.
 atom_label_re = re.compile('|'.join(
     sorted(ase.data.chemical_symbols, key=lambda x: len(x), reverse=True)))
 
+
+springer_db_connection = None
+
+def open_springer_database():
+    """
+    Create a global connection to the Springer database in a way that 
+    each worker opens the database just once.
+    """
+    global springer_db_connection
+    if springer_db_connection is None:
+        # filepath definition in 'nomad-FAIR/nomad/config.py'
+        db_file = config.springer_db_path
+        if not os.path.exists(db_file):
+            utils.get_logger(__name__).error('Springer database not found')
+            return None
+        springer_db_connection = sqlite3.connect(db_file)        
+
+    return springer_db_connection
 
 def normalized_atom_labels(atom_labels):
     """
@@ -41,6 +63,26 @@ def normalized_atom_labels(atom_labels):
         ase.data.chemical_symbols[0] if match is None else match.group(0)
         for match in [re.search(atom_label_re, atom_label) for atom_label in atom_labels]]
 
+def formula_normalizer(atoms):
+    """
+    Reads the chemical symbols in ase.atoms and returns a normalized formula.
+    Formula normalization is on the basis of atom counting,
+    e.g., Tc ->  Tc100, SZn -> S50Zn50, Co2Nb -> Co67Nb33    
+    """
+    # 
+    chem_symb = atoms.get_chemical_symbols()
+
+    atoms_counter = Counter(chem_symb) # dictionary
+    atoms_total = sum(atoms_counter.values())
+
+    atoms_normed = []
+    for key in atoms_counter.keys():
+        norm = str(round(100 * atoms_counter[key] / atoms_total))    
+        atoms_normed.append( key + norm)
+    #
+    atoms_normed.sort()
+    return ''.join(atoms_normed)
+    
 
 class SystemNormalizer(SystemBasedNormalizer):
 
@@ -118,7 +160,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         if atom_species is None:
             atom_species = atoms.get_atomic_numbers().tolist()
             self._backend.addArrayValues('atom_species', atom_species)
-        else:
+        else:   
             if not isinstance(atom_species, list):
                 atom_species = [atom_species]
             if atom_species != atoms.get_atomic_numbers().tolist():
@@ -331,5 +373,90 @@ class SystemNormalizer(SystemBasedNormalizer):
         self._backend.addArrayValues('wyckoff_letters_original', orig_wyckoff)
         self._backend.addArrayValues('equivalent_atoms_original', orig_equivalent_atoms)
         self._backend.closeSection('section_original_system', orig_gid)
-
         self._backend.closeSection('section_symmetry', symmetry_gid)
+        
+        self.springer_classification(atoms, space_group_number) # Springer Normalizer
+
+
+    
+    def springer_classification(self, atoms, space_group_number):
+        # SPRINGER NORMALIZER
+        normalized_formula = formula_normalizer(atoms)         
+        # 
+        springer_db_connection = open_springer_database()
+        if  springer_db_connection is None:
+            return
+
+        cur = springer_db_connection.cursor() 
+
+        # SQL QUERY 
+        # (this replaces the four queries done in the old 'classify4me_SM_normalizer.py')
+        cur.execute("""            
+            SELECT
+                entry.entry_id,
+                entry.alphabetic_formula,
+                GROUP_CONCAT(DISTINCT compound_classes.compound_class_name),
+                GROUP_CONCAT(DISTINCT classification.classification_name)                
+            FROM entry
+            LEFT JOIN entry_compound_class as ecc ON ecc.entry_nr = entry.entry_nr
+            LEFT JOIN compound_classes ON ecc.compound_class_nr = compound_classes.compound_class_nr
+            LEFT JOIN entry_classification as ec ON ec.entry_nr = entry.entry_nr
+            LEFT JOIN classification ON ec.classification_nr = classification.classification_nr
+            LEFT JOIN entry_reference as er ON er.entry_nr = entry.entry_nr
+            LEFT JOIN reference ON reference.reference_nr = er.entry_nr
+            WHERE entry.normalized_formula = ( %r ) and entry.space_group_number = '%d'
+            GROUP BY entry.entry_id;
+            """ % (normalized_formula, space_group_number))
+        results = cur.fetchall()
+        # All SQL queries done
+               
+    
+        dbdict = {}
+        for ituple in results: 
+            for item in ituple:
+                # 'spr' means 'springer'
+                spr_id = ituple[0]
+                spr_aformula = ituple[1] # alphabetical formula
+                spr_url = 'http://materials.springer.com/isp/crystallographic/docs/' + spr_id
+                spr_compound = ituple[2].split(',')  # convert string to list
+                spr_classification = ituple[3].split(',')
+                # 
+                
+            spr_compound.sort()
+            spr_classification.sort()
+
+            dbdict[spr_id] = {'spr_id': spr_id, 
+                        'spr_aformula': spr_aformula,
+                        'spr_url': spr_url, 
+                        'spr_compound': spr_compound,
+                        'spr_classification': spr_classification }
+
+
+        # SPRINGER's METAINFO UPDATE 
+        # LAYOUT: Five sections under 'section_springer_material' for each material ID:  
+        #     id, alphabetical formula, url, compound_class, clasification.
+        # As per Markus/Luca's emails, we don't expose Springer bib references (Springer's paywall)
+        for material in dbdict.values():        
+            self._backend.openNonOverlappingSection('section_springer_material')                    
+
+            self._backend.addValue('springer_id', material['spr_id'])
+            self._backend.addValue('springer_alphabetical_formula', material['spr_aformula']) 
+            self._backend.addValue('springer_url', material['spr_url'])
+            self._backend.addArrayValues('springer_compound_class', material['spr_compound'])
+            self._backend.addArrayValues('springer_classification', material['spr_classification'])
+            
+            self._backend.closeNonOverlappingSection('section_springer_material')   
+
+
+        # CHECK if the springer_classification and springer_compound_class found for each springer_id match
+        dkeys = list(dbdict.keys())
+        class_0 = dbdict[dkeys[0]]['spr_classification']
+        comp_0 = dbdict[spr_id]['spr_compound']
+
+        for ii in range(1, len(dkeys)):        
+            class_test = class_0 == dbdict[dkeys[ii]]['spr_classification']
+            comp_test  = comp_0  == dbdict[dkeys[ii]]['spr_compound']
+            
+            if (class_test or comp_test) is False:
+                self.logger.warning('Mismatch in Springer classification or compounds')
+            

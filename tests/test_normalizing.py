@@ -37,6 +37,9 @@ unknown_atom_label = (
 fcc_symmetry = (
     'parsers/template', 'tests/data/normalizers/fcc_crystal_structure.json')
 
+vasp_parser = (
+    'parsers/vasp', 'tests/data/parsers/vasp/vasp.xml')
+
 glucose_atom_labels = (
     'parsers/template', 'tests/data/normalizers/glucose_atom_labels.json')
 
@@ -194,3 +197,39 @@ def test_reduced_chemical_formula():
     expected_red_chem_formula = 'C6H12O6'
     reduced_chemical_formula = backend.get_value('chemical_composition_bulk_reduced')
     assert expected_red_chem_formula == reduced_chemical_formula
+
+
+def test_vasp_incar_system():
+    """
+    Ensure we can test an incar value in the VASP example
+    """
+    backend = parse_file(vasp_parser)
+    backend = run_normalize(backend)
+    expected_value = 'SrTiO3' # material's formula in vasp.xml
+
+    #backend_value = backend.get_value('x_vasp_unknown_incars') # OK
+    #backend_value = backend.get_value('x_vasp_atom_kind_refs') # OK
+    backend_value = backend.get_value('x_vasp_incar_SYSTEM') # OK    
+        
+    print("backend_value: ", backend_value)
+    assert expected_value == backend_value
+
+
+def test_springer_normalizer():
+    """
+    Ensure the Springer normalizer works well with the VASP example. 
+    """
+    backend = parse_file(vasp_parser)
+    backend = run_normalize(backend)
+    backend_value = backend.get_value('springer_url', 89) 
+    # with  get_value('springer_id')  fails. 
+
+    expected_value = 'http://materials.springer.com/isp/crystallographic/docs/sd_1932539' 
+    print("backend_value: ", backend_value)
+    assert expected_value == backend_value    
+
+    # FIXME: search for ID, 
+    # also check NON empty for the others
+    # avois storing single use variables
+
+    # TODO: add test fo rptototypes
