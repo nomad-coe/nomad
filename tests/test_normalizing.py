@@ -205,31 +205,31 @@ def test_vasp_incar_system():
     """
     backend = parse_file(vasp_parser)
     backend = run_normalize(backend)
-    expected_value = 'SrTiO3' # material's formula in vasp.xml
+    expected_value = 'SrTiO3'  # material's formula in vasp.xml
 
-    #backend_value = backend.get_value('x_vasp_unknown_incars') # OK
-    #backend_value = backend.get_value('x_vasp_atom_kind_refs') # OK
-    backend_value = backend.get_value('x_vasp_incar_SYSTEM') # OK    
-        
+    # backend_value = backend.get_value('x_vasp_unknown_incars')  # OK
+    # backend_value = backend.get_value('x_vasp_atom_kind_refs')  # OK
+    backend_value = backend.get_value('x_vasp_incar_SYSTEM')  # OK
+
     print("backend_value: ", backend_value)
     assert expected_value == backend_value
 
 
 def test_springer_normalizer():
     """
-    Ensure the Springer normalizer works well with the VASP example. 
+    Ensure the Springer normalizer works well with the VASP example.
     """
     backend = parse_file(vasp_parser)
     backend = run_normalize(backend)
-    backend_value = backend.get_value('springer_url', 89) 
-    # with  get_value('springer_id')  fails. 
 
-    expected_value = 'http://materials.springer.com/isp/crystallographic/docs/sd_1932539' 
-    print("backend_value: ", backend_value)
-    assert expected_value == backend_value    
+    backend_value = backend.get_value('springer_id', 89)
+    expected_value = 'sd_1932539'
+    assert expected_value == backend_value
 
-    # FIXME: search for ID, 
-    # also check NON empty for the others
-    # avois storing single use variables
+    backend_value = backend.get_value('springer_alphabetical_formula', 89)
+    expected_value = 'O3SrTi'
+    assert expected_value == backend_value
 
-    # TODO: add test fo rptototypes
+    backend_value = backend.get_value('springer_url', 89)
+    expected_value = 'http://materials.springer.com/isp/crystallographic/docs/sd_1932539'
+    assert expected_value == backend_value

@@ -206,6 +206,7 @@ max_upload_size = 32 * (1024 ** 3)
 springer_db_relative_path = 'normalizing/data/SM_all08.db'
 springer_db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), springer_db_relative_path)
 
+
 def normalize_loglevel(value, default_level=logging.INFO):
     plain_value = value
     if plain_value is None:
