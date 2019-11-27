@@ -35,3 +35,4 @@ class DosNormalizer(Normalizer):
         for index in dos_section_indices:
             values = self._backend.get_value('dos_values', index)
             print(values)
+            print("\n\n\n\n# ", index)

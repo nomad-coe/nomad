@@ -20,15 +20,12 @@ import json
 import re
 import os
 import sqlite3
-import sys
 import functools
 import fractions
 
 from matid import SymmetryAnalyzer
 from matid.geometry import get_dimensionality
-from ase.data import chemical_symbols
 
-from nomadcore.parser_backend import JsonParseEventsWriterBackend
 from nomadcore.structure_types import structure_types_by_spacegroup as str_types_by_spg
 
 from nomad import utils, config
@@ -55,7 +52,9 @@ def open_springer_database():
         if not os.path.exists(db_file):
             utils.get_logger(__name__).error('Springer database not found')
             return None
-        springer_db_connection = sqlite3.connect(db_file)
+        springer_db_connection = sqlite3.connect(db_file, check_same_thread=False, uri=True)
+        # we lift the thread check because we share the connection among workers
+        # 'uri=True': open a database in read-only mode
 
     return springer_db_connection
 
@@ -422,28 +421,30 @@ class SystemNormalizer(SystemBasedNormalizer):
             WHERE entry.normalized_formula = ( %r ) and entry.space_group_number = '%d'
             GROUP BY entry.entry_id;
             """ % (normalized_formula, space_group_number))
+
         results = cur.fetchall()
+        # 'results' is a list of tuples, i.e. '[(a,b,c,d), ..., (a,b,c,d)]'
         # All SQL queries done
 
+        # Storing 'results' in a dictionary
         dbdict = {}
         for ituple in results:
-            for item in ituple:
-                # 'spr' means 'springer'
-                spr_id = ituple[0]
-                spr_aformula = ituple[1]  # alphabetical formula
-                spr_url = 'http://materials.springer.com/isp/crystallographic/docs/' + spr_id
-                spr_compound = ituple[2].split(',')  # convert string to list
-                spr_classification = ituple[3].split(',')
-                #
-
+            # 'spr' means 'springer'
+            spr_id = ituple[0]
+            spr_aformula = ituple[1]  # alphabetical formula
+            spr_url = 'http://materials.springer.com/isp/crystallographic/docs/' + spr_id
+            spr_compound = ituple[2].split(',')  # split to convert string to list
+            spr_classification = ituple[3].split(',')
+            #
             spr_compound.sort()
             spr_classification.sort()
-
+            #
             dbdict[spr_id] = {'spr_id': spr_id,
                               'spr_aformula': spr_aformula,
                               'spr_url': spr_url,
                               'spr_compound': spr_compound,
                               'spr_classification': spr_classification}
+        # =============
 
         # SPRINGER's METAINFO UPDATE
         # LAYOUT: Five sections under 'section_springer_material' for each material ID:
