@@ -126,7 +126,7 @@ def upload_next_data(sources: Iterator[Tuple[str, str, str]], upload_name='next 
                 yield chunk
 
     # stream .zip to nomad
-    response = requests.put(url=url, headers={'X-Token': token}, data=content())
+    response = requests.put(url=url, headers={'X-Token': token, 'Content-type': 'application/octet-stream'}, data=content())
 
     if response.status_code != 200:
         raise Exception('nomad return status %d' % response.status_code)
