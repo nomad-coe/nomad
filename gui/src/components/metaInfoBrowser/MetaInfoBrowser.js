@@ -69,7 +69,8 @@ class MetaInfoBrowser extends Component {
       width: 300
     },
     search: {
-      marginLeft: theme.spacing.unit * 3
+      width: 450,
+      marginRight: theme.spacing.unit * 2
     }
   })
 
@@ -161,6 +162,11 @@ class MetaInfoBrowser extends Component {
     return <div>
       <div className={classes.forms}>
         <form style={{ display: 'flex' }}>
+          <MetainfoSearch
+            classes={{container: classes.search}}
+            suggestions={Object.values(metainfos.names).filter(metainfo => !schema.isPackage(metainfo))}
+            onChange={this.handleSearch}
+          />
           <FormControl disabled={loading > 0}>
             <InputLabel htmlFor="select-multiple-checkbox">Package</InputLabel>
             <Select
@@ -180,10 +186,6 @@ class MetaInfoBrowser extends Component {
               }
             </Select>
           </FormControl>
-          <MetainfoSearch classes={{root: classes.search}}
-            suggestions={Object.values(metainfos.names).filter(metainfo => !schema.isPackage(metainfo))}
-            onChange={this.handleSearch}
-          />
         </form>
       </div>
       <Viewer key={loadedPackage} rootElement={metainfo} packages={metainfos.contents} />

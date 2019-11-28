@@ -1,8 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import deburr from 'lodash/deburr'
 import Autosuggest from 'react-autosuggest'
-import match from 'autosuggest-highlight/match'
 import parse from 'autosuggest-highlight/parse'
 import TextField from '@material-ui/core/TextField'
 import Paper from '@material-ui/core/Paper'
@@ -30,23 +28,18 @@ function renderInputComponent(inputProps) {
 }
 
 function renderSuggestion(suggestion, { query, isHighlighted }) {
-  const matches = match(suggestion.name, query)
+  const inputValue = query.trim()
+  const matches = match(suggestion.name, inputValue)
   const parts = parse(suggestion.name, matches)
 
   return (
     <MenuItem selected={isHighlighted} component="div">
       <div>
-        {parts.map((part, index) =>
-          part.highlight ? (
-            <span key={String(index)} style={{ fontWeight: 500 }}>
-              {part.text}
-            </span>
-          ) : (
-            <strong key={String(index)} style={{ fontWeight: 300 }}>
-              {part.text}
-            </strong>
-          )
-        )}
+        {parts.map((part, i) => (
+          <span key={i} style={{ fontWeight: part.highlight ? 500 : 300 }}>
+            {part.text}
+          </span>
+        ))}
       </div>
     </MenuItem>
   )
@@ -57,11 +50,8 @@ function getSuggestionValue(suggestion) {
 }
 
 const styles = theme => ({
-  root: {
-  },
   container: {
     position: 'relative',
-    marginLeft: theme.spacing.unit * 2
   },
   suggestionsContainerOpen: {
     position: 'absolute',
@@ -86,36 +76,52 @@ const styles = theme => ({
   }
 })
 
+function match(content, query) {
+  const queries = query.split(' ')
+  const result = queries.map(query => {
+    const index = content.indexOf(query)
+    if (index >= 0) {
+      return [index, index + query.length]
+    } else {
+      return null
+    }
+  }).filter(match => match !== null)
+
+  if (result.length === queries.length) {
+    result.sort((a, b) => a[0] - b[0])
+    return result
+  } else {
+    return []
+  }
+}
+
 class MetainfoSearch extends React.Component {
   state = {
     single: '',
     popper: '',
     suggestions: []
-  };
+  }
+
+  lastRequestTimeout = null
 
   getSuggestions(value) {
-    const inputValue = deburr(value.trim()).toLowerCase()
-    const inputLength = inputValue.length
-    let count = 0
-
-    return inputLength === 0
-      ? []
-      : this.props.suggestions.filter(suggestion => {
-        const keep =
-            count < 10 && suggestion.name.slice(0, inputLength).toLowerCase() === inputValue
-
-        if (keep) {
-          count += 1
-        }
-
-        return keep
-      })
+    const inputValue = value.trim()
+    let i = 0
+    return this.props.suggestions.filter(suggestion =>
+      match(suggestion.name, inputValue).length > 0
+    ).slice(0, 15)
   }
 
   handleSuggestionsFetchRequested = ({ value }) => {
-    this.setState({
-      suggestions: this.getSuggestions(value)
-    })
+    if (this.lastRequestTimeout !== null) {
+      clearTimeout(this.lastRequestTimeout)
+    }
+
+    this.lastRequestTimeout = setTimeout(() => {
+      this.setState({
+        suggestions: this.getSuggestions(value)
+      })
+    }, 200)
   }
 
   handleSuggestionsClearRequested = () => {
@@ -145,6 +151,7 @@ class MetainfoSearch extends React.Component {
 
     return (
       <Autosuggest
+        className={classes.root}
         {...autosuggestProps}
         inputProps={{
           classes: classes,
@@ -154,7 +161,8 @@ class MetainfoSearch extends React.Component {
           onChange: this.handleChange('single'),
           InputLabelProps: {
             shrink: true
-          }
+          },
+          fullWidth: true
         }}
         theme={{
           container: classes.container,

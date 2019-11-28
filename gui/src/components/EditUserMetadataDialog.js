@@ -155,7 +155,7 @@ class MyAutosuggestUnstyled extends React.PureComponent {
       <MenuItem selected={isHighlighted} component="div">
         <div>
           {parts.map((part, i) => (
-            <span key={i} style={{ fontWeight: part.highlight ? 500 : 400 }}>
+            <span key={i} style={{ fontWeight: part.highlight ? 500 : 300 }}>
               {part.text}
             </span>
           ))}
