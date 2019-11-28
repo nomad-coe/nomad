@@ -1,7 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Fab, Card, CardContent, CardActions, Button, Typography } from '@material-ui/core'
-import { Link } from 'react-router-dom'
+import { withStyles, Fab, Card, CardContent, Button, Typography, Dialog, DialogContent, DialogActions, DialogTitle } from '@material-ui/core'
 import ReactJson from 'react-json-view'
 import { compose } from 'recompose'
 import Markdown from '../Markdown'
@@ -10,6 +9,7 @@ import DownloadIcon from '@material-ui/icons/CloudDownload'
 import Download from './Download'
 import { ValueAttributes, MetaAttribute } from '../metaInfoBrowser/ValueCard'
 import ApiDialogButton from '../ApiDialogButton'
+import { withRouter } from 'react-router'
 
 export const help = `
 The NOMAD **archive** provides data and meta-data in a common hierarchical format based on
@@ -20,6 +20,61 @@ You can click the various quantity values to see the quantity definition. Simila
 you can click section names to get more information. Browse the *metainfo* to
 learn more about NOMAD's archive format [here](/metainfo).
 `
+
+class MetainfoDialogUnstyled extends React.PureComponent {
+
+  static propTypes = {
+    classes: PropTypes.object.isRequired,
+    history: PropTypes.object.isRequired,
+    metaInfoData: PropTypes.object.isRequired,
+    onClose: PropTypes.func.isRequired
+  }
+
+  static styles = theme => ({
+    root: {},
+    metaInfoDescription: {
+      margin: `${theme.spacing.unit}px 0`
+    }
+  })
+
+  handleGotoMetainfoBrowser() {
+    const {history, onClose, metaInfoData} = this.props
+    history.push(`/metainfo/${metaInfoData.name}`)
+    onClose()
+  }
+
+  render() {
+    const {classes, metaInfoData, onClose} = this.props
+    return  <Dialog open className={classes.root}>
+      <DialogTitle>
+        {metaInfoData.name}
+      </DialogTitle>
+      <DialogContent >
+        <MetaAttribute label={'metainfo name'} value={metaInfoData.name} />
+        <Markdown classes={{root: classes.metaInfoDescription}}>{metaInfoData.description}</Markdown>
+        <ValueAttributes definition={metaInfoData} />
+      </DialogContent>
+      <DialogActions>
+        <Button color="primary" onClick={this.handleGotoMetainfoBrowser.bind(this)}>
+          Goto Metainfo Browser
+        </Button>
+        <ApiDialogButton
+          component={props => (
+            <Button color="primary" {...props}>
+              Metainfo JSON
+            </Button>
+          )}
+          data={metaInfoData ? metaInfoData.miJson : {}} title="Metainfo JSON"
+        />
+        <Button color="primary" onClick={onClose}>
+          Close
+        </Button>
+      </DialogActions>
+    </Dialog>
+  }
+}
+
+const MetainfoDialog = compose(withRouter, withStyles(MetainfoDialogUnstyled.styles))(MetainfoDialogUnstyled)
 
 class ArchiveEntryView extends React.Component {
   static propTypes = {
@@ -32,30 +87,12 @@ class ArchiveEntryView extends React.Component {
   }
 
   static styles = theme => ({
-    root: {},
+    root: {
+      paddingTop: theme.spacing.unit * 2,
+      paddingBottom: theme.spacing.unit * 2
+    },
     error: {
       marginTop: theme.spacing.unit * 2
-    },
-    metaInfo: {
-      height: '20vh',
-      overflowY: 'auto',
-      marginTop: theme.spacing.unit * 3,
-      marginBottom: theme.spacing.unit * 3,
-      display: 'flex',
-      flexDirection: 'column'
-    },
-    metaInfoContent: {
-      flex: 1
-    },
-    metaInfoActions: {
-      flexDirection: 'row-reverse'
-    },
-    metaInfoDescription: {
-      margin: `${theme.spacing.unit}px 0`
-    },
-    data: {
-      height: '65vh',
-      overflowX: 'auto'
     },
     downloadFab: {
       zIndex: 1,
@@ -156,37 +193,8 @@ class ArchiveEntryView extends React.Component {
 
     return (
       <div className={classes.root}>
-        <Card className={classes.metaInfo}>
-          <CardContent className={classes.metaInfoContent}>{
-            showMetaInfo && metaInfo
-              ? metaInfoData
-                ? <div>
-                  <MetaAttribute label={'metainfo name'} value={metaInfoData.name} />
-                  <Markdown classes={{root: classes.metaInfoDescription}}>{metaInfoData.description}</Markdown>
-                  <ValueAttributes definition={metaInfoData} />
-                </div>
-                : <Markdown>This value has **no** *meta-info* attached to it.</Markdown>
-              : <Markdown>Click a value to show its *meta-info*!</Markdown>
-          }</CardContent>
-          <CardActions className={classes.metaInfoActions}>
-            { (showMetaInfo && metaInfo && metaInfoData)
-              ? <Button color="primary" component={props => <Link to={`/metainfo/${metaInfoData.name}`} {...props} />}>
-                Goto Metainfo Browser
-              </Button>
-              : <Button color="primary" disabled>
-                Goto Metainfo Browser
-              </Button>}
-            <ApiDialogButton
-              component={props => (
-                <Button color="primary" disabled={!(showMetaInfo && metaInfo && metaInfoData)} {...props}>
-                  Metainfo JSON
-                </Button>
-              )}
-              data={metaInfoData ? metaInfoData.miJson : {}} title="Metainfo JSON"
-            />
-          </CardActions>
-        </Card>
-        <Card className={classes.data}>
+        {metaInfoData && <MetainfoDialog metaInfoData={metaInfoData} onClose={() => this.setState({showMetaInfo: false})} />}
+        <Card>
           <CardContent>
             {
               data && typeof data !== 'string'

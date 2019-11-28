@@ -11,7 +11,6 @@ import extend from '@babel/runtime/helpers/extends'
  */
 
 var styles = theme => {
-  console.log(theme)
   return ({
   root: {
     fontFamily: theme.typography.fontFamily,

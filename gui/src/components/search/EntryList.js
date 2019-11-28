@@ -62,7 +62,7 @@ export class EntryListUnstyled extends React.Component {
     authors: {
       label: 'Authors',
       render: entry => entry.authors.map(author => author.name).join('; '),
-      supportsSort: false,
+      supportsSort: true,
       description: 'The authors of this entry. This includes the uploader and its co-authors.'
     },
     co_authors: {
@@ -117,6 +117,7 @@ export class EntryListUnstyled extends React.Component {
           return <i>no datasets</i>
         }
       },
+      supportsSort: false,
       description: 'The dataset names that this entry belongs to.'
     }
   }
