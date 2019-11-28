@@ -1,8 +1,3 @@
-import repo from '@material-ui/core/colors/deepPurple'
-import archive from '@material-ui/core/colors/teal'
-import enc from '@material-ui/core/colors/amber'
-import analytics from '@material-ui/core/colors/lightGreen'
-import nomad from '@material-ui/core/colors/blue'
 import { createMuiTheme } from '@material-ui/core'
 
 window.nomadEnv = window.nomadEnv || {}
@@ -33,48 +28,18 @@ is visible to others and files become downloadable by everyone.**
 This web-site uses *cookies*. By using this web-site you agree to our use
 of *cookies*. [Learn more](https://www.cookiesandyou.com/).
 `
+export const nomadPrimaryColor = {
+  main: '#294277',
+  veryLight: '#cfdeff'
+}
 
-export const repoPrimaryColor = repo
-
-const createTheme = themeData => createMuiTheme({
+export const nomadTheme = createMuiTheme({
   typography: {
     useNextVariants: true
   },
-  ...themeData
-})
-
-export const genTheme = createTheme({
   palette: {
-    primary: nomad,
-    secondary: nomad
-  }
-})
-
-export const repoTheme = createTheme({
-  palette: {
-    primary: repo,
-    secondary: repo
-  }
-})
-
-export const archiveTheme = createTheme({
-  palette: {
-    primary: archive,
-    secondary: archive
-  }
-})
-
-export const encTheme = createTheme({
-  palette: {
-    primary: enc,
-    secondary: enc
-  }
-})
-
-export const analyticsTheme = createTheme({
-  palette: {
-    primary: analytics,
-    secondary: analytics
+    primary: nomadPrimaryColor,
+    secondary: nomadPrimaryColor
   }
 })
 

@@ -287,7 +287,7 @@ class UserInputUnstyled extends React.Component {
   }
 
   render() {
-    const {label, error, onChange, value, margin} = this.props
+    const {label, error, value, margin} = this.props
     const errorLabel = (value === undefined) && 'This user does not exist, you can invite new users'
     return <MyAutosuggest onChange={this.handleChange.bind(this)} value={value ? local_users[value] : value}
       suggestions={this.suggestions.bind(this)}
@@ -334,7 +334,7 @@ class DatasetInputUnstyled extends React.Component {
   }
 
   render() {
-    const {label, error, onChange, value, margin} = this.props
+    const {label, onChange, value, margin} = this.props
     let usedLabel = label
     if (value === undefined) {
       usedLabel = 'This dataset does not exist, it will be created'
@@ -804,7 +804,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     const { actions } = this.state
 
     // remove null values to allow swagger validation
-    const actionsCopy = {...this.state.actions}
+    const actionsCopy = {...actions}
     Object.keys(actionsCopy).forEach(key => {
       if (Array.isArray(actionsCopy[key])) {
         actionsCopy[key] = actionsCopy[key].map(action => {
@@ -876,7 +876,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
   }
 
   render() {
-    const { classes, buttonProps, total, api, user, example, disabled, title } = this.props
+    const { classes, buttonProps, total, user, example, disabled, title } = this.props
     const { open, actions, verified, submitting } = this.state
 
     const dialogEnabled = user && example.uploader && example.uploader.user_id === user.sub && !disabled

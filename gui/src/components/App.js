@@ -5,16 +5,15 @@ import PropTypes, { instanceOf } from 'prop-types'
 import { compose } from 'recompose'
 import classNames from 'classnames'
 import { MuiThemeProvider, withStyles } from '@material-ui/core/styles'
-import { IconButton, LinearProgress, ListItemIcon, ListItemText,
-  MenuList, MenuItem, Typography, Drawer, AppBar, Toolbar, Divider, Button, DialogContent, DialogTitle, DialogActions, Dialog, Tooltip, Snackbar, SnackbarContent } from '@material-ui/core'
+import { LinearProgress, ListItemIcon, ListItemText, MenuList, MenuItem, Typography,
+  AppBar, Toolbar, Button, DialogContent, DialogTitle, DialogActions, Dialog, Tooltip,
+  Snackbar, SnackbarContent } from '@material-ui/core'
 import { Switch, Route, Link, withRouter } from 'react-router-dom'
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
 import UserDataIcon from '@material-ui/icons/AccountCircle'
 import AboutIcon from '@material-ui/icons/Home'
 import MetainfoIcon from '@material-ui/icons/Info'
-import ChevronLeftIcon from '@material-ui/icons/ChevronLeft'
-import MenuIcon from '@material-ui/icons/Menu'
 import {help as searchHelp, default as SearchPage} from './search/SearchPage'
 import HelpDialog from './Help'
 import { ApiProvider, withApi } from './api'
@@ -22,7 +21,7 @@ import { ErrorSnacks, withErrors } from './errors'
 import { help as entryHelp, default as EntryPage } from './entry/EntryPage'
 import About from './About'
 import LoginLogout from './LoginLogout'
-import { genTheme, repoTheme, archiveTheme, guiBase, consent } from '../config'
+import { guiBase, consent, nomadTheme } from '../config'
 import { DomainProvider, withDomain } from './domains'
 import {help as metainfoHelp, default as MetaInfoBrowser} from './metaInfoBrowser/MetaInfoBrowser'
 import packageJson from '../../package.json'
@@ -61,8 +60,6 @@ function ReloadSnack() {
   </Snackbar>
 }
 
-const drawerWidth = 200
-
 class NavigationUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
@@ -93,20 +90,7 @@ class NavigationUnstyled extends React.Component {
     },
     appBar: {
       zIndex: theme.zIndex.drawer + 1,
-      paddingRight: theme.spacing.unit * 3,
-      transition: theme.transitions.create(['width', 'margin'], {
-        easing: theme.transitions.easing.sharp,
-        duration: theme.transitions.duration.leavingScreen
-      })
-    },
-    appBarShift: {
-      marginLeft: drawerWidth,
-      paddingRight: theme.spacing.unit * 0,
-      width: `calc(100% - ${drawerWidth}px)`,
-      transition: theme.transitions.create(['width', 'margin'], {
-        easing: theme.transitions.easing.sharp,
-        duration: theme.transitions.duration.enteringScreen
-      })
+      backgroundColor: '#20335D'
     },
     menuButton: {
       marginLeft: theme.spacing.unit
@@ -117,34 +101,21 @@ class NavigationUnstyled extends React.Component {
     hide: {
       display: 'none'
     },
-    drawerPaper: {
-      position: 'relative',
-      whiteSpace: 'nowrap',
-      width: drawerWidth,
-      transition: theme.transitions.create('width', {
-        easing: theme.transitions.easing.sharp,
-        duration: theme.transitions.duration.enteringScreen
-      })
-    },
-    drawerPaperClose: {
-      overflowX: 'hidden',
-      transition: theme.transitions.create('width', {
-        easing: theme.transitions.easing.sharp,
-        duration: theme.transitions.duration.leavingScreen
-      }),
-      width: theme.spacing.unit * 7,
-      [theme.breakpoints.up('sm')]: {
-        width: theme.spacing.unit * 9
-      }
-    },
     toolbar: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'flex-end',
-      padding: '0 8px',
-      ...theme.mixins.toolbar
+      paddingRight: theme.spacing.unit * 3
+    },
+    logo: {
+      height: theme.spacing.unit * 7,
+      marginRight: theme.spacing.unit * 2
+    },
+    menu: {
+      display: 'inline-flex',
+      padding: 0,
+      width: '100%',
+      backgroundColor: 'white'
     },
     content: {
+      marginTop: theme.spacing.unit * 13,
       flexGrow: 1,
       backgroundColor: theme.palette.background.default,
       width: '100%',
@@ -154,8 +125,8 @@ class NavigationUnstyled extends React.Component {
       textDecoration: 'none',
       color: theme.palette.text.primary
     },
-    menuItem: {
-      paddingLeft: theme.spacing.unit * 3
+    menuItemIcon: {
+      marginRight: 0
     },
     barActions: {
       display: 'flex',
@@ -167,6 +138,9 @@ class NavigationUnstyled extends React.Component {
     barButton: {
       borderColor: theme.palette.getContrastText(theme.palette.primary.main),
       marginRight: 0
+    },
+    divider: {
+      flexGrow: 1
     }
   })
 
@@ -188,16 +162,6 @@ class NavigationUnstyled extends React.Component {
     '/metainfo': 'The NOMAD Meta Info',
     '/entry': capitalize(this.props.domain.entryLabel),
     '/dataset': 'Dataset'
-  }
-
-  toolbarThemes = {
-    '/': genTheme,
-    '/search': repoTheme,
-    '/uploads': repoTheme,
-    '/userdata': repoTheme,
-    '/entry': repoTheme,
-    '/dataset': repoTheme,
-    '/metainfo': archiveTheme
   }
 
   toolbarHelp = {
@@ -235,7 +199,7 @@ class NavigationUnstyled extends React.Component {
 
   render() {
     const { classes, children, location: { pathname }, loading } = this.props
-    const { toolbarThemes, toolbarHelp, toolbarTitles } = this
+    const { toolbarHelp, toolbarTitles } = this
     const { showReloadSnack } = this.state
 
     const selected = dct => {
@@ -245,7 +209,7 @@ class NavigationUnstyled extends React.Component {
       return dct[key]
     }
 
-    const theme = selected(toolbarThemes)
+    const theme = nomadTheme
     const help = selected(toolbarHelp)
 
     return (
@@ -254,18 +218,23 @@ class NavigationUnstyled extends React.Component {
           <MuiThemeProvider theme={theme}>
             { showReloadSnack ? <ReloadSnack/> : ''}
             <AppBar
-              position="absolute"
+              // position="absolute"
+              position="fixed"
               className={classNames(classes.appBar, this.state.open && classes.appBarShift)}
             >
-              <Toolbar disableGutters={!this.state.open}>
-                <IconButton
+              <Toolbar classes={{root: classes.toolbar}}
+                disableGutters
+                // disableGutters={!this.state.open}
+              >
+                {/* <IconButton
                   color="inherit"
                   onClick={() => this.handleDrawerEvent(this.state.open)}
                   className={classNames(classes.menuButton, this.state.open && classes.hide)}
                 >
                   <MenuIcon />
-                </IconButton>
+                </IconButton> */}
                 <div className={classes.title}>
+                  <img alt="The NOMAD logo" className={classes.logo} src="/nomad.png"></img>
                   <Typography variant="h6" color="inherit" noWrap>
                     {selected(toolbarTitles)}
                   </Typography>
@@ -275,69 +244,53 @@ class NavigationUnstyled extends React.Component {
                   <LoginLogout variant="outlined" color="inherit" classes={{button: classes.barButton}} />
                 </div>
               </Toolbar>
-              {loading ? <LinearProgress color="primary" /> : ''}
-            </AppBar>
-
-            <Drawer variant="permanent"
-              open={this.state.open}
-              classes={{ paper: classNames(classes.drawerPaper, !this.state.open && classes.drawerPaperClose) }}
-              anchor="left"
-            >
-              <div className={classes.toolbar}>
-                <IconButton onClick={() => this.handleDrawerEvent(this.state.open)}>
-                  <ChevronLeftIcon/>
-                </IconButton>
-              </div>
-
-              <MenuList>
-                <Tooltip title="NOMAD Repository and Archive">
-                  <MenuItem className={classes.menuItem} component={Link} to="/" selected={ pathname === '/' }>
-                    <ListItemIcon>
-                      <AboutIcon style={{fill: genTheme.palette.primary.main}}/>
-                    </ListItemIcon>
-                    <ListItemText inset primary="Home"/>
-                  </MenuItem>
-                </Tooltip>
-                <Divider/>
+              <MenuList classes={{root: classes.menu}}>
                 <Tooltip title="Find and download data">
-                  <MenuItem className={classes.menuItem} component={Link} to="/search" selected={ pathname.startsWith('/search') }>
-                    <ListItemIcon>
-                      <SearchIcon style={{fill: repoTheme.palette.primary.main}}/>
+                  <MenuItem component={Link} to="/search" selected={ pathname.startsWith('/search') } dense>
+                    <ListItemIcon classes={{root: classes.menuItemIcon}}>
+                      <SearchIcon />
                     </ListItemIcon>
                     <ListItemText inset primary="Search"/>
                   </MenuItem>
                 </Tooltip>
-                <Divider />
                 <Tooltip title="Upload and publish data">
-                  <MenuItem className={classes.menuItem} component={Link} to="/uploads" selected={ pathname === '/uploads' }>
-                    <ListItemIcon>
-                      <BackupIcon style={{fill: repoTheme.palette.primary.main}}/>
+                  <MenuItem component={Link} to="/uploads" selected={ pathname === '/uploads' } dense>
+                    <ListItemIcon classes={{root: classes.menuItemIcon}}>
+                      <BackupIcon />
                     </ListItemIcon>
                     <ListItemText inset primary="Upload"/>
                   </MenuItem>
                 </Tooltip>
                 <Tooltip title="Manage your data">
-                  <MenuItem className={classes.menuItem} component={Link} to="/userdata" selected={ pathname.startsWith('/userdata') }>
-                    <ListItemIcon>
-                      <UserDataIcon style={{fill: repoTheme.palette.primary.main}}/>
+                  <MenuItem component={Link} to="/userdata" selected={ pathname.startsWith('/userdata') } dense>
+                    <ListItemIcon classes={{root: classes.menuItemIcon}}>
+                      <UserDataIcon />
                     </ListItemIcon>
                     <ListItemText inset primary="Your data"/>
                   </MenuItem>
                 </Tooltip>
-                <Divider />
+                <div className={classes.divider} />
+                <Tooltip title="NOMAD Repository and Archive">
+                  <MenuItem component={Link} to="/" selected={ pathname === '/' } dense>
+                    <ListItemIcon classes={{root: classes.menuItemIcon}}>
+                      <AboutIcon />
+                    </ListItemIcon>
+                    <ListItemText inset primary="Overview"/>
+                  </MenuItem>
+                </Tooltip>
                 <Tooltip title="Browse the archive schema">
-                  <MenuItem className={classes.menuItem} component={Link} to="/metainfo" selected={ pathname === '/metainfo' }>
-                    <ListItemIcon>
-                      <MetainfoIcon style={{fill: archiveTheme.palette.primary.main}}/>
+                  <MenuItem component={Link} to="/metainfo" selected={ pathname === '/metainfo' } dense>
+                    <ListItemIcon classes={{root: classes.menuItemIcon}}>
+                      <MetainfoIcon />
                     </ListItemIcon>
                     <ListItemText inset primary="Meta Info"/>
                   </MenuItem>
                 </Tooltip>
               </MenuList>
-            </Drawer>
+              {loading ? <LinearProgress color="primary" /> : ''}
+            </AppBar>
 
             <main className={classes.content} ref={(ref) => this.scroll.scrollParentRef = ref}>
-              <div className={classes.toolbar} />
               <ScrollContext.Provider value={this.scroll}>
                 {children}
               </ScrollContext.Provider>
@@ -518,7 +471,7 @@ export default class App extends React.Component {
 
   render() {
     return (
-      <MuiThemeProvider theme={genTheme}>
+      <MuiThemeProvider theme={nomadTheme}>
         <ErrorSnacks>
           <ApiProvider>
             <DomainProvider>

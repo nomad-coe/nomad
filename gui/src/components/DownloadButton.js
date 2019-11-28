@@ -33,6 +33,7 @@ class DownloadButton extends React.Component {
     api: PropTypes.object.isRequired,
     user: PropTypes.object,
     raiseError: PropTypes.func.isRequired,
+    dark: PropTypes.bool
   }
 
   state = {
@@ -59,7 +60,7 @@ class DownloadButton extends React.Component {
   }
 
   render() {
-    const {tooltip, disabled, buttonProps} = this.props
+    const {tooltip, disabled, buttonProps, dark} = this.props
     const {preparingDownload} = this.state
 
     const props = {
@@ -68,7 +69,7 @@ class DownloadButton extends React.Component {
       onClick: () => this.onDownloadClicked()
     }
 
-    return <IconButton {...props}>
+    return <IconButton {...props} style={dark ? {color: 'white'} : null}>
       <Tooltip title={tooltip || 'Download'}>
         <DownloadIcon />
       </Tooltip>

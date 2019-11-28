@@ -126,8 +126,11 @@ class GroupListUnstyled extends React.Component {
     this.renderEntryActions = this.renderEntryActions.bind(this)
   }
 
-  renderEntryActions(entry) {
-    return <DownloadButton query={{group_hash: entry.group_hash}} tooltip="Download all entries of this group" />
+  renderEntryActions(entry, selected) {
+    return <DownloadButton
+      dark={selected}
+      query={{group_hash: entry.group_hash}} tooltip="Download all entries of this group"
+    />
   }
 
   renderEntryDetails(entry) {

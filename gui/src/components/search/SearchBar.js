@@ -8,7 +8,7 @@ import parse from 'autosuggest-highlight/parse'
 import Paper from '@material-ui/core/Paper'
 import MenuItem from '@material-ui/core/MenuItem'
 import { Chip } from '@material-ui/core'
-import { repoPrimaryColor } from '../../config'
+import { nomadPrimaryColor } from '../../config'
 import { withDomain } from '../domains'
 import { compose } from 'recompose'
 import SearchContext from '../search/SearchContext'
@@ -33,7 +33,7 @@ function renderInput(inputProps) {
             className={className}
             style={{
               pointerEvents: isDisabled ? 'none' : undefined,
-              backgroundColor: isFocused ? repoPrimaryColor[500] : undefined,
+              backgroundColor: isFocused ? nomadPrimaryColor[500] : undefined,
               color: isFocused ? 'white' : 'black'
             }}
             onClick={handleClick}

@@ -248,9 +248,9 @@ export class EntryListUnstyled extends React.Component {
     </div>)
   }
 
-  renderEntryActions(row) {
+  renderEntryActions(row, selected) {
     return <Tooltip title="View entry page">
-      <IconButton onClick={() => this.props.history.push(`/entry/id/${row.upload_id}/${row.calc_id}`)}>
+      <IconButton style={selected ? {color: 'white'} : null} onClick={() => this.props.history.push(`/entry/id/${row.upload_id}/${row.calc_id}`)}>
         <DetailsIcon />
       </IconButton>
     </Tooltip>

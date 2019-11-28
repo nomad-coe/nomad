@@ -266,8 +266,14 @@ class DataTableUnStyled extends React.Component {
       color: theme.palette.primary.contrastText,
       fontWeight: 700
     },
+    selectedEntryButton: {
+      color: theme.palette.primary.contrastText
+    },
     selectedEntryRow: {
       backgroundColor: `${theme.palette.primary.main} !important`
+    },
+    selectedEntryCheckbox: {
+      color: `${theme.palette.primary.contrastText} !important`
     }
   }))
 
@@ -449,8 +455,15 @@ class DataTableUnStyled extends React.Component {
                       selected={isItemSelected}
                       className={clsx([Boolean(entryDetails) && classes.clickable, (selectedEntry === rowId) && classes.selectedEntryRow])}
                     >
-                      {withSelect ? <TableCell padding="checkbox" className={classes.checkboxCell}>
+                      {withSelect ? <TableCell
+                        padding="checkbox"
+                        className={classes.checkboxCell}
+                      >
                         <Checkbox
+                          classes={{
+                            root: (selectedEntry === rowId) && classes.selectedEntryCheckbox,
+                            checked: (selectedEntry === rowId) && classes.selectedEntryCheckbox
+                          }}
                           checked={isItemSelected}
                           onClick={event => this.handleSelect(event, rowId)}
                         />
@@ -467,7 +480,7 @@ class DataTableUnStyled extends React.Component {
                           </TableCell>
                         )
                       })}
-                      {entryActions && <TableCell className={classes.actionsCell}>{entryActions(row)}</TableCell>}
+                      {entryActions && <TableCell className={classes.actionsCell}>{entryActions(row, (selectedEntry === rowId))}</TableCell>}
                     </TableRow>
                     {this.renderDetails(row)}
                   </React.Fragment>
