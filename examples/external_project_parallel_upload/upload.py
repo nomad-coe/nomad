@@ -16,6 +16,7 @@ import tarfile
 import io
 import zipfile
 import zipstream
+import uuid
 
 # config
 nomad_url = 'http://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/mp/api'
@@ -23,6 +24,7 @@ user = 'leonard.hofstadter@nomad-fairdi.tests.de'
 password = 'password'
 approx_upload_size = 32 * 1024 * 1024 * 1024  # you can make it really small for testing
 max_parallel_uploads = 9
+tmp_dir = '/tmp'
 
 # create the bravado client
 host = urlparse(nomad_url).netloc.split(':')[0]
@@ -125,8 +127,16 @@ def upload_next_data(sources: Iterator[Tuple[str, str, str]], upload_name='next 
             if len(chunk) != 0:
                 yield chunk
 
+    upload_file_path = os.path.join(tmp_dir, 'nomad_%s' % uuid.uuid4())
+    with open(upload_file_path, 'wb') as f:
+        for chunk in content():
+            f.write(chunk)
+
     # stream .zip to nomad
-    response = requests.put(url=url, headers={'X-Token': token}, data=content())
+    with open(upload_file_path, 'rb') as f:
+        response = requests.put(url=url, headers={'X-Token': token}, data=f)
+
+    os.remove(upload_file_path)
 
     if response.status_code != 200:
         raise Exception('nomad return status %d' % response.status_code)
