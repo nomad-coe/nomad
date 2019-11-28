@@ -60,7 +60,7 @@ class DatasetListResource(Resource):
 
         query_params = dict(user_id=g.user.user_id)
         if prefix is not '':
-            query_params.update(name=re.compile('^%s.*' % prefix))
+            query_params.update(name=re.compile('^%s.*' % prefix, re.IGNORECASE))
 
         result_query = Dataset.m_def.m_x('me').objects(**query_params)
 
