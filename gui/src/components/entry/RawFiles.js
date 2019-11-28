@@ -133,7 +133,7 @@ class RawFiles extends React.Component {
   }
 
   handleLoadMore(page) {
-    const {api, uploadId, raiseError} = this.props
+    const {api, uploadId, calcId, raiseError} = this.props
     const {fileContents, shownFile} = this.state
 
     // The infinite scroll component has the issue if calling load more whenever it
@@ -152,12 +152,17 @@ class RawFiles extends React.Component {
       api.getRawFile(uploadId, shownFile, {offset: page * 16 * 1024, length: 16 * 1024})
         .then(contents => {
           const {fileContents} = this.state
-          this.setState({
-            fileContents: {
-              ...contents,
-              contents: ((fileContents && fileContents.contents) || '') + contents.contents
-            }
-          })
+          // The back-button navigation might cause a scroll event, might cause to loadmore,
+          // will set this state, after navigation back to this page, but potentially
+          // different entry.
+          if (this.props.calcId === calcId) {
+            this.setState({
+              fileContents: {
+                ...contents,
+                contents: ((fileContents && fileContents.contents) || '') + contents.contents
+              }
+            })
+          }
         })
         .catch(error => {
           this.setState({fileContents: null, shownFile: null})
