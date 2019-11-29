@@ -1224,6 +1224,28 @@ class TestEditRepo():
         assert rv.status_code != 200
 
 
+@pytest.mark.timeout(config.tests.default_timeout)
+def test_edit_lift_embargo(api, published, other_test_user_auth):
+    example_calc = Calc.objects(upload_id=published.upload_id).first()
+    assert example_calc.metadata['with_embargo']
+    rv = api.post(
+        '/repo/edit', headers=other_test_user_auth, content_type='application/json',
+        data=json.dumps({
+            'actions': {
+                'with_embargo': {
+                    'value': 'lift'
+                }
+            }
+        }))
+    assert rv.status_code == 200
+    assert not Calc.objects(calc_id=example_calc.calc_id).first().metadata['with_embargo']
+
+    Upload.get(published.upload_id).block_until_complete()
+    # should not raise Restricted anymore
+    with files.UploadFiles.get(published.upload_id).archive_file(example_calc.calc_id) as f:
+        f.read()
+
+
 class TestRaw(UploadFilesBasedTests):
 
     def assert_zip_file(self, rv, files: int = -1, basename: bool = None):

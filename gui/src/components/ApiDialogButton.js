@@ -56,10 +56,10 @@ class ApiDialogUnstyled extends React.Component {
           }
         </DialogContent>
         <DialogActions>
-          <Button onClick={this.handleToggleRaw} color="primary">
+          <Button onClick={this.handleToggleRaw}>
             {showRaw ? 'show tree' : 'show raw JSON'}
           </Button>
-          <Button onClick={onClose} color="primary">
+          <Button onClick={onClose}>
             Close
           </Button>
         </DialogActions>

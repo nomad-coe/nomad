@@ -108,6 +108,28 @@ class TestLocalBackend(object):
         for i in range(0, 3):
             assert backend.get_value('program_name', i) == 't%d' % i
 
+    def test_sub_section(self, backend, no_warn):
+        backend.openSection('section_run')
+
+        backend.openNonOverlappingSection('section_system')
+        assert backend.openSection('section_symmetry') == 0
+        backend.closeSection('section_symmetry', 0)
+        backend.closeNonOverlappingSection('section_system')
+
+        backend.openNonOverlappingSection('section_system')
+        backend.closeNonOverlappingSection('section_system')
+
+        backend.openNonOverlappingSection('section_system')
+        assert backend.openSection('section_symmetry') == 1
+        backend.closeSection('section_symmetry', 1)
+        backend.closeNonOverlappingSection('section_system')
+
+        assert backend.get_sections('section_system') == [0, 1, 2]
+        assert backend.get_sections('section_symmetry') == [0, 1]
+        assert backend.get_sections('section_symmetry', 0) == [0]
+        assert backend.get_sections('section_symmetry', 1) == []
+        assert backend.get_sections('section_symmetry', 2) == [1]
+
     def test_section_override(self, backend, no_warn):
         """ Test whether we can overwrite values already in the backend."""
         expected_value = ['Cl', 'Zn']

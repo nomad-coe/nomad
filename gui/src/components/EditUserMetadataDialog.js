@@ -7,7 +7,7 @@ import DialogContent from '@material-ui/core/DialogContent'
 import DialogContentText from '@material-ui/core/DialogContentText'
 import DialogTitle from '@material-ui/core/DialogTitle'
 import PropTypes from 'prop-types'
-import { IconButton, Tooltip, withStyles, Paper, MenuItem, Popper, CircularProgress } from '@material-ui/core'
+import { IconButton, Tooltip, withStyles, Paper, MenuItem, Popper, CircularProgress, FormGroup, Checkbox, FormLabel } from '@material-ui/core'
 import EditIcon from '@material-ui/icons/Edit'
 import AddIcon from '@material-ui/icons/Add'
 import RemoveIcon from '@material-ui/icons/Delete'
@@ -348,7 +348,7 @@ class DatasetInputUnstyled extends React.Component {
       shouldRenderSuggestions={() => true}
       margin={margin}
       label={usedLabel}
-      placeholder={`Type the dataset's name`}
+      placeholder="Type the dataset's name"
     />
   }
 }
@@ -398,6 +398,7 @@ class ReferenceInput extends React.Component {
       onChange={this.handleChange.bind(this)}
       error={value === undefined}
       label={value === undefined ? 'A reference must be a valid url' : label}
+      placeholder="Enter a URL to a related resource"
     />
   }
 }
@@ -648,7 +649,7 @@ class InviteUserDialogUnstyled extends React.Component {
           {input('affiliation', 'Affiliation')}
         </DialogContent>
         <DialogActions>
-          <Button onClick={this.handleClose.bind(this)} color="primary" disabled={submitting}>
+          <Button onClick={this.handleClose.bind(this)} disabled={submitting}>
             Cancel
           </Button>
           <div className={classes.submitWrapper}>
@@ -664,6 +665,47 @@ class InviteUserDialogUnstyled extends React.Component {
 }
 
 const InviteUserDialog = compose(withApi(true, false), withStyles(InviteUserDialogUnstyled.styles))(InviteUserDialogUnstyled)
+
+class UserMetadataFieldUnstyled extends React.PureComponent {
+  static propTypes = {
+    classes: PropTypes.object.isRequired,
+    children: PropTypes.node,
+    modified: PropTypes.bool,
+    onChange: PropTypes.func.isRequired
+  }
+
+  static styles = theme => ({
+    root: {
+      flexWrap: 'nowrap',
+      alignItems: 'flex-start',
+      marginTop: theme.spacing.unit * 2
+    },
+    container: {
+      width: '100%'
+    },
+    checkbox: {
+      marginLeft: -theme.spacing.unit * 2,
+      marginRight: theme.spacing.unit,
+      marginTop: theme.spacing.unit
+    }
+  })
+
+  render() {
+    const {children, classes, modified, onChange} = this.props
+    return <FormGroup row className={classes.root}>
+      <Checkbox
+        classes={{root: classes.checkbox}}
+        checked={modified}
+        onChange={(event, checked) => onChange(checked)}
+      />
+      <div className={classes.container}>
+        {children}
+      </div>
+    </FormGroup>
+  }
+}
+
+const UserMetadataField = withStyles(UserMetadataFieldUnstyled.styles)(UserMetadataFieldUnstyled)
 
 class EditUserMetadataDialogUnstyled extends React.Component {
   static propTypes = {
@@ -694,6 +736,9 @@ class EditUserMetadataDialogUnstyled extends React.Component {
       left: '50%',
       marginTop: -12,
       marginLeft: -12
+    },
+    liftEmbargoLabel: {
+      marginTop: theme.spacing.unit * 3
     }
   })
 
@@ -710,7 +755,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
       coauthors: [],
       shared_with: [],
       datasets: [],
-      with_embargo: true
+      with_embargo: 'lift'
     }
     this.unmounted = false
   }
@@ -720,13 +765,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     actions: {},
     isVerifying: false,
     verified: true,
-    submitting: false,
-    testCoauthors: [],
-    testUser: {
-      message: null,
-      success: true,
-      value: null
-    }
+    submitting: false
   }
 
   componentWillUnmount() {
@@ -746,8 +785,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
       shared_with: (example.owners || [])
         .filter(user => user.user_id !== example.uploader.user_id)
         .map(user => user.user_id),
-      datasets: (example.datasets || []).map(ds => ds.name),
-      with_embargo: example.with_embargo
+      datasets: (example.datasets || []).map(ds => ds.name)
     }
   }
 
@@ -882,8 +920,16 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     const dialogEnabled = user && example.uploader && example.uploader.user_id === user.sub && !disabled
     const submitEnabled = Object.keys(actions).length && !submitting && verified
 
+    const editDataToActions = editData => {
+      if (Array.isArray(editData)) {
+        return editData.map(value => ({value: value}))
+      } else {
+        return {value: editData}
+      }
+    }
+
     const listTextInputProps = (key, verify) => {
-      const values = actions[key] ? actions[key] : this.editData[key].map(value => ({value: value}))
+      const values = actions[key] ? actions[key] : editDataToActions(this.editData[key])
 
       return {
         values: values,
@@ -896,6 +942,21 @@ class EditUserMetadataDialogUnstyled extends React.Component {
         }
       }
     }
+
+    const metadataFieldProps = (key, verify) => ({
+      modified: Boolean(actions[key]),
+      onChange: checked => {
+        if (checked) {
+          this.setState({actions: {...actions, [key]: editDataToActions(this.editData[key])}}, () => {
+            if (verify) {
+              this.verify()
+            }
+          })
+        } else {
+          this.setState({actions: {...actions, [key]: undefined}})
+        }
+      }
+    })
 
     return (
       <React.Fragment>
@@ -911,58 +972,63 @@ class EditUserMetadataDialogUnstyled extends React.Component {
               <DialogContentText>
                 You are editing {total} {total === 1 ? 'entry' : 'entries'}. {total > 1
                   ? 'The fields are pre-filled with data from the first entry for.' : ''
-                } Only the fields that you change will be updated.
-                Be aware that all references, co-authors, shared_with, or datasets count as
-                one field.
+                } Only the checked fields will be updated.
+                The fields references, co-authors, shared with users,
+                and datasets can have many values. Changing one value, will apply all values.
               </DialogContentText>
-              <ActionInput component={TextField}
-                label="Comment"
-                value={actions.comment !== undefined ? actions.comment : {value: this.editData.comment}}
-                onChange={value => this.setState({actions: {...actions, comment: value}})}
-                margin="normal"
-                multiline rows="4"
-                fullWidth
-                placeholder="Add a comment"
-                InputLabelProps={{ shrink: true }}
-              />
-              <ListTextInput
-                component={ReferenceInput}
-                {...listTextInputProps('references', true)}
-                label="References"
-              />
-              <ListTextInput
-                component={UserInput}
-                {...listTextInputProps('coauthors', true)}
-                label="Co-author"
-              />
-              <ListTextInput
-                component={UserInput}
-                {...listTextInputProps('shared_with', true)}
-                label="Shared with"
-              />
-              <ListTextInput
-                component={DatasetInput}
-                {...listTextInputProps('datasets', true)}
-                label="Datasets"
-              />
+              <UserMetadataField {...metadataFieldProps('comment')}>
+                <ActionInput component={TextField}
+                  label="Comment"
+                  value={actions.comment !== undefined ? actions.comment : {value: this.editData.comment}}
+                  onChange={value => this.setState({actions: {...actions, comment: value}})}
+                  margin="normal"
+                  multiline
+                  rowsMax="10"
+                  fullWidth
+                  placeholder="Add a comment"
+                  InputLabelProps={{ shrink: true }}
+                />
+              </UserMetadataField>
+              <UserMetadataField {...metadataFieldProps('references', true)}>
+                <ListTextInput
+                  component={ReferenceInput}
+                  {...listTextInputProps('references', true)}
+                  label="References"
+                />
+              </UserMetadataField>
+              <UserMetadataField {...metadataFieldProps('coauthors', true)}>
+                <ListTextInput
+                  component={UserInput}
+                  {...listTextInputProps('coauthors', true)}
+                  label="Co-author"
+                />
+              </UserMetadataField>
+              <UserMetadataField {...metadataFieldProps('shared_with', true)}>
+                <ListTextInput
+                  component={UserInput}
+                  {...listTextInputProps('shared_with', true)}
+                  label="Shared with"
+                />
+              </UserMetadataField>
+              <UserMetadataField {...metadataFieldProps('datasets', true)}>
+                <ListTextInput
+                  component={DatasetInput}
+                  {...listTextInputProps('datasets', true)}
+                  label="Datasets"
+                />
+              </UserMetadataField>
+              <UserMetadataField classes={{container: classes.liftEmbargoLabel}} {...metadataFieldProps('with_embargo', true)}>
+                <FormLabel>Lift embargo</FormLabel>
+              </UserMetadataField>
             </DialogContent>
-            {Object.keys(actions).length
-              ? <DialogContent>
-                <DialogContentText>
-                    The following fields will be updated with the given values: <i>
-                    {Object.keys(actions).map(action => action).join(', ')}</i>.
-                    Updating many entries might take a few seconds.
-                </DialogContentText>
-              </DialogContent>
-              : ''}
             <DialogActions>
               <InviteUserDialog />
               <span style={{flexGrow: 1}} />
-              <Button onClick={this.handleClose} color="primary" disabled={submitting}>
+              <Button onClick={this.handleClose} disabled={submitting}>
                 Cancel
               </Button>
               <div className={classes.submitWrapper}>
-                <Button onClick={this.handleSubmit} color="primary" disabled={!submitEnabled}>
+                <Button onClick={this.handleSubmit} disabled={!submitEnabled} color="primary">
                   Submit
                 </Button>
                 {submitting && <CircularProgress size={24} className={classes.submitProgress} />}

@@ -348,11 +348,15 @@ repo_edit_model = api.model('RepoEdit', {
 })
 
 
-def edit(parsed_query: Dict[str, Any], logger, mongo_update: Dict[str, Any] = None, re_index=True):
+def edit(parsed_query: Dict[str, Any], logger, mongo_update: Dict[str, Any] = None, re_index=True) -> List[str]:
     # get all calculations that have to change
     search_request = search.SearchRequest()
     add_query(search_request, parsed_query)
-    calc_ids = list(hit['calc_id'] for hit in search_request.execute_scan())
+    upload_ids = set()
+    calc_ids = []
+    for hit in search_request.execute_scan():
+        calc_ids.append(hit['calc_id'])
+        upload_ids.add(hit['upload_id'])
 
     # perform the update on the mongo db
     if mongo_update is not None:
@@ -377,6 +381,8 @@ def edit(parsed_query: Dict[str, Any], logger, mongo_update: Dict[str, Any] = No
             logger.error(
                 'edit repo with failed elastic updates',
                 payload=mongo_update, nfailed=len(failed))
+
+    return list(upload_ids)
 
 
 def get_uploader_ids(query):
@@ -427,6 +433,7 @@ class EditRepoCalcsResource(Resource):
         # checking the edit actions and preparing a mongo update on the fly
         mongo_update = {}
         uploader_ids = None
+        lift_embargo = False
         for action_quantity_name, quantity_actions in actions.items():
             quantity = UserMetadata.m_def.all_quantities.get(action_quantity_name)
             if quantity is None:
@@ -436,9 +443,6 @@ class EditRepoCalcsResource(Resource):
             if quantity_flask.get('admin_only', False):
                 if not g.user.is_admin():
                     abort(404, 'Only the admin user can set %s' % quantity.name)
-
-            if quantity.name == 'Embargo':
-                abort(400, 'Cannot raise an embargo, you can only lift the embargo')
 
             if isinstance(quantity_actions, list) == quantity.is_scalar:
                 abort(400, 'Wrong shape for quantity %s' % action_quantity_name)
@@ -491,7 +495,10 @@ class EditRepoCalcsResource(Resource):
                                 name=action_value)
                             dataset.m_x('me').create()
                             mongo_value = dataset.dataset_id
-
+                elif action_quantity_name == 'with_embargo':
+                    # ignore the actual value ... just lift the embargo
+                    mongo_value = False
+                    lift_embargo = True
                 else:
                     mongo_value = action_value
 
@@ -519,7 +526,13 @@ class EditRepoCalcsResource(Resource):
             return json_data, 400
 
         # perform the change
-        edit(parsed_query, logger, mongo_update, True)
+        upload_ids = edit(parsed_query, logger, mongo_update, True)
+
+        # lift embargo
+        if lift_embargo:
+            for upload_id in upload_ids:
+                upload = proc.Upload.get(upload_id)
+                upload.re_pack()
 
         return json_data, 200
 
@@ -643,7 +656,6 @@ class RepoQuantitiesResource(Resource):
         quantities = args.get('quantities', [])
         size = args.get('size', 5)
 
-        print('A ', quantities)
         try:
             assert size >= 0
         except AssertionError:

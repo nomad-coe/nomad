@@ -66,7 +66,7 @@ class MetainfoDialogUnstyled extends React.PureComponent {
           )}
           data={metaInfoData ? metaInfoData.miJson : {}} title="Metainfo JSON"
         />
-        <Button color="primary" onClick={onClose}>
+        <Button onClick={onClose}>
           Close
         </Button>
       </DialogActions>

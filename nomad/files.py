@@ -368,7 +368,9 @@ class StagingUploadFiles(UploadFiles):
     def archive_log_file_object(self, calc_id: str) -> PathObject:
         return self._archive_dir.join_file('%s.log' % calc_id)
 
-    def add_rawfiles(self, path: str, move: bool = False, prefix: str = None, force_archive: bool = False) -> None:
+    def add_rawfiles(
+            self, path: str, move: bool = False, prefix: str = None,
+            force_archive: bool = False, target_dir: DirectoryObject = None) -> None:
         """
         Add rawfiles to the upload. The given file will be copied, moved, or extracted.
 
@@ -378,11 +380,12 @@ class StagingUploadFiles(UploadFiles):
             prefix: Optional path prefix for the added files.
             force_archive: Expect the file to be a zip or other support archive file.
                 Usually those files are only extracted if they can be extracted and copied instead.
+            target_dir: Overwrite the used directory to extract to. Default is the raw directory of this upload.
         """
         assert not self.is_frozen
         assert os.path.exists(path)
         self._size += os.stat(path).st_size
-        target_dir = self._raw_dir
+        target_dir = self._raw_dir if target_dir is None else target_dir
         if prefix is not None:
             target_dir = target_dir.join_dir(prefix, create=True)
         ext = os.path.splitext(path)[1]
@@ -424,7 +427,7 @@ class StagingUploadFiles(UploadFiles):
 
     def pack(
             self, upload: UploadWithMetadata, target_dir: DirectoryObject = None,
-            skip_raw: bool = False) -> None:
+            skip_raw: bool = False, skip_archive: bool = False) -> None:
         """
         Replaces the staging upload data with a public upload record by packing all
         data into files. It is only available if upload *is_bag*.
@@ -435,6 +438,7 @@ class StagingUploadFiles(UploadFiles):
             target_dir: optional DirectoryObject to override where to put the files. Default
                 is the corresponding public upload files directory.
             skip_raw: determine to not pack the raw data, only archive and user metadata
+            skip_raw: determine to not pack the archive data, only raw and user metadata
         """
         self.logger.info('started to pack upload')
 
@@ -464,6 +468,17 @@ class StagingUploadFiles(UploadFiles):
             return zipfile.ZipFile(file.os_path, mode='w')
 
         # zip archives
+        if not skip_archive:
+            self._pack_archive_files(upload, create_zipfile)
+        self.logger.info('packed archives')
+
+        # zip raw files
+        if not skip_raw:
+            self._pack_raw_files(upload, create_zipfile)
+
+        self.logger.info('packed raw files')
+
+    def _pack_archive_files(self, upload: UploadWithMetadata, create_zipfile):
         archive_public_zip = create_zipfile('archive', 'public', self._archive_ext)
         archive_restricted_zip = create_zipfile('archive', 'restricted', self._archive_ext)
 
@@ -488,12 +503,7 @@ class StagingUploadFiles(UploadFiles):
             archive_restricted_zip.close()
             archive_public_zip.close()
 
-        self.logger.info('packed archives')
-
-        if skip_raw:
-            return
-
-        # zip raw files
+    def _pack_raw_files(self, upload: UploadWithMetadata, create_zipfile):
         raw_public_zip = create_zipfile('raw', 'public', 'plain')
         raw_restricted_zip = create_zipfile('raw', 'restricted', 'plain')
 
@@ -532,8 +542,6 @@ class StagingUploadFiles(UploadFiles):
         finally:
             raw_restricted_zip.close()
             raw_public_zip.close()
-
-        self.logger.info('packed raw files')
 
     def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
         upload_prefix_len = len(self._raw_dir.os_path) + 1
@@ -664,7 +672,9 @@ class ArchiveBasedStagingUploadFiles(StagingUploadFiles):
         assert next(self.raw_file_manifest(), None) is None, 'can only extract once'
         super().add_rawfiles(self.upload_path, force_archive=True)
 
-    def add_rawfiles(self, path: str, move: bool = False, prefix: str = None, force_archive: bool = False) -> None:
+    def add_rawfiles(
+            self, path: str, move: bool = False, prefix: str = None,
+            force_archive: bool = False, target_dir: DirectoryObject = None) -> None:
         assert False, 'do not add_rawfiles to a %s' % self.__class__.__name__
 
 
@@ -681,14 +691,19 @@ class PublicUploadFilesBasedStagingUploadFiles(StagingUploadFiles):
         super().__init__(public_upload_files.upload_id, *args, **kwargs)
         self.public_upload_files = public_upload_files
 
-    def extract(self) -> None:
+    def extract(self, include_archive: bool = False) -> None:
         assert next(self.raw_file_manifest(), None) is None, 'can only extract once'
         for access in ['public', 'restricted']:
             super().add_rawfiles(
                 self.public_upload_files.get_zip_file('raw', access, 'plain').os_path,
                 force_archive=True)
 
-    def add_rawfiles(self, path: str, move: bool = False, prefix: str = None, force_archive: bool = False) -> None:
+            if include_archive:
+                super().add_rawfiles(
+                    self.public_upload_files.get_zip_file('archive', access, self._archive_ext).os_path,
+                    force_archive=True, target_dir=self._archive_dir)
+
+    def add_rawfiles(self, *args, **kwargs) -> None:
         assert False, 'do not add_rawfiles to a %s' % self.__class__.__name__
 
     def pack(self, upload: UploadWithMetadata, *args, **kwargs) -> None:
@@ -744,15 +759,20 @@ class PublicUploadFiles(UploadFiles):
 
         raise KeyError()
 
-    def to_staging_upload_files(self, create: bool = False) -> 'StagingUploadFiles':
+    def to_staging_upload_files(self, create: bool = False, **kwargs) -> 'StagingUploadFiles':
+        exists = False
         try:
             staging_upload_files = PublicUploadFilesBasedStagingUploadFiles(self)
+            exists = True
         except KeyError:
             if not create:
                 return None
 
             staging_upload_files = PublicUploadFilesBasedStagingUploadFiles(self, create=True)
-            staging_upload_files.extract()
+            staging_upload_files.extract(**kwargs)
+
+        if exists and create:
+            raise FileExistsError('Staging upload does already exist')
 
         return staging_upload_files
 
@@ -819,13 +839,53 @@ class PublicUploadFiles(UploadFiles):
     def archive_log_file(self, calc_id: str, *args, **kwargs) -> IO:
         return self._file('archive', self._archive_ext, '%s.log' % calc_id, *args, **kwargs)
 
-    def repack(self) -> None:
+    def re_pack(
+            self, upload: UploadWithMetadata, skip_raw: bool = False,
+            skip_archive: bool = False) -> None:
         """
         Replaces the existing public/restricted data file pairs with new ones, based
         on current restricted information in the metadata. Should be used after updating
         the restrictions on calculations. This is potentially a long running operation.
         """
-        raise NotImplementedError()
+        # compute a list of files to repack
+        files = []
+        kinds = []
+        if not skip_archive:
+            kinds.append(('archive', self._archive_ext))
+        if not skip_raw:
+            kinds.append(('raw', 'plain'))
+        for kind, ext in kinds:
+            for prefix in ['public', 'restricted']:
+                files.append((
+                    self.join_file('%s-%s.%s.repacked.zip' % (kind, prefix, ext)),
+                    self.join_file('%s-%s.%s.zip' % (kind, prefix, ext))))
+
+        # check if there already is a running repack
+        for repacked_file, _ in files:
+            if repacked_file.exists():
+                raise FileExistsError('Repacked files already exist')
+
+        # create staging files
+        staging_upload = self.to_staging_upload_files(create=True, include_archive=True)
+
+        def create_zipfile(kind: str, prefix: str, ext: str) -> zipfile.ZipFile:
+            file = self.join_file('%s-%s.%s.repacked.zip' % (kind, prefix, ext))
+            return zipfile.ZipFile(file.os_path, mode='w')
+
+        # perform the repacking
+        try:
+            if not skip_archive:
+                staging_upload._pack_archive_files(upload, create_zipfile)
+            if not skip_raw:
+                staging_upload._pack_raw_files(upload, create_zipfile)
+        finally:
+            staging_upload.delete()
+
+        # replace the original files with the repacked ones
+        for repacked_file, public_file in files:
+            shutil.move(
+                repacked_file.os_path,
+                public_file.os_path)
 
     @contextmanager
     def zipfile_cache(self):
