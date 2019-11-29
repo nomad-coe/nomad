@@ -241,22 +241,15 @@ def test_springer_normalizer():
 
 def test_dos_normalizer():
     """
-    Ensure the DOS normalizer works well with the VASP example.
+    Ensure the DOS normalizer acted on the DOS values. We take a VASP example.
     """
     backend = parse_file(vasp_parser_dos)
     backend = run_normalize(backend)
 
-    # We compare floats properly with numpy (delta tolerance involved)
-    backend_value = backend.get_value('dos_fermi_energy', 0)  # a float
-    expected_value = 1.123983174730501e-18
-    assert np.allclose(backend_value, expected_value)
-
-    # Comparision of integers
-    backend_value = backend.get_value('dos_values', 0)
-    number_of_points = backend_value.shape[1]
-    expected_value = 1000
-    assert expected_value == number_of_points
-
-
-
-
+    # Check if 'dos_values' were indeed normalized
+    # 'dvn' stands for 'dos_values_normalized'
+    backend_dvn = backend.get_value('dos_values_normalized', 0)
+    last_value = backend_dvn[0, -1]
+    expected = 1.7362195274239454e+47
+    # Compare floats properly with numpy (delta tolerance involved)
+    assert np.allclose(last_value, expected)
