@@ -930,7 +930,7 @@ class Upload(Proc):
                 logger, 'reprocessed staged upload packed', step='delete staged',
                 upload_size=self.upload_files.size):
 
-            staging_upload_files.pack(self.to_upload_with_metadata())
+            staging_upload_files.pack(self.to_upload_with_metadata(), skip_raw=True)
 
         with utils.timer(
                 logger, 'reprocessed staged upload deleted', step='delete staged',
