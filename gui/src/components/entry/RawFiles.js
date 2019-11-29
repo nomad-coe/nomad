@@ -28,7 +28,7 @@ class RawFiles extends React.Component {
       padding: theme.spacing.unit * 2
     },
     shownFile: {
-      color: theme.palette.primary.main,
+      color: theme.palette.secondary.main,
       overflowX: 'hidden',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
@@ -210,6 +210,7 @@ class RawFiles extends React.Component {
             {selectedFiles.length}/{availableFiles.length} files selected
           </FormLabel>
           <Download component={IconButton} disabled={selectedFiles.length === 0}
+            color="secondary"
             tooltip="download selected files"
             url={(selectedFiles.length === 1) ? `raw/${uploadId}/${selectedFiles[0]}` : `raw/${uploadId}?files=${encodeURIComponent(selectedFiles.join(','))}&strip=true`}
             fileName={selectedFiles.length === 1 ? this.label(selectedFiles[0]) : `${calcId}.zip`}

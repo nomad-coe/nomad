@@ -30,7 +30,16 @@ of *cookies*. [Learn more](https://www.cookiesandyou.com/).
 `
 export const nomadPrimaryColor = {
   main: '#294277',
+  light: '#596da6',
+  dark: '#001c4b',
   veryLight: '#cfdeff'
+}
+
+export const nomadSecondaryColor = {
+  main: '#ffa000',
+  light: '#ffc046',
+  veryLight: '#ffecb5',
+  dark: '#c56000'
 }
 
 export const nomadTheme = createMuiTheme({
@@ -39,7 +48,7 @@ export const nomadTheme = createMuiTheme({
   },
   palette: {
     primary: nomadPrimaryColor,
-    secondary: nomadPrimaryColor
+    secondary: nomadSecondaryColor
   }
 })
 

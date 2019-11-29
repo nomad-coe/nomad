@@ -287,7 +287,7 @@ class NavigationUnstyled extends React.Component {
                   </MenuItem>
                 </Tooltip>
               </MenuList>
-              {loading ? <LinearProgress color="primary" /> : ''}
+              {loading ? <LinearProgress color="secondary" /> : ''}
             </AppBar>
 
             <main className={classes.content} ref={(ref) => this.scroll.scrollParentRef = ref}>
