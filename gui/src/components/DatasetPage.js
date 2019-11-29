@@ -112,9 +112,8 @@ class DatasetPage extends React.Component {
 
         <SearchContext
           query={{dataset_id: datasetId}} ownerTypes={['all', 'public']} update={update}
-          initialRequest={{datasets: true}}
         >
-          <Search resultTab="entries"/>
+          <Search resultTab="entries" groups datasets />
         </SearchContext>
       </div>
     )

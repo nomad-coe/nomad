@@ -258,17 +258,21 @@ class SearchBar extends React.Component {
 
   render() {
     const {classes, domain, loading} = this.props
-    const {response: {pagination: {total}, statistics}, query} = this.context.state
-    let helperText = <span>
-      There {total === 1 ? 'is' : 'are'} {Object.keys(domain.searchMetrics).filter(key => statistics.total.all[key]).map(key => {
-        return <span key={key}>
-          {domain.searchMetrics[key].renderResultString(!loading ? statistics.total.all[key] : '...')}
-        </span>
-      })}{Object.keys(query).length ? ' left' : ''}.
-    </span>
+    const {response: {pagination, statistics}, query} = this.context.state
 
-    if (total === 0) {
-      helperText = <span>There are no more entries matching your criteria.</span>
+    let helperText = <span>loading ...</span>
+    if (pagination && statistics) {
+      if (pagination.total === 0) {
+        helperText = <span>There are no more entries matching your criteria.</span>
+      } else {
+        helperText = <span>
+          There {pagination.total === 1 ? 'is' : 'are'} {Object.keys(domain.searchMetrics).filter(key => statistics.total.all[key]).map(key => {
+            return <span key={key}>
+              {domain.searchMetrics[key].renderResultString(!loading ? statistics.total.all[key] : '...')}
+            </span>
+          })}{Object.keys(query).length ? ' left' : ''}.
+        </span>
+      }
     }
 
     return (

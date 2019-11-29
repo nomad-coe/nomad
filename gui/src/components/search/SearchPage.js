@@ -70,10 +70,10 @@ class SearchPage extends React.Component {
       <div className={classes.root}>
         <SearchContext
           update={update}
-          initialQuery={query} initialRequest={{datasets: true, groups: true}}
+          initialQuery={query}
           ownerTypes={['all', 'public'].filter(key => user || withoutLogin.indexOf(key) !== -1)}
         >
-          <Search visualization="elements" />
+          <Search visualization="elements" groups datasets />
         </SearchContext>
       </div>
     )

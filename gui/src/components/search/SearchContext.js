@@ -21,25 +21,7 @@ class SearchContext extends React.Component {
   }
 
   static emptyResponse = {
-    results: [],
-    pagination: {
-      total: 0
-    },
-    datasets: {
-      after: null,
-      values: []
-    },
-    uploads: {
-      after: null,
-      values: []
-    },
-    statistics: {
-      total: {
-        all: {
-          datasets: 0
-        }
-      }
-    }
+    statistics: {}
   }
 
   static type = React.createContext()

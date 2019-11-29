@@ -259,8 +259,13 @@ export class EntryListUnstyled extends React.Component {
 
   render() {
     const { classes, data, order, order_by, page, per_page, domain, editable, title, query, actions, ...rest } = this.props
-    const { results, pagination: { total } } = data
     const { selected } = this.state
+
+    if (!data.results) {
+      return ''
+    }
+
+    const { results, pagination: {total} } = data
 
     const columns = this.props.columns || {
       ...domain.searchResultColumns,
