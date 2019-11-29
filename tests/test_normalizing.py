@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import pytest
+import numpy as np
 
 from nomad import datamodel, config
 from nomad.parsing import LocalBackend
@@ -39,6 +40,9 @@ fcc_symmetry = (
 
 vasp_parser = (
     'parsers/vasp', 'tests/data/parsers/vasp/vasp.xml')
+
+vasp_parser_dos = (
+    'parsers/vasp', 'tests/data/parsers/vasp/vasp_dos.xml')
 
 glucose_atom_labels = (
     'parsers/template', 'tests/data/normalizers/glucose_atom_labels.json')
@@ -233,3 +237,26 @@ def test_springer_normalizer():
     backend_value = backend.get_value('springer_url', 89)
     expected_value = 'http://materials.springer.com/isp/crystallographic/docs/sd_1932539'
     assert expected_value == backend_value
+
+
+def test_dos_normalizer():
+    """
+    Ensure the DOS normalizer works well with the VASP example.
+    """
+    backend = parse_file(vasp_parser_dos)
+    backend = run_normalize(backend)
+
+    # We compare floats properly with numpy (delta tolerance involved)
+    backend_value = backend.get_value('dos_fermi_energy', 0)  # a float
+    expected_value = 1.123983174730501e-18
+    assert np.allclose(backend_value, expected_value)
+
+    # Comparision of integers
+    backend_value = backend.get_value('dos_values', 0)
+    number_of_points = backend_value.shape[1]
+    expected_value = 1000
+    assert expected_value == number_of_points
+
+
+
+
