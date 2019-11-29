@@ -239,7 +239,7 @@ class RawFiles extends React.Component {
                   />
                 </Tooltip>
                 <Tooltip title='Show contents'>
-                  <IconButton onClick={() => this.handleFileClicked(file)}>
+                  <IconButton onClick={() => this.handleFileClicked(file)} color={file === shownFile ? 'secondary' : 'default'}>
                     <ViewIcon />
                   </IconButton>
                 </Tooltip>

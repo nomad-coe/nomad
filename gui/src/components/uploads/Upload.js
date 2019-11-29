@@ -515,9 +515,9 @@ class Upload extends React.Component {
     if (upload.tasks_running || upload.process_running) {
       return render(<CircularProgress size={32}/>, '')
     } else if (upload.published) {
-      return render(<PublishedIcon size={32} color="action"/>, 'This upload is published')
+      return render(<PublishedIcon size={32} color="primary"/>, 'This upload is published')
     } else {
-      return render(<UnPublishedIcon size={32} color="primary"/>, 'This upload is not published yet, and only visible to you')
+      return render(<UnPublishedIcon size={32} color="secondary"/>, 'This upload is not published yet, and only visible to you')
     }
   }
 

@@ -106,7 +106,6 @@ class MetainfoSearch extends React.Component {
 
   getSuggestions(value) {
     const inputValue = value.trim()
-    let i = 0
     return this.props.suggestions.filter(suggestion =>
       match(suggestion.name, inputValue).length > 0
     ).slice(0, 15)
