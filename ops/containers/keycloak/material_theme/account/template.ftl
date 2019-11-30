@@ -73,6 +73,10 @@
                 </div>
             </div>
 
+            <div class="mdc-back">
+                <a href="https://nomad-coe.eu">Back to NOMAD</a>
+            </div>
+
             <#if realm.internationalizationEnabled>
                 <div id="kc-locale" class="${properties.kcLocaleClass!}">
                     <div id="kc-locale-wrapper" class="${properties.kcLocaleWrapperClass!}">

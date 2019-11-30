@@ -16,6 +16,12 @@ body {
     border-radius: 4px !important;
 }
 
+.mdc-back {
+    width: 560px;
+    margin: auto;
+    margin-top: 24px;
+}
+
 /* without this, the fields all expand
    when the MDC JavaScript is run. */
 .mdc-text-field {
