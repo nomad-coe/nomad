@@ -10,6 +10,9 @@ gui:
 worker:
   replicas: 1
   routing: "queue"
+ 
+elastic:
+  port: 9202
 
 dbname: fairdi_nomad_testing_major
 
