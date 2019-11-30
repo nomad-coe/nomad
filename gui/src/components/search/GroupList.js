@@ -86,8 +86,8 @@ const Group = compose(withRouter, withApi(false), withStyles(GroupUnstyled.style
 class GroupListUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    data: PropTypes.object.isRequired,
-    total: PropTypes.number.isRequired,
+    data: PropTypes.object,
+    total: PropTypes.number,
     onChange: PropTypes.func.isRequired,
     history: PropTypes.any.isRequired,
     groups_after: PropTypes.string,
@@ -187,12 +187,11 @@ class GroupListUnstyled extends React.Component {
 
     return <DataTable
       classes={{details: classes.details}}
-      title={`${total.toLocaleString()} groups of similar entries`}
+      entityLabels={['group of similar entries', 'groups of similar entries']}
       id={row => row.group_hash}
       total={total}
       columns={columns}
       selectedColumns={defaultSelectedColumns}
-      // selectedColumns={defaultSelectedColumns}
       entryDetails={this.renderEntryDetails.bind(this)}
       entryActions={this.renderEntryActions}
       data={results}

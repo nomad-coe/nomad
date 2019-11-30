@@ -7,7 +7,8 @@ import DialogContent from '@material-ui/core/DialogContent'
 import DialogContentText from '@material-ui/core/DialogContentText'
 import DialogTitle from '@material-ui/core/DialogTitle'
 import PropTypes from 'prop-types'
-import { IconButton, Tooltip, withStyles, Paper, MenuItem, Popper, CircularProgress, FormGroup, Checkbox, FormLabel } from '@material-ui/core'
+import { IconButton, Tooltip, withStyles, Paper, MenuItem, Popper, CircularProgress,
+  FormGroup, Checkbox, FormLabel } from '@material-ui/core'
 import EditIcon from '@material-ui/icons/Edit'
 import AddIcon from '@material-ui/icons/Add'
 import RemoveIcon from '@material-ui/icons/Delete'
@@ -237,7 +238,7 @@ const MyAutosuggest = withStyles(MyAutosuggestUnstyled.styles)(MyAutosuggestUnst
 
 class UserInputUnstyled extends React.Component {
   static propTypes = {
-    value: PropTypes.string,  // user_id
+    value: PropTypes.string, // user_id
     label: PropTypes.string,
     error: PropTypes.bool,
     api: PropTypes.object.isRequired,
@@ -306,7 +307,7 @@ const UserInput = withApi(false)(UserInputUnstyled)
 
 class DatasetInputUnstyled extends React.Component {
   static propTypes = {
-    value: PropTypes.string,  // name
+    value: PropTypes.string, // name
     label: PropTypes.string,
     error: PropTypes.bool,
     api: PropTypes.object.isRequired,
@@ -441,7 +442,6 @@ class ActionInput extends React.PureComponent {
   }
 }
 
-
 var urlPattern = new RegExp('^(https?:\\/\\/)?' + // protocol
   '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|' + // domain name
   '((\\d{1,3}\\.){3}\\d{1,3}))' + // OR ip (v4) address
@@ -478,7 +478,7 @@ class ListTextInputUnstyled extends React.Component {
   })
 
   render() {
-    const { classes, values, onChange, label, errorLabel, validate, component, emptyValue, ...fieldProps } = this.props
+    const { classes, values, onChange, label, component, ...fieldProps } = this.props
 
     const handleChange = (index, value) => {
       if (onChange) {
@@ -1021,24 +1021,40 @@ class EditUserMetadataDialogUnstyled extends React.Component {
                 <FormLabel>Lift embargo</FormLabel>
               </UserMetadataField>
             </DialogContent>
-            <DialogActions>
-              <InviteUserDialog />
-              <span style={{flexGrow: 1}} />
-              <Button onClick={this.handleClose} disabled={submitting}>
-                Cancel
-              </Button>
-              <div className={classes.submitWrapper}>
-                <Button onClick={this.handleSubmit} disabled={!submitEnabled} color="primary">
-                  Submit
-                </Button>
-                {submitting && <CircularProgress size={24} className={classes.submitProgress} />}
-              </div>
-            </DialogActions>
+            {this.renderDialogActions(submitting, submitEnabled)}
           </Dialog>
           : ''
         }
       </React.Fragment>
     )
+  }
+
+  renderDialogActions(submitting, submitEnabled) {
+    const {classes} = this.props
+
+    if (submitting) {
+      return <DialogActions>
+        <DialogContentText style={{marginLeft: 16}}>Do not close the page. This might take up to several minutes for editing many entries.</DialogContentText>
+        <span style={{flexGrow: 1}} />
+        <div className={classes.submitWrapper}>
+          <Button onClick={this.handleSubmit} disabled={!submitEnabled} color="primary">
+            Submit
+          </Button>
+          <CircularProgress size={24} className={classes.submitProgress} />
+        </div>
+      </DialogActions>
+    } else {
+      return <DialogActions>
+        <InviteUserDialog />
+        <span style={{flexGrow: 1}} />
+        <Button onClick={this.handleClose} disabled={submitting}>
+          Cancel
+        </Button>
+        <Button onClick={this.handleSubmit} disabled={!submitEnabled} color="primary">
+          Submit
+        </Button>
+      </DialogActions>
+    }
   }
 }
 

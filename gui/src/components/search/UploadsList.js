@@ -17,7 +17,7 @@ import DetailsIcon from '@material-ui/icons/MoreHoriz'
 class UploadIdUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    uploadId: PropTypes.string.isRequired,
+    uploadId: PropTypes.string.isRequired
   }
 
   static styles = theme => ({
@@ -109,8 +109,8 @@ export const UploadActions = compose(withRouter, withApi(false), withStyles(Uplo
 class UploadListUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    data: PropTypes.object.isRequired,
-    total: PropTypes.number.isRequired,
+    data: PropTypes.object,
+    total: PropTypes.number,
     onChange: PropTypes.func.isRequired,
     history: PropTypes.any.isRequired,
     uploads_after: PropTypes.string,
@@ -209,7 +209,7 @@ class UploadListUnstyled extends React.Component {
     </TableCell>
 
     return <DataTable
-      title={`${total.toLocaleString()} uploads`}
+      entityLabels={['upload', 'uploads']}
       id={row => row.id}
       total={total}
       columns={this.columns}

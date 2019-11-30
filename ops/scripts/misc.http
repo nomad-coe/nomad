@@ -204,3 +204,38 @@ content-type: application/json
         }
     }
 }
+
+###
+#
+GET http://localhost:19202/_reindex
+
+###
+# Reindex
+POST http://localhost:19202/_reindex
+content-type: application/json
+
+{
+  "source": {
+    "remote": {
+      "host": "http://nomad-flink-01.esc:9200"
+    },
+    "index": "fairdi_nomad_testing_major",
+    "query": {
+      "match_all": {}
+    }
+  },
+  "dest": {
+    "index": "fairdi_nomad_testing_major"
+  }
+}
+
+###
+# Settings
+PUT http://localhost:19202/_cluster/settings
+content-type: application/json
+
+{
+    "transient" : {
+        "reindex.remote.whitelist" : "localhost:9200"
+    }
+}
