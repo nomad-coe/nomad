@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i');
+@import url('https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,500,500i');
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 
 body {
@@ -8,6 +8,12 @@ body {
 
 .title {
     margin-bottom: 15px;
+}
+
+.mdc-button {
+    font-size: .8125rem !important;
+    letter-spacing: 0.02857em !important;
+    border-radius: 4px !important;
 }
 
 /* without this, the fields all expand
@@ -104,7 +110,7 @@ hr {
 }
 
 .register .register-button-container {
-    margin-top: 20px;
+    margin-top: 15px;
 }
 
 .reset-password .reset-password-field {
@@ -116,7 +122,8 @@ hr {
 }
 
 .update-password .update-password-button-container {
-    margin-top: 20px;
+    margin-top: 15px;
+    text-align: right;
 }
 
 .config-totp .config-totp-button-container {
@@ -132,7 +139,8 @@ hr {
 }
 
 .update-profile .update-profile-button-container {
-    margin-top: 20px;
+    margin-top: 15px;
+    text-align: right;
 }
 
 .template .language-picker {

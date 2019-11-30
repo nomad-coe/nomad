@@ -10,6 +10,12 @@ body {
     margin-bottom: 15px;
 }
 
+.mdc-button {
+    font-size: .8125rem !important;
+    letter-spacing: 0.02857em !important;
+    border-radius: 4px !important;
+}
+
 /* without this, the fields all expand
    when the MDC JavaScript is run. */
 .mdc-text-field {
@@ -104,7 +110,7 @@ hr {
 }
 
 .register .register-button-container {
-    margin-top: 20px;
+    margin-top: 15px;
 }
 
 .reset-password .reset-password-field {
@@ -116,7 +122,7 @@ hr {
 }
 
 .update-password .update-password-button-container {
-    margin-top: 20px;
+    margin-top: 15px;
 }
 
 .config-totp .config-totp-button-container {
@@ -132,7 +138,7 @@ hr {
 }
 
 .update-profile .update-profile-button-container {
-    margin-top: 20px;
+    margin-top: 15px;
 }
 
 .template .language-picker {

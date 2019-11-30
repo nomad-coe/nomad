@@ -14,6 +14,8 @@
 
             <input type="hidden" id="stateChecker" name="stateChecker" value="${stateChecker}">
 
+            <input type="hidden" id="username" name="username" value="${(account.username!'')}">
+
             <div class="mdc-text-field mdc-text-field--outlined mdc-text-field--with-leading-icon ${properties.kcLabelClass!}">
                 <i class="material-icons mdc-text-field__icon" tabindex="-1" role="button">person</i>
                 <input required id="firstName" class="mdc-text-field__input ${properties.kcInputClass!}" name="firstName" type="text" autofocus value="${(account.firstName!'')}">

@@ -7,50 +7,96 @@
     <#elseif section = "form">
         <form id="kc-update-profile-form" class="form update-profile ${properties.kcFormClass!}" action="${url.loginAction}" method="post">
             <#if user.editUsernameAllowed>
-                <div class="update-profile-field ${properties.kcFormGroupClass!} ${messagesPerField.printIfExists('username',properties.kcFormGroupErrorClass!)}">
+                <div class="mdc-text-field mdc-text-field--outlined mdc-text-field--with-leading-icon ${properties.kcLabelClass!}">
+                    <i class="material-icons mdc-text-field__icon" tabindex="-1" role="button">person</i>
+                    <input id="username" class="mdc-text-field__input ${properties.kcInputClass!}" name="username" type="text" autofocus value="${(user.username!'')}">
                     <div class="${properties.kcLabelWrapperClass!}">
-                        <label for="username" class="${properties.kcLabelClass!}">${msg("username")}</label>
+                        <label for="username" class="mdc-floating-label ${properties.kcLabelClass!}">${msg("username")?no_esc}</label>
                     </div>
-                    <div class="${properties.kcInputWrapperClass!}">
-                        <input type="text" id="username" name="username" value="${(user.username!'')}" class="form-control ${properties.kcInputClass!}"/>
+                    <div class="mdc-notched-outline">
+                        <svg>
+                            <path class="mdc-notched-outline__path"/>
+                        </svg>
                     </div>
+                    <div class="mdc-notched-outline__idle"></div>
                 </div>
             </#if>
-            <div class="update-profile-field ${properties.kcFormGroupClass!} ${messagesPerField.printIfExists('email',properties.kcFormGroupErrorClass!)}">
+
+            <div class="mdc-text-field mdc-text-field--outlined mdc-text-field--with-leading-icon ${properties.kcLabelClass!}">
+                <i class="material-icons mdc-text-field__icon" tabindex="-1" role="button">person</i>
+                <input required id="firstName" class="mdc-text-field__input ${properties.kcInputClass!}" name="firstName" type="text" autofocus value="${(user.firstName!'')}">
                 <div class="${properties.kcLabelWrapperClass!}">
-                    <label for="email" class="${properties.kcLabelClass!}">${msg("email")}</label>
+                    <label for="firstName" class="mdc-floating-label ${properties.kcLabelClass!}">${msg("firstName")?no_esc}</label>
                 </div>
-                <div class="${properties.kcInputWrapperClass!}">
-                    <input type="text" id="email" name="email" value="${(user.email!'')}" class="form-control ${properties.kcInputClass!}" />
+                <div class="mdc-notched-outline">
+                    <svg>
+                        <path class="mdc-notched-outline__path"/>
+                    </svg>
                 </div>
+                <div class="mdc-notched-outline__idle"></div>
             </div>
 
-            <div class="update-profile-field ${properties.kcFormGroupClass!} ${messagesPerField.printIfExists('firstName',properties.kcFormGroupErrorClass!)}">
+            <div class="mdc-text-field mdc-text-field--outlined mdc-text-field--with-leading-icon ${properties.kcLabelClass!}">
+                <i class="material-icons mdc-text-field__icon" tabindex="-1" role="button">person</i>
+                <input required id="lastName" class="mdc-text-field__input ${properties.kcInputClass!}" name="lastName" type="text" value="${(user.lastName!'')}">
                 <div class="${properties.kcLabelWrapperClass!}">
-                    <label for="firstName" class="${properties.kcLabelClass!}">${msg("firstName")}</label>
+                    <label for="lastName" class="mdc-floating-label ${properties.kcLabelClass!}">${msg("lastName")?no_esc}</label>
                 </div>
-                <div class="${properties.kcInputWrapperClass!}">
-                    <input type="text" id="firstName" name="firstName" value="${(user.firstName!'')}" class="form-control ${properties.kcInputClass!}" />
+                <div class="mdc-notched-outline">
+                    <svg>
+                        <path class="mdc-notched-outline__path"/>
+                    </svg>
                 </div>
+                <div class="mdc-notched-outline__idle"></div>
             </div>
 
-            <div class="update-profile-field ${properties.kcFormGroupClass!} ${messagesPerField.printIfExists('lastName',properties.kcFormGroupErrorClass!)}">
+            <div class="mdc-text-field mdc-text-field--outlined mdc-text-field--with-leading-icon ${properties.kcLabelClass!}">
+                <i class="material-icons mdc-text-field__icon" tabindex="-1" role="button">email</i>
+                <input required id="email" class="mdc-text-field__input ${properties.kcInputClass!}" name="email" type="text" value="${(user.email!'')}">
                 <div class="${properties.kcLabelWrapperClass!}">
-                    <label for="lastName" class="${properties.kcLabelClass!}">${msg("lastName")}</label>
+                    <label for="email" class="mdc-floating-label ${properties.kcLabelClass!}">${msg("email")?no_esc}</label>
                 </div>
-                <div class="${properties.kcInputWrapperClass!}">
-                    <input type="text" id="lastName" name="lastName" value="${(user.lastName!'')}" class="form-control ${properties.kcInputClass!}" />
+                <div class="mdc-notched-outline">
+                    <svg>
+                        <path class="mdc-notched-outline__path"/>
+                    </svg>
                 </div>
+                <div class="mdc-notched-outline__idle"></div>
             </div>
 
-            <div class="${properties.kcFormGroupClass!} row update-profile-button-container">
-                <div id="kc-form-options" class="${properties.kcFormOptionsClass!}">
-                    <div class="${properties.kcFormOptionsWrapperClass!}">
-                    </div>
+             <div class="mdc-text-field mdc-text-field--outlined mdc-text-field--with-leading-icon ${properties.kcLabelClass!}">
+                <i class="material-icons mdc-text-field__icon" tabindex="-1" role="button">room</i>
+                <input required id="user.attributes.affiliation" class="mdc-text-field__input ${properties.kcInputClass!}" name="user.attributes.affiliation" type="text" value="${(user.attributes.affiliation!'')}">
+                <div class="${properties.kcLabelWrapperClass!}">
+                    <label for="user.attributes.affiliation" class="mdc-floating-label ${properties.kcLabelClass!}">Affiliation</label>
                 </div>
+                <div class="mdc-notched-outline">
+                    <svg>
+                        <path class="mdc-notched-outline__path"/>
+                    </svg>
+                </div>
+                <div class="mdc-notched-outline__idle"></div>
+            </div>
 
-                <div id="kc-form-buttons" class="${properties.kcFormButtonsClass!} col-xs-6 xs-xs-offset-6 col-sm-4 col-sm-offset-8">
-                    <input class="btn btn-primary btn-flat btn-block ${properties.kcButtonClass!} ${properties.kcButtonPrimaryClass!} ${properties.kcButtonLargeClass!}" type="submit" value="${msg("doSubmit")}" />
+            <div class="mdc-text-field mdc-text-field--outlined mdc-text-field--with-leading-icon ${properties.kcLabelClass!}">
+                <i class="material-icons mdc-text-field__icon" tabindex="-1" role="button">account_balance</i>
+                <input required id="user.attributes.affiliation_address" class="mdc-text-field__input ${properties.kcInputClass!}" name="user.attributes.affiliation_address" type="text" value="${(user.attributes.affiliation_address!'')}">
+                <div class="${properties.kcLabelWrapperClass!}">
+                    <label for="user.attributes.affiliation_address" class="mdc-floating-label ${properties.kcLabelClass!}">Affiliation address</label>
+                </div>
+                <div class="mdc-notched-outline">
+                    <svg>
+                        <path class="mdc-notched-outline__path"/>
+                    </svg>
+                </div>
+                <div class="mdc-notched-outline__idle"></div>
+            </div>
+
+             <div class="${properties.kcFormGroupClass!} update-profile-button-container">
+                <div id="kc-form-buttons" class="${properties.kcFormButtonsClass!}">
+                    <button class="mdc-button mdc-button--raised ${properties.kcButtonClass!} ${properties.kcButtonPrimaryClass!} ${properties.kcButtonLargeClass!}" type="submit">
+                        ${msg("doSubmit")?no_esc}
+                    </button>
                 </div>
             </div>
         </form>
