@@ -1,7 +1,8 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
-import { Card, Button, List, ListItem, ListItemText, Tooltip, Tabs, Tab, Paper, FormControl, FormGroup, Checkbox, FormControlLabel, Popover, CardContent, IconButton, Typography } from '@material-ui/core'
+import { Card, Button, List, ListItem, ListItemText, Tooltip, Tabs, Tab, Paper, FormControl,
+  FormGroup, Checkbox, FormControlLabel, Popover, CardContent, IconButton } from '@material-ui/core'
 import SearchBar from './SearchBar'
 import EntryList from './EntryList'
 import DatasetList from './DatasetList'

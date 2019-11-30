@@ -143,11 +143,11 @@ class DataTableUnStyled extends React.Component {
     /**
      * The table data as an array
      */
-    data: PropTypes.array.isRequired,
+    data: PropTypes.array,
     /**
      *  The total amount of entries including pagination, i.e. beyond what is displayed in the table
      */
-    total: PropTypes.number.isRequired,
+    total: PropTypes.number,
     /**
      * Specification of all columns. Keys have to match data keys. Each column has to
      * define a label. Columns can define description, render function. Columns are
@@ -179,7 +179,7 @@ class DataTableUnStyled extends React.Component {
     /**
      * A singlular and plural label for the shown entities
      */
-    entityLabels: PropTypes.arrayOf[PropTypes.string],
+    entityLabels: PropTypes.arrayOf(PropTypes.string),
     /**
      * Single element that is rendered to display possible pagination
      */

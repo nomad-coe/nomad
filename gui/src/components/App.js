@@ -66,7 +66,8 @@ class NavigationUnstyled extends React.Component {
     children: PropTypes.any,
     location: PropTypes.object.isRequired,
     loading: PropTypes.number.isRequired,
-    raiseError: PropTypes.func.isRequired
+    raiseError: PropTypes.func.isRequired,
+    domain: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
@@ -224,17 +225,11 @@ class NavigationUnstyled extends React.Component {
             >
               <Toolbar classes={{root: classes.toolbar}}
                 disableGutters
-                // disableGutters={!this.state.open}
               >
-                {/* <IconButton
-                  color="inherit"
-                  onClick={() => this.handleDrawerEvent(this.state.open)}
-                  className={classNames(classes.menuButton, this.state.open && classes.hide)}
-                >
-                  <MenuIcon />
-                </IconButton> */}
                 <div className={classes.title}>
-                  <img alt="The NOMAD logo" className={classes.logo} src="./nomad.png"></img>
+                  <a href="https://nomad-coe.eu">
+                    <img alt="The NOMAD logo" className={classes.logo} src={`${guiBase}/nomad.png`}></img>
+                  </a>
                   <Typography variant="h6" color="inherit" noWrap>
                     {selected(toolbarTitles)}
                   </Typography>
@@ -290,7 +285,7 @@ class NavigationUnstyled extends React.Component {
               {loading ? <LinearProgress color="secondary" /> : ''}
             </AppBar>
 
-            <main className={classes.content} ref={(ref) => this.scroll.scrollParentRef = ref}>
+            <main className={classes.content} ref={(ref) => { this.scroll.scrollParentRef = ref }}>
               <ScrollContext.Provider value={this.scroll}>
                 {children}
               </ScrollContext.Provider>

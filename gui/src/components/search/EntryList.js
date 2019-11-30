@@ -268,6 +268,7 @@ export class EntryListUnstyled extends React.Component {
 
     const results = data.results || []
     const total = data.pagination && data.pagination.total
+    const totalNumber = total || 0
 
     const columns = this.props.columns || {
       ...domain.searchResultColumns,
@@ -279,7 +280,7 @@ export class EntryListUnstyled extends React.Component {
       'datasets', 'authors']
 
     const pagination = <TablePagination
-      count={total}
+      count={totalNumber}
       rowsPerPage={per_page}
       page={page - 1}
       onChangePage={this.handleChangePage}
@@ -290,7 +291,7 @@ export class EntryListUnstyled extends React.Component {
     const selectQuery = selected ? {calc_id: selected.join(',')} : query
     const createActions = (props, moreActions) => <React.Fragment>
       {example && editable ? <EditUserMetadataDialog
-        example={example} total={total}
+        example={example} total={totalNumber}
         onEditComplete={() => this.props.onChange()}
         {...props}
       /> : ''}

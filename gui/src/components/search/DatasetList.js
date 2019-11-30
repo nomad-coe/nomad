@@ -157,8 +157,8 @@ export const DatasetActions = compose(withRouter, withApi(false), withStyles(Dat
 class DatasetListUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    data: PropTypes.object.isRequired,
-    total: PropTypes.number.isRequired,
+    data: PropTypes.object,
+    total: PropTypes.number,
     onChange: PropTypes.func.isRequired,
     history: PropTypes.any.isRequired,
     datasets_after: PropTypes.string,
