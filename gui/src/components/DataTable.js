@@ -392,7 +392,7 @@ class DataTableUnStyled extends React.Component {
 
     let title = 'loading ...'
     if (total !== undefined) {
-      title = `${totalNumber} ${totalNumber === 1 ? entityLabels[0] : entityLabels[1]}`
+      title = `${totalNumber.toLocaleString()} ${totalNumber === 1 ? entityLabels[0] : entityLabels[1]}`
     }
 
     return (
