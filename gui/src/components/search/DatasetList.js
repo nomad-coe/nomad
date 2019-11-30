@@ -258,7 +258,7 @@ class DatasetListUnstyled extends React.Component {
     </TableCell>
 
     return <DataTable
-      title={`${total.toLocaleString()} datasets`}
+      entityLabels={['dataset', 'datasets']}
       id={row => row.id}
       total={total}
       columns={this.columns}

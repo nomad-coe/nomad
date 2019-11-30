@@ -17,7 +17,7 @@ import DetailsIcon from '@material-ui/icons/MoreHoriz'
 class UploadIdUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    uploadId: PropTypes.string.isRequired,
+    uploadId: PropTypes.string.isRequired
   }
 
   static styles = theme => ({
@@ -209,7 +209,7 @@ class UploadListUnstyled extends React.Component {
     </TableCell>
 
     return <DataTable
-      title={`${total.toLocaleString()} uploads`}
+      entityLabels={['upload', 'uploads']}
       id={row => row.id}
       total={total}
       columns={this.columns}

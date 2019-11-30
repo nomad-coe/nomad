@@ -187,12 +187,11 @@ class GroupListUnstyled extends React.Component {
 
     return <DataTable
       classes={{details: classes.details}}
-      title={`${total.toLocaleString()} groups of similar entries`}
+      entityLabels={['group of similar entries', 'groups of similar entries']}
       id={row => row.group_hash}
       total={total}
       columns={columns}
       selectedColumns={defaultSelectedColumns}
-      // selectedColumns={defaultSelectedColumns}
       entryDetails={this.renderEntryDetails.bind(this)}
       entryActions={this.renderEntryActions}
       data={results}

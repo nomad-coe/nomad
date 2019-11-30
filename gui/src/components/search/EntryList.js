@@ -249,9 +249,14 @@ export class EntryListUnstyled extends React.Component {
     </div>)
   }
 
+  handleViewEntryPage(event, row) {
+    event.stopPropagation()
+    this.props.history.push(`/entry/id/${row.upload_id}/${row.calc_id}`)
+  }
+
   renderEntryActions(row, selected) {
     return <Tooltip title="View entry page">
-      <IconButton style={selected ? {color: 'white'} : null} onClick={() => this.props.history.push(`/entry/id/${row.upload_id}/${row.calc_id}`)}>
+      <IconButton style={selected ? {color: 'white'} : null} onClick={event => this.handleViewEntryPage(event, row)}>
         <DetailsIcon />
       </IconButton>
     </Tooltip>
@@ -261,11 +266,8 @@ export class EntryListUnstyled extends React.Component {
     const { classes, data, order, order_by, page, per_page, domain, editable, title, query, actions, ...rest } = this.props
     const { selected } = this.state
 
-    if (!data.results) {
-      return ''
-    }
-
-    const { results, pagination: {total} } = data
+    const results = data.results || []
+    const total = data.pagination && data.pagination.total
 
     const columns = this.props.columns || {
       ...domain.searchResultColumns,
@@ -303,7 +305,7 @@ export class EntryListUnstyled extends React.Component {
     return (
       <div className={classes.root}>
         <DataTable
-          title={title || `${total.toLocaleString()} ${domain.entryLabel}s`}
+          entityLabels={['domain.entryLabel', domain.entryLabel + 's']}
           selectActions={selectActions}
           id={row => row.calc_id}
           total={total}

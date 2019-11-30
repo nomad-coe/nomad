@@ -36,7 +36,7 @@ import KeepState from './KeepState'
 import {help as userdataHelp, default as UserdataPage} from './UserdataPage'
 import ResolveDOI from './dataset/ResolveDOI'
 
-export const ScrollContext = React.createContext({scrollParentRef: null});
+export const ScrollContext = React.createContext({scrollParentRef: null})
 
 export class VersionMismatch extends Error {
   constructor(msg) {
@@ -71,7 +71,7 @@ class NavigationUnstyled extends React.Component {
 
   static styles = theme => ({
     root: {
-      minWidth: 1024,
+      minWidth: 1024
     },
     title: {
       marginLeft: theme.spacing.unit,
@@ -234,7 +234,7 @@ class NavigationUnstyled extends React.Component {
                   <MenuIcon />
                 </IconButton> */}
                 <div className={classes.title}>
-                  <img alt="The NOMAD logo" className={classes.logo} src="/nomad.png"></img>
+                  <img alt="The NOMAD logo" className={classes.logo} src="./nomad.png"></img>
                   <Typography variant="h6" color="inherit" noWrap>
                     {selected(toolbarTitles)}
                   </Typography>
