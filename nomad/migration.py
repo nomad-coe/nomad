@@ -1772,3 +1772,90 @@ class Report(utils.POPO):
                 self.total_source_calcs, self.migrated_calcs,
                 self.failed_calcs, self.missing_calcs,
                 self.new_calcs))
+
+
+def update_user_metadata(bulk_size: int = 1000, **kwargs):
+    """ Goes through the whole source index to sync differences between repo user metadata
+    and metadata in fairdi.
+
+    It goes through the source index calc by calc, working in bulks. Getting the samedata
+    for fairdi and updating the different calcs in mongo. Will only update user metadata.
+
+    Uses kwargs as filters for the used source index query.
+    """
+
+    # iterate the source index in bulk
+    effected_uploads = set()
+    size = SourceCalc.objects(**kwargs).count()
+    for start in range(0, size, bulk_size):
+        source_bulk = SourceCalc.objects(**kwargs)[start, start + bulk_size]
+
+        # retrieve fairdi data for bulk (by pid)
+        pids = [str(calc.pid) for calc in source_bulk]
+        target_bulk = Calc.objects(metadata__pid__in=pids)
+        target_bulk_dict = {
+            target.metadata['pid']: target
+            for target in target_bulk}
+
+        # comparing entries and preparing mongo update
+        updates = []
+        for source in source_bulk:
+            target = target_bulk_dict[str(source.pid)]
+            target_metadata = CalcWithMetadata(**target.metadata)
+            source_metadata_normalized = dict(
+                comment=source.metadata.get('comment'),
+                references={ref['value'] for ref in source.metadata['references']},
+                coauthors={str(user['id']) for user in source.metadata['coauthors']},
+                shared_with={str(user['id']) for user in source.metadata['shared_with']},
+                datasets={
+                    dict(
+                        id=str(ds['id']),
+                        name=ds['name'],
+                        doi=ds['doi']['value'] if ds['doi'] is not None else None)
+                    for ds in source.metadata['datasets']})
+
+            target_metadata_normalized = dict(
+                comment=target_metadata.comment,
+                references=set(ref['value'] for ref in target_metadata.references),
+                coauthors={str(user['id']) for user in target_metadata.coauthors},
+                shared_with={str(user['id']) for user in target_metadata.shared_with},
+                datasets={
+                    dict(
+                        id=str(ds['id']),
+                        name=ds['name'],
+                        doi=ds['doi']['value'])
+                    for ds in target_metadata.datasets})
+
+            if source_metadata_normalized != target_metadata_normalized:
+                # do a full update of all metadata!
+                update = {
+                    "updateOne": {
+                        "filter": dict(_id=source.pid),
+                        "update": {
+                            "$set": {
+                                "metadata.comment": source.metadata.get('comment'),
+                                "metadata.references": [dict(value=ref['value']) for ref in source.metadata['references']],
+                                "metadata.coauthors": [dict(id=user['id']) for user in source.metadata['coauthors']],
+                                "metadata.shared_with": [dict(id=user['id']) for user in source.metadata['shared_with']],
+                                "metadata.datasets": [
+                                    dict(
+                                        id=int(ds['id']),
+                                        name=ds['name'],
+                                        doi=ds['doi']['value'] if ds.get('doi') is not None else None)
+                                    for ds in source.metadata['datasets']]
+                            }
+                        }
+                    }
+                }
+                updates.append(update)
+                effected_uploads.add(target.upload_id)
+
+        # execute mongo update
+        if len(updates) > 0:
+            Calc._get_collection().bulk_write(updates)
+
+        # log
+        print('Synced calcs %d through %d of %d with %d diffs' % (start, start + bulk_size, size, len(updates)))
+
+    for upload in effected_uploads:
+        print(upload)
