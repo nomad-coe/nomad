@@ -21,7 +21,11 @@ class SearchContext extends React.Component {
   }
 
   static emptyResponse = {
-    statistics: {}
+    statistics: {
+      total: {
+        all: {}
+      }
+    }
   }
 
   static type = React.createContext()

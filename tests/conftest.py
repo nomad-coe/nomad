@@ -581,6 +581,21 @@ def published(non_empty_processed: processing.Upload, example_user_metadata) -> 
     return non_empty_processed
 
 
+@pytest.mark.timeout(config.tests.default_timeout)
+@pytest.fixture(scope='function')
+def published_wo_user_metadata(non_empty_processed: processing.Upload) -> processing.Upload:
+    """
+    Provides a processed upload. Upload was uploaded with test_user.
+    """
+    non_empty_processed.publish_upload()
+    try:
+        non_empty_processed.block_until_complete(interval=.01)
+    except Exception:
+        pass
+
+    return non_empty_processed
+
+
 @pytest.fixture
 def reset_config():
     """ Fixture that resets the log-level after test. """

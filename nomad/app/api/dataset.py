@@ -16,7 +16,7 @@ from flask import request, g
 from flask_restplus import Resource, fields, abort
 import re
 
-from nomad import utils
+from nomad import utils, processing as proc
 from nomad.app.utils import with_logger
 from nomad.datamodel import Dataset
 from nomad.metainfo.flask_restplus import generate_flask_restplus_model
@@ -136,6 +136,15 @@ class DatasetResource(Resource):
         if result.doi is not None:
             abort(400, 'Dataset with name %s already has a DOI' % name)
 
+        # check if the DOI can be created
+        published_values = proc.Calc.objects(metadata__datasets=result.dataset_id).distinct('metadata.published')
+
+        if False in published_values:
+            abort(400, 'Dataset must not contain non published entries.')
+
+        if True not in published_values:
+            abort(400, 'Dataset must not be empty.')
+
         # set the DOI
         doi = DOI.create(title='NOMAD dataset: %s' % result.name, user=g.user)
         doi.create_draft()
@@ -161,7 +170,7 @@ class DatasetResource(Resource):
     @authenticate(required=True)
     @with_logger
     def delete(self, name: str, logger):
-        """ Assign a DOI to the dataset. """
+        """ Delete the dataset. """
         try:
             result = Dataset.m_def.m_x('me').get(user_id=g.user.user_id, name=name)
         except KeyError:

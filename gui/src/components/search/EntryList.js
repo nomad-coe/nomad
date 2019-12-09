@@ -301,7 +301,7 @@ export class EntryListUnstyled extends React.Component {
       {moreActions}
     </React.Fragment>
     const selectActions = createActions({query: selectQuery, buttonProps: {color: 'secondary'}})
-    const allActions = createActions({query: query}, actions)
+    const allActions = actions
 
     return (
       <div className={classes.root}>
