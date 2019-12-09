@@ -42,7 +42,7 @@ import random
 import io
 import json
 
-from nomad import utils, infrastructure, files, config
+from nomad import utils, infrastructure, files, config, search
 from nomad.coe_repo import User, Calc
 from nomad.datamodel import CalcWithMetadata
 from nomad.processing import FAILURE
@@ -1774,7 +1774,7 @@ class Report(utils.POPO):
                 self.new_calcs))
 
 
-def update_user_metadata(bulk_size: int = 1000, **kwargs):
+def update_user_metadata(bulk_size: int = 1000, update_index: bool = False, **kwargs):
     """ Goes through the whole source index to sync differences between repo user metadata
     and metadata in fairdi.
 
@@ -1785,7 +1785,6 @@ def update_user_metadata(bulk_size: int = 1000, **kwargs):
     """
 
     # iterate the source index in bulk
-    effected_uploads = set()
     size = SourceCalc.objects(**kwargs).count()
     for start in range(0, size, bulk_size):
         source_bulk = SourceCalc.objects(**kwargs)[start, start + bulk_size]
@@ -1799,6 +1798,7 @@ def update_user_metadata(bulk_size: int = 1000, **kwargs):
 
         # comparing entries and preparing mongo update
         updates = []
+        updated_calcs = []
         for source in source_bulk:
             target = target_bulk_dict[str(source.pid)]
             target_metadata = CalcWithMetadata(**target.metadata)
@@ -1848,14 +1848,13 @@ def update_user_metadata(bulk_size: int = 1000, **kwargs):
                     }
                 }
                 updates.append(update)
-                effected_uploads.add(target.upload_id)
+                updated_calcs.append(target_metadata)
 
         # execute mongo update
         if len(updates) > 0:
             Calc._get_collection().bulk_write(updates)
+            if update_index:
+                search.index_all(updated_calcs, refresh=False)
 
         # log
         print('Synced calcs %d through %d of %d with %d diffs' % (start, start + bulk_size, size, len(updates)))
-
-    for upload in effected_uploads:
-        print(upload)
