@@ -285,6 +285,7 @@ export class EntryListUnstyled extends React.Component {
       page={page - 1}
       onChangePage={this.handleChangePage}
       onChangeRowsPerPage={this.handleChangeRowsPerPage}
+      labelDisplayedRows={({ from, to, count }) => `${from.toLocaleString()}-${to.toLocaleString()} of ${count.toLocaleString()}`}
     />
 
     const example = selected && selected.length > 0 ? results.find(d => d.calc_id === selected[0]) : results[0]
