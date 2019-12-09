@@ -83,7 +83,7 @@ class DataTableToolbarUnStyled extends React.Component {
       return (
         <Toolbar className={clsx(classes.root, {[classes.selected]: true})} >
           <Typography className={classes.title} color="inherit" variant="h6">
-            {numSelected} selected
+            {numSelected.toLocaleString()} selected
           </Typography>
           {selectActions}
         </Toolbar>
@@ -143,11 +143,11 @@ class DataTableUnStyled extends React.Component {
     /**
      * The table data as an array
      */
-    data: PropTypes.array.isRequired,
+    data: PropTypes.array,
     /**
      *  The total amount of entries including pagination, i.e. beyond what is displayed in the table
      */
-    total: PropTypes.number.isRequired,
+    total: PropTypes.number,
     /**
      * Specification of all columns. Keys have to match data keys. Each column has to
      * define a label. Columns can define description, render function. Columns are
@@ -177,9 +177,9 @@ class DataTableUnStyled extends React.Component {
      */
     entryDetails: PropTypes.func,
     /**
-     * A title for the table
+     * A singlular and plural label for the shown entities
      */
-    title: PropTypes.string,
+    entityLabels: PropTypes.arrayOf(PropTypes.string),
     /**
      * Single element that is rendered to display possible pagination
      */
@@ -375,8 +375,10 @@ class DataTableUnStyled extends React.Component {
   render() {
     const {
       classes, data, total, order, orderBy, id, rows, selectActions, actions,
-      entryDetails, entryActions, columns, title, pagination } = this.props
+      entryDetails, entryActions, columns, entityLabels, pagination } = this.props
     const { selectedColumns, selectedEntry } = this.state
+
+    const totalNumber = total || 0
 
     const isSelected = row => (!selected) || selected.indexOf(id(row)) !== -1
 
@@ -388,12 +390,17 @@ class DataTableUnStyled extends React.Component {
       selected = []
     }
 
+    let title = 'loading ...'
+    if (total !== undefined) {
+      title = `${totalNumber.toLocaleString()} ${totalNumber === 1 ? entityLabels[0] : entityLabels[1]}`
+    }
+
     return (
       <div>
         <DataTableToolbar
           title={title}
           columns={columns}
-          numSelected={selected ? selected.length : total}
+          numSelected={selected ? selected.length : totalNumber}
           selectedColumns={selectedColumns}
           selectActions={selectActions}
           actions={actions}
@@ -407,8 +414,9 @@ class DataTableUnStyled extends React.Component {
               <TableRow>
                 {withSelect ? <TableCell padding="checkbox">
                   <Checkbox
-                    indeterminate={selected && selected.length > 0 && selected.length !== total}
-                    checked={!selected || selected.length === total}
+                    indeterminate={selected && selected.length > 0 && selected.length !== totalNumber}
+                    checked={!selected || (selected.length === totalNumber && totalNumber !== 0)}
+                    disabled={totalNumber === 0}
                     onChange={this.handleSelectAllClick}
                   />
                 </TableCell> : <React.Fragment/>}

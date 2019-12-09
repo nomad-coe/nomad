@@ -40,17 +40,19 @@ class DownloadButton extends React.Component {
     preparingDownload: false
   }
 
-  async onDownloadClicked() {
+  async onDownloadClicked(event) {
+    event.stopPropagation()
+
     const {api, query, user, fileName, raiseError} = this.props
     const url = new URL(`${apiBase}/raw/query`)
     url.searchParams.append('strip', 'true')
-    Object.keys(query).forEach(key => {url.searchParams.append(key, query[key])})
+    Object.keys(query).forEach(key => { url.searchParams.append(key, query[key]) })
 
     if (user) {
       try {
         const token = await api.getSignatureToken()
         url.searchParams.append('signature_token', token)
-      } catch(e) {
+      } catch (e) {
         this.setState({preparingDownload: false})
         raiseError(e)
       }
@@ -66,7 +68,7 @@ class DownloadButton extends React.Component {
     const props = {
       ...buttonProps,
       disabled: disabled || preparingDownload,
-      onClick: () => this.onDownloadClicked()
+      onClick: this.onDownloadClicked.bind(this)
     }
 
     return <IconButton {...props} style={dark ? {color: 'white'} : null}>

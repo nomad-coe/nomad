@@ -1,7 +1,8 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
-import { Card, Button, List, ListItem, ListItemText, Tooltip, Tabs, Tab, Paper, FormControl, FormGroup, Checkbox, FormControlLabel, Popover, CardContent, IconButton, Typography } from '@material-ui/core'
+import { Card, Button, List, ListItem, ListItemText, Tooltip, Tabs, Tab, Paper, FormControl,
+  FormGroup, Checkbox, FormControlLabel, Popover, CardContent, IconButton } from '@material-ui/core'
 import SearchBar from './SearchBar'
 import EntryList from './EntryList'
 import DatasetList from './DatasetList'
@@ -22,7 +23,7 @@ class Search extends React.Component {
     visualization: PropTypes.string,
     groups: PropTypes.bool,
     datasets: PropTypes.bool,
-    uploads: PropTypes.bool,
+    uploads: PropTypes.bool
   }
 
   static styles = theme => ({
@@ -92,9 +93,9 @@ class Search extends React.Component {
     const {setRequest} = this.context
 
     setRequest({
-      uploads: tab === 'uploads',
-      datasets: tab === 'datasets',
-      groups: tab === 'groups'
+      uploads: tab === 'uploads' ? true : undefined,
+      datasets: tab === 'datasets' ? true : undefined,
+      groups: tab === 'groups' ? true : undefined
     })
 
     this.setState({resultTab: tab})
@@ -426,33 +427,11 @@ class ReRunSearchButton extends React.PureComponent {
   }
 }
 
-class LoadingUnstyled extends React.PureComponent {
-  static propTypes = {
-    classes: PropTypes.object.isRequired
-  }
-  static styles = theme => ({
-    root: {
-      padding: theme.spacing.unit * 3
-    }
-  })
-  render() {
-    return <div className={this.props.classes.root}>
-      <Typography variant="body1">loading ...</Typography>
-    </div>
-  }
-}
-
-const Loading = withStyles(LoadingUnstyled.styles)(LoadingUnstyled)
-
 class SearchEntryList extends React.Component {
   static contextType = SearchContext.type
 
   render() {
     const {state: {response, request, query}, props, setRequest} = this.context
-
-    if (!response.results) {
-      return <Loading/>
-    }
 
     return <EntryList
       query={{...query, ...props.query}}
@@ -472,10 +451,6 @@ class SearchDatasetList extends React.Component {
   render() {
     const {state: {response}, setRequest} = this.context
 
-    if (!response.datasets) {
-      return <Loading/>
-    }
-
     return <DatasetList data={response}
       total={response.statistics.total.all.datasets}
       datasets_after={response.datasets && response.datasets.after}
@@ -492,10 +467,6 @@ class SearchGroupList extends React.Component {
   render() {
     const {state: {response}, setRequest} = this.context
 
-    if (!response.groups) {
-      return <Loading/>
-    }
-
     return <GroupList data={response}
       total={response.statistics.total.all.groups}
       groups_after={response.groups && response.groups.after}
@@ -511,10 +482,6 @@ class SearchUploadList extends React.Component {
 
   render() {
     const {state: {response}, setRequest} = this.context
-
-    if (!response.uploads) {
-      return <Loading/>
-    }
 
     return <UploadList data={response}
       total={response.statistics.total.all.uploads}

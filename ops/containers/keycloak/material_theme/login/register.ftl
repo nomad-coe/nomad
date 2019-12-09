@@ -153,9 +153,6 @@
             </#if>
 
             <div class="${properties.kcFormGroupClass!} register-button-container">
-
-
-
                 <div id="kc-form-buttons" class="${properties.kcFormButtonsClass!}">
                     <button class="mdc-button mdc-button--raised ${properties.kcButtonClass!} ${properties.kcButtonPrimaryClass!} ${properties.kcButtonLargeClass!}" type="submit">
                         ${msg("doRegister")?no_esc}

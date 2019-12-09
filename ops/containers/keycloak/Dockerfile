@@ -1,4 +1,4 @@
-FROM jboss/keycloak
+FROM jboss/keycloak:7.0.0
 ARG admin_password=password
 ARG prefix='fairdi\/keycloak'
 
