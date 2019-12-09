@@ -93,7 +93,6 @@ class GroupListUnstyled extends React.Component {
     groups_after: PropTypes.string,
     actions: PropTypes.element,
     domain: PropTypes.object.isRequired,
-    columns: PropTypes.object,
     selectedColumns: PropTypes.arrayOf(PropTypes.string)
   }
 
@@ -121,9 +120,33 @@ class GroupListUnstyled extends React.Component {
     }
   })
 
+  addColumns(columns) {
+    Object.keys(columns).forEach(key => {
+      const column = columns[key]
+      this.columns[key] = {
+        ...column,
+        supportsSort: false
+      }
+    })
+  }
+
   constructor(props) {
     super(props)
     this.renderEntryActions = this.renderEntryActions.bind(this)
+
+    this.columns = {}
+  }
+
+  componentDidMount() {
+    this.addColumns(this.props.domain.searchResultColumns)
+    this.addColumns(EntryListUnstyled.defaultColumns)
+    this.addColumns({
+      entries: {
+        label: 'Entries',
+        render: group => group.total.toLocaleString(),
+        description: 'Number of entries in this group'
+      }
+    })
   }
 
   renderEntryActions(entry, selected) {
@@ -151,26 +174,17 @@ class GroupListUnstyled extends React.Component {
     const per_page = 10
     const after = groups.after
 
+    const defaultSelectedColumns = this.props.selectedColumns || [
+      ...domain.defaultSearchResultColumns,
+      'datasets', 'authors', 'entries']
+
+
     let paginationText
     if (groups_after) {
       paginationText = `next ${results.length.toLocaleString()} of ${(total || 0).toLocaleString()}`
     } else {
       paginationText = `1-${results.length.toLocaleString()} of ${(total || 0).toLocaleString()}`
     }
-
-    const columns = this.props.columns || {
-      ...domain.searchResultColumns,
-      ...EntryListUnstyled.defaultColumns,
-      entries: {
-        label: 'Entries',
-        render: group => group.total,
-        description: 'Number of entries in this group'
-      }
-    }
-    Object.keys(columns).forEach(key => { columns[key].supportsSort = false })
-    const defaultSelectedColumns = this.props.selectedColumns || [
-      ...domain.defaultSearchResultColumns,
-      'datasets', 'authors', 'entries']
 
     const pagination = <TableCell colSpan={1000} classes={{root: classes.scrollCell}}>
       <Toolbar className={classes.scrollBar}>
@@ -190,7 +204,7 @@ class GroupListUnstyled extends React.Component {
       entityLabels={['group of similar entries', 'groups of similar entries']}
       id={row => row.group_hash}
       total={total}
-      columns={columns}
+      columns={this.columns}
       selectedColumns={defaultSelectedColumns}
       entryDetails={this.renderEntryDetails.bind(this)}
       entryActions={this.renderEntryActions}
