@@ -24,7 +24,7 @@ class DomainProviderBase extends React.Component {
     DFT: {
       name: 'DFT',
       about: `
-        ### The NOMAD Repository and Archive
+        # The NOMAD Repository and Archive
 
         This web-page is the graphical user interface (GUI) for the NOMAD Repository and
         Archive. It allows you to search, access, and download all NOMAD data in its
