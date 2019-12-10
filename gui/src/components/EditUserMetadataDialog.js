@@ -521,7 +521,7 @@ class ListTextInputUnstyled extends React.Component {
             {...fieldProps}
           />
           <div className={classes.buttonContainer}>
-            {normalizedValues.length > 1
+            {normalizedValues.length > 1 || (normalizedValues.length === 1 && normalizedValues[0].value)
               ? <IconButton className={classes.button} size="tiny" onClick={() => handleRemove(index)}>
                 <RemoveIcon fontSize="inherit" />
               </IconButton> : ''}
@@ -726,6 +726,9 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     dialog: {
       width: '100%'
     },
+    error: {
+      marginTop: theme.spacing.unit * 2
+    },
     submitWrapper: {
       margin: theme.spacing.unit,
       position: 'relative'
@@ -763,6 +766,8 @@ class EditUserMetadataDialogUnstyled extends React.Component {
   defaultState = {
     open: false,
     actions: {},
+    success: true,
+    message: null,
     isVerifying: false,
     verified: true,
     submitting: false
@@ -880,7 +885,13 @@ class EditUserMetadataDialogUnstyled extends React.Component {
           }
         })
       }
-      return {actions: newActions, isVerifying: false, verified: verified}
+      return {
+        actions: newActions,
+        success: data.success,
+        message: data.message,
+        isVerifying: false,
+        verified: verified && data.success
+      }
     })
   }
 
@@ -915,7 +926,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
 
   render() {
     const { classes, buttonProps, total, user, example, disabled, title } = this.props
-    const { open, actions, verified, submitting } = this.state
+    const { open, actions, verified, submitting, success, message } = this.state
 
     const dialogEnabled = user && example.uploader && example.uploader.user_id === user.sub && !disabled
     const submitEnabled = Object.keys(actions).length && !submitting && verified
@@ -976,6 +987,9 @@ class EditUserMetadataDialogUnstyled extends React.Component {
                 The fields references, co-authors, shared with users,
                 and datasets can have many values. Changing one value, will apply all values.
               </DialogContentText>
+              {!success && <DialogContentText color="error" className={classes.error}>
+                {message}
+              </DialogContentText>}
               <UserMetadataField {...metadataFieldProps('comment')}>
                 <ActionInput component={TextField}
                   label="Comment"
@@ -1034,7 +1048,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
 
     if (submitting) {
       return <DialogActions>
-        <DialogContentText style={{marginLeft: 16}}>Do not close the page. This might take up to several minutes for editing many entries.</DialogContentText>
+        <DialogContentText color="warning" style={{marginLeft: 16}}>Do not close the page. This might take up to several minutes for editing many entries.</DialogContentText>
         <span style={{flexGrow: 1}} />
         <div className={classes.submitWrapper}>
           <Button onClick={this.handleSubmit} disabled={!submitEnabled} color="primary">

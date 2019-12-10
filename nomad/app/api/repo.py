@@ -576,9 +576,11 @@ class EditRepoCalcsResource(Resource):
                 upload = proc.Upload.get(upload_id)
                 upload.re_pack()
 
-        # remove old datasets
+        # remove potentially empty old datasets
         if removed_datasets is not None:
-            Dataset.m_def.m_x('me').objects(dataset_id__in=removed_datasets).delete()
+            for dataset in removed_datasets:
+                if proc.Calc.objects(metadata__dataset_id=dataset).first() is None:
+                    Dataset.m_def.m_x('me').objects(dataset_id=dataset).delete()
 
         return json_data, 200
 
