@@ -43,7 +43,7 @@ import io
 import json
 
 from nomad import utils, infrastructure, files, config, search
-from nomad.coe_repo import User, Calc
+from nomad.coe_repo import User, Calc, NoCalculation
 from nomad.datamodel import CalcWithMetadata
 from nomad.processing import FAILURE
 
@@ -977,6 +977,8 @@ class SourceCalc(Document):
                     if with_metadata:
                         source_calc.metadata = calc.to_calc_with_metadata().__dict__
                     source_calcs.append(source_calc)
+                except NoCalculation:
+                    pass
                 except Exception as e:
                     logger.error('could not index', pid=calc.pid, exc_info=e)
                     start_pid += 1
