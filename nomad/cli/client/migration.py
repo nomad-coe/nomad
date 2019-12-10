@@ -23,8 +23,9 @@ import multiprocessing
 import queue
 import json
 
-from nomad import config, infrastructure, migration
-from nomad.migration import NomadCOEMigration, SourceCalc, Package, missing_calcs_data
+from nomad import config, infrastructure
+from nomad.migration import NomadCOEMigration, SourceCalc, Package, missing_calcs_data, \
+    update_user_metadata as migration_update_user_metadata
 
 from .client import client
 
@@ -318,4 +319,4 @@ def missing(start_pid, uploads):
 @click.option('--bulk-size', default=1000, help='Size of the bulk to update with one db query')
 def update_user_metadata(update_index, bulk_size):
     infrastructure.setup()
-    migration.update_user_metadata(bulk_size=bulk_size, update_index=update_index)
+    migration_update_user_metadata(bulk_size=bulk_size, update_index=update_index)
