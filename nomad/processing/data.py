@@ -74,7 +74,8 @@ class Calc(Proc):
             ('upload_id', 'parser'),
             ('upload_id', 'tasks_status'),
             ('upload_id', 'process_status'),
-            ('upload_id', 'metadata.nomad_version')
+            ('upload_id', 'metadata.nomad_version'),
+            'metadata.pid'
         ]
     }
 
