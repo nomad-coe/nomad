@@ -1793,11 +1793,7 @@ def update_user_metadata(bulk_size: int = 1000, update_index: bool = False, **kw
     # iterate the source index in bulk
     size = SourceCalc.objects(**kwargs).count()
     count = 0
-    important_changes = {
-        'missing_calcs': {},
-        'replaced': {},
-        'lifted_embargo': []
-    }
+    important_changes: Dict[str, Any] = dict(missing_calcs=dict(), replaced=dict(), lifted_embargo=list())
 
     try:
         for start in range(0, size, bulk_size):
@@ -1827,7 +1823,7 @@ def update_user_metadata(bulk_size: int = 1000, update_index: bool = False, **kw
                         continue
 
                 target_metadata = CalcWithMetadata(**target.metadata)
-                source_metadata_normalized = dict(
+                source_metadata_normalized: Dict[str, Any] = dict(
                     comment=source.metadata.get('comment'),
                     references={ref['value'] for ref in source.metadata['references']},
                     coauthors={str(user['id']) for user in source.metadata['coauthors']},
@@ -1840,8 +1836,8 @@ def update_user_metadata(bulk_size: int = 1000, update_index: bool = False, **kw
                         for ds in source.metadata['datasets']],
                     with_embargo=source.metadata['with_embargo'])
                 source_metadata_normalized['datasets'].sort(key=lambda o: o['id'])
-                
-                target_metadata_normalized = dict(
+
+                target_metadata_normalized: Dict[str, Any] = dict(
                     comment=target_metadata.comment,
                     references=set(ref['value'] for ref in target_metadata.references),
                     coauthors={str(user['id']) for user in target_metadata.coauthors},
@@ -1856,7 +1852,6 @@ def update_user_metadata(bulk_size: int = 1000, update_index: bool = False, **kw
                 target_metadata_normalized['datasets'].sort(key=lambda o: o['id'])
 
                 if source_metadata_normalized != target_metadata_normalized:
-
                     # do a full update of all metadata!
                     update = UpdateOne(
                         dict(_id=target.calc_id),
@@ -1889,17 +1884,15 @@ def update_user_metadata(bulk_size: int = 1000, update_index: bool = False, **kw
                     logger.error('incomplete update in syncing user metadata')
 
                 if update_index:
-                    search.index_all(updated_calcs, refresh=False)
+                    search.index_all(updated_calcs, do_refresh=False)
 
             # log
             eta = ((time.time() - start_time) / float(count)) * (size - count)
             print('Synced calcs %d through %d of %d with %d diffs, %s' % (
                 start, start + bulk_size, size, len(updates), datetime.timedelta(seconds=eta)), flush=True)
 
-
     finally:
         with open('sync_important_changes.json', 'wt') as f:
             json.dump(important_changes, f, indent=2)
 
     print('done')
-
