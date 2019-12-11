@@ -104,7 +104,7 @@ class MEInstance():
 
 def generate_mongoengine(section_def: Section):
     def generate_field(quantity: Quantity):
-        annotation = quantity.m_annotations.get('a_me', {})
+        annotation = quantity.m_x('me', {})
         annotation.pop('index', None)
 
         field = None
