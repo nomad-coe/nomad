@@ -56,6 +56,22 @@ default_hash_len = 28
 """ Length of hashes and hash-based ids (e.g. calc, upload) in nomad. """
 
 
+def decode_handle_id(handle_str: str):
+    result = 0
+    for c in handle_str:
+        ordinal = ord(c.lower())
+        if 48 <= ordinal <= 57:
+            number = ordinal - 48
+        elif 97 <= ordinal <= 118:
+            number = ordinal - 87
+        else:
+            raise ValueError()
+
+        result = result * 32 + number
+
+    return result
+
+
 def hash(*args, length: int = default_hash_len) -> str:
     """ Creates a websave hash of the given length based on the repr of the given arguments. """
     hash = hashlib.sha512()

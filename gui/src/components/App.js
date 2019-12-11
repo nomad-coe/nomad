@@ -428,12 +428,13 @@ export default class App extends React.Component {
       }
     },
     'entry_pid': {
-      path: '/entry/pid/:pid',
+      path: '/entry/pid/:pid/:handle?',
       key: (props) => `entry/pid/${props.match.params.pid}`,
       render: props => {
         const { match, ...rest } = props
         if (match && match.params.pid) {
-          return (<ResolvePID {...rest} pid={match.params.pid} />)
+          const {pid, handle} = match.params
+          return (<ResolvePID {...rest} pid={handle ? pid + '/' + handle : pid} />)
         } else {
           return ''
         }

@@ -720,13 +720,27 @@ class RepoQuantitiesResource(Resource):
         return search_request.execute(), 200
 
 
-@ns.route('/pid/<int:pid>')
+@ns.route('/pid/<path:pid>')
 class RepoPidResource(Resource):
     @api.doc('resolve_pid')
     @api.response(404, 'Entry with PID does not exist')
     @api.marshal_with(repo_calc_id_model, skip_none=True, code=200, description='Entry resolved')
     @authenticate()
-    def get(self, pid: int):
+    def get(self, pid: str):
+        if '/' in pid:
+            prefix, pid = pid.split('/')
+            if prefix != '21.11132':
+                abort(400, 'Wrong PID format')
+            try:
+                pid_int = utils.decode_handle_id(pid)
+            except ValueError:
+                abort(400, 'Wrong PID format')
+        else:
+            try:
+                pid_int = int(pid)
+            except ValueError:
+                abort(400, 'Wrong PID format')
+
         search_request = search.SearchRequest()
 
         if g.user is not None:
@@ -734,16 +748,16 @@ class RepoPidResource(Resource):
         else:
             search_request.owner('all')
 
-        search_request.search_parameter('pid', pid)
+        search_request.search_parameter('pid', pid_int)
 
         results = list(search_request.execute_scan())
         total = len(results)
 
         if total == 0:
-            abort(404, 'Entry with PID %d does not exist' % pid)
+            abort(404, 'Entry with PID %s does not exist' % pid)
 
         if total > 1:
-            utils.get_logger(__name__).error('Two entries for the same pid', pid=pid)
+            utils.get_logger(__name__).error('Two entries for the same pid', pid=pid_int)
 
         result = results[0]
         return dict(

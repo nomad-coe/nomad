@@ -250,6 +250,13 @@ class KeycloakMock:
 _keycloak = infrastructure.keycloak
 
 
+# use a session fixture in addition to the function fixture, to ensure mocked keycloak
+# before other class, module, etc. scoped function are run
+@pytest.fixture(scope='session', autouse=True)
+def mocked_keycloak_session(monkeysession):
+    monkeysession.setattr('nomad.infrastructure.keycloak', KeycloakMock())
+
+
 @pytest.fixture(scope='function', autouse=True)
 def mocked_keycloak(monkeypatch):
     monkeypatch.setattr('nomad.infrastructure.keycloak', KeycloakMock())

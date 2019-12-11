@@ -959,19 +959,26 @@ class TestRepo():
         assert rv.status_code == 200
         # TODO actual assertions
 
-    @pytest.mark.parametrize('pid, with_login, success', [
-        (2, True, True), (2, False, True),
-        (3, True, True), (3, False, False),
-        (4, True, True), (4, False, False)])
+    @pytest.mark.parametrize('pid_or_handle, with_login, success', [
+        ('2', True, True), ('2', False, True),
+        ('3', True, True), ('3', False, False),
+        ('4', True, True), ('4', False, False),
+        ('21.11132/2', True, True)])
     def test_resolve_pid(
-            self, api, example_elastic_calcs, other_test_user_auth, pid, with_login,
+            self, api, example_elastic_calcs, other_test_user_auth, pid_or_handle, with_login,
             success, no_warn):
         rv = api.get(
-            '/repo/pid/%d' % pid,
+            '/repo/pid/%s' % pid_or_handle,
             headers=other_test_user_auth if with_login else {})
         assert rv.status_code == 200 if success else 404
+
+        try:
+            pid = str(int(pid_or_handle))
+        except ValueError:
+            pid = str(utils.decode_handle_id(pid_or_handle.split('/')[1]))
+
         if success:
-            assert json.loads(rv.data)['calc_id'] == '%d' % pid
+            assert json.loads(rv.data)['calc_id'] == '%s' % pid
             assert json.loads(rv.data)['upload_id'] == 'example_upload_id'
 
     @pytest.mark.timeout(config.tests.default_timeout)
