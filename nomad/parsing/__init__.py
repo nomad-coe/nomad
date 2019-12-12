@@ -92,6 +92,8 @@ _compressions = {
     b'\xfd\x37\x7a': ('xz', lzma.open)
 }
 
+encoding_magic = magic.Magic(mime_encoding=True)
+
 
 def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFiles], strict=True) -> 'Parser':
     """
@@ -122,6 +124,24 @@ def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFile
         buffer = cf.read(config.parser_matching_size)
 
     mime_type = magic.from_buffer(buffer, mime=True)
+    decoded_buffer = None
+    if 'text' in mime_type:
+        try:  # Try to open the file as a string for regex matching.
+            decoded_buffer = buffer.decode('utf-8')
+        except UnicodeDecodeError:
+            # This file is either binary or has wrong encoding
+            encoding = encoding_magic.from_buffer(buffer)
+            if encoding in ['iso-8859-1']:
+                try:
+                    with open(mainfile_path, 'rb') as binary_file:
+                        content = binary_file.read().decode(encoding)
+                    decoded_buffer = buffer.decode(encoding)
+                except Exception:
+                    pass
+                else:
+                    with open(mainfile_path, 'wt') as text_file:
+                        text_file.write(content)
+
     for parser in parsers:
         if strict and (isinstance(parser, MissingParser) or isinstance(parser, EmptyParser)):
             continue
@@ -129,7 +149,7 @@ def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFile
         if parser.domain != config.domain:
             continue
 
-        if parser.is_mainfile(mainfile_path, mime_type, buffer, compression):
+        if parser.is_mainfile(mainfile_path, mime_type, buffer, decoded_buffer, compression):
             # TODO: deal with multiple possible parser specs
             return parser
 
