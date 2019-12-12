@@ -187,7 +187,7 @@ parsers = [
     LegacyParser(
         name='parsers/exciting', code_name='exciting',
         parser_class_name='excitingparser.ExcitingParser',
-        mainfile_name_re=r'^.*.OUT\.[^/]*?',
+        mainfile_name_re=r'^.*.OUT(\.[^/]*)?$',
         mainfile_contents_re=(r'EXCITING.*started')
     ),
     LegacyParser(
@@ -277,7 +277,7 @@ parsers = [
     LegacyParser(
         name='parsers/wien2k', code_name='WIEN2k',
         parser_class_name='wien2kparser.Wien2kParser',
-        mainfile_contents_re=r':LABEL\d+: using WIEN2k_\d+\.\d+'
+        mainfile_contents_re=r'\s*---------\s*:ITE[0-9]+:\s*[0-9]+\.\s*ITERATION\s*---------'
     ),
     LegacyParser(
         name='parsers/band', code_name='BAND',
