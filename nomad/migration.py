@@ -42,6 +42,7 @@ import shutil
 import random
 import io
 import json
+import re
 
 from nomad import utils, infrastructure, files, config, search, processing as proc
 from nomad.coe_repo import User, Calc, NoCalculation
@@ -68,6 +69,8 @@ default_uploader = dict(id=1)
 
 protected_uploads = ['ftp_upload_for_uid_125', 'ftp_upload_for_uid_290']
 """ Uploads that we will not delete existing extracted files for """
+
+replace_outcar_re = re.compile(r'OUTCAR$')
 
 
 def iterable_to_stream(iterable, buffer_size=io.DEFAULT_BUFFER_SIZE):
@@ -1610,6 +1613,11 @@ class NomadCOEMigration:
                 calcs_in_search += 1
                 source_calc, source_calc_with_metadata = source_calcs.get(
                     calc['mainfile'], (None, None))
+
+                if source_calc is None:
+                    alternative_mainfile = replace_outcar_re.sub(calc['mainfile'], 'vasprun.xml')
+                    source_calc, source_calc_with_metadata = source_calcs.get(
+                        alternative_mainfile, (None, None))
 
                 if source_calc is not None:
                     report.migrated_calcs += 1

@@ -187,7 +187,7 @@ parsers = [
     LegacyParser(
         name='parsers/exciting', code_name='exciting',
         parser_class_name='excitingparser.ExcitingParser',
-        mainfile_name_re=r'^.*.OUT?',
+        mainfile_name_re=r'^.*.OUT\.[^/]*?',
         mainfile_contents_re=(r'EXCITING.*started')
     ),
     LegacyParser(
@@ -370,7 +370,8 @@ parsers = [
         name='parsers/siesta', code_name='Siesta',
         parser_class_name='siestaparser.SiestaParser',
         mainfile_contents_re=(
-            r'(Siesta Version: siesta-|SIESTA [0-9]\.[0-9]\.[0-9])')
+            r'(Siesta Version: siesta-|SIESTA [0-9]\.[0-9]\.[0-9])|'
+            r'(\*\s*WELCOME TO SIESTA\s*\*)')
     ),
     LegacyParser(
         name='parsers/elk', code_name='elk',
