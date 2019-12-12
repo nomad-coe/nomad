@@ -216,7 +216,8 @@ parsers = [
         mainfile_contents_re=(
             r'(CRYSTAL\s*\n\d+ \d+ \d+)|(CRYSTAL will run on \d+ processors)|('
             r'\s*\*\s{10,}CRYSTAL(?P<majorVersion>[\d]+)\s{10,}\*'
-            r'\s*\*\s{10,}public \: (?P<minorVersion>[\d\.]+) \- .*\*)'
+            r'\s*\*\s{10,}public \: (?P<minorVersion>[\d\.]+) \- .*\*)|'
+            r'(Executable:\s*[/_\-a-zA-Z0-9]*MPPcrystal)'
         )
     ),
     # The main contents regex of CPMD was causing a catostrophic backtracking issue
@@ -293,7 +294,9 @@ parsers = [
     LegacyParser(
         name='parsers/quantumespresso', code_name='Quantum Espresso',
         parser_class_name='quantumespressoparser.QuantumEspressoParserPWSCF',
-        mainfile_contents_re=r'Program PWSCF.*starts'
+        mainfile_contents_re=(
+            r'(Program PWSCF.*starts)|'
+            r'(Current dimensions of program PWSCF are)')
         #    r'^(.*\n)*'
         #    r'\s*Program (\S+)\s+v\.(\S+)(?:\s+\(svn\s+rev\.\s+'
         #    r'(\d+)\s*\))?\s+starts[^\n]+'
