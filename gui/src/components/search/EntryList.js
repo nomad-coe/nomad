@@ -198,7 +198,7 @@ export class EntryListUnstyled extends React.Component {
         <Quantity className={classes.entryDetailsRow} column>
           <Quantity quantity='comment' placeholder='no comment' data={row} />
           <Quantity quantity='references' placeholder='no references' data={row}>
-            <div>
+            <div style={{display:'inline-grid'}}>
               {(row.references || []).map(ref => <Typography key={ref} noWrap>
                 <a href={ref}>{ref}</a>
               </Typography>)}
@@ -221,7 +221,7 @@ export class EntryListUnstyled extends React.Component {
         </Quantity>
       </div>
 
-      <div className={classes.entryDetailsRow} style={{maxWidth: '33%'}}>
+      <div className={classes.entryDetailsRow} style={{maxWidth: '33%', paddingRight: 0}}>
         <Quantity column >
           {/* <Quantity quantity="pid" label='PID' placeholder="not yet assigned" noWrap data={row} withClipboard /> */}
           <Quantity quantity="upload_id" label='upload id' data={row} noWrap withClipboard />
