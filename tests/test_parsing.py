@@ -17,6 +17,7 @@ import json
 import numpy as np
 import pytest
 import os
+from shutil import copyfile
 
 from nomad import utils, files
 from nomad.parsing import JSONStreamWriter, parser_dict, match_parser, BrokenParser
@@ -74,7 +75,7 @@ for parser, mainfile in parser_examples:
 parser_examples = fixed_parser_examples
 
 
-correct_num_output_files = 44
+correct_num_output_files = 45
 
 
 class TestLocalBackend(object):
@@ -355,7 +356,14 @@ def test_broken_xml_vasp():
     assert_parser_dir_unchanged(previous_wd, current_wd=os.getcwd())
 
 
-def test_match(raw_files, no_warn):
+@pytest.fixture(scope='function')
+def with_latin_1_file(raw_files):
+    copyfile('tests/data/latin-1.out', 'tests/data/parsers/latin-1.out')
+    yield
+    os.remove('tests/data/parsers/latin-1.out')
+
+
+def test_match(raw_files, with_latin_1_file, no_warn):
     example_upload_id = 'example_upload_id'
     upload_files = files.StagingUploadFiles(example_upload_id, create=True, is_authorized=lambda: True)
     upload_files.add_rawfiles('tests/data/parsers')

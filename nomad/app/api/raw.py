@@ -27,6 +27,7 @@ import contextlib
 import fnmatch
 import json
 import gzip
+import urllib.parse
 
 from nomad import search, utils
 from nomad.files import UploadFiles, Restricted
@@ -223,6 +224,10 @@ class RawFileFromUploadPathResource(Resource):
         Zip files are streamed; instead of 401 errors, the zip file will just not contain
         any files that the user is not authorized to access.
         """
+        # TODO this is a quick fix, since swagger cannot deal with not encoded path parameters
+        if path is not None:
+            path = urllib.parse.unquote(path)
+
         upload_filepath = path
 
         # TODO find a better way to all access to certain files
@@ -262,6 +267,10 @@ class RawFileFromCalcPathResource(Resource):
         This endpoint behaves exactly like /raw/<upload_id>/<path>, but the path is
         now relative to the calculation and not the upload.
         """
+        # TODO this is a quick fix, since swagger cannot deal with not encoded path parameters
+        if path is not None:
+            path = urllib.parse.unquote(path)
+
         calc_filepath = path if path is not None else ''
         authorization_predicate = create_authorization_predicate(upload_id)
         upload_files = UploadFiles.get(upload_id, authorization_predicate)

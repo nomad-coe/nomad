@@ -103,7 +103,7 @@ class CalcWithMetadata(Mapping):
         self.coauthors: List[str] = []
         self.shared_with: List[str] = []
         self.comment: str = None
-        self.references: List[utils.POPO] = []
+        self.references: List[str] = []
         self.datasets: List[str] = []
         self.external_id: str = None
 
@@ -448,12 +448,12 @@ def get_optional_backend_value(backend, key, section, unavailable_value=None, lo
             try:
                 if not backend.get_value('is_representative', section_index):
                     continue
-            except KeyError:
+            except (KeyError, IndexError):
                 continue
 
         try:
             new_val = backend.get_value(key, section_index)
-        except KeyError:
+        except (KeyError, IndexError):
             new_val = None
 
         # Compare values from iterations.

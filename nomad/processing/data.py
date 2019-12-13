@@ -77,6 +77,7 @@ class Calc(Proc):
             ('upload_id', 'metadata.nomad_version'),
             'metadata.published',
             'metadata.datasets'
+            'metadata.pid'
         ]
     }
 
