@@ -190,9 +190,9 @@ class UploadListUnstyled extends React.Component {
 
     let paginationText
     if (uploads_after) {
-      paginationText = `next ${results.length} of ${total}`
+      paginationText = `next ${results.length.toLocaleString()} of ${(total || 0).toLocaleString()}`
     } else {
-      paginationText = `1-${results.length} of ${total}`
+      paginationText = `1-${results.length.toLocaleString()} of ${(total || 0).toLocaleString()}`
     }
 
     const pagination = <TableCell colSpan={1000} classes={{root: classes.scrollCell}}>

@@ -17,6 +17,15 @@ import json
 
 from nomad import utils
 
+from tests import utils as test_utils
+
+
+def test_decode_handle_id():
+    assert utils.decode_handle_id('a1') == 321
+    assert utils.decode_handle_id('6i370') == 6884576
+    with test_utils.assert_exception(ValueError):
+        utils.decode_handle_id('zz')
+
 
 def test_timer(caplog):
     with utils.timer(utils.get_logger('test_logger'), 'test measure'):

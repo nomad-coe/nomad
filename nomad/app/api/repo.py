@@ -20,6 +20,7 @@ meta-data.
 from typing import List, Dict, Any
 from flask_restplus import Resource, abort, fields
 from flask import request, g
+from elasticsearch_dsl import Q
 from elasticsearch.exceptions import NotFoundError
 import elasticsearch.helpers
 
@@ -344,43 +345,48 @@ repo_edit_model = api.model('RepoEdit', {
             quantity.name: repo_edit_action_field(quantity)
             for quantity in UserMetadata.m_def.all_quantities.values()
         }), skip_none=True,
-        description='Each action specifies a single value (even for multi valued quantities).')
+        description='Each action specifies a single value (even for multi valued quantities).'),
+    'success': fields.Boolean(description='If the overall edit can/could be done. Only in API response.'),
+    'message': fields.String(description='A message that details the overall edit result. Only in API response.')
 })
 
 
 def edit(parsed_query: Dict[str, Any], logger, mongo_update: Dict[str, Any] = None, re_index=True) -> List[str]:
     # get all calculations that have to change
-    search_request = search.SearchRequest()
-    add_query(search_request, parsed_query)
-    upload_ids = set()
-    calc_ids = []
-    for hit in search_request.execute_scan():
-        calc_ids.append(hit['calc_id'])
-        upload_ids.add(hit['upload_id'])
+    with utils.timer(logger, 'edit query executed'):
+        search_request = search.SearchRequest()
+        add_query(search_request, parsed_query)
+        upload_ids = set()
+        calc_ids = []
+        for hit in search_request.execute_scan():
+            calc_ids.append(hit['calc_id'])
+            upload_ids.add(hit['upload_id'])
 
     # perform the update on the mongo db
-    if mongo_update is not None:
-        n_updated = proc.Calc.objects(calc_id__in=calc_ids).update(multi=True, **mongo_update)
-        if n_updated != len(calc_ids):
-            logger.error('edit repo did not update all entries', payload=mongo_update)
+    with utils.timer(logger, 'edit mongo update executed', size=len(calc_ids)):
+        if mongo_update is not None:
+            n_updated = proc.Calc.objects(calc_id__in=calc_ids).update(multi=True, **mongo_update)
+            if n_updated != len(calc_ids):
+                logger.error('edit repo did not update all entries', payload=mongo_update)
 
     # re-index the affected entries in elastic search
-    if re_index:
-        def elastic_updates():
-            for calc in proc.Calc.objects(calc_id__in=calc_ids):
-                entry = search.Entry.from_calc_with_metadata(
-                    datamodel.CalcWithMetadata(**calc['metadata']))
-                entry = entry.to_dict(include_meta=True)
-                entry['_op_type'] = 'index'
-                yield entry
+    with utils.timer(logger, 'edit elastic update executed', size=len(calc_ids)):
+        if re_index:
+            def elastic_updates():
+                for calc in proc.Calc.objects(calc_id__in=calc_ids):
+                    entry = search.Entry.from_calc_with_metadata(
+                        datamodel.CalcWithMetadata(**calc['metadata']))
+                    entry = entry.to_dict(include_meta=True)
+                    entry['_op_type'] = 'index'
+                    yield entry
 
-        _, failed = elasticsearch.helpers.bulk(
-            infrastructure.elastic_client, elastic_updates(), stats_only=True)
-        search.refresh()
-        if failed > 0:
-            logger.error(
-                'edit repo with failed elastic updates',
-                payload=mongo_update, nfailed=len(failed))
+            _, failed = elasticsearch.helpers.bulk(
+                infrastructure.elastic_client, elastic_updates(), stats_only=True)
+            search.refresh()
+            if failed > 0:
+                logger.error(
+                    'edit repo with failed elastic updates',
+                    payload=mongo_update, nfailed=len(failed))
 
     return list(upload_ids)
 
@@ -431,91 +437,127 @@ class EditRepoCalcsResource(Resource):
         parsed_query['owner'] = owner
 
         # checking the edit actions and preparing a mongo update on the fly
+        json_data['success'] = True
         mongo_update = {}
         uploader_ids = None
         lift_embargo = False
-        for action_quantity_name, quantity_actions in actions.items():
-            quantity = UserMetadata.m_def.all_quantities.get(action_quantity_name)
-            if quantity is None:
-                abort(400, 'Unknown quantity %s' % action_quantity_name)
+        removed_datasets = None
 
-            quantity_flask = quantity.m_x('flask', {})
-            if quantity_flask.get('admin_only', False):
-                if not g.user.is_admin():
-                    abort(404, 'Only the admin user can set %s' % quantity.name)
+        with utils.timer(logger, 'edit verified'):
+            for action_quantity_name, quantity_actions in actions.items():
+                quantity = UserMetadata.m_def.all_quantities.get(action_quantity_name)
+                if quantity is None:
+                    abort(400, 'Unknown quantity %s' % action_quantity_name)
 
-            if isinstance(quantity_actions, list) == quantity.is_scalar:
-                abort(400, 'Wrong shape for quantity %s' % action_quantity_name)
+                quantity_flask = quantity.m_x('flask', {})
+                if quantity_flask.get('admin_only', False):
+                    if not g.user.is_admin():
+                        abort(404, 'Only the admin user can set %s' % quantity.name)
 
-            if not isinstance(quantity_actions, list):
-                quantity_actions = [quantity_actions]
+                if isinstance(quantity_actions, list) == quantity.is_scalar:
+                    abort(400, 'Wrong shape for quantity %s' % action_quantity_name)
 
-            flask_verify = quantity_flask.get('verify', None)
-            mongo_key = 'metadata__%s' % quantity.name
-            has_error = False
-            for action in quantity_actions:
-                action['success'] = True
-                action['message'] = None
-                action_value = action.get('value')
-                action_value = action_value if action_value is None else action_value.strip()
+                if not isinstance(quantity_actions, list):
+                    quantity_actions = [quantity_actions]
 
-                if action_value is None:
-                    mongo_value = None
+                flask_verify = quantity_flask.get('verify', None)
+                mongo_key = 'metadata__%s' % quantity.name
+                has_error = False
+                for action in quantity_actions:
+                    action['success'] = True
+                    action['message'] = None
+                    action_value = action.get('value')
+                    action_value = action_value if action_value is None else action_value.strip()
 
-                elif action_value == '':
-                    mongo_value = None
-
-                elif flask_verify == datamodel.User:
-                    try:
-                        mongo_value = User.get(user_id=action_value).user_id
-                    except KeyError:
-                        action['success'] = False
-                        has_error = True
-                        action['message'] = 'User does not exist'
-                        continue
-
-                    if uploader_ids is None:
-                        uploader_ids = get_uploader_ids(parsed_query)
-                    if action_value in uploader_ids:
-                        action['success'] = False
-                        has_error = True
-                        action['message'] = 'This user is already an uploader of one entry in the query'
-                        continue
-
-                elif flask_verify == datamodel.Dataset:
-                    try:
-                        mongo_value = Dataset.m_def.m_x('me').get(
-                            user_id=g.user.user_id, name=action_value).dataset_id
-                    except KeyError:
-                        action['message'] = 'Dataset does not exist and will be created'
+                    if action_value is None:
                         mongo_value = None
-                        if not verify:
-                            dataset = Dataset(
-                                dataset_id=utils.create_uuid(), user_id=g.user.user_id,
-                                name=action_value)
-                            dataset.m_x('me').create()
-                            mongo_value = dataset.dataset_id
-                elif action_quantity_name == 'with_embargo':
-                    # ignore the actual value ... just lift the embargo
-                    mongo_value = False
-                    lift_embargo = True
-                else:
-                    mongo_value = action_value
 
-                if len(quantity.shape) == 0:
-                    mongo_update[mongo_key] = mongo_value
-                else:
-                    mongo_values = mongo_update.setdefault(mongo_key, [])
-                    if mongo_value is not None:
-                        if mongo_value in mongo_values:
+                    elif action_value == '':
+                        mongo_value = None
+
+                    elif flask_verify == datamodel.User:
+                        try:
+                            mongo_value = User.get(user_id=action_value).user_id
+                        except KeyError:
                             action['success'] = False
                             has_error = True
-                            action['message'] = 'Duplicate values are not allowed'
+                            action['message'] = 'User does not exist'
                             continue
-                        mongo_values.append(mongo_value)
 
-            if len(quantity_actions) == 0 and len(quantity.shape) > 0:
-                mongo_update[mongo_key] = []
+                        if uploader_ids is None:
+                            uploader_ids = get_uploader_ids(parsed_query)
+                        if action_value in uploader_ids:
+                            action['success'] = False
+                            has_error = True
+                            action['message'] = 'This user is already an uploader of one entry in the query'
+                            continue
+
+                    elif flask_verify == datamodel.Dataset:
+                        try:
+                            mongo_value = Dataset.m_def.m_x('me').get(
+                                user_id=g.user.user_id, name=action_value).dataset_id
+                        except KeyError:
+                            action['message'] = 'Dataset does not exist and will be created'
+                            mongo_value = None
+                            if not verify:
+                                dataset = Dataset(
+                                    dataset_id=utils.create_uuid(), user_id=g.user.user_id,
+                                    name=action_value)
+                                dataset.m_x('me').create()
+                                mongo_value = dataset.dataset_id
+
+                    elif action_quantity_name == 'with_embargo':
+                        # ignore the actual value ... just lift the embargo
+                        mongo_value = False
+                        lift_embargo = True
+
+                        # check if necessary
+                        search_request = search.SearchRequest()
+                        add_query(search_request, parsed_query)
+                        search_request.q = search_request.q & Q('term', with_embargo=True)
+                        if search_request.execute()['total'] == 0:
+                            action['success'] = False
+                            has_error = True
+                            action['message'] = 'There is no embargo to lift'
+                            continue
+                    else:
+                        mongo_value = action_value
+
+                    if len(quantity.shape) == 0:
+                        mongo_update[mongo_key] = mongo_value
+                    else:
+                        mongo_values = mongo_update.setdefault(mongo_key, [])
+                        if mongo_value is not None:
+                            if mongo_value in mongo_values:
+                                action['success'] = False
+                                has_error = True
+                                action['message'] = 'Duplicate values are not allowed'
+                                continue
+                            mongo_values.append(mongo_value)
+
+                if len(quantity_actions) == 0 and len(quantity.shape) > 0:
+                    mongo_update[mongo_key] = []
+
+                if action_quantity_name == 'datasets':
+                    # check if datasets edit is allowed and if datasets have to be removed
+                    search_request = search.SearchRequest()
+                    add_query(search_request, parsed_query)
+                    search_request.quantity(name='dataset_id')
+                    old_datasets = list(
+                        search_request.execute()['quantities']['dataset_id']['values'].keys())
+
+                    removed_datasets = []
+                    for dataset_id in old_datasets:
+                        if dataset_id not in mongo_update.get(mongo_key, []):
+                            removed_datasets.append(dataset_id)
+
+                    doi_ds = Dataset.m_def.m_x('me').objects(
+                        dataset_id__in=removed_datasets, doi__ne=None).first()
+                    if doi_ds is not None:
+                        json_data['success'] = False
+                        json_data['message'] = json_data.get('message', '') + \
+                            'Edit would remove entries from a dataset with DOI (%s) ' % doi_ds.name
+                        has_error = True
 
         # stop here, if client just wants to verify its actions
         if verify:
@@ -533,6 +575,12 @@ class EditRepoCalcsResource(Resource):
             for upload_id in upload_ids:
                 upload = proc.Upload.get(upload_id)
                 upload.re_pack()
+
+        # remove potentially empty old datasets
+        if removed_datasets is not None:
+            for dataset in removed_datasets:
+                if proc.Calc.objects(metadata__dataset_id=dataset).first() is None:
+                    Dataset.m_def.m_x('me').objects(dataset_id=dataset).delete()
 
         return json_data, 200
 
@@ -672,13 +720,27 @@ class RepoQuantitiesResource(Resource):
         return search_request.execute(), 200
 
 
-@ns.route('/pid/<int:pid>')
+@ns.route('/pid/<path:pid>')
 class RepoPidResource(Resource):
     @api.doc('resolve_pid')
     @api.response(404, 'Entry with PID does not exist')
     @api.marshal_with(repo_calc_id_model, skip_none=True, code=200, description='Entry resolved')
     @authenticate()
-    def get(self, pid: int):
+    def get(self, pid: str):
+        if '/' in pid:
+            prefix, pid = pid.split('/')
+            if prefix != '21.11132':
+                abort(400, 'Wrong PID format')
+            try:
+                pid_int = utils.decode_handle_id(pid)
+            except ValueError:
+                abort(400, 'Wrong PID format')
+        else:
+            try:
+                pid_int = int(pid)
+            except ValueError:
+                abort(400, 'Wrong PID format')
+
         search_request = search.SearchRequest()
 
         if g.user is not None:
@@ -686,16 +748,16 @@ class RepoPidResource(Resource):
         else:
             search_request.owner('all')
 
-        search_request.search_parameter('pid', pid)
+        search_request.search_parameter('pid', pid_int)
 
         results = list(search_request.execute_scan())
         total = len(results)
 
         if total == 0:
-            abort(404, 'Entry with PID %d does not exist' % pid)
+            abort(404, 'Entry with PID %s does not exist' % pid)
 
         if total > 1:
-            utils.get_logger(__name__).error('Two entries for the same pid', pid=pid)
+            utils.get_logger(__name__).error('Two entries for the same pid', pid=pid_int)
 
         result = results[0]
         return dict(

@@ -250,6 +250,13 @@ class KeycloakMock:
 _keycloak = infrastructure.keycloak
 
 
+# use a session fixture in addition to the function fixture, to ensure mocked keycloak
+# before other class, module, etc. scoped function are run
+@pytest.fixture(scope='session', autouse=True)
+def mocked_keycloak_session(monkeysession):
+    monkeysession.setattr('nomad.infrastructure.keycloak', KeycloakMock())
+
+
 @pytest.fixture(scope='function', autouse=True)
 def mocked_keycloak(monkeypatch):
     monkeypatch.setattr('nomad.infrastructure.keycloak', KeycloakMock())
@@ -572,6 +579,21 @@ def published(non_empty_processed: processing.Upload, example_user_metadata) -> 
     Provides a processed upload. Upload was uploaded with test_user.
     """
     non_empty_processed.compress_and_set_metadata(example_user_metadata)
+    non_empty_processed.publish_upload()
+    try:
+        non_empty_processed.block_until_complete(interval=.01)
+    except Exception:
+        pass
+
+    return non_empty_processed
+
+
+@pytest.mark.timeout(config.tests.default_timeout)
+@pytest.fixture(scope='function')
+def published_wo_user_metadata(non_empty_processed: processing.Upload) -> processing.Upload:
+    """
+    Provides a processed upload. Upload was uploaded with test_user.
+    """
     non_empty_processed.publish_upload()
     try:
         non_empty_processed.block_until_complete(interval=.01)

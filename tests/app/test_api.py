@@ -36,6 +36,7 @@ from tests.test_files import example_file, example_file_mainfile, example_file_c
 from tests.test_files import create_staging_upload, create_public_upload, assert_upload_files
 from tests.test_search import assert_search_upload
 from tests.processing import test_data as test_processing
+from tests.utils import assert_exception
 
 from tests.app.test_app import BlueprintClient
 
@@ -958,19 +959,26 @@ class TestRepo():
         assert rv.status_code == 200
         # TODO actual assertions
 
-    @pytest.mark.parametrize('pid, with_login, success', [
-        (2, True, True), (2, False, True),
-        (3, True, True), (3, False, False),
-        (4, True, True), (4, False, False)])
+    @pytest.mark.parametrize('pid_or_handle, with_login, success', [
+        ('2', True, True), ('2', False, True),
+        ('3', True, True), ('3', False, False),
+        ('4', True, True), ('4', False, False),
+        ('21.11132/2', True, True)])
     def test_resolve_pid(
-            self, api, example_elastic_calcs, other_test_user_auth, pid, with_login,
+            self, api, example_elastic_calcs, other_test_user_auth, pid_or_handle, with_login,
             success, no_warn):
         rv = api.get(
-            '/repo/pid/%d' % pid,
+            '/repo/pid/%s' % pid_or_handle,
             headers=other_test_user_auth if with_login else {})
         assert rv.status_code == 200 if success else 404
+
+        try:
+            pid = str(int(pid_or_handle))
+        except ValueError:
+            pid = str(utils.decode_handle_id(pid_or_handle.split('/')[1]))
+
         if success:
-            assert json.loads(rv.data)['calc_id'] == '%d' % pid
+            assert json.loads(rv.data)['calc_id'] == '%s' % pid
             assert json.loads(rv.data)['upload_id'] == 'example_upload_id'
 
     @pytest.mark.timeout(config.tests.default_timeout)
@@ -1189,6 +1197,28 @@ class TestEditRepo():
         self.assert_edit(rv, quantity='datasets', success=True, message=False)
         assert self.mongo(1, datasets=[self.example_dataset.dataset_id])
 
+    def test_edit_ds_remove_doi(self):
+        rv = self.perform_edit(
+            datasets=[self.example_dataset.name], query=dict(upload_id='upload_1'))
+        assert rv.status_code == 200
+        rv = self.api.post('/datasets/%s' % self.example_dataset.name, headers=self.test_user_auth)
+        assert rv.status_code == 200
+        rv = self.perform_edit(datasets=[], query=dict(upload_id='upload_1'))
+        assert rv.status_code == 400
+        data = json.loads(rv.data)
+        assert not data['success']
+        assert self.example_dataset.name in data['message']
+        assert Dataset.m_def.m_x('me').get(dataset_id=self.example_dataset.dataset_id) is not None
+
+    def test_edit_ds_remove(self):
+        rv = self.perform_edit(
+            datasets=[self.example_dataset.name], query=dict(upload_id='upload_1'))
+        assert rv.status_code == 200
+        rv = self.perform_edit(datasets=[], query=dict(upload_id='upload_1'))
+        assert rv.status_code == 200
+        with assert_exception(KeyError):
+            assert Dataset.m_def.m_x('me').get(dataset_id=self.example_dataset.dataset_id) is None
+
     def test_edit_ds_user_namespace(self, test_user):
         assert Dataset.m_def.m_x('me').objects(
             name=self.other_example_dataset.name).first() is not None
@@ -1244,6 +1274,24 @@ def test_edit_lift_embargo(api, published, other_test_user_auth):
     # should not raise Restricted anymore
     with files.UploadFiles.get(published.upload_id).archive_file(example_calc.calc_id) as f:
         f.read()
+
+
+@pytest.mark.timeout(config.tests.default_timeout)
+def test_edit_lift_embargo_unnecessary(api, published_wo_user_metadata, other_test_user_auth):
+    example_calc = Calc.objects(upload_id=published_wo_user_metadata.upload_id).first()
+    assert not example_calc.metadata['with_embargo']
+    rv = api.post(
+        '/repo/edit', headers=other_test_user_auth, content_type='application/json',
+        data=json.dumps({
+            'actions': {
+                'with_embargo': {
+                    'value': 'lift'
+                }
+            }
+        }))
+    assert rv.status_code == 400
+    data = json.loads(rv.data)
+    assert not data['actions']['with_embargo']['success']
 
 
 class TestRaw(UploadFilesBasedTests):
@@ -1607,7 +1655,20 @@ class TestDataset:
         self.assert_dataset(data, name='ds1', doi=True)
         self.assert_dataset_entry(api, '1', True, True, headers=test_user_auth)
 
-    def test_resolve_doi(self, api, example_dataset_with_entry):
+    def test_assign_doi_empty(self, api, test_user_auth, example_datasets):
+        rv = api.post('/datasets/ds1', headers=test_user_auth)
+        assert rv.status_code == 400
+
+    def test_assign_doi_unpublished(self, api, test_user_auth, example_datasets):
+        calc = CalcWithMetadata(
+            calc_id='1', upload_id='1', published=False, with_embargo=False, datasets=['1'])
+        Calc(
+            calc_id='1', upload_id='1', create_time=datetime.datetime.now(),
+            metadata=calc.to_dict()).save()
+        rv = api.post('/datasets/ds1', headers=test_user_auth)
+        assert rv.status_code == 400
+
+    def test_resolve_doi(self, api, example_datasets):
         rv = api.get('/datasets/doi/test_doi')
         assert rv.status_code == 200
         data = json.loads(rv.data)

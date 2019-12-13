@@ -13,6 +13,7 @@ import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
 import UserDataIcon from '@material-ui/icons/AccountCircle'
 import AboutIcon from '@material-ui/icons/Home'
+import FAQIcon from '@material-ui/icons/QuestionAnswer'
 import MetainfoIcon from '@material-ui/icons/Info'
 import {help as searchHelp, default as SearchPage} from './search/SearchPage'
 import HelpDialog from './Help'
@@ -35,6 +36,7 @@ import { amber } from '@material-ui/core/colors'
 import KeepState from './KeepState'
 import {help as userdataHelp, default as UserdataPage} from './UserdataPage'
 import ResolveDOI from './dataset/ResolveDOI'
+import FAQ from './FAQ'
 
 export const ScrollContext = React.createContext({scrollParentRef: null})
 
@@ -157,6 +159,7 @@ class NavigationUnstyled extends React.Component {
 
   toolbarTitles = {
     '/': 'About, Documentation, Getting Help',
+    '/faq': 'Frequently Asked Questions',
     '/search': 'Find and Download Data',
     '/uploads': 'Upload and Publish Data',
     '/userdata': 'Manage Your Data',
@@ -273,6 +276,14 @@ class NavigationUnstyled extends React.Component {
                     <ListItemText inset primary="Overview"/>
                   </MenuItem>
                 </Tooltip>
+                <Tooltip title="Frequently Asked Questions (FAQ)">
+                  <MenuItem component={Link} to="/faq" selected={ pathname === '/faq' } dense>
+                    <ListItemIcon classes={{root: classes.menuItemIcon}}>
+                      <FAQIcon />
+                    </ListItemIcon>
+                    <ListItemText inset primary="FAQ"/>
+                  </MenuItem>
+                </Tooltip>
                 <Tooltip title="Browse the archive schema">
                   <MenuItem component={Link} to="/metainfo" selected={ pathname === '/metainfo' } dense>
                     <ListItemIcon classes={{root: classes.menuItemIcon}}>
@@ -369,6 +380,12 @@ export default class App extends React.Component {
       path: '/',
       render: props => <About {...props} />
     },
+    'faq': {
+      exact: true,
+      singleton: true,
+      path: '/faq',
+      render: props => <FAQ {...props} />
+    },
     'search': {
       exact: true,
       singleton: true,
@@ -411,12 +428,13 @@ export default class App extends React.Component {
       }
     },
     'entry_pid': {
-      path: '/entry/pid/:pid',
+      path: '/entry/pid/:pid/:handle?',
       key: (props) => `entry/pid/${props.match.params.pid}`,
       render: props => {
         const { match, ...rest } = props
         if (match && match.params.pid) {
-          return (<ResolvePID {...rest} pid={match.params.pid} />)
+          const {pid, handle} = match.params
+          return (<ResolvePID {...rest} pid={handle ? pid + '/' + handle : pid} />)
         } else {
           return ''
         }

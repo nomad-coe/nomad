@@ -44,20 +44,22 @@ class DownloadButton extends React.Component {
     event.stopPropagation()
 
     const {api, query, user, fileName, raiseError} = this.props
-    const url = new URL(`${apiBase}/raw/query`)
-    url.searchParams.append('strip', 'true')
-    Object.keys(query).forEach(key => { url.searchParams.append(key, query[key]) })
+
+    const params = {
+      strip: true
+    }
+    Object.keys(query).forEach(key => { params[key] = query[key] })
 
     if (user) {
       try {
         const token = await api.getSignatureToken()
-        url.searchParams.append('signature_token', token)
+        params['signature_token'] = token
       } catch (e) {
         this.setState({preparingDownload: false})
         raiseError(e)
       }
     }
-    FileSaver.saveAs(url.href, fileName || 'nomad-download.zip')
+    FileSaver.saveAs(`${apiBase}/raw/query?${new URLSearchParams(params).toString()}`, fileName || 'nomad-download.zip')
     this.setState({preparingDownload: false})
   }
 

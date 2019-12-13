@@ -198,7 +198,7 @@ export class EntryListUnstyled extends React.Component {
         <Quantity className={classes.entryDetailsRow} column>
           <Quantity quantity='comment' placeholder='no comment' data={row} />
           <Quantity quantity='references' placeholder='no references' data={row}>
-            <div>
+            <div style={{display:'inline-grid'}}>
               {(row.references || []).map(ref => <Typography key={ref} noWrap>
                 <a href={ref}>{ref}</a>
               </Typography>)}
@@ -221,7 +221,7 @@ export class EntryListUnstyled extends React.Component {
         </Quantity>
       </div>
 
-      <div className={classes.entryDetailsRow} style={{maxWidth: '33%'}}>
+      <div className={classes.entryDetailsRow} style={{maxWidth: '33%', paddingRight: 0}}>
         <Quantity column >
           {/* <Quantity quantity="pid" label='PID' placeholder="not yet assigned" noWrap data={row} withClipboard /> */}
           <Quantity quantity="upload_id" label='upload id' data={row} noWrap withClipboard />
@@ -285,6 +285,7 @@ export class EntryListUnstyled extends React.Component {
       page={page - 1}
       onChangePage={this.handleChangePage}
       onChangeRowsPerPage={this.handleChangeRowsPerPage}
+      labelDisplayedRows={({ from, to, count }) => `${from.toLocaleString()}-${to.toLocaleString()} of ${count.toLocaleString()}`}
     />
 
     const example = selected && selected.length > 0 ? results.find(d => d.calc_id === selected[0]) : results[0]
@@ -301,7 +302,7 @@ export class EntryListUnstyled extends React.Component {
       {moreActions}
     </React.Fragment>
     const selectActions = createActions({query: selectQuery, buttonProps: {color: 'secondary'}})
-    const allActions = createActions({query: query}, actions)
+    const allActions = actions
 
     return (
       <div className={classes.root}>

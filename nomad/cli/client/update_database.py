@@ -24,6 +24,7 @@ class DbUpdater:
         self.do_download = False
         self.do_upload = False
         self.do_publish = False
+        self.cleanup = False
         self.parallel = 2
         self.uids = []
         self._set(**kwargs)
@@ -259,7 +260,7 @@ class DbUpdater:
                     complete = True
                 size += os.path.getsize(os.path.join(dirname, f))
             if not complete:
-                self.cleanup([os.path.join(dirname, f) for f in files])
+                self._cleanup([os.path.join(dirname, f) for f in files])
                 size = self._download(path, dirname)
         else:
             os.mkdir(dirname)
@@ -267,15 +268,13 @@ class DbUpdater:
         return dirname, size
 
     def _tar_files(self, dirs, tarname):
-        if os.path.isfile(tarname):
-            return
         with tarfile.open(tarname, 'w') as f:
             for d in dirs:
                 files = os.listdir(d)
                 for fn in files:
                     f.add(os.path.join(d, fn))
 
-    def cleanup(self, ilist):
+    def _cleanup(self, ilist):
         if isinstance(ilist, str):
             ilist = [ilist]
         for name in ilist:
@@ -308,12 +307,19 @@ class DbUpdater:
                     _upload_time=timenow,
                     _uploader=125))
 
-    def publish(self):
+    def publish(self, uids=None):
         print('Publishing')
-        for uid in self.uids:
+        if uids is None:
+            uids = self.uids
+        for uid in uids:
             if self._is_done_upload(uid):
                 payload = self.get_payload(uid)
-                self.client.uploads.exec_upload_operation(upload_id=uid, payload=payload)
+                self.client.uploads.exec_upload_operation(upload_id=uid, payload=payload).response()
+
+    def upload(self, file_path, name):
+        res = self.client.uploads.upload(
+            local_path=os.path.abspath(file_path), name=name).response().result
+        return res.upload_id
 
     def register_upload(self, donelist, plist, pn):
         data = []
@@ -347,15 +353,16 @@ class DbUpdater:
                 tname = self._to_string(dirs[0].lstrip(self._local_path))
                 tname = os.path.join(self._local_path, tname + '%s.tar' % tstamp)
                 self._tar_files(dirs, tname)
-                uid = nomad_upload.upload_file(tname, name='AFLOWLIB_%s' % tstamp)
+                uid = nomad_upload.upload_file(tname, name='AFLOWLIB_%s' % tstamp, offline=True)
+                if self.do_publish:
+                    self.publish([uid])
                 self.uids.append(uid)
                 self.register_upload(done, plist, pn)
-                self.cleanup(dirs)
-                self.cleanup(tname)
+                if self.cleanup:
+                    self._cleanup(dirs)
+                    self._cleanup(tname)
                 size = 0.0
                 dirs = []
-                done = []
-                return
 
     def download(self):
         print('Downloading from %s' % self.root_url)
@@ -400,8 +407,6 @@ class DbUpdater:
         self.prep_list()
         if self.do_download:
             self.download()
-        if self.do_publish:
-            self.publish()
 
 @client.command(
     help='Synchronizes the NOMAD database with the given external database.')
@@ -428,6 +433,9 @@ class DbUpdater:
 @click.option(
     '--do-publish', is_flag=True, default=False,
     help='Flag to automatically publish upload')
+@click.option(
+    '--cleanup', is_flag=True, default=False,
+    help='Flag to clean up downloaded files')
 def synchdb(**kwargs):
     db = DbUpdater(**kwargs)
     db.update()
