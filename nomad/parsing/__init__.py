@@ -214,9 +214,8 @@ parsers = [
         name='parsers/crystal', code_name='Crystal',
         parser_class_name='crystalparser.CrystalParser',
         mainfile_contents_re=(
-            r'(CRYSTAL\s*\n\d+ \d+ \d+)|(CRYSTAL will run on \d+ processors)|('
-            r'\s*\*\s{10,}CRYSTAL(?P<majorVersion>[\d]+)\s{10,}\*'
-            r'\s*\*\s{10,}public \: (?P<minorVersion>[\d\.]+) \- .*\*)|'
+            r'(CRYSTAL\s*\n\d+ \d+ \d+)|(CRYSTAL will run on \d+ processors)|'
+            r'(\s*\*\s*CRYSTAL[\d]+\s*\*\s*\*\s*(public|Release) \: [\d\.]+.*\*)|'
             r'(Executable:\s*[/_\-a-zA-Z0-9]*MPPcrystal)'
         )
     ),
