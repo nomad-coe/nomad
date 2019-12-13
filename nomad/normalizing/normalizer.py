@@ -78,13 +78,13 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
 
         self._backend.openContext(context)
         try:
-            self.normalize_system(g_index, is_representative)
+            return self.normalize_system(g_index, is_representative)
         finally:
             self._backend.closeContext(context)
 
     @abstractmethod
-    def normalize_system(self, section_system_index: int, is_representative: bool) -> None:
-        """ Normalize the given section. """
+    def normalize_system(self, section_system_index: int, is_representative: bool) -> bool:
+        """ Normalize the given section and returns True, iff successful"""
         pass
 
     def __representative_systems(self):
@@ -133,24 +133,39 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
             'chose "representative" systems for normalization',
             number_of_systems=len(systems))
 
-        return set(systems)
+        return systems
+
+    def __normalize_system(self, g_index, representative, logger=None) -> bool:
+        try:
+            return self._normalize_system(g_index, representative)
+
+        except KeyError as e:
+            self.logger.error(
+                'Could not read all input data', normalizer=self.__class__.__name__,
+                section='section_system', g_index=g_index, key_error=str(e))
+            return False
+
+        except Exception as e:
+            self.logger.error(
+                'Unexpected error during normalizing', normalizer=self.__class__.__name__,
+                section='section_system', g_index=g_index, exc_info=e, error=str(e))
+            raise e
 
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
 
-        representative_systems = self.__representative_systems()
+        representative_systems = set(self.__representative_systems())
         all_systems = self._backend.get_sections(s_system)
-        selected_systems = representative_systems if self.only_representatives else all_systems
 
-        for g_index in selected_systems:
-            try:
-                self._normalize_system(g_index, g_index in representative_systems)
-            except KeyError as e:
-                self.logger.error(
-                    'Could not read all input data', normalizer=self.__class__.__name__,
-                    section='section_system', g_index=g_index, key_error=str(e))
-            except Exception as e:
-                self.logger.error(
-                    'Unexpected error during normalizing', normalizer=self.__class__.__name__,
-                    section='section_system', g_index=g_index, exc_info=e, error=str(e))
-                raise e
+        has_representative = False
+        for g_index in representative_systems:
+            has_representative = has_representative or self.__normalize_system(g_index, True, logger)
+
+        # all the rest or until first representative depending on configuration
+        if not self.only_representatives or not has_representative:
+            for g_index in all_systems:
+                if g_index not in representative_systems:
+                    if self.__normalize_system(g_index, not has_representative, logger):
+                        has_representative = True
+                        if self.only_representatives:
+                            break
