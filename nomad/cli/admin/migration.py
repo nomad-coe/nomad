@@ -21,6 +21,10 @@ import json
 
 from nomad import utils, processing as proc, search
 from nomad.datamodel import CalcWithMetadata
+from nomad.cli.client.mirror import transform_reference, tarnsform_user_id, transform_dataset
+
+
+__logger = utils.get_logger(__name__)
 
 
 class SourceCalc(Document):
@@ -95,31 +99,19 @@ def update_user_metadata(bulk_size: int = 1000, update_index: bool = False, **kw
                 target_metadata = CalcWithMetadata(**target.metadata)
                 source_metadata_normalized: Dict[str, Any] = dict(
                     comment=source.metadata.get('comment'),
-                    references={ref['value'] for ref in source.metadata['references']},
-                    coauthors={str(user['id']) for user in source.metadata['coauthors']},
-                    shared_with={str(user['id']) for user in source.metadata['shared_with']},
-                    datasets=[
-                        dict(
-                            id=str(ds['id']),
-                            name=ds['name'],
-                            doi=ds['doi']['value'] if ds['doi'] is not None else None)
-                        for ds in source.metadata['datasets']],
+                    references={transform_reference(ref) for ref in source.metadata['references']},
+                    coauthors={tarnsform_user_id(user['id']) for user in source.metadata['coauthors']},
+                    shared_with={tarnsform_user_id(user['id']) for user in source.metadata['shared_with']},
+                    datasets={transform_dataset(ds) for ds in source.metadata['datasets']},
                     with_embargo=source.metadata['with_embargo'])
-                source_metadata_normalized['datasets'].sort(key=lambda o: o['id'])
 
                 target_metadata_normalized: Dict[str, Any] = dict(
                     comment=target_metadata.comment,
-                    references=set(ref['value'] for ref in target_metadata.references),
-                    coauthors={str(user['id']) for user in target_metadata.coauthors},
-                    shared_with={str(user['id']) for user in target_metadata.shared_with},
-                    datasets=[
-                        dict(
-                            id=str(ds['id']),
-                            name=ds['name'],
-                            doi=ds['doi']['value'] if ds['doi'] is not None else None)
-                        for ds in target_metadata.datasets],
+                    references=set(target_metadata.references),
+                    coauthors=set(target_metadata.coauthors),
+                    shared_with=set(target_metadata.shared_with),
+                    datasets=set(target_metadata.datasets),
                     with_embargo=target_metadata.with_embargo)
-                target_metadata_normalized['datasets'].sort(key=lambda o: o['id'])
 
                 if source_metadata_normalized != target_metadata_normalized:
                     # do a full update of all metadata!
@@ -128,15 +120,10 @@ def update_user_metadata(bulk_size: int = 1000, update_index: bool = False, **kw
                         {
                             "$set": {
                                 "metadata.comment": source.metadata.get('comment'),
-                                "metadata.references": [dict(value=ref['value']) for ref in source.metadata['references']],
-                                "metadata.coauthors": [dict(id=user['id']) for user in source.metadata['coauthors']],
-                                "metadata.shared_with": [dict(id=user['id']) for user in source.metadata['shared_with']],
-                                "metadata.datasets": [
-                                    dict(
-                                        id=int(ds['id']),
-                                        name=ds['name'],
-                                        doi=dict(value=ds['doi']['value']) if ds.get('doi') is not None else None)
-                                    for ds in source.metadata['datasets']],
+                                "metadata.references": list(source_metadata_normalized['references']),
+                                "metadata.coauthors": list(source_metadata_normalized['coauthors']),
+                                "metadata.shared_with": list(source_metadata_normalized['shared_with']),
+                                "metadata.datasets": list(source_metadata_normalized['datasets']),
                                 "metadata.with_embargo": source.metadata['with_embargo']
                             }
                         }

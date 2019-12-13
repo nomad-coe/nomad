@@ -33,44 +33,46 @@ __Dataset = Dataset.m_def.m_x('me').me_cls
 __logger = utils.get_logger(__name__)
 
 
-def v0Dot6(upload_data):
-    """ Inplace transforms v0.6.x upload data into v0.7.x upload data. """
+def tarnsform_user_id(source_user_id):
+    target_user = User.repo_users().get(str(source_user_id))
+    if target_user is None:
+        __logger.error('user does not exist in target', source_user_id=source_user_id)
+        raise KeyError
 
-    def tarnsform_user_id(source_user_id):
-        target_user = User.repo_users().get(str(source_user_id))
-        if target_user is None:
-            __logger.error('user does not exist in target', source_user_id=source_user_id)
-            raise KeyError
+    return target_user.user_id
 
-        return target_user.user_id
 
-    def transform_dataset(source_dataset):
-        pid = str(source_dataset['id'])
-        target_dataset = __Dataset.objects(pid=pid).first()
-        if target_dataset is not None:
-            return target_dataset.dataset_id
-
-        target_dataset = __Dataset(
-            dataset_id=utils.create_uuid(),
-            pid=pid,
-            name=source_dataset['name'])
-
-        if 'doi' in source_dataset and source_dataset['doi'] is not None:
-            source_doi = source_dataset['doi']
-
-            if isinstance(source_doi, dict):
-                source_doi = source_doi['value']
-
-            if source_doi is not None:
-                target_dataset.doi = source_doi.replace('http://dx.doi.org/', '')
-
-        target_dataset.save()
-
+def transform_dataset(source_dataset):
+    pid = str(source_dataset['id'])
+    target_dataset = __Dataset.objects(pid=pid).first()
+    if target_dataset is not None:
         return target_dataset.dataset_id
 
-    def transform_reference(reference):
-        return reference['value']
+    target_dataset = __Dataset(
+        dataset_id=utils.create_uuid(),
+        pid=pid,
+        name=source_dataset['name'])
 
+    if 'doi' in source_dataset and source_dataset['doi'] is not None:
+        source_doi = source_dataset['doi']
+
+        if isinstance(source_doi, dict):
+            source_doi = source_doi['value']
+
+        if source_doi is not None:
+            target_dataset.doi = source_doi.replace('http://dx.doi.org/', '')
+
+    target_dataset.save()
+
+    return target_dataset.dataset_id
+
+
+def transform_reference(reference):
+    return reference['value']
+
+
+def v0Dot6(upload_data):
+    """ Inplace transforms v0.6.x upload data into v0.7.x upload data. """
     upload = json.loads(upload_data.upload)
     upload['user_id'] = tarnsform_user_id(upload['user_id'])
     upload_data.upload = json.dumps(upload)

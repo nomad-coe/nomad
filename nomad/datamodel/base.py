@@ -103,7 +103,7 @@ class CalcWithMetadata(Mapping):
         self.coauthors: List[str] = []
         self.shared_with: List[str] = []
         self.comment: str = None
-        self.references: List[utils.POPO] = []
+        self.references: List[str] = []
         self.datasets: List[str] = []
         self.external_id: str = None
 
