@@ -126,21 +126,21 @@ def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFile
     mime_type = magic.from_buffer(buffer, mime=True)
 
     decoded_buffer = None
+    encoding = None
     try:  # Try to open the file as a string for regex matching.
         decoded_buffer = buffer.decode('utf-8')
     except UnicodeDecodeError:
         # This file is either binary or has wrong encoding
         encoding = encoding_magic.from_buffer(buffer)
+
+        if config.services.force_raw_file_decoding:
+            encoding = 'iso-8859-1'
+
         if encoding in ['iso-8859-1']:
             try:
-                with open(mainfile_path, 'rb') as binary_file:
-                    content = binary_file.read().decode(encoding)
                 decoded_buffer = buffer.decode(encoding)
             except Exception:
                 pass
-            else:
-                with open(mainfile_path, 'wt') as text_file:
-                    text_file.write(content)
 
     for parser in parsers:
         if strict and (isinstance(parser, MissingParser) or isinstance(parser, EmptyParser)):
@@ -150,6 +150,17 @@ def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFile
             continue
 
         if parser.is_mainfile(mainfile_path, mime_type, buffer, decoded_buffer, compression):
+            # potentially convert the file
+            if encoding in ['iso-8859-1']:
+                try:
+                    with open(mainfile_path, 'rb') as binary_file:
+                        content = binary_file.read().decode(encoding)
+                except Exception:
+                    pass
+                else:
+                    with open(mainfile_path, 'wt') as text_file:
+                        text_file.write(content)
+
             # TODO: deal with multiple possible parser specs
             return parser
 
@@ -286,6 +297,7 @@ parsers = [
     LegacyParser(
         name='parsers/gaussian', code_name='Gaussian',
         parser_class_name='gaussianparser.GaussianParser',
+        mainfile_mime_re=r'.*',
         mainfile_contents_re=(
             r'\s*Cite this work as:'
             r'\s*Gaussian [0-9]+, Revision [A-Za-z0-9\.]*,')
