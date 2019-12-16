@@ -20,9 +20,10 @@ from nomad import infrastructure, datamodel, utils
 
 from .admin import admin
 
+
 @admin.group(help='''Add, import, export users.''')
 def users():
- pass
+    pass
 
 
 @users.command(help='Import users to keycloak from a JSON file.', name='import')
@@ -43,4 +44,3 @@ def import_command(path_to_users_file):
             print('Imported %s' % user.name)
         except Exception as e:
             logger.error('could not import user', exc_info=e)
-

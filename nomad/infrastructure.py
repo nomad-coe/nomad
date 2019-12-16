@@ -23,7 +23,8 @@ import os.path
 import shutil
 from elasticsearch.exceptions import RequestError
 from elasticsearch_dsl import connections
-from mongoengine import connect
+from mongoengine import connect, disconnect
+from mongoengine.connection import MongoEngineConnectionError
 import smtplib
 from email.mime.text import MIMEText
 from keycloak import KeycloakOpenID, KeycloakAdmin
@@ -75,7 +76,15 @@ def setup_logging():
 def setup_mongo():
     """ Creates connection to mongodb. """
     global mongo_client
-    mongo_client = connect(db=config.mongo.db_name, host=config.mongo.host, port=config.mongo.port)
+    if mongo_client is not None:
+        return mongo_client
+
+    try:
+        mongo_client = connect(db=config.mongo.db_name, host=config.mongo.host, port=config.mongo.port)
+    except MongoEngineConnectionError:
+        disconnect()
+        mongo_client = connect(db=config.mongo.db_name, host=config.mongo.host, port=config.mongo.port)
+
     logger.info('setup mongo connection')
     return mongo_client
 
