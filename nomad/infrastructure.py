@@ -76,9 +76,6 @@ def setup_logging():
 def setup_mongo():
     """ Creates connection to mongodb. """
     global mongo_client
-    if mongo_client is not None:
-        return mongo_client
-
     try:
         mongo_client = connect(db=config.mongo.db_name, host=config.mongo.host, port=config.mongo.port)
     except MongoEngineConnectionError:
