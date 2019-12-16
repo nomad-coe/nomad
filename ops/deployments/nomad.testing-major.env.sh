@@ -3,6 +3,7 @@ export NOMAD_CLIENT_USER=admin
 export NOMAD_FS_LOCAL_TMP=/nomad/fairdi/testing_major/fs/tmp
 export NOMAD_MONGO_DB_NAME=fairdi_nomad_testing_major
 export NOMAD_ELASTIC_INDEX_NAME=fairdi_nomad_testing_major
+export NOMAD_ELASTIC_PORT=9202
 export NOMAD_FS_LOCAL_TMP=/nomad/fairdi/testing_major/fs/tmp
 export NOMAD_FS_STAGING=/nomad/fairdi/testing_major/fs/staging
 export NOMAD_FS_PUBLIC=/nomad/fairdi/testing_major/fs/public

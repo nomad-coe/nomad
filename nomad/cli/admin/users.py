@@ -14,22 +14,33 @@
 
 import click
 import json
+import datetime
 
-from nomad import infrastructure, datamodel
+from nomad import infrastructure, datamodel, utils
 
 from .admin import admin
 
+@admin.group(help='''Add, import, export users.''')
+def users():
+ pass
 
-@admin.command(help='Import users to keycloak from a JSON file.', name='import')
+
+@users.command(help='Import users to keycloak from a JSON file.', name='import')
 @click.argument('PATH_TO_USERS_FILE', type=str, nargs=1)
 def import_command(path_to_users_file):
     with open(path_to_users_file, 'rt') as f:
         users = json.load(f)
 
     infrastructure.setup_logging()
+    logger = utils.get_logger(__name__)
 
     for user_dict in users:
-        password = user_dict.pop('password')
-        user = datamodel.User(**user_dict)
-        infrastructure.keycloak.add_user(user, bcrypt_password=password, invite=False)
-        print('Imported %s' % user.name)
+        try:
+            password = user_dict.pop('password')
+            user_dict['created'] = datetime.datetime.fromtimestamp(user_dict['created']/1000)
+            user = datamodel.User(**user_dict)
+            infrastructure.keycloak.add_user(user, bcrypt_password=password, invite=False)
+            print('Imported %s' % user.name)
+        except Exception as e:
+            logger.error('could not import user', exc_info=e)
+
