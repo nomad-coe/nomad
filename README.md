@@ -79,10 +79,11 @@ your browser.
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
 ### v0.7.0
-- User metadata editing and datasets with DOI
-- Revised GUI lists (search results, datasets, uploads)
+- User metadata editing and datasets with DOIs
+- Revised GUI lists (entries, grouped entries, datasets, uploads)
 - Keycloak based user management
-- no dependencies with the NOMAD CoE Repository
+- Rawfile preview
+- no dependencies with the old NOMAD CoE Repository
 
 ### v0.6.2
 - GUI performance enhancements
