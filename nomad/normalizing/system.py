@@ -109,11 +109,13 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         return 0
 
-    def normalize_system(self, index, is_representative) -> None:
+    def normalize_system(self, index, is_representative) -> bool:
         """
         The 'main' method of this :class:`SystemBasedNormalizer`.
         Normalizes the section with the given `index`.
         Normalizes geometry, classifies, system_type, and runs symmetry analysis.
+
+        Returns: True, iff the normalization was successful
         """
 
         def get_value(key: str, default: Any = None, numpy: bool = True) -> Any:
@@ -126,7 +128,7 @@ class SystemNormalizer(SystemBasedNormalizer):
                     value = np.array(value)
 
                 return value
-            except KeyError:
+            except (KeyError, IndexError):
                 return default
 
         def set_value(key: str, value: Any):
@@ -142,16 +144,16 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         atom_species = get_value('atom_species', numpy=False)
         if atom_labels is None and atom_species is None:
-            self.logger.error('calculation has neither atom species nor labels')
-            return
+            self.logger.error('system has neither atom species nor labels')
+            return False
 
         # If there are no atom labels we create them from atom species data.
         if atom_labels is None:
             try:
                 atom_labels = list(ase.data.chemical_symbols[species] for species in atom_species)
             except IndexError:
-                self.logger.error('calculation has atom species that are out of range')
-                return
+                self.logger.error('system has atom species that are out of range')
+                return False
 
             self._backend.addArrayValues('atom_labels', atom_labels)
 
@@ -192,7 +194,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         except Exception as e:
             self.logger.error(
                 'cannot use pbc with ase atoms', exc_info=e, pbc=pbc, error=str(e))
-            return
+            return False
 
         # formulas
         set_value('chemical_composition', atoms.get_chemical_formula(mode='all'))
@@ -203,18 +205,18 @@ class SystemNormalizer(SystemBasedNormalizer):
         atom_positions = get_value('atom_positions', None, numpy=True)
         if atom_positions is None:
             self.logger.warning('no atom positions, skip further system analysis')
-            return
+            return False
         if len(atom_positions) != atoms.get_number_of_atoms():
             self.logger.error(
                 'len of atom position does not match number of atoms',
                 n_atom_positions=len(atom_positions), n_atoms=atoms.get_number_of_atoms())
-            return
+            return False
         try:
             atoms.set_positions(1e10 * atom_positions)
         except Exception as e:
             self.logger.error(
                 'cannot use positions with ase atoms', exc_info=e, error=str(e))
-            return
+            return False
 
         # lattice vectors
         lattice_vectors = get_value('lattice_vectors', numpy=True)
@@ -231,7 +233,7 @@ class SystemNormalizer(SystemBasedNormalizer):
             except Exception as e:
                 self.logger.error(
                     'cannot use lattice_vectors with ase atoms', exc_info=e, error=str(e))
-                return
+                return False
 
         # configuration
         configuration = [
@@ -257,6 +259,8 @@ class SystemNormalizer(SystemBasedNormalizer):
                         system_size=atoms.get_number_of_atoms()):
 
                     self.symmetry_analysis(atoms)
+
+        return True
 
     def system_type_analysis(self, atoms) -> None:
         """

@@ -48,5 +48,5 @@ To load an entity from the database use :data:`nomad.infrastructure.repository_d
 """
 
 from .user import User, ensure_test_user, admin_user, LoginException
-from .calc import Calc, DataSet, create_handle
+from .calc import Calc, DataSet, create_handle, NoCalculation
 from .upload import UploadMetaData, Upload

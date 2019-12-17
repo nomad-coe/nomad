@@ -74,7 +74,8 @@ class Calc(Proc):
             ('upload_id', 'parser'),
             ('upload_id', 'tasks_status'),
             ('upload_id', 'process_status'),
-            ('upload_id', 'metadata.nomad_version')
+            ('upload_id', 'metadata.nomad_version'),
+            'metadata.pid'
         ]
     }
 
@@ -930,7 +931,7 @@ class Upload(Proc):
                 logger, 'reprocessed staged upload packed', step='delete staged',
                 upload_size=self.upload_files.size):
 
-            staging_upload_files.pack(self.to_upload_with_metadata())
+            staging_upload_files.pack(self.to_upload_with_metadata(), skip_raw=True)
 
         with utils.timer(
                 logger, 'reprocessed staged upload deleted', step='delete staged',

@@ -497,27 +497,14 @@ class LocalBackend(LegacyParserBackend, metaclass=DelegatingMeta):
     def data(self) -> Results:
         return self._delegate.results
 
-    def get_value(self, meta_name, g_index=-1):
-        datamanager = self._delegate.results._datamanagers.get(meta_name)
-        if datamanager is not None:
-            sectionmanager = datamanager.superSectionManager
-            sections = sectionmanager.openSections
-            if g_index != -1:
-                sections = [section for section in sections if section.gIndex == g_index]
+    # def get_value(self, meta_name, g_index=-1):
+    #     return self._delegate.results._datamanagers[meta_name].get_value(meta_name, g_index)
 
-            if len(sections) == 0:
-                raise KeyError
-
-            assert len(sections) == 1
-            section = sections[0]
-
-            return section[meta_name]
-
-    def get_sections(self, meta_name, g_index=-1):
-        sections = self._delegate.results[meta_name]
-        return [
-            section.gIndex for section in sections
-            if g_index == -1 or section.parents[0].gIndex == g_index]
+    # def get_sections(self, meta_name, g_index=-1):
+    #     sections = self._delegate.results[meta_name]
+    #     return [
+    #         section.gIndex for section in sections
+    #         if g_index == -1 or section.parents[0].gIndex == g_index]
 
     def _write(
             self, json_writer: JSONStreamWriter, value: Any,

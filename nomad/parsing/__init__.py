@@ -92,6 +92,8 @@ _compressions = {
     b'\xfd\x37\x7a': ('xz', lzma.open)
 }
 
+encoding_magic = magic.Magic(mime_encoding=True)
+
 
 def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFiles], strict=True) -> 'Parser':
     """
@@ -122,6 +124,24 @@ def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFile
         buffer = cf.read(config.parser_matching_size)
 
     mime_type = magic.from_buffer(buffer, mime=True)
+
+    decoded_buffer = None
+    encoding = None
+    try:  # Try to open the file as a string for regex matching.
+        decoded_buffer = buffer.decode('utf-8')
+    except UnicodeDecodeError:
+        # This file is either binary or has wrong encoding
+        encoding = encoding_magic.from_buffer(buffer)
+
+        if config.services.force_raw_file_decoding:
+            encoding = 'iso-8859-1'
+
+        if encoding in ['iso-8859-1']:
+            try:
+                decoded_buffer = buffer.decode(encoding)
+            except Exception:
+                pass
+
     for parser in parsers:
         if strict and (isinstance(parser, MissingParser) or isinstance(parser, EmptyParser)):
             continue
@@ -129,7 +149,18 @@ def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFile
         if parser.domain != config.domain:
             continue
 
-        if parser.is_mainfile(mainfile_path, mime_type, buffer, compression):
+        if parser.is_mainfile(mainfile_path, mime_type, buffer, decoded_buffer, compression):
+            # potentially convert the file
+            if encoding in ['iso-8859-1']:
+                try:
+                    with open(mainfile_path, 'rb') as binary_file:
+                        content = binary_file.read().decode(encoding)
+                except Exception:
+                    pass
+                else:
+                    with open(mainfile_path, 'wt') as text_file:
+                        text_file.write(content)
+
             # TODO: deal with multiple possible parser specs
             return parser
 
@@ -167,7 +198,7 @@ parsers = [
     LegacyParser(
         name='parsers/exciting', code_name='exciting',
         parser_class_name='excitingparser.ExcitingParser',
-        mainfile_name_re=r'^.*.OUT?',
+        mainfile_name_re=r'^.*.OUT(\.[^/]*)?$',
         mainfile_contents_re=(r'EXCITING.*started')
     ),
     LegacyParser(
@@ -194,9 +225,9 @@ parsers = [
         name='parsers/crystal', code_name='Crystal',
         parser_class_name='crystalparser.CrystalParser',
         mainfile_contents_re=(
-            r'(CRYSTAL\s*\n0 0 0)|('
-            r'\s*\*\s{10,}CRYSTAL(?P<majorVersion>[\d]+)\s{10,}\*'
-            r'\s*\*\s{10,}public \: (?P<minorVersion>[\d\.]+) \- .*\*)'
+            r'(CRYSTAL\s*\n\d+ \d+ \d+)|(CRYSTAL will run on \d+ processors)|'
+            r'(\s*\*\s*CRYSTAL[\d]+\s*\*\s*\*\s*(public|Release) \: [\d\.]+.*\*)|'
+            r'(Executable:\s*[/_\-a-zA-Z0-9]*MPPcrystal)'
         )
     ),
     # The main contents regex of CPMD was causing a catostrophic backtracking issue
@@ -257,7 +288,7 @@ parsers = [
     LegacyParser(
         name='parsers/wien2k', code_name='WIEN2k',
         parser_class_name='wien2kparser.Wien2kParser',
-        mainfile_contents_re=r':LABEL\d+: using WIEN2k_\d+\.\d+'
+        mainfile_contents_re=r'\s*---------\s*:ITE[0-9]+:\s*[0-9]+\.\s*ITERATION\s*---------'
     ),
     LegacyParser(
         name='parsers/band', code_name='BAND',
@@ -266,6 +297,7 @@ parsers = [
     LegacyParser(
         name='parsers/gaussian', code_name='Gaussian',
         parser_class_name='gaussianparser.GaussianParser',
+        mainfile_mime_re=r'.*',
         mainfile_contents_re=(
             r'\s*Cite this work as:'
             r'\s*Gaussian [0-9]+, Revision [A-Za-z0-9\.]*,')
@@ -273,7 +305,9 @@ parsers = [
     LegacyParser(
         name='parsers/quantumespresso', code_name='Quantum Espresso',
         parser_class_name='quantumespressoparser.QuantumEspressoParserPWSCF',
-        mainfile_contents_re=r'Program PWSCF.*starts'
+        mainfile_contents_re=(
+            r'(Program PWSCF.*starts)|'
+            r'(Current dimensions of program PWSCF are)')
         #    r'^(.*\n)*'
         #    r'\s*Program (\S+)\s+v\.(\S+)(?:\s+\(svn\s+rev\.\s+'
         #    r'(\d+)\s*\))?\s+starts[^\n]+'
@@ -350,7 +384,8 @@ parsers = [
         name='parsers/siesta', code_name='Siesta',
         parser_class_name='siestaparser.SiestaParser',
         mainfile_contents_re=(
-            r'(Siesta Version: siesta-|SIESTA [0-9]\.[0-9]\.[0-9])')
+            r'(Siesta Version: siesta-|SIESTA [0-9]\.[0-9]\.[0-9])|'
+            r'(\*\s*WELCOME TO SIESTA\s*\*)')
     ),
     LegacyParser(
         name='parsers/elk', code_name='elk',

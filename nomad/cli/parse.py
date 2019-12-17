@@ -10,6 +10,8 @@ from nomad.metainfo.legacy import LegacyMetainfoEnvironment
 from nomad.normalizing import normalizers
 from nomad.datamodel import CalcWithMetadata
 
+from nomadcore import simple_parser
+
 from .cli import cli
 
 
@@ -102,7 +104,13 @@ def normalize_all(parser_backend: LocalBackend = None, logger=None) -> LocalBack
 @click.option('--not-strict', is_flag=True, help='Do also match artificial parsers.')
 @click.option('--parser', help='Skip matching and use the provided parser')
 @click.option('--metainfo', is_flag=True, help='Use the new metainfo instead of the legacy metainfo.')
-def _parse(mainfile, show_backend, show_metadata, skip_normalizers, not_strict, parser, metainfo):
+@click.option('--annotate', is_flag=True, help='Sub-matcher based parsers will create a .annotate file.')
+def _parse(
+        mainfile, show_backend, show_metadata, skip_normalizers, not_strict, parser,
+        metainfo, annotate):
+
+    simple_parser.annotate = annotate
+
     utils.configure_logging()
     kwargs = dict(strict=not not_strict, parser_name=parser)
 

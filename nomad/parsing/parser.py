@@ -38,7 +38,9 @@ class Parser(metaclass=ABCMeta):
         self.domain = 'DFT'
 
     @abstractmethod
-    def is_mainfile(self, filename: str, mime: str, buffer: bytes, compression: str = None) -> bool:
+    def is_mainfile(
+            self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
+            compression: str = None) -> bool:
         """
         Checks if a file is a mainfile for the parsers.
 
@@ -79,14 +81,11 @@ class BrokenParser(Parser):
             re.compile(r'^Can\'t open .* library:.*')  # probably bad code runs
         ]
 
-    def is_mainfile(self, filename: str, mime: str, buffer: bytes, compression: str = None) -> bool:
+    def is_mainfile(
+            self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
+            compression: str = None) -> bool:
 
-        try:  # Try to open the file as a string for regex matching.
-            decoded_buffer = buffer.decode('utf-8')
-        except UnicodeDecodeError:
-            # This file is binary, and should not be binary
-            pass
-        else:
+        if decoded_buffer is not None:
             for pattern in self._patterns:
                 if pattern.search(decoded_buffer) is not None:
                     return True
@@ -132,16 +131,18 @@ class MatchingParser(Parser):
             self._mainfile_contents_re = None
         self._supported_compressions = supported_compressions
 
-    def is_mainfile(self, filename: str, mime: str, buffer: bytes, compression: str = None) -> bool:
+    def is_mainfile(
+            self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
+            compression: str = None) -> bool:
+
         if self._mainfile_binary_header is not None:
             if self._mainfile_binary_header not in buffer:
                 return False
         if self._mainfile_contents_re is not None:
-            try:  # Try to open the file as a string for regex matching.
-                decoded_buffer = buffer.decode('utf-8')
-            except UnicodeDecodeError:
-                return False  # We're looking for a string match in a file that can't be converted to string.
-            if self._mainfile_contents_re.search(decoded_buffer) is None:
+            if decoded_buffer is not None:
+                if self._mainfile_contents_re.search(decoded_buffer) is None:
+                    return False
+            else:
                 return False
         return self._mainfile_mime_re.match(mime) is not None and \
             self._mainfile_name_re.fullmatch(filename) is not None and \
