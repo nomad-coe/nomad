@@ -89,7 +89,7 @@ class RawFiles extends React.Component {
   }
 
   update() {
-    const { uploadId, calcId } = this.props
+    const { uploadId, calcId, raiseError } = this.props
     // this might accidentally happen, when the user logs out and the ids aren't
     // necessarily available anymore, but the component is still mounted
     if (!uploadId || !calcId) {
@@ -98,13 +98,16 @@ class RawFiles extends React.Component {
 
     this.props.api.getRawFileListFromCalc(uploadId, calcId).then(data => {
       const files = data.contents.map(file => `${data.directory}/${file.name}`)
+      if (files.length > 500) {
+        raiseError('There are more than 500 files in this entry. We can only show the first 500.')
+      }
       this.setState({files: files})
     }).catch(error => {
       this.setState({files: null})
       if (error.name === 'DoesNotExist') {
         this.setState({doesNotExist: true})
       } else {
-        this.props.raiseError(error)
+        raiseError(error)
       }
     })
   }

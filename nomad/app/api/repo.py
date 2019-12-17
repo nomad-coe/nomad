@@ -23,6 +23,7 @@ from flask import request, g
 from elasticsearch_dsl import Q
 from elasticsearch.exceptions import NotFoundError
 import elasticsearch.helpers
+from datetime import datetime
 
 from nomad import search, utils, datamodel, processing as proc, infrastructure
 from nomad.app.utils import rfc3339DateTime, RFC3339DateTime, with_logger
@@ -502,7 +503,7 @@ class EditRepoCalcsResource(Resource):
                             if not verify:
                                 dataset = Dataset(
                                     dataset_id=utils.create_uuid(), user_id=g.user.user_id,
-                                    name=action_value)
+                                    name=action_value, created=datetime.utcnow())
                                 dataset.m_x('me').create()
                                 mongo_value = dataset.dataset_id
 
@@ -568,6 +569,7 @@ class EditRepoCalcsResource(Resource):
             return json_data, 400
 
         # perform the change
+        mongo_update['metadata__last_edit'] = datetime.utcnow()
         upload_ids = edit(parsed_query, logger, mongo_update, True)
 
         # lift embargo

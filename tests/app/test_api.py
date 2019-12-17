@@ -1096,11 +1096,13 @@ class TestEditRepo():
         assert not has_failure == success
         assert has_message == message
 
-    def mongo(self, *args, **kwargs):
+    def mongo(self, *args, edited: bool = True, **kwargs):
         for calc_id in args:
             calc = Calc.objects(calc_id=str(calc_id)).first()
             assert calc is not None
             metadata = calc.metadata
+            if edited:
+                assert metadata.get('last_edit') is not None
             for key, value in kwargs.items():
                 if metadata.get(key) != value:
                     return False
@@ -1151,30 +1153,30 @@ class TestEditRepo():
         self.assert_edit(rv, quantity='comment', success=True, message=False)
         assert self.mongo(1, 2, 3, comment='test_edit_all')
         assert self.elastic(1, 2, 3, comment='test_edit_all')
-        assert not self.mongo(4, comment='test_edit_all')
-        assert not self.elastic(4, comment='test_edit_all')
+        assert not self.mongo(4, comment='test_edit_all', edited=False)
+        assert not self.elastic(4, comment='test_edit_all', edited=False)
 
     def test_edit_multi(self):
         rv = self.perform_edit(comment='test_edit_multi', query=dict(upload_id='upload_1,upload_2'))
         self.assert_edit(rv, quantity='comment', success=True, message=False)
         assert self.mongo(1, 2, 3, comment='test_edit_multi')
         assert self.elastic(1, 2, 3, comment='test_edit_multi')
-        assert not self.mongo(4, comment='test_edit_multi')
-        assert not self.elastic(4, comment='test_edit_multi')
+        assert not self.mongo(4, comment='test_edit_multi', edited=False)
+        assert not self.elastic(4, comment='test_edit_multi', edited=False)
 
     def test_edit_some(self):
         rv = self.perform_edit(comment='test_edit_some', query=dict(upload_id='upload_1'))
         self.assert_edit(rv, quantity='comment', success=True, message=False)
         assert self.mongo(1, comment='test_edit_some')
         assert self.elastic(1, comment='test_edit_some')
-        assert not self.mongo(2, 3, 4, comment='test_edit_some')
-        assert not self.elastic(2, 3, 4, comment='test_edit_some')
+        assert not self.mongo(2, 3, 4, comment='test_edit_some', edited=False)
+        assert not self.elastic(2, 3, 4, comment='test_edit_some', edited=False)
 
     def test_edit_verify(self):
         rv = self.perform_edit(
             comment='test_edit_verify', verify=True, query=dict(upload_id='upload_1'))
         self.assert_edit(rv, quantity='comment', success=True, message=False)
-        assert not self.mongo(1, comment='test_edit_verify')
+        assert not self.mongo(1, comment='test_edit_verify', edited=False)
 
     def test_edit_empty_list(self, other_test_user):
         rv = self.perform_edit(coauthors=[other_test_user.user_id], query=dict(upload_id='upload_1'))

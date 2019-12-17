@@ -27,6 +27,7 @@ export class EntryListUnstyled extends React.Component {
     columns: PropTypes.object,
     title: PropTypes.string,
     actions: PropTypes.element,
+    showEntryActions: PropTypes.func,
     selectedColumns: PropTypes.arrayOf(PropTypes.string)
   }
 
@@ -224,8 +225,8 @@ export class EntryListUnstyled extends React.Component {
       <div className={classes.entryDetailsRow} style={{maxWidth: '33%', paddingRight: 0}}>
         <Quantity column >
           {/* <Quantity quantity="pid" label='PID' placeholder="not yet assigned" noWrap data={row} withClipboard /> */}
-          <Quantity quantity="upload_id" label='upload id' data={row} noWrap withClipboard />
           <Quantity quantity="calc_id" label={`${domain.entryLabel} id`} noWrap withClipboard data={row} />
+          <Quantity quantity="upload_id" label='upload id' data={row} noWrap withClipboard />
           <Quantity quantity='mainfile' noWrap data={row} withClipboard />
           <Quantity quantity="upload_time" label='upload time' noWrap data={row} >
             <Typography noWrap>
@@ -255,11 +256,15 @@ export class EntryListUnstyled extends React.Component {
   }
 
   renderEntryActions(row, selected) {
-    return <Tooltip title="View entry page">
-      <IconButton style={selected ? {color: 'white'} : null} onClick={event => this.handleViewEntryPage(event, row)}>
-        <DetailsIcon />
-      </IconButton>
-    </Tooltip>
+    if (!this.props.showEntryActions || this.props.showEntryActions(row)) {
+      return <Tooltip title="View entry page">
+        <IconButton style={selected ? {color: 'white'} : null} onClick={event => this.handleViewEntryPage(event, row)}>
+          <DetailsIcon />
+        </IconButton>
+      </Tooltip>
+    } else {
+      return ''
+    }
   }
 
   render() {
@@ -277,7 +282,7 @@ export class EntryListUnstyled extends React.Component {
 
     const defaultSelectedColumns = this.props.selectedColumns || [
       ...domain.defaultSearchResultColumns,
-      'datasets', 'authors']
+      'authors']
 
     const pagination = <TablePagination
       count={totalNumber}

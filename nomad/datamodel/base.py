@@ -106,6 +106,7 @@ class CalcWithMetadata(Mapping):
         self.references: List[str] = []
         self.datasets: List[str] = []
         self.external_id: str = None
+        self.last_edit: datetime.datetime = None
 
         # parser related general (not domain specific) metadata
         self.parser_name = None

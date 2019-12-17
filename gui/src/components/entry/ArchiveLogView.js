@@ -85,7 +85,7 @@ class ArchiveLogView extends React.Component {
 
         <Download
           classes={{root: classes.downloadFab}} tooltip="download logfile"
-          component={Fab} className={classes.downloadFab} color="secondary" size="medium"
+          component={Fab} className={classes.downloadFab} size="medium"
           url={`archive/logs/${uploadId}/${calcId}`} fileName={`${calcId}.log`}
         >
           <DownloadIcon />

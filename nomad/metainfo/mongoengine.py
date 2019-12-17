@@ -66,11 +66,13 @@ class MESection():
         return self.to_metainfo(me_obj)
 
     def to_metainfo(self, me_obj):
-        dct = me_obj.to_mongo().to_dict()
-        del(dct['_id'])
-        dct[self.id_quantity] = getattr(me_obj, self.id_quantity)
-        section = self.section_cls.m_from_dict(dct)  # pylint: disable=no-member
+        section = self.section_cls()
         section.m_x('me').me_obj = me_obj
+        for quantity in self.section_cls.m_def.all_quantities.keys():
+            value = getattr(me_obj, quantity)
+            if value is not None:
+                setattr(section, quantity, value)
+
         return section
 
 

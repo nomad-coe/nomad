@@ -29,8 +29,21 @@ The visual representations show metrics for all data that fit your criteria.
 You can display *entries* (e.g. code runs), *unique entries*, and *datasets*.
 Other more specific metrics might be available.
 
-The results table gives you a quick overview of all entries and datasets that fit your search.
-You can click entries to see more details, download data, see the archive, etc.
+The results tabs gives you a quick overview of all entries and datasets that fit your search.
+You can click entries to see more details, download data, see the archive, etc. The *entries*
+tab displays individual entries (e.g. code runs), the *grouped entries* tab will group
+entries with similar metadata (e.g. it will group entries for the same material from the
+  same user). The *dataset* tab, shows entry curated by user created datasets. You can
+  click on datasets for a search page that will only display entries from the respective
+  dataset.
+
+The table columns can be configured. The *entries* tab also supports sorting. Selected
+entries (or all entries) can be downloaded. The download will contain all user provided
+raw calculation input and output files.
+
+You can click entries to see more details about them. The details button will navigate
+you to an entries page. These entry pages will show more metadata, raw files, the
+entry's archive, and processing logs.
 `
 
 class SearchPage extends React.Component {

@@ -23,7 +23,8 @@ class FAQ extends React.Component {
         <Markdown>{`
           # Frequently Asked Questions (FAQ)
 
-          These are often repeated questions that cover the basic NOMAD use-cases.
+          These are often repeated questions that cover the basic NOMAD use-cases. If you have
+          further questions, please write use: [${email}](mailto:${email}).
 
           ## Upload data, datasets, embargo, and DOIs
 
@@ -129,9 +130,6 @@ class FAQ extends React.Component {
           If you are familiar with the input and output format of other relevant codes,
           write us an Email ([${email}](mailto:${email})) and we will figure our if and how
           to support this code in the future.
-
-          ## I have a new question
-          Please write use: [${email}](mailto:${email}).
         `}</Markdown>
       </div>
     )

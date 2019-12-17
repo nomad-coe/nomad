@@ -50,7 +50,7 @@ On the dataset table, you can also click the DOI button to assign a DOI to a dat
 This DOI can be used in publications to link to your dataset. If people resovle the
 DOI, they will be redirected to a NOMAD view that shows the dataset and allows its download.
 
-Once you assigned a DOI to a dataset, not entries can be removed or added to the dataset.
+Once you assigned a DOI to a dataset, no entries can be removed or added to the dataset.
 `
 
 class UserdataPage extends React.Component {

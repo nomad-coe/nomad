@@ -24,7 +24,7 @@ and then it will parse these files. The result will be a list of entries (one pe
 Each entry is associated with metadata. This is data that NOMAD acquired from your files and that
 describe your calculations (e.g. chemical formula, used code, system type and symmetry, etc.).
 Furthermore, you can provide your own metadata (comments, references, co-authors, etc.).
-First uploaded data is only visible to you. Before others can actually see and download
+At first, uploaded data is only visible to you. Before others can actually see and download
 your data, you need to publish your upload.
 
 #### Prepare and upload files
@@ -65,19 +65,19 @@ If you press publish, a dialog will appear that allows you to set an
 *embargo* or publish your data as *Open Access* right away. The *embargo* allows you to share
 data with selected users, create a DOI for your data, and later publish the data.
 The *embargo* might last up to 36 month before data becomes public automatically.
-During an *embargo* the data (and datasets created from this data) are only visible to you.
+During an *embargo* the data (and datasets created from this data) are only visible to you
+and users you *share with* the data.
 
 #### Processing errors
 
 We distinguish between uploads that fail processing completely and uploads that contain
 entries that could not be processed. The former might be caused by issues during the
 upload, bad file formats, etc. The latter (for more common) case means that not all of the provided
-code output files could not be parsed by our parsers for various reasons.
-The processing logs of the failed entries might provide some insight.
+code output files could be parsed by our parsers. The processing logs of the failed entries might provide some insight.
 
-We do not allow the publishing of uploads that fail processing completely. Frankly, in most
+You can not publish uploads that failed processing completely. Frankly, in most
 cases there won't be any data to publish anyways. In the case of failed processing of
-some entries, the data can still be published. You will be able to share it and create
+some entries however, the data can still be published. You will be able to share it and create
 DOIs for it, etc. The only shortcomings will be missing metadata (labeled *not processed*
 or *unavailable*) and missing archive data. We continuously improve our parsers and
 the now missing information might become available in the future automatically.
@@ -88,8 +88,8 @@ You can edit additional *user metadata*. This data is assigned to individual ent
 you can select and edit many entries at once. Edit buttons for user metadata are available
 in many views on this web-page. For example, you can edit user metadata when you click on
 an upload to open its details, and press the edit button there. User metadata can also
-be changed after publishing data. The documentation on the [user data page](${guiBase}/userdata) contains more
-information.
+be changed after publishing data. The documentation on the [user data page](${guiBase}/userdata)
+contains more information.
 `
 
 class Uploads extends React.Component {

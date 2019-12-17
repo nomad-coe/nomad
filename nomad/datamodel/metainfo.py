@@ -93,6 +93,7 @@ class Dataset(metainfo.MSection):
             full URL, e.g. "10.17172/nomad/2019.10.29-1".
         pid: The original NOMAD CoE Repository dataset PID. Old DOIs still reference
             datasets based on this id. Is not used for new datasets.
+        created: The date when the dataset was first created.
     """
     dataset_id = metainfo.Quantity(
         type=str,
@@ -108,6 +109,9 @@ class Dataset(metainfo.MSection):
         a_me=dict(index=True))
     pid = metainfo.Quantity(
         type=str,
+        a_me=dict(index=True))
+    created = metainfo.Quantity(
+        type=metainfo.Datetime,
         a_me=dict(index=True))
 
 

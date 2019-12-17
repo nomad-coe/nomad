@@ -47,8 +47,8 @@ class SearchContext extends React.Component {
     response: SearchContext.emptyResponse,
     request: {
       statistics: true,
-      order_by: 'formula',
-      order: 1,
+      order_by: 'upload_time',
+      order: -1,
       page: 1,
       per_page: 10
     },
