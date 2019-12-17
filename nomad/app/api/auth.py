@@ -13,137 +13,165 @@
 # limitations under the License.
 
 """
-Endpoints can use *flask_httpauth* based authentication either with basic HTTP
-authentication or access tokens. Currently the authentication is validated against
-users and sessions in the NOMAD-coe repository postgres db.
-
-There are two authentication "schemes" to authenticate users. First we use
-HTTP Basic Authentication (username, password), which also works with username=token,
-password=''. Second, there is a curstom HTTP header 'X-Token' that can be used to
-give a token. The first precedes the second. The used tokens are given and stored
-by the NOMAD-coe repository GUI.
+The API is protected with *keycloak* and *OpenIDConnect*. All API endpoints that require
+or support authentication accept OIDC bearer tokens via HTTP header (``Authentication``).
+These token can be acquired from the NOMAD keycloak server or through the ``/auth`` endpoint
+that also supports HTTP Basic authentication and passes the given credentials to
+keycloak. For GUI's it is recommended to accquire an access token through the regular OIDC
+login flow.
 
 Authenticated user information is available via FLASK's build in flask.g.user object.
-It is set to None, if no user information is available.
+It is set to None, if no user information is available. To protect endpoints use the following
+decorator.
 
-There are two decorators for FLASK API endpoints that can be used if endpoints require
-authenticated user information for authorization or otherwise.
+.. autofunction:: authenticate
 
-.. autofunction:: login_if_available
-.. autofunction:: login_really_required
+To allow authentification with signed urls, use this decorator:
+
+.. autofunction:: with_signature_token
 """
-
 from flask import g, request
 from flask_restplus import abort, Resource, fields
-from flask_httpauth import HTTPBasicAuth
-from datetime import datetime
+import functools
+import jwt
+import datetime
+import hmac
+import hashlib
+import uuid
 
-from nomad import processing, files, utils, coe_repo
-from nomad.coe_repo import User, LoginException
+from nomad import config, processing, utils, infrastructure, datamodel
+from nomad.metainfo.flask_restplus import generate_flask_restplus_model
 
-from nomad.app.utils import RFC3339DateTime
 from .api import api
 
-auth = HTTPBasicAuth()
 
-
-# Authentication scheme definitions, for swagger only.
+# Authentication scheme definitions, for swagger
 api.authorizations = {
-    'HTTP Basic': {
+    'HTTP Basic Authentication': {
         'type': 'basic'
     },
-    'X-Token': {
+    'OpenIDConnect Bearer Token': {
         'type': 'apiKey',
         'in': 'header',
-        'name': 'X-Token'
+        'name': 'Authorization'
+    },
+    'NOMAD upload token': {
+        'type': 'apiKey',
+        'in': 'query',
+        'name': 'token'
+    },
+    'NOMAD signature': {
+        'type': 'apiKey',
+        'in': 'query',
+        'name': 'signature_token'
     }
 }
 
 
-@auth.verify_password
-def verify_password(username_or_token, password):
-    if username_or_token is None or username_or_token == '':
-        g.user = None
-        return True
-
-    if password is None or password == '':
-        g.user = User.verify_auth_token(username_or_token)
-        return g.user is not None
-    else:
-        try:
-            g.user = User.verify_user_password(username_or_token, password)
-        except LoginException:
-            return False
-        except Exception as e:
-            utils.get_logger(__name__).error('could not verify password', exc_info=e)
-            return False
-
-        return g.user is not None
-
-
-@auth.error_handler
-def auth_error_handler():
-    abort(401, 'Could not authenticate user, bad credentials')
-
-
-def login_if_available(func):
+def _verify_upload_token(token) -> str:
     """
-    A decorator for API endpoint implementations that might authenticate users, but
-    provide limited functionality even without users.
+    Verifies the upload token generated with :func:`generate_upload_token`.
+
+    Returns: The user UUID or None if the toke could not be verified.
     """
-    @api.response(401, 'Not authorized, some data require authentication and authorization')
-    @api.doc(security=list(api.authorizations.keys()))
-    @auth.login_required
-    def wrapper(*args, **kwargs):
-        # TODO the cutom X-Token based authentication should be replaced by a real
-        # Authentication header based token authentication
-        if not g.user and 'X-Token' in request.headers:
-            token = request.headers['X-Token']
-            g.user = User.verify_auth_token(token)
-            if not g.user:
-                abort(401, message='Not authorized, some data require authentication and authorization')
+    payload, signature = token.split('.')
+    payload = utils.base64_decode(payload)
+    signature = utils.base64_decode(signature)
 
-        return func(*args, **kwargs)
+    compare = hmac.new(
+        bytes(config.services.api_secret, 'utf-8'),
+        msg=payload,
+        digestmod=hashlib.sha1)
 
-    wrapper.__name__ = func.__name__
-    wrapper.__doc__ = func.__doc__
-    return wrapper
+    if signature != compare.digest():
+        return None
+
+    return str(uuid.UUID(bytes=payload))
 
 
-def login_really_required(func):
+def authenticate(
+        basic: bool = False, upload_token: bool = False, signature_token: bool = False,
+        required: bool = False, admin_only: bool = False):
     """
-    A decorator for API endpoint implementations that forces user authentication on
-    endpoints.
+    A decorator to protect API endpoints with authentication. Uses keycloak access
+    token to authenticate users. Other methods might apply. Will abort with 401
+    if necessary.
+
+    Arguments:
+        basic: Also allow Basic HTTP authentication
+        upload_token: Also allow upload_token
+        signature_token: Also allow signed urls
+        required: Authentication is required
+        admin_only: Only the admin user is allowed to use the endpoint.
     """
-    @api.response(401, 'Authentication required or not authorized to access requested data')
-    @api.doc(security=list(api.authorizations.keys()))
-    @login_if_available
-    def wrapper(*args, **kwargs):
-        if g.user is None:
-            abort(401, message='Authentication required or not authorized to access requested data')
-        else:
+    methods = ['OpenIDConnect Bearer Token']
+    if basic:
+        methods.append('HTTP Basic Authentication')
+    if upload_token:
+        methods.append('NOMAD upload token')
+    if signature_token:
+        methods.append('NOMAD signature')
+
+    def decorator(func):
+        @functools.wraps(func)
+        @api.response(401, 'Not authorized, some data require authentication and authorization')
+        @api.doc(security=methods)
+        def wrapper(*args, **kwargs):
+            g.user = None
+
+            if upload_token and 'token' in request.args:
+                token = request.args['token']
+                user_id = _verify_upload_token(token)
+                if user_id is not None:
+                    g.user = infrastructure.keycloak.get_user(user_id)
+
+            elif signature_token and 'signature_token' in request.args:
+                token = request.args.get('signature_token', None)
+                if token is not None:
+                    try:
+                        decoded = jwt.decode(token, config.services.api_secret, algorithms=['HS256'])
+                        user = datamodel.User(user_id=decoded['user'])
+                        if user is None:
+                            abort(401, 'User for the given signature does not exist')
+                        else:
+                            g.user = user
+                    except KeyError:
+                        abort(401, 'Token with invalid/unexpected payload')
+                    except jwt.ExpiredSignatureError:
+                        abort(401, 'Expired token')
+                    except jwt.InvalidTokenError:
+                        abort(401, 'Invalid token')
+
+            elif 'token' in request.args:
+                abort(401, 'Queram param token not supported for this endpoint')
+
+            else:
+                error = infrastructure.keycloak.authorize_flask(basic=basic)
+                if error is not None:
+                    abort(401, message=error)
+
+            if required and g.user is None:
+                abort(401, message='Authentication is required for this endpoint')
+            if admin_only and (g.user is None or not g.user.is_admin):
+                abort(401, message='Only the admin user is allowed to use this endpoint')
+
             return func(*args, **kwargs)
-    wrapper.__name__ = func.__name__
-    wrapper.__doc__ = func.__doc__
-    return wrapper
+
+        return wrapper
+
+    return decorator
 
 
-def admin_login_required(func):
-    """
-    A decorator for API endpoint implementations that should only work for the admin user.
-    """
-    @api.response(401, 'Authentication required or not authorized as admin user. Only admin can access this endpoint.')
-    @api.doc(security=list(api.authorizations.keys()))
-    @login_really_required
-    def wrapper(*args, **kwargs):
-        if not g.user.is_admin:
-            abort(401, message='Only the admin user can perform reset.')
-        else:
-            return func(*args, **kwargs)
+def generate_upload_token(user):
+    payload = uuid.UUID(user.user_id).bytes
+    signature = hmac.new(
+        bytes(config.services.api_secret, 'utf-8'),
+        msg=payload,
+        digestmod=hashlib.sha1)
 
-    wrapper.__name__ = func.__name__
-    wrapper.__doc__ = func.__doc__
-    return wrapper
+    return '%s.%s' % (
+        utils.base64_encode(payload),
+        utils.base64_encode(signature.digest()))
 
 
 ns = api.namespace(
@@ -151,146 +179,122 @@ ns = api.namespace(
     description='Authentication related endpoints.')
 
 
-user_model = api.model('User', {
-    'user_id': fields.Integer(description='The id to use in the repo db, make sure it does not already exist.'),
-    'first_name': fields.String(description='The user\'s first name'),
-    'last_name': fields.String(description='The user\'s last name'),
-    'email': fields.String(description='Guess what, the user\'s email'),
-    'affiliation': fields.Nested(model=api.model('Affiliation', {
-        'name': fields.String(description='The name of the affiliation', default='not given'),
-        'address': fields.String(description='The address of the affiliation', default='not given')})),
-    'password': fields.String(description='The bcrypt 2y-indented password for initial and changed password'),
-    'token': fields.String(
-        description='The access token that authenticates the user with the API. '
-        'User the HTTP header "X-Token" to provide it in API requests.'),
-    'created': RFC3339DateTime(description='The create date for the user.')
+auth_model = api.model('Auth', {
+    'access_token': fields.String(description='The OIDC access token'),
+    'upload_token': fields.String(description='A short token for human readable upload URLs'),
+    'signature_token': fields.String(description='A short term token to sign URLs')
 })
 
 
-@ns.route('/user')
-class UserResource(Resource):
-    @api.doc('get_user')
-    @api.marshal_with(user_model, skip_none=True, code=200, description='User data send')
-    @login_really_required
+@ns.route('/')
+class AuthResource(Resource):
+    @api.doc('get_auth')
+    @api.marshal_with(auth_model, skip_none=True, code=200, description='Auth info send')
+    @authenticate(required=True, basic=True)
     def get(self):
         """
-        Get user information including a long term access token for the authenticated user.
+        Provides authentication information. This endpoint requires authentification.
+        Like all endpoints the OIDC access token based authentification. In additional,
+        basic HTTP authentification can be used. This allows to login and acquire an
+        access token.
 
-        You can use basic authentication to access this endpoint and receive a
-        token for further api access. This token will expire at some point and presents
-        a more secure method of authentication.
+        The response contains a short (10s) term JWT token that can be used to sign
+        URLs with a ``signature_token`` query parameter, e.g. for file downloads on the
+        raw or archive api endpoints; a short ``upload_token`` that is used in
+        ``curl`` command line based uploads; and the OIDC JWT access token.
         """
+
+        def signature_token():
+            expires_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=10)
+            return jwt.encode(
+                dict(user=g.user.user_id, exp=expires_at),
+                config.services.api_secret, 'HS256').decode('utf-8')
+
         try:
-            return g.user
-        except LoginException:
-            abort(
-                401,
-                message='User not logged in, provide credentials via Basic HTTP authentication.')
+            return {
+                'upload_token': generate_upload_token(g.user),
+                'signature_token': signature_token(),
+                'access_token': infrastructure.keycloak.access_token
+            }
 
-    @api.doc('create_user')
-    @api.expect(user_model)
-    @api.response(400, 'Invalid user data')
-    @api.marshal_with(user_model, skip_none=True, code=200, description='User created')
-    @login_really_required
-    def put(self):
-        """
-        Creates a new user account. Currently only the admin user is allows. The
-        NOMAD-CoE repository GUI should be used to create user accounts for now.
-        Passwords have to be encrypted by the client with bcrypt and 2y indent.
-        """
-        if not g.user.is_admin:
-            abort(401, message='Only the admin user can perform create user.')
-
-        data = request.get_json()
-        if data is None:
-            data = {}
-
-        for required_key in ['last_name', 'first_name', 'password', 'email']:
-            if required_key not in data:
-                abort(400, message='The %s is missing' % required_key)
-
-        if 'user_id' in data:
-            if coe_repo.User.from_user_id(data['user_id']) is not None:
-                abort(400, 'User with given user_id %d already exists.' % data['user_id'])
-
-        user = coe_repo.User.create_user(
-            email=data['email'], password=data.get('password', None), crypted=True,
-            first_name=data['first_name'], last_name=data['last_name'],
-            created=data.get('created', datetime.utcnow()),
-            affiliation=data.get('affiliation', None), token=data.get('token', None),
-            user_id=data.get('user_id', None))
-
-        return user, 200
-
-    @api.doc('update_user')
-    @api.expect(user_model)
-    @api.response(400, 'Invalid user data')
-    @api.marshal_with(user_model, skip_none=True, code=200, description='User updated')
-    @login_really_required
-    def post(self):
-        """
-        Allows to edit the authenticated user and change his password. Password
-        have to be encrypted by the client with bcrypt and 2y indent.
-        """
-        data = request.get_json()
-        if data is None:
-            data = {}
-
-        if 'email' in data:
-            abort(400, message='Cannot change the users email.')
-
-        g.user.update(crypted=True, **data)
-
-        return g.user, 200
+        except KeyError:
+            abort(401, 'The authenticated user does not exist')
 
 
-token_model = api.model('Token', {
-    'user': fields.Nested(user_model),
-    'token': fields.String(description='The short term token to sign URLs'),
-    'expiries_at': RFC3339DateTime(desription='The time when the token expires')
+user_model = generate_flask_restplus_model(api, datamodel.User.m_def)
+users_model = api.model('UsersModel', {
+    'users': fields.Nested(user_model, skip_none=True)
 })
 
 
-signature_token_argument = dict(
-    name='token', type=str, help='Token that signs the URL and authenticates the user',
-    location='args')
+users_parser = api.parser()
+users_parser.add_argument(
+    'query', default='',
+    help='Only return users that contain this string in their names, usernames, or emails.')
 
 
-@ns.route('/token')
-class TokenResource(Resource):
-    @api.doc('get_token')
-    @api.marshal_with(token_model, skip_none=True, code=200, description='Token send')
-    @login_really_required
+@ns.route('/users')
+class UsersResource(Resource):
+    @api.doc('get_users')
+    @api.marshal_with(users_model, code=200, description='User suggestions send')
+    @api.expect(users_parser, validate=True)
     def get(self):
-        """
-        Generates a short (10s) term JWT token that can be used to authenticate the user in
-        URLs towards most API get request, e.g. for file downloads on the
-        raw or archive api endpoints. Use the token query parameter to sign URLs.
-        """
-        token, expires_at = g.user.get_signature_token()
-        return {
-            'user': g.user,
-            'token': token,
-            'expires_at': expires_at.isoformat()
-        }
+        """ Get existing users. """
+        args = users_parser.parse_args()
+
+        return dict(users=infrastructure.keycloak.search_user(args.get('query')))
+
+    @api.doc('invite_user')
+    @api.marshal_with(user_model, code=200, skip_none=True, description='User invited')
+    @api.expect(user_model, validate=True)
+    def put(self):
+        """ Invite a new user. """
+        json_data = request.get_json()
+        try:
+            user = datamodel.User.m_from_dict(json_data)
+        except Exception as e:
+            abort(400, 'Invalid user data: %s' % str(e))
+
+        if user.email is None:
+            abort(400, 'Invalid user data: email is required')
+
+        try:
+            error = infrastructure.keycloak.add_user(user, invite=True)
+        except KeyError as e:
+            abort(400, 'Invalid user data: %s' % str(e))
+
+        if error is not None:
+            abort(400, 'Could not invite user: %s' % error)
+
+        return datamodel.User.get(email=user.email), 200
 
 
 def with_signature_token(func):
     """
-    A decorator for API endpoint implementations that validates signed URLs.
+    A decorator for API endpoint implementations that validates signed URLs. Token to
+    sign URLs can be retrieved via the ``/auth`` endpoint.
     """
+    @functools.wraps(func)
     @api.response(401, 'Invalid or expired signature token')
     def wrapper(*args, **kwargs):
         token = request.args.get('token', None)
         if token is not None:
             try:
-                g.user = coe_repo.User.verify_signature_token(token)
-            except LoginException:
-                abort(401, 'Invalid or expired signature token')
+                decoded = jwt.decode(token, config.services.api_secret, algorithms=['HS256'])
+                user = datamodel.User.get(decoded['user'])
+                if user is None:
+                    abort(401, 'User for token does not exist')
+                else:
+                    g.user = user
+            except KeyError:
+                abort(401, 'Token with invalid/unexpected payload')
+            except jwt.ExpiredSignatureError:
+                abort(401, 'Expired token')
+            except jwt.InvalidTokenError:
+                abort(401, 'Invalid token')
 
         return func(*args, **kwargs)
-    wrapper.__name__ = func.__name__
-    wrapper.__doc__ = func.__doc__
+
     return wrapper
 
 
@@ -303,24 +307,18 @@ def create_authorization_predicate(upload_id, calc_id=None):
         if g.user is None:
             # guest users don't have authorized access to anything
             return False
-        elif g.user.user_id == 0:
+        elif g.user.is_admin:
             # the admin user does have authorization to access everything
             return True
 
-        # look in repository
-        upload = coe_repo.Upload.from_upload_id(upload_id)
-        if upload is not None:
-            return upload.user_id == g.user.user_id
+        # look in mongo
+        try:
+            upload = processing.Upload.get(upload_id)
+            return g.user.user_id == upload.user_id
 
-        # look in staging
-        staging_upload = processing.Upload.get(upload_id)
-        if staging_upload is not None:
-            return str(g.user.user_id) == str(staging_upload.user_id)
-
-        # There are no db entries for the given resource
-        if files.UploadFiles.get(upload_id) is not None:
+        except KeyError as e:
             logger = utils.get_logger(__name__, upload_id=upload_id, calc_id=calc_id)
             logger.error('Upload files without respective db entry')
+            raise e
 
-        raise KeyError
     return func

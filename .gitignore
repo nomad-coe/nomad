@@ -17,5 +17,6 @@ local/
 target/
 *.swp
 *.vscode
+.vscode/
 vscode/
 nomad.yaml

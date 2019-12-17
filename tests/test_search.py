@@ -16,7 +16,7 @@ from typing import List
 from elasticsearch_dsl import Q
 import pytest
 
-from nomad import datamodel, search, processing, parsing, infrastructure, config, coe_repo
+from nomad import datamodel, search, processing, parsing, infrastructure, config
 from nomad.search import Entry, SearchRequest
 
 
@@ -137,14 +137,14 @@ def test_search_totals(elastic, example_search_data):
     assert 'quantities' not in results
 
 
-def test_search_quantity(elastic, normalized: parsing.LocalBackend, test_user: coe_repo.User, other_test_user: coe_repo.User):
+def test_search_quantity(elastic, normalized: parsing.LocalBackend, test_user: datamodel.User, other_test_user: datamodel.User):
     calc_with_metadata = datamodel.CalcWithMetadata(upload_id='test upload id', calc_id='test id')
     calc_with_metadata.apply_domain_metadata(normalized)
-    calc_with_metadata.uploader = test_user.to_popo()
+    calc_with_metadata.uploader = test_user.user_id
     create_entry(calc_with_metadata)
 
     calc_with_metadata.calc_id = 'other test id'
-    calc_with_metadata.uploader = other_test_user.to_popo()
+    calc_with_metadata.uploader = other_test_user.user_id
     create_entry(calc_with_metadata)
     refresh_index()
 
@@ -208,6 +208,7 @@ if __name__ == '__main__':
     import sys
     print('Generate index with random example calculation data. First arg is number of items')
     infrastructure.setup_logging()
+    infrastructure.setup_mongo()
     infrastructure.setup_elastic()
     n = 100
     if len(sys.argv) > 1:

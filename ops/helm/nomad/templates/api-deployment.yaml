@@ -116,18 +116,25 @@ spec:
           value: "{{ .Values.app.console_loglevel }}"
         - name: NOMAD_LOGSTASH_LEVEL
           value: "{{ .Values.app.logstash_loglevel }}"
-        {{ if .Values.postgres.password_secret }}
-        - name: NOMAD_REPOSITORY_DB_PASSWORD
+       {{ if .Values.api.apiSecret }}
+        - name: NOMAD_SERVICES_API_SECRET
           valueFrom:
             secretKeyRef:
-              name: {{ .Values.postgres.password_secret }}
+              name: {{ .Values.api.apiSecret}}
               key: password
         {{ end }}
-        {{ if .Values.api.adminPasswordSecret }}
-        - name: NOMAD_SERVICES_ADMIN_PASSWORD
+        {{ if .Values.keycloak.clientSecret }}
+        - name: NOMAD_KEYCLOAK_CLIENT_SECRET
           valueFrom:
             secretKeyRef:
-              name: {{ .Values.api.adminPasswordSecret }}
+              name: {{ .Values.keycloak.clientSecret }}
+              key: password
+        {{ end }}
+        {{ if .Values.keycloak.passwordSecret }}
+        - name: NOMAD_KEYCLOAK_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.keycloak.passwordSecret }}
               key: password
         {{ end }}
         command: ["python", "-m", "gunicorn.app.wsgiapp", "--config", "gunicorn.conf", "--log-config", "gunicorn.log.conf", "-b 0.0.0.0:8000", "nomad.app:app"]

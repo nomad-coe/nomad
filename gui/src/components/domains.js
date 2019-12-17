@@ -24,37 +24,30 @@ class DomainProviderBase extends React.Component {
     DFT: {
       name: 'DFT',
       about: `
-        ### The New Nomad Data Upload
+        # The NOMAD Repository and Archive
 
-        This web-page was created to complement to the original
-        [NOMAD Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1).
-        You upload, process, inspect, and publish your data here. Here you will be able
-        to search and explore uploaded data. However, to add comments, co-authors, and references,
-        create data-sets, and manage your account, you will still have to use the original
-        [NOMAD Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1).
+        This web-page is the graphical user interface (GUI) for the NOMAD Repository and
+        Archive. It allows you to search, access, and download all NOMAD data in its
+        raw (Repository) and processed (Archive) form. You can upload and manage your own
+        raw computational material science data. Learn more about what data can be uploaded
+        and how to prepare your data on the [NOMAD Repository homepage](https://repository.nomad-coe.eu/).
+        You can access all published data without an account. If you want to provide
+        your own data, please login or register for an account.
 
         In the future, this web-page will include more and more features of other NOMAD
         components as an effort to consolidate the various web applications from the
         NOMAD Repository, Archive, Metainfo, Encyclopedia, and Analytics Toolkit.
 
-        ### Limitations
-        You can only login with users that already exist in the NOMAD Repository. If you
-        are new to NOMAD, visit the [NOMAD Repository GUI](https://repository.nomad-coe.eu/NomadRepository-1.1)
-        or register for a user account [here](http://nomad-repository.eu:8080/NomadRepository-1.1/register/).
+        ### This looks different, what about the old NOMAD interface?
 
-        When you have published your data with the new upload process (menu item on the
-        left of this page) you will still have to wait about a day for indexing to
-        take place and have your calculation show up in the Nomad Repository GUI.
-        Therefore, you should not expect your data to appear in the NOMAD Repository immediately.
-
-        We have migrated all data from the NOMAD Repository to this new system. However, not
-        all of the data was successfully processed by the new and more powerful parsers.
+        We have migrated all data from the original NOMAD Repository to this new system.
+        However, not all of the data was successfully processed by the new and more powerful parsers.
         We will continue to improve the parsers to raise the quality of archive data overtime.
         For some entries, no archive data might be currently available and some metadata might
         still be missing when you are exploring Nomad data using the new search and data
         exploring capabilities (menu items on the left).
       `,
-      entryLabel: 'code run',
+      entryLabel: 'entry',
       searchPlaceholder: 'enter atoms, codes, functionals, or other quantity values',
       /**
        * A component that is used to render the search aggregations. The components needs
@@ -86,11 +79,13 @@ class DomainProviderBase extends React.Component {
         // },
         calculations: {
           label: 'Single configuration calculations',
+          shortLabel: 'SCC',
           tooltip: 'Aggregates the number of single configuration calculations (e.g. total energy calculations) as each entry can contain many calculations.',
           renderResultString: count => (<span> with <b>{count.toLocaleString()}</b> single configuration calculation{count === 1 ? '' : 's'}</span>)
         },
         unique_geometries: {
           label: 'Unique geometries',
+          shortLabel: 'Geometries',
           tooltip: 'Aggregates the number of unique simulated system geometries in all entries.',
           renderResultString: count => (<span> that simulate <b>{count.toLocaleString()}</b> unique geometrie{count === 1 ? '' : 's'}</span>)
         },
@@ -100,6 +95,7 @@ class DomainProviderBase extends React.Component {
           renderResultString: count => (<span> curated in <b>{count.toLocaleString()}</b> dataset{count === 1 ? '' : 's'}</span>)
         }
       },
+      defaultSearchMetric: 'code_runs',
       additionalSearchKeys: {
         raw_id: {},
         upload_id: {},
@@ -121,27 +117,39 @@ class DomainProviderBase extends React.Component {
        */
       searchResultColumns: {
         formula: {
-          label: 'Formula'
+          label: 'Formula',
+          supportsSort: true
         },
         code_name: {
-          label: 'Code'
+          label: 'Code',
+          supportsSort: true
         },
         basis_set: {
-          label: 'Basis set'
+          label: 'Basis set',
+          supportsSort: true
         },
         xc_functional: {
-          label: 'XT treatment'
+          label: 'XT treatment',
+          supportsSort: true
         },
         system: {
-          label: 'System'
+          label: 'System',
+          supportsSort: true
         },
         crystal_system: {
-          label: 'Crystal system'
+          label: 'Crystal system',
+          supportsSort: true
         },
         spacegroup_symbol: {
-          label: 'Spacegroup'
+          label: 'Spacegroup',
+          supportsSort: true
+        },
+        spacegroup: {
+          label: 'Spacegroup (number)',
+          supportsSort: true
         }
       },
+      defaultSearchResultColumns: ['formula', 'code_name', 'system', 'crystal_system', 'spacegroup_symbol'],
       /**
        * A component to render the domain specific quantities in the metadata card of
        * the entry view. Needs to work with props: data (the entry data from the API),
@@ -198,6 +206,7 @@ class DomainProviderBase extends React.Component {
           renderResultString: count => (<span> curated in <b>{count}</b> datasets</span>)
         }
       },
+      defaultSearchMetric: 'code_runs',
       /**
        * An dict where each object represents a column. Possible keys are label, render.
        * Default render

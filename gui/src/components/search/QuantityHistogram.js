@@ -3,9 +3,7 @@ import PropTypes from 'prop-types'
 import { withStyles, Select, MenuItem, Card, CardContent, CardHeader } from '@material-ui/core'
 import * as d3 from 'd3'
 import { scaleBand, scalePow } from 'd3-scale'
-import chroma from 'chroma-js'
-import repoColor from '@material-ui/core/colors/deepPurple'
-import { formatQuantity } from '../../config.js'
+import { formatQuantity, nomadPrimaryColor, nomadSecondaryColor } from '../../config.js'
 
 const unprocessed_label = 'not processed'
 const unavailable_label = 'unavailable'
@@ -99,13 +97,11 @@ class QuantityHistogram extends React.Component {
 
     const y = scaleBand().rangeRound([0, height]).padding(0.1)
     const x = scalePow().range([0, width]).exponent(scalePower)
-    const heatmapScale = chroma.scale(['#ffcdd2', '#d50000'])
 
     // we use at least the domain 0..1, because an empty domain causes a weird layout
     const max = d3.max(data, d => d.value) || 1
     x.domain([0, max])
     y.domain(data.map(d => d.name))
-    heatmapScale.domain([0, max], 10, 'log')
 
     let svg = d3.select(this.svgEl.current)
     svg.attr('width', width)
@@ -117,7 +113,7 @@ class QuantityHistogram extends React.Component {
 
     withData.exit().remove()
 
-    const rectColor = d => selected === d.name ? repoColor[500] : heatmapScale(d.value)
+    const rectColor = d => selected === d.name ? nomadPrimaryColor.main : nomadSecondaryColor.light
     const textColor = d => selected === d.name ? '#FFF' : '#000'
 
     let item = withData.enter()

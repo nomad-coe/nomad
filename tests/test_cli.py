@@ -16,6 +16,7 @@
 import pytest
 import click.testing
 import json
+import mongoengine
 
 from nomad import utils, search, processing as proc, files
 from nomad.cli import cli
@@ -26,6 +27,27 @@ from nomad.processing import Upload, Calc
 
 @pytest.mark.usefixtures('reset_config', 'no_warn')
 class TestAdmin:
+    def test_reset(self):
+        result = click.testing.CliRunner().invoke(
+            cli, ['admin', 'reset', '--i-am-really-sure'], catch_exceptions=False, obj=utils.POPO())
+        assert result.exit_code == 0
+
+        # allow other test to re-establish a connection
+        mongoengine.disconnect_all()
+
+    def test_reset_not_sure(self):
+        result = click.testing.CliRunner().invoke(
+            cli, ['admin', 'reset'], catch_exceptions=False, obj=utils.POPO())
+        assert result.exit_code == 1
+
+    def test_remove(self):
+        result = click.testing.CliRunner().invoke(
+            cli, ['admin', 'reset', '--remove', '--i-am-really-sure'], catch_exceptions=False, obj=utils.POPO())
+        assert result.exit_code == 0
+
+        # allow other test to re-establish a connection
+        mongoengine.disconnect_all()
+
     def test_clean(self, published):
         upload_id = published.upload_id
 
@@ -185,8 +207,8 @@ class TestClient:
         assert published.upload_id in result.output
         assert published.upload_files.os_path in result.output
 
-    @pytest.mark.parametrize('move', [True, False])
-    def test_mirror(self, published, admin_user_bravado_client, monkeypatch, move):
+    @pytest.mark.parametrize('move, link', [(True, False), (False, True), (False, False)])
+    def test_mirror(self, published, admin_user_bravado_client, monkeypatch, move, link):
         ref_search_results = search.SearchRequest().search_parameters(upload_id=published.upload_id).execute_paginated()['results'][0]
 
         monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
@@ -194,6 +216,9 @@ class TestClient:
         if move:
             result = click.testing.CliRunner().invoke(
                 cli, ['client', 'mirror', '--move'], catch_exceptions=False, obj=utils.POPO())
+        elif link:
+            result = click.testing.CliRunner().invoke(
+                cli, ['client', 'mirror', '--link'], catch_exceptions=False, obj=utils.POPO())
         else:
             result = click.testing.CliRunner().invoke(
                 cli, ['client', 'mirror', '--source-mapping', '.volumes/test_fs:.volumes/test_fs'], catch_exceptions=False, obj=utils.POPO())

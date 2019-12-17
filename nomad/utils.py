@@ -56,6 +56,22 @@ default_hash_len = 28
 """ Length of hashes and hash-based ids (e.g. calc, upload) in nomad. """
 
 
+def decode_handle_id(handle_str: str):
+    result = 0
+    for c in handle_str:
+        ordinal = ord(c.lower())
+        if 48 <= ordinal <= 57:
+            number = ordinal - 48
+        elif 97 <= ordinal <= 118:
+            number = ordinal - 87
+        else:
+            raise ValueError()
+
+        result = result * 32 + number
+
+    return result
+
+
 def hash(*args, length: int = default_hash_len) -> str:
     """ Creates a websave hash of the given length based on the repr of the given arguments. """
     hash = hashlib.sha512()
@@ -71,6 +87,23 @@ def make_websave(hash, length: int = default_hash_len) -> str:
         return base64.b64encode(hash.digest(), altchars=b'-_')[:length].decode('utf-8')
     else:
         return base64.b64encode(hash.digest(), altchars=b'-_')[0:-2].decode('utf-8')
+
+
+def base64_encode(string):
+    """
+    Removes any `=` used as padding from the encoded string.
+    """
+    encoded = base64.urlsafe_b64encode(string).decode('utf-8')
+    return encoded.rstrip("=")
+
+
+def base64_decode(string):
+    """
+    Adds back in the required padding before decoding.
+    """
+    padding = 4 - (len(string) % 4)
+    bytes = (string + ("=" * padding)).encode('utf-8')
+    return base64.urlsafe_b64decode(bytes)
 
 
 def sanitize_logevent(event: str) -> str:
@@ -112,7 +145,10 @@ class LogstashHandler(logstash.TCPLogstashHandler):
 
     def filter(self, record):
         if super().filter(record):
-            is_structlog = record.msg.startswith('{') and record.msg.endswith('}')
+            is_structlog = False
+            if isinstance(record.msg, str):
+                is_structlog = record.msg.startswith('{') and record.msg.endswith('}')
+
             if is_structlog:
                 return True
             else:

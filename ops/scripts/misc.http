@@ -90,7 +90,7 @@ Content-Type: application/json
 }
 
 ###
-# Search migration unpublished calcs
+# Search
 
 GET http://localhost:19200/fairdi_nomad_prod/_search HTTP/1.1
 Content-Type: application/json
@@ -111,6 +111,38 @@ Content-Type: application/json
             }
         }
     }
+}
+
+###
+# Search test
+
+GET http://localhost:9200/test_nomad_fairdi_0_6/_search HTTP/1.1
+Content-Type: application/json
+
+{
+  "query": {
+    "bool": {
+      "should": [
+        {
+          "bool": {
+            "must": [
+              {
+                "term": {
+                  "published": true
+                }
+              },
+              {
+                "term": {
+                  "with_embargo": false
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "minimum_should_match": 1
+    }
+  }
 }
 
 ###
@@ -170,5 +202,40 @@ content-type: application/json
                 "field": "program_name"
             }
         }
+    }
+}
+
+###
+#
+GET http://localhost:19202/_reindex
+
+###
+# Reindex
+POST http://localhost:19202/_reindex
+content-type: application/json
+
+{
+  "source": {
+    "remote": {
+      "host": "http://nomad-flink-01.esc:9200"
+    },
+    "index": "fairdi_nomad_testing_major",
+    "query": {
+      "match_all": {}
+    }
+  },
+  "dest": {
+    "index": "fairdi_nomad_testing_major"
+  }
+}
+
+###
+# Settings
+PUT http://localhost:19202/_cluster/settings
+content-type: application/json
+
+{
+    "transient" : {
+        "reindex.remote.whitelist" : "localhost:9200"
     }
 }

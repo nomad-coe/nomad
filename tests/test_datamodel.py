@@ -16,7 +16,6 @@
 A generator for random test calculations.
 """
 
-import names
 import random
 from essential_generators import DocumentGenerator
 import datetime
@@ -30,7 +29,7 @@ number_of = 20
 random.seed(0)
 gen = DocumentGenerator()
 
-users = [(i + 1, names.get_first_name(), names.get_last_name(), gen.email()) for i in range(0, number_of)]
+users = ['20bb9766-d338-4314-be43-7906042a5086', 'a03af8b6-3aa7-428a-b3b1-4a6317e576b6', '54cb1f64-f84e-4815-9ade-440ce0b5430f']
 basis_sets = ['Numeric AOs', 'Gaussians', '(L)APW+lo', 'Plane waves']
 xc_functionals = ['LDA', 'GGA', 'hybrid', 'meta-GGA', 'GW', 'unknown']
 crystal_systems = ['triclinic', 'monoclinic', 'orthorombic', 'tetragonal', 'hexagonal', 'cubic']
@@ -49,18 +48,21 @@ low_numbers_for_geometries = [1, 2, 2, 3, 3, 4, 4]
 
 
 def _gen_user():
-    id, first, last, email = random.choice(users)
-    return utils.POPO(id=id, first_name=first, last_name=last, email=email)
+    return random.choice(users)
 
 
 def _gen_dataset():
     id, name = random.choice(datasets)
-    return utils.POPO(id=id, name=name, doi=_gen_ref())
+    id_str = str(id)
+    if datamodel.Dataset.m_def.m_x('me').objects(dataset_id=id_str).first() is None:
+        datamodel.Dataset(
+            user_id=random.choice(users), dataset_id=id_str, name=name,
+            doi=_gen_ref().value).m_x('me').create()
+    return id_str
 
 
 def _gen_ref():
-    id, value = random.choice(references)
-    return utils.POPO(id=id, value=value)
+    return random.choice(references)
 
 
 def generate_calc(pid: int = 0, calc_id: str = None, upload_id: str = None) -> datamodel.CalcWithMetadata:
@@ -120,6 +122,7 @@ if __name__ == '__main__':
     print('  second arg is number uploads to spread calcs over')
 
     infrastructure.setup_logging()
+    infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
     n_calcs, n_uploads = int(sys.argv[1]), int(sys.argv[2])

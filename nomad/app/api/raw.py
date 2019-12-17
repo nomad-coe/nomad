@@ -26,14 +26,15 @@ import sys
 import contextlib
 import fnmatch
 import json
+import gzip
+import urllib.parse
 
 from nomad import search, utils
 from nomad.files import UploadFiles, Restricted
 from nomad.processing import Calc
 
 from .api import api
-from .auth import login_if_available, create_authorization_predicate, \
-    signature_token_argument, with_signature_token
+from .auth import authenticate, create_authorization_predicate
 from .repo import search_request_parser, add_query
 
 if sys.version_info >= (3, 7):
@@ -63,12 +64,14 @@ raw_file_strip_argument = dict(
 raw_file_from_path_parser = api.parser()
 raw_file_from_path_parser.add_argument(**raw_file_compress_argument)
 raw_file_from_path_parser.add_argument(**raw_file_strip_argument)
-raw_file_from_path_parser.add_argument(**signature_token_argument)
 raw_file_from_path_parser.add_argument(
     name='length', type=int, help='Download only x bytes from the given file.',
     location='args')
 raw_file_from_path_parser.add_argument(
     name='offset', type=int, help='Start downloading a file\' content from the given offset.',
+    location='args')
+raw_file_from_path_parser.add_argument(
+    name='decompress', type=int, help='Automatically decompress the file if compressed. Only supports .gz',
     location='args')
 
 
@@ -130,10 +133,6 @@ def get_raw_file_from_upload_path(
                 upload_files.upload_id, wildcarded_files, compress=compress, strip=strip)
 
     try:
-        with upload_files.raw_file(upload_filepath, 'br') as raw_file:
-            buffer = raw_file.read(2048)
-        mime_type = magic.from_buffer(buffer, mime=True)
-
         try:
             offset = int(request.args.get('offset', 0))
             length = int(request.args.get('length', -1))
@@ -146,6 +145,16 @@ def get_raw_file_from_upload_path(
             abort(400, message='bad offset, length values')
 
         raw_file = upload_files.raw_file(upload_filepath, 'br')
+
+        if request.args.get('decompress') is not None and upload_filepath.endswith('.gz'):
+            filename = upload_filepath[:3]
+            upload_filepath = filename
+            raw_file = gzip.GzipFile(filename=filename, mode='rb', fileobj=raw_file)
+
+        buffer = raw_file.read(2048)
+        raw_file.seek(0)
+        mime_type = magic.from_buffer(buffer, mime=True)
+
         raw_file_view: Union[FileView, IO[Any]] = None
         if length > 0:
             raw_file_view = FileView(raw_file, offset, length)
@@ -186,8 +195,7 @@ class RawFileFromUploadPathResource(Resource):
     @api.response(401, 'Not authorized to access the requested files.')
     @api.response(200, 'File(s) send')
     @api.expect(raw_file_from_path_parser, validate=True)
-    @login_if_available
-    @with_signature_token
+    @authenticate(signature_token=True)
     def get(self, upload_id: str, path: str):
         """ Get a single raw calculation file, directory contents, or whole directory sub-tree
         from a given upload.
@@ -216,6 +224,10 @@ class RawFileFromUploadPathResource(Resource):
         Zip files are streamed; instead of 401 errors, the zip file will just not contain
         any files that the user is not authorized to access.
         """
+        # TODO this is a quick fix, since swagger cannot deal with not encoded path parameters
+        if path is not None:
+            path = urllib.parse.unquote(path)
+
         upload_filepath = path
 
         # TODO find a better way to all access to certain files
@@ -244,8 +256,7 @@ class RawFileFromCalcPathResource(Resource):
     @api.response(401, 'Not authorized to access the requested files.')
     @api.response(200, 'File(s) send')
     @api.expect(raw_file_from_path_parser, validate=True)
-    @login_if_available
-    @with_signature_token
+    @authenticate(signature_token=True)
     def get(self, upload_id: str, calc_id: str, path: str):
         """ Get a single raw calculation file, calculation contents, or all files for a
         given calculation.
@@ -256,6 +267,10 @@ class RawFileFromCalcPathResource(Resource):
         This endpoint behaves exactly like /raw/<upload_id>/<path>, but the path is
         now relative to the calculation and not the upload.
         """
+        # TODO this is a quick fix, since swagger cannot deal with not encoded path parameters
+        if path is not None:
+            path = urllib.parse.unquote(path)
+
         calc_filepath = path if path is not None else ''
         authorization_predicate = create_authorization_predicate(upload_id)
         upload_files = UploadFiles.get(upload_id, authorization_predicate)
@@ -281,8 +296,7 @@ class RawFileFromCalcEmptyPathResource(RawFileFromCalcPathResource):
     @api.response(401, 'Not authorized to access the requested files.')
     @api.response(200, 'File(s) send')
     @api.expect(raw_file_from_path_parser, validate=True)
-    @login_if_available
-    @with_signature_token
+    @authenticate(signature_token=True)
     def get(self, upload_id: str, calc_id: str):
         """ Get calculation contents.
 
@@ -305,7 +319,6 @@ raw_files_request_parser.add_argument(
     'files', required=True, type=str, help='Comma separated list of files to download.', location='args')
 raw_files_request_parser.add_argument(**raw_file_strip_argument)
 raw_files_request_parser.add_argument(**raw_file_compress_argument)
-raw_file_from_path_parser.add_argument(**signature_token_argument)
 
 
 @ns.route('/<string:upload_id>')
@@ -317,7 +330,7 @@ class RawFilesResource(Resource):
     @api.response(404, 'The upload or path does not exist')
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
     @api.expect(raw_files_request_model, validate=True)
-    @login_if_available
+    @authenticate()
     def post(self, upload_id):
         """ Download multiple raw calculation files in a .zip file.
 
@@ -334,8 +347,7 @@ class RawFilesResource(Resource):
     @api.response(404, 'The upload or path does not exist')
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
     @api.expect(raw_files_request_parser, validate=True)
-    @login_if_available
-    @with_signature_token
+    @authenticate(signature_token=True)
     def get(self, upload_id):
         """
         Download multiple raw calculation files.
@@ -376,7 +388,7 @@ class RawFileQueryResource(Resource):
     @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
     @api.expect(raw_file_from_query_parser, validate=True)
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
-    @login_if_available
+    @authenticate(signature_token=True)
     def get(self):
         """ Download a .zip file with all raw-files for all entries that match the given
         search parameters.
@@ -405,7 +417,7 @@ class RawFileQueryResource(Resource):
             abort(400, message='bad parameter types')
 
         search_request = search.SearchRequest()
-        add_query(search_request, search_request_parser)
+        add_query(search_request, search_request_parser.parse_args())
 
         def path(entry):
             return '%s/%s' % (entry['upload_id'], entry['mainfile'])

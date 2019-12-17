@@ -214,7 +214,6 @@ class AfterRenderTestUnstyled extends React.Component {
   }
 
   afterRender(measures) {
-    console.log(measures)
     return ('..empty..' + measures[1])
   }
 

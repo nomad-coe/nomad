@@ -22,7 +22,7 @@ from flask_restplus import Resource, abort, fields
 from nomad import processing as proc
 
 from .api import api
-from .auth import admin_login_required
+from .auth import authenticate
 from .common import upload_route
 
 ns = api.namespace('mirror', description='Export upload (and all calc) metadata.')
@@ -49,7 +49,7 @@ class MirrorUploadsResource(Resource):
         mirror_upload_model, skip_none=True, code=200, as_list=True,
         description='Uploads exported')
     @api.expect(mirror_query_model)
-    @admin_login_required
+    @authenticate(admin_only=True)
     def post(self):
         json_data = request.get_json()
         if json_data is None:
@@ -74,7 +74,7 @@ class MirrorUploadResource(Resource):
     @api.response(404, 'The upload does not exist')
     @api.marshal_with(mirror_upload_model, skip_none=True, code=200, description='Upload exported')
     @api.doc('get_upload_mirror')
-    @admin_login_required
+    @authenticate(admin_only=True)
     def get(self, upload_id):
         """
         Export upload (and all calc) metadata for mirrors.

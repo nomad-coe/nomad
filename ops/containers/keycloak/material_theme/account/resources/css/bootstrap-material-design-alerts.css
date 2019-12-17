@@ -1,0 +1,111 @@
+.alert {
+    position: relative;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: 0.125rem;
+}
+.alert-heading {
+    color: inherit;
+}
+.alert-link {
+    font-weight: 700;
+}
+.alert-dismissible {
+    padding-right: 4rem;
+}
+.alert-dismissible .close {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 0.75rem 1.25rem;
+    color: inherit;
+}
+.alert-primary {
+    color: #004e47;
+    background-color: #cceae7;
+    border-color: #b8e2de;
+}
+.alert-primary hr {
+    border-top-color: #a6dbd6;
+}
+.alert-primary .alert-link {
+    color: #001b19;
+}
+.alert-secondary {
+    color: #383d41;
+    background-color: #e2e3e5;
+    border-color: #d6d8db;
+}
+.alert-secondary hr {
+    border-top-color: #c8cbcf;
+}
+.alert-secondary .alert-link {
+    color: #202326;
+}
+.alert-success {
+    color: #285b2a;
+    background-color: #dbefdc;
+    border-color: #cde9ce;
+}
+.alert-success hr {
+    border-top-color: #bbe1bd;
+}
+.alert-success .alert-link {
+    color: #18381a;
+}
+.alert-info {
+    color: #02587f;
+    background-color: #cdeefd;
+    border-color: #b8e7fc;
+}
+.alert-info hr {
+    border-top-color: #a0dffb;
+}
+.alert-info .alert-link {
+    color: #01354d;
+}
+.alert-warning {
+    color: #852d12;
+    background-color: #ffddd3;
+    border-color: #ffd0c1;
+}
+.alert-warning hr {
+    border-top-color: #ffbda8;
+}
+.alert-warning .alert-link {
+    color: #581e0c;
+}
+.alert-danger, .alert-error {
+    color: #7f231c;
+    background-color: #fdd9d7;
+    border-color: #fccac7;
+}
+.alert-danger hr, .alert-error hr {
+    border-top-color: #fbb3af;
+}
+.alert-danger .alert-link, .alert-error .alert-link {
+    color: #551713;
+}
+.alert-light {
+    color: #7f7f7f;
+    background-color: #fdfdfd;
+    border-color: #fcfcfc;
+}
+.alert-light hr {
+    border-top-color: #efefef;
+}
+.alert-light .alert-link {
+    color: #666;
+}
+.alert-dark {
+    color: #222;
+    background-color: #d9d9d9;
+    border-color: #cacaca;
+}
+.alert-dark hr {
+    border-top-color: #bdbdbd;
+}
+.alert-dark .alert-link {
+    color: #090909;
+}

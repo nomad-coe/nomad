@@ -15,11 +15,10 @@
 version: '3.4'
 
 services:
-    # postgres for NOMAD-coe repository API and GUI
-    postgres:
-        restart: 'no'
-        ports:
-            - 5432:5432
+    # keycloak for user management
+    keycloak:
+        environment:
+            - DB_VENDOR=h2
 
     # broker for celery
     rabbitmq:

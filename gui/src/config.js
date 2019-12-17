@@ -1,8 +1,3 @@
-import repo from '@material-ui/core/colors/deepPurple'
-import archive from '@material-ui/core/colors/teal'
-import enc from '@material-ui/core/colors/amber'
-import analytics from '@material-ui/core/colors/lightGreen'
-import secondary from '@material-ui/core/colors/blueGrey'
 import { createMuiTheme } from '@material-ui/core'
 
 window.nomadEnv = window.nomadEnv || {}
@@ -13,50 +8,48 @@ export const guiBase = process.env.PUBLIC_URL
 export const kibanaBase = window.nomadEnv.kibanaBase
 export const matomoUrl = window.nomadEnv.matomoUrl
 export const matomoSiteId = window.nomadEnv.matomoSiteId
+export const keycloakBase = window.nomadEnv.keycloakBase
+export const keycloakRealm = window.nomadEnv.keycloakRealm
+export const keycloakClientId = window.nomadEnv.keycloakClientId
 export const debug = window.nomadEnv.debug || false
 export const sendTrackingData = window.nomadEnv.sendTrackingData
+export const email = 'webmaster@nomad-coe.eu'
 
-export const repoPrimaryColor = repo
+export const consent = `
+By using this web-site and by uploading and downloading data, you agree to the
+[terms of use](https://www.nomad-coe.eu/the-project/nomad-repository/nomad-repository-terms).
 
-const createTheme = themeData => createMuiTheme({
+Uploaded data is licensed under the Creative Commons Attribution license
+([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). You can publish
+uploaded data with an *embargo*. Data with an *embargo* is only visible to
+you and users you share your data with. The *embargo period* lasts up to 36 month.
+After the *embargo* your published data will be public. **Note that public data
+is visible to others and files become downloadable by everyone.**
+
+This web-site uses *cookies*. By using this web-site you agree to our use
+of *cookies*. [Learn more](https://www.cookiesandyou.com/).
+`
+export const nomadPrimaryColor = {
+  main: '#294277',
+  light: '#596da6',
+  dark: '#001c4b',
+  veryLight: '#cfdeff'
+}
+
+export const nomadSecondaryColor = {
+  main: '#ffa000',
+  light: '#ffc046',
+  veryLight: '#ffecb5',
+  dark: '#c56000'
+}
+
+export const nomadTheme = createMuiTheme({
   typography: {
     useNextVariants: true
   },
-  ...themeData
-})
-
-export const genTheme = createTheme({
   palette: {
-    primary: secondary,
-    secondary: secondary
-  }
-})
-
-export const repoTheme = createTheme({
-  palette: {
-    primary: repo,
-    secondary: repo
-  }
-})
-
-export const archiveTheme = createTheme({
-  palette: {
-    primary: archive,
-    secondary: repo
-  }
-})
-
-export const encTheme = createTheme({
-  palette: {
-    primary: enc,
-    secondary: repo
-  }
-})
-
-export const analyticsTheme = createTheme({
-  palette: {
-    primary: analytics,
-    secondary: repo
+    primary: nomadPrimaryColor,
+    secondary: nomadSecondaryColor
   }
 })
 

@@ -99,7 +99,6 @@ fs = NomadConfig(
     tmp='.volumes/fs/tmp',
     staging='.volumes/fs/staging',
     public='.volumes/fs/public',
-    coe_extracted='.volumes/fs/extracted',
     migration_packages='.volumes/fs/migration_packages',
     local_tmp='/tmp',
     prefix_size=2,
@@ -112,16 +111,13 @@ elastic = NomadConfig(
     index_name='nomad_fairdi_calcs'
 )
 
-repository_db = NomadConfig(
-    sequential_publish=False,
-    publish_enabled=True,
-    host='localhost',
-    port=5432,
-    dbname='nomad_fairdi_repo_db',
-    user='postgres',
-    password='nomad',
-    handle_prefix='21.11132/',
-    mode='fairdi'
+keycloak = NomadConfig(
+    server_url='https://labdev-nomad.esc.rzg.mpg.de/fairdi/keycloak/auth/',
+    realm_name='fairdi_nomad_test',
+    username='admin',
+    password='password',
+    client_id='nomad_api_dev',
+    client_secret='**********'
 )
 
 mongo = NomadConfig(
@@ -143,8 +139,7 @@ services = NomadConfig(
     api_base_path='/fairdi/nomad/latest',
     api_secret='defaultApiSecret',
     api_chaos=0,
-    admin_password='password',
-    disable_reset=True,
+    admin_user_id='00000000-0000-0000-0000-000000000000',
     not_processed_value='not processed',
     unavailable_value='unavailable',
     https=False,
@@ -164,13 +159,12 @@ def api_url(ssl: bool = True):
         services.api_base_path.strip('/'))
 
 
-migration_source_db = NomadConfig(
-    host='db-repository.nomad.esc',
-    port=5432,
-    dbname='nomad_prod',
-    user='nomadlab',
-    password='*'
-)
+def gui_url():
+    base = api_url(True)[:-3]
+    if base.endswith('/'):
+        base = base[:-1]
+    return '%s/gui' % base
+
 
 mail = NomadConfig(
     enabled=False,
@@ -193,7 +187,15 @@ client = NomadConfig(
     url='http://localhost:8000/fairdi/nomad/latest/api'
 )
 
-version = '0.6.4'
+datacite = NomadConfig(
+    mds_host='https://mds.datacite.org',
+    enabled=False,
+    prefix='10.17172',
+    user='*',
+    password='*'
+)
+
+version = '0.7.0'
 commit = gitinfo.commit
 release = 'devel'
 domain = 'DFT'

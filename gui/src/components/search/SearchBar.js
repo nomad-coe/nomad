@@ -8,9 +8,11 @@ import parse from 'autosuggest-highlight/parse'
 import Paper from '@material-ui/core/Paper'
 import MenuItem from '@material-ui/core/MenuItem'
 import { Chip } from '@material-ui/core'
-import { repoPrimaryColor } from '../../config'
+import { nomadPrimaryColor } from '../../config'
 import { withDomain } from '../domains'
 import { compose } from 'recompose'
+import SearchContext from '../search/SearchContext'
+import { withApi } from '../api'
 
 
 function renderInput(inputProps) {
@@ -31,7 +33,7 @@ function renderInput(inputProps) {
             className={className}
             style={{
               pointerEvents: isDisabled ? 'none' : undefined,
-              backgroundColor: isFocused ? repoPrimaryColor[500] : undefined,
+              backgroundColor: isFocused ? nomadPrimaryColor[500] : undefined,
               color: isFocused ? 'white' : 'black'
             }}
             onClick={handleClick}
@@ -89,10 +91,8 @@ function getSuggestionValue(suggestion) {
 class SearchBar extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    data: PropTypes.object.isRequired,
-    searchValues: PropTypes.object.isRequired,
-    onChanged: PropTypes.func.isRequired,
-    domain: PropTypes.object.isRequired
+    domain: PropTypes.object.isRequired,
+    loading: PropTypes.number
   }
 
   static styles = theme => ({
@@ -135,7 +135,7 @@ class SearchBar extends React.Component {
   getSuggestions(valueWithCase) {
     const value = valueWithCase.toLowerCase()
 
-    const { data: { statistics } } = this.props
+    const {statistics} = this.context.state.response
     const suggestions = []
 
     // filter out pseudo quantity total
@@ -196,7 +196,7 @@ class SearchBar extends React.Component {
   }
 
   handleAddChip(chip) {
-    const values = {...this.props.searchValues}
+    const values = {...this.context.state.query}
 
     let key, value
     if (chip.includes('=')) {
@@ -218,7 +218,7 @@ class SearchBar extends React.Component {
     this.setState({
       textFieldInput: ''
     })
-    this.props.onChanged(values)
+    this.context.setQuery(values, true)
   }
 
   handleBeforeAddChip(chip) {
@@ -237,13 +237,14 @@ class SearchBar extends React.Component {
     const parts = chip.split('=')
     const key = parts[0]
 
-    const values = {...this.props.searchValues}
+    const {state: {query}, setQuery} = this.context
+    const values = {...query}
     delete values[key]
-    this.props.onChanged(values)
+    setQuery(values, true)
   }
 
   getChips() {
-    const values = {...this.props.searchValues}
+    const {state: {query: {owner, ...values}}} = this.context
     return Object.keys(values).filter(key => values[key]).map(key => {
       if (key === 'atoms') {
         return `atoms=[${values[key].join(',')}]`
@@ -253,8 +254,26 @@ class SearchBar extends React.Component {
     })
   }
 
+  static contextType = SearchContext.type
+
   render() {
-    const { classes, searchValues, onChanged, ...rest } = this.props
+    const {classes, domain, loading} = this.props
+    const {response: {pagination, statistics}, query} = this.context.state
+
+    let helperText = <span>loading ...</span>
+    if (pagination && statistics) {
+      if (pagination.total === 0) {
+        helperText = <span>There are no more entries matching your criteria.</span>
+      } else {
+        helperText = <span>
+          There {pagination.total === 1 ? 'is' : 'are'} {Object.keys(domain.searchMetrics).filter(key => statistics.total.all[key]).map(key => {
+            return <span key={key}>
+              {domain.searchMetrics[key].renderResultString(!loading ? statistics.total.all[key] : '...')}
+            </span>
+          })}{Object.keys(query).length ? ' left' : ''}.
+        </span>
+      }
+    }
 
     return (
       <Autosuggest
@@ -281,11 +300,18 @@ class SearchBar extends React.Component {
           onAdd: (chip) => this.handleAddChip(chip),
           onBeforeAdd: (chip) => this.handleBeforeAddChip(chip),
           onDelete: (chip, index) => this.handleDeleteChip(chip, index),
-          ...rest
+          label: 'search',
+          fullWidth: true,
+          fullWidthInput: false,
+          InputLabelProps: {
+            shrink: true
+          },
+          placeholder: domain.searchPlaceholder,
+          helperText: helperText
         }}
       />
     )
   }
 }
 
-export default compose(withDomain, withStyles(SearchBar.styles))(SearchBar)
+export default compose(withApi(false, false), withDomain, withStyles(SearchBar.styles))(SearchBar)

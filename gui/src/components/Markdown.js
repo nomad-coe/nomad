@@ -10,7 +10,8 @@ import extend from '@babel/runtime/helpers/extends'
  * It uses marked with styled 'borrowed' from the materials ui docs system.
  */
 
-var styles = theme => ({
+var styles = theme => {
+  return ({
   root: {
     fontFamily: theme.typography.fontFamily,
     fontSize: 16,
@@ -23,7 +24,7 @@ var styles = theme => ({
     '& pre, & pre[class*="language-"]': {
       margin: '24px 0',
       padding: '12px 18px',
-      backgroundColor: theme.palette.primary[50],
+      backgroundColor: theme.palette.primary.veryLight,
       borderRadius: theme.shape.borderRadius,
       overflow: 'auto',
       WebkitOverflowScrolling: 'touch' // iOS momentum scrolling.
@@ -35,7 +36,7 @@ var styles = theme => ({
       fontFamily: 'Consolas, "Liberation Mono", Menlo, Courier, monospace',
       padding: '3px 6px',
       color: theme.palette.text.primary,
-      backgroundColor: theme.palette.primary[50],
+      backgroundColor: theme.palette.primary.veryLight,
       fontSize: 14
     },
     '& p code, & ul code, & pre code': {
@@ -192,7 +193,7 @@ var styles = theme => ({
     },
     '& a, & a code': {
       // Style taken from the Link component
-      color: theme.palette.secondary.main,
+      color: theme.palette.primary.main,
       textDecoration: 'none',
       '&:hover': {
         textDecoration: 'underline'
@@ -202,7 +203,7 @@ var styles = theme => ({
       maxWidth: '100%'
     }
   }
-})
+})}
 
 function Markdown(props) {
   const { classes, text, children } = props

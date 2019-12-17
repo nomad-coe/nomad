@@ -1,90 +1,95 @@
 import React from 'react'
 import PropTypes, { instanceOf } from 'prop-types'
 import Markdown from '../Markdown'
-import { withStyles, Paper, IconButton, FormGroup, Checkbox, FormControlLabel, FormLabel, Tooltip } from '@material-ui/core'
+import { withStyles, Paper, IconButton, FormGroup, FormLabel, Tooltip } from '@material-ui/core'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import Dropzone from 'react-dropzone'
 import Upload from './Upload'
 import { compose } from 'recompose'
-import DeleteIcon from '@material-ui/icons/Delete'
 import ReloadIcon from '@material-ui/icons/Cached'
-import CheckIcon from '@material-ui/icons/Check'
 import MoreIcon from '@material-ui/icons/MoreHoriz'
 import ClipboardIcon from '@material-ui/icons/Assignment'
-import ConfirmDialog from './ConfirmDialog'
 import HelpDialog from '../Help'
 import { withApi } from '../api'
 import { withCookies, Cookies } from 'react-cookie'
 import Pagination from 'material-ui-flat-pagination'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
-
-const publishedUploadsPageSize = 10
+import { guiBase } from '../../config'
+import qs from 'qs'
 
 export const help = `
-NOMAD now provides a two step upload process. After you upload your files, you
-check NOMAD's processing of your files before you publish your data. This gives you
-more control about how NOMAD will present your data.
+NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
+identify the main output files of [supported codes](https://www.nomad-coe.eu/the-project/nomad-repository/nomad-repository-howtoupload)
+and then it will parse these files. The result will be a list of entries (one per each identified mainfile).
+Each entry is associated with metadata. This is data that NOMAD acquired from your files and that
+describe your calculations (e.g. chemical formula, used code, system type and symmetry, etc.).
+Furthermore, you can provide your own metadata (comments, references, co-authors, etc.).
+At first, uploaded data is only visible to you. Before others can actually see and download
+your data, you need to publish your upload.
 
 #### Prepare and upload files
 
-To upload your own data, please put all the relevant files of all the calculations
+Please put all the relevant files of all the calculations
 you want to upload into a single \`*.zip\` or \`*.tar.gz\` archive.
 We encourage you to add all code input and
 output files, as well as any other auxiliary files that you might have created.
-You can put data from multiple calculations, using your preferred directory
-structure, into your archives. Drop your archive file(s) below. You can also
-click the dropbox to select the file from your hard drive.
+You can put data from multiple calculations into one file using as many directories as
+you like. NOMAD will consider all files on a single directory to form a single entry.
+Ideally, you put only files related to a single code run into each directory. If users
+want to download an entry, they will download all files in the respective directory.
+The directory structure can be nested.
 
-Alternatively, you can upload files via the given shell command.
+Drop your archive file(s) below. You can also click the dropbox to select the file from
+your hard drive. Alternatively, you can upload files via the given shell command.
 Replace \`<local_file>\` with your archive file. After executing the command,
 return here and press the reload button below).
 
-There is a limit of 32 GB per upload. Please upload multiple archives, if
-you have more than 32 GB of data to upload.
+There is a limit of 10 unpublished uploads per user. Please accumulate all data into as
+few uploads as possible. But, there is a also an upper limit of 32 GB per upload.
+Please upload multiple archives, if you have more than 32 GB of data to upload.
 
 #### The staging area
 
-Uploaded data will not be public immediately. We call this *staging area*.
-
-Below you will find all your unpublished and published uploads.
-The unpublished uploads are in the *staging area*. You can see the
+Uploaded data will not be public immediately. Below you will find all your unpublished and
+published uploads. The unpublished uploads are only visible to you. You can see the
 progress on the processing, you can review your uploads, and publish or delete them again.
 
 Click on an upload to see more details about its contents. Click on processed calculations
-to see their metadata, archive data, and a processing log. Select uploads to *delete*
-or *publish* them.
+to see their metadata, archive data, and a processing log. In the details view, you also
+find buttons for editing user metadata, deleting uploads, and publishing uploads. Only
+full uploads can be deleted or published.
+
+#### Publishing and embargo
 
 If you press publish, a dialog will appear that allows you to set an
-*embargo* or publish your data as *Open Access* right away. The *embargo* allows you to shared
-it with selected users, create a DOI for your data, and later publish the data.
-The *embargo* might last up to 36 month before it becomes public automatically.
-During an *embargo* some meta-data will be available.
-
-When you publish your upload, it will take a night before it will appear in the
-[NOMAD Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/).
-We are working on expediting this process.
+*embargo* or publish your data as *Open Access* right away. The *embargo* allows you to share
+data with selected users, create a DOI for your data, and later publish the data.
+The *embargo* might last up to 36 month before data becomes public automatically.
+During an *embargo* the data (and datasets created from this data) are only visible to you
+and users you *share with* the data.
 
 #### Processing errors
 
 We distinguish between uploads that fail processing completely and uploads that contain
 entries that could not be processed. The former might be caused by issues during the
 upload, bad file formats, etc. The latter (for more common) case means that not all of the provided
-code input/output files could not be parsed by our parsers for various reasons.
-The processing logs of the failed entries might provide some insight.
+code output files could be parsed by our parsers. The processing logs of the failed entries might provide some insight.
 
-We do not allow the publishing of uploads that fail processing completely. Frankly, in most
+You can not publish uploads that failed processing completely. Frankly, in most
 cases there won't be any data to publish anyways. In the case of failed processing of
-some entries, the data can still be published. You will be able to share it and create
+some entries however, the data can still be published. You will be able to share it and create
 DOIs for it, etc. The only shortcomings will be missing metadata (labeled *not processed*
 or *unavailable*) and missing archive data. We continuously improve our parsers and
-the missing information might be made available in the future.
+the now missing information might become available in the future automatically.
 
-#### Co-Authors, References, Comments, Datasets
+#### Co-Authors, References, Comments, Datasets, DOIs
 
-Currently, this web-page is only about uploading your calculations. To further edit
-comments, references, co-authors, share with other authors, or curate datasets, use
-the [NOMAD Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/) on
-your published data (as usual).
+You can edit additional *user metadata*. This data is assigned to individual entries, but
+you can select and edit many entries at once. Edit buttons for user metadata are available
+in many views on this web-page. For example, you can edit user metadata when you click on
+an upload to open its details, and press the edit button there. User metadata can also
+be changed after publishing data. The documentation on the [user data page](${guiBase}/userdata)
+contains more information.
 `
 
 class Uploads extends React.Component {
@@ -92,7 +97,8 @@ class Uploads extends React.Component {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired,
-    cookies: instanceOf(Cookies).isRequired
+    cookies: instanceOf(Cookies).isRequired,
+    location: PropTypes.object
   }
 
   static styles = theme => ({
@@ -139,16 +145,15 @@ class Uploads extends React.Component {
       marginRight: theme.spacing.unit,
       overflow: 'hidden'
     },
-    selectFormGroup: {
-      paddingLeft: theme.spacing.unit * 3
+    formGroup: {
+      paddingLeft: 0
     },
-    selectLabel: {
+    uploadsLabel: {
+      flexGrow: 1,
+      paddingLeft: 0,
       padding: theme.spacing.unit * 2
     },
     uploads: {
-      marginTop: theme.spacing.unit * 2
-    },
-    uploadsContainer: {
       marginTop: theme.spacing.unit * 4
     },
     pagination: {
@@ -156,18 +161,23 @@ class Uploads extends React.Component {
     }
   })
 
+  defaultData = {
+    results: [],
+    pagination: {
+      total: 0,
+      per_page: 10,
+      page: 1
+    }
+  }
+
   state = {
-    unpublishedUploads: null,
-    publishedUploads: null,
-    publishedUploadsPage: 1,
-    publishedUploadsTotal: 0,
     uploadCommand: {
       upload_command: 'loading ...',
       upload_tar_command: 'loading ...',
       upload_progress_command: 'loading ...'
     },
-    selectedUnpublishedUploads: [],
-    showPublishDialog: false
+    data: {...this.defaultData},
+    uploading: []
   }
 
   componentDidMount() {
@@ -181,77 +191,30 @@ class Uploads extends React.Component {
       })
   }
 
-  update(publishedUploadsPage) {
-    this.props.api.getUnpublishedUploads()
-      .then(uploads => {
-        // const filteredUploads = uploads.filter(upload => !upload.is_state)
-        this.setState({unpublishedUploads: uploads.results, selectedUnpublishedUploads: []})
-      })
-      .catch(error => {
-        this.setState({unpublishedUploads: [], selectedUnpublishedUploads: []})
-        this.props.raiseError(error)
-      })
-    this.props.api.getPublishedUploads(publishedUploadsPage, publishedUploadsPageSize)
+  update(newPage) {
+    const { data: { pagination: { page, per_page }}} = this.state
+    this.props.api.getUploads('all', newPage || page, per_page)
       .then(uploads => {
         this.setState({
-          publishedUploads: uploads.results,
-          publishedUploadsTotal: uploads.pagination.total,
-          publishedUploadsPage: uploads.pagination.page})
+          data: uploads,
+          uploading: this.state.uploading.filter(upload => upload.current_task === 'uploading')})
       })
       .catch(error => {
-        this.setState({publishedUploads: []})
+        this.setState({data: {...this.defaultData}})
         this.props.raiseError(error)
       })
   }
 
-  onDeleteClicked() {
-    Promise.all(this.state.selectedUnpublishedUploads.map(upload => this.props.api.deleteUpload(upload.upload_id)))
-      .then(() => this.update())
-      .catch(error => {
-        this.props.raiseError(error)
-        this.update()
-      })
-  }
-
-  onPublishClicked() {
-    this.setState({showPublishDialog: true})
-  }
-
-  onPublish(withEmbargo) {
-    Promise.all(this.state.selectedUnpublishedUploads
-      .map(upload => this.props.api.publishUpload(upload.upload_id, withEmbargo)))
-      .then(() => {
-        this.setState({showPublishDialog: false})
-        return this.update()
-      })
-      .catch(error => {
-        this.props.raiseError(error)
-        this.update()
-      })
-  }
-
-  sortedUnpublishedUploads(order) {
-    order = order || -1
-    return this.state.unpublishedUploads.concat()
-      .sort((a, b) => (a.gui_upload_id === b.gui_upload_id)
-        ? 0
-        : ((a.gui_upload_id < b.gui_upload_id) ? -1 : 1) * order)
-  }
-
-  handleDoesNotExist(nonExistingUpload) {
-    this.setState({
-      unpublishedUploads: this.state.unpublishedUploads.filter(upload => upload !== nonExistingUpload)
-    })
-  }
-
-  handlePublished(publishedUpload) {
+  handleDoesNotExist(removedUpload) {
+    const { uploading } = this.state
+    this.setState({uploading: uploading.filter(upload => upload !== removedUpload)})
     this.update()
   }
 
   onDrop(files, rejectedFiles) {
     const upload = file => {
       const upload = this.props.api.createUpload(file.name)
-      this.setState({unpublishedUploads: [...this.state.unpublishedUploads, upload]})
+      this.setState({uploading: [upload, ...this.state.uploading]})
       upload.uploadFile(file).catch(this.props.raiseError)
     }
 
@@ -261,135 +224,45 @@ class Uploads extends React.Component {
       .forEach(upload)
   }
 
-  onSelectionChanged(upload, checked) {
-    if (checked) {
-      this.setState({selectedUnpublishedUploads: [upload, ...this.state.selectedUnpublishedUploads]})
-    } else {
-      const selectedUnpublishedUploads = [...this.state.selectedUnpublishedUploads]
-      selectedUnpublishedUploads.splice(selectedUnpublishedUploads.indexOf(upload), 1)
-      this.setState({selectedUnpublishedUploads: selectedUnpublishedUploads})
-    }
-  }
-
-  onSelectionAllChanged(checked) {
-    if (checked) {
-      this.setState({selectedUnpublishedUploads: [...this.state.unpublishedUploads.filter(upload => !upload.tasks_running)]})
-    } else {
-      this.setState({selectedUnpublishedUploads: []})
-    }
-  }
-
-  renderPublishedUploads() {
+  renderUploads(openUpload) {
     const { classes } = this.props
-    const { publishedUploadsTotal, publishedUploadsPage, publishedUploads } = this.state
+    const { data: { results, pagination: { total, per_page, page }}, uploading } = this.state
 
-    if (!publishedUploads || publishedUploads.length === 0) {
-      return ''
-    }
+    const renderUpload = upload => <Upload
+      open={openUpload === upload.upload_id}
+      key={upload.gui_upload_id} upload={upload}
+      onDoesNotExist={() => this.handleDoesNotExist(upload)}
+    />
 
-    return (<div className={classes.uploadsContainer}>
-      <FormLabel className={classes.uploadsLabel}>Your published uploads: </FormLabel>
-      <div className={classes.uploads}>
-        <div>
-          {
-            publishedUploads.map(upload => (
-              <Upload key={upload.gui_upload_id} upload={upload}
-                checked={false}
-                onCheckboxChanged={checked => true}/>
-            ))
-          }
-          {
-            (publishedUploadsTotal > publishedUploadsPageSize)
-              ? <Pagination classes={{root: classes.pagination}}
-                limit={publishedUploadsPageSize}
-                offset={(publishedUploadsPage - 1) * publishedUploadsPageSize}
-                total={publishedUploadsTotal}
-                onClick={(_, offset) => this.update((offset / publishedUploadsPageSize) + 1)}
-                previousPageLabel={'prev'}
-                nextPageLabel={'next'}
-              /> : ''
-          }
-        </div>
-      </div>
-    </div>)
-  }
-
-  renderUnpublishedUploads() {
-    const { classes } = this.props
-    const { selectedUnpublishedUploads, showPublishDialog } = this.state
-    const unpublishedUploads = this.state.unpublishedUploads || []
-
-    const reloadButton = <Tooltip title="Reload uploads, e.g. after using the curl upload" >
-      <IconButton onClick={() => this.update()}><ReloadIcon /></IconButton>
-    </Tooltip>
-
-    return (<div className={classes.uploadsContainer}>
-      <div style={{width: '100%'}}>
-        {(unpublishedUploads.length === 0) ? ''
-          : <FormLabel className={classes.uploadsLabel}>Your unpublished uploads: </FormLabel>
-        }
-        <FormGroup className={classes.selectFormGroup} style={{alignItems: 'center'}}row>
-          {(unpublishedUploads.length === 0) ? <FormLabel label="all" style={{flexGrow: 1}}>You have currently no unpublished uploads</FormLabel>
-            : <FormControlLabel label="all" style={{flexGrow: 1}} control={(
-              <Checkbox
-                checked={selectedUnpublishedUploads.length === unpublishedUploads.length && unpublishedUploads.length !== 0}
-                onChange={(_, checked) => this.onSelectionAllChanged(checked)}
-              />
-            )} />
-          }
-          {reloadButton}
-          <FormLabel classes={{root: classes.selectLabel}}>
-            {`selected uploads ${selectedUnpublishedUploads.length}/${unpublishedUploads.length}`}
-          </FormLabel>
-          <Tooltip title="Delete selected uploads" >
-            <div>
-              <IconButton
-                disabled={selectedUnpublishedUploads.length === 0}
-                onClick={this.onDeleteClicked.bind(this)}
-              >
-                <DeleteIcon />
-              </IconButton>
-            </div>
-          </Tooltip>
-
-          <Tooltip title="Publish selected uploads" >
-            <div>
-              <IconButton
-                disabled={selectedUnpublishedUploads.length === 0 || selectedUnpublishedUploads.some(upload => upload.tasks_status !== 'SUCCESS' || upload.total_calcs === 0)}
-                onClick={() => this.onPublishClicked()}>
-                <CheckIcon />
-              </IconButton>
-            </div>
-          </Tooltip>
-
-          <ConfirmDialog
-            open={showPublishDialog}
-            onClose={() => this.setState({showPublishDialog: false})}
-            onPublish={(withEmbargo) => this.onPublish(withEmbargo)}
-          />
-
-        </FormGroup>
-      </div>
-      {
-        (unpublishedUploads.length === 0)
-          ? ''
-          : <div className={classes.uploads}>
-            { this.sortedUnpublishedUploads().map(upload => (
-              <Upload key={upload.gui_upload_id} upload={upload}
-                checked={selectedUnpublishedUploads.indexOf(upload) !== -1}
-                onDoesNotExist={() => this.handleDoesNotExist(upload)}
-                onPublished={() => this.handlePublished(upload)}
-                onCheckboxChanged={checked => this.onSelectionChanged(upload, checked)}/>
-            ))
-            }
-          </div>
-      }
+    return (<div className={classes.uploads}>
+      <FormGroup className={classes.formGroup} row>
+        <FormLabel className={classes.uploadsLabel}>Your uploads: </FormLabel>
+        <Tooltip title="Reload uploads, e.g. after using the curl upload" >
+          <IconButton onClick={() => this.update()}><ReloadIcon /></IconButton>
+        </Tooltip>
+      </FormGroup>
+      {uploading.map(renderUpload)}
+      {results.map(renderUpload)}
+      {(total > per_page)
+        ? <Pagination classes={{root: classes.pagination}}
+          limit={per_page}
+          offset={(page - 1) * per_page}
+          total={total}
+          onClick={(_, offset) => this.update((offset / per_page) + 1)}
+          previousPageLabel={'prev'}
+          nextPageLabel={'next'}
+        /> : ''}
     </div>)
   }
 
   render() {
-    const { classes } = this.props
+    const { classes, location } = this.props
     const { uploadCommand } = this.state
+
+    let openUpload = null
+    if (location && location.search) {
+      openUpload = (qs.parse(location.search.substring(1)) || {}).open
+    }
 
     return (
       <div className={classes.root}>
@@ -471,8 +344,7 @@ class Uploads extends React.Component {
           `}/>
         </div>
 
-        {this.renderUnpublishedUploads()}
-        {this.renderPublishedUploads()}
+        {this.renderUploads(openUpload)}
       </div>
     )
   }

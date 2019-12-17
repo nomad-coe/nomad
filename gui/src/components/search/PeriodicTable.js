@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 import periodicTableData from './PeriodicTableData'
 import { withStyles, Typography, Button, Tooltip, FormControlLabel, Checkbox } from '@material-ui/core'
 import chroma from 'chroma-js'
+import { nomadSecondaryColor } from '../../config.js'
 
 const elements = []
 for (var i = 0; i < 10; i++) {
@@ -119,7 +120,6 @@ class PeriodicTable extends React.Component {
 
   static styles = theme => ({
     root: {
-      overflowX: 'scroll',
       position: 'relative'
     },
     table: {
@@ -162,7 +162,7 @@ class PeriodicTable extends React.Component {
   render() {
     const {classes, aggregations, metric, values, exclusive, onExclusiveChanged} = this.props
     const max = aggregations ? Math.max(...this.unSelectedAggregations()) || 1 : 1
-    const heatmapScale = chroma.scale(['#ffcdd2', '#d50000']).domain([1, max], 10, 'log')
+    const heatmapScale = chroma.scale([nomadSecondaryColor.veryLight, nomadSecondaryColor.main]).domain([1, max], 10, 'log')
     return (
       <div className={classes.root}>
         <table className={classes.table}>

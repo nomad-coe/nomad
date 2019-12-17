@@ -4,9 +4,6 @@ proxy:
     host: "labdev-nomad.esc.rzg.mpg.de"
     path: "/fairdi/nomad/testing"
 
-api:
-  disableReset: false
-
 gui:
   debug: true
 
@@ -16,10 +13,11 @@ worker:
 
 dbname: fairdi_nomad_testing
 
-postgres:
-  publish_enabled: false
-
 uploadurl: 'https://labdev-nomad.rzg.mpg.de/fairdi/nomad/testing/upload'
+
+keycloak:
+  passwordSecret: 'nomad-keycloak-password'
+  clientSecret: 'nomad-keycloak-prod-api-secret'
 
 volumes:
   prefixSize: 2

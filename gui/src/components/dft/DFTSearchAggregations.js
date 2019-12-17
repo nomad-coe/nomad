@@ -1,79 +1,56 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Grid, Card, CardContent } from '@material-ui/core'
-import PeriodicTable from '../search/PeriodicTable'
+import { withStyles, Grid } from '@material-ui/core'
 import QuantityHistogram from '../search/QuantityHistogram'
-import { compose } from 'recompose'
+import SearchContext from '../search/SearchContext'
 import { withApi } from '../api'
 
-class DFTSearchAggregations extends React.Component {
+
+class QuantityUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    statistics: PropTypes.object.isRequired,
+    quantity: PropTypes.string.isRequired,
     metric: PropTypes.string.isRequired,
-    searchValues: PropTypes.object.isRequired,
-    onChange: PropTypes.func.isRequired,
-    info: PropTypes.object
+    title: PropTypes.string,
+    scale: PropTypes.number
   }
-
   static styles = theme => ({
-    root: {},
-    quantity: {
+    root: {
       marginTop: theme.spacing.unit * 2
-    },
-    quantityGrid: {
-      marginBottom: theme.spacing.unit * 2
     }
   })
 
-  constructor(props) {
-    super(props)
-    this.handleExclusiveChanged = this.handleExclusiveChanged.bind(this)
-  }
-
-  state = {
-    exclusive: false
-  }
-
-  handleExclusiveChanged() {
-    const { searchValues } = this.props
-    const value = !this.state.exclusive
-    this.setState({exclusive: value})
-    if (value) {
-      searchValues.only_atoms = searchValues.only_atoms || searchValues.atoms
-      delete searchValues.atoms
-    } else {
-      searchValues.atoms = searchValues.only_atoms || searchValues.atoms
-      delete searchValues.only_atoms
-    }
-    this.props.onChange({searchValues: searchValues})
-  }
-
-  handleAtomsChanged(atoms) {
-    if (this.state.exclusive) {
-      this.setState({exclusive: false})
-    }
-    const searchValues = {...this.props.searchValues}
-    searchValues.atoms = atoms
-    if (searchValues.atoms.length === 0) {
-      delete searchValues.atoms
-    }
-    delete searchValues.only_atoms
-    this.props.onChange({searchValues: searchValues})
-  }
-
-  handleQuantityChanged(quantity, selection) {
-    const searchValues = {...this.props.searchValues}
-    if (selection) {
-      searchValues[quantity] = selection
-    } else {
-      delete searchValues[quantity]
-    }
-    this.props.onChange({searchValues: searchValues})
-  }
+  static contextType = SearchContext.type
 
   render() {
-    const { classes, statistics, metric, searchValues, info } = this.props
+    const {classes, scale, quantity, title, ...props} = this.props
+    const {state: {response, query}, setQuery} = this.context
+
+    return <QuantityHistogram
+      classes={{root: classes.root}}
+      width={300}
+      defaultScale={scale || 1}
+      title={title || quantity}
+      data={response.statistics[quantity]}
+      value={query[quantity]}
+      onChanged={selection => setQuery({...query, [quantity]: selection})}
+      {...props} />
+  }
+}
+
+const Quantity = withStyles(QuantityUnstyled.styles)(QuantityUnstyled)
+
+
+class DFTSearchAggregations extends React.Component {
+  static propTypes = {
+    info: PropTypes.object
+  }
+
+  static contextType = SearchContext.type
+
+  render() {
+    const {info} = this.props
+    const {state: {response: {statistics}, usedMetric}} = this.context
 
     if (statistics.code_name && info) {
       // filter based on known codes, since elastic search might return 0 aggregations on
@@ -82,49 +59,29 @@ class DFTSearchAggregations extends React.Component {
       const defaultValue = {
         code_runs: 0
       }
-      defaultValue[metric] = 0
+      defaultValue[usedMetric] = 0
       info.codes.forEach(key => {
         filteredCodeNames[key] = statistics.code_name[key] || defaultValue
       })
       statistics.code_name = filteredCodeNames
     }
 
-    const quantity = (key, title, scale) => (<QuantityHistogram
-      classes={{root: classes.quantity}} title={title || key} width={300}
-      data={statistics[key]} metric={metric}
-      value={searchValues[key]} defaultScale={scale}
-      onChanged={(selection) => this.handleQuantityChanged(key, selection)}/>)
-
     return (
-      <div className={classes.root}>
-        <Card>
-          <CardContent>
-            <PeriodicTable
-              aggregations={statistics.atoms} metric={metric}
-              exclusive={this.state.exclusive}
-              values={searchValues.atoms || searchValues.only_atoms || []}
-              onChanged={(selection) => this.handleAtomsChanged(selection)}
-              onExclusiveChanged={this.handleExclusiveChanged}
-            />
-          </CardContent>
-        </Card>
-
-        <Grid container spacing={24} className={classes.quantityGrid}>
-          <Grid item xs={4}>
-            {quantity('code_name', 'Code', 0.25)}
-          </Grid>
-          <Grid item xs={4}>
-            {quantity('system', 'System type', 0.25)}
-            {quantity('crystal_system', 'Crystal system', 1)}
-          </Grid>
-          <Grid item xs={4}>
-            {quantity('basis_set', 'Basis set', 0.25)}
-            {quantity('xc_functional', 'XC functionals', 0.5)}
-          </Grid>
+      <Grid container spacing={24}>
+        <Grid item xs={4}>
+          <Quantity quantity="code_name" title="Code" scale={0.25} metric={usedMetric} />
         </Grid>
-      </div>
+        <Grid item xs={4}>
+          <Quantity quantity="system" title="System type" scale={0.25} metric={usedMetric} />
+          <Quantity quantity="crystal_system" title="Crystal system" scale={1} metric={usedMetric} />
+        </Grid>
+        <Grid item xs={4}>
+          <Quantity quantity="basis_set" title="Basis set" scale={0.25} metric={usedMetric} />
+          <Quantity quantity="xc_functional" title="XC functionals" scale={0.5} metric={usedMetric} />
+        </Grid>
+      </Grid>
     )
   }
 }
 
-export default compose(withApi(false), withStyles(DFTSearchAggregations.styles))(DFTSearchAggregations)
+export default withApi(false, false)(DFTSearchAggregations)

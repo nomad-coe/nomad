@@ -44,6 +44,7 @@ RUN pip install mdanalysis==0.16.2
 
 # Make will be necessary to build the docs with sphynx
 RUN apt-get update && apt-get install -y make
+RUN apt-get update && apt-get install -y vim
 
 # We also install the -dev dependencies, to use this image for test and qa
 COPY requirements.txt /install/requirements.txt

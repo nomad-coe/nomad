@@ -352,13 +352,6 @@ class TestStagingUploadFiles(UploadFilesContract):
         upload_files.delete()
         assert not upload_files.exists()
 
-    def test_create_extracted_copy(self, test_upload: StagingUploadWithFiles):
-        upload, upload_files = test_upload
-        upload_files.create_extracted_copy()
-        for calc in upload.calcs:
-            assert os.path.exists(os.path.join(
-                config.fs.coe_extracted, upload_files.upload_id, calc.mainfile))
-
 
 class TestArchiveBasedStagingUploadFiles(UploadFilesFixtures):
     def test_create(self, test_upload_id):

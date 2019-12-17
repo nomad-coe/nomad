@@ -86,7 +86,7 @@ const ITEM_HEIGHT = 48
 
 const styles = theme => ({
   root: {
-    width: 300
+    width: 450
   },
   chip: {
     margin: theme.spacing.unit / 4

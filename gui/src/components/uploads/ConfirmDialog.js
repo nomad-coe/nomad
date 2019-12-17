@@ -51,7 +51,7 @@ class ConfirmDialog extends React.Component {
             </FormGroup>
           </DialogContent>
           <DialogActions>
-            <Button onClick={onClose} color="primary">
+            <Button onClick={onClose}>
               Cancel
             </Button>
             <Button onClick={() => onPublish(withEmbargo)} color="primary" autoFocus>

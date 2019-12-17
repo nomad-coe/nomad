@@ -47,8 +47,6 @@ api:
   adminPassword: "password"
   ## A kubernetes secret with administrator password (supersedes adminPassword)
   adminPasswordSecret: null
-  ## Disable the dangerous reset (delete all data) function
-  disableReset: "true"
   ## Limit of unpublished uploads per user, except admin user
   uploadLimit: 10
 
@@ -119,15 +117,6 @@ elastic:
   host: nomad-flink-01.esc
   port: 9200
 
-postgres:
-  sequential_publish: false
-  publish_enabled: true
-  host: nomad-flink-01.esc
-  port: 5432
-  ## CoE repository mode, values are fairdi, coe. Fairdi stores raw-file path for
-  # new raw-file API; coe stores raw-file paths for extracted raw-file copy
-  mode: fairdi
-
 logstash:
   port: 5000
   host: nomad-flink-01.esc
@@ -141,6 +130,14 @@ mail:
   host: 'localhost'
   port: 25
   from: 'webmaster@nomad-repository.eu'
+
+keycloak:
+  serverUrl: "https://labdev-nomad.esc.rzg.mpg.de/fairdi/keycloak/auth/"
+  realmName: "fairdi_nomad_test"
+  username: "admin"
+  clientId: "nomad_api_dev"
+  guiClientId: "nomad_gui_dev"
+  admin_user_id: "00000000-0000-0000-0000-000000000000"
 
 ## Everything concerning the data that is used by the service
 volumes:

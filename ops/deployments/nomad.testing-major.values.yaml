@@ -1,0 +1,33 @@
+proxy:
+  nodePort: 30009
+  external:
+    host: "labdev-nomad.esc.rzg.mpg.de"
+    path: "/fairdi/nomad/testing-major"
+
+gui:
+  debug: true
+
+worker:
+  replicas: 1
+  routing: "queue"
+ 
+elastic:
+  port: 9202
+
+dbname: fairdi_nomad_testing_major
+
+uploadurl: 'https://labdev-nomad.rzg.mpg.de/fairdi/nomad/testing-major/upload'
+
+keycloak:
+  passwordSecret: 'nomad-keycloak-password'
+  realmName: 'fairdi_nomad_prod'
+  clientId: 'nomad_api_dev'
+  clientSecret: 'nomad-keycloak-prod-api-secret'
+  admin_user_id: '82efac55-6187-408c-8027-b98580c0e1c5'
+
+volumes:
+  prefixSize: 1
+  public: /nomad/fairdi/testing_major/fs/public
+  staging: /nomad/fairdi/testing_major/fs/staging
+  tmp: /nomad/fairdi/testing_major/fs/tmp
+  nomad: /nomad

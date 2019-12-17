@@ -389,8 +389,7 @@ class NomadCeleryRequest(Request):
         # connection by default
         if infrastructure.mongo_client is None:
             infrastructure.setup_mongo()
-        if infrastructure.repository_db is None:
-            infrastructure.setup_repository_db()
+
         proc = unwarp_task(self.task, *args)
         proc.fail(event, **kwargs)
         proc.process_status = PROCESS_COMPLETED
@@ -443,7 +442,12 @@ def unwarp_task(task, cls_name, self_id, *args, **kwargs):
         try:
             self = cls.get(self_id)
         except KeyError as e:
-            logger.info('called object is missing, retry')
+            from nomad import app
+            if app.app.config['TESTING']:
+                # This only happens in tests, where it is not always avoidable that
+                # tasks from old test-cases bleed over.
+                raise ProcObjectDoesNotExist()
+            logger.warning('called object is missing, retry')
             raise task.retry(exc=e, countdown=3)
     except KeyError:
         logger.critical('called object is missing, retries exeeded', proc_id=self_id)

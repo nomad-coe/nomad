@@ -32,8 +32,7 @@ class Quantity extends React.Component {
     },
     valueAction: {},
     valueActionButton: {
-      padding: 2,
-      paddingButtom: 3
+      padding: 4
     },
     valueActionIcon: {
       fontSize: 16

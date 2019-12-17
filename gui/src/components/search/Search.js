@@ -1,283 +1,496 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
-import { IconButton, Typography, Divider, Tooltip, Tabs, Tab } from '@material-ui/core'
-import { compose } from 'recompose'
-import { withErrors } from '../errors'
-import { withApi, DisableOnLoading } from '../api'
+import { Card, Button, List, ListItem, ListItemText, Tooltip, Tabs, Tab, Paper, FormControl,
+  FormGroup, Checkbox, FormControlLabel, Popover, CardContent, IconButton } from '@material-ui/core'
 import SearchBar from './SearchBar'
 import EntryList from './EntryList'
-import SearchAggregations from './SearchAggregations'
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
-import ExpandLessIcon from '@material-ui/icons/ExpandLess'
+import DatasetList from './DatasetList'
+import SearchContext from './SearchContext'
+import { DisableOnLoading } from '../api'
 import { withDomain } from '../domains'
-import DatasetList from './DatasetList';
-import { isEquivalent } from '../../utils';
+import KeepState from '../KeepState'
+import PeriodicTable from './PeriodicTable'
+import ReloadIcon from '@material-ui/icons/Cached'
+import UploadList from './UploadsList'
+import GroupList from './GroupList'
 
-
-/**
- * Component that comprises all search views: SearchBar, SearchAggregations (aka statistics),
- * results (EntryList, DatasetList).
- */
 class Search extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    api: PropTypes.object.isRequired,
-    raiseError: PropTypes.func.isRequired,
-    domain: PropTypes.object,
-    loading: PropTypes.number,
-    searchParameters: PropTypes.object,
-    searchValues: PropTypes.object,
-    showDetails: PropTypes.bool
+    resultTab: PropTypes.string,
+    entryListProps: PropTypes.object,
+    visualization: PropTypes.string,
+    groups: PropTypes.bool,
+    datasets: PropTypes.bool,
+    uploads: PropTypes.bool
   }
 
   static styles = theme => ({
     root: {
-    },
-    searchContainer: {
       padding: theme.spacing.unit * 3
     },
-    resultsContainer: {
-    },
-    searchEntry: {
-      minWidth: 500,
-      maxWidth: 900,
-      margin: 'auto',
-      width: '100%'
-    },
     search: {
-      marginTop: theme.spacing.unit * 4,
+      marginTop: theme.spacing.unit * 2,
       marginBottom: theme.spacing.unit * 8,
-      display: 'flex',
-      alignItems: 'center',
-      minWidth: 500,
-      maxWidth: 1000,
+      maxWidth: 1024,
       margin: 'auto',
       width: '100%'
     },
     searchBar: {
       width: '100%'
     },
-    searchDivider: {
-      width: 1,
-      height: 28,
-      margin: theme.spacing.unit * 0.5
+    selectButton: {
+      margin: theme.spacing.unit
     },
-    searchButton: {
-      padding: 10
+    visalizations: {
+      display: 'block',
+      maxWidth: 900,
+      margin: 'auto',
+      marginTop: theme.spacing.unit * 2,
+      marginBottom: theme.spacing.unit * 2
     },
-    searchResults: {}
+    searchResults: {
+      marginTop: theme.spacing.unit * 4
+    }
   })
 
-  static emptySearchData = {
-    results: [],
-    pagination: {
-      total: 0
+  static visalizations = {
+    'elements': {
+      render: props => <ElementsVisualization {...props}/>,
+      label: 'Elements',
+      description: 'Shows data as a heatmap over the periodic table'
     },
-    datasets: {
-      after: null,
-      values: []
-    },
-    statistics: {
-      total: {
-        all: {
-          datasets: 0
-        }
-      }
+    'domain': {
+      render: props => <DomainVisualization {...props}/>,
+      label: 'Meta data',
+      description: 'Shows histograms on key metadata'
     }
   }
 
+  static contextType = SearchContext.type
+
   state = {
-    data: Search.emptySearchData,
-    searchState: {
-      metrics: [],
-      searchValues: {
-        ...(this.props.searchValues || {})
-      }
-    },
-    entryListState: {
-      ...EntryList.defaultState
-    },
-    datasetListState: {
-      ...DatasetList.defaultState
-    },
-    showDetails: this.props.showDetails,
-    resultTab: 'entries'
+    resultTab: this.resultTab || 'entries',
+    openVisualization: this.props.visualization
   }
 
   constructor(props) {
     super(props)
-
-    this.updateEntryList = this.updateEntryList.bind(this)
-    this.updateDatasetList = this.updateDatasetList.bind(this)
-    this.updateSearch = this.updateSearch.bind(this)
-    this.handleClickExpand = this.handleClickExpand.bind(this)
-
-    this._mounted = false
+    this.handleVisualizationChange = this.handleVisualizationChange.bind(this)
   }
 
-  updateEntryList(changes) {
-    const entryListState = {
-      ...this.state.entryListState, ...changes
-    }
-    this.update({entryListState: entryListState})
-  }
-
-  updateDatasetList(changes) {
-    const datasetListState = {
-      ...this.state.datasetListState, ...changes
-    }
-    this.update({datasetListState: datasetListState})
-  }
-
-  updateSearch(changes) {
-    const searchState = {
-      ...this.state.searchState, ...changes
-    }
-    this.update({searchState: searchState})
-  }
-
-  update(changes) {
-    if (!this._mounted) {
-      return
-    }
-
-    changes = changes || {}
-    const { searchParameters } = this.props
-    const { entryListState, datasetListState, searchState } = {...this.state, ...changes}
-    const { searchValues, ...searchStateRest } = searchState
-    this.setState({...changes})
-
-    const search = {
-      datasets: true,
-      statistics: true,
-      ...entryListState,
-      ...datasetListState,
-      ...searchValues,
-      ...searchStateRest,
-      ...searchParameters
-    }
-
-    this.props.api.search(search)
-      .then(data => {
-        this.setState({
-          data: data || Search.emptySearchData
-        })
-      }).catch(error => {
-        if (error.name === 'NotAuthorized' && this.props.searchParameters.owner !== 'all') {
-          this.setState({data: Search.emptySearchData})
-        } else {
-          this.setState({data: Search.emptySearchData})
-          this.props.raiseError(error)
-        }
-      })
-  }
-
-  componentDidMount() {
-    this._mounted = true
-    this.update()
-  }
-
-  componentWillUnmount() {
-    this._mounted = false
-  }
-
-  componentDidUpdate(prevProps) {
-    // login/logout or changed search paraemters -> reload results
-    if (prevProps.api !== this.props.api || !isEquivalent(prevProps.searchParameters, this.props.searchParameters)) {
-      this.update()
+  handleVisualizationChange(value) {
+    const {openVisualization} = this.state
+    if (value === openVisualization) {
+      this.setState({openVisualization: null})
+    } else {
+      this.setState({openVisualization: value})
     }
   }
 
-  handleClickExpand() {
-    this.setState({showDetails: !this.state.showDetails})
+  handleTabChange(tab) {
+    const {setRequest} = this.context
+
+    setRequest({
+      uploads: tab === 'uploads' ? true : undefined,
+      datasets: tab === 'datasets' ? true : undefined,
+      groups: tab === 'groups' ? true : undefined
+    })
+
+    this.setState({resultTab: tab})
   }
 
   render() {
-    const { classes, domain, loading } = this.props
-    const { data, searchState, entryListState, datasetListState, showDetails, resultTab } = this.state
-    const { searchValues } = searchState
-    const { pagination: { total }, statistics } = data
+    const {classes, entryListProps, groups, datasets, uploads} = this.props
+    const {resultTab, openVisualization} = this.state
+    // const {state: {request: {uploads, datasets, groups}}} = this.context
 
-    let helperText = <span>
-      There {total === 1 ? 'is' : 'are'} {Object.keys(domain.searchMetrics).filter(key => statistics.total.all[key]).map(key => {
-        return <span key={key}>
-          {domain.searchMetrics[key].renderResultString(!loading ? statistics.total.all[key] : '...')}
-        </span>
-      })}{Object.keys(searchValues).length ? ' left' : ''}.
-    </span>
-
-    if (total === 0) {
-      helperText = <span>There are no more entries matching your criteria.</span>
-    }
-
-    return (
+    return <DisableOnLoading>
       <div className={classes.root}>
-        <div className={classes.searchContainer}>
-          <DisableOnLoading>
-            <div className={classes.search}>
-              <SearchBar classes={{autosuggestRoot: classes.searchBar}}
-                fullWidth fullWidthInput={false} helperText={helperText}
-                label="search"
-                placeholder={domain.searchPlaceholder}
-                data={data} searchValues={searchValues}
-                InputLabelProps={{
-                  shrink: true
-                }}
-                onChanged={values => this.updateSearch({searchValues: values})}
-              />
-              <Divider className={classes.searchDivider} />
-              <Tooltip title={showDetails ? 'Hide statistics' : 'Show statistics'}>
-                <IconButton className={classes.searchButton} color="secondary" onClick={this.handleClickExpand}>
-                  {showDetails ? <ExpandLessIcon/> : <ExpandMoreIcon/>}
-                </IconButton>
-              </Tooltip>
+        <div className={classes.search}>
+          <div style={{display: 'flex'}}>
+            <div style={{flexGrow: 1}}>
+              <OwnerSelect />
             </div>
-
-            <div className={classes.searchEntry}>
-              <SearchAggregations
-                data={data} {...searchState} onChange={this.updateSearch}
-                showDetails={showDetails}
+            <FormGroup row>
+              <VisualizationSelect
+                classes={{button: classes.selectButton}}
+                value={openVisualization}
+                onChange={this.handleVisualizationChange}
               />
-            </div>
-          </DisableOnLoading>
+              <MetricSelect classes={{button: classes.selectButton}} />
+            </FormGroup>
+          </div>
+          <SearchBar classes={{autosuggestRoot: classes.searchBar}} />
         </div>
-        <div className={classes.resultsContainer}>
-          <Tabs
-            value={resultTab}
-            indicatorColor="primary"
-            textColor="primary"
-            onChange={(event, value) => this.setState({resultTab: value})}
-          >
-            <Tab label="Calculations" value="entries" />
-            <Tab label="Datasets" value="datasets" />
-          </Tabs>
 
-          <div className={classes.searchResults} hidden={resultTab !== 'entries'}>
-            <Typography variant="caption" style={{margin: 12}}>
-              About {total.toLocaleString()} results:
-            </Typography>
+        <div className={classes.visalizations}>
+          {Object.keys(Search.visalizations).map(key => {
+            return Search.visalizations[key].render({
+              key: key, open: openVisualization === key
+            })
+          })
+          }
+        </div>
 
-            <EntryList
-              data={data} total={total}
-              onChange={this.updateEntryList}
-              {...entryListState}
+        <div className={classes.searchResults}>
+          <Paper>
+            <Tabs
+              value={resultTab}
+              indicatorColor="primary"
+              textColor="primary"
+              onChange={(event, value) => this.handleTabChange(value)}
+            >
+              <Tab label="Entries" value="entries" />
+              {groups && <Tab label="Grouped entries" value="groups" />}
+              {datasets && <Tab label="Datasets" value="datasets" />}
+              {uploads && <Tab label="Uploads" value="uploads" />}
+            </Tabs>
+
+            <KeepState
+              visible={resultTab === 'entries'}
+              render={() => <SearchEntryList {...(entryListProps || {})}/>}
             />
-          </div>
-          <div className={classes.searchResults} hidden={resultTab !== 'datasets'}>
-            <Typography variant="caption" style={{margin: 12}}>
-              About {statistics.total.all.datasets.toLocaleString()} datasets:
-            </Typography>
-
-            <DatasetList data={data} total={statistics.total.all.datasets}
-              onChange={this.updateDatasetList}
-              {...datasetListState}
-            />
-          </div>
+            {groups && <KeepState
+              visible={resultTab === 'groups'}
+              render={() => <SearchGroupList />}
+            />}
+            {datasets && <KeepState
+              visible={resultTab === 'datasets'}
+              render={() => <SearchDatasetList />}
+            />}
+            {uploads && <KeepState
+              visible={resultTab === 'uploads'}
+              render={() => <SearchUploadList />}
+            />}
+          </Paper>
         </div>
       </div>
-    )
+    </DisableOnLoading>
   }
 }
 
-export default compose(withApi(false), withErrors, withDomain, withStyles(Search.styles))(Search)
+class DomainVisualizationUnstyled extends React.Component {
+  static propTypes = {
+    domain: PropTypes.object.isRequired,
+    open: PropTypes.bool
+  }
+
+  render() {
+    const {open, domain} = this.props
+
+    return <KeepState visible={open} render={() =>
+      <domain.SearchAggregations />
+    }/>
+  }
+}
+const DomainVisualization = withDomain(DomainVisualizationUnstyled)
+
+class ElementsVisualization extends React.Component {
+  static propTypes = {
+    open: PropTypes.bool
+  }
+
+  static contextType = SearchContext.type
+
+  constructor(props) {
+    super(props)
+    this.handleExclusiveChanged = this.handleExclusiveChanged.bind(this)
+    this.handleAtomsChanged = this.handleAtomsChanged.bind(this)
+  }
+
+  state = {
+    exclusive: false
+  }
+
+  handleExclusiveChanged() {
+    this.setState({exclusive: !this.state.exclusive}, () => {
+      const {state: {query}, setQuery} = this.context
+      if (this.state.exclusive) {
+        setQuery({...query, only_atoms: query.atoms, atoms: []})
+      } else {
+        setQuery({...query, atoms: query.only_atoms, only_atoms: []})
+      }
+    })
+  }
+
+  handleAtomsChanged(atoms) {
+    if (this.state.exclusive) {
+      this.setState({exclusive: false})
+    }
+
+    const {state: {query}, setQuery} = this.context
+    setQuery({...query, atoms: atoms, only_atoms: []})
+  }
+
+  render() {
+    const {open} = this.props
+    const {state: {response: {statistics}, query, metric}} = this.context
+
+    return <KeepState visible={open} render={() =>
+      <Card>
+        <CardContent>
+          <PeriodicTable
+            aggregations={statistics.atoms}
+            metric={metric}
+            exclusive={this.state.exclusive}
+            values={[...(query.atoms || []), ...(query.only_atoms || [])]}
+            onChanged={this.handleAtomsChanged}
+            onExclusiveChanged={this.handleExclusiveChanged}
+          />
+        </CardContent>
+      </Card>
+    }/>
+  }
+}
+
+class MetricSelectUnstyled extends React.Component {
+  static propTypes = {
+    classes: PropTypes.object.isRequired,
+    domain: PropTypes.object.isRequired
+  }
+
+  static contextType = SearchContext.type
+
+  constructor(props) {
+    super(props)
+    this.handleClick = this.handleClick.bind(this)
+    this.handleClose = this.handleClose.bind(this)
+  }
+
+  state = {
+    anchorEl: null
+  }
+
+  handleClick = event => {
+    this.setState({
+      anchorEl: event.currentTarget
+    })
+  }
+
+  handleClose = () => {
+    this.setState({
+      anchorEl: null
+    })
+  }
+
+  handleToggle = (value) => {
+    const {setMetric} = this.context
+    setMetric(value)
+  }
+
+  render() {
+    const {classes, domain} = this.props
+    const {state: {metric}} = this.context
+    const {anchorEl} = this.state
+
+    const metricsDefinitions = domain.searchMetrics
+    const {label, shortLabel} = metricsDefinitions[metric]
+    return <React.Fragment>
+      <Tooltip title="Select the metric used to represent data">
+        <Button size="small" className={classes.button} onClick={this.handleClick}>
+          {shortLabel || label}
+        </Button>
+      </Tooltip>
+      <Popover
+        open={anchorEl !== null}
+        anchorEl={anchorEl}
+        onClose={this.handleClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'center'
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'center'
+        }}
+      >
+        <List>
+          {Object.keys(metricsDefinitions).map(key => {
+            const {label, tooltip} = metricsDefinitions[key]
+            return (
+              <ListItem
+                key={key} role={undefined} dense button
+                onClick={() => this.handleToggle(key)}
+              >
+                <Tooltip title={tooltip || ''}>
+                  <ListItemText primary={label} />
+                </Tooltip>
+              </ListItem>
+            )
+          })}
+        </List>
+      </Popover>
+    </React.Fragment>
+  }
+}
+
+const MetricSelect = withDomain(MetricSelectUnstyled)
+
+class VisualizationSelect extends React.Component {
+  static propTypes = {
+    classes: PropTypes.object.isRequired,
+    value: PropTypes.string,
+    onChange: PropTypes.func.isRequired
+  }
+
+  render() {
+    const {classes, value, onChange} = this.props
+    return <React.Fragment>
+      {Object.keys(Search.visalizations).map(key => {
+        const visualization = Search.visalizations[key]
+        return <Tooltip key={key} title={visualization.description}>
+          <Button
+            size="small" variant="outlined" className={classes.button}
+            color={value === key ? 'primary' : null}
+            onClick={() => onChange(key)}
+          >
+            {visualization.label}
+          </Button>
+        </Tooltip>
+      })}
+    </React.Fragment>
+  }
+}
+
+class OwnerSelect extends React.Component {
+  static ownerLabel = {
+    all: 'All entries',
+    public: 'Only public entries',
+    user: 'Only your entries',
+    staging: 'Staging area only'
+  }
+
+  static ownerTooltips = {
+    all: 'This will show all entries in the database.',
+    public: 'Do not show entries that are only visible to you.',
+    user: 'Do only show entries visible to you.',
+    staging: 'Will only show entries that you uploaded, but not yet published.'
+  }
+
+  static contextType = SearchContext.type
+
+  constructor(props) {
+    super(props)
+    this.handleChange = this.handleChange.bind(this)
+  }
+
+  handleChange(event) {
+    const {props: {ownerTypes}, setQuery} = this.context
+    if (ownerTypes.length === 2) {
+      setQuery({owner: event.target.checked ? ownerTypes[1] : ownerTypes[0]})
+    } else {
+      setQuery({owner: event.target.value})
+    }
+  }
+
+  render() {
+    const {state: {query: {owner}}, props: {ownerTypes}} = this.context
+    const selectedOwner = owner
+
+    if (ownerTypes.length === 1) {
+      return <React.Fragment/>
+    }
+
+    const ownerTypesToRender = ownerTypes.length === 2 ? [ownerTypes[1]] : ownerTypes
+
+    return <FormControl>
+      <FormGroup row>
+        {ownerTypesToRender.map(owner => (
+          <Tooltip key={owner} title={OwnerSelect.ownerTooltips[owner]}>
+            <FormControlLabel
+              control={<Checkbox
+                checked={selectedOwner === owner}
+                onChange={this.handleChange} value="owner"
+              />}
+              label={OwnerSelect.ownerLabel[owner]}
+            />
+          </Tooltip>
+        ))}
+      </FormGroup>
+    </FormControl>
+  }
+}
+
+class ReRunSearchButton extends React.PureComponent {
+  static contextType = SearchContext.type
+
+  render() {
+    const {setRequest} = this.context
+
+    return <Tooltip title="Re-execute the search">
+      <IconButton onClick={() => setRequest({})}>
+        <ReloadIcon />
+      </IconButton>
+    </Tooltip>
+  }
+}
+
+class SearchEntryList extends React.Component {
+  static contextType = SearchContext.type
+
+  render() {
+    const {state: {response, request, query}, props, setRequest} = this.context
+
+    return <EntryList
+      query={{...query, ...props.query}}
+      editable={query.owner === 'staging' || query.owner === 'user'}
+      data={response}
+      onChange={setRequest}
+      actions={<ReRunSearchButton/>}
+      {...request}
+      {...this.props}
+    />
+  }
+}
+
+class SearchDatasetList extends React.Component {
+  static contextType = SearchContext.type
+
+  render() {
+    const {state: {response}, setRequest} = this.context
+
+    return <DatasetList data={response}
+      total={response.statistics.total.all.datasets}
+      datasets_after={response.datasets && response.datasets.after}
+      onChange={setRequest}
+      actions={<ReRunSearchButton/>}
+      {...response}
+    />
+  }
+}
+
+class SearchGroupList extends React.Component {
+  static contextType = SearchContext.type
+
+  render() {
+    const {state: {response}, setRequest} = this.context
+
+    return <GroupList data={response}
+      total={response.statistics.total.all.groups}
+      groups_after={response.groups && response.groups.after}
+      onChange={setRequest}
+      actions={<ReRunSearchButton/>}
+      {...response}
+    />
+  }
+}
+
+class SearchUploadList extends React.Component {
+  static contextType = SearchContext.type
+
+  render() {
+    const {state: {response}, setRequest} = this.context
+
+    return <UploadList data={response}
+      total={response.statistics.total.all.uploads}
+      uploads_after={response.uploads && response.uploads.after}
+      onChange={setRequest}
+      actions={<ReRunSearchButton/>}
+      {...response}
+    />
+  }
+}
+
+export default withStyles(Search.styles)(Search)

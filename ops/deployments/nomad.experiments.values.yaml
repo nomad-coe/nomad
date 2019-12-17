@@ -4,16 +4,10 @@ proxy:
     host: "labdev-nomad.esc.rzg.mpg.de"
     path: "/fairdi/nomad/experiments"
 
-api:
-  disableReset: false
-
 worker:
   replicas: 1
 
 dbname: fairdi_nomad_experiments
-
-postgres:
-  publish_enabled: false
 
 uploadurl: 'https://labdev-nomad.rzg.mpg.de/fairdi/nomad/experiments/upload'
 

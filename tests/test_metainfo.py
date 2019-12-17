@@ -228,6 +228,9 @@ class TestM2:
     def test_parent_section_sub_section_defs(self):
         len(System.m_def.parent_section_sub_section_defs) > 0
 
+    def test_qualified_name(self):
+        assert System.m_def.qualified_name() == 'nomad.metainfo.example.System'
+
 
 class TestM1:
     """ Test for meta-info instances. """

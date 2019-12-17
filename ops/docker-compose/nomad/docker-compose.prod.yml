@@ -15,12 +15,11 @@
 version: '3.4'
 
 services:
-
-    postgres:
-        ports:
-            - 5432:5432
+    # keycloak for user management
+    keycloak:
         volumes:
-            - /nomad/fairdi/db/postgres:/var/lib/postgresql/data
+            - /nomad/fairdi/db/keycloak:/opt/jboss/keycloak/standalone/data
+
     # the search engine
     elastic:
         ports:

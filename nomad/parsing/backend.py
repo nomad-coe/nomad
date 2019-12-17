@@ -497,15 +497,6 @@ class LocalBackend(LegacyParserBackend, metaclass=DelegatingMeta):
     def data(self) -> Results:
         return self._delegate.results
 
-    # def get_value(self, meta_name, g_index=-1):
-    #     return self._delegate.results._datamanagers[meta_name].get_value(meta_name, g_index)
-
-    # def get_sections(self, meta_name, g_index=-1):
-    #     sections = self._delegate.results[meta_name]
-    #     return [
-    #         section.gIndex for section in sections
-    #         if g_index == -1 or section.parents[0].gIndex == g_index]
-
     def _write(
             self, json_writer: JSONStreamWriter, value: Any,
             filter: Callable[[str, Any], Any] = None):

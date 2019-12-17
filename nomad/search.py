@@ -25,19 +25,12 @@ from elasticsearch.exceptions import NotFoundError
 from datetime import datetime
 import json
 
-from nomad import config, datamodel, infrastructure, datamodel, coe_repo, utils, processing as proc
+from nomad import config, datamodel, infrastructure, datamodel, utils, processing as proc
 
 
 path_analyzer = analyzer(
     'path_analyzer',
     tokenizer=tokenizer('path_tokenizer', 'pattern', pattern='/'))
-
-
-user_cache: Dict[str, Any] = dict()
-"""
-A cache for user popos used in the index. We will not retrieve names all the time.
-This cache should be cleared, before larger re-index operations.
-"""
 
 
 class AlreadyExists(Exception): pass
@@ -52,43 +45,24 @@ class ScrollIdNotFound(Exception): pass
 class User(InnerDoc):
 
     @classmethod
-    def from_user_popo(cls, user):
-        self = user_cache.get(user.id, None)
-        if self is None:
-            self = cls(user_id=user.id)
-
-            if 'first_name' not in user:
-                user = coe_repo.User.from_user_id(user.id).to_popo()
-
-            last_name = user['last_name'].strip()
-            first_name = user['first_name'].strip()
-
-            if len(last_name) > 0 and len(first_name) > 0:
-                name = '%s, %s' % (user['last_name'], user['first_name'])
-            elif len(last_name) != 0:
-                name = last_name
-            elif len(first_name) != 0:
-                name = first_name
-            else:
-                name = 'unnamed user with id %d' % user.id
-
-            self.name = name
-            user_cache[user.id] = self
+    def from_user(cls, user):
+        self = cls(user_id=user.user_id)
+        self.name = user.name
+        self.email = user.email
 
         return self
 
     user_id = Keyword()
+    email = Keyword()
     name = Text(fields={'keyword': Keyword()})
 
 
 class Dataset(InnerDoc):
 
     @classmethod
-    def from_dataset_popo(cls, dataset):
-        return cls(
-            id=dataset.id,
-            doi=dataset.doi['value'] if dataset.doi is not None else None,
-            name=dataset.name)
+    def from_dataset_id(cls, dataset_id):
+        dataset = datamodel.Dataset.m_def.m_x('me').get(dataset_id=dataset_id)
+        return cls(id=dataset.dataset_id, doi=dataset.doi, name=dataset.name)
 
     id = Keyword()
     doi = Keyword()
@@ -160,20 +134,25 @@ class Entry(Document, metaclass=WithDomain):
         else:
             self.files = source.files
 
-        self.uploader = User.from_user_popo(source.uploader) if source.uploader is not None else None
-
         self.with_embargo = bool(source.with_embargo)
         self.published = source.published
-        self.authors = [User.from_user_popo(user) for user in source.coauthors]
-        self.owners = [User.from_user_popo(user) for user in source.shared_with]
-        if self.uploader is not None:
-            if self.uploader not in self.authors:
-                self.authors.append(self.uploader)
-            if self.uploader not in self.owners:
-                self.owners.append(self.uploader)
+
+        uploader = datamodel.User.get(user_id=source.uploader) if source.uploader is not None else None
+        authors = [datamodel.User.get(user_id) for user_id in source.coauthors]
+        owners = [datamodel.User.get(user_id) for user_id in source.shared_with]
+        if uploader is not None:
+            authors.append(uploader)
+            owners.append(uploader)
+        authors.sort(key=lambda user: user.last_name + ' ' + user.first_name)
+        owners.sort(key=lambda user: user.last_name + ' ' + user.first_name)
+
+        self.uploader = User.from_user(uploader) if uploader is not None else None
+        self.authors = [User.from_user(user) for user in authors]
+        self.owners = [User.from_user(user) for user in owners]
+
         self.comment = source.comment
-        self.references = [ref.value for ref in source.references]
-        self.datasets = [Dataset.from_dataset_popo(ds) for ds in source.datasets]
+        self.references = source.references
+        self.datasets = [Dataset.from_dataset_id(dataset_id) for dataset_id in source.datasets]
         self.external_id = source.external_id
 
         for quantity in datamodel.Domain.instance.domain_quantities.values():
@@ -242,6 +221,9 @@ all unique geometries.
 
 metrics_names = datamodel.Domain.instance.metrics_names
 """ Names of all available metrics """
+
+groups = datamodel.Domain.instance.groups
+"""The available groupable quantities"""
 
 order_default_quantity = None
 for quantity in datamodel.Domain.instance.quantities.values():
@@ -315,7 +297,7 @@ class SearchRequest:
                 raise ValueError('Authentication required for owner value user')
             q = Q('term', published=False) & Q('term', owners__user_id=user_id)
         elif owner_type == 'admin':
-            if user_id is None or not coe_repo.User.from_user_id(user_id).is_admin:
+            if user_id is None or not datamodel.User.get(user_id=user_id).is_admin:
                 raise ValueError('This can only be used by the admin user.')
             q = None
         else:

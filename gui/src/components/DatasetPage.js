@@ -3,11 +3,12 @@ import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
-import { withApi } from './api'
+import { withApi, DoesNotExist } from './api'
 import Search from './search/Search'
-import { Typography, Link, Fab } from '@material-ui/core'
-import Download from './entry/Download'
-import DownloadIcon from '@material-ui/icons/CloudDownload'
+import SearchContext from './search/SearchContext'
+import { Typography } from '@material-ui/core'
+import { DatasetActions, DOI } from './search/DatasetList'
+import { withRouter } from 'react-router'
 
 export const help = `
 This page allows you to **inspect** and **download** NOMAD datasets. It alsow allows you
@@ -19,25 +20,31 @@ class DatasetPage extends React.Component {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
     datasetId: PropTypes.string.isRequired,
-    raiseError: PropTypes.func.isRequired
+    raiseError: PropTypes.func.isRequired,
+    history: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
-    root: {
-    },
     description: {
+      flexGrow: 1,
+      marginRight: theme.spacing.unit
+    },
+    header: {
+      display: 'flex',
+      flexDirection: 'row',
       padding: theme.spacing.unit * 3
     },
-    downloadFab: {
-      zIndex: 1,
-      right: 32,
-      top: 56 + 32,
-      position: 'fixed !important'
-    }
+    actions: {}
   })
 
+  constructor(props) {
+    super(props)
+    this.handleChange = this.handleChange.bind(this)
+  }
+
   state = {
-    dataset: {}
+    dataset: {},
+    update: 0
   }
 
   update() {
@@ -45,14 +52,21 @@ class DatasetPage extends React.Component {
     api.search({
       owner: 'all',
       dataset_id: datasetId,
-      page: 1, per_page: 1
+      page: 1,
+      per_page: 1
     }).then(data => {
       const entry = data.results[0]
-      const dataset = entry ? entry.datasets.find(ds => ds.id + '' === datasetId) : {}
-      this.setState({dataset: dataset || {}})
-    }).catch(error => {
+      const dataset = entry && entry.datasets.find(ds => ds.id + '' === datasetId)
+      if (!dataset) {
         this.setState({dataset: {}})
-        raiseError(error)
+        raiseError(new DoesNotExist('Dataset does not exist any more or is not visible to you.'))
+      }
+      this.setState({dataset: {
+        ...dataset, example: entry
+      }})
+    }).catch(error => {
+      this.setState({dataset: {}})
+      raiseError(error)
     })
   }
 
@@ -62,33 +76,48 @@ class DatasetPage extends React.Component {
 
   componentDidUpdate(prevProps) {
     if (prevProps.api !== this.props.api || prevProps.datasetId !== this.props.datasetId) {
-      this.update()
+      this.setState({dataset: {}}, () => this.update())
+    }
+  }
+
+  handleChange(dataset) {
+    if (dataset) {
+      this.setState({dataset: dataset, update: this.state.update + 1})
+    } else {
+      this.props.history.goBack()
     }
   }
 
   render() {
     const { classes, datasetId } = this.props
-    const { dataset } = this.state
+    const { dataset, update } = this.state
 
     return (
-      <div className={classes.root}>
-        <div className={classes.description}>
-          <Typography variant="h4">{dataset.name || 'loading ...'}</Typography>
-          <Typography>
-            dataset{dataset.doi ? <span>, with DOI <Link href={dataset.doi}>{dataset.doi}</Link></span> : ''}
-          </Typography>
+      <div>
+        <div className={classes.header}>
+          <div className={classes.description}>
+            <Typography variant="h4">{dataset.name || 'loading ...'}</Typography>
+            <Typography>
+              dataset{dataset.doi ? <span>, with DOI <DOI doi={dataset.doi} /></span> : ''}
+            </Typography>
+          </div>
+
+          <div className={classes.actions}>
+            {dataset && dataset.example && <DatasetActions
+              dataset={dataset}
+              onChange={this.handleChange}/>
+            }
+          </div>
         </div>
-        <Search searchParameters={{owner: 'all', dataset_id: datasetId}} />
-        <Download
-          classes={{root: classes.downloadFab}} tooltip="download all rawfiles"
-          component={Fab} className={classes.downloadFab} color="primary" size="medium"
-          url={`raw/query?dataset_id=${datasetId}`} fileName={`${dataset.name}.json`}
+
+        <SearchContext
+          query={{dataset_id: datasetId}} ownerTypes={['all', 'public']} update={update}
         >
-          <DownloadIcon />
-        </Download>
+          <Search resultTab="entries" groups datasets />
+        </SearchContext>
       </div>
     )
   }
 }
 
-export default compose(withApi(false), withErrors, withStyles(DatasetPage.styles))(DatasetPage)
+export default compose(withRouter, withApi(false), withErrors, withStyles(DatasetPage.styles))(DatasetPage)

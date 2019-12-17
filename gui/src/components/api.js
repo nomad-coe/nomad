@@ -1,14 +1,14 @@
 import React from 'react'
-import PropTypes, { instanceOf } from 'prop-types'
+import PropTypes from 'prop-types'
 import { withErrors } from './errors'
 import { UploadRequest } from '@navjobs/upload'
 import Swagger from 'swagger-client'
 import { apiBase } from '../config'
 import { Typography, withStyles, Link } from '@material-ui/core'
 import LoginLogout from './LoginLogout'
-import { Cookies, withCookies } from 'react-cookie'
 import { compose } from 'recompose'
 import MetaInfoRepository from './MetaInfoRepository'
+import { withKeycloak } from 'react-keycloak'
 
 const ApiContext = React.createContext()
 
@@ -59,6 +59,7 @@ class Upload {
 
   uploadFile(file) {
     const uploadFileWithProgress = async() => {
+      const authHeaders = await this.api.authHeaders()
       let uploadRequest = await UploadRequest(
         {
           request: {
@@ -66,7 +67,7 @@ class Upload {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/gzip',
-              ...this.api.auth_headers
+              ...authHeaders
             }
           },
           files: [file],
@@ -76,7 +77,7 @@ class Upload {
         }
       )
       if (uploadRequest.error) {
-        handleApiError(uploadRequest.error)
+        handleApiError(uploadRequest.response ? uploadRequest.response.message : uploadRequest.error)
       }
       if (uploadRequest.aborted) {
         throw Error('User abort')
@@ -95,7 +96,7 @@ class Upload {
       return new Promise(resolve => resolve(this))
     } else {
       if (this.upload_id) {
-        return this.api.swaggerPromise.then(client => client.apis.uploads.get_upload({
+        return this.api.swagger().then(client => client.apis.uploads.get_upload({
           upload_id: this.upload_id,
           page: page || 1,
           per_page: perPage || 5,
@@ -148,48 +149,63 @@ function handleApiError(e) {
 }
 
 class Api {
-  static async createSwaggerClient(userNameToken, password) {
-    let data
-    if (userNameToken) {
-      let auth = {
-        'X-Token': userNameToken
-      }
-      if (password) {
-        auth = {
-          'HTTP Basic': {
-            username: userNameToken,
-            password: password
-          }
-        }
-      }
-      data = {authorizations: auth}
-    }
-
-    try {
-      return await Swagger(`${apiBase}/swagger.json`, data)
-    } catch (e) {
-      throw new ApiError()
+  swagger() {
+    if (this.keycloak.token) {
+      const self = this
+      return new Promise((resolve, reject) => {
+        self.keycloak.updateToken()
+          .success(() => {
+            self._swaggerClient
+              .then(swaggerClient => {
+                swaggerClient.authorizations = {
+                  'OpenIDConnect Bearer Token': `Bearer ${self.keycloak.token}`
+                }
+                resolve(swaggerClient)
+              })
+              .catch(() => {
+                reject(new ApiError())
+              })
+          })
+          .error(() => {
+            reject(new ApiError())
+          })
+      })
+    } else {
+      return this._swaggerClient
     }
   }
 
-  constructor(user) {
+  authHeaders() {
+    if (this.keycloak.token) {
+      return new Promise((resolve, reject) => {
+        this.keycloak.updateToken()
+          .success(() => {
+            resolve({
+              'Authorization': `Bearer ${this.keycloak.token}`
+            })
+          })
+          .error(() => {
+            reject(new ApiError())
+          })
+      })
+    } else {
+      return {}
+    }
+  }
+
+  constructor(keycloak) {
     this.onStartLoading = () => null
     this.onFinishLoading = () => null
 
-    this.isLoggedIn = true && user
-    user = user || {}
-    this.auth_headers = {
-      'X-Token': user.token
-    }
-    this.swaggerPromise = Api.createSwaggerClient(user.token).catch(handleApiError)
+    this._swaggerClient = Swagger(`${apiBase}/swagger.json`)
+    this.keycloak = keycloak
 
-    // keep a list of localUploads, these are uploads that are currently uploaded through
-    // the browser and that therefore not yet returned by the backend
-    this.localUploads = []
+    Api.uploadIds = 0
   }
 
   createUpload(name) {
     const upload = new Upload({
+      upload_id: Api.uploadIds++,
       name: name,
       tasks: ['uploading', 'extract', 'parse_all', 'cleanup'],
       current_task: 'uploading',
@@ -200,10 +216,14 @@ class Api {
     return upload
   }
 
-  async getUnpublishedUploads() {
+  async getUploads(state, page, perPage) {
+    state = state || 'all'
+    page = page || 1
+    perPage = perPage || 10
+
     this.onStartLoading()
-    return this.swaggerPromise
-      .then(client => client.apis.uploads.get_uploads({state: 'unpublished', page: 1, per_page: 1000}))
+    return this.swagger()
+      .then(client => client.apis.uploads.get_uploads({state: state, page: page, per_page: perPage}))
       .catch(handleApiError)
       .then(response => ({
         ...response.body,
@@ -216,25 +236,17 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
+  async getUnpublishedUploads() {
+    return this.getUploads('unpublished', 1, 1000)
+  }
+
   async getPublishedUploads(page, perPage) {
-    this.onStartLoading()
-    return this.swaggerPromise
-      .then(client => client.apis.uploads.get_uploads({state: 'published', page: page || 1, per_page: perPage || 10}))
-      .catch(handleApiError)
-      .then(response => ({
-        ...response.body,
-        results: response.body.results.map(uploadJson => {
-          const upload = new Upload(uploadJson, this)
-          upload.uploading = 100
-          return upload
-        })
-      }))
-      .finally(this.onFinishLoading)
+    return this.getUploads('published', 1, 10)
   }
 
   async archive(uploadId, calcId) {
     this.onStartLoading()
-    return this.swaggerPromise
+    return this.swagger()
       .then(client => client.apis.archive.get_archive_calc({
         upload_id: uploadId,
         calc_id: calcId
@@ -261,7 +273,7 @@ class Api {
 
   async calcProcLog(uploadId, calcId) {
     this.onStartLoading()
-    return this.swaggerPromise
+    return this.swagger()
       .then(client => client.apis.archive.get_archive_logs({
         upload_id: uploadId,
         calc_id: calcId
@@ -273,7 +285,7 @@ class Api {
 
   async getRawFileListFromCalc(uploadId, calcId) {
     this.onStartLoading()
-    return this.swaggerPromise
+    return this.swagger()
       .then(client => client.apis.raw.get_file_list_from_calc({
         upload_id: uploadId,
         calc_id: calcId,
@@ -284,9 +296,45 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
+  async getRawFile(uploadId, path, kwargs) {
+    this.onStartLoading()
+    const length = (kwargs && kwargs.length) || 4096
+    return this.swagger()
+      .then(client => client.apis.raw.get({
+        upload_id: uploadId,
+        path: path,
+        decompress: true,
+        ...(kwargs || {}),
+        length: length
+      }))
+      .catch(handleApiError)
+      .then(response => {
+        if (response.data instanceof Blob) {
+          if (response.data.type.endsWith('empty')) {
+            return {
+              contents: '',
+              hasMore: false,
+              mimeType: 'plain/text'
+            }
+          }
+          return {
+            contents: null,
+            hasMore: false,
+            mimeType: response.data.type
+          }
+        }
+        return {
+          contents: response.data,
+          hasMore: response.data.length === length,
+          mimeType: 'plain/text'
+        }
+      })
+      .finally(this.onFinishLoading)
+  }
+
   async repo(uploadId, calcId) {
     this.onStartLoading()
-    return this.swaggerPromise
+    return this.swagger()
       .then(client => client.apis.repo.get_repo_calc({
         upload_id: uploadId,
         calc_id: calcId
@@ -296,10 +344,28 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
+  async edit(edit) {
+    // this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.repo.edit_repo({payload: edit}))
+      .catch(handleApiError)
+      .then(response => response.body)
+      // .finally(this.onFinishLoading)
+  }
+
   async resolvePid(pid) {
     this.onStartLoading()
-    return this.swaggerPromise
+    return this.swagger()
       .then(client => client.apis.repo.resolve_pid({pid: pid}))
+      .catch(handleApiError)
+      .then(response => response.body)
+      .finally(this.onFinishLoading)
+  }
+
+  async resolveDoi(doi) {
+    this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.datasets.resolve_doi({doi: doi}))
       .catch(handleApiError)
       .then(response => response.body)
       .finally(this.onFinishLoading)
@@ -307,8 +373,58 @@ class Api {
 
   async search(search) {
     this.onStartLoading()
-    return this.swaggerPromise
+    return this.swagger()
       .then(client => client.apis.repo.search(search))
+      .catch(handleApiError)
+      .then(response => response.body)
+      .finally(this.onFinishLoading)
+  }
+
+  async getDatasets(prefix) {
+    // no loading indicator, because this is only used in the background of the edit dialog
+    return this.swagger()
+      .then(client => client.apis.datasets.list_datasets({prefix: prefix}))
+      .catch(handleApiError)
+      .then(response => response.body)
+  }
+
+  async assignDatasetDOI(datasetName) {
+    this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.datasets.assign_doi({name: datasetName}))
+      .catch(handleApiError)
+      .then(response => response.body)
+      .finally(this.onFinishLoading)
+  }
+
+  async deleteDataset(datasetName) {
+    this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.datasets.delete_dataset({name: datasetName}))
+      .catch(handleApiError)
+      .then(response => response.body)
+      .finally(this.onFinishLoading)
+  }
+
+  async getUsers(query) {
+    // no loading indicator, because this is only used in the background of the edit dialog
+    return this.swagger()
+      .then(client => client.apis.auth.get_users({query: query}))
+      .catch(handleApiError)
+      .then(response => response.body)
+  }
+
+  async inviteUser(user) {
+    return this.swagger()
+      .then(client => client.apis.auth.invite_user({payload: user}))
+      .catch(handleApiError)
+      .then(response => response.body)
+  }
+
+  async quantities_search(search) {
+    this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.repo.quantities_search(search))
       .catch(handleApiError)
       .then(response => response.body)
       .finally(this.onFinishLoading)
@@ -316,7 +432,7 @@ class Api {
 
   async deleteUpload(uploadId) {
     this.onStartLoading()
-    return this.swaggerPromise
+    return this.swagger()
       .then(client => client.apis.uploads.delete_upload({upload_id: uploadId}))
       .catch(handleApiError)
       .then(response => response.body)
@@ -325,7 +441,7 @@ class Api {
 
   async publishUpload(uploadId, withEmbargo) {
     this.onStartLoading()
-    return this.swaggerPromise
+    return this.swagger()
       .then(client => client.apis.uploads.exec_upload_operation({
         upload_id: uploadId,
         payload: {
@@ -342,10 +458,10 @@ class Api {
 
   async getSignatureToken() {
     this.onStartLoading()
-    return this.swaggerPromise
-      .then(client => client.apis.auth.get_token())
+    return this.swagger()
+      .then(client => client.apis.auth.get_auth())
       .catch(handleApiError)
-      .then(response => response.body)
+      .then(response => response.body.signature_token)
       .finally(this.onFinishLoading)
   }
 
@@ -362,7 +478,7 @@ class Api {
       this.onStartLoading()
       try {
         const loadMetaInfo = async(path) => {
-          return this.swaggerPromise
+          return this.swagger()
             .then(client => client.apis.archive.get_metainfo({metainfo_package_name: path}))
             .catch(handleApiError)
             .then(response => response.body)
@@ -383,7 +499,7 @@ class Api {
   async getInfo() {
     if (!this._cachedInfo) {
       this.onStartLoading()
-      this._cachedInfo = await this.swaggerPromise
+      this._cachedInfo = await this.swagger()
         .then(client => {
           return client.apis.info.get_info()
             .then(response => response.body)
@@ -396,7 +512,7 @@ class Api {
 
   async getUploadCommand() {
     this.onStartLoading()
-    return this.swaggerPromise
+    return this.swagger()
       .then(client => client.apis.uploads.get_upload_command())
       .catch(handleApiError)
       .then(response => response.body)
@@ -410,21 +526,46 @@ export class ApiProviderComponent extends React.Component {
       PropTypes.arrayOf(PropTypes.node),
       PropTypes.node
     ]).isRequired,
-    cookies: instanceOf(Cookies).isRequired,
-    raiseError: PropTypes.func.isRequired
+    raiseError: PropTypes.func.isRequired,
+    keycloak: PropTypes.object.isRequired,
+    keycloakInitialized: PropTypes.bool
   }
 
-  componentDidMount(props) {
-    const token = this.props.cookies.get('token')
-    if (token && token !== 'undefined') {
-      this.state.login(token)
-    } else {
-      this.setState({api: this.createApi()})
+  constructor(props) {
+    super(props)
+    this.onToken = this.onToken.bind(this)
+  }
+
+  onToken(token) {
+    // console.log(token)
+  }
+
+  update() {
+    const { keycloak } = this.props
+    this.setState({api: this.createApi(keycloak)})
+    if (keycloak.token) {
+      keycloak.loadUserInfo()
+        .success(user => {
+          this.setState({user: user})
+        })
+        .error(error => {
+          this.props.raiseError(error)
+        })
     }
   }
 
-  createApi(user) {
-    const api = new Api(user)
+  componentDidMount() {
+    this.update()
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.props.keycloakInitialized !== prevProps.keycloakInitialized) {
+      this.update()
+    }
+  }
+
+  createApi(keycloak) {
+    const api = new Api(keycloak)
     api.onStartLoading = (name) => {
       this.setState(state => ({loading: state.loading + 1}))
     }
@@ -432,61 +573,22 @@ export class ApiProviderComponent extends React.Component {
       this.setState(state => ({loading: Math.max(0, state.loading - 1)}))
     }
 
-    api.getInfo().then(info => {
-      this.setState({info: info})
-    }).catch(error => {
-      this.props.raiseError(error)
-    })
+    api.getInfo()
+      .catch(handleApiError)
+      .then(info => {
+        this.setState({info: info})
+      })
+      .catch(error => {
+        this.props.raiseError(error)
+      })
 
     return api
   }
 
   state = {
     api: null,
-    user: null,
     info: null,
-    isLoggingIn: false,
-    loading: 0,
-    login: (userNameToken, password, successCallback) => {
-      this.setState({isLoggingIn: true})
-      successCallback = successCallback || (() => true)
-      Api.createSwaggerClient(userNameToken, password)
-        .then(client => {
-          client.apis.auth.get_user()
-            .catch(error => {
-              if (error.response && error.response.status !== 401) {
-                throw error
-              }
-            })
-            .then(response => {
-              if (response) {
-                const user = response.body
-                this.setState({api: this.createApi(user), isLoggingIn: false, user: user})
-                this.props.cookies.set('token', user.token)
-                successCallback(true)
-              } else {
-                this.setState({api: this.createApi(), isLoggingIn: false, user: null})
-                successCallback(false)
-              }
-            })
-            .catch(error => {
-              try {
-                this.props.raiseError(error)
-              } catch (e) {
-                this.setState({api: this.createApi(), isLoggingIn: false, user: null})
-                this.props.raiseError(error)
-              }
-            })
-        })
-        .catch(error => {
-          this.setState({api: this.createApi(), isLoggingIn: false, user: null})
-          this.props.raiseError(error)
-        })
-    },
-    logout: () => {
-      this.setState({api: this.createApi(), user: null})
-      this.props.cookies.set('token', undefined)
-    }
+    loading: 0
   }
 
   render() {
@@ -502,9 +604,7 @@ export class ApiProviderComponent extends React.Component {
 class LoginRequiredUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    message: PropTypes.string,
-    isLoggingIn: PropTypes.bool,
-    onLoggedIn: PropTypes.func
+    message: PropTypes.string
   }
 
   static styles = theme => ({
@@ -519,7 +619,7 @@ class LoginRequiredUnstyled extends React.Component {
   })
 
   render() {
-    const {classes, isLoggingIn, onLoggedIn, message} = this.props
+    const {classes, message} = this.props
 
     let loginMessage = ''
     if (message) {
@@ -531,7 +631,7 @@ class LoginRequiredUnstyled extends React.Component {
     return (
       <div className={classes.root}>
         {loginMessage}
-        <LoginLogout onLoggedIn={onLoggedIn} variant="outlined" color="primary" isLoggingIn={isLoggingIn}/>
+        <LoginLogout variant="outlined" color="primary" />
       </div>
     )
   }
@@ -552,7 +652,7 @@ DisableOnLoading.propTypes = {
   children: PropTypes.any.isRequired
 }
 
-export const ApiProvider = compose(withCookies, withErrors)(ApiProviderComponent)
+export const ApiProvider = compose(withKeycloak, withErrors)(ApiProviderComponent)
 
 const LoginRequired = withStyles(LoginRequiredUnstyled.styles)(LoginRequiredUnstyled)
 
@@ -564,7 +664,6 @@ class WithApiComponent extends React.Component {
     loginMessage: PropTypes.string,
     api: PropTypes.object,
     user: PropTypes.object,
-    isLoggingIn: PropTypes.bool,
     Component: PropTypes.any
   }
 
@@ -601,10 +700,10 @@ class WithApiComponent extends React.Component {
 
   render() {
     const { raiseError, loginRequired, loginMessage, Component, ...rest } = this.props
-    const { api, user, isLoggingIn } = rest
+    const { api, keycloak } = rest
     const { notAuthorized } = this.state
     if (notAuthorized) {
-      if (user) {
+      if (keycloak.authenticated) {
         return (
           <div>
             <Typography variant="h6">Not Authorized</Typography>
@@ -617,19 +716,15 @@ class WithApiComponent extends React.Component {
         )
       } else {
         return (
-          <LoginRequired
-            message="You need to be logged in to access this information."
-            isLoggingIn={isLoggingIn}
-            onLoggedIn={() => this.setState({notAuthorized: false})}
-          />
+          <LoginRequired message="You need to be logged in to access this information." />
         )
       }
     } else {
       if (api) {
-        if (user || !loginRequired) {
+        if (keycloak.authenticated || !loginRequired) {
           return <Component {...rest} raiseError={this.raiseError} />
         } else {
-          return <LoginRequired message={loginMessage} isLoggingIn={isLoggingIn} />
+          return <LoginRequired message={loginMessage} />
         }
       } else {
         return ''
@@ -638,12 +733,14 @@ class WithApiComponent extends React.Component {
   }
 }
 
+const WithKeycloakWithApiCompnent = withKeycloak(WithApiComponent)
+
 export function withApi(loginRequired, showErrorPage, loginMessage) {
   return function(Component) {
     return withErrors(props => (
       <ApiContext.Consumer>
         {apiContext => (
-          <WithApiComponent
+          <WithKeycloakWithApiCompnent
             loginRequired={loginRequired}
             loginMessage={loginMessage}
             showErrorPage={showErrorPage}

@@ -32,7 +32,10 @@ def _create_client(*args, **kwargs):
     return __create_client(*args, **kwargs)
 
 
-def __create_client(user: str = nomad_config.client.user, password: str = nomad_config.client.password, ssl_verify: bool = True):
+def __create_client(
+        user: str = nomad_config.client.user,
+        password: str = nomad_config.client.password,
+        ssl_verify: bool = True, use_token: bool = True):
     """ A factory method to create the client. """
     host = urlparse(nomad_config.client.url).netloc.split(':')[0]
 
@@ -41,14 +44,20 @@ def __create_client(user: str = nomad_config.client.user, password: str = nomad_
         warnings.filterwarnings("ignore")
 
     http_client = RequestsClient(ssl_verify=ssl_verify)
-    if user is not None:
-        http_client.set_basic_auth(host, user, password)
 
     client = SwaggerClient.from_url(
         '%s/swagger.json' % nomad_config.client.url,
         http_client=http_client)
 
     utils.get_logger(__name__).info('created bravado client', user=user)
+
+    if user is not None:
+        http_client.set_basic_auth(host, user, password)
+        if use_token:
+            token = client.auth.get_auth().reponse().result.access_token
+            http_client.set_api_key(
+                host, 'Bearer %s' % token, param_name='Authorization', param_in='header')
+        utils.get_logger(__name__).info('set bravado client authentication', user=user)
 
     return client
 
@@ -70,7 +79,8 @@ def handle_common_errors(func):
 @click.option('-u', '--user', default=None, help='the user name to login, default is "%s" login.' % nomad_config.client.user)
 @click.option('-w', '--password', default=nomad_config.client.password, help='the password used to login.')
 @click.option('--no-ssl-verify', help='disables SSL verificaton when talking to nomad.', is_flag=True)
-def client(url: str, user: str, password: str, no_ssl_verify: bool):
+@click.option('--no-token', is_flag=True, help='replaces token with basic auth, e.g. to work with v0.6.x or older API versions')
+def client(url: str, user: str, password: str, no_ssl_verify: bool, no_token: bool):
     logger = utils.get_logger(__name__)
 
     logger.info('Used nomad is %s' % url)
@@ -83,12 +93,9 @@ def client(url: str, user: str, password: str, no_ssl_verify: bool):
     def _create_client(*args, **kwargs):  # pylint: disable=W0612
         if user is not None:
             logger.info('create client', user=user)
-            return __create_client(user=user, password=password, ssl_verify=not no_ssl_verify)
+            return __create_client(
+                user=user, password=password, ssl_verify=not no_ssl_verify,
+                use_token=not no_token)
         else:
             logger.info('create anonymous client')
             return __create_client(ssl_verify=not no_ssl_verify)
-
-
-@client.command(help='Attempts to reset the nomad.')
-def reset():
-    create_client().admin.exec_reset_command().response()

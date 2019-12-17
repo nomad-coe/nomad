@@ -19,19 +19,19 @@ x-common-variables: &nomad_backend_env
     NOMAD_LOGSTASH_HOST: elk
     NOMAD_ELASTIC_HOST: elastic
     NOMAD_MONGO_HOST: mongo
-    NOMAD_REPOSITORY_DB_HOST: postgres
+    NOMAD_KEYCLOAK_HOST: keycloak
 
 services:
-    # postgres for NOMAD-coe repository API and GUI
-    postgres:
+    # keycload for user management
+    keycloak:
         restart: always
-        image: postgres:9.4
-        container_name: nomad_postgres
-        environment:
-            POSTGRES_PASSWORD: 'nomad'
-            POSTGRES_USER: 'postgres'
+        build: ../../containers/keycloak/
+        image: nomad/keycloak
+        container_name: nomad_keycloak
         volumes:
-            - nomad_postgres:/var/lib/postgresql/data
+            - nomad_keycloak:/opt/jboss/keycloak/standalone/data
+        ports:
+            - 8002:8080
 
     # broker for celery
     rabbitmq:
@@ -75,7 +75,7 @@ services:
             <<: *nomad_backend_env
             NOMAD_SERVICE: nomad_worker
         links:
-            - postgres
+            - keycloak
             - rabbitmq
             - elastic
             - mongo
@@ -92,7 +92,7 @@ services:
             <<: *nomad_backend_env
             NOMAD_SERVICE: nomad_api
         links:
-            - postgres
+            - keycloak
             - rabbitmq
             - elastic
             - mongo
@@ -110,7 +110,7 @@ services:
             - app
 
 volumes:
-    nomad_postgres:
+    nomad_keycloak:
     nomad_mongo:
     nomad_elastic:
     nomad_rabbitmq:

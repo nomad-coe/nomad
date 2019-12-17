@@ -1,28 +1,175 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Table, TableHead, TableRow, TableCell, TableBody, Toolbar, IconButton } from '@material-ui/core'
+import { withStyles, TableCell, Toolbar, IconButton, FormGroup, Tooltip, Link } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withRouter } from 'react-router'
 import { withDomain } from '../domains'
-import NextIcon from '@material-ui/icons/ChevronRight';
+import NextIcon from '@material-ui/icons/ChevronRight'
 import StartIcon from '@material-ui/icons/SkipPrevious'
+import DataTable from '../DataTable'
+import SearchIcon from '@material-ui/icons/Search'
+import DOIIcon from '@material-ui/icons/Bookmark'
+import DeleteIcon from '@material-ui/icons/Delete'
+import { withApi } from '../api'
+import EditUserMetadataDialog from '../EditUserMetadataDialog'
+import DownloadButton from '../DownloadButton'
+import ClipboardIcon from '@material-ui/icons/Assignment'
+import { CopyToClipboard } from 'react-copy-to-clipboard'
 
+class DOIUnstyled extends React.Component {
+  static propTypes = {
+    classes: PropTypes.object.isRequired,
+    doi: PropTypes.string.isRequired
+  }
+
+  static styles = theme => ({
+    root: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      flexDirection: 'row',
+      flexWrap: 'nowrap'
+    }
+  })
+
+  render() {
+    const {classes, doi} = this.props
+    const url = `https://dx.doi.org/${doi}`
+    return <span className={classes.root}>
+      <Link href={url}>{doi}</Link>
+      <CopyToClipboard
+        text={url} onCopy={() => null}
+      >
+        <Tooltip title={`Copy DOI to clipboard`}>
+          <IconButton style={{margin: 3, marginRight: 0, padding: 4}}>
+            <ClipboardIcon style={{fontSize: 16}} />
+          </IconButton>
+        </Tooltip>
+      </CopyToClipboard>
+    </span>
+  }
+}
+
+export const DOI = withStyles(DOIUnstyled.styles)(DOIUnstyled)
+
+class DatasetActionsUnstyled extends React.Component {
+  static propTypes = {
+    classes: PropTypes.object.isRequired,
+    dataset: PropTypes.object.isRequired,
+    history: PropTypes.object.isRequired,
+    search: PropTypes.bool,
+    user: PropTypes.object,
+    onChange: PropTypes.func,
+    api: PropTypes.object.isRequired,
+    raiseError: PropTypes.func.isRequired
+  }
+
+  static styles = theme => ({
+    group: {
+      flexWrap: 'nowrap',
+      flexDirection: 'row-reverse'
+    }
+  })
+
+  constructor(props) {
+    super(props)
+    this.handleClickDOI = this.handleClickDOI.bind(this)
+    this.handleClickDataset = this.handleClickDataset.bind(this)
+    this.handleClickDelete = this.handleClickDelete.bind(this)
+    this.handleEdit = this.handleEdit.bind(this)
+  }
+
+  handleClickDataset() {
+    const {dataset: {id}} = this.props
+    this.props.history.push(`/dataset/id/${id}`)
+  }
+
+  handleClickDOI() {
+    const {api, dataset, onChange, raiseError} = this.props
+    const datasetName = dataset.name
+
+    api.assignDatasetDOI(datasetName)
+      .then(dataset => {
+        if (onChange) {
+          onChange(dataset)
+        }
+      })
+      .catch(raiseError)
+  }
+
+  handleEdit() {
+    const {onChange, dataset} = this.props
+    if (onChange) {
+      onChange(dataset)
+    }
+  }
+
+  handleClickDelete() {
+    const {api, dataset, onChange, raiseError} = this.props
+    const datasetName = dataset.name
+
+    api.deleteDataset(datasetName)
+      .then(dataset => {
+        if (onChange) {
+          onChange(null)
+        }
+      })
+      .catch(raiseError)
+  }
+
+  render() {
+    const {dataset, search, user, classes} = this.props
+    const {doi} = dataset
+    const editable = user && dataset.example &&
+      dataset.example.authors.find(author => author.user_id === user.sub)
+
+    const canAssignDOI = !doi
+    const canDelete = !doi
+    const query = {dataset_id: dataset.id}
+
+    return <FormGroup row classes={{root: classes.group}}>
+      {search && <Tooltip title="Open a search page with entries from this dataset only.">
+        <IconButton onClick={this.handleClickDataset}>
+          <SearchIcon />
+        </IconButton>
+      </Tooltip>}
+      {<DownloadButton query={query} tooltip="Download dataset" />}
+      {editable && canDelete && <Tooltip title="Delete this dataset.">
+        <IconButton onClick={this.handleClickDelete}>
+          <DeleteIcon />
+        </IconButton>
+      </Tooltip>}
+      {editable && <EditUserMetadataDialog
+        title="Edit metadata of all dataset entries"
+        example={dataset.example} query={query}
+        total={dataset.total} onEditComplete={this.handleEdit}
+      />}
+      {editable && canAssignDOI && <Tooltip title="Assign a DOI to this dataset.">
+        <IconButton onClick={this.handleClickDOI}>
+          <DOIIcon />
+        </IconButton>
+      </Tooltip>}
+    </FormGroup>
+  }
+}
+
+export const DatasetActions = compose(withRouter, withApi(false), withStyles(DatasetActionsUnstyled.styles))(DatasetActionsUnstyled)
 
 class DatasetListUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    data: PropTypes.object.isRequired,
-    total: PropTypes.number.isRequired,
+    data: PropTypes.object,
+    total: PropTypes.number,
     onChange: PropTypes.func.isRequired,
     history: PropTypes.any.isRequired,
-    after: PropTypes.string
+    datasets_after: PropTypes.string,
+    actions: PropTypes.element
   }
 
   static styles = theme => ({
     root: {
       overflow: 'auto',
       paddingLeft: theme.spacing.unit * 2,
-      paddingRight: theme.spacing.unit * 2,
+      paddingRight: theme.spacing.unit * 2
     },
     scrollCell: {
       padding: 0
@@ -39,14 +186,19 @@ class DatasetListUnstyled extends React.Component {
     }
   })
 
-  rowConfig = {
+  constructor(props) {
+    super(props)
+    this.renderEntryActions = this.renderEntryActions.bind(this)
+  }
+
+  columns = {
     name: {
       label: 'Dataset name',
-      render: (dataset) => dataset.example.datasets.find(d => d.id + '' === dataset.id).name
+      render: (dataset) => dataset.name
     },
     DOI: {
       label: 'Dataset DOI',
-      render: (dataset) => dataset.example.datasets.find(d => d.id + '' === dataset.id).doi
+      render: (dataset) => dataset.doi && <DOI doi={dataset.doi} />
     },
     entries: {
       label: 'Entries',
@@ -62,79 +214,65 @@ class DatasetListUnstyled extends React.Component {
           return authors.map(author => author.name).join('; ')
         }
       }
-    },
+    }
   }
 
-  handleClickDataset(dataset) {
-    this.props.history.push(`/dataset/id/${dataset.id}`)
+  renderEntryActions(entry) {
+    const {onChange} = this.props
+    return <DatasetActions search dataset={entry} onChange={() => onChange({})} />
   }
 
   render() {
-    const { classes, data, datasets_after, onChange } = this.props
-    const results = Object.keys(data.datasets.values).map(id => ({
-      id: id,
-      total: data.datasets.values[id].total,
-      example: data.datasets.values[id].examples[0]
-    }))
+    const { classes, data, total, datasets_after, onChange, actions } = this.props
+    const datasets = data.datasets || {values: []}
+    const results = Object.keys(datasets.values).map(id => {
+      const exampleDataset = datasets.values[id].examples[0].datasets.find(ds => ds.id === id)
+      return {
+        ...exampleDataset,
+        id: id,
+        total: datasets.values[id].total,
+        example: datasets.values[id].examples[0]
+      }
+    })
     const per_page = 10
-    const after = data.datasets.after
+    const after = datasets.after
 
-    const emptyRows = per_page - Math.min(per_page, results.length)
+    let paginationText
+    if (datasets_after) {
+      paginationText = `next ${results.length.toLocaleString()} of ${(total || 0).toLocaleString()}`
+    } else {
+      paginationText = `1-${results.length.toLocaleString()} of ${(total || 0).toLocaleString()}`
+    }
 
-    return (
-      <div className={classes.root}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              {Object.keys(this.rowConfig).map(key => (
-                <TableCell padding="dense" key={key}>
-                  {this.rowConfig[key].label}
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {results.map((dataset, index) => (
-              <TableRow hover tabIndex={-1} key={index} className={classes.clickableRow}>
-                {Object.keys(this.rowConfig).map((key, rowIndex) => (
-                  <TableCell padding="dense" key={rowIndex} onClick={() => this.handleClickDataset(dataset)} >
-                    {this.rowConfig[key].render(dataset)}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-            {emptyRows > 0 && (
-              <TableRow style={{ height: 57 * emptyRows }}>
-                <TableCell colSpan={6} />
-              </TableRow>
-            )}
-            <TableRow>
-              <TableCell colSpan={1000} classes={{root: classes.scrollCell}}>
-                <Toolbar className={classes.scrollBar}>
-                  <span className={classes.scrollSpacer}>&nbsp;</span>
-                  <IconButton disabled={!datasets_after} onClick={() => onChange({datasets_after: null})}>
-                    <StartIcon />
-                  </IconButton>
-                  <IconButton onClick={() => onChange({datasets_after: after})}>
-                    <NextIcon />
-                  </IconButton>
-                </Toolbar>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </div>
-    )
+    const pagination = <TableCell colSpan={1000} classes={{root: classes.scrollCell}}>
+      <Toolbar className={classes.scrollBar}>
+        <span className={classes.scrollSpacer}>&nbsp;</span>
+        <span>{paginationText}</span>
+        <IconButton disabled={!datasets_after} onClick={() => onChange({datasets_after: null})}>
+          <StartIcon />
+        </IconButton>
+        <IconButton disabled={results.length < per_page} onClick={() => onChange({datasets_after: after})}>
+          <NextIcon />
+        </IconButton>
+      </Toolbar>
+    </TableCell>
+
+    return <DataTable
+      entityLabels={['dataset', 'datasets']}
+      id={row => row.id}
+      total={total}
+      columns={this.columns}
+      // selectedColumns={defaultSelectedColumns}
+      // entryDetails={this.renderEntryDetails.bind(this)}
+      entryActions={this.renderEntryActions}
+      data={results}
+      rows={per_page}
+      actions={actions}
+      pagination={pagination}
+    />
   }
 }
 
-const DatasetList = compose(withRouter, withDomain, withStyles(DatasetListUnstyled.styles))(DatasetListUnstyled)
-
-Object.assign(DatasetList, {
-  defaultState: {
-    datasets_after: null
-  }
-})
-
+const DatasetList = compose(withRouter, withDomain, withApi(false), withStyles(DatasetListUnstyled.styles))(DatasetListUnstyled)
 
 export default DatasetList

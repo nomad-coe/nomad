@@ -20,6 +20,9 @@ import numpy as np
 
 from nomad import utils, config
 from nomad.metainfo import MSection
+from nomad import utils, config
+
+from .metainfo import Dataset, User
 
 
 class UploadWithMetadata():
@@ -29,7 +32,7 @@ class UploadWithMetadata():
 
     def __init__(self, **kwargs):
         self.upload_id: str = None
-        self.uploader: utils.POPO = None
+        self.uploader: str = None
         self.upload_time: datetime.datetime = None
 
         self.calcs: Iterable['CalcWithMetadata'] = list()
@@ -74,8 +77,7 @@ class CalcWithMetadata(Mapping):
         shared_with: List of users this calcs ownership is shared with, objects with at ``user_id``.
         comment: String comment.
         references: Objects describing user provided references, keys are ``id`` and ``value``.
-        datasets: Objects describing the datasets, keys are ``id``, ``name``, ``doi``.
-            DOI is optional, is an object with key ``id``, ``value``.
+        datasets: A list of dataset ids. The corresponding :class:`Dataset`s must exist.
     """
     def __init__(self, **kwargs):
         # id relevant metadata
@@ -89,7 +91,7 @@ class CalcWithMetadata(Mapping):
         # basic upload and processing related metadata
         self.upload_time: datetime.datetime = None
         self.files: List[str] = None
-        self.uploader: utils.POPO = None
+        self.uploader: str = None
         self.processed: bool = False
         self.last_processing: datetime.datetime = None
         self.nomad_version: str = None
@@ -98,12 +100,13 @@ class CalcWithMetadata(Mapping):
         # user metadata, i.e. quantities given and editable by the user
         self.with_embargo: bool = None
         self.published: bool = False
-        self.coauthors: List[utils.POPO] = []
-        self.shared_with: List[utils.POPO] = []
+        self.coauthors: List[str] = []
+        self.shared_with: List[str] = []
         self.comment: str = None
-        self.references: List[utils.POPO] = []
-        self.datasets: List[utils.POPO] = []
+        self.references: List[str] = []
+        self.datasets: List[str] = []
         self.external_id: str = None
+        self.last_edit: datetime.datetime = None
 
         # parser related general (not domain specific) metadata
         self.parser_name = None
@@ -140,6 +143,9 @@ class CalcWithMetadata(Mapping):
     def to_dict(self):
         return {key: value for key, value in self.items()}
 
+    def __str__(self):
+        return str(self.to_dict())
+
     def update(self, **kwargs):
         for key, value in kwargs.items():
             if value is None:
@@ -160,21 +166,23 @@ class CalcWithMetadata(Mapping):
         """
         Applies a user provided metadata dict to this calc.
         """
-        self.pid = metadata.get('_pid')
-        self.comment = metadata.get('comment')
-        self.upload_time = metadata.get('_upload_time')
+        self.pid = metadata.get('_pid', self.pid)
+        self.comment = metadata.get('comment', self.comment)
+        self.upload_time = metadata.get('_upload_time', self.upload_time)
         uploader_id = metadata.get('_uploader')
         if uploader_id is not None:
-            self.uploader = utils.POPO(id=int(uploader_id))
-        self.references = [utils.POPO(value=ref) for ref in metadata.get('references', [])]
-        self.with_embargo = metadata.get('with_embargo', False)
+            self.uploader = uploader_id
+        self.references = metadata.get('references', [])
+        self.with_embargo = metadata.get('with_embargo', self.with_embargo)
         self.coauthors = [
-            utils.POPO(id=int(user)) for user in metadata.get('coauthors', [])]
+            user_id for user_id in metadata.get('coauthors', self.coauthors)
+            if User.get(user_id=user_id) is not None]
         self.shared_with = [
-            utils.POPO(id=int(user)) for user in metadata.get('shared_with', [])]
+            user_id for user_id in metadata.get('shared_with', self.shared_with)
+            if User.get(user_id=user_id) is not None]
         self.datasets = [
-            utils.POPO(id=int(ds['id']), doi=utils.POPO(value=ds.get('_doi')), name=ds.get('_name'))
-            for ds in metadata.get('datasets', [])]
+            dataset_id for dataset_id in metadata.get('datasets', self.datasets)
+            if Dataset.m_def.m_x('me').get(dataset_id=dataset_id) is not None]
         self.external_id = metadata.get('external_id')
 
     def apply_domain_metadata(self, backend):
@@ -272,6 +280,10 @@ class Domain:
             domain specific quantities.
         quantities: Additional specifications for the quantities in ``domain_entry_class`` as
             instances of :class:`DomainQuantity`.
+        metrics: Tuples of elastic field name and elastic aggregation operation that
+            can be used to create statistic values.
+        group_quantities: Tuple of quantity name and metric that describes quantities that
+            can be used to group entries by quantity values.
         root_sections: The name of the possible root sections for this domain.
         metainfo_all_package: The name of the full metainfo package for this domain.
     """
@@ -284,6 +296,9 @@ class Domain:
             description=(
                 'Search for the given author. Exact keyword matches in the form "Lastname, '
                 'Firstname".')),
+        uploader_id=DomainQuantity(
+            elastic_field='uploader.user_id', multi=False, aggregations=5,
+            description=('Search for the given uploader id.')),
         comment=DomainQuantity(
             elastic_search_type='match', multi=True,
             description='Search within the comments. This is a text search ala google.'),
@@ -296,11 +311,23 @@ class Domain:
         quantities=DomainQuantity(
             multi=True,
             description='Search for the existence of a certain meta-info quantity'),
-        upload_id=DomainQuantity(description='Search for the upload_id.'),
-        calc_id=DomainQuantity(description='Search for the calc_id.'),
-        pid=DomainQuantity(description='Search for the pid.'),
-        raw_id=DomainQuantity(description='Search for the raw_id.'),
-        mainfile=DomainQuantity(description='Search for the mainfile.'),
+        upload_id=DomainQuantity(
+            description='Search for the upload_id.',
+            multi=True, argparse_action='split', elastic_search_type='terms'),
+        upload_time=DomainQuantity(
+            description='Search for the exact upload time.', elastic_search_type='terms'),
+        calc_id=DomainQuantity(
+            description='Search for the calc_id.',
+            multi=True, argparse_action='split', elastic_search_type='terms'),
+        pid=DomainQuantity(
+            description='Search for the pid.',
+            multi=True, argparse_action='split', elastic_search_type='terms'),
+        raw_id=DomainQuantity(
+            description='Search for the raw_id.',
+            multi=True, argparse_action='split', elastic_search_type='terms'),
+        mainfile=DomainQuantity(
+            description='Search for the mainfile.',
+            multi=True, argparse_action='append', elastic_search_type='terms'),
         external_id=DomainQuantity(
             description='External user provided id. Does not have to be unique necessarily.',
             multi=True, argparse_action='split', elastic_search_type='terms'),
@@ -316,20 +343,27 @@ class Domain:
 
     base_metrics = dict(
         datasets=('datasets.id', 'cardinality'),
+        uploads=('upload_id', 'cardinality'),
         uploaders=('uploader.name.keyword', 'cardinality'),
         authors=('authors.name.keyword', 'cardinality'),
         unique_entries=('calc_hash', 'cardinality'))
+
+    base_groups = dict(
+        datasets=('dataset_id', 'datasets'),
+        uploads=('upload_id', 'uploads'))
 
     def __init__(
             self, name: str, domain_entry_class: Type[CalcWithMetadata],
             quantities: Dict[str, DomainQuantity],
             metrics: Dict[str, Tuple[str, str]],
+            groups: Dict[str, Tuple[str, str]],
             default_statistics: List[str],
             root_sections=['section_run', 'section_entry_info'],
             metainfo_all_package='all.nomadmetainfo.json') -> None:
 
         domain_quantities = quantities
         domain_metrics = metrics
+        domain_groups = groups
 
         if name == config.domain:
             assert Domain.instance is None, 'you can only define one domain.'
@@ -380,6 +414,8 @@ class Domain:
         # construct metrics from base and domain metrics
         self.metrics = dict(**Domain.base_metrics)
         self.metrics.update(**domain_metrics)
+        self.groups = dict(**Domain.base_groups)
+        self.groups.update(**domain_groups)
 
     @property
     def metrics_names(self) -> Iterable[str]:

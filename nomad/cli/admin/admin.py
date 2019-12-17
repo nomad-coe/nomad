@@ -15,6 +15,7 @@
 import click
 import datetime
 import elasticsearch.helpers
+import sys
 
 from nomad import processing as proc, search, datamodel, infrastructure, utils, config
 
@@ -28,6 +29,21 @@ def admin(ctx):
     pass
 
 
+@admin.command(help='Reset/remove all databases.')
+@click.option('--remove', is_flag=True, help='Do not just reset all dbs, but also remove them.')
+@click.option('--i-am-really-sure', is_flag=True, help='Must be set for the command to to anything.')
+def reset(remove, i_am_really_sure):
+    if not i_am_really_sure:
+        print('You do not seem to be really sure about what you are doing.')
+        sys.exit(1)
+
+    infrastructure.setup_logging()
+    infrastructure.setup_mongo()
+    infrastructure.setup_elastic()
+
+    infrastructure.reset(remove)
+
+
 @admin.command(help='(Re-)index all calcs.')
 @click.option('--threads', type=int, default=1, help='Number of threads to use.')
 @click.option('--dry', is_flag=True, help='Do not index, just compute entries.')
@@ -35,7 +51,6 @@ def index(threads, dry):
     infrastructure.setup_logging()
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
-    infrastructure.setup_repository_db()
 
     all_calcs = proc.Calc.objects().count()
     print('indexing %d ...' % all_calcs)
@@ -118,6 +133,16 @@ server {{
         etag off;
         root      /app/;
         rewrite ^{1}/gui/service-worker.js /nomad/service-worker.js break;
+    }}
+
+    location {1}/gui/meta.json {{
+        add_header Last-Modified $date_gmt;
+        add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
+        if_modified_since off;
+        expires off;
+        etag off;
+        root      /app/;
+        rewrite ^{1}/gui/meta.json /nomad/meta.json break;
     }}
 
     location {1}/api {{

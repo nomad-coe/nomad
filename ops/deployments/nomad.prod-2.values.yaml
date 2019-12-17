@@ -1,15 +1,14 @@
 images.nomad.tag: "stable"
 images.frontend.tag: "stable"
 
+services:
+  apiSecret: 'nomad-keycloak-prod-api-secret'
+
 proxy:
   nodePort: 30012
   external:
     host: "repository.nomad-coe.eu"
     path: "/uploads"
-
-api:
-  disableReset: true
-  adminPasswordSecret: 'nomad-production-repository-password'
 
 worker:
   replicas: 1
@@ -19,22 +18,17 @@ worker:
 
 dbname: fairdi_nomad_prod
 
-postgres:
-  publish_enabled: true
-  mode: 'coe'
-  dbname: 'nomad_prod'
-  host: 'db-repository-nomad.esc'
-  user: 'nomadrep'
-  password_secret: 'nomad-production-repository-password'
-
 uploadurl: 'https://repository.nomad-coe.eu/uploads/gui/upload'
+
+keycloak:
+  passwordSecret: 'nomad-keycloak-password'
+  clientSecret: 'nomad-keycloak-prod-api-secret'
 
 volumes:
   prefixSize: 1
   public: /nomad/fairdi/prod/fs/public
   staging: /nomad/fairdi/prod/fs/staging
   tmp: /nomad/fairdi/prod/fs/tmp
-  coe_extracted: /nomad/fairdi/prod/fs/extracted
   nomad: /nomad
 
 mail:

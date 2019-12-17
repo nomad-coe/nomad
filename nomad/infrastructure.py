@@ -21,18 +21,19 @@ exist to facilitate testing, :py:mod:`nomad.migration`, aspects of :py:mod:`noma
 
 import os.path
 import shutil
-from contextlib import contextmanager
-import psycopg2
-import psycopg2.extensions
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
 from elasticsearch.exceptions import RequestError
 from elasticsearch_dsl import connections
 from mongoengine import connect, disconnect
 from mongoengine.connection import MongoEngineConnectionError
-from passlib.hash import bcrypt
 import smtplib
 from email.mime.text import MIMEText
+from keycloak import KeycloakOpenID, KeycloakAdmin
+from keycloak.exceptions import KeycloakAuthenticationError, KeycloakGetError
+import json
+import jwt
+from flask import g, request
+import basicauth
+from datetime import datetime
 
 from nomad import config, utils
 
@@ -43,11 +44,6 @@ elastic_client = None
 
 mongo_client = None
 """ The pymongo mongodb client. """
-
-repository_db = None
-""" The repository postgres db sqlalchemy session. """
-repository_db_conn = None
-""" The repository postgres db sqlalchemy connection. """
 
 
 def setup():
@@ -61,7 +57,6 @@ def setup():
     setup_logging()
     setup_mongo()
     setup_elastic()
-    setup_repository_db(readonly=False)
 
 
 def setup_logging():
@@ -114,120 +109,269 @@ def setup_elastic():
     return elastic_client
 
 
-def setup_repository_db(**kwargs):
-    """ Creates a connection and stores it in the module variables. """
-    repo_args = dict(readonly=False)
-    repo_args.update(kwargs)
-    connection, db = sqlalchemy_repository_db(**kwargs)
-
-    global repository_db
-    global repository_db_conn
-
-    if repository_db is None:
-        repository_db_conn, repository_db = connection, db
-        logger.info('setup repository db connection')
-
-    return repository_db_conn, repository_db
-
-
-def sqlalchemy_repository_db(exists: bool = False, readonly: bool = True, **kwargs):
+class Keycloak():
     """
-    Returns SQLAlchemy connection and session for the given db parameters.
-
-    Arguments:
-        exists: Set to False to check and ensure db and schema existence
-        readonly: Set to False for a write enabled connection
-        **kwargs: Overwrite `config.repository_db` parameters
+    A class that encapsulates all keycloak related functions for easier mocking and
+    configuration
     """
-    dbname = kwargs.get('dbname', config.repository_db.dbname)
-    db_exists = exists
-    if not db_exists:
-        try:
-            with repository_db_connection(dbname=dbname):
-                logger.info('repository db postgres database already exists')
-                db_exists = True
-        except psycopg2.OperationalError as e:
-            if not ('database "%s" does not exist' % dbname) in str(e):
+    def __init__(self):
+        self.__oidc_client = None
+        self.__admin_client = None
+        self.__public_keys = None
+
+    @property
+    def _oidc_client(self):
+        if self.__oidc_client is None:
+            self.__oidc_client = KeycloakOpenID(
+                server_url=config.keycloak.server_url,
+                client_id=config.keycloak.client_id,
+                realm_name=config.keycloak.realm_name,
+                client_secret_key=config.keycloak.client_secret)
+
+        return self.__oidc_client
+
+    @property
+    def _public_keys(self):
+        if self.__public_keys is None:
+            try:
+                jwks = self._oidc_client.certs()
+                self.__public_keys = {}
+                for jwk in jwks['keys']:
+                    kid = jwk['kid']
+                    self.__public_keys[kid] = jwt.algorithms.RSAAlgorithm.from_jwk(
+                        json.dumps(jwk))
+            except Exception as e:
+                self.__public_keys = None
                 raise e
 
-    if not db_exists:
-        logger.info('repository db postgres database does not exist')
+        return self.__public_keys
+
+    def authorize_flask(self, basic: bool = True) -> str:
+        """
+        Authorizes the current flask request with keycloak. Uses either Bearer or Basic
+        authentication, depending on available headers in the request. Bearer auth is
+        basically offline (besides retrieving and caching keycloaks public key for signature
+        validation). Basic auth causes authentication agains keycloak with each request.
+
+        Will set ``g.user``, either with None or user data from the respective OIDC token.
+
+        Returns: An error message or None
+        """
+        g.oidc_access_token = None
+        if 'Authorization' in request.headers and request.headers['Authorization'].startswith('Bearer '):
+            g.oidc_access_token = request.headers['Authorization'].split(None, 1)[1].strip()
+        elif 'Authorization' in request.headers and request.headers['Authorization'].startswith('Basic '):
+            if not basic:
+                return 'Basic authentication not allowed, use Bearer token instead'
+
+            try:
+                auth = request.headers['Authorization'].split(None, 1)[1].strip()
+                username, password = basicauth.decode(auth)
+                token_info = self._oidc_client.token(username=username, password=password)
+                g.oidc_access_token = token_info['access_token']
+            except KeycloakAuthenticationError:
+                return 'Could not authenticate, wrong credentials'
+            except Exception as e:
+                logger.error('Could not authenticate Basic auth', exc_info=e)
+                return 'Could not authenticate Basic auth: %s' % str(e)
+
+        if g.oidc_access_token is not None:
+            auth_error: str = None
+            try:
+                kid = jwt.get_unverified_header(g.oidc_access_token)['kid']
+                key = self._public_keys.get(kid)
+                if key is None:
+                    logger.error('The user provided keycloak public key does not exist. Does the UI use the right realm?')
+                    auth_error = 'Could not verify JWT token: public key does not exist'
+                else:
+                    options = dict(verify_aud=False, verify_exp=True, verify_iss=True)
+                    payload = jwt.decode(
+                        g.oidc_access_token, key=key, algorithms=['RS256'], options=options,
+                        issuer='%s/realms/%s' % (config.keycloak.server_url.rstrip('/'), config.keycloak.realm_name))
+
+            except jwt.InvalidTokenError as e:
+                auth_error = str(e)
+            except Exception as e:
+                logger.error('Could not verify JWT token', exc_info=e)
+                raise e
+
+            if auth_error is not None:
+                g.user = None
+                return auth_error
+
+            else:
+                from nomad import datamodel
+                g.user = datamodel.User(
+                    user_id=payload.get('sub', None),
+                    email=payload.get('email', None),
+                    first_name=payload.get('given_name', None),
+                    last_name=payload.get('family_name', None))
+
+                return None
+
+        else:
+            g.user = None
+            # Do not return an error. This is the case were there are no credentials
+            return None
+
+    def add_user(self, user, bcrypt_password=None, invite=False):
+        """
+        Adds the given :class:`nomad.datamodel.User` instance to the configured keycloak
+        realm using the keycloak admin API.
+        """
+        from nomad import datamodel
+        if not isinstance(user, datamodel.User):
+            if 'user_id' not in user:
+                user['user_id'] = 'not set'
+
+            if 'password' in user:
+                bcrypt_password = user.pop('password')
+
+            created = user.get('created', None)
+            if created is not None and not isinstance(created, datetime):
+                user['created'] = datetime.fromtimestamp(created / 1000)
+
+            user = datamodel.User(**user)
+
+        keycloak_user = dict(
+            id=user.user_id if user.user_id != 'not set' else None,
+            email=user.email,
+            username=user.email,
+            firstName=user.first_name,
+            lastName=user.last_name,
+            attributes=dict(
+                repo_user_id=user.repo_user_id,
+                affiliation=user.affiliation if user.affiliation is not None else '',
+                affiliation_address=user.affiliation_address if user.affiliation_address is not None else ''),
+            createdTimestamp=user.created.timestamp() * 1000 if user.created is not None else None,
+            enabled=True,
+            emailVerified=True)
+
+        if invite:
+            keycloak_user['requiredActions'] = [
+                'UPDATE_PASSWORD', 'UPDATE_PROFILE', 'VERIFY_EMAIL']
+
+        if bcrypt_password is not None:
+            keycloak_user['credentials'] = [dict(
+                type='password',
+                hashedSaltedValue=bcrypt_password,
+                algorithm='bcrypt')]
+
+        keycloak_user = {
+            key: value for key, value in keycloak_user.items()
+            if value is not None}
+
+        if user.user_id != 'not_set':
+            try:
+                self._admin_client.get_user(user.user_id)
+                raise KeyError('User %s with given id already exists' % user.email)
+            except KeycloakGetError:
+                pass
+
+        if self._admin_client.get_user_id(user.email) is not None:
+            raise KeyError('User with email %s already exists' % user.email)
+
         try:
-            with repository_db_connection(dbname='postgres', with_trans=False) as con:
-                with con.cursor() as cursor:
-                    cursor.execute("CREATE DATABASE %s  ;" % dbname)
-                logger.info('repository db postgres database created')
+            self._admin_client.create_user(keycloak_user)
         except Exception as e:
-            logger.info('could not create repository db postgres database', exc_info=e)
+            return str(e)
+
+        if invite:
+            # TODO send invite
+            pass
+
+        return None
+
+    def __user_from_keycloak_user(self, keycloak_user):
+        from nomad import datamodel
+
+        kwargs = {key: value[0] for key, value in keycloak_user.get('attributes', {}).items()}
+        return datamodel.User(
+            user_id=keycloak_user['id'],
+            email=keycloak_user.get('email'),
+            username=keycloak_user.get('username'),
+            first_name=keycloak_user.get('firstName'),
+            last_name=keycloak_user.get('lastName'),
+            created=datetime.fromtimestamp(keycloak_user['createdTimestamp'] / 1000),
+            **kwargs)
+
+    def search_user(self, query: str = None, **kwargs):
+        if query is not None:
+            kwargs['query'] = dict(search=query)
+        else:
+            kwargs['query'] = dict(max=1000)
+        try:
+            keycloak_results = self._admin_client.get_users(**kwargs)
+        except Exception as e:
+            logger.error('Could not retrieve users from keycloak', exc_info=e)
             raise e
 
-    # ensure that the schema exists
-    schema_exists = exists
-    if not schema_exists:
-        with repository_db_connection(dbname=dbname) as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "select exists(select * from information_schema.tables "
-                    "where table_name='users')")
-                schema_exists = cur.fetchone()[0]
-        if not schema_exists:
-            logger.info('repository db postgres schema does not exists')
-            reset_repository_db_schema(dbname=dbname)
-        else:
-            logger.info('repository db postgres schema already exists')
+        return [
+            self.__user_from_keycloak_user(keycloak_user)
+            for keycloak_user in keycloak_results]
 
-    # set the admin user password
-    if not exists:
-        with repository_db_connection(dbname=dbname) as conn:
-            with conn.cursor() as cur:
-                try:
-                    cur.execute(
-                        "UPDATE public.users SET password='%s' WHERE user_id=0;" %
-                        bcrypt.encrypt(config.services.admin_password, ident='2y'))
-                except Exception as e:
-                    logger.warning('could not update admin password', exc_info=e)
+    def get_user(self, user_id: str = None, email: str = None, user=None) -> object:
+        """
+        Retrives all available information about a user from the keycloak admin
+        interface. This must be used to retrieve complete user information, because
+        the info solely gathered from tokens (i.e. for the authenticated user ``g.user``)
+        is generally incomplete.
+        """
 
-    def no_flush():
-        pass
+        if user is not None and user_id is None:
+            user_id = user.user_id
 
-    params = dict(**config.repository_db)
-    params.update(**kwargs)
-    url = 'postgresql://%s:%s@%s:%d/%s' % utils.to_tuple(params, 'user', 'password', 'host', 'port', 'dbname')
-    # We tried to set a very high isolation level, to prevent conflicts between transactions on the
-    # start-shaped schema, which usually involve read/writes to many tables at once.
-    # Unfortunately, this had week performance, and postgres wasn't even able to serialize on all
-    # occasions. We are now simply rollingback and retrying on conflicts.
-    # engine = create_engine(url, echo=False, isolation_level="SERIALIZABLE")
-    engine = create_engine(url, echo=False)
+        if email is not None and user_id is None:
+            with utils.lnr(logger, 'Could not use keycloak admin client'):
+                user_id = self._admin_client.get_user_id(email)
 
-    repository_db_conn = engine.connect()
-    repository_db = Session(bind=repository_db_conn, autocommit=True)
-    if readonly:
-        repository_db.flush = no_flush
+            if user_id is None:
+                raise KeyError('User %s does not exist' % email)
 
-    return repository_db_conn, repository_db
+        assert user_id is not None, 'Could not determine user from given kwargs'
 
+        try:
+            keycloak_user = self._admin_client.get_user(user_id)
 
-def set_pid_prefix(prefix=7000000, target_db=None):
-    if target_db is None:
-        target_db = repository_db
+        except Exception as e:
+            if str(getattr(e, 'response_code', 404)) == '404':
+                raise KeyError('User does not exist')
 
-    target_db.begin()
-    target_db.execute('ALTER SEQUENCE calculations_calc_id_seq RESTART WITH %d' % prefix)
-    target_db.commit()
-    logger.info('set pid prefix', pid_prefix=prefix)
+            logger.error('Could not retrieve user from keycloak', exc_info=e)
+            raise e
+
+        return self.__user_from_keycloak_user(keycloak_user)
+
+    @property
+    def _admin_client(self):
+        if True:  # TODO (self.__admin_client is None:), client becomes unusable after 60s
+            self.__admin_client = KeycloakAdmin(
+                server_url=config.keycloak.server_url,
+                username=config.keycloak.username,
+                password=config.keycloak.password,
+                realm_name='master',
+                verify=True)
+            self.__admin_client.realm_name = config.keycloak.realm_name
+
+        return self.__admin_client
+
+    @property
+    def access_token(self):
+        return getattr(g, 'oidc_access_token', None)
 
 
-def reset(repo_content_only: bool = False):
+keycloak = Keycloak()
+
+
+def reset(remove: bool):
     """
-    Resets the databases mongo, elastic/calcs, repository db and all files. Be careful.
+    Resets the databases mongo, elastic/calcs, and all files. Be careful.
     In contrast to :func:`remove`, it will only remove the contents of dbs and indicies.
     This function just attempts to remove everything, there is no exception handling
     or any warranty it will succeed.
 
-    Arguments:
-        repo_content_only: True will only remove the calc/upload data from the repo db.
-            But still reset all other dbs.
+    Args:
+        remove: Do not try to recreate empty databases, remove entirely.
     """
     try:
         if not mongo_client:
@@ -242,171 +386,30 @@ def reset(repo_content_only: bool = False):
             setup_elastic()
         elastic_client.indices.delete(index=config.elastic.index_name)
         from nomad.search import Entry
-        Entry.init(index=config.elastic.index_name)
+        if not remove:
+            Entry.init(index=config.elastic.index_name)
         logger.info('elastic index resetted')
     except Exception as e:
         logger.error('exception resetting elastic', exc_info=e)
 
     try:
-        if repo_content_only:
-            reset_repository_db_content()
-        else:
-            reset_repository_db()
-        logger.info('repository db resetted')
-    except Exception as e:
-        logger.error('exception resetting repository db', exc_info=e)
-
-    try:
         shutil.rmtree(config.fs.staging, ignore_errors=True)
         shutil.rmtree(config.fs.public, ignore_errors=True)
+
         # delete tmp without the folder
-        for sub_path in os.listdir(config.fs.tmp):
-            path = os.path.join(config.fs.tmp, sub_path)
-            try:
-                if os.path.isfile(path):
-                    os.unlink(path)
-                elif os.path.isdir(path): shutil.rmtree(path, ignore_errors=True)
-            except Exception:
-                pass
+        if os.path.isdir(config.fs.tmp):
+            for sub_path in os.listdir(config.fs.tmp):
+                path = os.path.join(config.fs.tmp, sub_path)
+                try:
+                    if os.path.isfile(path):
+                        os.unlink(path)
+                    elif os.path.isdir(path): shutil.rmtree(path, ignore_errors=True)
+                except Exception:
+                    pass
 
         logger.info('files resetted')
     except Exception as e:
         logger.error('exception deleting files', exc_info=e)
-
-
-def remove():
-    """
-    Removes the databases mongo, elastic, repository db, and all files. Be careful.
-    This function just attempts to remove everything, there is no exception handling
-    or any warranty it will succeed.
-    """
-    try:
-        if not mongo_client:
-            setup_mongo()
-        mongo_client.drop_database(config.mongo.db_name)
-        logger.info('mongodb deleted')
-    except Exception as e:
-        logger.error('exception deleting mongodb', exc_info=e)
-
-    try:
-        if not elastic_client:
-            setup_elastic()
-        elastic_client.indices.delete(index=config.elastic.index_name)
-        logger.info('elastic index')
-    except Exception as e:
-        logger.error('exception deleting elastic', exc_info=e)
-
-    try:
-        if repository_db is not None:
-            repository_db.expunge_all()
-            repository_db.invalidate()
-        if repository_db_conn is not None:
-            repository_db_conn.close()
-        with repository_db_connection(dbname='postgres', with_trans=False) as con:
-            with con.cursor() as cur:
-                cur.execute('DROP DATABASE IF EXISTS %s' % config.repository_db.dbname)
-        logger.info('repository db deleted')
-    except Exception as e:
-        logger.error('exception deleting repository db', exc_info=e)
-
-    logger.info('reset files')
-    try:
-        shutil.rmtree(config.fs.staging, ignore_errors=True)
-        shutil.rmtree(config.fs.public, ignore_errors=True)
-        shutil.rmtree(config.fs.tmp, ignore_errors=True)
-    except Exception as e:
-        logger.error('exception deleting files', exc_info=e)
-
-
-@contextmanager
-def repository_db_connection(dbname=None, with_trans=True):
-    """ Contextmanager for a psycopg2 session for the NOMAD-coe repository postgresdb """
-    conn_str = "host='%s' port=%d dbname='%s' user='%s' password='%s'" % (
-        config.repository_db.host,
-        config.repository_db.port,
-        config.repository_db.dbname if dbname is None else dbname,
-        config.repository_db.user,
-        config.repository_db.password)
-
-    conn = psycopg2.connect(conn_str)
-    if not with_trans:
-        conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
-    try:
-        yield conn
-    except Exception as e:
-        logger.error('Unhandled exception within repository db connection.', exc_info=e)
-        conn.rollback()
-        conn.close()
-        raise e
-
-    conn.commit()
-    conn.close()
-
-
-def reset_repository_db():
-    """ Drops the existing NOMAD-coe repository postgres schema and creates a new minimal one. """
-    global repository_db
-    global repository_db_conn
-
-    # invalidate and close all connections and sessions
-    if repository_db is not None:
-        repository_db.expunge_all()
-        repository_db.invalidate()
-        repository_db.close_all()
-    if repository_db_conn is not None:
-        repository_db_conn.close()
-        repository_db_conn.engine.dispose()
-
-    # perform the reset
-    reset_repository_db_schema()
-
-    # try tp repair existing db connections
-    if repository_db is not None:
-        new_connection, repository_db = setup_repository_db(exists=False)
-        repository_db.bind = new_connection
-        repository_db_conn = new_connection
-
-
-def reset_repository_db_schema(**kwargs):
-    with repository_db_connection(with_trans=False, **kwargs) as conn:
-        with conn.cursor() as cur:
-            cur.execute("DROP SCHEMA IF EXISTS public CASCADE;")
-
-            cur.execute(
-                "CREATE SCHEMA public;"
-                "GRANT ALL ON SCHEMA public TO postgres;"
-                "GRANT ALL ON SCHEMA public TO public;")
-            sql_file = os.path.join(os.path.dirname(__file__), 'empty_repository_db.sql')
-            cur.execute(open(sql_file, 'r').read())
-    logger.info('(re-)created repository db postgres schema')
-
-
-def reset_repository_db_content():
-    tables = [
-        'metadata',
-        'codeversions',
-        'codefamilies',
-        'ownerships',
-        'coauthorships',
-        'shareships',
-        'metadata_citations',
-        'citations',
-        'spacegroups',
-        'struct_ratios',
-        'tags',
-        'topics',
-        'user_metadata',
-        'doi_mapping',
-        'calcsets',
-        'calculations',
-        'uploads'
-    ]
-    with repository_db_connection(with_trans=True) as conn:
-        with conn.cursor() as cur:
-            for table in tables:
-                cur.execute('DELETE FROM %s;' % table)
-
-    logger.info('removed repository db content')
 
 
 def send_mail(name: str, email: str, message: str, subject: str):
@@ -430,12 +433,12 @@ def send_mail(name: str, email: str, message: str, subject: str):
 
     msg = MIMEText(message)
     msg['Subject'] = subject
-    msg['From'] = 'The nomad team <%s>' % config.mail.from_address
+    msg['From'] = 'The NOMAD team <%s>' % config.mail.from_address
     msg['To'] = name
     to_addrs = [email]
 
     if config.mail.cc_address is not None:
-        msg['Cc'] = 'The nomad team <%s>' % config.mail.cc_address
+        msg['Cc'] = 'The NOMAD team <%s>' % config.mail.cc_address
         to_addrs.append(config.mail.cc_address)
 
     try:

@@ -75,7 +75,6 @@ def api_base_path_response(env, resp):
 app.wsgi_app = DispatcherMiddleware(  # type: ignore
     api_base_path_response, {config.services.api_base_path: app.wsgi_app})
 
-
 CORS(app)
 
 app.register_blueprint(api, url_prefix='/api')

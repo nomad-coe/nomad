@@ -34,7 +34,7 @@ from datetime import datetime
 from pymongo import UpdateOne
 import hashlib
 
-from nomad import utils, coe_repo, config, infrastructure, search, datamodel
+from nomad import utils, config, infrastructure, search, datamodel
 from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles, PublicUploadFiles, StagingUploadFiles
 from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parser_dict, match_parser, LocalBackend
@@ -49,8 +49,8 @@ class Calc(Proc):
 
     It also contains the calculations processing and its state.
 
-    The attribute list, does not include the various repository properties generated
-    while parsing, including ``program_name``, ``program_version``, etc.
+    The attribute list, does not include the various metadata properties generated
+    while parsing, including ``code_name``, ``code_version``, etc.
 
     Attributes:
         calc_id: the calc_id of this calc
@@ -75,6 +75,8 @@ class Calc(Proc):
             ('upload_id', 'tasks_status'),
             ('upload_id', 'process_status'),
             ('upload_id', 'metadata.nomad_version'),
+            'metadata.published',
+            'metadata.datasets'
             'metadata.pid'
         ]
     }
@@ -208,7 +210,7 @@ class Calc(Proc):
                 calc_hash=self.upload_files.calc_hash(self.mainfile),
                 mainfile=self.mainfile)
             calc_with_metadata.published = False
-            calc_with_metadata.uploader = self.upload.uploader.to_popo()
+            calc_with_metadata.uploader = self.upload.user_id
             calc_with_metadata.upload_time = self.upload.upload_time
             calc_with_metadata.nomad_version = config.version
             calc_with_metadata.nomad_commit = config.commit
@@ -430,7 +432,7 @@ class Upload(Proc):
         user_id: the id of the user that created this upload
         published: Boolean that indicates the publish status
         publish_time: Date when the upload was initially published
-        last_update: Date of the last (re-)publishing
+        last_update: Date of the last publishing/re-processing
         joined: Boolean indicates if the running processing has joined (:func:`check_join`)
     """
     id_field = 'upload_id'
@@ -480,20 +482,16 @@ class Upload(Proc):
 
     @classmethod
     def get(cls, id: str, include_published: bool = True) -> 'Upload':
-        upload = cls.get_by_id(id, 'upload_id')
-        if upload is not None:
-            return upload
-
-        raise KeyError()
+        return cls.get_by_id(id, 'upload_id')
 
     @classmethod
-    def user_uploads(cls, user: coe_repo.User, **kwargs) -> List['Upload']:
+    def user_uploads(cls, user: datamodel.User, **kwargs) -> List['Upload']:
         """ Returns all uploads for the given user. Kwargs are passed to mongo query. """
         return cls.objects(user_id=str(user.user_id), **kwargs)
 
     @property
     def uploader(self):
-        return coe_repo.User.from_user_id(self.user_id)
+        return datamodel.User.get(self.user_id)
 
     def get_logger(self, **kwargs):
         logger = super().get_logger()
@@ -512,13 +510,15 @@ class Upload(Proc):
         The upload will be already saved to the database.
 
         Arguments:
-            user (coe_repo.User): The user that created the upload.
+            user: The user that created the upload.
         """
-        user: coe_repo.User = kwargs['user']
+        # use kwargs to keep compatibility with super method
+        user: datamodel.User = kwargs['user']
         del(kwargs['user'])
+
         if 'upload_id' not in kwargs:
             kwargs.update(upload_id=utils.create_uuid())
-        kwargs.update(user_id=str(user.user_id))
+        kwargs.update(user_id=user.user_id)
         self = super().create(**kwargs)
 
         self._continue_with('uploading')
@@ -530,21 +530,14 @@ class Upload(Proc):
         Calc.objects(upload_id=self.upload_id).delete()
         super().delete()
 
-    def delete_upload_local(self, with_coe_repo: bool = False):
+    def delete_upload_local(self):
         """
-        Deletes of the upload, including its processing state and
+        Deletes the upload, including its processing state and
         staging files. Local version without celery processing.
         """
         logger = self.get_logger()
 
         with utils.lnr(logger, 'staged upload delete failed'):
-
-            if with_coe_repo and self.published:
-                with utils.timer(
-                        logger, 'upload deleted from repo db', step='repo',
-                        upload_size=self.upload_files.size):
-                    coe_repo.Upload.delete(self.upload_id)
-
             with utils.timer(
                     logger, 'upload deleted from index', step='index',
                     upload_size=self.upload_files.size):
@@ -554,58 +547,33 @@ class Upload(Proc):
                     logger, 'staged upload deleted', step='files',
                     upload_size=self.upload_files.size):
                 self.upload_files.delete()
-                self.delete()
+
+            self.delete()
 
     @process
-    def delete_upload(self, with_coe_repo: bool = False):
+    def delete_upload(self):
         """
         Deletes of the upload, including its processing state and
         staging files. This starts the celery process of deleting the upload.
         """
-        self.delete_upload_local(with_coe_repo=with_coe_repo)
+        self.delete_upload_local()
 
         return True  # do not save the process status on the delete upload
 
     @process
     def publish_upload(self):
         """
-        Moves the upload out of staging to add it to the coe repository. It will
-        pack the staging upload files in to public upload files, add entries to the
-        coe repository db and remove this instance and its calculation from the
-        processing state db.
-
-        If the upload is already published (i.e. re-publish), it will update user metadata from
-        repository db, publish to repository db if not exists, update the search index.
+        Moves the upload out of staging to the public area. It will
+        pack the staging upload files in to public upload files.
         """
         assert self.processed_calcs > 0
 
         logger = self.get_logger()
         logger.info('started to publish')
 
-        with utils.lnr(logger, '(re-)publish failed'):
+        with utils.lnr(logger, 'publish failed'):
             upload_with_metadata = self.to_upload_with_metadata(self.metadata)
             calcs = upload_with_metadata.calcs
-
-            if config.repository_db.publish_enabled:
-                if config.repository_db.mode == 'coe' and isinstance(self.upload_files, StagingUploadFiles):
-                    with utils.timer(
-                            logger, 'coe extracted raw-file copy created', step='repo',
-                            upload_size=self.upload_files.size):
-
-                        self.upload_files.create_extracted_copy()
-
-                coe_upload = coe_repo.Upload.from_upload_id(upload_with_metadata.upload_id)
-                if coe_upload is None:
-                    with utils.timer(
-                            logger, 'upload added to repository', step='repo',
-                            upload_size=self.upload_files.size):
-                        coe_upload = coe_repo.Upload.publish(upload_with_metadata)
-
-                with utils.timer(
-                        logger, 'upload PIDs read from repository', step='repo',
-                        upload_size=self.upload_files.size):
-                    for calc, coe_calc in zip(calcs, coe_upload.calcs):
-                        calc.pid = coe_calc.coe_calc_id
 
             with utils.timer(
                     logger, 'upload metadata updated', step='metadata',
@@ -613,6 +581,7 @@ class Upload(Proc):
 
                 def create_update(calc):
                     calc.published = True
+                    calc.with_embargo = calc.with_embargo if calc.with_embargo is not None else False
                     return UpdateOne(
                         {'_id': calc.calc_id},
                         {'$set': {'metadata': calc.to_dict()}})
@@ -751,9 +720,8 @@ class Upload(Proc):
     @task
     def extracting(self):
         """
-        The *task* performed before the actual parsing/normalizing. Extracting and bagging
-        the uploaded files, computing all keys, create an *upload* entry in the NOMAD-coe
-        repository db, etc.
+        The *task* performed before the actual parsing/normalizing: extracting
+        the uploaded files.
         """
         # extract the uploaded file
         self._upload_files = ArchiveBasedStagingUploadFiles(
@@ -891,13 +859,6 @@ class Upload(Proc):
         self.joined = False
         super().reset()
 
-    @property
-    def gui_url(self):
-        base = config.api_url()[:-3]
-        if base.endswith('/'):
-            base = base[:-1]
-        return '%s/gui/uploads/' % base
-
     def _cleanup_after_processing(self):
         # send email about process finish
         user = self.uploader
@@ -907,7 +868,7 @@ class Upload(Proc):
             '',
             'your data %suploaded at %s has completed processing.' % (
                 '"%s" ' % self.name if self.name else '', self.upload_time.isoformat()),  # pylint: disable=no-member
-            'You can review your data on your upload page: %s' % self.gui_url,
+            'You can review your data on your upload page: %s' % config.gui_url(),
             '',
             'If you encouter any issues with your upload, please let us know and replay to this email.',
             '',
@@ -1054,7 +1015,7 @@ class Upload(Proc):
 
         result = UploadWithMetadata(
             upload_id=self.upload_id,
-            uploader=utils.POPO(id=int(self.user_id)),
+            uploader=self.user_id,
             upload_time=self.upload_time if user_upload_time is None else user_upload_time)
 
         result.calcs = [get_metadata(calc) for calc in Calc.objects(upload_id=self.upload_id)]

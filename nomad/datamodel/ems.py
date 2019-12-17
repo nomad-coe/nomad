@@ -134,5 +134,6 @@ Domain(
             'All quantities that are used by this calculation')),
     metrics=dict(
         quantities=('quantities', 'value_count')),
+    groups=dict(),
     default_statistics=[
         'method', 'probing_method', 'sample_microstructure', 'sample_constituents'])
