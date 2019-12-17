@@ -17,6 +17,7 @@ import json
 import numpy as np
 import pytest
 import os
+from shutil import copyfile
 
 from nomad import utils, files
 from nomad.parsing import JSONStreamWriter, parser_dict, match_parser, BrokenParser
@@ -74,7 +75,7 @@ for parser, mainfile in parser_examples:
 parser_examples = fixed_parser_examples
 
 
-correct_num_output_files = 43
+correct_num_output_files = 45
 
 
 class TestLocalBackend(object):
@@ -107,6 +108,28 @@ class TestLocalBackend(object):
         assert backend.get_sections('section_run') == [0, 1, 2]
         for i in range(0, 3):
             assert backend.get_value('program_name', i) == 't%d' % i
+
+    def test_sub_section(self, backend, no_warn):
+        backend.openSection('section_run')
+
+        backend.openNonOverlappingSection('section_system')
+        assert backend.openSection('section_symmetry') == 0
+        backend.closeSection('section_symmetry', 0)
+        backend.closeNonOverlappingSection('section_system')
+
+        backend.openNonOverlappingSection('section_system')
+        backend.closeNonOverlappingSection('section_system')
+
+        backend.openNonOverlappingSection('section_system')
+        assert backend.openSection('section_symmetry') == 1
+        backend.closeSection('section_symmetry', 1)
+        backend.closeNonOverlappingSection('section_system')
+
+        assert backend.get_sections('section_system') == [0, 1, 2]
+        assert backend.get_sections('section_symmetry') == [0, 1]
+        assert backend.get_sections('section_symmetry', 0) == [0]
+        assert backend.get_sections('section_symmetry', 1) == []
+        assert backend.get_sections('section_symmetry', 2) == [1]
 
     def test_section_override(self, backend, no_warn):
         """ Test whether we can overwrite values already in the backend."""
@@ -259,10 +282,13 @@ def test_stream_generator(pretty, no_warn):
     assert create_reference(example_data, pretty) == out.getvalue()
 
 
-def assert_parser_result(backend):
+def assert_parser_result(backend, error=False):
     status, errors = backend.status
     assert status == 'ParseSuccess'
-    assert errors is None or len(errors) == 0
+    if error:
+        assert len(errors) > 0
+    else:
+        assert errors is None or len(errors) == 0
 
 
 def assert_parser_dir_unchanged(previous_wd, current_wd):
@@ -321,7 +347,23 @@ def test_parser(parser_name, mainfile):
     assert_parser_dir_unchanged(previous_wd, current_wd=os.getcwd())
 
 
-def test_match(raw_files, no_warn):
+def test_broken_xml_vasp():
+    parser_name, mainfile = 'parsers/vasp', 'tests/data/parsers/vasp/broken.xml'
+    previous_wd = os.getcwd()  # Get Working directory before parsing.
+    parsed_example = run_parser(parser_name, mainfile)
+    assert_parser_result(parsed_example, error=True)
+    # Check that cwd has not changed.
+    assert_parser_dir_unchanged(previous_wd, current_wd=os.getcwd())
+
+
+@pytest.fixture(scope='function')
+def with_latin_1_file(raw_files):
+    copyfile('tests/data/latin-1.out', 'tests/data/parsers/latin-1.out')
+    yield
+    os.remove('tests/data/parsers/latin-1.out')
+
+
+def test_match(raw_files, with_latin_1_file, no_warn):
     example_upload_id = 'example_upload_id'
     upload_files = files.StagingUploadFiles(example_upload_id, create=True, is_authorized=lambda: True)
     upload_files.add_rawfiles('tests/data/parsers')

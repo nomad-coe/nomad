@@ -325,6 +325,30 @@ def test_re_processing(published: Upload, example_user_metadata, monkeypatch, wi
         assert first_calc.metadata['atoms'][0] == 'Br'
 
 
+@pytest.mark.timeout(config.tests.default_timeout)
+@pytest.mark.parametrize('with_failure', [None, 'before', 'after'])
+def test_re_pack(published: Upload, example_user_metadata, monkeypatch, with_failure):
+    upload_id = published.upload_id
+    calc = Calc.objects(upload_id=upload_id).first()
+    assert calc.metadata['with_embargo']
+    calc.metadata['with_embargo'] = False
+    calc.save()
+
+    published.re_pack()
+    try:
+        published.block_until_complete(interval=.01)
+    except Exception:
+        pass
+
+    upload_files = PublicUploadFiles(upload_id)
+    for raw_file in upload_files.raw_file_manifest():
+        with upload_files.raw_file(raw_file) as f:
+            f.read()
+    for calc in Calc.objects(upload_id=upload_id):
+        with upload_files.archive_file(calc.calc_id) as f:
+            f.read()
+
+
 def mock_failure(cls, task, monkeypatch):
     def mock(self):
         raise Exception('fail for test')

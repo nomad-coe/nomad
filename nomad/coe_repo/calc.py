@@ -33,6 +33,12 @@ from .base import Base, calc_citation_association, ownership, co_authorship, sha
 handle_base = '0123456789abcdefghijklmnopqrstuvwxyz'
 
 
+class NoCalculation(Exception):
+    """ Raised while accessing a calc that is not a calc but a placeholder entry or
+    dataset. """
+    pass
+
+
 def create_handle(pid: int) -> str:
     """
     Create a handle for the given pid. The pid is an autoincrement number. The handle
@@ -157,6 +163,8 @@ class Calc(Base):
         if self.calc_metadata is not None:
             if self.calc_metadata.filenames is not None:
                 filenames = self.calc_metadata.filenames.decode('utf-8')
+                if filenames == 'hello':
+                    raise NoCalculation
                 return json.loads(filenames)
 
         return []

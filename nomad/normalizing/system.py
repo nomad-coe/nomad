@@ -17,9 +17,13 @@ import ase
 import numpy as np
 import json
 import re
+import functools
+import fractions
 
 from matid import SymmetryAnalyzer
 from matid.geometry import get_dimensionality
+
+from nomadcore.structure_types import structure_types_by_spacegroup as str_types_by_spg
 
 from nomad import utils, config
 from nomad.normalizing.normalizer import SystemBasedNormalizer
@@ -61,11 +65,13 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         return 0
 
-    def normalize_system(self, index, is_representative) -> None:
+    def normalize_system(self, index, is_representative) -> bool:
         """
         The 'main' method of this :class:`SystemBasedNormalizer`.
         Normalizes the section with the given `index`.
         Normalizes geometry, classifies, system_type, and runs symmetry analysis.
+
+        Returns: True, iff the normalization was successful
         """
 
         def get_value(key: str, default: Any = None, numpy: bool = True) -> Any:
@@ -78,7 +84,7 @@ class SystemNormalizer(SystemBasedNormalizer):
                     value = np.array(value)
 
                 return value
-            except KeyError:
+            except (KeyError, IndexError):
                 return default
 
         def set_value(key: str, value: Any):
@@ -94,16 +100,16 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         atom_species = get_value('atom_species', numpy=False)
         if atom_labels is None and atom_species is None:
-            self.logger.error('calculation has neither atom species nor labels')
-            return
+            self.logger.error('system has neither atom species nor labels')
+            return False
 
         # If there are no atom labels we create them from atom species data.
         if atom_labels is None:
             try:
                 atom_labels = list(ase.data.chemical_symbols[species] for species in atom_species)
             except IndexError:
-                self.logger.error('calculation has atom species that are out of range')
-                return
+                self.logger.error('system has atom species that are out of range')
+                return False
 
             self._backend.addArrayValues('atom_labels', atom_labels)
 
@@ -144,7 +150,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         except Exception as e:
             self.logger.error(
                 'cannot use pbc with ase atoms', exc_info=e, pbc=pbc, error=str(e))
-            return
+            return False
 
         # formulas
         set_value('chemical_composition', atoms.get_chemical_formula(mode='all'))
@@ -155,18 +161,18 @@ class SystemNormalizer(SystemBasedNormalizer):
         atom_positions = get_value('atom_positions', None, numpy=True)
         if atom_positions is None:
             self.logger.warning('no atom positions, skip further system analysis')
-            return
+            return False
         if len(atom_positions) != atoms.get_number_of_atoms():
             self.logger.error(
                 'len of atom position does not match number of atoms',
                 n_atom_positions=len(atom_positions), n_atoms=atoms.get_number_of_atoms())
-            return
+            return False
         try:
             atoms.set_positions(1e10 * atom_positions)
         except Exception as e:
             self.logger.error(
                 'cannot use positions with ase atoms', exc_info=e, error=str(e))
-            return
+            return False
 
         # lattice vectors
         lattice_vectors = get_value('lattice_vectors', numpy=True)
@@ -183,7 +189,7 @@ class SystemNormalizer(SystemBasedNormalizer):
             except Exception as e:
                 self.logger.error(
                     'cannot use lattice_vectors with ase atoms', exc_info=e, error=str(e))
-                return
+                return False
 
         # configuration
         configuration = [
@@ -209,6 +215,8 @@ class SystemNormalizer(SystemBasedNormalizer):
                         system_size=atoms.get_number_of_atoms()):
 
                     self.symmetry_analysis(atoms)
+
+        return True
 
     def system_type_analysis(self, atoms) -> None:
         """
@@ -338,4 +346,108 @@ class SystemNormalizer(SystemBasedNormalizer):
         self._backend.addArrayValues('equivalent_atoms_original', orig_equivalent_atoms)
         self._backend.closeSection('section_original_system', orig_gid)
 
+        self.prototypes(prim_num, prim_wyckoff, space_group_number)
+
         self._backend.closeSection('section_symmetry', symmetry_gid)
+
+    def prototypes(self, atomSpecies, wyckoffs, spg_nr):
+        try:
+            norm_wyckoff = SystemNormalizer.get_normalized_wyckoff(atomSpecies, wyckoffs)
+            protoDict = SystemNormalizer.get_structure_type(spg_nr, norm_wyckoff)
+
+            if protoDict is None:
+                proto = "%d-_" % spg_nr
+                labels = dict(prototype_label=proto)
+            else:
+                proto = '%d-%s-%s' % (spg_nr, protoDict.get("Prototype", "-"),
+                                      protoDict.get("Pearsons Symbol", "-"))
+                aflow_prototype_id = protoDict.get("aflow_prototype_id", "-")
+                aflow_prototype_url = protoDict.get("aflow_prototype_url", "-")
+                labels = dict(
+                    prototype_label=proto,
+                    prototype_aflow_id=aflow_prototype_id,
+                    prototype_aflow_url=aflow_prototype_url)
+        except Exception as e:
+            self.logger.error("cannot create AFLOW prototype", exc_info=e)
+            return
+
+        pSect = self._backend.openSection("section_prototype")
+        self._backend.addValue(
+            "prototype_assignement_method", "normalized-wyckoff")
+        self._backend.addValue("prototype_label", labels['prototype_label'])
+        aid = labels.get("prototype_aflow_id")
+        if aid:
+            self._backend.addValue("prototype_aflow_id", aid)
+        aurl = labels.get("prototype_aflow_url")
+        if aurl:
+            self._backend.addValue("prototype_aflow_url", aurl)
+        self._backend.closeSection("section_prototype", pSect)
+
+    @staticmethod
+    def get_normalized_wyckoff(atomic_number, wyckoff):
+        """ Returns a normalized Wyckoff sequence """
+        atomCount = {}
+        for nr in atomic_number:
+            atomCount[nr] = atomCount.get(nr, 0) + 1
+        wycDict = {}
+
+        for i, wk in enumerate(wyckoff):
+            oldVal = wycDict.get(wk, {})
+            nr = atomic_number[i]
+            oldVal[nr] = oldVal.get(nr, 0) + 1
+            wycDict[wk] = oldVal
+        sortedWyc = list(wycDict.keys())
+        sortedWyc.sort()
+
+        def cmpp(a, b):
+            return ((a < b) - (a > b))
+
+        def compareAtNr(at1, at2):
+            c = cmpp(atomCount[at1], atomCount[at2])
+            if (c != 0):
+                return c
+            for wk in sortedWyc:
+                p = wycDict[wk]
+                c = cmpp(p.get(at1, 0), p.get(at2, 0))
+                if c != 0:
+                    return c
+            return 0
+
+        sortedAt = list(atomCount.keys())
+        sortedAt.sort(key=functools.cmp_to_key(compareAtNr))
+        standardAtomNames = {}
+        for i, at in enumerate(sortedAt):
+            standardAtomNames[at] = ("X_%d" % i)
+        standardWyc = {}
+        for wk, ats in wycDict.items():
+            stdAts = {}
+            for at, count in ats.items():
+                stdAts[standardAtomNames[at]] = count
+            standardWyc[wk] = stdAts
+        if standardWyc:
+            counts = [c for x in standardWyc.values() for c in x.values()]
+            gcd = counts[0]
+            for c in counts[1:]:
+                gcd = fractions.gcd(gcd, c)
+            if gcd != 1:
+                for wk, d in standardWyc.items():
+                    for at, c in d.items():
+                        d[at] = c // gcd
+        return standardWyc
+
+    @staticmethod
+    def get_structure_type(space_group, norm_wyckoff):
+        """Returns the information on the prototype.
+        """
+        structure_type_info = {}
+
+        type_descriptions = str_types_by_spg.get(space_group, [])
+        for type_description in type_descriptions:
+            current_norm_wyckoffs = type_description.get("normalized_wysytax")
+            if current_norm_wyckoffs and current_norm_wyckoffs == norm_wyckoff:
+                structure_type_info = type_description
+                break
+        if structure_type_info:
+            return structure_type_info
+        else:
+            return None

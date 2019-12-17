@@ -28,6 +28,8 @@ from nomad.files import DirectoryObject, PathObject
 from nomad.files import StagingUploadFiles, PublicUploadFiles, UploadFiles, Restricted, \
     ArchiveBasedStagingUploadFiles
 
+from tests.utils import assert_exception
+
 
 CalcWithFiles = Tuple[CalcWithMetadata, str]
 UploadWithFiles = Tuple[UploadWithMetadata, UploadFiles]
@@ -138,6 +140,7 @@ def generate_example_calc(
     example_calc.update(**kwargs)
 
     example_file = os.path.join(config.fs.tmp, 'example.zip')
+    example_calc.files = []
     with zipfile.ZipFile(example_file, 'w', zipfile.ZIP_DEFLATED) as zf:
         for filepath in example_file_contents:
             filename = os.path.basename(filepath)
@@ -147,6 +150,7 @@ def generate_example_calc(
 
             if subdirectory is not None:
                 arcname = os.path.join(subdirectory, arcname)
+            example_calc.files.append(arcname)
             zf.write(os.path.join(example_directory, filename), arcname)
 
     return example_calc, example_file
@@ -207,10 +211,11 @@ class UploadFilesContract(UploadFilesFixtures):
         upload, upload_files = test_upload
         for calc in upload.calcs:
             try:
-                with upload_files.raw_file(calc.mainfile) as f:
-                    assert len(f.read()) > 0
-                if not upload_files._is_authorized():
-                    assert not calc.with_embargo
+                for file_path in calc.files:
+                    with upload_files.raw_file(file_path) as f:
+                        assert len(f.read()) > 0
+                    if not upload_files._is_authorized():
+                        assert not calc.with_embargo
             except Restricted:
                 assert not upload_files._is_authorized()
                 assert calc.with_embargo
@@ -231,7 +236,7 @@ class UploadFilesContract(UploadFilesFixtures):
             assert '1.aux' in list(path for path, _ in raw_files)
             for file, size in raw_files:
                 if file.endswith('.aux'):
-                    assert size == 0
+                    assert size == 8
                 else:
                     assert size > 0
             assert_example_files([os.path.join(prefix, path) for path, _ in raw_files])
@@ -428,6 +433,16 @@ class TestPublicUploadFiles(UploadFilesContract):
                 assert new == 0
 
         assert upload_files.to_staging_upload_files() is None
+
+    def test_repack(self, test_upload):
+        upload, upload_files = test_upload
+        for calc in upload.calcs:
+            calc.with_embargo = False
+        upload_files.re_pack(upload)
+        assert_upload_files(upload, PublicUploadFiles, with_embargo=False)
+        assert len(os.listdir(upload_files.os_path)) == 4
+        with assert_exception(KeyError):
+            StagingUploadFiles(upload_files.upload_id)
 
 
 def assert_upload_files(

@@ -238,10 +238,12 @@ class MetainfoBackend(LegacyParserBackend):
         raise NotImplementedError(
             'This method does not make sense in the context of the new metainfo.')
 
-    def get_sections(self, meta_name: str) -> List[int]:
-        """ Return all gIndices for existing sections of the given meta_name. """
+    def get_sections(self, meta_name: str, g_index: int = -1) -> List[int]:
+        """ Return all gIndices for existing sections of the given meta_name and parent index. """
         section_def = self.env.resolve_definition(meta_name, Section)
-        return [section.m_parent_index for section in self.resource.all(section_def.section_cls)]
+        return [
+            section.m_parent_index for section in self.resource.all(section_def.section_cls)
+            if g_index == -1 or section.m_parent.m_parent_index == g_index]
 
     def get_value(self, meta_name: str, g_index=-1) -> Any:
         """

@@ -148,7 +148,8 @@ services = NomadConfig(
     not_processed_value='not processed',
     unavailable_value='unavailable',
     https=False,
-    upload_limit=10
+    upload_limit=10,
+    force_raw_file_decoding=False
 )
 
 tests = NomadConfig(
@@ -192,7 +193,7 @@ client = NomadConfig(
     url='http://localhost:8000/fairdi/nomad/latest/api'
 )
 
-version = '0.6.3'
+version = '0.6.4'
 commit = gitinfo.commit
 release = 'devel'
 domain = 'DFT'
@@ -200,6 +201,7 @@ service = 'unknown nomad service'
 auxfile_cutoff = 100
 parser_matching_size = 9128
 console_log_level = logging.WARNING
+max_upload_size = 32 * (1024 ** 3)
 
 
 def normalize_loglevel(value, default_level=logging.INFO):
