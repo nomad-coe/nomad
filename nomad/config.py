@@ -143,7 +143,8 @@ services = NomadConfig(
     not_processed_value='not processed',
     unavailable_value='unavailable',
     https=False,
-    upload_limit=10
+    upload_limit=10,
+    force_raw_file_decoding=False
 )
 
 tests = NomadConfig(
