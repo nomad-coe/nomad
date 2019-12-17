@@ -29,7 +29,11 @@ class DosNormalizer(Normalizer):
             section_dos_indices = self._backend.get_sections('section_dos', scc_index)
 
             for dos_index in section_dos_indices:
-                dos = self._backend.get_value('dos_values', dos_index)  # a numpy.ndarray
+                try:
+                    dos = self._backend.get_value('dos_values', dos_index)  # a numpy.ndarray
+                except KeyError:
+                    # section dos without doc_values
+                    continue
 
                 system_index = self._backend.get_value(
                     'single_configuration_calculation_to_system_ref', scc_index)
