@@ -78,6 +78,10 @@ your browser.
 ## Change log
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v0.7.1
+- Download of archive files based on search queries
+- minor bugfixes
+
 ### v0.7.0
 - User metadata editing and datasets with DOIs
 - Revised GUI lists (entries, grouped entries, datasets, uploads)
