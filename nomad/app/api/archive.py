@@ -165,7 +165,7 @@ class ArchiveQueryResource(Resource):
 
                 with zipfile_cache:
                     yield (
-                        calc_id, calc_id,
+                        '%s.%s' % (calc_id, upload_files._archive_ext), calc_id,
                         lambda calc_id: upload_files.archive_file(calc_id, 'rb'),
                         lambda calc_id: upload_files.archive_file_size(calc_id))
 
