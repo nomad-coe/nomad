@@ -22,7 +22,6 @@ from io import BytesIO
 from flask import request, send_file
 from flask_restplus import abort, Resource, fields
 import magic
-import contextlib
 import fnmatch
 import json
 import gzip

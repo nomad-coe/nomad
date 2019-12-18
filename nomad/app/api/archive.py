@@ -24,7 +24,6 @@ from flask import send_file
 from flask_restplus import abort, Resource
 import json
 import importlib
-import contextlib
 
 import nomad_meta_info
 
