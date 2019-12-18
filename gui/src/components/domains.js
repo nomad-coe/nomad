@@ -48,6 +48,7 @@ class DomainProviderBase extends React.Component {
         exploring capabilities (menu items on the left).
       `,
       entryLabel: 'entry',
+      entryLabelPlural: 'entries',
       searchPlaceholder: 'enter atoms, codes, functionals, or other quantity values',
       /**
        * A component that is used to render the search aggregations. The components needs
@@ -181,6 +182,7 @@ class DomainProviderBase extends React.Component {
         methods and respective data.
       `,
       entryLabel: 'experiment',
+      entryLabelPlural: 'experiments',
       searchPlaceholder: 'enter atoms, experimental methods, or other quantity values',
       /**
        * A component that is used to render the search aggregations. The components needs
