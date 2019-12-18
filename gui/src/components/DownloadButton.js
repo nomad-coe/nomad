@@ -5,7 +5,7 @@ import { withApi } from './api'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
 import { apiBase } from '../config'
-import { Tooltip, IconButton } from '@material-ui/core'
+import { Tooltip, IconButton, Menu, MenuItem } from '@material-ui/core'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 
 class DownloadButton extends React.Component {
@@ -14,10 +14,6 @@ class DownloadButton extends React.Component {
      * The query that defines what to download.
      */
     query: PropTypes.object.isRequired,
-    /**
-     * A suggestion for the download filename.
-     */
-    fileName: PropTypes.string,
     /**
      * A tooltip for the button
      */
@@ -37,13 +33,17 @@ class DownloadButton extends React.Component {
   }
 
   state = {
-    preparingDownload: false
+    preparingDownload: false,
+    anchorEl: null
   }
 
-  async onDownloadClicked(event) {
+  handleClick(event) {
     event.stopPropagation()
+    this.setState({ anchorEl: event.currentTarget });
+  }
 
-    const {api, query, user, fileName, raiseError} = this.props
+  async handleSelect(choice) {
+    const {api, query, user, raiseError} = this.props
 
     const params = {
       strip: true
@@ -59,25 +59,39 @@ class DownloadButton extends React.Component {
         raiseError(e)
       }
     }
-    FileSaver.saveAs(`${apiBase}/raw/query?${new URLSearchParams(params).toString()}`, fileName || 'nomad-download.zip')
-    this.setState({preparingDownload: false})
+    FileSaver.saveAs(`${apiBase}/${choice}/query?${new URLSearchParams(params).toString()}`, `nomad-${choice}-download.zip`)
+    this.setState({preparingDownload: false, anchorEl: null})
+  }
+
+  handleClose() {
+    this.setState({anchorEl: null})
   }
 
   render() {
     const {tooltip, disabled, buttonProps, dark} = this.props
-    const {preparingDownload} = this.state
+    const {preparingDownload, anchorEl} = this.state
 
     const props = {
       ...buttonProps,
       disabled: disabled || preparingDownload,
-      onClick: this.onDownloadClicked.bind(this)
+      onClick: this.handleClick.bind(this)
     }
 
-    return <IconButton {...props} style={dark ? {color: 'white'} : null}>
-      <Tooltip title={tooltip || 'Download'}>
-        <DownloadIcon />
-      </Tooltip>
-    </IconButton>
+    return <React.Fragment>
+      <IconButton {...props} style={dark ? {color: 'white'} : null}>
+        <Tooltip title={tooltip || 'Download'}>
+          <DownloadIcon />
+        </Tooltip>
+      </IconButton>
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={this.handleClose.bind(this)}
+      >
+        <MenuItem onClick={() => this.handleSelect('raw')}>Raw uploaded files</MenuItem>
+        <MenuItem onClick={() => this.handleSelect('archive')}>NOMAD Archive files</MenuItem>
+      </Menu>
+    </React.Fragment>
   }
 }
 

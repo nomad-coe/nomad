@@ -16,14 +16,31 @@ import UploadList from './UploadsList'
 import GroupList from './GroupList'
 
 class Search extends React.Component {
+  static tabs = {
+    'entries': {
+      label: 'Entries',
+      render: (props) => <SearchEntryList {...(props || {})}/>
+    },
+    'groups': {
+      label: 'Grouped entries',
+      render: () => <SearchGroupList />
+    },
+    'uploads': {
+      label: 'Uploads',
+      render: () => <SearchUploadList />
+    },
+    'datasets': {
+      label: 'Datasets',
+      render: () => <SearchDatasetList />
+    }
+  }
+
   static propTypes = {
     classes: PropTypes.object.isRequired,
     resultTab: PropTypes.string,
     entryListProps: PropTypes.object,
     visualization: PropTypes.string,
-    groups: PropTypes.bool,
-    datasets: PropTypes.bool,
-    uploads: PropTypes.bool
+    tabs: PropTypes.arrayOf(PropTypes.string)
   }
 
   static styles = theme => ({
@@ -71,7 +88,7 @@ class Search extends React.Component {
   static contextType = SearchContext.type
 
   state = {
-    resultTab: this.resultTab || 'entries',
+    resultTab: 'entries',
     openVisualization: this.props.visualization
   }
 
@@ -89,20 +106,26 @@ class Search extends React.Component {
     }
   }
 
+  componentDidMount() {
+    if ((this.props.resultTab || 'entries') !== 'entries') {
+      this.setState({resultTab: this.props.resultTab})
+    }
+  }
+
   handleTabChange(tab) {
     const {setRequest} = this.context
 
-    setRequest({
-      uploads: tab === 'uploads' ? true : undefined,
-      datasets: tab === 'datasets' ? true : undefined,
-      groups: tab === 'groups' ? true : undefined
+    this.setState({resultTab: tab}, () => {
+      setRequest({
+        uploads: tab === 'uploads' ? true : undefined,
+        datasets: tab === 'datasets' ? true : undefined,
+        groups: tab === 'groups' ? true : undefined
+      })
     })
-
-    this.setState({resultTab: tab})
   }
 
   render() {
-    const {classes, entryListProps, groups, datasets, uploads} = this.props
+    const {classes, entryListProps, tabs} = this.props
     const {resultTab, openVisualization} = this.state
     // const {state: {request: {uploads, datasets, groups}}} = this.context
 
@@ -142,28 +165,18 @@ class Search extends React.Component {
               textColor="primary"
               onChange={(event, value) => this.handleTabChange(value)}
             >
-              <Tab label="Entries" value="entries" />
-              {groups && <Tab label="Grouped entries" value="groups" />}
-              {datasets && <Tab label="Datasets" value="datasets" />}
-              {uploads && <Tab label="Uploads" value="uploads" />}
+              {tabs.map(tab => <Tab
+                key={tab}
+                label={Search.tabs[tab].label}
+                value={tab}
+              />)}
             </Tabs>
 
-            <KeepState
-              visible={resultTab === 'entries'}
-              render={() => <SearchEntryList {...(entryListProps || {})}/>}
-            />
-            {groups && <KeepState
-              visible={resultTab === 'groups'}
-              render={() => <SearchGroupList />}
-            />}
-            {datasets && <KeepState
-              visible={resultTab === 'datasets'}
-              render={() => <SearchDatasetList />}
-            />}
-            {uploads && <KeepState
-              visible={resultTab === 'uploads'}
-              render={() => <SearchUploadList />}
-            />}
+            {tabs.map(tab => <KeepState
+              key={tab}
+              visible={resultTab === tab}
+              render={() => Search.tabs[tab].render(entryListProps)}
+            />)}
           </Paper>
         </div>
       </div>

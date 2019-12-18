@@ -86,7 +86,7 @@ class SearchPage extends React.Component {
           initialQuery={query}
           ownerTypes={['all', 'public'].filter(key => user || withoutLogin.indexOf(key) !== -1)}
         >
-          <Search visualization="elements" groups datasets />
+          <Search visualization="elements" tabs={['entries', 'groups', 'datasets']} />
         </SearchContext>
       </div>
     )
