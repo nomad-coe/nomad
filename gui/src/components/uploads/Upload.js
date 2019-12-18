@@ -2,7 +2,8 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography,
   ExpansionPanelDetails, Stepper, Step, StepLabel, Tooltip, CircularProgress,
-  IconButton} from '@material-ui/core'
+  IconButton, DialogTitle, DialogContent, FormGroup, Checkbox, Button, Dialog, FormLabel,
+  DialogActions} from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
 import { compose } from 'recompose'
@@ -13,10 +14,67 @@ import EntryList, { EntryListUnstyled } from '../search/EntryList'
 import { withDomain } from '../domains'
 import DeleteIcon from '@material-ui/icons/Delete'
 import PublishIcon from '@material-ui/icons/Publish'
-import ConfirmDialog from './ConfirmDialog'
 import PublishedIcon from '@material-ui/icons/Visibility'
 import UnPublishedIcon from '@material-ui/icons/Lock'
 import { withApi } from '../api'
+import Markdown from '../Markdown'
+import ConfirmDialog from './ConfirmDialog'
+
+class PublishConfirmDialog extends React.Component {
+  static propTypes = {
+    onPublish: PropTypes.func.isRequired,
+    onClose: PropTypes.func.isRequired,
+    open: PropTypes.bool.isRequired
+  }
+
+  state = {
+    withEmbargo: false
+  }
+
+  render() {
+    const { onPublish, onClose, open } = this.props
+    const { withEmbargo } = this.state
+    return (
+      <div>
+        <Dialog
+          open={open}
+          onClose={onClose}
+        >
+          <DialogTitle>Publish data</DialogTitle>
+          <DialogContent>
+            <Markdown>{`
+              If you agree the selected uploads will move out of your private staging
+              area into the public [NOMAD Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/).
+              If you wish to put an embargo on your data it will last upto 36 month. Afterwards, your data will
+              be made public. All public data will be made available under the Creative
+              Commons Attribution license ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)).
+
+              The published data will be added to the NOMAD Repository's index overnight.
+              Therefore, it will take until tomorrow before your data appears in the
+              [NOMAD Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/).
+            `}</Markdown>
+
+            <FormGroup row style={{alignItems: 'center'}}>
+              <Checkbox
+                checked={!withEmbargo}
+                onChange={() => this.setState({withEmbargo: !withEmbargo})}
+              />
+              <FormLabel>publish without embargo</FormLabel>
+            </FormGroup>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={() => onPublish(withEmbargo)} color="primary" autoFocus>
+              {withEmbargo ? 'Publish with embargo' : 'Publish'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </div>
+    )
+  }
+}
 
 class Upload extends React.Component {
   static propTypes = {
@@ -109,6 +167,8 @@ class Upload extends React.Component {
     super(props)
     this.handleChange = this.handleChange.bind(this)
     this.handleDelete = this.handleDelete.bind(this)
+    this.handleDeleteOpen = this.handleDeleteOpen.bind(this)
+    this.handleDeleteCancel = this.handleDeleteCancel.bind(this)
     this.handlePublishCancel = this.handlePublishCancel.bind(this)
     this.handlePublishOpen = this.handlePublishOpen.bind(this)
     this.handlePublishSubmit = this.handlePublishSubmit.bind(this)
@@ -244,11 +304,19 @@ class Upload extends React.Component {
   handleDelete() {
     const { api, upload } = this.props
     api.deleteUpload(upload.upload_id)
-      .then(() => this.update())
-      .catch(error => {
-        this.props.raiseError(error)
+      .then(() => {
+        this.setState({showDeleteDialog: false})
         this.update()
       })
+      .catch(error => {
+        this.props.raiseError(error)
+        this.setState({showDeleteDialog: false})
+        this.update()
+      })
+  }
+
+  handleDeleteOpen() {
+    this.setState({showDeleteDialog: true})
   }
 
   handlePublishOpen() {
@@ -271,6 +339,11 @@ class Upload extends React.Component {
 
   handlePublishCancel() {
     this.setState({showPublishDialog: false})
+  }
+
+
+  handleDeleteCancel() {
+    this.setState({showDeleteDialog: false})
   }
 
   onCheckboxChanged(_, checked) {
@@ -475,7 +548,7 @@ class Upload extends React.Component {
     const running = upload.tasks_running || upload.process_running
 
     const actions = upload.published ? <React.Fragment /> : <React.Fragment>
-      <IconButton onClick={this.handleDelete} disabled={running}>
+      <IconButton onClick={this.handleDeleteOpen} disabled={running}>
         <Tooltip title="Delete upload">
           <DeleteIcon />
         </Tooltip>
@@ -524,7 +597,7 @@ class Upload extends React.Component {
 
   render() {
     const { classes, open } = this.props
-    const { upload, showPublishDialog, expanded } = this.state
+    const { upload, showPublishDialog, showDeleteDialog, expanded } = this.state
     const { errors } = upload
 
     if (this.state.upload) {
@@ -557,10 +630,21 @@ class Upload extends React.Component {
                 </div> : ''}
             </ExpansionPanelDetails>
           </ExpansionPanel>
-          <ConfirmDialog
+          <PublishConfirmDialog
             open={showPublishDialog}
             onClose={this.handlePublishCancel}
             onPublish={this.handlePublishSubmit}
+          />
+          <ConfirmDialog
+            title="Delete an upload"
+            content={`
+                You are about to delete a non published upload. This cannot be undone,
+                but you could re-upload the same file again. Are you sure?
+            `}
+            confirmLabel="Delete"
+            open={showDeleteDialog}
+            onClose={this.handleDeleteCancel}
+            onConfirm={this.handleDelete}
           />
         </div>
       )
