@@ -294,6 +294,13 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         """
         raise NotImplementedError()
 
+    def archive_file_size(self, calc_id: str, *args, **kwargs) -> IO:
+        """
+        Returns:
+            The size of the archive.
+        """
+        raise NotImplementedError()
+
     def archive_log_file(self, calc_id: str, *args, **kwargs) -> IO:
         """
         Opens a archive log file and returns a file-like objects. Additional args, kwargs are
@@ -364,6 +371,11 @@ class StagingUploadFiles(UploadFiles):
 
     def archive_file_object(self, calc_id: str) -> PathObject:
         return self._archive_dir.join_file('%s.%s' % (calc_id, self._archive_ext))
+
+    def archive_file_size(self, calc_id: str) -> int:
+        if not self._is_authorized():
+            raise Restricted
+        return self._archive_dir.join_file('%s.%s' % (calc_id, self._archive_ext)).size
 
     def archive_log_file_object(self, calc_id: str) -> PathObject:
         return self._archive_dir.join_file('%s.log' % calc_id)
@@ -835,6 +847,23 @@ class PublicUploadFiles(UploadFiles):
 
     def archive_file(self, calc_id: str, *args, **kwargs) -> IO:
         return self._file('archive', self._archive_ext, '%s.%s' % (calc_id, self._archive_ext), *args, **kwargs)
+
+    def archive_file_size(self, calc_id: str) -> int:
+        file_path = '%s.%s' % (calc_id, self._archive_ext)
+        for access in ['public', 'restricted']:
+            try:
+                zf = self.open_zip_file('archive', access, self._archive_ext)
+                info = zf.getinfo(file_path)
+                if (access == 'restricted' or always_restricted(file_path)) and not self._is_authorized():
+                    raise Restricted
+
+                return info.file_size
+            except FileNotFoundError:
+                pass
+            except KeyError:
+                pass
+
+        raise KeyError()
 
     def archive_log_file(self, calc_id: str, *args, **kwargs) -> IO:
         return self._file('archive', self._archive_ext, '%s.log' % calc_id, *args, **kwargs)

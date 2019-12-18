@@ -63,6 +63,25 @@ def get_upload_with_metadata(upload: dict) -> UploadWithMetadata:
             for calc in upload['calcs']['results']])
 
 
+def assert_zip_file(rv, files: int = -1, basename: bool = None):
+    assert rv.status_code == 200
+    assert len(rv.data) > 0
+    with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
+        assert zip_file.testzip() is None
+        zip_files = zip_file.namelist()
+        if files >= 0:
+            assert len(zip_files) == files
+        if basename is not None:
+            if basename:
+                assert all(
+                    os.path.basename(name) == name
+                    for name in zip_files if name != 'manifest.json')
+            else:
+                assert all(
+                    os.path.basename(name) != name
+                    for name in zip_files for name in zip_files if name != 'manifest.json')
+
+
 class TestInfo:
     def test_info(self, api):
         rv = api.get('/info/')
@@ -614,6 +633,37 @@ class TestArchive(UploadFilesBasedTests):
         assert rv.status_code == 200
         metainfo = json.loads((rv.data))
         assert len(metainfo) > 0
+
+    @pytest.mark.parametrize('compress', [False, True])
+    def test_archive_from_query_upload_id(self, api, non_empty_processed, test_user_auth, compress):
+        url = '/archive/query?upload_id=%s&compress=%s' % (non_empty_processed.upload_id, 'true' if compress else 'false')
+        rv = api.get(url, headers=test_user_auth)
+
+        assert rv.status_code == 200
+        assert_zip_file(rv, files=2)
+
+    @pytest.mark.parametrize('query_params', [
+        {'atoms': 'Si'},
+        {'authors': 'Sheldon Cooper'}
+    ])
+    def test_archive_from_query(self, api, processeds, test_user_auth, query_params):
+
+        url = '/archive/query?%s' % urlencode(query_params)
+        rv = api.get(url, headers=test_user_auth)
+
+        assert rv.status_code == 200
+        assert_zip_file(rv, files=len(processeds) + 1)
+        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
+            with zip_file.open('manifest.json', 'r') as f:
+                manifest = json.load(f)
+                assert len(manifest) == len(processeds)
+
+    def test_archive_from_empty_query(self, api, elastic):
+        url = '/archive/query?upload_id=doesNotExist'
+        rv = api.get(url)
+
+        assert rv.status_code == 200
+        assert_zip_file(rv, files=1)
 
 
 class TestRepo():
@@ -1298,24 +1348,6 @@ def test_edit_lift_embargo_unnecessary(api, published_wo_user_metadata, other_te
 
 class TestRaw(UploadFilesBasedTests):
 
-    def assert_zip_file(self, rv, files: int = -1, basename: bool = None):
-        assert rv.status_code == 200
-        assert len(rv.data) > 0
-        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
-            assert zip_file.testzip() is None
-            zip_files = zip_file.namelist()
-            if files >= 0:
-                assert len(zip_files) == files
-            if basename is not None:
-                if basename:
-                    assert all(
-                        os.path.basename(name) == name
-                        for name in zip_files if name != 'manifest.json')
-                else:
-                    assert all(
-                        os.path.basename(name) != name
-                        for name in zip_files for name in zip_files if name != 'manifest.json')
-
     def test_raw_file_from_calc(self, api, non_empty_processed, test_user_auth):
         calc = list(non_empty_processed.calcs)[0]
         url = '/raw/calc/%s/%s/%s' % (
@@ -1384,7 +1416,7 @@ class TestRaw(UploadFilesBasedTests):
         rv = api.get(url, headers=auth_headers)
 
         assert rv.status_code == 200
-        self.assert_zip_file(rv, files=len(example_file_contents))
+        assert_zip_file(rv, files=len(example_file_contents))
 
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_file_wildcard_missing(self, api, upload, auth_headers):
@@ -1410,7 +1442,7 @@ class TestRaw(UploadFilesBasedTests):
         rv = api.get(url, headers=auth_headers)
 
         assert rv.status_code == 200
-        self.assert_zip_file(rv, files=len(example_file_contents), basename=strip)
+        assert_zip_file(rv, files=len(example_file_contents), basename=strip)
 
     @pytest.mark.parametrize('compress', [False, True])
     def test_raw_files_from_query_upload_id(self, api, non_empty_processed, test_user_auth, compress):
@@ -1418,7 +1450,7 @@ class TestRaw(UploadFilesBasedTests):
         rv = api.get(url, headers=test_user_auth)
 
         assert rv.status_code == 200
-        self.assert_zip_file(rv, files=len(example_file_contents) + 1)
+        assert_zip_file(rv, files=len(example_file_contents) + 1)
 
     @pytest.mark.parametrize('query_params', [
         {'atoms': 'Si'},
@@ -1430,7 +1462,7 @@ class TestRaw(UploadFilesBasedTests):
         rv = api.get(url, headers=test_user_auth)
 
         assert rv.status_code == 200
-        self.assert_zip_file(rv, files=len(example_file_contents) * len(processeds) + 1)
+        assert_zip_file(rv, files=len(example_file_contents) * len(processeds) + 1)
         with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
             with zip_file.open('manifest.json', 'r') as f:
                 manifest = json.load(f)
@@ -1441,7 +1473,7 @@ class TestRaw(UploadFilesBasedTests):
         rv = api.get(url)
 
         assert rv.status_code == 200
-        self.assert_zip_file(rv, files=1)
+        assert_zip_file(rv, files=1)
 
     @pytest.mark.parametrize('files, pattern, strip', [
         (1, '*.json', False),
@@ -1454,7 +1486,7 @@ class TestRaw(UploadFilesBasedTests):
         url = '/raw/query?%s' % urlencode(params, doseq=True)
         rv = api.get(url, headers=test_user_auth)
         assert rv.status_code == 200
-        self.assert_zip_file(rv, files=(files + 1), basename=strip)
+        assert_zip_file(rv, files=(files + 1), basename=strip)
 
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_files_signed(self, api, upload, _, test_user_signature_token):
@@ -1463,7 +1495,7 @@ class TestRaw(UploadFilesBasedTests):
         rv = api.get(url)
 
         assert rv.status_code == 200
-        self.assert_zip_file(rv, files=len(example_file_contents))
+        assert_zip_file(rv, files=len(example_file_contents))
 
     @pytest.mark.parametrize('compress', [True, False, None])
     @UploadFilesBasedTests.check_authorization
@@ -1475,7 +1507,7 @@ class TestRaw(UploadFilesBasedTests):
         rv = api.post(url, data=json.dumps(data), content_type='application/json', headers=auth_headers)
 
         assert rv.status_code == 200
-        self.assert_zip_file(rv, files=len(example_file_contents))
+        assert_zip_file(rv, files=len(example_file_contents))
 
     @pytest.mark.parametrize('compress', [True, False])
     @UploadFilesBasedTests.ignore_authorization
@@ -1486,7 +1518,7 @@ class TestRaw(UploadFilesBasedTests):
         rv = api.get(url, headers=auth_headers)
 
         assert rv.status_code == 200
-        self.assert_zip_file(rv, files=1)
+        assert_zip_file(rv, files=1)
 
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_files_missing_upload(self, api, upload, auth_headers):

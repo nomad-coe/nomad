@@ -220,6 +220,18 @@ class UploadFilesContract(UploadFilesFixtures):
                 assert not upload_files._is_authorized()
                 assert calc.with_embargo
 
+    def test_rawfile_size(self, test_upload: UploadWithFiles):
+        upload, upload_files = test_upload
+        for calc in upload.calcs:
+            try:
+                for file_path in calc.files:
+                    assert upload_files.raw_file_size(file_path) > 0
+                    if not upload_files._is_authorized():
+                        assert not calc.with_embargo
+            except Restricted:
+                assert not upload_files._is_authorized()
+                assert calc.with_embargo
+
     @pytest.mark.parametrize('prefix', [None, 'examples'])
     def test_raw_file_manifest(self, test_upload: UploadWithFiles, prefix: str):
         _, upload_files = test_upload
@@ -252,6 +264,18 @@ class UploadFilesContract(UploadFilesFixtures):
             else:
                 f = upload_files.archive_file(example_calc_id, 'rt')
                 assert json.load(f) == 'archive'
+
+            if not upload_files._is_authorized():
+                assert not calcs.get(example_calc_id).with_embargo
+        except Restricted:
+            assert not upload_files._is_authorized()
+            assert calcs.get(example_calc_id).with_embargo
+
+    def test_archive_size(self, test_upload: UploadWithFiles):
+        upload, upload_files = test_upload
+        calcs = upload.calcs_dict
+        try:
+            assert upload_files.archive_file_size(example_calc_id) > 0
 
             if not upload_files._is_authorized():
                 assert not calcs.get(example_calc_id).with_embargo

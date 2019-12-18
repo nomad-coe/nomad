@@ -16,13 +16,11 @@
 The raw API of the nomad@FAIRDI APIs. Can be used to retrieve raw calculation files.
 """
 
-from typing import IO, Any, Union, Iterable, Tuple, Set, List
+from typing import IO, Any, Union, Iterable, Tuple, List
 import os.path
-import zipstream
-from flask import Response, request, send_file, stream_with_context
+from flask import request, send_file
 from flask_restplus import abort, Resource, fields
 import magic
-import sys
 import contextlib
 import fnmatch
 import json
@@ -36,11 +34,7 @@ from nomad.processing import Calc
 from .api import api
 from .auth import authenticate, create_authorization_predicate
 from .repo import search_request_parser, add_query
-
-if sys.version_info >= (3, 7):
-    import zipfile
-else:
-    import zipfile37 as zipfile
+from .common import streamed_zipfile
 
 
 ns = api.namespace('raw', description='Downloading raw data files.')
@@ -328,7 +322,7 @@ raw_files_request_parser.add_argument(**raw_file_compress_argument)
 class RawFilesResource(Resource):
     @api.doc('get_files')
     @api.response(404, 'The upload or path does not exist')
-    @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
+    @api.response(200, 'File(s) send', headers={'Content-Type': 'application/zip'})
     @api.expect(raw_files_request_model, validate=True)
     @authenticate()
     def post(self, upload_id):
@@ -345,7 +339,7 @@ class RawFilesResource(Resource):
 
     @api.doc('get_files_alternate')
     @api.response(404, 'The upload or path does not exist')
-    @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
+    @api.response(200, 'File(s) send', headers={'Content-Type': 'application/zip'})
     @api.expect(raw_files_request_parser, validate=True)
     @authenticate(signature_token=True)
     def get(self, upload_id):
@@ -387,7 +381,7 @@ class RawFileQueryResource(Resource):
     @api.doc('raw_files_from_query')
     @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
     @api.expect(raw_file_from_query_parser, validate=True)
-    @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
+    @api.response(200, 'File(s) send', headers={'Content-Type': 'application/zip'})
     @authenticate(signature_token=True)
     def get(self):
         """ Download a .zip file with all raw-files for all entries that match the given
@@ -504,8 +498,7 @@ def respond_to_get_raw_files(upload_id, files, compress=False, strip=False):
 
 
 def _streamed_zipfile(
-        files: Iterable[Tuple[str, str, UploadFiles]], zipfile_name: str,
-        compress: bool = False, manifest: str = None):
+        files: Iterable[Tuple[str, str, UploadFiles]], **kwargs):
     """
     Creates a response that streams the given files as a streamed zip file. Ensures that
     each given file is only streamed once, based on its filename in the resulting zipfile.
@@ -514,59 +507,13 @@ def _streamed_zipfile(
         files: An iterable of tuples with the filename to be used in the resulting zipfile,
             the filename within the upload, the :class:`UploadFiles` that contains
             the file.
-        zipfile_name: A name that will be used in the content disposition attachment
-            used as an HTTP respone.
-        compress: Uses compression. Default is stored only.
-        manifest: Add a ``manifest.json`` with the given content.
+        **kwargs: See :func:`streamed_zipfile`
     """
 
-    streamed_files: Set[str] = set()
+    def map(name, upload_filename, upload_files):
+        return (
+            name, upload_filename,
+            lambda upload_filename: upload_files.raw_file(upload_filename, 'rb'),
+            lambda upload_filename: upload_files.raw_file_size(upload_filename))
 
-    def generator():
-        """ Stream a zip file with all files using zipstream. """
-        def iterator():
-            """
-            Replace the directory based iter of zipstream with an iter over all given
-            files.
-            """
-            # first the manifest
-            if manifest is not None:
-                yield dict(arcname='manifest.json', iterable=(manifest.encode('utf-8'),))
-
-            # now the actual contents
-            for zipped_filename, upload_filename, upload_files in files:
-                if zipped_filename in streamed_files:
-                    continue
-                streamed_files.add(zipped_filename)
-
-                # Write a file to the zipstream.
-                try:
-                    with upload_files.raw_file(upload_filename, 'rb') as f:
-                        def iter_content():
-                            while True:
-                                data = f.read(1024 * 64)
-                                if not data:
-                                    break
-                                yield data
-
-                        yield dict(
-                            arcname=zipped_filename, iterable=iter_content(),
-                            buffer_size=upload_files.raw_file_size(upload_filename))
-                except KeyError:
-                    # files that are not found, will not be returned
-                    pass
-                except Restricted:
-                    # due to the streaming nature, we cannot raise 401 here
-                    # we just leave it out in the download
-                    pass
-
-        compression = zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED
-        zip_stream = zipstream.ZipFile(mode='w', compression=compression, allowZip64=True)
-        zip_stream.paths_to_write = iterator()
-
-        for chunk in zip_stream:
-            yield chunk
-
-    response = Response(stream_with_context(generator()), mimetype='application/zip')
-    response.headers['Content-Disposition'] = 'attachment; filename={}'.format(zipfile_name)
-    return response
+    return streamed_zipfile([map(*item) for item in files], **kwargs)

@@ -23,14 +23,17 @@ from flask import send_file
 from flask_restplus import abort, Resource
 import json
 import importlib
+import contextlib
 
 import nomad_meta_info
 
 from nomad.files import UploadFiles, Restricted
+from nomad import utils, search
 
 from .auth import authenticate, create_authorization_predicate
 from .api import api
-from .common import calc_route
+from .repo import search_request_parser, add_query
+from .common import calc_route, streamed_zipfile
 
 ns = api.namespace(
     'archive',
@@ -103,6 +106,87 @@ class ArchiveCalcResource(Resource):
             abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
         except KeyError:
             abort(404, message='Calculation %s does not exist.' % archive_id)
+
+
+archives_from_query_parser = search_request_parser.copy()
+archives_from_query_parser.add_argument(
+    name='compress', type=bool, help='Use compression on .zip files, default is not.',
+    location='args')
+
+
+@ns.route('/query')
+class ArchiveQueryResource(Resource):
+    manifest_quantities = ['upload_id', 'calc_id', 'external_id', 'raw_id', 'pid', 'calc_hash']
+
+    @api.doc('archives_from_query')
+    @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
+    @api.expect(archives_from_query_parser, validate=True)
+    @api.response(200, 'File(s) send', headers={'Content-Type': 'application/zip'})
+    @authenticate(signature_token=True)
+    def get(self):
+        """
+        Get calculation data in archive form from all query results.
+
+        See ``/repo`` endpoint for documentation on the search
+        parameters.
+
+        Zip files are streamed; instead of 401 errors, the zip file will just not contain
+        any files that the user is not authorized to access.
+
+        The zip file will contain a ``manifest.json`` with the repository meta data.
+        """
+        try:
+            args = archives_from_query_parser.parse_args()
+            compress = args.get('compress', False)
+        except Exception:
+            abort(400, message='bad parameter types')
+
+        search_request = search.SearchRequest()
+        add_query(search_request, search_request_parser.parse_args())
+
+        calcs = sorted(
+            [entry for entry in search_request.execute_scan()],
+            key=lambda x: x['upload_id'])
+
+        def generator():
+            for entry in calcs:
+                upload_id = entry['upload_id']
+                calc_id = entry['calc_id']
+                upload_files = UploadFiles.get(
+                    upload_id, create_authorization_predicate(upload_id))
+                if upload_files is None:
+                    utils.get_logger(__name__).error('upload files do not exist', upload_id=upload_id)
+                    continue
+
+                if hasattr(upload_files, 'zipfile_cache'):
+                    zipfile_cache = upload_files.zipfile_cache()
+                else:
+                    zipfile_cache = contextlib.suppress()
+
+                with zipfile_cache:
+                    yield (
+                        calc_id, calc_id,
+                        lambda calc_id: upload_files.archive_file(calc_id, 'rb'),
+                        lambda calc_id: upload_files.archive_file_size(calc_id))
+
+        try:
+            manifest = {
+                entry['calc_id']: {
+                    key: entry[key]
+                    for key in ArchiveQueryResource.manifest_quantities
+                    if entry.get(key) is not None
+                }
+                for entry in calcs
+            }
+            manifest_contents = json.dumps(manifest)
+        except Exception as e:
+            manifest_contents = dict(error='Could not create the manifest: %s' % (e))
+            utils.get_logger(__name__).error(
+                'could not create raw query manifest', exc_info=e)
+
+        return streamed_zipfile(
+            generator(), zipfile_name='nomad_archive.zip', compress=compress,
+            manifest=manifest_contents)
 
 
 @ns.route('/metainfo/<string:metainfo_package_name>')
