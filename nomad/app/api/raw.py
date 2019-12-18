@@ -430,40 +430,44 @@ class RawFileQueryResource(Resource):
 
         def generator():
             manifest = {}
+            upload_files = None
             for entry in calcs:
                 upload_id = entry['upload_id']
                 mainfile = entry['mainfile']
-                upload_files = UploadFiles.get(
-                    upload_id, create_authorization_predicate(upload_id))
-                if upload_files is None:
-                    utils.get_logger(__name__).error('upload files do not exist', upload_id=upload_id)
-                    continue
+                if upload_files is None or upload_files.upload_id != upload_id:
+                    if upload_files is not None:
+                        upload_files.close_zipfile_cache()
 
-                if hasattr(upload_files, 'zipfile_cache'):
-                    zipfile_cache = upload_files.zipfile_cache()
-                else:
-                    zipfile_cache = contextlib.suppress()
+                    upload_files = UploadFiles.get(
+                        upload_id, create_authorization_predicate(upload_id))
 
-                with zipfile_cache:
-                    filenames = upload_files.raw_file_manifest(
-                        path_prefix=os.path.dirname(mainfile))
-                    for filename in filenames:
-                        filename_w_upload = os.path.join(upload_files.upload_id, filename)
-                        filename_wo_prefix = filename_w_upload[common_prefix_len:]
-                        if len(patterns) == 0 or any(
-                                fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
-                                for pattern in patterns):
+                    if upload_files is None:
+                        utils.get_logger(__name__).error('upload files do not exist', upload_id=upload_id)
+                        continue
 
-                            yield (
-                                filename_wo_prefix, filename,
-                                lambda upload_filename: upload_files.raw_file(upload_filename, 'rb'),
-                                lambda upload_filename: upload_files.raw_file_size(upload_filename))
+                    upload_files.open_zipfile_cache()
 
-                            manifest[path(entry)] = {
-                                key: entry[key]
-                                for key in RawFileQueryResource.manifest_quantities
-                                if entry.get(key) is not None
-                            }
+                filenames = upload_files.raw_file_manifest(path_prefix=os.path.dirname(mainfile))
+                for filename in filenames:
+                    filename_w_upload = os.path.join(upload_files.upload_id, filename)
+                    filename_wo_prefix = filename_w_upload[common_prefix_len:]
+                    if len(patterns) == 0 or any(
+                            fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
+                            for pattern in patterns):
+
+                        yield (
+                            filename_wo_prefix, filename,
+                            lambda upload_filename: upload_files.raw_file(upload_filename, 'rb'),
+                            lambda upload_filename: upload_files.raw_file_size(upload_filename))
+
+                        manifest[path(entry)] = {
+                            key: entry[key]
+                            for key in RawFileQueryResource.manifest_quantities
+                            if entry.get(key) is not None
+                        }
+
+            if upload_files is not None:
+                upload_files.close_zipfile_cache()
 
             try:
                 manifest_contents = json.dumps(manifest).encode('utf-8')
@@ -490,17 +494,14 @@ def respond_to_get_raw_files(upload_id, files, compress=False, strip=False):
 
     # the zipfile cache allows to access many raw-files from public upload files without
     # having to re-open the underlying zip files all the time
-    if hasattr(upload_files, 'zipfile_cache'):
-        zipfile_cache = upload_files.zipfile_cache()
-    else:
-        zipfile_cache = contextlib.suppress()
+    upload_files.open_zipfile_cache()
 
     if strip:
         common_prefix_len = len(utils.common_prefix(files))
     else:
         common_prefix_len = 0
 
-    with zipfile_cache:
+    try:
         return streamed_zipfile(
             [(
                 filename[common_prefix_len:], filename,
@@ -508,3 +509,5 @@ def respond_to_get_raw_files(upload_id, files, compress=False, strip=False):
                 lambda upload_filename: upload_files.raw_file_size(upload_filename)
             ) for filename in files],
             zipfile_name='%s.zip' % upload_id, compress=compress)
+    finally:
+        upload_files.close_zipfile_cache()

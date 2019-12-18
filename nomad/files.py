@@ -58,7 +58,6 @@ import tarfile
 import hashlib
 import io
 import pickle
-from contextlib import contextmanager
 
 from nomad import config, utils
 from nomad.datamodel import UploadWithMetadata
@@ -312,6 +311,13 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
             Restricted: If the file is restricted and upload access evaluated to False.
         """
         raise NotImplementedError()
+
+    def open_zipfile_cache(self):
+        """ Allows to reuse the same zipfile for multiple file operations. Must be closed. """
+        pass
+
+    def close_zipfile_cache(self):
+        pass
 
 
 class StagingUploadFiles(UploadFiles):
@@ -916,16 +922,12 @@ class PublicUploadFiles(UploadFiles):
                 repacked_file.os_path,
                 public_file.os_path)
 
-    @contextmanager
-    def zipfile_cache(self):
-        """
-        Context that allows to read files while caching zipfiles without reopening them
-        all the time.
-        """
+    def open_zipfile_cache(self):
         if self._zipfile_cache is None:
             self._zipfile_cache = {}
-        try:
-            yield
-        finally:
+
+    def close_zipfile_cache(self):
+        if self._zipfile_cache is not None:
             for zip_file in self._zipfile_cache.values():
                 zip_file.close()
+        self._zipfile_cache = None

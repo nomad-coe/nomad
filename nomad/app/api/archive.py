@@ -149,31 +149,36 @@ class ArchiveQueryResource(Resource):
 
         def generator():
             manifest = {}
+            upload_files = None
             for entry in calcs:
                 upload_id = entry['upload_id']
                 calc_id = entry['calc_id']
-                upload_files = UploadFiles.get(
-                    upload_id, create_authorization_predicate(upload_id))
-                if upload_files is None:
-                    utils.get_logger(__name__).error('upload files do not exist', upload_id=upload_id)
-                    continue
+                if upload_files is None or upload_files.upload_id != upload_id:
+                    if upload_files is not None:
+                        upload_files.close_zipfile_cache()
 
-                if hasattr(upload_files, 'zipfile_cache'):
-                    zipfile_cache = upload_files.zipfile_cache()
-                else:
-                    zipfile_cache = contextlib.suppress()
+                    upload_files = UploadFiles.get(
+                        upload_id, create_authorization_predicate(upload_id))
 
-                with zipfile_cache:
-                    yield (
-                        '%s.%s' % (calc_id, upload_files._archive_ext), calc_id,
-                        lambda calc_id: upload_files.archive_file(calc_id, 'rb'),
-                        lambda calc_id: upload_files.archive_file_size(calc_id))
+                    if upload_files is None:
+                        utils.get_logger(__name__).error('upload files do not exist', upload_id=upload_id)
+                        continue
+
+                    upload_files.open_zipfile_cache()
+
+                yield (
+                    '%s.%s' % (calc_id, upload_files._archive_ext), calc_id,
+                    lambda calc_id: upload_files.archive_file(calc_id, 'rb'),
+                    lambda calc_id: upload_files.archive_file_size(calc_id))
 
                 manifest[calc_id] = {
                     key: entry[key]
                     for key in ArchiveQueryResource.manifest_quantities
                     if entry.get(key) is not None
                 }
+
+            if upload_files is not None:
+                upload_files.close_zipfile_cache()
 
             try:
                 manifest_contents = json.dumps(manifest).encode('utf-8')
