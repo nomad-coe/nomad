@@ -526,12 +526,25 @@ class SearchRequest:
         """
         return self._response(self._search.query(self.q)[0:0].execute())
 
-    def execute_scan(self):
+    def execute_scan(self, order_by: str = None, order: int = -1):
         """
         This execute the search as scan. The result will be a generator over the found
         entries. Everything but the query part of this object, will be ignored.
         """
-        for hit in self._search.query(self.q).scan():
+        search = self._search.query(self.q)
+
+        if order_by is not None:
+            if order_by not in quantities:
+                raise KeyError('Unknown order quantity %s' % order_by)
+
+            order_by_quantity = quantities[order_by]
+
+            if order == 1:
+                search = search.sort(order_by_quantity.elastic_field)
+            else:
+                search = search.sort('-%s' % order_by_quantity.elastic_field)
+
+        for hit in search.scan():
             yield hit.to_dict()
 
     def execute_paginated(

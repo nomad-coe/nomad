@@ -16,8 +16,9 @@
 The raw API of the nomad@FAIRDI APIs. Can be used to retrieve raw calculation files.
 """
 
-from typing import IO, Any, Union, Iterable, Tuple, List
+from typing import IO, Any, Union, List
 import os.path
+from io import BytesIO
 from flask import request, send_file
 from flask_restplus import abort, Resource, fields
 import magic
@@ -27,7 +28,7 @@ import json
 import gzip
 import urllib.parse
 
-from nomad import search, utils
+from nomad import search, utils, config
 from nomad.files import UploadFiles, Restricted
 from nomad.processing import Calc
 
@@ -416,17 +417,19 @@ class RawFileQueryResource(Resource):
         def path(entry):
             return '%s/%s' % (entry['upload_id'], entry['mainfile'])
 
-        calcs = sorted(
-            [entry for entry in search_request.execute_scan()],
-            key=lambda x: x['upload_id'])
+        calcs = search_request.execute_scan(order_by='upload_id')
 
-        paths = [path(entry) for entry in calcs]
         if strip:
+            if search_request.execute()['total'] > config.raw_file_strip_cutoff:
+                abort(400, 'The requested download has to many files for using "strip".')
+            calcs = list(calcs)
+            paths = [path(entry) for entry in calcs]
             common_prefix_len = len(utils.common_prefix(paths))
         else:
             common_prefix_len = 0
 
         def generator():
+            manifest = {}
             for entry in calcs:
                 upload_id = entry['upload_id']
                 mainfile = entry['mainfile']
@@ -451,26 +454,32 @@ class RawFileQueryResource(Resource):
                                 fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
                                 for pattern in patterns):
 
-                            yield filename_wo_prefix, filename, upload_files
+                            yield (
+                                filename_wo_prefix, filename,
+                                lambda upload_filename: upload_files.raw_file(upload_filename, 'rb'),
+                                lambda upload_filename: upload_files.raw_file_size(upload_filename))
 
-        try:
-            manifest = {
-                path(entry): {
-                    key: entry[key]
-                    for key in RawFileQueryResource.manifest_quantities
-                    if entry.get(key) is not None
-                }
-                for entry in calcs
-            }
-            manifest_contents = json.dumps(manifest)
-        except Exception as e:
-            manifest_contents = dict(error='Could not create the manifest: %s' % (e))
-            utils.get_logger(__name__).error(
-                'could not create raw query manifest', exc_info=e)
+                            manifest[path(entry)] = {
+                                key: entry[key]
+                                for key in RawFileQueryResource.manifest_quantities
+                                if entry.get(key) is not None
+                            }
 
-        return _streamed_zipfile(
-            generator(), zipfile_name='nomad_raw_files.zip', compress=compress,
-            manifest=manifest_contents)
+            try:
+                manifest_contents = json.dumps(manifest).encode('utf-8')
+            except Exception as e:
+                manifest_contents = json.dumps(
+                    dict(error='Could not create the manifest: %s' % (e))).encode('utf-8')
+                utils.get_logger(__name__).error(
+                    'could not create raw query manifest', exc_info=e)
+
+            yield (
+                'manifest.json', 'manifest',
+                lambda *args: BytesIO(manifest_contents),
+                lambda *args: len(manifest_contents))
+
+        return streamed_zipfile(
+            generator(), zipfile_name='nomad_raw_files.zip', compress=compress)
 
 
 def respond_to_get_raw_files(upload_id, files, compress=False, strip=False):
@@ -492,28 +501,10 @@ def respond_to_get_raw_files(upload_id, files, compress=False, strip=False):
         common_prefix_len = 0
 
     with zipfile_cache:
-        return _streamed_zipfile(
-            [(filename[common_prefix_len:], filename, upload_files) for filename in files],
+        return streamed_zipfile(
+            [(
+                filename[common_prefix_len:], filename,
+                lambda upload_filename: upload_files.raw_file(upload_filename, 'rb'),
+                lambda upload_filename: upload_files.raw_file_size(upload_filename)
+            ) for filename in files],
             zipfile_name='%s.zip' % upload_id, compress=compress)
-
-
-def _streamed_zipfile(
-        files: Iterable[Tuple[str, str, UploadFiles]], **kwargs):
-    """
-    Creates a response that streams the given files as a streamed zip file. Ensures that
-    each given file is only streamed once, based on its filename in the resulting zipfile.
-
-    Arguments:
-        files: An iterable of tuples with the filename to be used in the resulting zipfile,
-            the filename within the upload, the :class:`UploadFiles` that contains
-            the file.
-        **kwargs: See :func:`streamed_zipfile`
-    """
-
-    def map(name, upload_filename, upload_files):
-        return (
-            name, upload_filename,
-            lambda upload_filename: upload_files.raw_file(upload_filename, 'rb'),
-            lambda upload_filename: upload_files.raw_file_size(upload_filename))
-
-    return streamed_zipfile([map(*item) for item in files], **kwargs)

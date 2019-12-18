@@ -90,7 +90,7 @@ def upload_route(ns, prefix: str = ''):
 
 def streamed_zipfile(
         files: Iterable[Tuple[str, str, Callable[[str], IO], Callable[[str], int]]],
-        zipfile_name: str, compress: bool = False, manifest: str = None):
+        zipfile_name: str, compress: bool = False):
     """
     Creates a response that streams the given files as a streamed zip file. Ensures that
     each given file is only streamed once, based on its filename in the resulting zipfile.
@@ -102,7 +102,6 @@ def streamed_zipfile(
         zipfile_name: A name that will be used in the content disposition attachment
             used as an HTTP respone.
         compress: Uses compression. Default is stored only.
-        manifest: Add a ``manifest.json`` with the given content.
     """
 
     streamed_files: Set[str] = set()
@@ -114,11 +113,7 @@ def streamed_zipfile(
             Replace the directory based iter of zipstream with an iter over all given
             files.
             """
-            # first the manifest
-            if manifest is not None:
-                yield dict(arcname='manifest.json', iterable=(manifest.encode('utf-8'),))
-
-            # now the actual contents
+            # the actual contents
             for zipped_filename, file_id, open_io, file_size in files:
                 if zipped_filename in streamed_files:
                     continue

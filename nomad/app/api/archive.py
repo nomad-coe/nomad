@@ -18,6 +18,7 @@ The archive API of the nomad@FAIRDI APIs. This API is about serving processed
 """
 
 from typing import Dict, Any
+from io import BytesIO
 import os.path
 from flask import send_file
 from flask_restplus import abort, Resource
@@ -144,11 +145,10 @@ class ArchiveQueryResource(Resource):
         search_request = search.SearchRequest()
         add_query(search_request, search_request_parser.parse_args())
 
-        calcs = sorted(
-            [entry for entry in search_request.execute_scan()],
-            key=lambda x: x['upload_id'])
+        calcs = search_request.execute_scan(order_by='upload_id')
 
         def generator():
+            manifest = {}
             for entry in calcs:
                 upload_id = entry['upload_id']
                 calc_id = entry['calc_id']
@@ -169,24 +169,27 @@ class ArchiveQueryResource(Resource):
                         lambda calc_id: upload_files.archive_file(calc_id, 'rb'),
                         lambda calc_id: upload_files.archive_file_size(calc_id))
 
-        try:
-            manifest = {
-                entry['calc_id']: {
+                manifest[calc_id] = {
                     key: entry[key]
                     for key in ArchiveQueryResource.manifest_quantities
                     if entry.get(key) is not None
                 }
-                for entry in calcs
-            }
-            manifest_contents = json.dumps(manifest)
-        except Exception as e:
-            manifest_contents = dict(error='Could not create the manifest: %s' % (e))
-            utils.get_logger(__name__).error(
-                'could not create raw query manifest', exc_info=e)
+
+            try:
+                manifest_contents = json.dumps(manifest).encode('utf-8')
+            except Exception as e:
+                manifest_contents = json.dumps(
+                    dict(error='Could not create the manifest: %s' % (e))).encode('utf-8')
+                utils.get_logger(__name__).error(
+                    'could not create raw query manifest', exc_info=e)
+
+            yield (
+                'manifest.json', 'manifest',
+                lambda *args: BytesIO(manifest_contents),
+                lambda *args: len(manifest_contents))
 
         return streamed_zipfile(
-            generator(), zipfile_name='nomad_archive.zip', compress=compress,
-            manifest=manifest_contents)
+            generator(), zipfile_name='nomad_archive.zip', compress=compress)
 
 
 @ns.route('/metainfo/<string:metainfo_package_name>')

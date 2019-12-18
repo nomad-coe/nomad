@@ -45,9 +45,7 @@ class DownloadButton extends React.Component {
   async handleSelect(choice) {
     const {api, query, user, raiseError} = this.props
 
-    const params = {
-      strip: true
-    }
+    const params = {}
     Object.keys(query).forEach(key => { params[key] = query[key] })
 
     if (user) {
