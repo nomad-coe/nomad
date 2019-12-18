@@ -287,11 +287,16 @@ class SearchRequest:
                 q = q | Q('term', owners__user_id=user_id)
         elif owner_type == 'public':
             q = Q('term', published=True) & Q('term', with_embargo=False)
+        elif owner_type == 'shared':
+            if user_id is None:
+                raise ValueError('Authentication required for owner value shared.')
+
+            q = Q('term', owners__user_id=user_id)
         elif owner_type == 'user':
             if user_id is None:
                 raise ValueError('Authentication required for owner value user.')
 
-            q = Q('term', owners__user_id=user_id)
+            q = Q('term', uploader__user_id=user_id)
         elif owner_type == 'staging':
             if user_id is None:
                 raise ValueError('Authentication required for owner value user')
