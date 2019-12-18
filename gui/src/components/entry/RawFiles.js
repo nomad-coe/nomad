@@ -97,7 +97,7 @@ class RawFiles extends React.Component {
     }
 
     this.props.api.getRawFileListFromCalc(uploadId, calcId).then(data => {
-      const files = data.contents.map(file => `${data.directory}/${file.name}`)
+      const files = data.contents.map(file => data.directory ? `${data.directory}/${file.name}` : file.name)
       if (files.length > 500) {
         raiseError('There are more than 500 files in this entry. We can only show the first 500.')
       }
