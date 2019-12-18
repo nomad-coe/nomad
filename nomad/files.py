@@ -294,7 +294,7 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         """
         raise NotImplementedError()
 
-    def archive_file_size(self, calc_id: str, *args, **kwargs) -> int:
+    def archive_file_size(self, calc_id: str) -> int:
         """
         Returns:
             The size of the archive.
