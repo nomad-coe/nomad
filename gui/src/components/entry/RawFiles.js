@@ -38,10 +38,12 @@ class RawFiles extends React.Component {
     fileContents: {
       width: '85%',
       overflowX: 'auto',
-      color: 'white',
-      background: '#222',
-      marginTop: 16,
-      padding: 8
+      color: theme.palette.primary.contrastText,
+      backgroundColor: theme.palette.primary.dark,
+      marginTop: theme.spacing.unit,
+      padding: '3px 6px',
+      fontFamily: 'Consolas, "Liberation Mono", Menlo, Courier, monospace',
+      fontSize: 12
     },
     fileError: {
       marginTop: 16,
