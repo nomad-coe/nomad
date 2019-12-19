@@ -19,6 +19,7 @@ services:
     keycloak:
         volumes:
             - /nomad/fairdi/db/keycloak:/opt/jboss/keycloak/standalone/data
+            - /nomad/backup/fairdi/keycloak:/export
 
     # the search engine
     elastic:
