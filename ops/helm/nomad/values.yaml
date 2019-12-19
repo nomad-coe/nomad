@@ -132,7 +132,7 @@ mail:
   from: 'webmaster@nomad-repository.eu'
 
 keycloak:
-  serverUrl: "https://labdev-nomad.esc.rzg.mpg.de/fairdi/keycloak/auth/"
+  serverUrl: "https://repository.nomad-coe.eu/fairdi/keycloak/auth/"
   realmName: "fairdi_nomad_test"
   username: "admin"
   clientId: "nomad_api_dev"

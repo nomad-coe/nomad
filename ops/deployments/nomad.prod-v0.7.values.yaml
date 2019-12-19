@@ -28,6 +28,7 @@ dbname: fairdi_nomad_prod_v0_7
 uploadurl: 'https://repository.nomad-coe.eu/app/gui/upload'
 
 keycloak:
+  serverUrl: "https://repository.nomad-coe.eu/fairdi/keycloak/auth/"
   passwordSecret: 'nomad-keycloak-password'
   realmName: 'fairdi_nomad_prod'
   clientId: 'nomad_api_dev'
