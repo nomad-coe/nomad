@@ -479,7 +479,8 @@ class TestUploads:
 
     @pytest.mark.parametrize('upload_file, ending', [
         ('examples_potcar.zip', ''),
-        ('examples_potcar_gz.tgz', '.gz')])
+        ('examples_potcar_gz.tgz', '.gz'),
+        ('examples_potcar_xz.tgz', '.xz')])
     def test_potcar(self, api, proc_infra, test_user_auth, upload_file, ending):
         # only the owner, shared with people are supposed to download the original potcar file
         example_file = 'tests/data/proc/%s' % upload_file
@@ -1388,9 +1389,13 @@ class TestRaw(UploadFilesBasedTests):
         upload = files.ArchiveBasedStagingUploadFiles(
             'upload_id', upload_path='tests/data/api/example_with_compressed.zip', create=True)
         upload.extract()
-        rv = api.get('raw/upload_id/example_with_compressed/mainfile.gz?decompress=true&offset=5&length=3', headers=admin_user_auth)
-        assert rv.status_code == 200
-        assert rv.data == b'con'
+        for compression in ['gz', 'xz']:
+            rv = api.get(
+                'raw/upload_id/example_with_compressed/mainfile.%s?'
+                'decompress=true&offset=5&length=3' % compression,
+                headers=admin_user_auth)
+            assert rv.status_code == 200
+            assert rv.data == b'con'
 
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_file_signed(self, api, upload, _, test_user_signature_token):

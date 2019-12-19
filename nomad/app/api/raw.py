@@ -25,6 +25,7 @@ import magic
 import fnmatch
 import json
 import gzip
+import lzma
 import urllib.parse
 
 from nomad import search, utils, config
@@ -140,10 +141,15 @@ def get_raw_file_from_upload_path(
 
         raw_file = upload_files.raw_file(upload_filepath, 'br')
 
-        if request.args.get('decompress') is not None and upload_filepath.endswith('.gz'):
-            filename = upload_filepath[:3]
-            upload_filepath = filename
-            raw_file = gzip.GzipFile(filename=filename, mode='rb', fileobj=raw_file)
+        if request.args.get('decompress') is not None:
+            if upload_filepath.endswith('.gz'):
+                filename = upload_filepath[:3]
+                upload_filepath = filename
+                raw_file = gzip.GzipFile(filename=filename, mode='rb', fileobj=raw_file)
+            if upload_filepath.endswith('.xz'):
+                filename = upload_filepath[:3]
+                upload_filepath = filename
+                raw_file = lzma.open(filename=raw_file, mode='rb')
 
         buffer = raw_file.read(2048)
         raw_file.seek(0)
