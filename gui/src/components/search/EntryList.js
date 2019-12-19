@@ -312,7 +312,7 @@ export class EntryListUnstyled extends React.Component {
     return (
       <div className={classes.root}>
         <DataTable
-          entityLabels={['domain.entryLabel', domain.entryLabel + 's']}
+          entityLabels={[domain.entryLabel, domain.entryLabelPlural]}
           selectActions={selectActions}
           id={row => row.calc_id}
           total={total}

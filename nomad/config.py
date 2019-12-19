@@ -204,6 +204,7 @@ auxfile_cutoff = 100
 parser_matching_size = 9128
 console_log_level = logging.WARNING
 max_upload_size = 32 * (1024 ** 3)
+raw_file_strip_cutoff = 1000
 
 
 def normalize_loglevel(value, default_level=logging.INFO):

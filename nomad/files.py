@@ -58,7 +58,6 @@ import tarfile
 import hashlib
 import io
 import pickle
-from contextlib import contextmanager
 
 from nomad import config, utils
 from nomad.datamodel import UploadWithMetadata
@@ -294,6 +293,13 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         """
         raise NotImplementedError()
 
+    def archive_file_size(self, calc_id: str) -> int:
+        """
+        Returns:
+            The size of the archive.
+        """
+        raise NotImplementedError()
+
     def archive_log_file(self, calc_id: str, *args, **kwargs) -> IO:
         """
         Opens a archive log file and returns a file-like objects. Additional args, kwargs are
@@ -305,6 +311,13 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
             Restricted: If the file is restricted and upload access evaluated to False.
         """
         raise NotImplementedError()
+
+    def open_zipfile_cache(self):
+        """ Allows to reuse the same zipfile for multiple file operations. Must be closed. """
+        pass
+
+    def close_zipfile_cache(self):
+        pass
 
 
 class StagingUploadFiles(UploadFiles):
@@ -364,6 +377,11 @@ class StagingUploadFiles(UploadFiles):
 
     def archive_file_object(self, calc_id: str) -> PathObject:
         return self._archive_dir.join_file('%s.%s' % (calc_id, self._archive_ext))
+
+    def archive_file_size(self, calc_id: str) -> int:
+        if not self._is_authorized():
+            raise Restricted
+        return self._archive_dir.join_file('%s.%s' % (calc_id, self._archive_ext)).size
 
     def archive_log_file_object(self, calc_id: str) -> PathObject:
         return self._archive_dir.join_file('%s.log' % calc_id)
@@ -836,6 +854,23 @@ class PublicUploadFiles(UploadFiles):
     def archive_file(self, calc_id: str, *args, **kwargs) -> IO:
         return self._file('archive', self._archive_ext, '%s.%s' % (calc_id, self._archive_ext), *args, **kwargs)
 
+    def archive_file_size(self, calc_id: str) -> int:
+        file_path = '%s.%s' % (calc_id, self._archive_ext)
+        for access in ['public', 'restricted']:
+            try:
+                zf = self.open_zip_file('archive', access, self._archive_ext)
+                info = zf.getinfo(file_path)
+                if (access == 'restricted' or always_restricted(file_path)) and not self._is_authorized():
+                    raise Restricted
+
+                return info.file_size
+            except FileNotFoundError:
+                pass
+            except KeyError:
+                pass
+
+        raise KeyError()
+
     def archive_log_file(self, calc_id: str, *args, **kwargs) -> IO:
         return self._file('archive', self._archive_ext, '%s.log' % calc_id, *args, **kwargs)
 
@@ -887,16 +922,12 @@ class PublicUploadFiles(UploadFiles):
                 repacked_file.os_path,
                 public_file.os_path)
 
-    @contextmanager
-    def zipfile_cache(self):
-        """
-        Context that allows to read files while caching zipfiles without reopening them
-        all the time.
-        """
+    def open_zipfile_cache(self):
         if self._zipfile_cache is None:
             self._zipfile_cache = {}
-        try:
-            yield
-        finally:
+
+    def close_zipfile_cache(self):
+        if self._zipfile_cache is not None:
             for zip_file in self._zipfile_cache.values():
                 zip_file.close()
+        self._zipfile_cache = None

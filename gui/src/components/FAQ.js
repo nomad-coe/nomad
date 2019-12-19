@@ -54,7 +54,7 @@ class FAQ extends React.Component {
           *mainfiles* and *auxiliary* files can be downloaded publicly.
 
           If you know a file to be the main output file of a supported code, and it is
-          still not recognized by NOMAD, let us know.
+          still not recognized by NOMAD, let us know: [${email}](mailto:${email}).
 
           ### Some of my data is marked as *not processed* or *unavailable*, what does this mean?
 
@@ -128,7 +128,7 @@ class FAQ extends React.Component {
           ### I want to upload data from a code that is not yet supported?
 
           If you are familiar with the input and output format of other relevant codes,
-          write us an Email ([${email}](mailto:${email})) and we will figure our if and how
+          write us an Email ([${email}](mailto:${email})) and we will figure out if and how
           to support this code in the future.
         `}</Markdown>
       </div>

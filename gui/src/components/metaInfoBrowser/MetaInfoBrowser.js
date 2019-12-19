@@ -39,12 +39,9 @@ If you bookmark this page, you can save the definition represented by the highli
 
 To learn more about the meta-info, visit the [meta-info homepage](https://metainfo.nomad-coe.eu/nomadmetainfo_public/archive.html).
 `
-const ITEM_HEIGHT = 48
-const ITEM_PADDING_TOP = 8
 const MenuProps = {
   PaperProps: {
     style: {
-      maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
       width: 300, maxHeight: '90vh'
     }
   }
