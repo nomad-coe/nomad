@@ -100,9 +100,7 @@ class SearchContext extends React.Component {
         this.setState({response: response || SearchContext.emptyResponse, usedMetric: usedMetric})
       }).catch(error => {
         this.setState({response: SearchContext.emptyResponse})
-        if (error.name !== 'NotAuthorized') {
-          raiseError(error)
-        }
+        raiseError(error)
       })
   }
 
