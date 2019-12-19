@@ -15,12 +15,22 @@
 """
 Common data, variables, decorators, models used throughout the API.
 """
-
+from typing import Callable, IO, Set, Tuple, Iterable
 from flask_restplus import fields
+import zipstream
+from flask import stream_with_context, Response
+import sys
 
 from nomad.app.utils import RFC3339DateTime
+from nomad.files import Restricted
 
 from .api import api
+
+
+if sys.version_info >= (3, 7):
+    import zipfile
+else:
+    import zipfile37 as zipfile
 
 
 metadata_model = api.model('MetaData', {
@@ -76,3 +86,70 @@ def upload_route(ns, prefix: str = ''):
             })(func)
         )
     return decorator
+
+
+def streamed_zipfile(
+        files: Iterable[Tuple[str, str, Callable[[str], IO], Callable[[str], int]]],
+        zipfile_name: str, compress: bool = False):
+    """
+    Creates a response that streams the given files as a streamed zip file. Ensures that
+    each given file is only streamed once, based on its filename in the resulting zipfile.
+
+    Arguments:
+        files: An iterable of tuples with the filename to be used in the resulting zipfile,
+            an file id within the upload, a callable that gives an binary IO object for the
+            file id, and a callable that gives the file size for the file id.
+        zipfile_name: A name that will be used in the content disposition attachment
+            used as an HTTP respone.
+        compress: Uses compression. Default is stored only.
+    """
+
+    streamed_files: Set[str] = set()
+
+    def generator():
+        """ Stream a zip file with all files using zipstream. """
+        def iterator():
+            """
+            Replace the directory based iter of zipstream with an iter over all given
+            files.
+            """
+            # the actual contents
+            for zipped_filename, file_id, open_io, file_size in files:
+                if zipped_filename in streamed_files:
+                    continue
+                streamed_files.add(zipped_filename)
+
+                # Write a file to the zipstream.
+                try:
+                    f = open_io(file_id)
+                    try:
+                        def iter_content():
+                            while True:
+                                data = f.read(1024 * 64)
+                                if not data:
+                                    break
+                                yield data
+
+                        yield dict(
+                            arcname=zipped_filename, iterable=iter_content(),
+                            buffer_size=file_size(file_id))
+                    finally:
+                        f.close()
+                except KeyError:
+                    # files that are not found, will not be returned
+                    pass
+                except Restricted:
+                    # due to the streaming nature, we cannot raise 401 here
+                    # we just leave it out in the download
+                    pass
+
+        compression = zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED
+        zip_stream = zipstream.ZipFile(mode='w', compression=compression, allowZip64=True)
+        zip_stream.paths_to_write = iterator()
+
+        for chunk in zip_stream:
+            yield chunk
+
+    response = Response(stream_with_context(generator()), mimetype='application/zip')
+    response.headers['Content-Disposition'] = 'attachment; filename={}'.format(zipfile_name)
+    return response

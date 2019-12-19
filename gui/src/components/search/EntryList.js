@@ -297,7 +297,7 @@ export class EntryListUnstyled extends React.Component {
     const selectQuery = selected ? {calc_id: selected.join(',')} : query
     const createActions = (props, moreActions) => <React.Fragment>
       {example && editable ? <EditUserMetadataDialog
-        example={example} total={totalNumber}
+        example={example} total={selected === null ? totalNumber : selected.length}
         onEditComplete={() => this.props.onChange()}
         {...props}
       /> : ''}
@@ -312,7 +312,7 @@ export class EntryListUnstyled extends React.Component {
     return (
       <div className={classes.root}>
         <DataTable
-          entityLabels={['domain.entryLabel', domain.entryLabel + 's']}
+          entityLabels={[domain.entryLabel, domain.entryLabelPlural]}
           selectActions={selectActions}
           id={row => row.calc_id}
           total={total}

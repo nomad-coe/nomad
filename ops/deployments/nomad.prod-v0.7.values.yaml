@@ -1,0 +1,43 @@
+images.nomad.tag: "stable"
+images.frontend.tag: "stable"
+
+proxy:
+  nodePort: 30010
+  external:
+    host: "repository.nomad-coe.eu"
+    path: "/app"
+
+gui:
+  debug: false
+
+app:
+  replicas: 2
+  threads: 16
+
+worker:
+  replicas: 1
+  routing: "queue"
+  processes: 10
+  nomadNodeType: "prod-worker"
+ 
+elastic:
+  port: 9202
+
+dbname: fairdi_nomad_prod_v0_7
+
+uploadurl: 'https://repository.nomad-coe.eu/app/gui/upload'
+
+keycloak:
+  serverUrl: "https://repository.nomad-coe.eu/fairdi/keycloak/auth/"
+  passwordSecret: 'nomad-keycloak-password'
+  realmName: 'fairdi_nomad_prod'
+  clientId: 'nomad_api_dev'
+  clientSecret: 'nomad-keycloak-prod-api-secret'
+  admin_user_id: '82efac55-6187-408c-8027-b98580c0e1c5'
+
+volumes:
+  prefixSize: 1
+  public: /nomad/fairdi/prod_v0.7/fs/public
+  staging: /nomad/fairdi/prod_v0.7/fs/staging
+  tmp: /nomad/fairdi/prod_v0.7/fs/tmp
+  nomad: /nomad

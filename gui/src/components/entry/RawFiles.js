@@ -38,10 +38,12 @@ class RawFiles extends React.Component {
     fileContents: {
       width: '85%',
       overflowX: 'auto',
-      color: 'white',
-      background: '#222',
-      marginTop: 16,
-      padding: 8
+      color: theme.palette.primary.contrastText,
+      backgroundColor: theme.palette.primary.dark,
+      marginTop: theme.spacing.unit,
+      padding: '3px 6px',
+      fontFamily: 'Consolas, "Liberation Mono", Menlo, Courier, monospace',
+      fontSize: 12
     },
     fileError: {
       marginTop: 16,
@@ -97,7 +99,7 @@ class RawFiles extends React.Component {
     }
 
     this.props.api.getRawFileListFromCalc(uploadId, calcId).then(data => {
-      const files = data.contents.map(file => `${data.directory}/${file.name}`)
+      const files = data.contents.map(file => data.directory ? `${data.directory}/${file.name}` : file.name)
       if (files.length > 500) {
         raiseError('There are more than 500 files in this entry. We can only show the first 500.')
       }

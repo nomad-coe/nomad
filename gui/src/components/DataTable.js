@@ -38,6 +38,10 @@ class DataTableToolbarUnStyled extends React.Component {
       color: theme.palette.secondary.main
     },
     title: {
+      whiteSpace: 'nowrap',
+      marginRight: theme.spacing.unit
+    },
+    grow: {
       flex: '1 1 100%'
     }
   })
@@ -79,13 +83,53 @@ class DataTableToolbarUnStyled extends React.Component {
     const { anchorEl } = this.state
     const open = Boolean(anchorEl)
 
+    const regularActions =  <React.Fragment>
+      {actions || <React.Fragment/>}
+      <Tooltip title="Change displayed columns">
+        <IconButton onClick={this.handleClick}>
+          <ViewColumnIcon />
+        </IconButton>
+      </Tooltip>
+      <Popover
+        open={open}
+        anchorEl={anchorEl}
+        onClose={this.handleClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'center'
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'center'
+        }}
+      >
+        <List>
+          {Object.keys(columns).map(key => {
+            const column = columns[key]
+            return (
+              <ListItem key={key} role={undefined} dense button onClick={() => this.handleToggle(key)}>
+                <Checkbox
+                  checked={selectedColumns.indexOf(key) !== -1}
+                  tabIndex={-1}
+                  disableRipple
+                />
+                <ListItemText primary={column.label} />
+              </ListItem>
+            )
+          })}
+        </List>
+      </Popover>
+    </React.Fragment>
+
     if (numSelected > 0) {
       return (
         <Toolbar className={clsx(classes.root, {[classes.selected]: true})} >
           <Typography className={classes.title} color="inherit" variant="h6">
-            {numSelected.toLocaleString()} selected
+            {numSelected.toLocaleString()} selected:
           </Typography>
           {selectActions}
+          <span className={classes.grow} />
+          {regularActions}
         </Toolbar>
       )
     } else {
@@ -94,41 +138,8 @@ class DataTableToolbarUnStyled extends React.Component {
           <Typography className={classes.title} variant="h6" id="tableTitle">
             {title || ''}
           </Typography>
-          {actions || <React.Fragment/>}
-          <Tooltip title="Change displayed columns">
-            <IconButton onClick={this.handleClick}>
-              <ViewColumnIcon />
-            </IconButton>
-          </Tooltip>
-          <Popover
-            open={open}
-            anchorEl={anchorEl}
-            onClose={this.handleClose}
-            anchorOrigin={{
-              vertical: 'bottom',
-              horizontal: 'center'
-            }}
-            transformOrigin={{
-              vertical: 'top',
-              horizontal: 'center'
-            }}
-          >
-            <List>
-              {Object.keys(columns).map(key => {
-                const column = columns[key]
-                return (
-                  <ListItem key={key} role={undefined} dense button onClick={() => this.handleToggle(key)}>
-                    <Checkbox
-                      checked={selectedColumns.indexOf(key) !== -1}
-                      tabIndex={-1}
-                      disableRipple
-                    />
-                    <ListItemText primary={column.label} />
-                  </ListItem>
-                )
-              })}
-            </List>
-          </Popover>
+          <span className={classes.grow} />
+          {regularActions}
         </Toolbar>
       )
     }

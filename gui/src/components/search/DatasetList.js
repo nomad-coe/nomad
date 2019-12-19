@@ -15,6 +15,7 @@ import EditUserMetadataDialog from '../EditUserMetadataDialog'
 import DownloadButton from '../DownloadButton'
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
+import ConfirmDialog from '../uploads/ConfirmDialog'
 
 class DOIUnstyled extends React.Component {
   static propTypes = {
@@ -70,6 +71,10 @@ class DatasetActionsUnstyled extends React.Component {
     }
   })
 
+  state = {
+    confirmDoi: false
+  }
+
   constructor(props) {
     super(props)
     this.handleClickDOI = this.handleClickDOI.bind(this)
@@ -83,7 +88,7 @@ class DatasetActionsUnstyled extends React.Component {
     this.props.history.push(`/dataset/id/${id}`)
   }
 
-  handleClickDOI() {
+  handleClickDOI(after) {
     const {api, dataset, onChange, raiseError} = this.props
     const datasetName = dataset.name
 
@@ -91,6 +96,9 @@ class DatasetActionsUnstyled extends React.Component {
       .then(dataset => {
         if (onChange) {
           onChange(dataset)
+        }
+        if (after) {
+          after()
         }
       })
       .catch(raiseError)
@@ -144,10 +152,23 @@ class DatasetActionsUnstyled extends React.Component {
         total={dataset.total} onEditComplete={this.handleEdit}
       />}
       {editable && canAssignDOI && <Tooltip title="Assign a DOI to this dataset.">
-        <IconButton onClick={this.handleClickDOI}>
+        <IconButton onClick={() => this.setState({confirmDoi: true})}>
           <DOIIcon />
         </IconButton>
       </Tooltip>}
+      <ConfirmDialog
+        open={this.state.confirmDoi}
+        title="Assign a DOI"
+        content={`
+          DOIs are **permanent**. Are you sure that you want to assign a DOI to this
+          dataset? Once the DOI was assigned, entries cannot removed from the dataset and
+          the dataset cannot be deleted.
+        `}
+        onClose={() => this.setState({confirmDoi: false})}
+        onConfirm={() => {
+          this.handleClickDOI(() => this.setState({confirmDoi: false}))
+        }}
+      />
     </FormGroup>
   }
 }

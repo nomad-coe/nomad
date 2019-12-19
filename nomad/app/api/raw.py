@@ -16,31 +16,26 @@
 The raw API of the nomad@FAIRDI APIs. Can be used to retrieve raw calculation files.
 """
 
-from typing import IO, Any, Union, Iterable, Tuple, Set, List
+from typing import IO, Any, Union, List
 import os.path
-import zipstream
-from flask import Response, request, send_file, stream_with_context
+from io import BytesIO
+from flask import request, send_file
 from flask_restplus import abort, Resource, fields
 import magic
-import sys
-import contextlib
 import fnmatch
 import json
 import gzip
+import lzma
 import urllib.parse
 
-from nomad import search, utils
+from nomad import search, utils, config
 from nomad.files import UploadFiles, Restricted
 from nomad.processing import Calc
 
 from .api import api
 from .auth import authenticate, create_authorization_predicate
 from .repo import search_request_parser, add_query
-
-if sys.version_info >= (3, 7):
-    import zipfile
-else:
-    import zipfile37 as zipfile
+from .common import streamed_zipfile
 
 
 ns = api.namespace('raw', description='Downloading raw data files.')
@@ -146,10 +141,15 @@ def get_raw_file_from_upload_path(
 
         raw_file = upload_files.raw_file(upload_filepath, 'br')
 
-        if request.args.get('decompress') is not None and upload_filepath.endswith('.gz'):
-            filename = upload_filepath[:3]
-            upload_filepath = filename
-            raw_file = gzip.GzipFile(filename=filename, mode='rb', fileobj=raw_file)
+        if request.args.get('decompress') is not None:
+            if upload_filepath.endswith('.gz'):
+                filename = upload_filepath[:3]
+                upload_filepath = filename
+                raw_file = gzip.GzipFile(filename=filename, mode='rb', fileobj=raw_file)
+            if upload_filepath.endswith('.xz'):
+                filename = upload_filepath[:3]
+                upload_filepath = filename
+                raw_file = lzma.open(filename=raw_file, mode='rb')
 
         buffer = raw_file.read(2048)
         raw_file.seek(0)
@@ -328,7 +328,7 @@ raw_files_request_parser.add_argument(**raw_file_compress_argument)
 class RawFilesResource(Resource):
     @api.doc('get_files')
     @api.response(404, 'The upload or path does not exist')
-    @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
+    @api.response(200, 'File(s) send', headers={'Content-Type': 'application/zip'})
     @api.expect(raw_files_request_model, validate=True)
     @authenticate()
     def post(self, upload_id):
@@ -345,7 +345,7 @@ class RawFilesResource(Resource):
 
     @api.doc('get_files_alternate')
     @api.response(404, 'The upload or path does not exist')
-    @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
+    @api.response(200, 'File(s) send', headers={'Content-Type': 'application/zip'})
     @api.expect(raw_files_request_parser, validate=True)
     @authenticate(signature_token=True)
     def get(self, upload_id):
@@ -387,7 +387,7 @@ class RawFileQueryResource(Resource):
     @api.doc('raw_files_from_query')
     @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
     @api.expect(raw_file_from_query_parser, validate=True)
-    @api.response(200, 'File(s) send', headers={'Content-Type': 'application/gz'})
+    @api.response(200, 'File(s) send', headers={'Content-Type': 'application/zip'})
     @authenticate(signature_token=True)
     def get(self):
         """ Download a .zip file with all raw-files for all entries that match the given
@@ -422,61 +422,73 @@ class RawFileQueryResource(Resource):
         def path(entry):
             return '%s/%s' % (entry['upload_id'], entry['mainfile'])
 
-        calcs = sorted(
-            [entry for entry in search_request.execute_scan()],
-            key=lambda x: x['upload_id'])
+        calcs = search_request.execute_scan(order_by='upload_id')
 
-        paths = [path(entry) for entry in calcs]
         if strip:
+            if search_request.execute()['total'] > config.raw_file_strip_cutoff:
+                abort(400, 'The requested download has to many files for using "strip".')
+            calcs = list(calcs)
+            paths = [path(entry) for entry in calcs]
             common_prefix_len = len(utils.common_prefix(paths))
         else:
             common_prefix_len = 0
 
         def generator():
+            manifest = {}
+            upload_files = None
             for entry in calcs:
                 upload_id = entry['upload_id']
                 mainfile = entry['mainfile']
-                upload_files = UploadFiles.get(
-                    upload_id, create_authorization_predicate(upload_id))
-                if upload_files is None:
-                    utils.get_logger(__name__).error('upload files do not exist', upload_id=upload_id)
-                    continue
+                if upload_files is None or upload_files.upload_id != upload_id:
+                    if upload_files is not None:
+                        upload_files.close_zipfile_cache()
 
-                if hasattr(upload_files, 'zipfile_cache'):
-                    zipfile_cache = upload_files.zipfile_cache()
-                else:
-                    zipfile_cache = contextlib.suppress()
+                    upload_files = UploadFiles.get(
+                        upload_id, create_authorization_predicate(upload_id))
 
-                with zipfile_cache:
-                    filenames = upload_files.raw_file_manifest(
-                        path_prefix=os.path.dirname(mainfile))
-                    for filename in filenames:
-                        filename_w_upload = os.path.join(upload_files.upload_id, filename)
-                        filename_wo_prefix = filename_w_upload[common_prefix_len:]
-                        if len(patterns) == 0 or any(
-                                fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
-                                for pattern in patterns):
+                    if upload_files is None:
+                        utils.get_logger(__name__).error('upload files do not exist', upload_id=upload_id)
+                        continue
 
-                            yield filename_wo_prefix, filename, upload_files
+                    upload_files.open_zipfile_cache()
 
-        try:
-            manifest = {
-                path(entry): {
-                    key: entry[key]
-                    for key in RawFileQueryResource.manifest_quantities
-                    if entry.get(key) is not None
-                }
-                for entry in calcs
-            }
-            manifest_contents = json.dumps(manifest)
-        except Exception as e:
-            manifest_contents = dict(error='Could not create the manifest: %s' % (e))
-            utils.get_logger(__name__).error(
-                'could not create raw query manifest', exc_info=e)
+                filenames = upload_files.raw_file_manifest(path_prefix=os.path.dirname(mainfile))
+                for filename in filenames:
+                    filename_w_upload = os.path.join(upload_files.upload_id, filename)
+                    filename_wo_prefix = filename_w_upload[common_prefix_len:]
+                    if len(patterns) == 0 or any(
+                            fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
+                            for pattern in patterns):
 
-        return _streamed_zipfile(
-            generator(), zipfile_name='nomad_raw_files.zip', compress=compress,
-            manifest=manifest_contents)
+                        yield (
+                            filename_wo_prefix, filename,
+                            lambda upload_filename: upload_files.raw_file(upload_filename, 'rb'),
+                            lambda upload_filename: upload_files.raw_file_size(upload_filename))
+
+                        manifest[path(entry)] = {
+                            key: entry[key]
+                            for key in RawFileQueryResource.manifest_quantities
+                            if entry.get(key) is not None
+                        }
+
+            if upload_files is not None:
+                upload_files.close_zipfile_cache()
+
+            try:
+                manifest_contents = json.dumps(manifest).encode('utf-8')
+            except Exception as e:
+                manifest_contents = json.dumps(
+                    dict(error='Could not create the manifest: %s' % (e))).encode('utf-8')
+                utils.get_logger(__name__).error(
+                    'could not create raw query manifest', exc_info=e)
+
+            yield (
+                'manifest.json', 'manifest',
+                lambda *args: BytesIO(manifest_contents),
+                lambda *args: len(manifest_contents))
+
+        return streamed_zipfile(
+            generator(), zipfile_name='nomad_raw_files.zip', compress=compress)
 
 
 def respond_to_get_raw_files(upload_id, files, compress=False, strip=False):
@@ -487,86 +499,20 @@ def respond_to_get_raw_files(upload_id, files, compress=False, strip=False):
 
     # the zipfile cache allows to access many raw-files from public upload files without
     # having to re-open the underlying zip files all the time
-    if hasattr(upload_files, 'zipfile_cache'):
-        zipfile_cache = upload_files.zipfile_cache()
-    else:
-        zipfile_cache = contextlib.suppress()
+    upload_files.open_zipfile_cache()
 
     if strip:
         common_prefix_len = len(utils.common_prefix(files))
     else:
         common_prefix_len = 0
 
-    with zipfile_cache:
-        return _streamed_zipfile(
-            [(filename[common_prefix_len:], filename, upload_files) for filename in files],
+    try:
+        return streamed_zipfile(
+            [(
+                filename[common_prefix_len:], filename,
+                lambda upload_filename: upload_files.raw_file(upload_filename, 'rb'),
+                lambda upload_filename: upload_files.raw_file_size(upload_filename)
+            ) for filename in files],
             zipfile_name='%s.zip' % upload_id, compress=compress)
-
-
-def _streamed_zipfile(
-        files: Iterable[Tuple[str, str, UploadFiles]], zipfile_name: str,
-        compress: bool = False, manifest: str = None):
-    """
-    Creates a response that streams the given files as a streamed zip file. Ensures that
-    each given file is only streamed once, based on its filename in the resulting zipfile.
-
-    Arguments:
-        files: An iterable of tuples with the filename to be used in the resulting zipfile,
-            the filename within the upload, the :class:`UploadFiles` that contains
-            the file.
-        zipfile_name: A name that will be used in the content disposition attachment
-            used as an HTTP respone.
-        compress: Uses compression. Default is stored only.
-        manifest: Add a ``manifest.json`` with the given content.
-    """
-
-    streamed_files: Set[str] = set()
-
-    def generator():
-        """ Stream a zip file with all files using zipstream. """
-        def iterator():
-            """
-            Replace the directory based iter of zipstream with an iter over all given
-            files.
-            """
-            # first the manifest
-            if manifest is not None:
-                yield dict(arcname='manifest.json', iterable=(manifest.encode('utf-8'),))
-
-            # now the actual contents
-            for zipped_filename, upload_filename, upload_files in files:
-                if zipped_filename in streamed_files:
-                    continue
-                streamed_files.add(zipped_filename)
-
-                # Write a file to the zipstream.
-                try:
-                    with upload_files.raw_file(upload_filename, 'rb') as f:
-                        def iter_content():
-                            while True:
-                                data = f.read(1024 * 64)
-                                if not data:
-                                    break
-                                yield data
-
-                        yield dict(
-                            arcname=zipped_filename, iterable=iter_content(),
-                            buffer_size=upload_files.raw_file_size(upload_filename))
-                except KeyError:
-                    # files that are not found, will not be returned
-                    pass
-                except Restricted:
-                    # due to the streaming nature, we cannot raise 401 here
-                    # we just leave it out in the download
-                    pass
-
-        compression = zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED
-        zip_stream = zipstream.ZipFile(mode='w', compression=compression, allowZip64=True)
-        zip_stream.paths_to_write = iterator()
-
-        for chunk in zip_stream:
-            yield chunk
-
-    response = Response(stream_with_context(generator()), mimetype='application/zip')
-    response.headers['Content-Disposition'] = 'attachment; filename={}'.format(zipfile_name)
-    return response
+    finally:
+        upload_files.close_zipfile_cache()

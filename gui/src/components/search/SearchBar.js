@@ -7,12 +7,13 @@ import match from 'autosuggest-highlight/match'
 import parse from 'autosuggest-highlight/parse'
 import Paper from '@material-ui/core/Paper'
 import MenuItem from '@material-ui/core/MenuItem'
-import { Chip } from '@material-ui/core'
+import { Chip, IconButton, Tooltip } from '@material-ui/core'
 import { nomadPrimaryColor } from '../../config'
 import { withDomain } from '../domains'
 import { compose } from 'recompose'
 import SearchContext from '../search/SearchContext'
 import { withApi } from '../api'
+import ClearIcon from '@material-ui/icons/Cancel'
 
 
 function renderInput(inputProps) {
@@ -96,7 +97,13 @@ class SearchBar extends React.Component {
   }
 
   static styles = theme => ({
-    root: {},
+    root: {
+      display: 'flex',
+      alignItems: 'flex-end'
+    },
+    clearButton: {
+      padding: theme.spacing.unit
+    },
     autosuggestRoot: {
       position: 'relative'
     },
@@ -243,6 +250,12 @@ class SearchBar extends React.Component {
     setQuery(values, true)
   }
 
+  handleClear() {
+    const {state: {query}, setQuery} = this.context
+    const values = {owner: query.owner}
+    setQuery(values, true)
+  }
+
   getChips() {
     const {state: {query: {owner, ...values}}} = this.context
     return Object.keys(values).filter(key => values[key]).map(key => {
@@ -275,41 +288,55 @@ class SearchBar extends React.Component {
       }
     }
 
+    const showClearButton = query && Object.keys(query).length > 1
+
     return (
-      <Autosuggest
-        theme={{
-          container: classes.autosuggestRoot,
-          suggestionsContainerOpen: classes.suggestionsContainerOpen,
-          suggestionsList: classes.suggestionsList,
-          suggestion: classes.suggestion
-        }}
-        renderInputComponent={renderInput}
-        suggestions={this.state.suggestions}
-        onSuggestionsFetchRequested={this.handleSuggestionsFetchRequested}
-        onSuggestionsClearRequested={this.handleSuggestionsClearRequested}
-        renderSuggestionsContainer={renderSuggestionsContainer}
-        getSuggestionValue={getSuggestionValue}
-        renderSuggestion={renderSuggestion}
-        onSuggestionSelected={(e, { suggestionValue }) => { this.handleAddChip(suggestionValue); e.preventDefault() }}
-        focusInputOnSuggestionClick={true}
-        inputProps={{
-          classes,
-          chips: this.getChips(),
-          onChange: this.handleTextFieldInputChange,
-          value: this.state.textFieldInput,
-          onAdd: (chip) => this.handleAddChip(chip),
-          onBeforeAdd: (chip) => this.handleBeforeAddChip(chip),
-          onDelete: (chip, index) => this.handleDeleteChip(chip, index),
-          label: 'search',
-          fullWidth: true,
-          fullWidthInput: false,
-          InputLabelProps: {
-            shrink: true
-          },
-          placeholder: domain.searchPlaceholder,
-          helperText: helperText
-        }}
-      />
+      <div className={classes.root}>
+        <Autosuggest
+          theme={{
+            container: classes.autosuggestRoot,
+            suggestionsContainerOpen: classes.suggestionsContainerOpen,
+            suggestionsList: classes.suggestionsList,
+            suggestion: classes.suggestion
+          }}
+          renderInputComponent={renderInput}
+          suggestions={this.state.suggestions}
+          onSuggestionsFetchRequested={this.handleSuggestionsFetchRequested}
+          onSuggestionsClearRequested={this.handleSuggestionsClearRequested}
+          renderSuggestionsContainer={renderSuggestionsContainer}
+          getSuggestionValue={getSuggestionValue}
+          renderSuggestion={renderSuggestion}
+          onSuggestionSelected={(e, { suggestionValue }) => { this.handleAddChip(suggestionValue); e.preventDefault() }}
+          focusInputOnSuggestionClick={true}
+          inputProps={{
+            classes,
+            chips: this.getChips(),
+            onChange: this.handleTextFieldInputChange,
+            value: this.state.textFieldInput,
+            onAdd: (chip) => this.handleAddChip(chip),
+            onBeforeAdd: (chip) => this.handleBeforeAddChip(chip),
+            onDelete: (chip, index) => this.handleDeleteChip(chip, index),
+            label: 'search',
+            fullWidth: true,
+            fullWidthInput: false,
+            InputLabelProps: {
+              shrink: true
+            },
+            placeholder: domain.searchPlaceholder,
+            helperText: helperText
+          }}
+        />
+        {showClearButton && (
+          <Tooltip title="Clear the search">
+            <IconButton
+              classes={{root: classes.clearButton}}
+              onClick={this.handleClear.bind(this)}
+            >
+              <ClearIcon />
+            </IconButton>
+          </Tooltip>
+        )}
+      </div>
     )
   }
 }
