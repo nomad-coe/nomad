@@ -514,11 +514,11 @@ class Upload extends React.Component {
     const { calcs, tasks_status, waiting } = this.state.upload
     const { pagination } = calcs
 
-    if (pagination.total === 0) {
+    if (pagination.total === 0 && tasks_status !== 'SUCCESS') {
       if (!this.state.upload.tasks_running) {
         return (
           <Typography className={classes.detailsContent}>
-            {tasks_status === 'SUCCESS' ? 'No calculcations found.' : 'No calculations to show.'}
+            No calculations to show.
           </Typography>
         )
       } else {
@@ -553,7 +553,7 @@ class Upload extends React.Component {
           <DeleteIcon />
         </Tooltip>
       </IconButton>
-      <IconButton disabled={running || tasks_status !== 'SUCCESS'} onClick={this.handlePublishOpen}>
+      <IconButton disabled={running || tasks_status !== 'SUCCESS' || data.pagination.total === 0} onClick={this.handlePublishOpen}>
         <Tooltip title="Publish upload">
           <PublishIcon />
         </Tooltip>
