@@ -77,9 +77,9 @@ const styles = theme => ({
 })
 
 function match(content, query) {
-  const queries = query.split(' ')
+  const queries = query.toLowerCase().split(' ')
   const result = queries.map(query => {
-    const index = content.indexOf(query)
+    const index = content.toLowerCase().indexOf(query)
     if (index >= 0) {
       return [index, index + query.length]
     } else {
