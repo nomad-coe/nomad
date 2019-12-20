@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import pytest
+import numpy as np
 
 from nomad import datamodel, config
 from nomad.parsing import LocalBackend
@@ -36,6 +37,12 @@ unknown_atom_label = (
 
 fcc_symmetry = (
     'parsers/template', 'tests/data/normalizers/fcc_crystal_structure.json')
+
+vasp_parser = (
+    'parsers/vasp', 'tests/data/parsers/vasp/vasp.xml')
+
+vasp_parser_dos = (
+    'parsers/vasp', 'tests/data/parsers/vasp/vasp_dos.xml')
 
 glucose_atom_labels = (
     'parsers/template', 'tests/data/normalizers/glucose_atom_labels.json')
@@ -194,3 +201,55 @@ def test_reduced_chemical_formula():
     expected_red_chem_formula = 'C6H12O6'
     reduced_chemical_formula = backend.get_value('chemical_composition_bulk_reduced')
     assert expected_red_chem_formula == reduced_chemical_formula
+
+
+def test_vasp_incar_system():
+    """
+    Ensure we can test an incar value in the VASP example
+    """
+    backend = parse_file(vasp_parser)
+    backend = run_normalize(backend)
+    expected_value = 'SrTiO3'  # material's formula in vasp.xml
+
+    # backend_value = backend.get_value('x_vasp_unknown_incars')  # OK
+    # backend_value = backend.get_value('x_vasp_atom_kind_refs')  # OK
+    backend_value = backend.get_value('x_vasp_incar_SYSTEM')  # OK
+
+    print("backend_value: ", backend_value)
+    assert expected_value == backend_value
+
+
+def test_springer_normalizer():
+    """
+    Ensure the Springer normalizer works well with the VASP example.
+    """
+    backend = parse_file(vasp_parser)
+    backend = run_normalize(backend)
+
+    backend_value = backend.get_value('springer_id', 89)
+    expected_value = 'sd_1932539'
+    assert expected_value == backend_value
+
+    backend_value = backend.get_value('springer_alphabetical_formula', 89)
+    expected_value = 'O3SrTi'
+    assert expected_value == backend_value
+
+    backend_value = backend.get_value('springer_url', 89)
+    expected_value = 'http://materials.springer.com/isp/crystallographic/docs/sd_1932539'
+    assert expected_value == backend_value
+
+
+def test_dos_normalizer():
+    """
+    Ensure the DOS normalizer acted on the DOS values. We take a VASP example.
+    """
+    backend = parse_file(vasp_parser_dos)
+    backend = run_normalize(backend)
+
+    # Check if 'dos_values' were indeed normalized
+    # 'dvn' stands for 'dos_values_normalized'
+    backend_dvn = backend.get_value('dos_values_normalized', 0)
+    last_value = backend_dvn[0, -1]
+    expected = 1.7362195274239454e+47
+    # Compare floats properly with numpy (delta tolerance involved)
+    assert np.allclose(last_value, expected)

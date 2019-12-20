@@ -33,14 +33,15 @@ There is one ABC for all normalizer:
 
 from typing import List, Any, Iterable, Type
 
-from .normalizer import Normalizer
-from .system import SystemNormalizer
+from .dos import DosNormalizer
 from .fhiaims import FhiAimsBaseNormalizer
+from .normalizer import Normalizer
 from .optimade import OptimadeNormalizer
-
+from .system import SystemNormalizer
 
 normalizers: Iterable[Type[Normalizer]] = [
     SystemNormalizer,
     OptimadeNormalizer,
-    FhiAimsBaseNormalizer
+    FhiAimsBaseNormalizer,
+    DosNormalizer
 ]
