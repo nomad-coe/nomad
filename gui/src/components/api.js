@@ -171,7 +171,17 @@ class Api {
           })
       })
     } else {
-      return this._swaggerClient
+      const self = this
+      return new Promise((resolve, reject) => {
+        self._swaggerClient
+          .then(swaggerClient => {
+            swaggerClient.authorizations = {}
+            resolve(swaggerClient)
+          })
+          .catch(() => {
+            reject(new ApiError())
+          })
+      })
     }
   }
 
