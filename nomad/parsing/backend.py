@@ -91,7 +91,7 @@ class AbstractParserBackend(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def openSection(self, metaName):
+    def openSection(self, metaName, parent_index=-1):
         """ Opens a new section and returns its new unique gIndex. """
         pass
 
@@ -433,9 +433,9 @@ class LocalBackend(LegacyParserBackend, metaclass=DelegatingMeta):
         super().finishedParsingSession(*args, **kwargs)
         self._delegate.finishedParsingSession(*args, **kwargs)
 
-    def openSection(self, metaName: str) -> int:
+    def openSection(self, metaName: str, parent_index: int = -1) -> int:
         if self._open_context is None:
-            return self._delegate.openSection(metaName)
+            return self._delegate.openSection(metaName, parent_index=parent_index)
         else:
             assert self._context_section is not None
 
