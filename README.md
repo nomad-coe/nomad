@@ -35,7 +35,7 @@ introduction, architecture, development setup/deployment, contributing, and API 
 
 You can access the running system and its documentation here:
 
-[https://repository.nomad-coe.eu/uploads/api/docs](https://repository.nomad-coe.eu/uploads/api/docs/index.html)
+[https://repository.nomad-coe.eu/app/gui](https://repository.nomad-coe.eu/app/gui)
 
 ### Generate the docs from the source
 
