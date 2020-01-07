@@ -137,7 +137,7 @@ We use the branch ``nomad-fair`` on all dependencies for nomad-FAIRDI specific c
 Parsers
 ^^^^^^^
 
-There are several steps to take, to wrap a NOMOAD-coe parser into a nomad@FAIRDI parser:
+There are several steps to take, to wrap a NOMAD-coe parser into a nomad@FAIRDI parser:
 
 - Implement ``nomadcore.baseclasses.ParserInterface`` or a class with a similar constructutor
   and `parse` method interface.
