@@ -1,0 +1,359 @@
+# Copyright 2018 Markus Scheidgen
+#
+# Licensed under the Apache License, Version 2.0 (the 'License');
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an'AS IS' BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from nomad.normalizing.normalizer import Normalizer
+# from nomad.metainfo.encyclopedia import EncyclopediaEntry
+
+
+class EncyclopediaNormalizer(Normalizer):
+    """
+    This normalizer emulates the functionality of the old Encyclopedia backend.
+    The data used by the encyclopedia have been assigned under new metainfo
+    within section_encyclopedia. In the future these separate metainfos could
+    be absorbed into the existing metainfo hiearchy.
+    """
+    def __init__(self, backend):
+        super().__init__(backend, only_representatives=True)
+        # sec_enc = None
+
+    # NOTE: Enc specific visualization
+    def get_atom_labels(self) -> None:
+        pass
+
+    # NOTE: Enc specific visualization
+    def get_atom_positions(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_atomic_density(self) -> None:
+        pass
+
+    # NOTE: Enc specific visualization
+    def get_atomistic_structure(self) -> None:
+        pass
+
+    # NOTE: Band structure normalizer
+    def get_band_gap(self) -> None:
+        pass
+
+    # NOTE: Band structure normalizer
+    def get_band_gap_position(self) -> None:
+        pass
+
+    # NOTE: Band structure normalizer
+    def get_band_gap_type(self) -> None:
+        pass
+
+    # NOTE: Band structure normalizer
+    def get_band_structure(self) -> None:
+        pass
+
+    # NOTE: Method normalizer
+    def get_basis_set_short_name(self) -> None:
+        pass
+
+    # NOTE: Method normalizer
+    def get_basis_set_type(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_bravais_lattice(self) -> None:
+        pass
+
+    # NOTE: Band structure normalizer
+    def get_brillouin_zone(self) -> None:
+        pass
+
+    # NOTE: Band structure normalizer
+    def get_brillouin_zone_viewer(self) -> None:
+        pass
+
+    def get_calculation(self) -> None:
+        pass
+
+    def get_calculation_pid(self) -> None:
+        pass
+
+    # NOTE: Enc specific visualization
+    def get_cell_angles(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_cell_normalized(self) -> None:
+        pass
+       
+    # NOTE: System normalizer
+    def get_cell_primitive(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_cell_volume(self) -> None:
+        pass
+
+    # NOTE: Parser
+    def get_code_name(self) -> None:
+        """Name of the program that generated the original data"""
+        return self.calc.get_by_name('program_name')
+
+    # NOTE: Parser
+    def get_code_version(self) -> None:
+        pass
+
+    # NOTE: Repo
+    def get_contributor_first_name(self) -> None:
+        pass
+
+    # NOTE: Repo
+    def get_contributor_last_name(self) -> None:
+        pass
+
+    # NOTE: Repo
+    def get_contributor_type(self) -> None:
+        pass
+
+    # NOTE: Repo
+    def get_contributors(self) -> None:
+        pass
+
+    # NOTE: Method normalizer
+    def get_core_electron_treatment(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_crystal_system(self) -> None:
+        pass
+
+    # NOTE: Band structure normalizer
+    def get_dos(self) -> None:
+        pass
+
+    # NOTE: Elastic properties normalizer
+    def get_elastic_constants_matrix(self) -> None:
+        pass
+
+    # NOTE: Elastic properties normalizer
+    def get_elastic_deformation_energies(self) -> None:
+        pass
+
+    # NOTE: Elastic properties normalizer
+    def get_elastic_fitting_parameters(self) -> None:
+        pass
+
+    # NOTE: Elastic properties normalizer
+    def get_elastic_moduli(self) -> None:
+        pass
+
+    # NOTE: Elastic properties normalizer
+    def get_elastic_properties(self) -> None:
+        pass
+
+    def get_energies(self) -> None:
+        pass
+
+    # NOTE: Band structure normalizer
+    def get_fermi_surface(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_formula(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_formula_cell(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_formula_reduced(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_free_wyckoff_parameters(self) -> None:
+        pass
+
+    # NOTE: Method normalizer
+    def get_functional_long_name(self) -> None:
+        pass
+
+    # NOTE: Method normalizer
+    def get_functional_type(self) -> None:
+        pass
+
+    # TODO: ??
+    def get_group_e_min(self) -> None:
+        pass
+
+    # TODO: ??
+    def get_group_type(self) -> None:
+        pass
+
+    # TODO: Method normalizer
+    def get_gw_starting_point(self) -> None:
+        pass
+
+    # TODO: Method normalizer
+    def get_gw_type(self) -> None:
+        pass
+
+    # NOTE: Enc specific
+    def get_has_bs(self) -> None:
+        pass
+
+    # NOTE: Enc specific
+    def get_has_dos(self) -> None:
+        pass
+
+    # NOTE: Enc specific
+    def get_has_fermi_surface(self) -> None:
+        pass
+
+    # NOTE: Enc specific
+    def get_has_thermal_properties(self) -> None:
+        pass
+
+    def get_helmholtz_free_energy(self) -> None:
+        pass
+
+    def get_k_point_grid_description(self) -> None:
+        pass
+
+    def get_lattice_parameters(self) -> None:
+        pass
+
+    def get_mainfile_uri(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_mass_density(self) -> None:
+        pass
+
+    def get_material(self) -> None:
+        pass
+
+    def get_material_name(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_number_of_atoms(self) -> None:
+        pass
+
+    def get_number_of_calculation(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_periodic_dimensions(self) -> None:
+        pass
+
+    # NOTE: Phonon normalizer
+    def get_phonon_dispersion(self) -> None:
+        pass
+
+    # NOTE: Phonon normalizer
+    def get_phonon_dos(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_point_group(self) -> None:
+        pass
+
+    # NOTE: Method normalizer
+    def get_pseudopotential_type(self) -> None:
+        pass
+
+    # NOTE: Repo
+    def get_repository_dowload_uri(self) -> None:
+        pass
+
+    # NOTE: Repo
+    def get_repository_upload_comment(self) -> None:
+        pass
+
+    # NOTE: Repo
+    def get_repository_uri(self) -> None:
+        pass
+
+    # NOTE: Enc specific
+    def get_run_type(self) -> None:
+        pass
+
+    def get_scf_threshold(self) -> None:
+        pass
+
+    # NOTE: Enc specific
+    def get_similar_materials(self) -> None:
+        pass
+
+    # NOTE: Method normalizer
+    def get_smearing_kind(self) -> None:
+        pass
+
+    # NOTE: Method normalizer
+    def get_smearing_parameters(self) -> None:
+        pass
+        
+    # NOTE: System normalizer
+    def get_space_group(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_space_group_international_short_symbol(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_space_group_number(self) -> None:
+        pass
+
+    # NOTE: Phonon normalizer
+    def get_specific_heat_cv(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_springer_classification(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_springer_compound_class(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_springer_prototype(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_structure_prototype(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_structure_type(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_strukturbericht_designation(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_system_type(self) -> None:
+        pass
+
+    def get_template(self) -> None:
+        pass
+
+    # NOTE: System normalizer
+    def get_wyckoff_groups(self) -> None:
+        pass
+
+    def normalize(self, logger=None) -> None:
+        super().normalize(logger)
+
+        # Initialise metainfo structure
+        # self.sec_enc = EncyclopediaEntry()

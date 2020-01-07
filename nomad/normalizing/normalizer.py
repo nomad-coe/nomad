@@ -84,7 +84,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
 
     @abstractmethod
     def normalize_system(self, section_system_index: int, is_representative: bool) -> bool:
-        """ Normalize the given section and returns True, iff successful"""
+        """Normalize the given section and returns True, if successful"""
         pass
 
     def __representative_systems(self):
