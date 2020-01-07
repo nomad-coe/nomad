@@ -84,13 +84,6 @@ conda -c conda-forge install --name nomad_env libmagic
 The next steps can be done using the `setup.sh` script. If you prefere to understand all
 the steps and run them manually, read on:
 
-### Get all the submodules
-We use git submodules to retrieve all the other NOMAD repositories, mainly parsers.
-
-```
-git submodules update --init
-```
-
 ### Install python dependencies
 We use *pip* to manage required python packages.
 ```
@@ -103,7 +96,7 @@ This includes parsers, python-common and the meta-info. These modules are mainta
 their own GITLab/git repositories. To clone and initialize them run:
 
 ```
-git submodules update --init
+git submodule update --init
 ```
 
 All requirements for these submodules need to be installed and they need to be installed
