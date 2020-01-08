@@ -52,11 +52,12 @@ WORKDIR /install
 RUN pip install -r requirements.txt
 
 # Use docker build --build-args CACHEBUST=2 to not cache this (e.g. when you know deps have changed)
-ARG CACHEBUST=1
+ARG CACHEBUST=2
 
 # Install all NOMAD-CoE dependencies and nomad@FAIRDI
 COPY ./dependencies /install/dependencies
 COPY ./dependencies.sh /install/dependencies.sh
+COPY ./.gitmodules /install/.gitmodules
 RUN sh dependencies.sh
 
 # Copy rest of files and install the parent package
