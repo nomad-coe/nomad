@@ -51,16 +51,18 @@ COPY requirements.txt /install/requirements.txt
 WORKDIR /install
 RUN pip install -r requirements.txt
 
-# Use docker build --build-args CACHEBUST=2 to not cache this (e.g. when you know deps have changed)
+# Use docker build --build-args CACHEBUST=1 to not cache this (e.g. when you know deps have changed)
 ARG CACHEBUST=2
 
-# Install all NOMAD-CoE dependencies and nomad@FAIRDI
+# Install all NOMAD-CoE dependencies. This is done separately because doing the
+# full copy with "COPY . /install" will bust the cache and increase the build
+# time.
 COPY ./dependencies /install/dependencies
 COPY ./dependencies.sh /install/dependencies.sh
 COPY ./.gitmodules /install/.gitmodules
 RUN sh dependencies.sh
 
-# Copy rest of files and install the parent package
+# Copy rest of files and install nomad@FAIRDI
 COPY . /install
 RUN pip install .
 WORKDIR /install/docs
