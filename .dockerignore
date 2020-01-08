@@ -3,7 +3,8 @@
 **/__pycache__
 **/*.pyc
 **/NOMAD.egg-info
-.pyenv/
+.*env/
+.pytest_cache
 .vscode/
 .volumes/
 dependencies/**/test
@@ -15,3 +16,4 @@ docs/*.graffle
 examples/
 local/
 target/
+gui/node_modules/
