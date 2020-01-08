@@ -635,7 +635,7 @@ class SearchRequest:
 
     def _response(self, response, with_hits: bool = False) -> Dict[str, Any]:
         """
-        Prepares a response object covering the total number of resutls, hits, statistics,
+        Prepares a response object covering the total number of results, hits, statistics,
         and quantities. Other aspects like pagination and scrolling have to be added
         elsewhere.
         """
@@ -657,7 +657,7 @@ class SearchRequest:
                 agg_name = 'metric:%s' % metric
                 if agg_name in bucket:
                     result[metric] = bucket[agg_name]['value']
-                result.update(code_runs=code_runs)
+            result.update(code_runs=code_runs)
             return result
 
         statistics_results = {
