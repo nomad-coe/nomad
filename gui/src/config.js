@@ -22,7 +22,7 @@ By using this web-site and by uploading and downloading data, you agree to the
 Uploaded data is licensed under the Creative Commons Attribution license
 ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). You can publish
 uploaded data with an *embargo*. Data with an *embargo* is only visible to
-you and users you share your data with. The *embargo period* lasts up to 36 month.
+you and users you share your data with. The *embargo period* lasts up to 36 months.
 After the *embargo* your published data will be public. **Note that public data
 is visible to others and files become downloadable by everyone.**
 
