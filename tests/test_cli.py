@@ -250,3 +250,17 @@ class TestClient:
         assert published.upload_files.os_path in result.output
 
         published.upload_files.exists
+
+    def test_statistics(self, client, proc_infra, admin_user_bravado_client):
+
+        result = click.testing.CliRunner().invoke(
+            cli, ['client', 'statistics-table'], catch_exceptions=True, obj=utils.POPO())
+
+        assert result.exit_code == 0, result.output
+        assert 'Calculations, e.g. total energies' in result.output
+        assert 'Unique geometries' in result.output
+        assert 'Bulk crystals' in result.output
+        assert '2D / Surfaces' in result.output
+        assert 'Atoms / Molecules' in result.output
+        assert 'DOS' in result.output
+        assert 'Band structures' in result.output
