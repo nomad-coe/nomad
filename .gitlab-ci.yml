@@ -96,7 +96,7 @@ tests:
   script:
     - cd /app
     - ls /builds
-    - python -m pytest -n 4 --cov=nomad -sv tests
+    - python -m pytest --cov=nomad -sv tests
   except:
     refs:
       - tags
