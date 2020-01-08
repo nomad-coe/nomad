@@ -58,6 +58,9 @@ ARG CACHEBUST=1
 COPY ./dependencies /install/dependencies
 COPY ./dependencies.sh /install/dependencies.sh
 RUN sh dependencies.sh
+
+# Copy rest of files and install the parent package
+COPY . /install
 RUN pip install .
 WORKDIR /install/docs
 RUN make html
@@ -65,9 +68,6 @@ RUN \
     find /usr/local/lib/python3.6/ -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + && \
     find /usr/local/lib/python3.6/ -name 'test' -exec rm -r '{}' + && \
     find /usr/local/lib/python3.6/site-packages/ -name '*.so' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \;
-
-# Copy rest of files
-COPY . /install
 
 # Second, create a slim final image
 FROM final
