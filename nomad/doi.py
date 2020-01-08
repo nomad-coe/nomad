@@ -27,6 +27,22 @@ from nomad.datamodel import User
 from nomad import config, utils
 
 
+def edit_url(doi: str, url: str = None):
+    """ Changes the URL of an already findable DOI. """
+    if url is None:
+        url = 'https://repository.nomad-coe.eu/app/gui/datasets/doi/%s' % doi
+
+    metadata_url = '%s/doi/%s' % (config.datacite.mds_host, doi)
+    response = requests.put(
+        metadata_url,
+        headers={'Content-Type': 'text/plain;charset=UTF-8'},
+        data='doi=%s\nurl=%s' % (doi, url), **_requests_args())
+
+    if response.status_code >= 300:
+        raise Exception('Unexpected datacite response (status code %d): %s' % (
+            response.status_code, response.text))
+
+
 def _xml(parent, element: str, value: str = None):
     path = element.split('/')
     el = parent
