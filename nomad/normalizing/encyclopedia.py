@@ -92,7 +92,7 @@ class EncyclopediaNormalizer(Normalizer):
     # NOTE: System normalizer
     def get_cell_normalized(self) -> None:
         pass
-       
+
     # NOTE: System normalizer
     def get_cell_primitive(self) -> None:
         pass
@@ -103,8 +103,7 @@ class EncyclopediaNormalizer(Normalizer):
 
     # NOTE: Parser
     def get_code_name(self) -> None:
-        """Name of the program that generated the original data"""
-        return self.calc.get_by_name('program_name')
+        pass
 
     # NOTE: Parser
     def get_code_version(self) -> None:
@@ -300,7 +299,7 @@ class EncyclopediaNormalizer(Normalizer):
     # NOTE: Method normalizer
     def get_smearing_parameters(self) -> None:
         pass
-        
+
     # NOTE: System normalizer
     def get_space_group(self) -> None:
         pass
