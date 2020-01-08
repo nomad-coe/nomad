@@ -39,7 +39,7 @@ build:
     - find dependencies -name "*test*" -type d -exec echo "{}/" \;  >> .dockerignore
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
     - docker build -t $TEST_IMAGE .
-    - docker push $TEST_IMAGE
+    #- docker push $TEST_IMAGE
   except:
     - /^dev-.*$/
     - tags
@@ -53,6 +53,15 @@ buildgui:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
     - docker build -t $FRONTEND_TEST_IMAGE .
     - docker push $FRONTEND_TEST_IMAGE
+  except:
+    - /^dev-.*$/
+    - tags
+
+pushimage:
+  stage: test
+  script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+    - docker push $TEST_IMAGE
   except:
     - /^dev-.*$/
     - tags
