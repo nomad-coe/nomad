@@ -88,7 +88,7 @@ the *backend*s for data were designed for creating data only and not very *pytho
 Properties define what data a section instance can hold. Properties are mapped to Python
 *descriptors*.
 
-- `section` specialized `parant` relation with the containing `Section`
+- `section` specialized `parent` relation with the containing `Section`
 
 
 #### SubSections
