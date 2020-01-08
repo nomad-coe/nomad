@@ -167,6 +167,12 @@ def delete_upload(upload_id):
     Search(index=index).query('match', upload_id=upload_id).delete()
 
 
+def delete_entry(calc_id):
+    """ Delete the entry with the given ``calc_id`` from the index. """
+    index = Entry._default_index()
+    Search(index=index).query('match', calc_id=calc_id).delete()
+
+
 def publish(calcs: Iterable[datamodel.CalcWithMetadata]) -> None:
     """ Update all given calcs with their metadata and set ``publish = True``. """
     def elastic_updates():
