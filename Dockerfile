@@ -56,6 +56,7 @@ ARG CACHEBUST=1
 
 # Install all NOMAD-CoE dependencies and nomad@FAIRDI
 COPY ./dependencies /install/dependencies
+COPY ./dependencies.sh /install/dependencies.sh
 RUN sh dependencies.sh
 RUN pip install .
 WORKDIR /install/docs
