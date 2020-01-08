@@ -54,9 +54,15 @@ RUN pip install -r requirements.txt
 # Use docker build --build-args CACHEBUST=2 to not cache this (e.g. when you know deps have changed)
 ARG CACHEBUST=1
 
-# Install all NOMAD-CoE dependencies and nomad@FAIRDI
-COPY . /install
+# Install all NOMAD-CoE dependencies. This is done separately because most of
+# the time this comes directly from docker cache
+COPY ./dependencies /install/dependencies
+COPY ./dependencies.sh /install/dependencies.sh
+COPY ./.gitmodules /install/.gitmodules
 RUN sh dependencies.sh
+
+# Copy rest of files and install nomad@FAIRDI
+COPY . /install
 RUN pip install .
 WORKDIR /install/docs
 RUN make html
