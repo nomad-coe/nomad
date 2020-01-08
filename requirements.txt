@@ -63,6 +63,7 @@ pylint_plugin_utils==0.5
 pylint_mongoengine==0.3.3
 pycodestyle
 pytest==3.10.0  # celery fixtures not compatible with 4.x
+pytest-xdist
 pytest-timeout
 pytest-cov
 rope

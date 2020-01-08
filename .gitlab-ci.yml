@@ -31,7 +31,7 @@ build:
   stage: build
   before_script:
     - git submodule sync
-    - git submodule update --init
+    - git submodule update --init --jobs=4
     - ./gitinfo.sh
   script:
     # ignore test directories of dependencies, there is a lot of data that we not use
@@ -96,7 +96,7 @@ tests:
   script:
     - cd /app
     - ls /builds
-    - python -m pytest --cov=nomad -sv tests
+    - python -m pytest -n 4 --cov=nomad -sv tests
   except:
     refs:
       - tags
