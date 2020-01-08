@@ -456,28 +456,33 @@ parsers = [
         name='parser/onetep', code_name='ONETEP', domain='DFT',
         parser_class_name='onetepparser.OnetepParser',
         mainfile_contents_re=r'####### #     # ####### ####### ####### ######'
-    ),
+    )
+]
+
+if config.use_empty_parsers:
     # There are some entries with PIDs that have mainfiles which do not match what
     # the actual parsers expect. We use the EmptyParser to produce placeholder entries
     # to keep the PIDs. These parsers will not match for new, non migrated data.
-    EmptyParser(
-        name='missing/octopus', code_name='Octopus', domain='DFT',
-        mainfile_name_re=r'(inp)|(.*/inp)'
-    ),
-    EmptyParser(
-        name='missing/crystal', code_name='Crystal',
-        mainfile_name_re=r'.*\.cryst\.out'
-    ),
-    EmptyParser(
-        name='missing/wien2k', code_name='WIEN2k',
-        mainfile_name_re=r'.*\.scf'
-    ),
-    EmptyParser(
-        name='missing/fhi-aims', code_name='FHI-aims', domain='DFT',
-        mainfile_name_re=r'.*\.fhiaims'
-    ),
-    BrokenParser()
-]
+    parsers.extend([
+        EmptyParser(
+            name='missing/octopus', code_name='Octopus', domain='DFT',
+            mainfile_name_re=r'(inp)|(.*/inp)'
+        ),
+        EmptyParser(
+            name='missing/crystal', code_name='Crystal',
+            mainfile_name_re=r'.*\.cryst\.out'
+        ),
+        EmptyParser(
+            name='missing/wien2k', code_name='WIEN2k',
+            mainfile_name_re=r'.*\.scf'
+        ),
+        EmptyParser(
+            name='missing/fhi-aims', code_name='FHI-aims', domain='DFT',
+            mainfile_name_re=r'.*\.fhiaims'
+        )
+    ])
+
+parsers.append(BrokenParser())
 
 """ Instantiation and constructor based config of all parsers. """
 
