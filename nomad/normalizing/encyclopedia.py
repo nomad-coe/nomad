@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from nomad.normalizing.normalizer import Normalizer
-# from nomad.metainfo.encyclopedia import EncyclopediaEntry
+from nomad.metainfo.encyclopedia import Encyclopedia, Material
 
 
 class EncyclopediaNormalizer(Normalizer):
@@ -24,8 +24,17 @@ class EncyclopediaNormalizer(Normalizer):
     be absorbed into the existing metainfo hiearchy.
     """
     def __init__(self, backend):
-        super().__init__(backend, only_representatives=True)
-        # sec_enc = None
+        super().__init__(backend)
+        self.sec_enc = None
+
+    def validate(self):
+        return True
+
+    def fill_material(self):
+        """Used to fill the material subsection.
+        """
+        self.sec_enc.m_create(Material)
+        self.get_material()
 
     # NOTE: Enc specific visualization
     def get_atom_labels(self) -> None:
@@ -354,5 +363,15 @@ class EncyclopediaNormalizer(Normalizer):
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
 
+        # Check if an encyclopedia entry can be made for this calculation
+        if not self.validate():
+            return
+
         # Initialise metainfo structure
-        # self.sec_enc = EncyclopediaEntry()
+        self.sec_enc = Encyclopedia()
+
+        # Fill metainfo
+        self.fill_material()
+
+        # Put the encyclopedia section into backend
+        self._backend.add_mi2_section(self.sec_enc)
