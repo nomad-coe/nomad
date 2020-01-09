@@ -270,6 +270,8 @@ class RepoCalcsResource(Resource):
 
             search_request.totals(metrics_to_use=total_metrics)
             search_request.statistic('authors', 1000)
+        elif len(metrics) > 0:
+            search_request.totals(metrics_to_use=metrics)
 
         try:
             if scroll:

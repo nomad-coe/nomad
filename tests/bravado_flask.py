@@ -78,7 +78,7 @@ class FlaskTestFutureAdapter:
         path = self._request_params['url'].replace('http://localhost', '')
         method = self._request_params.get('method')
 
-        query = urlencode(self._request_params.get('params', {}))
+        query = urlencode(self._request_params.get('params', {}), doseq=True)
         if query is not None and query != '':
             url = '%s?%s' % (path, query)
         else:

@@ -23,6 +23,7 @@ import datetime
 import os.path
 from urllib.parse import urlencode
 import base64
+import itertools
 
 from nomad.app.utils import rfc3339DateTime
 from nomad.app.api.auth import generate_upload_token
@@ -873,9 +874,12 @@ class TestRepo():
         rv = api.get('/repo/?owner=admin')
         assert rv.status_code == 401
 
-    @pytest.mark.parametrize('metrics', metrics_permutations)
-    def test_search_total_metrics(self, api, example_elastic_calcs, no_warn, metrics):
-        rv = api.get('/repo/?%s' % urlencode(dict(metrics=metrics, statistics=True, datasets=True, uploads=True), doseq=True))
+    @pytest.mark.parametrize('metrics, statistics', itertools.product(metrics_permutations, [True, False]))
+    def test_search_total_metrics(self, api, example_elastic_calcs, no_warn, metrics, statistics):
+        query_params = dict(metrics=metrics)
+        if statistics:
+            query_params['statistics'] = True
+        rv = api.get('/repo/?%s' % urlencode(query_params, doseq=True))
         assert rv.status_code == 200, str(rv.data)
         data = json.loads(rv.data)
         total_metrics = data.get('statistics', {}).get('total', {}).get('all', None)

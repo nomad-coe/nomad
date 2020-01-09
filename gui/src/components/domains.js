@@ -84,10 +84,13 @@ class DomainProviderBase extends React.Component {
           tooltip: 'Aggregates the number of single configuration calculations (e.g. total energy calculations) as each entry can contain many calculations.',
           renderResultString: count => (<span> with <b>{count.toLocaleString()}</b> single configuration calculation{count === 1 ? '' : 's'}</span>)
         },
-        unique_geometries: {
-          label: 'Unique geometries',
+        // The unique_geometries search aggregates unique geometries based on 10^8 hashes.
+        // This takes to long in elastic search for a reasonable user experience.
+        // Therefore, we only support geometries without uniqueness check
+        geometries: {
+          label: 'Geometries',
           shortLabel: 'Geometries',
-          tooltip: 'Aggregates the number of unique simulated system geometries in all entries.',
+          tooltip: 'Aggregates the number of simulated system geometries in all entries.',
           renderResultString: count => (<span> that simulate <b>{count.toLocaleString()}</b> unique geometrie{count === 1 ? '' : 's'}</span>)
         },
         datasets: {

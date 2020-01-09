@@ -1,6 +1,6 @@
 .DS_Store
-.pyenv/
-.env/
+.*env/
+.python-version
 .ipynb_checkpoints/
 __pycache__
 .mypy_cache
