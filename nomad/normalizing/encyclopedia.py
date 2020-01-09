@@ -15,9 +15,10 @@
 from hashlib import sha512
 from typing import Dict
 
-from nomad.normalizing.normalizer import Normalizer
-from nomad.metainfo.encyclopedia import Encyclopedia, Material
+from nomad.normalizing.normalizer import Normalizer, s_scc, s_system, s_frame_sequence, r_frame_sequence_to_sampling, s_sampling_method, r_frame_sequence_local_frames
+from nomad.metainfo.encyclopedia import Encyclopedia, Material, Calculation
 from nomad.normalizing import symmetry
+from nomad import config
 
 
 class EncyclopediaNormalizer(Normalizer):
@@ -30,9 +31,6 @@ class EncyclopediaNormalizer(Normalizer):
     def __init__(self, backend):
         super().__init__(backend)
         self.sec_enc: Encyclopedia = None
-
-    def validate(self):
-        return True
 
     # NOTE: Enc specific visualization
     def get_atom_labels(self) -> None:
@@ -297,8 +295,48 @@ class EncyclopediaNormalizer(Normalizer):
         pass
 
     # NOTE: Enc specific
-    def get_run_type(self) -> None:
-        pass
+    def get_run_type(self, calculation) -> str:
+        """Decides what type of calculation this is: single_point, md,
+        geometry_optimization, etc.
+        """
+        run_type = config.services.unavailable_value
+        try:
+            sccs = self._backend[s_scc]
+        except Exception:
+            sccs = []
+        try:
+            frame_sequences = self._backend[s_frame_sequence]
+        except Exception:
+            frame_sequences = []
+
+        n_scc = len(sccs)
+        n_frame_seq = len(frame_sequences)
+
+        # Only one system, no sequences
+        if n_scc == 1 and n_frame_seq == 0:
+            program_name = self._backend["program_name"]
+            if program_name == "elastic":
+                # TODO move to taylor expansion as soon as data is correct in archive
+                run_type = "elastic constants"
+            else:
+                run_type = "single point"
+        # One sequence. Currently calculations with multiple sequences are
+        # unsupported.
+        elif n_frame_seq == 1:
+            frame_seq = frame_sequences[0]
+            i_sampling_method = frame_seq[r_frame_sequence_to_sampling][0]
+            section_sampling_method = self._backend[s_sampling_method][i_sampling_method]
+            sampling_method = section_sampling_method["sampling_method"][0]
+
+            if sampling_method == "molecular_dynamics":
+                run_type = "molecular dynamics"
+            if sampling_method == "geometry_optimization":
+                run_type = "geometry optimization"
+            if sampling_method == "taylor_expansion":
+                run_type = "phonon calculation"
+
+        calculation.run_type = run_type
+        return run_type
 
     def get_scf_threshold(self) -> None:
         pass
@@ -369,19 +407,36 @@ class EncyclopediaNormalizer(Normalizer):
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
 
-        # Most of the analysis is made from the last frame of the calculation.
-        # In geometry optimization this correponds to the relaxed system.
-        last_sys = self._backend.data["section_system"][-1]
-        system_type = last_sys["system_type"]
-
-        # Check if an encyclopedia entry can be made for this calculation
-        if system_type != "bulk" and system_type != "surface" and system_type != "2D":
-            return
-
-        # Initialise metainfo structure and fill it
+        # Initialise metainfo structure
         self.sec_enc = Encyclopedia()
         material = self.sec_enc.m_create(Material)
-        self.get_material_hash(material, last_sys)
+        calculation = self.sec_enc.m_create(Calculation)
+
+        # Determine run type, stop if unknown
+        run_type = self.get_run_type(calculation)
+        if run_type == config.services.unavailable_value:
+            self.logger.info("unknown run type for encyclopedia")
+            return
+
+        # Get the system type, stop if unknown
+        if run_type in {"geometry optimization", "molecular dynamics"}:
+            frame_seqs = self._backend[s_frame_sequence]
+            frame_seq = frame_seqs[0]
+            frames = frame_seq[r_frame_sequence_local_frames]
+            systems = self._backend[s_system]
+            if run_type == "geometry optimization":
+                system = systems[frames[-1]]
+            elif run_type == "moleculardynamics":
+                system = systems[frames[0]]
+        elif run_type == "single point":
+            system = self._backend[s_system][0]
+        system_type = system["system_type"]
+        if system_type != "bulk" and system_type != "surface" and system_type != "2D":
+            self.logger.info("unknown system type for encyclopedia")
+            return
+
+        # Proceed to fill rest of data
+        self.get_material_hash(material, system)
 
         # Put the encyclopedia section into backend
         self._backend.add_mi2_section(self.sec_enc)

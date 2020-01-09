@@ -1,5 +1,5 @@
 from elasticsearch_dsl import InnerDoc
-from nomad.metainfo import MSection, Section, SubSection, Quantity
+from nomad.metainfo import MSection, Section, SubSection, Quantity, Enum
 
 
 class Material(MSection):
@@ -20,9 +20,27 @@ class Material(MSection):
     )
 
 
+class Calculation(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        a_elastic=dict(type=InnerDoc),
+        description="""
+        Section for storing data related to a calculation that is identified
+        from this entry.
+        """
+    )
+    run_type = Quantity(
+        type=Enum("single point", "geometry optimization", "molecular dynamics", "phonon calculation", "QHA calculation", "GW calculation", "equation of state", "parameter variation"),
+        description="""
+        Defines the type of run identified for this entry.
+        """
+    )
+
+
 class Encyclopedia(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
         a_elastic=dict(type=InnerDoc)
     )
     material = SubSection(sub_section=Material.m_def, repeats=False)
+    calculation = SubSection(sub_section=Calculation.m_def, repeats=False)

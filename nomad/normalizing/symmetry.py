@@ -1,4 +1,4 @@
-# Copyright 2016-2018 Henning Glawe, Georg Huhs, Markus Scheidgen, Lauri Himanen, Daria Tomecka, Antti Oskari Autio, Artur Garcia, Ioan Vancea, Rosendo Valero Montero, Susmita Basak
+# Copyright 2018 Markus Scheidgen
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -7,7 +7,7 @@
 #   http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
+# distributed under the License is distributed on an"AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.

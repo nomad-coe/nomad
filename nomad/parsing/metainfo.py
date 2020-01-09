@@ -43,6 +43,12 @@ class MetainfoBackend(LegacyParserBackend):
             logger = utils.get_logger(__name__)
         self.logger = logger
 
+    def __getitem__(self, metaname):
+        raise NotImplementedError()
+
+    def add_tmp_value(self, section_name: str, name: str, value: Any, index: int = -1) -> None:
+        raise NotImplementedError()
+
     def metaInfoEnv(self):
         return self.legacy_env
 

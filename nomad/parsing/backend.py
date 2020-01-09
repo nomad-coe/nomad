@@ -60,6 +60,22 @@ class AbstractParserBackend(metaclass=ABCMeta):
     and normalizers.
     """
     @abstractmethod
+    def __getitem__(self, metaname):
+        """Return the data or section corrresponding the the given metainfo
+        name. If given a section name, this function will return a list of
+        Section objects. If given a name of a concrete value, this function
+        will return all instances of that value as a list.
+
+        Args:
+            metaname: The unique name of the metainfo to get.
+
+        Raises:
+            LookupError: if the metaname is not defined in the metainfo
+                environment or the parser has not output any value for it.
+            ParserKeyError: if the parser did not output the queried metainfo.
+        """
+
+    @abstractmethod
     def metaInfoEnv(self):
         """ Returns the meta info used by this backend. """
         pass
@@ -356,6 +372,7 @@ class LegacyParserBackend(AbstractParserBackend):
     Partial implementation of :class:`AbstractParserBackend` that implements some
     methods that are independent from the core backend implementation.
     """
+
     def __init__(self, logger):
         self.logger = logger if logger is not None else get_logger(__name__)
 
@@ -430,10 +447,10 @@ class LocalBackend(LegacyParserBackend, metaclass=DelegatingMeta):
         self._open_context: Tuple[str, int] = None
         self._context_section = None
 
+    def __getitem__(self, metaname):
+        return self.data[metaname]
+
     def add_tmp_value(self, section_name: str, name: str, value: Any, index: int = -1) -> None:
-        """Used to save temporary values that are tied to a specific location
-        int the metainfo.
-        """
         manager = self.sectionManagers[section_name]
         if index == -1:
             index = manager.lastSectionGIndex
@@ -441,12 +458,6 @@ class LocalBackend(LegacyParserBackend, metaclass=DelegatingMeta):
         if not hasattr(section, "tmp"):
             section.tmp = dict()
         section.tmp[name] = value
-
-    def get_tmp_context(self, context_name: str) -> Dict:
-        """
-        Return the dictionary that is tied to the given temporary context.
-        """
-        return self._tmp_data[context_name]
 
     def __getattr__(self, name):
         """ Support for unimplemented and unexpected methods. """

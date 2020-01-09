@@ -21,8 +21,10 @@ from nomad.utils import get_logger
 s_system = 'section_system'
 s_scc = 'section_single_configuration_calculation'
 s_frame_sequence = 'section_frame_sequence'
+s_sampling_method = "section_sampling_method"
 r_scc_to_system = 'single_configuration_calculation_to_system_ref'
 r_frame_sequence_local_frames = 'frame_sequence_local_frames_ref'
+r_frame_sequence_to_sampling = "frame_sequence_to_sampling_ref"
 
 
 class Normalizer(metaclass=ABCMeta):
