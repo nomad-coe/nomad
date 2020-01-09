@@ -184,6 +184,23 @@ class AbstractParserBackend(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def add_tmp_value(self, section_name: str, name: str, value: Any, index: int = -1) -> None:
+        """Used to save temporary values that are tied to a specific location
+        int the metainfo. You can optionally pass a context string that will
+        indicate the context under which this metainfo was addded.
+
+        Args:
+            section_name: The name of the section under which the temporary
+                variable is to be stored. You must make sure that the corresponding
+                section has been created.
+            name: Identifier for this temporary variable.
+            value: Value for this temporary variable.
+            index: Index of the section under which the variable is placed.
+                Default to -1 which corresponds to the latest opened section.
+        """
+        pass
+
+    @abstractmethod
     def get_sections(self, meta_name: str, g_index: int = -1) -> List[int]:
         """ Return all gIndices for existing sections of the given meta_name and parent section index. """
         pass
@@ -412,6 +429,24 @@ class LocalBackend(LegacyParserBackend, metaclass=DelegatingMeta):
         self.mi2_data: Dict[str, MSection] = {}
         self._open_context: Tuple[str, int] = None
         self._context_section = None
+
+    def add_tmp_value(self, section_name: str, name: str, value: Any, index: int = -1) -> None:
+        """Used to save temporary values that are tied to a specific location
+        int the metainfo.
+        """
+        manager = self.sectionManagers[section_name]
+        if index == -1:
+            index = manager.lastSectionGIndex
+        section = manager.openSections[index]
+        if not hasattr(section, "tmp"):
+            section.tmp = dict()
+        section.tmp[name] = value
+
+    def get_tmp_context(self, context_name: str) -> Dict:
+        """
+        Return the dictionary that is tied to the given temporary context.
+        """
+        return self._tmp_data[context_name]
 
     def __getattr__(self, name):
         """ Support for unimplemented and unexpected methods. """

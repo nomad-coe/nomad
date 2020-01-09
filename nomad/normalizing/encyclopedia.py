@@ -12,8 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from hashlib import sha512
+from typing import Dict
+
 from nomad.normalizing.normalizer import Normalizer
 from nomad.metainfo.encyclopedia import Encyclopedia, Material
+from nomad.normalizing import symmetry
 
 
 class EncyclopediaNormalizer(Normalizer):
@@ -25,16 +29,10 @@ class EncyclopediaNormalizer(Normalizer):
     """
     def __init__(self, backend):
         super().__init__(backend)
-        self.sec_enc = None
+        self.sec_enc: Encyclopedia = None
 
     def validate(self):
         return True
-
-    def fill_material(self):
-        """Used to fill the material subsection.
-        """
-        self.sec_enc.m_create(Material)
-        self.get_material()
 
     # NOTE: Enc specific visualization
     def get_atom_labels(self) -> None:
@@ -245,8 +243,16 @@ class EncyclopediaNormalizer(Normalizer):
     def get_mass_density(self) -> None:
         pass
 
-    def get_material(self) -> None:
-        pass
+    def get_material_hash(self, material: Material, section_system: Dict) -> None:
+        # Get symmetry information from the section
+        section_symmetry = section_system["section_symmetry"][0]
+        space_group_number = section_symmetry["space_group_number"]
+        section_std_system = section_symmetry["section_std_system"][0]
+        wyckoff_sets = section_std_system.tmp["wyckoff_sets"]
+
+        # Create and store hash based on SHA512
+        norm_hash_string = symmetry.create_symmetry_string(space_group_number, wyckoff_sets)
+        material.material_hash = sha512(norm_hash_string.encode('utf-8')).hexdigest()
 
     def get_material_name(self) -> None:
         pass
@@ -363,15 +369,19 @@ class EncyclopediaNormalizer(Normalizer):
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
 
+        # Most of the analysis is made from the last frame of the calculation.
+        # In geometry optimization this correponds to the relaxed system.
+        last_sys = self._backend.data["section_system"][-1]
+        system_type = last_sys["system_type"]
+
         # Check if an encyclopedia entry can be made for this calculation
-        if not self.validate():
+        if system_type != "bulk" and system_type != "surface" and system_type != "2D":
             return
 
-        # Initialise metainfo structure
+        # Initialise metainfo structure and fill it
         self.sec_enc = Encyclopedia()
-
-        # Fill metainfo
-        self.fill_material()
+        material = self.sec_enc.m_create(Material)
+        self.get_material_hash(material, last_sys)
 
         # Put the encyclopedia section into backend
         self._backend.add_mi2_section(self.sec_enc)

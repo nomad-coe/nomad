@@ -91,12 +91,10 @@ def formula_normalizer(atoms):
 
 
 class SystemNormalizer(SystemBasedNormalizer):
-
     """
     This normalizer performs all system (atoms, cells, etc.) related normalizations
     of the legacy NOMAD-coe *stats* normalizer.
     """
-
     @staticmethod
     def atom_label_to_num(atom_label):
         # Take first three characters and make first letter capitalized.
@@ -315,7 +313,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         # Try to use Matid's symmetry analyzer to anlyze the ASE object.
         # TODO: dts, find out what the symmetry_tol does.
         try:
-            symm = SymmetryAnalyzer(atoms, symmetry_tol=0.1)
+            symm = SymmetryAnalyzer(atoms, config.normalize.symmetry_tolerance)
 
             space_group_number = symm.get_space_group_number()
 
@@ -348,6 +346,8 @@ class SystemNormalizer(SystemBasedNormalizer):
 
             transform = symm._get_spglib_transformation_matrix()
             origin_shift = symm._get_spglib_origin_shift()
+            wyckoff_sets = symm.get_wyckoff_sets_conventional()
+
         except ValueError as e:
             self.logger.debug('symmetry analysis is not available', details=str(e))
             return
@@ -357,6 +357,7 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         # Write data extracted from Matid symmetry analysis to the backend.
         symmetry_gid = self._backend.openSection('section_symmetry')
+
         # TODO: @dts, should we change the symmetry_method to MATID?
         self._backend.addValue('symmetry_method', 'Matid (spg)')
         self._backend.addValue('space_group_number', space_group_number)
@@ -375,6 +376,10 @@ class SystemNormalizer(SystemBasedNormalizer):
         self._backend.addArrayValues('atomic_numbers_std', conv_num)
         self._backend.addArrayValues('wyckoff_letters_std', conv_wyckoff)
         self._backend.addArrayValues('equivalent_atoms_std', conv_equivalent_atoms)
+
+        # Write temporary values that are tied to this section
+        self._backend.add_tmp_value("section_std_system", "wyckoff_sets", wyckoff_sets)
+
         self._backend.closeSection('section_std_system', std_gid)
 
         prim_gid = self._backend.openSection('section_primitive_system')
