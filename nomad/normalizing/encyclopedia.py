@@ -416,8 +416,29 @@ class EncyclopediaNormalizer(Normalizer):
         pass
 
     # NOTE: System normalizer
-    def get_system_type(self) -> None:
-        pass
+    def get_system_type(self, material, calculation) -> tuple:
+        system_type = config.services.unavailable_value
+        system = None
+        if calculation.run_type in {"geometry optimization", "molecular dynamics"}:
+            frame_seqs = self._backend[s_frame_sequence]
+            frame_seq = frame_seqs[0]
+            frames = frame_seq[r_frame_sequence_local_frames]
+            systems = self._backend[s_system]
+            if calculation.run_type == "geometry optimization":
+                system = systems[frames[-1]]
+            elif calculation.run_type == "molecular dynamics":
+                system = systems[frames[0]]
+        elif calculation.run_type == "single point":
+            system = self._backend[s_system][0]
+        try:
+            system_type = system["system_type"]
+            if system_type == "2D / surface":
+                system_type = "2D"
+        except KeyError:
+            self.logger.info("System type information not available for encyclopedia")
+
+        material.system_type = system_type
+        return system, system_type
 
     def get_template(self) -> None:
         pass
@@ -441,22 +462,7 @@ class EncyclopediaNormalizer(Normalizer):
             return
 
         # Get the system type, stop if unknown
-        if run_type in {"geometry optimization", "molecular dynamics"}:
-            frame_seqs = self._backend[s_frame_sequence]
-            frame_seq = frame_seqs[0]
-            frames = frame_seq[r_frame_sequence_local_frames]
-            systems = self._backend[s_system]
-            if run_type == "geometry optimization":
-                system = systems[frames[-1]]
-            elif run_type == "moleculardynamics":
-                system = systems[frames[0]]
-        elif run_type == "single point":
-            system = self._backend[s_system][0]
-        try:
-            system_type = system["system_type"]
-        except Exception:
-            system_type = None
-
+        system, system_type = self.get_system_type(material, calculation)
         if system_type != "bulk" and system_type != "surface" and system_type != "2D":
             self.logger.info("unknown system type for encyclopedia")
             return

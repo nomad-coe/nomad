@@ -21,3 +21,10 @@ def test_geometry_optimization(geometry_optimization: Encyclopedia):
     """
     run_type = geometry_optimization.calculation.run_type
     assert run_type == "geometry optimization"
+
+
+def test_system_type(geometry_optimization: Encyclopedia):
+    """Tests that geometry optimizations are correctly processed."
+    """
+    system_type = geometry_optimization.material.system_type
+    assert system_type == "bulk"

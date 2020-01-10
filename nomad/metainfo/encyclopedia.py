@@ -18,6 +18,12 @@ class Material(MSection):
         wyckoff_position_population.
         """
     )
+    system_type = Quantity(
+        type=Enum("bulk", "2D", "1D", "unavailable"),
+        description="""
+        "Character of physical system's geometry, e.g. bulk, surface... ",
+        """
+    )
 
 
 class Calculation(MSection):
