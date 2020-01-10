@@ -243,7 +243,7 @@ def bar_plot(
 @click.option('--power', type=float, help='User power scale instead of log with the given inverse power.')
 @click.option('--open-access', is_flag=True, help='Only consider Open-Access data.')
 @click.option('--minimum', type=int, default=1, help='Only consider codes with at least the given ammount of entries.')
-def statistics(errors, title, x_axis, y_axis, cumulate, total, save, power, open_access, minimum):
+def statistics_plot(errors, title, x_axis, y_axis, cumulate, total, save, power, open_access, minimum):
     from .client import create_client
     client = create_client()
 
@@ -353,3 +353,193 @@ def statistics(errors, title, x_axis, y_axis, cumulate, total, save, power, open
             per_page=1, owner=owner, statistics=True,
             metrics=['total_energies', 'calculations', 'uploaders', 'authors', 'datasets']).response().result
         print(json.dumps(data.statistics['total'], indent=4))
+
+
+@client.command(help='Generate table with basic statistics summary.')
+@click.option('--html', is_flag=True, help='Output HTML instead of plain text table.')
+@click.option('--geometries', is_flag=True, help='Use geometries not unique geometries.')
+def statistics_table(html, geometries):
+    def get_statistic(response, quantity, value, metric):
+        quantity_data = response.statistics.get(quantity)
+        if quantity_data is None:
+            return 0
+        value_data = quantity_data.get(value)
+        if value_data is None:
+            return 0
+
+        value = value_data.get(metric)
+        return value if value is not None else 0
+
+    from nomad.cli.client import create_client
+    client = create_client()
+
+    geometry_metric = 'unique_geometries' if not geometries else 'geometries'
+
+    # search scc with system type
+    data_all = client.repo.search(
+        per_page=1, metrics=['calculations'], statistics=True).response().result
+
+    entries = get_statistic(data_all, 'total', 'all', 'code_runs')
+    calculations = get_statistic(data_all, 'total', 'all', 'calculations')
+    calculations_1d = get_statistic(data_all, 'system', '1D', 'calculations') \
+        + get_statistic(data_all, 'system', 'atom', 'calculations') \
+        + get_statistic(data_all, 'system', 'molecule / cluster', 'calculations')
+
+    calculations_2d = get_statistic(data_all, 'system', '2D / surface', 'calculations')
+    calculations_3d = get_statistic(data_all, 'system', 'bulk', 'calculations')
+
+    metrics_all = client.repo.search(per_page=1, metrics=[geometry_metric]).response().result
+    geometries = get_statistic(metrics_all, 'total', 'all', geometry_metric)
+    quantities = get_statistic(metrics_all, 'total', 'all', 'quantities')
+
+    # search calcs quantities=section_k_band
+    band_structures = get_statistic(
+        client.repo.search(per_page=1, quantities=['section_k_band']).response().result,
+        'total', 'all', 'code_runs')
+
+    # search calcs quantities=section_dos
+    dos = get_statistic(
+        client.repo.search(per_page=1, quantities=['section_dos']).response().result,
+        'total', 'all', 'code_runs')
+
+    phonons = get_statistic(
+        client.repo.search(per_page=1, code_name='Phonopy').response().result,
+        'total', 'all', 'code_runs')
+
+    if not html:
+        print('''
+            Entries: {:,},
+            Calculations, e.g. total energies: {:,},
+            Unique geometries: {:,},
+            Bulk crystals: {:,},
+            2D / Surfaces: {:,},
+            Atoms / Molecules: {:,},
+            DOS: {:,},
+            Band structures: {:,}
+            Total parsed quantities: {:,}
+        '''.format(
+            entries,
+            calculations,
+            geometries,
+            calculations_3d,
+            calculations_2d,
+            calculations_1d,
+            dos,
+            band_structures,
+            quantities
+        ))
+
+    else:
+        print('''
+            <div class="container">
+                <p>The <i>NOMAD Archive</i> stores in a code-independent format calculations performed
+                with all the most important and widely used electronic-structure and force-field codes.
+                </p>
+                <p>Summary statistics of the Archive content (last update in {}):</p>
+                <table class="table">
+                    <thead>
+                        <tr>
+                        <th scope="col">Metric</th>
+                        <th scope="col">Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                        <th scope="row">Entries, i.e. code runs</th>
+                        <td>{:,}</td>
+                        </tr>
+                        <tr>
+                        <th scope="row">Calculations, e.g. total energies</th>
+                        <td>{:,}</td>
+                        </tr>
+                        <tr>
+                        <th scope="row">Unique geometries</th>
+                        <td>{:,}</td>
+                        </tr>
+                        <tr>
+                        <th scope="row">Bulk Crystals</th>
+                        <td>{:,}</td>
+                        </tr>
+                        <tr>
+                        <th scope="row">Surfaces</th>
+                        <td>{:,}</td>
+                        </tr>
+                        <tr>
+                        <th scope="row">Molecules/Clusters</th>
+                        <td>{:,}</td>
+                        </tr>
+                        <tr>
+                        <th scope="row">DOS</th>
+                        <td>{:,}</td>
+                        </tr>
+                        <tr>
+                        <th scope="row">Band Structures</th>
+                        <td>{:,}</td>
+                        </tr>
+                        <tr>
+                        <th scope="row">Phonon Calculations</th>
+                        <td>{:,}</td>
+                        </tr>
+                        <tr>
+                        <th scope="row">Overall parsed quantities</th>
+                        <td>{:,}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>
+                    Furthermore:
+                </p>
+                <ul>
+                    <li><b>9,274</b> Zip Archives for parsing: <b>16.5 TB</b> of data (compressed)</li>
+                    <li>Data extracted with parsing: <b>5.6 TB</b> of HDF5 files (compressed)</li>
+                    <li>Data classified using <b>168</b> public metadata of the NOMAD Meta Info and <b>2,360</b> code-specific metadata</li>
+                    <li>Number of parsed quantities <b>871,497,996</b></li>
+                </ul>
+                <p>
+                    90% of VASP calculations are provided by
+                        <a href="http://aflowlib.org">AFLOWlib</a> (S. Curtarolo),
+                        <a href="http://oqmd.org"> OQMD</a> (C. Wolverton) and
+                        <a href="https://materialsproject.org">Materials Project</a> (K. Persson).
+                </p>
+                <p>
+                    You can further explore the statistics in the below dynamic histograms. To
+                    change the displayed quantity, select from the "Quantities" drop-down. To
+                    filter the data, click histogram bars for different filter combinations.
+                    To reset filters, click "Reset Filters".
+                </p>
+                <p>
+                    The archive data is represented in a code-independent, structured
+                    form. The archive structure and all quantities are described via the
+                    <a href="https://www.nomad-coe.eu/the-project/nomad-archive/archive-meta-info">NOMAD Metainfo</a>.
+                    The NOMAD Metainfo defines a conceptual model to store the values connected
+                    to atomistic or <i>ab initio</i> calculations. A clear and usable metadata definition
+                    is a prerequisites to preparing the data for analysis that everybody
+                    can contribute to.
+                </p>
+                <p>
+                    In collaboration with the <a href="http://www.bbdc.berlin/">Berlin Big Data Center (BBDC)</a>,
+                    we use the Apache Flink infrastructure to support and go beyond the standard MapReduce model to enable
+                    rapid and complex queries.
+                </p>
+                <p>
+                    Contact concerning general aspects of the CoE: <a href="mailto:pietsch@fhi-berlin.mpg.de">Jessica Pietsch</a>
+                </p>
+                <p>
+                    Contact concerning the NOMAD Archive:
+                        <a href="mailto:markus.scheidgen@physik.hu-berlin.de">Markus Scheidgen</a>,
+                        <a href="mailto:ghiringhelli@fhi-berlin.mpg.de">Luca Ghiringhelli</a>
+                </p>
+            </div>
+        '''.format(
+            datetime.now().strftime('%b %y'),
+            entries,
+            calculations,
+            geometries,
+            calculations_3d,
+            calculations_2d,
+            calculations_1d,
+            dos,
+            band_structures,
+            phonons,
+            quantities
+        ))

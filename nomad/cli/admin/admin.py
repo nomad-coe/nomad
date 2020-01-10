@@ -170,7 +170,7 @@ server {{
 
 
 @ops.command(help=('Generate a proxy pass config for apache2 reverse proxy servers.'))
-@click.option('--prefix', type=str, default='uploads', help='The path prefix under which everything is proxy passed.')
+@click.option('--prefix', type=str, default='app', help='The path prefix under which everything is proxy passed.')
 @click.option('--host', type=str, default='130.183.207.104', help='The host to proxy to.')
 @click.option('--port', type=str, default='30001', help='The port to proxy to.')
 def apache_conf(prefix, host, port):
@@ -179,6 +179,34 @@ ProxyPass "/{0}" "http://{1}:{2}/{0}"
 ProxyPassReverse "/{0}" "http://{1}:{2}/{0}"
 <Proxy http://{1}:{2}/{0}>
     ProxyPreserveHost On
-    Order deny,allow
-    Allow from all
-</Proxy>'''.format(prefix, host, port))
+    <IfModule !mod_access_compat.c>
+         Require all granted
+     </IfModule>
+     <IfModule mod_access_compat.c>
+         Order allow,deny
+         Allow from all
+     </IfModule>
+</Proxy>
+
+RequestHeader set "X-Forwarded-Proto" expr=%{{REQUEST_SCHEME}}
+RequestHeader set "X-Forwarded-SSL" expr=%{{HTTPS}}
+
+ProxyPass /fairdi/keycloak http://{1}:8002/fairdi/keycloak
+ProxyPassReverse /fairdi/keycloak http://{1}:8002/fairdi/keycloak
+<Proxy http://{1}:8002/app>
+     ProxyPreserveHost On
+     <IfModule !mod_access_compat.c>
+         Require all granted
+     </IfModule>
+     <IfModule mod_access_compat.c>
+         Order allow,deny
+         Allow from all
+     </IfModule>
+</Proxy>
+
+RewriteEngine on
+RewriteCond %{QUERY_STRING} ^pid=([^&]+)$
+RewriteRule ^/NomadRepository-1.1/views/calculation.zul$ /{0}/gui/entry/pid/%1? [R=301]
+
+AllowEncodedSlashes On
+'''.format(prefix, host, port))

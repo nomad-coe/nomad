@@ -288,7 +288,7 @@ class SearchBar extends React.Component {
       }
     }
 
-    const showClearButton = query && Object.keys(query).length > 1
+    const showClearButton = query && Object.keys(query).filter(key => query[key] !== undefined).length > 1
 
     return (
       <div className={classes.root}>

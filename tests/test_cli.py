@@ -79,6 +79,19 @@ class TestAdmin:
 
         assert search.SearchRequest().search_parameter('comment', 'specific').execute()['total'] == 1
 
+    def test_delete_entry(self, published):
+        upload_id = published.upload_id
+        calc = Calc.objects(upload_id=upload_id).first()
+
+        result = click.testing.CliRunner().invoke(
+            cli, ['admin', 'entries', 'rm', calc.calc_id], catch_exceptions=False, obj=utils.POPO())
+
+        print(result.output)
+        assert result.exit_code == 0
+        assert 'deleting' in result.stdout
+        assert Upload.objects(upload_id=upload_id).first() is not None
+        assert Calc.objects(calc_id=calc.calc_id).first() is None
+
 
 @pytest.mark.usefixtures('reset_config', 'no_warn')
 class TestAdminUploads:
@@ -250,3 +263,17 @@ class TestClient:
         assert published.upload_files.os_path in result.output
 
         published.upload_files.exists
+
+    def test_statistics(self, client, proc_infra, admin_user_bravado_client):
+
+        result = click.testing.CliRunner().invoke(
+            cli, ['client', 'statistics-table'], catch_exceptions=True, obj=utils.POPO())
+
+        assert result.exit_code == 0, result.output
+        assert 'Calculations, e.g. total energies' in result.output
+        assert 'Unique geometries' in result.output
+        assert 'Bulk crystals' in result.output
+        assert '2D / Surfaces' in result.output
+        assert 'Atoms / Molecules' in result.output
+        assert 'DOS' in result.output
+        assert 'Band structures' in result.output

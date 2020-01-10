@@ -26,6 +26,32 @@ class FAQ extends React.Component {
           These are often repeated questions that cover the basic NOMAD use-cases. If you have
           further questions, please write use: [${email}](mailto:${email}).
 
+          ## General
+
+          ### How can I be sure that my data will be cited properly?
+
+          Sharing means a change of culture. Making data open access is comparable to a
+          publication where references to other work are common practice ever since.
+          Likewise, using someone's data requires proper citation. We recommend the uploader
+          to provide references to their data (publications, websites) and the users to
+          cite these references together with the link to the repository.
+
+          ### Can I change my email address or affiliation
+
+          The NOMAD user management allows you to edit (click on your name after login)
+          your name, email address, and affiliation. The email address and affiliation
+          associated with your data might not change right away, but it will be updated
+          eventually.
+
+          ### I'd like to install NOMAD on my local computers to be only used by my group
+
+          Local NOMAD deployments are not actively supported at the moment. However, all
+          [NOMAD software](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR) is
+          available under the Apache 2.0 Open-Source License and could in principle be
+          installed and operated by you. We are planing to actively support local NOMAD
+          installations and potential (partial) mirrors of NOMAD data under the name
+          *NOMAD Oasis* in the future.
+
           ## Upload data, datasets, embargo, and DOIs
 
           ### What steps are necessary to publish data and reference it in a paper or share it otherwise?

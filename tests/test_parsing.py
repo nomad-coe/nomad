@@ -75,7 +75,7 @@ for parser, mainfile in parser_examples:
 parser_examples = fixed_parser_examples
 
 
-correct_num_output_files = 45
+correct_num_output_files = 46
 
 
 class TestLocalBackend(object):
@@ -184,6 +184,42 @@ class TestLocalBackend(object):
         assert len(runs) == 2
         assert len(runs[0]['section_method']) == 2
         assert len(runs[1]['section_method']) == 1
+
+    def test_open_section_of_specific_parent(self, backend: LocalBackend, no_warn):
+        run_index = backend.openSection('section_run')
+        scc_index = backend.openSection('section_single_configuration_calculation')
+        backend.closeSection('section_single_configuration_calculation', scc_index)
+        dos_index = backend.openSection('section_dos', parent_index=scc_index)
+        backend.closeSection('section_dos', dos_index)
+        backend.closeSection('section_run', run_index)
+
+        runs = backend.data['section_run']
+        assert len(runs) == 1
+        run = runs[0]
+        assert len(run['section_single_configuration_calculation']) == 1
+        assert 'section_dos' in run['section_single_configuration_calculation'][0]
+        assert len(run['section_single_configuration_calculation'][0]['section_dos']) == 1
+
+    def test_open_section_of_specific_parent2(self, backend: LocalBackend, no_warn):
+        run_index = backend.openSection('section_run')
+        scc_index = backend.openSection('section_single_configuration_calculation')
+        backend.closeSection('section_single_configuration_calculation', scc_index)
+
+        backend.closeSection(
+            'section_single_configuration_calculation',
+            backend.openSection('section_single_configuration_calculation'))
+
+        dos_index = backend.openSection('section_dos', parent_index=scc_index)
+        backend.closeSection('section_dos', dos_index)
+        backend.closeSection('section_run', run_index)
+
+        runs = backend.data['section_run']
+        assert len(runs) == 1
+        run = runs[0]
+        assert len(run['section_single_configuration_calculation']) == 2
+        assert 'section_dos' in run['section_single_configuration_calculation'][0]
+        assert len(run['section_single_configuration_calculation'][0]['section_dos']) == 1
+        assert 'section_dos' not in run['section_single_configuration_calculation'][1]
 
     def test_context(self, backend: LocalBackend, no_warn):
         backend.openSection('section_run')

@@ -150,3 +150,5 @@ volumes:
 ## Everything else
 # The domain configuration, currently there is DFT and EMS
 domain: DFT
+
+springerDbPath: /nomad/fairdi/db/data/springer.db

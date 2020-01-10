@@ -143,7 +143,7 @@ def authenticate(
                         abort(401, 'Invalid token')
 
             elif 'token' in request.args:
-                abort(401, 'Queram param token not supported for this endpoint')
+                abort(401, 'Query param token not supported for this endpoint')
 
             else:
                 error = infrastructure.keycloak.authorize_flask(basic=basic)

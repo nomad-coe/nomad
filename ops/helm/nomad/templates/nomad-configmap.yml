@@ -60,3 +60,5 @@ data:
       client_id: "{{ .Values.keycloak.clientId }}"
       client_secret: "*"
       password: "*"
+    springer_db_path: "{{ .Values.springerDbPath }}"
+

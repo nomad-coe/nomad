@@ -167,6 +167,12 @@ def delete_upload(upload_id):
     Search(index=index).query('match', upload_id=upload_id).delete()
 
 
+def delete_entry(calc_id):
+    """ Delete the entry with the given ``calc_id`` from the index. """
+    index = Entry._default_index()
+    Search(index=index).query('match', calc_id=calc_id).delete()
+
+
 def publish(calcs: Iterable[datamodel.CalcWithMetadata]) -> None:
     """ Update all given calcs with their metadata and set ``publish = True``. """
     def elastic_updates():
@@ -635,7 +641,7 @@ class SearchRequest:
 
     def _response(self, response, with_hits: bool = False) -> Dict[str, Any]:
         """
-        Prepares a response object covering the total number of resutls, hits, statistics,
+        Prepares a response object covering the total number of results, hits, statistics,
         and quantities. Other aspects like pagination and scrolling have to be added
         elsewhere.
         """
@@ -657,7 +663,7 @@ class SearchRequest:
                 agg_name = 'metric:%s' % metric
                 if agg_name in bucket:
                     result[metric] = bucket[agg_name]['value']
-                result.update(code_runs=code_runs)
+            result.update(code_runs=code_runs)
             return result
 
         statistics_results = {
