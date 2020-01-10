@@ -323,7 +323,30 @@ class EncyclopediaNormalizer(Normalizer):
         # unsupported.
         elif n_frame_seq == 1:
             frame_seq = frame_sequences[0]
-            i_sampling_method = frame_seq[r_frame_sequence_to_sampling]
+
+            # See if sampling_method is present
+            try:
+                i_sampling_method = frame_seq[r_frame_sequence_to_sampling]
+            except KeyError:
+                self.logger.info(
+                    "Cannot determine encyclopedia run type because missing "
+                    "value for frame_sequence_to_sampling_ref"
+                )
+                return run_type
+
+            # See if local frames are present
+            try:
+                frames = frame_seq[r_frame_sequence_local_frames]
+            except KeyError:
+                self.logger.info(
+                    "section_frame_sequence_local_frames not found although a "
+                    "frame_sequence exists"
+                )
+                return run_type
+            if len(frames) == 0:
+                self.logger.info("No frames referenced in section_frame_sequence_local_frames")
+                return run_type
+
             section_sampling_method = self._backend[s_sampling_method][i_sampling_method]
             sampling_method = section_sampling_method["sampling_method"]
 
@@ -429,7 +452,11 @@ class EncyclopediaNormalizer(Normalizer):
                 system = systems[frames[0]]
         elif run_type == "single point":
             system = self._backend[s_system][0]
-        system_type = system["system_type"]
+        try:
+            system_type = system["system_type"]
+        except Exception:
+            system_type = None
+
         if system_type != "bulk" and system_type != "surface" and system_type != "2D":
             self.logger.info("unknown system type for encyclopedia")
             return
