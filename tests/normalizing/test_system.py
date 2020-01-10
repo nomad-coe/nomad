@@ -12,16 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
-
 from nomad import datamodel, config
 from nomad.parsing import LocalBackend
-from nomad.normalizing import normalizers
 
-from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
-from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
-from tests.test_parsing import parsed_example  # pylint: disable=unused-import
 from tests.test_parsing import parse_file
+from tests.normalizing.conftest import run_normalize
 from tests.utils import assert_log
 
 
@@ -73,32 +68,6 @@ parser_exceptions = {
 Keys that the normalizer for certain parsers might not produce. In an ideal world this
 map would be empty.
 """
-
-
-def run_normalize(backend: LocalBackend) -> LocalBackend:
-    status, _ = backend.status
-
-    assert status == 'ParseSuccess'
-
-    for normalizer_class in normalizers:
-        normalizer = normalizer_class(backend)
-        normalizer.normalize()
-    return backend
-
-
-@pytest.fixture
-def normalized_vasp_example(parsed_vasp_example: LocalBackend) -> LocalBackend:
-    return run_normalize(parsed_vasp_example)
-
-
-@pytest.fixture
-def normalized_example(parsed_example: LocalBackend) -> LocalBackend:
-    return run_normalize(parsed_example)
-
-
-@pytest.fixture
-def normalized_template_example(parsed_template_example) -> LocalBackend:
-    return run_normalize(parsed_template_example)
 
 
 def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
@@ -179,13 +148,12 @@ def test_symmetry_classification_fcc():
 
 
 def test_system_classification():
-    "Ensure the classification of fcc Na is atom"
-    # TODO: @dts - This is a bit strange that a system with only
-    # one atom is automatically classified as atom. It could be
-    # an elemental solid.
+    """Tests that the system classification is correct for different kind of systems
+    """
+    # Bulk system
     backend = parse_file(fcc_symmetry)
     backend = run_normalize(backend)
-    expected_system_type = 'atom'
+    expected_system_type = 'bulk'
     system_type = backend.get_value('system_type')
     assert expected_system_type == system_type
 

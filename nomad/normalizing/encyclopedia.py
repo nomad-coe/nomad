@@ -30,7 +30,6 @@ class EncyclopediaNormalizer(Normalizer):
     """
     def __init__(self, backend):
         super().__init__(backend)
-        self.sec_enc: Encyclopedia = None
 
     # NOTE: Enc specific visualization
     def get_atom_labels(self) -> None:
@@ -324,9 +323,9 @@ class EncyclopediaNormalizer(Normalizer):
         # unsupported.
         elif n_frame_seq == 1:
             frame_seq = frame_sequences[0]
-            i_sampling_method = frame_seq[r_frame_sequence_to_sampling][0]
+            i_sampling_method = frame_seq[r_frame_sequence_to_sampling]
             section_sampling_method = self._backend[s_sampling_method][i_sampling_method]
-            sampling_method = section_sampling_method["sampling_method"][0]
+            sampling_method = section_sampling_method["sampling_method"]
 
             if sampling_method == "molecular_dynamics":
                 run_type = "molecular dynamics"
@@ -408,9 +407,9 @@ class EncyclopediaNormalizer(Normalizer):
         super().normalize(logger)
 
         # Initialise metainfo structure
-        self.sec_enc = Encyclopedia()
-        material = self.sec_enc.m_create(Material)
-        calculation = self.sec_enc.m_create(Calculation)
+        sec_enc = Encyclopedia()
+        material = sec_enc.m_create(Material)
+        calculation = sec_enc.m_create(Calculation)
 
         # Determine run type, stop if unknown
         run_type = self.get_run_type(calculation)
@@ -439,4 +438,4 @@ class EncyclopediaNormalizer(Normalizer):
         self.get_material_hash(material, system)
 
         # Put the encyclopedia section into backend
-        self._backend.add_mi2_section(self.sec_enc)
+        self._backend.add_mi2_section(sec_enc)

@@ -30,7 +30,7 @@ class Calculation(MSection):
         """
     )
     run_type = Quantity(
-        type=Enum("single point", "geometry optimization", "molecular dynamics", "phonon calculation", "QHA calculation", "GW calculation", "equation of state", "parameter variation"),
+        type=Enum("single point", "geometry optimization", "molecular dynamics", "phonon calculation", "QHA calculation", "GW calculation", "equation of state", "parameter variation", "unavailable"),
         description="""
         Defines the type of run identified for this entry.
         """

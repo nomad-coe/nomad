@@ -14,25 +14,12 @@
 
 import numpy as np
 
-from nomad.parsing import LocalBackend
-from nomad.normalizing import normalizers
-
 from tests.test_parsing import parse_file
+from tests.normalizing.conftest import run_normalize
 
 
 vasp_parser_dos = (
     'parsers/vasp', 'tests/data/parsers/vasp/vasp_dos.xml')
-
-
-def run_normalize(backend: LocalBackend) -> LocalBackend:
-    status, _ = backend.status
-
-    assert status == 'ParseSuccess'
-
-    for normalizer_class in normalizers:
-        normalizer = normalizer_class(backend)
-        normalizer.normalize()
-    return backend
 
 
 def test_dos_normalizer():

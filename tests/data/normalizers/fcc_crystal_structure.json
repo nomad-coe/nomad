@@ -40,7 +40,7 @@
               "Na"
             ],
             "lattice_vectors": [
-              [0, 0.5, 0.5],[0.5, 0 , 0.5],[0.5, 0.5, 0]]
+              [0, 0.5E-10, 0.5E-10],[0.5E-10, 0 , 0.5E-10],[0.5E-10, 0.5E-10, 0]]
           }
         ],
         "section_single_configuration_calculation": [

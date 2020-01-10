@@ -12,35 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
-
-from nomad.parsing import LocalBackend
-from nomad.normalizing import normalizers
-
-from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
-from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
-from tests.test_parsing import parsed_example  # pylint: disable=unused-import
-from tests.test_parsing import parse_file
-from tests.utils import assert_log
+from nomad.metainfo.encyclopedia import Encyclopedia
+from tests.normalizing.conftest import geometry_optimization   # pylint: disable=unused-import
 
 
-def run_normalize(backend: LocalBackend) -> LocalBackend:
-    status, _ = backend.status
-
-    assert status == 'ParseSuccess'
-
-    for normalizer_class in normalizers:
-        normalizer = normalizer_class(backend)
-        normalizer.normalize()
-    return backend
-
-
-@pytest.fixture
-def single_point(parsed_template_example) -> LocalBackend:
-    return run_normalize(parsed_template_example)
-
-
-def test_single_point(single_point: LocalBackend):
-    """Tests that single point calculations are correctly processed."
+def test_geometry_optimization(geometry_optimization: Encyclopedia):
+    """Tests that geometry optimizations are correctly processed."
     """
-    pass
+    run_type = geometry_optimization.calculation.run_type
+    assert run_type == "geometry optimization"
