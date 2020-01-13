@@ -25,6 +25,9 @@ ADD ./fairdi_nomad_prod.json /opt/jboss/keycloak/fairdi_nomad_prod.json
 # Add a custom theme to mimic the rest of nomad's GUI
 ADD ./material_theme /opt/jboss/keycloak/themes/material
 
+# Add custom registration validation
+ADD ./registration_form_action/target/form-extension-1.0-SNAPSHOT.jar /opt/jboss/keycloak/standalone/deployments/form-extension-1.0-SNAPSHOT.jar
+
 # Additing a bcrypt password hashing algorithm to reuse old repo users
 RUN curl http://central.maven.org/maven2/org/mindrot/jbcrypt/0.4/jbcrypt-0.4.jar > /tmp/jbcrypt-0.4.jar
 RUN /opt/jboss/keycloak/bin/jboss-cli.sh --command="module add --name=org.mindrot.jbcrypt --resources=/tmp/jbcrypt-0.4.jar"
