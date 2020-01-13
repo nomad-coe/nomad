@@ -90,47 +90,50 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         pass
 
     def __representative_systems(self):
-        # look for sccs in last frames
-        sccs = []
+        """Used to tag systems that are representative for a calculation. In
+        practice, takes the first and two last frames of all
+        section_frame_sequences. If no section_frame_sequence exists, take
+        first and two last frames from all defined sccs.
+        """
+        systems = []
+        sequences = []
+
+        # Get all frame sequences
         try:
             frame_seqs = self._backend.get_sections(s_frame_sequence)
         except Exception:
             frame_seqs = []
+        else:
+            for frame_seq in frame_seqs:
+                try:
+                    frames = self._backend.get_value(r_frame_sequence_local_frames, frame_seq)
+                except Exception:
+                    pass
+                else:
+                    sequences.append(frames)
 
-        for frame_seq in frame_seqs:
-            try:
-                frames = self._backend.get_value(r_frame_sequence_local_frames, frame_seq)
-            except Exception:
-                frames = []
-
-            if len(frames) > 0:
-                sccs.append(frames[-1])
-
-        # no sccs from frames -> consider all sccs
-        if len(sccs) == 0:
+        # If no frames exist, consider all existing sccs
+        if len(sequences) == 0:
             try:
                 sccs = self._backend.get_sections(s_scc)
             except Exception:
-                sccs = []
+                pass
+            else:
+                sequences.append(sccs)
 
-        try:
-            systems = [self._backend.get_value(r_scc_to_system, scc) for scc in sccs]
-        except Exception:
-            systems = []
-
-        # only take the first, and last two systems
-        if len(systems) == 0:
-            try:
-                systems = self._backend.get_sections(s_system)
-            except Exception:
-                systems = []
-
-        if len(systems) > 2:
-            systems = [systems[0], systems[-2], systems[-1]]
+        # Take first and last fwo frames from each detected sequence
+        sccs = self._backend[s_scc]
+        for seq in sequences:
+            if len(seq) == 1:
+                indices = [0]
+            elif len(seq) > 2:
+                indices = [0, -2, -1]
+            for scc_idx in [seq[idx] for idx in indices]:
+                system_idx = sccs[scc_idx][r_scc_to_system]
+                systems.append(system_idx)
 
         if len(systems) == 0:
             self.logger.error('no "representative" section system found')
-
         self.logger.info(
             'chose "representative" systems for normalization',
             number_of_systems=len(systems))

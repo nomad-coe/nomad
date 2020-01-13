@@ -247,7 +247,6 @@ class SystemNormalizer(SystemBasedNormalizer):
                 with utils.timer(
                         self.logger, 'system classification executed',
                         system_size=atoms.get_number_of_atoms()):
-
                     self.system_type_analysis(atoms)
 
             # symmetry analysis
@@ -291,6 +290,9 @@ class SystemNormalizer(SystemBasedNormalizer):
             self.logger.error(
                 'matid project system classification failed', exc_info=e, error=str(e))
 
+        # from ase.visualize import view
+        # view(atoms)
+        #raise Exception(system_type)
         self._backend.addValue('system_type', system_type)
 
     def symmetry_analysis(self, atoms) -> None:

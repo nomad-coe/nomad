@@ -51,9 +51,19 @@ def normalized_template_example(parsed_template_example) -> LocalBackend:
 
 
 @pytest.fixture
-def geometry_optimization(parsed_template_example) -> Encyclopedia:
+def geometry_optimization() -> Encyclopedia:
     parser_name = "parsers/template"
     filepath = "tests/data/normalizers/fcc_crystal_structure.json"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    return enc
+
+
+@pytest.fixture
+def molecular_dynamics() -> Encyclopedia:
+    parser_name = "parsers/template"
+    filepath = "tests/data/normalizers/encyclopedia/cp2k_md_nve.json"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
     enc = backend.get_mi2_section(Encyclopedia.m_def)

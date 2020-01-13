@@ -298,7 +298,9 @@ class EncyclopediaNormalizer(Normalizer):
         """Decides what type of calculation this is: single_point, md,
         geometry_optimization, etc.
         """
-        run_type = config.services.unavailable_value
+        run_enums = Calculation.run_type.type
+        run_type = run_enums.unavailable
+
         try:
             sccs = self._backend[s_scc]
         except Exception:
@@ -316,9 +318,9 @@ class EncyclopediaNormalizer(Normalizer):
             program_name = self._backend["program_name"]
             if program_name == "elastic":
                 # TODO move to taylor expansion as soon as data is correct in archive
-                run_type = "elastic constants"
+                run_type = run_enums.elastic_constants
             else:
-                run_type = "single point"
+                run_type = run_enums.single_point
         # One sequence. Currently calculations with multiple sequences are
         # unsupported.
         elif n_frame_seq == 1:
@@ -351,11 +353,11 @@ class EncyclopediaNormalizer(Normalizer):
             sampling_method = section_sampling_method["sampling_method"]
 
             if sampling_method == "molecular_dynamics":
-                run_type = "molecular dynamics"
+                run_type = run_enums.molecular_dynamics
             if sampling_method == "geometry_optimization":
-                run_type = "geometry optimization"
+                run_type = run_enums.geometry_optimization
             if sampling_method == "taylor_expansion":
-                run_type = "phonon calculation"
+                run_type = run_enums.phonon_calculation
 
         calculation.run_type = run_type
         return run_type
@@ -419,23 +421,28 @@ class EncyclopediaNormalizer(Normalizer):
     def get_system_type(self, material, calculation) -> tuple:
         system_type = config.services.unavailable_value
         system = None
-        if calculation.run_type in {"geometry optimization", "molecular dynamics"}:
+        run_enums = Calculation.run_type.type
+        system_enums = Material.system_type.type
+        if calculation.run_type in {run_enums.geometry_optimization, run_enums.molecular_dynamics}:
             frame_seqs = self._backend[s_frame_sequence]
             frame_seq = frame_seqs[0]
             frames = frame_seq[r_frame_sequence_local_frames]
             systems = self._backend[s_system]
-            if calculation.run_type == "geometry optimization":
+            if calculation.run_type == run_enums.geometry_optimization:
                 system = systems[frames[-1]]
-            elif calculation.run_type == "molecular dynamics":
+            elif calculation.run_type == run_enums.molecular_dynamics:
                 system = systems[frames[0]]
-        elif calculation.run_type == "single point":
+        elif calculation.run_type == run_enums.single_point:
             system = self._backend[s_system][0]
         try:
-            system_type = system["system_type"]
-            if system_type == "2D / surface":
-                system_type = "2D"
+            stype = system["system_type"]
         except KeyError:
             self.logger.info("System type information not available for encyclopedia")
+        else:
+            if stype == "2D / surface":
+                system_type = system_enums.two_d
+            if stype == system_enums.bulk or stype == system_enums.one_d:
+                system_type = stype
 
         material.system_type = system_type
         return system, system_type
@@ -449,6 +456,7 @@ class EncyclopediaNormalizer(Normalizer):
 
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
+        system_enums = Material.system_type.type
 
         # Initialise metainfo structure
         sec_enc = Encyclopedia()
@@ -463,7 +471,7 @@ class EncyclopediaNormalizer(Normalizer):
 
         # Get the system type, stop if unknown
         system, system_type = self.get_system_type(material, calculation)
-        if system_type != "bulk" and system_type != "surface" and system_type != "2D":
+        if system_type != system_enums.bulk and system_type != system_enums.two_d and system_type != system_enums.one_d:
             self.logger.info("unknown system type for encyclopedia")
             return
 

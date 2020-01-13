@@ -1,5 +1,5 @@
 from elasticsearch_dsl import InnerDoc
-from nomad.metainfo import MSection, Section, SubSection, Quantity, Enum
+from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum
 
 
 class Material(MSection):
@@ -19,7 +19,12 @@ class Material(MSection):
         """
     )
     system_type = Quantity(
-        type=Enum("bulk", "2D", "1D", "unavailable"),
+        type=MEnum(
+            bulk="bulk",
+            two_d="2D",
+            one_d="1D",
+            unavailable="unavailable"
+        ),
         description="""
         "Character of physical system's geometry, e.g. bulk, surface... ",
         """
@@ -36,7 +41,17 @@ class Calculation(MSection):
         """
     )
     run_type = Quantity(
-        type=Enum("single point", "geometry optimization", "molecular dynamics", "phonon calculation", "elastic constants", "QHA calculation", "GW calculation", "equation of state", "parameter variation", "unavailable"),
+        type=MEnum(
+            single_point="single point",
+            geometry_optimization="geometry optimization",
+            molecular_dynamics="molecular dynamics",
+            phonon_calculation="phonon calculation",
+            elastic_constants="elastic constants",
+            qha_calculation="QHA calculation",
+            qw_calculation="GW calculation",
+            equation_of_state="equation of state",
+            parameter_variation="parameter variation",
+            unavailable="unavailable"),
         description="""
         Defines the type of run identified for this entry.
         """

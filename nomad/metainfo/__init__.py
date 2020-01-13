@@ -209,7 +209,7 @@ Custom data types
 .. autoclass:: DataType
     :members:
 
-.. autoclass:: Enum
+.. autoclass:: MEnum
 
 .. _metainfo-reflection
 
@@ -275,6 +275,6 @@ A more complex example
 """
 
 from .metainfo import MSection, MCategory, Definition, Property, Quantity, SubSection, \
-    Section, Category, Package, Environment, Enum, Datetime, MProxy, MetainfoError, DeriveError, \
+    Section, Category, Package, Environment, MEnum, Datetime, MProxy, MetainfoError, DeriveError, \
     MetainfoReferenceError, DataType, MData, MDataDict, Reference, MResource, m_package, \
     units
