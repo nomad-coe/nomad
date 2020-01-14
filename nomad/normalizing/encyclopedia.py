@@ -389,8 +389,8 @@ class EncyclopediaNormalizer(Normalizer):
     def fill(self, run_type, system_type, representative_system):
         # Fill structure related meta
         if system_type == Material.system_type.type.bulk:
-            system_worker = StructureBulk()
-        system_worker.fill(self._backend, representative_system)
+            structure_worker = StructureBulk()
+            structure_worker.fill(self._backend, representative_system)
 
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
