@@ -126,8 +126,12 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         for seq in sequences:
             if len(seq) == 1:
                 indices = [0]
+            elif len(seq) == 2:
+                indices = [0, -1]
             elif len(seq) > 2:
                 indices = [0, -2, -1]
+            else:
+                break
             for scc_idx in [seq[idx] for idx in indices]:
                 system_idx = sccs[scc_idx][r_scc_to_system]
                 systems.append(system_idx)
