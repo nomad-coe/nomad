@@ -193,7 +193,7 @@ normalize = NomadConfig(
     # cluster. Used in detecting system type.
     cluster_threshold=3.1,
     # Defines the "bin size" for rounding cell angles for the material hash
-    angle_rounding = float(10.0)  # unit: degree
+    angle_rounding=float(10.0)  # unit: degree
 )
 
 client = NomadConfig(
