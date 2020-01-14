@@ -75,6 +75,20 @@ class Material(MSection):
         F = All faces centred
         """
     )
+    cell_normalized = Quantity(
+        type=np.dtype('f8'),
+        shape=[3, 3],
+        description="""
+        Unit cell in normalized form, meaning the bravais cell.
+        """
+    )
+    periodicity = Quantity(
+        type=np.dtype('i1'),
+        shape=["1..*"],
+        description="""
+        The indices of the periodic dimensions.
+        """
+    )
 
 
 class Calculation(MSection):
@@ -107,6 +121,19 @@ class Calculation(MSection):
         unit=units.m**3,
         description="""
         Atomic density of the material (atoms/volume)."
+        """
+    )
+    cell_angles_string = Quantity(
+        type=str,
+        description="""
+        A summary of the cell angles, part of material definition.
+        """
+    )
+    lattice_parameters = Quantity(
+        type=np.dtype('f8'),
+        shape=[6],
+        description="""
+        Lattice parameters of the normalized cell of a specific calculation.
         """
     )
 

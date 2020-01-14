@@ -14,11 +14,14 @@
 
 from hashlib import sha512
 from typing import Dict
+from abc import abstractmethod
+import math
 import ase
+import numpy as np
 
 from nomad.normalizing.normalizer import Normalizer, s_scc, s_system, s_frame_sequence, r_frame_sequence_to_sampling, s_sampling_method, r_frame_sequence_local_frames, r_scc_to_system
 from nomad.metainfo.encyclopedia import Encyclopedia, Material, Calculation
-from nomad.normalizing import symmetry
+from nomad.normalizing import structure
 from nomad import config
 
 
@@ -32,274 +35,182 @@ class EncyclopediaNormalizer(Normalizer):
     def __init__(self, backend):
         super().__init__(backend)
 
-    # NOTE: Enc specific visualization
-    def get_atom_labels(self, material: Material, std_atoms: ase.Atoms) -> None:
-        material.atom_labels = std_atoms.get_chemical_symbols()
-
-    # NOTE: Enc specific visualization
-    def get_atom_positions(self, material: Material, std_atoms: ase.Atoms) -> None:
-        material.atom_positions = std_atoms.get_scaled_positions(wrap=False)
-
-    # NOTE: System normalizer
-    def get_atomic_density(self, calculation: Calculation, repr_system: ase.Atoms) -> None:
-        orig_n_atoms = len(repr_system)
-        orig_volume = repr_system.get_volume() * (1e-10)**3
-        calculation.atomic_density = float(orig_n_atoms / orig_volume)
-
-    # NOTE: Does not exist?
-    def get_atomistic_structure(self) -> None:
+    # NOTE: Band structure normalizer
+    def band_gap(self) -> None:
         pass
 
     # NOTE: Band structure normalizer
-    def get_band_gap(self) -> None:
+    def band_gap_position(self) -> None:
         pass
 
     # NOTE: Band structure normalizer
-    def get_band_gap_position(self) -> None:
+    def band_gap_type(self) -> None:
         pass
 
     # NOTE: Band structure normalizer
-    def get_band_gap_type(self) -> None:
-        pass
-
-    # NOTE: Band structure normalizer
-    def get_band_structure(self) -> None:
+    def band_structure(self) -> None:
         pass
 
     # NOTE: Method normalizer
-    def get_basis_set_short_name(self) -> None:
+    def basis_set_short_name(self) -> None:
         pass
 
     # NOTE: Method normalizer
-    def get_basis_set_type(self) -> None:
-        pass
-
-    # NOTE: System normalizer
-    def get_bravais_lattice(self, material: Material, section_system: Dict) -> None:
-        bravais_lattice = section_system["section_symmetry"][0]["bravais_lattice"]
-        material.bravais_lattice = bravais_lattice
-
-    # NOTE: Band structure normalizer
-    def get_brillouin_zone(self) -> None:
+    def basis_set_type(self) -> None:
         pass
 
     # NOTE: Band structure normalizer
-    def get_brillouin_zone_viewer(self) -> None:
+    def brillouin_zone(self) -> None:
         pass
 
-    def get_calculation(self) -> None:
+    # NOTE: Band structure normalizer
+    def brillouin_zone_viewer(self) -> None:
         pass
 
-    def get_calculation_pid(self) -> None:
+    def calculation(self) -> None:
         pass
 
-    # NOTE: Enc specific visualization
-    def get_cell_angles(self) -> None:
-        pass
-
-    # NOTE: System normalizer
-    def get_cell_normalized(self) -> None:
-        pass
-
-    # NOTE: System normalizer
-    def get_cell_primitive(self) -> None:
-        pass
-
-    # NOTE: System normalizer
-    def get_cell_volume(self) -> None:
+    def calculation_pid(self) -> None:
         pass
 
     # NOTE: Parser
-    def get_code_name(self) -> None:
+    def code_name(self) -> None:
         pass
 
     # NOTE: Parser
-    def get_code_version(self) -> None:
+    def code_version(self) -> None:
         pass
 
     # NOTE: Repo
-    def get_contributor_first_name(self) -> None:
+    def contributor_first_name(self) -> None:
         pass
 
     # NOTE: Repo
-    def get_contributor_last_name(self) -> None:
+    def contributor_last_name(self) -> None:
         pass
 
     # NOTE: Repo
-    def get_contributor_type(self) -> None:
+    def contributor_type(self) -> None:
         pass
 
     # NOTE: Repo
-    def get_contributors(self) -> None:
+    def contributors(self) -> None:
         pass
 
     # NOTE: Method normalizer
-    def get_core_electron_treatment(self) -> None:
-        pass
-
-    # NOTE: System normalizer
-    def get_crystal_system(self) -> None:
+    def core_electron_treatment(self) -> None:
         pass
 
     # NOTE: Band structure normalizer
-    def get_dos(self) -> None:
+    def dos(self) -> None:
         pass
 
     # NOTE: Elastic properties normalizer
-    def get_elastic_constants_matrix(self) -> None:
+    def elastic_constants_matrix(self) -> None:
         pass
 
     # NOTE: Elastic properties normalizer
-    def get_elastic_deformation_energies(self) -> None:
+    def elastic_deformation_energies(self) -> None:
         pass
 
     # NOTE: Elastic properties normalizer
-    def get_elastic_fitting_parameters(self) -> None:
+    def elastic_fitting_parameters(self) -> None:
         pass
 
     # NOTE: Elastic properties normalizer
-    def get_elastic_moduli(self) -> None:
+    def elastic_moduli(self) -> None:
         pass
 
     # NOTE: Elastic properties normalizer
-    def get_elastic_properties(self) -> None:
+    def elastic_properties(self) -> None:
         pass
 
-    def get_energies(self) -> None:
+    def energies(self) -> None:
         pass
 
     # NOTE: Band structure normalizer
-    def get_fermi_surface(self) -> None:
-        pass
-
-    # NOTE: System normalizer
-    def get_formula(self) -> None:
-        pass
-
-    # NOTE: System normalizer
-    def get_formula_cell(self) -> None:
-        pass
-
-    # NOTE: System normalizer
-    def get_formula_reduced(self) -> None:
-        pass
-
-    # NOTE: System normalizer
-    def get_free_wyckoff_parameters(self) -> None:
+    def fermi_surface(self) -> None:
         pass
 
     # NOTE: Method normalizer
-    def get_functional_long_name(self) -> None:
+    def functional_long_name(self) -> None:
         pass
 
     # NOTE: Method normalizer
-    def get_functional_type(self) -> None:
+    def functional_type(self) -> None:
         pass
 
     # TODO: ??
-    def get_group_e_min(self) -> None:
+    def group_e_min(self) -> None:
         pass
 
     # TODO: ??
-    def get_group_type(self) -> None:
+    def group_type(self) -> None:
         pass
 
     # TODO: Method normalizer
-    def get_gw_starting_point(self) -> None:
+    def gw_starting_point(self) -> None:
         pass
 
     # TODO: Method normalizer
-    def get_gw_type(self) -> None:
+    def gw_type(self) -> None:
         pass
 
     # NOTE: Enc specific
-    def get_has_bs(self) -> None:
+    def has_bs(self) -> None:
         pass
 
     # NOTE: Enc specific
-    def get_has_dos(self) -> None:
+    def has_dos(self) -> None:
         pass
 
     # NOTE: Enc specific
-    def get_has_fermi_surface(self) -> None:
+    def has_fermi_surface(self) -> None:
         pass
 
     # NOTE: Enc specific
-    def get_has_thermal_properties(self) -> None:
+    def has_thermal_properties(self) -> None:
         pass
 
-    def get_helmholtz_free_energy(self) -> None:
+    def helmholtz_free_energy(self) -> None:
         pass
 
-    def get_k_point_grid_description(self) -> None:
+    def k_point_grid_description(self) -> None:
         pass
 
-    def get_lattice_parameters(self) -> None:
+    def mainfile_uri(self) -> None:
         pass
-
-    def get_mainfile_uri(self) -> None:
-        pass
-
-    # NOTE: System normalizer
-    def get_mass_density(self) -> None:
-        pass
-
-    def get_material_hash(self, material: Material, section_system: Dict) -> None:
-        # Get symmetry information from the section
-        section_symmetry = section_system["section_symmetry"][0]
-        space_group_number = section_symmetry["space_group_number"]
-        section_std_system = section_symmetry["section_std_system"][0]
-        wyckoff_sets = section_std_system.tmp["wyckoff_sets"]
-
-        # Create and store hash based on SHA512
-        norm_hash_string = symmetry.create_symmetry_string(space_group_number, wyckoff_sets)
-        material.material_hash = sha512(norm_hash_string.encode('utf-8')).hexdigest()
-
-    def get_material_name(self) -> None:
-        pass
-
-    # NOTE: System normalizer
-    def get_number_of_atoms(self, material: Material, std_atoms: ase.Atoms) -> None:
-        material.number_of_atoms = len(std_atoms)
 
     # NOTE: Postprocessing
-    def get_number_of_calculation(self) -> None:
-        pass
-
-    # NOTE: System normalizer
-    def get_periodic_dimensions(self) -> None:
+    def number_of_calculation(self) -> None:
         pass
 
     # NOTE: Phonon normalizer
-    def get_phonon_dispersion(self) -> None:
+    def phonon_dispersion(self) -> None:
         pass
 
     # NOTE: Phonon normalizer
-    def get_phonon_dos(self) -> None:
-        pass
-
-    # NOTE: System normalizer
-    def get_point_group(self) -> None:
+    def phonon_dos(self) -> None:
         pass
 
     # NOTE: Method normalizer
-    def get_pseudopotential_type(self) -> None:
+    def pseudopotential_type(self) -> None:
         pass
 
     # NOTE: Repo
-    def get_repository_dowload_uri(self) -> None:
+    def repository_dowload_uri(self) -> None:
         pass
 
     # NOTE: Repo
-    def get_repository_upload_comment(self) -> None:
+    def repository_upload_comment(self) -> None:
         pass
 
     # NOTE: Repo
-    def get_repository_uri(self) -> None:
+    def repository_uri(self) -> None:
         pass
 
     # NOTE: Enc specific
-    def get_run_type(self, calculation) -> str:
+    def run_type(self, calculation) -> str:
         """Decides what type of calculation this is: single_point, md,
         geometry_optimization, etc.
         """
@@ -367,63 +278,63 @@ class EncyclopediaNormalizer(Normalizer):
         calculation.run_type = run_type
         return run_type
 
-    def get_scf_threshold(self) -> None:
+    def scf_threshold(self) -> None:
         pass
 
     # NOTE: Enc specific
-    def get_similar_materials(self) -> None:
+    def similar_materials(self) -> None:
         pass
 
     # NOTE: Method normalizer
-    def get_smearing_kind(self) -> None:
+    def smearing_kind(self) -> None:
         pass
 
     # NOTE: Method normalizer
-    def get_smearing_parameters(self) -> None:
+    def smearing_parameters(self) -> None:
         pass
 
     # NOTE: System normalizer
-    def get_space_group(self) -> None:
+    def space_group(self) -> None:
         pass
 
     # NOTE: System normalizer
-    def get_space_group_international_short_symbol(self) -> None:
+    def space_group_international_short_symbol(self) -> None:
         pass
 
     # NOTE: System normalizer
-    def get_space_group_number(self) -> None:
+    def space_group_number(self) -> None:
         pass
 
     # NOTE: Phonon normalizer
-    def get_specific_heat_cv(self) -> None:
+    def specific_heat_cv(self) -> None:
         pass
 
     # NOTE: System normalizer
-    def get_springer_classification(self) -> None:
+    def springer_classification(self) -> None:
         pass
 
     # NOTE: System normalizer
-    def get_springer_compound_class(self) -> None:
+    def springer_compound_class(self) -> None:
         pass
 
     # NOTE: System normalizer
-    def get_springer_prototype(self) -> None:
+    def springer_prototype(self) -> None:
         pass
 
     # NOTE: System normalizer
-    def get_structure_prototype(self) -> None:
+    def structure_prototype(self) -> None:
         pass
 
     # NOTE: System normalizer
-    def get_structure_type(self) -> None:
+    def structure_type(self) -> None:
         pass
 
     # NOTE: System normalizer
-    def get_strukturbericht_designation(self) -> None:
+    def strukturbericht_designation(self) -> None:
         pass
 
     # NOTE: System normalizer
-    def get_system_type(self, material: Material, calculation: Calculation) -> tuple:
+    def system_type(self, material: Material, calculation: Calculation) -> tuple:
         # Select the representative system from which system type is retrieved.
         # For geometry optimizations system type is analyzed from last relaxed
         # frame. For phonon calculations system type is analyzed from first
@@ -468,12 +379,18 @@ class EncyclopediaNormalizer(Normalizer):
         material.system_type = system_type
         return system, system_type
 
-    def get_template(self) -> None:
+    def template(self) -> None:
         pass
 
     # NOTE: System normalizer
-    def get_wyckoff_groups(self) -> None:
+    def wyckoff_groups(self) -> None:
         pass
+
+    def fill(self, run_type, system_type, representative_system):
+        # Fill structure related meta
+        if system_type == Material.system_type.type.bulk:
+            system_worker = StructureBulk()
+        system_worker.fill(self._backend, representative_system)
 
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
@@ -485,25 +402,175 @@ class EncyclopediaNormalizer(Normalizer):
         calculation = sec_enc.m_create(Calculation)
 
         # Determine run type, stop if unknown
-        run_type = self.get_run_type(calculation)
+        run_type = self.run_type(calculation)
         if run_type == config.services.unavailable_value:
             self.logger.info("unknown run type for encyclopedia")
             return
 
         # Get the system type, stop if unknown
-        system, system_type = self.get_system_type(material, calculation)
+        representative_system, system_type = self.system_type(material, calculation)
         if system_type != system_enums.bulk and system_type != system_enums.two_d and system_type != system_enums.one_d:
             self.logger.info("unknown system type for encyclopedia")
             return
 
-        # Proceed to fill rest of data
-        std_atoms = system["section_symmetry"][0]["section_std_system"][0].tmp["std_atoms"]  # Temporary value stored by SystemNormalizer
-        repr_atoms = system["section_symmetry"][0]["section_original_system"][0].tmp["orig_atoms"]  # Temporary value stored by SystemNormalizer
-        self.get_material_hash(material, system)
-        self.get_number_of_atoms(material, std_atoms)
-        self.get_atom_labels(material, std_atoms)
-        self.get_atomic_density(calculation, repr_atoms)
-        self.get_bravais_lattice(material, system)
+        # Get the method type, stop if unknown
+        # TODO
 
         # Put the encyclopedia section into backend
         self._backend.add_mi2_section(sec_enc)
+        self.fill(run_type, system_type, representative_system)
+
+
+class Structure():
+    """A base class that is used for processing structure related information
+    in the Encylopedia.
+    """
+    @abstractmethod
+    def atom_labels(self, material: Material, std_atoms: ase.Atoms) -> None:
+        pass
+
+    @abstractmethod
+    def atom_positions(self, material: Material, std_atoms: ase.Atoms) -> None:
+        pass
+
+    @abstractmethod
+    def atomic_density(self, calculation: Calculation, repr_system: ase.Atoms) -> None:
+        pass
+
+    # NOTE: Does not exist?
+    # def atomistic_structure(self) -> None:
+        # pass
+
+    @abstractmethod
+    def bravais_lattice(self, material: Material, section_system: Dict) -> None:
+        pass
+
+    @abstractmethod
+    def cell_angles_string(self, calculation: Calculation) -> None:
+        pass
+
+    @abstractmethod
+    def cell_normalized(self, material: Material, std_atoms: ase.Atoms) -> None:
+        pass
+
+    # def cell_primitive(self) -> None:
+        # pass
+
+    # def cell_volume(self) -> None:
+        # pass
+
+    # def crystal_system(self) -> None:
+        # pass
+
+    # def formula(self) -> None:
+        # pass
+
+    # def formula_cell(self) -> None:
+        # pass
+
+    # def formula_reduced(self) -> None:
+        # pass
+
+    # def free_wyckoff_parameters(self) -> None:
+        # pass
+
+    @abstractmethod
+    def lattice_parameters(self, calculation: Calculation, std_atoms: ase.Atoms) -> None:
+        pass
+
+    # def mass_density(self) -> None:
+        # pass
+
+    @abstractmethod
+    def material_hash(self, material: Material, section_system: Dict) -> None:
+        pass
+
+    # def material_name(self) -> None:
+        # pass
+
+    @abstractmethod
+    def number_of_atoms(self, material: Material, std_atoms: ase.Atoms) -> None:
+        pass
+
+    @abstractmethod
+    def periodicity(self, material: Material) -> None:
+        pass
+
+    # def point_group(self) -> None:
+        # pass
+
+    def fill(self, backend, representative_system: Dict) -> None:
+        # Fetch resources
+        sec_enc = backend.get_mi2_section(Encyclopedia.m_def)
+        material = sec_enc.material
+        calculation = sec_enc.calculation
+        repr_system = representative_system
+        std_atoms = repr_system["section_symmetry"][0]["section_std_system"][0].tmp["std_atoms"]  # Temporary value stored by SystemNormalizer
+        repr_atoms = repr_system["section_symmetry"][0]["section_original_system"][0].tmp["orig_atoms"]  # Temporary value stored by SystemNormalizer
+
+        self.material_hash(material, repr_system)
+        self.number_of_atoms(material, std_atoms)
+        self.atom_labels(material, std_atoms)
+        self.atomic_density(calculation, repr_atoms)
+        self.bravais_lattice(material, repr_system)
+        self.cell_normalized(material, std_atoms)
+        self.lattice_parameters(calculation, std_atoms)
+        self.cell_angles_string(calculation)
+        self.periodicity(material)
+
+
+class StructureBulk(Structure):
+    """Processes structure related metainfo for Encyclopedia bulk structures.
+    """
+    def atom_labels(self, material: Material, std_atoms: ase.Atoms) -> None:
+        material.atom_labels = std_atoms.get_chemical_symbols()
+
+    def atom_positions(self, material: Material, std_atoms: ase.Atoms) -> None:
+        material.atom_positions = std_atoms.get_scaled_positions(wrap=False)
+
+    def atomic_density(self, calculation: Calculation, repr_system: ase.Atoms) -> None:
+        orig_n_atoms = len(repr_system)
+        orig_volume = repr_system.get_volume() * (1e-10)**3
+        calculation.atomic_density = float(orig_n_atoms / orig_volume)
+
+    def material_hash(self, material: Material, section_system: Dict) -> None:
+        # Get symmetry information from the section
+        section_symmetry = section_system["section_symmetry"][0]
+        space_group_number = section_symmetry["space_group_number"]
+        section_std_system = section_symmetry["section_std_system"][0]
+        wyckoff_sets = section_std_system.tmp["wyckoff_sets"]
+
+        # Create and store hash based on SHA512
+        norm_hash_string = structure.create_symmetry_string(space_group_number, wyckoff_sets)
+        material.material_hash = sha512(norm_hash_string.encode('utf-8')).hexdigest()
+
+    def number_of_atoms(self, material: Material, std_atoms: ase.Atoms) -> None:
+        material.number_of_atoms = len(std_atoms)
+
+    # NOTE: System normalizer
+    def bravais_lattice(self, material: Material, section_system: Dict) -> None:
+        bravais_lattice = section_system["section_symmetry"][0]["bravais_lattice"]
+        material.bravais_lattice = bravais_lattice
+
+    # NOTE: Enc specific visualization
+    def cell_angles_string(self, calculation: Calculation) -> None:
+        angles = calculation.lattice_parameters[3:6]
+        angles_rounded = []
+        for angle in angles:
+            angle_deg = math.degrees(angle)
+            angles_rounded.append(
+                round(angle_deg / config.normalize.angle_rounding) * config.normalize.angle_rounding)
+        calculation.cell_angles_string = "/".join([str(angle) for angle in angles_rounded])
+
+    # NOTE: System normalizer
+    def cell_normalized(self, material: Material, std_atoms: ase.Atoms) -> None:
+        cell_normalized = std_atoms.get_cell()
+        cell_normalized *= 1e-10
+        material.cell_normalized = cell_normalized
+
+    def lattice_parameters(self, calculation: Calculation, std_atoms: ase.Atoms) -> None:
+        cell_normalized = std_atoms.get_cell()
+        calculation.lattice_parameters = structure.get_lattice_parameters(cell_normalized)
+
+    def periodicity(self, material: Material) -> None:
+        material.periodicity = np.array([0, 1, 2], dtype=np.int8)

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import Dict
+import numpy as np
 
 
 def create_symmetry_string(space_group: int, wyckoff_sets: Dict) -> str:
@@ -40,3 +41,43 @@ def create_symmetry_string(space_group: int, wyckoff_sets: Dict) -> str:
     string = "{} {}".format(space_group, wyckoff_string)
 
     return string
+
+
+def get_lattice_parameters(normalized_cell):
+    """Calculate the lattice parameters for the normalized cell.
+
+    :param normalized_cell: The normalized cell as a 2D array. Each row is a
+        basis vector.
+    :type normalized_cell: numpy.array
+
+    :return: Six parameters a, b, c, alpha, beta, gamma (in this order) as a
+        list. Here is an explanation of each parameter:
+
+        #. a = length of first basis vector
+        #. b = length of second basis vector
+        #. c = length of third basis vector
+        #. alpha = angle between b and c
+        #. beta  = angle between a and c
+        #. gamma = angle between a and b
+
+    :rtype: numpy.array
+    """
+    if normalized_cell is None:
+        return None
+
+    # Lengths
+    lengths = np.linalg.norm(normalized_cell, axis=1)
+    a, b, c = lengths
+
+    # Angles
+    angles = np.zeros(3)
+    for i in range(3):
+        j = (i + 1) % 3
+        k = (i + 2) % 3
+        angles[i] = np.dot(
+            normalized_cell[j],
+            normalized_cell[k]) / (lengths[j] * lengths[k])
+    angles = np.clip(angles, -1.0, 1.0)
+    alpha, beta, gamma = np.arccos(angles)
+
+    return [a, b, c, alpha, beta, gamma]

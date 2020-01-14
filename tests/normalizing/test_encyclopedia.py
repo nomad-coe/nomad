@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import pytest
+import numpy as np
 
 from nomad.metainfo.encyclopedia import Encyclopedia
 from tests.normalizing.conftest import geometry_optimization, molecular_dynamics, phonon   # pylint: disable=unused-import
@@ -55,3 +56,7 @@ def test_bulk_information(geometry_optimization: Encyclopedia):
     assert go.material.atom_labels == ["Na", "Na", "Na", "Na"]
     assert go.calculation.atomic_density == pytest.approx(4.0e+30, rel=0.000001, abs=None)
     assert go.material.bravais_lattice == "cF"
+    assert go.material.cell_normalized is not None
+    assert go.calculation.lattice_parameters is not None
+    assert go.calculation.cell_angles_string is not None
+    assert np.array_equal(go.material.periodicity, [0, 1, 2])
