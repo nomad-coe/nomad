@@ -75,8 +75,9 @@ class EncyclopediaNormalizer(Normalizer):
         pass
 
     # NOTE: System normalizer
-    def get_bravais_lattice(self) -> None:
-        pass
+    def get_bravais_lattice(self, material: Material, section_system: Dict) -> None:
+        bravais_lattice = section_system["section_symmetry"][0]["bravais_lattice"]
+        material.bravais_lattice = bravais_lattice
 
     # NOTE: Band structure normalizer
     def get_brillouin_zone(self) -> None:
@@ -502,6 +503,7 @@ class EncyclopediaNormalizer(Normalizer):
         self.get_number_of_atoms(material, std_atoms)
         self.get_atom_labels(material, std_atoms)
         self.get_atomic_density(calculation, repr_atoms)
+        self.get_bravais_lattice(material, system)
 
         # Put the encyclopedia section into backend
         self._backend.add_mi2_section(sec_enc)

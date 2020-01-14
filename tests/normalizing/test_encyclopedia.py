@@ -54,3 +54,4 @@ def test_bulk_information(geometry_optimization: Encyclopedia):
     assert go.material.number_of_atoms == 4
     assert go.material.atom_labels == ["Na", "Na", "Na", "Na"]
     assert go.calculation.atomic_density == pytest.approx(4.0e+30, rel=0.000001, abs=None)
+    assert go.material.bravais_lattice == "cF"

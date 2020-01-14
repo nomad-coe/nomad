@@ -112,7 +112,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
                 else:
                     sequences.append(frames)
 
-        # If no frames exist, consider all existing sccs
+        # If no frame_sequences exist, consider all existing sccs
         if len(sequences) == 0:
             try:
                 sccs = self._backend.get_sections(s_scc)
@@ -132,9 +132,15 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
                 indices = [0, -2, -1]
             else:
                 break
-            for scc_idx in [seq[idx] for idx in indices]:
-                system_idx = sccs[scc_idx][r_scc_to_system]
-                systems.append(system_idx)
+            for idx in indices:
+                scc_idx = seq[idx]
+                scc = sccs[scc_idx]
+                try:
+                    system_idx = scc[r_scc_to_system]
+                except KeyError:
+                    self.logger.info("section_single_configuration_calculation is missing a reference into a system.")
+                else:
+                    systems.append(system_idx)
 
         if len(systems) == 0:
             self.logger.error('no "representative" section system found')

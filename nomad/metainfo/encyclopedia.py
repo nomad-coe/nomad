@@ -50,6 +50,31 @@ class Material(MSection):
         Position of each atom, given in relative coordinates.
         """
     )
+    bravais_lattice = Quantity(
+        type=str,
+        description="""
+        The Bravais lattice type in the Pearson notation, where the first
+        lowercase letter indicates the crystal system, and the second uppercase
+        letter indicates the lattice type.
+
+        Crystal system letters:
+
+        a = Triclinic
+        m = Monoclinic
+        o = Orthorhombic
+        t = Tetragonal
+        h = Hexagonal and Trigonal
+        c = Cubic
+
+        Lattice type letters:
+
+        P = Primitive
+        S (A, B, C) = One side/face centred
+        I = Body centered
+        R = Rhombohedral centring
+        F = All faces centred
+        """
+    )
 
 
 class Calculation(MSection):
