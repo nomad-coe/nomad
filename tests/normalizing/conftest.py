@@ -73,7 +73,7 @@ def molecular_dynamics() -> Encyclopedia:
 @pytest.fixture
 def phonon() -> Encyclopedia:
     parser_name = "parsers/phonopy"
-    filepath = "tests/data/normalizers/encyclopedia/phonopy_bulk_phonon/phonopy-FHI-aims-displacement-01/control.in"
+    filepath = "tests/data/parsers/phonopy/phonopy-FHI-aims-displacement-01/control.in"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
     enc = backend.get_mi2_section(Encyclopedia.m_def)

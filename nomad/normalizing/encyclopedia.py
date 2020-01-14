@@ -46,7 +46,7 @@ class EncyclopediaNormalizer(Normalizer):
         orig_volume = repr_system.get_volume() * (1e-10)**3
         calculation.atomic_density = float(orig_n_atoms / orig_volume)
 
-    # NOTE: Enc specific visualization
+    # NOTE: Does not exist?
     def get_atomistic_structure(self) -> None:
         pass
 
