@@ -1,5 +1,6 @@
+import numpy as np
 from elasticsearch_dsl import InnerDoc
-from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum
+from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum, units
 
 
 class Material(MSection):
@@ -29,6 +30,26 @@ class Material(MSection):
         "Character of physical system's geometry, e.g. bulk, surface... ",
         """
     )
+    number_of_atoms = Quantity(
+        type=int,
+        description="""
+        Number of atoms in the bravais cell."
+        """
+    )
+    atom_labels = Quantity(
+        type=str,
+        shape=['1..*'],
+        description="""
+        Type (element, species) of each atom,
+        """
+    )
+    atom_positions = Quantity(
+        type=np.dtype('f8'),
+        shape=['number_of_atoms', 3],
+        description="""
+        Position of each atom, given in relative coordinates.
+        """
+    )
 
 
 class Calculation(MSection):
@@ -54,6 +75,13 @@ class Calculation(MSection):
             unavailable="unavailable"),
         description="""
         Defines the type of run identified for this entry.
+        """
+    )
+    atomic_density = Quantity(
+        type=float,
+        unit=units.m**3,
+        description="""
+        Atomic density of the material (atoms/volume)."
         """
     )
 

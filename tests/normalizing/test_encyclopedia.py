@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
+
 from nomad.metainfo.encyclopedia import Encyclopedia
 from tests.normalizing.conftest import geometry_optimization, molecular_dynamics, phonon   # pylint: disable=unused-import
 
@@ -42,3 +44,13 @@ def test_system_type(geometry_optimization: Encyclopedia):
     """
     system_type = geometry_optimization.material.system_type
     assert system_type == "bulk"
+
+
+def test_bulk_information(geometry_optimization: Encyclopedia):
+    """Tests that information for bulk systems is correctly processed."
+    """
+    go = geometry_optimization
+    assert go.material.system_type == "bulk"
+    assert go.material.number_of_atoms == 4
+    assert go.material.atom_labels == ["Na", "Na", "Na", "Na"]
+    assert go.calculation.atomic_density == pytest.approx(4.0e+30, rel=0.000001, abs=None)

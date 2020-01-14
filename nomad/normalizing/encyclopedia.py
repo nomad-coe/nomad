@@ -14,6 +14,7 @@
 
 from hashlib import sha512
 from typing import Dict
+import ase
 
 from nomad.normalizing.normalizer import Normalizer, s_scc, s_system, s_frame_sequence, r_frame_sequence_to_sampling, s_sampling_method, r_frame_sequence_local_frames, r_scc_to_system
 from nomad.metainfo.encyclopedia import Encyclopedia, Material, Calculation
@@ -32,16 +33,18 @@ class EncyclopediaNormalizer(Normalizer):
         super().__init__(backend)
 
     # NOTE: Enc specific visualization
-    def get_atom_labels(self) -> None:
-        pass
+    def get_atom_labels(self, material: Material, std_atoms: ase.Atoms) -> None:
+        material.atom_labels = std_atoms.get_chemical_symbols()
 
     # NOTE: Enc specific visualization
-    def get_atom_positions(self) -> None:
-        pass
+    def get_atom_positions(self, material: Material, std_atoms: ase.Atoms) -> None:
+        material.atom_positions = std_atoms.get_scaled_positions(wrap=False)
 
     # NOTE: System normalizer
-    def get_atomic_density(self) -> None:
-        pass
+    def get_atomic_density(self, calculation: Calculation, repr_system: ase.Atoms) -> None:
+        orig_n_atoms = len(repr_system)
+        orig_volume = repr_system.get_volume() * (1e-10)**3
+        calculation.atomic_density = float(orig_n_atoms / orig_volume)
 
     # NOTE: Enc specific visualization
     def get_atomistic_structure(self) -> None:
@@ -255,9 +258,10 @@ class EncyclopediaNormalizer(Normalizer):
         pass
 
     # NOTE: System normalizer
-    def get_number_of_atoms(self) -> None:
-        pass
+    def get_number_of_atoms(self, material: Material, std_atoms: ase.Atoms) -> None:
+        material.number_of_atoms = len(std_atoms)
 
+    # NOTE: Postprocessing
     def get_number_of_calculation(self) -> None:
         pass
 
@@ -492,7 +496,12 @@ class EncyclopediaNormalizer(Normalizer):
             return
 
         # Proceed to fill rest of data
+        std_atoms = system["section_symmetry"][0]["section_std_system"][0].tmp["std_atoms"]  # Temporary value stored by SystemNormalizer
+        repr_atoms = system["section_symmetry"][0]["section_original_system"][0].tmp["orig_atoms"]  # Temporary value stored by SystemNormalizer
         self.get_material_hash(material, system)
+        self.get_number_of_atoms(material, std_atoms)
+        self.get_atom_labels(material, std_atoms)
+        self.get_atomic_density(calculation, repr_atoms)
 
         # Put the encyclopedia section into backend
         self._backend.add_mi2_section(sec_enc)
