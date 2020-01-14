@@ -23,11 +23,11 @@ def test_geometry_optimization(geometry_optimization: Encyclopedia):
     assert run_type == "geometry optimization"
 
 
-# def test_molecular_dynamics(molecular_dynamics: Encyclopedia):
-    # """Tests that geometry optimizations are correctly processed."
-    # """
-    # run_type = molecular_dynamics.calculation.run_type
-    # assert run_type == "molecular dynamics"
+def test_molecular_dynamics(molecular_dynamics: Encyclopedia):
+    """Tests that geometry optimizations are correctly processed."
+    """
+    run_type = molecular_dynamics.calculation.run_type
+    assert run_type == "molecular dynamics"
 
 
 def test_system_type(geometry_optimization: Encyclopedia):

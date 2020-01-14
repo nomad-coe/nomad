@@ -82,7 +82,7 @@ class VaspRun(Run):
     m_def = Section(extends_base_section=True)
 
     x_vasp_raw_format = Quantity(
-        type=Enum(['xml', 'outcar']),
+        type=MEnum(['xml', 'outcar']),
         description='The file format of the parsed VASP mainfile.')
 
 

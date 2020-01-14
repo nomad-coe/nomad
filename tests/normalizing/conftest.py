@@ -63,7 +63,7 @@ def geometry_optimization() -> Encyclopedia:
 @pytest.fixture
 def molecular_dynamics() -> Encyclopedia:
     parser_name = "parsers/template"
-    filepath = "tests/data/normalizers/encyclopedia/cp2k_md_nve.json"
+    filepath = "tests/data/normalizers/encyclopedia/cp2k_bulk_md/cp2k_bulk_md.json"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
     enc = backend.get_mi2_section(Encyclopedia.m_def)
