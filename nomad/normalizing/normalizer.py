@@ -100,13 +100,13 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
 
         # Get all frame sequences
         try:
-            frame_seqs = self._backend.get_sections(s_frame_sequence)
+            frame_seqs = self._backend[s_frame_sequence]
         except Exception:
             frame_seqs = []
         else:
             for frame_seq in frame_seqs:
                 try:
-                    frames = self._backend.get_value(r_frame_sequence_local_frames, frame_seq)
+                    frames = frame_seq[r_frame_sequence_local_frames]
                 except Exception:
                     pass
                 else:

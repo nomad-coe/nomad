@@ -1,0 +1,5 @@
+lattice_vector 0   2.82000 2.82000
+lattice_vector 2.82000   0 2.82000
+lattice_vector 2.82000 2.82000   0
+atom 0 0 0 Ge 
+atom 1.4100000000 1.4100000000 1.4100000000 Ge

@@ -15,7 +15,7 @@
 from hashlib import sha512
 from typing import Dict
 
-from nomad.normalizing.normalizer import Normalizer, s_scc, s_system, s_frame_sequence, r_frame_sequence_to_sampling, s_sampling_method, r_frame_sequence_local_frames
+from nomad.normalizing.normalizer import Normalizer, s_scc, s_system, s_frame_sequence, r_frame_sequence_to_sampling, s_sampling_method, r_frame_sequence_local_frames, r_scc_to_system
 from nomad.metainfo.encyclopedia import Encyclopedia, Material, Calculation
 from nomad.normalizing import symmetry
 from nomad import config
@@ -418,22 +418,38 @@ class EncyclopediaNormalizer(Normalizer):
         pass
 
     # NOTE: System normalizer
-    def get_system_type(self, material, calculation) -> tuple:
+    def get_system_type(self, material: Material, calculation: Calculation) -> tuple:
+        # Select the representative system from which system type is retrieved.
+        # For geometry optimizations system type is analyzed from last relaxed
+        # frame. For phonon calculations system type is analyzed from first
+        # undistorted frame. For molecular dynamics system type is analyzed
+        # from first frame
         system_type = config.services.unavailable_value
         system = None
         run_enums = Calculation.run_type.type
         system_enums = Material.system_type.type
-        if calculation.run_type in {run_enums.geometry_optimization, run_enums.molecular_dynamics}:
+        if calculation.run_type in {
+                run_enums.geometry_optimization,
+                run_enums.molecular_dynamics,
+                run_enums.phonon_calculation}:
             frame_seqs = self._backend[s_frame_sequence]
             frame_seq = frame_seqs[0]
             frames = frame_seq[r_frame_sequence_local_frames]
+            sccs = self._backend[s_scc]
             systems = self._backend[s_system]
             if calculation.run_type == run_enums.geometry_optimization:
-                system = systems[frames[-1]]
+                idx = -1
+            elif calculation.run_type == run_enums.phonon_calculation:
+                idx = 0
             elif calculation.run_type == run_enums.molecular_dynamics:
-                system = systems[frames[0]]
+                idx = 0
+            scc = sccs[frames[idx]]
+            r_system = scc[r_scc_to_system]
+            system = systems[r_system]
         elif calculation.run_type == run_enums.single_point:
             system = self._backend[s_system][0]
+
+        # Try to find system type information from backend for the selected system.
         try:
             stype = system["system_type"]
         except KeyError:

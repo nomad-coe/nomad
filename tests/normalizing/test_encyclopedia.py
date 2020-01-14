@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from nomad.metainfo.encyclopedia import Encyclopedia
-from tests.normalizing.conftest import geometry_optimization, molecular_dynamics   # pylint: disable=unused-import
+from tests.normalizing.conftest import geometry_optimization, molecular_dynamics, phonon   # pylint: disable=unused-import
 
 
 def test_geometry_optimization(geometry_optimization: Encyclopedia):
@@ -28,6 +28,13 @@ def test_molecular_dynamics(molecular_dynamics: Encyclopedia):
     """
     run_type = molecular_dynamics.calculation.run_type
     assert run_type == "molecular dynamics"
+
+
+def test_phonon(phonon: Encyclopedia):
+    """Tests that geometry optimizations are correctly processed."
+    """
+    run_type = phonon.calculation.run_type
+    assert run_type == "phonon calculation"
 
 
 def test_system_type(geometry_optimization: Encyclopedia):
