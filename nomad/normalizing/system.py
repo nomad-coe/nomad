@@ -290,29 +290,21 @@ class SystemNormalizer(SystemBasedNormalizer):
             self.logger.error(
                 'matid project system classification failed', exc_info=e, error=str(e))
 
-        # from ase.visualize import view
-        # view(atoms)
-        #raise Exception(system_type)
         self._backend.addValue('system_type', system_type)
 
-    def symmetry_analysis(self, atoms) -> None:
+    def symmetry_analysis(self, atoms: ase.Atoms) -> None:
         """Analyze the symmetry of the material being simulated.
 
         We feed in the parsed values in section_system to the
-        the symmetry analyzer. We then use the Matid library
+        the symmetry analyzer. We then use the MatID library
         to classify the system as 0D, 1D, 2D or 3D and more specific
-        when possible. When lattice vectors or simulation cells are
-        not present we skip this analysis.
+        when possible. When lattice vectors or simulation cells are not present
+        we skip this analysis. The analysis results are written to the backend.
 
         Args:
-            None: We feed in the bakend and atoms object from the
-            SymmetryAndType normalizer.
-
-        Returns:
-            None: The method should write symmetry variables
-            to the backend which is member of this class.
+            atoms: The atomistic structure to analyze.
         """
-        # Try to use Matid's symmetry analyzer to anlyze the ASE object.
+        # Try to use Matid's symmetry analyzer to analyze the ASE object.
         # TODO: dts, find out what the symmetry_tol does.
         try:
             symm = SymmetryAnalyzer(atoms, config.normalize.symmetry_tolerance)
