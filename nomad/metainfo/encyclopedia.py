@@ -78,6 +78,13 @@ class Material(MSection):
         Unit cell in normalized form, meaning the bravais cell.
         """
     )
+    cell_primitive = Quantity(
+        type=np.dtype('f8'),
+        shape=[3, 3],
+        description="""
+        Definition of the primitive unit cell in a form to be visualized well within the normalized cell.
+        """
+    )
     periodicity = Quantity(
         type=np.dtype('i1'),
         shape=["1..*"],

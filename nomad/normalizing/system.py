@@ -316,6 +316,7 @@ class SystemNormalizer(SystemBasedNormalizer):
 
             crystal_system = symm.get_crystal_system()
             bravais_lattice = symm.get_bravais_lattice()
+            symm.get_point_group
             point_group = symm.get_point_group()
 
             orig_wyckoff = symm.get_wyckoff_letters_original()
@@ -369,11 +370,8 @@ class SystemNormalizer(SystemBasedNormalizer):
         self._backend.addArrayValues('atomic_numbers_std', conv_num)
         self._backend.addArrayValues('wyckoff_letters_std', conv_wyckoff)
         self._backend.addArrayValues('equivalent_atoms_std', conv_equivalent_atoms)
-
-        # Write temporary values that are tied to this section
         self._backend.add_tmp_value("section_std_system", "wyckoff_sets", wyckoff_sets)
         self._backend.add_tmp_value("section_std_system", "std_atoms", conv_sys)
-
         self._backend.closeSection('section_std_system', std_gid)
 
         prim_gid = self._backend.openSection('section_primitive_system')
@@ -382,6 +380,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         self._backend.addArrayValues('atomic_numbers_primitive', prim_num)
         self._backend.addArrayValues('wyckoff_letters_primitive', prim_wyckoff)
         self._backend.addArrayValues('equivalent_atoms_primitive', prim_equivalent_atoms)
+        self._backend.add_tmp_value("section_primitive_system", "prim_atoms", prim_sys)
         self._backend.closeSection('section_primitive_system', prim_gid)
 
         orig_gid = self._backend.openSection('section_original_system')

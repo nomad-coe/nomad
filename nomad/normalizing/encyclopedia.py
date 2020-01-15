@@ -453,8 +453,9 @@ class Structure():
     def cell_normalized(self, material: Material, std_atoms: ase.Atoms) -> None:
         pass
 
-    # def cell_primitive(self) -> None:
-        # pass
+    @abstractmethod
+    def cell_primitive(self, material: Material, std_atoms: ase.Atoms) -> None:
+        pass
 
     # def cell_volume(self) -> None:
         # pass
@@ -508,6 +509,7 @@ class Structure():
         calculation = sec_enc.calculation
         sec_symmetry = representative_system["section_symmetry"][0]
         std_atoms = sec_symmetry["section_std_system"][0].tmp["std_atoms"]  # Temporary value stored by SystemNormalizer
+        prim_atoms = sec_symmetry["section_primitive_system"][0].tmp["prim_atoms"]  # Temporary value stored by SystemNormalizer
         repr_atoms = sec_symmetry["section_original_system"][0].tmp["orig_atoms"]  # Temporary value stored by SystemNormalizer
 
         # Fill structural information
@@ -518,6 +520,7 @@ class Structure():
         self.atomic_density(calculation, repr_atoms)
         self.bravais_lattice(material, sec_symmetry)
         self.cell_normalized(material, std_atoms)
+        self.cell_primitive(material, prim_atoms)
         self.lattice_parameters(calculation, std_atoms)
         self.cell_angles_string(calculation)
         self.periodicity(material)
@@ -556,12 +559,10 @@ class StructureBulk(Structure):
     def number_of_atoms(self, material: Material, std_atoms: ase.Atoms) -> None:
         material.number_of_atoms = len(std_atoms)
 
-    # NOTE: System normalizer
     def bravais_lattice(self, material: Material, section_symmetry: Dict) -> None:
         bravais_lattice = section_symmetry["bravais_lattice"]
         material.bravais_lattice = bravais_lattice
 
-    # NOTE: Enc specific visualization
     def cell_angles_string(self, calculation: Calculation) -> None:
         angles = calculation.lattice_parameters[3:6]
         angles_rounded = []
@@ -571,11 +572,15 @@ class StructureBulk(Structure):
                 round(angle_deg / config.normalize.angle_rounding) * config.normalize.angle_rounding)
         calculation.cell_angles_string = "/".join([str(angle) for angle in angles_rounded])
 
-    # NOTE: System normalizer
     def cell_normalized(self, material: Material, std_atoms: ase.Atoms) -> None:
         cell_normalized = std_atoms.get_cell()
         cell_normalized *= 1e-10
         material.cell_normalized = cell_normalized
+
+    def cell_primitive(self, material: Material, prim_atoms: ase.Atoms) -> None:
+        cell_prim = prim_atoms.get_cell()
+        cell_prim *= 1e-10
+        material.cell_primitive = cell_prim
 
     def lattice_parameters(self, calculation: Calculation, std_atoms: ase.Atoms) -> None:
         cell_normalized = std_atoms.get_cell()
