@@ -1,3 +1,9 @@
+images:
+    nomad:
+        tag: "v0.6.3"
+    frontend:
+        tag: "v0.6.3"
+
 proxy:
   nodePort: 30008
   external:
@@ -6,7 +12,6 @@ proxy:
 
 api:
   disableReset: false
-  adminPasswordSecrete: 'nomad-production-repository-password'
 
 gui:
   debug: true
