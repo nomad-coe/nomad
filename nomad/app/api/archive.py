@@ -33,7 +33,7 @@ from nomad import utils, search
 from .auth import authenticate, create_authorization_predicate
 from .api import api
 from .repo import search_request_parser, add_query
-from .common import calc_route, streamed_zipfile
+from .common import calc_route, streamed_zipfile, build_snippet, to_json
 
 ns = api.namespace(
     'archive',
@@ -112,6 +112,10 @@ archives_from_query_parser = search_request_parser.copy()
 archives_from_query_parser.add_argument(
     name='compress', type=bool, help='Use compression on .zip files, default is not.',
     location='args')
+archives_from_query_parser.add_argument(
+    name='res_type', type=str, help='Type of return value, can be zip of json.',
+    location='args'
+)
 
 
 @ns.route('/query')
@@ -138,6 +142,7 @@ class ArchiveQueryResource(Resource):
         try:
             args = archives_from_query_parser.parse_args()
             compress = args.get('compress', False)
+            res_type = args.get('res_type', 'zip')
         except Exception:
             abort(400, message='bad parameter types')
 
@@ -192,8 +197,16 @@ class ArchiveQueryResource(Resource):
                 lambda *args: BytesIO(manifest_contents),
                 lambda *args: len(manifest_contents))
 
-        return streamed_zipfile(
-            generator(), zipfile_name='nomad_archive.zip', compress=compress)
+        if res_type == 'zip':
+            return streamed_zipfile(
+                generator(), zipfile_name='nomad_archive.zip', compress=compress)
+        elif res_type == 'json':
+            archive_data = to_json(generator())
+            code_snippet = build_snippet(args, os.path.join(api.base_url, ns.name, 'query'))
+            data = {'archive_data': archive_data, 'code_snippet': code_snippet}
+            return data, 200
+        else:
+            raise Exception('Unknown res_type %s' % res_type)
 
 
 @ns.route('/metainfo/<string:metainfo_package_name>')

@@ -16,10 +16,11 @@
 Common data, variables, decorators, models used throughout the API.
 """
 from typing import Callable, IO, Set, Tuple, Iterable
-from flask_restplus import fields
+from flask_restplus import fields, abort
 import zipstream
 from flask import stream_with_context, Response
 import sys
+import json
 
 from nomad.app.utils import RFC3339DateTime
 from nomad.files import Restricted
@@ -153,3 +154,42 @@ def streamed_zipfile(
     response = Response(stream_with_context(generator()), mimetype='application/zip')
     response.headers['Content-Disposition'] = 'attachment; filename={}'.format(zipfile_name)
     return response
+
+
+def to_json(files: Iterable[Tuple[str, str, Callable[[str], IO], Callable[[str], int]]]):
+    data = {}
+    for _, file_id, open_io, _ in files:
+        try:
+            f = open_io(file_id)
+            data[file_id] = json.loads(f.read())
+        except KeyError:
+            pass
+        except Restricted:
+            abort(401, message='Not authorized to access %s.' % file_id)
+    return data
+
+
+def build_snippet(args, base_url):
+    str_code = 'import requests\n'
+    str_code += 'from urllib.parse import urlencode\n'
+    str_code += '\n\n'
+    str_code += 'def query_repository(args, base_url):\n'
+    str_code += '    url = "%s?%s" % (base_url, urlencode(args))\n'
+    str_code += '    response = requests.get(url)\n'
+    str_code += '    if response.status_code != 200:\n'
+    str_code += '        raise Exception("nomad return status %d" % response.status_code)\n'
+    str_code += '    return response.json()\n'
+    str_code += '\n\n'
+    str_code += 'args = {'
+    for key, val in args.items():
+        if val is None:
+            continue
+        if isinstance(val, str):
+            str_code += '"%s": "%s", ' % (key, val)
+        else:
+            str_code += '"%s": %s, ' % (key, val)
+    str_code += '}\n'
+    str_code += 'base_url = "%s"\n' % base_url
+    str_code += 'JSON_DATA = query_repository(args, base_url)\n'
+
+    return str_code

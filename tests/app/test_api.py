@@ -667,6 +667,16 @@ class TestArchive(UploadFilesBasedTests):
         assert rv.status_code == 200
         assert_zip_file(rv, files=1)
 
+    def test_code_snippet(self, api, processeds, test_user_auth):
+        query_params = {'atoms': 'Si', 'res_type': 'json'}
+        url = '/archive/query?%s' % urlencode(query_params)
+        rv = api.get(url, headers=test_user_auth)
+
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert isinstance(data, dict)
+        assert data['code_snippet'] is not None
+
 
 class TestRepo():
     @pytest.fixture(scope='class')
@@ -1057,6 +1067,14 @@ class TestRepo():
         assert rv.status_code == 200
         data = json.loads(rv.data)
         assert data['pagination']['total'] > 0
+
+    def test_code_snippet(self, api, example_elastic_calcs, test_user_auth):
+        rv = api.get('/repo/?per_page=10', headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert data['code_snippet'] is not None
+        # exec does not seem to work
+        # exec(data['code_snippet'])
 
 
 class TestEditRepo():
