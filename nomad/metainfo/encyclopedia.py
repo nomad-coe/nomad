@@ -51,11 +51,12 @@ class Material(MSection):
         """
     )
     bravais_lattice = Quantity(
-        type=str,
+        type=MEnum("aP", "mP", "mS", "oP", "oS", "oI", "oF", "tP", "tI", "hR", "hP", "cP", "cI", "cF"),
         description="""
         The Bravais lattice type in the Pearson notation, where the first
         lowercase letter indicates the crystal system, and the second uppercase
-        letter indicates the lattice type.
+        letter indicates the lattice type. The value can only be one of the 14
+        different Bravais lattices in three dimensions.
 
         Crystal system letters:
 

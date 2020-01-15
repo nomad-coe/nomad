@@ -143,4 +143,3 @@ NUMBER_TO_MASS_MAP_AMU.flags.writeable = False
 # List of atomic masses (natural isotope dist.) in order, SI units (kg)
 NUMBER_TO_MASS_MAP_KG = NUMBER_TO_MASS_MAP_AMU * 1.6605389e-27
 NUMBER_TO_MASS_MAP_KG.flags.writeable = False
-
