@@ -497,29 +497,31 @@ class Structure():
     def periodicity(self, material: Material) -> None:
         pass
 
-    # def point_group(self) -> None:
-        # pass
+    @abstractmethod
+    def point_group(self, material: Material, section_symmetry: Dict) -> None:
+        pass
 
     def fill(self, backend, representative_system: Dict) -> None:
         # Fetch resources
         sec_enc = backend.get_mi2_section(Encyclopedia.m_def)
         material = sec_enc.material
         calculation = sec_enc.calculation
-        repr_sec_system = representative_system
-        std_atoms = repr_sec_system["section_symmetry"][0]["section_std_system"][0].tmp["std_atoms"]  # Temporary value stored by SystemNormalizer
-        repr_atoms = repr_sec_system["section_symmetry"][0]["section_original_system"][0].tmp["orig_atoms"]  # Temporary value stored by SystemNormalizer
+        sec_symmetry = representative_system["section_symmetry"][0]
+        std_atoms = sec_symmetry["section_std_system"][0].tmp["std_atoms"]  # Temporary value stored by SystemNormalizer
+        repr_atoms = sec_symmetry["section_original_system"][0].tmp["orig_atoms"]  # Temporary value stored by SystemNormalizer
 
         # Fill structural information
         self.mass_density(calculation, repr_atoms)
-        self.material_hash(material, repr_sec_system)
+        self.material_hash(material, sec_symmetry)
         self.number_of_atoms(material, std_atoms)
         self.atom_labels(material, std_atoms)
         self.atomic_density(calculation, repr_atoms)
-        self.bravais_lattice(material, repr_sec_system)
+        self.bravais_lattice(material, sec_symmetry)
         self.cell_normalized(material, std_atoms)
         self.lattice_parameters(calculation, std_atoms)
         self.cell_angles_string(calculation)
         self.periodicity(material)
+        self.point_group(material, sec_symmetry)
 
 
 class StructureBulk(Structure):
@@ -541,9 +543,8 @@ class StructureBulk(Structure):
         mass = structure.get_summed_atomic_mass(repr_system.get_atomic_numbers())
         calculation.mass_density = float(mass / orig_volume)
 
-    def material_hash(self, material: Material, section_system: Dict) -> None:
+    def material_hash(self, material: Material, section_symmetry: Dict) -> None:
         # Get symmetry information from the section
-        section_symmetry = section_system["section_symmetry"][0]
         space_group_number = section_symmetry["space_group_number"]
         section_std_system = section_symmetry["section_std_system"][0]
         wyckoff_sets = section_std_system.tmp["wyckoff_sets"]
@@ -556,8 +557,8 @@ class StructureBulk(Structure):
         material.number_of_atoms = len(std_atoms)
 
     # NOTE: System normalizer
-    def bravais_lattice(self, material: Material, section_system: Dict) -> None:
-        bravais_lattice = section_system["section_symmetry"][0]["bravais_lattice"]
+    def bravais_lattice(self, material: Material, section_symmetry: Dict) -> None:
+        bravais_lattice = section_symmetry["bravais_lattice"]
         material.bravais_lattice = bravais_lattice
 
     # NOTE: Enc specific visualization
@@ -582,3 +583,7 @@ class StructureBulk(Structure):
 
     def periodicity(self, material: Material) -> None:
         material.periodicity = np.array([0, 1, 2], dtype=np.int8)
+
+    def point_group(self, material: Material, section_symmetry: Dict) -> None:
+        point_group = section_symmetry["point_group"]
+        material.point_group = point_group

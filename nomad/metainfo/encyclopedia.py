@@ -20,12 +20,7 @@ class Material(MSection):
         """
     )
     system_type = Quantity(
-        type=MEnum(
-            bulk="bulk",
-            two_d="2D",
-            one_d="1D",
-            unavailable="unavailable"
-        ),
+        type=MEnum(bulk="bulk", two_d="2D", one_d="1D", unavailable="unavailable"),
         description="""
         "Character of physical system's geometry, e.g. bulk, surface... ",
         """
@@ -88,6 +83,13 @@ class Material(MSection):
         shape=["1..*"],
         description="""
         The indices of the periodic dimensions.
+        """
+    )
+    point_group = Quantity(
+        type=MEnum("1", "-1", "2", "m", "2/m", "222", "mm2", "mmm", "4", "-4", "4/m", "422", "4mm", "-42m", "4/mmm", "3", "-3", "32", "3m", "-3m", "6", "-6", "6/m", "622", "6mm", "-6m2", "6/mmm", "23", "m-3", "432", "-43m", "m-3m"),
+        description="""
+        Point group in Hermann-Mauguin notation, part of crystal structure
+        classification. There are 32 point groups in three dimensional space.
         """
     )
 

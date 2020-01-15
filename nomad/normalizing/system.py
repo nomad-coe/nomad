@@ -326,7 +326,6 @@ class SystemNormalizer(SystemBasedNormalizer):
             prim_equivalent_atoms = symm.get_equivalent_atoms_primitive()
             conv_equivalent_atoms = symm.get_equivalent_atoms_conventional()
             international_short = symm.get_space_group_international_short()
-            point_group = symm.get_point_group()
 
             conv_sys = symm.get_conventional_system()
             conv_pos = conv_sys.get_scaled_positions()
