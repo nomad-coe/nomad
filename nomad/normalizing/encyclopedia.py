@@ -478,8 +478,9 @@ class Structure():
     def lattice_parameters(self, calculation: Calculation, std_atoms: ase.Atoms) -> None:
         pass
 
-    # def mass_density(self) -> None:
-        # pass
+    @abstractmethod
+    def mass_density(self, calculation: Calculation, repr_system: ase.Atoms) -> None:
+        pass
 
     @abstractmethod
     def material_hash(self, material: Material, section_system: Dict) -> None:
@@ -504,15 +505,17 @@ class Structure():
         sec_enc = backend.get_mi2_section(Encyclopedia.m_def)
         material = sec_enc.material
         calculation = sec_enc.calculation
-        repr_system = representative_system
-        std_atoms = repr_system["section_symmetry"][0]["section_std_system"][0].tmp["std_atoms"]  # Temporary value stored by SystemNormalizer
-        repr_atoms = repr_system["section_symmetry"][0]["section_original_system"][0].tmp["orig_atoms"]  # Temporary value stored by SystemNormalizer
+        repr_sec_system = representative_system
+        std_atoms = repr_sec_system["section_symmetry"][0]["section_std_system"][0].tmp["std_atoms"]  # Temporary value stored by SystemNormalizer
+        repr_atoms = repr_sec_system["section_symmetry"][0]["section_original_system"][0].tmp["orig_atoms"]  # Temporary value stored by SystemNormalizer
 
-        self.material_hash(material, repr_system)
+        # Fill structural information
+        self.mass_density(calculation, repr_atoms)
+        self.material_hash(material, repr_sec_system)
         self.number_of_atoms(material, std_atoms)
         self.atom_labels(material, std_atoms)
         self.atomic_density(calculation, repr_atoms)
-        self.bravais_lattice(material, repr_system)
+        self.bravais_lattice(material, repr_sec_system)
         self.cell_normalized(material, std_atoms)
         self.lattice_parameters(calculation, std_atoms)
         self.cell_angles_string(calculation)
@@ -532,6 +535,11 @@ class StructureBulk(Structure):
         orig_n_atoms = len(repr_system)
         orig_volume = repr_system.get_volume() * (1e-10)**3
         calculation.atomic_density = float(orig_n_atoms / orig_volume)
+
+    def mass_density(self, calculation: Calculation, repr_system: ase.Atoms) -> None:
+        orig_volume = repr_system.get_volume() * (1e-10)**3
+        mass = structure.get_summed_atomic_mass(repr_system.get_atomic_numbers())
+        calculation.mass_density = float(mass / orig_volume)
 
     def material_hash(self, material: Material, section_system: Dict) -> None:
         # Get symmetry information from the section

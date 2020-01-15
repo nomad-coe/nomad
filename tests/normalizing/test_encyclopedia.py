@@ -59,4 +59,5 @@ def test_bulk_information(geometry_optimization: Encyclopedia):
     assert go.material.cell_normalized is not None
     assert go.calculation.lattice_parameters is not None
     assert go.calculation.cell_angles_string is not None
+    assert go.calculation.mass_density == 4 * 22.98976928 * 1.6605389e-27 / 1e-30  # Atomic mass in kg / cell volume
     assert np.array_equal(go.material.periodicity, [0, 1, 2])

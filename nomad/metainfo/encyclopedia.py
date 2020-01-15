@@ -118,7 +118,7 @@ class Calculation(MSection):
     )
     atomic_density = Quantity(
         type=float,
-        unit=units.m**3,
+        unit=units.m**(-3),
         description="""
         Atomic density of the material (atoms/volume)."
         """
@@ -134,6 +134,13 @@ class Calculation(MSection):
         shape=[6],
         description="""
         Lattice parameters of the normalized cell of a specific calculation.
+        """
+    )
+    mass_density = Quantity(
+        type=float,
+        unit=units.kg / units.m**3,
+        description="""
+        Mass density of the material based on the structural information.
         """
     )
 
