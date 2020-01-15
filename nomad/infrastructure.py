@@ -295,11 +295,11 @@ class Keycloak():
             created=datetime.fromtimestamp(keycloak_user['createdTimestamp'] / 1000),
             **kwargs)
 
-    def search_user(self, query: str = None, **kwargs):
+    def search_user(self, query: str = None, max=1000, **kwargs):
         if query is not None:
-            kwargs['query'] = dict(search=query)
+            kwargs['query'] = dict(search=query, max=max)
         else:
-            kwargs['query'] = dict(max=1000)
+            kwargs['query'] = dict(max=max)
         try:
             keycloak_results = self._admin_client.get_users(**kwargs)
         except Exception as e:
