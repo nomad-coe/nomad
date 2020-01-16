@@ -203,9 +203,9 @@ def test_user_uuid(handle):
 
 
 test_users = {
-    test_user_uuid(0): dict(email='admin', user_id=test_user_uuid(0)),
-    test_user_uuid(1): dict(email='sheldon.cooper@nomad-coe.eu', first_name='Sheldon', last_name='Cooper', user_id=test_user_uuid(1)),
-    test_user_uuid(2): dict(email='leonard.hofstadter@nomad-coe.eu', first_name='Leonard', last_name='Hofstadter', user_id=test_user_uuid(2))
+    test_user_uuid(0): dict(username='admin', email='admin', user_id=test_user_uuid(0)),
+    test_user_uuid(1): dict(username='scooper', email='sheldon.cooper@nomad-coe.eu', first_name='Sheldon', last_name='Cooper', user_id=test_user_uuid(1)),
+    test_user_uuid(2): dict(username='lhofstadter', email='leonard.hofstadter@nomad-coe.eu', first_name='Leonard', last_name='Hofstadter', user_id=test_user_uuid(2))
 }
 
 
@@ -223,15 +223,18 @@ class KeycloakMock:
     def add_user(self, user, *args, **kwargs):
         self.id_counter += 1
         user.user_id = test_user_uuid(self.id_counter)
-        self.users[user.user_id] = dict(email=user.email, first_name=user.first_name, last_name=user.last_name, user_id=user.user_id)
+        user.username = (user.first_name[0] + user.last_name).lower()
+        self.users[user.user_id] = dict(
+            email=user.email, username=user.username, first_name=user.first_name,
+            last_name=user.last_name, user_id=user.user_id)
         return None
 
-    def get_user(self, user_id=None, email=None):
+    def get_user(self, user_id=None, username=None):
         if user_id is not None:
             return User(**self.users[user_id])
-        elif email is not None:
+        elif username is not None:
             for user_id, user_values in self.users.items():
-                if user_values['email'] == email:
+                if user_values['username'] == username:
                     return User(**user_values)
             raise KeyError('Only test user emails are recognized')
         else:

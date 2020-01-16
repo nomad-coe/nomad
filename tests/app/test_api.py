@@ -164,7 +164,7 @@ class TestAuth:
         for key in keys:
             assert data['users'][0].get(key) is not None
 
-    def test_invite(self, api, test_user_auth):
+    def test_invite(self, api, test_user_auth, no_warn):
         rv = api.put(
             '/auth/users', headers=test_user_auth, content_type='application/json',
             data=json.dumps({

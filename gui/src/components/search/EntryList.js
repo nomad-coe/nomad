@@ -52,7 +52,8 @@ export class EntryListUnstyled extends React.Component {
       label: 'Mainfile',
       render: entry => entry.mainfile,
       supportsSort: true,
-      description: 'The mainfile of this entry.'
+      ellipsisFront: true,
+      description: 'The mainfile of this entry within its upload.'
     },
     upload_time: {
       label: 'Upload time',
@@ -199,7 +200,7 @@ export class EntryListUnstyled extends React.Component {
         <Quantity className={classes.entryDetailsRow} column>
           <Quantity quantity='comment' placeholder='no comment' data={row} />
           <Quantity quantity='references' placeholder='no references' data={row}>
-            <div style={{display:'inline-grid'}}>
+            <div style={{display: 'inline-grid'}}>
               {(row.references || []).map(ref => <Typography key={ref} noWrap>
                 <a href={ref}>{ref}</a>
               </Typography>)}
@@ -227,7 +228,7 @@ export class EntryListUnstyled extends React.Component {
           {/* <Quantity quantity="pid" label='PID' placeholder="not yet assigned" noWrap data={row} withClipboard /> */}
           <Quantity quantity="calc_id" label={`${domain.entryLabel} id`} noWrap withClipboard data={row} />
           <Quantity quantity="upload_id" label='upload id' data={row} noWrap withClipboard />
-          <Quantity quantity='mainfile' noWrap data={row} withClipboard />
+          <Quantity quantity='mainfile' noWrap ellipsisFront data={row} withClipboard />
           <Quantity quantity="upload_time" label='upload time' noWrap data={row} >
             <Typography noWrap>
               {new Date(row.upload_time * 1000).toLocaleString()}
@@ -302,7 +303,7 @@ export class EntryListUnstyled extends React.Component {
         {...props}
       /> : ''}
       <DownloadButton
-        tooltip="Download raw files"
+        tooltip="Download files"
         {...props}/>
       {moreActions}
     </React.Fragment>

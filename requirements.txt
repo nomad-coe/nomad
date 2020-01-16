@@ -50,6 +50,7 @@ python-keycloak
 basicauth
 inflection
 docstring-parser
+unidecode
 
 # dev/ops related
 setuptools
