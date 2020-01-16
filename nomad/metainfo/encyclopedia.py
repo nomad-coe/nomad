@@ -95,6 +95,21 @@ class Material(MSection):
         The detected crystal system. One of seven possibilities in three dimensions.
         """
     )
+    formula = Quantity(
+        type=str,
+        description="""
+        Formula giving the composition and occurrences of the elements in the
+        Hill notation for the irreducible unit cell.
+        """
+    )
+    formula_reduced = Quantity(
+        type=str,
+        description="""
+        Formula giving the composition and occurrences of the elements in the
+        Hill notation for the irreducible unit cell. In this reduced form the
+        number of occurences have been divided by the greatest common divisor.
+        """
+    )
     periodicity = Quantity(
         type=np.dtype('i1'),
         shape=["1..*"],

@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from math import gcd as gcd
 from typing import Dict
+from functools import reduce
 import numpy as np
 
 from nomad.constants import NUMBER_TO_MASS_MAP_KG
@@ -96,3 +98,103 @@ def get_lattice_parameters(normalized_cell: np.ndarray) -> np.ndarray:
     alpha, beta, gamma = np.arccos(angles)
 
     return [a, b, c, alpha, beta, gamma]
+
+
+def get_hill_formula(atom_labels: np.ndarray, reduced: bool = False) -> str:
+    """Given a list of atomic labels, returns the chemical formula using the
+    Hill system (https://en.wikipedia.org/wiki/Hill_system).
+
+    Args:
+        atom_labels: Atom labels.
+        reduced: Whether to divide the number of atoms by the greatest common
+            divisor
+
+    Returns:
+        The chemical formula using Hill system.
+    """
+    names = []
+    counts = []
+
+    # Count occurancy of elements
+    unordered_names, unordered_counts = np.unique(atom_labels, return_counts=True)
+    element_count_map = dict(zip(unordered_names, unordered_counts))
+
+    # Apply basic Hill system:
+    # 1. Is Carbon part of the system?
+    if "C" in element_count_map:
+        names.append("C")
+        counts.append(element_count_map["C"])
+        del element_count_map['C']
+
+        # 1a. add hydrogren
+        if "H" in element_count_map:
+            names.append("H")
+            counts.append(element_count_map["H"])
+            del element_count_map["H"]
+
+    # 2. all remaining elements in alphabetic order
+    for element in sorted(element_count_map):
+        names.append(element)
+        counts.append(element_count_map[element])
+
+    # 3. Binary ionic compounds: cation first, anion second
+    # If any of the most electronegative elements is first
+    # by alphabetic order, we move it to second
+    if len(counts) == 2:
+        order = {
+            "F": 1,
+            "O": 2,
+            "N": 3,
+            "Cl": 4,
+            "Br": 5,
+            "C": 6,
+            "Se": 7,
+            "S": 8,
+            "I": 9,
+            "As": 10,
+            "H": 11,
+            "P": 12,
+            "Ge": 13,
+            "Te": 14,
+            "B": 15,
+            "Sb": 16,
+            "Po": 17,
+            "Si": 18,
+            "Bi": 19
+        }
+        if (names[0] in order):
+            if (names[1] in order):
+                if(order[names[0]] < order[names[1]]):
+                    # For non-metals:
+                    # Swap symbols and counts if first element
+                    # is more electronegative than the second one,
+                    # because the more electronegative element is the anion
+                    names[0], names[1] = names[1], names[0]
+                    counts[0], counts[1] = counts[1], counts[0]
+            else:
+                # Swap symbols and counts always if second element
+                # is any other element,i.e.,
+                # put non-metal last because it is the anion
+                names[0], names[1] = names[1], names[0]
+                counts[0], counts[1] = counts[1], counts[0]
+
+    # TODO: implement all further exceptions regarding ordering
+    #       in chemical formulas:
+    #         - ionic compounds (ordering wrt to ionization)
+    #         - oxides, acids, hydroxides...
+
+    # Reduce if requested
+    if reduced:
+        greatest_common_divisor = reduce(gcd, counts)
+        counts = np.array(counts) / greatest_common_divisor
+
+    # Form the final string
+    parts = []
+    for name, count in zip(names, counts):
+        if count > 1:
+            parts.append(f"{name}{count}")
+        else:
+            parts.append(name)
+    formula = "".join(parts)
+
+    return formula

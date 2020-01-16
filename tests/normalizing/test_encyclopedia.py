@@ -57,6 +57,8 @@ def test_bulk_information(geometry_optimization: Encyclopedia):
     assert go.material.atom_labels == ["Na", "Na", "Na", "Na"]
     assert go.material.crystal_system == "cubic"
     assert go.material.bravais_lattice == "cF"
+    assert go.material.formula == "Na"
+    assert go.material.formula_reduced == "Na"
     assert go.material.point_group == "m-3m"
     assert go.material.cell_normalized is not None
     assert go.material.cell_primitive is not None
