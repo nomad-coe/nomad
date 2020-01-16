@@ -89,6 +89,12 @@ class Material(MSection):
         idealized to match the detected symmemtry properties.
         """
     )
+    crystal_system = Quantity(
+        type=MEnum("triclinic", "monoclinic", "orthorhombic", "tetragonal", "trigonal", "hexagonal", "cubic"),
+        description="""
+        The detected crystal system. One of seven possibilities in three dimensions.
+        """
+    )
     periodicity = Quantity(
         type=np.dtype('i1'),
         shape=["1..*"],

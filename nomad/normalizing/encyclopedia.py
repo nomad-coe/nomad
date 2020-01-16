@@ -437,10 +437,6 @@ class Structure():
     def atomic_density(self, calculation: Calculation, repr_system: ase.Atoms) -> None:
         pass
 
-    # NOTE: Does not exist?
-    # def atomistic_structure(self) -> None:
-        # pass
-
     @abstractmethod
     def bravais_lattice(self, material: Material, section_system: Dict) -> None:
         pass
@@ -461,8 +457,9 @@ class Structure():
     def cell_volume(self, calculation: Calculation, std_atoms: ase.Atoms) -> None:
         pass
 
-    # def crystal_system(self) -> None:
-        # pass
+    @abstractmethod
+    def crystal_system(self, material: Material, section_system: Dict) -> None:
+        pass
 
     # def formula(self) -> None:
         # pass
@@ -522,6 +519,7 @@ class Structure():
         self.bravais_lattice(material, sec_symmetry)
         self.cell_normalized(material, std_atoms)
         self.cell_volume(calculation, std_atoms)
+        self.crystal_system(material, sec_symmetry)
         self.cell_primitive(material, prim_atoms)
         self.lattice_parameters(calculation, std_atoms)
         self.cell_angles_string(calculation)
@@ -584,9 +582,11 @@ class StructureBulk(Structure):
         cell_prim *= 1e-10
         material.cell_primitive = cell_prim
 
-    @abstractmethod
     def cell_volume(self, calculation: Calculation, std_atoms: ase.Atoms) -> None:
         calculation.cell_volume = float(std_atoms.get_volume() * 1e-10**3)
+
+    def crystal_system(self, material: Material, section_symmetry: Dict) -> None:
+        material.crystal_system = section_symmetry["crystal_system"]
 
     def lattice_parameters(self, calculation: Calculation, std_atoms: ase.Atoms) -> None:
         cell_normalized = std_atoms.get_cell()
