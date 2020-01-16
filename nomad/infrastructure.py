@@ -295,11 +295,11 @@ class Keycloak():
             created=datetime.fromtimestamp(keycloak_user['createdTimestamp'] / 1000),
             **kwargs)
 
-    def search_user(self, query: str = None, **kwargs):
+    def search_user(self, query: str = None, max=1000, **kwargs):
         if query is not None:
-            kwargs['query'] = dict(search=query)
+            kwargs['query'] = dict(search=query, max=max)
         else:
-            kwargs['query'] = dict(max=1000)
+            kwargs['query'] = dict(max=max)
         try:
             keycloak_results = self._admin_client.get_users(**kwargs)
         except Exception as e:
@@ -310,7 +310,7 @@ class Keycloak():
             self.__user_from_keycloak_user(keycloak_user)
             for keycloak_user in keycloak_results]
 
-    def get_user(self, user_id: str = None, email: str = None, user=None) -> object:
+    def get_user(self, user_id: str = None, username: str = None, user=None) -> object:
         """
         Retrives all available information about a user from the keycloak admin
         interface. This must be used to retrieve complete user information, because
@@ -321,12 +321,12 @@ class Keycloak():
         if user is not None and user_id is None:
             user_id = user.user_id
 
-        if email is not None and user_id is None:
+        if username is not None and user_id is None:
             with utils.lnr(logger, 'Could not use keycloak admin client'):
-                user_id = self._admin_client.get_user_id(email)
+                user_id = self._admin_client.get_user_id(username)
 
             if user_id is None:
-                raise KeyError('User %s does not exist' % email)
+                raise KeyError('User with username %s does not exist' % username)
 
         assert user_id is not None, 'Could not determine user from given kwargs'
 

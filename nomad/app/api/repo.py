@@ -24,6 +24,7 @@ from elasticsearch_dsl import Q
 from elasticsearch.exceptions import NotFoundError
 import elasticsearch.helpers
 from datetime import datetime
+import os.path
 
 from nomad import search, utils, datamodel, processing as proc, infrastructure
 from nomad.app.utils import rfc3339DateTime, RFC3339DateTime, with_logger
@@ -32,7 +33,7 @@ from nomad.datamodel import UserMetadata, Dataset, User
 
 from .api import api
 from .auth import authenticate
-from .common import pagination_model, pagination_request_parser, calc_route
+from .common import pagination_model, pagination_request_parser, calc_route, build_snippet
 
 ns = api.namespace('repo', description='Access repository metadata.')
 
@@ -80,6 +81,8 @@ repo_calcs_model_fields = {
         'value and quantity value as key. The possible metrics are code runs(calcs), %s. '
         'There is a pseudo quantity "total" with a single value "all" that contains the '
         ' metrics over all results. ' % ', '.join(datamodel.Domain.instance.metrics_names))),
+    'code_snippet': fields.String(description=(
+        'A string of python code snippet which can be executed to reproduce the api result.')),
 }
 for group_name, (group_quantity, _) in search.groups.items():
     repo_calcs_model_fields[group_name] = fields.Nested(api.model('RepoDatasets', {
@@ -299,6 +302,10 @@ class RepoCalcsResource(Resource):
                 for group_name, (group_quantity, _) in search.groups.items():
                     if args.get(group_name, False):
                         results[group_name] = quantities[group_quantity]
+
+            # build python code snippet
+            snippet = build_snippet(args, os.path.join(api.base_url, ns.name, ''))
+            results['code_snippet'] = snippet
 
             return results, 200
         except search.ScrollIdNotFound:
