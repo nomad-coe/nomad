@@ -114,8 +114,7 @@ archives_from_query_parser.add_argument(
     location='args')
 archives_from_query_parser.add_argument(
     name='res_type', type=str, help='Type of return value, can be zip of json.',
-    location='args'
-)
+    location='args', default='zip')
 
 
 @ns.route('/query')
@@ -142,7 +141,7 @@ class ArchiveQueryResource(Resource):
         try:
             args = archives_from_query_parser.parse_args()
             compress = args.get('compress', False)
-            res_type = args.get('res_type', 'zip')
+            res_type = args.get('res_type')
         except Exception:
             abort(400, message='bad parameter types')
 
