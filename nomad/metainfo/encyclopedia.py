@@ -75,14 +75,18 @@ class Material(MSection):
         type=np.dtype('f8'),
         shape=[3, 3],
         description="""
-        Unit cell in normalized form, meaning the bravais cell.
+        Unit cell in normalized form, meaning the bravais cell. This cell is
+        representative and is idealized to match the detected symmemtry
+        properties.
         """
     )
     cell_primitive = Quantity(
         type=np.dtype('f8'),
         shape=[3, 3],
         description="""
-        Definition of the primitive unit cell in a form to be visualized well within the normalized cell.
+        Definition of the primitive unit cell in a form to be visualized well
+        within the normalized cell. This cell is representative and is
+        idealized to match the detected symmemtry properties.
         """
     )
     periodicity = Quantity(
@@ -139,11 +143,24 @@ class Calculation(MSection):
         A summary of the cell angles, part of material definition.
         """
     )
+    cell_volume = Quantity(
+        type=float,
+        description="""
+        Cell volume for a specific calculation. The cell volume can only be
+        reported consistently after normalization. Thus it corresponds to the
+        normalized cell that is idealized to fit the detected symmetry and may
+        not perfectly correspond to the original simulation cell.
+        """
+    )
     lattice_parameters = Quantity(
         type=np.dtype('f8'),
         shape=[6],
         description="""
-        Lattice parameters of the normalized cell of a specific calculation.
+        Lattice parameters of a specific calculation. The lattice parameters
+        can only be reported consistently after normalization. Thus they
+        correspond to the normalized cell that is idealized to fit the detected
+        symmetry and may not perfectly correspond to the original simulation
+        cell.
         """
     )
     mass_density = Quantity(

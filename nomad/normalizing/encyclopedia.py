@@ -457,8 +457,9 @@ class Structure():
     def cell_primitive(self, material: Material, std_atoms: ase.Atoms) -> None:
         pass
 
-    # def cell_volume(self) -> None:
-        # pass
+    @abstractmethod
+    def cell_volume(self, calculation: Calculation, std_atoms: ase.Atoms) -> None:
+        pass
 
     # def crystal_system(self) -> None:
         # pass
@@ -520,6 +521,7 @@ class Structure():
         self.atomic_density(calculation, repr_atoms)
         self.bravais_lattice(material, sec_symmetry)
         self.cell_normalized(material, std_atoms)
+        self.cell_volume(calculation, std_atoms)
         self.cell_primitive(material, prim_atoms)
         self.lattice_parameters(calculation, std_atoms)
         self.cell_angles_string(calculation)
@@ -581,6 +583,10 @@ class StructureBulk(Structure):
         cell_prim = prim_atoms.get_cell()
         cell_prim *= 1e-10
         material.cell_primitive = cell_prim
+
+    @abstractmethod
+    def cell_volume(self, calculation: Calculation, std_atoms: ase.Atoms) -> None:
+        calculation.cell_volume = float(std_atoms.get_volume() * 1e-10**3)
 
     def lattice_parameters(self, calculation: Calculation, std_atoms: ase.Atoms) -> None:
         cell_normalized = std_atoms.get_cell()

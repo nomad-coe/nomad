@@ -65,3 +65,4 @@ def test_bulk_information(geometry_optimization: Encyclopedia):
     assert go.calculation.lattice_parameters is not None
     assert go.calculation.cell_angles_string is not None
     assert go.calculation.mass_density == 4 * 22.98976928 * 1.6605389e-27 / 1e-30  # Atomic mass in kg / cell volume
+    assert go.calculation.cell_volume == 1e-30
