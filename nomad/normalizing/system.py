@@ -262,12 +262,12 @@ class SystemNormalizer(SystemBasedNormalizer):
     def system_type_analysis(self, atoms) -> None:
         """
         Determine the dimensionality and hence the system type of the system with
-        Matid. Write the system type to the backend.
+        MatID. Write the system type to the backend.
         """
         system_type = config.services.unavailable_value
         try:
             if atoms.get_number_of_atoms() > config.normalize.system_classification_with_clusters_threshold:
-                # it is too expensive to run Matid's cluster detection, just check pbc
+                # it is too expensive to run MatID's cluster detection, just check pbc
                 dimensionality = np.sum(atoms.get_pbc())
             else:
                 dimensionality = get_dimensionality(
@@ -304,7 +304,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         Args:
             atoms: The atomistic structure to analyze.
         """
-        # Try to use Matid's symmetry analyzer to analyze the ASE object.
+        # Try to use MatID's symmetry analyzer to analyze the ASE object.
         # TODO: dts, find out what the symmetry_tol does.
         try:
             symm = SymmetryAnalyzer(atoms, config.normalize.symmetry_tolerance)
@@ -316,7 +316,6 @@ class SystemNormalizer(SystemBasedNormalizer):
 
             crystal_system = symm.get_crystal_system()
             bravais_lattice = symm.get_bravais_lattice()
-            symm.get_point_group
             point_group = symm.get_point_group()
 
             orig_wyckoff = symm.get_wyckoff_letters_original()
@@ -349,12 +348,12 @@ class SystemNormalizer(SystemBasedNormalizer):
             self.logger.error('matid symmetry analysis fails with exception', exc_info=e)
             return
 
-        # Write data extracted from Matid symmetry analysis to the backend.
+        # Write data extracted from MatID's symmetry analysis to the backend.
         symmetry_gid = self._backend.openSection('section_symmetry')
         self._backend.add_tmp_value("section_symmetry", "symmetry_analyzer", symm)
 
         # TODO: @dts, should we change the symmetry_method to MATID?
-        self._backend.addValue('symmetry_method', 'Matid (spg)')
+        self._backend.addValue('symmetry_method', 'MatID (spg)')
         self._backend.addValue('space_group_number', space_group_number)
         self._backend.addValue('hall_number', hall_number)
         self._backend.addValue('hall_symbol', hall_symbol)
