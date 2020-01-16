@@ -351,6 +351,7 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         # Write data extracted from Matid symmetry analysis to the backend.
         symmetry_gid = self._backend.openSection('section_symmetry')
+        self._backend.add_tmp_value("section_symmetry", "symmetry_analyzer", symm)
 
         # TODO: @dts, should we change the symmetry_method to MATID?
         self._backend.addValue('symmetry_method', 'Matid (spg)')

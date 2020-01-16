@@ -59,10 +59,12 @@ def test_bulk_information(geometry_optimization: Encyclopedia):
     assert go.material.bravais_lattice == "cF"
     assert go.material.formula == "Na"
     assert go.material.formula_reduced == "Na"
+    assert go.material.has_free_wyckoff_parameters is False
     assert go.material.point_group == "m-3m"
     assert go.material.cell_normalized is not None
     assert go.material.cell_primitive is not None
     assert np.array_equal(go.material.periodicity, [0, 1, 2])
+    assert go.material.wyckoff_groups is not None
 
     assert go.calculation.atomic_density == pytest.approx(4.0e+30, rel=0.000001, abs=None)
     assert go.calculation.lattice_parameters is not None

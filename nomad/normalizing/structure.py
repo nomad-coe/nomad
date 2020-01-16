@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from math import gcd as gcd
-from typing import List, Dict, Union, Tuple
+from typing import List, Dict, Tuple
 from functools import reduce
 import numpy as np
 
@@ -34,7 +34,7 @@ def get_summed_atomic_mass(atomic_numbers: np.ndarray) -> float:
     return mass
 
 
-def create_symmetry_string(space_group: int, wyckoff_sets: Dict) -> str:
+def get_symmetry_string(space_group: int, wyckoff_sets: Dict) -> str:
     """Used to serialize symmetry information into a string. The Wyckoff
     positions are assumed to be normalized and ordered as is the case if using
     the matid-library.

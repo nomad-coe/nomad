@@ -18,8 +18,10 @@ from math import gcd as gcd
 from functools import reduce
 from abc import abstractmethod
 import math
+import json
 import ase
 import numpy as np
+from matid import SymmetryAnalyzer
 
 from nomad.normalizing.normalizer import Normalizer, s_scc, s_system, s_frame_sequence, r_frame_sequence_to_sampling, s_sampling_method, r_frame_sequence_local_frames, r_scc_to_system
 from nomad.metainfo.encyclopedia import Encyclopedia, Material, Calculation
@@ -384,10 +386,6 @@ class EncyclopediaNormalizer(Normalizer):
     def template(self) -> None:
         pass
 
-    # NOTE: System normalizer
-    def wyckoff_groups(self) -> None:
-        pass
-
     def fill(self, run_type, system_type, representative_system):
         # Fill structure related meta
         if system_type == Material.system_type.type.bulk:
@@ -471,8 +469,9 @@ class Structure():
     def formula_reduced(self, material: Material, names: list, counts_reduced: list) -> None:
         pass
 
-    # def free_wyckoff_parameters(self) -> None:
-        # pass
+    @abstractmethod
+    def has_free_wyckoff_parameters(self, material: Material, wyckoff_sets: Dict) -> None:
+        pass
 
     @abstractmethod
     def lattice_parameters(self, calculation: Calculation, std_atoms: ase.Atoms) -> None:
@@ -501,36 +500,9 @@ class Structure():
     def point_group(self, material: Material, section_symmetry: Dict) -> None:
         pass
 
-    def fill(self, backend, representative_system: Dict) -> None:
-        # Fetch resources
-        sec_enc = backend.get_mi2_section(Encyclopedia.m_def)
-        material = sec_enc.material
-        calculation = sec_enc.calculation
-        sec_symmetry = representative_system["section_symmetry"][0]
-        std_atoms = sec_symmetry["section_std_system"][0].tmp["std_atoms"]  # Temporary value stored by SystemNormalizer
-        prim_atoms = sec_symmetry["section_primitive_system"][0].tmp["prim_atoms"]  # Temporary value stored by SystemNormalizer
-        repr_atoms = sec_symmetry["section_original_system"][0].tmp["orig_atoms"]  # Temporary value stored by SystemNormalizer
-        names, counts = structure.get_hill_decomposition(prim_atoms.get_chemical_symbols(), reduced=False)
-        greatest_common_divisor = reduce(gcd, counts)
-        reduced_counts = np.array(counts) / greatest_common_divisor
-
-        # Fill structural information
-        self.mass_density(calculation, repr_atoms)
-        self.material_hash(material, sec_symmetry)
-        self.number_of_atoms(material, std_atoms)
-        self.atom_labels(material, std_atoms)
-        self.atomic_density(calculation, repr_atoms)
-        self.bravais_lattice(material, sec_symmetry)
-        self.cell_normalized(material, std_atoms)
-        self.cell_volume(calculation, std_atoms)
-        self.crystal_system(material, sec_symmetry)
-        self.cell_primitive(material, prim_atoms)
-        self.formula(material, names, counts)
-        self.formula_reduced(material, names, reduced_counts)
-        self.lattice_parameters(calculation, std_atoms)
-        self.cell_angles_string(calculation)
-        self.periodicity(material)
-        self.point_group(material, sec_symmetry)
+    @abstractmethod
+    def wyckoff_groups(self, material: Material, wyckoff_sets: Dict) -> None:
+        pass
 
 
 class StructureBulk(Structure):
@@ -559,7 +531,7 @@ class StructureBulk(Structure):
         wyckoff_sets = section_std_system.tmp["wyckoff_sets"]
 
         # Create and store hash based on SHA512
-        norm_hash_string = structure.create_symmetry_string(space_group_number, wyckoff_sets)
+        norm_hash_string = structure.get_symmetry_string(space_group_number, wyckoff_sets)
         material.material_hash = sha512(norm_hash_string.encode('utf-8')).hexdigest()
 
     def number_of_atoms(self, material: Material, std_atoms: ase.Atoms) -> None:
@@ -602,6 +574,10 @@ class StructureBulk(Structure):
         formula = structure.get_formula_string(names, counts_reduced)
         material.formula_reduced = formula
 
+    def has_free_wyckoff_parameters(self, material: Material, symmetry_analyzer: SymmetryAnalyzer) -> None:
+        has_free_param = symmetry_analyzer.get_has_free_wyckoff_parameters()
+        material.has_free_wyckoff_parameters = has_free_param
+
     def lattice_parameters(self, calculation: Calculation, std_atoms: ase.Atoms) -> None:
         cell_normalized = std_atoms.get_cell()
         calculation.lattice_parameters = structure.get_lattice_parameters(cell_normalized)
@@ -612,3 +588,54 @@ class StructureBulk(Structure):
     def point_group(self, material: Material, section_symmetry: Dict) -> None:
         point_group = section_symmetry["point_group"]
         material.point_group = point_group
+
+    def wyckoff_groups(self, material: Material, wyckoff_sets: Dict) -> None:
+        wyckoff_list = []
+        for group in wyckoff_sets:
+            data = {
+                "wyckoff_letter": group.wyckoff_letter,
+                "element": group.element,
+                "indices": group.indices,
+                "variables": {
+                    "x": group.x,
+                    "y": group.y,
+                    "z": group.z,
+                },
+            }
+            wyckoff_list.append(data)
+        material.wyckoff_groups = json.dumps(wyckoff_list, sort_keys=True)
+
+    def fill(self, backend, representative_system: Dict) -> None:
+        # Fetch resources
+        sec_enc = backend.get_mi2_section(Encyclopedia.m_def)
+        material = sec_enc.material
+        calculation = sec_enc.calculation
+        sec_symmetry = representative_system["section_symmetry"][0]
+        symmetry_analyzer = representative_system["section_symmetry"][0].tmp["symmetry_analyzer"]
+        std_atoms = sec_symmetry["section_std_system"][0].tmp["std_atoms"]  # Temporary value stored by SystemNormalizer
+        prim_atoms = sec_symmetry["section_primitive_system"][0].tmp["prim_atoms"]  # Temporary value stored by SystemNormalizer
+        repr_atoms = sec_symmetry["section_original_system"][0].tmp["orig_atoms"]  # Temporary value stored by SystemNormalizer
+        wyckoff_sets = sec_symmetry["section_std_system"][0].tmp["wyckoff_sets"]
+        names, counts = structure.get_hill_decomposition(prim_atoms.get_chemical_symbols(), reduced=False)
+        greatest_common_divisor = reduce(gcd, counts)
+        reduced_counts = np.array(counts) / greatest_common_divisor
+
+        # Fill structural information
+        self.mass_density(calculation, repr_atoms)
+        self.material_hash(material, sec_symmetry)
+        self.number_of_atoms(material, std_atoms)
+        self.atom_labels(material, std_atoms)
+        self.atomic_density(calculation, repr_atoms)
+        self.bravais_lattice(material, sec_symmetry)
+        self.cell_normalized(material, std_atoms)
+        self.cell_volume(calculation, std_atoms)
+        self.crystal_system(material, sec_symmetry)
+        self.cell_primitive(material, prim_atoms)
+        self.formula(material, names, counts)
+        self.formula_reduced(material, names, reduced_counts)
+        self.has_free_wyckoff_parameters(material, symmetry_analyzer)
+        self.lattice_parameters(calculation, std_atoms)
+        self.cell_angles_string(calculation)
+        self.periodicity(material)
+        self.point_group(material, sec_symmetry)
+        self.wyckoff_groups(material, wyckoff_sets)

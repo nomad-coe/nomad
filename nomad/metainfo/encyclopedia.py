@@ -102,6 +102,15 @@ class Material(MSection):
         Hill notation for the irreducible unit cell.
         """
     )
+    has_free_wyckoff_parameters = Quantity(
+        type=bool,
+        description="""
+        Whether the material has any Wyckoff sites with free parameters. If a
+        materials has free Wyckoff parameters, at least some of the atoms are
+        not bound to a particular location in the structure but are allowed to
+        move with possible restrictions set by the symmetry.
+        """
+    )
     formula_reduced = Quantity(
         type=str,
         description="""
@@ -122,6 +131,28 @@ class Material(MSection):
         description="""
         Point group in Hermann-Mauguin notation, part of crystal structure
         classification. There are 32 point groups in three dimensional space.
+        """
+    )
+    wyckoff_groups = Quantity(
+        type=str,
+        description="""
+        Returns a list of information about the Wyckoff groups in the JSON format.
+
+        An example of the output:
+            [
+                {
+                    'wyckoff_letter': 'a',
+                    'variables': {'z': 0.0},
+                    'indices': [0, 6, 12],
+                    'element': 'Bi'
+                },
+                {
+                    'wyckoff_letter': 'b',
+                    'variables': {'x': 0.50155295, 'z': 0.87461175999999996},
+                    'indices': [1, 3, 4, 7, 9, 10, 13, 15, 16],
+                    'element': 'Ga'
+                }, ...
+            ]
         """
     )
 
