@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from math import gcd as gcd
-from typing import Dict
+from typing import List, Dict, Union, Tuple
 from functools import reduce
 import numpy as np
 
@@ -100,7 +100,7 @@ def get_lattice_parameters(normalized_cell: np.ndarray) -> np.ndarray:
     return [a, b, c, alpha, beta, gamma]
 
 
-def get_hill_formula(atom_labels: np.ndarray, reduced: bool = False) -> str:
+def get_hill_decomposition(atom_labels: np.ndarray, reduced: bool = False) -> Tuple[List[str], List[int]]:
     """Given a list of atomic labels, returns the chemical formula using the
     Hill system (https://en.wikipedia.org/wiki/Hill_system).
 
@@ -110,12 +110,11 @@ def get_hill_formula(atom_labels: np.ndarray, reduced: bool = False) -> str:
             divisor
 
     Returns:
-        The chemical formula using Hill system.
+        An ordered list of chemical symbols and the corresponding counts.
     """
+    # Count occurancy of elements
     names = []
     counts = []
-
-    # Count occurancy of elements
     unordered_names, unordered_counts = np.unique(atom_labels, return_counts=True)
     element_count_map = dict(zip(unordered_names, unordered_counts))
 
@@ -188,13 +187,24 @@ def get_hill_formula(atom_labels: np.ndarray, reduced: bool = False) -> str:
         greatest_common_divisor = reduce(gcd, counts)
         counts = np.array(counts) / greatest_common_divisor
 
-    # Form the final string
-    parts = []
-    for name, count in zip(names, counts):
-        if count > 1:
-            parts.append(f"{name}{count}")
-        else:
-            parts.append(name)
-    formula = "".join(parts)
+    return names, counts
 
+
+def get_formula_string(symbols: List[str], counts: List[int]) -> str:
+    """Used to form a single formula string from a list of chemical speices and
+    their counts.
+
+    Args:
+        symbols: List of chemical species
+        counts: List of chemical species occurences
+
+    Returns:
+        The formula as a string.
+    """
+    formula = ""
+    for symbol, count in zip(symbols, counts):
+        if count > 1:
+            formula += "%s%d" % (symbol, count)
+        else:
+            formula += symbol
     return formula

@@ -13,7 +13,9 @@
 # limitations under the License.
 
 from hashlib import sha512
-from typing import Dict
+from typing import Dict, List
+from math import gcd as gcd
+from functools import reduce
 from abc import abstractmethod
 import math
 import ase
@@ -462,11 +464,11 @@ class Structure():
         pass
 
     @abstractmethod
-    def formula(self, material: Material, prim_sys: ase.Atoms) -> None:
+    def formula(self, material: Material, names: list, counts: list) -> None:
         pass
 
     @abstractmethod
-    def formula_reduced(self, material: Material, prim_sys: ase.Atoms) -> None:
+    def formula_reduced(self, material: Material, names: list, counts_reduced: list) -> None:
         pass
 
     # def free_wyckoff_parameters(self) -> None:
@@ -508,6 +510,9 @@ class Structure():
         std_atoms = sec_symmetry["section_std_system"][0].tmp["std_atoms"]  # Temporary value stored by SystemNormalizer
         prim_atoms = sec_symmetry["section_primitive_system"][0].tmp["prim_atoms"]  # Temporary value stored by SystemNormalizer
         repr_atoms = sec_symmetry["section_original_system"][0].tmp["orig_atoms"]  # Temporary value stored by SystemNormalizer
+        names, counts = structure.get_hill_decomposition(prim_atoms.get_chemical_symbols(), reduced=False)
+        greatest_common_divisor = reduce(gcd, counts)
+        reduced_counts = np.array(counts) / greatest_common_divisor
 
         # Fill structural information
         self.mass_density(calculation, repr_atoms)
@@ -520,8 +525,8 @@ class Structure():
         self.cell_volume(calculation, std_atoms)
         self.crystal_system(material, sec_symmetry)
         self.cell_primitive(material, prim_atoms)
-        self.formula(material, prim_atoms)
-        self.formula_reduced(material, prim_atoms)
+        self.formula(material, names, counts)
+        self.formula_reduced(material, names, reduced_counts)
         self.lattice_parameters(calculation, std_atoms)
         self.cell_angles_string(calculation)
         self.periodicity(material)
@@ -589,14 +594,12 @@ class StructureBulk(Structure):
     def crystal_system(self, material: Material, section_symmetry: Dict) -> None:
         material.crystal_system = section_symmetry["crystal_system"]
 
-    def formula(self, material: Material, prim_sys: ase.Atoms) -> None:
-        chemical_symbols = prim_sys.get_chemical_symbols()
-        formula = structure.get_hill_formula(chemical_symbols, reduced=False)
+    def formula(self, material: Material, names: List[str], counts: List[int]) -> None:
+        formula = structure.get_formula_string(names, counts)
         material.formula = formula
 
-    def formula_reduced(self, material: Material, prim_sys: ase.Atoms) -> None:
-        chemical_symbols = prim_sys.get_chemical_symbols()
-        formula = structure.get_hill_formula(chemical_symbols, reduced=True)
+    def formula_reduced(self, material: Material, names: list, counts_reduced: list) -> None:
+        formula = structure.get_formula_string(names, counts_reduced)
         material.formula_reduced = formula
 
     def lattice_parameters(self, calculation: Calculation, std_atoms: ase.Atoms) -> None:
