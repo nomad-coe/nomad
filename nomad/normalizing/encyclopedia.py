@@ -20,6 +20,7 @@ from abc import abstractmethod
 import math
 import json
 import ase
+import ase.data
 import numpy as np
 from matid import SymmetryAnalyzer
 
@@ -387,10 +388,10 @@ class EncyclopediaNormalizer(Normalizer):
         pass
 
     def fill(self, run_type, system_type, representative_system):
-        # Fill structure related meta
+        # Fill structure related metainfo
         if system_type == Material.system_type.type.bulk:
-            structure_worker = StructureBulk()
-            structure_worker.fill(self._backend, representative_system)
+            struct = StructureBulk()
+            struct.fill(self._backend, representative_system)
 
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
@@ -485,8 +486,9 @@ class Structure():
     def material_hash(self, material: Material, section_system: Dict) -> None:
         pass
 
-    # def material_name(self) -> None:
-        # pass
+    @abstractmethod
+    def material_name(self, material: Material, symbols: list, numbers: list) -> None:
+        pass
 
     @abstractmethod
     def number_of_atoms(self, material: Material, std_atoms: ase.Atoms) -> None:
@@ -582,6 +584,127 @@ class StructureBulk(Structure):
         cell_normalized = std_atoms.get_cell()
         calculation.lattice_parameters = structure.get_lattice_parameters(cell_normalized)
 
+    def material_name(self, material: Material, symbols: list, numbers: list) -> None:
+        # Systems with one element are named after it
+        if len(symbols) == 1:
+            number = ase.data.atomic_numbers[symbols[0]]
+            name = ase.data.atomic_names[number]
+            material.material_name = name
+
+        # Binary systems have specific names
+        if len(symbols) == 2:
+            atomicnumbers = [ase.data.atomic_numbers[i] for i in symbols]
+            names = [ase.data.atomic_names[i] for i in atomicnumbers]
+
+            # Non-metal elements are anions in the binary compounds and receive the -ide suffix
+            if names[1] == "Antimony":
+                names[1] = names[1][:-1] + "ide"
+            if names[1] == "Arsenic":
+                names[1] = names[1][:-1] + "de"
+            if names[1] == "Boron" or names[1] == "Carbon":
+                names[1] = names[1][:-2] + "ide"
+            if names[1] == "Chlorine" or names[1] == "Germanium" or names[1] == "Selenium" or names[1] == "Bromine" \
+               or names[1] == "Tellurium" or names[1] == "Iodine" or names[1] == "Polonium" or names[1] == "Astatine" or \
+               names[1] == "Fluorine":
+                names[1] = names[1][:-2] + "de"
+            if names[1] == "Silicon" or names[1] == "Sulfur":
+                names[1] = names[1][:-2] + "ide"
+            if names[1] == "Nitrogen" or names[1] == "Oxygen" or names[1] == "Hydrogen" or names[1] == "Phosphorus":
+                names[1] = names[1][:-4] + "ide"
+
+            name = names[0] + " " + names[1]
+
+            if names[1] == "Fluoride" or names[1] == "Chloride" or names[1] == "Bromide" or \
+               names[1] == "Iodide" or names[1] == "Hydride":
+
+                # Non-metals with elements of variable valence, therefore we remove alkaline and
+                # alkaline-earth elements, which have fixed valence
+                # Only the most electronegative non-metals are supposed to make ionic compounds
+                if names[0] != "Lithium" and names[0] != "Sodium" and names[0] != "Potassium" and \
+                   names[0] != "Rubidium" and names[0] != "Cesium" and names[0] != "Francium" and \
+                   names[0] != "Beryllium" and names[0] != "Magnesium" and names[0] != "Calcium" and \
+                   names[0] != "Strontium" and names[0] != "Barium" and names[0] != "Radium" and \
+                   names[0] != "Aluminum":
+
+                    if numbers[1] == 2:
+                        name = names[0] + "(II)" + " " + names[1]
+                    elif numbers[1] == 3:
+                        name = names[0] + "(III)" + " " + names[1]
+                    elif numbers[1] == 4:
+                        name = names[0] + "(IV)" + " " + names[1]
+                    elif numbers[1] == 5:
+                        name = names[0] + "(V)" + " " + names[1]
+                    elif numbers[1] == 6:
+                        name = names[0] + "(VI)" + " " + names[1]
+                    elif numbers[1] == 7:
+                        name = names[0] + "(VII)" + " " + names[1]
+
+            if names[1] == "Oxide" or names[1] == "Sulfide" or names[1] == "Selenide":
+                if names[0] != "Lithium" and names[0] != "Sodium" and names[0] != "Potassium" and \
+                   names[0] != "Rubidium" and names[0] != "Cesium" and names[0] != "Francium" and \
+                   names[0] != "Beryllium" and names[0] != "Magnesium" and names[0] != "Calcium" and \
+                   names[0] != "Strontium" and names[0] != "Barium" and names[0] != "Radium" and \
+                   names[0] != "Aluminum":
+
+                    if numbers[0] == 1 and numbers[1] == 1:
+                        name = names[0] + "(II)" + " " + names[1]
+                    elif numbers[0] == 2 and numbers[1] == 1:
+                        name = names[0] + "(I)" + " " + names[1]
+                    elif numbers[0] == 1 and numbers[1] == 2:
+                        name = names[0] + "(IV)" + " " + names[1]
+                    elif numbers[0] == 2 and numbers[1] == 3:
+                        name = names[0] + "(III)" + " " + names[1]
+                    elif numbers[0] == 2 and numbers[1] == 5:
+                        name = names[0] + "(V)" + " " + names[1]
+                    elif numbers[0] == 1 and numbers[1] == 3:
+                        name = names[0] + "(VI)" + " " + names[1]
+                    elif numbers[0] == 2 and numbers[1] == 7:
+                        name = names[0] + "(VII)" + " " + names[1]
+
+            if names[1] == "Nitride" or names[1] == "Phosphide":
+                if names[0] != "Lithium" and names[0] != "Sodium" and names[0] != "Potassium" and \
+                   names[0] != "Rubidium" and names[0] != "Cesium" and names[0] != "Francium" and \
+                   names[0] != "Beryllium" and names[0] != "Magnesium" and names[0] != "Calcium" and \
+                   names[0] != "Strontium" and names[0] != "Barium" and names[0] != "Radium" and \
+                   names[0] != "Aluminum":
+
+                    if numbers[0] == 1 and numbers[1] == 1:
+                        name = names[0] + "(III)" + " " + names[1]
+                    if numbers[0] == 1 and numbers[1] == 2:
+                        name = names[0] + "(VI)" + " " + names[1]
+                    elif numbers[0] == 3 and numbers[1] == 2:
+                        name = names[0] + "(II)" + " " + names[1]
+                    elif numbers[0] == 3 and numbers[1] == 4:
+                        name = names[0] + "(IV)" + " " + names[1]
+                    elif numbers[0] == 3 and numbers[1] == 5:
+                        name = names[0] + "(V)" + " " + names[1]
+                    elif numbers[0] == 3 and numbers[1] == 7:
+                        name = names[0] + "(VII)" + " " + names[1]
+
+            if names[1] == "Carbide":
+                if names[0] != "Lithium" and names[0] != "Sodium" and names[0] != "Potassium" and \
+                   names[0] != "Rubidium" and names[0] != "Cesium" and names[0] != "Francium" and \
+                   names[0] != "Beryllium" and names[0] != "Magnesium" and names[0] != "Calcium" and \
+                   names[0] != "Strontium" and names[0] != "Barium" and names[0] != "Radium" and \
+                   names[0] != "Aluminum":
+
+                    if numbers[0] == 1 and numbers[1] == 1:
+                        name = names[0] + "(IV)" + " " + names[1]
+                    if numbers[0] == 2 and numbers[1] == 1:
+                        name = names[0] + "(II)" + " " + names[1]
+                    if numbers[0] == 4 and numbers[1] == 1:
+                        name = names[0] + "(I)" + " " + names[1]
+                    if numbers[0] == 4 and numbers[1] == 3:
+                        name = names[0] + "(III)" + " " + names[1]
+                    if numbers[0] == 4 and numbers[1] == 5:
+                        name = names[0] + "(V)" + " " + names[1]
+                    if numbers[0] == 2 and numbers[1] == 3:
+                        name = names[0] + "(VI)" + " " + names[1]
+                    if numbers[0] == 4 and numbers[1] == 7:
+                        name = names[0] + "(VII)" + " " + names[1]
+
+            material.material_name = name
+
     def periodicity(self, material: Material) -> None:
         material.periodicity = np.array([0, 1, 2], dtype=np.int8)
 
@@ -635,6 +758,7 @@ class StructureBulk(Structure):
         self.formula_reduced(material, names, reduced_counts)
         self.has_free_wyckoff_parameters(material, symmetry_analyzer)
         self.lattice_parameters(calculation, std_atoms)
+        self.material_name(material, names, reduced_counts)
         self.cell_angles_string(calculation)
         self.periodicity(material)
         self.point_group(material, sec_symmetry)

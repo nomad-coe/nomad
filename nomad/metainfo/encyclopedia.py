@@ -102,6 +102,14 @@ class Material(MSection):
         Hill notation for the irreducible unit cell.
         """
     )
+    formula_reduced = Quantity(
+        type=str,
+        description="""
+        Formula giving the composition and occurrences of the elements in the
+        Hill notation for the irreducible unit cell. In this reduced form the
+        number of occurences have been divided by the greatest common divisor.
+        """
+    )
     has_free_wyckoff_parameters = Quantity(
         type=bool,
         description="""
@@ -111,12 +119,10 @@ class Material(MSection):
         move with possible restrictions set by the symmetry.
         """
     )
-    formula_reduced = Quantity(
+    material_name = Quantity(
         type=str,
         description="""
-        Formula giving the composition and occurrences of the elements in the
-        Hill notation for the irreducible unit cell. In this reduced form the
-        number of occurences have been divided by the greatest common divisor.
+        Most meaningful name for a material.
         """
     )
     periodicity = Quantity(
