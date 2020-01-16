@@ -125,7 +125,7 @@ class TestKeycloak:
         assert user.affiliation_address is not None
 
     def test_get_user(self, keycloak):
-        user = infrastructure.keycloak.get_user(email='sheldon.cooper@nomad-coe.eu')
+        user = infrastructure.keycloak.get_user(username='scooper')
         self.assert_sheldon(user)
 
     def test_search_user(self, keycloak):
