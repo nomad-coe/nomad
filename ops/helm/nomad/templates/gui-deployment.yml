@@ -77,7 +77,7 @@ data:
   env.js: |
     window.nomadEnv = {
       "appBase": "{{ .Values.proxy.external.path }}",
-      "keycloakBase": "{{ .Values.keycloak.serverUrl }}",
+      "keycloakBase": "{{ .Values.keycloak.serverExternalUrl }}",
       "keycloakRealm": "{{ .Values.keycloak.realmName }}",
       "keycloakClientId": "{{ .Values.keycloak.guiClientId }}",
       "matomoSiteId": {{ .Values.gui.matomoSiteId }},

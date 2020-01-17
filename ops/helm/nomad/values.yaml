@@ -132,6 +132,7 @@ mail:
   from: 'webmaster@nomad-repository.eu'
 
 keycloak:
+  serverExternalUrl: "https://repository.nomad-coe.eu/fairdi/keycloak/auth/"
   serverUrl: "https://repository.nomad-coe.eu/fairdi/keycloak/auth/"
   realmName: "fairdi_nomad_test"
   username: "admin"

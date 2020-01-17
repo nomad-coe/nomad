@@ -19,11 +19,12 @@ dbname: fairdi_nomad_testing_major
 uploadurl: 'https://labdev-nomad.rzg.mpg.de/fairdi/nomad/testing-major/upload'
 
 keycloak:
+  serverUrl: 'http://130.183.207.104:8002/fairdi/keycloak/auth/'   
   passwordSecret: 'nomad-keycloak-password'
-  realmName: 'fairdi_nomad_prod'
+  realmName: 'fairdi_nomad_test'
   clientId: 'nomad_api_dev'
-  clientSecret: 'nomad-keycloak-prod-api-secret'
-  admin_user_id: '82efac55-6187-408c-8027-b98580c0e1c5'
+  clientSecret: 'nomad-keycloak-test-api-secret'
+  admin_user_id: 'c97facc2-92ec-4fa6-80cf-a08ed957255b'
 
 volumes:
   prefixSize: 1
