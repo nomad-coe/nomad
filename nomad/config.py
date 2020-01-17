@@ -112,6 +112,7 @@ elastic = NomadConfig(
 )
 
 keycloak = NomadConfig(
+    server_external_url='https://repository.nomad-coe.eu/fairdi/keycloak/auth/',
     server_url='https://repository.nomad-coe.eu/fairdi/keycloak/auth/',
     realm_name='fairdi_nomad_test',
     username='admin',
