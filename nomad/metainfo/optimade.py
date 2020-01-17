@@ -2,7 +2,7 @@ from ase.data import chemical_symbols
 from elasticsearch_dsl import Keyword, Integer, Float, InnerDoc, Nested
 import numpy as np
 
-from nomad.metainfo import MSection, Section, Quantity, SubSection, Enum, units
+from nomad.metainfo import MSection, Section, Quantity, SubSection, MEnum, units
 
 
 def optimade_links(section: str):
@@ -42,7 +42,7 @@ class Species(MSection):
         ''')
 
     chemical_symbols = Quantity(
-        type=Enum(chemical_symbols + ['x', 'vacancy']), shape=['1..*'],
+        type=MEnum(chemical_symbols + ['x', 'vacancy']), shape=['1..*'],
         a_optimade=Optimade(entry=True), description='''
             A list of strings of all chemical elements composing this species.
 
@@ -217,7 +217,7 @@ class OptimadeEntry(MSection):
     # TODO assemblies
 
     structure_features = Quantity(
-        type=Enum(['disorder', 'unknown_positions', 'assemblies']), shape=['1..*'],
+        type=MEnum(['disorder', 'unknown_positions', 'assemblies']), shape=['1..*'],
         links=optimade_links('h.6.2.15'),
         a_elastic=dict(type=Keyword),
         a_optimade=Optimade(query=True, entry=True), description='''
