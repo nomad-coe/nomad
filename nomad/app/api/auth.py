@@ -266,7 +266,7 @@ class UsersResource(Resource):
         if error is not None:
             abort(400, 'Could not invite user: %s' % error)
 
-        return datamodel.User.get(email=user.email), 200
+        return datamodel.User.get(username=user.username), 200
 
 
 def with_signature_token(func):

@@ -17,7 +17,8 @@ class Quantity extends React.Component {
     column: PropTypes.bool,
     data: PropTypes.object,
     quantity: PropTypes.string,
-    withClipboard: PropTypes.bool
+    withClipboard: PropTypes.bool,
+    ellipsisFront: PropTypes.bool
   }
 
   static styles = theme => ({
@@ -29,6 +30,15 @@ class Quantity extends React.Component {
     },
     value: {
       flexGrow: 1
+    },
+    ellipsis: {
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis'
+    },
+    ellipsisFront: {
+      direction: 'rtl',
+      textAlign: 'left'
     },
     valueAction: {},
     valueActionButton: {
@@ -50,24 +60,35 @@ class Quantity extends React.Component {
       '& > :not(:first-child)': {
         marginTop: theme.spacing.unit * 1
       }
+    },
+    label: {
+      color: 'rgba(0, 0, 0, 0.54)',
+      fontSize: '0.75rem',
+      fontWeight: 500
     }
   })
 
   render() {
-    const {classes, children, label, typography, loading, placeholder, noWrap, row, column, quantity, data, withClipboard} = this.props
+    const {classes, children, label, typography, loading, placeholder, noWrap, row, column, quantity, data, withClipboard, ellipsisFront} = this.props
     let content = null
     let clipboardContent = null
+
+    let valueClassName = classes.value
+    if (noWrap && ellipsisFront) {
+      valueClassName = `${valueClassName} ${classes.ellipsisFront}`
+    }
+    console.log(valueClassName)
     if (!loading) {
       if (!(data && quantity && !data[quantity])) {
         if (!children || children.length === 0) {
           const value = data && quantity ? data[quantity] : null
           if (value) {
             clipboardContent = value
-            content = <Typography noWrap={noWrap} variant={typography} className={classes.value}>
+            content = <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
               {value}
             </Typography>
           } else {
-            content = <Typography noWrap={noWrap} variant={typography} className={classes.value}>
+            content = <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
               <i>{placeholder || 'unavailable'}</i>
             </Typography>
           }
@@ -75,7 +96,7 @@ class Quantity extends React.Component {
           content = children
         }
       } else {
-        content = <Typography noWrap={noWrap} variant={typography} className={classes.value}>
+        content = <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
           <i>{placeholder || 'unavailable'}</i>
         </Typography>
       }
@@ -86,10 +107,10 @@ class Quantity extends React.Component {
     } else {
       return (
         <div className={classes.root}>
-          <Typography noWrap variant="caption">{label || quantity}</Typography>
+          <Typography noWrap classes={{root: classes.label}} variant="caption">{label || quantity}</Typography>
           <div className={classes.valueContainer}>
             {loading
-              ? <Typography noWrap={noWrap} variant={typography} className={classes.value}>
+              ? <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
                 <i>loading ...</i>
               </Typography> : content}
             {withClipboard

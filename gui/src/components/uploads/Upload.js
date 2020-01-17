@@ -43,15 +43,16 @@ class PublishConfirmDialog extends React.Component {
           <DialogTitle>Publish data</DialogTitle>
           <DialogContent>
             <Markdown>{`
-              If you agree the selected uploads will move out of your private staging
-              area into the public [NOMAD Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/).
-              If you wish to put an embargo on your data it will last upto 36 month. Afterwards, your data will
-              be made public. All public data will be made available under the Creative
+              If you agree this upload will be published and move out of your private staging
+              area into the public NOMAD. This step is final. All public data will be made available under the Creative
               Commons Attribution license ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)).
 
-              The published data will be added to the NOMAD Repository's index overnight.
-              Therefore, it will take until tomorrow before your data appears in the
-              [NOMAD Repository](https://repository.nomad-coe.eu/NomadRepository-1.1/).
+              If you wish, you can put an embargo on your data. Embargoed data is not
+              visible to others (unless explicitly shared), but you can already create
+              datasets and assign DOIs for data with embargo, e.g. to put it into your
+              unpublished paper. The embargo will last up to 36 month. Afterwards, your
+              data will be made publicly available. You can also lift the embargo on
+              entries at any time. This functionality is part of editing entries.
             `}</Markdown>
 
             <FormGroup row style={{alignItems: 'center'}}>
@@ -157,6 +158,7 @@ class Upload extends React.Component {
     },
     updating: true, // it is still not complete and continuously looking for updates
     showPublishDialog: false,
+    showDeleteDialog: false,
     columns: {},
     expanded: null
   }
@@ -208,8 +210,7 @@ class Upload extends React.Component {
     const columns = {
       mainfile: {
         label: 'Mainfile',
-        supportsSort: true,
-        description: 'The path to the main output of this entry in the upload.'
+        supportsSort: true
       },
       parser: {
         label: 'Parser',
@@ -244,10 +245,10 @@ class Upload extends React.Component {
 
           if (error) {
             return <Tooltip title={tooltip}>
-                <Typography color="error">
-                  {label}
-                </Typography>
-              </Tooltip>
+              <Typography color="error">
+                {label}
+              </Typography>
+            </Tooltip>
           } else {
             return label
           }
@@ -341,15 +342,8 @@ class Upload extends React.Component {
     this.setState({showPublishDialog: false})
   }
 
-
   handleDeleteCancel() {
     this.setState({showDeleteDialog: false})
-  }
-
-  onCheckboxChanged(_, checked) {
-    if (this.props.onCheckboxChanged) {
-      this.props.onCheckboxChanged(checked)
-    }
   }
 
   renderTitle() {

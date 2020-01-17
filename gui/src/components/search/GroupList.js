@@ -11,8 +11,11 @@ import { withApi } from '../api'
 import { EntryListUnstyled } from './EntryList'
 import MoreIcon from '@material-ui/icons/MoreHoriz'
 import DownloadButton from '../DownloadButton'
+import SearchContext from './SearchContext'
 
 class GroupUnstyled extends React.Component {
+  static contextType = SearchContext.type
+
   static propTypes = {
     classes: PropTypes.object.isRequired,
     groupHash: PropTypes.string.isRequired,
@@ -31,7 +34,8 @@ class GroupUnstyled extends React.Component {
 
   update() {
     const {groupHash, api, raiseError} = this.props
-    api.search({group_hash: groupHash, per_page: 100})
+    const {query} = this.context.state
+    api.search({...query, group_hash: groupHash, per_page: 100})
       .then(data => {
         this.setState({entries: data.results})
       })
@@ -177,7 +181,6 @@ class GroupListUnstyled extends React.Component {
     const defaultSelectedColumns = this.props.selectedColumns || [
       ...domain.defaultSearchResultColumns,
       'datasets', 'authors', 'entries']
-
 
     let paginationText
     if (groups_after) {

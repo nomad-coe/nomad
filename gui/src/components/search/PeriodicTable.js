@@ -53,7 +53,8 @@ class ElementUnstyled extends React.Component {
       left: 2,
       margin: 0,
       padding: 0,
-      fontSize: 8
+      fontSize: 8,
+      pointerEvents: 'none'
     },
     count: {
       position: 'absolute',
@@ -61,7 +62,8 @@ class ElementUnstyled extends React.Component {
       right: 2,
       margin: 0,
       padding: 0,
-      fontSize: 8
+      fontSize: 8,
+      pointerEvents: 'none'
     }
   })
 
