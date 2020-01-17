@@ -99,7 +99,7 @@ class OptimadeEntry(MSection):
         a_elastic=dict(type=InnerDoc))
 
     elements = Quantity(
-        type=Enum(chemical_symbols), shape=['1..*'],
+        type=MEnum(chemical_symbols), shape=['1..*'],
         links=optimade_links('h.6.2.1'),
         a_elastic=dict(type=Keyword),
         a_optimade=Optimade(query=True, entry=True),
