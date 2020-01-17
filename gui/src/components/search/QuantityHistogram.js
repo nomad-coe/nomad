@@ -126,8 +126,8 @@ class QuantityHistogram extends React.Component {
       .attr('width', d => x(d.value) - x(0))
       .attr('height', y.bandwidth())
       .style('fill', rectColor)
-      .style('stroke', '#000')
-      .style('stroke-width', '1px')
+      // .style('stroke', '#000')
+      // .style('stroke-width', '1px')
       .style('shape-rendering', 'geometricPrecision')
 
     item

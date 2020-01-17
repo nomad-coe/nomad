@@ -1059,7 +1059,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
 
     if (submitting) {
       return <DialogActions>
-        <DialogContentText color="error" style={{marginLeft: 16}}>Do not close the page. This might take up to several minutes for editing many entries.</DialogContentText>
+        <DialogContentText style={{marginLeft: 16}}>Do not close the page. This might take up to several minutes for editing many entries.</DialogContentText>
         <span style={{flexGrow: 1}} />
         <div className={classes.submitWrapper}>
           <Button onClick={this.handleSubmit} disabled={!submitEnabled} color="primary">

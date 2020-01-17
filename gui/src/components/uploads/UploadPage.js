@@ -92,7 +92,7 @@ be changed after publishing data. The documentation on the [user data page](${gu
 contains more information.
 `
 
-class Uploads extends React.Component {
+class UploadPage extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
@@ -350,4 +350,4 @@ class Uploads extends React.Component {
   }
 }
 
-export default compose(withApi(true, false, 'To upload data, you must have a Nomad Repository account and you must be logged in.'), withCookies, withStyles(Uploads.styles))(Uploads)
+export default compose(withApi(true, false, 'To upload data, you must have a Nomad Repository account and you must be logged in.'), withCookies, withStyles(UploadPage.styles))(UploadPage)

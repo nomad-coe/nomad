@@ -30,7 +30,6 @@ class ElementUnstyled extends React.Component {
     },
     button: {
       border: '1px solid',
-      borderColor: '#555',
       paddingTop: theme.spacing.unit,
       paddingBottom: theme.spacing.unit,
       paddingLeft: 0,
@@ -42,7 +41,8 @@ class ElementUnstyled extends React.Component {
       textTransform: 'none',
       minWidth: 0,
       minHeight: 0,
-      borderRadius: 0
+      borderRadius: 0,
+      boxShadow: 'none'
     },
     containedPrimary: {
       backgroundColor: theme.palette.primary.main
@@ -75,6 +75,11 @@ class ElementUnstyled extends React.Component {
     }
     const disabled = count <= 0
 
+    const style = (count > 0) ? {
+      backgroundColor: !selected ? heatmapScale(count).hex() : undefined,
+      borderColor: '#555'
+    } : undefined
+
     return (
       <div className={classes.root}>
         <Tooltip title={element.name}>
@@ -82,7 +87,7 @@ class ElementUnstyled extends React.Component {
             <Button
               disabled={disabled}
               classes={buttonClasses}
-              style={{backgroundColor: count > 0 && !selected ? heatmapScale(count).hex() : undefined}}
+              style={style}
               onClick={this.props.onClick} variant="contained"
               color={selected ? 'primary' : 'default'}
             >
