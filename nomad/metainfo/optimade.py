@@ -42,8 +42,7 @@ class Species(MSection):
         ''')
 
     chemical_symbols = Quantity(
-        type=MEnum(chemical_symbols + ['x', 'vacancy']),
-        shape=['1..*'],
+        type=MEnum(chemical_symbols + ['x', 'vacancy']), shape=['1..*'],
         a_optimade=Optimade(entry=True), description='''
             A list of strings of all chemical elements composing this species.
 

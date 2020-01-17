@@ -42,7 +42,7 @@ Starting example
             A Defines the number of atoms in the system.
             ''')
 
-        atom_labels = Quantity(type=Enum(ase.data.chemical_symbols), shape['n_atoms'])
+        atom_labels = Quantity(type=MEnum(ase.data.chemical_symbols), shape['n_atoms'])
         atom_positions = Quantity(type=float, shape=['n_atoms', 3], unit=Units.m)
         simulation_cell = Quantity(type=float, shape=[3, 3], unit=Units.m)
         pbc = Quantity(type=bool, shape=[3])

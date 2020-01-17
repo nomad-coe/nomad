@@ -107,7 +107,7 @@ the instances of a sub section.
 A `Quantity` definition is a special and concrete `Property` definition:
 
 - `shape`, a list of either `int`, references to a dimension (quantity definition), or limits definitions (e.g. `'1..n'`, `'0..n'`.)
-- `type`, a primitive or Enum type
+- `type`, a primitive or MEnum type
 - `unit`, a (computed) units, e.g. `units.F * units.m`
 - `derived_from`, a list of references to other quantity definitions
 - `synonym`, a reference to another quantity definition
@@ -187,7 +187,7 @@ class System(MSection):
 
     atom_labels = Quantity(
         shape=['n_atoms'],
-        type=Enum(ase.data.chemical_symbols),
+        type=MEnum(ase.data.chemical_symbols),
         annotations=[ElasticSearchQuantity('keyword')])
     """
     Atom labels are ...
