@@ -193,7 +193,11 @@ normalize = NomadConfig(
     # cluster. Used in detecting system type.
     cluster_threshold=3.1,
     # Defines the "bin size" for rounding cell angles for the material hash
-    angle_rounding=float(10.0)  # unit: degree
+    angle_rounding=float(10.0),  # unit: degree
+    # The threshold for a system to be considered "flat". Used e.g. when
+    # determining if a 2D structure is purely 2-dimensional to allow extra rigid
+    # transformations that are improper in 3D but proper in 2D.
+    flat_dim_threshold=0.1,
 )
 
 client = NomadConfig(

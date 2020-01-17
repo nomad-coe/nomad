@@ -21,8 +21,10 @@ import math
 import json
 import ase
 import ase.data
+from ase import Atoms
 import numpy as np
 from matid import SymmetryAnalyzer
+import matid.geometry
 
 from nomad.normalizing.normalizer import Normalizer, s_scc, s_system, s_frame_sequence, r_frame_sequence_to_sampling, s_sampling_method, r_frame_sequence_local_frames, r_scc_to_system
 from nomad.metainfo.encyclopedia import Encyclopedia, Material, Calculation
@@ -389,11 +391,11 @@ class EncyclopediaNormalizer(Normalizer):
         # Fill structure related metainfo
         struct = None
         if system_type == Material.system_type.type.bulk:
-            struct = StructureBulk()
+            struct = StructureBulk(self._backend, self.logger)
         elif system_type == Material.system_type.type.two_d:
-            struct = Structure2D()
+            struct = Structure2D(self._backend, self.logger)
         if struct is not None:
-            struct.fill(self._backend, representative_system)
+            struct.fill(representative_system)
 
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
@@ -428,16 +430,15 @@ class Structure():
     """A base class that is used for processing structure related information
     in the Encylopedia.
     """
+    def __init__(self, backend, logger):
+        self.backend = backend
+        self.logger = logger
+
     def atom_labels(self, material: Material, std_atoms: ase.Atoms) -> None:
         material.atom_labels = std_atoms.get_chemical_symbols()
 
     def atom_positions(self, material: Material, std_atoms: ase.Atoms) -> None:
         material.atom_positions = std_atoms.get_scaled_positions(wrap=False)
-
-    def atomic_density(self, calculation: Calculation, repr_system: ase.Atoms) -> None:
-        orig_n_atoms = len(repr_system)
-        orig_volume = repr_system.get_volume() * (1e-10)**3
-        calculation.atomic_density = float(orig_n_atoms / orig_volume)
 
     @abstractmethod
     def bravais_lattice(self, material: Material, section_system: Dict) -> None:
@@ -474,18 +475,13 @@ class Structure():
     def has_free_wyckoff_parameters(self, material: Material, wyckoff_sets: Dict) -> None:
         pass
 
-    @abstractmethod
-    def lattice_parameters(self, calculation: Calculation, std_atoms: ase.Atoms) -> None:
-        pass
+    def material_hash(self, material: Material, symmetry_analyzer: SymmetryAnalyzer) -> None:
+        wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional()
+        space_group_number = symmetry_analyzer.get_space_group_number()
 
-    def mass_density(self, calculation: Calculation, repr_system: ase.Atoms) -> None:
-        orig_volume = repr_system.get_volume() * (1e-10)**3
-        mass = structure.get_summed_atomic_mass(repr_system.get_atomic_numbers())
-        calculation.mass_density = float(mass / orig_volume)
-
-    @abstractmethod
-    def material_hash(self, material: Material, section_system: Dict) -> None:
-        pass
+        # Create and store hash based on SHA512
+        norm_hash_string = structure.get_symmetry_string(space_group_number, wyckoff_sets)
+        material.material_hash = sha512(norm_hash_string.encode('utf-8')).hexdigest()
 
     @abstractmethod
     def material_name(self, material: Material, symbols: list, numbers: list) -> None:
@@ -493,10 +489,6 @@ class Structure():
 
     def number_of_atoms(self, material: Material, std_atoms: ase.Atoms) -> None:
         material.number_of_atoms = len(std_atoms)
-
-    @abstractmethod
-    def periodicity(self, material: Material) -> None:
-        pass
 
     @abstractmethod
     def point_group(self, material: Material, section_symmetry: Dict) -> None:
@@ -510,15 +502,10 @@ class Structure():
 class StructureBulk(Structure):
     """Processes structure related metainfo for Encyclopedia bulk structures.
     """
-    def material_hash(self, material: Material, section_symmetry: Dict) -> None:
-        # Get symmetry information from the section
-        space_group_number = section_symmetry["space_group_number"]
-        section_std_system = section_symmetry["section_std_system"][0]
-        wyckoff_sets = section_std_system.tmp["wyckoff_sets"]
-
-        # Create and store hash based on SHA512
-        norm_hash_string = structure.get_symmetry_string(space_group_number, wyckoff_sets)
-        material.material_hash = sha512(norm_hash_string.encode('utf-8')).hexdigest()
+    def atomic_density(self, calculation: Calculation, repr_system: ase.Atoms) -> None:
+        orig_n_atoms = len(repr_system)
+        orig_volume = repr_system.get_volume() * (1e-10)**3
+        calculation.atomic_density = float(orig_n_atoms / orig_volume)
 
     def bravais_lattice(self, material: Material, section_symmetry: Dict) -> None:
         bravais_lattice = section_symmetry["bravais_lattice"]
@@ -553,6 +540,11 @@ class StructureBulk(Structure):
     def lattice_parameters(self, calculation: Calculation, std_atoms: ase.Atoms) -> None:
         cell_normalized = std_atoms.get_cell()
         calculation.lattice_parameters = structure.get_lattice_parameters(cell_normalized)
+
+    def mass_density(self, calculation: Calculation, repr_system: ase.Atoms) -> None:
+        orig_volume = repr_system.get_volume() * (1e-10)**3
+        mass = structure.get_summed_atomic_mass(repr_system.get_atomic_numbers())
+        calculation.mass_density = float(mass / orig_volume)
 
     def material_name(self, material: Material, symbols: list, numbers: list) -> None:
         # Systems with one element are named after it
@@ -698,26 +690,27 @@ class StructureBulk(Structure):
             wyckoff_list.append(data)
         material.wyckoff_groups = json.dumps(wyckoff_list, sort_keys=True)
 
-    def fill(self, backend, representative_system: Dict) -> None:
+    def fill(self, representative_system) -> None:
         # Fetch resources
-        sec_enc = backend.get_mi2_section(Encyclopedia.m_def)
+        sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         material = sec_enc.material
         calculation = sec_enc.calculation
         sec_symmetry = representative_system["section_symmetry"][0]
         symmetry_analyzer = representative_system["section_symmetry"][0].tmp["symmetry_analyzer"]
-        std_atoms = sec_symmetry["section_std_system"][0].tmp["std_atoms"]  # Temporary value stored by SystemNormalizer
-        prim_atoms = sec_symmetry["section_primitive_system"][0].tmp["prim_atoms"]  # Temporary value stored by SystemNormalizer
-        repr_atoms = sec_symmetry["section_original_system"][0].tmp["orig_atoms"]  # Temporary value stored by SystemNormalizer
-        wyckoff_sets = sec_symmetry["section_std_system"][0].tmp["wyckoff_sets"]
+        std_atoms = symmetry_analyzer.get_conventional_system()
+        prim_atoms = symmetry_analyzer.get_primitive_system()
+        repr_atoms = representative_system.tmp["representative_atoms"]  # Temporary value stored by SystemNormalizer
+        wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional()
         names, counts = structure.get_hill_decomposition(prim_atoms.get_chemical_symbols(), reduced=False)
         greatest_common_divisor = reduce(gcd, counts)
         reduced_counts = np.array(counts) / greatest_common_divisor
 
         # Fill structural information
         self.mass_density(calculation, repr_atoms)
-        self.material_hash(material, sec_symmetry)
+        self.material_hash(material, symmetry_analyzer)
         self.number_of_atoms(material, std_atoms)
         self.atom_labels(material, std_atoms)
+        self.atom_positions(material, std_atoms)
         self.atomic_density(calculation, repr_atoms)
         self.bravais_lattice(material, sec_symmetry)
         self.cell_normalized(material, std_atoms)
@@ -738,48 +731,110 @@ class StructureBulk(Structure):
 class Structure2D(Structure):
     """Processes structure related metainfo for Encyclopedia 2D structures.
     """
-    def material_hash(self, material: Material, section_symmetry: Dict) -> None:
-        pass
+    def get_symmetry_analyzer(self, original_system: Atoms) -> SymmetryAnalyzer:
+        # Determine the periodicity by examining vacuum gaps
+        vacuum_directions = structure.find_vacuum_directions(original_system, threshold=7.0)
+        periodicity = np.invert(vacuum_directions)
+
+        # If two axis are not periodic, return. This only happens if the vacuum
+        # gap is not aligned with a cell vector.
+        if sum(periodicity) != 2:
+            self.logger.warn("Could not detect the periodic dimensions in a 2D system.")
+            return False
+
+        # Center the system in the non-periodic direction, also taking
+        # periodicity into account. The get_center_of_mass()-function in MatID
+        # takes into account periodicity and can produce the correct CM unlike
+        # the similar function in ASE.
+        pbc_cm = matid.geometry.get_center_of_mass(original_system)
+        cell_center = 0.5 * np.sum(original_system.get_cell(), axis=0)
+        translation = cell_center - pbc_cm
+        translation[periodicity] = 0
+        symm_system = original_system.copy()
+        symm_system.translate(translation)
+
+        # Set the periodicity according to detected periodicity in order for
+        # SymmetryAnalyzer to use the symmetry analysis designed for 2D
+        # systems.
+        symm_system.set_pbc(periodicity)
+        symmetry_analyzer = SymmetryAnalyzer(
+            symm_system,
+            config.normalize.symmetry_tolerance,
+            config.normalize.flat_dim_threshold
+        )
+        return symmetry_analyzer
+
+    def get_non_periodic_index_std(self, symmetry_analyzer: SymmetryAnalyzer) -> int:
+        # Get the periodicity as detected by classification
+        pbc = symmetry_analyzer._original_system.get_pbc()
+        non_periodic_index_orig = np.where(pbc == False)[0][0]  # noqa: E712
+
+        # The index of the originally non-periodic dimension may not correspond
+        # to the one in the normalized system, because the normalized system
+        # may use a different coordinate system. We will have to get this
+        # transformation_matrix = self.symmetry_dataset["transformation_matrix"]
+        transformation_matrix = symmetry_analyzer._get_spglib_transformation_matrix()
+        for i_axis, axis in enumerate(transformation_matrix):
+            if axis[non_periodic_index_orig] != 0 and \
+               axis[(non_periodic_index_orig + 1) % 3] == 0.0 and \
+               axis[(non_periodic_index_orig + 2) % 3] == 0.0:
+                non_periodic_index_std = i_axis
+                break
+
+        return non_periodic_index_std
 
     def cell_angles_string(self, calculation: Calculation) -> None:
         pass
 
     def cell_normalized(self, material: Material, std_atoms: ase.Atoms) -> None:
-        pass
+        cell_normalized = std_atoms.get_cell()
+        cell_normalized *= 1e-10
+        material.cell_normalized = cell_normalized
 
     def cell_primitive(self, material: Material, prim_atoms: ase.Atoms) -> None:
-        pass
+        cell_prim = prim_atoms.get_cell()
+        cell_prim *= 1e-10
+        material.cell_primitive = cell_prim
 
-    def lattice_parameters(self, calculation: Calculation, std_atoms: ase.Atoms) -> None:
-        pass
+    def lattice_parameters(self, calculation: Calculation, symmetry_analyzer: SymmetryAnalyzer, std_atoms: Atoms, non_periodic_index_std: int) -> None:
+        # Eliminate the parameters in the non-periodic dimension
+        periodicity = np.array([True, True, True])
+        periodicity[non_periodic_index_std] = False
+        full_parameters = structure.get_lattice_parameters(std_atoms.get_cell())
+        lengths = np.array(full_parameters[:3])
+        angles = np.array(full_parameters[3:])
 
-    def periodicity(self, material: Material) -> None:
-        pass
+        a, b = lengths[periodicity] * 1e-10
+        alpha = angles[non_periodic_index_std]
+        calculation.lattice_parameters = np.array([a, b, 0.0, alpha, 0.0, 0.0])
 
-    def fill(self, backend, representative_system: Dict) -> None:
+    def periodicity(self, material: Material, non_periodic_index_std: int) -> None:
+        periodic_indices = [0, 1, 2]
+        del periodic_indices[non_periodic_index_std]
+        material.periodicity = np.array(periodic_indices, dtype=np.int8)
+
+    def fill(self, representative_system) -> None:
         # Fetch resources
-        sec_enc = backend.get_mi2_section(Encyclopedia.m_def)
+        sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         material = sec_enc.material
         calculation = sec_enc.calculation
-        sec_symmetry = representative_system["section_symmetry"][0]
-        std_atoms = sec_symmetry["section_std_system"][0].tmp["std_atoms"]  # Temporary value stored by SystemNormalizer
-        prim_atoms = sec_symmetry["section_primitive_system"][0].tmp["prim_atoms"]  # Temporary value stored by SystemNormalizer
-        repr_atoms = sec_symmetry["section_original_system"][0].tmp["orig_atoms"]  # Temporary value stored by SystemNormalizer
+        repr_atoms = representative_system.tmp["representative_atoms"]  # Temporary value stored by SystemNormalizer
+        symmetry_analyzer = self.get_symmetry_analyzer(repr_atoms)
+        std_atoms = symmetry_analyzer.get_conventional_system()
+        prim_atoms = symmetry_analyzer.get_primitive_system()
         names, counts = structure.get_hill_decomposition(prim_atoms.get_chemical_symbols(), reduced=False)
         greatest_common_divisor = reduce(gcd, counts)
         reduced_counts = np.array(counts) / greatest_common_divisor
+        non_periodic_index_std = self.get_non_periodic_index_std(symmetry_analyzer)
 
-        # Fill structural information
-        self.mass_density(calculation, repr_atoms)
-        self.material_hash(material, sec_symmetry)
+        # Fill metainfo
+        self.material_hash(material, symmetry_analyzer)
         self.number_of_atoms(material, std_atoms)
         self.atom_labels(material, std_atoms)
-        self.atomic_density(calculation, repr_atoms)
+        self.atom_positions(material, std_atoms)
         self.cell_normalized(material, std_atoms)
-        self.cell_volume(calculation, std_atoms)
         self.cell_primitive(material, prim_atoms)
         self.formula(material, names, counts)
         self.formula_reduced(material, names, reduced_counts)
-        self.lattice_parameters(calculation, std_atoms)
-        self.cell_angles_string(calculation)
-        self.periodicity(material)
+        self.lattice_parameters(calculation, symmetry_analyzer, std_atoms, non_periodic_index_std)
+        self.periodicity(material, non_periodic_index_std)

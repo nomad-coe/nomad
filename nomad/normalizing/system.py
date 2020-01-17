@@ -242,6 +242,9 @@ class SystemNormalizer(SystemBasedNormalizer):
         set_value('configuration_raw_gid', configuration_id)
 
         if is_representative:
+            # Save the Atoms as a temporary variable
+            self._backend.add_tmp_value("section_system", "representative_atoms", atoms)
+
             # system type analysis
             if atom_positions is not None:
                 with utils.timer(
@@ -249,8 +252,10 @@ class SystemNormalizer(SystemBasedNormalizer):
                         system_size=atoms.get_number_of_atoms()):
                     self.system_type_analysis(atoms)
 
+            system_type = self._backend.get_value("system_type")
+
             # symmetry analysis
-            if atom_positions is not None and (lattice_vectors is not None or not any(pbc)):
+            if atom_positions is not None and (lattice_vectors is not None or not any(pbc)) and system_type == "bulk":
                 with utils.timer(
                         self.logger, 'symmetry analysis executed',
                         system_size=atoms.get_number_of_atoms()):
@@ -294,13 +299,11 @@ class SystemNormalizer(SystemBasedNormalizer):
         self._backend.addValue('system_type', system_type)
 
     def symmetry_analysis(self, atoms: ase.Atoms) -> None:
-        """Analyze the symmetry of the material being simulated.
+        """Analyze the symmetry of the material being simulated. Only performed
+        for bulk materials.
 
-        We feed in the parsed values in section_system to the
-        the symmetry analyzer. We then use the MatID library
-        to classify the system as 0D, 1D, 2D or 3D and more specific
-        when possible. When lattice vectors or simulation cells are not present
-        we skip this analysis. The analysis results are written to the backend.
+        We feed in the parsed values in section_system to the the symmetry
+        analyzer. The analysis results are written to the backend.
 
         Args:
             atoms: The atomistic structure to analyze.
@@ -371,8 +374,6 @@ class SystemNormalizer(SystemBasedNormalizer):
         self._backend.addArrayValues('atomic_numbers_std', conv_num)
         self._backend.addArrayValues('wyckoff_letters_std', conv_wyckoff)
         self._backend.addArrayValues('equivalent_atoms_std', conv_equivalent_atoms)
-        self._backend.add_tmp_value("section_std_system", "wyckoff_sets", wyckoff_sets)
-        self._backend.add_tmp_value("section_std_system", "std_atoms", conv_sys)
         self._backend.closeSection('section_std_system', std_gid)
 
         prim_gid = self._backend.openSection('section_primitive_system')
@@ -381,14 +382,12 @@ class SystemNormalizer(SystemBasedNormalizer):
         self._backend.addArrayValues('atomic_numbers_primitive', prim_num)
         self._backend.addArrayValues('wyckoff_letters_primitive', prim_wyckoff)
         self._backend.addArrayValues('equivalent_atoms_primitive', prim_equivalent_atoms)
-        self._backend.add_tmp_value("section_primitive_system", "prim_atoms", prim_sys)
         self._backend.closeSection('section_primitive_system', prim_gid)
 
         orig_gid = self._backend.openSection('section_original_system')
         self._backend.addArrayValues('wyckoff_letters_original', orig_wyckoff)
         self._backend.addArrayValues('equivalent_atoms_original', orig_equivalent_atoms)
         self._backend.closeSection('section_original_system', orig_gid)
-        self._backend.add_tmp_value("section_original_system", "orig_atoms", atoms)
         self._backend.closeSection('section_symmetry', symmetry_gid)
 
         self.springer_classification(atoms, space_group_number)  # Springer Normalizer
