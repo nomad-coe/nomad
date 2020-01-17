@@ -232,6 +232,7 @@ class Calculation(MSection):
 
 class Encyclopedia(MSection):
     m_def = Section(
+        name="encyclopedia",
         a_flask=dict(skip_none=True),
         a_elastic=dict(type=InnerDoc)
     )

@@ -16,7 +16,7 @@ import pytest
 import numpy as np
 
 from nomad.metainfo.encyclopedia import Encyclopedia
-from tests.normalizing.conftest import geometry_optimization, molecular_dynamics, phonon   # pylint: disable=unused-import
+from tests.normalizing.conftest import geometry_optimization, molecular_dynamics, phonon, twod   # pylint: disable=unused-import
 
 
 def test_geometry_optimization(geometry_optimization: Encyclopedia):
@@ -72,3 +72,10 @@ def test_bulk_information(geometry_optimization: Encyclopedia):
     assert go.calculation.cell_angles_string is not None
     assert go.calculation.mass_density == 4 * 22.98976928 * 1.6605389e-27 / 1e-30  # Atomic mass in kg / cell volume
     assert go.calculation.cell_volume == 1e-30
+
+
+def test_2d_information(twod: Encyclopedia):
+    """Tests that information for 2D systems is correctly processed."
+    """
+    enc = twod
+    assert enc.material.system_type == "2D"

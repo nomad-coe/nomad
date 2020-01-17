@@ -23,8 +23,8 @@ import sqlite3
 import functools
 import fractions
 
-from matid import SymmetryAnalyzer
-from matid.geometry import get_dimensionality
+from matid import SymmetryAnalyzer, Classifier
+from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, Class3D
 
 from nomadcore.structure_types import structure_types_by_spacegroup as str_types_by_spg
 
@@ -259,36 +259,37 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         return True
 
-    def system_type_analysis(self, atoms) -> None:
+    def system_type_analysis(self, atoms: ase.Atoms) -> None:
         """
-        Determine the dimensionality and hence the system type of the system with
-        MatID. Write the system type to the backend.
+        Determine the system type with MatID. Write the system type to the
+        backend.
+
+        Args:
+            atoms
         """
         system_type = config.services.unavailable_value
-        try:
-            if atoms.get_number_of_atoms() > config.normalize.system_classification_with_clusters_threshold:
-                # it is too expensive to run MatID's cluster detection, just check pbc
-                dimensionality = np.sum(atoms.get_pbc())
+        if atoms.get_number_of_atoms() <= config.normalize.system_classification_with_clusters_threshold:
+            try:
+                classifier = Classifier(cluster_threshold=config.normalize.cluster_threshold)
+                cls = classifier.classify(atoms)
+            except Exception as e:
+                self.logger.error(
+                    'matid project system classification failed', exc_info=e, error=str(e))
             else:
-                dimensionality = get_dimensionality(
-                    atoms, cluster_threshold=3.1, return_clusters=False)
-
-            if dimensionality is None:
-                pass
-            elif dimensionality == 0:
-                if atoms.get_number_of_atoms() == 1:
+                if isinstance(cls, Class3D):
+                    system_type = 'bulk'
+                elif isinstance(cls, Atom):
                     system_type = 'atom'
-                else:
+                elif isinstance(cls, Class0D):
                     system_type = 'molecule / cluster'
-            elif dimensionality == 1:
-                system_type = '1D'
-            elif dimensionality == 2:
-                system_type = '2D / surface'
-            elif dimensionality == 3:
-                system_type = 'bulk'
-        except Exception as e:
-            self.logger.error(
-                'matid project system classification failed', exc_info=e, error=str(e))
+                elif isinstance(cls, Class1D):
+                    system_type = '1D'
+                elif isinstance(cls, Surface):
+                    system_type = 'surface'
+                elif isinstance(cls, Material2D):
+                    system_type = '2D'
+        else:
+            self.logger.info("System type analysis not run due to large system size.")
 
         self._backend.addValue('system_type', system_type)
 

@@ -78,3 +78,13 @@ def phonon() -> Encyclopedia:
     backend = run_normalize(backend)
     enc = backend.get_mi2_section(Encyclopedia.m_def)
     return enc
+
+
+@pytest.fixture
+def twod() -> Encyclopedia:
+    parser_name = "parsers/fhi-aims"
+    filepath = "tests/data/normalizers/encyclopedia/fhiaims_2d_singlepoint/aims.out"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    return enc

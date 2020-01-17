@@ -112,7 +112,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
                 else:
                     sequences.append(frames)
 
-        # If no frame_sequences exist, consider all existing sccs
+        # If no frame_sequences exist, consider all existing sccs as a sequence
         if len(sequences) == 0:
             try:
                 sccs = self._backend.get_sections(s_scc)
