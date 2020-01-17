@@ -265,17 +265,7 @@ class DataTableUnStyled extends React.Component {
       width: 1
     },
     details: {
-      borderBottom: '1px solid rgba(224, 224, 224, 1)',
-      padding: theme.spacing.unit * 3
-    },
-    detailsContentsWithActions: {
-      paddingTop: theme.spacing.unit * 3,
-      paddingLeft: theme.spacing.unit * 3,
-      paddingRight: theme.spacing.unit * 3
-    },
-    detailsActions: {
-      textAlign: 'right',
-      padding: theme.spacing.unit
+      borderBottom: '1px solid rgba(224, 224, 224, 1)'
     },
     selectedEntryCell: {
       color: theme.palette.primary.contrastText,
