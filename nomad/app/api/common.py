@@ -16,11 +16,10 @@
 Common data, variables, decorators, models used throughout the API.
 """
 from typing import Callable, IO, Set, Tuple, Iterable
-from flask_restplus import fields, abort
+from flask_restplus import fields
 import zipstream
 from flask import stream_with_context, Response
 import sys
-import json
 
 from nomad.app.utils import RFC3339DateTime
 from nomad.files import Restricted
@@ -154,19 +153,6 @@ def streamed_zipfile(
     response = Response(stream_with_context(generator()), mimetype='application/zip')
     response.headers['Content-Disposition'] = 'attachment; filename={}'.format(zipfile_name)
     return response
-
-
-def to_json(files: Iterable[Tuple[str, str, Callable[[str], IO], Callable[[str], int]]]):
-    data = {}
-    for _, file_id, open_io, _ in files:
-        try:
-            f = open_io(file_id)
-            data[file_id] = json.loads(f.read())
-        except KeyError:
-            pass
-        except Restricted:
-            abort(401, message='Not authorized to access %s.' % file_id)
-    return data
 
 
 def build_snippet(args, base_url):

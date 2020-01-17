@@ -21,7 +21,7 @@ from typing import Dict, Any
 from io import BytesIO
 import os.path
 from flask import send_file
-from flask_restplus import abort, Resource
+from flask_restplus import abort, Resource, fields
 import json
 import importlib
 
@@ -33,7 +33,7 @@ from nomad import utils, search
 from .auth import authenticate, create_authorization_predicate
 from .api import api
 from .repo import search_request_parser, add_query
-from .common import calc_route, streamed_zipfile, build_snippet, to_json
+from .common import calc_route, streamed_zipfile, pagination_model, build_snippet
 
 ns = api.namespace(
     'archive',
@@ -112,16 +112,33 @@ archives_from_query_parser = search_request_parser.copy()
 archives_from_query_parser.add_argument(
     name='compress', type=bool, help='Use compression on .zip files, default is not.',
     location='args')
-archives_from_query_parser.add_argument(
-    name='res_type', type=str, help='Type of return value, can be zip of json.',
-    location='args', default='zip')
+
+archives_from_query_model_fields = {
+    'pagination': fields.Nested(pagination_model, skip_none=True),
+    'scroll': fields.Nested(allow_null=True, skip_none=True, model=api.model('Scroll', {
+        'total': fields.Integer(description='The total amount of hits for the search.'),
+        'scroll_id': fields.String(allow_null=True, description='The scroll_id that can be used to retrieve the next page.'),
+        'size': fields.Integer(help='The size of the returned scroll page.')})),
+    'results': fields.List(fields.Raw, description=(
+        'A list of search results. Each result is a dict with quantities names as key and '
+        'values as values')),
+    'archive_data': fields.Raw(description=('A dict of archive data with calc_ids as keys ')),
+    'code_snippet': fields.String(description=(
+        'A string of python code snippet which can be executed to reproduce the api result.')),
+}
+for group_name, (group_quantity, _) in search.groups.items():
+    archives_from_query_model_fields[group_name] = fields.Nested(api.model('ArchiveDatasets', {
+        'after': fields.String(description='The after value that can be used to retrieve the next %s.' % group_name),
+        'values': fields.Raw(description='A dict with %s as key. The values are dicts with "total" and "examples" keys.' % group_quantity)
+    }), skip_none=True)
+archives_from_query_model = api.model('RepoCalculations', archives_from_query_model_fields)
 
 
-@ns.route('/query')
-class ArchiveQueryResource(Resource):
+@ns.route('/download')
+class ArchiveDownloadResource(Resource):
     manifest_quantities = ['upload_id', 'calc_id', 'external_id', 'raw_id', 'pid', 'calc_hash']
 
-    @api.doc('archives_from_query')
+    @api.doc('archive_zip_download')
     @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
     @api.expect(archives_from_query_parser, validate=True)
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/zip'})
@@ -141,7 +158,6 @@ class ArchiveQueryResource(Resource):
         try:
             args = archives_from_query_parser.parse_args()
             compress = args.get('compress', False)
-            res_type = args.get('res_type')
         except Exception:
             abort(400, message='bad parameter types')
 
@@ -176,7 +192,7 @@ class ArchiveQueryResource(Resource):
 
                 manifest[calc_id] = {
                     key: entry[key]
-                    for key in ArchiveQueryResource.manifest_quantities
+                    for key in ArchiveDownloadResource.manifest_quantities
                     if entry.get(key) is not None
                 }
 
@@ -196,16 +212,103 @@ class ArchiveQueryResource(Resource):
                 lambda *args: BytesIO(manifest_contents),
                 lambda *args: len(manifest_contents))
 
-        if res_type == 'zip':
-            return streamed_zipfile(
-                generator(), zipfile_name='nomad_archive.zip', compress=compress)
-        elif res_type == 'json':
-            archive_data = to_json(generator())
-            code_snippet = build_snippet(args, os.path.join(api.base_url, ns.name, 'query'))
-            data = {'archive_data': archive_data, 'code_snippet': code_snippet}
-            return data, 200
-        else:
-            raise Exception('Unknown res_type %s' % res_type)
+        return streamed_zipfile(
+            generator(), zipfile_name='nomad_archive.zip', compress=compress)
+
+
+@ns.route('/query')
+class ArchiveQueryResource(Resource):
+    @api.doc('archive_json_query')
+    @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
+    @api.expect(search_request_parser, validate=True)
+    @api.marshal_with(archives_from_query_model, skip_none=True, code=200, description='Search results sent')
+    @authenticate(signature_token=True)
+    def get(self):
+        """
+        Get archive data in json format from all query results.
+
+        See ``/repo`` endpoint for documentation on the search
+        parameters.
+
+        The actual data are in archive_data and a supplementary python code to execute
+        search is wirtten in code_snippet.
+        """
+        try:
+            args = search_request_parser.parse_args()
+            scroll = args.get('scroll', False)
+            scroll_id = args.get('scroll_id', None)
+            page = args.get('page', 1)
+            per_page = args.get('per_page', 10 if not scroll else 1000)
+            order = args.get('order', -1)
+            order_by = 'upload_id'
+        except Exception:
+            abort(400, message='bad parameter types')
+
+        try:
+            assert page >= 1
+            assert per_page > 0
+        except AssertionError:
+            abort(400, message='invalid pagination')
+
+        if order not in [-1, 1]:
+            abort(400, message='invalid pagination')
+
+        search_request = search.SearchRequest()
+        add_query(search_request, search_request_parser.parse_args())
+
+        try:
+            if scroll:
+                results = search_request.execute_scrolled(scroll_id=scroll_id, size=per_page)
+
+            else:
+                results = search_request.execute_paginated(
+                    per_page=per_page, page=page, order=order, order_by=order_by)
+
+        except search.ScrollIdNotFound:
+            abort(400, 'The given scroll_id does not exist.')
+        except KeyError as e:
+            import traceback
+            traceback.print_exc()
+            abort(400, str(e))
+
+        # build python code snippet
+        snippet = build_snippet(args, os.path.join(api.base_url, ns.name, 'query'))
+        results['code_snippet'] = snippet
+
+        data = {}
+        calcs = results['results']
+        try:
+            upload_files = None
+            for entry in calcs:
+                upload_id = entry['upload_id']
+                calc_id = entry['calc_id']
+                if upload_files is None or upload_files.upload_id != upload_id:
+                    if upload_files is not None:
+                        upload_files.close_zipfile_cache()
+
+                    upload_files = UploadFiles.get(
+                        upload_id, create_authorization_predicate(upload_id))
+
+                    if upload_files is None:
+                        raise KeyError
+
+                    upload_files.open_zipfile_cache()
+
+                fo = upload_files.archive_file(calc_id, 'rb')
+                data[calc_id] = json.loads(fo.read())
+
+            if upload_files is not None:
+                upload_files.close_zipfile_cache()
+
+        except Restricted:
+            abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
+
+        except KeyError:
+            abort(404, message='Calculation %s/%s does not exist.' % (upload_id, calc_id))
+
+        results['archive_data'] = data
+
+        return results, 200
 
 
 @ns.route('/metainfo/<string:metainfo_package_name>')

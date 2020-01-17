@@ -637,8 +637,8 @@ class TestArchive(UploadFilesBasedTests):
         assert len(metainfo) > 0
 
     @pytest.mark.parametrize('compress', [False, True])
-    def test_archive_from_query_upload_id(self, api, non_empty_processed, test_user_auth, compress):
-        url = '/archive/query?upload_id=%s&compress=%s' % (non_empty_processed.upload_id, 'true' if compress else 'false')
+    def test_archive_zip_dowload_upload_id(self, api, non_empty_processed, test_user_auth, compress):
+        url = '/archive/download?upload_id=%s&compress=%s' % (non_empty_processed.upload_id, 'true' if compress else 'false')
         rv = api.get(url, headers=test_user_auth)
 
         assert rv.status_code == 200
@@ -648,9 +648,9 @@ class TestArchive(UploadFilesBasedTests):
         {'atoms': 'Si'},
         {'authors': 'Sheldon Cooper'}
     ])
-    def test_archive_from_query(self, api, processeds, test_user_auth, query_params):
+    def test_archive_zip_dowload(self, api, processeds, test_user_auth, query_params):
 
-        url = '/archive/query?%s' % urlencode(query_params)
+        url = '/archive/download?%s' % urlencode(query_params)
         rv = api.get(url, headers=test_user_auth)
 
         assert rv.status_code == 200
@@ -660,14 +660,14 @@ class TestArchive(UploadFilesBasedTests):
                 manifest = json.load(f)
                 assert len(manifest) == len(processeds)
 
-    def test_archive_from_empty_query(self, api, elastic):
-        url = '/archive/query?upload_id=doesNotExist'
+    def test_archive_zip_dowload_empty(self, api, elastic):
+        url = '/archive/download?upload_id=doesNotExist'
         rv = api.get(url)
 
         assert rv.status_code == 200
         assert_zip_file(rv, files=1)
 
-    def test_code_snippet(self, api, processeds, test_user_auth):
+    def test_archive_json_query(self, api, processeds, test_user_auth):
         query_params = {'atoms': 'Si', 'res_type': 'json'}
         url = '/archive/query?%s' % urlencode(query_params)
         rv = api.get(url, headers=test_user_auth)
@@ -675,6 +675,8 @@ class TestArchive(UploadFilesBasedTests):
         assert rv.status_code == 200
         data = json.loads(rv.data)
         assert isinstance(data, dict)
+        assert data['results'] is not None
+        assert data['archive_data'] is not None
         assert data['code_snippet'] is not None
 
 
@@ -1068,7 +1070,7 @@ class TestRepo():
         data = json.loads(rv.data)
         assert data['pagination']['total'] > 0
 
-    def test_code_snippet(self, api, example_elastic_calcs, test_user_auth):
+    def test_get_code_snippet(self, api, example_elastic_calcs, test_user_auth):
         rv = api.get('/repo/?per_page=10', headers=test_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)
