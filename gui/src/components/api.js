@@ -586,6 +586,9 @@ export class ApiProviderComponent extends React.Component {
     api.getInfo()
       .catch(handleApiError)
       .then(info => {
+        if (info.parsers) {
+          info.parsers.sort()
+        }
         this.setState({info: info})
       })
       .catch(error => {

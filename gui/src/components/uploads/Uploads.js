@@ -36,10 +36,10 @@ output files, as well as any other auxiliary files that you might have created.
 You can put data from multiple calculations into one file using as many directories as
 you like. NOMAD will consider all files on a single directory to form a single entry.
 Ideally, you put only files related to a single code run into each directory. If users
-want to download an entry, they will download all files in the respective directory.
+want to download an entry, they can download all files in the respective directory.
 The directory structure can be nested.
 
-Drop your archive file(s) below. You can also click the dropbox to select the file from
+Drop your archive file(s) on the dropbox. You can also click the dropbox to select the file from
 your hard drive. Alternatively, you can upload files via the given shell command.
 Replace \`<local_file>\` with your archive file. After executing the command,
 return here and press the reload button below).
@@ -66,16 +66,16 @@ If you press publish, a dialog will appear that allows you to set an
 data with selected users, create a DOI for your data, and later publish the data.
 The *embargo* might last up to 36 month before data becomes public automatically.
 During an *embargo* the data (and datasets created from this data) are only visible to you
-and users you *share with* the data.
+and users you share the data with (i.e. users you added under *share with* when editing entries).
 
 #### Processing errors
 
 We distinguish between uploads that fail processing completely and uploads that contain
 entries that could not be processed. The former might be caused by issues during the
-upload, bad file formats, etc. The latter (for more common) case means that not all of the provided
+upload, bad file formats, etc. The latter (far more common) case means that not all of the provided
 code output files could be parsed by our parsers. The processing logs of the failed entries might provide some insight.
 
-You can not publish uploads that failed processing completely. Frankly, in most
+You cannot publish uploads that failed processing completely. Frankly, in most
 cases there won't be any data to publish anyways. In the case of failed processing of
 some entries however, the data can still be published. You will be able to share it and create
 DOIs for it, etc. The only shortcomings will be missing metadata (labeled *not processed*

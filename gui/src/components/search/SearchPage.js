@@ -10,7 +10,7 @@ import qs from 'qs'
 
 export const help = `
 This page allows you to **search** in NOMAD's data. The upper part of this page
-gives you various options to enter and configure your search. The lower half
+gives you various options to enter and configure your search. The lower part
 shows all data that fulfills your search criteria.
 
 NOMAD's *domain-aware* search allows you to screen data by filtering based on
@@ -26,13 +26,13 @@ NOMAD's data as a periodic table or metadata charts. You can click the various
 visualization elements to filter for respective quantities.
 
 The visual representations show metrics for all data that fit your criteria.
-You can display *entries* (e.g. code runs), *unique entries*, and *datasets*.
+You can display *entries* (i.e. code runs), *unique entries*, and *datasets*.
 Other more specific metrics might be available.
 
 The results tabs gives you a quick overview of all entries and datasets that fit your search.
 You can click entries to see more details, download data, see the archive, etc. The *entries*
-tab displays individual entries (e.g. code runs), the *grouped entries* tab will group
-entries with similar metadata (e.g. it will group entries for the same material from the
+tab displays individual entries (i.e. code runs), the *grouped entries* tab will group
+entries with similar metadata (it will group entries for the same material from the
   same user). The *dataset* tab, shows entry curated by user created datasets. You can
   click on datasets for a search page that will only display entries from the respective
   dataset.
@@ -42,7 +42,7 @@ entries (or all entries) can be downloaded. The download will contain all user p
 raw calculation input and output files.
 
 You can click entries to see more details about them. The details button will navigate
-you to an entries page. These entry pages will show more metadata, raw files, the
+you to an entry's page. This entry page will show more metadata, raw files, the
 entry's archive, and processing logs.
 `
 

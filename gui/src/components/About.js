@@ -90,7 +90,7 @@ class About extends React.Component {
           - domain: ${info ? info.domain.name : 'loading'}
           - git: \`${info ? info.git.ref : 'loading'}; ${info ? info.git.version : 'loading'}\`
           - last commit message: *${info ? info.git.log : 'loading'}*
-          - codes: ${info ? info.codes.join(', ') : 'loading'}
+          - supported codes: ${info ? info.codes.join(', ') : 'loading'}
           - parsers: ${info ? info.parsers.join(', ') : 'loading'}
           - normalizers: ${info ? info.normalizers.join(', ') : 'loading'}
         `}</Markdown>
