@@ -235,3 +235,43 @@ def test_2d_finite_thickness():
     backend = run_normalize_for_structure(atoms)
     enc = backend.get_mi2_section(Encyclopedia.m_def)
     assert enc.material.material_hash == graphene_material_hash
+
+
+def test_2d_structure_structure_at_cell_boundary():
+    """Tests that the visualization that is made for 2D systems has the
+    correct form even if the cell boundary is at the middle of the
+    structure.
+    """
+    atoms = Atoms(
+        symbols=["H", "C"],
+        positions=[
+            [0.0, 0.0, 0],
+            [0.0, 0.0, 13.800000000000002]
+        ],
+        cell=[
+            [2, 0.0, 0.0],
+            [0.0, 2, 0.0],
+            [0.0, 0.0, 15]
+        ],
+        pbc=True
+    )
+    backend = run_normalize_for_structure(atoms)
+    enc = backend.get_mi2_section(Encyclopedia.m_def)
+
+    expected_cell = [
+        [2e-10, 0, 0],
+        [0, 2e-10, 0],
+        [0, 0, 1.2e-10]
+    ]
+    expected_pos = [
+        [0, 0, 1],
+        [0, 0, 0],
+    ]
+    expected_labels = [
+        "H",
+        "C",
+    ]
+
+    assert np.allclose(enc.material.atom_positions, expected_pos)
+    assert np.array_equal(enc.material.atom_labels, expected_labels)
+    assert np.allclose(enc.material.cell_normalized, expected_cell)

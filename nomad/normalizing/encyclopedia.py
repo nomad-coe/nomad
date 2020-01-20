@@ -737,6 +737,7 @@ class Structure2D(Structure):
         translation[periodicity] = 0
         symm_system = original_system.copy()
         symm_system.translate(translation)
+        symm_system.wrap()
 
         # Set the periodicity according to detected periodicity in order for
         # SymmetryAnalyzer to use the symmetry analysis designed for 2D
