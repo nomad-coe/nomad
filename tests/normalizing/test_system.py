@@ -16,7 +16,7 @@ from nomad import datamodel, config
 from nomad.parsing import LocalBackend
 
 from tests.test_parsing import parse_file
-from tests.normalizing.conftest import run_normalize, two_d   # pylint: disable=unused-import
+from tests.normalizing.conftest import run_normalize   # pylint: disable=unused-import
 from tests.utils import assert_log
 
 
@@ -139,13 +139,15 @@ def test_symmetry_classification_fcc():
     assert all(origin_shift == expected_origin_shift)
 
 
-def test_system_classification(bulk, two_d):
+def test_system_classification(bulk, two_d, surface):
     """Tests that the system classification is correct for different kind of systems
     """
     # Bulk system
     assert bulk.get_value('system_type') == "bulk"
     # 2D system
     assert two_d.get_value('system_type') == "2D"
+    # Surface
+    assert two_d.get_value('system_type') == "surface"
 
 
 def test_reduced_chemical_formula():

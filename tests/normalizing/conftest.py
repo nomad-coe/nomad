@@ -109,3 +109,12 @@ def two_d() -> LocalBackend:
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
     return backend
+
+
+@pytest.fixture(scope='session')
+def surface() -> LocalBackend:
+    parser_name = "parsers/fhi-aims"
+    filepath = "tests/data/normalizers/encyclopedia/fhiaims_2d_singlepoint/aims.out"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
