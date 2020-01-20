@@ -201,6 +201,7 @@ class ArchiveDownloadResource(Resource):
 _archive_query_parser = api.parser()
 add_pagination_parameters(_archive_query_parser)
 add_scroll_parameters(_archive_query_parser)
+add_search_parameters(_archive_query_parser)
 
 _archive_query_model_fields = {
     'results': fields.List(fields.Raw, description=(
@@ -258,7 +259,7 @@ class ArchiveQueryResource(Resource):
             abort(400, message='invalid pagination')
 
         search_request = search.SearchRequest()
-        apply_search_parameters(search_request, _archive_query_parser.parse_args())
+        apply_search_parameters(search_request, args)
 
         try:
             if scroll:
