@@ -16,7 +16,7 @@ from nomad import datamodel, config
 from nomad.parsing import LocalBackend
 
 from tests.test_parsing import parse_file
-from tests.normalizing.conftest import run_normalize
+from tests.normalizing.conftest import run_normalize, two_d   # pylint: disable=unused-import
 from tests.utils import assert_log
 
 
@@ -30,6 +30,9 @@ unknown_atom_label = (
     'parsers/template', 'tests/data/normalizers/unknown_atom_label_test.json')
 
 fcc_symmetry = (
+    'parsers/template', 'tests/data/normalizers/fcc_crystal_structure.json')
+
+two_d = (
     'parsers/template', 'tests/data/normalizers/fcc_crystal_structure.json')
 
 vasp_parser = (
@@ -91,7 +94,7 @@ def test_normalizer(normalized_example: LocalBackend):
 
 
 def test_normalizer_faulty_matid(caplog):
-    """ Runs normalizer on an example w/ bools for atom pos. Should force matid error."""
+    """Runs normalizer on an example w/ bools for atom pos. Should force matid error."""
     # assert isinstance(backend, LocalBackend)
     backend = parse_file(boolean_positions)
     run_normalize(backend)
@@ -110,8 +113,8 @@ def test_normalizer_single_string_atom_labels(caplog):
 
 
 def test_normalizer_unknown_atom_label(caplog, no_warn):
-    """ Runs normalizer on ['Br','Si','Si','Za'], for normalizeation Za will be replaced,
-        but stays int the labels.
+    """Runs normalizer on ['Br','Si','Si','Za'], for normalization Za will be
+    replaced, but stays int the labels.
     """
     backend = parse_file(unknown_atom_label)
     run_normalize(backend)
@@ -136,15 +139,14 @@ def test_symmetry_classification_fcc():
     assert all(origin_shift == expected_origin_shift)
 
 
-def test_system_classification():
+def test_system_classification(bulk, two_d):
     """Tests that the system classification is correct for different kind of systems
     """
     # Bulk system
-    backend = parse_file(fcc_symmetry)
-    backend = run_normalize(backend)
-    expected_system_type = 'bulk'
-    system_type = backend.get_value('system_type')
-    assert expected_system_type == system_type
+    assert bulk.get_value('system_type') == "bulk"
+
+    # 2D system
+    assert two_d.get_value('system_type') == "2D"
 
 
 def test_reduced_chemical_formula():

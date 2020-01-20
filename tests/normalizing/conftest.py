@@ -16,7 +16,6 @@ import pytest
 
 from nomad.parsing import LocalBackend
 from nomad.normalizing import normalizers
-from nomad.metainfo.encyclopedia import Encyclopedia
 
 from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
@@ -50,41 +49,46 @@ def normalized_template_example(parsed_template_example) -> LocalBackend:
     return run_normalize(parsed_template_example)
 
 
-@pytest.fixture
-def geometry_optimization() -> Encyclopedia:
+@pytest.fixture(scope='session')
+def geometry_optimization() -> LocalBackend:
     parser_name = "parsers/template"
     filepath = "tests/data/normalizers/fcc_crystal_structure.json"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    enc = backend.get_mi2_section(Encyclopedia.m_def)
-    return enc
+    return backend
 
 
-@pytest.fixture
-def molecular_dynamics() -> Encyclopedia:
+@pytest.fixture(scope='session')
+def molecular_dynamics() -> LocalBackend:
     parser_name = "parsers/cp2k"
     filepath = "tests/data/normalizers/encyclopedia/cp2k_bulk_md/si_md.out"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    enc = backend.get_mi2_section(Encyclopedia.m_def)
-    return enc
+    return backend
 
 
-@pytest.fixture
-def phonon() -> Encyclopedia:
+@pytest.fixture(scope='session')
+def phonon() -> LocalBackend:
     parser_name = "parsers/phonopy"
     filepath = "tests/data/parsers/phonopy/phonopy-FHI-aims-displacement-01/control.in"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    enc = backend.get_mi2_section(Encyclopedia.m_def)
-    return enc
+    return backend
 
 
-@pytest.fixture
-def twod() -> Encyclopedia:
+@pytest.fixture(scope='session')
+def bulk() -> LocalBackend:
+    parser_name = "parsers/template"
+    filepath = "tests/data/normalizers/fcc_crystal_structure.json"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def two_d() -> LocalBackend:
     parser_name = "parsers/fhi-aims"
     filepath = "tests/data/normalizers/encyclopedia/fhiaims_2d_singlepoint/aims.out"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    enc = backend.get_mi2_section(Encyclopedia.m_def)
-    return enc
+    return backend
