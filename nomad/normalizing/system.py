@@ -343,8 +343,6 @@ class SystemNormalizer(SystemBasedNormalizer):
 
             transform = symm._get_spglib_transformation_matrix()
             origin_shift = symm._get_spglib_origin_shift()
-            wyckoff_sets = symm.get_wyckoff_sets_conventional()
-
         except ValueError as e:
             self.logger.debug('symmetry analysis is not available', details=str(e))
             return

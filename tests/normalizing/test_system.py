@@ -83,9 +83,7 @@ def assert_normalized(backend: LocalBackend):
     assert metadata.basis_set is not None
     assert metadata.xc_functional is not None
     assert metadata.system is not None
-    assert metadata.crystal_system is not None
     assert len(metadata.atoms) is not None
-    assert metadata.spacegroup is not None
 
     exceptions = parser_exceptions.get(backend.get_value('parser_name'), [])
 
