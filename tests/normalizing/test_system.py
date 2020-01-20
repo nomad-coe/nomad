@@ -38,31 +38,22 @@ vasp_parser = (
 glucose_atom_labels = (
     'parsers/template', 'tests/data/normalizers/glucose_atom_labels.json')
 
-symmetry_keys = ['spacegroup', 'spacegroup_symbol', 'crystal_system']
 calc_metadata_keys = [
-    'code_name', 'code_version', 'basis_set', 'xc_functional', 'system', 'formula'] + symmetry_keys
+    'code_name', 'code_version', 'basis_set', 'xc_functional', 'system', 'formula']
 
 parser_exceptions = {
     'parsers/wien2k': ['xc_functional'],
-    'parsers/nwchem': symmetry_keys,
-    'parsers/bigdft': symmetry_keys,
-    'parsers/gaussian': symmetry_keys,
-    'parsers/abinit': ['formula', 'system'] + symmetry_keys,
-    'parsers/dl-poly': ['formula', 'basis_set', 'xc_functional', 'system'] + symmetry_keys,
+    'parsers/abinit': ['formula', 'system'],
+    'parsers/dl-poly': ['formula', 'basis_set', 'xc_functional', 'system'],
     'parsers/lib-atoms': ['basis_set', 'xc_functional'],
-    'parsers/orca': symmetry_keys,
-    'parsers/octopus': symmetry_keys,
     'parsers/phonopy': ['basis_set', 'xc_functional'],
-    'parsers/gpaw2': symmetry_keys,
-    'parsers/gamess': ['formula', 'system'] + symmetry_keys,
-    'parsers/gulp': ['formula', 'xc_functional', 'system'] + symmetry_keys,
-    'parsers/turbomole': symmetry_keys,
-    'parsers/elastic': ['basis_set', 'xc_functional', 'system'] + symmetry_keys,
-    'parsers/dmol': ['system'] + symmetry_keys,
-    'parser/molcas': symmetry_keys,
-    'parsers/band': ['system'] + symmetry_keys,
+    'parsers/gamess': ['formula', 'system'],
+    'parsers/gulp': ['formula', 'xc_functional', 'system'],
+    'parsers/elastic': ['basis_set', 'xc_functional', 'system'],
+    'parsers/dmol': ['system'],
+    'parsers/band': ['system'],
     'parsers/qbox': ['xc_functional'],
-    'parser/onetep': ['formula', 'basis_set', 'xc_functional', 'system'] + symmetry_keys
+    'parser/onetep': ['formula', 'basis_set', 'xc_functional', 'system']
 }
 """
 Keys that the normalizer for certain parsers might not produce. In an ideal world this

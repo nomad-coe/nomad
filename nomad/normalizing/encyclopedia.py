@@ -445,10 +445,6 @@ class Structure():
         pass
 
     @abstractmethod
-    def cell_angles_string(self, calculation: Calculation) -> None:
-        pass
-
-    @abstractmethod
     def cell_normalized(self, material: Material, std_atoms: ase.Atoms) -> None:
         pass
 
@@ -510,15 +506,6 @@ class StructureBulk(Structure):
     def bravais_lattice(self, material: Material, section_symmetry: Dict) -> None:
         bravais_lattice = section_symmetry["bravais_lattice"]
         material.bravais_lattice = bravais_lattice
-
-    def cell_angles_string(self, calculation: Calculation) -> None:
-        angles = calculation.lattice_parameters[3:6]
-        angles_rounded = []
-        for angle in angles:
-            angle_deg = math.degrees(angle)
-            angles_rounded.append(
-                round(angle_deg / config.normalize.angle_rounding) * config.normalize.angle_rounding)
-        calculation.cell_angles_string = "/".join([str(angle) for angle in angles_rounded])
 
     def cell_normalized(self, material: Material, std_atoms: ase.Atoms) -> None:
         cell_normalized = std_atoms.get_cell()
@@ -722,7 +709,6 @@ class StructureBulk(Structure):
         self.has_free_wyckoff_parameters(material, symmetry_analyzer)
         self.lattice_parameters(calculation, std_atoms)
         self.material_name(material, names, reduced_counts)
-        self.cell_angles_string(calculation)
         self.periodicity(material)
         self.point_group(material, sec_symmetry)
         self.wyckoff_groups(material, wyckoff_sets)
@@ -782,9 +768,6 @@ class Structure2D(Structure):
                 break
 
         return non_periodic_index_std
-
-    def cell_angles_string(self, calculation: Calculation) -> None:
-        pass
 
     def cell_normalized(self, material: Material, std_atoms: ase.Atoms) -> None:
         cell_normalized = std_atoms.get_cell()

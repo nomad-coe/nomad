@@ -76,7 +76,7 @@ class Material(MSection):
         shape=[3, 3],
         description="""
         Unit cell in normalized form, meaning the bravais cell. This cell is
-        representative and is idealized to match the detected symmemtry
+        representative and is idealized to match the detected symmetry
         properties.
         """
     )
