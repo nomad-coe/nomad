@@ -13,11 +13,16 @@
 # limitations under the License.
 
 import pytest
+from hashlib import sha512
 import numpy as np
+from ase import Atoms
+from matid.symmetry.wyckoffset import WyckoffSet
+
 
 from nomad.parsing import LocalBackend
+from nomad.normalizing import structure
 from nomad.metainfo.encyclopedia import Encyclopedia
-from tests.normalizing.conftest import geometry_optimization, molecular_dynamics, phonon, two_d, bulk   # pylint: disable=unused-import
+from tests.normalizing.conftest import run_normalize_for_structure, geometry_optimization, molecular_dynamics, phonon, two_d, bulk   # pylint: disable=unused-import
 
 
 def test_geometry_optimization(geometry_optimization: LocalBackend):
@@ -92,3 +97,86 @@ def test_2d_metainfo(two_d: LocalBackend):
     assert enc.material.formula_reduced == "C"
     assert np.allclose(enc.calculation.lattice_parameters, [2.46559821e-10, 2.46559821e-10, 0, 120 / 180 * np.pi, 0, 0])
     assert np.array_equal(enc.material.periodicity, [0, 1])
+
+
+def test_2d_graphene():
+    """Tests that graphene in different supercells is detected always as the same material."""
+    # Expected information for graphene
+    wyckoff_sets = [WyckoffSet(
+        wyckoff_letter="c",
+        element="C",
+        indices=[0, 1]
+    )]
+    space_group_number = 191
+    norm_hash_string = structure.get_symmetry_string(space_group_number, wyckoff_sets)
+    graphene_material_hash = sha512(norm_hash_string.encode('utf-8')).hexdigest()
+
+    # Graphene orthogonal cell
+    atoms = Atoms(
+        symbols=["C", "C", "C", "C"],
+        positions=[
+            [2.84, 7.5, 6.148780366869514e-1],
+            [3.55, 7.5, 1.8446341100608543],
+            [7.1e-1, 7.5, 1.8446341100608543],
+            [1.42, 7.5, 6.148780366869514e-1]
+        ],
+        cell=[
+            [4.26, 0.0, 0.0],
+            [0.0, 15, 0.0],
+            [0.0, 0.0, 2.4595121467478055]
+        ],
+        pbc=True
+    )
+    backend = run_normalize_for_structure(atoms)
+    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    assert enc.material.material_hash == graphene_material_hash
+
+    # Graphene orthogonal cell, multiplied
+    atoms = Atoms(
+        symbols=["C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C"],
+        positions=[
+            [7.1, 6, 6.148780366869514e-1],
+            [7.81, 6, 1.8446341100608543],
+            [7.1, 6, 3.074390183434757],
+            [7.81, 6, 4.30414625680866],
+            [4.97, 6, 1.8446341100608543],
+            [5.68, 6, 3.074390183434757],
+            [4.97, 6, 4.30414625680866],
+            [5.68, 6, 6.148780366869514e-1],
+            [2.84, 6, 6.148780366869514e-1],
+            [3.55, 6, 1.8446341100608543],
+            [2.84, 6, 3.074390183434757],
+            [3.55, 6, 4.30414625680866],
+            [7.1e-1, 6, 1.8446341100608543],
+            [1.42, 6, 3.074390183434757],
+            [7.1e-1, 6, 4.30414625680866],
+            [1.42, 6, 6.148780366869514e-1]
+        ],
+        cell=[
+            [8.52, 0.0, 0.0],
+            [0.0, 12, 0.0],
+            [0.0, 0.0, 4.919024293495611]
+        ],
+        pbc=True
+    )
+    backend = run_normalize_for_structure(atoms)
+    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    assert enc.material.material_hash == graphene_material_hash
+
+    # Graphene primitive cell
+    atoms = Atoms(
+        symbols=["C", "C"],
+        positions=[
+            [0, 1.42, 6],
+            [1.2297560733739028, 7.100000000000001e-1, 6]
+        ],
+        cell=[
+            [2.4595121467478055, 0.0, 0.0],
+            [-1.2297560733739028, 2.13, 0.0],
+            [0.0, 0.0, 12]
+        ],
+        pbc=True
+    )
+    backend = run_normalize_for_structure(atoms)
+    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    assert enc.material.material_hash == graphene_material_hash

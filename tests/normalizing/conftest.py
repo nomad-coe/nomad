@@ -14,6 +14,8 @@
 
 import pytest
 
+from ase import Atoms
+
 from nomad.parsing import LocalBackend
 from nomad.normalizing import normalizers
 
@@ -21,6 +23,7 @@ from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-imp
 from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_example  # pylint: disable=unused-import
 from tests.test_parsing import parse_file
+from tests.test_parsing import parsed_template_no_system  # pylint: disable=unused-import
 
 
 def run_normalize(backend: LocalBackend) -> LocalBackend:
@@ -47,6 +50,20 @@ def normalized_example(parsed_example: LocalBackend) -> LocalBackend:
 @pytest.fixture
 def normalized_template_example(parsed_template_example) -> LocalBackend:
     return run_normalize(parsed_template_example)
+
+
+def run_normalize_for_structure(atoms: Atoms) -> LocalBackend:
+    template = parsed_template_no_system()
+
+    # Fill structural information
+    gid = template.openSection("section_system")
+    template.addArrayValues("atom_positions", atoms.get_positions() * 1E-10)
+    template.addArrayValues("atom_labels", atoms.get_chemical_symbols())
+    template.addArrayValues("simulation_cell", atoms.get_cell() * 1E-10)
+    template.addArrayValues("configuration_periodic_dimensions", atoms.get_pbc())
+    template.closeSection("section_system", gid)
+
+    return run_normalize(template)
 
 
 @pytest.fixture(scope='session')

@@ -144,7 +144,6 @@ def test_system_classification(bulk, two_d):
     """
     # Bulk system
     assert bulk.get_value('system_type') == "bulk"
-
     # 2D system
     assert two_d.get_value('system_type') == "2D"
 
