@@ -42,7 +42,7 @@ Starting example
             A Defines the number of atoms in the system.
             ''')
 
-        atom_labels = Quantity(type=Enum(ase.data.chemical_symbols), shape['n_atoms'])
+        atom_labels = Quantity(type=MEnum(ase.data.chemical_symbols), shape['n_atoms'])
         atom_positions = Quantity(type=float, shape=['n_atoms', 3], unit=Units.m)
         simulation_cell = Quantity(type=float, shape=[3, 3], unit=Units.m)
         pbc = Quantity(type=bool, shape=[3])
@@ -209,7 +209,7 @@ Custom data types
 .. autoclass:: DataType
     :members:
 
-.. autoclass:: Enum
+.. autoclass:: MEnum
 
 .. _metainfo-reflection
 
@@ -275,6 +275,6 @@ A more complex example
 """
 
 from .metainfo import MSection, MCategory, Definition, Property, Quantity, SubSection, \
-    Section, Category, Package, Environment, Enum, Datetime, MProxy, MetainfoError, DeriveError, \
+    Section, Category, Package, Environment, MEnum, Datetime, MProxy, MetainfoError, DeriveError, \
     MetainfoReferenceError, DataType, MData, MDataDict, Reference, MResource, m_package, \
     units

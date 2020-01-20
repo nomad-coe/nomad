@@ -20,6 +20,7 @@ import inspect
 import re
 import json
 import itertools
+
 import numpy as np
 import pint
 import pint.unit
@@ -56,14 +57,26 @@ class MetainfoReferenceError(MetainfoError):
 
 # Metainfo quantity data types
 
-class Enum(list):
-    """ Allows to define str types with values limited to a pre-set list of possible values. """
-    def __init__(self, *args):
+class MEnum():
+    """Allows to define str types with values limited to a pre-set list of possible values."""
+    def __init__(self, *args, **kwargs):
+        # Supports one big list in place of args
         if len(args) == 1 and isinstance(args[0], list):
-            super().__init__(args[0])
+            args = args[0]
 
-        else:
-            super().__init__(args)
+        # If non-named arguments are given, the default is to have them placed
+        # into a dictionary with their string value as both the enum name and
+        # the value.
+        for arg in args:
+            if arg in kwargs:
+                raise ValueError("Duplicate value '{}' provided for enum".format(arg))
+            kwargs[arg] = arg
+
+        self._values = set(kwargs.values())  # For allowing constant time member check
+        self._map = kwargs
+
+    def __getattr__(self, attr):
+        return self._map[attr]
 
 
 class MProxy():
@@ -181,7 +194,7 @@ class _QuantityType(DataType):
     - python build-in primitives: int, float, bool, str
     - numpy dtypes, e.g. f, int32
     - a section definition to define references
-    - an Enum instance to use it's values as possible str values
+    - an MEnum instance to use it's values as possible str values
     - a custom datatype, i.e. instance of :class:`DataType`
     - Any
     """
@@ -190,10 +203,10 @@ class _QuantityType(DataType):
         if value in [str, int, float, bool]:
             return value
 
-        if isinstance(value, Enum):
-            for enum_value in value:
+        if isinstance(value, MEnum):
+            for enum_value in value._values:
                 if not isinstance(enum_value, str):
-                    raise TypeError('Enum value %s is not a string.' % enum_value)
+                    raise TypeError('MEnum value %s is not a string.' % enum_value)
             return value
 
         if type(value) == np.dtype:
@@ -221,7 +234,7 @@ class _QuantityType(DataType):
         if value is str or value is int or value is float or value is bool:
             return dict(type_kind='python', type_data=value.__name__)
 
-        if isinstance(value, Enum):
+        if isinstance(value, MEnum):
             return dict(type_kind='Enum', type_data=list(value))
 
         if type(value) == np.dtype:
@@ -789,8 +802,8 @@ class MSection(metaclass=MObjectMeta):
                     'The value %s for quantity %s does not follow %s' %
                     (value, quantity_def, quantity_def.type))
 
-        elif isinstance(quantity_def.type, Enum):
-            if value not in quantity_def.type:
+        elif isinstance(quantity_def.type, MEnum):
+            if value not in quantity_def.type._values:
                 raise TypeError(
                     'The value %s is not an enum value for quantity %s.' %
                     (value, quantity_def))
@@ -1055,7 +1068,7 @@ class MSection(metaclass=MObjectMeta):
                     elif type(quantity.type) == np.dtype:
                         pass
 
-                    elif isinstance(quantity.type, Enum):
+                    elif isinstance(quantity.type, MEnum):
                         pass
 
                     elif quantity.type == Any:
@@ -1273,7 +1286,7 @@ class MSection(metaclass=MObjectMeta):
 
         if type(value) == np.ndarray:
             value_shape = value.shape
-        if isinstance(value, list) and not isinstance(value, Enum):
+        if isinstance(value, list) and not isinstance(value, MEnum):
             value_shape = [len(value)]
         else:
             value_shape = []
@@ -1467,7 +1480,7 @@ class Quantity(Property):
             The `type` can be one of:
 
             - a build-in primitive Python type: ``int``, ``str``, ``bool``, ``float``
-            - an instance of :class:`Enum`, e.g. ``Enum('one', 'two', 'three')``
+            - an instance of :class:`MEnum`, e.g. ``MEnum('one', 'two', 'three')``
             - a section to define references to other sections as quantity values
             - a custom meta-info :class:`DataType`, see :ref:`metainfo-custom-types`
             - a numpy `dtype`, e.g. ``np.dtype('float32')``
