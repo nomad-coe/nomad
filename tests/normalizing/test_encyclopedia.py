@@ -18,7 +18,6 @@ import numpy as np
 from ase import Atoms
 from matid.symmetry.wyckoffset import WyckoffSet
 
-
 from nomad.parsing import LocalBackend
 from nomad.normalizing import structure
 from nomad.metainfo.encyclopedia import Encyclopedia
@@ -99,8 +98,10 @@ def test_2d_metainfo(two_d: LocalBackend):
     assert np.array_equal(enc.material.periodicity, [0, 1])
 
 
-def test_2d_graphene():
-    """Tests that graphene in different supercells is detected always as the same material."""
+def test_2d_flat():
+    """Tests that a completely flat 2D material in different supercells is
+    detected always as the same material.
+    """
     # Expected information for graphene
     wyckoff_sets = [WyckoffSet(
         wyckoff_letter="c",
@@ -177,6 +178,60 @@ def test_2d_graphene():
         ],
         pbc=True
     )
+    backend = run_normalize_for_structure(atoms)
+    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    assert enc.material.material_hash == graphene_material_hash
+
+
+def test_2d_finite_thickness():
+    """Tests that a non-flat 2D material is detected properly.
+    """
+    # Expected information for MoS2
+    wyckoff_sets = [
+        WyckoffSet(
+            wyckoff_letter="e",
+            element="S",
+            indices=[2, 5]
+        ),
+        WyckoffSet(
+            wyckoff_letter="e",
+            element="S",
+            indices=[3, 4]
+        ),
+        WyckoffSet(
+            wyckoff_letter="e",
+            element="Mo",
+            indices=[0, 1]
+        )
+    ]
+    space_group_number = 11
+    norm_hash_string = structure.get_symmetry_string(space_group_number, wyckoff_sets)
+    graphene_material_hash = sha512(norm_hash_string.encode('utf-8')).hexdigest()
+
+    # MoS2 orthogonal cell
+    atoms = Atoms(
+        symbols=["Mo", "Mo", "S", "S", "S", "S"],
+        scaled_positions=[
+            [0.000000, 0.022916, 0.630019],
+            [0.500000, 0.418064, 0.635988],
+            [0.500000, 0.795155, 0.68827],
+            [0.000000, 0.299555, 0.70504],
+            [0.500000, 0.141429, 0.56096],
+            [0.000000, 0.645894, 0.57774],
+        ],
+        cell=[
+            [3.193638, 0.000000, 0.000000],
+            [0.000000, 5.738503, 0.110928],
+            [0.000000, 0.021363, 24.194079],
+        ],
+        pbc=True
+    )
+    backend = run_normalize_for_structure(atoms)
+    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    assert enc.material.material_hash == graphene_material_hash
+
+    # MoS2 orthogonal supercell
+    atoms *= [2, 3, 1]
     backend = run_normalize_for_structure(atoms)
     enc = backend.get_mi2_section(Encyclopedia.m_def)
     assert enc.material.material_hash == graphene_material_hash
