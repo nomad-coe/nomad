@@ -604,7 +604,7 @@ _repo_quantities_search_request_parser.add_argument(
 _repo_quantities_search_request_parser.add_argument(
     'size', type=int, help='The max size of the returned values.')
 
-repo_quantities_model = api.model('RepoQuantities', {
+_repo_quantities_model = api.model('RepoQuantities', {
     'quantities': fields.List(fields.Nested(_repo_quantity_model))
 })
 
@@ -614,7 +614,7 @@ class RepoQuantitiesResource(Resource):
     @api.doc('quantities_search')
     @api.response(400, 'Invalid requests, e.g. wrong owner type, bad quantity, bad search parameters')
     @api.expect(_repo_quantities_search_request_parser, validate=True)
-    @api.marshal_with(repo_quantities_model, skip_none=True, code=200, description='Search results send')
+    @api.marshal_with(_repo_quantities_model, skip_none=True, code=200, description='Search results send')
     @authenticate()
     def get(self):
         """
@@ -659,7 +659,7 @@ class RepoQuantitiesResource(Resource):
         return search_request.execute(), 200
 
 
-repo_calc_id_model = api.model('RepoCalculationId', {
+_repo_calc_id_model = api.model('RepoCalculationId', {
     'upload_id': fields.String(), 'calc_id': fields.String()
 })
 
@@ -668,7 +668,7 @@ repo_calc_id_model = api.model('RepoCalculationId', {
 class RepoPidResource(Resource):
     @api.doc('resolve_pid')
     @api.response(404, 'Entry with PID does not exist')
-    @api.marshal_with(repo_calc_id_model, skip_none=True, code=200, description='Entry resolved')
+    @api.marshal_with(_repo_calc_id_model, skip_none=True, code=200, description='Entry resolved')
     @authenticate()
     def get(self, pid: str):
         if '/' in pid:
