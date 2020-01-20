@@ -11,6 +11,7 @@ from urllib.parse import urlparse, urlencode
 import requests
 import re
 import time
+import os
 import os.path
 import tarfile
 import io
@@ -135,8 +136,11 @@ def upload_next_data(sources: Iterator[Tuple[str, str, str]], upload_name='next 
         with open(zipfile_name, 'wb') as f:
             for c in content():
                 f.write(c)
-        with open(zipfile_name, 'rb') as f:
-            response = requests.put(url=url, headers={'X-Token': token, 'Content-type': 'application/octet-stream'}, data=f)
+        try:
+            with open(zipfile_name, 'rb') as f:
+                response = requests.put(url=url, headers={'X-Token': token, 'Content-type': 'application/octet-stream'}, data=f)
+        finally:
+            os.remove(zipfile_name)
 
     if response.status_code != 200:
         raise Exception('nomad return status %d' % response.status_code)
