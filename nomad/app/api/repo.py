@@ -24,7 +24,6 @@ from elasticsearch_dsl import Q
 from elasticsearch.exceptions import NotFoundError
 import elasticsearch.helpers
 from datetime import datetime
-import os.path
 
 from nomad import search, utils, datamodel, processing as proc, infrastructure
 from nomad.app.utils import RFC3339DateTime, with_logger
