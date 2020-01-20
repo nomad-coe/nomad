@@ -20,7 +20,7 @@ The archive API of the nomad@FAIRDI APIs. This API is about serving processed
 from typing import Dict, Any
 from io import BytesIO
 import os.path
-from flask import send_file
+from flask import send_file, request
 from flask_restplus import abort, Resource, fields
 import json
 import importlib
@@ -276,9 +276,8 @@ class ArchiveQueryResource(Resource):
             abort(400, str(e))
 
         # build python code and curl snippet
-        uri = os.path.join(api.base_url, ns.name, 'query')
-        results['python'] = query_api_python(args, uri)
-        results['curl'] = query_api_curl(args, uri)
+        results['python'] = query_api_python('archive', 'query', query_string=request.args)
+        results['curl'] = query_api_curl('archive', 'query', query_string=request.args)
 
         data = []
         calcs = results['results']

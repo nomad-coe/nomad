@@ -66,9 +66,8 @@ class RepoCalcResource(Resource):
                 abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
 
         result = calc.to_dict()
-        uri = os.path.join(api.base_url, ns.name, '')
-        result['python'] = query_api_python({'upload_id': upload_id, 'calc_id': calc_id}, uri)
-        result['curl'] = query_api_curl({'upload_id': upload_id, 'calc_id': calc_id}, uri)
+        result['python'] = query_api_python('archive', upload_id, calc_id)
+        result['curl'] = query_api_curl('archive', upload_id, calc_id)
 
         return result, 200
 
@@ -231,9 +230,11 @@ class RepoCalcsResource(Resource):
                         results[group_name] = quantities[group_quantity]
 
             # build python code/curl snippet
-            uri = os.path.join(api.base_url, ns.name, '')
-            results['curl'] = query_api_curl(args, uri)
-            results['python'] = query_api_python(args, uri)
+            code_args = dict(request.args)
+            if 'statistics' in code_args:
+                del(code_args['statistics'])
+            results['curl'] = query_api_curl('archive', 'query', query_string=code_args)
+            results['python'] = query_api_python('archive', 'query', query_string=code_args)
 
             return results, 200
         except search.ScrollIdNotFound:

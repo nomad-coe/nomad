@@ -19,11 +19,12 @@ from typing import Callable, IO, Set, Tuple, Iterable, Dict, Any
 from flask_restplus import fields
 import zipstream
 from flask import stream_with_context, Response, g, abort
+from urllib.parse import urlencode
 
 import sys
 import os.path
 
-from nomad import search
+from nomad import search, config
 from nomad.app.optimade import filterparser
 from nomad.app.utils import RFC3339DateTime, rfc3339DateTime
 from nomad.files import Restricted
@@ -245,59 +246,34 @@ def streamed_zipfile(
     return response
 
 
-def resolve_query_api_url(args: Dict[str, Any], base_url: str):
+def query_api_url(*args, query_string: Dict[str, Any] = None):
     """
-    Generates a uri from query parameters and base url.
+    Creates a API URL.
+    Arguments:
+        *args: URL path segments after the API base URL
+        query_string: A dict with query string parameters
     """
-    args_keys = list(args.keys())
-    args_keys.sort()
-    if args_keys == ['calc_id', 'upload_id']:
-        url = '"%s"' % os.path.join(base_url, args['upload_id'], args['calc_id'])
-    else:
-        url = '"%s?%s" % (base_url, urlencode(args))'
+    url = os.path.join(config.api_url(False), *args)
+    if query_string is not None:
+        url = '%s?%s' % (url, urlencode(query_string))
+
     return url
 
 
-def query_api_python(args: Dict[str, Any], base_url: str):
+def query_api_python(*args, **kwargs):
     """
     Creates a string of python code to execute a search query to the repository using
     the requests library.
-    Arguments:
-        args: A dict of search parameters that will be encoded in the uri
-        base_url: The resource url which is prepended to the uri
     """
-    str_code = 'import requests\n'
-    str_code += 'from urllib.parse import urlencode\n'
-    str_code += '\n\n'
-    str_code += 'def query_repository(args, base_url):\n'
-    str_code += '    url = %s\n' % resolve_query_api_url(args, base_url)
-    str_code += '    response = requests.get(url)\n'
-    str_code += '    if response.status_code != 200:\n'
-    str_code += '        raise Exception("nomad return status %d" % response.status_code)\n'
-    str_code += '    return response.json()\n'
-    str_code += '\n\n'
-    str_code += 'args = {'
-    for key, val in args.items():
-        if val is None:
-            continue
-        if isinstance(val, str):
-            str_code += '"%s": "%s", ' % (key, val)
-        else:
-            str_code += '"%s": %s, ' % (key, val)
-    str_code += '}\n'
-    str_code += 'base_url = "%s"\n' % base_url
-    str_code += 'JSON_DATA = query_repository(args, base_url)\n'
-
-    return str_code
+    url = query_api_url(*args, **kwargs)
+    return '''import requests
+response = requests.get("{}")
+response.json()'''.format(url)
 
 
-def query_api_curl(args: Dict[str, Any], base_url: str):
+def query_api_curl(*args, **kwargs):
     """
     Creates a string of curl command to execute a search query to the repository.
-    Arguments:
-        args: A dict of search parameters that will be encoded in the uri
-        base_url: The resource url which is prepended to the uri
     """
-    args = {key: val for key, val in args.items() if val is not None}
-    uri = resolve_query_api_url(args, base_url)
-    return 'curl -X GET %s -H  "accept: application/json" --output "nomad.json"' % uri
+    url = query_api_url(*args, **kwargs)
+    return 'curl -X GET %s -H  "accept: application/json" --output "nomad.json"' % url
