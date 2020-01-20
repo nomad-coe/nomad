@@ -17,7 +17,6 @@ from typing import Dict, List
 from math import gcd as gcd
 from functools import reduce
 from abc import abstractmethod
-import math
 import json
 import ase
 import ase.data
