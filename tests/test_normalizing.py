@@ -105,6 +105,24 @@ def normalized_template_example(parsed_template_example) -> LocalBackend:
     return run_normalize(parsed_template_example)
 
 
+@pytest.fixture(scope='session')
+def bulk() -> LocalBackend:
+    parser_name = "parsers/template"
+    filepath = "../tests/data/normalizers/cp2k_bulk_md/si_md.out"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def two_d() -> LocalBackend:
+    parser_name = "parsers/fhi-aims"
+    filepath = "tests/data/normalizers/fhiaims_2d_singlepoint/aims.out"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
 def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
     run_normalize(parsed_template_example)
 
@@ -182,17 +200,12 @@ def test_symmetry_classification_fcc():
     assert all(origin_shift == expected_origin_shift)
 
 
-def test_system_classification():
+def test_system_classification(bulk, two_d):
     "Ensure the classification of fcc Na is atom"
-    # TODO: @dts - This is a bit strange that a system with only
-    # one atom is automatically classified as atom. It could be
-    # an elemental solid.
-    backend = parse_file(fcc_symmetry)
-    backend = run_normalize(backend)
-    expected_system_type = 'atom'
-    system_type = backend.get_value('system_type')
-    assert expected_system_type == system_type
-
+    # Bulk
+    assert bulk.get_value('system_type') == "bulk"
+    # 2D
+    assert two_d.get_value('system_type') == "2D"
 
 def test_reduced_chemical_formula():
     "Ensure we get the right reduced chemical formula for glucose atom labels"
