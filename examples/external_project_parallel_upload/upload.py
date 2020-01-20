@@ -24,6 +24,7 @@ user = 'leonard.hofstadter@nomad-fairdi.tests.de'
 password = 'password'
 approx_upload_size = 32 * 1024 * 1024 * 1024  # you can make it really small for testing
 max_parallel_uploads = 9
+direct_stream = False
 
 # create the bravado client
 host = urlparse(nomad_url).netloc.split(':')[0]
@@ -115,8 +116,6 @@ def upload_next_data(sources: Iterator[Tuple[str, str, str]], upload_name='next 
     zip_stream = zipstream.ZipFile(mode='w', compression=zipfile.ZIP_STORED, allowZip64=True)
     zip_stream.paths_to_write = iterator()
 
-    zip_stream
-
     user = client.auth.get_user().response().result
     token = user.token
     url = nomad_url + '/uploads/?%s' % urlencode(dict(name=upload_name))
@@ -126,8 +125,18 @@ def upload_next_data(sources: Iterator[Tuple[str, str, str]], upload_name='next 
             if len(chunk) != 0:
                 yield chunk
 
-    # stream .zip to nomad
-    response = requests.put(url=url, headers={'X-Token': token, 'Content-type': 'application/octet-stream'}, data=content())
+    if direct_stream:
+        # stream .zip to nomad
+        response = requests.put(url=url, headers={'X-Token': token, 'Content-type': 'application/octet-stream'}, data=content())
+
+    else:
+        # save .zip and upload file to nomad
+        zipfile_name = '/tmp/%s.zip' % str(uuid.uuid4())
+        with open(zipfile_name, 'wb') as f:
+            for c in content():
+                f.write(c)
+        with open(zipfile_name, 'rb') as f:
+            response = requests.put(url=url, headers={'X-Token': token, 'Content-type': 'application/octet-stream'}, data=f)
 
     if response.status_code != 200:
         raise Exception('nomad return status %d' % response.status_code)
