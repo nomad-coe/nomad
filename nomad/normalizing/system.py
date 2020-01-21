@@ -15,6 +15,7 @@
 from collections import Counter
 from typing import Any
 import ase
+from ase import Atoms
 import numpy as np
 import json
 import re
@@ -262,13 +263,13 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         return True
 
-    def system_type_analysis(self, atoms: ase.Atoms) -> None:
+    def system_type_analysis(self, atoms: Atoms) -> None:
         """
         Determine the system type with MatID. Write the system type to the
         backend.
 
         Args:
-            atoms
+            atoms: The structure to analyse
         """
         system_type = config.services.unavailable_value
         if atoms.get_number_of_atoms() <= config.normalize.system_classification_with_clusters_threshold:
@@ -293,7 +294,7 @@ class SystemNormalizer(SystemBasedNormalizer):
                 elif classification == Material2D:
                     system_type = '2D'
         else:
-            self.logger.info("System type analysis not run due to large system size.")
+            self.logger.info("system type analysis not run due to large system size")
 
         self._backend.addValue('system_type', system_type)
 
