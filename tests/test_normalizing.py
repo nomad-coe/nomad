@@ -150,6 +150,15 @@ def atom() -> LocalBackend:
     return backend
 
 
+@pytest.fixture(scope='session')
+def one_d() -> LocalBackend:
+    parser_name = "parsers/exciting"
+    filepath = "tests/data/normalizers/exciting_1d_singlepoint/INFO.OUT"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
 def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
     run_normalize(parsed_template_example)
 
@@ -227,17 +236,19 @@ def test_symmetry_classification_fcc():
     assert all(origin_shift == expected_origin_shift)
 
 
-def test_system_classification(bulk, two_d, surface, molecule, atom):
-    # Bulk
-    assert bulk.get_value('system_type') == "bulk"
+def test_system_classification(atom, molecule, one_d, two_d, surface, bulk):
+    # Atom
+    assert atom.get_value('system_type') == "atom"
+    # Molecule / cluster
+    assert molecule.get_value('system_type') == "molecule / cluster"
+    # 1D
+    assert one_d.get_value('system_type') == "1D"
     # 2D
     assert two_d.get_value('system_type') == "2D"
     # Surface
     assert surface.get_value('system_type') == "surface"
-    # Molecule / cluster
-    assert molecule.get_value('system_type') == "molecule / cluster"
-    # Atom
-    assert atom.get_value('system_type') == "atom"
+    # Bulk
+    assert bulk.get_value('system_type') == "bulk"
 
 
 def test_reduced_chemical_formula():
