@@ -119,6 +119,13 @@ class Material(MSection):
         move with possible restrictions set by the symmetry.
         """
     )
+    material_classification = Quantity(
+        type=str,
+        description="""
+        Contains the compound class and classification of the material
+        according to springer materials in JSON format.
+        """
+    )
     material_name = Quantity(
         type=str,
         description="""
@@ -137,6 +144,25 @@ class Material(MSection):
         description="""
         Point group in Hermann-Mauguin notation, part of crystal structure
         classification. There are 32 point groups in three dimensional space.
+        """
+    )
+    space_group_number = Quantity(
+        type=int,
+        description="""
+        Integer representation of the space group, part of crystal structure classification, part of material definition.
+        """
+    )
+    space_group_international_short_symbol = Quantity(
+        type=str,
+        description="""
+        International short symbol notation of the space group.
+        """
+    )
+    structure_type = Quantity(
+        type=str,
+        description="""
+        Classification according to known structure type, considering the point
+        group of the crystal and the occupations with different atom types.
         """
     )
     wyckoff_groups = Quantity(

@@ -481,6 +481,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         try:
             norm_wyckoff = SystemNormalizer.get_normalized_wyckoff(atomSpecies, wyckoffs)
             protoDict = SystemNormalizer.get_structure_type(spg_nr, norm_wyckoff)
+            aflow_prototype_notes = None
 
             if protoDict is None:
                 proto = "%d-_" % spg_nr
@@ -490,6 +491,7 @@ class SystemNormalizer(SystemBasedNormalizer):
                                       protoDict.get("Pearsons Symbol", "-"))
                 aflow_prototype_id = protoDict.get("aflow_prototype_id", "-")
                 aflow_prototype_url = protoDict.get("aflow_prototype_url", "-")
+                aflow_prototype_notes = protoDict.get("Notes", None)
                 labels = dict(
                     prototype_label=proto,
                     prototype_aflow_id=aflow_prototype_id,
@@ -499,6 +501,8 @@ class SystemNormalizer(SystemBasedNormalizer):
             return
 
         pSect = self._backend.openSection("section_prototype")
+        if aflow_prototype_notes is not None and aflow_prototype_id != "-":
+            self._backend.add_tmp_value("section_prototype", "prototype_notes", aflow_prototype_notes)
         self._backend.addValue(
             "prototype_assignement_method", "normalized-wyckoff")
         self._backend.addValue("prototype_label", labels['prototype_label'])
@@ -512,7 +516,7 @@ class SystemNormalizer(SystemBasedNormalizer):
 
     @staticmethod
     def get_normalized_wyckoff(atomic_number, wyckoff):
-        """ Returns a normalized Wyckoff sequence """
+        """Returns a normalized Wyckoff sequence."""
         atomCount = {}
         for nr in atomic_number:
             atomCount[nr] = atomCount.get(nr, 0) + 1

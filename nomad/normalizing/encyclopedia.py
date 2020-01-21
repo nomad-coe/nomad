@@ -299,44 +299,8 @@ class EncyclopediaNormalizer(Normalizer):
     def smearing_parameters(self) -> None:
         pass
 
-    # NOTE: System normalizer
-    def space_group(self) -> None:
-        pass
-
-    # NOTE: System normalizer
-    def space_group_international_short_symbol(self) -> None:
-        pass
-
-    # NOTE: System normalizer
-    def space_group_number(self) -> None:
-        pass
-
     # NOTE: Phonon normalizer
     def specific_heat_cv(self) -> None:
-        pass
-
-    # NOTE: System normalizer
-    def springer_classification(self) -> None:
-        pass
-
-    # NOTE: System normalizer
-    def springer_compound_class(self) -> None:
-        pass
-
-    # NOTE: System normalizer
-    def springer_prototype(self) -> None:
-        pass
-
-    # NOTE: System normalizer
-    def structure_prototype(self) -> None:
-        pass
-
-    # NOTE: System normalizer
-    def structure_type(self) -> None:
-        pass
-
-    # NOTE: System normalizer
-    def strukturbericht_designation(self) -> None:
         pass
 
     # NOTE: System normalizer
@@ -660,6 +624,80 @@ class StructureBulk(Structure):
         point_group = section_symmetry["point_group"]
         material.point_group = point_group
 
+    def space_group_number(self, material: Material, symmetry_analyzer: SymmetryAnalyzer) -> None:
+        spg_number = symmetry_analyzer.get_space_group_number()
+        material.space_group_number = spg_number
+
+    def space_group_international_short_symbol(self, material: Material, symmetry_analyzer: SymmetryAnalyzer) -> None:
+        spg_int_symb = symmetry_analyzer.get_space_group_international_short()
+        material.space_group_international_short_symbol = spg_int_symb
+
+    def material_classification(self, material: Material, section_system) -> None:
+        try:
+            sec_springer = section_system["section_springer_material"][0]
+        except Exception:
+            return
+
+        classes: Dict[str, List[str]] = {}
+        try:
+            classifications = sec_springer['springer_classification']
+        except KeyError:
+            pass
+        else:
+            classes["material_class_springer"] = classifications
+        try:
+            compound_classes = sec_springer['springer_compound_class']
+        except KeyError:
+            pass
+        else:
+            classes["compound_class_springer"] = compound_classes
+        if classes:
+            material.material_classification = json.dumps(classes)
+
+    def structure_type(self, material: Material, section_system) -> None:
+        try:
+            sec_prototype = section_system["section_prototype"][0]
+        except Exception:
+            return
+
+        try:
+            notes = sec_prototype.tmp['prototype_notes']
+        except Exception:
+            pass
+        else:
+            # Only relevant information hidden in "notes" is handed over TODO:
+            # review and eventually add more ****ites which are commonly used
+            # (see wurzite)
+            if notes in {
+               'perovskite',
+               '4-member ring',
+               'fct',
+               'bct',
+               'bct5',
+               'wurtzite',
+               'hcp',
+               'half-Heusler',
+               'zincblende',
+               'cubic perovskite',
+               'simple cubic',
+               'clathrate',
+               'cuprite',
+               'Heusler',
+               'rock salt',
+               'fcc',
+               'diamond',
+               'bcc'}:
+                material.structure_type = notes
+
+    # def structure_prototype(self) -> None:
+        # pass
+
+    # def structure_type(self) -> None:
+        # pass
+
+    # def strukturbericht_designation(self) -> None:
+        # pass
+
     def wyckoff_groups(self, material: Material, wyckoff_sets: Dict) -> None:
         wyckoff_list = []
         for group in wyckoff_sets:
@@ -676,16 +714,16 @@ class StructureBulk(Structure):
             wyckoff_list.append(data)
         material.wyckoff_groups = json.dumps(wyckoff_list, sort_keys=True)
 
-    def fill(self, representative_system) -> None:
+    def fill(self, sec_system) -> None:
         # Fetch resources
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         material = sec_enc.material
         calculation = sec_enc.calculation
-        sec_symmetry = representative_system["section_symmetry"][0]
-        symmetry_analyzer = representative_system["section_symmetry"][0].tmp["symmetry_analyzer"]
+        sec_symmetry = sec_system["section_symmetry"][0]
+        symmetry_analyzer = sec_system["section_symmetry"][0].tmp["symmetry_analyzer"]
         std_atoms = symmetry_analyzer.get_conventional_system()
         prim_atoms = symmetry_analyzer.get_primitive_system()
-        repr_atoms = representative_system.tmp["representative_atoms"]  # Temporary value stored by SystemNormalizer
+        repr_atoms = sec_system.tmp["representative_atoms"]  # Temporary value stored by SystemNormalizer
         wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional()
         names, counts = structure.get_hill_decomposition(prim_atoms.get_chemical_symbols(), reduced=False)
         greatest_common_divisor = reduce(gcd, counts)
@@ -708,8 +746,12 @@ class StructureBulk(Structure):
         self.has_free_wyckoff_parameters(material, symmetry_analyzer)
         self.lattice_parameters(calculation, std_atoms)
         self.material_name(material, names, reduced_counts)
+        self.material_classification(material, sec_system)
         self.periodicity(material)
         self.point_group(material, sec_symmetry)
+        self.space_group_number(material, symmetry_analyzer)
+        self.space_group_international_short_symbol(material, symmetry_analyzer)
+        self.structure_type(material, sec_system)
         self.wyckoff_groups(material, wyckoff_sets)
 
 

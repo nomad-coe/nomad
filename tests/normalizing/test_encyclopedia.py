@@ -60,22 +60,31 @@ def test_bulk_metainfo(bulk: LocalBackend):
     """Tests that information for bulk systems is correctly processed.
     """
     enc = bulk.get_mi2_section(Encyclopedia.m_def)
+    # Material
     assert enc.material.system_type == "bulk"
+    assert enc.material.formula == "Si2"
+    assert enc.material.formula_reduced == "Si"
+    assert enc.material.material_name == "Silicon"
+    # assert enc.material.structure_type == "fcc"
+
+    # Symmetry
+    assert enc.material.crystal_system == "cubic"
+    assert enc.material.bravais_lattice == "cF"
+    assert enc.material.has_free_wyckoff_parameters is False
+    assert enc.material.point_group == "m-3m"
+    assert enc.material.wyckoff_groups is not None
+    assert enc.material.space_group_number == 227
+    assert enc.material.space_group_international_short_symbol == "Fd-3m"
+
+    # Representative system
     assert enc.material.number_of_atoms == 8
     assert enc.material.atom_labels == ["Si", "Si", "Si", "Si", "Si", "Si", "Si", "Si"]
     assert enc.material.atom_positions is not None
-    assert enc.material.crystal_system == "cubic"
-    assert enc.material.bravais_lattice == "cF"
-    assert enc.material.formula == "Si2"
-    assert enc.material.formula_reduced == "Si"
-    assert enc.material.has_free_wyckoff_parameters is False
-    assert enc.material.material_name == "Silicon"
-    assert enc.material.point_group == "m-3m"
     assert enc.material.cell_normalized is not None
     assert enc.material.cell_primitive is not None
     assert np.array_equal(enc.material.periodicity, [0, 1, 2])
-    assert enc.material.wyckoff_groups is not None
 
+    # Calculation
     assert enc.calculation.atomic_density == pytest.approx(4.99402346512432e+28)
     assert enc.calculation.lattice_parameters is not None
     assert enc.calculation.mass_density == pytest.approx(8 * 28.0855 * 1.6605389e-27 / (5.431**3 * 1e-30))  # Atomic mass in kg/m^3
