@@ -1076,13 +1076,11 @@ class TestRepo():
         assert data['pagination']['total'] > 0
 
     def test_get_code_from_query(self, api, example_elastic_calcs, test_user_auth):
-        rv = api.get('/repo/?per_page=10', headers=test_user_auth)
+        rv = api.get('/repo/?code_name=VASP', headers=test_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)
         assert data['python'] is not None
         assert data['curl'] is not None
-        # exec does not seem to work
-        # exec(data['python'])
 
 
 class TestEditRepo():
