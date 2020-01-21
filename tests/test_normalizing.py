@@ -132,6 +132,15 @@ def surface() -> LocalBackend:
     return backend
 
 
+@pytest.fixture(scope='session')
+def molecule() -> LocalBackend:
+    parser_name = "parsers/fhi-aims"
+    filepath = "tests/data/normalizers/fhiaims_molecule_singlepoint/aims.out"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
 def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
     run_normalize(parsed_template_example)
 
@@ -209,13 +218,15 @@ def test_symmetry_classification_fcc():
     assert all(origin_shift == expected_origin_shift)
 
 
-def test_system_classification(bulk, two_d, surface):
+def test_system_classification(bulk, two_d, surface, molecule):
     # Bulk
     assert bulk.get_value('system_type') == "bulk"
     # 2D
     assert two_d.get_value('system_type') == "2D"
     # Surface
     assert surface.get_value('system_type') == "surface"
+    # Molecule / cluster
+    assert molecule.get_value('system_type') == "molecule / cluster"
 
 
 def test_reduced_chemical_formula():

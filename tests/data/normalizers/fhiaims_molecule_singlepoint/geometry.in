@@ -1,0 +1,73 @@
+ # This is the geometry file from relaxed coordinates
+atom      -0.71243027      1.23396634      0.00000000 C
+  constrain_relaxation z
+atom      -1.42486516      0.00000000      0.00000000 C
+  constrain_relaxation z
+atom      -0.71243027     -1.23396634      0.00000000 C
+  constrain_relaxation z
+atom       0.71243027     -1.23396634      0.00000000 C
+  constrain_relaxation z
+atom       1.42486516      0.00000000      0.00000000 C
+  constrain_relaxation z
+atom       0.71243027      1.23396634      0.00000000 C
+  constrain_relaxation z
+atom      -1.42424233      2.46686049      0.00000000 C
+  constrain_relaxation z
+atom      -2.84848846      0.00000000      0.00000000 C
+  constrain_relaxation z
+atom      -1.42424233     -2.46686049      0.00000000 C
+  constrain_relaxation z
+atom       1.42424233     -2.46686049      0.00000000 C
+  constrain_relaxation z
+atom       2.84848846      0.00000000      0.00000000 C
+  constrain_relaxation z
+atom       1.42424233      2.46686049      0.00000000 C
+  constrain_relaxation z
+atom      -2.84580245      2.43648439      0.00000000 C
+  constrain_relaxation z
+atom      -3.38895815      3.38280060      0.00000000 H
+  constrain_relaxation z
+atom      -3.53296333     -1.24629587      0.00000000 C
+  constrain_relaxation z
+atom      -4.62407474     -1.24352959      0.00000000 H
+  constrain_relaxation z
+atom      -0.68715742     -3.68278568      0.00000000 C
+  constrain_relaxation z
+atom      -1.23512609     -4.62632322      0.00000000 H
+  constrain_relaxation z
+atom       2.84580245     -2.43648439      0.00000000 C
+  constrain_relaxation z
+atom       3.38895815     -3.38280060      0.00000000 H
+  constrain_relaxation z
+atom       3.53296333      1.24629587      0.00000000 C
+  constrain_relaxation z
+atom       4.62407474      1.24352959      0.00000000 H
+  constrain_relaxation z
+atom       0.68715742      3.68278568      0.00000000 C
+  constrain_relaxation z
+atom       1.23512609      4.62632322      0.00000000 H
+  constrain_relaxation z
+atom      -3.53296333      1.24629587      0.00000000 C
+  constrain_relaxation z
+atom      -4.62407474      1.24352959      0.00000000 H
+  constrain_relaxation z
+atom      -2.84580245     -2.43648439      0.00000000 C
+  constrain_relaxation z
+atom      -3.38895815     -3.38280060      0.00000000 H
+  constrain_relaxation z
+atom       0.68715742     -3.68278568      0.00000000 C
+  constrain_relaxation z
+atom       1.23512609     -4.62632322      0.00000000 H
+  constrain_relaxation z
+atom       3.53296333     -1.24629587      0.00000000 C
+  constrain_relaxation z
+atom       4.62407474     -1.24352959      0.00000000 H
+  constrain_relaxation z
+atom       2.84580245      2.43648439      0.00000000 C
+  constrain_relaxation z
+atom       3.38895815      3.38280060      0.00000000 H
+  constrain_relaxation z
+atom      -0.68715742      3.68278568      0.00000000 C
+  constrain_relaxation z
+atom      -1.23512609      4.62632322      0.00000000 H
+  constrain_relaxation z
