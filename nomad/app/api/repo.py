@@ -232,8 +232,6 @@ class RepoCalcsResource(Resource):
             code_args = dict(request.args)
             if 'statistics' in code_args:
                 del(code_args['statistics'])
-            import json
-            utils.get_logger(__name__).info('create code snippets', code_args=json.dumps(code_args))
             results['curl'] = query_api_curl('archive', 'query', query_string=code_args)
             results['python'] = query_api_python('archive', 'query', query_string=code_args)
 

@@ -255,7 +255,7 @@ def query_api_url(*args, query_string: Dict[str, Any] = None):
     """
     url = os.path.join(config.api_url(False), *args)
     if query_string is not None:
-        url = '%s?%s' % (url, urlencode(query_string))
+        url = '%s?%s' % (url, urlencode(query_string, doseq=True))
 
     return url
 
