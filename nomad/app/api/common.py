@@ -268,7 +268,7 @@ def query_api_python(*args, **kwargs):
     url = query_api_url(*args, **kwargs)
     return '''import requests
 response = requests.get("{}")
-response.json()'''.format(url)
+data = response.json()'''.format(url)
 
 
 def query_api_curl(*args, **kwargs):
