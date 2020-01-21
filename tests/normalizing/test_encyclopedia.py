@@ -61,25 +61,25 @@ def test_bulk_metainfo(bulk: LocalBackend):
     """
     enc = bulk.get_mi2_section(Encyclopedia.m_def)
     assert enc.material.system_type == "bulk"
-    assert enc.material.number_of_atoms == 4
-    assert enc.material.atom_labels == ["Na", "Na", "Na", "Na"]
+    assert enc.material.number_of_atoms == 8
+    assert enc.material.atom_labels == ["Si", "Si", "Si", "Si", "Si", "Si", "Si", "Si"]
     assert enc.material.atom_positions is not None
     assert enc.material.crystal_system == "cubic"
     assert enc.material.bravais_lattice == "cF"
-    assert enc.material.formula == "Na"
-    assert enc.material.formula_reduced == "Na"
+    assert enc.material.formula == "Si2"
+    assert enc.material.formula_reduced == "Si"
     assert enc.material.has_free_wyckoff_parameters is False
-    assert enc.material.material_name == "Sodium"
+    assert enc.material.material_name == "Silicon"
     assert enc.material.point_group == "m-3m"
     assert enc.material.cell_normalized is not None
     assert enc.material.cell_primitive is not None
     assert np.array_equal(enc.material.periodicity, [0, 1, 2])
     assert enc.material.wyckoff_groups is not None
 
-    assert enc.calculation.atomic_density == pytest.approx(4.0e+30, rel=0.000001, abs=None)
+    assert enc.calculation.atomic_density == pytest.approx(4.99402346512432e+28)
     assert enc.calculation.lattice_parameters is not None
-    assert enc.calculation.mass_density == 4 * 22.98976928 * 1.6605389e-27 / 1e-30  # Atomic mass in kg / cell volume
-    assert enc.calculation.cell_volume == 1e-30
+    assert enc.calculation.mass_density == pytest.approx(8 * 28.0855 * 1.6605389e-27 / (5.431**3 * 1e-30))  # Atomic mass in kg/m^3
+    assert enc.calculation.cell_volume == pytest.approx(5.431**3 * 1e-30)
 
 
 def test_2d_metainfo(two_d: LocalBackend):

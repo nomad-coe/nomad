@@ -76,12 +76,8 @@ def geometry_optimization() -> LocalBackend:
 
 
 @pytest.fixture(scope='session')
-def molecular_dynamics() -> LocalBackend:
-    parser_name = "parsers/cp2k"
-    filepath = "tests/data/normalizers/encyclopedia/cp2k_bulk_md/si_md.out"
-    backend = parse_file((parser_name, filepath))
-    backend = run_normalize(backend)
-    return backend
+def molecular_dynamics(bulk) -> LocalBackend:
+    return bulk
 
 
 @pytest.fixture(scope='session')
@@ -95,8 +91,8 @@ def phonon() -> LocalBackend:
 
 @pytest.fixture(scope='session')
 def bulk() -> LocalBackend:
-    parser_name = "parsers/template"
-    filepath = "tests/data/normalizers/fcc_crystal_structure.json"
+    parser_name = "parsers/cp2k"
+    filepath = "tests/data/normalizers/cp2k_bulk_md/si_md.out"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
     return backend
@@ -105,7 +101,7 @@ def bulk() -> LocalBackend:
 @pytest.fixture(scope='session')
 def two_d() -> LocalBackend:
     parser_name = "parsers/fhi-aims"
-    filepath = "tests/data/normalizers/encyclopedia/fhiaims_2d_singlepoint/aims.out"
+    filepath = "tests/data/normalizers/fhiaims_2d_singlepoint/aims.out"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
     return backend
@@ -114,7 +110,34 @@ def two_d() -> LocalBackend:
 @pytest.fixture(scope='session')
 def surface() -> LocalBackend:
     parser_name = "parsers/fhi-aims"
-    filepath = "tests/data/normalizers/encyclopedia/fhiaims_2d_singlepoint/aims.out"
+    filepath = "tests/data/normalizers/fhiaims_surface_singlepoint/PBE-light+tight-rho2.out"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def molecule() -> LocalBackend:
+    parser_name = "parsers/fhi-aims"
+    filepath = "tests/data/normalizers/fhiaims_molecule_singlepoint/aims.out"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def atom() -> LocalBackend:
+    parser_name = "parsers/gaussian"
+    filepath = "tests/data/normalizers/gaussian_atom_singlepoint/m9b7.out"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def one_d() -> LocalBackend:
+    parser_name = "parsers/exciting"
+    filepath = "tests/data/normalizers/exciting_1d_singlepoint/INFO.OUT"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
     return backend

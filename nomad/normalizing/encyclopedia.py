@@ -528,8 +528,8 @@ class StructureBulk(Structure):
         calculation.lattice_parameters = structure.get_lattice_parameters(cell_normalized)
 
     def mass_density(self, calculation: Calculation, repr_system: ase.Atoms) -> None:
-        orig_volume = repr_system.get_volume() * (1e-10)**3
         mass = structure.get_summed_atomic_mass(repr_system.get_atomic_numbers())
+        orig_volume = repr_system.get_volume() * (1e-10)**3
         calculation.mass_density = float(mass / orig_volume)
 
     def material_name(self, material: Material, symbols: list, numbers: list) -> None:
