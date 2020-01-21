@@ -107,8 +107,8 @@ def normalized_template_example(parsed_template_example) -> LocalBackend:
 
 @pytest.fixture(scope='session')
 def bulk() -> LocalBackend:
-    parser_name = "parsers/template"
-    filepath = "../tests/data/normalizers/cp2k_bulk_md/si_md.out"
+    parser_name = "parsers/cp2k"
+    filepath = "tests/data/normalizers/cp2k_bulk_md/si_md.out"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
     return backend
@@ -118,6 +118,15 @@ def bulk() -> LocalBackend:
 def two_d() -> LocalBackend:
     parser_name = "parsers/fhi-aims"
     filepath = "tests/data/normalizers/fhiaims_2d_singlepoint/aims.out"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def surface() -> LocalBackend:
+    parser_name = "parsers/fhi-aims"
+    filepath = "tests/data/normalizers/fhiaims_surface_singlepoint/PBE-light+tight-rho2.out"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
     return backend
@@ -200,12 +209,13 @@ def test_symmetry_classification_fcc():
     assert all(origin_shift == expected_origin_shift)
 
 
-def test_system_classification(bulk, two_d):
-    "Ensure the classification of fcc Na is atom"
+def test_system_classification(bulk, two_d, surface):
     # Bulk
     assert bulk.get_value('system_type') == "bulk"
     # 2D
     assert two_d.get_value('system_type') == "2D"
+    # Surface
+    assert surface.get_value('system_type') == "surface"
 
 
 def test_reduced_chemical_formula():
