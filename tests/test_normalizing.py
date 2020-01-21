@@ -141,6 +141,15 @@ def molecule() -> LocalBackend:
     return backend
 
 
+@pytest.fixture(scope='session')
+def atom() -> LocalBackend:
+    parser_name = "parsers/gaussian"
+    filepath = "tests/data/normalizers/gaussian_atom_singlepoint/m9b7.out"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
 def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
     run_normalize(parsed_template_example)
 
@@ -218,7 +227,7 @@ def test_symmetry_classification_fcc():
     assert all(origin_shift == expected_origin_shift)
 
 
-def test_system_classification(bulk, two_d, surface, molecule):
+def test_system_classification(bulk, two_d, surface, molecule, atom):
     # Bulk
     assert bulk.get_value('system_type') == "bulk"
     # 2D
@@ -227,6 +236,8 @@ def test_system_classification(bulk, two_d, surface, molecule):
     assert surface.get_value('system_type') == "surface"
     # Molecule / cluster
     assert molecule.get_value('system_type') == "molecule / cluster"
+    # Atom
+    assert atom.get_value('system_type') == "atom"
 
 
 def test_reduced_chemical_formula():

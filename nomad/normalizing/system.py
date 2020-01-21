@@ -279,17 +279,18 @@ class SystemNormalizer(SystemBasedNormalizer):
                 self.logger.error(
                     'matid project system classification failed', exc_info=e, error=str(e))
             else:
-                if isinstance(cls, Class3D):
+                classification = type(cls)
+                if classification == Class3D:
                     system_type = 'bulk'
-                elif isinstance(cls, Atom):
+                elif classification == Atom:
                     system_type = 'atom'
-                elif isinstance(cls, Class0D):
+                elif classification == Class0D:
                     system_type = 'molecule / cluster'
-                elif isinstance(cls, Class1D):
+                elif classification == Class1D:
                     system_type = '1D'
-                elif isinstance(cls, Surface):
+                elif classification == Surface:
                     system_type = 'surface'
-                elif isinstance(cls, Material2D):
+                elif classification == Material2D:
                     system_type = '2D'
         else:
             self.logger.info("System type analysis not run due to large system size.")
