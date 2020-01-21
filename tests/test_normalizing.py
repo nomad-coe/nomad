@@ -207,6 +207,7 @@ def test_system_classification(bulk, two_d):
     # 2D
     assert two_d.get_value('system_type') == "2D"
 
+
 def test_reduced_chemical_formula():
     "Ensure we get the right reduced chemical formula for glucose atom labels"
     backend = parse_file(glucose_atom_labels)
