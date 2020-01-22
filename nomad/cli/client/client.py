@@ -54,7 +54,7 @@ def __create_client(
     if user is not None:
         http_client.set_basic_auth(host, user, password)
         if use_token:
-            token = client.auth.get_auth().reponse().result.access_token
+            token = client.auth.get_auth().response().result.access_token
             http_client.set_api_key(
                 host, 'Bearer %s' % token, param_name='Authorization', param_in='header')
         utils.get_logger(__name__).info('set bravado client authentication', user=user)
