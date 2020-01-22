@@ -90,19 +90,19 @@ def run_normalize(backend: LocalBackend) -> LocalBackend:
     return backend
 
 
-# @pytest.fixture
-# def normalized_vasp_example(parsed_vasp_example: LocalBackend) -> LocalBackend:
-    # return run_normalize(parsed_vasp_example)
+@pytest.fixture
+def normalized_vasp_example(parsed_vasp_example: LocalBackend) -> LocalBackend:
+    return run_normalize(parsed_vasp_example)
 
 
-# @pytest.fixture
-# def normalized_example(parsed_example: LocalBackend) -> LocalBackend:
-    # return run_normalize(parsed_example)
+@pytest.fixture
+def normalized_example(parsed_example: LocalBackend) -> LocalBackend:
+    return run_normalize(parsed_example)
 
 
-# @pytest.fixture
-# def normalized_template_example(parsed_template_example) -> LocalBackend:
-    # return run_normalize(parsed_template_example)
+@pytest.fixture
+def normalized_template_example(parsed_template_example) -> LocalBackend:
+    return run_normalize(parsed_template_example)
 
 
 @pytest.fixture(scope='session')
