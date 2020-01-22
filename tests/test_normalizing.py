@@ -120,6 +120,15 @@ def molecular_dynamics(bulk) -> LocalBackend:
 
 
 @pytest.fixture(scope='session')
+def phonon() -> LocalBackend:
+    parser_name = "parsers/phonopy"
+    filepath = "tests/data/parsers/phonopy/phonopy-FHI-aims-displacement-01/control.in"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
 def bulk() -> LocalBackend:
     parser_name = "parsers/cp2k"
     filepath = "tests/data/normalizers/cp2k_bulk_md/si_md.out"
@@ -217,7 +226,7 @@ def bulk() -> LocalBackend:
     # assert expected_system_type == system_type
 
 
-def test_representative_systems(molecular_dynamics, geometry_optimization):
+def test_representative_systems(molecular_dynamics, geometry_optimization, phonon):
     """Checks that the representative systems are correctly identified and
     processed by SystemNormalizer.
     """
@@ -246,7 +255,7 @@ def test_representative_systems(molecular_dynamics, geometry_optimization):
     check_representative_frames(molecular_dynamics)
     check_representative_frames(geometry_optimization)
     check_representative_frames(phonon)
-    # check_representative_frames(single_point)
+    check_representative_frames(single_point)
 
 
 # def test_reduced_chemical_formula():
