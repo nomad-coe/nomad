@@ -262,7 +262,8 @@ def test_representative_systems(single_point, molecular_dynamics, geometry_optim
             scc = backend["section_single_configuration_calculation"][scc_idx]
             repr_system_idx = scc["single_configuration_calculation_to_system_ref"]
 
-        # Check that only the representative system has been marded as such
+        # Check that only the representative system has been labels with
+        # "is_representative"
         for i, system in enumerate(backend["section_system"]):
             if i == repr_system_idx:
                 assert system["is_representative"] is True

@@ -88,8 +88,11 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         pass
 
     def __representative_system(self):
-        """Used to select a representative system for this entry."""
+        """Used to select a representative system for this entry.
 
+        Attempt to find a single section_system that is representative for the
+        entry. The selection depends on the type of calculation.
+        """
         system_idx = None
 
         # Try to find a frame sequence, only first found is considered
