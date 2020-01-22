@@ -106,7 +106,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
                 scc_idx = frames[-1]
             scc = self._backend[s_scc][scc_idx]
             system_idx = scc["single_configuration_calculation_to_system_ref"]
-        except KeyError:
+        except Exception:
             frame_seqs = []
 
         # If no frame sequences detected, try to find scc
