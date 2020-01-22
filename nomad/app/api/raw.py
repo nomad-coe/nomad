@@ -27,6 +27,7 @@ import json
 import gzip
 import lzma
 import urllib.parse
+from elasticsearch.helpers import ScanError
 
 from nomad import search, utils, config
 from nomad.files import UploadFiles, Restricted
@@ -422,7 +423,10 @@ class RawFileQueryResource(Resource):
         def path(entry):
             return '%s/%s' % (entry['upload_id'], entry['mainfile'])
 
-        calcs = search_request.execute_scan(order_by='upload_id')
+        calcs = search_request.execute_scan(
+            order_by='upload_id',
+            size=config.services.download_scan_size,
+            scroll=config.services.download_scan_timeout)
 
         if strip:
             if search_request.execute()['total'] > config.raw_file_strip_cutoff:
@@ -436,40 +440,45 @@ class RawFileQueryResource(Resource):
         def generator():
             manifest = {}
             upload_files = None
-            for entry in calcs:
-                upload_id = entry['upload_id']
-                mainfile = entry['mainfile']
-                if upload_files is None or upload_files.upload_id != upload_id:
-                    if upload_files is not None:
-                        upload_files.close_zipfile_cache()
+            try:
+                for entry in calcs:
+                    upload_id = entry['upload_id']
+                    mainfile = entry['mainfile']
+                    if upload_files is None or upload_files.upload_id != upload_id:
+                        if upload_files is not None:
+                            upload_files.close_zipfile_cache()
 
-                    upload_files = UploadFiles.get(
-                        upload_id, create_authorization_predicate(upload_id))
+                        upload_files = UploadFiles.get(
+                            upload_id, create_authorization_predicate(upload_id))
 
-                    if upload_files is None:
-                        utils.get_logger(__name__).error('upload files do not exist', upload_id=upload_id)
-                        continue
+                        if upload_files is None:
+                            utils.get_logger(__name__).error('upload files do not exist', upload_id=upload_id)
+                            continue
 
-                    upload_files.open_zipfile_cache()
+                        upload_files.open_zipfile_cache()
 
-                filenames = upload_files.raw_file_manifest(path_prefix=os.path.dirname(mainfile))
-                for filename in filenames:
-                    filename_w_upload = os.path.join(upload_files.upload_id, filename)
-                    filename_wo_prefix = filename_w_upload[common_prefix_len:]
-                    if len(patterns) == 0 or any(
-                            fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
-                            for pattern in patterns):
+                    filenames = upload_files.raw_file_manifest(path_prefix=os.path.dirname(mainfile))
+                    for filename in filenames:
+                        filename_w_upload = os.path.join(upload_files.upload_id, filename)
+                        filename_wo_prefix = filename_w_upload[common_prefix_len:]
+                        if len(patterns) == 0 or any(
+                                fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
+                                for pattern in patterns):
 
-                        yield (
-                            filename_wo_prefix, filename,
-                            lambda upload_filename: upload_files.raw_file(upload_filename, 'rb'),
-                            lambda upload_filename: upload_files.raw_file_size(upload_filename))
+                            yield (
+                                filename_wo_prefix, filename,
+                                lambda upload_filename: upload_files.raw_file(upload_filename, 'rb'),
+                                lambda upload_filename: upload_files.raw_file_size(upload_filename))
 
-                        manifest[path(entry)] = {
-                            key: entry[key]
-                            for key in RawFileQueryResource.manifest_quantities
-                            if entry.get(key) is not None
-                        }
+                            manifest[path(entry)] = {
+                                key: entry[key]
+                                for key in RawFileQueryResource.manifest_quantities
+                                if entry.get(key) is not None
+                            }
+            except ScanError:
+                utils.get_logger(__name__).warning(
+                    'scan error while streaming raw data from query',
+                    query=urllib.parse.urlencode(request.args, doseq=True))
 
             if upload_files is not None:
                 upload_files.close_zipfile_cache()

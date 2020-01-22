@@ -24,11 +24,13 @@ from flask import send_file, request
 from flask_restplus import abort, Resource, fields
 import json
 import importlib
+import urllib.parse
+from elasticsearch.helpers import ScanError
 
 import nomad_meta_info
 
 from nomad.files import UploadFiles, Restricted
-from nomad import utils, search
+from nomad import utils, search, config
 
 from .auth import authenticate, create_authorization_predicate
 from .api import api
@@ -146,37 +148,45 @@ class ArchiveDownloadResource(Resource):
         search_request = search.SearchRequest()
         apply_search_parameters(search_request, args)
 
-        calcs = search_request.execute_scan(order_by='upload_id')
+        calcs = search_request.execute_scan(
+            order_by='upload_id',
+            size=config.services.download_scan_size,
+            scroll=config.services.download_scan_timeout)
 
         def generator():
             manifest = {}
             upload_files = None
-            for entry in calcs:
-                upload_id = entry['upload_id']
-                calc_id = entry['calc_id']
-                if upload_files is None or upload_files.upload_id != upload_id:
-                    if upload_files is not None:
-                        upload_files.close_zipfile_cache()
+            try:
+                for entry in calcs:
+                    upload_id = entry['upload_id']
+                    calc_id = entry['calc_id']
+                    if upload_files is None or upload_files.upload_id != upload_id:
+                        if upload_files is not None:
+                            upload_files.close_zipfile_cache()
 
-                    upload_files = UploadFiles.get(
-                        upload_id, create_authorization_predicate(upload_id))
+                        upload_files = UploadFiles.get(
+                            upload_id, create_authorization_predicate(upload_id))
 
-                    if upload_files is None:
-                        utils.get_logger(__name__).error('upload files do not exist', upload_id=upload_id)
-                        continue
+                        if upload_files is None:
+                            utils.get_logger(__name__).error('upload files do not exist', upload_id=upload_id)
+                            continue
 
-                    upload_files.open_zipfile_cache()
+                        upload_files.open_zipfile_cache()
 
-                yield (
-                    '%s.%s' % (calc_id, upload_files._archive_ext), calc_id,
-                    lambda calc_id: upload_files.archive_file(calc_id, 'rb'),
-                    lambda calc_id: upload_files.archive_file_size(calc_id))
+                    yield (
+                        '%s.%s' % (calc_id, upload_files._archive_ext), calc_id,
+                        lambda calc_id: upload_files.archive_file(calc_id, 'rb'),
+                        lambda calc_id: upload_files.archive_file_size(calc_id))
 
-                manifest[calc_id] = {
-                    key: entry[key]
-                    for key in ArchiveDownloadResource.manifest_quantities
-                    if entry.get(key) is not None
-                }
+                    manifest[calc_id] = {
+                        key: entry[key]
+                        for key in ArchiveDownloadResource.manifest_quantities
+                        if entry.get(key) is not None
+                    }
+            except ScanError:
+                utils.get_logger(__name__).warning(
+                    'scan error while streaming archive data from query',
+                    query=urllib.parse.urlencode(request.args, doseq=True))
 
             if upload_files is not None:
                 upload_files.close_zipfile_cache()
@@ -224,7 +234,7 @@ class ArchiveQueryResource(Resource):
     @api.response(200, 'Archive data send')
     @api.expect(_archive_query_parser, validate=True)
     @api.marshal_with(_archive_query_model, skip_none=True, code=200, description='Search results sent')
-    @authenticate(signature_token=True)
+    @authenticate()
     def get(self):
         """
         Get archive data in json format from all query results.
