@@ -159,7 +159,8 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
 
         has_representative = False
         for g_index in representative_systems:
-            has_representative = has_representative or self.__normalize_system(g_index, True, logger)
+            representative_processed = self.__normalize_system(g_index, True, logger)
+            has_representative = has_representative or representative_processed
 
         # all the rest or until first representative depending on configuration
         if not self.only_representatives or not has_representative:
