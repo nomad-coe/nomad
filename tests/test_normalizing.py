@@ -223,23 +223,30 @@ def test_representative_systems(molecular_dynamics, geometry_optimization):
     """
     def check_representative_frames(backend):
         # For systems with multiple frames the first and two last should be processed.
-        frames = backend["frame_sequence_local_frames_ref"]
-        n_frames = len(frames)
-        if n_frames >= 3:
-            idx = [0, -2, -1]
-        elif n_frames == 2:
-            idx = [0, 1]
-        elif n_frames == 1:
-            idx = [0]
-        scc_idx = [frames[i] for i in idx]
-        sccs = [backend["section_single_configuration_calculation"][i] for i in scc_idx]
-        system_idx = [x["single_configuration_calculation_to_system_ref"] for x in sccs]
-        systems = [backend["section_system"][i] for i in system_idx]
-        for system in systems:
-            assert system["is_representative"] is True
+        try:
+            frames = backend["frame_sequence_local_frames_ref"]
+        except KeyError:
+            sccs = backend["section_single_configuration_calculation"]
+            scc = sccs[-1]
+            system_idx = scc["single_configuration_calculation_to_system_ref"]
+            repr_system = backend["section_system"][system_idx]
+        else:
+            sampling_method = backend["sampling_method"]
+            if sampling_method == "molecular_dynamics":
+                idx = 0
+            else:
+                idx = -1
+            scc_idx = frames[idx]
+            scc = backend["section_single_configuration_calculation"][scc_idx]
+            system_idx = scc["single_configuration_calculation_to_system_ref"]
+            repr_system = backend["section_system"][system_idx]
+
+        assert repr_system["is_representative"] is True
 
     check_representative_frames(molecular_dynamics)
     check_representative_frames(geometry_optimization)
+    check_representative_frames(phonon)
+    # check_representative_frames(single_point)
 
 
 # def test_reduced_chemical_formula():
