@@ -139,15 +139,21 @@ def test_symmetry_classification_fcc():
     assert all(origin_shift == expected_origin_shift)
 
 
-def test_system_classification(bulk, two_d, surface):
+def test_system_classification(atom, molecule, one_d, two_d, surface, bulk):
     """Tests that the system classification is correct for different kind of systems
     """
-    # Bulk system
-    assert bulk.get_value('system_type') == "bulk"
+    # Atom
+    assert atom["section_system"][0]["system_type"] == "atom"
+    # Molecule
+    assert molecule["section_system"][0]["system_type"] == "molecule / cluster"
+    # 1D system
+    assert one_d["section_system"][0]["system_type"] == "1D"
     # 2D system
-    assert two_d.get_value('system_type') == "2D"
+    assert two_d["section_system"][0]["system_type"] == "2D"
     # Surface
-    assert two_d.get_value('system_type') == "surface"
+    assert surface["section_system"][0]["system_type"] == "surface"
+    # Bulk system
+    assert bulk["section_system"][0]["system_type"] == "bulk"
 
 
 def test_reduced_chemical_formula():
