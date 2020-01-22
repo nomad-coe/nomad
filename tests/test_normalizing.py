@@ -90,166 +90,214 @@ def run_normalize(backend: LocalBackend) -> LocalBackend:
     return backend
 
 
-@pytest.fixture
-def normalized_vasp_example(parsed_vasp_example: LocalBackend) -> LocalBackend:
-    return run_normalize(parsed_vasp_example)
+# @pytest.fixture
+# def normalized_vasp_example(parsed_vasp_example: LocalBackend) -> LocalBackend:
+    # return run_normalize(parsed_vasp_example)
 
 
-@pytest.fixture
-def normalized_example(parsed_example: LocalBackend) -> LocalBackend:
-    return run_normalize(parsed_example)
+# @pytest.fixture
+# def normalized_example(parsed_example: LocalBackend) -> LocalBackend:
+    # return run_normalize(parsed_example)
 
 
-@pytest.fixture
-def normalized_template_example(parsed_template_example) -> LocalBackend:
-    return run_normalize(parsed_template_example)
+# @pytest.fixture
+# def normalized_template_example(parsed_template_example) -> LocalBackend:
+    # return run_normalize(parsed_template_example)
 
 
-def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
-    run_normalize(parsed_template_example)
-
-
-def assert_normalized(backend: LocalBackend):
-    metadata = datamodel.DFTCalcWithMetadata()
-    metadata.apply_domain_metadata(backend)
-    assert metadata.formula is not None
-    assert metadata.code_name is not None
-    assert metadata.code_version is not None
-    assert metadata.basis_set is not None
-    assert metadata.xc_functional is not None
-    assert metadata.system is not None
-    assert metadata.crystal_system is not None
-    assert len(metadata.atoms) is not None
-    assert metadata.spacegroup is not None
-
-    exceptions = parser_exceptions.get(backend.get_value('parser_name'), [])
-
-    if metadata.formula != config.services.unavailable_value:
-        assert len(metadata.atoms) > 0
-
-    for key in calc_metadata_keys:
-        if key not in exceptions:
-            assert getattr(metadata, key) != config.services.unavailable_value
-
-
-def test_normalizer(normalized_example: LocalBackend):
-    assert_normalized(normalized_example)
-
-
-def test_normalizer_faulty_matid(caplog):
-    """ Runs normalizer on an example w/ bools for atom pos. Should force matid error."""
-    # assert isinstance(backend, LocalBackend)
-    backend = parse_file(boolean_positions)
-    run_normalize(backend)
-    assert_log(caplog, 'ERROR', 'matid project system classification failed')
-    assert_log(caplog, 'ERROR', 'no lattice vectors but periodicity')
-
-
-def test_normalizer_single_string_atom_labels(caplog):
-    """
-    Runs normalizer on ['Br1SiSiK'] expects error. Should replace the label with 'X' and
-    the numbers of postitions should not match the labels.
-    """
-    backend = parse_file(single_string_atom_labels)
-    run_normalize(backend)
-    assert_log(caplog, 'ERROR', 'len of atom position does not match number of atoms')
-
-
-def test_normalizer_unknown_atom_label(caplog, no_warn):
-    """ Runs normalizer on ['Br','Si','Si','Za'], for normalizeation Za will be replaced,
-        but stays int the labels.
-    """
-    backend = parse_file(unknown_atom_label)
-    run_normalize(backend)
-    assert backend.get_value('atom_labels')[3] == 'Za'
-
-
-def test_symmetry_classification_fcc():
-    """Runs normalizer where lattice vectors should give fcc symmetry."""
-    backend = parse_file(fcc_symmetry)
+@pytest.fixture(scope='session')
+def geometry_optimization() -> LocalBackend:
+    parser_name = "parsers/template"
+    filepath = "tests/data/normalizers/fcc_crystal_structure.json"
+    backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    expected_crystal_system = 'cubic'
-    expected_bravais_lattice = 'cF'
-    expected_point_group = 'm-3m'
-    expected_origin_shift = [0, 0, 0]
-    cyrstal_system = backend.get_value('crystal_system')
-    assert cyrstal_system == expected_crystal_system
-    bravais_lattice = backend.get_value('bravais_lattice')
-    assert bravais_lattice == expected_bravais_lattice
-    point_group = backend.get_value('point_group')
-    assert point_group == expected_point_group
-    origin_shift = backend.get_value('origin_shift')
-    assert all(origin_shift == expected_origin_shift)
+    return backend
 
 
-def test_system_classification():
-    "Ensure the classification of fcc Na is atom"
-    # TODO: @dts - This is a bit strange that a system with only
-    # one atom is automatically classified as atom. It could be
-    # an elemental solid.
-    backend = parse_file(fcc_symmetry)
+@pytest.fixture(scope='session')
+def molecular_dynamics(bulk) -> LocalBackend:
+    return bulk
+
+
+@pytest.fixture(scope='session')
+def bulk() -> LocalBackend:
+    parser_name = "parsers/cp2k"
+    filepath = "tests/data/normalizers/cp2k_bulk_md/si_md.out"
+    backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    expected_system_type = 'atom'
-    system_type = backend.get_value('system_type')
-    assert expected_system_type == system_type
+    return backend
 
 
-def test_reduced_chemical_formula():
-    "Ensure we get the right reduced chemical formula for glucose atom labels"
-    backend = parse_file(glucose_atom_labels)
-    backend = run_normalize(backend)
-    expected_red_chem_formula = 'C6H12O6'
-    reduced_chemical_formula = backend.get_value('chemical_composition_bulk_reduced')
-    assert expected_red_chem_formula == reduced_chemical_formula
+# def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
+    # run_normalize(parsed_template_example)
 
 
-def test_vasp_incar_system():
+# def assert_normalized(backend: LocalBackend):
+    # metadata = datamodel.DFTCalcWithMetadata()
+    # metadata.apply_domain_metadata(backend)
+    # assert metadata.formula is not None
+    # assert metadata.code_name is not None
+    # assert metadata.code_version is not None
+    # assert metadata.basis_set is not None
+    # assert metadata.xc_functional is not None
+    # assert metadata.system is not None
+    # assert metadata.crystal_system is not None
+    # assert len(metadata.atoms) is not None
+    # assert metadata.spacegroup is not None
+
+    # exceptions = parser_exceptions.get(backend.get_value('parser_name'), [])
+
+    # if metadata.formula != config.services.unavailable_value:
+        # assert len(metadata.atoms) > 0
+
+    # for key in calc_metadata_keys:
+        # if key not in exceptions:
+            # assert getattr(metadata, key) != config.services.unavailable_value
+
+
+# def test_normalizer(normalized_example: LocalBackend):
+    # assert_normalized(normalized_example)
+
+
+# def test_normalizer_faulty_matid(caplog):
+    # """ Runs normalizer on an example w/ bools for atom pos. Should force matid error."""
+    # # assert isinstance(backend, LocalBackend)
+    # backend = parse_file(boolean_positions)
+    # run_normalize(backend)
+    # assert_log(caplog, 'ERROR', 'matid project system classification failed')
+    # assert_log(caplog, 'ERROR', 'no lattice vectors but periodicity')
+
+
+# def test_normalizer_single_string_atom_labels(caplog):
+    # """
+    # Runs normalizer on ['Br1SiSiK'] expects error. Should replace the label with 'X' and
+    # the numbers of postitions should not match the labels.
+    # """
+    # backend = parse_file(single_string_atom_labels)
+    # run_normalize(backend)
+    # assert_log(caplog, 'ERROR', 'len of atom position does not match number of atoms')
+
+
+# def test_normalizer_unknown_atom_label(caplog, no_warn):
+    # """ Runs normalizer on ['Br','Si','Si','Za'], for normalizeation Za will be replaced,
+        # but stays int the labels.
+    # """
+    # backend = parse_file(unknown_atom_label)
+    # run_normalize(backend)
+    # assert backend.get_value('atom_labels')[3] == 'Za'
+
+
+# def test_symmetry_classification_fcc():
+    # """Runs normalizer where lattice vectors should give fcc symmetry."""
+    # backend = parse_file(fcc_symmetry)
+    # backend = run_normalize(backend)
+    # expected_crystal_system = 'cubic'
+    # expected_bravais_lattice = 'cF'
+    # expected_point_group = 'm-3m'
+    # expected_origin_shift = [0, 0, 0]
+    # cyrstal_system = backend.get_value('crystal_system')
+    # assert cyrstal_system == expected_crystal_system
+    # bravais_lattice = backend.get_value('bravais_lattice')
+    # assert bravais_lattice == expected_bravais_lattice
+    # point_group = backend.get_value('point_group')
+    # assert point_group == expected_point_group
+    # origin_shift = backend.get_value('origin_shift')
+    # assert all(origin_shift == expected_origin_shift)
+
+
+# def test_system_classification():
+    # "Ensure the classification of fcc Na is atom"
+    # # TODO: @dts - This is a bit strange that a system with only
+    # # one atom is automatically classified as atom. It could be
+    # # an elemental solid.
+    # backend = parse_file(fcc_symmetry)
+    # backend = run_normalize(backend)
+    # expected_system_type = 'atom'
+    # system_type = backend.get_value('system_type')
+    # assert expected_system_type == system_type
+
+
+def test_representative_systems(molecular_dynamics, geometry_optimization):
+    """Checks that the representative systems are correctly identified and
+    processed by SystemNormalizer.
     """
-    Ensure we can test an incar value in the VASP example
-    """
-    backend = parse_file(vasp_parser)
-    backend = run_normalize(backend)
-    expected_value = 'SrTiO3'  # material's formula in vasp.xml
+    def check_representative_frames(backend):
+        # For systems with multiple frames the first and two last should be processed.
+        frames = backend["frame_sequence_local_frames_ref"]
+        n_frames = len(frames)
+        if n_frames >= 3:
+            idx = [0, -2, -1]
+        elif n_frames == 2:
+            idx = [0, 1]
+        elif n_frames == 1:
+            idx = [0]
+        scc_idx = [frames[i] for i in idx]
+        sccs = [backend["section_single_configuration_calculation"][i] for i in scc_idx]
+        system_idx = [x["single_configuration_calculation_to_system_ref"] for x in sccs]
+        systems = [backend["section_system"][i] for i in system_idx]
+        for system in systems:
+            assert system["is_representative"] is True
 
-    # backend_value = backend.get_value('x_vasp_unknown_incars')  # OK
-    # backend_value = backend.get_value('x_vasp_atom_kind_refs')  # OK
-    backend_value = backend.get_value('x_vasp_incar_SYSTEM')  # OK
-
-    print("backend_value: ", backend_value)
-    assert expected_value == backend_value
-
-
-def test_springer_normalizer():
-    """
-    Ensure the Springer normalizer works well with the VASP example.
-    """
-    backend = parse_file(vasp_parser)
-    backend = run_normalize(backend)
-
-    backend_value = backend.get_value('springer_id', 89)
-    expected_value = 'sd_1932539'
-    assert expected_value == backend_value
-
-    backend_value = backend.get_value('springer_alphabetical_formula', 89)
-    expected_value = 'O3SrTi'
-    assert expected_value == backend_value
-
-    backend_value = backend.get_value('springer_url', 89)
-    expected_value = 'http://materials.springer.com/isp/crystallographic/docs/sd_1932539'
-    assert expected_value == backend_value
+    check_representative_frames(molecular_dynamics)
+    check_representative_frames(geometry_optimization)
 
 
-def test_dos_normalizer():
-    """
-    Ensure the DOS normalizer acted on the DOS values. We take a VASP example.
-    """
-    backend = parse_file(vasp_parser_dos)
-    backend = run_normalize(backend)
+# def test_reduced_chemical_formula():
+    # "Ensure we get the right reduced chemical formula for glucose atom labels"
+    # backend = parse_file(glucose_atom_labels)
+    # backend = run_normalize(backend)
+    # expected_red_chem_formula = 'C6H12O6'
+    # reduced_chemical_formula = backend.get_value('chemical_composition_bulk_reduced')
+    # assert expected_red_chem_formula == reduced_chemical_formula
 
-    # Check if 'dos_values' were indeed normalized
-    # 'dvn' stands for 'dos_values_normalized'
-    backend_dvn = backend.get_value('dos_values_normalized', 0)
-    last_value = backend_dvn[0, -1]
-    expected = 1.7362195274239454e+47
-    # Compare floats properly with numpy (delta tolerance involved)
-    assert np.allclose(last_value, expected)
+
+# def test_vasp_incar_system():
+    # """
+    # Ensure we can test an incar value in the VASP example
+    # """
+    # backend = parse_file(vasp_parser)
+    # backend = run_normalize(backend)
+    # expected_value = 'SrTiO3'  # material's formula in vasp.xml
+
+    # # backend_value = backend.get_value('x_vasp_unknown_incars')  # OK
+    # # backend_value = backend.get_value('x_vasp_atom_kind_refs')  # OK
+    # backend_value = backend.get_value('x_vasp_incar_SYSTEM')  # OK
+
+    # print("backend_value: ", backend_value)
+    # assert expected_value == backend_value
+
+
+# def test_springer_normalizer():
+    # """
+    # Ensure the Springer normalizer works well with the VASP example.
+    # """
+    # backend = parse_file(vasp_parser)
+    # backend = run_normalize(backend)
+
+    # backend_value = backend.get_value('springer_id', 89)
+    # expected_value = 'sd_1932539'
+    # assert expected_value == backend_value
+
+    # backend_value = backend.get_value('springer_alphabetical_formula', 89)
+    # expected_value = 'O3SrTi'
+    # assert expected_value == backend_value
+
+    # backend_value = backend.get_value('springer_url', 89)
+    # expected_value = 'http://materials.springer.com/isp/crystallographic/docs/sd_1932539'
+    # assert expected_value == backend_value
+
+
+# def test_dos_normalizer():
+    # """
+    # Ensure the DOS normalizer acted on the DOS values. We take a VASP example.
+    # """
+    # backend = parse_file(vasp_parser_dos)
+    # backend = run_normalize(backend)
+
+    # # Check if 'dos_values' were indeed normalized
+    # # 'dvn' stands for 'dos_values_normalized'
+    # backend_dvn = backend.get_value('dos_values_normalized', 0)
+    # last_value = backend_dvn[0, -1]
+    # expected = 1.7362195274239454e+47
+    # # Compare floats properly with numpy (delta tolerance involved)
+    # assert np.allclose(last_value, expected)
