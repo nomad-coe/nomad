@@ -550,8 +550,7 @@ class SearchRequest:
             else:
                 search = search.sort('-%s' % order_by_quantity.elastic_field)
 
-        search.params(**kwargs)
-        for hit in search.scan():
+        for hit in search.params(**kwargs).scan():
             yield hit.to_dict()
 
     def execute_paginated(
