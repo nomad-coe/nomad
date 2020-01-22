@@ -118,7 +118,7 @@ def test_normalizer_unknown_atom_label(caplog, no_warn):
     """
     backend = parse_file(unknown_atom_label)
     run_normalize(backend)
-    assert backend.get_value('atom_labels')[3] == 'Za'
+    assert backend['atom_labels'][3] == 'Za'
 
 
 def test_symmetry_classification_fcc():
@@ -129,13 +129,13 @@ def test_symmetry_classification_fcc():
     expected_bravais_lattice = 'cF'
     expected_point_group = 'm-3m'
     expected_origin_shift = [0, 0, 0]
-    cyrstal_system = backend.get_value('crystal_system')
-    assert cyrstal_system == expected_crystal_system
-    bravais_lattice = backend.get_value('bravais_lattice')
+    crystal_system = backend['crystal_system']
+    assert crystal_system == expected_crystal_system
+    bravais_lattice = backend['bravais_lattice']
     assert bravais_lattice == expected_bravais_lattice
-    point_group = backend.get_value('point_group')
+    point_group = backend['point_group']
     assert point_group == expected_point_group
-    origin_shift = backend.get_value('origin_shift')
+    origin_shift = backend['origin_shift']
     assert all(origin_shift == expected_origin_shift)
 
 
@@ -143,17 +143,17 @@ def test_system_classification(atom, molecule, one_d, two_d, surface, bulk):
     """Tests that the system classification is correct for different kind of systems
     """
     # Atom
-    assert atom["section_system"][0]["system_type"] == "atom"
+    assert atom["system_type"] == "atom"
     # Molecule
-    assert molecule["section_system"][0]["system_type"] == "molecule / cluster"
+    assert molecule["system_type"] == "molecule / cluster"
     # 1D system
-    assert one_d["section_system"][0]["system_type"] == "1D"
+    assert one_d["system_type"] == "1D"
     # 2D system
-    assert two_d["section_system"][0]["system_type"] == "2D"
+    assert two_d["system_type"] == "2D"
     # Surface
-    assert surface["section_system"][0]["system_type"] == "surface"
+    assert surface["system_type"] == "surface"
     # Bulk system
-    assert bulk["section_system"][0]["system_type"] == "bulk"
+    assert bulk["system_type"] == "bulk"
 
 
 def test_reduced_chemical_formula():
@@ -161,7 +161,7 @@ def test_reduced_chemical_formula():
     backend = parse_file(glucose_atom_labels)
     backend = run_normalize(backend)
     expected_red_chem_formula = 'C6H12O6'
-    reduced_chemical_formula = backend.get_value('chemical_composition_bulk_reduced')
+    reduced_chemical_formula = backend['chemical_composition_bulk_reduced']
     assert expected_red_chem_formula == reduced_chemical_formula
 
 
@@ -175,7 +175,7 @@ def test_vasp_incar_system():
 
     # backend_value = backend.get_value('x_vasp_unknown_incars')  # OK
     # backend_value = backend.get_value('x_vasp_atom_kind_refs')  # OK
-    backend_value = backend.get_value('x_vasp_incar_SYSTEM')  # OK
+    backend_value = backend['x_vasp_incar_SYSTEM']  # OK
 
     print("backend_value: ", backend_value)
     assert expected_value == backend_value
