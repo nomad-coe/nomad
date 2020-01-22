@@ -122,8 +122,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
             if len(sccs) == 0:
                 try:
                     systems = self._backend.get_sections(s_system)
-                    system = systems[-1]
-                    system_idx = system["single_configuration_calculation_to_system_ref"]
+                    system_idx = systems[-1]
                 except Exception:
                     sccs = []
 
