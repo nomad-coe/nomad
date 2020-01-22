@@ -27,7 +27,6 @@ import json
 import gzip
 import lzma
 import urllib.parse
-from elasticsearch.helpers import ScanError
 
 from nomad import search, utils, config
 from nomad.files import UploadFiles, Restricted

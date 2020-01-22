@@ -25,7 +25,6 @@ from flask_restplus import abort, Resource, fields
 import json
 import importlib
 import urllib.parse
-from elasticsearch.helpers import ScanError
 
 import nomad_meta_info
 
