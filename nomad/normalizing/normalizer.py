@@ -115,7 +115,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
                 sccs = self._backend[s_scc]
                 scc = sccs[-1]
                 system_idx = scc["single_configuration_calculation_to_system_ref"]
-            except KeyError:
+            except Exception:
                 sccs = []
 
             # If no sccs exist, try to find systems
@@ -124,7 +124,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
                     systems = self._backend.get_sections(s_system)
                     system = systems[-1]
                     system_idx = system["single_configuration_calculation_to_system_ref"]
-                except KeyError:
+                except Exception:
                     sccs = []
 
             if system_idx is None:
