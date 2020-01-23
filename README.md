@@ -29,6 +29,10 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v0.7.2
+- API curl, Python, and results for entries and search queries shown in the GUI
+- minor bugfixes
+
 ### v0.7.1
 - Download of archive files based on search queries
 - minor bugfixes
