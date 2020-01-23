@@ -57,7 +57,7 @@ class DownloadButton extends React.Component {
         raiseError(e)
       }
     }
-    FileSaver.saveAs(`${apiBase}/${choice}/query?${new URLSearchParams(params).toString()}`, `nomad-${choice}-download.zip`)
+    FileSaver.saveAs(`${apiBase}/${choice}/${choice === 'archive' ? 'download' : 'query'}?${new URLSearchParams(params).toString()}`, `nomad-${choice}-download.zip`)
     this.setState({preparingDownload: false, anchorEl: null})
   }
 

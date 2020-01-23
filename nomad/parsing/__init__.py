@@ -112,6 +112,9 @@ def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFile
 
     Returns: The parser, or None if no parser could be matched.
     """
+    if mainfile.startswith('.') or mainfile.startswith('~'):
+        return None
+
     if isinstance(upload_files, str):
         mainfile_path = os.path.join(upload_files, mainfile)
     else:

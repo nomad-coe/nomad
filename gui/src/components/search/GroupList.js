@@ -25,7 +25,9 @@ class GroupUnstyled extends React.Component {
   }
 
   static styles = theme => ({
-    root: {}
+    root: {
+      padding: theme.spacing.unit * 3
+    }
   })
 
   state = {
@@ -70,8 +72,8 @@ class GroupUnstyled extends React.Component {
               <TableCell>{entry.mainfile}</TableCell>
               <TableCell>{new Date(entry.upload_time).toLocaleString()}</TableCell>
               <TableCell align="right">
-                <DownloadButton query={{calc_id: entry.calc_id}} tooltip="Download raw files of this entry" />
-                <Tooltip title="View entry page">
+                <DownloadButton query={{calc_id: entry.calc_id}} tooltip="Download files of this entry" />
+                <Tooltip title="Show raw files and archive">
                   <IconButton onClick={() => history.push(`/entry/id/${entry.upload_id}/${entry.calc_id}`)}>
                     <MoreIcon />
                   </IconButton>

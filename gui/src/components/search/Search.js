@@ -14,6 +14,7 @@ import PeriodicTable from './PeriodicTable'
 import ReloadIcon from '@material-ui/icons/Cached'
 import UploadList from './UploadsList'
 import GroupList from './GroupList'
+import ApiDialogButton from '../ApiDialogButton'
 
 class Search extends React.Component {
   static tabs = {
@@ -451,7 +452,12 @@ class SearchEntryList extends React.Component {
       editable={query.owner === 'staging' || query.owner === 'user'}
       data={response}
       onChange={setRequest}
-      actions={<ReRunSearchButton/>}
+      actions={
+        <React.Fragment>
+          <ReRunSearchButton/>
+          <ApiDialogButton data={response} />
+        </React.Fragment>
+      }
       {...request}
       {...this.props}
     />
