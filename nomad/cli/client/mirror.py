@@ -156,9 +156,17 @@ class Mapping:
     '--migration', type=str, default=None,
     help='The name of a migration script used to transform the metadata.'
 )
+@click.option(
+    '--staging', is_flag=True, default=False,
+    help='Mirror non published uploads. Only works with --move or --link.'
+)
 def mirror(
         query, move: bool, link: bool, dry: bool, files_only: bool, source_mapping: str,
-        target_mapping: str, migration: str):
+        target_mapping: str, migration: str, staging: bool):
+
+    if staging and not (move or link):
+        print('--with-staging requires either --move or --link')
+        sys.exit(1)
 
     migration_func = None
     if migration is not None:
@@ -181,7 +189,10 @@ def mirror(
             print('Cannot parse the given query %s: %s' % (query, str(e)))
             sys.exit(1)
     else:
-        query = dict(published=True)
+        if staging:
+            query = dict(published=False)
+        else:
+            query = dict(published=True)
 
     utils.configure_logging()
 
@@ -249,7 +260,8 @@ def mirror(
         upload_files_path = source_mapping_obj.apply(upload_files_path)
 
         target_upload_files_path = files.PathObject(
-            config.fs.public, upload_id, create_prefix=False, prefix=True).os_path
+            config.fs.public if not staging else config.fs.staging,
+            upload_id, create_prefix=False, prefix=True).os_path
         target_upload_files_path = target_mapping_obj.apply(target_upload_files_path)
 
         if not os.path.exists(target_upload_files_path):
