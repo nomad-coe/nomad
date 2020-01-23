@@ -500,7 +500,7 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         pSect = self._backend.openSection("section_prototype")
         self._backend.addValue(
-            "prototype_assignment_method", "normalized-wyckoff")
+            "prototype_assignement_method", "normalized-wyckoff")
         self._backend.addValue("prototype_label", labels['prototype_label'])
         aid = labels.get("prototype_aflow_id")
         if aid:

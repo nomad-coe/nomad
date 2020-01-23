@@ -2,7 +2,7 @@
 aflow_prototypes = {
     "matid_symmetry_tolerance": 0.1,
     "prototypes_by_spacegroup": {
-        "1": [
+        1: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "aP16",
@@ -33,7 +33,7 @@ aflow_prototypes = {
                 "lattice_vectors": [[5.417e-10, 0.0, 0.0], [0.0, 5.417e-10, 0.0], [0.0, 0.0, 5.417e-10]]
             }
         ],
-        "2": [
+        2: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "aP4",
@@ -66,7 +66,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"i": {"X_1": 1, "X_0": 2}}
             }
         ],
-        "3": [
+        3: [
             {
                 "Notes": "found in atomistic simulations",
                 "Pearsons Symbol": "mP12",
@@ -84,7 +84,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"d": {"X_0": 1}, "a": {"X_0": 1}, "e": {"X_0": 6, "X_1": 4}}
             }
         ],
-        "4": [
+        4: [
             {
                 "Notes": "high-pressure Te",
                 "Pearsons Symbol": "mP4",
@@ -102,7 +102,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1}}
             }
         ],
-        "9": [
+        9: [
             {
                 "Notes": "monoclinic low tridymite",
                 "Pearsons Symbol": "mC144",
@@ -120,7 +120,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 2, "X_1": 1}}
             }
         ],
-        "11": [
+        11: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "mP10",
@@ -170,7 +170,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"e": {"X_0": 1}}
             }
         ],
-        "12": [
+        12: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "mC16",
@@ -252,7 +252,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1}, "h": {"X_0": 2}, "i": {"X_0": 6}, "j": {"X_0": 8}}
             }
         ],
-        "13": [
+        13: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "mP12",
@@ -286,7 +286,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"g": {"X_0": 1}}
             }
         ],
-        "14": [
+        14: [
             {
                 "Notes": "baddeleyite",
                 "Pearsons Symbol": "mP12",
@@ -336,7 +336,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"e": {"X_0": 1}}
             }
         ],
-        "15": [
+        15: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "mC28",
@@ -402,7 +402,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"c": {"X_0": 1}, "e": {"X_0": 1}, "f": {"X_0": 6, "X_1": 4}}
             }
         ],
-        "16": [
+        16: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "oP12",
@@ -420,7 +420,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"f": {"X_1": 1}, "h": {"X_2": 1}, "b": {"X_2": 1}, "a": {"X_1": 1}, "u": {"X_0": 8}}
             }
         ],
-        "18": [
+        18: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "oP16",
@@ -438,7 +438,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_1": 1}, "b": {"X_1": 1}, "c": {"X_0": 6}}
             }
         ],
-        "19": [
+        19: [
             {
                 "Notes": "naumannite",
                 "Pearsons Symbol": "oP12",
@@ -456,7 +456,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1, "X_1": 1, "X_2": 1}}
             }
         ],
-        "20": [
+        20: [
             {
                 "Notes": "orthorhombic tridymite",
                 "Pearsons Symbol": "oC24",
@@ -474,7 +474,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"b": {"X_0": 1}, "a": {"X_0": 1}, "c": {"X_0": 2, "X_1": 2}}
             }
         ],
-        "25": [
+        25: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "oP2",
@@ -492,7 +492,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"b": {"X_1": 1}, "a": {"X_0": 1}}
             }
         ],
-        "28": [
+        28: [
             {
                 "Notes": "krennerite",
                 "Pearsons Symbol": "oP24",
@@ -510,7 +510,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_1": 1}, "c": {"X_1": 1, "X_0": 2}, "d": {"X_1": 2, "X_0": 6}}
             }
         ],
-        "31": [
+        31: [
             {
                 "Notes": "enargite",
                 "Pearsons Symbol": "oP16",
@@ -528,7 +528,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_2": 1, "X_1": 1, "X_0": 2}, "b": {"X_1": 2, "X_0": 2}}
             }
         ],
-        "33": [
+        33: [
             {
                 "Notes": "modderite",
                 "Pearsons Symbol": "oP8",
@@ -560,7 +560,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_2": 1, "X_1": 3, "X_0": 4}}
             }
         ],
-        "36": [
+        36: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "oC12",
@@ -578,7 +578,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_1": 1, "X_0": 2}}
             }
         ],
-        "38": [
+        38: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "oC12",
@@ -610,7 +610,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"b": {"X_2": 1}, "a": {"X_1": 1}, "d": {"X_0": 2}}
             }
         ],
-        "41": [
+        41: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "oC24",
@@ -640,7 +640,7 @@ aflow_prototypes = {
                 "lattice_vectors": [[6.38e-10, 0.0, 0.0], [0.0, 3.2095e-10, -5.6785e-10], [0.0, 3.2095e-10, 5.6785e-10]]
             }
         ],
-        "43": [
+        43: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "oF72",
@@ -658,7 +658,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_1": 1}, "b": {"X_1": 2, "X_0": 6}}
             }
         ],
-        "44": [
+        44: [
             {
                 "Notes": "> 24 GPa",
                 "Pearsons Symbol": "oI4",
@@ -676,7 +676,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"b": {"X_1": 1}, "a": {"X_0": 1}}
             }
         ],
-        "47": [
+        47: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "oP13",
@@ -694,7 +694,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"s": {"X_2": 2}, "e": {"X_1": 1}, "r": {"X_1": 2, "X_0": 2}, "a": {"X_0": 1}, "q": {"X_0": 2}, "t": {"X_0": 2}, "d": {"X_3": 1}}
             }
         ],
-        "51": [
+        51: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "oP4",
@@ -712,7 +712,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"f": {"X_1": 1}, "e": {"X_0": 1}}
             }
         ],
-        "56": [
+        56: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "oP20",
@@ -730,7 +730,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"c": {"X_0": 1}, "e": {"X_0": 2, "X_1": 2}}
             }
         ],
-        "57": [
+        57: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "oP16",
@@ -748,7 +748,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"c": {"X_0": 1}, "d": {"X_1": 1, "X_2": 1, "X_3": 1}}
             }
         ],
-        "58": [
+        58: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "oP6",
@@ -798,7 +798,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_1": 1}, "g": {"X_0": 2}}
             }
         ],
-        "59": [
+        59: [
             {
                 "Notes": "cyanogen chloride",
                 "Pearsons Symbol": "oP6",
@@ -845,7 +845,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"b": {"X_1": 1}, "a": {"X_0": 1}, "e": {"X_0": 2}}
             }
         ],
-        "61": [
+        61: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "oP16",
@@ -879,7 +879,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"c": {"X_0": 2, "X_1": 1}}
             }
         ],
-        "62": [
+        62: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "oP8",
@@ -1105,7 +1105,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"c": {"X_0": 1, "X_1": 1}}
             }
         ],
-        "63": [
+        63: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "oC8",
@@ -1169,7 +1169,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"c": {"X_0": 1}}
             }
         ],
-        "64": [
+        64: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "oC80",
@@ -1235,7 +1235,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"f": {"X_0": 1}}
             }
         ],
-        "65": [
+        65: [
             {
                 "Notes": "predicted structure",
                 "Pearsons Symbol": "oC8",
@@ -1285,7 +1285,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"j": {"X_1": 1}, "g": {"X_0": 1}}
             }
         ],
-        "69": [
+        69: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "oF8",
@@ -1303,7 +1303,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"b": {"X_1": 1}, "a": {"X_0": 1}}
             }
         ],
-        "70": [
+        70: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "oF8",
@@ -1352,7 +1352,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_1": 1}, "f": {"X_0": 2}}
             }
         ],
-        "71": [
+        71: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "oI6",
@@ -1383,7 +1383,7 @@ aflow_prototypes = {
                 "lattice_vectors": [[-1.564e-10, 1.572e-10, 3.8385e-10], [1.564e-10, -1.572e-10, 3.8385e-10], [1.564e-10, 1.572e-10, -3.8385e-10]]
             }
         ],
-        "72": [
+        72: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "oI12",
@@ -1401,7 +1401,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_1": 1}, "j": {"X_0": 2}}
             }
         ],
-        "82": [
+        82: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "tI14",
@@ -1435,7 +1435,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"c": {"X_2": 1}, "a": {"X_1": 1}, "g": {"X_0": 4}}
             }
         ],
-        "84": [
+        84: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "tP16",
@@ -1453,7 +1453,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"c": {"X_0": 1}, "e": {"X_0": 1}, "j": {"X_0": 2}, "k": {"X_1": 4}}
             }
         ],
-        "87": [
+        87: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "tI10",
@@ -1487,7 +1487,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1}, "h": {"X_1": 4, "X_0": 4}}
             }
         ],
-        "92": [
+        92: [
             {
                 "Notes": "alpha cristobalite",
                 "Pearsons Symbol": "tP12",
@@ -1505,7 +1505,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"b": {"X_0": 2}, "a": {"X_1": 1}}
             }
         ],
-        "96": [
+        96: [
             {
                 "Notes": "keatite",
                 "Pearsons Symbol": "tP36",
@@ -1539,7 +1539,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1}, "b": {"X_0": 2}}
             }
         ],
-        "99": [
+        99: [
             {
                 "Notes": "tetragonal PZT (x<0.52)",
                 "Pearsons Symbol": "tP5",
@@ -1557,7 +1557,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1, "X_1": 1}, "c": {"X_0": 2}, "b": {"X_2": 1}}
             }
         ],
-        "113": [
+        113: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "tP8",
@@ -1575,7 +1575,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_1": 1}, "c": {"X_0": 1}, "e": {"X_0": 2}}
             }
         ],
-        "121": [
+        121: [
             {
                 "Notes": "stannite",
                 "Pearsons Symbol": "tI16",
@@ -1593,7 +1593,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_2": 1}, "b": {"X_3": 1}, "d": {"X_1": 2}, "i": {"X_0": 4}}
             }
         ],
-        "122": [
+        122: [
             {
                 "Notes": "chalcopyrite",
                 "Pearsons Symbol": "tI16",
@@ -1611,7 +1611,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"b": {"X_2": 1}, "a": {"X_1": 1}, "d": {"X_0": 2}}
             }
         ],
-        "123": [
+        123: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "tP2",
@@ -1677,7 +1677,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"c": {"X_1": 1}, "a": {"X_0": 1}, "e": {"X_0": 2}}
             }
         ],
-        "127": [
+        127: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "tP10",
@@ -1695,7 +1695,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1}, "h": {"X_0": 2}, "g": {"X_1": 2}}
             }
         ],
-        "129": [
+        129: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "tP8",
@@ -1787,7 +1787,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1}, "c": {"X_1": 1}}
             }
         ],
-        "131": [
+        131: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "tP4",
@@ -1805,7 +1805,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"c": {"X_0": 1}, "e": {"X_1": 1}}
             }
         ],
-        "134": [
+        134: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "tP50",
@@ -1822,7 +1822,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1}, "m": {"X_0": 8}, "n": {"X_0": 16}}
             }
         ],
-        "136": [
+        136: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "tP8",
@@ -1904,7 +1904,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1}, "f": {"X_0": 2}, "j": {"X_0": 4}, "i": {"X_0": 8}}
             }
         ],
-        "139": [
+        139: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "tI10",
@@ -2114,7 +2114,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1}, "h": {"X_0": 4}, "i": {"X_1": 4}}
             }
         ],
-        "140": [
+        140: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "tI12",
@@ -2180,7 +2180,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"b": {"X_1": 1}, "a": {"X_0": 1}, "h": {"X_0": 2}}
             }
         ],
-        "141": [
+        141: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "tI16",
@@ -2243,7 +2243,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_1": 1}, "d": {"X_1": 2}, "h": {"X_0": 4}}
             },
             {
-                "Notes": "40",
+                "Notes": 40,
                 "Pearsons Symbol": "tI8",
                 "Prototype": "NbP",
                 "Space Group": "I41/amd",
@@ -2306,7 +2306,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1}}
             }
         ],
-        "142": [
+        142: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "tI96",
@@ -2323,7 +2323,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_1": 1}, "b": {"X_1": 1}, "e": {"X_2": 2}, "g": {"X_0": 8}}
             }
         ],
-        "147": [
+        147: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "hP9",
@@ -2341,7 +2341,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_1": 1}, "d": {"X_1": 2}, "g": {"X_0": 6}}
             }
         ],
-        "148": [
+        148: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "hR26",
@@ -2407,7 +2407,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"c": {"X_1": 1, "X_2": 1}, "f": {"X_0": 3}}
             }
         ],
-        "150": [
+        150: [
             {
                 "Notes": "original structure",
                 "Pearsons Symbol": "hP9",
@@ -2423,7 +2423,7 @@ aflow_prototypes = {
                 "lattice_vectors": [[2.9385e-10, -5.08963129804115e-10, 0.0], [2.9385e-10, 5.08963129804115e-10, 0.0], [0.0, 0.0, 3.437e-10]]
             }
         ],
-        "151": [
+        151: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "hP24",
@@ -2441,7 +2441,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_1": 1}, "c": {"X_0": 3}}
             }
         ],
-        "152": [
+        152: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "hP3",
@@ -2475,7 +2475,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"c": {"X_0": 2}, "a": {"X_1": 1}}
             }
         ],
-        "154": [
+        154: [
             {
                 "Notes": "cinnabar",
                 "Pearsons Symbol": "hP6",
@@ -2493,7 +2493,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"b": {"X_1": 1}, "a": {"X_0": 1}}
             }
         ],
-        "155": [
+        155: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "hR8",
@@ -2527,7 +2527,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"c": {"X_1": 2}, "d": {"X_0": 3}}
             }
         ],
-        "160": [
+        160: [
             {
                 "Notes": "moissanite-9R",
                 "Pearsons Symbol": "hR6",
@@ -2559,7 +2559,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"b": {"X_0": 1, "X_1": 1}}
             }
         ],
-        "161": [
+        161: [
             {
                 "Notes": "ferroelectric phase",
                 "Pearsons Symbol": "hR10",
@@ -2577,7 +2577,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_1": 1, "X_2": 1}, "b": {"X_0": 3}}
             }
         ],
-        "162": [
+        162: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "hP9",
@@ -2595,7 +2595,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_1": 1}, "d": {"X_1": 2}, "k": {"X_0": 6}}
             }
         ],
-        "163": [
+        163: [
             {
                 "Notes": "usually written KAg(CN)2",
                 "Pearsons Symbol": "hP36",
@@ -2613,7 +2613,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"b": {"X_2": 1}, "f": {"X_2": 2}, "h": {"X_3": 3}, "i": {"X_0": 6, "X_1": 6}}
             }
         ],
-        "164": [
+        164: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "hP5",
@@ -2647,7 +2647,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_1": 1}, "d": {"X_0": 2}}
             }
         ],
-        "165": [
+        165: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "hP24",
@@ -2665,7 +2665,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1}, "d": {"X_0": 2}, "f": {"X_1": 3}, "g": {"X_0": 6}}
             }
         ],
-        "166": [
+        166: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "hR2",
@@ -2890,7 +2890,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1}, "c": {"X_0": 2}}
             }
         ],
-        "167": [
+        167: [
             {
                 "Notes": "corundum",
                 "Pearsons Symbol": "hR10",
@@ -2938,7 +2938,7 @@ aflow_prototypes = {
                 "lattice_vectors": [[2.6425e-10, -4.57694425900076e-10, 0.0], [2.6425e-10, 4.57694425900076e-10, 0.0], [0.0, 1e-25, 3.8488e-10]]
             }
         ],
-        "180": [
+        180: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "hP9",
@@ -2987,7 +2987,7 @@ aflow_prototypes = {
                 "normalized_wyckoff": {"c": {"X_1": 1}, "j": {"X_0": 2}}
             }
         ],
-        "182": [
+        182: [
             {
                 "Notes": "bainite",
                 "Pearsons Symbol": "hP8",
@@ -3005,7 +3005,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"c": {"X_1": 1}, "g": {"X_0": 3}}
             }
         ],
-        "186": [
+        186: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "hP18",
@@ -3103,7 +3103,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"b": {"X_0": 1, "X_1": 1}}
             }
         ],
-        "187": [
+        187: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "hP3",
@@ -3137,7 +3137,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"d": {"X_1": 1}, "a": {"X_0": 1}}
             }
         ],
-        "189": [
+        189: [
             {
                 "Notes": "revised structure",
                 "Pearsons Symbol": "hP9",
@@ -3153,7 +3153,7 @@ aflow_prototypes = {
                 "lattice_vectors": [[2.925e-10, -5.06624861213897e-10, 0.0], [2.925e-10, 5.06624861213897e-10, 0.0], [0.0, 0.0, 3.45e-10]]
             }
         ],
-        "191": [
+        191: [
             {
                 "Notes": "hexagonal omega",
                 "Pearsons Symbol": "hP3",
@@ -3267,7 +3267,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"b": {"X_1": 1}, "a": {"X_0": 1}, "d": {"X_0": 2}}
             }
         ],
-        "194": [
+        194: [
             {
                 "Notes": "some MAX phase",
                 "Pearsons Symbol": "hP8",
@@ -3621,7 +3621,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"c": {"X_0": 1}, "g": {"X_0": 3}, "f": {"X_1": 2}}
             }
         ],
-        "197": [
+        197: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "cI40",
@@ -3637,7 +3637,7 @@ aflow_prototypes = {
                 "lattice_vectors": [[-4.2147500000000004e-10, 4.2147500000000004e-10, 4.2147500000000004e-10], [4.2147500000000004e-10, -4.2147500000000004e-10, 4.2147500000000004e-10], [4.2147500000000004e-10, 4.2147500000000004e-10, -4.2147500000000004e-10]]
             }
         ],
-        "198": [
+        198: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "cP8",
@@ -3703,7 +3703,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1, "X_1": 1, "X_2": 1}}
             }
         ],
-        "199": [
+        199: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "cI16",
@@ -3721,7 +3721,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1, "X_1": 1}}
             }
         ],
-        "204": [
+        204: [
             {
                 "Notes": "Bergman",
                 "Pearsons Symbol": "cI162",
@@ -3771,7 +3771,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"c": {"X_1": 1}, "g": {"X_0": 3}}
             }
         ],
-        "205": [
+        205: [
             {
                 "Notes": "sc16",
                 "Pearsons Symbol": "cP16",
@@ -3821,7 +3821,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"c": {"X_0": 1}}
             }
         ],
-        "206": [
+        206: [
             {
                 "Notes": "bixbyite",
                 "Pearsons Symbol": "cI80",
@@ -3855,7 +3855,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"c": {"X_0": 1}}
             }
         ],
-        "213": [
+        213: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "cP20",
@@ -3873,7 +3873,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"d": {"X_0": 3}, "c": {"X_0": 2}}
             }
         ],
-        "215": [
+        215: [
             {
                 "Notes": "lazarevicite",
                 "Pearsons Symbol": "cP8",
@@ -3923,7 +3923,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_2": 1}, "d": {"X_1": 3}, "e": {"X_0": 4}}
             }
         ],
-        "216": [
+        216: [
             {
                 "Notes": "half-Heusler",
                 "Pearsons Symbol": "cF12",
@@ -3973,7 +3973,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1}, "c": {"X_1": 1}}
             }
         ],
-        "217": [
+        217: [
             {
                 "Notes": "gamma brass",
                 "Pearsons Symbol": "cI52",
@@ -4023,7 +4023,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1}, "c": {"X_0": 4}, "g": {"X_0": 24}}
             }
         ],
-        "220": [
+        220: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "cI40",
@@ -4057,7 +4057,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"c": {"X_0": 1}}
             }
         ],
-        "221": [
+        221: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "cP4",
@@ -4219,7 +4219,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1}}
             }
         ],
-        "223": [
+        223: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "cP8",
@@ -4253,7 +4253,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"c": {"X_0": 3}, "i": {"X_0": 8}, "k": {"X_0": 12}}
             }
         ],
-        "224": [
+        224: [
             {
                 "Notes": "cuprite",
                 "Pearsons Symbol": "cP6",
@@ -4271,7 +4271,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"b": {"X_0": 2}, "a": {"X_1": 1}}
             }
         ],
-        "225": [
+        225: [
             {
                 "Notes": "Heusler",
                 "Pearsons Symbol": "cF16",
@@ -4433,7 +4433,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1}}
             }
         ],
-        "227": [
+        227: [
             {
                 "Notes": "spinel",
                 "Pearsons Symbol": "cF56",
@@ -4577,7 +4577,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1}, "e": {"X_0": 4}, "g": {"X_0": 12}}
             }
         ],
-        "229": [
+        229: [
             {
                 "Notes": "hypothetical ferrite structure",
                 "Pearsons Symbol": "cI16",
@@ -4691,7 +4691,7 @@ aflow_prototypes = {
                 "normalized_wyckoff_matid": {"a": {"X_0": 1}}
             }
         ],
-        "230": [
+        230: [
             {
                 "Notes": "-",
                 "Pearsons Symbol": "cI112",

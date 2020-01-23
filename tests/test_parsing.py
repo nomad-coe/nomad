@@ -350,6 +350,12 @@ def parsed_template_example() -> LocalBackend:
         'parsers/template', 'tests/data/parsers/template.json')
 
 
+@pytest.fixture(scope="session")
+def parsed_template_no_system() -> LocalBackend:
+    return run_parser(
+        'parsers/template', 'tests/data/parsers/template_no_system.json')
+
+
 def parse_file(parser_name_and_mainfile) -> LocalBackend:
     parser_name, mainfile = parser_name_and_mainfile
     return run_parser(parser_name, mainfile)

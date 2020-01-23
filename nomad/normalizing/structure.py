@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
+import re
 import functools
 import fractions
 import json
@@ -46,10 +47,10 @@ def get_normalized_wyckoff(atomic_number: np.array, wyckoff: np.array) -> dict:
 
     Returns:
     """
-    atomCount = {}
+    atomCount: dict = {}
     for nr in atomic_number:
         atomCount[nr] = atomCount.get(nr, 0) + 1
-    wycDict = {}
+    wycDict: dict = {}
 
     for i, wk in enumerate(wyckoff):
         oldVal = wycDict.get(wk, {})
@@ -128,7 +129,7 @@ def update_aflow_prototype_information(filepath: str) -> None:
     module with updated symmetry tolerance parameter and the wyckoff positions
     as detected by MatID.
 
-    This function is relative heavy and should only be run if the symmetry
+    This function is relatively heavy and should only be run if the symmetry
     tolerance has been changed or the symmetry detection routine has been
     updated.
 
@@ -216,4 +217,5 @@ def update_aflow_prototype_information(filepath: str) -> None:
     # Save the updated data
     with io.open(filepath, "w", encoding="utf8") as f:
         json_dump = json.dumps(aflow_prototypes, ensure_ascii=False, indent=4, cls=NoIndentEncoder)
+        json_dump = re.sub(r"\"(-?\d+(?:[\.,]\d+)?)\"", r'\1', json_dump)  # Removes quotes around numbers
         f.write("# -*- coding: utf-8 -*-\naflow_prototypes = {}\n".format(json_dump))
