@@ -191,7 +191,7 @@ def bar_plot(
     if metric2 is not None:
         metric2.agg = agg
 
-    fig, ax1 = plt.subplots(figsize=(5, 4), dpi=72)
+    fig, ax1 = plt.subplots(figsize=(7, 4), dpi=72)
     x = np.arange(len(x_values))
     width = 0.8 / 2
     if metric2 is None:
@@ -218,8 +218,9 @@ def bar_plot(
 
     metric1.draw_axis(ax1, data, x_values, x - (width / 2), width, 'tab:blue', only=metric2 is None)
     ax1.set_ylim(**ylim)
-    ax1.set_yticks([40, 30, 20, 10, 5, 1, 0.5, 0.1])
-    ax1.grid(which='major', axis='y', linestyle='--')
+    # ax1.set_yticks([40, 30, 20, 10, 5, 1, 0.5, 0.1])
+    if not metric2:
+        ax1.grid(which='major', axis='y', linestyle='-')
 
     if metric2:
         ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
@@ -328,11 +329,11 @@ def statistics_plot(errors, title, x_axis, y_axis, cumulate, total, save, power,
         kwargs = {}
         if x_axis == 'code':
             x_axis = codes
-            kwargs.update(ylim=dict(bottom=0))
+            kwargs.update(ylim=dict(bottom=1))
         elif x_axis == 'time':
             x_axis = dates
             kwargs.update(
-                ylim=dict(bottom=0),
+                ylim=dict(bottom=1),
                 format_xlabel=lambda x: datetime.fromtimestamp(int(x) / 1000).strftime('%b %y'))
         else:
             assert False, 'x axis can only be "code" or "time"'
