@@ -22,6 +22,7 @@ from bravado.exception import HTTPBadRequest
 
 from nomad import utils, processing as proc, search, config, files, infrastructure
 from nomad.datamodel import Dataset, User
+from nomad.cli.admin.uploads import delete_upload
 
 from .client import client
 
@@ -160,9 +161,13 @@ class Mapping:
     '--staging', is_flag=True, default=False,
     help='Mirror non published uploads. Only works with --move or --link.'
 )
+@click.option(
+    '--replace', is_flag=True, default=False,
+    help='Replace existing uploads.'
+)
 def mirror(
         query, move: bool, link: bool, dry: bool, files_only: bool, source_mapping: str,
-        target_mapping: str, migration: str, staging: bool):
+        target_mapping: str, migration: str, staging: bool, replace: bool):
 
     if staging and not (move or link):
         print('--with-staging requires either --move or --link')
@@ -211,11 +216,16 @@ def mirror(
                     # In tests, we mirror from our selves, fake that the upload does not exist
                     raise KeyError()
 
-                if len(query) > 0:
-                    print(
-                        'Upload %s already exists, updating existing uploads is not implemented yet. '
-                        'Skip upload.' % upload_id)
-                continue
+
+                if replace:
+                    delete_upload(upload=upload)
+
+                else:
+                    if len(query) > 0:
+                        print(
+                            'Upload %s already exists, updating existing uploads is not '
+                            'implemented yet. Skip upload.' % upload_id)
+                    continue
             except KeyError:
                 pass
 
