@@ -153,3 +153,7 @@ volumes:
 domain: DFT
 
 springerDbPath: /nomad/fairdi/db/data/springer.db
+
+datacite:
+  enabled: false
+  prefix: "10.17172"
