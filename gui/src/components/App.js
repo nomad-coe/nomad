@@ -28,7 +28,7 @@ import {help as metainfoHelp, default as MetaInfoBrowser} from './metaInfoBrowse
 import packageJson from '../../package.json'
 import { Cookies, withCookies } from 'react-cookie'
 import Markdown from './Markdown'
-import {help as uploadHelp, default as Uploads} from './uploads/Uploads'
+import {help as uploadHelp, default as UploadPage} from './uploads/UploadPage'
 import ResolvePID from './entry/ResolvePID'
 import DatasetPage from './DatasetPage'
 import { capitalize } from '../utils'
@@ -456,7 +456,7 @@ export default class App extends React.Component {
       exact: true,
       singleton: true,
       path: '/uploads',
-      render: props => <Uploads {...props} />
+      render: props => <UploadPage {...props} />
     },
     'metainfo': {
       exact: true,

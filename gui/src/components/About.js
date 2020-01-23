@@ -2,7 +2,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
 import Markdown from './Markdown'
-import { kibanaBase, appBase, optimadeBase, apiBase, debug, consent } from '../config'
+import { appBase, optimadeBase, apiBase, debug, consent } from '../config'
 import { compose } from 'recompose'
 import { withApi } from './api'
 import { withDomain } from './domains'
@@ -74,7 +74,7 @@ class About extends React.Component {
           (previously called *Elastic Logstash Kibana* (ELK)-stack).
           This system pushes logs, events, monitoring data,
           and other application metrics to a central database where it
-          can be analysed visually. Here is the [link to Kibana](${kibanaBase}/)
+          can be analysed visually by us.
 
           ### Test user
           During development this GUI might not be connected to the actual NOMAD
@@ -90,7 +90,7 @@ class About extends React.Component {
           - domain: ${info ? info.domain.name : 'loading'}
           - git: \`${info ? info.git.ref : 'loading'}; ${info ? info.git.version : 'loading'}\`
           - last commit message: *${info ? info.git.log : 'loading'}*
-          - codes: ${info ? info.codes.join(', ') : 'loading'}
+          - supported codes: ${info ? info.codes.join(', ') : 'loading'}
           - parsers: ${info ? info.parsers.join(', ') : 'loading'}
           - normalizers: ${info ? info.normalizers.join(', ') : 'loading'}
         `}</Markdown>

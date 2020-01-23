@@ -15,13 +15,18 @@
 """
 Common data, variables, decorators, models used throughout the API.
 """
-from typing import Callable, IO, Set, Tuple, Iterable
+from typing import Callable, IO, Set, Tuple, Iterable, Dict, Any
 from flask_restplus import fields
 import zipstream
-from flask import stream_with_context, Response
-import sys
+from flask import stream_with_context, Response, g, abort
+from urllib.parse import urlencode
 
-from nomad.app.utils import RFC3339DateTime
+import sys
+import os.path
+
+from nomad import search, config
+from nomad.app.optimade import filterparser
+from nomad.app.utils import RFC3339DateTime, rfc3339DateTime
 from nomad.files import Restricted
 
 from .api import api
@@ -51,18 +56,104 @@ pagination_model = api.model('Pagination', {
 })
 """ Model used in responses with pagination. """
 
+search_model = api.model('Search', {
+    'pagination': fields.Nested(pagination_model, skip_none=True),
+    'scroll': fields.Nested(allow_null=True, skip_none=True, model=api.model('Scroll', {
+        'total': fields.Integer(description='The total amount of hits for the search.'),
+        'scroll_id': fields.String(allow_null=True, description='The scroll_id that can be used to retrieve the next page.'),
+        'size': fields.Integer(help='The size of the returned scroll page.')})),
+    'results': fields.List(fields.Raw, description=(
+        'A list of search results. Each result is a dict with quantitie names as key and '
+        'values as values')),
+})
 
-pagination_request_parser = api.parser()
-""" Parser used for requests with pagination. """
 
-pagination_request_parser.add_argument(
-    'page', type=int, help='The page, starting with 1.', location='args')
-pagination_request_parser.add_argument(
-    'per_page', type=int, help='Desired calcs per page.', location='args')
-pagination_request_parser.add_argument(
-    'order_by', type=str, help='The field to sort by.', location='args')
-pagination_request_parser.add_argument(
-    'order', type=int, help='Use -1 for decending and 1 for acending order.', location='args')
+def add_pagination_parameters(request_parser):
+    """ Add pagination parameters to Flask querystring parser. """
+    request_parser.add_argument(
+        'page', type=int, help='The page, starting with 1.', location='args')
+    request_parser.add_argument(
+        'per_page', type=int, help='Desired calcs per page.', location='args')
+    request_parser.add_argument(
+        'order_by', type=str, help='The field to sort by.', location='args')
+    request_parser.add_argument(
+        'order', type=int, help='Use -1 for decending and 1 for acending order.', location='args')
+
+
+request_parser = api.parser()
+add_pagination_parameters(request_parser)
+pagination_request_parser = request_parser.copy()
+
+
+def add_scroll_parameters(request_parser):
+    """ Add scroll parameters to Flask querystring parser. """
+    request_parser.add_argument(
+        'scroll', type=bool, help='Enable scrolling')
+    request_parser.add_argument(
+        'scroll_id', type=str, help='The id of the current scrolling window to use.')
+
+
+def add_search_parameters(request_parser):
+    """ Add search parameters to Flask querystring parser. """
+    # more search parameters
+    request_parser.add_argument(
+        'owner', type=str,
+        help='Specify which calcs to return: ``all``, ``public``, ``user``, ``staging``, default is ``all``')
+    request_parser.add_argument(
+        'from_time', type=lambda x: rfc3339DateTime.parse(x),
+        help='A yyyy-MM-ddTHH:mm:ss (RFC3339) minimum entry time (e.g. upload time)')
+    request_parser.add_argument(
+        'until_time', type=lambda x: rfc3339DateTime.parse(x),
+        help='A yyyy-MM-ddTHH:mm:ss (RFC3339) maximum entry time (e.g. upload time)')
+
+    # main search parameters
+    for quantity in search.quantities.values():
+        request_parser.add_argument(
+            quantity.name, help=quantity.description,
+            action=quantity.argparse_action if quantity.multi else None)
+
+
+def apply_search_parameters(search_request: search.SearchRequest, args: Dict[str, Any]):
+    """
+    Help that adds query relevant request args to the given SearchRequest.
+    """
+    args = {key: value for key, value in args.items() if value is not None}
+
+    # owner
+    owner = args.get('owner', 'all')
+    try:
+        search_request.owner(
+            owner,
+            g.user.user_id if g.user is not None else None)
+    except ValueError as e:
+        abort(401, getattr(e, 'message', 'Invalid owner parameter: %s' % owner))
+    except Exception as e:
+        abort(400, getattr(e, 'message', 'Invalid owner parameter'))
+
+    # time range
+    from_time_str = args.get('from_time', None)
+    until_time_str = args.get('until_time', None)
+
+    try:
+        from_time = rfc3339DateTime.parse(from_time_str) if from_time_str is not None else None
+        until_time = rfc3339DateTime.parse(until_time_str) if until_time_str is not None else None
+        search_request.time_range(start=from_time, end=until_time)
+    except Exception:
+        abort(400, message='bad datetime format')
+
+    # optimade
+    try:
+        optimade = args.get('optimade', None)
+        if optimade is not None:
+            q = filterparser.parse_filter(optimade)
+            search_request.query(q)
+    except filterparser.FilterException:
+        abort(400, message='could not parse optimade query')
+
+    # search parameter
+    search_request.search_parameters(**{
+        key: value for key, value in args.items()
+        if key not in ['optimade'] and key in search.quantities})
 
 
 def calc_route(ns, prefix: str = ''):
@@ -153,3 +244,36 @@ def streamed_zipfile(
     response = Response(stream_with_context(generator()), mimetype='application/zip')
     response.headers['Content-Disposition'] = 'attachment; filename={}'.format(zipfile_name)
     return response
+
+
+def query_api_url(*args, query_string: Dict[str, Any] = None):
+    """
+    Creates a API URL.
+    Arguments:
+        *args: URL path segments after the API base URL
+        query_string: A dict with query string parameters
+    """
+    url = os.path.join(config.api_url(False), *args)
+    if query_string is not None:
+        url = '%s?%s' % (url, urlencode(query_string, doseq=True))
+
+    return url
+
+
+def query_api_python(*args, **kwargs):
+    """
+    Creates a string of python code to execute a search query to the repository using
+    the requests library.
+    """
+    url = query_api_url(*args, **kwargs)
+    return '''import requests
+response = requests.get("{}")
+data = response.json()'''.format(url)
+
+
+def query_api_curl(*args, **kwargs):
+    """
+    Creates a string of curl command to execute a search query to the repository.
+    """
+    url = query_api_url(*args, **kwargs)
+    return 'curl -X GET %s -H  "accept: application/json" --output "nomad.json"' % url

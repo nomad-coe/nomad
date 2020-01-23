@@ -3,7 +3,7 @@
 import numpy as np
 from datetime import datetime
 
-from nomad.metainfo import MSection, MCategory, Section, Quantity, Package, SubSection, Enum, Datetime, units
+from nomad.metainfo import MSection, MCategory, Section, Quantity, Package, SubSection, MEnum, Datetime, units
 
 m_package = Package(links=['http://metainfo.nomad-coe.eu'])
 
@@ -82,7 +82,7 @@ class VaspRun(Run):
     m_def = Section(extends_base_section=True)
 
     x_vasp_raw_format = Quantity(
-        type=Enum(['xml', 'outcar']),
+        type=MEnum(['xml', 'outcar']),
         description='The file format of the parsed VASP mainfile.')
 
 

@@ -34,8 +34,7 @@ from nomad.processing import Calc
 
 from .api import api
 from .auth import authenticate, create_authorization_predicate
-from .repo import search_request_parser, add_query
-from .common import streamed_zipfile
+from .common import streamed_zipfile, add_search_parameters, apply_search_parameters
 
 
 ns = api.namespace('raw', description='Downloading raw data files.')
@@ -56,16 +55,16 @@ raw_file_strip_argument = dict(
     name='strip', type=bool, help='Removes a potential common path prefix from all file paths.',
     location='args')
 
-raw_file_from_path_parser = api.parser()
-raw_file_from_path_parser.add_argument(**raw_file_compress_argument)
-raw_file_from_path_parser.add_argument(**raw_file_strip_argument)
-raw_file_from_path_parser.add_argument(
+_raw_file_from_path_parser = api.parser()
+_raw_file_from_path_parser.add_argument(**raw_file_compress_argument)
+_raw_file_from_path_parser.add_argument(**raw_file_strip_argument)
+_raw_file_from_path_parser.add_argument(
     name='length', type=int, help='Download only x bytes from the given file.',
     location='args')
-raw_file_from_path_parser.add_argument(
+_raw_file_from_path_parser.add_argument(
     name='offset', type=int, help='Start downloading a file\' content from the given offset.',
     location='args')
-raw_file_from_path_parser.add_argument(
+_raw_file_from_path_parser.add_argument(
     name='decompress', type=int, help='Automatically decompress the file if compressed. Only supports .gz',
     location='args')
 
@@ -194,7 +193,7 @@ class RawFileFromUploadPathResource(Resource):
     @api.response(404, 'The upload or path does not exist')
     @api.response(401, 'Not authorized to access the requested files.')
     @api.response(200, 'File(s) send')
-    @api.expect(raw_file_from_path_parser, validate=True)
+    @api.expect(_raw_file_from_path_parser, validate=True)
     @authenticate(signature_token=True)
     def get(self, upload_id: str, path: str):
         """ Get a single raw calculation file, directory contents, or whole directory sub-tree
@@ -255,7 +254,7 @@ class RawFileFromCalcPathResource(Resource):
     @api.response(404, 'The upload or path does not exist')
     @api.response(401, 'Not authorized to access the requested files.')
     @api.response(200, 'File(s) send')
-    @api.expect(raw_file_from_path_parser, validate=True)
+    @api.expect(_raw_file_from_path_parser, validate=True)
     @authenticate(signature_token=True)
     def get(self, upload_id: str, calc_id: str, path: str):
         """ Get a single raw calculation file, calculation contents, or all files for a
@@ -295,7 +294,7 @@ class RawFileFromCalcEmptyPathResource(RawFileFromCalcPathResource):
     @api.response(404, 'The upload or path does not exist')
     @api.response(401, 'Not authorized to access the requested files.')
     @api.response(200, 'File(s) send')
-    @api.expect(raw_file_from_path_parser, validate=True)
+    @api.expect(_raw_file_from_path_parser, validate=True)
     @authenticate(signature_token=True)
     def get(self, upload_id: str, calc_id: str):
         """ Get calculation contents.
@@ -306,7 +305,7 @@ class RawFileFromCalcEmptyPathResource(RawFileFromCalcPathResource):
         return super().get(upload_id, calc_id, None)
 
 
-raw_files_request_model = api.model('RawFilesRequest', {
+_raw_files_request_model = api.model('RawFilesRequest', {
     'files': fields.List(
         fields.String, default=[], description='List of files to download.'),
     'compress': fields.Boolean(
@@ -314,11 +313,11 @@ raw_files_request_model = api.model('RawFilesRequest', {
         description='Enable compression, default is not compression.')
 })
 
-raw_files_request_parser = api.parser()
-raw_files_request_parser.add_argument(
+_raw_files_request_parser = api.parser()
+_raw_files_request_parser.add_argument(
     'files', required=True, type=str, help='Comma separated list of files to download.', location='args')
-raw_files_request_parser.add_argument(**raw_file_strip_argument)
-raw_files_request_parser.add_argument(**raw_file_compress_argument)
+_raw_files_request_parser.add_argument(**raw_file_strip_argument)
+_raw_files_request_parser.add_argument(**raw_file_compress_argument)
 
 
 @ns.route('/<string:upload_id>')
@@ -329,7 +328,7 @@ class RawFilesResource(Resource):
     @api.doc('get_files')
     @api.response(404, 'The upload or path does not exist')
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/zip'})
-    @api.expect(raw_files_request_model, validate=True)
+    @api.expect(_raw_files_request_model, validate=True)
     @authenticate()
     def post(self, upload_id):
         """ Download multiple raw calculation files in a .zip file.
@@ -346,7 +345,7 @@ class RawFilesResource(Resource):
     @api.doc('get_files_alternate')
     @api.response(404, 'The upload or path does not exist')
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/zip'})
-    @api.expect(raw_files_request_parser, validate=True)
+    @api.expect(_raw_files_request_parser, validate=True)
     @authenticate(signature_token=True)
     def get(self, upload_id):
         """
@@ -355,7 +354,7 @@ class RawFilesResource(Resource):
         Zip files are streamed; instead of 401 errors, the zip file will just not contain
         any files that the user is not authorized to access.
         """
-        args = raw_files_request_parser.parse_args()
+        args = _raw_files_request_parser.parse_args()
         files_str = args.get('files')
         compress = args.get('compress', False)
         strip = args.get('strip', False)
@@ -367,12 +366,13 @@ class RawFilesResource(Resource):
         return respond_to_get_raw_files(upload_id, files, compress=compress, strip=strip)
 
 
-raw_file_from_query_parser = search_request_parser.copy()
-raw_file_from_query_parser.add_argument(
+_raw_file_from_query_parser = api.parser()
+add_search_parameters(_raw_file_from_query_parser)
+_raw_file_from_query_parser.add_argument(
     name='compress', type=bool, help='Use compression on .zip files, default is not.',
     location='args')
-raw_file_from_query_parser.add_argument(**raw_file_strip_argument)
-raw_file_from_query_parser.add_argument(
+_raw_file_from_query_parser.add_argument(**raw_file_strip_argument)
+_raw_file_from_query_parser.add_argument(
     name='file_pattern', type=str,
     help=(
         'A wildcard pattern. Only filenames that match this pattern will be in the '
@@ -386,7 +386,7 @@ class RawFileQueryResource(Resource):
 
     @api.doc('raw_files_from_query')
     @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
-    @api.expect(raw_file_from_query_parser, validate=True)
+    @api.expect(_raw_file_from_query_parser, validate=True)
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/zip'})
     @authenticate(signature_token=True)
     def get(self):
@@ -403,7 +403,7 @@ class RawFileQueryResource(Resource):
         """
         patterns: List[str] = None
         try:
-            args = raw_file_from_query_parser.parse_args()
+            args = _raw_file_from_query_parser.parse_args()
             compress = args.get('compress', False)
             strip = args.get('strip', False)
             pattern = args.get('file_pattern', None)
@@ -417,12 +417,15 @@ class RawFileQueryResource(Resource):
             abort(400, message='bad parameter types')
 
         search_request = search.SearchRequest()
-        add_query(search_request, search_request_parser.parse_args())
+        apply_search_parameters(search_request, _raw_file_from_query_parser.parse_args())
 
         def path(entry):
             return '%s/%s' % (entry['upload_id'], entry['mainfile'])
 
-        calcs = search_request.execute_scan(order_by='upload_id')
+        calcs = search_request.execute_scan(
+            order_by='upload_id',
+            size=config.services.download_scan_size,
+            scroll=config.services.download_scan_timeout)
 
         if strip:
             if search_request.execute()['total'] > config.raw_file_strip_cutoff:
@@ -434,58 +437,66 @@ class RawFileQueryResource(Resource):
             common_prefix_len = 0
 
         def generator():
-            manifest = {}
-            upload_files = None
-            for entry in calcs:
-                upload_id = entry['upload_id']
-                mainfile = entry['mainfile']
-                if upload_files is None or upload_files.upload_id != upload_id:
-                    if upload_files is not None:
-                        upload_files.close_zipfile_cache()
-
-                    upload_files = UploadFiles.get(
-                        upload_id, create_authorization_predicate(upload_id))
-
-                    if upload_files is None:
-                        utils.get_logger(__name__).error('upload files do not exist', upload_id=upload_id)
-                        continue
-
-                    upload_files.open_zipfile_cache()
-
-                filenames = upload_files.raw_file_manifest(path_prefix=os.path.dirname(mainfile))
-                for filename in filenames:
-                    filename_w_upload = os.path.join(upload_files.upload_id, filename)
-                    filename_wo_prefix = filename_w_upload[common_prefix_len:]
-                    if len(patterns) == 0 or any(
-                            fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
-                            for pattern in patterns):
-
-                        yield (
-                            filename_wo_prefix, filename,
-                            lambda upload_filename: upload_files.raw_file(upload_filename, 'rb'),
-                            lambda upload_filename: upload_files.raw_file_size(upload_filename))
-
-                        manifest[path(entry)] = {
-                            key: entry[key]
-                            for key in RawFileQueryResource.manifest_quantities
-                            if entry.get(key) is not None
-                        }
-
-            if upload_files is not None:
-                upload_files.close_zipfile_cache()
-
             try:
-                manifest_contents = json.dumps(manifest).encode('utf-8')
-            except Exception as e:
-                manifest_contents = json.dumps(
-                    dict(error='Could not create the manifest: %s' % (e))).encode('utf-8')
-                utils.get_logger(__name__).error(
-                    'could not create raw query manifest', exc_info=e)
+                manifest = {}
+                upload_files = None
 
-            yield (
-                'manifest.json', 'manifest',
-                lambda *args: BytesIO(manifest_contents),
-                lambda *args: len(manifest_contents))
+                for entry in calcs:
+                    upload_id = entry['upload_id']
+                    mainfile = entry['mainfile']
+                    if upload_files is None or upload_files.upload_id != upload_id:
+                        if upload_files is not None:
+                            upload_files.close_zipfile_cache()
+
+                        upload_files = UploadFiles.get(
+                            upload_id, create_authorization_predicate(upload_id))
+
+                        if upload_files is None:
+                            utils.get_logger(__name__).error('upload files do not exist', upload_id=upload_id)
+                            continue
+
+                        upload_files.open_zipfile_cache()
+
+                    filenames = upload_files.raw_file_manifest(path_prefix=os.path.dirname(mainfile))
+                    for filename in filenames:
+                        filename_w_upload = os.path.join(upload_files.upload_id, filename)
+                        filename_wo_prefix = filename_w_upload[common_prefix_len:]
+                        if len(patterns) == 0 or any(
+                                fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
+                                for pattern in patterns):
+
+                            yield (
+                                filename_wo_prefix, filename,
+                                lambda upload_filename: upload_files.raw_file(upload_filename, 'rb'),
+                                lambda upload_filename: upload_files.raw_file_size(upload_filename))
+
+                            manifest[path(entry)] = {
+                                key: entry[key]
+                                for key in RawFileQueryResource.manifest_quantities
+                                if entry.get(key) is not None
+                            }
+
+                if upload_files is not None:
+                    upload_files.close_zipfile_cache()
+
+                try:
+                    manifest_contents = json.dumps(manifest).encode('utf-8')
+                except Exception as e:
+                    manifest_contents = json.dumps(
+                        dict(error='Could not create the manifest: %s' % (e))).encode('utf-8')
+                    utils.get_logger(__name__).error(
+                        'could not create raw query manifest', exc_info=e)
+
+                yield (
+                    'manifest.json', 'manifest',
+                    lambda *args: BytesIO(manifest_contents),
+                    lambda *args: len(manifest_contents))
+
+            except Exception as e:
+                utils.get_logger(__name__).warning(
+                    'unexpected error while streaming raw data from query',
+                    exc_info=e,
+                    query=urllib.parse.urlencode(request.args, doseq=True))
 
         return streamed_zipfile(
             generator(), zipfile_name='nomad_raw_files.zip', compress=compress)

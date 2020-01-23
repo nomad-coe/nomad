@@ -532,7 +532,7 @@ class SearchRequest:
         """
         return self._response(self._search.query(self.q)[0:0].execute())
 
-    def execute_scan(self, order_by: str = None, order: int = -1):
+    def execute_scan(self, order_by: str = None, order: int = -1, **kwargs):
         """
         This execute the search as scan. The result will be a generator over the found
         entries. Everything but the query part of this object, will be ignored.
@@ -550,7 +550,7 @@ class SearchRequest:
             else:
                 search = search.sort('-%s' % order_by_quantity.elastic_field)
 
-        for hit in search.scan():
+        for hit in search.params(**kwargs).scan():
             yield hit.to_dict()
 
     def execute_paginated(

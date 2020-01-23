@@ -1,5 +1,8 @@
-images.nomad.tag: "stable"
-images.frontend.tag: "stable"
+images:
+    nomad:
+        tag: "v0.6.3"
+    frontend:
+        tag: "v0.6.3"
 
 services:
   apiSecret: 'nomad-keycloak-prod-api-secret'

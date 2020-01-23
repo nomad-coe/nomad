@@ -100,7 +100,7 @@ class RepoEntryView extends React.Component {
                 <Quantity column>
                   <Quantity quantity='comment' placeholder='no comment' {...quantityProps} />
                   <Quantity quantity='references' placeholder='no references' {...quantityProps}>
-                    <div style={{display:'inline-grid'}}>
+                    <div style={{display: 'inline-grid'}}>
                       {(calcData.references || []).map(ref => <Typography key={ref} noWrap>
                         <a href={ref}>{ref}</a>
                       </Typography>)}
@@ -138,7 +138,7 @@ class RepoEntryView extends React.Component {
                       {new Date(calcData.upload_time * 1000).toLocaleString()}
                     </Typography>
                   </Quantity>
-                  <Quantity quantity='mainfile' loading={loading} noWrap {...quantityProps} withClipboard />
+                  <Quantity quantity='mainfile' loading={loading} noWrap ellipsisFront {...quantityProps} withClipboard />
                   <Quantity quantity="calc_hash" label={`${domain.entryLabel} hash`} loading={loading} noWrap {...quantityProps} />
                   <Quantity quantity="raw_id" label='raw id' loading={loading} noWrap {...quantityProps} withClipboard />
                   <Quantity quantity="external_id" label='external id' loading={loading} noWrap {...quantityProps} withClipboard />

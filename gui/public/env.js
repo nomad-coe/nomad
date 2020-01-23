@@ -3,6 +3,5 @@ window.nomadEnv = {
   'keycloakRealm': 'fairdi_nomad_test',
   'keycloakClientId': 'nomad_gui_dev',
   'appBase': 'http://localhost:8000/fairdi/nomad/latest',
-  'kibanaBase': '/fairdi/kibana',
   'debug': false
 }

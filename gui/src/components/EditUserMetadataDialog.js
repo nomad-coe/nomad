@@ -176,8 +176,8 @@ class MyAutosuggestUnstyled extends React.PureComponent {
             ref(node)
             inputRef(node)
           },
-          name: 'search',  // try to prevent browsers ignore autocomplete="off"
-          type: 'search',  // try to prevent browsers ignore autocomplete="off"
+          name: 'search', // try to prevent browsers ignore autocomplete="off"
+          type: 'search', // try to prevent browsers ignore autocomplete="off"
           classes: {
             input: classes.input
           }
@@ -397,7 +397,7 @@ class ReferenceInput extends React.Component {
     return <TextField
       fullWidth
       {...rest}
-      type="search" name="search"  // attempt to avoid browsers autofill, since they seem to ignore autocomplete="off"
+      type="search" name="search" // attempt to avoid browsers autofill, since they seem to ignore autocomplete="off"
       value={this.state.inputValue}
       onChange={this.handleChange.bind(this)}
       error={value === undefined}
@@ -582,10 +582,10 @@ class InviteUserDialogUnstyled extends React.Component {
     submitEnabled: false
   }
 
-  state = this.defaultState
+  state = {...this.defaultState}
 
   handleClose() {
-    this.setState({open: false})
+    this.setState({...this.defaultState, open: false})
   }
 
   handleSubmit() {
@@ -595,8 +595,16 @@ class InviteUserDialogUnstyled extends React.Component {
       this.handleClose()
     }).catch(error => {
       // get message in quotes
-      const message = ('' + error).match(/'([^']+)'/)[1]
-      this.setState({error: message, submitting: false, submitEnabled: false})
+      console.error(error)
+      try {
+        let message = ('' + error).match(/'([^']+)'/)[1]
+        try {
+          message = JSON.parse(message).errorMessage
+        } catch (e) {}
+        this.setState({error: message, submitting: false, submitEnabled: false})
+      } catch (e) {
+        this.setState({error: '' + error, submitting: false, submitEnabled: false})
+      }
     })
   }
 
@@ -1051,7 +1059,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
 
     if (submitting) {
       return <DialogActions>
-        <DialogContentText color="error" style={{marginLeft: 16}}>Do not close the page. This might take up to several minutes for editing many entries.</DialogContentText>
+        <DialogContentText style={{marginLeft: 16}}>Do not close the page. This might take up to several minutes for editing many entries.</DialogContentText>
         <span style={{flexGrow: 1}} />
         <div className={classes.submitWrapper}>
           <Button onClick={this.handleSubmit} disabled={!submitEnabled} color="primary">

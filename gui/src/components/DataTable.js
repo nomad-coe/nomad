@@ -83,7 +83,7 @@ class DataTableToolbarUnStyled extends React.Component {
     const { anchorEl } = this.state
     const open = Boolean(anchorEl)
 
-    const regularActions =  <React.Fragment>
+    const regularActions = <React.Fragment>
       {actions || <React.Fragment/>}
       <Tooltip title="Change displayed columns">
         <IconButton onClick={this.handleClick}>
@@ -243,6 +243,10 @@ class DataTableUnStyled extends React.Component {
       paddingLeft: theme.spacing.unit * 3,
       paddingRight: theme.spacing.unit * 3
     },
+    ellipsisFront: {
+      direction: 'rtl',
+      textAlign: 'left'
+    },
     clickable: {
       cursor: 'pointer'
     },
@@ -261,17 +265,7 @@ class DataTableUnStyled extends React.Component {
       width: 1
     },
     details: {
-      borderBottom: '1px solid rgba(224, 224, 224, 1)',
-      padding: theme.spacing.unit * 3
-    },
-    detailsContentsWithActions: {
-      paddingTop: theme.spacing.unit * 3,
-      paddingLeft: theme.spacing.unit * 3,
-      paddingRight: theme.spacing.unit * 3
-    },
-    detailsActions: {
-      textAlign: 'right',
-      padding: theme.spacing.unit
+      borderBottom: '1px solid rgba(224, 224, 224, 1)'
     },
     selectedEntryCell: {
       color: theme.palette.primary.contrastText,
@@ -489,9 +483,12 @@ class DataTableUnStyled extends React.Component {
                       </TableCell> : <React.Fragment/> }
                       {Object.keys(columns).filter(key => selectedColumns.indexOf(key) !== -1).map((key, i) => {
                         const column = columns[key]
+                        if (column.ellipsisFront) {
+                          console.log('####################')
+                        }
                         return (
                           <TableCell
-                            className={clsx([classes.cell, (selectedEntry === rowId) && classes.selectedEntryCell])}
+                            className={clsx([classes.cell, column.ellipsisFront && classes.ellipsisFront, (selectedEntry === rowId) && classes.selectedEntryCell])}
                             key={key}
                             align={column.align || 'left'}
                           >

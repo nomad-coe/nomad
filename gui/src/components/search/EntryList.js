@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Link, Typography, Tooltip, IconButton, TablePagination } from '@material-ui/core'
+import { withStyles, Link, Typography, Tooltip, IconButton, TablePagination, Button } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withRouter } from 'react-router'
 import { withDomain } from '../domains'
@@ -36,10 +36,26 @@ export class EntryListUnstyled extends React.Component {
       overflow: 'auto'
     },
     entryDetails: {
+      paddingTop: theme.spacing.unit * 3,
+      paddingLeft: theme.spacing.unit * 3,
+      paddingRight: theme.spacing.unit * 3
+    },
+    entryDetailsContents: {
       display: 'flex'
     },
     entryDetailsRow: {
       paddingRight: theme.spacing.unit * 3
+    },
+    entryDetailsActions: {
+      display: 'flex',
+      flexBasis: 'auto',
+      flexGrow: 0,
+      flexShrink: 0,
+      justifyContent: 'flex-end',
+      marginBottom: theme.spacing.unit,
+      marginLeft: theme.spacing.unit / 2,
+      marginRight: theme.spacing.unit / 2,
+      marginTop: theme.spacing.unit
     }
   })
 
@@ -52,7 +68,8 @@ export class EntryListUnstyled extends React.Component {
       label: 'Mainfile',
       render: entry => entry.mainfile,
       supportsSort: true,
-      description: 'The mainfile of this entry.'
+      ellipsisFront: true,
+      description: 'The mainfile of this entry within its upload.'
     },
     upload_time: {
       label: 'Upload time',
@@ -170,82 +187,82 @@ export class EntryListUnstyled extends React.Component {
   renderEntryDetails(row) {
     const { classes, domain } = this.props
     return (<div className={classes.entryDetails}>
-      <div className={classes.entryDetailsRow}>
-        <Quantity column>
-          <Quantity row>
-            <Quantity quantity="formula" label='formula' noWrap data={row} />
+      <div className={classes.entryDetailsContents}>
+        <div className={classes.entryDetailsRow}>
+          <Quantity column>
+            <Quantity row>
+              <Quantity quantity="formula" label='formula' noWrap data={row} />
+            </Quantity>
+            <Quantity row>
+              <Quantity quantity="code_name" label='dft code' noWrap data={row} />
+              <Quantity quantity="code_version" label='dft code version' noWrap data={row} />
+            </Quantity>
+            <Quantity row>
+              <Quantity quantity="basis_set" label='basis set' noWrap data={row} />
+              <Quantity quantity="xc_functional" label='xc functional' noWrap data={row} />
+            </Quantity>
+            <Quantity row>
+              <Quantity quantity="system" label='system type' noWrap data={row} />
+              <Quantity quantity="crystal_system" label='crystal system' noWrap data={row} />
+              <Quantity quantity='spacegroup_symbol' label="spacegroup" noWrap data={row} >
+                <Typography noWrap>
+                  {row.spacegroup_symbol} ({row.spacegroup})
+                </Typography>
+              </Quantity>
+            </Quantity>
           </Quantity>
-          <Quantity row>
-            <Quantity quantity="code_name" label='dft code' noWrap data={row} />
-            <Quantity quantity="code_version" label='dft code version' noWrap data={row} />
+        </div>
+
+        <div className={classes.entryDetailsRow} style={{flexGrow: 1}}>
+          <Quantity className={classes.entryDetailsRow} column>
+            <Quantity quantity='comment' placeholder='no comment' data={row} />
+            <Quantity quantity='references' placeholder='no references' data={row}>
+              <div style={{display: 'inline-grid'}}>
+                {(row.references || []).map(ref => <Typography key={ref} noWrap>
+                  <a href={ref}>{ref}</a>
+                </Typography>)}
+              </div>
+            </Quantity>
+            <Quantity quantity='authors' data={row}>
+              <Typography>
+                {(row.authors || []).map(author => author.name).join('; ')}
+              </Typography>
+            </Quantity>
+            <Quantity quantity='datasets' placeholder='no datasets' data={row}>
+              <div>
+                {(row.datasets || []).map(ds => (
+                  <Typography key={ds.id}>
+                    <Link component={RouterLink} to={`/dataset/id/${ds.id}`}>{ds.name}</Link>
+                    {ds.doi ? <span>&nbsp; (<Link href={ds.doi}>{ds.doi}</Link>)</span> : <React.Fragment/>}
+                  </Typography>))}
+              </div>
+            </Quantity>
           </Quantity>
-          <Quantity row>
-            <Quantity quantity="basis_set" label='basis set' noWrap data={row} />
-            <Quantity quantity="xc_functional" label='xc functional' noWrap data={row} />
-          </Quantity>
-          <Quantity row>
-            <Quantity quantity="system" label='system type' noWrap data={row} />
-            <Quantity quantity="crystal_system" label='crystal system' noWrap data={row} />
-            <Quantity quantity='spacegroup_symbol' label="spacegroup" noWrap data={row} >
+        </div>
+
+        <div className={classes.entryDetailsRow} style={{maxWidth: '33%', paddingRight: 0}}>
+          <Quantity column >
+            {/* <Quantity quantity="pid" label='PID' placeholder="not yet assigned" noWrap data={row} withClipboard /> */}
+            <Quantity quantity="calc_id" label={`${domain.entryLabel} id`} noWrap withClipboard data={row} />
+            <Quantity quantity="upload_id" label='upload id' data={row} noWrap withClipboard />
+            <Quantity quantity='mainfile' noWrap ellipsisFront data={row} withClipboard />
+            <Quantity quantity="upload_time" label='upload time' noWrap data={row} >
               <Typography noWrap>
-                {row.spacegroup_symbol} ({row.spacegroup})
+                {new Date(row.upload_time * 1000).toLocaleString()}
+              </Typography>
+            </Quantity>
+            <Quantity quantity="last_processing" label='processing version' noWrap placeholder="not processed" data={row}>
+              <Typography noWrap>
+                {row.nomad_version}/{row.nomad_commit}
               </Typography>
             </Quantity>
           </Quantity>
-        </Quantity>
+        </div>
       </div>
-
-      <div className={classes.entryDetailsRow} style={{flexGrow: 1}}>
-        <Quantity className={classes.entryDetailsRow} column>
-          <Quantity quantity='comment' placeholder='no comment' data={row} />
-          <Quantity quantity='references' placeholder='no references' data={row}>
-            <div style={{display:'inline-grid'}}>
-              {(row.references || []).map(ref => <Typography key={ref} noWrap>
-                <a href={ref}>{ref}</a>
-              </Typography>)}
-            </div>
-          </Quantity>
-          <Quantity quantity='authors' data={row}>
-            <Typography>
-              {(row.authors || []).map(author => author.name).join('; ')}
-            </Typography>
-          </Quantity>
-          <Quantity quantity='datasets' placeholder='no datasets' data={row}>
-            <div>
-              {(row.datasets || []).map(ds => (
-                <Typography key={ds.id}>
-                  <Link component={RouterLink} to={`/dataset/id/${ds.id}`}>{ds.name}</Link>
-                  {ds.doi ? <span>&nbsp; (<Link href={ds.doi}>{ds.doi}</Link>)</span> : <React.Fragment/>}
-                </Typography>))}
-            </div>
-          </Quantity>
-        </Quantity>
-      </div>
-
-      <div className={classes.entryDetailsRow} style={{maxWidth: '33%', paddingRight: 0}}>
-        <Quantity column >
-          {/* <Quantity quantity="pid" label='PID' placeholder="not yet assigned" noWrap data={row} withClipboard /> */}
-          <Quantity quantity="calc_id" label={`${domain.entryLabel} id`} noWrap withClipboard data={row} />
-          <Quantity quantity="upload_id" label='upload id' data={row} noWrap withClipboard />
-          <Quantity quantity='mainfile' noWrap data={row} withClipboard />
-          <Quantity quantity="upload_time" label='upload time' noWrap data={row} >
-            <Typography noWrap>
-              {new Date(row.upload_time * 1000).toLocaleString()}
-            </Typography>
-          </Quantity>
-          {/* <Quantity quantity="calc_hash" label={`${domain.entryLabel} hash`} noWrap data={row} />
-          <Quantity quantity="raw_id" label='raw id' noWrap data={row} withClipboard />
-          <Quantity quantity="last_processing" label='last processing' placeholder="not processed" noWrap data={row}>
-            <Typography noWrap>
-              {new Date(row.last_processing * 1000).toLocaleString()}
-            </Typography>
-          </Quantity> */}
-          <Quantity quantity="last_processing" label='processing version' noWrap placeholder="not processed" data={row}>
-            <Typography noWrap>
-              {row.nomad_version}/{row.nomad_commit}
-            </Typography>
-          </Quantity>
-        </Quantity>
+      <div className={classes.entryDetailsActions}>
+        <Button color="primary" onClick={event => this.handleViewEntryPage(event, row)}>
+          Show raw files and archive
+        </Button>
       </div>
     </div>)
   }
@@ -257,7 +274,7 @@ export class EntryListUnstyled extends React.Component {
 
   renderEntryActions(row, selected) {
     if (!this.props.showEntryActions || this.props.showEntryActions(row)) {
-      return <Tooltip title="View entry page">
+      return <Tooltip title="Show raw files and archive">
         <IconButton style={selected ? {color: 'white'} : null} onClick={event => this.handleViewEntryPage(event, row)}>
           <DetailsIcon />
         </IconButton>
@@ -302,7 +319,7 @@ export class EntryListUnstyled extends React.Component {
         {...props}
       /> : ''}
       <DownloadButton
-        tooltip="Download raw files"
+        tooltip="Download files"
         {...props}/>
       {moreActions}
     </React.Fragment>

@@ -9,7 +9,7 @@ import nomad_meta_info
 
 from nomad import utils
 from nomad.metainfo import Definition, Package, Category, Section, Quantity, SubSection, \
-    Environment, Enum, Reference, MSection, units
+    Environment, MEnum, Reference, MSection, units
 
 
 T = TypeVar('T', bound=Definition)
@@ -246,7 +246,7 @@ class LegacyMetainfoEnvironment:
             elif isinstance(definition.type, Reference):
                 dtype_str = 'r'
                 result['referencedSections'] = [definition.type.target_section_def.name]
-            elif isinstance(definition.type, Enum):
+            elif isinstance(definition.type, MEnum):
                 dtype_str = 'C'
             elif type(definition.type) == np.dtype:
                 dtype_str = definition.type.name[0]

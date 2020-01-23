@@ -11,8 +11,11 @@ import { withApi } from '../api'
 import { EntryListUnstyled } from './EntryList'
 import MoreIcon from '@material-ui/icons/MoreHoriz'
 import DownloadButton from '../DownloadButton'
+import SearchContext from './SearchContext'
 
 class GroupUnstyled extends React.Component {
+  static contextType = SearchContext.type
+
   static propTypes = {
     classes: PropTypes.object.isRequired,
     groupHash: PropTypes.string.isRequired,
@@ -22,7 +25,9 @@ class GroupUnstyled extends React.Component {
   }
 
   static styles = theme => ({
-    root: {}
+    root: {
+      padding: theme.spacing.unit * 3
+    }
   })
 
   state = {
@@ -31,7 +36,8 @@ class GroupUnstyled extends React.Component {
 
   update() {
     const {groupHash, api, raiseError} = this.props
-    api.search({group_hash: groupHash, per_page: 100})
+    const {query} = this.context.state
+    api.search({...query, group_hash: groupHash, per_page: 100})
       .then(data => {
         this.setState({entries: data.results})
       })
@@ -66,8 +72,8 @@ class GroupUnstyled extends React.Component {
               <TableCell>{entry.mainfile}</TableCell>
               <TableCell>{new Date(entry.upload_time).toLocaleString()}</TableCell>
               <TableCell align="right">
-                <DownloadButton query={{calc_id: entry.calc_id}} tooltip="Download raw files of this entry" />
-                <Tooltip title="View entry page">
+                <DownloadButton query={{calc_id: entry.calc_id}} tooltip="Download files of this entry" />
+                <Tooltip title="Show raw files and archive">
                   <IconButton onClick={() => history.push(`/entry/id/${entry.upload_id}/${entry.calc_id}`)}>
                     <MoreIcon />
                   </IconButton>
@@ -177,7 +183,6 @@ class GroupListUnstyled extends React.Component {
     const defaultSelectedColumns = this.props.selectedColumns || [
       ...domain.defaultSearchResultColumns,
       'datasets', 'authors', 'entries']
-
 
     let paginationText
     if (groups_after) {

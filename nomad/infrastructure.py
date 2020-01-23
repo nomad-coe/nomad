@@ -34,6 +34,8 @@ import jwt
 from flask import g, request
 import basicauth
 from datetime import datetime
+import re
+import unidecode
 
 from nomad import config, utils
 
@@ -187,7 +189,7 @@ class Keycloak():
                     options = dict(verify_aud=False, verify_exp=True, verify_iss=True)
                     payload = jwt.decode(
                         g.oidc_access_token, key=key, algorithms=['RS256'], options=options,
-                        issuer='%s/realms/%s' % (config.keycloak.server_url.rstrip('/'), config.keycloak.realm_name))
+                        issuer='%s/realms/%s' % (config.keycloak.server_external_url.rstrip('/'), config.keycloak.realm_name))
 
             except jwt.InvalidTokenError as e:
                 auth_error = str(e)
@@ -214,6 +216,25 @@ class Keycloak():
             # Do not return an error. This is the case were there are no credentials
             return None
 
+    def __create_username(self, user):
+        if user.first_name is not None and user.last_name is not None:
+            user.username = '%s%s' % (user.first_name[:1], user.last_name)
+        elif user.last_name is not None:
+            user.username = user.last_name
+        elif '@' in user.username:
+            user.username = user.username.split('@')[0]
+
+        user.username = unidecode.unidecode(user.username.lower())
+        user.username = re.sub(r'[^0-9a-zA-Z_\-\.]+', '', user.username)
+
+        index = 1
+        try:
+            while self.get_user(username=user.username):
+                user.username += '%d' % index
+                index += 1
+        except KeyError:
+            pass
+
     def add_user(self, user, bcrypt_password=None, invite=False):
         """
         Adds the given :class:`nomad.datamodel.User` instance to the configured keycloak
@@ -233,10 +254,13 @@ class Keycloak():
 
             user = datamodel.User(**user)
 
+        if user.username is None or not re.match(r'^[a-zA-Z0-9_\-\.]+$', user.username):
+            self.__create_username(user)
+
         keycloak_user = dict(
             id=user.user_id if user.user_id != 'not set' else None,
             email=user.email,
-            username=user.email,
+            username=user.username,
             firstName=user.first_name,
             lastName=user.last_name,
             attributes=dict(
@@ -264,12 +288,12 @@ class Keycloak():
         if user.user_id != 'not_set':
             try:
                 self._admin_client.get_user(user.user_id)
-                raise KeyError('User %s with given id already exists' % user.email)
+                return 'User %s with given id already exists' % user.email
             except KeycloakGetError:
                 pass
 
         if self._admin_client.get_user_id(user.email) is not None:
-            raise KeyError('User with email %s already exists' % user.email)
+            return 'User with email %s already exists' % user.email
 
         try:
             self._admin_client.create_user(keycloak_user)
@@ -277,8 +301,11 @@ class Keycloak():
             return str(e)
 
         if invite:
-            # TODO send invite
-            pass
+            try:
+                user = self.get_user(username=user.username)
+                self._admin_client.send_verify_email(user_id=user.user_id)
+            except Exception as e:
+                logger.error('could not send verify email', exc_info=e)
 
         return None
 
@@ -295,11 +322,11 @@ class Keycloak():
             created=datetime.fromtimestamp(keycloak_user['createdTimestamp'] / 1000),
             **kwargs)
 
-    def search_user(self, query: str = None, **kwargs):
+    def search_user(self, query: str = None, max=1000, **kwargs):
         if query is not None:
-            kwargs['query'] = dict(search=query)
+            kwargs['query'] = dict(search=query, max=max)
         else:
-            kwargs['query'] = dict(max=1000)
+            kwargs['query'] = dict(max=max)
         try:
             keycloak_results = self._admin_client.get_users(**kwargs)
         except Exception as e:
@@ -310,7 +337,7 @@ class Keycloak():
             self.__user_from_keycloak_user(keycloak_user)
             for keycloak_user in keycloak_results]
 
-    def get_user(self, user_id: str = None, email: str = None, user=None) -> object:
+    def get_user(self, user_id: str = None, username: str = None, user=None) -> object:
         """
         Retrives all available information about a user from the keycloak admin
         interface. This must be used to retrieve complete user information, because
@@ -321,12 +348,12 @@ class Keycloak():
         if user is not None and user_id is None:
             user_id = user.user_id
 
-        if email is not None and user_id is None:
+        if username is not None and user_id is None:
             with utils.lnr(logger, 'Could not use keycloak admin client'):
-                user_id = self._admin_client.get_user_id(email)
+                user_id = self._admin_client.get_user_id(username)
 
             if user_id is None:
-                raise KeyError('User %s does not exist' % email)
+                raise KeyError('User with username %s does not exist' % username)
 
         assert user_id is not None, 'Could not determine user from given kwargs'
 
