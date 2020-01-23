@@ -216,8 +216,8 @@ def mirror(
                     # In tests, we mirror from our selves, fake that the upload does not exist
                     raise KeyError()
 
-                if replace:
-                    delete_upload(upload=upload)
+                if replace and not dry:
+                    delete_upload(upload=upload, skip_files=True)
 
                 else:
                     if len(query) > 0:
