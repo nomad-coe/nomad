@@ -496,7 +496,6 @@ class SystemNormalizer(SystemBasedNormalizer):
                     prototype_aflow_url=aflow_prototype_url)
         except Exception as e:
             self.logger.error("cannot create AFLOW prototype", exc_info=e)
-            raise
             return
 
         pSect = self._backend.openSection("section_prototype")
