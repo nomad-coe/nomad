@@ -12,11 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import ase.build
+
 from nomad import datamodel, config
 from nomad.parsing import LocalBackend
 
+from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
+from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
+from tests.test_parsing import parsed_example  # pylint: disable=unused-import
+from tests.test_parsing import parsed_template_no_system  # pylint: disable=unused-import
 from tests.test_parsing import parse_file
-from tests.normalizing.conftest import run_normalize   # pylint: disable=unused-import
+from tests.normalizing.conftest import run_normalize, run_normalize_for_structure   # pylint: disable=unused-import
 from tests.utils import assert_log
 
 
@@ -179,6 +185,46 @@ def test_vasp_incar_system():
 
     print("backend_value: ", backend_value)
     assert expected_value == backend_value
+
+
+def test_aflow_prototypes():
+    """Tests that some basis structures are matched with the correct AFLOW prototypes
+    """
+    # Diamond
+    diamond = ase.build.bulk("C", crystalstructure="diamond", a=3.57)
+    backend = run_normalize_for_structure(diamond)
+    prototype_aflow_id = backend.get_value("prototype_aflow_id")
+    assert prototype_aflow_id == "A_cF8_227_a"
+
+    # BCC
+    bcc = ase.build.bulk("Fe", crystalstructure="bcc", a=2.856)
+    backend = run_normalize_for_structure(bcc)
+    prototype_aflow_id = backend.get_value("prototype_aflow_id")
+    assert prototype_aflow_id == "A_cI2_229_a"
+
+    # FCC
+    fcc = ase.build.bulk("Ge", crystalstructure="fcc", a=5.658)
+    backend = run_normalize_for_structure(fcc)
+    prototype_aflow_id = backend.get_value("prototype_aflow_id")
+    assert prototype_aflow_id == "A_cF4_225_a"
+
+    # Rocksalt
+    rocksalt = ase.build.bulk("NaCl", crystalstructure="rocksalt", a=5.64)
+    backend = run_normalize_for_structure(rocksalt)
+    prototype_aflow_id = backend.get_value("prototype_aflow_id")
+    assert prototype_aflow_id == "AB_cF8_225_a_b"
+
+    # Zincblende
+    zincblende = ase.build.bulk("ZnS", crystalstructure="zincblende", a=5.42)
+    backend = run_normalize_for_structure(zincblende)
+    prototype_aflow_id = backend.get_value("prototype_aflow_id")
+    assert prototype_aflow_id == "AB_cF8_216_c_a"
+
+    # Wurtzite
+    wurtzite = ase.build.bulk("SiC", crystalstructure="wurtzite", a=3.086, c=10.053)
+    backend = run_normalize_for_structure(wurtzite)
+    prototype_aflow_id = backend.get_value("prototype_aflow_id")
+    assert prototype_aflow_id == "AB_hP4_186_b_b"
 
 
 def test_springer_normalizer():
