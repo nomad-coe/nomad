@@ -30,6 +30,7 @@ import nomad_meta_info
 
 from nomad.files import UploadFiles, Restricted
 from nomad import utils, search, config
+from nomad.archive_library.filedb import ArchiveFileDB
 
 from .auth import authenticate, create_authorization_predicate
 from .api import api
@@ -214,6 +215,10 @@ _archive_query_parser = api.parser()
 add_pagination_parameters(_archive_query_parser)
 add_scroll_parameters(_archive_query_parser)
 add_search_parameters(_archive_query_parser)
+_archive_query_parser.add_argument(
+    'db', type=str, help='Database to use, zip or msg', default='zip', location='args')
+_archive_query_parser.add_argument(
+    'qschema', type=str, help='Serialized archive dict with null values as placeholder for data.')
 
 _archive_query_model_fields = {
     'results': fields.List(fields.Raw, description=(
@@ -227,103 +232,163 @@ _archive_query_model_fields = {
 _archive_query_model = api.inherit('ArchiveCalculations', search_model, _archive_query_model_fields)
 
 
+def execute_search():
+    try:
+        args = {
+            key: value for key, value in _archive_query_parser.parse_args().items()
+            if value is not None}
+
+        scroll = args.get('scroll', False)
+        scroll_id = args.get('scroll_id', None)
+        page = args.get('page', 1)
+        per_page = args.get('per_page', 10 if not scroll else 1000)
+        order = args.get('order', -1)
+        order_by = 'upload_id'
+        db = args.get('db')
+        qschema = args.get('qschema', None)
+    except Exception:
+        abort(400, message='bad parameter types')
+
+    try:
+        assert page >= 1
+        assert per_page > 0
+    except AssertionError:
+        abort(400, message='invalid pagination')
+
+    if order not in [-1, 1]:
+        abort(400, message='invalid pagination')
+
+    search_request = search.SearchRequest()
+    apply_search_parameters(search_request, args)
+
+    try:
+        if scroll:
+            results = search_request.execute_scrolled(scroll_id=scroll_id, size=per_page)
+
+        else:
+            results = search_request.execute_paginated(
+                per_page=per_page, page=page, order=order, order_by=order_by)
+
+    except search.ScrollIdNotFound:
+        abort(400, 'The given scroll_id does not exist.')
+    except KeyError as e:
+        import traceback
+        traceback.print_exc()
+        abort(400, str(e))
+
+    if qschema is None:
+        qschema = request.get_json()
+        qschema = qschema if qschema is None else qschema['results']
+    else:
+        qschema = json.loads(qschema)
+
+    data = []
+    calcs = results['results']
+    try:
+        upload_files = None
+        for entry in calcs:
+            upload_id = entry['upload_id']
+            calc_id = entry['calc_id']
+            if upload_files is None or upload_files.upload_id != upload_id:
+                if upload_files is not None:
+                    upload_files.close_zipfile_cache()
+
+                upload_files = UploadFiles.get(
+                    upload_id, create_authorization_predicate(upload_id))
+
+                if upload_files is None:
+                    raise KeyError
+
+                upload_files.open_zipfile_cache()
+
+                if db == 'msg':
+                    fos = upload_files.archive_file_msg(calc_id)
+                    msgdbs = [ArchiveFileDB(fo) for fo in fos if fo is not None]
+
+            if db == 'zip':
+                fo = upload_files.archive_file(calc_id, 'rb')
+                data.append({calc_id: json.loads(fo.read())})
+
+            elif db == 'msg':
+                for msgdb in msgdbs:
+                    data.append(msgdb.query({calc_id: qschema}))
+
+        if upload_files is not None:
+            upload_files.close_zipfile_cache()
+
+    except Restricted:
+        abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
+
+    except KeyError:
+        abort(404, message='Calculation %s/%s does not exist.' % (upload_id, calc_id))
+
+    results['results'] = data
+
+    # build python code and curl snippet
+    results['python'] = query_api_python('archive', 'query', query_string=request.args)
+    results['curl'] = query_api_curl('archive', 'query', query_string=request.args)
+
+    return results
+
+
 @ns.route('/query')
 class ArchiveQueryResource(Resource):
-    @api.doc('archive_query')
+    @api.doc('get_archive_query')
+    @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
+    @api.response(401, 'Not authorized to access the data.')
+    @api.response(404, 'The upload or calculation does not exist')
+    @api.response(200, 'Archive data send', headers={'Content-Type': 'application/octet-stream'})
+    @api.expect(_archive_query_parser, validate=True)
+    @api.marshal_with(_archive_query_model, skip_none=True, code=200, description='File sent')
+    @authenticate()
+    def get(self):
+        """
+        Get msgpack database resulting from query.
+
+        See ``/repo`` endpoint for documentation on the search
+        parameters.
+
+        The actual data are in results and a supplementary python code (curl) to
+        execute search is in python (curl).
+        """
+        results = execute_search()
+
+        # create msgpack database from results and return database file
+        data = results['results']
+        filename = 'nomad_archive.msg'
+        msgdb = ArchiveFileDB(BytesIO(), max_lfragment=2)
+        for calc in data:
+            msgdb.add_data(calc)
+        msgdb.create_db()
+        data_stream = msgdb.fileobj
+        data_stream.seek(0)
+        return send_file(
+            data_stream,
+            mimetype='application/octet_stream',
+            as_attachment=True,
+            cache_timeout=0,
+            attachment_filename=filename)
+
+    @api.doc('post_archive_query')
     @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
     @api.response(401, 'Not authorized to access the data.')
     @api.response(404, 'The upload or calculation does not exist')
     @api.response(200, 'Archive data send')
     @api.expect(_archive_query_parser, validate=True)
     @api.marshal_with(_archive_query_model, skip_none=True, code=200, description='Search results sent')
-    @authenticate()
-    def get(self):
+    @authenticate(signature_token=True)
+    def post(self):
         """
-        Get archive data in json format from all query results.
+        Post an query schema and return it filled with archive data in json format from
+        all query results.
 
         See ``/repo`` endpoint for documentation on the search
         parameters.
 
-        The actual data are in archive_data and a supplementary python code (curl) to
+        The actual data are in results and a supplementary python code (curl) to
         execute search is in python (curl).
         """
-        try:
-            args = {
-                key: value for key, value in _archive_query_parser.parse_args().items()
-                if value is not None}
-
-            scroll = args.get('scroll', False)
-            scroll_id = args.get('scroll_id', None)
-            page = args.get('page', 1)
-            per_page = args.get('per_page', 10 if not scroll else 1000)
-            order = args.get('order', -1)
-            order_by = 'upload_id'
-        except Exception:
-            abort(400, message='bad parameter types')
-
-        try:
-            assert page >= 1
-            assert per_page > 0
-        except AssertionError:
-            abort(400, message='invalid pagination')
-
-        if order not in [-1, 1]:
-            abort(400, message='invalid pagination')
-
-        search_request = search.SearchRequest()
-        apply_search_parameters(search_request, args)
-
-        try:
-            if scroll:
-                results = search_request.execute_scrolled(scroll_id=scroll_id, size=per_page)
-
-            else:
-                results = search_request.execute_paginated(
-                    per_page=per_page, page=page, order=order, order_by=order_by)
-
-        except search.ScrollIdNotFound:
-            abort(400, 'The given scroll_id does not exist.')
-        except KeyError as e:
-            import traceback
-            traceback.print_exc()
-            abort(400, str(e))
-
-        # build python code and curl snippet
-        results['python'] = query_api_python('archive', 'query', query_string=request.args)
-        results['curl'] = query_api_curl('archive', 'query', query_string=request.args)
-
-        data = []
-        calcs = results['results']
-        try:
-            upload_files = None
-            for entry in calcs:
-                upload_id = entry['upload_id']
-                calc_id = entry['calc_id']
-                if upload_files is None or upload_files.upload_id != upload_id:
-                    if upload_files is not None:
-                        upload_files.close_zipfile_cache()
-
-                    upload_files = UploadFiles.get(
-                        upload_id, create_authorization_predicate(upload_id))
-
-                    if upload_files is None:
-                        raise KeyError
-
-                    upload_files.open_zipfile_cache()
-
-                fo = upload_files.archive_file(calc_id, 'rb')
-                data.append(json.loads(fo.read()))
-
-            if upload_files is not None:
-                upload_files.close_zipfile_cache()
-
-        except Restricted:
-            abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
-
-        except KeyError:
-            abort(404, message='Calculation %s/%s does not exist.' % (upload_id, calc_id))
-
-        results['results'] = data
+        results = execute_search()
 
         return results, 200
 

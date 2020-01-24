@@ -18,7 +18,7 @@ import click.testing
 import json
 import mongoengine
 
-from nomad import utils, search, processing as proc, files
+from nomad import utils, search, processing as proc, files, infrastructure
 from nomad.cli import cli
 from nomad.processing import Upload, Calc
 
@@ -34,6 +34,7 @@ class TestAdmin:
 
         # allow other test to re-establish a connection
         mongoengine.disconnect_all()
+        infrastructure.setup_mongo()
 
     def test_reset_not_sure(self):
         result = click.testing.CliRunner().invoke(
@@ -47,6 +48,7 @@ class TestAdmin:
 
         # allow other test to re-establish a connection
         mongoengine.disconnect_all()
+        infrastructure.setup_mongo()
 
     def test_clean(self, published):
         upload_id = published.upload_id

@@ -667,10 +667,33 @@ class TestArchive(UploadFilesBasedTests):
         assert rv.status_code == 200
         assert_zip_file(rv, files=1)
 
+    @pytest.mark.parametrize('db', ['zip', 'msg'])
+    def test_post_archive_query(self, api, published_wo_user_metadata, other_test_user_auth, db):
+        schema = {"section_run": {"section_single_configuration_calculation": {"energy_total": None}}}
+        order = -1
+        data = {'results': schema}
+        uri = '/archive/query?owner=all&order=%d&db=%s' % (order, db)
+        rv = api.post(uri, headers=other_test_user_auth, content_type='application/json', data=json.dumps(data))
+        assert rv.status_code == 200
+        data = rv.get_json()
+        assert data
+        results = data.get('results', None)
+        assert results is not None
+
+    @pytest.mark.parametrize('db', ['zip', 'msg'])
+    def test_get_archive_query(self, api, published_wo_user_metadata, other_test_user_auth, db):
+        schema = {"section_run": {"section_single_configuration_calculation": {"energy_total": None}}}
+        q_params = {'owner': 'all', 'order': -1, 'db': db, 'qschema': json.dumps(schema)}
+        uri = '/archive/query?%s' % urlencode(q_params)
+        rv = api.get(uri, headers=other_test_user_auth)
+        assert rv.status_code == 200
+        data = rv.data
+        assert data
+
     def test_get_code_from_query(self, api, processeds, test_user_auth):
         query_params = {'atoms': 'Si', 'res_type': 'json', 'order': 1, 'per_page': 5}
         url = '/archive/query?%s' % urlencode(query_params)
-        rv = api.get(url, headers=test_user_auth)
+        rv = api.post(url, headers=test_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)
         assert isinstance(data, dict)

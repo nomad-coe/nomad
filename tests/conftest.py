@@ -160,6 +160,9 @@ def mongo_infra(monkeysession):
 @pytest.fixture(scope='function')
 def mongo(mongo_infra):
     """ Provides a cleaned mocked mongo per function. """
+    # Some test cases need to reset the database connection
+    if infrastructure.mongo_client != mongo_infra:
+        mongo_infra = infrastructure.mongo_client
     mongo_infra.drop_database('test_db')
     return mongo_infra
 

@@ -457,7 +457,7 @@ class TestPublicUploadFiles(UploadFilesContract):
             calc.with_embargo = False
         upload_files.re_pack(upload)
         assert_upload_files(upload, PublicUploadFiles, with_embargo=False)
-        assert len(os.listdir(upload_files.os_path)) == 4
+        assert len(os.listdir(upload_files.os_path)) == 8
         with assert_exception(KeyError):
             StagingUploadFiles(upload_files.upload_id)
 

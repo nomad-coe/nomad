@@ -267,7 +267,7 @@ def query_api_python(*args, **kwargs):
     """
     url = query_api_url(*args, **kwargs)
     return '''import requests
-response = requests.get("{}")
+response = requests.post("{}")
 data = response.json()'''.format(url)
 
 
@@ -276,4 +276,4 @@ def query_api_curl(*args, **kwargs):
     Creates a string of curl command to execute a search query to the repository.
     """
     url = query_api_url(*args, **kwargs)
-    return 'curl -X GET %s -H  "accept: application/json" --output "nomad.json"' % url
+    return 'curl -X POST %s -H  "accept: application/json" --output "nomad.json"' % url
