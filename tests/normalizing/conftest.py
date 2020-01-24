@@ -67,6 +67,11 @@ def run_normalize_for_structure(atoms: Atoms) -> LocalBackend:
 
 
 @pytest.fixture(scope='session')
+def single_point(two_d) -> LocalBackend:
+    return two_d
+
+
+@pytest.fixture(scope='session')
 def geometry_optimization() -> LocalBackend:
     parser_name = "parsers/template"
     filepath = "tests/data/normalizers/fcc_crystal_structure.json"
