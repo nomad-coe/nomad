@@ -181,7 +181,12 @@ mail = NomadConfig(
 )
 
 normalize = NomadConfig(
-    system_classification_with_clusters_threshold=50
+    # The system size limit for running the system type analysis. For very
+    # large systems the system type analysis will get too expensive.
+    system_classification_with_clusters_threshold=50,
+    # The distance tolerance between atoms for grouping them into the same
+    # cluster. Used in detecting system type.
+    cluster_threshold=3.1,
 )
 
 client = NomadConfig(

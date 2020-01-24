@@ -1,0 +1,112 @@
+##################################################################################
+# 17.06.2014
+# graphene
+# using a kgrid of 24x24x1
+# tight basis settings
+# C Tier 2
+###########################################################################################
+##################################################################################
+#  SCF Input
+##################################################################################
+#
+# Functional
+  xc     pbe
+ many_body_dispersion
+ mbd_scs_dip_cutoff 600
+ mbd_cfdm_dip_cutoff 600
+ mbd_scs_vacuum_axis .false. .false. .true.
+#
+# Charge Mixing
+  mixer pulay
+  empty_states 4
+  
+# Smearing 
+occupation_type gaussian 0.1
+
+# Convergence
+  sc_accuracy_rho    1.E-4
+  sc_accuracy_eev    5.E-6
+  sc_accuracy_etot   1.E-5
+#
+sc_iter_limit 400
+
+# kgrid 
+k_grid 16 16 1
+k_offset 0.03125 0.03125 1.0
+################################################################################
+#
+#  FHI-aims code project
+# Volker Blum, Fritz Haber Institute Berlin, 2009
+#
+#  Suggested "tight" defaults for C atom (to be pasted into control.in file)
+#
+################################################################################
+  species        C
+#     global species definitions
+    nucleus             6
+    mass                12.0107
+#
+    l_hartree           8
+#
+    cut_pot             4.0  2.0  1.0
+    basis_dep_cutoff    1e-4
+#
+    radial_base         34 7.0
+    radial_multiplier   2
+    angular_grids specified
+#      division   0.2187   50
+      division   0.4416  110
+      division   0.6335  194
+      division   0.7727  302
+      division   0.8772  434
+      division   0.9334  590
+#      division   0.9924  770
+#      division   1.0230  974
+#      division   1.5020 1202
+#     outer_grid  974
+      outer_grid  590
+################################################################################
+#
+#  Definition of "minimal" basis
+#
+################################################################################
+#     valence basis states
+    valence      2  s   2.
+    valence      2  p   2.
+#     ion occupancy
+    ion_occ      2  s   1.
+    ion_occ      2  p   1.
+################################################################################
+#
+#  Suggested additional basis functions. For production calculations, 
+#  uncomment them one after another (the most important basis functions are
+#  listed first).
+#
+#  Constructed for dimers: 1.0 A, 1.25 A, 1.5 A, 2.0 A, 3.0 A
+#
+################################################################################
+#  "First tier" - improvements: -1214.57 meV to -155.61 meV
+     hydro 2 p 1.7
+     hydro 3 d 6
+     hydro 2 s 4.9
+#  "Second tier" - improvements: -67.75 meV to -5.23 meV
+     hydro 4 f 9.8
+     hydro 3 p 5.2
+     hydro 3 s 4.3
+     hydro 5 g 14.4
+     hydro 3 d 6.2
+#  "Third tier" - improvements: -2.43 meV to -0.60 meV
+#     hydro 2 p 5.6
+#     hydro 2 s 1.4
+#     hydro 3 d 4.9
+#     hydro 4 f 11.2
+#  "Fourth tier" - improvements: -0.39 meV to -0.18 meV
+#     hydro 2 p 2.1
+#     hydro 5 g 16.4
+#     hydro 4 d 13.2
+#     hydro 3 s 13.6
+#     hydro 4 f 17.6
+#  Further basis functions - improvements: -0.08 meV and below
+#     hydro 3 s 2
+#     hydro 3 p 6
+#     hydro 4 d 20
