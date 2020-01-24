@@ -475,6 +475,7 @@ class SystemNormalizer(SystemBasedNormalizer):
                     self.logger.warning('Mismatch in Springer classification or compounds')
 
     def prototypes(self, atomSpecies, wyckoffs, spg_nr):
+        # Search for prototype data in the AFLOW prototype library.
         try:
             norm_wyckoff = structure.get_normalized_wyckoff(atomSpecies, wyckoffs)
             protoDict = structure.search_aflow_prototype(spg_nr, norm_wyckoff)
@@ -483,21 +484,27 @@ class SystemNormalizer(SystemBasedNormalizer):
                 proto = "%d-_" % spg_nr
                 labels = dict(prototype_label=proto)
             else:
-                proto = '%d-%s-%s' % (spg_nr, protoDict.get("Prototype", "-"),
-                                      protoDict.get("Pearsons Symbol", "-"))
+                aflow_prototype_name = protoDict.get("Prototype", "-")
+                pearsons_symbol = protoDict.get("Pearsons Symbol", "-")
                 aflow_prototype_id = protoDict.get("aflow_prototype_id", "-")
                 aflow_prototype_url = protoDict.get("aflow_prototype_url", "-")
+                strukturbericht = protoDict.get("Strukturbericht Designation", "-")
+                notes = protoDict.get("Notes", "-")
+                proto = '%d-%s-%s' % (spg_nr, aflow_prototype_name, pearsons_symbol)
                 labels = dict(
                     prototype_label=proto,
                     prototype_aflow_id=aflow_prototype_id,
-                    prototype_aflow_url=aflow_prototype_url)
+                    prototype_aflow_url=aflow_prototype_url,
+                    prototype_notes=notes,
+                    prototype_name=aflow_prototype_name,
+                    strukturbericht_designation=strukturbericht,
+                )
         except Exception as e:
             self.logger.error("cannot create AFLOW prototype", exc_info=e)
             return
 
         pSect = self._backend.openSection("section_prototype")
-        self._backend.addValue(
-            "prototype_assignement_method", "normalized-wyckoff")
+        self._backend.addValue("prototype_assignement_method", "normalized-wyckoff")
         self._backend.addValue("prototype_label", labels['prototype_label'])
         aid = labels.get("prototype_aflow_id")
         if aid:
@@ -505,4 +512,13 @@ class SystemNormalizer(SystemBasedNormalizer):
         aurl = labels.get("prototype_aflow_url")
         if aurl:
             self._backend.addValue("prototype_aflow_url", aurl)
+        prototype_notes = labels.get("prototype_notes", "-")
+        if prototype_notes != "-":
+            self._backend.add_tmp_value("section_prototype", "prototype_notes", prototype_notes)
+        prototype_name = labels.get("prototype_name", "-")
+        if prototype_name != "-":
+            self._backend.add_tmp_value("section_prototype", "prototype_name", prototype_name)
+        strukturbericht = labels.get("strukturbericht_designation", "-")
+        if strukturbericht != "-":
+            self._backend.add_tmp_value("section_prototype", "strukturbericht_designation", strukturbericht)
         self._backend.closeSection("section_prototype", pSect)

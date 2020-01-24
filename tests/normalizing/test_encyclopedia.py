@@ -65,7 +65,9 @@ def test_bulk_metainfo(bulk: LocalBackend):
     assert enc.material.formula == "Si2"
     assert enc.material.formula_reduced == "Si"
     assert enc.material.material_name == "Silicon"
-    # assert enc.material.structure_type == "fcc"
+    assert enc.material.structure_type == "diamond"
+    assert enc.material.structure_prototype == "C"
+    assert enc.material.strukturbericht_designation == "A4"
 
     # Symmetry
     assert enc.material.crystal_system == "cubic"

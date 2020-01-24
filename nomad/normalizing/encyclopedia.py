@@ -657,46 +657,51 @@ class StructureBulk(Structure):
     def structure_type(self, material: Material, section_system) -> None:
         try:
             sec_prototype = section_system["section_prototype"][0]
+            notes = sec_prototype.tmp['prototype_notes']
         except Exception:
             return
 
+        # Only relevant information hidden in "notes" is handed over TODO:
+        # review and eventually add more ****ites which are commonly used
+        # (see wurzite)
+        if notes in {
+           'perovskite',
+           '4-member ring',
+           'fct',
+           'bct',
+           'bct5',
+           'wurtzite',
+           'hcp',
+           'half-Heusler',
+           'zincblende',
+           'cubic perovskite',
+           'simple cubic',
+           'clathrate',
+           'cuprite',
+           'Heusler',
+           'rock salt',
+           'fcc',
+           'diamond',
+           'bcc'}:
+            material.structure_type = notes
+
+    def structure_prototype(self, material: Material, section_system) -> None:
         try:
-            notes = sec_prototype.tmp['prototype_notes']
+            sec_prototype = section_system["section_prototype"][0]
+            name = sec_prototype.tmp['prototype_name']
         except Exception:
-            pass
-        else:
-            # Only relevant information hidden in "notes" is handed over TODO:
-            # review and eventually add more ****ites which are commonly used
-            # (see wurzite)
-            if notes in {
-               'perovskite',
-               '4-member ring',
-               'fct',
-               'bct',
-               'bct5',
-               'wurtzite',
-               'hcp',
-               'half-Heusler',
-               'zincblende',
-               'cubic perovskite',
-               'simple cubic',
-               'clathrate',
-               'cuprite',
-               'Heusler',
-               'rock salt',
-               'fcc',
-               'diamond',
-               'bcc'}:
-                material.structure_type = notes
+            return
 
-    # def structure_prototype(self) -> None:
-        # pass
+        material.structure_prototype = name
 
-    # def structure_type(self) -> None:
-        # pass
+    def strukturbericht_designation(self, material: Material, section_system) -> None:
+        try:
+            sec_prototype = section_system["section_prototype"][0]
+            strukturbericht = sec_prototype.tmp["strukturbericht_designation"]
+        except Exception:
+            return
 
-    # def strukturbericht_designation(self) -> None:
-        # pass
+        material.strukturbericht_designation = strukturbericht
 
     def wyckoff_groups(self, material: Material, wyckoff_sets: Dict) -> None:
         wyckoff_list = []
@@ -752,6 +757,8 @@ class StructureBulk(Structure):
         self.space_group_number(material, symmetry_analyzer)
         self.space_group_international_short_symbol(material, symmetry_analyzer)
         self.structure_type(material, sec_system)
+        self.structure_prototype(material, sec_system)
+        self.strukturbericht_designation(material, sec_system)
         self.wyckoff_groups(material, wyckoff_sets)
 
 

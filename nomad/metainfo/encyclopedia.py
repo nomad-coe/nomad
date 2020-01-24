@@ -158,11 +158,23 @@ class Material(MSection):
         International short symbol notation of the space group.
         """
     )
+    structure_prototype = Quantity(
+        type=str,
+        description="""
+        The prototypical material for this crystal structure.
+        """
+    )
     structure_type = Quantity(
         type=str,
         description="""
         Classification according to known structure type, considering the point
         group of the crystal and the occupations with different atom types.
+        """
+    )
+    strukturbericht_designation = Quantity(
+        type=str,
+        description="""
+        Classification of the material according to the historically grown "strukturbericht".
         """
     )
     wyckoff_groups = Quantity(
