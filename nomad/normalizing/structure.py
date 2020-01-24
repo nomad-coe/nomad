@@ -230,6 +230,6 @@ def update_aflow_prototype_information(filepath: str) -> None:
 
     # Save the updated data
     with io.open(filepath, "w", encoding="utf8") as f:
-        json_dump = json.dumps(aflow_prototypes, ensure_ascii=False, indent=4, cls=NoIndentEncoder)
+        json_dump = json.dumps(aflow_prototypes, ensure_ascii=False, indent=4, sort_keys=True, cls=NoIndentEncoder)
         json_dump = re.sub(r"\"(-?\d+(?:[\.,]\d+)?)\"", r'\1', json_dump)  # Removes quotes around numbers
         f.write("# -*- coding: utf-8 -*-\naflow_prototypes = {}\n".format(json_dump))
