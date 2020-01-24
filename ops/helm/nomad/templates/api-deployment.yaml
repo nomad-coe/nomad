@@ -137,6 +137,18 @@ spec:
               name: {{ .Values.keycloak.passwordSecret }}
               key: password
         {{ end }}
+        {{ if .Values.datacite.secret }}
+        - name: NOMAD_DATACITE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.datacite.secret }}
+              key: password
+        - name: NOMAD_DATACITE_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.datacite.secret }}
+              key: user
+        {{ end }}
         command: ["python", "-m", "gunicorn.app.wsgiapp", "--config", "gunicorn.conf", "--log-config", "gunicorn.log.conf", "-b 0.0.0.0:8000", "nomad.app:app"]
         livenessProbe:
           httpGet:

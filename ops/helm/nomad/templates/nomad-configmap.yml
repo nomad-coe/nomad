@@ -62,4 +62,6 @@ data:
       client_secret: "*"
       password: "*"
     springer_db_path: "{{ .Values.springerDbPath }}"
-
+    datacite:
+      enabled: {{ .Values.datacite.enabled }}
+      prefix: "{{ .Values.datacite.prefix }}"
