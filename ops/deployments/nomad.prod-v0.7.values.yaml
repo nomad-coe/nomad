@@ -12,7 +12,10 @@ gui:
 
 app:
   replicas: 2
-  threads: 16
+  threads: 4
+  worker: 8
+  workerClass: "sync"
+  nomadNodeType: "public"
 
 worker:
   replicas: 1
