@@ -168,6 +168,31 @@ def index(ctx, uploads):
         print('   indexed %d of %d uploads, failed to index %d entries' % (i, uploads_count, failed))
 
 
+def delete_upload(upload, skip_es: bool = False, skip_files: bool = False, skip_mongo: bool = False):
+    # delete elastic
+    if not skip_es:
+        search.delete_upload(upload_id=upload.upload_id)
+
+    # delete files
+    if not skip_files:
+        # do it twice to get the two potential versions 'public' and 'staging'
+        for _ in range(0, 2):
+            upload_files = files.UploadFiles.get(upload_id=upload.upload_id)
+
+            try:
+                if upload_files is not None:
+                    upload_files.delete()
+            except Exception as e:
+                logger = utils.get_logger(__name__)
+                logger.error('could not delete files', exc_info=e)
+                break
+
+    # delete mongo
+    if not skip_mongo:
+        proc.Calc.objects(upload_id=upload.upload_id).delete()
+        upload.delete()
+
+
 @uploads.command(help='Delete selected upload')
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--skip-es', help='Keep the elastic index version of the data.', is_flag=True)
@@ -177,31 +202,10 @@ def index(ctx, uploads):
 def rm(ctx, uploads, skip_es, skip_mongo, skip_files):
     _, uploads = query_uploads(ctx, uploads)
 
-    logger = utils.get_logger(__name__)
     print('%d uploads selected, deleting ...' % uploads.count())
 
     for upload in uploads:
-        # delete elastic
-        if not skip_es:
-            search.delete_upload(upload_id=upload.upload_id)
-
-        # delete files
-        if not skip_files:
-            # do it twice to get the two potential versions 'public' and 'staging'
-            for _ in range(0, 2):
-                upload_files = files.UploadFiles.get(upload_id=upload.upload_id)
-
-                try:
-                    if upload_files is not None:
-                        upload_files.delete()
-                except Exception as e:
-                    logger.error('could not delete files', exc_info=e)
-                    break
-
-        # delete mongo
-        if not skip_mongo:
-            proc.Calc.objects(upload_id=upload.upload_id).delete()
-            upload.delete()
+        delete_upload(upload, skip_es=skip_es, skip_mongo=skip_mongo, skip_files=skip_files)
 
 
 def __run_processing(
