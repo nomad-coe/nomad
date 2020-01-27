@@ -404,10 +404,6 @@ class Structure():
         material.atom_positions = std_atoms.get_scaled_positions(wrap=False)
 
     @abstractmethod
-    def bravais_lattice(self, material: Material, section_system: Dict) -> None:
-        pass
-
-    @abstractmethod
     def cell_normalized(self, material: Material, std_atoms: ase.Atoms) -> None:
         pass
 
@@ -418,10 +414,6 @@ class Structure():
     def cell_volume(self, calculation: Calculation, std_atoms: ase.Atoms) -> None:
         calculation.cell_volume = float(std_atoms.get_volume() * 1e-10**3)
 
-    @abstractmethod
-    def crystal_system(self, material: Material, section_system: Dict) -> None:
-        pass
-
     def formula(self, material: Material, names: List[str], counts: List[int]) -> None:
         formula = structure.get_formula_string(names, counts)
         material.formula = formula
@@ -429,10 +421,6 @@ class Structure():
     def formula_reduced(self, material: Material, names: list, counts_reduced: list) -> None:
         formula = structure.get_formula_string(names, counts_reduced)
         material.formula_reduced = formula
-
-    @abstractmethod
-    def has_free_wyckoff_parameters(self, material: Material, wyckoff_sets: Dict) -> None:
-        pass
 
     def material_hash(self, material: Material, symmetry_analyzer: SymmetryAnalyzer) -> None:
         wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional()
@@ -442,20 +430,8 @@ class Structure():
         norm_hash_string = structure.get_symmetry_string(space_group_number, wyckoff_sets)
         material.material_hash = sha512(norm_hash_string.encode('utf-8')).hexdigest()
 
-    @abstractmethod
-    def material_name(self, material: Material, symbols: list, numbers: list) -> None:
-        pass
-
     def number_of_atoms(self, material: Material, std_atoms: ase.Atoms) -> None:
         material.number_of_atoms = len(std_atoms)
-
-    @abstractmethod
-    def point_group(self, material: Material, section_symmetry: Dict) -> None:
-        pass
-
-    @abstractmethod
-    def wyckoff_groups(self, material: Material, wyckoff_sets: Dict) -> None:
-        pass
 
 
 class StructureBulk(Structure):
@@ -774,6 +750,131 @@ class Structure2D(Structure):
         # gap is not aligned with a cell vector.
         if sum(periodicity) != 2:
             self.logger.warn("Could not detect the periodic dimensions in a 2D system.")
+            return False
+
+        # Center the system in the non-periodic direction, also taking
+        # periodicity into account. The get_center_of_mass()-function in MatID
+        # takes into account periodicity and can produce the correct CM unlike
+        # the similar function in ASE.
+        pbc_cm = matid.geometry.get_center_of_mass(original_system)
+        cell_center = 0.5 * np.sum(original_system.get_cell(), axis=0)
+        translation = cell_center - pbc_cm
+        translation[periodicity] = 0
+        symm_system = original_system.copy()
+        symm_system.translate(translation)
+        symm_system.wrap()
+
+        # Set the periodicity according to detected periodicity in order for
+        # SymmetryAnalyzer to use the symmetry analysis designed for 2D
+        # systems.
+        symm_system.set_pbc(periodicity)
+        symmetry_analyzer = SymmetryAnalyzer(
+            symm_system,
+            config.normalize.symmetry_tolerance,
+            config.normalize.flat_dim_threshold
+        )
+        return symmetry_analyzer
+
+    def get_non_periodic_index_std(self, symmetry_analyzer: SymmetryAnalyzer) -> int:
+        # Get the periodicity as detected by classification
+        pbc = symmetry_analyzer._original_system.get_pbc()
+        non_periodic_index_orig = np.where(pbc == False)[0][0]  # noqa: E712
+
+        # The index of the originally non-periodic dimension may not correspond
+        # to the one in the normalized system, because the normalized system
+        # may use a different coordinate system. We will have to get this
+        # transformation_matrix = self.symmetry_dataset["transformation_matrix"]
+        transformation_matrix = symmetry_analyzer._get_spglib_transformation_matrix()
+        for i_axis, axis in enumerate(transformation_matrix):
+            if axis[non_periodic_index_orig] != 0 and \
+               axis[(non_periodic_index_orig + 1) % 3] == 0.0 and \
+               axis[(non_periodic_index_orig + 2) % 3] == 0.0:
+                non_periodic_index_std = i_axis
+                break
+
+        return non_periodic_index_std
+
+    def cell_normalized(self, material: Material, std_atoms: ase.Atoms) -> None:
+        cell_normalized = std_atoms.get_cell()
+        cell_normalized *= 1e-10
+        material.cell_normalized = cell_normalized
+
+    def cell_primitive(self, material: Material, prim_atoms: ase.Atoms) -> None:
+        cell_prim = prim_atoms.get_cell()
+        cell_prim *= 1e-10
+        material.cell_primitive = cell_prim
+
+    def lattice_parameters(self, calculation: Calculation, symmetry_analyzer: SymmetryAnalyzer, std_atoms: Atoms, non_periodic_index_std: int) -> None:
+        # Eliminate the parameters in the non-periodic dimension
+        periodicity = np.array([True, True, True])
+        periodicity[non_periodic_index_std] = False
+        full_parameters = structure.get_lattice_parameters(std_atoms.get_cell())
+        lengths = np.array(full_parameters[:3])
+        angles = np.array(full_parameters[3:])
+
+        a, b = lengths[periodicity] * 1e-10
+        alpha = angles[non_periodic_index_std]
+        calculation.lattice_parameters = np.array([a, b, 0.0, alpha, 0.0, 0.0])
+
+    def periodicity(self, material: Material, non_periodic_index_std: int) -> None:
+        periodic_indices = [0, 1, 2]
+        del periodic_indices[non_periodic_index_std]
+        material.periodicity = np.array(periodic_indices, dtype=np.int8)
+
+    def fill(self, representative_system) -> None:
+        # Fetch resources
+        sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
+        material = sec_enc.material
+        calculation = sec_enc.calculation
+        repr_atoms = representative_system.tmp["representative_atoms"]  # Temporary value stored by SystemNormalizer
+        symmetry_analyzer = self.get_symmetry_analyzer(repr_atoms)
+        std_atoms = symmetry_analyzer.get_conventional_system()
+        prim_atoms = symmetry_analyzer.get_primitive_system()
+        names, counts = structure.get_hill_decomposition(prim_atoms.get_chemical_symbols(), reduced=False)
+        greatest_common_divisor = reduce(gcd, counts)
+        reduced_counts = np.array(counts) / greatest_common_divisor
+        non_periodic_index_std = self.get_non_periodic_index_std(symmetry_analyzer)
+
+        # Fill metainfo
+        self.material_hash(material, symmetry_analyzer)
+        self.number_of_atoms(material, std_atoms)
+        self.atom_labels(material, std_atoms)
+        self.atom_positions(material, std_atoms)
+        self.cell_normalized(material, std_atoms)
+        self.cell_primitive(material, prim_atoms)
+        self.formula(material, names, counts)
+        self.formula_reduced(material, names, reduced_counts)
+        self.lattice_parameters(calculation, symmetry_analyzer, std_atoms, non_periodic_index_std)
+        self.periodicity(material, non_periodic_index_std)
+
+
+class Structure1D(Structure):
+    """Processes structure related metainfo for Encyclopedia 1D structures.
+    """
+    def material_hash()
+        """Hash to be used as identifier for a material. Different 1D
+        materials are defined by their Coulomb matrix eigenvalues and their
+        Hill formulas.
+        """
+        # coulomb_eigvals = self._coulomb_matrix_eigenvalues
+        fingerprint = self._structure_fingerprint
+        formula = self.formula
+        id_strings = []
+        id_strings.append(formula)
+        id_strings.append(fingerprint)
+        hash_seed = ", ".join(id_strings)
+        hash_val = sha512(hash_seed.encode('utf-8')).hexdigest()
+        return hash_val
+
+    def get_symmetry_analyzer(self, original_system: Atoms) -> SymmetryAnalyzer:
+        # Determine the periodicity by examining vacuum gaps
+        vacuum_directions = structure.find_vacuum_directions(original_system, threshold=7.0)
+        periodicity = np.invert(vacuum_directions)
+
+        # If one axis are not periodic, return. This only happens if the vacuum
+        # gap is not aligned with a cell vector.
+        if sum(periodicity) != 1:
+            self.logger.warn("Could not detect the periodic dimensions in a 1D system.")
             return False
 
         # Center the system in the non-periodic direction, also taking
