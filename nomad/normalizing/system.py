@@ -24,11 +24,6 @@ import sqlite3
 
 from matid import SymmetryAnalyzer, Classifier
 from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, Class3D
-<<<<<<< HEAD
-=======
-
-from nomadcore.structure_types import structure_types_by_spacegroup as str_types_by_spg
->>>>>>> v0.7.3
 
 from nomad.normalizing import structure
 from nomad import utils, config
@@ -267,21 +262,13 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         return True
 
-<<<<<<< HEAD
-    def system_type_analysis(self, atoms: ase.Atoms) -> None:
-=======
     def system_type_analysis(self, atoms: Atoms) -> None:
->>>>>>> v0.7.3
         """
         Determine the system type with MatID. Write the system type to the
         backend.
 
         Args:
-<<<<<<< HEAD
-            atoms
-=======
             atoms: The structure to analyse
->>>>>>> v0.7.3
         """
         system_type = config.services.unavailable_value
         if atoms.get_number_of_atoms() <= config.normalize.system_classification_with_clusters_threshold:
@@ -292,22 +279,6 @@ class SystemNormalizer(SystemBasedNormalizer):
                 self.logger.error(
                     'matid project system classification failed', exc_info=e, error=str(e))
             else:
-<<<<<<< HEAD
-                if isinstance(cls, Class3D):
-                    system_type = 'bulk'
-                elif isinstance(cls, Atom):
-                    system_type = 'atom'
-                elif isinstance(cls, Class0D):
-                    system_type = 'molecule / cluster'
-                elif isinstance(cls, Class1D):
-                    system_type = '1D'
-                elif isinstance(cls, Surface):
-                    system_type = 'surface'
-                elif isinstance(cls, Material2D):
-                    system_type = '2D'
-        else:
-            self.logger.info("System type analysis not run due to large system size.")
-=======
                 classification = type(cls)
                 if classification == Class3D:
                     system_type = 'bulk'
@@ -323,7 +294,6 @@ class SystemNormalizer(SystemBasedNormalizer):
                     system_type = '2D'
         else:
             self.logger.info("system type analysis not run due to large system size")
->>>>>>> v0.7.3
 
         self._backend.addValue('system_type', system_type)
 
