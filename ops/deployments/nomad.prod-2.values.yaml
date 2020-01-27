@@ -1,17 +1,23 @@
 images:
     nomad:
-        tag: "v0.6.3"
+        tag: "v0.7.2"
     frontend:
-        tag: "v0.6.3"
-
-services:
-  apiSecret: 'nomad-keycloak-prod-api-secret'
+        tag: "v0.7.2"
 
 proxy:
   nodePort: 30012
   external:
     host: "repository.nomad-coe.eu"
-    path: "/uploads"
+    path: "/app"
+
+gui:
+  debug: false
+
+app:
+  replicas: 2
+  worker: 8
+  workerClass: "sync"
+  nomadNodeType: "public"
 
 worker:
   replicas: 1
@@ -19,13 +25,20 @@ worker:
   processes: 10
   nomadNodeType: "prod-worker"
 
-dbname: fairdi_nomad_prod
+elastic:
+  port: 9202
 
-uploadurl: 'https://repository.nomad-coe.eu/uploads/gui/upload'
+dbname: fairdi_nomad_prod_v0_7
+
+uploadurl: 'https://repository.nomad-coe.eu/app/gui/upload'
 
 keycloak:
+  serverUrl: "https://repository.nomad-coe.eu/fairdi/keycloak/auth/"
   passwordSecret: 'nomad-keycloak-password'
+  realmName: 'fairdi_nomad_prod'
+  clientId: 'nomad_api_dev'
   clientSecret: 'nomad-keycloak-prod-api-secret'
+  admin_user_id: '82efac55-6187-408c-8027-b98580c0e1c5'
 
 volumes:
   prefixSize: 1
@@ -39,3 +52,7 @@ mail:
   host: 'mailrelay.mpcdf.mpg.de'
   port: 25
   from: 'webmaster@nomad-repository.eu'
+
+datacite:
+  secret: 'nomad-datacite'
+  enabled: True

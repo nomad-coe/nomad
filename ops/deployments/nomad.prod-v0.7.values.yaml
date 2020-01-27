@@ -1,5 +1,7 @@
-images.nomad.tag: "stable"
-images.frontend.tag: "stable"
+images:
+  nomad: "v0.7.2"
+  frontend:
+    tag: "v0.7.2"
 
 proxy:
   nodePort: 30010
@@ -12,7 +14,10 @@ gui:
 
 app:
   replicas: 2
-  threads: 16
+  threads: 4
+  worker: 8
+  workerClass: "sync"
+  nomadNodeType: "public"
 
 worker:
   replicas: 1
@@ -44,3 +49,4 @@ volumes:
 
 datacite:
   secret: 'nomad-datacite'
+  enabled: True

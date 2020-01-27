@@ -122,6 +122,60 @@ def run_normalize_for_structure(atoms: Atoms) -> LocalBackend:
     return run_normalize(template)
 
 
+@pytest.fixture(scope='session')
+def bulk() -> LocalBackend:
+    parser_name = "parsers/cp2k"
+    filepath = "tests/data/normalizers/cp2k_bulk_md/si_md.out"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def two_d() -> LocalBackend:
+    parser_name = "parsers/fhi-aims"
+    filepath = "tests/data/normalizers/fhiaims_2d_singlepoint/aims.out"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def surface() -> LocalBackend:
+    parser_name = "parsers/fhi-aims"
+    filepath = "tests/data/normalizers/fhiaims_surface_singlepoint/PBE-light+tight-rho2.out"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def molecule() -> LocalBackend:
+    parser_name = "parsers/fhi-aims"
+    filepath = "tests/data/normalizers/fhiaims_molecule_singlepoint/aims.out"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def atom() -> LocalBackend:
+    parser_name = "parsers/gaussian"
+    filepath = "tests/data/normalizers/gaussian_atom_singlepoint/m9b7.out"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def one_d() -> LocalBackend:
+    parser_name = "parsers/exciting"
+    filepath = "tests/data/normalizers/exciting_1d_singlepoint/INFO.OUT"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
 def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
     run_normalize(parsed_template_example)
 
@@ -199,16 +253,19 @@ def test_symmetry_classification_fcc():
     assert all(origin_shift == expected_origin_shift)
 
 
-def test_system_classification():
-    "Ensure the classification of fcc Na is atom"
-    # TODO: @dts - This is a bit strange that a system with only
-    # one atom is automatically classified as atom. It could be
-    # an elemental solid.
-    backend = parse_file(fcc_symmetry)
-    backend = run_normalize(backend)
-    expected_system_type = 'atom'
-    system_type = backend.get_value('system_type')
-    assert expected_system_type == system_type
+def test_system_classification(atom, molecule, one_d, two_d, surface, bulk):
+    # Atom
+    assert atom.get_value('system_type') == "atom"
+    # Molecule / cluster
+    assert molecule.get_value('system_type') == "molecule / cluster"
+    # 1D
+    assert one_d.get_value('system_type') == "1D"
+    # 2D
+    assert two_d.get_value('system_type') == "2D"
+    # Surface
+    assert surface.get_value('system_type') == "surface"
+    # Bulk
+    assert bulk.get_value('system_type') == "bulk"
 
 
 def test_reduced_chemical_formula():

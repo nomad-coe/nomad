@@ -189,6 +189,9 @@ normalize = NomadConfig(
     # their symmetry positions in order for spglib to still detect symmetries.
     # The unit is angstroms.
     symmetry_tolerance=0.1,
+    # The distance tolerance between atoms for grouping them into the same
+    # cluster. Used in detecting system type.
+    cluster_threshold=3.1,
 )
 
 client = NomadConfig(
