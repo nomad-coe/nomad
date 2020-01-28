@@ -125,7 +125,8 @@ def get_lattice_parameters(normalized_cell: np.ndarray) -> np.ndarray:
 
 def get_hill_decomposition(atom_labels: np.ndarray, reduced: bool = False) -> Tuple[List[str], List[int]]:
     """Given a list of atomic labels, returns the chemical formula using the
-    Hill system (https://en.wikipedia.org/wiki/Hill_system).
+    Hill system (https://en.wikipedia.org/wiki/Hill_system) with an exception
+    for binary ionic compounds where the cation is always given first.
 
     Args:
         atom_labels: Atom labels.
@@ -162,7 +163,7 @@ def get_hill_decomposition(atom_labels: np.ndarray, reduced: bool = False) -> Tu
     # 3. Binary ionic compounds: cation first, anion second
     # If any of the most electronegative elements is first
     # by alphabetic order, we move it to second
-    if len(counts) == 2:
+    if len(counts) == 2 and names != ["C", "H"]:
         order = {
             "F": 1,
             "O": 2,
