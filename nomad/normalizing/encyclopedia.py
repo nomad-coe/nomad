@@ -890,6 +890,24 @@ class Structure1D(Structure):
     def get_structure_fingerprint(self, prim_atoms: Atoms):
         """Calculates a numeric fingerprint that coarsely encodes the atomic
         positions and species.
+
+        The fingerprint is based on calculating a discretized version of a
+        sorted Coulomb matrix eigenspectrum. The calculation of a Coulomb
+        matrix and the associated eigenspectrum are described in the article:
+
+        Grégoire Montavon, Katja Hansen, Siamac Fazli, Matthias Rupp, Franziska
+        Biegler, Andreas Ziehe, Alexandre Tkatchenko, Anatole V. Lilienfeld, and
+        Klaus-Robert Müller. Learning invariant representations of molecules for
+        atomization energy prediction. In F. Pereira, C. J. C. Burges, L. Bottou, and
+        K. Q. Weinberger, editors, Advances in Neural Information Processing Systems
+        25, pages 440–448. Curran Associates, Inc., 2012.
+
+        The fingerprints are discretized in order to perform O(n) matching
+        between structures (no need to compare fingerprints against each
+        other). As regular discretization is susceptible to the "edge problem",
+        a robust discretization as described in X is used instead. Basically
+        for the 1-dimensional domain two grids are created and the points are
+        mapped to the first grid in which they are robust.
         """
         # Calculate charge part
         q = prim_atoms.get_atomic_numbers()
@@ -912,27 +930,25 @@ class Structure1D(Structure):
         eigval = np.array(sorted(eigval))
 
         # Go to smaller scale
-        eigval /= 100
+        eigval /= 20
 
-        # Create a slightly shifted versions of the values. The shift can go up or
-        # down. If both of these shifted values gets rounded to the same number,
-        # then the rounding is considered robust. Otherwise the rounding will be
-        # done to a value that is between two consequent rounding points.
-        padding = 0.1
-        up_round = np.rint(eigval + padding)
-        down_round = np.rint(eigval - padding)
-        mask = (up_round == down_round)
-
-        new_vals = np.array(up_round)
-        for i, value in enumerate(mask):
-            if not value:
-                new_val = (up_round[i] + down_round[i]) / 2
-                new_vals[i] = new_val
+        # Perform robust discretization as described by X. r = 0.5 ensures that
+        # all grids are integers which can be uniquely mapped to strings If
+        # finer grid is needed adjust the eigenvalue scale instead.
+        dimension = 1
+        r = 0.5
+        spacing = 2 * r * (dimension + 1)
+        phi_k = 2 * r * np.array(range(dimension + 1))
+        t = np.mod((eigval[None, :] + phi_k[:, None]), (2 * r * (dimension + 1)))
+        grid_mask = (r <= t) & (t < r * (2 * dimension + 1))
+        safe_grid_k = np.argmax(grid_mask == True, axis=0)   # noqa: E712
+        discretization = spacing * np.floor((eigval + (2 * r * safe_grid_k)) / spacing)
+        discretization[safe_grid_k == 1] += 2 * r
 
         # The values should be rounded to a rational number for the hashing to be
         # consistent
         strings = []
-        for number in new_vals:
+        for number in discretization:
             num_str = str(number)
             strings.append(num_str)
         fingerprint = "; ".join(strings)

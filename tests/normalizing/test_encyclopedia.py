@@ -16,6 +16,7 @@ import pytest
 from hashlib import sha512
 import numpy as np
 from ase import Atoms
+from ase.build import nanotube
 from matid.symmetry.wyckoffset import WyckoffSet
 
 from nomad.parsing import LocalBackend
@@ -292,6 +293,95 @@ def test_2d_structure_structure_at_cell_boundary():
     expected_pos = [
         [0, 0, 1],
         [0, 0, 0],
+    ]
+    expected_labels = [
+        "H",
+        "C",
+    ]
+
+    assert np.allclose(enc.material.atom_positions, expected_pos)
+    assert np.array_equal(enc.material.atom_labels, expected_labels)
+    assert np.allclose(enc.material.cell_normalized, expected_cell)
+
+
+def test_1d_material_identification():
+    # Original nanotube
+    nanotube1 = nanotube(4, 4, vacuum=4)
+    backend = run_normalize_for_structure(nanotube1)
+    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    hash1 = enc.material.material_hash
+
+    # Rotated copy
+    nanotube2 = nanotube1.copy()
+    nanotube2.rotate(90, "z", rotate_cell=True)
+    backend = run_normalize_for_structure(nanotube2)
+    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    hash2 = enc.material.material_hash
+    assert hash2 == hash1
+
+    # Longer copy
+    nanotube3 = nanotube1.copy()
+    nanotube3 *= [1, 1, 2]
+    backend = run_normalize_for_structure(nanotube3)
+    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    hash3 = enc.material.material_hash
+    assert hash3 == hash1
+
+    # Slightly distorted copy
+    nanotube4 = nanotube1.copy()
+    pos = nanotube4.get_positions()
+    np.random.seed(4)
+    pos += 0.1 * np.random.rand(pos.shape[0], pos.shape[1])
+    nanotube4.set_positions(pos)
+    backend = run_normalize_for_structure(nanotube4)
+    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    hash4 = enc.material.material_hash
+    assert hash4 == hash1
+
+    # Too distorted copy
+    nanotube5 = nanotube1.copy()
+    pos = nanotube5.get_positions()
+    np.random.seed(4)
+    pos += 1 * np.random.rand(pos.shape[0], pos.shape[1])
+    nanotube5.set_positions(pos)
+    backend = run_normalize_for_structure(nanotube5)
+    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    hash5 = enc.material.material_hash
+    assert hash5 != hash1
+
+
+def test_1d_structure_structure_at_cell_boundary():
+    """Tests that the visualization that is made for 1D systems has the
+    correct form even if the cell boundary is at the middle of the
+    structure.
+    """
+    atoms = Atoms(
+        symbols=["H", "C"],
+        positions=[
+            [0.0, 0.0, 0],
+            [1.0, 0.0, 10.0]
+        ],
+        cell=[
+            [2, 0.0, 0.0],
+            [0.0, 10, 0.0],
+            [0.0, 0.0, 10]
+        ],
+        pbc=True
+    )
+    # from ase.visualize import view
+    # view(atoms)
+    backend = run_normalize_for_structure(atoms)
+    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    # raise Exception(enc.material.cell_normalized)
+
+    expected_cell = [
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 2e-10]
+    ]
+    expected_pos = [
+        [0, 0, 0],
+        [0, 0, 0.5],
     ]
     expected_labels = [
         "H",
