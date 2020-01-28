@@ -435,6 +435,10 @@ class Structure():
     def number_of_atoms(self, material: Material, std_atoms: ase.Atoms) -> None:
         material.number_of_atoms = len(std_atoms)
 
+    @abstractmethod
+    def fill(self, sec_system) -> None:
+        pass
+
 
 class StructureBulk(Structure):
     """Processes structure related metainfo for Encyclopedia bulk structures.
@@ -753,22 +757,31 @@ class Structure2D(Structure):
         cell_prim *= 1e-10
         material.cell_primitive = cell_prim
 
-    def lattice_parameters(self, calculation: Calculation, std_atoms: Atoms, non_periodic_index_std: int) -> None:
-        # Eliminate the parameters in the non-periodic dimension
-        periodicity = np.array([True, True, True])
-        periodicity[non_periodic_index_std] = False
-        full_parameters = structure.get_lattice_parameters(std_atoms.get_cell())
-        lengths = np.array(full_parameters[:3])
-        angles = np.array(full_parameters[3:])
-
-        a, b = lengths[periodicity] * 1e-10
-        alpha = angles[non_periodic_index_std]
+    def lattice_parameters(self, calculation: Calculation, std_atoms: Atoms, periodic_indices: np.array) -> None:
+        # 2D systems only have three lattice parameter: two length and angle between them
+        cell = std_atoms.get_cell()
+        a_vec = cell[periodic_indices[0], :] * 1e-10
+        b_vec = cell[periodic_indices[1], :] * 1e-10
+        a = np.linalg.norm(a_vec)
+        b = np.linalg.norm(b_vec)
+        alpha = np.clip(np.dot(a_vec, b_vec) / (a * b), -1.0, 1.0)
+        alpha = np.arccos(alpha)
         calculation.lattice_parameters = np.array([a, b, 0.0, alpha, 0.0, 0.0])
 
-    def periodicity(self, material: Material, non_periodic_index_std: int) -> None:
-        periodic_indices = [0, 1, 2]
-        del periodic_indices[non_periodic_index_std]
-        material.periodicity = np.array(periodic_indices, dtype=np.int8)
+    def periodicity(self, material: Material, std_atoms: Atoms) -> None:
+        # Determine the periodicity by examining vacuum gaps
+        vacuum_directions = structure.find_vacuum_directions(
+            std_atoms,
+            threshold=config.normalize.cluster_threshold
+        )
+
+        # If one axis is not periodic, return. This only happens if the vacuum
+        # gap is not aligned with a cell vector.
+        if sum(vacuum_directions) != 1:
+            raise ValueError("Could not detect the periodic dimensions in a 2D system.")
+
+        periodic_indices = np.where(vacuum_directions == False)[0]  # noqa: E712
+        material.periodicity = np.sort(np.array(periodic_indices, dtype=np.int8))
 
     def get_symmetry_analyzer(self, original_system: Atoms) -> SymmetryAnalyzer:
         # Determine the periodicity by examining vacuum gaps
@@ -804,26 +817,6 @@ class Structure2D(Structure):
         )
         return symmetry_analyzer
 
-    def get_non_periodic_index_std(self, symmetry_analyzer: SymmetryAnalyzer) -> int:
-        # Get the periodicity as detected by classification
-        pbc = symmetry_analyzer._original_system.get_pbc()
-        non_periodic_index_orig = np.where(pbc == False)[0][0]  # noqa: E712
-
-        # The index of the originally non-periodic dimension may not correspond
-        # to the one in the normalized system, because the normalized system
-        # may use a different coordinate system. We will have to get this
-        # transformation_matrix = self.symmetry_dataset["transformation_matrix"]
-        transformation_matrix = symmetry_analyzer._get_spglib_transformation_matrix()
-        for i_axis, axis in enumerate(transformation_matrix):
-            if axis[non_periodic_index_orig] != 0 and \
-               axis[(non_periodic_index_orig + 1) % 3] == 0.0 and \
-               axis[(non_periodic_index_orig + 2) % 3] == 0.0:
-                non_periodic_index_std = i_axis
-                break
-
-        return non_periodic_index_std
-
-
     def fill(self, representative_system) -> None:
         # Fetch resources
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
@@ -836,9 +829,10 @@ class Structure2D(Structure):
         names, counts = structure.get_hill_decomposition(prim_atoms.get_chemical_symbols(), reduced=False)
         greatest_common_divisor = reduce(gcd, counts)
         reduced_counts = np.array(counts) / greatest_common_divisor
-        non_periodic_index_std = self.get_non_periodic_index_std(symmetry_analyzer)
+        # non_periodic_index_std = self.get_non_periodic_index_std(symmetry_analyzer)
 
         # Fill metainfo
+        self.periodicity(material, std_atoms)
         self.material_hash(material, symmetry_analyzer)
         self.number_of_atoms(material, std_atoms)
         self.atom_labels(material, std_atoms)
@@ -847,8 +841,7 @@ class Structure2D(Structure):
         self.cell_primitive(material, prim_atoms)
         self.formula(material, names, counts)
         self.formula_reduced(material, names, reduced_counts)
-        self.lattice_parameters(calculation, std_atoms, non_periodic_index_std)
-        self.periodicity(material, non_periodic_index_std)
+        self.lattice_parameters(calculation, std_atoms, material.periodicity)
 
 
 class Structure1D(Structure):
@@ -892,7 +885,7 @@ class Structure1D(Structure):
             raise ValueError("Could not detect the periodic dimensions in a 1D system.")
 
         periodic_indices = np.where(vacuum_directions == False)[0]  # noqa: E712
-        material.periodicity = np.array(periodic_indices, dtype=np.int8)
+        material.periodicity = np.sort(np.array(periodic_indices, dtype=np.int8))
 
     def get_structure_fingerprint(self, prim_atoms: Atoms):
         """Calculates a numeric fingerprint that coarsely encodes the atomic
