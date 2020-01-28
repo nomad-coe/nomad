@@ -52,20 +52,31 @@ metadata_model = api.model('MetaData', {
 pagination_model = api.model('Pagination', {
     'total': fields.Integer(description='Number of total elements.'),
     'page': fields.Integer(description='Number of the current page, starting with 0.'),
-    'per_page': fields.Integer(description='Number of elements per page.')
+    'per_page': fields.Integer(description='Number of elements per page.'),
+    'order_by': fields.String(description='Sorting criterion.'),
+    'order': fields.Integer(description='Sorting order -1 for descending, 1 for asceding.')
 })
 """ Model used in responses with pagination. """
 
-search_model = api.model('Search', {
-    'pagination': fields.Nested(pagination_model, skip_none=True),
-    'scroll': fields.Nested(allow_null=True, skip_none=True, model=api.model('Scroll', {
-        'total': fields.Integer(description='The total amount of hits for the search.'),
-        'scroll_id': fields.String(allow_null=True, description='The scroll_id that can be used to retrieve the next page.'),
-        'size': fields.Integer(help='The size of the returned scroll page.')})),
+scroll_model = api.model('Scroll', {
+    'scroll': fields.Boolean(default=False, description='Flag if scrolling is enables.'),
+    'total': fields.Integer(default=0, description='The total amount of hits for the search.'),
+    'scroll_id': fields.String(default=None, allow_null=True, description='The scroll_id that can be used to retrieve the next page.'),
+    'size': fields.Integer(default=0, help='The size of the returned scroll page.')})
+
+search_model_fields = {
+    'pagination': fields.Nested(pagination_model, allow_null=True, skip_none=True),
+    'scroll': fields.Nested(scroll_model, allow_null=True, skip_none=True),
     'results': fields.List(fields.Raw, description=(
         'A list of search results. Each result is a dict with quantitie names as key and '
         'values as values')),
-})
+    'owner': fields.String(description='The group the calculations belong to.', allow_null=True, skip_none=True),
+    'from_time': fields.Raw(description='The minimum entry time.', allow_null=True, skip_none=True),
+    'until_time': fields.Raw(description='The maximum entry time.', allow_null=True, skip_none=True),
+}
+for quantity in search.quantities.values():
+    search_model_fields[quantity.name] = fields.Raw(description=quantity.description, allow_null=True, skip_none=True)
+search_model = api.model('Search', search_model_fields)
 
 
 def add_pagination_parameters(request_parser):

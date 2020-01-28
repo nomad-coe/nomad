@@ -38,9 +38,12 @@ class ArchiveMetainfo:
     Converts archive data in json format to the new nomad metainfo model
     Arguments:
         archive_data: the archive data in json format or msgdb filename
+        archive_schema: dict with the desired quantities as keys and None as placeholder
+        for the values which are queried from the data
     """
-    def __init__(self, archive_data=None):
+    def __init__(self, archive_data, archive_schema=None):
         self._archive_data = archive_data
+        self._archive_schema = archive_schema
         self.metainfo = None
         self._metacls = None
         self._calcs = {}
@@ -70,7 +73,48 @@ class ArchiveMetainfo:
     def _init_calcs(self):
         for i in range(len(self.calc_ids)):
             calc_id = self.calc_ids[i]
-            self._calcs[calc_id] = self.base_metainfo
+            if self._archive_schema is None:
+                self._calcs[calc_id] = self.base_metainfo
+            else:
+                data = self._archive_db.query({calc_id: self._archive_schema})[calc_id]
+                self._calcs[calc_id] = self.base_metacls.m_from_dict(data)
+            self._calcs[calc_id].archive_db = self._archive_db
+
+    def __getitem__(self, key):
+        if isinstance(key, str):
+            calc = self._calcs.get(key, None)
+            if calc:
+                calc.calc_id = key
+            return calc
+        elif isinstance(key, int):
+            calc_id = self._calc_ids[key]
+            calc = self._calcs[calc_id]
+            calc.calc_id = calc_id
+            return calc
+        else:
+            calc_ids = self._calc_ids[key]
+            calcs = []
+            for calc_id in calc_ids:
+                calc = self._calcs[calc_id]
+                calc.calc_id = calc_id
+                calcs.append(calc)
+            return calcs
+
+    def __len__(self):
+        return len(self._calcs)
+
+    def __iter__(self):
+        self._n = -1
+        return self
+
+    def __next__(self):
+        self._n += 1
+        if self._n >= len(self):
+            raise StopIteration
+        calc = list(self._calcs.values())[self._n]
+        calc.calc_id = list(self._calcs.keys())[self._n]
+        calc.archive_db = self._archive_db
+        return calc
 
     @staticmethod
     def get_path_from_section(content):
@@ -135,13 +179,20 @@ class ArchiveMetainfo:
         return data
 
     @property
+    def base_data(self):
+        if self._base_data is None:
+            calc_id = self.calc_ids[0]
+            self._base_data = self._archive_db.query({calc_id: self._archive_schema})[calc_id]
+        return self._base_data
+
+    @property
     def base_metacls(self):
         """
         The base metaclass to apply a calculation
         """
         if self._base_metacls is None:
             name = self._prefix
-            self._base_metacls = self._build_meta_cls(self._base_data, name)
+            self._base_metacls = self._build_meta_cls(self.base_data, name)
         return self._base_metacls
 
     @property
@@ -150,11 +201,9 @@ class ArchiveMetainfo:
         The base metainfo to enable auto completion for each calc
         """
         if self._base_metainfo is None:
-            calc_id = self.calc_ids[0]
-            self._base_data = self._archive_db.query({calc_id: None})[calc_id]
             metacls = self.base_metacls
-            self._base_data = self._nullify_data(self._base_data)
-            self._base_metainfo = metacls.m_from_dict(self._base_data)
+            base_data = self._nullify_data(self.base_data)
+            self._base_metainfo = metacls.m_from_dict(base_data)
         return self._base_metainfo
 
     def get_dtype(self, data):

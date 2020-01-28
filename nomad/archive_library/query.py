@@ -31,48 +31,86 @@ from nomad.archive_library.metainfo import ArchiveMetainfo
 
 
 class ArchiveQuery:
-    def __init__(self, q_params, q_schema=None):
-        self._q_params = q_params
-        self._q_schema = q_schema
+    def __init__(self, *args, **kwargs):
         self._archive_path = 'archive'
         self._query_path = 'query'
-        self._q_params['scroll'] = q_params.get('scroll', True)
-        self._q_params['per_page'] = q_params.get('per_page', 10)
+        self._archive_data = []
         self._scroll_id = None
-        self._data = []
+        self._page = None
+        self._query_params = {}
+        if args:
+            self._query_params = args[0]
+        if kwargs:
+            self._query_params.update(kwargs)
+        self._archive_schema = self._query_params.pop('archive_data', None)
+        self._authentication = self._query_params.pop('authentication', None)
+        self._max_n_pages = self._query_params.pop('max_n_pages', 3)
+
+    def _get_value(self, name, in_dict):
+        if not isinstance(in_dict, dict):
+            return
+        for key, val in in_dict.items():
+            if key == name:
+                res = val
+            else:
+                res = self._get_value(name, val)
+        return res
+
+    def _set_value(self, name, value, in_dict):
+        if not isinstance(in_dict, dict):
+            return
+        for key, val in in_dict.items():
+            if key == name:
+                in_dict[name] = value
+                return
+            else:
+                self._set_value(name, value, val)
+        in_dict[name] = value
 
     def _api_query(self):
+        url = query_api_url(self._archive_path, self._query_path)
+
+        data = self._query_params
+        if not isinstance(self._archive_schema, list):
+            data['results'] = [self._archive_schema]
+
+        if self._page is not None:
+            # increment the page number
+            self._set_value('page', self._page + 1, data)
         if self._scroll_id is not None:
-            self._q_params['scroll_id'] = self._scroll_id
-        url = query_api_url(
-            self._archive_path, self._query_path, query_string=self._q_params)
-        data = {'results': self._q_schema}
+            self._set_value('scroll_id', self._scroll_id, data)
 
         response = requests.post(
-            url, content_type='application/json', data=json.dumps(data))
+            url, headers=self._authentication, content_type='application/json', data=json.dumps(data))
         if response.status_code != 200:
             raise Exception('Query returned %s' % response.status_code)
 
         data = response.json
         if not isinstance(data, dict):
             data = data()
+
         results = data.get('results', None)
         scroll = data.get('scroll', None)
         if scroll:
-            self._scroll_id = data.get('scroll_id', None)
+            self._scroll_id = scroll.get('scroll_id', None)
+        pagination = data.get('pagination', None)
+        if pagination:
+            self._page = pagination.get('page', None)
 
         return results
 
-    def _get_data(self):
+    def _get_archive_data(self):
         results = self._api_query()
+        n_page = 0
         while results:
-            self._data += results
+            self._archive_data += results
             results = self._api_query()
-            if self._scroll_id is None:
+            n_page += 1
+            if n_page >= self._max_n_pages:
                 break
 
     def query(self):
-        self._get_data()
-        if self._data:
-            metainfo = ArchiveMetainfo(archive_data=self._data)
+        self._get_archive_data()
+        if self._archive_data:
+            metainfo = ArchiveMetainfo(archive_data=self._archive_data, archive_schema=self._archive_schema)
             return metainfo
