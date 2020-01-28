@@ -251,6 +251,32 @@ class TestClient:
                 assert json.dumps(new_search_results[key]) == json.dumps(ref_search_results[key])
 
         published.upload_files.exists
+        proc.Upload.objects(upload_id=published.upload_id).first().upload_files.exists
+
+    def test_mirror_staging(self, non_empty_processed, admin_user_bravado_client, monkeypatch):
+        ref_search_results = search.SearchRequest().search_parameters(upload_id=non_empty_processed.upload_id).execute_paginated()['results'][0]
+
+        monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
+
+        result = click.testing.CliRunner().invoke(
+            cli, ['client', 'mirror', '--staging', '--link'], catch_exceptions=False, obj=utils.POPO())
+
+        assert result.exit_code == 0
+        assert non_empty_processed.upload_id in result.output
+        assert non_empty_processed.upload_files.os_path in result.output
+        assert proc.Upload.objects(upload_id=non_empty_processed.upload_id).count() == 1
+        assert proc.Calc.objects(upload_id=non_empty_processed.upload_id).count() == 1
+        new_search = search.SearchRequest().search_parameters(upload_id=non_empty_processed.upload_id).execute_paginated()
+        calcs_in_search = new_search['pagination']['total']
+        assert calcs_in_search == 1
+
+        new_search_results = new_search['results'][0]
+        for key in new_search_results.keys():
+            if key not in ['upload_time', 'last_processing']:  # There is a sub second change due to date conversions (?)
+                assert json.dumps(new_search_results[key]) == json.dumps(ref_search_results[key])
+
+        non_empty_processed.upload_files.exists
+        proc.Upload.objects(upload_id=non_empty_processed.upload_id).first().upload_files.exists
 
     def test_mirror_files_only(self, published, admin_user_bravado_client, monkeypatch):
         monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)

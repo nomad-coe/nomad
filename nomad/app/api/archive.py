@@ -25,7 +25,6 @@ from flask_restplus import abort, Resource, fields
 import json
 import importlib
 import urllib.parse
-from elasticsearch.helpers import ScanError
 
 import nomad_meta_info
 
@@ -154,9 +153,10 @@ class ArchiveDownloadResource(Resource):
             scroll=config.services.download_scan_timeout)
 
         def generator():
-            manifest = {}
-            upload_files = None
             try:
+                manifest = {}
+                upload_files = None
+
                 for entry in calcs:
                     upload_id = entry['upload_id']
                     calc_id = entry['calc_id']
@@ -183,26 +183,28 @@ class ArchiveDownloadResource(Resource):
                         for key in ArchiveDownloadResource.manifest_quantities
                         if entry.get(key) is not None
                     }
-            except ScanError:
-                utils.get_logger(__name__).warning(
-                    'scan error while streaming archive data from query',
-                    query=urllib.parse.urlencode(request.args, doseq=True))
 
-            if upload_files is not None:
-                upload_files.close_zipfile_cache()
+                if upload_files is not None:
+                    upload_files.close_zipfile_cache()
 
-            try:
-                manifest_contents = json.dumps(manifest).encode('utf-8')
+                try:
+                    manifest_contents = json.dumps(manifest).encode('utf-8')
+                except Exception as e:
+                    manifest_contents = json.dumps(
+                        dict(error='Could not create the manifest: %s' % (e))).encode('utf-8')
+                    utils.get_logger(__name__).error(
+                        'could not create raw query manifest', exc_info=e)
+
+                yield (
+                    'manifest.json', 'manifest',
+                    lambda *args: BytesIO(manifest_contents),
+                    lambda *args: len(manifest_contents))
+
             except Exception as e:
-                manifest_contents = json.dumps(
-                    dict(error='Could not create the manifest: %s' % (e))).encode('utf-8')
-                utils.get_logger(__name__).error(
-                    'could not create raw query manifest', exc_info=e)
-
-            yield (
-                'manifest.json', 'manifest',
-                lambda *args: BytesIO(manifest_contents),
-                lambda *args: len(manifest_contents))
+                utils.get_logger(__name__).warning(
+                    'unexpected error while streaming raw data from query',
+                    exc_info=e,
+                    query=urllib.parse.urlencode(request.args, doseq=True))
 
         return streamed_zipfile(
             generator(), zipfile_name='nomad_archive.zip', compress=compress)

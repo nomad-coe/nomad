@@ -21,28 +21,6 @@
             ]
           }
         ],
-        "section_system": [
-          {
-            "_name": "section_system",
-            "_gIndex": 0,
-            "configuration_periodic_dimensions": [
-              true,
-              true,
-              true
-            ],
-            "atom_positions": [
-              [
-                0,
-                0,
-                0
-              ]],
-            "atom_labels": [
-              "Na"
-            ],
-            "lattice_vectors": [
-              [0, 0.5e-10, 0.5e-10],[0.5e-10, 0 , 0.5e-10],[0.5e-10, 0.5e-10, 0]]
-          }
-        ],
         "section_single_configuration_calculation": [
           {
             "_name": "section_single_configuration_calculation",

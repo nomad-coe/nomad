@@ -1,5 +1,7 @@
-images.nomad.tag: "stable"
-images.frontend.tag: "stable"
+images:
+  nomad: "v0.7.2"
+  frontend:
+    tag: "v0.7.2"
 
 proxy:
   nodePort: 30010
@@ -12,14 +14,17 @@ gui:
 
 app:
   replicas: 2
-  threads: 16
+  threads: 4
+  worker: 8
+  workerClass: "sync"
+  nomadNodeType: "public"
 
 worker:
   replicas: 1
   routing: "queue"
   processes: 10
   nomadNodeType: "prod-worker"
- 
+
 elastic:
   port: 9202
 
@@ -41,3 +46,7 @@ volumes:
   staging: /nomad/fairdi/prod_v0.7/fs/staging
   tmp: /nomad/fairdi/prod_v0.7/fs/tmp
   nomad: /nomad
+
+datacite:
+  secret: 'nomad-datacite'
+  enabled: True

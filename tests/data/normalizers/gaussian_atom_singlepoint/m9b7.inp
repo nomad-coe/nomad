@@ -1,0 +1,12 @@
+%mem=12000000
+#ROHF/6-311G*  scf=verytight
+
+Helium Atom cation He+
+casno=7440597
+method=9
+basis=7
+
+1 2
+He
+
+
