@@ -181,7 +181,17 @@ mail = NomadConfig(
 )
 
 normalize = NomadConfig(
-    system_classification_with_clusters_threshold=50
+    # The system size limit for running the dimensionality analysis. For very
+    # large systems the dimensionality analysis will get too expensive.
+    system_classification_with_clusters_threshold=50,
+    # Symmetry tolerance controls the precision used by spglib in order to find
+    # symmetries. The atoms are allowed to move 1/2*symmetry_tolerance from
+    # their symmetry positions in order for spglib to still detect symmetries.
+    # The unit is angstroms.
+    symmetry_tolerance=0.1,
+    # The distance tolerance between atoms for grouping them into the same
+    # cluster. Used in detecting system type.
+    cluster_threshold=3.1,
 )
 
 client = NomadConfig(
