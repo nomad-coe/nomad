@@ -107,6 +107,7 @@ def normalized_example(parsed_example: LocalBackend) -> LocalBackend:
 def normalized_template_example(parsed_template_example) -> LocalBackend:
     return run_normalize(parsed_template_example)
 
+
 def run_normalize_for_structure(atoms: Atoms) -> LocalBackend:
     template = parsed_template_no_system()
 
