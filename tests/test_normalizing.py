@@ -168,6 +168,7 @@ def two_d() -> LocalBackend:
     return backend
 
 
+@pytest.fixture(scope='session')
 def surface() -> LocalBackend:
     parser_name = "parsers/fhi-aims"
     filepath = "tests/data/normalizers/fhiaims_surface_singlepoint/PBE-light+tight-rho2.out"
