@@ -506,16 +506,20 @@ class Upload extends React.Component {
     const { classes } = this.props
     const { columns, upload } = this.state
     const { calcs, tasks_status, waiting } = this.state.upload
+
+    if (!calcs) {
+      return (
+        <Typography className={classes.detailsContent}>
+          Loading ...
+        </Typography>
+      )
+    }
+
     const { pagination } = calcs
 
     if (pagination.total === 0 && tasks_status !== 'SUCCESS') {
-      if (!this.state.upload.tasks_running) {
-        return (
-          <Typography className={classes.detailsContent}>
-            No calculations to show.
-          </Typography>
-        )
-      } else {
+
+      if (this.state.upload.tasks_running) {
         if (waiting) {
           return (
             <Typography className={classes.detailsContent}>
@@ -617,7 +621,7 @@ class Upload extends React.Component {
                   Upload processing has errors: {errors.join(', ')}
                 </Typography> : ''
               }
-              {upload.calcs ? this.renderCalcTable() : ''}
+              {this.renderCalcTable()}
               {debug
                 ? <div className={classes.detailsContent}>
                   <ReactJson src={upload} enableClipboard={false} collapsed={0} />
