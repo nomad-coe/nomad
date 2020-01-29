@@ -430,3 +430,10 @@ def test_2d_structure_structure_at_cell_boundary():
     assert np.allclose(enc.material.atom_positions, expected_pos)
     assert np.array_equal(enc.material.atom_labels, expected_labels)
     assert np.allclose(enc.material.cell_normalized, expected_cell)
+
+
+def test_method_metainfo(single_point):
+    enc = single_point.get_mi2_section(Encyclopedia.m_def)
+    assert enc.calculation.code_name == "FHI-aims"
+    assert enc.calculation.code_version == "010314"
+    assert enc.calculation.mainfile_uri == "nmd://Rtest_upload_id/data/test/mainfile.txt"

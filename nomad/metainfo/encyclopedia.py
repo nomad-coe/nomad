@@ -210,22 +210,6 @@ class Calculation(MSection):
         from this entry.
         """
     )
-    run_type = Quantity(
-        type=MEnum(
-            single_point="single point",
-            geometry_optimization="geometry optimization",
-            molecular_dynamics="molecular dynamics",
-            phonon_calculation="phonon calculation",
-            elastic_constants="elastic constants",
-            qha_calculation="QHA calculation",
-            qw_calculation="GW calculation",
-            equation_of_state="equation of state",
-            parameter_variation="parameter variation",
-            unavailable="unavailable"),
-        description="""
-        Defines the type of run identified for this entry.
-        """
-    )
     atomic_density = Quantity(
         type=float,
         unit=units.m**(-3),
@@ -248,6 +232,18 @@ class Calculation(MSection):
         not perfectly correspond to the original simulation cell.
         """
     )
+    code_name = Quantity(
+        type=str,
+        description="""
+        Name of the code used to perform the calculation.
+        """
+    )
+    code_version = Quantity(
+        type=str,
+        description="""
+        Version of the code used for the calculation.
+        """
+    )
     lattice_parameters = Quantity(
         type=np.dtype('f8'),
         shape=[6],
@@ -259,11 +255,33 @@ class Calculation(MSection):
         cell.
         """
     )
+    mainfile_uri = Quantity(
+        type=str,
+        description="""
+        Path of the main file.
+        """
+    )
     mass_density = Quantity(
         type=float,
         unit=units.kg / units.m**3,
         description="""
         Mass density of the material based on the structural information.
+        """
+    )
+    run_type = Quantity(
+        type=MEnum(
+            single_point="single point",
+            geometry_optimization="geometry optimization",
+            molecular_dynamics="molecular dynamics",
+            phonon_calculation="phonon calculation",
+            elastic_constants="elastic constants",
+            qha_calculation="QHA calculation",
+            qw_calculation="GW calculation",
+            equation_of_state="equation of state",
+            parameter_variation="parameter variation",
+            unavailable="unavailable"),
+        description="""
+        Defines the type of run identified for this entry.
         """
     )
 

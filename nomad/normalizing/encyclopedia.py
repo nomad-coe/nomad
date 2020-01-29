@@ -155,6 +155,37 @@ class EncyclopediaNormalizer(Normalizer):
     def method_type(self) -> str:
         pass
 
+    def mainfile_uri(self, calculation: Calculation):
+        entry_info = self._backend["section_entry_info"][0]
+        upload_id = entry_info["upload_id"]
+        mainfile_path = entry_info["mainfile"]
+        uri = f"nmd://R{upload_id}/data/{mainfile_path}"
+        calculation.mainfile_uri = uri
+
+    # def similar_materials(self) -> None:
+        # pass
+
+    # def calculation_pid(self):
+        # pass
+
+    # def calculation(self) -> None:
+        # pass
+
+    # def contributor_first_name(self) -> None:
+        # pass
+
+    # def contributor_last_name(self) -> None:
+        # pass
+
+    # def contributor_type(self) -> None:
+        # pass
+
+    # def contributors(self) -> None:
+        # pass
+
+    # def number_of_calculations(self) -> None:
+        # pass
+
     def fill(self, run_type, system_type, representative_system):
         # Fill structure related metainfo
         struct = None
@@ -167,6 +198,10 @@ class EncyclopediaNormalizer(Normalizer):
         if struct is not None:
             struct.fill(representative_system)
 
+        # Fill method related metainfo
+        method = Method(self._backend, self.logger)
+        method.fill()
+
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
         system_enums = Material.system_type.type
@@ -175,6 +210,9 @@ class EncyclopediaNormalizer(Normalizer):
         sec_enc = Encyclopedia()
         material = sec_enc.m_create(Material)
         calculation = sec_enc.m_create(Calculation)
+
+        # Get generic data
+        self.mainfile_uri(calculation)
 
         # Determine run type, stop if unknown
         run_type = self.run_type(calculation)
@@ -873,11 +911,11 @@ class Method():
         self.backend = backend
         self.logger = logger
 
-    def code_name(self) -> None:
-        pass
+    def code_name(self, calculation: Calculation) -> None:
+        calculation.code_name = self.backend["program_name"]
 
-    def code_version(self) -> None:
-        pass
+    def code_version(self, calculation: Calculation) -> None:
+        calculation.code_version = self.backend["program_version"]
 
     def method_hash(self):
         pass
@@ -888,27 +926,6 @@ class Method():
     def group_parametervariation_hash(self):
         pass
 
-    def mainfile_uri(self):
-        pass
-
-    def calculation_pid(self):
-        pass
-
-    # def calculation(self) -> None:
-        # pass
-
-    # def contributor_first_name(self) -> None:
-        # pass
-
-    # def contributor_last_name(self) -> None:
-        # pass
-
-    # def contributor_type(self) -> None:
-        # pass
-
-    # def contributors(self) -> None:
-        # pass
-
     def group_e_min(self) -> None:
         pass
 
@@ -916,9 +933,6 @@ class Method():
         pass
 
     def k_point_grid_description(self) -> None:
-        pass
-
-    def similar_materials(self) -> None:
         pass
 
     def basis_set_short_name(self) -> None:
@@ -954,12 +968,14 @@ class Method():
     def smearing_parameters(self) -> None:
         pass
 
-    def number_of_calculation(self) -> None:
-        pass
+    def fill(self) -> None:
+        # Fetch resources
+        sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
+        calculation = sec_enc.calculation
 
-    @abstractmethod
-    def fill(self, sec_system) -> None:
-        pass
+        # Fill metainfo
+        self.code_name(calculation)
+        self.code_version(calculation)
 
 
 class Properties():
