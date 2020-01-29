@@ -123,6 +123,34 @@ def run_normalize_for_structure(atoms: Atoms) -> LocalBackend:
 
 
 @pytest.fixture(scope='session')
+def single_point(two_d) -> LocalBackend:
+    return two_d
+
+
+@pytest.fixture(scope='session')
+def geometry_optimization() -> LocalBackend:
+    parser_name = "parsers/template"
+    filepath = "tests/data/normalizers/fcc_crystal_structure.json"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def molecular_dynamics(bulk) -> LocalBackend:
+    return bulk
+
+
+@pytest.fixture(scope='session')
+def phonon() -> LocalBackend:
+    parser_name = "parsers/phonopy"
+    filepath = "tests/data/parsers/phonopy/phonopy-FHI-aims-displacement-01/control.in"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
 def bulk() -> LocalBackend:
     parser_name = "parsers/cp2k"
     filepath = "tests/data/normalizers/cp2k_bulk_md/si_md.out"
@@ -255,17 +283,54 @@ def test_symmetry_classification_fcc():
 
 def test_system_classification(atom, molecule, one_d, two_d, surface, bulk):
     # Atom
-    assert atom.get_value('system_type') == "atom"
+    assert atom['system_type'] == "atom"
     # Molecule / cluster
-    assert molecule.get_value('system_type') == "molecule / cluster"
+    assert molecule['system_type'] == "molecule / cluster"
     # 1D
-    assert one_d.get_value('system_type') == "1D"
+    assert one_d['system_type'] == "1D"
     # 2D
-    assert two_d.get_value('system_type') == "2D"
+    assert two_d['system_type'] == "2D"
     # Surface
-    assert surface.get_value('system_type') == "surface"
+    assert surface['system_type'] == "surface"
     # Bulk
-    assert bulk.get_value('system_type') == "bulk"
+    assert bulk['system_type'] == "bulk"
+
+
+def test_representative_systems(single_point, molecular_dynamics, geometry_optimization, phonon):
+    """Checks that the representative systems are correctly identified and
+    processed by SystemNormalizer.
+    """
+    def check_representative_frames(backend):
+        # For systems with multiple frames the first and two last should be processed.
+        try:
+            frames = backend["frame_sequence_local_frames_ref"]
+        except KeyError:
+            sccs = backend["section_single_configuration_calculation"]
+            scc = sccs[-1]
+            repr_system_idx = scc["single_configuration_calculation_to_system_ref"]
+        else:
+            sampling_method = backend["sampling_method"]
+            if sampling_method == "molecular_dynamics":
+                idx = 0
+            else:
+                idx = -1
+            scc_idx = frames[idx]
+            scc = backend["section_single_configuration_calculation"][scc_idx]
+            repr_system_idx = scc["single_configuration_calculation_to_system_ref"]
+
+        # Check that only the representative system has been labels with
+        # "is_representative"
+        for i, system in enumerate(backend["section_system"]):
+            if i == repr_system_idx:
+                assert system["is_representative"] is True
+            else:
+                with pytest.raises(KeyError):
+                    system["is_representative"]
+
+    check_representative_frames(single_point)
+    check_representative_frames(molecular_dynamics)
+    check_representative_frames(geometry_optimization)
+    check_representative_frames(phonon)
 
 
 def test_reduced_chemical_formula():

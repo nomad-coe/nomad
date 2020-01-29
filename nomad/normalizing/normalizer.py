@@ -87,53 +87,56 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         """ Normalize the given section and returns True, iff successful"""
         pass
 
-    def __representative_systems(self):
-        # look for sccs in last frames
-        sccs = []
+    def __representative_system(self):
+        """Used to select a representative system for this entry.
+
+        Attempt to find a single section_system that is representative for the
+        entry. The selection depends on the type of calculation.
+        """
+        system_idx = None
+
+        # Try to find a frame sequence, only first found is considered
         try:
-            frame_seqs = self._backend.get_sections(s_frame_sequence)
+            frame_seqs = self._backend[s_frame_sequence]
+            frame_seq = frame_seqs[0]
+            sampling_method_idx = frame_seq["frame_sequence_to_sampling_ref"]
+            sec_sampling_method = self._backend["section_sampling_method"][sampling_method_idx]
+            sampling_method = sec_sampling_method["sampling_method"]
+            frames = frame_seq["frame_sequence_local_frames_ref"]
+            if sampling_method == "molecular_dynamics":
+                scc_idx = frames[0]
+            else:
+                scc_idx = frames[-1]
+            scc = self._backend[s_scc][scc_idx]
+            system_idx = scc["single_configuration_calculation_to_system_ref"]
         except Exception:
             frame_seqs = []
 
-        for frame_seq in frame_seqs:
+        # If no frame sequences detected, try to find scc
+        if len(frame_seqs) == 0:
             try:
-                frames = self._backend.get_value(r_frame_sequence_local_frames, frame_seq)
-            except Exception:
-                frames = []
-
-            if len(frames) > 0:
-                sccs.append(frames[-1])
-
-        # no sccs from frames -> consider all sccs
-        if len(sccs) == 0:
-            try:
-                sccs = self._backend.get_sections(s_scc)
+                sccs = self._backend[s_scc]
+                scc = sccs[-1]
+                system_idx = scc["single_configuration_calculation_to_system_ref"]
             except Exception:
                 sccs = []
 
-        try:
-            systems = [self._backend.get_value(r_scc_to_system, scc) for scc in sccs]
-        except Exception:
-            systems = []
+            # If no sccs exist, try to find systems
+            if len(sccs) == 0:
+                try:
+                    systems = self._backend.get_sections(s_system)
+                    system_idx = systems[-1]
+                except Exception:
+                    sccs = []
 
-        # only take the first, and last two systems
-        if len(systems) == 0:
-            try:
-                systems = self._backend.get_sections(s_system)
-            except Exception:
-                systems = []
+            if system_idx is None:
+                self.logger.error('no "representative" section system found')
+            else:
+                self.logger.info(
+                    'chose "representative" system for normalization',
+                )
 
-        if len(systems) > 2:
-            systems = [systems[0], systems[-2], systems[-1]]
-
-        if len(systems) == 0:
-            self.logger.error('no "representative" section system found')
-
-        self.logger.info(
-            'chose "representative" systems for normalization',
-            number_of_systems=len(systems))
-
-        return systems
+        return system_idx
 
     def __normalize_system(self, g_index, representative, logger=None) -> bool:
         try:
@@ -154,18 +157,15 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
 
-        representative_systems = set(self.__representative_systems())
         all_systems = self._backend.get_sections(s_system)
 
-        has_representative = False
-        for g_index in representative_systems:
-            has_representative = has_representative or self.__normalize_system(g_index, True, logger)
+        # Process representative system first
+        representative_system_idx = self.__representative_system()
+        if representative_system_idx is not None:
+            self.__normalize_system(representative_system_idx, True, logger)
 
-        # all the rest or until first representative depending on configuration
-        if not self.only_representatives or not has_representative:
+        # All the rest if requested
+        if not self.only_representatives:
             for g_index in all_systems:
-                if g_index not in representative_systems:
-                    if self.__normalize_system(g_index, not has_representative, logger):
-                        has_representative = True
-                        if self.only_representatives:
-                            break
+                if g_index != representative_system_idx:
+                    self.__normalize_system(g_index, False, logger)
