@@ -188,7 +188,7 @@ normalize = NomadConfig(
     # symmetries. The atoms are allowed to move 1/2*symmetry_tolerance from
     # their symmetry positions in order for spglib to still detect symmetries.
     # The unit is angstroms.
-    symmetry_tolerance=0.1,
+    symmetry_tolerance=0.2,
     # Maximum number of atoms in the single cell of a 2D material for it to be
     # considered valid.
     max_2d_single_cell_size=7,

@@ -463,6 +463,9 @@ def update_aflow_prototype_information(filepath: str) -> None:
             except KeyError:
                 pass
 
+            # Update tolerance parameter
+            aflow_prototypes["matid_symmetry_tolerance"] = tolerance
+
     print(f"Updated AFLOW prototype library. Total number of prototypes: {n_prototypes}, unmatched: {n_unmatched}, failed: {n_failed}")
 
     # Save the updated data
