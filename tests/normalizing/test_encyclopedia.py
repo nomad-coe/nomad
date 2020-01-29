@@ -327,18 +327,19 @@ def test_1d_material_identification():
     hash3 = enc.material.material_hash
     assert hash3 == hash1
 
-    # Slightly distorted copy
-    nanotube4 = nanotube1.copy()
-    pos = nanotube4.get_positions()
+    # Slightly distorted copies should match
     np.random.seed(4)
-    pos += 0.1 * np.random.rand(pos.shape[0], pos.shape[1])
-    nanotube4.set_positions(pos)
-    backend = run_normalize_for_structure(nanotube4)
-    enc = backend.get_mi2_section(Encyclopedia.m_def)
-    hash4 = enc.material.material_hash
-    assert hash4 == hash1
+    for _ in range(50):
+        nanotube4 = nanotube1.copy()
+        pos = nanotube4.get_positions()
+        pos += 0.2 * np.random.rand(pos.shape[0], pos.shape[1])
+        nanotube4.set_positions(pos)
+        backend = run_normalize_for_structure(nanotube4)
+        enc = backend.get_mi2_section(Encyclopedia.m_def)
+        hash4 = enc.material.material_hash
+        assert hash4 == hash1
 
-    # Too distorted copy
+    # Too distorted copy should not match
     nanotube5 = nanotube1.copy()
     pos = nanotube5.get_positions()
     np.random.seed(4)

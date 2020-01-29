@@ -887,27 +887,43 @@ class Structure1D(Structure):
         periodic_indices = np.where(vacuum_directions == False)[0]  # noqa: E712
         material.periodicity = np.sort(np.array(periodic_indices, dtype=np.int8))
 
-    def get_structure_fingerprint(self, prim_atoms: Atoms):
+    def get_structure_fingerprint(self, prim_atoms: Atoms) -> str:
         """Calculates a numeric fingerprint that coarsely encodes the atomic
         positions and species.
 
         The fingerprint is based on calculating a discretized version of a
-        sorted Coulomb matrix eigenspectrum. The calculation of a Coulomb
-        matrix and the associated eigenspectrum are described in the article:
-
-        Grégoire Montavon, Katja Hansen, Siamac Fazli, Matthias Rupp, Franziska
-        Biegler, Andreas Ziehe, Alexandre Tkatchenko, Anatole V. Lilienfeld, and
-        Klaus-Robert Müller. Learning invariant representations of molecules for
-        atomization energy prediction. In F. Pereira, C. J. C. Burges, L. Bottou, and
-        K. Q. Weinberger, editors, Advances in Neural Information Processing Systems
-        25, pages 440–448. Curran Associates, Inc., 2012.
+        sorted Coulomb matrix eigenspectrum (Grégoire Montavon, Katja Hansen,
+        Siamac Fazli, Matthias Rupp, Franziska Biegler, Andreas Ziehe,
+        Alexandre Tkatchenko, Anatole V. Lilienfeld, and Klaus-Robert Müller.
+        Learning invariant representations of molecules for atomization energy
+        prediction. In F. Pereira, C. J. C. Burges, L. Bottou, and K. Q.
+        Weinberger, editors, Advances in Neural Information Processing Systems
+        25, pages 440–448. Curran Associates, Inc., 2012.).
 
         The fingerprints are discretized in order to perform O(n) matching
         between structures (no need to compare fingerprints against each
         other). As regular discretization is susceptible to the "edge problem",
-        a robust discretization as described in X is used instead. Basically
-        for the 1-dimensional domain two grids are created and the points are
-        mapped to the first grid in which they are robust.
+        a robust discretization is used instead (Birget, Jean-Camille & Hong,
+        Dawei & Memon, Nasir. (2003). Robust discretization, with an
+        application to graphical passwords. IACR Cryptology ePrint Archive.
+        2003. 168.) Basically for the 1-dimensional domain two grids are
+        created and the points are mapped to the first grid in which they are
+        robust using a minimum tolerance parameter r, with the maximum
+        tolerance being 5r.
+
+        There are other robust discretization methods that can guarantee exact
+        r-tolerance (e.g. Sonia Chiasson, Jayakumar Srinivasan, Robert Biddle,
+        and P. C. van Oorschot. 2008. Centered discretization with application
+        to graphical passwords. In Proceedings of the 1st Conference on
+        Usability, Psychology, and Security (UPSEC’08). USENIX Association,
+        USA, Article 6, 1–9.). This method however requires that a predefined
+        "correct" structure exists against which the search is done.
+
+        Args:
+            prim_atoms: Primitive system.
+
+        Returns:
+            The numeric fingerprint for the system encoded as a string.
         """
         # Calculate charge part
         q = prim_atoms.get_atomic_numbers()
@@ -929,12 +945,11 @@ class Structure1D(Structure):
         # Sort eigenvalues
         eigval = np.array(sorted(eigval))
 
-        # Go to smaller scale
-        eigval /= 20
-
-        # Perform robust discretization as described by X. r = 0.5 ensures that
-        # all grids are integers which can be uniquely mapped to strings If
-        # finer grid is needed adjust the eigenvalue scale instead.
+        # Perform robust discretization (see function docstring for details). r
+        # = 0.5 ensures that all grids are integers which can be uniquely
+        # mapped to strings. If finer grid is needed adjust the eigenvalue scale
+        # instead.
+        eigval /= 25  # Go to smaller scale where integer numbers are meaningful
         dimension = 1
         r = 0.5
         spacing = 2 * r * (dimension + 1)
@@ -945,13 +960,12 @@ class Structure1D(Structure):
         discretization = spacing * np.floor((eigval + (2 * r * safe_grid_k)) / spacing)
         discretization[safe_grid_k == 1] += 2 * r
 
-        # The values should be rounded to a rational number for the hashing to be
-        # consistent
+        # Form string
         strings = []
         for number in discretization:
-            num_str = str(number)
+            num_str = str(int(number))
             strings.append(num_str)
-        fingerprint = "; ".join(strings)
+        fingerprint = ";".join(strings)
 
         return fingerprint
 
