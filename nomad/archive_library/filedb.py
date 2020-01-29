@@ -286,10 +286,12 @@ class ArchiveFileDB:
         data_to_write[-1].append(sep)
         data_to_write[-1].append(self.max_lfragment)
         # add pointers to entries
+        start_index = 0
         for i in range(len(entries)):
             sep = '%s_%d' % (self._sep, i + last_index)
-            index = data_str.index(sep.encode()) + len(sep)
+            index = data_str.index(sep.encode(), start_index) + len(sep)
             head[entries[i]['path']] = index
+            start_index = index
         sep = '%s_IDS' % (self._sep)
         data_to_write[-1].append(sep)
         data_to_write[-1].append(head)
