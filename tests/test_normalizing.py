@@ -283,17 +283,17 @@ def test_symmetry_classification_fcc():
 
 def test_system_classification(atom, molecule, one_d, two_d, surface, bulk):
     # Atom
-    assert atom.get_value('system_type') == "atom"
+    assert atom['system_type'] == "atom"
     # Molecule / cluster
-    assert molecule.get_value('system_type') == "molecule / cluster"
+    assert molecule['system_type'] == "molecule / cluster"
     # 1D
-    assert one_d.get_value('system_type') == "1D"
+    assert one_d['system_type'] == "1D"
     # 2D
-    assert two_d.get_value('system_type') == "2D"
+    assert two_d['system_type'] == "2D"
     # Surface
-    assert surface.get_value('system_type') == "surface"
+    assert surface['system_type'] == "surface"
     # Bulk
-    assert bulk.get_value('system_type') == "bulk"
+    assert bulk['system_type'] == "bulk"
 
 
 def test_representative_systems(single_point, molecular_dynamics, geometry_optimization, phonon):
