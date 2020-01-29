@@ -401,6 +401,9 @@ class RawFileQueryResource(Resource):
 
         The zip file will contain a ``manifest.json`` with the repository meta data.
         """
+        logger = utils.get_logger(__name__)
+        logger = logger.bind(query=urllib.parse.urlencode(request.args, doseq=True))
+
         patterns: List[str] = None
         try:
             args = _raw_file_from_query_parser.parse_args()
@@ -434,6 +437,7 @@ class RawFileQueryResource(Resource):
             paths = [path(entry) for entry in calcs]
             common_prefix_len = len(utils.common_prefix(paths))
         else:
+            calcs = list(calcs)
             common_prefix_len = 0
 
         def generator():
@@ -442,9 +446,15 @@ class RawFileQueryResource(Resource):
                 upload_files = None
 
                 for entry in calcs:
+                    manifest_key = path(entry)
+                    if manifest_key in manifest:
+                        print('.')
+                        continue
+
                     upload_id = entry['upload_id']
                     mainfile = entry['mainfile']
                     if upload_files is None or upload_files.upload_id != upload_id:
+                        logger.info('opening next upload for raw file streaming')
                         if upload_files is not None:
                             upload_files.close_zipfile_cache()
 
@@ -457,6 +467,12 @@ class RawFileQueryResource(Resource):
 
                         upload_files.open_zipfile_cache()
 
+                        def open_file(upload_filename):
+                            return upload_files.raw_file(upload_filename, 'rb')
+
+                        def file_size(upload_filename):
+                            return upload_files.raw_file_size(upload_filename)
+
                     directory = os.path.dirname(mainfile)
                     for filename, _ in upload_files.raw_file_list(directory=directory):
                         filename = os.path.join(directory, filename)
@@ -466,20 +482,18 @@ class RawFileQueryResource(Resource):
                                 fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
                                 for pattern in patterns):
 
-                            yield (
-                                filename_wo_prefix, filename,
-                                lambda upload_filename: upload_files.raw_file(upload_filename, 'rb'),
-                                lambda upload_filename: upload_files.raw_file_size(upload_filename))
+                            yield (filename_wo_prefix, filename, open_file, file_size)
 
-                            manifest[path(entry)] = {
-                                key: entry[key]
-                                for key in RawFileQueryResource.manifest_quantities
-                                if entry.get(key) is not None
-                            }
+                    manifest[manifest_key] = {
+                        key: entry[key]
+                        for key in RawFileQueryResource.manifest_quantities
+                        if entry.get(key) is not None
+                    }
 
                 if upload_files is not None:
                     upload_files.close_zipfile_cache()
 
+                logger.info('streaming raw file manifest')
                 try:
                     manifest_contents = json.dumps(manifest).encode('utf-8')
                 except Exception as e:
@@ -494,11 +508,10 @@ class RawFileQueryResource(Resource):
                     lambda *args: len(manifest_contents))
 
             except Exception as e:
-                utils.get_logger(__name__).warning(
-                    'unexpected error while streaming raw data from query',
-                    exc_info=e,
-                    query=urllib.parse.urlencode(request.args, doseq=True))
+                logger.warning(
+                    'unexpected error while streaming raw data from query', exc_info=e)
 
+        logger.info('start streaming raw files')
         return streamed_zipfile(
             generator(), zipfile_name='nomad_raw_files.zip', compress=compress)
 
