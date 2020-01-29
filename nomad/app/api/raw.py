@@ -457,8 +457,9 @@ class RawFileQueryResource(Resource):
 
                         upload_files.open_zipfile_cache()
 
-                    filenames = upload_files.raw_file_manifest(path_prefix=os.path.dirname(mainfile))
-                    for filename in filenames:
+                    directory = os.path.dirname(mainfile)
+                    for filename, _ in upload_files.raw_file_list(directory=directory):
+                        filename = os.path.join(directory, filename)
                         filename_w_upload = os.path.join(upload_files.upload_id, filename)
                         filename_wo_prefix = filename_w_upload[common_prefix_len:]
                         if len(patterns) == 0 or any(
