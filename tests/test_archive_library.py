@@ -116,10 +116,9 @@ class TestArchiveQuery:
         monkeypatch.setattr('nomad.config.api_url', lambda *args, **kwargs: '')
         return BlueprintClient(client, '/api')
 
-    @pytest.mark.parametrize('db', ['zip', 'msg'])
-    def test_query_from_json(self, api, published_wo_user_metadata, other_test_user_auth, db, monkeypatch):
+    def test_query_from_json(self, api, published_wo_user_metadata, other_test_user_auth, monkeypatch):
         monkeypatch.setattr('nomad.archive_library.query.requests', api)
-        q_params = {'pagination': {'order': 1, 'per_page': 5}, 'db': db}
+        q_params = {'pagination': {'order': 1, 'per_page': 5}}
         q_schema = {'section_entry_info': None}
         q = ArchiveQuery(q_params, archive_data=q_schema, authentication=other_test_user_auth)
         metainfo = q.query()
@@ -129,7 +128,7 @@ class TestArchiveQuery:
     def test_query_from_kwargs(self, api, published_wo_user_metadata, other_test_user_auth, monkeypatch):
         monkeypatch.setattr('nomad.archive_library.query.requests', api)
         q_schema = {'section_entry_info': None}
-        q = ArchiveQuery(order=1, per_page=5, scroll=True, db='msg', archive_data=q_schema, authentication=other_test_user_auth)
+        q = ArchiveQuery(order=1, per_page=5, scroll=True, archive_data=q_schema, authentication=other_test_user_auth)
         metainfo = q.query()
         for calc in metainfo:
             assert calc.section_entry_info.calc_id is not None

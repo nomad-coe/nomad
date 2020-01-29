@@ -30,7 +30,7 @@ import nomad_meta_info
 
 from nomad.files import UploadFiles, Restricted
 from nomad import utils, search, config
-from nomad.archive_library.filedb import ArchiveFileDB
+from nomad.archive_library.query import ArchiveFileDBs
 
 from .auth import authenticate, create_authorization_predicate
 from .api import api
@@ -244,8 +244,7 @@ class ArchiveQueryResource(Resource):
     @authenticate()
     def post(self):
         """
-        Post an query schema and return it filled with archive data in json format from
-        all query results.
+        Post a query schema and return it filled with archive data.
 
         See ``/repo`` endpoint for documentation on the search
         parameters.
@@ -271,7 +270,6 @@ class ArchiveQueryResource(Resource):
                 per_page = pagination.get('per_page', per_page)
                 order = pagination.get('order', order)
                 order_by = pagination.get('order_by', order_by)
-            db = data_in.get('db')
             qschema = data_in.get('results', None)
             if qschema is not None:
                 qschema = qschema[-1]
@@ -309,36 +307,16 @@ class ArchiveQueryResource(Resource):
         data = []
         calcs = results['results']
         try:
-            upload_files = None
+            msgdbs = None
             for entry in calcs:
                 upload_id = entry['upload_id']
                 calc_id = entry['calc_id']
-                if upload_files is None or upload_files.upload_id != upload_id:
-                    if upload_files is not None:
-                        upload_files.close_zipfile_cache()
+                if msgdbs is None or msgdbs.upload_id != upload_id:
 
-                    upload_files = UploadFiles.get(
-                        upload_id, create_authorization_predicate(upload_id))
+                    msgdbs = ArchiveFileDBs(upload_id).get_dbs()
 
-                    if upload_files is None:
-                        raise KeyError
-
-                    upload_files.open_zipfile_cache()
-
-                    if db == 'msg':
-                        fos = upload_files.archive_file_msg(calc_id)
-                        msgdbs = [ArchiveFileDB(fo) for fo in fos if fo is not None]
-
-                if db == 'zip':
-                    fo = upload_files.archive_file(calc_id, 'rb')
-                    data.append({calc_id: json.loads(fo.read())})
-
-                elif db == 'msg':
-                    for msgdb in msgdbs:
-                        data.append(msgdb.query({calc_id: qschema}))
-
-            if upload_files is not None:
-                upload_files.close_zipfile_cache()
+                for msgdb in msgdbs:
+                    data.append(msgdb.query({calc_id: qschema}))
 
         except Restricted:
             abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))

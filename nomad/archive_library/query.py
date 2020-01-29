@@ -28,6 +28,9 @@ import json
 
 from nomad.app.api.common import query_api_url
 from nomad.archive_library.metainfo import ArchiveMetainfo
+from nomad.archive_library.filedb import ArchiveFileDB
+from nomad.files import UploadFiles
+from nomad.app.api.auth import create_authorization_predicate
 
 
 class ArchiveQuery:
@@ -114,3 +117,19 @@ class ArchiveQuery:
         if self._archive_data:
             metainfo = ArchiveMetainfo(archive_data=self._archive_data, archive_schema=self._archive_schema)
             return metainfo
+
+
+class ArchiveFileDBs:
+    def __init__(self, upload_id):
+        self.upload_id = upload_id
+
+    def get_dbs(self):
+        upload_files = UploadFiles.get(
+            self.upload_id, create_authorization_predicate(self.upload_id))
+
+        if upload_files is None:
+            return []
+
+        files = upload_files.archive_file_msg('X')
+        msgdbs = [ArchiveFileDB(f) for f in files if f is not None]
+        return msgdbs

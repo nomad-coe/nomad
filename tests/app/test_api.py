@@ -667,8 +667,7 @@ class TestArchive(UploadFilesBasedTests):
         assert rv.status_code == 200
         assert_zip_file(rv, files=1)
 
-    @pytest.mark.parametrize('db', ['zip', 'msg'])
-    def test_post_archive_query(self, api, published_wo_user_metadata, db):
+    def test_post_archive_query(self, api, published_wo_user_metadata):
         schema = {"section_run": {"section_single_configuration_calculation": {"energy_total": None}}}
         data = {'results': [schema], 'per_page': 5}
         uri = '/archive/query'
