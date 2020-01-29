@@ -150,7 +150,7 @@ def test_1d_material_identification():
 
     # Slightly distorted copies should match
     np.random.seed(4)
-    for _ in range(50):
+    for _ in range(10):
         nanotube4 = nanotube1.copy()
         pos = nanotube4.get_positions()
         pos += 0.2 * np.random.rand(pos.shape[0], pos.shape[1])
