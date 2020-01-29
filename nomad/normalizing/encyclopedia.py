@@ -41,181 +41,6 @@ class EncyclopediaNormalizer(Normalizer):
     def __init__(self, backend):
         super().__init__(backend)
 
-    # NOTE: Band structure normalizer
-    def band_gap(self) -> None:
-        pass
-
-    # NOTE: Band structure normalizer
-    def band_gap_position(self) -> None:
-        pass
-
-    # NOTE: Band structure normalizer
-    def band_gap_type(self) -> None:
-        pass
-
-    # NOTE: Band structure normalizer
-    def band_structure(self) -> None:
-        pass
-
-    # NOTE: Method normalizer
-    def basis_set_short_name(self) -> None:
-        pass
-
-    # NOTE: Method normalizer
-    def basis_set_type(self) -> None:
-        pass
-
-    # NOTE: Band structure normalizer
-    def brillouin_zone(self) -> None:
-        pass
-
-    # NOTE: Band structure normalizer
-    def brillouin_zone_viewer(self) -> None:
-        pass
-
-    def calculation(self) -> None:
-        pass
-
-    def calculation_pid(self) -> None:
-        pass
-
-    # NOTE: Parser
-    def code_name(self) -> None:
-        pass
-
-    # NOTE: Parser
-    def code_version(self) -> None:
-        pass
-
-    # NOTE: Repo
-    def contributor_first_name(self) -> None:
-        pass
-
-    # NOTE: Repo
-    def contributor_last_name(self) -> None:
-        pass
-
-    # NOTE: Repo
-    def contributor_type(self) -> None:
-        pass
-
-    # NOTE: Repo
-    def contributors(self) -> None:
-        pass
-
-    # NOTE: Method normalizer
-    def core_electron_treatment(self) -> None:
-        pass
-
-    # NOTE: Band structure normalizer
-    def dos(self) -> None:
-        pass
-
-    # NOTE: Elastic properties normalizer
-    def elastic_constants_matrix(self) -> None:
-        pass
-
-    # NOTE: Elastic properties normalizer
-    def elastic_deformation_energies(self) -> None:
-        pass
-
-    # NOTE: Elastic properties normalizer
-    def elastic_fitting_parameters(self) -> None:
-        pass
-
-    # NOTE: Elastic properties normalizer
-    def elastic_moduli(self) -> None:
-        pass
-
-    # NOTE: Elastic properties normalizer
-    def elastic_properties(self) -> None:
-        pass
-
-    def energies(self) -> None:
-        pass
-
-    # NOTE: Band structure normalizer
-    def fermi_surface(self) -> None:
-        pass
-
-    # NOTE: Method normalizer
-    def functional_long_name(self) -> None:
-        pass
-
-    # NOTE: Method normalizer
-    def functional_type(self) -> None:
-        pass
-
-    # TODO: ??
-    def group_e_min(self) -> None:
-        pass
-
-    # TODO: ??
-    def group_type(self) -> None:
-        pass
-
-    # TODO: Method normalizer
-    def gw_starting_point(self) -> None:
-        pass
-
-    # TODO: Method normalizer
-    def gw_type(self) -> None:
-        pass
-
-    # NOTE: Enc specific
-    def has_bs(self) -> None:
-        pass
-
-    # NOTE: Enc specific
-    def has_dos(self) -> None:
-        pass
-
-    # NOTE: Enc specific
-    def has_fermi_surface(self) -> None:
-        pass
-
-    # NOTE: Enc specific
-    def has_thermal_properties(self) -> None:
-        pass
-
-    def helmholtz_free_energy(self) -> None:
-        pass
-
-    def k_point_grid_description(self) -> None:
-        pass
-
-    def mainfile_uri(self) -> None:
-        pass
-
-    # NOTE: Postprocessing
-    def number_of_calculation(self) -> None:
-        pass
-
-    # NOTE: Phonon normalizer
-    def phonon_dispersion(self) -> None:
-        pass
-
-    # NOTE: Phonon normalizer
-    def phonon_dos(self) -> None:
-        pass
-
-    # NOTE: Method normalizer
-    def pseudopotential_type(self) -> None:
-        pass
-
-    # NOTE: Repo
-    def repository_dowload_uri(self) -> None:
-        pass
-
-    # NOTE: Repo
-    def repository_upload_comment(self) -> None:
-        pass
-
-    # NOTE: Repo
-    def repository_uri(self) -> None:
-        pass
-
-    # NOTE: Enc specific
     def run_type(self, calculation) -> str:
         """Decides what type of calculation this is: single_point, md,
         geometry_optimization, etc.
@@ -284,26 +109,6 @@ class EncyclopediaNormalizer(Normalizer):
         calculation.run_type = run_type
         return run_type
 
-    def scf_threshold(self) -> None:
-        pass
-
-    # NOTE: Enc specific
-    def similar_materials(self) -> None:
-        pass
-
-    # NOTE: Method normalizer
-    def smearing_kind(self) -> None:
-        pass
-
-    # NOTE: Method normalizer
-    def smearing_parameters(self) -> None:
-        pass
-
-    # NOTE: Phonon normalizer
-    def specific_heat_cv(self) -> None:
-        pass
-
-    # NOTE: System normalizer
     def system_type(self, material: Material, calculation: Calculation) -> tuple:
         # Select the representative system from which system type is retrieved.
         # For geometry optimizations system type is analyzed from last relaxed
@@ -347,7 +152,7 @@ class EncyclopediaNormalizer(Normalizer):
         material.system_type = system_type
         return system, system_type
 
-    def template(self) -> None:
+    def method_type(self) -> str:
         pass
 
     def fill(self, run_type, system_type, representative_system):
@@ -384,6 +189,9 @@ class EncyclopediaNormalizer(Normalizer):
             return
 
         # Get the method type, stop if unknown
+        # TODO
+
+        # Process all present properties
         # TODO
 
         # Put the encyclopedia section into backend
@@ -1055,3 +863,179 @@ class Structure1D(Structure):
         self.formula_reduced(material, names, reduced_counts)
         self.material_hash(material, std_atoms)
         self.lattice_parameters(calculation, std_atoms, material.periodicity)
+
+
+class Method():
+    """A base class that is used for processing method related information
+    in the Encylopedia.
+    """
+    def __init__(self, backend, logger):
+        self.backend = backend
+        self.logger = logger
+
+    def code_name(self) -> None:
+        pass
+
+    def code_version(self) -> None:
+        pass
+
+    def method_hash(self):
+        pass
+
+    def group_eos_hash(self):
+        pass
+
+    def group_parametervariation_hash(self):
+        pass
+
+    def mainfile_uri(self):
+        pass
+
+    def calculation_pid(self):
+        pass
+
+    # def calculation(self) -> None:
+        # pass
+
+    # def contributor_first_name(self) -> None:
+        # pass
+
+    # def contributor_last_name(self) -> None:
+        # pass
+
+    # def contributor_type(self) -> None:
+        # pass
+
+    # def contributors(self) -> None:
+        # pass
+
+    def group_e_min(self) -> None:
+        pass
+
+    def group_type(self) -> None:
+        pass
+
+    def k_point_grid_description(self) -> None:
+        pass
+
+    def similar_materials(self) -> None:
+        pass
+
+    def basis_set_short_name(self) -> None:
+        pass
+
+    def basis_set_type(self) -> None:
+        pass
+
+    def core_electron_treatment(self) -> None:
+        pass
+
+    def functional_long_name(self) -> None:
+        pass
+
+    def functional_type(self) -> None:
+        pass
+
+    def gw_starting_point(self) -> None:
+        pass
+
+    def gw_type(self) -> None:
+        pass
+
+    def pseudopotential_type(self) -> None:
+        pass
+
+    def scf_threshold(self) -> None:
+        pass
+
+    def smearing_kind(self) -> None:
+        pass
+
+    def smearing_parameters(self) -> None:
+        pass
+
+    def number_of_calculation(self) -> None:
+        pass
+
+    @abstractmethod
+    def fill(self, sec_system) -> None:
+        pass
+
+
+class Properties():
+    """A base class that is used for processing information that is specific to
+    a type of calculation.
+    """
+    def __init__(self, backend, logger):
+        self.backend = backend
+        self.logger = logger
+
+    def band_gap(self) -> None:
+        pass
+
+    def band_gap_position(self) -> None:
+        pass
+
+    def band_gap_type(self) -> None:
+        pass
+
+    def band_structure(self) -> None:
+        pass
+
+    def brillouin_zone(self) -> None:
+        pass
+
+    def brillouin_zone_viewer(self) -> None:
+        pass
+
+    def dos(self) -> None:
+        pass
+
+    def elastic_constants_matrix(self) -> None:
+        pass
+
+    def elastic_deformation_energies(self) -> None:
+        pass
+
+    def elastic_fitting_parameters(self) -> None:
+        pass
+
+    def elastic_moduli(self) -> None:
+        pass
+
+    def elastic_properties(self) -> None:
+        pass
+
+    def fermi_surface(self) -> None:
+        pass
+
+    def has_bs(self) -> None:
+        pass
+
+    def has_dos(self) -> None:
+        pass
+
+    def has_fermi_surface(self) -> None:
+        pass
+
+    def has_thermal_properties(self) -> None:
+        pass
+
+    def phonon_dispersion(self) -> None:
+        pass
+
+    def phonon_dos(self) -> None:
+        pass
+
+    def specific_heat_cv(self) -> None:
+        pass
+
+    def helmholtz_free_energy(self) -> None:
+        pass
+
+    def energies(self) -> None:
+        pass
+
+    @abstractmethod
+    def fill(self, sec_system) -> None:
+        pass
