@@ -243,6 +243,12 @@ class Calculation(MSection):
         Version of the code used for the calculation.
         """
     )
+    functional_long_name = Quantity(
+        type=str,
+        description="""
+        Full identified for the used exchange-correlation functional.
+        """
+    )
     lattice_parameters = Quantity(
         type=np.dtype('f8'),
         shape=[6],
@@ -305,6 +311,18 @@ class Calculation(MSection):
             unavailable="unavailable"),
         description="""
         Defines the type of run identified for this entry.
+        """
+    )
+    smearing_kind = Quantity(
+        type=MEnum("gaussian", "fermi", "marzari-vanderbilt", "methfessel-paxton", "tetrahedra"),
+        description="""
+        Smearing function used for the electronic structure calculation.
+        """
+    )
+    smearing_parameter = Quantity(
+        type=float,
+        description="""
+        Parameter for smearing, usually the width.
         """
     )
 

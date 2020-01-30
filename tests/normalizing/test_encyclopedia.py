@@ -182,7 +182,7 @@ def test_2d_material_identification():
     )]
     space_group_number = 191
     norm_hash_string = structure.get_symmetry_string(space_group_number, wyckoff_sets)
-    graphene_material_hash = hash(norm_hash_string, length=128)
+    graphene_material_hash = hash(norm_hash_string)
 
     # Graphene orthogonal cell
     graphene = Atoms(
@@ -274,7 +274,7 @@ def test_2d_material_identification():
     ]
     space_group_number = 11
     norm_hash_string = structure.get_symmetry_string(space_group_number, wyckoff_sets)
-    mos2_material_hash = hash(norm_hash_string, length=128)
+    mos2_material_hash = hash(norm_hash_string)
 
     # MoS2 orthogonal cell
     atoms = Atoms(
@@ -437,3 +437,4 @@ def test_method_metainfo(single_point):
     assert enc.calculation.code_name == "FHI-aims"
     assert enc.calculation.code_version == "010314"
     assert enc.calculation.mainfile_uri == "nmd://Rtest_upload_id/data/test/mainfile.txt"
+    assert enc.calculation.functional_long_name == "GGA_C_PBE+GGA_X_PBE"
