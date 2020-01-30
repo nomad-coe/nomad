@@ -208,9 +208,13 @@ class RepoCalcsResource(Resource):
             else:
                 for group_name, (group_quantity, _) in search.groups.items():
                     if args.get(group_name, False):
+                        kwargs: Dict[str, Any] = {}
+                        if group_name == 'uploads':
+                            kwargs.update(order_by='upload_time', order='desc')
                         search_request.quantity(
                             group_quantity, size=per_page, examples=1,
-                            after=request.args.get('%s_after' % group_name, None))
+                            after=request.args.get('%s_after' % group_name, None),
+                            **kwargs)
 
                 results = search_request.execute_paginated(
                     per_page=per_page, page=page, order=order, order_by=order_by)

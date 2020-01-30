@@ -790,7 +790,9 @@ class TestRepo():
         uploads = data.get('uploads', None)
         assert uploads is not None
         values = uploads['values']
-        assert values['example_upload_id']['total'] == 4
+        # the 4 uploads have "example upload id", but 3 have older upload time. Therefore,
+        # only 1 calc will be in the (today, "example upload id") bucket.
+        assert values['example_upload_id']['total'] == 1
         assert values['example_upload_id']['examples'][0]['upload_id'] == 'example_upload_id'
         assert 'after' in uploads
         assert 'uploads' in data['statistics']['total']['all']
