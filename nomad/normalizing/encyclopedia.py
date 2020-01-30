@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from hashlib import sha512
 from typing import Dict, List
 from math import gcd as gcd
 from functools import reduce
 from abc import abstractmethod
+from collections import OrderedDict
 import json
 import ase
 import ase.data
@@ -28,6 +28,7 @@ import matid.geometry
 from nomad.normalizing.normalizer import Normalizer, s_scc, s_system, s_frame_sequence, r_frame_sequence_to_sampling, s_sampling_method, r_frame_sequence_local_frames, r_scc_to_system
 from nomad.metainfo.encyclopedia import Encyclopedia, Material, Calculation
 from nomad.normalizing import structure
+from nomad.utils import hash
 from nomad import config
 
 
@@ -276,7 +277,7 @@ class Structure():
 
         # Create and store hash based on SHA512
         norm_hash_string = structure.get_symmetry_string(space_group_number, wyckoff_sets)
-        material.material_hash = sha512(norm_hash_string.encode('utf-8')).hexdigest()
+        material.material_hash = hash(norm_hash_string, length=128)
 
     def number_of_atoms(self, material: Material, std_atoms: ase.Atoms) -> None:
         material.number_of_atoms = len(std_atoms)
@@ -704,7 +705,7 @@ class Structure1D(Structure):
         id_strings.append(formula)
         id_strings.append(fingerprint)
         hash_seed = ", ".join(id_strings)
-        hash_val = sha512(hash_seed.encode('utf-8')).hexdigest()
+        hash_val = hash(hash_seed, length=128)
         material.material_hash = hash_val
 
     def cell_normalized(self, material: Material, std_atoms: ase.Atoms) -> None:
@@ -917,14 +918,49 @@ class Method():
     def code_version(self, calculation: Calculation) -> None:
         calculation.code_version = self.backend["program_version"]
 
-    def method_hash(self):
-        pass
+    def method_hash(self, calculation: Calculation):
+        # Create ordered dictionary with the values. Order is important for
+        # consistent hashing. Not all the settings are set for this
+        # calculation, in which case they will be simply set as None.
+        hash_dict: OrderedDict = OrderedDict()
+        hash_dict['program_name'] = calculation.code_name
+        hash_dict['program_version'] = calculation.code_version
 
-    def group_eos_hash(self):
-        pass
+        # The subclasses may define their own method properties that are to be
+        # included here.
+        hash_dict.update(self.method_hash_dict())
+
+        # Form a hash from the dictionary
+        method_hash = self.group_dict_to_hash("method_hash", hash_dict)
+        calculation.method_hash = method_hash
+
+    def group_eos_hash(self, calculation: Calculation):
+        # Create ordered dictionary with the values. Order is important for
+        # consistent hashing.
+        hash_dict: OrderedDict = OrderedDict()
+        hash_dict['upload_id'] = self.backend["section_entry_info"][0]["upload_id"]  # Only calculations from the same upload are grouped
+
+        # The subclasses may define their own method properties that are to be
+        # included here.
+        hash_dict.update(self.group_eos_hash_dict())
+
+        # Form a hash from the dictionary
+        group_eos_hash = self.group_dict_to_hash('group_eos_hash', hash_dict)
+        calculation.group_eos_hash = group_eos_hash
 
     def group_parametervariation_hash(self):
-        pass
+        # Create ordered dictionary with the values. Order is important for
+        # consistent hashing.
+        hash_dict: OrderedDict = OrderedDict()
+        hash_dict['upload_id'] = self.backend["section_entry_info"][0]["upload_id"]  # Only calculations from the same upload are grouped
+
+        # The subclasses may define their own method properties that are to be
+        # included here.
+        hash_dict.update(self.group_parametervariation_hash_dict())
+
+        # Form a hash from the dictionary
+        group_eos_hash = self.group_dict_to_hash('group_eos_hash', hash_dict)
+        calculation.group_eos_hash = group_eos_hash
 
     def group_e_min(self) -> None:
         pass
@@ -968,6 +1004,49 @@ class Method():
     def smearing_parameters(self) -> None:
         pass
 
+    @abstractmethod
+    def method_hash_dict(self):
+        return OrderedDict();
+
+    @abstractmethod
+    def group_eos_hash_dict(self):
+        return OrderedDict();
+
+    @abstractmethod
+    def group_parametervariation_hash_dict(self):
+        return OrderedDict();
+
+    def group_dict_to_hash(self, name, src_dict: OrderedDict):
+        """Given a dictionary of computational settings, this function forms a
+        hash code from them.
+        """
+        nones = self.find_nones(src_dict)
+        if len(nones) > 0:
+            self.logger.warning(
+                '%s: missing data for hash: %s',
+                name, ', '.join(sorted(nones))
+            )
+        hash_str = json.dumps(src_dict)
+
+        return hash(hash_str)
+
+    def find_nones(self, data, parent='') -> List[str]:
+        """Recursively finds values that are set as None. Returns a list of
+        identifiers for the None-values.
+        """
+        result: List[str] = []
+        if data is None:
+            return [parent]
+        elif isinstance(data, (bytes, str)):
+            return []
+        if getattr(data, 'items', None) is not None:
+            for (k, v) in data.items():
+                result += self.find_nones(v, "%s['%s']" % (parent, k))
+        elif getattr(data, '__len__', None) is not None:
+            for i in range(len(data)):
+                result += self.find_nones(data[i], "%s[%d]" % (parent, i))
+        return result
+
     def fill(self) -> None:
         # Fetch resources
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
@@ -976,6 +1055,7 @@ class Method():
         # Fill metainfo
         self.code_name(calculation)
         self.code_version(calculation)
+        self.method_hash(calculation)
 
 
 class Properties():

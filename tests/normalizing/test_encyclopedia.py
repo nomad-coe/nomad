@@ -13,12 +13,12 @@
 # limitations under the License.
 
 import pytest
-from hashlib import sha512
 import numpy as np
 from ase import Atoms
 import ase.build
 from matid.symmetry.wyckoffset import WyckoffSet
 
+from nomad.utils import hash
 from nomad.parsing import LocalBackend
 from nomad.normalizing import structure
 from nomad.metainfo.encyclopedia import Encyclopedia
@@ -182,7 +182,7 @@ def test_2d_material_identification():
     )]
     space_group_number = 191
     norm_hash_string = structure.get_symmetry_string(space_group_number, wyckoff_sets)
-    graphene_material_hash = sha512(norm_hash_string.encode('utf-8')).hexdigest()
+    graphene_material_hash = hash(norm_hash_string, length=128)
 
     # Graphene orthogonal cell
     graphene = Atoms(
@@ -274,7 +274,7 @@ def test_2d_material_identification():
     ]
     space_group_number = 11
     norm_hash_string = structure.get_symmetry_string(space_group_number, wyckoff_sets)
-    mos2_material_hash = sha512(norm_hash_string.encode('utf-8')).hexdigest()
+    mos2_material_hash = hash(norm_hash_string, length=128)
 
     # MoS2 orthogonal cell
     atoms = Atoms(
