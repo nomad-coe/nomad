@@ -443,14 +443,10 @@ class RawFileQueryResource(Resource):
         def generator():
             try:
                 manifest = {}
+                directories = set()
                 upload_files = None
 
                 for entry in calcs:
-                    manifest_key = path(entry)
-                    if manifest_key in manifest:
-                        print('.')
-                        continue
-
                     upload_id = entry['upload_id']
                     mainfile = entry['mainfile']
                     if upload_files is None or upload_files.upload_id != upload_id:
@@ -470,21 +466,22 @@ class RawFileQueryResource(Resource):
                         def open_file(upload_filename):
                             return upload_files.raw_file(upload_filename, 'rb')
 
-                        def file_size(upload_filename):
-                            return upload_files.raw_file_size(upload_filename)
-
                     directory = os.path.dirname(mainfile)
-                    for filename, _ in upload_files.raw_file_list(directory=directory):
-                        filename = os.path.join(directory, filename)
-                        filename_w_upload = os.path.join(upload_files.upload_id, filename)
-                        filename_wo_prefix = filename_w_upload[common_prefix_len:]
-                        if len(patterns) == 0 or any(
-                                fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
-                                for pattern in patterns):
+                    if directory not in directories:
+                        directories.add(directory)
+                        for filename, file_size in upload_files.raw_file_list(directory=directory):
+                            filename = os.path.join(directory, filename)
+                            filename_w_upload = os.path.join(upload_files.upload_id, filename)
+                            filename_wo_prefix = filename_w_upload[common_prefix_len:]
+                            if len(patterns) == 0 or any(
+                                    fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
+                                    for pattern in patterns):
 
-                            yield (filename_wo_prefix, filename, open_file, file_size)
+                                yield (
+                                    filename_wo_prefix, filename, open_file,
+                                    lambda *args, **kwargs: file_size)
 
-                    manifest[manifest_key] = {
+                    manifest[path(entry)] = {
                         key: entry[key]
                         for key in RawFileQueryResource.manifest_quantities
                         if entry.get(key) is not None
