@@ -73,7 +73,8 @@ def decode_handle_id(handle_str: str):
 
 
 def hash(*args, length: int = default_hash_len) -> str:
-    """ Creates a websave hash of the given length based on the repr of the given arguments. """
+    """Creates a websave hash of the given length based on the repr of the given arguments.
+    """
     hash = hashlib.sha512()
     for arg in args:
         hash.update(str(arg).encode('utf-8'))
@@ -82,7 +83,8 @@ def hash(*args, length: int = default_hash_len) -> str:
 
 
 def make_websave(hash, length: int = default_hash_len) -> str:
-    """ Creates a websave string for a hashlib hash object. """
+    """Creates a websave string for a hashlib hash object.
+    """
     if length > 0:
         return base64.b64encode(hash.digest(), altchars=b'-_')[:length].decode('utf-8')
     else:

@@ -277,7 +277,7 @@ class Structure():
 
         # Create and store hash based on SHA512
         norm_hash_string = structure.get_symmetry_string(space_group_number, wyckoff_sets)
-        material.material_hash = hash(norm_hash_string, length=128)
+        material.material_hash = hash(norm_hash_string)
 
     def number_of_atoms(self, material: Material, std_atoms: ase.Atoms) -> None:
         material.number_of_atoms = len(std_atoms)
@@ -705,7 +705,7 @@ class Structure1D(Structure):
         id_strings.append(formula)
         id_strings.append(fingerprint)
         hash_seed = ", ".join(id_strings)
-        hash_val = hash(hash_seed, length=128)
+        hash_val = hash(hash_seed)
         material.material_hash = hash_val
 
     def cell_normalized(self, material: Material, std_atoms: ase.Atoms) -> None:
@@ -948,7 +948,7 @@ class Method():
         group_eos_hash = self.group_dict_to_hash('group_eos_hash', hash_dict)
         calculation.group_eos_hash = group_eos_hash
 
-    def group_parametervariation_hash(self):
+    def group_parametervariation_hash(self, calculation: Calculation):
         # Create ordered dictionary with the values. Order is important for
         # consistent hashing.
         hash_dict: OrderedDict = OrderedDict()
@@ -960,7 +960,7 @@ class Method():
 
         # Form a hash from the dictionary
         group_eos_hash = self.group_dict_to_hash('group_eos_hash', hash_dict)
-        calculation.group_eos_hash = group_eos_hash
+        calculation.group_parametervariation_hash = group_eos_hash
 
     def group_e_min(self) -> None:
         pass
@@ -1006,15 +1006,15 @@ class Method():
 
     @abstractmethod
     def method_hash_dict(self):
-        return OrderedDict();
+        return OrderedDict()
 
     @abstractmethod
     def group_eos_hash_dict(self):
-        return OrderedDict();
+        return OrderedDict()
 
     @abstractmethod
     def group_parametervariation_hash_dict(self):
-        return OrderedDict();
+        return OrderedDict()
 
     def group_dict_to_hash(self, name, src_dict: OrderedDict):
         """Given a dictionary of computational settings, this function forms a

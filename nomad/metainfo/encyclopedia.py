@@ -14,9 +14,8 @@ class Material(MSection):
     material_hash = Quantity(
         type=str,
         description="""
-        A unique material identifier. For crystals the hash
-        identifier is constructed from formula, space group and
-        wyckoff_position_population.
+        A fixed length, unique material identifier in the form of a hash
+        digest.
         """
     )
     system_type = Quantity(
@@ -266,6 +265,30 @@ class Calculation(MSection):
         unit=units.kg / units.m**3,
         description="""
         Mass density of the material based on the structural information.
+        """
+    )
+    method_hash = Quantity(
+        type=str,
+        description="""
+        A fixed length, unique method identifier in the form of a hash
+        digest.
+        """
+    )
+    group_eos_hash = Quantity(
+        type=str,
+        description="""
+        A fixed length, unique identifier for equation-of-state calculations.
+        Only calculations wihtin the same upload will be grouped under the same
+        hash.
+        """
+    )
+    group_parametervariation_hash = Quantity(
+        type=str,
+        description="""
+        A fixed length, unique identifier for calculations where structure is
+        identical but the used computational parameters are varied.  Only
+        calculations within the same upload will be grouped under the same
+        hash.
         """
     )
     run_type = Quantity(
