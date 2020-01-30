@@ -655,6 +655,12 @@ def create_test_structure(
     backend.closeSection('section_system', 0)
     backend.closeSection('section_run', 0)
 
+    # Add entry info
+    backend.openSection('section_entry_info')
+    backend.addValue('upload_id', 'test_upload_id')
+    backend.addValue('mainfile', 'test/mainfile.txt')
+    backend.closeSection('section_entry_info', 0)
+
     backend = run_normalize(backend)
     calc = CalcWithMetadata(
         upload_id='test_uload_id', calc_id='test_calc_id_%d' % id, mainfile='test_mainfile',
