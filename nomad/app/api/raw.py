@@ -451,6 +451,7 @@ class RawFileQueryResource(Resource):
                     mainfile = entry['mainfile']
                     if upload_files is None or upload_files.upload_id != upload_id:
                         logger.info('opening next upload for raw file streaming')
+                        directories.clear()
                         if upload_files is not None:
                             upload_files.close_zipfile_cache()
 
