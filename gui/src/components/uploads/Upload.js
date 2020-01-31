@@ -14,8 +14,9 @@ import EntryList, { EntryListUnstyled } from '../search/EntryList'
 import { withDomain } from '../domains'
 import DeleteIcon from '@material-ui/icons/Delete'
 import PublishIcon from '@material-ui/icons/Publish'
-import PublishedIcon from '@material-ui/icons/Visibility'
-import UnPublishedIcon from '@material-ui/icons/Lock'
+import PublishedIcon from '@material-ui/icons/Public'
+import UnPublishedIcon from '@material-ui/icons/AccountCircle'
+import DecideIcon from '@material-ui/icons/Help'
 import { withApi } from '../api'
 import Markdown from '../Markdown'
 import ConfirmDialog from './ConfirmDialog'
@@ -143,6 +144,9 @@ class Upload extends React.Component {
     },
     clickableRow: {
       cursor: 'pointer'
+    },
+    decideIcon: {
+      color: theme.palette.secondary.main
     }
   })
 
@@ -464,6 +468,7 @@ class Upload extends React.Component {
           props.children = 'published'
         } else {
           props.children = 'inspect'
+          props.StepIconProps = undefined
 
           if (process_running) {
             if (current_process === 'publish_upload') {
@@ -474,6 +479,11 @@ class Upload extends React.Component {
               props.optional = <Typography variant="caption">deleting data ...</Typography>
             }
           } else {
+            if (stepIndex === 2) {
+              props.StepIconProps = {
+                icon: <DecideIcon classes={{root: classes.decideIcon}}/>
+              }
+            }
             props.optional = <Typography variant="caption">publish or delete</Typography>
           }
         }
@@ -518,7 +528,6 @@ class Upload extends React.Component {
     const { pagination } = calcs
 
     if (pagination.total === 0 && tasks_status !== 'SUCCESS') {
-
       if (this.state.upload.tasks_running) {
         if (waiting) {
           return (
