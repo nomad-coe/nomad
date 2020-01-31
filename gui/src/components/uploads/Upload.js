@@ -20,6 +20,8 @@ import DecideIcon from '@material-ui/icons/Help'
 import { withApi } from '../api'
 import Markdown from '../Markdown'
 import ConfirmDialog from './ConfirmDialog'
+import ClipboardIcon from '@material-ui/icons/Assignment'
+import { CopyToClipboard } from 'react-copy-to-clipboard'
 
 class PublishConfirmDialog extends React.Component {
   static propTypes = {
@@ -352,11 +354,20 @@ class Upload extends React.Component {
 
   renderTitle() {
     const { classes } = this.props
-    const { name, create_time } = this.state.upload
+    const { name, create_time, upload_id } = this.state.upload
 
     return (
       <div className={classes.titleContainer}>
         <Typography variant="h6" className={name ? classes.shortTitle : classes.title}>
+          <CopyToClipboard
+            text={upload_id} onCopy={() => null}
+          >
+            <Tooltip title={`Copy the upload id to clipboard`} onClick={e => e.stopPropagation()}>
+              <IconButton style={{margin: 3, marginRight: 0, padding: 4}}>
+                <ClipboardIcon style={{fontSize: 16}} />
+              </IconButton>
+            </Tooltip>
+          </CopyToClipboard>
           {name || new Date(Date.parse(create_time)).toLocaleString()}
         </Typography>
         {name
