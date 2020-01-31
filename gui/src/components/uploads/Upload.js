@@ -2,8 +2,8 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography,
   ExpansionPanelDetails, Stepper, Step, StepLabel, Tooltip, CircularProgress,
-  IconButton, DialogTitle, DialogContent, FormGroup, Checkbox, Button, Dialog, FormLabel,
-  DialogActions} from '@material-ui/core'
+  IconButton, DialogTitle, DialogContent, Button, Dialog, DialogActions, FormControl,
+  Select, InputLabel, Input, MenuItem, FormHelperText} from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
 import { compose } from 'recompose'
@@ -31,12 +31,12 @@ class PublishConfirmDialog extends React.Component {
   }
 
   state = {
-    withEmbargo: false
+    embargoLength: 0
   }
 
   render() {
     const { onPublish, onClose, open } = this.props
-    const { withEmbargo } = this.state
+    const { embargoLength } = this.state
     return (
       <div>
         <Dialog
@@ -58,20 +58,36 @@ class PublishConfirmDialog extends React.Component {
               entries at any time. This functionality is part of editing entries.
             `}</Markdown>
 
-            <FormGroup row style={{alignItems: 'center'}}>
-              <Checkbox
-                checked={!withEmbargo}
-                onChange={() => this.setState({withEmbargo: !withEmbargo})}
-              />
-              <FormLabel>publish without embargo</FormLabel>
-            </FormGroup>
+            <FormControl style={{width: '100%', marginTop: 24}}>
+              <InputLabel shrink htmlFor="embargo-label-placeholder">
+                Embargo period
+              </InputLabel>
+              <Select
+                value={embargoLength}
+                onChange={e => this.setState({embargoLength: e.target.value})}
+                input={<Input name="embargo" id="embargo-label-placeholder" />}
+                displayEmpty
+                name="embargo"
+                // className={classes.selectEmpty}
+              >
+                <MenuItem value={0}>
+                  <em>No embargo</em>
+                </MenuItem>
+                <MenuItem value={3}>3</MenuItem>
+                <MenuItem value={6}>6</MenuItem>
+                <MenuItem value={12}>12</MenuItem>
+                <MenuItem value={24}>24</MenuItem>
+                <MenuItem value={36}>36</MenuItem>
+              </Select>
+              <FormHelperText>{embargoLength > 0 ? 'months before the data becomes public' : 'publish without embargo'}</FormHelperText>
+            </FormControl>
           </DialogContent>
           <DialogActions>
             <Button onClick={onClose}>
               Cancel
             </Button>
-            <Button onClick={() => onPublish(withEmbargo)} color="primary" autoFocus>
-              {withEmbargo ? 'Publish with embargo' : 'Publish'}
+            <Button onClick={() => onPublish(embargoLength)} color="primary" autoFocus>
+              {embargoLength > 0 ? 'Publish with embargo' : 'Publish'}
             </Button>
           </DialogActions>
         </Dialog>
@@ -330,9 +346,9 @@ class Upload extends React.Component {
     this.setState({showPublishDialog: true})
   }
 
-  handlePublishSubmit(withEmbargo) {
+  handlePublishSubmit(embargoLength) {
     const { api, upload } = this.props
-    api.publishUpload(upload.upload_id, withEmbargo)
+    api.publishUpload(upload.upload_id, embargoLength)
       .then(() => {
         this.setState({showPublishDialog: false})
         this.update()

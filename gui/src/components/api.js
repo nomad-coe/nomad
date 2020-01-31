@@ -449,7 +449,7 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
-  async publishUpload(uploadId, withEmbargo) {
+  async publishUpload(uploadId, embargoLength) {
     this.onStartLoading()
     return this.swagger()
       .then(client => client.apis.uploads.exec_upload_operation({
@@ -457,7 +457,8 @@ class Api {
         payload: {
           operation: 'publish',
           metadata: {
-            with_embargo: withEmbargo
+            with_embargo: embargoLength > 0,
+            embargo_length: embargoLength
           }
         }
       }))
