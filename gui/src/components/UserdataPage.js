@@ -54,7 +54,6 @@ Once you assigned a DOI to a dataset, no entries can be removed or added to the 
 `
 
 class UserdataPage extends React.Component {
-
   render() {
     return (
       <div>
@@ -66,7 +65,7 @@ class UserdataPage extends React.Component {
           <Search
             resultTab="uploads"
             tabs={['uploads', 'datasets', 'entries']}
-            entryListProps={{selectedColumns: ['formula', 'upload_time', 'mainfile', 'co_authors', 'references', 'datasets']}}
+            entryListProps={{selectedColumns: ['formula', 'upload_time', 'mainfile', 'published', 'co_authors', 'references', 'datasets']}}
           />
         </SearchContext>
       </div>

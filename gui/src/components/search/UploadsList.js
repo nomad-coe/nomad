@@ -13,6 +13,7 @@ import DownloadButton from '../DownloadButton'
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import DetailsIcon from '@material-ui/icons/MoreHoriz'
+import { Published } from './EntryList'
 
 class UploadIdUnstyled extends React.Component {
   static propTypes = {
@@ -170,7 +171,8 @@ class UploadListUnstyled extends React.Component {
     },
     published: {
       label: 'Published',
-      render: (upload) => upload.example.published ? 'Yes' : 'No'
+      align: 'center',
+      render: upload => <Published entry={upload.example} />
     }
   }
 
