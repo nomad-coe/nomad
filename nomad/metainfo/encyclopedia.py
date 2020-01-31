@@ -315,6 +315,18 @@ class Calculation(MSection):
         hash.
         """
     )
+    gw_starting_point = Quantity(
+        type=str,
+        description="""
+        The exchange-correlation functional that was used as a starting point for this GW calculation.
+        """
+    )
+    gw_type = Quantity(
+        type=MEnum("G0W0", "scGW"),
+        description="""
+        Basic type of GW calculation.
+        """
+    )
     run_type = Quantity(
         type=MEnum(
             single_point="single point",

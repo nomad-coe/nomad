@@ -72,6 +72,15 @@ def single_point(two_d) -> LocalBackend:
 
 
 @pytest.fixture(scope='session')
+def gw(two_d) -> LocalBackend:
+    parser_name = "parsers/template"
+    filepath = "tests/data/normalizers/gw.json"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
 def geometry_optimization() -> LocalBackend:
     parser_name = "parsers/template"
     filepath = "tests/data/normalizers/fcc_crystal_structure.json"

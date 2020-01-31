@@ -81,14 +81,15 @@ class EncyclopediaNormalizer(Normalizer):
         n_scc = len(sccs)
         n_frame_seq = len(frame_sequences)
 
-        # Only one system, no sequences
-        if n_scc == 1 and n_frame_seq == 0:
+        # No sequences, only a few calculations
+        if n_scc <= 3 and n_frame_seq == 0:
             program_name = self._backend["program_name"]
             if program_name == "elastic":
                 # TODO move to taylor expansion as soon as data is correct in archive
                 run_type = run_enums.elastic_constants
             else:
                 run_type = run_enums.single_point
+
         # One sequence. Currently calculations with multiple sequences are
         # unsupported.
         elif n_frame_seq == 1:
@@ -154,22 +155,48 @@ class EncyclopediaNormalizer(Normalizer):
         return system, system_type
 
     def method_type(self) -> tuple:
-        # Look for a method section tied to the representative system
-        scc_idx = self._backend["section_run"][0].tmp["representative_scc_idx"]
-        method_type = config.services.unavailable_value
-        section_method = None
-        if scc_idx is not None:
+        repr_method = None
+        method_id = config.services.unavailable_value
+        methods = self._backend[s_method]
+        n_methods = len(methods)
 
-            # Look for electronic structure method definition
-            try:
-                scc = self._backend[s_scc][scc_idx]
-                method_idx = scc[r_scc_to_method]
-                section_method = self._backend[s_method][method_idx]
-                method_type = section_method["electronic_structure_method"]
-            except (KeyError, IndexError):
-                pass
+        if n_methods == 1:
+            method = methods[0]
+            method_id = method.get("electronic_structure_method", config.services.unavailable_value)
+        elif n_methods > 1:
+            for sec_method in self._backend[s_method]:
+                # GW
+                electronic_structure_method = sec_method.get("electronic_structure_method", None)
+                if electronic_structure_method in {"G0W0", "scGW"}:
+                    repr_method = sec_method
+                    method_id = electronic_structure_method
+                    break
 
-        return section_method, method_type
+                # Methods linked to each other through references. Get all
+                # linked methods, try to get electronic_structure_method from
+                # each.
+                try:
+                    refs = sec_method["section_method_to_method_refs"]
+                except KeyError:
+                    pass
+                else:
+                    linked_methods = [sec_method]
+                    for ref in refs:
+                        method_to_method_kind = ref["method_to_method_kind"]
+                        method_to_method_ref = ref["method_to_method_ref"]
+                        if method_to_method_kind == "core_settings":
+                            linked_methods.append(methods[method_to_method_ref])
+
+                    for method in linked_methods:
+                        try:
+                            electronic_structure_method = method["electronic_structure_method"]
+                        except KeyError:
+                            pass
+                        else:
+                            repr_method = sec_method
+                            method_id = electronic_structure_method
+
+        return repr_method, method_id
 
     def mainfile_uri(self, calculation: Calculation):
         entry_info = self._backend["section_entry_info"][0]
@@ -218,6 +245,8 @@ class EncyclopediaNormalizer(Normalizer):
         method = None
         if ctx.method_type == "DFT":
             method = MethodDFT(self._backend, self.logger)
+        elif ctx.method_type in {"G0W0", "scGW"}:
+            method = MethodGW(self._backend, self.logger)
         if method is not None:
             method.fill(ctx)
 
@@ -1076,12 +1105,6 @@ class MethodDFT(Method):
     """A base class that is used for processing method related information
     in the Encylopedia.
     """
-    def k_point_grid_description(self) -> None:
-        pass
-
-    def basis_set_short_name(self) -> None:
-        pass
-
     def basis_set_type(self, calculation: Calculation) -> None:
         """Type of basis set used by the code"""
         basis_set_type = config.services.unavailable_value
@@ -1122,19 +1145,42 @@ class MethodDFT(Method):
             treatment = core_electron_treatments.get(code_name, config.services.unavailable_value)
         calculation.core_electron_treatment = treatment
 
-    def functional_long_name(self, calculation: Calculation) -> None:
+    def functional_long_name(self, calculation: Calculation, repr_method) -> None:
         """'Long' form of exchange-correlation functional, list of components
         and parameters as a string: see
         https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/XC-functional
         """
-        xc_functional = None
+        method = repr_method
+        xc_functional = MethodDFT.functional_long_name_from_method(method, self.backend[s_method])
+        if xc_functional is config.services.unavailable_value:
+            self.logger.error(
+                "Metainfo for 'XC_functional' not found, and could not "
+                "compose name from 'section_XC_functionals'."
+            )
+        calculation.functional_long_name = xc_functional
+
+    @staticmethod
+    def functional_long_name_from_method(repr_method, methods):
+        """'Long' form of exchange-correlation functional, list of components
+        and parameters as a string: see
+        https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/XC-functional
+        """
+        linked_methods = [repr_method]
         try:
-            xc_functional = self.backend['XC_functional']
+            refs = repr_method["section_method_to_method_refs"]
         except KeyError:
-            # Check if the XC_functional name has been set, if not, try to
-            # compose it
+            pass
+        else:
+            for ref in refs:
+                method_to_method_kind = ref["method_to_method_kind"]
+                method_to_method_ref = ref["method_to_method_ref"]
+                if method_to_method_kind == "core_settings":
+                    linked_methods.append(methods[method_to_method_ref])
+
+        xc_functional = config.services.unavailable_value
+        for method in linked_methods:
             try:
-                section_xc_functionals = self.backend["section_XC_functionals"]
+                section_xc_functionals = method["section_XC_functionals"]
             except KeyError:
                 pass
             else:
@@ -1156,13 +1202,7 @@ class MethodDFT(Method):
                 if len(result_array) >= 1:
                     xc_functional = '+'.join(result_array)
 
-        if xc_functional is None:
-            self.logger.error(
-                "Metainfo for 'XC_functional' not found, and could not "
-                "compose name from 'section_XC_functionals'."
-            )
-
-        calculation.functional_long_name = xc_functional
+        return xc_functional
 
     def functional_type(self, calculation: Calculation, method_type) -> None:
         if method_type == "GW":
@@ -1172,15 +1212,6 @@ class MethodDFT(Method):
             if long_name is not None:
                 short_name = self.create_xc_functional_shortname(long_name)
                 calculation.functional_type = short_name
-
-    def gw_starting_point(self) -> None:
-        pass
-
-    def gw_type(self) -> None:
-        pass
-
-    def pseudopotential_type(self) -> None:
-        pass
 
     def smearing_kind(self, calculation: Calculation, representative_method) -> None:
         try:
@@ -1331,7 +1362,7 @@ class MethodDFT(Method):
 
     def fill(self, ctx: Context) -> None:
         # Fetch resources
-        repr_method = ctx.representative_system
+        repr_method = ctx.representative_method
         repr_system = ctx.representative_system
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         calculation = sec_enc.calculation
@@ -1342,13 +1373,46 @@ class MethodDFT(Method):
         self.code_name(calculation)
         self.code_version(calculation)
         self.core_electron_treatment(calculation)
-        self.functional_long_name(calculation)
+        self.functional_long_name(calculation, repr_method)
         self.functional_type(calculation, ctx.method_type)
         self.smearing_kind(calculation, repr_method)
         self.smearing_parameter(calculation, repr_method)
         self.method_hash(calculation)
         self.group_eos_hash(calculation, settings_basis_set, repr_method)
         self.group_parametervariation_hash(calculation, settings_basis_set, repr_system, repr_method)
+
+
+class MethodGW(MethodDFT):
+    """A base class that is used for processing GW calculations.
+    """
+    def gw_starting_point(self, calculation: Calculation, repr_method) -> None:
+        try:
+            ref = repr_method["section_method_to_method_refs"][0]
+            method_to_method_kind = ref["method_to_method_kind"]
+            method_to_method_ref = ref["method_to_method_ref"]
+        except KeyError:
+            pass
+        else:
+            if method_to_method_kind == "starting_point":
+                methods = self.backend[s_method]
+                start_method = methods[method_to_method_ref]
+                xc_functional = MethodDFT.functional_long_name_from_method(start_method, methods)
+                calculation.gw_starting_point = xc_functional
+
+    def gw_type(self, calculation: Calculation, method_type: str) -> None:
+        calculation.gw_type = method_type
+
+    def fill(self, ctx: Context) -> None:
+        # Fetch resources
+        repr_method = ctx.representative_method
+        sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
+        calculation = sec_enc.calculation
+
+        # Fill metainfo
+        self.code_name(calculation)
+        self.code_version(calculation)
+        self.gw_type(calculation, ctx.method_type)
+        self.gw_starting_point(calculation, repr_method)
 
 
 class Properties():
