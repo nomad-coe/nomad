@@ -437,7 +437,6 @@ class RawFileQueryResource(Resource):
             paths = [path(entry) for entry in calcs]
             common_prefix_len = len(utils.common_prefix(paths))
         else:
-            calcs = list(calcs)
             common_prefix_len = 0
 
         def generator():
