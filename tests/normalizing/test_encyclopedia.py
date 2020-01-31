@@ -438,3 +438,4 @@ def test_method_metainfo(single_point):
     assert enc.calculation.code_version == "010314"
     assert enc.calculation.mainfile_uri == "nmd://Rtest_upload_id/data/test/mainfile.txt"
     assert enc.calculation.functional_long_name == "GGA_C_PBE+GGA_X_PBE"
+    assert enc.calculation.functional_type == "GGA"

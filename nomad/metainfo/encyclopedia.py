@@ -249,6 +249,12 @@ class Calculation(MSection):
         Full identified for the used exchange-correlation functional.
         """
     )
+    functional_type = Quantity(
+        type=str,
+        description="""
+        Basic type of the used exchange-correlation functional.
+        """
+    )
     lattice_parameters = Quantity(
         type=np.dtype('f8'),
         shape=[6],

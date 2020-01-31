@@ -34,6 +34,24 @@ from nomad import config
 J_to_Ry = 4.587425e+17
 
 
+class Context():
+    """A simple class for holding the context related to an Encylopedia entry.
+    """
+    def __init__(
+        self,
+        system_type: str,
+        method_type: str,
+        run_type: str,
+        representative_system,
+        representative_method,
+    ):
+        self.system_type = system_type
+        self.method_type = method_type
+        self.run_type = run_type
+        self.representative_system = representative_system
+        self.representative_method = representative_method
+
+
 class EncyclopediaNormalizer(Normalizer):
     """
     This normalizer emulates the functionality of the old Encyclopedia backend.
@@ -184,24 +202,24 @@ class EncyclopediaNormalizer(Normalizer):
     # def number_of_calculations(self) -> None:
         # pass
 
-    def fill(self, run_type, system_type, method_type, representative_system, representative_method):
+    def fill(self, ctx):
         # Fill structure related metainfo
         struct = None
-        if system_type == Material.system_type.type.bulk:
-            struct = StructureBulk(self._backend, self.logger, representative_system)
-        elif system_type == Material.system_type.type.two_d:
-            struct = Structure2D(self._backend, self.logger, representative_system)
-        elif system_type == Material.system_type.type.one_d:
-            struct = Structure1D(self._backend, self.logger, representative_system)
+        if ctx.system_type == Material.system_type.type.bulk:
+            struct = StructureBulk(self._backend, self.logger)
+        elif ctx.system_type == Material.system_type.type.two_d:
+            struct = Structure2D(self._backend, self.logger)
+        elif ctx.system_type == Material.system_type.type.one_d:
+            struct = Structure1D(self._backend, self.logger)
         if struct is not None:
-            struct.fill()
+            struct.fill(ctx)
 
         # Fill method related metainfo
         method = None
-        if method_type == "DFT":
-            method = MethodDFT(self._backend, self.logger, representative_system, representative_method)
+        if ctx.method_type == "DFT":
+            method = MethodDFT(self._backend, self.logger)
         if method is not None:
-            method.fill()
+            method.fill(ctx)
 
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
@@ -233,19 +251,27 @@ class EncyclopediaNormalizer(Normalizer):
         # Process all present properties
         # TODO
 
+        # Create one context that holds all details
+        context = Context(
+            system_type=system_type,
+            method_type=method_type,
+            run_type=run_type,
+            representative_system=representative_system,
+            representative_method=representative_method,
+        )
+
         # Put the encyclopedia section into backend
         self._backend.add_mi2_section(sec_enc)
-        self.fill(run_type, system_type, method_type, representative_system, representative_method)
+        self.fill(context)
 
 
 class Structure():
     """A base class that is used for processing structure related information
     in the Encylopedia.
     """
-    def __init__(self, backend, logger, representative_system):
+    def __init__(self, backend, logger):
         self.backend = backend
         self.logger = logger
-        self.representative_system = representative_system
 
     def atom_labels(self, material: Material, std_atoms: ase.Atoms) -> None:
         material.atom_labels = std_atoms.get_chemical_symbols()
@@ -284,7 +310,7 @@ class Structure():
         material.number_of_atoms = len(std_atoms)
 
     @abstractmethod
-    def fill(self) -> None:
+    def fill(self, ctx: Context) -> None:
         pass
 
 
@@ -549,9 +575,9 @@ class StructureBulk(Structure):
             wyckoff_list.append(data)
         material.wyckoff_groups = json.dumps(wyckoff_list, sort_keys=True)
 
-    def fill(self) -> None:
+    def fill(self, ctx: Context) -> None:
         # Fetch resources
-        sec_system = self.representative_system
+        sec_system = ctx.representative_system
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         material = sec_enc.material
         calculation = sec_enc.calculation
@@ -666,12 +692,12 @@ class Structure2D(Structure):
         )
         return symmetry_analyzer
 
-    def fill(self) -> None:
+    def fill(self, ctx: Context) -> None:
         # Fetch resources
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         material = sec_enc.material
         calculation = sec_enc.calculation
-        repr_atoms = self.representative_system.tmp["representative_atoms"]  # Temporary value stored by SystemNormalizer
+        repr_atoms = ctx.representative_system.tmp["representative_atoms"]  # Temporary value stored by SystemNormalizer
         symmetry_analyzer = self.get_symmetry_analyzer(repr_atoms)
         std_atoms = symmetry_analyzer.get_conventional_system()
         prim_atoms = symmetry_analyzer.get_primitive_system()
@@ -880,9 +906,9 @@ class Structure1D(Structure):
 
         return std_atoms
 
-    def fill(self) -> None:
+    def fill(self, ctx: Context) -> None:
         # Fetch resources
-        sec_system = self.representative_system
+        sec_system = ctx.representative_system
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         material = sec_enc.material
         calculation = sec_enc.calculation
@@ -911,11 +937,9 @@ class Method():
     """A base class that is used for processing method related information
     in the Encylopedia.
     """
-    def __init__(self, backend, logger, representative_system, representative_method):
+    def __init__(self, backend, logger):
         self.backend = backend
         self.logger = logger
-        self.representative_system = representative_system
-        self.representative_method = representative_method
 
     def code_name(self, calculation: Calculation) -> None:
         calculation.code_name = self.backend["program_name"]
@@ -939,7 +963,7 @@ class Method():
         method_hash = self.group_dict_to_hash("method_hash", hash_dict)
         calculation.method_hash = method_hash
 
-    def group_eos_hash(self, calculation: Calculation, settings_basis_set: OrderedDict):
+    def group_eos_hash(self, calculation: Calculation, settings_basis_set: OrderedDict, repr_method):
         # Create ordered dictionary with the values. Order is important for
         # consistent hashing.
         hash_dict: OrderedDict = OrderedDict()
@@ -947,32 +971,34 @@ class Method():
 
         # The subclasses may define their own method properties that are to be
         # included here.
-        hash_dict.update(self.group_eos_hash_dict(calculation, settings_basis_set))
+        hash_dict.update(self.group_eos_hash_dict(calculation, settings_basis_set, repr_method))
 
         # Form a hash from the dictionary
         group_eos_hash = self.group_dict_to_hash('group_eos_hash', hash_dict)
         calculation.group_eos_hash = group_eos_hash
 
-    def group_parametervariation_hash(self, calculation: Calculation, settings_basis_set: OrderedDict):
+    def group_parametervariation_hash(self, calculation: Calculation, settings_basis_set: OrderedDict, repr_system, repr_method):
         # Create ordered dictionary with the values. Order is important for
         # consistent hashing.
         hash_dict: OrderedDict = OrderedDict()
         hash_dict['upload_id'] = self.backend["section_entry_info"][0]["upload_id"]  # Only calculations from the same upload are grouped
 
         # Get a string representation of the geometry. It is included as the
-        # geometry should remain the same during parameter variation.
+        # geometry should remain the same during parameter variation. By simply
+        # using the atom labels and positions we assume that their
+        # order/translation/rotation does not change.
         geom_dict: OrderedDict = OrderedDict()
-        sec_sys = self.representative_system
+        sec_sys = repr_system
         atom_labels = sec_sys['atom_labels']
         geom_dict['atom_labels'] = ', '.join(atom_labels)
         atom_positions = sec_sys['atom_positions']
         geom_dict['atom_positions'] = np.array2string(
-            atom_positions * 1e+10,  # convert to Angstrom
+            atom_positions * 1e10,  # convert to Angstrom
             formatter={'float_kind': lambda x: "%.6f" % x},
         ).replace('\n', '')
-        cell = sec_sys['simulation_cell']
+        cell = sec_sys['lattice_vectors']
         geom_dict['simulation_cell'] = np.array2string(
-            cell * 1e+10,  # convert to Angstrom
+            cell * 1e10,  # convert to Angstrom
             formatter={'float_kind': lambda x: "%.6f" % x},
         ).replace('\n', '')
 
@@ -980,7 +1006,7 @@ class Method():
 
         # The subclasses may define their own method properties that are to be
         # included here.
-        hash_dict.update(self.group_parametervariation_hash_dict(calculation, settings_basis_set))
+        hash_dict.update(self.group_parametervariation_hash_dict(calculation, settings_basis_set, repr_method))
 
         # Form a hash from the dictionary
         group_eos_hash = self.group_dict_to_hash('group_eos_hash', hash_dict)
@@ -997,11 +1023,11 @@ class Method():
         return OrderedDict()
 
     @abstractmethod
-    def group_eos_hash_dict(self, calculation: Calculation, settings_basis_set: OrderedDict):
+    def group_eos_hash_dict(self, calculation: Calculation, settings_basis_set: OrderedDict, repr_method):
         return OrderedDict()
 
     @abstractmethod
-    def group_parametervariation_hash_dict(self, calculation: Calculation, settings_basis_set: OrderedDict):
+    def group_parametervariation_hash_dict(self, calculation: Calculation, settings_basis_set: OrderedDict, repr_method):
         return OrderedDict()
 
     def group_dict_to_hash(self, name, src_dict: OrderedDict):
@@ -1035,7 +1061,7 @@ class Method():
                 result += self.find_nones(data[i], "%s[%d]" % (parent, i))
         return result
 
-    def fill(self) -> None:
+    def fill(self, ctx: Context) -> None:
         # Fetch resources
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         calculation = sec_enc.calculation
@@ -1104,8 +1130,14 @@ class MethodDFT(Method):
 
         calculation.functional_long_name = xc_functional
 
-    def functional_type(self) -> None:
-        pass
+    def functional_type(self, calculation: Calculation, method_type) -> None:
+        if method_type == "GW":
+            calculation.functional_type = "GW"
+        else:
+            long_name = calculation.functional_long_name
+            if long_name is not None:
+                short_name = self.create_xc_functional_shortname(long_name)
+                calculation.functional_type = short_name
 
     def gw_starting_point(self) -> None:
         pass
@@ -1116,17 +1148,17 @@ class MethodDFT(Method):
     def pseudopotential_type(self) -> None:
         pass
 
-    def smearing_kind(self, calculation: Calculation) -> None:
+    def smearing_kind(self, calculation: Calculation, representative_method) -> None:
         try:
-            smearing_kind = self.representative_method['smearing_kind']
+            smearing_kind = representative_method['smearing_kind']
         except KeyError:
             pass
         else:
             calculation.smearing_kind = smearing_kind
 
-    def smearing_parameter(self, calculation: Calculation) -> None:
+    def smearing_parameter(self, calculation: Calculation, representative_method) -> None:
         try:
-            smearing_width = self.representative_method['smearing_width']
+            smearing_width = representative_method['smearing_width']
         except KeyError:
             pass
         else:
@@ -1140,22 +1172,22 @@ class MethodDFT(Method):
 
         return hash_dict
 
-    def group_eos_hash_dict(self, calculation: Calculation, settings_basis_set: OrderedDict) -> OrderedDict:
+    def group_eos_hash_dict(self, calculation: Calculation, settings_basis_set: OrderedDict, repr_method) -> OrderedDict:
         # Extend by numerical settings TODO: maybe add basis set parameters /
         # other computational parameters
         hash_dict: OrderedDict = OrderedDict()
         hash_dict['settings_k_point_sampling'] = self.settings_k_point_sampling(calculation)
         hash_dict['settings_basis_set'] = settings_basis_set
         try:
-            conv_thr = self.representative_method['scf_threshold_energy_change']
+            conv_thr = repr_method['scf_threshold_energy_change']
         except Exception:
             pass
         else:
-            hash_dict['scf_threshold_energy_change'] = conv_thr
+            hash_dict['scf_threshold_energy_change'] = '%.13f' % (conv_thr * J_to_Ry)
 
         return hash_dict
 
-    def group_parametervariation_hash_dict(self, calculation: Calculation, settings_basis_set: OrderedDict):
+    def group_parametervariation_hash_dict(self, calculation: Calculation, settings_basis_set: OrderedDict, repr_method):
         """Dictionary containing the parameters used for convergence test
         grouping
         This is the source for generating the related hash."""
@@ -1168,11 +1200,11 @@ class MethodDFT(Method):
         #   - basis set parameters
         # convergence threshold should be kept constant during convtest
         try:
-            conv_thr = self.representative_method['scf_threshold_energy_change']
+            conv_thr = repr_method['scf_threshold_energy_change']
         except KeyError:
             pass
         else:
-            hash_dict['scf_threshold_energy_change'] = conv_thr
+            hash_dict['scf_threshold_energy_change'] = '%.13f' % (conv_thr * J_to_Ry)
 
         # Pseudopotentials are kept constant, if applicable
         if settings_basis_set is not None:
@@ -1214,8 +1246,61 @@ class MethodDFT(Method):
         result: OrderedDict = OrderedDict()
         return result
 
-    def fill(self) -> None:
+    def create_xc_functional_shortname(self, xc_longname):
+        """Use lookup table to transform xc functional long- into shortname.
+        """
+        # Loof for "special" functional names listed in table
+        """Easily editable table of 'short' XC functional names"""
+        xc_functional_shortname = {
+            'HF_X': 'HF',
+            'HYB_GGA_XC_B3LYP5': 'hybrid-GGA',
+            'HYB_GGA_XC_HSE06': 'hybrid-GGA',
+            'BEEF-vdW': 'vdW-DF'
+        }
+        shortname = xc_functional_shortname.get(xc_longname, None)
+
+        # If not, look into other options:
+        if shortname is None:
+            xc_functional_starts = {
+                "LDA": "LDA",
+                "GGA": "GGA",
+                "HYB_GGA": "hybrid-GGA",
+                "MGGA": "meta-GGA",
+                "HYB_MGGA": "hybrid-meta-GGA",
+                "HF": "HF"
+            }
+            sections = xc_longname.split("+")
+            # decompose long name, this could be done more consistent with the
+            # composition of the long name
+            funcnames = []
+            for section in sections:
+                funcname = section.split('*')[-1]
+                for func_start in xc_functional_starts:
+                    if funcname.startswith(func_start):
+                        funcnames.append(func_start)
+                        break
+            funcnames = set(funcnames)
+
+            # Only one functional is defined
+            # (usually for correlation and exchange)
+            if len(funcnames) == 1:
+                shortname = xc_functional_starts[func_start]
+            # Two functionals that give a hybrid-GGA functional
+            elif "GGA" in funcnames and "HF" in funcnames:
+                shortname = "hybrid-GGA"
+
+        if shortname is None:
+            self.logger.warning(
+                "Could not find a functional shortname for xc_functional {}."
+                .format(xc_longname)
+            )
+
+        return shortname
+
+    def fill(self, ctx: Context) -> None:
         # Fetch resources
+        repr_method = ctx.representative_system
+        repr_system = ctx.representative_system
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         calculation = sec_enc.calculation
         settings_basis_set = self.settings_basis_set(calculation)
@@ -1224,11 +1309,12 @@ class MethodDFT(Method):
         self.code_name(calculation)
         self.code_version(calculation)
         self.functional_long_name(calculation)
-        self.smearing_kind(calculation)
-        self.smearing_parameter(calculation)
+        self.functional_type(calculation, ctx.method_type)
+        self.smearing_kind(calculation, repr_method)
+        self.smearing_parameter(calculation, repr_method)
         self.method_hash(calculation)
-        self.group_eos_hash(calculation, settings_basis_set)
-        self.group_parametervariation_hash(calculation, settings_basis_set)
+        self.group_eos_hash(calculation, settings_basis_set, repr_method)
+        self.group_parametervariation_hash(calculation, settings_basis_set, repr_system, repr_method)
 
 
 class Properties():
