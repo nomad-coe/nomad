@@ -10,6 +10,21 @@ import { Link as RouterLink } from 'react-router-dom'
 import DetailsIcon from '@material-ui/icons/MoreHoriz'
 import EditUserMetadataDialog from '../EditUserMetadataDialog'
 import DownloadButton from '../DownloadButton'
+import PublishedIcon from '@material-ui/icons/Public'
+import PrivateIcon from '@material-ui/icons/AccountCircle'
+
+export function Published(props) {
+  const {entry} = props
+  if (entry.published) {
+    return <Tooltip title={entry.with_embargo ? 'published with embargo' : 'published'}>
+      {entry.with_embargo ? <PrivateIcon color="primary"/> : <PublishedIcon color="primary" />}
+    </Tooltip>
+  } else {
+    return <Tooltip title="not published yet">
+      <PrivateIcon color="secondary"/>
+    </Tooltip>
+  }
+}
 
 export class EntryListUnstyled extends React.Component {
   static propTypes = {
@@ -76,6 +91,11 @@ export class EntryListUnstyled extends React.Component {
       render: entry => new Date(entry.upload_time).toLocaleString(),
       supportsSort: true,
       description: 'The time this entry was uploaded.'
+    },
+    published: {
+      label: 'Published',
+      align: 'center',
+      render: (entry) => <Published entry={entry} />
     },
     authors: {
       label: 'Authors',

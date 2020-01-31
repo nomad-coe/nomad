@@ -14,6 +14,8 @@
 
 import pytest
 import numpy as np
+from ase import Atoms
+import ase.build
 
 from nomad import datamodel, config
 from nomad.parsing import LocalBackend
@@ -22,6 +24,7 @@ from nomad.normalizing import normalizers
 from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_example  # pylint: disable=unused-import
+from tests.test_parsing import parsed_template_no_system  # pylint: disable=unused-import
 from tests.test_parsing import parse_file
 from tests.utils import assert_log
 
@@ -105,6 +108,102 @@ def normalized_template_example(parsed_template_example) -> LocalBackend:
     return run_normalize(parsed_template_example)
 
 
+def run_normalize_for_structure(atoms: Atoms) -> LocalBackend:
+    template = parsed_template_no_system()
+
+    # Fill structural information
+    gid = template.openSection("section_system")
+    template.addArrayValues("atom_positions", atoms.get_positions() * 1E-10)
+    template.addArrayValues("atom_labels", atoms.get_chemical_symbols())
+    template.addArrayValues("simulation_cell", atoms.get_cell() * 1E-10)
+    template.addArrayValues("configuration_periodic_dimensions", atoms.get_pbc())
+    template.closeSection("section_system", gid)
+
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def single_point(two_d) -> LocalBackend:
+    return two_d
+
+
+@pytest.fixture(scope='session')
+def geometry_optimization() -> LocalBackend:
+    parser_name = "parsers/template"
+    filepath = "tests/data/normalizers/fcc_crystal_structure.json"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def molecular_dynamics(bulk) -> LocalBackend:
+    return bulk
+
+
+@pytest.fixture(scope='session')
+def phonon() -> LocalBackend:
+    parser_name = "parsers/phonopy"
+    filepath = "tests/data/parsers/phonopy/phonopy-FHI-aims-displacement-01/control.in"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def bulk() -> LocalBackend:
+    parser_name = "parsers/cp2k"
+    filepath = "tests/data/normalizers/cp2k_bulk_md/si_md.out"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def two_d() -> LocalBackend:
+    parser_name = "parsers/fhi-aims"
+    filepath = "tests/data/normalizers/fhiaims_2d_singlepoint/aims.out"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def surface() -> LocalBackend:
+    parser_name = "parsers/fhi-aims"
+    filepath = "tests/data/normalizers/fhiaims_surface_singlepoint/PBE-light+tight-rho2.out"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def molecule() -> LocalBackend:
+    parser_name = "parsers/fhi-aims"
+    filepath = "tests/data/normalizers/fhiaims_molecule_singlepoint/aims.out"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def atom() -> LocalBackend:
+    parser_name = "parsers/gaussian"
+    filepath = "tests/data/normalizers/gaussian_atom_singlepoint/m9b7.out"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def one_d() -> LocalBackend:
+    parser_name = "parsers/exciting"
+    filepath = "tests/data/normalizers/exciting_1d_singlepoint/INFO.OUT"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
 def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
     run_normalize(parsed_template_example)
 
@@ -182,16 +281,56 @@ def test_symmetry_classification_fcc():
     assert all(origin_shift == expected_origin_shift)
 
 
-def test_system_classification():
-    "Ensure the classification of fcc Na is atom"
-    # TODO: @dts - This is a bit strange that a system with only
-    # one atom is automatically classified as atom. It could be
-    # an elemental solid.
-    backend = parse_file(fcc_symmetry)
-    backend = run_normalize(backend)
-    expected_system_type = 'atom'
-    system_type = backend.get_value('system_type')
-    assert expected_system_type == system_type
+def test_system_classification(atom, molecule, one_d, two_d, surface, bulk):
+    # Atom
+    assert atom['system_type'] == "atom"
+    # Molecule / cluster
+    assert molecule['system_type'] == "molecule / cluster"
+    # 1D
+    assert one_d['system_type'] == "1D"
+    # 2D
+    assert two_d['system_type'] == "2D"
+    # Surface
+    assert surface['system_type'] == "surface"
+    # Bulk
+    assert bulk['system_type'] == "bulk"
+
+
+def test_representative_systems(single_point, molecular_dynamics, geometry_optimization, phonon):
+    """Checks that the representative systems are correctly identified and
+    processed by SystemNormalizer.
+    """
+    def check_representative_frames(backend):
+        # For systems with multiple frames the first and two last should be processed.
+        try:
+            frames = backend["frame_sequence_local_frames_ref"]
+        except KeyError:
+            sccs = backend["section_single_configuration_calculation"]
+            scc = sccs[-1]
+            repr_system_idx = scc["single_configuration_calculation_to_system_ref"]
+        else:
+            sampling_method = backend["sampling_method"]
+            if sampling_method == "molecular_dynamics":
+                idx = 0
+            else:
+                idx = -1
+            scc_idx = frames[idx]
+            scc = backend["section_single_configuration_calculation"][scc_idx]
+            repr_system_idx = scc["single_configuration_calculation_to_system_ref"]
+
+        # Check that only the representative system has been labels with
+        # "is_representative"
+        for i, system in enumerate(backend["section_system"]):
+            if i == repr_system_idx:
+                assert system["is_representative"] is True
+            else:
+                with pytest.raises(KeyError):
+                    system["is_representative"]
+
+    check_representative_frames(single_point)
+    check_representative_frames(molecular_dynamics)
+    check_representative_frames(geometry_optimization)
+    check_representative_frames(phonon)
 
 
 def test_reduced_chemical_formula():
@@ -217,6 +356,46 @@ def test_vasp_incar_system():
 
     print("backend_value: ", backend_value)
     assert expected_value == backend_value
+
+
+def test_aflow_prototypes():
+    """Tests that some basis structures are matched with the correct AFLOW prototypes
+    """
+    # Diamond
+    diamond = ase.build.bulk("C", crystalstructure="diamond", a=3.57)
+    backend = run_normalize_for_structure(diamond)
+    prototype_aflow_id = backend.get_value("prototype_aflow_id")
+    assert prototype_aflow_id == "A_cF8_227_a"
+
+    # BCC
+    bcc = ase.build.bulk("Fe", crystalstructure="bcc", a=2.856)
+    backend = run_normalize_for_structure(bcc)
+    prototype_aflow_id = backend.get_value("prototype_aflow_id")
+    assert prototype_aflow_id == "A_cI2_229_a"
+
+    # FCC
+    fcc = ase.build.bulk("Ge", crystalstructure="fcc", a=5.658)
+    backend = run_normalize_for_structure(fcc)
+    prototype_aflow_id = backend.get_value("prototype_aflow_id")
+    assert prototype_aflow_id == "A_cF4_225_a"
+
+    # Rocksalt
+    rocksalt = ase.build.bulk("NaCl", crystalstructure="rocksalt", a=5.64)
+    backend = run_normalize_for_structure(rocksalt)
+    prototype_aflow_id = backend.get_value("prototype_aflow_id")
+    assert prototype_aflow_id == "AB_cF8_225_a_b"
+
+    # Zincblende
+    zincblende = ase.build.bulk("ZnS", crystalstructure="zincblende", a=5.42)
+    backend = run_normalize_for_structure(zincblende)
+    prototype_aflow_id = backend.get_value("prototype_aflow_id")
+    assert prototype_aflow_id == "AB_cF8_216_c_a"
+
+    # Wurtzite
+    wurtzite = ase.build.bulk("SiC", crystalstructure="wurtzite", a=3.086, c=10.053)
+    backend = run_normalize_for_structure(wurtzite)
+    prototype_aflow_id = backend.get_value("prototype_aflow_id")
+    assert prototype_aflow_id == "AB_hP4_186_b_b"
 
 
 def test_springer_normalizer():

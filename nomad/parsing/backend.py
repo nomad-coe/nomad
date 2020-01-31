@@ -413,6 +413,9 @@ class LocalBackend(LegacyParserBackend, metaclass=DelegatingMeta):
         self._open_context: Tuple[str, int] = None
         self._context_section = None
 
+    def __getitem__(self, metaname):
+        return self.data[metaname]
+
     def __getattr__(self, name):
         """ Support for unimplemented and unexpected methods. """
         if name not in self._known_attributes and self._unknown_attributes.get(name) is None:

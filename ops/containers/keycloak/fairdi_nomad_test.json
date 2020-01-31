@@ -1244,14 +1244,14 @@
     "strictTransportSecurity": "max-age=31536000; includeSubDomains"
   },
   "smtpServer": {
-    "replyToDisplayName": "The NOMAD team",
+    "replyToDisplayName": "The nomad team",
     "starttls": "",
     "auth": "",
     "port": "25",
     "host": "mailrelay.mpcdf.mpg.de",
     "replyTo": "webmaster@nomad-coe.eu",
     "from": "webmaster@nomad-coe.eu",
-    "fromDisplayName": "The NOMAD team",
+    "fromDisplayName": "The nomad team",
     "ssl": ""
   },
   "loginTheme": "material",

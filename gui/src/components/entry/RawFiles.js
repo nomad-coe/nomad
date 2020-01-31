@@ -176,6 +176,14 @@ class RawFiles extends React.Component {
     }
   }
 
+  filterPotcar(file) {
+    if (file.toLowerCase().endsWith('potcar')) {
+      return this.props.data.uploader.user_id === this.props.user.sub
+    } else {
+      return true
+    }
+  }
+
   render() {
     const {classes, uploadId, calcId, loading, data} = this.props
     const {selectedFiles, files, doesNotExist, fileContents, shownFile} = this.state
@@ -226,15 +234,15 @@ class RawFiles extends React.Component {
         <Divider />
         <div style={{display: 'flex', flexDirection: 'row'}}>
           <div style={{width: '25%'}}>
-            {availableFiles.map((file, index) => (
+            {availableFiles.filter(this.filterPotcar.bind(this)).map((file, index) => (
               <FormGroup row key={index} className={classes.fileNameFormGroup}>
                 <Tooltip title={file}>
                   <FormControlLabel
                     style={{flexGrow: 1, overflowX: 'hidden', textOverflow: 'ellipsis'}}
                     label={this.label(file)}
                     classes={{
-                        root: classes.fileNameFormGroupLabel,
-                        label: file === shownFile ? classes.shownFile : classes.fileNameLabel}}
+                      root: classes.fileNameFormGroupLabel,
+                      label: file === shownFile ? classes.shownFile : classes.fileNameLabel}}
                     control={
                       <Checkbox
                         disabled={loading > 0}

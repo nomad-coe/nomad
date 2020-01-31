@@ -460,12 +460,12 @@ def send_mail(name: str, email: str, message: str, subject: str):
 
     msg = MIMEText(message)
     msg['Subject'] = subject
-    msg['From'] = 'The NOMAD team <%s>' % config.mail.from_address
+    msg['From'] = 'The nomad team <%s>' % config.mail.from_address
     msg['To'] = name
     to_addrs = [email]
 
     if config.mail.cc_address is not None:
-        msg['Cc'] = 'The NOMAD team <%s>' % config.mail.cc_address
+        msg['Cc'] = 'The nomad team <%s>' % config.mail.cc_address
         to_addrs.append(config.mail.cc_address)
 
     try:

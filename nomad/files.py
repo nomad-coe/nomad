@@ -735,6 +735,8 @@ class PublicUploadFiles(UploadFiles):
         super().__init__(config.fs.public, *args, **kwargs)
         self._zipfile_cache: Dict[str, zipfile.ZipFile] = None
 
+        self._directories: Dict[str, List[Tuple[str, int, str]]] = None
+
     def get_zip_file(self, prefix: str, access: str, ext: str) -> PathObject:
         return self.join_file('%s-%s.%s.zip' % (prefix, access, ext))
 
@@ -824,30 +826,33 @@ class PublicUploadFiles(UploadFiles):
                 pass
 
     def raw_file_list(self, directory: str) -> List[Tuple[str, int]]:
+        if self._directories is None:
+            self._directories = dict()
+            for access in ['public', 'restricted']:
+                try:
+                    zf = self.open_zip_file('raw', access, 'plain')
+                    for path in zf.namelist():
+                        file_name = os.path.basename(path)
+                        directory_path = os.path.dirname(path)
+                        files = self._directories.setdefault(directory_path, [])
+
+                        files.append((file_name, zf.getinfo(path).file_size, access))
+
+                except FileNotFoundError:
+                    pass
+
         if directory is None:
             directory = ''
-        directory_len = len(directory)
+        else:
+            directory = directory.rstrip('/')
 
-        results = []
-        for access in ['public', 'restricted']:
+        results: List[Tuple[str, int]] = []
+        files = self._directories.get(directory, [])
+        for file_name, size, access in files:
             if access == 'restricted' and not self._is_authorized():
                 continue
 
-            try:
-                zf = self.open_zip_file('raw', access, 'plain')
-                for path in zf.namelist():
-                    content_path = path[directory_len + (0 if directory_len == 0 else 1):]
-                    if path.startswith(directory) and '/' not in content_path:
-                        if '/' not in content_path:
-                            if not always_restricted(content_path) or self._is_authorized():
-                                results.append((content_path, zf.getinfo(path).file_size))
-                        else:
-                            # this asserts that sub directories are always behind their
-                            # parents and file siblings
-                            break
-
-            except FileNotFoundError:
-                pass
+            results.append((file_name, size))
 
         return results
 
