@@ -259,6 +259,7 @@ class TestUploads:
         upload_proc = Upload.objects(upload_id=upload_id).first()
         assert upload_proc is not None
         assert upload_proc.published is True
+        assert upload_proc.embargo_length == min(36, metadata.get('embargo_length', 36))
         upload_with_metadata = upload_proc.to_upload_with_metadata()
 
         assert_upload_files(upload_with_metadata, files.PublicUploadFiles, published=True)

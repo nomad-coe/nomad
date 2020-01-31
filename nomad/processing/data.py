@@ -25,7 +25,7 @@ calculations, and files
 """
 
 from typing import cast, List, Any, ContextManager, Tuple, Generator, Dict, cast
-from mongoengine import StringField, DateTimeField, DictField, BooleanField
+from mongoengine import StringField, DateTimeField, DictField, BooleanField, IntField
 import logging
 from structlog import wrap_logger
 from contextlib import contextmanager
@@ -441,6 +441,7 @@ class Upload(Proc):
     upload_id = StringField(primary_key=True)
     upload_path = StringField(default=None)
     temporary = BooleanField(default=False)
+    embargo_length = IntField(default=36)
 
     name = StringField(default=None)
     upload_time = DateTimeField()
@@ -1034,6 +1035,8 @@ class Upload(Proc):
         for the upload and for each calculation. This method will try to move same values
         from the calculation to the upload to "compress" the data.
         """
+        self.embargo_length = min(metadata.get('embargo_length', 36), 36)
+
         compressed = {
             key: value for key, value in metadata.items() if key != 'calculations'}
         calculations: List[Dict[str, Any]] = []
