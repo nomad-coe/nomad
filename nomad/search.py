@@ -569,6 +569,8 @@ class SearchRequest:
             else:
                 search = search.sort('-%s' % order_by_quantity.elastic_field)
 
+            search = search.params(preserve_order=True)
+
         for hit in search.params(**kwargs).scan():
             yield hit.to_dict()
 
