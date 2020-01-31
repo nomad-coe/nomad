@@ -444,13 +444,13 @@ class RawFileQueryResource(Resource):
                 manifest = {}
                 directories = set()
                 upload_files = None
+                streamed, skipped = 0, 0
 
                 for entry in calcs:
                     upload_id = entry['upload_id']
                     mainfile = entry['mainfile']
                     if upload_files is None or upload_files.upload_id != upload_id:
-                        logger.info('opening next upload for raw file streaming')
-                        directories.clear()
+                        logger.info('opening next upload for raw file streaming', upload_id=upload_id)
                         if upload_files is not None:
                             upload_files.close_zipfile_cache()
 
@@ -467,8 +467,10 @@ class RawFileQueryResource(Resource):
                             return upload_files.raw_file(upload_filename, 'rb')
 
                     directory = os.path.dirname(mainfile)
-                    if directory not in directories:
-                        directories.add(directory)
+                    directory_w_upload = os.path.join(upload_files.upload_id, directory)
+                    if directory_w_upload not in directories:
+                        streamed += 1
+                        directories.add(directory_w_upload)
                         for filename, file_size in upload_files.raw_file_list(directory=directory):
                             filename = os.path.join(directory, filename)
                             filename_w_upload = os.path.join(upload_files.upload_id, filename)
@@ -476,10 +478,14 @@ class RawFileQueryResource(Resource):
                             if len(patterns) == 0 or any(
                                     fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
                                     for pattern in patterns):
-
                                 yield (
                                     filename_wo_prefix, filename, open_file,
                                     lambda *args, **kwargs: file_size)
+                    else:
+                        skipped += 1
+
+                    if (streamed + skipped) % 10000 == 0:
+                        logger.info('streaming raw files', streamed=streamed, skipped=skipped)
 
                     manifest[path(entry)] = {
                         key: entry[key]
